@@ -1,566 +1,882 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ailane — Venture-Scale AI Group | Compliance Intelligence</title>
-  <meta name="description" content="Ailane is a venture-scale AI group building compliance intelligence: regulation monitoring, impact summaries, and actions for businesses." />
-  <meta name="theme-color" content="#05071a" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ailane - Compliance Intelligence for UK Businesses</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <style>
-    :root{
-      --bg0:#05071a;
-      --bg1:#070b2b;
-      --bg2:#0a0f3a;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(255,255,255,.09);
-      --line: rgba(255,255,255,.12);
-      --text:#eaf2ff;
-      --muted: rgba(234,242,255,.72);
-      --muted2: rgba(234,242,255,.55);
-      --accent:#29d6ff;
-      --accent2:#2b7bff;
-      --good:#45f7b0;
-
-      --radius: 22px;
-      --shadow: 0 16px 60px rgba(0,0,0,.45);
-      --max: 1100px;
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', sans-serif;
+        background: #fff;
+        color: #1a1a2e;
+        overflow-x: hidden;
+        line-height: 1.6;
     }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      color:var(--text);
-      background:
-        radial-gradient(1200px 700px at 20% -10%, rgba(41,214,255,.20), transparent 60%),
-        radial-gradient(1100px 650px at 90% 20%, rgba(43,123,255,.22), transparent 55%),
-        radial-gradient(800px 500px at 50% 110%, rgba(69,247,176,.12), transparent 55%),
-        linear-gradient(180deg,var(--bg0),var(--bg1) 55%,var(--bg2));
-      overflow-x:hidden;
+    /* Navigation */
+    header {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        padding: 1.5rem 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
     }
 
-    a{ color:inherit; text-decoration:none; }
-    .wrap{ max-width:var(--max); margin:0 auto; padding:22px 16px 70px; }
-
-    /* Top nav */
-    .nav{
-      position:sticky;
-      top:0;
-      z-index:50;
-      backdrop-filter: blur(14px);
-      background: rgba(5,7,26,.55);
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .nav-inner{
-      max-width:var(--max);
-      margin:0 auto;
-      padding:14px 16px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:14px;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      font-weight:800;
-      letter-spacing:.18em;
-      text-transform:uppercase;
-      font-size:18px;
-    }
-    .brand-dot{
-      width:12px;height:12px;border-radius:999px;
-      background: linear-gradient(135deg,var(--accent),var(--accent2));
-      box-shadow: 0 0 22px rgba(41,214,255,.45);
-    }
-    .links{
-      display:flex; gap:18px; align-items:center;
-      font-weight:600;
-      color: var(--muted);
-      font-size:14px;
-    }
-    .links a{ opacity:.92; }
-    .links a:hover{ opacity:1; color:var(--text); }
-
-    /* Hero */
-    .hero{
-      padding:46px 0 22px;
-      display:grid;
-      grid-template-columns: 1.15fr .85fr;
-      gap:22px;
-      align-items:stretch;
-    }
-    @media (max-width: 900px){
-      .hero{ grid-template-columns: 1fr; padding-top:28px; }
-      .links{ display:none; }
+    .logo {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0f3460;
+        letter-spacing: -0.5px;
     }
 
-    .card{
-      border:1px solid rgba(255,255,255,.10);
-      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-    .hero-main{ padding:34px 28px; position:relative; overflow:hidden; }
-    .hero-main:before{
-      content:"";
-      position:absolute; inset:-60px -60px auto auto;
-      width:260px;height:260px;border-radius:999px;
-      background: radial-gradient(circle at 30% 30%, rgba(41,214,255,.35), transparent 60%);
-      transform: rotate(10deg);
+    .logo-dot {
+        color: #00d4ff;
     }
 
-    .eyebrow{
-      display:inline-flex;
-      gap:10px;
-      align-items:center;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.14);
-      color: var(--muted);
-      font-weight:650;
-      font-size:13px;
-    }
-    .pill{
-      font-weight:800;
-      color:#0b102f;
-      background: linear-gradient(135deg,var(--good),rgba(41,214,255,.95));
-      padding:5px 10px;
-      border-radius:999px;
-      letter-spacing:.02em;
+    nav a {
+        color: #4a5568;
+        text-decoration: none;
+        margin-left: 2rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: color 0.3s;
     }
 
-    h1{
-      margin:16px 0 8px;
-      font-size: clamp(34px, 5vw, 56px);
-      line-height:1.02;
-      letter-spacing:-.02em;
-    }
-    .tagline{
-      margin:0 0 12px;
-      color: rgba(234,242,255,.86);
-      font-weight:850;
-      letter-spacing:.01em;
-    }
-    .sub{
-      margin:0;
-      color: var(--muted);
-      font-size: 16.5px;
-      line-height:1.55;
-      max-width: 62ch;
+    nav a:hover {
+        color: #0f3460;
     }
 
-    .cta-row{
-      margin-top:20px;
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
-      padding:14px 16px;
-      border-radius: 14px;
-      border:1px solid rgba(255,255,255,.12);
-      font-weight:800;
-      letter-spacing:.01em;
-      cursor:pointer;
-      transition: transform .08s ease, opacity .2s ease;
-      user-select:none;
-      min-height:46px;
-    }
-    .btn:hover{ transform: translateY(-1px); }
-    .primary{
-      background: linear-gradient(135deg,var(--accent),var(--accent2));
-      color:#07102e;
-      border: none;
-      box-shadow: 0 16px 50px rgba(43,123,255,.22);
-    }
-    .ghost{
-      background: rgba(255,255,255,.06);
-      color: var(--text);
+    nav .cta-nav {
+        background: #0f3460;
+        color: #fff;
+        padding: 0.6rem 1.5rem;
+        border-radius: 6px;
+        transition: all 0.3s;
     }
 
-    .hero-side{ padding:22px; display:flex; flex-direction:column; gap:12px; }
-    .side-block{
-      padding:16px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-    }
-    .side-title{
-      margin:0 0 6px;
-      font-weight:850;
-      letter-spacing:.01em;
-    }
-    .side-text{
-      margin:0;
-      color: var(--muted);
-      line-height:1.55;
-      font-size:14.5px;
-    }
-    .badge-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-    .badge{
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.10);
-      color: var(--muted);
-      font-weight:700;
-      font-size:12.5px;
+    nav .cta-nav:hover {
+        background: #00d4ff;
+        color: #0f3460;
     }
 
-    /* Sections */
-    section{ margin-top:26px; }
-    .section-title{
-      margin:0 0 10px;
-      font-size: 22px;
-      letter-spacing:-.01em;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-    }
-    @media (max-width: 900px){ .grid{ grid-template-columns: 1fr; } }
-    .feature{
-      padding:18px;
-      border-radius: 18px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-    }
-    .kicker{
-      color: var(--muted2);
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      font-size:11px;
-      margin-bottom:6px;
-    }
-    .feature h3{ margin:0 0 6px; font-size:16px; }
-    .feature p{ margin:0; color:var(--muted); line-height:1.55; font-size:14.5px; }
-
-    /* Product */
-    .product{
-      display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap:12px;
-      align-items:stretch;
-    }
-    @media (max-width:900px){ .product{ grid-template-columns:1fr; } }
-    .product .card{ padding:22px; }
-    .list{
-      margin:10px 0 0;
-      padding:0;
-      list-style:none;
-      display:grid;
-      gap:10px;
-    }
-    .li{
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      padding:12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.12);
-    }
-    .dot{
-      width:10px;height:10px;border-radius:999px;
-      background: linear-gradient(135deg,var(--good),var(--accent));
-      box-shadow: 0 0 18px rgba(69,247,176,.25);
-      margin-top:4px;
-      flex:0 0 auto;
+    /* Hero Section */
+    .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8rem 5% 5rem;
+        background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #0f3460 100%);
+        position: relative;
+        overflow: hidden;
     }
 
-    /* Contact */
-    .contact{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="%2300d4ff" fill-opacity="0.1"/></svg>');
+        opacity: 0.3;
     }
-    @media (max-width:900px){ .contact{ grid-template-columns:1fr; } }
-    .contact .card{ padding:22px; }
-    label{ display:block; font-weight:750; font-size:13px; color:var(--muted); margin:10px 0 6px; }
-    input, textarea{
-      width:100%;
-      padding:12px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
-      color: var(--text);
-      outline:none;
-      font-size:15px;
+
+    .hero-content {
+        max-width: 900px;
+        position: relative;
+        z-index: 1;
     }
-    textarea{ min-height:110px; resize:vertical; }
-    .fine{
-      color: var(--muted2);
-      font-size:12.5px;
-      line-height:1.5;
-      margin-top:10px;
+
+    .stage-badge {
+        display: inline-block;
+        background: rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+        padding: 0.5rem 1.2rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+
+    h1 {
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        line-height: 1.1;
+        letter-spacing: -1px;
+    }
+
+    .hero p {
+        font-size: clamp(1.1rem, 2vw, 1.4rem);
+        color: rgba(255, 255, 255, 0.85);
+        margin-bottom: 3rem;
+        line-height: 1.7;
+    }
+
+    .cta-container {
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 1rem 2.5rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: #00d4ff;
+        color: #0f3460;
+        box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: #00e5ff;
+        transform: translateY(-2px);
+        box-shadow: 0 15px 40px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: #fff;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-secondary:hover {
+        border-color: #00d4ff;
+        color: #00d4ff;
+        transform: translateY(-2px);
+    }
+
+    /* Trust Bar */
+    .trust-bar {
+        background: #f7fafc;
+        padding: 2rem 5%;
+        text-align: center;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .trust-items {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        flex-wrap: wrap;
+        color: #4a5568;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .trust-items span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .trust-items span::before {
+        content: '✓';
+        color: #00d4ff;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+
+    /* Problem Section */
+    .problem {
+        background: #1a1a2e;
+        color: #fff;
+        padding: 6rem 5%;
+    }
+
+    .section-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    h2 {
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #fff;
+    }
+
+    .problem-intro {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 3rem;
+        max-width: 700px;
+    }
+
+    .problem-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+    }
+
+    .problem-item {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .problem-item h3 {
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+        color: #00d4ff;
+    }
+
+    .problem-item p {
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.7;
+    }
+
+    /* Solution Section */
+    .solution {
+        padding: 6rem 5%;
+        background: #fff;
+    }
+
+    .solution h2 {
+        color: #0f3460;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .solution-intro {
+        text-align: center;
+        font-size: 1.2rem;
+        color: #4a5568;
+        max-width: 700px;
+        margin: 0 auto 4rem;
+    }
+
+    .solution-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 3rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .solution-card {
+        text-align: center;
+        padding: 2.5rem;
+        background: #f7fafc;
+        border-radius: 12px;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .solution-card:hover {
+        transform: translateY(-5px);
+        border-color: #00d4ff;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    .solution-icon {
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .solution-card h3 {
+        font-size: 1.5rem;
+        color: #0f3460;
+        margin-bottom: 1rem;
+    }
+
+    .solution-card p {
+        color: #4a5568;
+        line-height: 1.7;
+    }
+
+    /* How It Works */
+    .how-it-works {
+        padding: 6rem 5%;
+        background: linear-gradient(135deg, #f7fafc 0%, #fff 100%);
+    }
+
+    .how-it-works h2 {
+        color: #0f3460;
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+
+    .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .step {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .step-number {
+        display: inline-block;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #0f3460, #00d4ff);
+        color: #fff;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 60px;
+        margin-bottom: 1.5rem;
+    }
+
+    .step h3 {
+        font-size: 1.3rem;
+        color: #0f3460;
+        margin-bottom: 1rem;
+    }
+
+    .step p {
+        color: #4a5568;
+        line-height: 1.7;
+    }
+
+    /* Who It's For */
+    .target {
+        padding: 6rem 5%;
+        background: #0f3460;
+        color: #fff;
+    }
+
+    .target h2 {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .target-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .target-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .target-item h3 {
+        font-size: 1.3rem;
+        color: #00d4ff;
+        margin-bottom: 1rem;
+    }
+
+    .target-item p {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Pricing Section */
+    .pricing {
+        padding: 6rem 5%;
+        background: #fff;
+    }
+
+    .pricing h2 {
+        color: #0f3460;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .pricing-intro {
+        text-align: center;
+        font-size: 1.1rem;
+        color: #4a5568;
+        margin-bottom: 4rem;
+    }
+
+    .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .pricing-card {
+        background: #f7fafc;
+        border-radius: 12px;
+        padding: 3rem 2rem;
+        text-align: center;
+        border: 2px solid transparent;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .pricing-card:hover {
+        border-color: #00d4ff;
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .pricing-card.popular {
+        background: #0f3460;
+        color: #fff;
+        border-color: #00d4ff;
+    }
+
+    .popular-badge {
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #00d4ff;
+        color: #0f3460;
+        padding: 0.4rem 1.2rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .pricing-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: #0f3460;
+    }
+
+    .pricing-card.popular h3 {
+        color: #fff;
+    }
+
+    .price {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #0f3460;
+        margin-bottom: 0.5rem;
+    }
+
+    .pricing-card.popular .price {
+        color: #00d4ff;
+    }
+
+    .price-period {
+        font-size: 1rem;
+        color: #4a5568;
+        margin-bottom: 2rem;
+    }
+
+    .pricing-card.popular .price-period {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .pricing-features {
+        list-style: none;
+        margin-bottom: 2rem;
+        text-align: left;
+    }
+
+    .pricing-features li {
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        color: #4a5568;
+    }
+
+    .pricing-card.popular .pricing-features li {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .pricing-features li::before {
+        content: '✓';
+        color: #00d4ff;
+        font-weight: 700;
+        margin-right: 0.8rem;
+    }
+
+    .pricing-cta {
+        width: 100%;
+    }
+
+    .pricing-card.popular .btn-primary {
+        background: #00d4ff;
+        color: #0f3460;
+    }
+
+    /* Final CTA */
+    .final-cta {
+        padding: 6rem 5%;
+        background: linear-gradient(135deg, #0f3460, #16213e);
+        text-align: center;
+        color: #fff;
+    }
+
+    .final-cta h2 {
+        margin-bottom: 1.5rem;
+    }
+
+    .final-cta p {
+        font-size: 1.3rem;
+        color: rgba(255, 255, 255, 0.85);
+        max-width: 700px;
+        margin: 0 auto 3rem;
     }
 
     /* Footer */
-    footer{
-      margin-top:28px;
-      padding-top:18px;
-      border-top:1px solid rgba(255,255,255,.10);
-      color: var(--muted2);
-      font-size:13px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
+    footer {
+        background: #0a0a1a;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 3rem 5%;
+        text-align: center;
     }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-  </style>
+
+    footer a {
+        color: #00d4ff;
+        text-decoration: none;
+    }
+
+    footer a:hover {
+        text-decoration: underline;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        header {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem 5%;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        nav a {
+            margin: 0;
+        }
+
+        .hero {
+            padding-top: 8rem;
+        }
+
+        .cta-container {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+
+        .trust-items {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .pricing-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+```
+
 </head>
-
 <body>
-  <div class="nav">
-    <div class="nav-inner">
-      <div class="brand">
-        <span class="brand-dot"></span>
-        AILANE
-      </div>
-      <div class="links">
-        <a href="#vision">Vision</a>
-        <a href="#product">First product</a>
-        <a href="#capabilities">Capabilities</a>
-        <a href="#contact">Contact</a>
-      </div>
+    <!-- Navigation -->
+    <header>
+        <div class="logo">AILANE<span class="logo-dot">.ai</span></div>
+        <nav>
+            <a href="#solution">Solution</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#early-access" class="cta-nav">Stay Informed</a>
+        </nav>
+    </header>
+
+```
+<!-- Hero Section -->
+<section class="hero" id="home">
+    <div class="hero-content">
+        <div class="stage-badge">Stage 1: Launching Compliance Intelligence</div>
+        <h1>Regulatory Change Doesn't Warn You. Ailane Does.</h1>
+        <p>
+            AI-powered compliance intelligence for HR and leadership teams. Track employment law updates, 
+            case law shifts, and statutory risk automatically.
+        </p>
+        <div class="cta-container">
+            <a href="#early-access" class="btn btn-primary">Stay Informed</a>
+            <a href="#how-it-works" class="btn btn-secondary">See How It Works</a>
+        </div>
     </div>
-  </div>
+</section>
 
-  <div class="wrap">
-    <div class="hero" id="home">
-      <div class="card hero-main">
-        <div class="eyebrow">
-          <span class="pill">Stage 1</span>
-          Launching Compliance Intelligence for regulated businesses.
-        </div>
-
-        <h1>AI parent company.<br/>Designed to deliver at scale.</h1>
-        <p class="tagline">From signal to action.</p>
-
-        <p class="sub">
-          Ailane is a venture-scale AI group building <b>Compliance Intelligence</b>:
-          monitoring regulatory change, summarising impact, and converting updates into clear actions for business leaders.
-          <br/><br/>
-          <b>Ailane combines AI systems, specialist partners, and deployable execution teams to deliver outcomes fast.</b>
-        </p>
-
-        <div class="cta-row">
-          <a class="btn primary" href="#product">See the first product</a>
-          <a class="btn ghost" href="mailto:mark@ailane.ai?subject=Ailane%20—%20Intro&body=Hi%20Mark%2C%0A%0AI%27d%20like%20to%20talk%20about%3A%20%0A%0A%2D%20Company%2FOrg%3A%20%0A%2D%20Industry%3A%20%0A%2D%20Jurisdiction(s)%3A%20%0A%2D%20What%20you%20need%3A%20%0A%0AThanks%2C">Email Mark</a>
-        </div>
-
-        <p class="fine">
-          Contact: <span class="mono">mark@ailane.ai</span> • Domains: ailane.ai / ailane.co.uk
-        </p>
-      </div>
-
-      <div class="card hero-side">
-        <div class="side-block">
-          <p class="side-title">What Ailane delivers</p>
-          <p class="side-text">
-            A product engine that turns complex rules into simple decisions — and automates the workflow from insight to action.
-          </p>
-          <div class="badge-row">
-            <span class="badge">Regulatory monitoring</span>
-            <span class="badge">Impact summaries</span>
-            <span class="badge">Action checklists</span>
-            <span class="badge">Email alerts</span>
-            <span class="badge">Subscription SaaS</span>
-          </div>
-        </div>
-
-        <div class="side-block">
-          <p class="side-title">Delivery model</p>
-          <p class="side-text">
-            AI-led execution, automation-first systems, and deployable specialist capability where required — built for rapid iteration and scale.
-          </p>
-        </div>
-
-        <div class="side-block">
-          <p class="side-title">Status</p>
-          <p class="side-text">
-            Website live. Email live. Product MVP in build. Early partners and pilot customers welcome.
-          </p>
-        </div>
-      </div>
+<!-- Trust Bar -->
+<section class="trust-bar">
+    <div class="trust-items">
+        <span>UK HR Leaders</span>
+        <span>Employment Law Intelligence</span>
+        <span>Case Law Monitoring</span>
+        <span>Risk-Sensitive Organisations</span>
     </div>
+</section>
 
-    <section id="vision">
-      <h2 class="section-title">Vision</h2>
-      <div class="grid">
-        <div class="feature">
-          <div class="kicker">North Star</div>
-          <h3>Make compliance effortless</h3>
-          <p>Compliance should be operationally simple: clear obligations, deadlines, owners, and evidence — without the overhead.</p>
-        </div>
-        <div class="feature">
-          <div class="kicker">Strategy</div>
-          <h3>Start with one killer product</h3>
-          <p>A tight MVP, fast feedback loops, and clear subscription value — then expand into adjacent products under one parent.</p>
-        </div>
-        <div class="feature">
-          <div class="kicker">Scale</div>
-          <h3>Systems that compound</h3>
-          <p>Each jurisdiction, rule-set, and workflow becomes reusable infrastructure for the next vertical and the next product.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="product" class="product">
-      <div class="card">
-        <h2 class="section-title">First product: Ailane Compliance</h2>
-        <p class="sub" style="max-width:none">
-          A subscription service for businesses: regulation updates, structured summaries, and “what to do next” actions — tailored by jurisdiction and industry.
+<!-- Problem Section -->
+<section class="problem">
+    <div class="section-container">
+        <h2>The Problem</h2>
+        <p class="problem-intro">
+            Employment law changes frequently and unpredictably. One missed update can create civil liability, 
+            tribunal exposure, and operational disruption.
         </p>
+        <div class="problem-grid">
+            <div class="problem-item">
+                <h3>Frequent Changes</h3>
+                <p>Employment law shifts frequently without advance warning, leaving teams reactive rather than prepared.</p>
+            </div>
+            <div class="problem-item">
+                <h3>Case Law Precedents</h3>
+                <p>Civil case precedents reshape operational risk, but HR teams lack real-time tribunal intelligence.</p>
+            </div>
+            <div class="problem-item">
+                <h3>Manual Monitoring</h3>
+                <p>Manual tracking through newsletters and government sites wastes executive time and misses critical updates.</p>
+            </div>
+            <div class="problem-item">
+                <h3>Operational Risk</h3>
+                <p>One missed statutory update can result in compliance failure, tribunal claims, and reputational damage.</p>
+            </div>
+        </div>
+    </div>
+</section>
 
-        <ul class="list">
-          <li class="li"><span class="dot"></span><div><b>Monitor</b> updates from regulators, councils, and public bodies.</div></li>
-          <li class="li"><span class="dot"></span><div><b>Summarise</b> impact in plain English (risk, cost, deadlines).</div></li>
-          <li class="li"><span class="dot"></span><div><b>Recommend</b> actions: checklist + templates + owner.</div></li>
-          <li class="li"><span class="dot"></span><div><b>Deliver</b> alerts by email + dashboard (audit trail).</div></li>
-          <li class="li"><span class="dot"></span><div><b>Scale</b> from SMB to enterprise-grade governance.</div></li>
-        </ul>
-
-        <div class="cta-row" style="margin-top:16px">
-          <a class="btn primary" href="mailto:mark@ailane.ai?subject=Ailane%20Compliance%20—%20Early%20Access&body=Hi%20Mark%2C%0A%0AI%27d%20like%20early%20access%20to%20Ailane%20Compliance.%0A%0ACompany%3A%20%0AIndustry%3A%20%0AJurisdiction(s)%3A%20%0AWhat%20compliance%20pain%20do%20you%20have%3F%20%0A%0AThanks%2C">Request early access</a>
-          <a class="btn ghost" href="#contact">Partner / Invest</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2 class="section-title" style="margin-bottom:8px">Who it’s for</h2>
-        <div class="feature" style="margin-bottom:12px">
-          <div class="kicker">Primary</div>
-          <h3>SMBs with real compliance pressure</h3>
-          <p>Construction, property, retail, health/beauty, hospitality, transport, HR-heavy operations.</p>
-        </div>
-        <div class="feature" style="margin-bottom:12px">
-          <div class="kicker">Secondary</div>
-          <h3>Accountants, consultants, and MSPs</h3>
-          <p>Offer “compliance + automation” as a managed service — powered by Ailane as the engine.</p>
-        </div>
-        <div class="feature">
-          <div class="kicker">Enterprise path</div>
-          <h3>Teams needing audit trails</h3>
-          <p>Policy libraries, role-based access, evidence capture, approvals, and reporting.</p>
-        </div>
-        <p class="fine">
-          Custom builds and partnerships: <span class="mono">mark@ailane.ai</span>
+<!-- Solution Section -->
+<section class="solution" id="solution">
+    <div class="section-container">
+        <h2>The Solution</h2>
+        <p class="solution-intro">
+            Ailane delivers real-time compliance intelligence. Monitor statutory updates, case law developments, 
+            and regulatory shifts affecting your workforce — automatically.
         </p>
-      </div>
-    </section>
-
-    <section id="capabilities">
-      <h2 class="section-title">Capabilities</h2>
-      <div class="grid">
-        <div class="feature">
-          <div class="kicker">Intelligence</div>
-          <h3>Summarisation + classification</h3>
-          <p>Convert long documents into structured obligations: topics, duties, deadlines, owners, and evidence.</p>
+        <div class="solution-grid">
+            <div class="solution-card">
+                <div class="solution-icon">🔍</div>
+                <h3>Monitor</h3>
+                <p>
+                    Continuous scanning of government publications, employment tribunals, and regulatory bodies 
+                    for relevant statutory and case law changes.
+                </p>
+            </div>
+            <div class="solution-card">
+                <div class="solution-icon">🧠</div>
+                <h3>Analyse</h3>
+                <p>
+                    AI-powered risk classification and operational impact scoring. Updates filtered by your sector 
+                    and workforce structure for maximum relevance.
+                </p>
+            </div>
+            <div class="solution-card">
+                <div class="solution-icon">⚡</div>
+                <h3>Act</h3>
+                <p>
+                    Risks summarised in plain executive language. Board-level reporting dashboard with action 
+                    checklists and compliance recommendations.
+                </p>
+            </div>
         </div>
-        <div class="feature">
-          <div class="kicker">Automation</div>
-          <h3>Alerts + workflows</h3>
-          <p>Notifications, task lists, evidence capture, and an auditable decision log.</p>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="how-it-works" id="how-it-works">
+    <div class="section-container">
+        <h2>How It Works</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Continuous Scanning</h3>
+                <p>Ailane monitors government publications, courts, and regulatory bodies for employment law changes.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Relevance Filtering</h3>
+                <p>Updates are filtered for relevance to your sector, workforce structure, and operational context.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Impact Scoring</h3>
+                <p>Risks are scored and summarised in plain executive language with clear operational implications.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <h3>Alerts & Dashboard</h3>
+                <p>Alerts and reports delivered via dashboard and email with action checklists and policy guidance.</p>
+            </div>
         </div>
-        <div class="feature">
-          <div class="kicker">Platform</div>
-          <h3>Subscription SaaS architecture</h3>
-          <p>FastAPI + Postgres now. Supabase/Auth/Stripe as scale demands. Built for subscriptions and governance.</p>
+    </div>
+</section>
+
+<!-- Who It's For -->
+<section class="target">
+    <div class="section-container">
+        <h2>Who It's For</h2>
+        <div class="target-grid">
+            <div class="target-item">
+                <h3>HR & People Operations</h3>
+                <p>Stay ahead of employment law changes affecting workforce management and employee relations.</p>
+            </div>
+            <div class="target-item">
+                <h3>Compliance Officers</h3>
+                <p>Automate regulatory monitoring and reduce manual tracking across statutory frameworks.</p>
+            </div>
+            <div class="target-item">
+                <h3>Medium-Sized UK Businesses</h3>
+                <p>Enterprise-grade compliance intelligence without enterprise costs or complexity.</p>
+            </div>
+            <div class="target-item">
+                <h3>Risk-Sensitive Organisations</h3>
+                <p>Organisations where regulatory exposure creates operational or reputational risk.</p>
+            </div>
         </div>
-      </div>
-    </section>
+    </div>
+</section>
 
-    <section id="contact" class="contact">
-      <div class="card">
-        <h2 class="section-title">Contact</h2>
-        <p class="sub" style="max-width:none">Fastest way: email directly.</p>
-        <div class="cta-row" style="margin-top:12px">
-          <a class="btn primary" href="mailto:mark@ailane.ai?subject=Ailane%20—%20Contact&body=Hi%20Mark%2C%0A%0AHere%27s%20what%20I%27m%20reaching%20out%20about%3A%0A%0A%2D%20%0A%0AThanks%2C">mark@ailane.ai</a>
-          <a class="btn ghost" href="#product">Early access</a>
+<!-- Pricing -->
+<section class="pricing" id="pricing">
+    <div class="section-container">
+        <h2>Simple, Transparent Pricing</h2>
+        <p class="pricing-intro">Choose the plan that fits your organisation. All plans include core monitoring features.</p>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Starter</h3>
+                <div class="price">£49</div>
+                <div class="price-period">per month</div>
+                <ul class="pricing-features">
+                    <li>Statutory updates monitoring</li>
+                    <li>Weekly email digest</li>
+                    <li>Email alerts</li>
+                    <li>Up to 3 users</li>
+                    <li>Email support</li>
+                </ul>
+                <a href="#early-access" class="btn btn-primary pricing-cta">Get Started</a>
+            </div>
+
+            <div class="pricing-card popular">
+                <div class="popular-badge">Most Popular</div>
+                <h3>Growth</h3>
+                <div class="price">£149</div>
+                <div class="price-period">per month</div>
+                <ul class="pricing-features">
+                    <li>Everything in Starter</li>
+                    <li>Case law summaries</li>
+                    <li>Risk scoring & classification</li>
+                    <li>Sector benchmarking</li>
+                    <li>Dashboard access</li>
+                    <li>Up to 10 users</li>
+                    <li>Priority email support</li>
+                </ul>
+                <a href="#early-access" class="btn btn-primary pricing-cta">Get Started</a>
+            </div>
+
+            <div class="pricing-card">
+                <h3>Pro</h3>
+                <div class="price">£399</div>
+                <div class="price-period">per month</div>
+                <ul class="pricing-features">
+                    <li>Everything in Growth</li>
+                    <li>Policy suggestions</li>
+                    <li>Audit logs & compliance trails</li>
+                    <li>Unlimited users</li>
+                    <li>Priority updates</li>
+                    <li>Dedicated account manager</li>
+                    <li>Phone & chat support</li>
+                </ul>
+                <a href="#early-access" class="btn btn-primary pricing-cta">Get Started</a>
+            </div>
+
+            <div class="pricing-card">
+                <h3>Enterprise</h3>
+                <div class="price">Custom</div>
+                <div class="price-period">contact us</div>
+                <ul class="pricing-features">
+                    <li>Everything in Pro</li>
+                    <li>Multi-entity support</li>
+                    <li>API access</li>
+                    <li>SLA support</li>
+                    <li>Custom integrations</li>
+                    <li>On-premise deployment option</li>
+                    <li>White-label available</li>
+                </ul>
+                <a href="#early-access" class="btn btn-primary pricing-cta">Contact Sales</a>
+            </div>
         </div>
-        <p class="fine">
-          Partners/investors: include sector, geography, and the problem area to target.
-        </p>
-      </div>
+    </div>
+</section>
 
-      <div class="card">
-        <h2 class="section-title">Quick message</h2>
-        <form onsubmit="sendMail(event)">
-          <label for="name">Name</label>
-          <input id="name" name="name" placeholder="Your name" required />
+<!-- Final CTA -->
+<section class="final-cta" id="early-access">
+    <h2>Stay Informed About Regulatory Risk</h2>
+    <p>
+        Be the first to know when Ailane launches. Join UK organisations preparing to stay ahead 
+        of compliance change.
+    </p>
+    <div class="cta-container">
+        <a href="mailto:info@ailane.ai?subject=Stay Informed - Ailane Launch Updates" class="btn btn-primary">Stay Informed</a>
+        <a href="mailto:info@ailane.ai?subject=General Inquiry" class="btn btn-secondary">Contact Us</a>
+    </div>
+</section>
 
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" placeholder="you@company.com" required />
+<!-- Footer -->
+<footer>
+    <p>&copy; 2026 Ailane. All rights reserved.</p>
+    <p style="margin-top: 1rem;">
+        Built for UK HR leaders and risk-sensitive organisations. 
+        <a href="/cdn-cgi/l/email-protection#5f363139301f3e36333e313a713e36"><span class="__cf_email__" data-cfemail="9cf5f2faf3dcfdf5f0fdf2f9b2fdf5">[email&#160;protected]</span></a>
+    </p>
+</footer>
 
-          <label for="msg">Message</label>
-          <textarea id="msg" name="msg" placeholder="What needs solving? Industry + jurisdiction?" required></textarea>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
 
-          <div class="cta-row" style="margin-top:12px">
-            <button class="btn primary" type="submit">Send</button>
-            <button class="btn ghost" type="button" onclick="prefillPartner()">Partner / Invest prompt</button>
-          </div>
-
-          <p class="fine">
-            This form opens your email app (no tracking, no cookies).
-          </p>
-        </form>
-      </div>
-    </section>
-
-    <footer>
-      <div>© <span id="year"></span> Ailane</div>
-      <div class="mono">mark@ailane.ai</div>
-    </footer>
-  </div>
-
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-
-    function prefillPartner(){
-      document.getElementById("msg").value =
-`Partner / Invest
-
-- Org:
-- Location:
-- Sector:
-- What to build:
-- Timeline:
-- Budget (if any):
-`;
-    }
-
-    function sendMail(e){
-      e.preventDefault();
-      const name = encodeURIComponent(document.getElementById("name").value.trim());
-      const email = encodeURIComponent(document.getElementById("email").value.trim());
-      const msg = encodeURIComponent(document.getElementById("msg").value.trim());
-
-      const subject = encodeURIComponent("Ailane — Website contact");
-      const body =
-`Name: ${decodeURIComponent(name)}
-Email: ${decodeURIComponent(email)}
-
-Message:
-${decodeURIComponent(msg)}
-`;
-
-      window.location.href = `mailto:mark@ailane.ai?subject=${subject}&body=${encodeURIComponent(body)}`;
-    }
-  </script>
-</body>
-</html>
+    // Header scroll effect
+    let lastScroll = 0;
+    const header = document.querySelector('header');
+    
+    window.addEventListener('scroll', () => {
+        const
+```
