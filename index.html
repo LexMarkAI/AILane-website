@@ -3,992 +3,795 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ailane — Regulatory Exposure Intelligence for UK Businesses</title>
-<meta name="description" content="The Ailane Core Exposure Index (ACEI) quantifies your employment regulatory exposure into a single, constitutionally-governed score. Like a credit score for compliance risk.">
+<title>Ailane — Compliance Intelligence for UK Employers</title>
+<meta name="description" content="The ACEI quantifies your regulatory exposure like a credit score. Monitor 12 categories of employment tribunal risk across the UK. Built for businesses with 75-200 employees.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,300&display=swap" rel="stylesheet">
 <style>
-/* ─── RESET & VARIABLES ────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg-primary: #050910;
-  --bg-card: rgba(255,255,255,0.022);
-  --bg-card-hover: rgba(255,255,255,0.04);
-  --border: rgba(255,255,255,0.06);
-  --border-hover: rgba(255,255,255,0.12);
-  --text-primary: #f0f2f5;
-  --text-secondary: rgba(255,255,255,0.55);
-  --text-muted: rgba(255,255,255,0.3);
-  --text-faint: rgba(255,255,255,0.15);
-  --accent: #22c55e;
-  --accent-glow: rgba(34,197,94,0.15);
-  --accent-2: #06b6d4;
-  --band-low: #22c55e;
-  --band-controlled: #84cc16;
-  --band-elevated: #eab308;
+  --bg-primary: #06080d;
+  --bg-card: #0c1019;
+  --bg-card-hover: #111723;
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-accent: rgba(56,189,248,0.2);
+  --text-primary: #e8ecf4;
+  --text-secondary: #8894aa;
+  --text-muted: #5a6478;
+  --accent-cyan: #38bdf8;
+  --accent-cyan-dim: rgba(56,189,248,0.12);
+  --accent-emerald: #34d399;
+  --accent-amber: #fbbf24;
+  --accent-rose: #fb7185;
+  --accent-violet: #a78bfa;
+  --band-low: #34d399;
+  --band-controlled: #38bdf8;
+  --band-elevated: #fbbf24;
   --band-high: #f97316;
   --band-severe: #ef4444;
-  --font-display: 'Instrument Serif', Georgia, serif;
-  --font-body: 'Outfit', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 10px;
+  --radius-lg: 16px;
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: var(--font-body);
+  font-family: 'DM Sans', -apple-system, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.7;
+  line-height: 1.6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-a { color: inherit; text-decoration: none; }
+/* ── UTILITY ── */
+.container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 
-/* ─── AMBIENT BACKGROUND ───────────────────────────────────── */
-.ambient {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 0;
-}
-.ambient::before {
-  content: ''; position: absolute; top: -20%; right: -10%;
-  width: 800px; height: 800px;
-  background: radial-gradient(circle, rgba(34,197,94,0.04) 0%, transparent 60%);
-}
-.ambient::after {
-  content: ''; position: absolute; bottom: -30%; left: -15%;
-  width: 900px; height: 900px;
-  background: radial-gradient(circle, rgba(6,182,212,0.03) 0%, transparent 55%);
-}
-
-/* ─── NOISE TEXTURE ────────────────────────────────────────── */
-body::after {
-  content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  opacity: 0.015; pointer-events: none; z-index: 9999;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* ─── CONTAINER ────────────────────────────────────────────── */
-.container { max-width: 1140px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
-
-/* ─── NAV ──────────────────────────────────────────────────── */
+/* ── NAV ── */
 nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  padding: 18px 0;
-  background: rgba(5,9,16,0.85);
+  background: rgba(6,8,13,0.82);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  transition: all 0.3s;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 24px;
 }
-nav .container { display: flex; justify-content: space-between; align-items: center; }
-.nav-logo {
-  font-family: var(--font-display);
-  font-size: 22px; font-weight: 400;
-  letter-spacing: -0.3px;
+nav .nav-inner {
+  max-width: 1140px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px;
 }
-.nav-logo span { color: var(--text-muted); }
-.nav-links { display: flex; gap: 32px; align-items: center; }
-.nav-links a {
-  font-size: 13px; font-weight: 400;
-  color: var(--text-secondary); letter-spacing: 0.3px;
-  transition: color 0.2s;
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 18px; font-weight: 700;
+  letter-spacing: 4px; color: var(--accent-cyan);
+  text-decoration: none;
 }
-.nav-links a:hover { color: var(--text-primary); }
+.logo span { color: var(--text-muted); font-weight: 400; font-size: 11px; letter-spacing: 1px; margin-left: 10px; }
+nav ul { display: flex; gap: 32px; list-style: none; }
+nav a { color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+nav a:hover { color: var(--text-primary); }
 .nav-cta {
-  padding: 8px 22px !important;
-  background: rgba(34,197,94,0.1) !important;
-  border: 1px solid rgba(34,197,94,0.25) !important;
-  border-radius: 6px !important;
-  color: var(--accent) !important;
-  font-weight: 500 !important;
-  transition: all 0.3s !important;
+  background: var(--accent-cyan); color: var(--bg-primary);
+  padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 13px;
+  transition: opacity 0.2s;
 }
-.nav-cta:hover {
-  background: rgba(34,197,94,0.18) !important;
-  border-color: rgba(34,197,94,0.4) !important;
+.nav-cta:hover { opacity: 0.88; color: var(--bg-primary); }
+
+@media (max-width: 768px) {
+  nav ul { display: none; }
 }
 
-/* ─── HERO ─────────────────────────────────────────────────── */
+/* ── HERO ── */
 .hero {
-  padding: 160px 0 100px;
+  padding: 160px 24px 100px;
   text-align: center;
-  position: relative;
-}
-.hero-badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 16px; margin-bottom: 28px;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 100px; font-size: 12px; color: var(--text-muted);
-  font-family: var(--font-mono); letter-spacing: 0.5px;
-}
-.hero-badge .dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-glow);
-  animation: pulse 2s infinite;
-}
-.hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(42px, 6vw, 72px);
-  font-weight: 400; line-height: 1.1;
-  letter-spacing: -1.5px;
-  margin-bottom: 24px;
-}
-.hero h1 em {
-  font-style: italic; color: var(--accent);
-  text-shadow: 0 0 60px var(--accent-glow);
-}
-.hero-sub {
-  font-size: 18px; color: var(--text-secondary);
-  max-width: 560px; margin: 0 auto 48px;
-  font-weight: 300; line-height: 1.8;
-}
-.hero-sub strong { color: var(--text-primary); font-weight: 500; }
-
-/* ─── GAUGE HERO ───────────────────────────────────────────── */
-.gauge-container {
-  display: flex; justify-content: center;
-  margin-bottom: 48px;
-  animation: gaugeIn 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s both;
-}
-.gauge-wrapper {
-  position: relative;
-  padding: 40px 60px 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-}
-.gauge-wrapper::before {
-  content: ''; position: absolute; inset: -1px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(34,197,94,0.08) 0%, transparent 50%, rgba(6,182,212,0.05) 100%);
-  z-index: -1;
-}
-.gauge-label {
-  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-  font-family: var(--font-mono); font-size: 10px;
-  color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase;
-}
-
-/* ─── CTA BUTTONS ──────────────────────────────────────────── */
-.cta-group { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-.btn-primary {
-  padding: 14px 36px;
-  background: var(--accent);
-  color: #050910; font-weight: 600; font-size: 15px;
-  border: none; border-radius: 8px; cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 0 30px var(--accent-glow);
-}
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 50px rgba(34,197,94,0.25); }
-.btn-secondary {
-  padding: 14px 36px;
-  background: transparent;
-  color: var(--text-secondary); font-weight: 500; font-size: 15px;
-  border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
-  transition: all 0.3s;
-}
-.btn-secondary:hover { border-color: var(--border-hover); color: var(--text-primary); }
-
-/* ─── SECTION STYLING ──────────────────────────────────────── */
-section { padding: 100px 0; }
-.section-label {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--text-muted); letter-spacing: 3px;
-  text-transform: uppercase; margin-bottom: 16px;
-}
-.section-title {
-  font-family: var(--font-display);
-  font-size: clamp(32px, 4vw, 48px);
-  font-weight: 400; line-height: 1.15;
-  letter-spacing: -1px; margin-bottom: 20px;
-}
-.section-desc {
-  font-size: 16px; color: var(--text-secondary);
-  max-width: 520px; font-weight: 300; line-height: 1.8;
-}
-
-/* ─── PROBLEM SECTION ──────────────────────────────────────── */
-.problem { border-top: 1px solid var(--border); }
-.problem-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px; margin-top: 56px;
-}
-.problem-card {
-  padding: 32px 28px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  transition: all 0.4s;
-}
-.problem-card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-hover);
-  transform: translateY(-2px);
-}
-.problem-icon {
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.15);
-  border-radius: 10px; margin-bottom: 20px;
-  font-size: 18px;
-}
-.problem-card h3 {
-  font-family: var(--font-body);
-  font-size: 17px; font-weight: 600;
-  margin-bottom: 10px; letter-spacing: -0.2px;
-}
-.problem-card p {
-  font-size: 14px; color: var(--text-secondary);
-  line-height: 1.7; font-weight: 300;
-}
-
-/* ─── HOW IT WORKS ─────────────────────────────────────────── */
-.how-it-works { border-top: 1px solid var(--border); }
-.steps {
-  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 1px; margin-top: 56px;
-  background: var(--border); border-radius: 14px; overflow: hidden;
-}
-.step {
-  padding: 36px 28px;
-  background: var(--bg-primary);
-  position: relative;
-}
-.step-num {
-  font-family: var(--font-mono);
-  font-size: 11px; color: var(--accent);
-  letter-spacing: 2px; margin-bottom: 16px;
-  opacity: 0.7;
-}
-.step h3 {
-  font-family: var(--font-display);
-  font-size: 22px; font-weight: 400;
-  margin-bottom: 12px;
-}
-.step p {
-  font-size: 13px; color: var(--text-secondary);
-  line-height: 1.7; font-weight: 300;
-}
-.step-connector {
-  position: absolute; right: -8px; top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-faint); font-size: 14px; z-index: 2;
-}
-
-/* ─── CATEGORIES ───────────────────────────────────────────── */
-.categories { border-top: 1px solid var(--border); }
-.cat-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 12px; margin-top: 56px;
-}
-.cat-item {
-  padding: 20px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  transition: all 0.3s;
   position: relative;
   overflow: hidden;
 }
-.cat-item:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-1px);
+.hero::before {
+  content: '';
+  position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
-.cat-item::before {
-  content: ''; position: absolute; top: 0; left: 0;
-  width: 3px; height: 100%; border-radius: 3px 0 0 3px;
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent-cyan-dim);
+  border: 1px solid var(--border-accent);
+  border-radius: 100px; padding: 6px 16px;
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  color: var(--accent-cyan); letter-spacing: 1px;
+  margin-bottom: 32px;
+  animation: fadeDown 0.8s ease both;
 }
-.cat-num {
-  font-family: var(--font-mono);
-  font-size: 10px; color: var(--text-muted);
-  letter-spacing: 1px; margin-bottom: 8px;
+.hero-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-cyan); animation: pulse-dot 2s infinite; }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.hero h1 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2.4rem, 5.5vw, 4rem);
+  font-weight: 800; line-height: 1.12;
+  max-width: 780px; margin: 0 auto 24px;
+  animation: fadeDown 0.8s 0.1s ease both;
 }
-.cat-name {
-  font-size: 13px; font-weight: 500;
-  line-height: 1.4; letter-spacing: -0.1px;
+.hero h1 em {
+  font-style: italic; font-weight: 300;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
-.cat-tag {
-  display: inline-block; margin-top: 8px;
-  padding: 2px 8px; border-radius: 4px;
-  font-family: var(--font-mono); font-size: 9px;
-  letter-spacing: 0.5px;
+.hero p {
+  font-size: 18px; color: var(--text-secondary);
+  max-width: 560px; margin: 0 auto 40px;
+  animation: fadeDown 0.8s 0.2s ease both;
+}
+.hero-actions {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  animation: fadeDown 0.8s 0.3s ease both;
+}
+.btn-primary {
+  background: var(--accent-cyan); color: var(--bg-primary);
+  padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 15px;
+  text-decoration: none; transition: all 0.2s; border: none; cursor: pointer;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(56,189,248,0.25); }
+.btn-secondary {
+  background: transparent; color: var(--text-primary);
+  padding: 14px 32px; border-radius: 8px; font-weight: 500; font-size: 15px;
+  text-decoration: none; border: 1px solid var(--border-subtle); transition: all 0.2s;
+}
+.btn-secondary:hover { border-color: var(--text-muted); }
+
+@keyframes fadeDown { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── GAUGE ── */
+.gauge-section { padding: 0 24px 80px; text-align: center; }
+.gauge-wrapper {
+  display: inline-block; position: relative;
+  width: 260px; height: 150px;
+  animation: fadeDown 0.8s 0.4s ease both;
+}
+.gauge-svg { width: 260px; height: 150px; }
+.gauge-value {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  font-family: 'Space Mono', monospace; font-size: 48px; font-weight: 700;
+  color: var(--band-low);
+}
+.gauge-label {
+  font-size: 12px; color: var(--text-muted); letter-spacing: 2px;
+  font-family: 'Space Mono', monospace; margin-top: 8px;
+  text-transform: uppercase;
+}
+.gauge-sublabel {
+  font-size: 13px; color: var(--text-secondary); margin-top: 4px;
 }
 
-/* ─── ANALOGY SECTION ──────────────────────────────────────── */
-.analogy {
-  border-top: 1px solid var(--border);
+/* ── SECTIONS ── */
+section { padding: 100px 24px; }
+.section-label {
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  color: var(--accent-cyan); letter-spacing: 3px; text-transform: uppercase;
+  margin-bottom: 12px;
 }
-.analogy-content {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 60px; align-items: center; margin-top: 56px;
+.section-title {
+  font-family: 'Fraunces', serif; font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 600; line-height: 1.2; margin-bottom: 16px;
 }
-.analogy-visual {
-  display: flex; flex-direction: column; gap: 8px;
+.section-desc {
+  font-size: 16px; color: var(--text-secondary); max-width: 600px; margin-bottom: 48px;
 }
-.band-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 18px;
+.section-desc.centered { margin-left: auto; margin-right: auto; text-align: center; }
+.section-title.centered { text-align: center; }
+.section-label.centered { text-align: center; }
+
+/* ── PROBLEM ── */
+.problem-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+.problem-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
   transition: all 0.3s;
 }
-.band-row:hover { background: var(--bg-card-hover); }
-.band-bar {
-  height: 6px; border-radius: 3px;
-  transition: all 0.5s;
+.problem-card:hover { border-color: var(--border-accent); background: var(--bg-card-hover); }
+.problem-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 20px;
 }
-.band-score {
-  font-family: var(--font-mono);
-  font-size: 12px; font-weight: 500;
-  min-width: 48px;
+.problem-card:nth-child(1) .problem-icon { background: rgba(251,113,133,0.12); }
+.problem-card:nth-child(2) .problem-icon { background: rgba(251,191,36,0.12); }
+.problem-card:nth-child(3) .problem-icon { background: rgba(167,139,250,0.12); }
+.problem-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+.problem-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; }
+
+/* ── HOW IT WORKS ── */
+.steps {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 2px; position: relative;
 }
-.band-label {
-  font-size: 13px; font-weight: 400;
-  color: var(--text-secondary); flex: 1;
+@media (max-width: 900px) { .steps { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 540px) { .steps { grid-template-columns: 1fr; } }
+.step {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 36px 28px;
+  position: relative;
+  transition: all 0.3s;
 }
-.analogy-text h3 {
-  font-family: var(--font-display);
-  font-size: 36px; font-weight: 400;
-  line-height: 1.2; margin-bottom: 20px;
-  letter-spacing: -0.5px;
+.step:hover { border-color: var(--border-accent); }
+.step-number {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; color: var(--accent-cyan);
+  letter-spacing: 2px; margin-bottom: 16px;
 }
-.analogy-text p {
-  font-size: 15px; color: var(--text-secondary);
-  line-height: 1.8; font-weight: 300;
-  margin-bottom: 16px;
+.step h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.step p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+/* ── CATEGORIES ── */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.cat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.cat-card:hover { border-color: var(--border-accent); transform: translateY(-2px); }
+.cat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+}
+.cat-card[data-color="cyan"]::before { background: var(--accent-cyan); }
+.cat-card[data-color="emerald"]::before { background: var(--accent-emerald); }
+.cat-card[data-color="amber"]::before { background: var(--accent-amber); }
+.cat-card[data-color="rose"]::before { background: var(--accent-rose); }
+.cat-card[data-color="violet"]::before { background: var(--accent-violet); }
+.cat-num {
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px;
+}
+.cat-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+.cat-card p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.uncapped-tag {
+  display: inline-block; margin-top: 8px;
+  background: rgba(251,113,133,0.12); color: var(--accent-rose);
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  letter-spacing: 1px; padding: 3px 8px; border-radius: 4px;
 }
 
-/* ─── PRICING ──────────────────────────────────────────────── */
-.pricing { border-top: 1px solid var(--border); }
+/* ── BANDS ── */
+.bands-container {
+  max-width: 700px; margin: 0 auto;
+}
+.band-row {
+  display: flex; align-items: center; gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.band-row:last-child { border-bottom: none; }
+.band-range {
+  font-family: 'Space Mono', monospace; font-size: 14px;
+  width: 80px; text-align: right; flex-shrink: 0;
+}
+.band-bar-bg {
+  flex: 1; height: 8px; background: rgba(255,255,255,0.04);
+  border-radius: 4px; overflow: hidden;
+}
+.band-bar { height: 100%; border-radius: 4px; transition: width 1.5s ease; }
+.band-label { font-size: 14px; font-weight: 500; width: 150px; flex-shrink: 0; }
+.band-low .band-bar { background: var(--band-low); width: 20%; }
+.band-controlled .band-bar { background: var(--band-controlled); width: 40%; }
+.band-elevated .band-bar { background: var(--band-elevated); width: 60%; }
+.band-high .band-bar { background: var(--band-high); width: 80%; }
+.band-severe .band-bar { background: var(--band-severe); width: 100%; }
+.band-low .band-range { color: var(--band-low); }
+.band-controlled .band-range { color: var(--band-controlled); }
+.band-elevated .band-range { color: var(--band-elevated); }
+.band-high .band-range { color: var(--band-high); }
+.band-severe .band-range { color: var(--band-severe); }
+
+/* ── PRICING ── */
 .pricing-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px; margin-top: 56px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px; align-items: start;
 }
 .price-card {
-  padding: 36px 30px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  transition: all 0.4s;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
   position: relative;
+  transition: all 0.3s;
 }
-.price-card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-2px);
-}
+.price-card:hover { border-color: var(--border-accent); }
 .price-card.featured {
-  border-color: rgba(34,197,94,0.25);
-  background: rgba(34,197,94,0.03);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 60px rgba(56,189,248,0.08);
 }
-.price-card.featured::before {
-  content: 'Most Popular';
-  position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
-  padding: 4px 14px; background: var(--accent);
-  color: #050910; font-size: 11px; font-weight: 600;
-  border-radius: 4px; letter-spacing: 0.3px;
+.popular-badge {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--accent-cyan); color: var(--bg-primary);
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  letter-spacing: 2px; padding: 4px 16px; border-radius: 100px;
+  font-weight: 700;
 }
-.price-tier {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--text-muted); letter-spacing: 2px;
-  text-transform: uppercase; margin-bottom: 12px;
-}
+.price-tier { font-size: 13px; color: var(--text-muted); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
 .price-amount {
-  font-family: var(--font-display);
-  font-size: 48px; font-weight: 400;
-  line-height: 1; margin-bottom: 4px;
+  font-family: 'Fraunces', serif; font-size: 48px; font-weight: 800;
+  margin-bottom: 4px;
 }
-.price-amount span { font-size: 20px; color: var(--text-muted); }
-.price-period { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
-.price-features { list-style: none; margin-bottom: 28px; }
+.price-amount span { font-size: 16px; font-weight: 400; color: var(--text-muted); }
+.price-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.6; }
+.price-features { list-style: none; margin-bottom: 32px; }
 .price-features li {
-  padding: 8px 0;
-  font-size: 13.5px; color: var(--text-secondary);
-  font-weight: 300;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 13px; color: var(--text-secondary);
+  padding: 8px 0; border-bottom: 1px solid var(--border-subtle);
   display: flex; align-items: flex-start; gap: 10px;
 }
 .price-features li::before {
-  content: '→';
-  color: var(--accent); font-family: var(--font-mono);
-  font-size: 12px; margin-top: 1px; flex-shrink: 0;
+  content: '✓'; color: var(--accent-emerald); font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
 }
 .price-btn {
-  width: 100%; padding: 12px;
-  border-radius: 8px; border: none;
-  font-family: var(--font-body);
-  font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: all 0.3s;
+  display: block; text-align: center; width: 100%;
+  padding: 14px; border-radius: 8px;
+  font-weight: 700; font-size: 14px;
+  text-decoration: none; transition: all 0.2s;
+  border: none; cursor: pointer;
 }
-.price-btn-primary {
-  background: var(--accent); color: #050910;
-  box-shadow: 0 0 20px var(--accent-glow);
-}
-.price-btn-primary:hover { box-shadow: 0 0 40px rgba(34,197,94,0.2); }
-.price-btn-secondary {
-  background: rgba(255,255,255,0.05); color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-.price-btn-secondary:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.price-btn-primary { background: var(--accent-cyan); color: var(--bg-primary); }
+.price-btn-primary:hover { box-shadow: 0 8px 30px rgba(56,189,248,0.25); }
+.price-btn-outline { background: transparent; color: var(--text-primary); border: 1px solid var(--border-subtle); }
+.price-btn-outline:hover { border-color: var(--text-muted); }
 
-/* ─── TRUST / GOVERNANCE ───────────────────────────────────── */
-.trust { border-top: 1px solid var(--border); }
-.trust-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 20px; margin-top: 56px;
+/* ── GOVERNANCE ── */
+.governance-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
 }
-.trust-card {
-  padding: 28px 26px;
+.gov-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  transition: all 0.3s;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 28px 24px;
 }
-.trust-card:hover { border-color: var(--border-hover); }
-.trust-card h3 {
-  font-family: var(--font-display);
-  font-size: 20px; font-weight: 400;
-  margin-bottom: 10px;
+.gov-card h3 {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px; color: var(--accent-cyan);
+  letter-spacing: 1px; margin-bottom: 10px;
 }
-.trust-card p {
-  font-size: 13.5px; color: var(--text-secondary);
-  line-height: 1.7; font-weight: 300;
-}
-.trust-mono {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--accent); opacity: 0.6;
-  margin-bottom: 10px; letter-spacing: 1px;
-}
+.gov-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
 
-/* ─── FINAL CTA ────────────────────────────────────────────── */
-.final-cta {
-  padding: 120px 0;
+/* ── CTA ── */
+.cta-section {
   text-align: center;
-  border-top: 1px solid var(--border);
-  position: relative;
+  background: linear-gradient(180deg, transparent, rgba(56,189,248,0.03), transparent);
 }
-.final-cta::before {
-  content: ''; position: absolute;
-  top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 600px; height: 400px;
-  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 60%);
-  pointer-events: none;
+.cta-form {
+  display: flex; gap: 12px; max-width: 460px; margin: 0 auto;
+  flex-wrap: wrap; justify-content: center;
 }
-.final-cta h2 {
-  font-family: var(--font-display);
-  font-size: clamp(36px, 5vw, 56px);
-  font-weight: 400; margin-bottom: 20px;
-  letter-spacing: -1px; position: relative;
+.cta-input {
+  flex: 1; min-width: 240px;
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: 8px; padding: 14px 18px;
+  color: var(--text-primary); font-size: 14px; font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border-color 0.2s;
 }
-.final-cta p {
-  font-size: 16px; color: var(--text-secondary);
-  margin-bottom: 36px; font-weight: 300;
-  position: relative;
-}
+.cta-input:focus { border-color: var(--accent-cyan); }
+.cta-input::placeholder { color: var(--text-muted); }
 
-/* Email form */
-.email-form {
-  display: flex; gap: 10px; justify-content: center;
-  max-width: 460px; margin: 0 auto;
-  position: relative;
-}
-.email-form input {
-  flex: 1; padding: 14px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.3s;
-}
-.email-form input::placeholder { color: var(--text-muted); }
-.email-form input:focus { border-color: rgba(34,197,94,0.3); }
-
-/* ─── FOOTER ───────────────────────────────────────────────── */
+/* ── FOOTER ── */
 footer {
-  padding: 40px 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border-subtle);
+  padding: 48px 24px;
 }
-footer .container {
+.footer-inner {
+  max-width: 1140px; margin: 0 auto;
   display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 16px;
 }
-.footer-left {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--text-faint); letter-spacing: 0.5px;
+.footer-legal {
+  font-size: 12px; color: var(--text-muted); line-height: 1.8;
 }
-.footer-right {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--text-faint);
-}
-.footer-right a { color: var(--text-muted); transition: color 0.2s; }
-.footer-right a:hover { color: var(--text-secondary); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 12px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--text-secondary); }
 
-/* ─── ANIMATIONS ───────────────────────────────────────────── */
-@keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent-glow); }
-  50% { opacity: 0.4; box-shadow: 0 0 4px transparent; }
-}
-@keyframes gaugeIn {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.fade-up { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) both; }
-.delay-1 { animation-delay: 0.1s; }
-.delay-2 { animation-delay: 0.2s; }
-.delay-3 { animation-delay: 0.3s; }
-.delay-4 { animation-delay: 0.4s; }
-.delay-5 { animation-delay: 0.5s; }
-
-/* ─── RESPONSIVE ───────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .problem-grid, .pricing-grid { grid-template-columns: 1fr; }
-  .steps { grid-template-columns: 1fr 1fr; }
-  .cat-grid { grid-template-columns: 1fr 1fr; }
-  .analogy-content { grid-template-columns: 1fr; gap: 40px; }
-  .trust-grid { grid-template-columns: 1fr; }
-  .step-connector { display: none; }
-  .nav-links a:not(.nav-cta) { display: none; }
-}
-@media (max-width: 600px) {
-  .steps { grid-template-columns: 1fr; }
-  .cat-grid { grid-template-columns: 1fr; }
-  .email-form { flex-direction: column; }
-  footer .container { flex-direction: column; gap: 12px; text-align: center; }
+/* ── DIVIDER ── */
+.divider {
+  width: 100%; height: 1px;
+  background: var(--border-subtle);
+  max-width: 1140px; margin: 0 auto;
 }
 </style>
 </head>
 <body>
 
-<div class="ambient"></div>
-
 <!-- NAV -->
 <nav>
-  <div class="container">
-    <a href="#" class="nav-logo"><span>ailane</span>.co.uk</a>
-    <div class="nav-links">
-      <a href="#how">How It Works</a>
-      <a href="#categories">Coverage</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#early-access" class="nav-cta">Get Early Access</a>
-    </div>
+  <div class="nav-inner">
+    <a href="#" class="logo">AILANE <span>ACEI</span></a>
+    <ul>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#categories">Categories</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#early-access" class="nav-cta">Early Access</a></li>
+    </ul>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
   <div class="container">
-    <div class="hero-badge fade-up">
-      <span class="dot"></span>
-      ACEI v6.0 — Now Live
-    </div>
-
-    <h1 class="fade-up delay-1">
-      Your regulatory exposure,<br><em>quantified</em>
-    </h1>
-
-    <p class="hero-sub fade-up delay-2">
-      The Ailane Core Exposure Index gives UK businesses a single, constitutionally-governed score measuring their <strong>employment regulatory exposure</strong>. Think of it as a credit score for compliance risk.
-    </p>
-
-    <!-- GAUGE -->
-    <div class="gauge-container">
-      <div class="gauge-wrapper">
-        <svg width="300" height="185" viewBox="0 0 300 185">
-          <!-- Track -->
-          <path d="M 30 155 A 120 120 0 0 1 270 155" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="22" stroke-linecap="round"/>
-
-          <!-- Band segments -->
-          <path d="M 30 155 A 120 120 0 0 1 56.7 81.5" fill="none" stroke="#22c55e" stroke-width="3.5" opacity="0.25" stroke-linecap="round"/>
-          <path d="M 56.7 81.5 A 120 120 0 0 1 108.7 42.5" fill="none" stroke="#84cc16" stroke-width="3.5" opacity="0.25"/>
-          <path d="M 108.7 42.5 A 120 120 0 0 1 191.3 42.5" fill="none" stroke="#eab308" stroke-width="3.5" opacity="0.25"/>
-          <path d="M 191.3 42.5 A 120 120 0 0 1 243.3 81.5" fill="none" stroke="#f97316" stroke-width="3.5" opacity="0.25"/>
-          <path d="M 243.3 81.5 A 120 120 0 0 1 270 155" fill="none" stroke="#ef4444" stroke-width="3.5" opacity="0.25"/>
-
-          <!-- Active arc (animated) -->
-          <path d="M 30 155 A 120 120 0 0 1 56.7 81.5" fill="none" stroke="#22c55e" stroke-width="22" stroke-linecap="round"
-            style="filter: drop-shadow(0 0 12px rgba(34,197,94,0.3));">
-            <animate attributeName="stroke-dasharray" from="0 400" to="200 400" dur="1.5s" fill="freeze" calcMode="spline" keySplines="0.16 1 0.3 1" begin="0.5s"/>
-          </path>
-
-          <!-- Score text -->
-          <text x="150" y="118" text-anchor="middle" fill="white" font-size="52" font-weight="700"
-            font-family="'Outfit', sans-serif" opacity="0">
-            14
-            <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze" begin="0.8s"/>
-          </text>
-          <text x="150" y="145" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="600"
-            letter-spacing="3" font-family="'Outfit', sans-serif" opacity="0">
-            LOW EXPOSURE
-            <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze" begin="1s"/>
-          </text>
-
-          <!-- Scale -->
-          <text x="25" y="172" fill="rgba(255,255,255,0.2)" font-size="11" font-family="'JetBrains Mono', monospace">0</text>
-          <text x="270" y="172" fill="rgba(255,255,255,0.2)" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="end">100</text>
-        </svg>
-        <div class="gauge-label">UK Market Baseline · SM 1.0 · JM 1.0</div>
-      </div>
-    </div>
-
-    <div class="cta-group fade-up delay-4">
+    <div class="hero-badge">ACEI VERSION 6.0 — NOW LIVE</div>
+    <h1>A credit score for your <em>regulatory exposure</em></h1>
+    <p>The Ailane Core Exposure Index monitors UK employment tribunal activity across 12 categories and quantifies your risk on a 0–100 scale. Built for businesses with 75–200 employees.</p>
+    <div class="hero-actions">
       <a href="#early-access" class="btn-primary">Request Early Access</a>
       <a href="#how" class="btn-secondary">See How It Works</a>
     </div>
   </div>
 </section>
 
-<!-- PROBLEM -->
-<section class="problem" id="problem">
-  <div class="container">
-    <div class="section-label">The Problem</div>
-    <div class="section-title">Employment law is a<br>minefield without a map</div>
-    <div class="section-desc">
-      UK businesses face mounting regulatory exposure across unfair dismissal, discrimination, whistleblowing, data protection, and more — but have no way to measure it.
-    </div>
+<!-- GAUGE -->
+<div class="gauge-section">
+  <div class="gauge-wrapper">
+    <svg class="gauge-svg" viewBox="0 0 260 150">
+      <!-- Background arc -->
+      <path d="M 30 140 A 100 100 0 0 1 230 140" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12" stroke-linecap="round"/>
+      <!-- Coloured segments -->
+      <path d="M 30 140 A 100 100 0 0 1 70 60" fill="none" stroke="#34d399" stroke-width="12" stroke-linecap="round" opacity="0.7"/>
+      <path d="M 70 60 A 100 100 0 0 1 130 40" fill="none" stroke="#38bdf8" stroke-width="12" stroke-linecap="round" opacity="0.7"/>
+      <path d="M 130 40 A 100 100 0 0 1 190 60" fill="none" stroke="#fbbf24" stroke-width="12" stroke-linecap="round" opacity="0.7"/>
+      <path d="M 190 60 A 100 100 0 0 1 218 95" fill="none" stroke="#f97316" stroke-width="12" stroke-linecap="round" opacity="0.7"/>
+      <path d="M 218 95 A 100 100 0 0 1 230 140" fill="none" stroke="#ef4444" stroke-width="12" stroke-linecap="round" opacity="0.7"/>
+      <!-- Needle -->
+      <line x1="130" y1="140" x2="62" y2="78" stroke="var(--text-primary)" stroke-width="2.5" stroke-linecap="round" opacity="0.9">
+        <animateTransform attributeName="transform" type="rotate" from="-90 130 140" to="-65 130 140" dur="1.5s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1"/>
+      </line>
+      <circle cx="130" cy="140" r="5" fill="var(--text-primary)" opacity="0.9"/>
+    </svg>
+    <div class="gauge-value">14</div>
+  </div>
+  <div class="gauge-label">UK Market Baseline</div>
+  <div class="gauge-sublabel">Low Exposure — as of February 2026</div>
+</div>
 
+<div class="divider"></div>
+
+<!-- PROBLEM -->
+<section>
+  <div class="container">
+    <div class="section-label">THE PROBLEM</div>
+    <div class="section-title">Compliance risk you can feel but can't measure</div>
+    <div class="section-desc">Mid-sized UK employers face a regulatory environment that shifts weekly. Without quantified intelligence, exposure is invisible until it becomes a tribunal claim.</div>
     <div class="problem-grid">
-      <div class="problem-card fade-up">
-        <div class="problem-icon">⚖️</div>
-        <h3>Invisible exposure</h3>
-        <p>Most mid-sized firms have no quantified view of their employment tribunal risk. They react to claims instead of managing exposure proactively.</p>
+      <div class="problem-card">
+        <div class="problem-icon">🔍</div>
+        <h3>Invisible Exposure</h3>
+        <p>Employment law changes constantly — tribunal decisions, enforcement campaigns, legislative amendments. Without systematic monitoring, your business accumulates risk silently.</p>
       </div>
-      <div class="problem-card fade-up delay-1">
+      <div class="problem-card">
         <div class="problem-icon">📊</div>
-        <h3>Fragmented intelligence</h3>
-        <p>Regulatory changes are tracked in newsletters, not systems. There's no single source of truth telling you how today's legal landscape affects your business.</p>
+        <h3>Fragmented Intelligence</h3>
+        <p>Legal updates scattered across newsletters, law firm bulletins and government gazettes. No single source quantifies what it all means for your specific exposure profile.</p>
       </div>
-      <div class="problem-card fade-up delay-2">
+      <div class="problem-card">
         <div class="problem-icon">🎯</div>
-        <h3>One-size-fits-all advice</h3>
-        <p>A London financial services firm faces fundamentally different exposure than a Manchester manufacturer — but existing tools don't distinguish between them.</p>
+        <h3>One-Size-Fits-All Advice</h3>
+        <p>Generic guidance doesn't account for your sector, jurisdiction, or workforce composition. A London financial services firm faces fundamentally different exposure than a Midlands manufacturer.</p>
       </div>
     </div>
   </div>
 </section>
+
+<div class="divider"></div>
 
 <!-- HOW IT WORKS -->
-<section class="how-it-works" id="how">
+<section id="how">
   <div class="container">
-    <div class="section-label">How It Works</div>
-    <div class="section-title">From tribunal data<br>to a single score</div>
-    <div class="section-desc">
-      The ACEI processes real employment tribunal decisions through a deterministic mathematical engine governed by a formal constitution.
-    </div>
-
+    <div class="section-label centered">HOW IT WORKS</div>
+    <div class="section-title centered">From raw tribunal data to a single number</div>
+    <div class="section-desc centered">The ACEI pipeline transforms unstructured regulatory activity into a deterministic, reproducible exposure score governed by a public constitutional framework.</div>
     <div class="steps">
-      <div class="step fade-up">
-        <div class="step-num">01</div>
-        <h3>Monitor</h3>
-        <p>We continuously scrape UK employment tribunal decisions from GOV.UK and classify each into one of twelve regulatory exposure categories.</p>
-        <span class="step-connector">→</span>
+      <div class="step">
+        <div class="step-number">01 — MONITOR</div>
+        <h3>Automated Surveillance</h3>
+        <p>Continuous scraping of GOV.UK employment tribunal decisions, statutory instruments, and enforcement bulletins. Every relevant signal captured in real time.</p>
       </div>
-      <div class="step fade-up delay-1">
-        <div class="step-num">02</div>
-        <h3>Score</h3>
-        <p>The Article III mathematical engine calculates Likelihood × Impact for each category, weighted by your sector and jurisdiction multipliers.</p>
-        <span class="step-connector">→</span>
+      <div class="step">
+        <div class="step-number">02 — CLASSIFY</div>
+        <h3>12-Category Taxonomy</h3>
+        <p>Each event is deterministically assigned to one of 12 constitutional categories using overlap allocation rules. No ambiguity, no miscellaneous bucket.</p>
       </div>
-      <div class="step fade-up delay-2">
-        <div class="step-num">03</div>
-        <h3>Quantify</h3>
-        <p>Twelve category scores aggregate into a single Domain Index: your ACEI score, normalised 0–100 against our calibrated exposure model.</p>
-        <span class="step-connector">→</span>
+      <div class="step">
+        <div class="step-number">03 — SCORE</div>
+        <h3>Mathematical Engine</h3>
+        <p>Likelihood × Impact × Sector Multiplier × Jurisdiction Multiplier × Velocity Adjustment. Eight sequential computation steps, fully reproducible within 24 hours.</p>
       </div>
-      <div class="step fade-up delay-3">
-        <div class="step-num">04</div>
-        <h3>Act</h3>
-        <p>Upload compliance evidence to earn mitigation credits that lower your Adjusted Index. Track your score weekly. See exactly where you're exposed.</p>
+      <div class="step">
+        <div class="step-number">04 — QUANTIFY</div>
+        <h3>Your ACEI Score</h3>
+        <p>A single 0–100 number reflecting your aggregate regulatory exposure. Calibrated against Monte Carlo simulations. Bounded by constitutional shock caps and velocity controls.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CATEGORIES -->
-<section class="categories" id="categories">
+<div class="divider"></div>
+
+<!-- 12 CATEGORIES -->
+<section id="categories">
   <div class="container">
-    <div class="section-label">12-Category Coverage</div>
-    <div class="section-title">Every material exposure,<br>measured</div>
-    <div class="section-desc">
-      Version 6.0 covers twelve discrete employment tribunal exposure categories — from unfair dismissal to data protection and business transfers.
-    </div>
-
-    <div class="cat-grid">
-      <div class="cat-item" style="--cat-color: #ef4444"><style>.cat-item:nth-child(1)::before{background:#ef4444}</style>
-        <div class="cat-num">01</div>
-        <div class="cat-name">Unfair Dismissal &<br>Wrongful Termination</div>
+    <div class="section-label centered">COVERAGE</div>
+    <div class="section-title centered">12 categories of employment tribunal exposure</div>
+    <div class="section-desc centered">Version 6.0 expanded coverage from 5 to 12 discrete categories, eliminating blindspots in whistleblowing, parental rights, trade union obligations, health &amp; safety, data protection and contractual disputes.</div>
+    <div class="categories-grid">
+      <div class="cat-card" data-color="rose">
+        <div class="cat-num">CATEGORY 01</div>
+        <h3>Unfair Dismissal &amp; Wrongful Termination</h3>
+        <p>Substantive, procedural &amp; constructive dismissal claims</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(2)::before{background:#f97316}</style>
-        <div class="cat-num">02</div>
-        <div class="cat-name">Discrimination &<br>Harassment</div>
-        <div class="cat-tag" style="background:rgba(249,115,22,0.1);color:#f97316">UNCAPPED</div>
+      <div class="cat-card" data-color="rose">
+        <div class="cat-num">CATEGORY 02</div>
+        <h3>Discrimination &amp; Harassment</h3>
+        <p>All 9 protected characteristics, equal pay, victimisation</p>
+        <span class="uncapped-tag">UNCAPPED</span>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(3)::before{background:#eab308}</style>
-        <div class="cat-num">03</div>
-        <div class="cat-name">Wages, Working Time<br>& Holiday Pay</div>
+      <div class="cat-card" data-color="amber">
+        <div class="cat-num">CATEGORY 03</div>
+        <h3>Wages, Working Time &amp; Holiday Pay</h3>
+        <p>NMW/NLW violations, WTD breaches, holiday pay errors</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(4)::before{background:#a855f7}</style>
-        <div class="cat-num">04</div>
-        <div class="cat-name">Whistleblowing &<br>Protected Disclosures</div>
-        <div class="cat-tag" style="background:rgba(168,85,247,0.1);color:#a855f7">UNCAPPED</div>
+      <div class="cat-card" data-color="rose">
+        <div class="cat-num">CATEGORY 04</div>
+        <h3>Whistleblowing &amp; Protected Disclosures</h3>
+        <p>PIDA claims, detriment, dismissal, NDA disputes</p>
+        <span class="uncapped-tag">UNCAPPED</span>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(5)::before{background:#6366f1}</style>
-        <div class="cat-num">05</div>
-        <div class="cat-name">Employment Status &<br>Worker Classification</div>
+      <div class="cat-card" data-color="violet">
+        <div class="cat-num">CATEGORY 05</div>
+        <h3>Employment Status &amp; Worker Classification</h3>
+        <p>IR35, gig economy, zero-hours, umbrella companies</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(6)::before{background:#3b82f6}</style>
-        <div class="cat-num">06</div>
-        <div class="cat-name">Redundancy &<br>Organizational Change</div>
+      <div class="cat-card" data-color="amber">
+        <div class="cat-num">CATEGORY 06</div>
+        <h3>Redundancy &amp; Organisational Change</h3>
+        <p>Collective consultation, TUPE, protective awards</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(7)::before{background:#ec4899}</style>
-        <div class="cat-num">07</div>
-        <div class="cat-name">Parental &<br>Family Rights</div>
+      <div class="cat-card" data-color="emerald">
+        <div class="cat-num">CATEGORY 07</div>
+        <h3>Parental &amp; Family Rights</h3>
+        <p>Maternity, paternity, shared parental, flexible working</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(8)::before{background:#14b8a6}</style>
-        <div class="cat-num">08</div>
-        <div class="cat-name">Trade Union &<br>Collective Rights</div>
+      <div class="cat-card" data-color="cyan">
+        <div class="cat-num">CATEGORY 08</div>
+        <h3>Trade Union &amp; Collective Rights</h3>
+        <p>Recognition, blacklisting, industrial action protections</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(9)::before{background:#78716c}</style>
-        <div class="cat-num">09</div>
-        <div class="cat-name">Breach of Contract<br>& Notice Disputes</div>
+      <div class="cat-card" data-color="amber">
+        <div class="cat-num">CATEGORY 09</div>
+        <h3>Breach of Contract &amp; Notice Disputes</h3>
+        <p>PILON, garden leave, restrictive covenants, bonus claims</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(10)::before{background:#22c55e}</style>
-        <div class="cat-num">10</div>
-        <div class="cat-name">Health & Safety<br>Protections</div>
+      <div class="cat-card" data-color="emerald">
+        <div class="cat-num">CATEGORY 10</div>
+        <h3>Health &amp; Safety Protections</h3>
+        <p>H&amp;S detriment, unsafe work refusal, RIDDOR disputes</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(11)::before{background:#06b6d4}</style>
-        <div class="cat-num">11</div>
-        <div class="cat-name">Data Protection &<br>Employee Privacy</div>
+      <div class="cat-card" data-color="violet">
+        <div class="cat-num">CATEGORY 11</div>
+        <h3>Data Protection &amp; Employee Privacy</h3>
+        <p>GDPR Art.88, SAR disputes, AI recruitment, ICO exposure</p>
       </div>
-      <div class="cat-item"><style>.cat-item:nth-child(12)::before{background:#8b5cf6}</style>
-        <div class="cat-num">12</div>
-        <div class="cat-name">Business Transfers<br>& Insolvency</div>
+      <div class="cat-card" data-color="cyan">
+        <div class="cat-num">CATEGORY 12</div>
+        <h3>Business Transfers &amp; Insolvency</h3>
+        <p>NIF claims, administration disputes, preferential creditor</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ANALOGY -->
-<section class="analogy" id="analogy">
+<div class="divider"></div>
+
+<!-- EXPOSURE BANDS -->
+<section>
   <div class="container">
-    <div class="analogy-content">
-      <div class="analogy-visual">
-        <div class="band-row">
-          <div class="band-bar" style="width: 60px; background: #22c55e;"></div>
-          <div class="band-score" style="color: #22c55e;">0 – 20</div>
-          <div class="band-label">Low Exposure</div>
-        </div>
-        <div class="band-row">
-          <div class="band-bar" style="width: 90px; background: #84cc16;"></div>
-          <div class="band-score" style="color: #84cc16;">21 – 40</div>
-          <div class="band-label">Controlled Exposure</div>
-        </div>
-        <div class="band-row">
-          <div class="band-bar" style="width: 120px; background: #eab308;"></div>
-          <div class="band-score" style="color: #eab308;">41 – 60</div>
-          <div class="band-label">Elevated Exposure</div>
-        </div>
-        <div class="band-row">
-          <div class="band-bar" style="width: 160px; background: #f97316;"></div>
-          <div class="band-score" style="color: #f97316;">61 – 80</div>
-          <div class="band-label">High Exposure</div>
-        </div>
-        <div class="band-row">
-          <div class="band-bar" style="width: 200px; background: #ef4444;"></div>
-          <div class="band-score" style="color: #ef4444;">81 – 100</div>
-          <div class="band-label">Severe Exposure</div>
-        </div>
+    <div class="section-label centered">INTERPRETATION</div>
+    <div class="section-title centered">What your score means</div>
+    <div class="section-desc centered">Like a credit score, the ACEI translates complex data into a single actionable number. Interpretation bands give instant context.</div>
+    <div class="bands-container">
+      <div class="band-row band-low">
+        <div class="band-range">0 – 20</div>
+        <div class="band-bar-bg"><div class="band-bar"></div></div>
+        <div class="band-label">Low Exposure</div>
       </div>
-
-      <div class="analogy-text">
-        <div class="section-label">Exposure Bands</div>
-        <h3>Like a credit score,<br>but for regulatory risk</h3>
-        <p>Your ACEI score ranges from 0 to 100. It reflects the current state of the regulatory environment — weighted for your specific industry and location — not a prediction of future claims.</p>
-        <p>The score updates weekly based on real tribunal activity, enforcement intensity, and legislative change. Upload compliance evidence to earn mitigation credits and lower your Adjusted Index.</p>
-        <p style="color: var(--text-muted); font-size: 13px; font-family: var(--font-mono);">
-          Governed by the ACEI Constitution v6.0<br>
-          Deterministic · Reproducible · Version-controlled
-        </p>
+      <div class="band-row band-controlled">
+        <div class="band-range">21 – 40</div>
+        <div class="band-bar-bg"><div class="band-bar"></div></div>
+        <div class="band-label">Controlled Exposure</div>
+      </div>
+      <div class="band-row band-elevated">
+        <div class="band-range">41 – 60</div>
+        <div class="band-bar-bg"><div class="band-bar"></div></div>
+        <div class="band-label">Elevated Exposure</div>
+      </div>
+      <div class="band-row band-high">
+        <div class="band-range">61 – 80</div>
+        <div class="band-bar-bg"><div class="band-bar"></div></div>
+        <div class="band-label">High Exposure</div>
+      </div>
+      <div class="band-row band-severe">
+        <div class="band-range">81 – 100</div>
+        <div class="band-bar-bg"><div class="band-bar"></div></div>
+        <div class="band-label">Severe Exposure</div>
       </div>
     </div>
   </div>
 </section>
+
+<div class="divider"></div>
 
 <!-- PRICING -->
-<section class="pricing" id="pricing">
+<section id="pricing">
   <div class="container">
-    <div style="text-align: center;">
-      <div class="section-label">Pricing</div>
-      <div class="section-title">Choose your plan</div>
-      <div class="section-desc" style="margin: 0 auto;">
-        Every plan includes your weekly ACEI score, sector and jurisdiction weighting, and full category breakdown.
-      </div>
-    </div>
-
+    <div class="section-label centered">PRICING</div>
+    <div class="section-title centered">Intelligence that scales with your risk profile</div>
+    <div class="section-desc centered">All plans include the weekly Public ACEI Index. Higher tiers unlock category-level breakdowns, sector adjustments, and constitutional mitigation credits.</div>
     <div class="pricing-grid">
       <!-- Monitor -->
-      <div class="price-card fade-up">
+      <div class="price-card">
         <div class="price-tier">Monitor</div>
-        <div class="price-amount">£49<span>/mo</span></div>
-        <div class="price-period">Per organisation · Billed annually</div>
+        <div class="price-amount">£49 <span>/month</span></div>
+        <div class="price-desc">Weekly market-level exposure intelligence for compliance-aware teams getting started.</div>
         <ul class="price-features">
-          <li>Weekly ACEI Domain Index score</li>
-          <li>Sector & jurisdiction weighting</li>
-          <li>12-category exposure breakdown</li>
-          <li>Weekly email digest</li>
-          <li>Historical score tracking</li>
+          <li>Weekly ACEI Public Index (0–100)</li>
+          <li>12-category exposure summary</li>
+          <li>Weekly delta &amp; 4-week trend</li>
+          <li>Structural Regime Shift alerts</li>
+          <li>Email delivery every Monday</li>
         </ul>
-        <button class="price-btn price-btn-secondary">Request Access</button>
+        <a href="#early-access" class="price-btn price-btn-outline">Get Started</a>
       </div>
-
       <!-- Professional -->
-      <div class="price-card featured fade-up delay-1">
+      <div class="price-card featured">
+        <div class="popular-badge">MOST POPULAR</div>
         <div class="price-tier">Professional</div>
-        <div class="price-amount">£149<span>/mo</span></div>
-        <div class="price-period">Per organisation · Billed annually</div>
+        <div class="price-amount">£149 <span>/month</span></div>
+        <div class="price-desc">Category-level intelligence with sector and jurisdiction calibration for your specific risk profile.</div>
         <ul class="price-features">
           <li>Everything in Monitor</li>
-          <li>Mitigation framework access</li>
-          <li>Upload compliance evidence for Tier I–III credits</li>
-          <li>Adjusted Index tracking</li>
-          <li>Forward Exposure Register alerts</li>
-          <li>Structural Regime Shift notifications</li>
+          <li>Category-level score breakdown</li>
+          <li>Sector Multiplier calibration</li>
+          <li>Jurisdiction Multiplier calibration</li>
+          <li>Velocity momentum indicators</li>
+          <li>Forward Exposure Register access</li>
+          <li>Up to 5 mitigation credits per quarter</li>
         </ul>
-        <button class="price-btn price-btn-primary">Request Access</button>
+        <a href="#early-access" class="price-btn price-btn-primary">Request Access</a>
       </div>
-
       <!-- Enterprise -->
-      <div class="price-card fade-up delay-2">
+      <div class="price-card">
         <div class="price-tier">Enterprise</div>
-        <div class="price-amount">£399<span>/mo</span></div>
-        <div class="price-period">Per organisation · Billed annually</div>
+        <div class="price-amount">£399 <span>/month</span></div>
+        <div class="price-desc">Full constitutional framework access with dedicated mitigation support and multi-jurisdiction aggregation.</div>
         <ul class="price-features">
           <li>Everything in Professional</li>
-          <li>Multi-jurisdiction aggregation</li>
-          <li>API access for internal systems</li>
-          <li>Custom sector multiplier calibration</li>
-          <li>Quarterly governance report</li>
-          <li>Dedicated compliance analyst</li>
+          <li>Unlimited mitigation credits</li>
+          <li>Tier I–III evidentiary framework</li>
+          <li>Multi-jurisdiction workforce weighting</li>
+          <li>Severity Concentration Flags</li>
+          <li>API access (read-only)</li>
+          <li>Quarterly governance briefing</li>
+          <li>Priority Structural Regime Shift notifications</li>
         </ul>
-        <button class="price-btn price-btn-secondary">Contact Sales</button>
+        <a href="#early-access" class="price-btn price-btn-outline">Contact Us</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- TRUST -->
-<section class="trust" id="trust">
-  <div class="container">
-    <div style="text-align: center;">
-      <div class="section-label">Institutional Governance</div>
-      <div class="section-title">Built on constitutional<br>infrastructure</div>
-      <div class="section-desc" style="margin: 0 auto;">
-        The ACEI isn't a black box. It's governed by a formal constitution with versioned methodology, amendment controls, and audit reproducibility.
-      </div>
-    </div>
+<div class="divider"></div>
 
-    <div class="trust-grid">
-      <div class="trust-card">
-        <div class="trust-mono">Article I</div>
-        <h3>Deterministic computation</h3>
-        <p>Identical inputs produce identical outputs. No stochastic elements in live scoring. Every weekly index value is reproducible within 24 hours upon request.</p>
+<!-- GOVERNANCE -->
+<section>
+  <div class="container">
+    <div class="section-label centered">INSTITUTIONAL GOVERNANCE</div>
+    <div class="section-title centered">Built like a financial index, not a newsletter</div>
+    <div class="section-desc centered">The ACEI is governed by a published constitutional framework with formal amendment protocols, version control, and audit reproducibility — the same infrastructure that underpins indices like the FTSE and S&amp;P.</div>
+    <div class="governance-grid">
+      <div class="gov-card">
+        <h3>Article I — Determinism</h3>
+        <p>Identical inputs always produce identical outputs. Stochastic elements are prohibited in live scoring. Every weekly value is reproducible within 24 hours.</p>
       </div>
-      <div class="trust-card">
-        <div class="trust-mono">Article IV</div>
-        <h3>Calibrated against extremes</h3>
-        <p>The Domain Max Reference is set at the 95th percentile of Monte Carlo simulated extreme exposure — ensuring the scale has structural headroom for genuine crises.</p>
+      <div class="gov-card">
+        <h3>Article IV — Calibration</h3>
+        <p>DomainMaxReference set at 95th percentile via Monte Carlo simulation (1,000+ runs). Prevents premature saturation and preserves structural escalation headroom.</p>
       </div>
-      <div class="trust-card">
-        <div class="trust-mono">Article V</div>
-        <h3>Structural regime controls</h3>
-        <p>Shock caps prevent uncontrolled index escalation. Single-event movement cannot exceed 8 points. Weekly movement cannot exceed 25 under any circumstance.</p>
+      <div class="gov-card">
+        <h3>Article V — Structural Shifts</h3>
+        <p>Distinguishes ordinary volatility from fundamental regulatory transformation. Requires both quantitative threshold AND qualifying legal trigger. Shock Caps enforce bounded movement.</p>
       </div>
-      <div class="trust-card">
-        <div class="trust-mono">Article XII</div>
-        <h3>Version-controlled evolution</h3>
-        <p>Major methodology changes require supermajority governance approval, 24-month backtesting, and 14-day review windows. Amendments apply prospectively only.</p>
+      <div class="gov-card">
+        <h3>Article XII — Amendments</h3>
+        <p>Major changes require 75% supermajority plus external advisory review. 24-month backtesting mandatory. Non-retroactive — historical scores are permanent.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FINAL CTA -->
-<section class="final-cta" id="early-access">
+<div class="divider"></div>
+
+<!-- CTA -->
+<section class="cta-section" id="early-access">
   <div class="container">
-    <h2>Know your number</h2>
-    <p>Join the early access programme and get your organisation's ACEI score.</p>
-    <div class="email-form">
-      <input type="email" placeholder="Work email address" aria-label="Email address">
-      <button class="btn-primary" onclick="handleSubmit()" style="white-space: nowrap;">Get Early Access</button>
+    <div class="section-label centered">EARLY ACCESS</div>
+    <div class="section-title centered">Be first to quantify your exposure</div>
+    <div class="section-desc centered">We're onboarding UK employers with 75–200 employees for early access to the ACEI platform. Limited places available.</div>
+    <div class="cta-form" id="ctaForm">
+      <input type="email" class="cta-input" id="emailInput" placeholder="Work email address" aria-label="Work email address" required>
+      <button type="button" class="btn-primary" onclick="handleSubmit()" style="flex-shrink:0;">Request Access</button>
     </div>
-    <p style="font-size: 12px; color: var(--text-faint); margin-top: 16px;">
-      No commitment required · We'll reach out within 48 hours
-    </p>
+    <p id="formMsg" style="margin-top:16px; font-size:13px; color:var(--accent-emerald); display:none;">Thanks — we'll be in touch shortly.</p>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <div class="container">
-    <div class="footer-left">
-      © 2026 AI Lane Limited (Company No. 17035654) · Trading as Ailane
+  <div class="footer-inner">
+    <div class="footer-legal">
+      Published by AI Lane Limited (Company No. 17035654) trading as Ailane<br>
+      ACEI Constitution Version 6.0 &nbsp;·&nbsp; All rights reserved &nbsp;·&nbsp; © 2026
     </div>
-    <div class="footer-right">
-      <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Constitution v6.0</a>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Constitution</a>
     </div>
   </div>
 </footer>
 
 <script>
-// Simple scroll-triggered fade-in
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.style.opacity = '1';
-      entry.target.style.transform = 'translateY(0)';
-    }
-  });
-}, { threshold: 0.1 });
-
-document.querySelectorAll('.problem-card, .step, .cat-item, .price-card, .trust-card, .band-row').forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(16px)';
-  el.style.transition = 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)';
-  observer.observe(el);
-});
-
-// Stagger category items
-document.querySelectorAll('.cat-item').forEach((el, i) => {
-  el.style.transitionDelay = `${i * 40}ms`;
-});
-
-// Smooth scroll for anchor links
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
-    e.preventDefault();
-    const target = document.querySelector(a.getAttribute('href'));
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-});
-
 function handleSubmit() {
-  const input = document.querySelector('.email-form input');
-  const email = input.value.trim();
-  if (email && email.includes('@')) {
+  const input = document.getElementById('emailInput');
+  const msg = document.getElementById('formMsg');
+  if (input.value && input.value.includes('@')) {
+    msg.style.display = 'block';
     input.value = '';
-    input.placeholder = '✓ We\'ll be in touch shortly';
-    input.style.borderColor = 'rgba(34,197,94,0.4)';
+    input.style.borderColor = 'rgba(52,211,153,0.4)';
+    setTimeout(() => { input.style.borderColor = ''; }, 3000);
+  } else {
+    input.style.borderColor = 'rgba(251,113,133,0.6)';
+    setTimeout(() => { input.style.borderColor = ''; }, 2000);
   }
 }
+
+// Animate bands on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.band-bar').forEach(bar => {
+        bar.style.transition = 'width 1.2s cubic-bezier(0.4,0,0.2,1)';
+      });
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('.bands-container').forEach(el => observer.observe(el));
 </script>
 
 </body>
