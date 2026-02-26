@@ -31,14 +31,10 @@
 -- RLS must be enabled before policies take effect.
 -- If a table doesn't exist, that statement will error — just skip it.
 
--- Original 5 tables
 ALTER TABLE public.tribunal_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scraper_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.acei_domain_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.acei_category_scores ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.signups ENABLE ROW LEVEL SECURITY;
-
--- Additional tables (from Supabase dashboard audit)
 ALTER TABLE public.acei_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.actions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
@@ -140,31 +136,7 @@ CREATE POLICY "Anon cannot access category scores"
   WITH CHECK (false);
 
 
--- ─── STEP 7: SIGNUPS (email capture) ──────────────────────────────────────
--- Anon can INSERT only (landing page email capture form).
--- No read access for anon or authenticated — only service role can read.
--- This protects the email list from being scraped.
-
-CREATE POLICY "Anon can submit signups"
-  ON public.signups
-  FOR INSERT
-  TO anon
-  WITH CHECK (true);
-
-CREATE POLICY "Anon cannot read signups"
-  ON public.signups
-  FOR SELECT
-  TO anon
-  USING (false);
-
-CREATE POLICY "Authenticated cannot read signups"
-  ON public.signups
-  FOR SELECT
-  TO authenticated
-  USING (false);
-
-
--- ─── STEP 8: ACEI_VERSIONS ────────────────────────────────────────────────
+-- ─── STEP 7: ACEI_VERSIONS ─────────────────────────────────────────────────
 -- Version metadata for ACEI scoring runs.
 -- Read-only for authenticated, write for service role only.
 
