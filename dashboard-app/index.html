@@ -1,16 +1,486 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ACEI Dashboard — Ailane Compliance Intelligence</title>
-    <meta name="description" content="Ailane Core Exposure Index client dashboard. Monitor your regulatory exposure score across 12 categories of UK employment tribunal risk." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,300&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/dashboard-app/assets/index-Gv72jzaI.js"></script>
-    <link rel="stylesheet" crossorigin href="/dashboard-app/assets/index-B-w347Ju.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane — UK Compliance Intelligence Platform | ACEI</title>
+<meta name="description" content="Quantify your employment law exposure with the ACEI — the UK's first compliance credit score. AI-powered monitoring of 129,000+ tribunal decisions across 12 risk categories.">
+<link rel="canonical" href="https://ailane.ai">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06080d;--bg-card:#0c1019;--bg-elevated:#111827;
+  --border:rgba(255,255,255,0.06);--border-hover:rgba(255,255,255,0.12);
+  --cyan:#38bdf8;--cyan-dim:rgba(56,189,248,0.12);--cyan-glow:rgba(56,189,248,0.2);
+  --emerald:#34d399;--emerald-dim:rgba(52,211,153,0.1);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.1);
+  --rose:#fb7185;--violet:#a78bfa;
+  --text:#e8ecf4;--text-sec:#8894aa;--text-muted:#5a6478;
+  --sans:'DM Sans',system-ui,sans-serif;--mono:'Space Mono',monospace;--serif:'Fraunces',Georgia,serif;
+}
+html{font-size:16px;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.container{max-width:1120px;margin:0 auto;padding:0 24px}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 0;background:rgba(6,8,13,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .container{display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-family:var(--mono);font-size:13px;letter-spacing:4px;color:var(--cyan);text-transform:uppercase}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{font-size:0.85rem;color:var(--text-sec);transition:color 0.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{background:var(--cyan);color:#000;padding:8px 20px;border-radius:8px;font-weight:600;font-size:0.85rem;transition:all 0.25s}
+.nav-cta:hover{background:#5ecbfa;box-shadow:0 4px 20px var(--cyan-glow)}
+.nav-toggle{display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:4px}
+@media(max-width:640px){
+  .nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border-bottom:1px solid var(--border);flex-direction:column;padding:20px 24px;gap:16px}
+  .nav-links.open{display:flex}
+  .nav-toggle{display:block}
+}
+
+/* Hero */
+.hero{padding:160px 0 100px;text-align:center;position:relative}
+.hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse,rgba(56,189,248,0.06) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:var(--cyan-dim);border:1px solid rgba(56,189,248,0.2);border-radius:100px;font-family:var(--mono);font-size:0.72rem;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:24px}
+.hero-badge .pulse{width:6px;height:6px;border-radius:50%;background:var(--emerald);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(2.4rem,5.5vw,4rem);line-height:1.15;max-width:800px;margin:0 auto 20px;position:relative}
+.hero h1 em{font-style:italic;color:var(--cyan)}
+.hero p{font-size:1.1rem;color:var(--text-sec);max-width:560px;margin:0 auto 36px;line-height:1.65}
+.hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-hero{padding:14px 32px;border-radius:10px;font-weight:600;font-size:1rem;transition:all 0.25s cubic-bezier(0.16,1,0.3,1);border:none;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:8px}
+.btn-hero.primary{background:var(--cyan);color:#000}
+.btn-hero.primary:hover{background:#5ecbfa;box-shadow:0 8px 32px var(--cyan-glow);transform:translateY(-2px)}
+.btn-hero.secondary{background:transparent;color:var(--text-sec);border:1.5px solid var(--border)}
+.btn-hero.secondary:hover{border-color:var(--border-hover);color:var(--text)}
+
+/* Stats row */
+.stats-row{display:flex;justify-content:center;gap:48px;padding:48px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.stat{text-align:center}
+.stat .num{font-family:var(--mono);font-size:1.8rem;font-weight:700;color:var(--text)}
+.stat .num .accent{color:var(--cyan)}
+.stat .label{font-size:0.78rem;color:var(--text-muted);margin-top:4px;letter-spacing:0.5px}
+
+/* Section styling */
+section{padding:100px 0}
+.section-label{font-family:var(--mono);font-size:0.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);margin-bottom:12px}
+.section-title{font-family:var(--serif);font-weight:500;font-size:clamp(1.6rem,3vw,2.2rem);margin-bottom:12px;line-height:1.25}
+.section-desc{font-size:1rem;color:var(--text-sec);max-width:540px;line-height:1.65;margin-bottom:48px}
+.centered{text-align:center}
+.centered .section-desc{margin-left:auto;margin-right:auto}
+
+/* ACEI Gauge */
+.gauge-section{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+@media(max-width:768px){.gauge-section{grid-template-columns:1fr;text-align:center}}
+.gauge-visual{display:flex;justify-content:center;align-items:center}
+.gauge-ring{width:260px;height:260px;position:relative}
+.gauge-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge-ring .bg{fill:none;stroke:rgba(255,255,255,0.04);stroke-width:10}
+.gauge-ring .track{fill:none;stroke:var(--border);stroke-width:10}
+.gauge-ring .fill{fill:none;stroke:url(#gaugeGrad);stroke-width:10;stroke-linecap:round;stroke-dasharray:565;stroke-dashoffset:565;transition:stroke-dashoffset 2s cubic-bezier(0.16,1,0.3,1)}
+.gauge-ring.visible .fill{stroke-dashoffset:486}
+.gauge-score{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge-score .number{font-family:var(--mono);font-size:3.8rem;font-weight:700;color:var(--emerald);line-height:1}
+.gauge-score .of{font-size:0.85rem;color:var(--text-muted);margin:4px 0 2px}
+.gauge-score .band{font-size:0.72rem;color:var(--emerald);letter-spacing:2px;text-transform:uppercase;background:var(--emerald-dim);padding:3px 12px;border-radius:100px}
+
+/* Triad */
+.triad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+@media(max-width:768px){.triad-grid{grid-template-columns:1fr}}
+.triad-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:32px;transition:border-color 0.3s,transform 0.3s}
+.triad-card:hover{border-color:var(--border-hover);transform:translateY(-4px)}
+.triad-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:20px}
+.triad-card:nth-child(1) .triad-icon{background:var(--cyan-dim)}
+.triad-card:nth-child(2) .triad-icon{background:var(--emerald-dim)}
+.triad-card:nth-child(3) .triad-icon{background:var(--amber-dim)}
+.triad-card h3{font-family:var(--serif);font-size:1.15rem;font-weight:500;margin-bottom:4px}
+.triad-card .triad-abbr{font-family:var(--mono);font-size:0.7rem;letter-spacing:2px;color:var(--text-muted);margin-bottom:12px}
+.triad-card p{font-size:0.88rem;color:var(--text-sec);line-height:1.6}
+.triad-card .triad-score{font-family:var(--mono);font-size:0.72rem;letter-spacing:1px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);color:var(--text-muted)}
+
+/* 12 Categories */
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:900px){.cat-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.cat-grid{grid-template-columns:repeat(2,1fr)}}
+.cat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color 0.2s}
+.cat-card:hover{border-color:var(--border-hover)}
+.cat-card .cat-icon{font-size:1.3rem;margin-bottom:10px}
+.cat-card h4{font-size:0.85rem;font-weight:600;margin-bottom:4px}
+.cat-card p{font-size:0.75rem;color:var(--text-muted);line-height:1.5}
+
+/* How it works */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;counter-reset:step}
+@media(max-width:768px){.steps-grid{grid-template-columns:1fr;gap:24px}}
+.step-card{position:relative;padding:32px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;counter-increment:step}
+.step-card::before{content:counter(step);font-family:var(--mono);font-size:2.5rem;font-weight:700;color:rgba(255,255,255,0.04);position:absolute;top:24px;right:28px;line-height:1}
+.step-card h3{font-family:var(--serif);font-size:1.1rem;font-weight:500;margin-bottom:8px;padding-right:40px}
+.step-card p{font-size:0.88rem;color:var(--text-sec);line-height:1.6}
+
+/* Who it's for */
+.audience-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+@media(max-width:640px){.audience-grid{grid-template-columns:1fr}}
+.audience-card{display:flex;gap:16px;padding:24px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;transition:border-color 0.2s}
+.audience-card:hover{border-color:var(--border-hover)}
+.audience-card .aud-icon{font-size:1.5rem;flex-shrink:0;margin-top:2px}
+.audience-card h4{font-size:0.95rem;font-weight:600;margin-bottom:4px}
+.audience-card p{font-size:0.85rem;color:var(--text-sec);line-height:1.5}
+
+/* Pricing */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+@media(max-width:768px){.pricing-grid{grid-template-columns:1fr;max-width:420px;margin-left:auto;margin-right:auto}}
+.price-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:36px;position:relative;transition:transform 0.3s,border-color 0.3s}
+.price-card:hover{transform:translateY(-4px)}
+.price-card.featured{border-color:var(--cyan);background:linear-gradient(180deg,rgba(56,189,248,0.04) 0%,var(--bg-card) 100%)}
+.price-card.featured::before{content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:0.65rem;letter-spacing:2px;padding:4px 16px;border-radius:100px;white-space:nowrap}
+.price-card .tier{font-family:var(--mono);font-size:0.7rem;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px}
+.price-card .price{font-family:var(--serif);font-size:2.4rem;font-weight:500;margin-bottom:4px}
+.price-card .price span{font-size:0.9rem;color:var(--text-muted);font-weight:300}
+.price-card .price-desc{font-size:0.85rem;color:var(--text-sec);margin-bottom:24px;line-height:1.5}
+.price-card .feature-list{list-style:none;margin-bottom:28px}
+.price-card .feature-list li{font-size:0.85rem;color:var(--text-sec);padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;line-height:1.4}
+.price-card .feature-list li::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--cyan);flex-shrink:0;margin-top:7px}
+.price-card .price-btn{display:block;width:100%;text-align:center;padding:13px;border-radius:10px;font-weight:600;font-size:0.9rem;transition:all 0.25s;border:none;cursor:pointer;font-family:var(--sans)}
+.price-card .price-btn.primary{background:var(--cyan);color:#000}
+.price-card .price-btn.primary:hover{background:#5ecbfa;box-shadow:0 4px 20px var(--cyan-glow)}
+.price-card .price-btn.outline{background:transparent;color:var(--text-sec);border:1.5px solid var(--border)}
+.price-card .price-btn.outline:hover{border-color:var(--border-hover);color:var(--text)}
+
+/* CTA band */
+.cta-band{padding:80px 0;text-align:center;position:relative}
+.cta-band::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(56,189,248,0.04) 0%,transparent 70%);pointer-events:none}
+.cta-band h2{font-family:var(--serif);font-weight:300;font-size:clamp(1.5rem,3vw,2rem);margin-bottom:12px;position:relative}
+.cta-band p{font-size:0.95rem;color:var(--text-sec);margin-bottom:28px;max-width:460px;margin-left:auto;margin-right:auto;position:relative}
+
+/* Footer */
+footer{padding:48px 0;border-top:1px solid var(--border)}
+footer .container{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+.footer-left{font-size:0.78rem;color:var(--text-muted);line-height:1.8}
+.footer-right{text-align:right}
+.footer-links{display:flex;gap:20px;margin-bottom:8px}
+.footer-links a{font-size:0.8rem;color:var(--text-muted);transition:color 0.2s}
+.footer-links a:hover{color:var(--text-sec)}
+.footer-copy{font-size:0.7rem;color:var(--text-muted)}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both}
+.d1{animation-delay:0.1s}.d2{animation-delay:0.2s}.d3{animation-delay:0.3s}.d4{animation-delay:0.4s}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="container">
+    <a href="/" class="nav-logo">Ailane</a>
+    <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/dashboard-app/">Live Dashboard</a>
+      <a href="/signup/" class="nav-cta">Get early access</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge fade-up"><span class="pulse"></span> Now monitoring 129,000+ UK tribunal decisions</div>
+    <h1 class="fade-up d1">Know your <em>compliance<br>exposure</em> before it finds you</h1>
+    <p class="fade-up d2">Ailane quantifies your employment law risk into a single score — like a credit check, but for regulatory exposure. Powered by AI analysis of every UK employment tribunal decision.</p>
+    <div class="hero-ctas fade-up d3">
+      <a href="/signup/" class="btn-hero primary">Get early access →</a>
+      <a href="#how-it-works" class="btn-hero secondary">See how it works</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="container">
+  <div class="stats-row fade-up d4">
+    <div class="stat">
+      <div class="num">129<span class="accent">,</span>000<span class="accent">+</span></div>
+      <div class="label">Tribunal decisions monitored</div>
+    </div>
+    <div class="stat">
+      <div class="num">12</div>
+      <div class="label">Risk categories scored</div>
+    </div>
+    <div class="stat">
+      <div class="num">0<span class="accent">–</span>100</div>
+      <div class="label">ACEI compliance score</div>
+    </div>
+    <div class="stat">
+      <div class="num">24<span class="accent">/</span>7</div>
+      <div class="label">Automated monitoring</div>
+    </div>
+  </div>
+</div>
+
+<!-- ACEI Score Section -->
+<section>
+  <div class="container">
+    <div class="gauge-section">
+      <div>
+        <div class="section-label">The ACEI Score</div>
+        <h2 class="section-title">Your compliance exposure, quantified</h2>
+        <p class="section-desc" style="margin-bottom:20px">The Ailane Core Exposure Index distils your regulatory risk into a single number from 0 to 100. Like a credit score for compliance — track it weekly, benchmark against your sector, and prove due diligence to the board.</p>
+        <p class="section-desc" style="margin-bottom:32px;color:var(--text-muted);font-size:0.88rem">Lower is better. A score under 20 means low exposure. Over 60 means you need to act.</p>
+        <a href="/signup/" class="btn-hero primary">Get your score →</a>
+      </div>
+      <div class="gauge-visual">
+        <div class="gauge-ring" id="gaugeRing">
+          <svg viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#34d399"/>
+                <stop offset="100%" stop-color="#38bdf8"/>
+              </linearGradient>
+            </defs>
+            <circle class="track" cx="100" cy="100" r="90"/>
+            <circle class="fill" cx="100" cy="100" r="90"/>
+          </svg>
+          <div class="gauge-score">
+            <div class="number">14</div>
+            <div class="of">out of 100</div>
+            <div class="band">Low Exposure</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Index Triad -->
+<section style="background:var(--bg-card)">
+  <div class="container centered">
+    <div class="section-label">The Index Triad</div>
+    <h2 class="section-title">Three indices. Complete compliance intelligence.</h2>
+    <p class="section-desc">Each index is governed by its own founding constitution with institutional-grade methodology, version control, and formal governance structures.</p>
+
+    <div class="triad-grid">
+      <div class="triad-card">
+        <div class="triad-icon">📊</div>
+        <h3>Core Exposure Index</h3>
+        <div class="triad-abbr">ACEI · 12 CATEGORIES</div>
+        <p>Quantifies your regulatory exposure across 12 employment law categories. The headline number boards and investors understand — how exposed is this business right now?</p>
+        <div class="triad-score">Score range: 0–100 · Updated weekly</div>
+      </div>
+      <div class="triad-card">
+        <div class="triad-icon">🛡️</div>
+        <h3>Regulatory Readiness Index</h3>
+        <div class="triad-abbr">RRI · 5 PILLARS · 9 EIP</div>
+        <p>Measures how prepared your organisation is to handle regulatory change. Evaluates policies, training, governance, monitoring, and response capability across 9 evidence-based indicators.</p>
+        <div class="triad-score">Score range: 0–100 · 5 readiness pillars</div>
+      </div>
+      <div class="triad-card">
+        <div class="triad-icon">⚖️</div>
+        <h3>Compliance Conduct Index</h3>
+        <div class="triad-abbr">CCI · 6 COMPONENTS · BAYESIAN</div>
+        <p>Assesses your organisation's behavioural compliance through Bayesian credibility analysis. Tracks how well you translate readiness into actual compliant conduct over time.</p>
+        <div class="triad-score">Score range: 0–100 · Bayesian credibility</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 Categories -->
+<section>
+  <div class="container centered">
+    <div class="section-label">Coverage</div>
+    <h2 class="section-title">12 risk categories. Every angle covered.</h2>
+    <p class="section-desc">Ailane monitors the full spectrum of UK employment law exposure, from unfair dismissal claims to data protection violations.</p>
+
+    <div class="cat-grid">
+      <div class="cat-card"><div class="cat-icon">⚖️</div><h4>Unfair Dismissal</h4><p>Termination processes, wrongful dismissal, notice periods</p></div>
+      <div class="cat-card"><div class="cat-icon">🛡️</div><h4>Discrimination</h4><p>Protected characteristics, equal treatment, harassment</p></div>
+      <div class="cat-card"><div class="cat-icon">⏱️</div><h4>Working Time & Pay</h4><p>Wage compliance, overtime, holiday pay, minimum wage</p></div>
+      <div class="cat-card"><div class="cat-icon">📢</div><h4>Whistleblowing</h4><p>Protected disclosures, detriment claims, retaliation</p></div>
+      <div class="cat-card"><div class="cat-icon">📋</div><h4>Employment Status</h4><p>Worker classification, IR35, gig economy, contractors</p></div>
+      <div class="cat-card"><div class="cat-icon">🔄</div><h4>Redundancy</h4><p>Collective consultation, selection, organisational change</p></div>
+      <div class="cat-card"><div class="cat-icon">👶</div><h4>Parental Rights</h4><p>Maternity, paternity, shared leave, flexible working</p></div>
+      <div class="cat-card"><div class="cat-icon">🤝</div><h4>Trade Union</h4><p>Recognition, collective bargaining, industrial action</p></div>
+      <div class="cat-card"><div class="cat-icon">📄</div><h4>Breach of Contract</h4><p>Contractual obligations, covenants, terms disputes</p></div>
+      <div class="cat-card"><div class="cat-icon">🏗️</div><h4>Health & Safety</h4><p>Workplace safety, risk assessments, HSE enforcement</p></div>
+      <div class="cat-card"><div class="cat-icon">🔒</div><h4>Data Protection</h4><p>Employee data, GDPR compliance, ICO enforcement</p></div>
+      <div class="cat-card"><div class="cat-icon">🏢</div><h4>Business Transfers</h4><p>TUPE obligations, insolvency, employee consultation</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how-it-works" style="background:var(--bg-card)">
+  <div class="container centered">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">From data to decisions in three steps</h2>
+    <p class="section-desc">No consultants. No guesswork. Ailane continuously monitors the regulatory landscape and tells you exactly where you stand.</p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <h3>We monitor everything</h3>
+        <p>Our AI scrapers continuously analyse UK employment tribunal decisions, legislation changes, and regulatory enforcement actions across all 12 risk categories — 24 hours a day.</p>
+      </div>
+      <div class="step-card">
+        <h3>You get a score</h3>
+        <p>The ACEI engine processes the data through our constitutionally governed methodology, producing a 0–100 exposure score calibrated to your sector and company size.</p>
+      </div>
+      <div class="step-card">
+        <h3>You take action</h3>
+        <p>Your dashboard highlights the specific categories driving your exposure, with mitigation recommendations and trend analysis showing which direction you're heading.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Who it's for -->
+<section>
+  <div class="container centered">
+    <div class="section-label">Who it's for</div>
+    <h2 class="section-title">From local teams to global boardrooms</h2>
+    <p class="section-desc">Whether you're a 30-person startup navigating your first tribunal claim or a multinational managing compliance across jurisdictions — regulatory exposure doesn't discriminate. Neither do we.</p>
+
+    <div class="audience-grid">
+      <div class="audience-card">
+        <div class="aud-icon">👤</div>
+        <div>
+          <h4>HR Directors &amp; People Leaders</h4>
+          <p>Replace gut instinct with hard data. Prove compliance readiness to the board and focus investment where exposure is highest — not where it's loudest.</p>
+        </div>
+      </div>
+      <div class="audience-card">
+        <div class="aud-icon">⚖️</div>
+        <div>
+          <h4>General Counsel &amp; Compliance</h4>
+          <p>Monitor regulatory shifts in real time across every jurisdiction you operate in. Get early warning of emerging risk categories before they become claims.</p>
+        </div>
+      </div>
+      <div class="audience-card">
+        <div class="aud-icon">📈</div>
+        <div>
+          <h4>CEOs, Founders &amp; Investors</h4>
+          <p>Understand regulatory exposure in one number. No legal jargon, no 80-page reports. A score, a direction, and what to do about it — the way financial risk has worked for decades.</p>
+        </div>
+      </div>
+      <div class="audience-card">
+        <div class="aud-icon">🌍</div>
+        <div>
+          <h4>Multi-Entity &amp; International Operations</h4>
+          <p>Aggregate compliance exposure across subsidiaries, regions, and jurisdictions into a single intelligence layer. One dashboard. Every entity. Complete visibility.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing" style="background:var(--bg-card)">
+  <div class="container centered">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Compliance intelligence infrastructure. Not HR software.</h2>
+    <p class="section-desc">Institutional-grade methodology. Constitutional governance. Priced for the businesses that need it most. No long-term contracts.</p>
+
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="tier">Operational Readiness</div>
+        <div class="price">£199<span>/month</span></div>
+        <div class="price-desc">Know your exposure and get alerted before risk materialises. Built for businesses with 25–250 employees.</div>
+        <ul class="feature-list">
+          <li>ACEI + RRI scores updated weekly</li>
+          <li>12-category risk breakdown</li>
+          <li>Active Regulatory Change Event alerts</li>
+          <li>Evidence tracking dashboard</li>
+          <li>Quarterly readiness summary report</li>
+          <li>Up to 5 users</li>
+        </ul>
+        <a href="/signup/" class="price-btn outline">Get started</a>
+      </div>
+      <div class="price-card featured">
+        <div class="tier">Governance</div>
+        <div class="price">£799<span>/month</span></div>
+        <div class="price-desc">Full compliance intelligence for boards and leadership. Built for businesses with 250–2,000 employees.</div>
+        <ul class="feature-list">
+          <li>Full Index Triad: ACEI + RRI + CCI</li>
+          <li>Sector &amp; size benchmarking</li>
+          <li>Scenario modelling &amp; forward exposure</li>
+          <li>Mitigation register with evidence</li>
+          <li>Board-ready PDF reporting</li>
+          <li>Jurisdictional slicing</li>
+          <li>Up to 25 users</li>
+        </ul>
+        <a href="/signup/" class="price-btn primary">Get started</a>
+      </div>
+      <div class="price-card">
+        <div class="tier">Institutional</div>
+        <div class="price">Custom</div>
+        <div class="price-desc" style="margin-top:8px">Enterprise-grade compliance infrastructure for regulated sectors and multi-entity organisations with 2,000+ employees.</div>
+        <ul class="feature-list">
+          <li>Everything in Governance</li>
+          <li>Multi-entity aggregation</li>
+          <li>API access to index data</li>
+          <li>Regulatory transition simulations</li>
+          <li>Dedicated calibration reviews</li>
+          <li>Custom risk thresholds</li>
+          <li>Unlimited users</li>
+        </ul>
+        <a href="/signup/" class="price-btn outline">Contact us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="cta-band">
+  <div class="container">
+    <h2>Stop guessing your compliance exposure.<br>Start measuring it.</h2>
+    <p>Join the early access programme and be among the first UK businesses to receive an ACEI compliance score.</p>
+    <a href="/signup/" class="btn-hero primary" style="position:relative">Get early access →</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-left">
+      AI Lane Limited (Company No. 17035654) trading as Ailane<br>
+      ACEI Constitution v1.0 · RRI Constitution v1.0 · CCI Constitution v1.0<br>
+      Ailane Index Committee (AIC) governed
+    </div>
+    <div class="footer-right">
+      <div class="footer-links">
+        <a href="/signup/">Early Access</a>
+        <a href="/dashboard-app/">Dashboard</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <div class="footer-copy">© 2026 AI Lane Limited. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Animate gauge on scroll
+const gaugeObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      gaugeObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+const gr = document.getElementById('gaugeRing');
+if (gr) gaugeObs.observe(gr);
+
+// Mobile nav
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelector('.nav-links').classList.remove('open');
+  });
+});
+</script>
+</body>
 </html>
