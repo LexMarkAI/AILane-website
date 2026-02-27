@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Early Access — Ailane ACEI</title>
+<meta name="description" content="Join the early access programme for Ailane's AI-powered compliance intelligence platform. Quantify your employment law exposure.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-deep: #06080d;
+    --bg-card: #0c1019;
+    --bg-elevated: #111827;
+    --bg-input: #0f1520;
+    --border: rgba(255,255,255,0.06);
+    --border-focus: #38bdf8;
+    --cyan: #38bdf8;
+    --cyan-dim: rgba(56,189,248,0.15);
+    --cyan-glow: rgba(56,189,248,0.25);
+    --emerald: #34d399;
+    --emerald-dim: rgba(52,211,153,0.12);
+    --amber: #fbbf24;
+    --rose: #fb7185;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8894aa;
+    --text-muted: #5a6478;
+    --font-sans: 'DM Sans', -apple-system, sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --font-serif: 'Fraunces', Georgia, serif;
+  }
+
+  html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Background atmosphere */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%; left: -20%;
+    width: 80vw; height: 80vw;
+    background: radial-gradient(ellipse, rgba(56,189,248,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -30%; right: -10%;
+    width: 60vw; height: 60vw;
+    background: radial-gradient(ellipse, rgba(52,211,153,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page-wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  /* Logo & header */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .logo a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+  .header h1 {
+    font-family: var(--font-serif);
+    font-weight: 300;
+    font-size: 2rem;
+    line-height: 1.25;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--cyan);
+  }
+  .header p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 32px;
+    padding: 0 20px;
+  }
+  .progress-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+    flex-shrink: 0;
+  }
+  .progress-step.active {
+    background: var(--cyan);
+    color: var(--bg-deep);
+    border-color: var(--cyan);
+    box-shadow: 0 0 20px var(--cyan-glow);
+  }
+  .progress-step.done {
+    background: var(--emerald-dim);
+    color: var(--emerald);
+    border-color: rgba(52,211,153,0.3);
+  }
+  .progress-line {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    transition: background 0.4s;
+  }
+  .progress-line.done {
+    background: linear-gradient(90deg, var(--emerald), var(--cyan));
+  }
+
+  /* Card */
+  .wizard-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .wizard-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan-dim), transparent);
+  }
+
+  /* Steps */
+  .step {
+    display: none;
+    animation: stepIn 0.45s cubic-bezier(0.16,1,0.3,1);
+  }
+  .step.active { display: block; }
+
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 6px;
+  }
+  .step h2 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+  }
+  .step .step-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  /* Inputs */
+  .field { margin-bottom: 18px; }
+  .field:last-of-type { margin-bottom: 0; }
+
+  .field label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .field label .optional {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 0.75rem;
+  }
+
+  .field input[type="text"],
+  .field input[type="email"],
+  .field select {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--cyan-dim);
+  }
+  .field input::placeholder { color: var(--text-muted); }
+
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a6478' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+    cursor: pointer;
+  }
+  .field select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  /* Two-column grid */
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+
+  /* Toggle switch */
+  .toggle-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .toggle-field:hover { border-color: rgba(255,255,255,0.12); }
+  .toggle-field .toggle-label {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+  .toggle-field .toggle-sublabel {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 44px; height: 24px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input {
+    opacity: 0; width: 0; height: 0; position: absolute;
+  }
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-elevated);
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .toggle-switch input:checked + .toggle-track {
+    background: var(--cyan-dim);
+    border-color: var(--cyan);
+  }
+  .toggle-switch input:checked + .toggle-track::after {
+    transform: translateX(20px);
+    background: var(--cyan);
+  }
+
+  /* Compliance concern chips */
+  .concern-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .concern-chip {
+    position: relative;
+    cursor: pointer;
+  }
+  .concern-chip input {
+    position: absolute;
+    opacity: 0;
+    width: 0; height: 0;
+  }
+  .concern-chip .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 16px;
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    cursor: pointer;
+    user-select: none;
+  }
+  .concern-chip .chip .chip-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .concern-chip .chip:hover {
+    border-color: rgba(255,255,255,0.12);
+    color: var(--text-primary);
+  }
+  .concern-chip input:checked + .chip {
+    background: var(--cyan-dim);
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+  }
+  .btn-primary {
+    background: var(--cyan);
+    color: var(--bg-deep);
+  }
+  .btn-primary:hover {
+    background: #5ecbfa;
+    box-shadow: 0 4px 24px var(--cyan-glow);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border);
+    flex: 0 0 auto;
+    padding: 14px 20px;
+  }
+  .btn-secondary:hover {
+    border-color: rgba(255,255,255,0.15);
+    color: var(--text-primary);
+  }
+
+  .btn-skip {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 8px 0;
+    text-align: center;
+    margin-top: 12px;
+    transition: color 0.2s;
+  }
+  .btn-skip:hover { color: var(--text-secondary); }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2.5px solid transparent;
+    border-top-color: var(--bg-deep);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Error */
+  .field-error {
+    font-size: 0.78rem;
+    color: var(--rose);
+    margin-top: 5px;
+    display: none;
+  }
+  .field-error.show { display: block; }
+
+  /* Success screen */
+  .success-screen {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .success-icon {
+    width: 72px; height: 72px;
+    background: var(--emerald-dim);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    animation: successPop 0.5s cubic-bezier(0.16,1,0.3,1);
+  }
+  @keyframes successPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .success-icon svg { width: 32px; height: 32px; stroke: var(--emerald); }
+  .success-screen h2 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  .success-screen p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 360px;
+    margin: 0 auto 28px;
+  }
+  .success-screen .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--cyan);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .success-screen .back-link:hover { opacity: 0.8; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .footer a:hover { color: var(--cyan); }
+
+  /* Trust badges */
+  .trust-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+  .trust-badge svg { width: 14px; height: 14px; stroke: var(--text-muted); fill: none; }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+  <div class="header">
+    <div class="logo"><a href="/">Ailane</a></div>
+    <h1>Get <em>early access</em></h1>
+    <p>Be among the first to quantify your employment law exposure with the ACEI — the UK's first compliance credit score.</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar">
+    <div class="progress-step active" id="prog-1">1</div>
+    <div class="progress-line" id="line-1"></div>
+    <div class="progress-step" id="prog-2">2</div>
+    <div class="progress-line" id="line-2"></div>
+    <div class="progress-step" id="prog-3">3</div>
+  </div>
+
+  <div class="wizard-card">
+
+    <!-- STEP 1: You -->
+    <div class="step active" id="step-1">
+      <div class="step-label">Step 1 of 3</div>
+      <h2>About you</h2>
+      <p class="step-desc">Just your email to secure your spot. Everything else is optional.</p>
+
+      <div class="field">
+        <label for="email">Work email *</label>
+        <input type="email" id="email" placeholder="you@company.co.uk" autocomplete="email" required>
+        <div class="field-error" id="email-error">Please enter a valid email address</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="full_name">Full name <span class="optional">optional</span></label>
+          <input type="text" id="full_name" placeholder="Jane Smith" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="job_title">Job title <span class="optional">optional</span></label>
+          <input type="text" id="job_title" placeholder="HR Director">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="goStep(2)">Continue</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Company -->
+    <div class="step" id="step-2">
+      <div class="step-label">Step 2 of 3</div>
+      <h2>Your organisation</h2>
+      <p class="step-desc">Helps us tailor your ACEI report to your sector and scale.</p>
+
+      <div class="field">
+        <label for="company_name">Company name <span class="optional">optional</span></label>
+        <input type="text" id="company_name" placeholder="Acme Ltd">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="employee_count">Employees</label>
+          <select id="employee_count">
+            <option value="">Select range</option>
+            <option value="1-49">1 – 49</option>
+            <option value="50-99">50 – 99</option>
+            <option value="100-199">100 – 199</option>
+            <option value="200-499">200 – 499</option>
+            <option value="500+">500+</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sector">Sector</label>
+          <select id="sector">
+            <option value="">Select sector</option>
+            <option value="Hospitality & Leisure">Hospitality & Leisure</option>
+            <option value="Retail & Consumer">Retail & Consumer</option>
+            <option value="Construction & Property">Construction & Property</option>
+            <option value="Healthcare & Social Care">Healthcare & Social Care</option>
+            <option value="Professional Services">Professional Services</option>
+            <option value="Technology & Digital">Technology & Digital</option>
+            <option value="Manufacturing & Engineering">Manufacturing & Engineering</option>
+            <option value="Education & Training">Education & Training</option>
+            <option value="Financial Services">Financial Services</option>
+            <option value="Transport & Logistics">Transport & Logistics</option>
+            <option value="Charity & Non-Profit">Charity & Non-Profit</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="uk_region">Primary UK location <span class="optional">optional</span></label>
+        <select id="uk_region">
+          <option value="">Select region</option>
+          <option value="London">London</option>
+          <option value="South East">South East</option>
+          <option value="South West">South West</option>
+          <option value="East of England">East of England</option>
+          <option value="West Midlands">West Midlands</option>
+          <option value="East Midlands">East Midlands</option>
+          <option value="Yorkshire & Humber">Yorkshire & Humber</option>
+          <option value="North West">North West</option>
+          <option value="North East">North East</option>
+          <option value="Wales">Wales</option>
+          <option value="Scotland">Scotland</option>
+          <option value="Northern Ireland">Northern Ireland</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="margin-bottom: 8px;">Multinational operations</label>
+        <label class="toggle-field" for="multinational">
+          <div>
+            <div class="toggle-label">We operate across borders</div>
+            <div class="toggle-sublabel">Staff or subsidiaries outside the UK</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="multinational">
+            <div class="toggle-track"></div>
+          </div>
+        </label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goStep(1)">Back</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Continue</button>
+      </div>
+      <button class="btn-skip" onclick="goStep(3)">Skip this step</button>
+    </div>
+
+    <!-- STEP 3: Concerns -->
+    <div class="step" id="step-3">
+      <div class="step-label">Step 3 of 3</div>
+      <h2>What keeps you up at night?</h2>
+      <p class="step-desc">Select any compliance areas you're concerned about. This shapes your initial ACEI focus areas.</p>
+
+      <div class="concern-grid">
+        <label class="concern-chip">
+          <input type="checkbox" value="unfair_dismissal">
+          <span class="chip"><span class="chip-icon">⚖️</span> Unfair dismissal</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="discrimination_harassment">
+          <span class="chip"><span class="chip-icon">🛡️</span> Discrimination & harassment</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="wages_working_time">
+          <span class="chip"><span class="chip-icon">⏱️</span> Working time & pay</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="employment_status">
+          <span class="chip"><span class="chip-icon">📋</span> Employment status</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="data_protection_privacy">
+          <span class="chip"><span class="chip-icon">🔒</span> Data protection</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="redundancy_org_change">
+          <span class="chip"><span class="chip-icon">🔄</span> Redundancy & restructuring</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="health_safety">
+          <span class="chip"><span class="chip-icon">🏗️</span> Health & safety</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="whistleblowing">
+          <span class="chip"><span class="chip-icon">📢</span> Whistleblowing</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="parental_family_rights">
+          <span class="chip"><span class="chip-icon">👶</span> Parental & family rights</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="breach_of_contract">
+          <span class="chip"><span class="chip-icon">📄</span> Breach of contract</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="trade_union_collective">
+          <span class="chip"><span class="chip-icon">🤝</span> Trade union & collective</span>
+        </label>
+        <label class="concern-chip">
+          <input type="checkbox" value="general_uncertainty">
+          <span class="chip"><span class="chip-icon">❓</span> General uncertainty</span>
+        </label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goStep(2)">Back</button>
+        <button class="btn btn-primary" id="submit-btn" onclick="submitForm()">Join early access</button>
+      </div>
+      <button class="btn-skip" onclick="submitForm()">Skip — just sign me up</button>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="step" id="step-success">
+      <div class="success-screen">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2>You're on the list</h2>
+        <p>We'll be in touch soon with early access to the ACEI platform. In the meantime, your personalised compliance exposure report is being prepared.</p>
+        <a href="/" class="back-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to ailane.ai
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trust badges -->
+  <div class="trust-row">
+    <div class="trust-badge">
+      <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      256-bit encrypted
+    </div>
+    <div class="trust-badge">
+      <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4l3 3"/></svg>
+      2 minute setup
+    </div>
+    <div class="trust-badge">
+      <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      No commitment
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>AI Lane Limited (Company No. 17035654) trading as Ailane</p>
+    <p style="margin-top: 4px;">
+      <a href="/">Home</a> · <a href="/dashboard-app/">Dashboard</a>
+    </p>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
+  let currentStep = 1;
+
+  function goStep(n) {
+    // Validate step 1
+    if (n > 1 && currentStep === 1) {
+      const email = document.getElementById('email').value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const errorEl = document.getElementById('email-error');
+      if (!emailRegex.test(email)) {
+        errorEl.classList.add('show');
+        document.getElementById('email').focus();
+        return;
+      }
+      errorEl.classList.remove('show');
+    }
+
+    // Update steps
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById(`step-${n}`).classList.add('active');
+
+    // Update progress
+    for (let i = 1; i <= 3; i++) {
+      const step = document.getElementById(`prog-${i}`);
+      step.classList.remove('active', 'done');
+      if (i < n) {
+        step.classList.add('done');
+        step.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      } else if (i === n) {
+        step.classList.add('active');
+        step.textContent = i;
+      } else {
+        step.textContent = i;
+      }
+    }
+    // Update lines
+    document.getElementById('line-1').classList.toggle('done', n > 1);
+    document.getElementById('line-2').classList.toggle('done', n > 2);
+
+    currentStep = n;
+  }
+
+  async function submitForm() {
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Joining...';
+
+    // Gather UTM params
+    const params = new URLSearchParams(window.location.search);
+
+    // Gather compliance concerns
+    const concerns = Array.from(document.querySelectorAll('.concern-chip input:checked'))
+      .map(cb => cb.value);
+
+    const payload = {
+      email: document.getElementById('email').value.trim(),
+      full_name: document.getElementById('full_name').value.trim() || null,
+      job_title: document.getElementById('job_title').value.trim() || null,
+      company_name: document.getElementById('company_name').value.trim() || null,
+      employee_count: document.getElementById('employee_count').value || null,
+      sector: document.getElementById('sector').value || null,
+      uk_region: document.getElementById('uk_region').value || null,
+      multinational: document.getElementById('multinational').checked,
+      compliance_concerns: concerns.length > 0 ? concerns : null,
+      source: 'signup_wizard',
+      utm_source: params.get('utm_source') || null,
+      utm_medium: params.get('utm_medium') || null,
+      utm_campaign: params.get('utm_campaign') || null,
+      referrer: document.referrer || null
+    };
+
+    // Remove nulls
+    Object.keys(payload).forEach(k => {
+      if (payload[k] === null || payload[k] === '') delete payload[k];
+    });
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/early_access_signups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'resolution=ignore-duplicates'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('Signup error:', err);
+      }
+    } catch (err) {
+      console.error('Network error:', err);
+    }
+
+    // Always show success (don't block on errors)
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-success').classList.add('active');
+
+    // Mark all progress as done
+    for (let i = 1; i <= 3; i++) {
+      const step = document.getElementById(`prog-${i}`);
+      step.classList.remove('active');
+      step.classList.add('done');
+      step.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    }
+    document.getElementById('line-1').classList.add('done');
+    document.getElementById('line-2').classList.add('done');
+  }
+
+  // Enter key advances
+  document.getElementById('email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') goStep(2);
+  });
+</script>
+</body>
+</html>
