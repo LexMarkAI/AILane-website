@@ -130,8 +130,8 @@ function buildRow(result, detail) {
     source_identifier: sourceIdentifier,
     decision_date: detail?.decisionDate || result.tribunal_decision_decision_date || null,
     tribunal_office: detail?.tribunalOffice || '',
-    decision_text: bodyText.slice(0, 50000), // cap at 50k chars
-    category,
+    raw_html: bodyText.slice(0, 50000), // cap at 50k chars
+    acei_category: category,
     scraped_at: new Date().toISOString(),
   }
 }
@@ -150,9 +150,9 @@ async function main() {
     started_at: new Date().toISOString(),
     status: 'running',
     source: 'gov.uk',
-    decisions_scraped: 0,
-    decisions_inserted: 0,
-    decisions_skipped: 0,
+    decisions_found: 0,
+    decisions_new: 0,
+    decisions_duplicate: 0,
     errors: 0,
   })
   const runId = run?.id
@@ -239,9 +239,9 @@ async function main() {
       // Update run progress
       if (runId) {
         await updateRun(runId, {
-          decisions_scraped: totalScraped,
-          decisions_inserted: totalInserted,
-          decisions_skipped: totalSkipped,
+          decisions_found: totalScraped,
+          decisions_new: totalInserted,
+          decisions_duplicate: totalSkipped,
           errors: totalErrors,
         })
       }
@@ -267,9 +267,9 @@ async function main() {
       await updateRun(runId, {
         status: 'error',
         completed_at: new Date().toISOString(),
-        decisions_scraped: totalScraped,
-        decisions_inserted: totalInserted,
-        decisions_skipped: totalSkipped,
+        decisions_found: totalScraped,
+        decisions_new: totalInserted,
+        decisions_duplicate: totalSkipped,
         errors: totalErrors,
         error_message: err.message,
       })
@@ -282,9 +282,9 @@ async function main() {
     await updateRun(runId, {
       status: 'completed',
       completed_at: new Date().toISOString(),
-      decisions_scraped: totalScraped,
-      decisions_inserted: totalInserted,
-      decisions_skipped: totalSkipped,
+      decisions_found: totalScraped,
+      decisions_new: totalInserted,
+      decisions_duplicate: totalSkipped,
       errors: totalErrors,
     })
   }
@@ -300,3 +300,8 @@ async function main() {
 }
 
 main()
+
+
+
+
+
