@@ -804,6 +804,51 @@ footer {
 </head>
 <body>
 
+<!-- Auth redirect: after Supabase confirmation/magic-link, route to simulator or dashboard -->
+<script>
+(function() {
+  var hash = window.location.hash.substring(1);
+  if (!hash) return;
+  var params = new URLSearchParams(hash);
+  var token = params.get('access_token');
+  var tokenType = params.get('token_type');
+  var type = params.get('type');
+  if (!token || tokenType !== 'bearer') return;
+
+  // Recovery tokens go to the dashboard password reset flow
+  if (type === 'recovery') {
+    window.location.replace('/dashboard-app/' + window.location.hash);
+    return;
+  }
+
+  // Check if user has an org (subscribed) — if so, go to dashboard; otherwise simulator
+  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
+  // Hide the page while we check
+  document.documentElement.style.visibility = 'hidden';
+
+  fetch(SUPABASE_URL + '/rest/v1/organisations?select=id&limit=1', {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + token
+    }
+  }).then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (Array.isArray(data) && data.length > 0) {
+        // Subscribed user — go to personalised dashboard
+        window.location.replace('/dashboard-app/' + window.location.hash);
+      } else {
+        // New user — go to simulator
+        window.location.replace('/simulator-app/' + window.location.hash);
+      }
+    }).catch(function() {
+      // On error, default to simulator
+      window.location.replace('/simulator-app/' + window.location.hash);
+    });
+})();
+</script>
+
 <!-- ══════════════════════════════════════════════════ -->
 <!-- NAVIGATION                                        -->
 <!-- ══════════════════════════════════════════════════ -->
