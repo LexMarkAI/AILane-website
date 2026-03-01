@@ -1,15 +1,2797 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ACEI Dashboard — Ailane Compliance Intelligence</title>
-    <meta name="description" content="Ailane Core Exposure Index client dashboard. Monitor your regulatory exposure score across 12 categories of UK employment tribunal risk." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,300&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ailane — CEO Command Centre</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230d1117'/><text x='16' y='22' font-family='serif' font-size='18' fill='%23C9A227' text-anchor='middle'>A</text></svg>" />
+  
+  <!-- React 18 CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel standalone for in-browser JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', -apple-system, sans-serif; }
+    #root { min-height: 100vh; }
+
+    /* Auth Gate Styles */
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-container::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(ellipse at 30% 20%, rgba(201,162,39,0.03) 0%, transparent 50%),
+                  radial-gradient(ellipse at 70% 80%, rgba(46,117,182,0.03) 0%, transparent 50%);
+      animation: authPulse 20s ease-in-out infinite;
+    }
+    @keyframes authPulse {
+      0%, 100% { opacity: 0.5; transform: rotate(0deg); }
+      50% { opacity: 1; transform: rotate(5deg); }
+    }
+    .auth-card {
+      position: relative;
+      z-index: 1;
+      width: 400px;
+      max-width: 90vw;
+      padding: 48px 40px;
+      background: rgba(22, 27, 34, 0.95);
+      border: 1px solid rgba(201, 162, 39, 0.2);
+      border-radius: 12px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 1px rgba(201,162,39,0.3);
+    }
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .auth-logo-text {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      color: #C9A227;
+      font-variant: small-caps;
+    }
+    .auth-subtitle {
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 40px;
+    }
+    .auth-label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 8px;
+    }
+    .auth-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(13,17,23,0.8);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #e6edf3;
+      font-size: 14px;
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      outline: none;
+      transition: border-color 0.3s;
+      margin-bottom: 20px;
+    }
+    .auth-input:focus {
+      border-color: rgba(201, 162, 39, 0.5);
+    }
+    .auth-input[readonly] {
+      opacity: 0.7;
+      cursor: default;
+    }
+    .auth-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #C9A227, #a8861e);
+      border: none;
+      border-radius: 8px;
+      color: #0d1117;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 8px;
+    }
+    .auth-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .auth-btn:active { transform: translateY(0); }
+    .auth-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .auth-error {
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #f85149;
+      margin-bottom: 16px;
+    }
+    .auth-footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.15);
+    }
+    .auth-spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(13,17,23,0.3);
+      border-top-color: #0d1117;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-type="module">
+    // ════════════════════════════════════════════════════════════════════
+    // SUPABASE CLIENT INITIALIZATION
+    // ════════════════════════════════════════════════════════════════════
+    const SUPABASE_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ════════════════════════════════════════════════════════════════════
+    // AUTH GATE COMPONENT
+    // ════════════════════════════════════════════════════════════════════
+    function AuthGate({ onAuth }) {
+      const { useState } = React;
+      const [email] = useState("mark@ailane.ai");
+      const [password, setPassword] = useState("");
+      const [error, setError] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        try {
+          const { data, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+          if (authError) throw authError;
+          onAuth(data.session);
+        } catch (err) {
+          setError(err.message || "Authentication failed");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="auth-container">
+          <div className="auth-card">
+            <div className="auth-logo">
+              <div className="auth-logo-text">ailane</div>
+            </div>
+            <div className="auth-subtitle">CEO Command Centre</div>
+
+            {error && <div className="auth-error">{error}</div>}
+
+            <div>
+              <label className="auth-label">Email</label>
+              <input
+                className="auth-input"
+                type="email"
+                value={email}
+                readOnly
+                tabIndex={-1}
+              />
+
+              <label className="auth-label">Password</label>
+              <input
+                className="auth-input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin(e)}
+                placeholder="Enter password"
+                autoFocus
+              />
+
+              <button
+                className="auth-btn"
+                onClick={handleLogin}
+                disabled={loading || !password}
+              >
+                {loading ? <><span className="auth-spinner"></span>Authenticating...</> : "Sign In"}
+              </button>
+            </div>
+
+            <div className="auth-footer">
+              AI Lane Limited — Company No. 17035654 — Institutional Access Only
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // CEO DASHBOARD COMPONENT (v2.3 — Full 12-Category MIB)
+    // ════════════════════════════════════════════════════════════════════
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ════════════════════════════════════════════════════════════════════
+// AILANE CEO COMMAND CENTRE v2.3
+// Internal Operational Dashboard — Not Client-Facing
+// Constitutional References: ACEI v1.0, RRI v1.0, CCI v1.0
+// New: Category Intelligence Tab with Ailane Market Intelligence Brief
+// v2.3: All 12 Categories complete — Categories 10-12 MIB data (Health & Safety, Data Protection, Business Transfers) (Parental, Trade Union, Breach of Contract)
+// ════════════════════════════════════════════════════════════════════
+
+const accent = "#2E75B6";
+const mibAccent = "#C9A227"; // Gold accent for MIB branding separation
+
+// --- ANNEX B: SECTOR MULTIPLIERS (ACEI Art. III §3.5) ---
+const SECTORS = [
+  { id: "professional", name: "Professional Services", sm: 1.20, scb: "A" },
+  { id: "financial", name: "Financial Services", sm: 1.25, scb: "A" },
+  { id: "healthcare", name: "Healthcare", sm: 1.15, scb: "A" },
+  { id: "technology", name: "Technology", sm: 1.10, scb: "A" },
+  { id: "retail", name: "Retail & Hospitality", sm: 1.05, scb: "B" },
+  { id: "manufacturing", name: "Manufacturing", sm: 1.00, scb: "B" },
+  { id: "construction", name: "Construction", sm: 0.95, scb: "B" },
+  { id: "education", name: "Education", sm: 1.10, scb: "A" },
+  { id: "public", name: "Public Sector", sm: 1.30, scb: "A" },
+  { id: "charity", name: "Charities & Non-Profits", sm: 0.90, scb: "C" },
+  { id: "transport", name: "Transport & Logistics", sm: 1.05, scb: "B" },
+  { id: "media", name: "Media & Entertainment", sm: 1.15, scb: "B" },
+];
+
+// --- ANNEX B: JURISDICTION MULTIPLIERS (ACEI Art. III §3.5) ---
+const JURISDICTIONS = [
+  { id: "london", name: "London", jm: 1.40 },
+  { id: "se", name: "South East England", jm: 1.25 },
+  { id: "sw", name: "South West England", jm: 1.00 },
+  { id: "east", name: "East of England", jm: 1.05 },
+  { id: "em", name: "East Midlands", jm: 0.95 },
+  { id: "wm", name: "West Midlands", jm: 1.05 },
+  { id: "yh", name: "Yorkshire & Humber", jm: 1.00 },
+  { id: "nw", name: "North West England", jm: 1.10 },
+  { id: "ne", name: "North East England", jm: 0.95 },
+  { id: "wales", name: "Wales", jm: 1.00 },
+  { id: "scotland", name: "Scotland", jm: 1.20 },
+  { id: "ni", name: "Northern Ireland", jm: 1.15 },
+];
+
+// --- 12 ACEI CATEGORIES (Art. 2.11) ---
+const CATEGORIES = [
+  { id: 1, name: "Unfair Dismissal & Wrongful Termination", short: "Dismissal", baseL: 2, baseI: 2 },
+  { id: 2, name: "Discrimination & Harassment", short: "Discrimination", baseL: 2, baseI: 3, uncapped: true },
+  { id: 3, name: "Wages, Working Time & Holiday Pay", short: "Wages", baseL: 3, baseI: 2 },
+  { id: 4, name: "Whistleblowing & Protected Disclosures", short: "Whistleblowing", baseL: 2, baseI: 4, uncapped: true },
+  { id: 5, name: "Employment Status & Worker Classification", short: "Status", baseL: 2, baseI: 2 },
+  { id: 6, name: "Redundancy & Restructuring", short: "Redundancy", baseL: 2, baseI: 2 },
+  { id: 7, name: "Parental & Family Rights", short: "Parental", baseL: 2, baseI: 2 },
+  { id: 8, name: "Trade Union & Collective Rights", short: "Trade Union", baseL: 2, baseI: 3 },
+  { id: 9, name: "Breach of Contract & Notice Disputes", short: "Contract", baseL: 2, baseI: 2 },
+  { id: 10, name: "Health & Safety Protections", short: "H&S", baseL: 2, baseI: 2 },
+  { id: 11, name: "Data Protection & Employee Privacy", short: "Data", baseL: 2, baseI: 3 },
+  { id: 12, name: "Business Transfers & Insolvency", short: "Transfers", baseL: 1, baseI: 2 },
+];
+
+const BANDS = [
+  { label: "Low", min: 0, max: 20, color: "#16A085" },
+  { label: "Controlled", min: 21, max: 40, color: "#2E86C1" },
+  { label: "Elevated", min: 41, max: 60, color: "#D4920B" },
+  { label: "High", min: 61, max: 80, color: "#E67E22" },
+  { label: "Severe", min: 81, max: 100, color: "#C0392B" },
+];
+
+const CCI_BANDS = [
+  { label: "Strong", min: 81, max: 100, color: "#16A085" },
+  { label: "Adequate", min: 61, max: 80, color: "#2E86C1" },
+  { label: "Concerning", min: 41, max: 60, color: "#D4920B" },
+  { label: "Weak", min: 21, max: 40, color: "#E67E22" },
+  { label: "Critical", min: 0, max: 20, color: "#C0392B" },
+];
+
+function getBand(score) {
+  return BANDS.find(b => score >= b.min && score <= b.max) || BANDS[0];
+}
+
+function getCCIBand(score) {
+  return CCI_BANDS.find(b => score >= b.min && score <= b.max) || CCI_BANDS[4];
+}
+
+// ════════════════════════════════════════════════════════════════════
+// AILANE MARKET INTELLIGENCE BRIEF (MIB) DATA
+// Constitutionally independent from ACEI scoring engine
+// Source: HMCTS 2023/24, GOV.UK Tribunal Statistics, ERA 2025
+// ════════════════════════════════════════════════════════════════════
+
+const MIB_DATA = {
+  1: {
+    constitutionalRef: "ACEI Art. 2.11.1",
+    scope: "Encompasses claims for unfair dismissal (substantive and procedural), constructive dismissal, wrongful dismissal constituting breach of contract, and automatic unfair dismissal arising from protected activities.",
+    overlapRules: [
+      { target: "Cat 4 (Whistleblowing)", rule: "Where primary statutory cause of action arises under PIDA (automatic unfair dismissal), classify as Cat 4; where whistleblowing is incidental, classify as Cat 1." },
+      { target: "Cat 9 (Contract)", rule: "Where dispute concerns notice period, garden leave, or PILON calculation, classify as Cat 9; where dispute challenges fairness of dismissal decision, classify as Cat 1." },
+    ],
+    eviBaseline: "25 decisions/week (national average)",
+    claimVolume: "22% of all ET claims received — the single most common jurisdiction type",
+    capped: true,
+    capAmount: "£118,223 (from April 2025) or 52 weeks' gross pay — REMOVED from 1 January 2027",
+    awards: {
+      average: "£13,749",
+      median: "£6,746",
+      maximum: "£179,124",
+      period: "2023/24",
+      compensated: 650,
+    },
+    defenceCosts: {
+      simple: "£4,500 – £8,000",
+      medium: "£8,000 – £17,000",
+      complex: "£17,000 – £36,000",
+      averageBCC: "£8,500",
+    },
+    managementTime: "4.8 weeks average; 44.7% of HR professionals spend 5-6 working weeks per claim",
+    settlementRange: "£5,000 – £15,000 (pre-tribunal)",
+    resolutionWithoutHearing: "79% (ACAS data, Q4 2024)",
+    totalExposure: {
+      current: "£15,000 – £50,000",
+      postERA: "UNCAPPED — high-earner dismissals could reach six figures+",
+    },
+    regulatoryMomentum: "CRITICAL",
+    momentumColor: "#C0392B",
+    eraImpact: [
+      { change: "Qualifying period: 2 years → 6 months", date: "1 January 2027", impact: "6.3 million additional employees in scope" },
+      { change: "Compensatory award cap REMOVED", date: "1 January 2027", impact: "Uncapped awards for all unfair dismissal claims" },
+      { change: "Tribunal time limits: 3 months → 6 months", date: "October 2026 (earliest)", impact: "Extended filing window increases claim volumes" },
+      { change: "Fire & rehire restrictions", date: "1 January 2027", impact: "Automatically unfair dismissal for most fire-and-rehire practices" },
+    ],
+    keyStats: [
+      { label: "Claims Receiving Compensation", value: "650", trend: "-18% YoY" },
+      { label: "Open Caseload (all ET)", value: "491,000", trend: "+11% YoY" },
+      { label: "New Claims Q4 2024/25", value: "37,000", trend: "+50% vs prior year" },
+      { label: "Projected Additional ACAS Referrals (ERA)", value: "9,000/year", trend: "NEW" },
+      { label: "Projected Additional Tribunal Claims (ERA)", value: "3,000/year", trend: "NEW" },
+    ],
+    relatedCats: [4, 9],
+    ccrds: [],
+  },
+  2: {
+    constitutionalRef: "ACEI Art. 2.11.2",
+    scope: "Encompasses direct and indirect discrimination, harassment, victimization, and equal pay claims across all protected characteristics including age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex, and sexual orientation.",
+    overlapRules: [
+      { target: "Cat 7 (Parental)", rule: "Pregnancy/maternity discrimination remains Cat 2 unless the primary dispute concerns statutory leave/pay/rights mechanics." },
+      { target: "Cat 11 (Data)", rule: "Where data handling is evidentiary to discriminatory treatment, classify as Cat 2; where primary allegation concerns unlawful processing, classify as Cat 11." },
+    ],
+    eviBaseline: "20 decisions/week",
+    claimVolume: "13% of all ET claims (disability discrimination specifically) — 4th most common jurisdiction",
+    capped: false,
+    capAmount: "UNCAPPED — no statutory ceiling on compensation",
+    awards: {
+      sex: { average: "£53,403", maximum: "£995,128", trend: "+42% YoY" },
+      race: { average: "£29,532", maximum: "—", trend: "+28% YoY" },
+      age: { average: "£102,891", maximum: "—", trend: "+624% YoY (small dataset: 12 awards)" },
+      disability: { average: "—", maximum: "£964,465", trend: "—" },
+      overall: { compensated: 270, period: "2023/24" },
+    },
+    vento: {
+      lower: "£1,200 – £12,100",
+      middle: "£12,100 – £36,400",
+      upper: "£36,400 – £60,700",
+      exceptional: "Exceeding £60,700",
+      effective: "6 April 2025",
+    },
+    defenceCosts: {
+      simple: "£8,000 – £12,000",
+      medium: "£12,000 – £20,000+",
+      complex: "£20,000 – £50,000+",
+    },
+    managementTime: "Typically higher than unfair dismissal due to multi-day hearings and extensive disclosure requirements",
+    landmarkCase: {
+      award: "£4.6 million",
+      type: "Disability discrimination & harassment",
+      breakdown: "Past loss £327k + Future loss £900k + Pension loss £600k + Injury to feelings £60k + Psychiatric injury £60k + ACAS uplift £271k + Exemplary damages £15k",
+    },
+    totalExposure: {
+      typical: "£30,000 – £150,000+",
+      catastrophic: "£1 million+ (established in case law)",
+    },
+    regulatoryMomentum: "HIGH",
+    momentumColor: "#E67E22",
+    eraImpact: [
+      { change: "Employer duty: 'all reasonable steps' against harassment", date: "In force", impact: "Strengthened third-party harassment obligations" },
+      { change: "Sexual harassment as qualifying disclosure (whistleblowing)", date: "6 April 2026", impact: "Dual-track claims: discrimination + whistleblowing" },
+      { change: "Mandatory gender pay gap action plans", date: "Voluntary Apr 2026, mandatory 2027", impact: "Increased scrutiny of equal pay practices" },
+    ],
+    keyStats: [
+      { label: "Discrimination Cases Compensated", value: "270", trend: "2023/24" },
+      { label: "Highest Single Award (2023/24)", value: "£995,128", trend: "Sex discrimination" },
+      { label: "Largest Ever Award", value: "£4.6m", trend: "Disability" },
+      { label: "Business Leaders Facing Discrimination Claims", value: "33.2%", trend: "Survey 2025" },
+      { label: "Reputational Cost (1 negative article)", value: "-22% customers", trend: "Research" },
+    ],
+    relatedCats: [7, 11],
+    ccrds: ["CCRD-AIH (AI in HR Decisioning: Cat 11 + Cat 2)"],
+  },
+  3: {
+    constitutionalRef: "ACEI Art. 2.11.3",
+    scope: "Encompasses National Minimum Wage and National Living Wage violations, unlawful deductions from wages, Working Time Directive non-compliance including 48-hour week breaches and rest break failures, holiday pay calculation errors including rolled-up holiday pay, and overtime disputes.",
+    overlapRules: [
+      { target: "Cat 9 (Contract)", rule: "Where the dispute concerns contractual bonus/commission mechanics, classify as Cat 9; where it concerns statutory wage entitlements, classify as Cat 3." },
+    ],
+    eviBaseline: "15 decisions/week",
+    claimVolume: "12% of all ET claims — 4th most common jurisdiction type (unlawful deductions from wages)",
+    capped: true,
+    capAmount: "Awards based on actual underpayment plus interest; no fixed statutory cap but limited by actual losses. Mass claims can aggregate to millions.",
+    awards: {
+      individual: "£2,000 – £10,000 (typical individual claim)",
+      massExample: "£30 million (Next equal pay — 3,500+ claimants)",
+      period: "2023/24",
+    },
+    defenceCosts: {
+      simple: "£4,500 – £8,000",
+      medium: "£8,000 – £15,000",
+      mass: "£100,000+ (systemic/mass claims)",
+    },
+    managementTime: "Lower per individual claim but systemic errors can trigger mass litigation consuming months of management resource",
+    systemicRisk: [
+      "Holiday pay calculation errors (claims surged ~900% post-rule changes)",
+      "NMW/NLW underpayment (HMRC naming and shaming scheme)",
+      "Rolled-up holiday pay miscalculation for irregular workers",
+      "Agnew Supreme Court ruling expanding historic claim scope",
+      "Working Time Directive breaches (rest breaks, 48-hour week)",
+    ],
+    totalExposure: {
+      individual: "£5,000 – £25,000 per claim",
+      systemic: "£100,000+ with no theoretical ceiling for mass claims",
+    },
+    regulatoryMomentum: "HIGH",
+    momentumColor: "#E67E22",
+    eraImpact: [
+      { change: "Fair Work Agency established", date: "7 April 2026", impact: "Centralised enforcement of NMW, holiday pay, SSP — combining HMRC + EASI + GLAA" },
+      { change: "Guaranteed hours for zero-hours workers", date: "2027", impact: "Increased wage calculation complexity" },
+      { change: "SSP reforms (day 1 entitlement)", date: "6 April 2026", impact: "Expanded statutory sick pay obligations" },
+    ],
+    keyStats: [
+      { label: "Claim Share (unlawful deductions)", value: "12%", trend: "4th most common" },
+      { label: "Holiday Pay Claims Surge", value: "+900%", trend: "Post-2024 rule changes" },
+      { label: "Low-Paid Workers in Scope", value: "9 million", trend: "~1/3 of workforce" },
+      { label: "Two-Year Backstop on Deductions Series", value: "Active", trend: "GB only; N.I. unlimited" },
+      { label: "HMRC NMW Enforcement", value: "Active naming scheme", trend: "Public shaming + penalties" },
+    ],
+    relatedCats: [9],
+    ccrds: [],
+  },
+  4: {
+    constitutionalRef: "ACEI Art. 2.11.4",
+    scope: "Encompasses Public Interest Disclosure Act (PIDA) claims, detriment suffered for making protected disclosures, dismissal arising from whistleblowing, victimization of whistleblowers, and disputes concerning confidentiality clauses or non-disclosure agreements in the employment context.",
+    overlapRules: [
+      { target: "Cat 1 (Dismissal)", rule: "Where primary statutory cause of action arises under PIDA (automatic unfair dismissal), classify as Cat 4; where whistleblowing is incidental to substantive/procedural dismissal dispute, classify as Cat 1." },
+      { target: "Cat 10 (H&S)", rule: "If the protected act arises under specific H&S refusal/complaint provisions, classify as Cat 10; if disclosure concerns broader misconduct or regulatory breach, classify as Cat 4." },
+      { target: "Cat 2 (Discrimination)", rule: "Sexual harassment as qualifying disclosure (from 6 Apr 2026) enables dual-track claims — primary classification follows dominant cause of action." },
+    ],
+    eviBaseline: "3 decisions/week",
+    claimVolume: "Low frequency but catastrophic individual exposure — claims tend to be high-value, multi-year litigation",
+    capped: false,
+    capAmount: "UNCAPPED — no statutory ceiling. Automatic unfair dismissal (day 1 right, no qualifying period).",
+    awards: {
+      largest: [
+        { case: "Jhuti v Royal Mail (2023 remedies)", amount: "£2.3 million", breakdown: "Past/future salary loss + pension + injury to feelings £9k + 0.5% ACAS uplift + tax grossing-up + aggravated damages £12.5k" },
+        { case: "Zabelin v SPI Spirits (2023/24)", amount: "£1.6 million", breakdown: "Whistleblowing detriments + automatically unfair dismissal + injury to feelings + 20% ACAS Code uplift" },
+        { case: "Watkinson v NHS (2010)", amount: "£1.2 million", breakdown: "Long-running NHS whistleblower case" },
+      ],
+      typicalRange: "£20,000 – £200,000+",
+      injuryToFeelings: "Available in detriment claims (not dismissal claims) — Vento bands apply",
+      period: "2023/24",
+    },
+    defenceCosts: {
+      simple: "£8,000 – £15,000",
+      medium: "£15,000 – £35,000",
+      complex: "£35,000 – £80,000+",
+      multiYear: "£100,000+",
+    },
+    managementTime: "Extensive — multi-year cases common. Internal investigation resources, board-level oversight required for serious disclosures. Reputational management adds significant hidden cost.",
+    totalExposure: {
+      typical: "£50,000 – £250,000",
+      catastrophic: "£1 million+ (established in recent case law)",
+    },
+    settlementRange: "£20,000 – £100,000+ (pre-tribunal, depends heavily on seniority and disclosure severity)",
+    systemicIssues: [
+      "75% of tribunal awards remain unpaid (7,000 claimants, £36m outstanding)",
+      "No employer has ever been publicly named despite penalty scheme",
+      "51% of workers would not feel safe disclosing illegal activities (2024 survey)",
+      "1 in 4 COVID-19 whistleblowers were dismissed",
+      "Legal complexity: proving 'principal reason' (dismissal) vs 'material influence' (detriment)",
+      "Knowledge attribution: Jhuti doctrine on 'collective memory' of employer",
+    ],
+    regulatoryMomentum: "CRITICAL",
+    momentumColor: "#C0392B",
+    eraImpact: [
+      { change: "HMRC Whistleblower Reward Scheme strengthened", date: "6 April 2026", impact: "Up to 30% of taxes recovered where tip leads to £1.5m+ collection" },
+      { change: "Sexual harassment as qualifying disclosure", date: "6 April 2026", impact: "Dual-track claims with Cat 2 — expanded whistleblowing scope" },
+      { change: "NDA restrictions in settlement agreements", date: "TBC (ERA 2025)", impact: "Cannot restrict employees from reporting harassment/discrimination to regulators" },
+      { change: "Fair Work Agency enforcement powers", date: "7 April 2026", impact: "New enforcement body with powers to enter premises and impose penalties" },
+      { change: "Tribunal time limits: 3 months → 6 months", date: "October 2026", impact: "Extended filing window — more time to prepare complex whistleblowing claims" },
+    ],
+    keyStats: [
+      { label: "Largest Award (Jhuti)", value: "£2.3m", trend: "UNCAPPED" },
+      { label: "Awards Unpaid", value: "75%", trend: "£36m outstanding" },
+      { label: "Workers Feeling Unsafe", value: "51%", trend: "2024 survey" },
+      { label: "COVID Whistleblowers Dismissed", value: "1 in 4", trend: "Protect data" },
+    ],
+    pendingAppeals: [
+      "Sullivan — Court of Appeal: whether job applicants have whistleblowing protection",
+      "Zabelin — Court of Appeal: £1.6m award under review, contractual cap challenge",
+    ],
+    relatedCats: [1, 2, 10],
+    ccrds: [],
+  },
+  5: {
+    constitutionalRef: "ACEI Art. 2.11.5",
+    scope: "Encompasses disputes concerning worker versus employee versus self-employed status, IR35 and off-payroll working determinations, umbrella company arrangements, zero-hours contract restrictions, agency worker rights, and gig economy worker classification.",
+    overlapRules: [
+      { target: "Cat 3 (Wages)", rule: "Where misclassification leads to NMW/NLW shortfalls or unpaid holiday, the wage element classifies as Cat 3; the underlying status dispute classifies as Cat 5." },
+      { target: "Cat 12 (Transfers)", rule: "Immigration/Right-to-Work is standing CCRD-IMM mapping primarily to Cat 5 with Cat 12 for licence risk." },
+    ],
+    eviBaseline: "5 decisions/week",
+    claimVolume: "Moderate individual claim volume but systemic financial impact — mass misclassification creates aggregate exposure in hundreds of millions",
+    capped: true,
+    capAmount: "Individual ET claims follow standard unfair dismissal cap (£118,223). HMRC IR35 liability: UNCAPPED backdated tax + penalties up to 100% of unpaid tax.",
+    awards: {
+      ir35Landmarks: [
+        { entity: "Post Office Ltd", amount: "£101 million+", type: "IR35 HMRC settlement — largest single public sector failure" },
+        { entity: "Defra", amount: "£86.5 million", type: "IR35 HMRC settlement + £4m interest — off-payroll determination errors" },
+        { entity: "UKRI", amount: "£36 million", type: "IR35 HMRC settlement" },
+        { entity: "HS2", amount: "£6.2 million", type: "IR35 HMRC settlement" },
+        { entity: "Natural Resources Wales", amount: "£17.5 million", type: "IR35 HMRC settlement (Oct 2025)" },
+      ],
+      gigEconomy: [
+        { case: "Bolt (Nov 2024)", impact: "100,000+ drivers reclassified as workers — backdated compensation estimated £200m+" },
+        { case: "Addison Lee (Jan 2025)", impact: "700 drivers — tribunal criticised executives for 'falsifying evidence'" },
+        { case: "Uber BV v Aslam (SC 2021)", impact: "Supreme Court: drivers are workers despite contractual terms — foundational precedent" },
+      ],
+      individualClaim: "Average £15,000 per misclassified worker (backdated holiday pay + NMW shortfalls + pension contributions)",
+      period: "2024/25",
+    },
+    hmrcPenalties: {
+      careless: "30% of unpaid tax",
+      knowing: "70% of unpaid tax",
+      deliberate: "100% of unpaid tax",
+      investigationDuration: "18-21 months typical compliance check",
+      publicSectorTotal: "£263 million+ in HMRC settlements across public bodies since 2017",
+    },
+    defenceCosts: {
+      simple: "£5,000 – £12,000 (individual status dispute)",
+      medium: "£12,000 – £30,000 (HMRC compliance check)",
+      complex: "£30,000 – £100,000+ (multi-worker investigation)",
+      mass: "£500,000+ (sector-wide HMRC enquiry)",
+    },
+    managementTime: "IR35 compliance checks typically span 18-21 months. Mass reclassification exercises require cross-functional teams (HR, legal, tax, procurement).",
+    totalExposure: {
+      individual: "£5,000 – £50,000 per misclassified worker",
+      organisational: "£100,000 – £10 million+ (depends on contractor population size)",
+      publicSector: "£101 million (Post Office — single largest IR35 failure)",
+    },
+    regulatoryMomentum: "HIGH",
+    momentumColor: "#E67E22",
+    eraImpact: [
+      { change: "Small company IR35 thresholds raised", date: "April 2025", impact: "£15m turnover / £7.5m balance sheet — more exempt from off-payroll rules" },
+      { change: "Umbrella company joint & several liability", date: "April 2026", impact: "End clients liable for umbrella company tax failings" },
+      { change: "Zero-hours guaranteed hours right", date: "2027", impact: "12-week reference period — employers must offer reflecting hours actually worked" },
+      { change: "Shift cancellation compensation", date: "2027", impact: "Employers must compensate for cancelled or curtailed shifts" },
+      { change: "Single worker status consultation", date: "Late 2025/2026", impact: "Potential collapse of three-tier system (employee/worker/self-employed) to two categories" },
+      { change: "Fire & replace restrictions", date: "1 January 2027", impact: "Auto unfair dismissal if replacing employees with self-employed contractors" },
+    ],
+    keyStats: [
+      { label: "Public Sector IR35 Liability", value: "£263m+", trend: "+£101m Post Office" },
+      { label: "Contractors Not Working", value: "26%", trend: "+5pp YoY (IPSE 2025)" },
+      { label: "Gig Workers Affected", value: "4.4m", trend: "Platform work UK" },
+      { label: "Bolt Drivers Reclassified", value: "100k+", trend: "Est. £200m+ exposure" },
+    ],
+    relatedCats: [3, 12],
+    ccrds: ["CCRD-IMM (Immigration/RTW)", "CCRD-MSL (Modern Slavery)"],
+  },
+  6: {
+    constitutionalRef: "ACEI Art. 2.11.6",
+    scope: "Encompasses unfair selection for redundancy, failure to consult on individual redundancies, collective consultation failures affecting twenty or more employees, Transfer of Undertakings (Protection of Employment) (TUPE) violations, failure to inform and consult on business transfers, and protective awards.",
+    overlapRules: [
+      { target: "Cat 8 (Trade Union)", rule: "Where dispute concerns failure to inform/consult unions on collective redundancy or TUPE, classify as Cat 6; where dispute concerns union recognition, time off, or detriment for union activities, classify as Cat 8." },
+      { target: "Cat 1 (Dismissal)", rule: "Where unfair selection for redundancy challenges the fairness of the decision itself, classify as Cat 6; where the dispute is purely about dismissal procedure, classify as Cat 1." },
+    ],
+    eviBaseline: "10 decisions/week",
+    claimVolume: "High volume — redundancy is second most common reason for dismissal. Collective failures create mass claims affecting 20-1,000+ employees simultaneously.",
+    capped: true,
+    capAmount: "Individual unfair redundancy: £118,223 cap (REMOVED from 1 Jan 2027). Protective award: 90 days → 180 days uncapped pay per employee (ERA 2025). TUPE: 13 weeks uncapped pay per employee.",
+    awards: {
+      unfairRedundancy: {
+        average: "£13,749",
+        median: "£6,746",
+        maximum: "£179,124",
+        note: "Same as Cat 1 unfair dismissal statistics — redundancy is a sub-type",
+      },
+      protectiveAward: {
+        current: "Up to 90 days' uncapped gross pay per affected employee",
+        postERA: "Up to 180 days' uncapped gross pay per affected employee (ERA 2025)",
+        withUplift: "Up to 225 days' uncapped pay (180 + 25% ACAS Code uplift)",
+        startingPoint: "Full maximum awarded where there has been no genuine attempt to consult",
+        weeklyPayCap: "£719/week (from 6 April 2025) — BUT protective awards use UNCAPPED actual gross pay",
+      },
+      tupe: {
+        compensationMax: "13 weeks' uncapped gross pay per affected employee",
+        note: "Awards are uncapped — EAT confirmed statutory weekly cap does not apply to TUPE consultation claims",
+      },
+      period: "2023/24 (unfair dismissal stats); current for protective/TUPE",
+    },
+    collectiveThresholds: {
+      current: "20+ redundancies at one establishment within 90 days",
+      postERA: "20+ at one establishment OR alternative cross-entity threshold (regulations pending)",
+      consultation30: "30 days minimum notice where 20-99 redundancies proposed",
+      consultation45: "45 days minimum where 100+ redundancies (potentially doubled to 90 days under further consultation)",
+    },
+    defenceCosts: {
+      simpleIndividual: "£4,500 – £8,000",
+      collectiveConsultation: "£15,000 – £40,000",
+      tupeTransfer: "£10,000 – £30,000",
+      complexRestructuring: "£40,000 – £100,000+",
+    },
+    managementTime: "Collective consultation processes: 30-90 days mandated engagement. TUPE transfers require months of due diligence, employee information provision, and consultation with representatives.",
+    totalExposure: {
+      individual: "£15,000 – £50,000 per unfair redundancy claim",
+      collectiveSmall: "£200,000 – £500,000 (20-50 employees, protective award)",
+      collectiveLarge: "£1 million – £10 million+ (100+ employees, 180 days' pay each)",
+      tupeFailure: "13 weeks × number of affected employees — scales linearly",
+    },
+    regulatoryMomentum: "HIGH",
+    momentumColor: "#E67E22",
+    eraImpact: [
+      { change: "Protective award doubled: 90 → 180 days", date: "TBC 2026", impact: "Maximum exposure per employee roughly doubled. Could cost half annual payroll for large-scale failures." },
+      { change: "25% ACAS Code uplift now applies to protective awards", date: "20 January 2025", impact: "Total potential: 225 days' uncapped pay. Already in force." },
+      { change: "Collective consultation: alternative cross-entity threshold", date: "TBC 2027", impact: "Multi-site employers may need to aggregate redundancies across all UK locations" },
+      { change: "Fire & rehire: automatically unfair dismissal", date: "1 January 2027", impact: "Dismissal for refusing contract changes is automatically unfair (except extreme financial distress)" },
+      { change: "Consultation period for 100+ may double (45 → 90 days)", date: "TBC (further consultation)", impact: "Extended mandatory engagement period for largest restructurings" },
+      { change: "Unfair dismissal cap REMOVED", date: "1 January 2027", impact: "Individual redundancy claims uncapped — high earners face unlimited liability" },
+    ],
+    keyStats: [
+      { label: "Protective Award (New Max)", value: "180 days", trend: "+100% (from 90)" },
+      { label: "With ACAS Uplift", value: "225 days", trend: "Uncapped pay" },
+      { label: "Collective Trigger", value: "20+ at 1 site", trend: "Cross-entity TBC" },
+      { label: "TUPE Max per Employee", value: "13 weeks", trend: "Uncapped gross" },
+    ],
+    relatedCats: [1, 8, 12],
+    ccrds: ["CCRD-MSL (Modern Slavery)"],
+  },
+  7: {
+    constitutionalRef: "ACEI Art. 2.11.7",
+    scope: "Encompasses maternity rights including maternity leave and Statutory Maternity Pay (SMP), paternity rights, shared parental leave, adoption leave and pay, parental leave (unpaid), time off for dependants, pregnancy-related discrimination, flexible working requests post-parental leave, and Keeping in Touch (KIT) days disputes.",
+    overlapRules: [
+      { target: "Cat 2 (Discrimination)", rule: "Pregnancy/maternity discrimination remains Cat 2 unless the primary dispute concerns statutory leave/pay/rights mechanics." },
+    ],
+    eviBaseline: "10 decisions/week",
+    claimVolume: "High volume — 74,000 women/year forced out of jobs due to pregnancy/maternity (Pregnant Then Screwed, 2024). Only 2% pursue tribunal claims.",
+    capped: false,
+    capAmount: "UNCAPPED — pregnancy/maternity discrimination awards have no statutory ceiling. Tribunal damages include injury to feelings (Vento bands) + financial loss + aggravated damages.",
+    awards: {
+      typicalRange: "£8,000 – £40,000+",
+      period: "2024/25",
+      injuryToFeelings: "Vento bands (from 6 Apr 2025): Lower £1,200–£12,100, Middle £12,100–£36,400, Upper £36,400–£60,700, Exceptional £60,700+",
+      caseExamples: [
+        { case: "Shipp v City Sprint UK Ltd", amount: "£30,000", breakdown: "Sham redundancy during maternity leave — role eliminated then filled by new hire. Tribunal condemned process as engineered." },
+        { case: "Miss PD v Kelly Traffic Management", amount: "£16,200", breakdown: "Campaign of discrimination — offensive pregnancy comments, deskilling on return, verbal attacks." },
+        { case: "School teacher (2024)", amount: "£24,000", breakdown: "Denied original role post-maternity leave — management responsibilities downgraded and bonus cut." },
+      ],
+    },
+    defenceCosts: {
+      simple: "£5,000 – £10,000",
+      medium: "£10,000 – £20,000",
+      complex: "£20,000 – £45,000+",
+    },
+    managementTime: "High — maternity return disputes typically involve extended internal processes, grievance procedures, and often protracted tribunal proceedings",
+    systemicRisk: [
+      "74,000 women/year forced out of jobs (up 37% from 54,000 in 2016) — a woman pushed out every 7 minutes",
+      "49.5% of pregnant women/new mothers report negative workplace experience",
+      "35.9% sidelined or demoted during pregnancy, maternity leave, or on return",
+      "12.3% dismissed, constructively dismissed, or made redundant",
+      "Only 2% pursue tribunal claims — massive enforcement gap",
+      "1 in 61 women reported boss suggesting they should have an abortion (2023)",
+      "64% received harmful remarks about appearance during pregnancy",
+    ],
+    totalExposure: {
+      typical: "£15,000 – £50,000 per individual claim (with injury to feelings)",
+      multiClaim: "£100,000+ where multiple heads of loss engaged",
+      reputational: "Extreme — pregnancy discrimination generates disproportionate media coverage and social media amplification",
+    },
+    regulatoryMomentum: "HIGH",
+    momentumColor: "#E67E22",
+    eraImpact: [
+      { change: "Paternity leave: day-one right (no qualifying period)", date: "6 April 2026", impact: "32,000 additional fathers/year eligible. Applies to births on or after 6 Apr 2026." },
+      { change: "Unpaid parental leave: day-one right", date: "6 April 2026", impact: "1.5 million additional parents gain immediate access — no 1-year qualifying period" },
+      { change: "Paternity leave after shared parental leave permitted", date: "6 April 2026", impact: "Restriction removed — fathers no longer forced to choose between leave types" },
+      { change: "Bereaved partner's paternity leave: up to 52 weeks", date: "6 April 2026", impact: "Day-one right to extended leave in first year if mother/primary adopter dies" },
+      { change: "Extended dismissal protection during/after family leave", date: "TBC 2027", impact: "Protection extends for at least 6 months after return from maternity leave" },
+      { change: "Bereavement leave for miscarriage before 24 weeks", date: "TBC 2027", impact: "New statutory right — unpaid leave for pregnancy loss" },
+      { change: "Parental Leave and Pay Review (comprehensive)", date: "Launched July 2025", impact: "All leave entitlements under review — potential for fundamental restructuring of parental leave system" },
+      { change: "Tribunal time limits: 3 months → 6 months", date: "October 2026", impact: "Extended filing window — expected to increase maternity-related claims significantly" },
+    ],
+    keyStats: [
+      { label: "Women Forced Out Annually", value: "74,000", trend: "+37% vs 2016" },
+      { label: "Negative Experience Rate", value: "49.5%", trend: "Pregnant/mat leave" },
+      { label: "Sidelined or Demoted", value: "35.9%", trend: "During/after leave" },
+      { label: "Pursue Tribunal Claims", value: "2%", trend: "Enforcement gap" },
+      { label: "Additional Fathers Eligible (ERA)", value: "32,000/yr", trend: "NEW" },
+    ],
+    relatedCats: [2, 1],
+    ccrds: [],
+  },
+  8: {
+    constitutionalRef: "ACEI Art. 2.11.8",
+    scope: "Encompasses trade union recognition obligations, collective bargaining failures, time off for trade union duties and activities, detriment for union membership or activities, blacklisting violations, industrial action protections, union learning representative rights, facility time provisions, and Information and Consultation of Employees Regulations compliance.",
+    overlapRules: [
+      { target: "Cat 6 (Redundancy)", rule: "Where dispute concerns failure to inform/consult unions on collective redundancy or TUPE, classify as Cat 6; where dispute concerns union recognition, time off, or detriment for union activities, classify as Cat 8." },
+    ],
+    eviBaseline: "4 decisions/week",
+    claimVolume: "Lower individual claim volume but with potential for catastrophic collective exposure — blacklisting and recognition failures generate mass litigation",
+    capped: true,
+    capAmount: "Individual detriment: compensatory award for financial loss + injury to feelings (uncapped). Automatic unfair dismissal for union activities: basic + compensatory award. Blacklisting: unlimited damages (High Court). Minimum basic award for TU dismissal: £8,613 (2025).",
+    awards: {
+      minimumBasic: "£8,613 (union-related dismissal — cannot be reduced)",
+      typicalDetriment: "£10,000 – £30,000",
+      blacklisting: {
+        totalSettlements: "£50m – £75m (Consulting Association scandal, 771 workers)",
+        individualRange: "£10,000 – £200,000 per blacklisted worker",
+        averageUCAT: "~£80,000 per worker (UCATT settlement)",
+        uniteTotal: "£19.34m for 412 workers (2016) + £1.9m for 53 workers (2019)",
+        companies: "Balfour Beatty, Carillion, Costain, Kier, Laing O'Rourke, Sir Robert McAlpine, Skanska UK, Vinci",
+      },
+    },
+    defenceCosts: {
+      simple: "£5,000 – £12,000",
+      medium: "£12,000 – £30,000",
+      complex: "£30,000 – £80,000+",
+      mass: "£500,000+ (blacklisting/recognition disputes)",
+    },
+    managementTime: "Variable — individual detriment claims manageable, but recognition disputes and collective action can consume months of senior leadership time. Police/state collusion findings escalate to board level.",
+    systemicRisk: [
+      "Consulting Association blacklisted 3,213 workers — 40 construction firms involved. Total settlements £50m-£75m.",
+      "Police collusion in blacklisting confirmed — Met Police admitted providing intelligence to corporate conspiracy",
+      "Industrial action participation now explicitly protected from blacklisting (Court of Appeal, Mercer v AFG 2024)",
+      "Union membership: 6.67m employees (19.9% of workforce, 2024) — public sector 49.9% vs private sector 11.7%",
+      "733,000 working days lost to strikes in 2024 (down from 2.67m in 2023 — highest since 1989)",
+      "ERA 2025 significantly expands union access rights, facility time, and protection from detriment",
+    ],
+    totalExposure: {
+      individual: "£10,000 – £50,000 per detriment/dismissal claim",
+      recognition: "£50,000 – £200,000 (failed recognition process + protective awards)",
+      blacklisting: "Unlimited — £50m-£75m precedent for systematic violations",
+    },
+    regulatoryMomentum: "HIGH",
+    momentumColor: "#E67E22",
+    eraImpact: [
+      { change: "Simplified union recognition process", date: "6 April 2026", impact: "Lower thresholds for statutory recognition — more workplaces in scope" },
+      { change: "Electronic balloting for industrial action", date: "6 April 2026", impact: "Removal of postal-only requirement — expected to increase ballot turnout significantly" },
+      { change: "50% turnout requirement for industrial action REMOVED", date: "August 2026 or later", impact: "Major reduction in procedural barriers to protected industrial action" },
+      { change: "Updated Code of Practice on union recognition", date: "6 April 2026", impact: "Modernised framework for recognition campaigns" },
+      { change: "Duty to inform workers of right to join a union", date: "October 2026", impact: "Employer obligation to actively communicate union rights" },
+      { change: "New right of reasonable access to workplace for TU reps", date: "October 2026", impact: "Updated rules on physical and digital access for organising" },
+      { change: "Right to time off for union equality representatives", date: "October 2026", impact: "New category of protected TU representative role" },
+      { change: "Protection from detriment for industrial action participation", date: "October 2026", impact: "Workers protected against detriment, not just dismissal, for protected action" },
+      { change: "Extended protection: 12-week limit on dismissal protection REMOVED", date: "18 February 2026", impact: "Automatic protection from dismissal for duration of protected industrial action" },
+    ],
+    keyStats: [
+      { label: "Union Membership (2024)", value: "6.67m", trend: "19.9% of employees" },
+      { label: "Days Lost to Strikes (2024)", value: "733,000", trend: "-73% vs 2023" },
+      { label: "Blacklisting Settlements", value: "£50m-£75m", trend: "771 workers" },
+      { label: "Minimum Basic Award (TU)", value: "£8,613", trend: "2025 rate" },
+    ],
+    relatedCats: [6, 1],
+    ccrds: [],
+  },
+  9: {
+    constitutionalRef: "ACEI Art. 2.11.9",
+    scope: "Encompasses notice period disputes, garden leave enforceability, payment in lieu of notice (PILON) calculations, post-termination restrictions including restrictive covenants, non-compete and non-solicitation clauses, bonus and commission disputes, benefits disputes, and share option controversies.",
+    overlapRules: [
+      { target: "Cat 1 (Dismissal)", rule: "Where dispute concerns notice period, garden leave, or PILON calculation, classify as Cat 9; where dispute challenges fairness or lawfulness of dismissal decision itself, classify as Cat 1." },
+      { target: "Cat 3 (Wages)", rule: "Where dispute concerns contractual bonus/commission mechanics, classify as Cat 9; where it concerns statutory wage entitlements, classify as Cat 3." },
+    ],
+    eviBaseline: "8 decisions/week",
+    claimVolume: "Second most commonly received jurisdiction type — breach of contract claims are 15% of all ET receipts. Claims can only be brought in ET after employment ends.",
+    capped: true,
+    capAmount: "£25,000 (Employment Tribunal cap). High-value claims and restrictive covenant enforcement pursued in County Court (up to £100k) or High Court (unlimited). Civil court limitation period: 6 years.",
+    awards: {
+      tribunalCap: "£25,000",
+      typicalRange: "£500 – £25,000 (ET)",
+      highCourt: "Unlimited — restrictive covenant injunctions + damages",
+      period: "2024/25",
+    },
+    defenceCosts: {
+      simple: "£3,000 – £8,000 (ET notice pay disputes)",
+      medium: "£8,000 – £20,000 (bonus/commission disputes)",
+      complex: "£20,000 – £50,000+ (ET multi-head claims)",
+      injunction: "£15,000 – £60,000+ (High Court restrictive covenant enforcement — urgent applications)",
+    },
+    managementTime: "Moderate for straightforward notice disputes. Restrictive covenant enforcement requires intensive board/legal engagement and often urgent court applications.",
+    nonCompeteReform: {
+      status: "Active Consultation — closing 18 February 2026",
+      options: [
+        "Statutory limit on non-compete duration (e.g. 3 months)",
+        "Outright ban on non-compete clauses",
+        "Ban below salary threshold",
+        "Ban below threshold + 3-month cap above threshold",
+        "Varying cap by company size (3 months for 250+ employees, 6 months for smaller)",
+      ],
+      currentUsage: "~5 million employees under non-compete clauses, typical duration ~6 months",
+      internationalContext: "California, North Dakota, Oklahoma: full ban. France, Germany, Italy: mandatory compensation during restriction. Australia: salary threshold ban proposed.",
+    },
+    systemicRisk: [
+      "~5 million UK employees subject to non-compete clauses — many unenforceable but workers comply out of fear",
+      "Non-competes common even in lower-paid roles — deterrent effect regardless of enforceability",
+      "High Court injunction costs: £15,000-£60,000+ — prohibitive for most workers to challenge",
+      "ACAS Code uplift: tribunals can adjust compensation by up to 25% for unreasonable failure to comply with grievance procedures",
+      "Tribunal breach of contract cap (£25,000) unchanged since 1994 — drives high-value disputes to expensive civil courts",
+      "Settlement agreements increasingly used to resolve notice/covenant disputes — average £5,000-£30,000",
+    ],
+    totalExposure: {
+      tribunalMax: "£25,000 per claim",
+      civilCourt: "Unlimited — High Court claims for covenant breach, account of profits, and injunctive relief",
+      practicalRange: "£5,000 – £100,000+ depending on seniority and covenant scope",
+      injunctionCost: "£15,000 – £60,000+ (employer's own legal costs for urgent application)",
+    },
+    regulatoryMomentum: "ELEVATED",
+    momentumColor: "#D4920B",
+    eraImpact: [
+      { change: "Non-compete clause reform consultation", date: "Open — closes 18 Feb 2026", impact: "Potential statutory cap at 3 months, or outright ban, or salary threshold ban. ~5m workers affected." },
+      { change: "Tribunal time limits: 3 months → 6 months", date: "October 2026", impact: "Extended window for breach of contract claims post-termination" },
+      { change: "Fire & rehire: automatically unfair dismissal", date: "1 January 2027", impact: "Unilateral contract variation by dismissal and re-engagement becomes automatically unfair" },
+      { change: "Written statement of terms: enhanced requirements", date: "Already in force", impact: "Additional tribunal award of 2-4 weeks' pay if no written statement and employee succeeds in related claim" },
+    ],
+    keyStats: [
+      { label: "ET Claims (Breach of Contract)", value: "15%", trend: "of all receipts" },
+      { label: "Tribunal Cap", value: "£25,000", trend: "Unchanged since 1994" },
+      { label: "Workers Under Non-Competes", value: "~5 million", trend: "Active consultation" },
+      { label: "Typical Non-Compete Duration", value: "~6 months", trend: "May be capped at 3" },
+    ],
+    relatedCats: [1, 3],
+    ccrds: [],
+  },
+  10: {
+    constitutionalRef: "ACEI Art. 2.11.10",
+    scope: "Encompasses detriment suffered for raising health and safety concerns, health and safety representative protections, dismissal for refusing unsafe work, failure to provide safe working environment or adequate PPE, and RIDDOR compliance disputes.",
+    overlapRules: [
+      { target: "Cat 4 (Whistleblowing)", rule: "If the protected act arises under specific H&S refusal/complaint provisions, classify as Cat 10; if disclosure concerns broader misconduct or regulatory breach, classify as Cat 4." },
+    ],
+    eviBaseline: "3 decisions/week",
+    claimVolume: "Low individual claim volume but HIGH severity — H&S dismissals are automatically unfair (day-one right) and uncapped. Cross-category amplification with Cat 4 whistleblowing.",
+    capped: false,
+    capAmount: "UNCAPPED — H&S-related dismissals are automatically unfair dismissal with no qualifying service and no compensatory award cap. Minimum basic award: £8,763 (Apr 2025). HSE can prosecute under Health & Safety at Work Act 1974 — unlimited fines + imprisonment.",
+    awards: {
+      minimumBasic: "£8,763 (H&S-related dismissal — cannot be reduced below this floor)",
+      typicalRange: "£10,000 – £50,000+",
+      maximum2024: "£179,124 (highest 2023/24 uncapped unfair dismissal — includes H&S cases)",
+      period: "2024/25",
+      interimRelief: "Available — prevents financial hardship pre-hearing. Employer must continue paying salary until full hearing.",
+      caseExamples: [
+        { case: "COVID-19 refusal dismissals (2020-2023)", amount: "£20,000 – £80,000+", breakdown: "Automatic unfair dismissal for refusing to work in unsafe COVID conditions — multiple successful claims. No qualifying period required." },
+        { case: "Construction safety rep dismissal", amount: "£45,000+", breakdown: "Safety representative dismissed after raising scaffolding concerns — interim relief granted, employer continued salary payments pending full hearing." },
+        { case: "PPE refusal warehouse worker", amount: "£18,000", breakdown: "Worker dismissed for refusing to operate forklift without safety equipment — tribunal found serious and imminent danger established." },
+      ],
+    },
+    defenceCosts: {
+      simple: "£5,000 – £12,000",
+      medium: "£12,000 – £30,000",
+      complex: "£30,000 – £60,000+",
+      hseInvestigation: "£50,000 – £250,000+ (if HSE prosecution runs parallel to ET claim)",
+    },
+    managementTime: "HIGH — H&S claims often trigger parallel HSE investigation, risk assessment reviews, and board-level safety governance scrutiny. Interim relief applications require immediate legal response.",
+    systemicRisk: [
+      "Automatic unfair dismissal: day-one right, no qualifying period, no cap — among the most powerful statutory protections",
+      "Interim relief available: employer must continue salary payments until full hearing — one of only 5 claim types with this remedy",
+      "HSE fatality investigations: average 3.5 years, 135 workplace deaths in 2023/24, HSE issued 8,649 enforcement notices",
+      "COVID legacy: 594,000 workers reported work-related ill health in 2023/24 — H&S awareness permanently elevated",
+      "HSE prosecution fines: unlimited for organisations, up to 2 years imprisonment for individuals. Sentencing guidelines: £100k+ for large organisations even for lower culpability",
+      "RIDDOR non-compliance: failure to report adds separate regulatory exposure — HSE monitors reporting rates by sector",
+      "Corporate manslaughter: unlimited fines. Average fine post-2016 guidelines: £600,000. Largest: Serco £1.86m (2023)",
+    ],
+    totalExposure: {
+      individual: "£10,000 – £80,000+ per claim (ET — uncapped)",
+      hseParallel: "£100,000 – £1m+ (if HSE prosecution + ET claim combined)",
+      corporateManslaughter: "Unlimited fines + mandatory publicity order + remedial order",
+    },
+    regulatoryMomentum: "HIGH",
+    momentumColor: "#E67E22",
+    eraImpact: [
+      { change: "Tribunal time limits: 3 months → 6 months", date: "October 2026", impact: "Extended window for H&S detriment and dismissal claims" },
+      { change: "Fair Work Agency enforcement powers", date: "7 April 2026", impact: "FWA inspectors can enter premises, issue penalties, and bring tribunal claims — overlaps with HSE jurisdiction" },
+      { change: "Unfair dismissal cap REMOVED", date: "1 January 2027", impact: "H&S claims already uncapped but broader removal increases tribunal claim culture" },
+      { change: "Day-one unfair dismissal rights (general)", date: "TBC 2026", impact: "H&S already day-one right, but general day-one rights increase awareness of all automatic unfair dismissal categories" },
+    ],
+    keyStats: [
+      { label: "Workplace Deaths (2023/24)", value: "135", trend: "Fatal injuries" },
+      { label: "Work-Related Ill Health", value: "594,000", trend: "Self-reported 2023/24" },
+      { label: "HSE Enforcement Notices", value: "8,649", trend: "2023/24" },
+      { label: "Min Basic Award (H&S)", value: "£8,763", trend: "Apr 2025 rate" },
+      { label: "Corporate Manslaughter Avg Fine", value: "£600,000", trend: "Post-2016 guidelines" },
+    ],
+    relatedCats: [4, 1],
+    ccrds: [],
+  },
+  11: {
+    constitutionalRef: "ACEI Art. 2.11.11",
+    scope: "Encompasses GDPR Article 88 employment rights, subject access request (SAR) disputes, employee monitoring and surveillance compliance, right to erasure controversies, data breach notification affecting employee data, and automated decision-making including AI-driven recruitment or performance management.",
+    overlapRules: [
+      { target: "Cat 2 (Discrimination)", rule: "Where the primary allegation concerns unlawful processing, monitoring, SAR breach, or ICO exposure, classify as Cat 11; where data handling is evidentiary to discriminatory treatment, classify as Cat 2." },
+    ],
+    eviBaseline: "2 decisions/week",
+    claimVolume: "Low but rapidly growing — emerging category driven by AI in HR, remote worker monitoring, and SAR weaponisation. ICO enforcement trajectory suggests acceleration.",
+    capped: false,
+    capAmount: "DUAL-TRACK EXPOSURE: (1) ICO fines: up to £17.5m or 4% annual global turnover, whichever higher. (2) Tribunal/court: unlimited compensation for data protection breaches causing damage. Article 82 UK GDPR provides right to compensation for material and non-material damage.",
+    awards: {
+      icoFines: {
+        maximum: "£17.5 million or 4% annual global turnover",
+        capita2025: "£14 million (Capita settlement — largest ever ICO settlement, October 2025)",
+        psni2024: "£750,000 (PSNI data breach — 10,000 officers' data exposed)",
+        mod2024: "£350,000 (MOD — Afghan interpreters' data breach)",
+        h1_2025Total: "£5.6 million (6 fines in first half of 2025 — double entire 2024 total)",
+        full2025Total: "£19.6 million (including Capita — 7x increase over 2024)",
+      },
+      tribunalClaims: {
+        typicalRange: "£2,000 – £15,000 (SAR non-compliance, monitoring disputes)",
+        dataBreachClass: "£1,000 – £10,000+ per affected individual in class actions",
+        largestClass: "British Airways: £20m settlement (550,000 affected customers — includes employee data)",
+      },
+      caseExamples: [
+        { case: "Capita plc (Oct 2025)", amount: "£14 million", breakdown: "Largest ever ICO settlement — cyber attack exposed personal data. ICO shifted to fewer, larger fines." },
+        { case: "PSNI (2024)", amount: "£750,000", breakdown: "Accidental publication of 10,000+ officers' personal data — names, ranks, locations — via FOI response error." },
+        { case: "Clearview AI", amount: "£7.5 million", breakdown: "Facial recognition database using scraped images — ICO found systematic violations of UK GDPR." },
+      ],
+    },
+    defenceCosts: {
+      sarResponse: "£2,000 – £8,000 (standard SAR compliance)",
+      icoInvestigation: "£20,000 – £100,000+ (ICO formal investigation)",
+      tribunalClaim: "£8,000 – £25,000 (individual data protection ET claim)",
+      classAction: "£100,000 – £1m+ (representative data breach action)",
+    },
+    managementTime: "HIGH — SAR requests alone consume average 20+ hours senior HR time. ICO investigations require dedicated DPO engagement and board-level reporting. AI-driven decision making requires DPIA for every deployment.",
+    systemicRisk: [
+      "ICO enforcement trajectory: £19.6m in 2025 (7x increase over £2.7m in 2024) — fewer fines but dramatically larger amounts",
+      "Two-thirds of 2025 fines were UK GDPR breaches — pivot from PECR spam/marketing enforcement toward core data protection",
+      "Workplace surveillance disproportionately affects Black workers (26% in low-autonomy roles) — IPPR 2025 report. Racial discrimination cross-over with Cat 2.",
+      "AI in HR decisions: automated screening, performance scoring, and dismissal algorithms create DPIA obligations under Article 22 — non-compliance is uncapped",
+      "Data (Use and Access) Act 2025 (Royal Assent 19 June 2025): amends but does not replace UK GDPR — new complaints obligations + 30-day acknowledgement requirement",
+      "SAR weaponisation: employees filing SARs as tactical litigation tools — 40% of employer SARs now from current/former employees in disputes",
+      "IPPR recommends statutory consultation rights before employer deploys surveillance technology — potential future legislation",
+    ],
+    totalExposure: {
+      icoFine: "Up to £17.5m or 4% global turnover",
+      individualClaim: "£2,000 – £30,000 per affected employee",
+      classAction: "£1,000 – £10,000+ per head × number of affected employees",
+      combinedRisk: "ICO fine + individual compensation claims + reputational damage — potentially catastrophic for data-intensive employers",
+    },
+    regulatoryMomentum: "CRITICAL",
+    momentumColor: "#E74C3C",
+    eraImpact: [
+      { change: "Data (Use and Access) Act 2025", date: "19 June 2025 (Royal Assent)", impact: "Amends UK GDPR — new complaints handling obligations, 30-day acknowledgement, SAR refinements. Secondary legislation pending." },
+      { change: "Cyber Security and Resilience Bill", date: "In Parliament — 2026", impact: "Expands ICO powers for digital service providers — mandate specific technical controls" },
+      { change: "ICO fining guidance (March 2024)", date: "In force", impact: "New calculation methodology — systematic approach to penalty assessment with aggravating/mitigating factors" },
+      { change: "AI regulation consultation", date: "Ongoing", impact: "Potential mandatory AI impact assessments for HR decision-making — automated recruitment/performance/dismissal systems" },
+      { change: "Workplace surveillance legislation (IPPR proposal)", date: "Proposed — no date", impact: "Statutory consultation rights before surveillance deployment + tribunal access for breaches" },
+    ],
+    keyStats: [
+      { label: "ICO Fines 2025", value: "£19.6m", trend: "7x increase vs 2024" },
+      { label: "Largest Settlement", value: "£14m", trend: "Capita (Oct 2025)" },
+      { label: "Max ICO Fine", value: "£17.5m", trend: "or 4% global turnover" },
+      { label: "SAR from Employees", value: "~40%", trend: "Tactical litigation" },
+    ],
+    relatedCats: [2, 4],
+    ccrds: ["CCRD-AIH (AI in HR Decisioning)"],
+  },
+  12: {
+    constitutionalRef: "ACEI Art. 2.11.12",
+    scope: "Encompasses redundancy payment claims against the National Insurance Fund, insolvency-related employment claims, administration period disputes, preferential creditor status controversies, and failure to pay statutory debts upon business failure.",
+    overlapRules: [
+      { target: "Cat 6 (Redundancy)", rule: "Where the employer is solvent and the dispute concerns selection/consultation process, classify as Cat 6; where the employer is insolvent and the dispute concerns NIF claims or administration period rights, classify as Cat 12." },
+    ],
+    eviBaseline: "5 decisions/week",
+    claimVolume: "Cyclical — insolvency volumes directly correlated with economic conditions. 261,223 potential redundancies disclosed to Insolvency Service in 12 months to Feb 2025. RPS processed 69,237 claims in 2024/25.",
+    capped: true,
+    capAmount: "NIF statutory payments: Redundancy pay capped at £719/week × 20 years (max £21,570). Arrears of pay: 8 weeks × £719. Holiday pay: 6 weeks × £719. Statutory notice: up to 12 weeks × £719. TUPE claims: 13 weeks uncapped. Protective awards: 8 weeks via NIF.",
+    awards: {
+      nifCaps: {
+        redundancyMax: "£21,570 (20 years × £719/week — Apr 2025)",
+        arrearsOfPay: "8 weeks × £719 = £5,752",
+        holidayPay: "6 weeks × £719 = £4,314",
+        noticePay: "Up to 12 weeks × £719 = £8,628",
+        protectiveAward: "8 weeks via NIF (even if tribunal awards up to 180 days)",
+        pensionContributions: "12 months unpaid employer contributions",
+      },
+      rpsStats: {
+        claimsProcessed: "69,237 (2024/25)",
+        totalDisbursed: "£494 million (2023/24)",
+        avgProcessingTime: "11.2 days",
+        recoveredFromEmployers: "£29 million (2023/24)",
+      },
+      caseExamples: [
+        { case: "Carillion (2018)", amount: "£151m+ employee claims", breakdown: "19,500 UK employees — largest UK corporate failure. RPS overwhelmed. Directors disqualified. Pension deficit: £900m+." },
+        { case: "Wilko (2023)", amount: "12,000 redundancies", breakdown: "All 400 stores closed. Protective award claims. Administrator unable to find buyer for entire business." },
+        { case: "Director status challenge (EAT 2025)", amount: "Claim rejected", breakdown: "Karpavicius v Prime Aquariums: EAT overturned tribunal — PAYE and written contract insufficient to prove genuine employment. RPS increasingly challenging director claims." },
+      ],
+    },
+    defenceCosts: {
+      simple: "£3,000 – £8,000 (individual NIF disputes)",
+      medium: "£8,000 – £25,000 (protective award claims in insolvency)",
+      complex: "£25,000 – £80,000+ (mass insolvency with TUPE transfers)",
+      administration: "£100,000 – £500,000+ (complex administration with employee claims)",
+    },
+    managementTime: "Intensive during insolvency — directors personally exposed to disqualification. RPS increasingly scrutinising director claims. 1,037 directors disqualified in 2024/25 for misconduct.",
+    systemicRisk: [
+      "261,223 potential redundancies disclosed to Insolvency Service (12 months to Feb 2025) — sustained high volumes",
+      "RPS disbursed £494m in 2023/24 — taxpayer-funded safety net under strain from persistent insolvency levels",
+      "Director disqualifications: 1,037 in 2024/25 for misconduct — includes 729 linked to COVID loan abuse",
+      "RPS increasingly challenging director redundancy claims — Karpavicius (EAT 2025) confirmed stricter employee-status tests",
+      "Phoenix company abuse: Insolvency Service targeting 'contrived phoenixes' where directors strip assets then restart",
+      "Protective award via NIF capped at 8 weeks even where tribunal awards up to 180 days — employees lose out in insolvency",
+      "Preferential creditor status: employees rank behind secured creditors and ahead of unsecured — but frequently receive pennies in the pound",
+    ],
+    totalExposure: {
+      nifMaxPerEmployee: "~£40,264 (redundancy + arrears + holiday + notice at maximum caps)",
+      protectiveAward: "Up to 180 days × gross pay per employee (but NIF covers only 8 weeks)",
+      tupeFailure: "13 weeks uncapped gross pay per affected employee — joint liability for transferor/transferee",
+      reputational: "HIGH — mass insolvency generates sustained media coverage and political scrutiny",
+    },
+    regulatoryMomentum: "MODERATE",
+    momentumColor: "#D4920B",
+    eraImpact: [
+      { change: "Protective award doubled: 90 → 180 days", date: "April 2026", impact: "Employer exposure in collective consultation failure roughly doubled — NIF still caps at 8 weeks" },
+      { change: "Cross-entity collective consultation threshold", date: "TBC 2027", impact: "Multi-site employers may need to aggregate redundancies across all UK locations" },
+      { change: "UNCITRAL model laws on cross-border insolvency", date: "In implementation", impact: "New framework for corporate group insolvencies across jurisdictions" },
+      { change: "Tribunal time limits: 3 months → 6 months", date: "October 2026", impact: "Extended window for insolvency-related employment claims" },
+    ],
+    keyStats: [
+      { label: "Redundancies Disclosed", value: "261,223", trend: "12m to Feb 2025" },
+      { label: "RPS Claims Processed", value: "69,237", trend: "2024/25" },
+      { label: "NIF Disbursements", value: "£494m", trend: "2023/24" },
+      { label: "Directors Disqualified", value: "1,037", trend: "2024/25" },
+      { label: "Max NIF per Employee", value: "~£40,264", trend: "All caps combined" },
+    ],
+    relatedCats: [6, 9],
+    ccrds: [],
+  },
+};
+
+// --- ONBOARDING FIELDS mapped to constitutional requirements ---
+const ONBOARDING_SECTIONS = [
+  {
+    id: "company",
+    title: "Company Profile",
+    subtitle: "Core identification — feeds all three indices",
+    icon: "\u{1F3E2}",
+    fields: [
+      { id: "companyName", label: "Registered Company Name", type: "text", required: true, feeds: "All indices", constitutional: "ACEI Preamble §1.1" },
+      { id: "companiesHouse", label: "Companies House Number", type: "text", required: true, feeds: "CCI cross-reference", constitutional: "CCI Art. V §5.1.1", crossRef: true, note: "Auto-validates via Companies House API; cross-references headcount filings" },
+      { id: "tradingName", label: "Trading Name(s)", type: "text", required: false, feeds: "CCI tribunal matching", constitutional: "CCI Art. V", crossRef: true, note: "Used to match against 80,124 employer names in tribunal database" },
+      { id: "sector", label: "Primary Business Sector", type: "select", options: SECTORS.map(s => s.name), required: true, feeds: "ACEI SM, CCI SCB", constitutional: "ACEI Annex B §B1" },
+      { id: "headcount", label: "Current UK Employee Headcount", type: "number", required: true, feeds: "CCI normalisation", constitutional: "CCI Art. III §3.2.1", note: "Per 100 employees normalisation for TCF, AOR, PSI, REE" },
+      { id: "jurisdiction", label: "Primary Jurisdiction", type: "select", options: JURISDICTIONS.map(j => j.name), required: true, feeds: "ACEI JM", constitutional: "ACEI Annex B §B2" },
+      { id: "multiJurisdiction", label: "Multi-jurisdiction Operations?", type: "toggle", required: true, feeds: "ACEI Art. VIII", constitutional: "ACEI Art. VIII §8.2" },
+    ]
+  },
+  {
+    id: "conduct",
+    title: "Historical Conduct",
+    subtitle: "Feeds CCI Bayesian framework — cross-referenced against tribunal database",
+    icon: "\u{2696}\u{FE0F}",
+    fields: [
+      { id: "claimsHistory", label: "Employment tribunal claims in past 5 years", type: "number", required: true, feeds: "CCI TCF", constitutional: "CCI Art. III §3.2", crossRef: true, note: "Cross-referenced against GOV.UK tribunal decisions database" },
+      { id: "claimsOutcome", label: "Outcomes of past claims", type: "select", options: ["All defended successfully", "Mixed outcomes", "All settled", "Judgments against", "N/A — no claims"], required: true, feeds: "CCI AOR", constitutional: "CCI Art. III §3.3" },
+      { id: "regulatoryActions", label: "Regulatory enforcement actions in past 5 years", type: "number", required: false, feeds: "CCI REE", constitutional: "CCI Art. III §3.5", note: "Includes HSE, ICO, EHRC actions" },
+      { id: "grievanceResolution", label: "Grievance resolution timeliness score (1-5)", type: "number", required: false, feeds: "CCI GR", constitutional: "CCI Art. III §3.6.3", note: "Mean: timeliness + investigation completion + escalation compliance" },
+      { id: "investigationCompletion", label: "Investigation completion rate (%)", type: "number", required: false, feeds: "CCI GR", constitutional: "CCI Art. III §3.6.3" },
+      { id: "escalationCompliance", label: "Escalation compliance rate (%)", type: "number", required: false, feeds: "CCI GR", constitutional: "CCI Art. III §3.6.3" },
+      { id: "hrStructure", label: "Dedicated HR function?", type: "select", options: ["In-house HR team", "HR manager/officer", "Outsourced HR", "No dedicated HR"], required: true, feeds: "RRI Pillar 5 (GO)", constitutional: "RRI Art. V §5.5" },
+      { id: "boardOversight", label: "Board-level employment compliance oversight?", type: "toggle", required: false, feeds: "RRI Pillar 5 (GO)", constitutional: "RRI Art. V §5.5" },
+    ]
+  },
+  {
+    id: "readiness",
+    title: "Current Compliance Posture",
+    subtitle: "Feeds RRI five-pillar framework assessment (future activation)",
+    icon: "\u{1F6E1}\u{FE0F}",
+    fields: [
+      { id: "policyReview", label: "When were employment policies last reviewed?", type: "select", options: ["Within 6 months", "6-12 months ago", "1-2 years ago", "Over 2 years ago", "Never formally reviewed"], required: true, feeds: "RRI Pillar 1 (PA)", constitutional: "RRI Art. V §5.1" },
+      { id: "contractsCompliant", label: "Are employment contracts up to date with current legislation?", type: "select", options: ["Fully compliant", "Mostly compliant", "Needs updating", "Unsure"], required: true, feeds: "RRI Pillar 2 (CC)", constitutional: "RRI Art. V §5.2" },
+      { id: "trainingFrequency", label: "Employment law training frequency for managers", type: "select", options: ["Quarterly or more", "Biannually", "Annually", "Ad hoc", "None"], required: true, feeds: "RRI Pillar 3 (TD)", constitutional: "RRI Art. V §5.3" },
+      { id: "systemsProcess", label: "HR system/process maturity", type: "select", options: ["Fully integrated HRIS", "Basic HR software", "Spreadsheet-based", "Paper-based/informal"], required: true, feeds: "RRI Pillar 4 (SPA)", constitutional: "RRI Art. V §5.4" },
+      { id: "recentChanges", label: "Aware of upcoming employment law changes?", type: "select", options: ["Fully aware and preparing", "Somewhat aware", "Vaguely aware", "Not aware"], required: true, feeds: "RRI overall readiness", constitutional: "RRI Art. II §2.3", note: "Indicates readiness posture before formal RCE scoring" },
+    ]
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════
+// MINI GAUGE COMPONENT
+// ════════════════════════════════════════════════════════════════════
+function MiniGauge({ score, size = 72 }) {
+  const band = getBand(score);
+  const r = (size - 8) / 2;
+  const circ = Math.PI * r;
+  const pct = Math.min(100, Math.max(0, score)) / 100;
+  return (
+    <div style={{ position: "relative", width: size, height: size / 2 + 10, margin: "0 auto" }}>
+      <svg width={size} height={size / 2 + 10} viewBox={`0 0 ${size} ${size / 2 + 10}`}>
+        <path d={`M 4 ${size / 2 + 4} A ${r} ${r} 0 0 1 ${size - 4} ${size / 2 + 4}`}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={6} strokeLinecap="round" />
+        <path d={`M 4 ${size / 2 + 4} A ${r} ${r} 0 0 1 ${size - 4} ${size / 2 + 4}`}
+          fill="none" stroke={band.color} strokeWidth={6} strokeLinecap="round"
+          strokeDasharray={`${circ * pct} ${circ}`} style={{ transition: "stroke-dasharray 0.8s ease" }} />
+      </svg>
+      <div style={{ position: "absolute", bottom: 2, left: "50%", transform: "translate(-50%,0)", textAlign: "center" }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: band.color, fontFamily: "'Courier New', monospace" }}>{score}</div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MIB STAT BLOCK COMPONENT — Bloomberg terminal inspired
+// ════════════════════════════════════════════════════════════════════
+function MibStat({ label, value, sub, color }) {
+  return (
+    <div style={{
+      padding: "10px 14px",
+      background: "rgba(0,0,0,0.3)",
+      border: "1px solid rgba(255,255,255,0.04)",
+      borderLeft: `3px solid ${color || mibAccent}`,
+    }}>
+      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: color || "#fff", fontFamily: "'Courier New', monospace" }}>{value}</div>
+      {sub && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ERA IMPACT ROW
+// ════════════════════════════════════════════════════════════════════
+function EraRow({ change, date, impact }) {
+  return (
+    <div style={{
+      display: "grid", gridTemplateColumns: "1fr 140px 1fr", gap: 12,
+      padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+      fontSize: 11, alignItems: "center",
+    }}>
+      <span style={{ color: "rgba(255,255,255,0.7)" }}>{change}</span>
+      <span style={{
+        fontFamily: "'Courier New', monospace", fontSize: 10,
+        color: mibAccent, textAlign: "center",
+        padding: "2px 8px", background: "rgba(201,162,39,0.08)", borderRadius: 3,
+      }}>{date}</span>
+      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 10 }}>{impact}</span>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CATEGORY DETAIL PAGE — Full drill-down with MIB
+// ════════════════════════════════════════════════════════════════════
+function CategoryDetailPage({ catId, acei, onBack }) {
+  const cat = acei.cats.find(c => c.id === catId);
+  const mib = MIB_DATA[catId];
+  const catBand = getBand(Math.min(100, (cat.crs / 25) * 100));
+
+  if (!mib) {
+    return (
+      <div>
+        <div style={{ padding: 40, textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>🔬</div>
+          <div style={{ fontSize: 16, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Category {catId}: {cat.name}</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", marginTop: 8 }}>
+            Market Intelligence Brief — Research Pending
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", marginTop: 4 }}>
+            Scheduled for next research batch. Constitutional scoring data available.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+
+      {/* Category Header */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+        marginBottom: 20, paddingBottom: 16,
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+      }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <span style={{
+              fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 700,
+              color: "#000", background: catBand.color, padding: "2px 8px", borderRadius: 3,
+            }}>CAT {catId}</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{cat.name}</span>
+            {cat.uncapped && (
+              <span style={{
+                fontSize: 9, padding: "3px 8px", borderRadius: 3,
+                background: "rgba(192,57,43,0.2)", color: "#E74C3C", fontWeight: 700, letterSpacing: 0.5,
+              }}>UNCAPPED</span>
+            )}
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace" }}>
+            {mib.constitutionalRef} • EVI Baseline: {mib.eviBaseline} • Claim Share: {mib.claimVolume}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textTransform: "uppercase" }}>Regulatory Momentum</div>
+          <div style={{
+            fontSize: 14, fontWeight: 700, color: mib.momentumColor, fontFamily: "'Courier New', monospace",
+            padding: "4px 12px", background: `${mib.momentumColor}15`, borderRadius: 4, marginTop: 4,
+          }}>{mib.regulatoryMomentum}</div>
+        </div>
+      </div>
+
+      {/* Two-column layout */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+        {/* ── SECTION A: Constitutional Scope ── */}
+        <div style={{
+          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 8, padding: 16,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ width: 3, height: 16, background: accent, borderRadius: 2 }} />
+            <div style={{ fontSize: 10, color: accent, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600 }}>
+              Section A — Constitutional Scope
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, marginBottom: 16 }}>
+            {mib.scope}
+          </div>
+
+          {/* ACEI Live Scoring */}
+          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+            Live ACEI Scoring
+          </div>
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16,
+          }}>
+            <div style={{ background: "rgba(0,0,0,0.3)", padding: "8px 10px", borderRadius: 4 }}>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", letterSpacing: 1 }}>L × I = CRS</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "'Courier New', monospace" }}>
+                {cat.baseL} × {cat.baseI} = {cat.crs}
+              </div>
+            </div>
+            <div style={{ background: "rgba(0,0,0,0.3)", padding: "8px 10px", borderRadius: 4 }}>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", letterSpacing: 1 }}>WCS</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: catBand.color, fontFamily: "'Courier New', monospace" }}>
+                {cat.wcs.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ background: "rgba(0,0,0,0.3)", padding: "8px 10px", borderRadius: 4 }}>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", letterSpacing: 1 }}>BAND</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: catBand.color }}>{catBand.label}</div>
+            </div>
+          </div>
+
+          {/* Cap Status */}
+          <div style={{
+            padding: "8px 12px", borderRadius: 4, marginBottom: 16,
+            background: mib.capped === false ? "rgba(192,57,43,0.08)" : "rgba(255,255,255,0.02)",
+            border: `1px solid ${mib.capped === false ? "rgba(192,57,43,0.2)" : "rgba(255,255,255,0.04)"}`,
+          }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 0.5, marginBottom: 4 }}>COMPENSATION CAP STATUS</div>
+            <div style={{ fontSize: 11, color: mib.capped === false ? "#E74C3C" : "rgba(255,255,255,0.7)", fontWeight: 600 }}>
+              {mib.capAmount}
+            </div>
+          </div>
+
+          {/* Overlap Allocation Rules */}
+          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+            Overlap Allocation Rules (Art. 2.11)
+          </div>
+          {mib.overlapRules.map((rule, i) => (
+            <div key={i} style={{
+              padding: "8px 10px", marginBottom: 6,
+              background: "rgba(0,0,0,0.2)", borderRadius: 4,
+              borderLeft: "2px solid rgba(46,134,193,0.3)",
+            }}>
+              <div style={{ fontSize: 10, color: accent, fontWeight: 600, marginBottom: 3 }}>{rule.target}</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>{rule.rule}</div>
+            </div>
+          ))}
+
+          {/* Related Categories & CCRDs */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+              Related Categories
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {mib.relatedCats.map(rc => {
+                const related = CATEGORIES.find(c => c.id === rc);
+                return (
+                  <span key={rc} style={{
+                    fontSize: 10, padding: "3px 8px", borderRadius: 3,
+                    background: "rgba(46,134,193,0.1)", color: accent, fontWeight: 500,
+                  }}>Cat {rc}: {related?.short}</span>
+                );
+              })}
+              {mib.ccrds.map((ccrd, i) => (
+                <span key={i} style={{
+                  fontSize: 10, padding: "3px 8px", borderRadius: 3,
+                  background: "rgba(201,162,39,0.1)", color: mibAccent, fontWeight: 500,
+                }}>{ccrd}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── SECTION B: Ailane Market Intelligence Brief ── */}
+        <div style={{
+          background: "rgba(0,0,0,0.25)", border: `1px solid rgba(201,162,39,0.15)`,
+          borderRadius: 8, padding: 16, position: "relative", overflow: "hidden",
+        }}>
+          {/* MIB Header Banner */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0, height: 3,
+            background: `linear-gradient(90deg, ${mibAccent}, transparent)`,
+          }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 3, height: 16, background: mibAccent, borderRadius: 2 }} />
+              <div>
+                <div style={{ fontSize: 10, color: mibAccent, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600 }}>
+                  Section B — Ailane Market Intelligence Brief
+                </div>
+                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>
+                  Independent contextual research • Not ACEI methodology output • Published by AI Lane Limited
+                </div>
+              </div>
+            </div>
+            <div style={{
+              fontSize: 8, padding: "3px 8px", borderRadius: 3,
+              border: `1px solid rgba(201,162,39,0.2)`, color: mibAccent,
+              fontWeight: 600, letterSpacing: 0.5,
+            }}>MIB</div>
+          </div>
+
+          {/* Award Data */}
+          {catId === 2 ? (
+            /* Discrimination has per-characteristic awards */
+            <div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Award Data by Characteristic ({mib.awards.overall.period})
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="Sex Discrimination (Avg)" value={mib.awards.sex.average} sub={`Max: ${mib.awards.sex.maximum} | ${mib.awards.sex.trend}`} color="#E74C3C" />
+                <MibStat label="Race Discrimination (Avg)" value={mib.awards.race.average} sub={mib.awards.race.trend} color="#E67E22" />
+                <MibStat label="Age Discrimination (Avg)" value={mib.awards.age.average} sub={mib.awards.age.trend} color="#C0392B" />
+                <MibStat label="Disability (Max Award)" value={mib.awards.disability.maximum} sub="Second highest 2023/24" color="#D4920B" />
+              </div>
+
+              {/* Vento Bands */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Vento Bands — Injury to Feelings (from {mib.vento.effective})
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                {[
+                  { band: "Lower", range: mib.vento.lower, color: "#16A085" },
+                  { band: "Middle", range: mib.vento.middle, color: "#D4920B" },
+                  { band: "Upper", range: mib.vento.upper, color: "#E67E22" },
+                  { band: "Exceptional", range: mib.vento.exceptional, color: "#C0392B" },
+                ].map(v => (
+                  <div key={v.band} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "5px 10px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                  }}>
+                    <span style={{ fontSize: 10, color: v.color, fontWeight: 600 }}>{v.band}</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontFamily: "'Courier New', monospace" }}>{v.range}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Landmark Case */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginBottom: 12,
+                background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.15)",
+              }}>
+                <div style={{ fontSize: 9, color: "#E74C3C", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
+                  Landmark Case — {mib.landmarkCase.type}
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#E74C3C", fontFamily: "'Courier New', monospace" }}>{mib.landmarkCase.award}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginTop: 4, lineHeight: 1.6 }}>{mib.landmarkCase.breakdown}</div>
+              </div>
+            </div>
+          ) : catId === 3 ? (
+            /* Wages category — systemic risk focus */
+            <div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Financial Exposure Data ({mib.awards.period})
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="Individual Claim (Typical)" value={mib.awards.individual} color="#D4920B" />
+                <MibStat label="Mass Claim Example (Next)" value={mib.awards.massExample} sub="3,500+ claimants" color="#C0392B" />
+              </div>
+
+              {/* Systemic Risk Factors */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Risk Vectors
+              </div>
+              {mib.systemicRisk.map((risk, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#E67E22", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{risk}</span>
+                </div>
+              ))}
+            </div>
+          ) : catId === 4 ? (
+            /* Whistleblowing — landmark cases, systemic issues */
+            <div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Landmark Awards — Uncapped Compensation
+              </div>
+              {mib.awards.largest.map((lm, i) => (
+                <div key={i} style={{
+                  padding: "10px 12px", marginBottom: 6, borderRadius: 4,
+                  background: i === 0 ? "rgba(192,57,43,0.06)" : "rgba(0,0,0,0.2)",
+                  border: i === 0 ? "1px solid rgba(192,57,43,0.15)" : "1px solid rgba(255,255,255,0.03)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: i === 0 ? "#E74C3C" : "rgba(255,255,255,0.6)", fontWeight: 600 }}>{lm.case}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: i === 0 ? "#E74C3C" : "#fff", fontFamily: "'Courier New', monospace" }}>{lm.amount}</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{lm.breakdown}</div>
+                </div>
+              ))}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10, marginBottom: 12 }}>
+                <MibStat label="Typical Range" value={mib.awards.typicalRange} color="#D4920B" />
+                <MibStat label="Injury to Feelings" value="Vento bands" sub={mib.awards.injuryToFeelings} color="#E67E22" />
+              </div>
+
+              {/* Systemic Issues */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Risk Factors
+              </div>
+              {mib.systemicIssues.map((issue, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#C0392B", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{issue}</span>
+                </div>
+              ))}
+
+              {/* Pending Appeals */}
+              {mib.pendingAppeals && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                    Pending Court of Appeal Cases
+                  </div>
+                  {mib.pendingAppeals.map((appeal, i) => (
+                    <div key={i} style={{
+                      padding: "6px 10px", marginBottom: 4, borderRadius: 3,
+                      background: "rgba(201,162,39,0.06)", borderLeft: `2px solid ${mibAccent}`,
+                    }}>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{appeal}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : catId === 5 ? (
+            /* Employment Status — IR35 landmarks, gig economy, HMRC penalties */
+            <div>
+              {/* IR35 HMRC Settlements */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                IR35 HMRC Settlements — Public Sector Failures
+              </div>
+              {mib.awards.ir35Landmarks.map((lm, i) => (
+                <div key={i} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "8px 12px", marginBottom: 4, borderRadius: 4,
+                  background: i === 0 ? "rgba(192,57,43,0.06)" : "rgba(0,0,0,0.2)",
+                  border: i === 0 ? "1px solid rgba(192,57,43,0.15)" : "1px solid rgba(255,255,255,0.03)",
+                }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: i === 0 ? "#E74C3C" : "rgba(255,255,255,0.7)", fontWeight: 600 }}>{lm.entity}</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>{lm.type}</div>
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? "#E74C3C" : "#fff", fontFamily: "'Courier New', monospace" }}>{lm.amount}</span>
+                </div>
+              ))}
+
+              {/* Gig Economy Cases */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginTop: 12, marginBottom: 8 }}>
+                Gig Economy — Worker Reclassification
+              </div>
+              {mib.awards.gigEconomy.map((ge, i) => (
+                <div key={i} style={{
+                  padding: "8px 10px", marginBottom: 4, borderRadius: 3,
+                  background: "rgba(0,0,0,0.2)", borderLeft: "2px solid rgba(230,126,34,0.4)",
+                }}>
+                  <div style={{ fontSize: 10, color: "#E67E22", fontWeight: 600, marginBottom: 2 }}>{ge.case}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{ge.impact}</div>
+                </div>
+              ))}
+
+              {/* HMRC Penalty Matrix */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginTop: 12, marginBottom: 8 }}>
+                HMRC IR35 Penalty Matrix
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                {[
+                  { tier: "Careless Error", penalty: mib.hmrcPenalties.careless, color: "#D4920B" },
+                  { tier: "Knowing Non-Compliance", penalty: mib.hmrcPenalties.knowing, color: "#E67E22" },
+                  { tier: "Deliberate Concealment", penalty: mib.hmrcPenalties.deliberate, color: "#C0392B" },
+                ].map(p => (
+                  <div key={p.tier} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                  }}>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{p.tier}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: p.color, fontFamily: "'Courier New', monospace" }}>{p.penalty}</span>
+                  </div>
+                ))}
+                <div style={{
+                  padding: "6px 10px", marginTop: 4, borderRadius: 3,
+                  background: "rgba(192,57,43,0.06)", fontSize: 10, color: "rgba(255,255,255,0.4)",
+                }}>
+                  Total public sector IR35 settlements since 2017: <strong style={{ color: "#E74C3C" }}>£263 million+</strong>
+                </div>
+              </div>
+            </div>
+          ) : catId === 6 ? (
+            /* Redundancy — protective awards, collective thresholds, TUPE */
+            <div>
+              {/* Protective Award Framework */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Protective Award Framework
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="Current Max" value="90 days" sub="Uncapped gross pay/employee" color="#D4920B" />
+                <MibStat label="Post-ERA Max" value="180 days" sub="Doubled under ERA 2025" color="#E67E22" />
+                <MibStat label="With ACAS Uplift" value="225 days" sub="+25% Code non-compliance" color="#C0392B" />
+              </div>
+
+              {/* TUPE Compensation */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginBottom: 12,
+                background: "rgba(46,134,193,0.06)", border: "1px solid rgba(46,134,193,0.15)",
+              }}>
+                <div style={{ fontSize: 9, color: accent, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
+                  TUPE Failure to Inform & Consult
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "'Courier New', monospace" }}>
+                  Up to 13 weeks' uncapped gross pay
+                </div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+                  EAT confirmed statutory weekly cap does NOT apply — per affected employee. Both transferor and transferee jointly liable.
+                </div>
+              </div>
+
+              {/* Collective Consultation Thresholds */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Collective Consultation Thresholds
+              </div>
+              {[
+                { threshold: "20-99 redundancies at one establishment", consultation: "30 days minimum notice", status: "Current law" },
+                { threshold: "100+ redundancies at one establishment", consultation: "45 days minimum (may double to 90 days)", status: "Under consultation" },
+                { threshold: "Cross-entity alternative threshold", consultation: "Regulations pending — likely percentage or fixed number", status: "ERA 2025 (TBC 2027)" },
+              ].map((t, i) => (
+                <div key={i} style={{
+                  display: "grid", gridTemplateColumns: "1.2fr 1fr 0.6fr", gap: 8,
+                  padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                  fontSize: 10,
+                }}>
+                  <span style={{ color: "rgba(255,255,255,0.6)" }}>{t.threshold}</span>
+                  <span style={{ color: "rgba(255,255,255,0.45)" }}>{t.consultation}</span>
+                  <span style={{ 
+                    color: t.status.includes("Current") ? "#16A085" : t.status.includes("consultation") ? "#D4920B" : "#E67E22",
+                    fontWeight: 600, fontSize: 9 
+                  }}>{t.status}</span>
+                </div>
+              ))}
+
+              {/* Unfair Redundancy Awards */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginTop: 12, marginBottom: 8 }}>
+                Individual Unfair Redundancy Awards ({mib.awards.period})
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="Average" value={mib.awards.unfairRedundancy.average} color="#D4920B" />
+                <MibStat label="Median" value={mib.awards.unfairRedundancy.median} color="#2E86C1" />
+                <MibStat label="Maximum" value={mib.awards.unfairRedundancy.maximum} color="#C0392B" />
+              </div>
+              <div style={{
+                padding: "6px 10px", borderRadius: 3, marginBottom: 12,
+                background: "rgba(192,57,43,0.06)", fontSize: 10, color: "rgba(255,255,255,0.4)",
+              }}>
+                Cap of £118,223 <strong style={{ color: "#E74C3C" }}>REMOVED from 1 January 2027</strong> — all unfair redundancy claims will be uncapped.
+              </div>
+            </div>
+          ) : catId === 7 ? (
+            /* Parental & Family Rights — systemic crisis, ERA reforms */
+            <div>
+              {/* Case Examples */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Case Examples — Uncapped Compensation
+              </div>
+              {mib.awards.caseExamples.map((lm, i) => (
+                <div key={i} style={{
+                  padding: "10px 12px", marginBottom: 6, borderRadius: 4,
+                  background: i === 0 ? "rgba(192,57,43,0.06)" : "rgba(0,0,0,0.2)",
+                  border: i === 0 ? "1px solid rgba(192,57,43,0.15)" : "1px solid rgba(255,255,255,0.03)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: i === 0 ? "#E74C3C" : "rgba(255,255,255,0.6)", fontWeight: 600 }}>{lm.case}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: i === 0 ? "#E74C3C" : "#fff", fontFamily: "'Courier New', monospace" }}>{lm.amount}</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{lm.breakdown}</div>
+                </div>
+              ))}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10, marginBottom: 12 }}>
+                <MibStat label="Typical Range" value={mib.awards.typicalRange} color="#D4920B" />
+                <MibStat label="Injury to Feelings" value="Vento Bands" sub="£1,200 – £60,700+" color="#E67E22" />
+              </div>
+
+              {/* Systemic Crisis */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Crisis — The Motherhood Penalty
+              </div>
+              {mib.systemicRisk.map((issue, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#C0392B", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{issue}</span>
+                </div>
+              ))}
+
+              {/* Enforcement Gap Highlight */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginTop: 10, marginBottom: 12,
+                background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.15)",
+              }}>
+                <div style={{ fontSize: 9, color: "#E74C3C", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
+                  ENFORCEMENT GAP
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "'Courier New', monospace" }}>
+                  74,000 women forced out → Only 2% claim
+                </div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+                  Source: Pregnant Then Screwed / Women In Data (2024). A woman pushed out of her job every 7 minutes. Government has not repeated its 2016 study despite commitment.
+                </div>
+              </div>
+            </div>
+          ) : catId === 8 ? (
+            /* Trade Union — blacklisting, recognition, ERA reforms */
+            <div>
+              {/* Blacklisting Scandal */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Consulting Association Blacklisting Scandal
+              </div>
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginBottom: 10,
+                background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.15)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, color: "#E74C3C", fontWeight: 600 }}>Total Settlements (771 workers)</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "#E74C3C", fontFamily: "'Courier New', monospace" }}>£50m – £75m</span>
+                </div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", lineHeight: 1.6 }}>
+                  3,213 workers on database • 40 construction firms • ICO raid 2009 • Individual payouts £10k–£200k • UCATT avg ~£80k • Police collusion confirmed
+                </div>
+              </div>
+              {[
+                { union: "Unite (2016)", amount: "£19.34m", workers: "412 workers" },
+                { union: "GMB (2016)", amount: "£5.4m", workers: "116 workers" },
+                { union: "UCATT (2016)", amount: "£5.6m", workers: "71 workers" },
+                { union: "GCR (solicitors)", amount: "£6.6m", workers: "167 workers" },
+                { union: "Unite (2019)", amount: "£1.9m", workers: "53 workers" },
+              ].map((s, i) => (
+                <div key={i} style={{
+                  display: "grid", gridTemplateColumns: "1fr 0.7fr 0.6fr", gap: 8,
+                  padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                  fontSize: 10,
+                }}>
+                  <span style={{ color: "rgba(255,255,255,0.6)" }}>{s.union}</span>
+                  <span style={{ color: "#fff", fontWeight: 600, fontFamily: "'Courier New', monospace" }}>{s.amount}</span>
+                  <span style={{ color: "rgba(255,255,255,0.4)" }}>{s.workers}</span>
+                </div>
+              ))}
+
+              {/* Award Framework */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 12, marginBottom: 12 }}>
+                <MibStat label="Min Basic Award (TU)" value={mib.awards.minimumBasic} color="#C0392B" sub="Cannot be reduced" />
+                <MibStat label="Typical Detriment" value={mib.awards.typicalDetriment} color="#D4920B" />
+                <MibStat label="Individual Blacklisting" value="£10k–£200k" color="#E67E22" />
+              </div>
+
+              {/* Systemic Risk Factors */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Risk Factors
+              </div>
+              {mib.systemicRisk.map((issue, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#C0392B", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{issue}</span>
+                </div>
+              ))}
+            </div>
+          ) : catId === 9 ? (
+            /* Breach of Contract — non-compete reform, tribunal cap, covenant enforcement */
+            <div>
+              {/* Tribunal vs Civil Court */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Jurisdiction & Compensation Framework
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="ET Tribunal Cap" value="£25,000" sub="Unchanged since 1994" color="#D4920B" />
+                <MibStat label="County Court" value="Up to £100k" sub="6-year limitation" color="#2E86C1" />
+                <MibStat label="High Court" value="Unlimited" sub="Injunctions + damages" color="#C0392B" />
+              </div>
+
+              {/* Non-Compete Reform Consultation */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginBottom: 12,
+                background: "rgba(201,162,39,0.06)", border: `1px solid ${mibAccent}22`,
+              }}>
+                <div style={{ fontSize: 9, color: mibAccent, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
+                  ⚠ NON-COMPETE REFORM — ACTIVE CONSULTATION (closes 18 Feb 2026)
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>
+                  ~5 million UK employees under non-compete clauses. Typical duration ~6 months. Government consulting on:
+                </div>
+                {mib.nonCompeteReform.options.map((opt, i) => (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "flex-start", gap: 8,
+                    padding: "4px 0",
+                  }}>
+                    <span style={{ color: mibAccent, fontSize: 10, marginTop: 1 }}>{i + 1}.</span>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", lineHeight: 1.5 }}>{opt}</span>
+                  </div>
+                ))}
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 6, fontStyle: "italic" }}>
+                  International: California/Oklahoma full ban • France/Germany mandatory compensation • Australia salary threshold ban proposed
+                </div>
+              </div>
+
+              {/* Systemic Risk Factors */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Risk Factors
+              </div>
+              {mib.systemicRisk.map((issue, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#D4920B", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{issue}</span>
+                </div>
+              ))}
+
+              {/* Defence Cost Matrix */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginTop: 10, marginBottom: 8 }}>
+                Defence Cost Matrix
+              </div>
+              {[
+                { type: "Simple ET (notice pay)", range: mib.defenceCosts.simple },
+                { type: "Medium (bonus/commission)", range: mib.defenceCosts.medium },
+                { type: "Complex (multi-head ET)", range: mib.defenceCosts.complex },
+                { type: "High Court injunction", range: mib.defenceCosts.injunction },
+              ].map((d, i) => (
+                <div key={i} style={{
+                  display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 8,
+                  padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                  fontSize: 10,
+                }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)" }}>{d.type}</span>
+                  <span style={{ color: "#fff", fontWeight: 600, fontFamily: "'Courier New', monospace" }}>{d.range}</span>
+                </div>
+              ))}
+            </div>
+          ) : catId === 10 ? (
+            /* Health & Safety Protections — automatic unfair dismissal, HSE parallel exposure */
+            <div>
+              {/* Award Framework */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Compensation Framework — UNCAPPED
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="Min Basic Award" value={mib.awards.minimumBasic} color="#C0392B" sub="Cannot be reduced" />
+                <MibStat label="Typical Range" value={mib.awards.typicalRange} color="#D4920B" />
+                <MibStat label="Highest Uncapped (23/24)" value={mib.awards.maximum2024} color="#E74C3C" />
+              </div>
+
+              {/* Interim Relief Highlight */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginBottom: 12,
+                background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.15)",
+              }}>
+                <div style={{ fontSize: 9, color: "#E74C3C", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
+                  INTERIM RELIEF AVAILABLE
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+                  {mib.awards.interimRelief} — one of only 5 claim types with this remedy (alongside whistleblowing, union activities, employee representatives, and working time).
+                </div>
+              </div>
+
+              {/* Case Examples */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Case Examples
+              </div>
+              {mib.awards.caseExamples.map((lm, i) => (
+                <div key={i} style={{
+                  padding: "10px 12px", marginBottom: 6, borderRadius: 4,
+                  background: i === 0 ? "rgba(192,57,43,0.06)" : "rgba(0,0,0,0.2)",
+                  border: i === 0 ? "1px solid rgba(192,57,43,0.15)" : "1px solid rgba(255,255,255,0.03)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: i === 0 ? "#E74C3C" : "rgba(255,255,255,0.6)", fontWeight: 600 }}>{lm.case}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? "#E74C3C" : "#fff", fontFamily: "'Courier New', monospace" }}>{lm.amount}</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{lm.breakdown}</div>
+                </div>
+              ))}
+
+              {/* HSE Parallel Exposure */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginTop: 10, marginBottom: 12,
+                background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.15)",
+              }}>
+                <div style={{ fontSize: 9, color: "#E74C3C", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
+                  HSE PARALLEL PROSECUTION RISK
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>HSE fines (organisations):<br/><span style={{ color: "#fff", fontWeight: 600, fontSize: 14, fontFamily: "'Courier New', monospace" }}>Unlimited</span></div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Individual imprisonment:<br/><span style={{ color: "#fff", fontWeight: 600, fontSize: 14, fontFamily: "'Courier New', monospace" }}>Up to 2 years</span></div>
+                </div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", lineHeight: 1.6 }}>
+                  Corporate manslaughter avg fine: £600,000 (post-2016 guidelines). Largest: Serco £1.86m (2023). Mandatory publicity order + remedial order.
+                </div>
+              </div>
+
+              {/* Systemic Risk */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Risk Factors
+              </div>
+              {mib.systemicRisk.map((issue, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#C0392B", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{issue}</span>
+                </div>
+              ))}
+            </div>
+          ) : catId === 11 ? (
+            /* Data Protection & Employee Privacy — ICO fines, surveillance, AI */
+            <div>
+              {/* ICO Enforcement Trajectory */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                ICO Enforcement Trajectory — 7× Increase in 2025
+              </div>
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginBottom: 10,
+                background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.15)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, color: "#E74C3C", fontWeight: 600 }}>2025 Total Fines (incl. settlements)</span>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: "#E74C3C", fontFamily: "'Courier New', monospace" }}>£19.6m</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                  <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: 3, padding: 8, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>2024 Total</div>
+                    <div style={{ fontSize: 14, color: "#fff", fontWeight: 600, fontFamily: "'Courier New', monospace" }}>£2.7m</div>
+                    <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>18 fines</div>
+                  </div>
+                  <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: 3, padding: 8, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>H1 2025</div>
+                    <div style={{ fontSize: 14, color: "#E67E22", fontWeight: 600, fontFamily: "'Courier New', monospace" }}>£5.6m</div>
+                    <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>6 fines</div>
+                  </div>
+                  <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: 3, padding: 8, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>Max Statutory</div>
+                    <div style={{ fontSize: 14, color: "#C0392B", fontWeight: 600, fontFamily: "'Courier New', monospace" }}>£17.5m</div>
+                    <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>or 4% turnover</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Landmark Cases */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Landmark ICO Actions
+              </div>
+              {mib.awards.caseExamples.map((lm, i) => (
+                <div key={i} style={{
+                  padding: "10px 12px", marginBottom: 6, borderRadius: 4,
+                  background: i === 0 ? "rgba(192,57,43,0.06)" : "rgba(0,0,0,0.2)",
+                  border: i === 0 ? "1px solid rgba(192,57,43,0.15)" : "1px solid rgba(255,255,255,0.03)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: i === 0 ? "#E74C3C" : "rgba(255,255,255,0.6)", fontWeight: 600 }}>{lm.case}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: i === 0 ? "#E74C3C" : "#fff", fontFamily: "'Courier New', monospace" }}>{lm.amount}</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{lm.breakdown}</div>
+                </div>
+              ))}
+
+              {/* Dual-Track Exposure Panel */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginTop: 10, marginBottom: 12,
+                background: `rgba(201,162,39,0.06)`, border: `1px solid ${mibAccent}22`,
+              }}>
+                <div style={{ fontSize: 9, color: mibAccent, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
+                  DUAL-TRACK EXPOSURE MODEL
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginBottom: 4 }}>Track 1: ICO Regulatory</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+                      Fines up to £17.5m/4% turnover • Enforcement notices • Reprimands • Assessment notices
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginBottom: 4 }}>Track 2: Individual Claims</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+                      Art. 82 compensation (unlimited) • Class actions (£1k-£10k/head) • SAR disputes • Tribunal claims
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Systemic Risk */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Risk Factors
+              </div>
+              {mib.systemicRisk.map((issue, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#E74C3C", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{issue}</span>
+                </div>
+              ))}
+            </div>
+          ) : catId === 12 ? (
+            /* Business Transfers & Insolvency — NIF claims, director disqualification */
+            <div>
+              {/* NIF Statutory Caps Table */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                NIF Statutory Payment Caps (April 2025)
+              </div>
+              {[
+                { type: "Redundancy Pay", cap: mib.awards.nifCaps.redundancyMax },
+                { type: "Arrears of Pay (8 weeks)", cap: mib.awards.nifCaps.arrearsOfPay },
+                { type: "Holiday Pay (6 weeks)", cap: mib.awards.nifCaps.holidayPay },
+                { type: "Notice Pay (up to 12 weeks)", cap: mib.awards.nifCaps.noticePay },
+                { type: "Protective Award (NIF limit)", cap: mib.awards.nifCaps.protectiveAward },
+                { type: "Pension Contributions", cap: mib.awards.nifCaps.pensionContributions },
+              ].map((n, i) => (
+                <div key={i} style={{
+                  display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 8,
+                  padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                  fontSize: 10,
+                }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)" }}>{n.type}</span>
+                  <span style={{ color: "#fff", fontWeight: 600, fontFamily: "'Courier New', monospace" }}>{n.cap}</span>
+                </div>
+              ))}
+              <div style={{
+                padding: "6px 10px", borderRadius: 3, marginTop: 6, marginBottom: 12,
+                background: "rgba(192,57,43,0.06)", fontSize: 10, color: "rgba(255,255,255,0.4)",
+              }}>
+                Max NIF per employee: <strong style={{ color: "#fff" }}>~£40,264</strong> (all caps combined). Weekly cap: £719 (April 2025).
+              </div>
+
+              {/* RPS Performance */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Redundancy Payments Service — 2024/25
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="Claims Processed" value={mib.awards.rpsStats.claimsProcessed} color="#D4920B" />
+                <MibStat label="Total Disbursed (23/24)" value={mib.awards.rpsStats.totalDisbursed} color="#C0392B" />
+                <MibStat label="Avg Processing" value={mib.awards.rpsStats.avgProcessingTime} color="#16A085" />
+                <MibStat label="Recovered" value={mib.awards.rpsStats.recoveredFromEmployers} color="#2E86C1" />
+              </div>
+
+              {/* Landmark Cases */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Landmark Insolvency Cases
+              </div>
+              {mib.awards.caseExamples.map((lm, i) => (
+                <div key={i} style={{
+                  padding: "10px 12px", marginBottom: 6, borderRadius: 4,
+                  background: i === 0 ? "rgba(192,57,43,0.06)" : "rgba(0,0,0,0.2)",
+                  border: i === 0 ? "1px solid rgba(192,57,43,0.15)" : "1px solid rgba(255,255,255,0.03)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: i === 0 ? "#E74C3C" : "rgba(255,255,255,0.6)", fontWeight: 600 }}>{lm.case}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: i === 0 ? "#E74C3C" : "#fff", fontFamily: "'Courier New', monospace" }}>{lm.amount}</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{lm.breakdown}</div>
+                </div>
+              ))}
+
+              {/* Director Disqualification Panel */}
+              <div style={{
+                padding: "10px 12px", borderRadius: 4, marginTop: 10, marginBottom: 12,
+                background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.15)",
+              }}>
+                <div style={{ fontSize: 9, color: "#E74C3C", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
+                  DIRECTOR DISQUALIFICATION — 2024/25
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#E74C3C", fontFamily: "'Courier New', monospace" }}>1,037</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>Directors disqualified</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#E67E22", fontFamily: "'Courier New', monospace" }}>729</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>COVID loan abuse</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#D4920B", fontFamily: "'Courier New', monospace" }}>169</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>Criminal prosecutions</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Systemic Risk */}
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Systemic Risk Factors
+              </div>
+              {mib.systemicRisk.map((issue, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  padding: "6px 10px", marginBottom: 4,
+                  background: "rgba(0,0,0,0.2)", borderRadius: 3,
+                }}>
+                  <span style={{ color: "#D4920B", fontSize: 10, marginTop: 1 }}>▸</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{issue}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Category 1 — Standard award table */
+            <div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Award Data ({mib.awards.period})
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <MibStat label="Average Award" value={mib.awards.average} color="#D4920B" />
+                <MibStat label="Median Award" value={mib.awards.median} color="#2E86C1" />
+                <MibStat label="Maximum Award" value={mib.awards.maximum} color="#C0392B" />
+              </div>
+              <div style={{
+                padding: "8px 12px", borderRadius: 4, marginBottom: 12,
+                background: "rgba(0,0,0,0.25)", fontFamily: "'Courier New', monospace", fontSize: 10,
+                color: "rgba(255,255,255,0.4)",
+              }}>
+                {mib.awards.compensated} claims compensated • {mib.resolutionWithoutHearing} resolved without hearing
+              </div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Settlement Range (Pre-Tribunal)</div>
+              <div style={{ fontSize: 14, color: "#fff", fontWeight: 600, fontFamily: "'Courier New', monospace", marginBottom: 12 }}>{mib.settlementRange}</div>
+            </div>
+          )}
+
+          {/* Defence Cost Matrix — all categories */}
+          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+            Employer Defence Cost Matrix
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            {Object.entries(mib.defenceCosts).map(([tier, cost]) => (
+              <div key={tier} style={{
+                display: "flex", justifyContent: "space-between", padding: "5px 10px",
+                borderBottom: "1px solid rgba(255,255,255,0.03)",
+              }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "capitalize" }}>{tier}</span>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "'Courier New', monospace", fontWeight: 600 }}>{cost}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Total Exposure Estimate */}
+          <div style={{
+            padding: "12px 14px", borderRadius: 4, marginBottom: 12,
+            background: "rgba(201,162,39,0.06)", border: `1px solid rgba(201,162,39,0.15)`,
+          }}>
+            <div style={{ fontSize: 9, color: mibAccent, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
+              Total Employer Exposure Estimate
+            </div>
+            {Object.entries(mib.totalExposure).map(([tier, range]) => (
+              <div key={tier} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "capitalize" }}>{tier.replace(/([A-Z])/g, ' $1')}</span>
+                <span style={{ fontSize: 13, color: "#fff", fontWeight: 700, fontFamily: "'Courier New', monospace" }}>{range}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Management Time */}
+          <div style={{
+            padding: "8px 10px", borderRadius: 4, background: "rgba(0,0,0,0.2)",
+            fontSize: 10, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: 12,
+          }}>
+            <span style={{ color: "rgba(255,255,255,0.25)", fontWeight: 600, letterSpacing: 0.5, fontSize: 9 }}>MANAGEMENT TIME: </span>
+            {mib.managementTime}
+          </div>
+        </div>
+      </div>
+
+      {/* ── FULL WIDTH: ERA 2025 Impact Panel ── */}
+      <div style={{
+        marginTop: 16, background: "rgba(0,0,0,0.25)",
+        border: `1px solid rgba(201,162,39,0.12)`, borderRadius: 8, padding: 16,
+        position: "relative", overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, height: 2,
+          background: `linear-gradient(90deg, ${mibAccent}, rgba(192,57,43,0.5), transparent)`,
+        }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 3, height: 16, background: "#C0392B", borderRadius: 2 }} />
+            <div style={{ fontSize: 10, color: "#C0392B", letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700 }}>
+              Employment Rights Act 2025 — Impact Assessment
+            </div>
+          </div>
+          <span style={{
+            fontSize: 8, padding: "3px 8px", borderRadius: 3,
+            background: "rgba(192,57,43,0.15)", color: "#E74C3C",
+            fontWeight: 700, letterSpacing: 0.5,
+          }}>REGIME SHIFT</span>
+        </div>
+
+        {/* ERA Changes Table */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 140px 1fr", gap: 12,
+            padding: "6px 12px", fontSize: 8, color: "rgba(255,255,255,0.25)",
+            letterSpacing: 1, textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.06)",
+          }}>
+            <span>Change</span>
+            <span style={{ textAlign: "center" }}>Effective Date</span>
+            <span>Impact</span>
+          </div>
+          {mib.eraImpact.map((era, i) => (
+            <EraRow key={i} change={era.change} date={era.date} impact={era.impact} />
+          ))}
+        </div>
+      </div>
+
+      {/* ── FULL WIDTH: Key Statistics Ticker ── */}
+      <div style={{
+        marginTop: 12, display: "grid",
+        gridTemplateColumns: `repeat(${mib.keyStats.length}, 1fr)`, gap: 8,
+      }}>
+        {mib.keyStats.map((stat, i) => (
+          <div key={i} style={{
+            background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)",
+            borderRadius: 6, padding: "10px 12px", textAlign: "center",
+          }}>
+            <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6, lineHeight: 1.4 }}>{stat.label}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "'Courier New', monospace" }}>{stat.value}</div>
+            <div style={{
+              fontSize: 9, marginTop: 4, fontWeight: 600, fontFamily: "'Courier New', monospace",
+              color: stat.trend.startsWith("+") || stat.trend === "NEW" ? "#E67E22" : stat.trend.startsWith("-") ? "#16A085" : "rgba(255,255,255,0.3)",
+            }}>{stat.trend}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Constitutional Governance Footer */}
+      <div style={{
+        marginTop: 16, padding: "10px 14px", borderRadius: 4,
+        background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.03)",
+        fontSize: 9, color: "rgba(255,255,255,0.2)", lineHeight: 1.7,
+      }}>
+        <strong style={{ color: "rgba(255,255,255,0.3)" }}>Constitutional Governance Note:</strong> ACEI scoring data (Section A) is governed by the ACEI Founding Constitution v1.0.
+        Market Intelligence Brief data (Section B) is independent contextual research published by AI Lane Limited for client situational awareness.
+        Per ACEI Art. I §1.5.3, the ACEI does not project financial loss. Per Art. I §1.5.1, the ACEI describes exposure magnitude only.
+        MIB financial data is sourced from HMCTS official statistics, GOV.UK tribunal data, and published legal benchmarks. It does not constitute legal or financial advice.
+      </div>
+    </div>
+  );
+}
+
+const backBtnStyle = {
+  background: "none", border: "1px solid rgba(255,255,255,0.08)",
+  color: "rgba(255,255,255,0.5)", fontSize: 11, padding: "6px 14px",
+  borderRadius: 4, cursor: "pointer", marginBottom: 16,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN CEO DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function CEODashboard() {
+  const [activeView, setActiveView] = useState("categories");
+  const [sector, setSector] = useState("technology");
+  const [jurisdiction, setJurisdiction] = useState("wales");
+  const [headcount, setHeadcount] = useState(150);
+  const [expandedSection, setExpandedSection] = useState("company");
+  const [onboardingView, setOnboardingView] = useState("design");
+  const [selectedCatId, setSelectedCatId] = useState(null);
+
+  const selectedSector = SECTORS.find(s => s.id === sector);
+  const selectedJurisdiction = JURISDICTIONS.find(j => j.id === jurisdiction);
+  const sm = selectedSector?.sm || 1.0;
+  const jm = selectedJurisdiction?.jm || 1.0;
+
+  const computeACEI = useCallback(() => {
+    const cats = CATEGORIES.map(c => {
+      const crs = c.baseL * c.baseI;
+      const wcs = crs * sm * jm;
+      return { ...c, crs, wcs };
+    });
+    const drt = cats.reduce((sum, c) => sum + c.wcs, 0);
+    const di = Math.min(100, Math.round((drt / 300) * 100));
+    return { cats, drt, di, sm, jm };
+  }, [sm, jm]);
+
+  const acei = computeACEI();
+
+  const cw = Math.min(1, 3 / (3 + 5));
+  const baseCCI = 69;
+  const sizeFactor = headcount < 100 ? 0.95 : headcount < 500 ? 1.0 : 1.03;
+  const simCCI = Math.round(baseCCI * sizeFactor);
+
+  const views = [
+    { id: "simulator", label: "ACEI Simulator", icon: "\u26A1" },
+    { id: "categories", label: "Category Intelligence", icon: "\u{1F4CB}" },
+    { id: "onboarding", label: "Onboarding Architecture", icon: "\u{1F4DD}" },
+    { id: "intelligence", label: "Client Intelligence", icon: "\u{1F50D}" },
+    { id: "platform", label: "Platform Status", icon: "\u{1F4CA}" },
+  ];
+
+  const selectStyle = {
+    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 6, padding: "8px 12px", color: "#E0E0E0", fontSize: 13,
+    fontFamily: "-apple-system, sans-serif", width: "100%", outline: "none",
+    appearance: "none", cursor: "pointer"
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#080E1A", color: "#E0E0E0", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        select option { background: #0B1120; color: #E0E0E0; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseGold { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes pageEnter { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
+
+      {/* ═══ STANDALONE CATEGORY PAGE (replaces entire dashboard chrome) ═══ */}
+      {selectedCatId ? (
+        <div style={{ animation: "pageEnter 0.25s ease" }}>
+          {/* Standalone Page Header */}
+          <div style={{
+            borderBottom: `1px solid rgba(201,162,39,0.12)`, padding: "10px 24px",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            background: "rgba(8,14,26,0.98)", backdropFilter: "blur(20px)",
+            position: "sticky", top: 0, zIndex: 100,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button onClick={() => setSelectedCatId(null)} style={{
+                background: "none", border: "1px solid rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.5)", fontSize: 11, padding: "5px 12px",
+                borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+              }}>
+                ← <span style={{ fontSize: 10, letterSpacing: 0.5 }}>Back to Dashboard</span>
+              </button>
+              <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)" }} />
+              <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 2, color: "#fff" }}>AILANE</div>
+              <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)" }} />
+              <div style={{ fontSize: 10, color: mibAccent, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600 }}>Category Intelligence</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{
+                fontSize: 9, padding: "3px 10px", borderRadius: 3,
+                background: "rgba(201,162,39,0.1)", border: `1px solid rgba(201,162,39,0.2)`,
+                color: mibAccent, fontWeight: 600, letterSpacing: 0.5,
+              }}>AILANE MARKET INTELLIGENCE BRIEF</span>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v2.3</span>
+            </div>
+          </div>
+          {/* Full-page content */}
+          <div style={{ padding: "20px 24px", maxWidth: 1300, margin: "0 auto" }}>
+            <CategoryDetailPage catId={selectedCatId} acei={acei} onBack={() => setSelectedCatId(null)} />
+          </div>
+        </div>
+      ) : (
+      <>
+      {/* ─── HEADER ─── */}
+      <div style={{
+        borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "10px 24px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        background: "rgba(8,14,26,0.95)", backdropFilter: "blur(20px)",
+        position: "sticky", top: 0, zIndex: 100
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 2, color: "#fff" }}>AILANE</div>
+          <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }} />
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase" }}>CEO Command Centre</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 3, background: "rgba(192,57,43,0.15)", color: "#E74C3C", fontWeight: 600, letterSpacing: 0.5 }}>INTERNAL ONLY</span>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v2.3 • 01 Mar 2026</span>
+          <button onClick={() => { supabaseClient.auth.signOut(); }} style={{
+            background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4,
+            padding: "3px 10px", fontSize: 9, color: "rgba(255,255,255,0.3)",
+            cursor: "pointer", letterSpacing: 1, textTransform: "uppercase",
+            transition: "all 0.2s", marginLeft: 8
+          }} onMouseOver={e => { e.target.style.borderColor = "rgba(201,162,39,0.4)"; e.target.style.color = "#C9A227"; }}
+             onMouseOut={e => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; e.target.style.color = "rgba(255,255,255,0.3)"; }}>
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      {/* ─── NAV ─── */}
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", padding: "0 24px", display: "flex", gap: 0, overflowX: "auto" }}>
+        {views.map(v => (
+          <button key={v.id} onClick={() => { setActiveView(v.id); setSelectedCatId(null); }} style={{
+            background: "none", border: "none", cursor: "pointer", padding: "10px 18px",
+            fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
+            color: activeView === v.id ? "#fff" : "rgba(255,255,255,0.3)",
+            borderBottom: activeView === v.id ? `2px solid ${v.id === "categories" ? mibAccent : accent}` : "2px solid transparent",
+            transition: "all 0.2s"
+          }}>
+            <span style={{ marginRight: 6 }}>{v.icon}</span>{v.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: "20px 24px", maxWidth: 1300, margin: "0 auto" }}>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* ACEI PARAMETER SIMULATOR                                   */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "simulator" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20 }}>
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 16 }}>Parameter Controls</div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", display: "block", marginBottom: 6 }}>Sector (SM = {sm})</label>
+                  <select value={sector} onChange={e => setSector(e.target.value)} style={selectStyle}>
+                    {SECTORS.map(s => <option key={s.id} value={s.id}>{s.name} — SM {s.sm}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", display: "block", marginBottom: 6 }}>Jurisdiction (JM = {jm})</label>
+                  <select value={jurisdiction} onChange={e => setJurisdiction(e.target.value)} style={selectStyle}>
+                    {JURISDICTIONS.map(j => <option key={j.id} value={j.id}>{j.name} — JM {j.jm}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", display: "block", marginBottom: 6 }}>Headcount: {headcount}</label>
+                  <input type="range" min={25} max={2000} step={25} value={headcount} onChange={e => setHeadcount(+e.target.value)}
+                    style={{ width: "100%", accentColor: accent }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>
+                    <span>25</span><span>500</span><span>1,000</span><span>2,000</span>
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 6, padding: 12, marginTop: 12, border: "1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Pricing Tier</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: accent }}>
+                    {headcount <= 100 ? "Operational Readiness — £199/mo" : headcount <= 2000 ? "Governance — £799/mo" : "Institutional — Custom"}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 6, padding: 12, marginTop: 12, border: "1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Multiplier Impact</div>
+                  <div style={{ fontFamily: "'Courier New', monospace", fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 2 }}>
+                    <div>SM × JM = <span style={{ color: "#fff", fontWeight: 600 }}>{(sm * jm).toFixed(3)}</span></div>
+                    <div>Combined effect: <span style={{ color: sm * jm > 1.3 ? "#E67E22" : sm * jm > 1.0 ? "#D4920B" : "#16A085", fontWeight: 600 }}>
+                      {sm * jm > 1.0 ? `+${((sm * jm - 1) * 100).toFixed(0)}% amplification` : `${((1 - sm * jm) * 100).toFixed(0)}% attenuation`}
+                    </span></div>
+                    <div>SCB Tier: <span style={{ color: "#fff" }}>{selectedSector?.scb}</span></div>
+                    <div>CW (K=5, N=3): <span style={{ color: "#fff" }}>{cw.toFixed(2)}</span></div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+                  <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>ACEI Domain Index</div>
+                    <MiniGauge score={acei.di} />
+                    <div style={{ fontSize: 11, color: getBand(acei.di).color, fontWeight: 600, marginTop: 4 }}>{getBand(acei.di).label} Exposure</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>DRT: {acei.drt.toFixed(1)} / DMR: 300</div>
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Simulated CCI</div>
+                    <MiniGauge score={simCCI} />
+                    <div style={{ fontSize: 11, color: getCCIBand(simCCI).color, fontWeight: 600, marginTop: 4 }}>{getCCIBand(simCCI).label} Conduct</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>CW: {cw.toFixed(2)} | Mode: Full</div>
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Composite View</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", marginTop: 20, marginBottom: 20, padding: "8px", border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 4 }}>
+                      Composite score prohibited under Art. XII-A §12A.3.3
+                    </div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>Requires Major Amendment to all three constitutions</div>
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16 }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12 }}>
+                    12-Category Breakdown — SM={sm} × JM={jm}
+                  </div>
+                  {acei.cats.map(cat => {
+                    const pct = (cat.wcs / Math.max(...acei.cats.map(c => c.wcs))) * 100;
+                    const catBand = getBand(Math.min(100, (cat.crs / 25) * 100));
+                    return (
+                      <div key={cat.id} style={{
+                        display: "grid", gridTemplateColumns: "24px 1fr 180px 70px 50px",
+                        alignItems: "center", gap: 8, padding: "5px 8px",
+                        background: cat.id % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent",
+                        borderRadius: 3, fontSize: 11, cursor: "pointer",
+                      }}
+                      onClick={() => { setActiveView("categories"); setSelectedCatId(cat.id); }}
+                      >
+                        <span style={{ color: "rgba(255,255,255,0.25)", fontFamily: "'Courier New', monospace", fontSize: 10 }}>{cat.id}</span>
+                        <span style={{ color: "rgba(255,255,255,0.7)" }}>
+                          {cat.short}
+                          {cat.uncapped && <span style={{ marginLeft: 4, fontSize: 8, padding: "1px 4px", borderRadius: 2, background: "rgba(192,57,43,0.15)", color: "#E74C3C", fontWeight: 700 }}>UNCAPPED</span>}
+                        </span>
+                        <div style={{ height: 6, background: "rgba(255,255,255,0.04)", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${pct}%`, background: catBand.color, borderRadius: 3, transition: "width 0.5s ease" }} />
+                        </div>
+                        <span style={{ fontFamily: "'Courier New', monospace", fontSize: 10, color: "rgba(255,255,255,0.5)", textAlign: "right" }}>
+                          WCS {cat.wcs.toFixed(2)}
+                        </span>
+                        <span style={{ fontFamily: "'Courier New', monospace", fontSize: 10, color: "rgba(255,255,255,0.3)", textAlign: "right" }}>
+                          {cat.baseL}×{cat.baseI}={cat.crs}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <div style={{
+                    marginTop: 12, padding: "8px 10px", background: "rgba(46,134,193,0.06)",
+                    borderRadius: 4, fontFamily: "'Courier New', monospace", fontSize: 11, color: "rgba(255,255,255,0.5)"
+                  }}>
+                    DI = min(100, ({acei.drt.toFixed(1)} / 300) × 100) = <span style={{ color: "#fff", fontWeight: 600 }}>{acei.di}</span> — {getBand(acei.di).label} Exposure
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* CATEGORY INTELLIGENCE (NEW TAB)                            */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "categories" && (
+            <div style={{ animation: "fadeIn 0.3s ease" }}>
+              {/* Header */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>Category Intelligence</div>
+                  <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
+                  <div style={{
+                    fontSize: 9, padding: "3px 10px", borderRadius: 3,
+                    background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.2)",
+                    color: mibAccent, fontWeight: 600, letterSpacing: 0.5,
+                  }}>AILANE MARKET INTELLIGENCE BRIEF</div>
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", maxWidth: 700, lineHeight: 1.6 }}>
+                  ACEI Art. 2.11 defines 12 discrete exposure categories. Select any category to view constitutional scope, live ACEI scoring,
+                  and independent Market Intelligence Brief data including financial exposure analysis and ERA 2025 impact assessment.
+                </div>
+              </div>
+
+              {/* Category Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                {acei.cats.map((cat, i) => {
+                  const catBand = getBand(Math.min(100, (cat.crs / 25) * 100));
+                  const hasMib = MIB_DATA[cat.id] !== undefined;
+                  const pct = (cat.wcs / Math.max(...acei.cats.map(c => c.wcs))) * 100;
+                  return (
+                    <button key={cat.id} onClick={() => setSelectedCatId(cat.id)} style={{
+                      background: hasMib ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.015)",
+                      border: hasMib ? `1px solid rgba(201,162,39,0.12)` : "1px solid rgba(255,255,255,0.04)",
+                      borderRadius: 8, padding: "14px 16px", textAlign: "left",
+                      cursor: "pointer", transition: "all 0.2s", position: "relative", overflow: "hidden",
+                      animation: `fadeIn ${0.15 + i * 0.05}s ease`,
+                    }}>
+                      {hasMib && (
+                        <div style={{
+                          position: "absolute", top: 0, left: 0, right: 0, height: 2,
+                          background: `linear-gradient(90deg, ${mibAccent}, transparent)`,
+                        }} />
+                      )}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{
+                            fontFamily: "'Courier New', monospace", fontSize: 10, fontWeight: 700,
+                            color: "#000", background: catBand.color, padding: "1px 6px", borderRadius: 2,
+                          }}>{cat.id}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{cat.short}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                          {cat.uncapped && (
+                            <span style={{ fontSize: 7, padding: "2px 5px", borderRadius: 2, background: "rgba(192,57,43,0.15)", color: "#E74C3C", fontWeight: 700 }}>UNCAPPED</span>
+                          )}
+                          {hasMib && (
+                            <span style={{ fontSize: 7, padding: "2px 5px", borderRadius: 2, background: "rgba(201,162,39,0.15)", color: mibAccent, fontWeight: 700, animation: "pulseGold 3s infinite" }}>MIB</span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 10, lineHeight: 1.4, minHeight: 28 }}>{cat.name}</div>
+                      <div style={{ height: 4, background: "rgba(255,255,255,0.04)", borderRadius: 2, overflow: "hidden", marginBottom: 8 }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: catBand.color, borderRadius: 2 }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontFamily: "'Courier New', monospace", fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+                          L={cat.baseL} I={cat.baseI} CRS={cat.crs}
+                        </span>
+                        <span style={{ fontFamily: "'Courier New', monospace", fontSize: 10, color: catBand.color, fontWeight: 600 }}>
+                          WCS {cat.wcs.toFixed(2)}
+                        </span>
+                      </div>
+                      {hasMib && MIB_DATA[cat.id].regulatoryMomentum && (
+                        <div style={{
+                          marginTop: 8, padding: "4px 8px", borderRadius: 3, fontSize: 9,
+                          background: `${MIB_DATA[cat.id].momentumColor}10`,
+                          color: MIB_DATA[cat.id].momentumColor, fontWeight: 600,
+                          fontFamily: "'Courier New', monospace", textAlign: "center",
+                        }}>
+                          MOMENTUM: {MIB_DATA[cat.id].regulatoryMomentum}
+                        </div>
+                      )}
+                      {!hasMib && (
+                        <div style={{
+                          marginTop: 8, padding: "4px 8px", borderRadius: 3, fontSize: 9,
+                          background: "rgba(255,255,255,0.02)", color: "rgba(255,255,255,0.15)",
+                          textAlign: "center",
+                        }}>
+                          MIB RESEARCH PENDING
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* MIB Legend */}
+              <div style={{
+                marginTop: 20, padding: "12px 16px", borderRadius: 6,
+                background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.03)",
+                display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap",
+              }}>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>Key:</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 2, background: "rgba(201,162,39,0.15)", color: mibAccent, fontWeight: 700 }}>MIB</span>
+                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>Market Intelligence Brief available</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 2, background: "rgba(192,57,43,0.15)", color: "#E74C3C", fontWeight: 700 }}>UNCAPPED</span>
+                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>No statutory cap on compensation</span>
+                </div>
+                {BANDS.map(b => (
+                  <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: b.color }} />
+                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>{b.label} ({b.min}-{b.max})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* ONBOARDING ARCHITECTURE                                    */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "onboarding" && (
+          <>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              {[
+                { id: "design", label: "Data Architecture" },
+                { id: "preview", label: "Client-Facing Preview" },
+                { id: "crossref", label: "Cross-Reference Engine" }
+              ].map(tab => (
+                <button key={tab.id} onClick={() => setOnboardingView(tab.id)} style={{
+                  background: onboardingView === tab.id ? "rgba(46,134,193,0.15)" : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${onboardingView === tab.id ? "rgba(46,134,193,0.3)" : "rgba(255,255,255,0.06)"}`,
+                  borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500,
+                  color: onboardingView === tab.id ? "#fff" : "rgba(255,255,255,0.4)", cursor: "pointer"
+                }}>{tab.label}</button>
+              ))}
+            </div>
+
+            {onboardingView === "design" && (
+              <div>
+                <div style={{ marginBottom: 16, padding: 14, background: "rgba(46,134,193,0.05)", border: "1px solid rgba(46,134,193,0.15)", borderRadius: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Onboarding Data Strategy</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.7 }}>
+                    Every field below serves a dual purpose: it feeds a constitutional scoring requirement AND builds intelligence depth on the client.
+                    Fields marked with 🔄 trigger automatic cross-referencing against the tribunal database (130,854 decisions, 80,124 unique employers).
+                    Discrepancies between self-reported and public data trigger CCI Art. V §5.4.2 governance review.
+                  </div>
+                </div>
+                {ONBOARDING_SECTIONS.map(section => (
+                  <div key={section.id} style={{ marginBottom: 8, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, overflow: "hidden" }}>
+                    <button
+                      onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                      style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>{section.icon}</span>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{section.title}</div>
+                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{section.subtitle}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>
+                          {section.fields.length} fields
+                        </span>
+                        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, transition: "transform 0.2s", transform: expandedSection === section.id ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
+                      </div>
+                    </button>
+                    {expandedSection === section.id && (
+                      <div style={{ padding: "0 16px 16px" }}>
+                        {section.fields.map(field => (
+                          <div key={field.id} style={{
+                            padding: "10px 12px", borderLeft: `3px solid ${field.crossRef ? "#D4920B" : field.required ? accent : "rgba(255,255,255,0.06)"}`,
+                            marginBottom: 6, background: "rgba(255,255,255,0.015)", borderRadius: "0 4px 4px 0"
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: 500 }}>
+                                  {field.crossRef && <span style={{ marginRight: 4 }}>🔄</span>}
+                                  {field.label}
+                                  {field.required && <span style={{ marginLeft: 4, color: "#E74C3C", fontSize: 10 }}>*</span>}
+                                </div>
+                                {field.note && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 3, fontStyle: "italic" }}>{field.note}</div>}
+                              </div>
+                              <div style={{ textAlign: "right", marginLeft: 12 }}>
+                                <div style={{ fontSize: 9, padding: "2px 6px", borderRadius: 3, background: "rgba(46,134,193,0.1)", color: "#2E86C1", fontWeight: 600, marginBottom: 3 }}>
+                                  {field.feeds}
+                                </div>
+                                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>{field.constitutional}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {onboardingView === "preview" && (
+              <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Client-Facing Preview — Render pending</div>
+            )}
+            {onboardingView === "crossref" && (
+              <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Cross-Reference Engine — Render pending</div>
+            )}
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* CLIENT INTELLIGENCE                                        */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "intelligence" && (
+          <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>
+            Client Intelligence view — as per existing dashboard
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* PLATFORM STATUS                                            */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "platform" && (
+          <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>
+            Platform Status view — as per existing dashboard
+          </div>
+        )}
+
+      </div>
+      </>
+      )}
+    </div>
+  );
+}
+
+    // ════════════════════════════════════════════════════════════════════
+    // ROOT APP — Session Management
+    // ════════════════════════════════════════════════════════════════════
+    function App() {
+      const { useState, useEffect } = React;
+      const [session, setSession] = useState(null);
+      const [checking, setChecking] = useState(true);
+
+      useEffect(() => {
+        // Check existing session
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+          setSession(session);
+          setChecking(false);
+        });
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+          (_event, session) => setSession(session)
+        );
+        return () => subscription.unsubscribe();
+      }, []);
+
+      if (checking) {
+        return (
+          <div style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#0d1117",
+            color: "rgba(255,255,255,0.3)",
+            fontSize: 13,
+            letterSpacing: 3,
+            textTransform: "uppercase"
+          }}>
+            <span className="auth-spinner" style={{ width: 20, height: 20, borderColor: "rgba(201,162,39,0.3)", borderTopColor: "#C9A227" }}></span>
+            Initialising...
+          </div>
+        );
+      }
+
+      if (!session) {
+        return <AuthGate onAuth={setSession} />;
+      }
+
+      return <CEODashboard />;
+    }
+
+    // Mount
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
 </html>
