@@ -247,16 +247,16 @@
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // CEO DASHBOARD COMPONENT (v3.0 — Full 12-Category MIB)
+    // CEO DASHBOARD COMPONENT (v3.1 — Full 12-Category MIB)
     // ════════════════════════════════════════════════════════════════════
 const { useState, useEffect, useRef, useCallback } = React;
 
 // ════════════════════════════════════════════════════════════════════
-// AILANE CEO COMMAND CENTRE v3.0
+// AILANE CEO COMMAND CENTRE v3.1
 // Internal Operational Dashboard — Not Client-Facing
 // Constitutional References: ACEI v1.0, RRI v1.0, CCI v1.0
 // New: Category Intelligence Tab with Ailane Market Intelligence Brief
-// v3.0: All 12 Categories complete — Categories 10-12 MIB data (Health & Safety, Data Protection, Business Transfers) (Parental, Trade Union, Breach of Contract)
+// v3.1: All 12 Categories complete — Categories 10-12 MIB data (Health & Safety, Data Protection, Business Transfers) (Parental, Trade Union, Breach of Contract)
 // ════════════════════════════════════════════════════════════════════
 
 const accent = "#2E75B6";
@@ -2259,7 +2259,7 @@ function CEODashboard() {
   const [onboardingView, setOnboardingView] = useState("design");
   const [selectedCatId, setSelectedCatId] = useState(null);
 
-  // --- v3.0 state ---
+  // --- v3.1 state ---
   const [platformData, setPlatformData] = useState(null);
   const [clientData, setClientData] = useState(null);
   const [eventsData, setEventsData] = useState(null);
@@ -2271,6 +2271,57 @@ function CEODashboard() {
   const [platformLoading, setPlatformLoading] = useState(false);
   const [clientLoading, setClientLoading] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
+
+  const [expandedEventId, setExpandedEventId] = useState(null);
+  const [summaryCache, setSummaryCache] = useState({});
+  const [summaryLoading, setSummaryLoading] = useState(null);
+
+  // --- v3.1 AI Event Summary ---
+  const fetchEventSummary = useCallback(async (eventId, sourceTable, sourceUrl, eventTitle) => {
+    // If already cached, just toggle expand
+    if (summaryCache[eventId]) {
+      setExpandedEventId(prev => prev === eventId ? null : eventId);
+      return;
+    }
+    // Expand and show loading
+    setExpandedEventId(eventId);
+    setSummaryLoading(eventId);
+    try {
+      // Get current session for auth
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        setSummaryCache(prev => ({ ...prev, [eventId]: { error: "Not authenticated" } }));
+        setSummaryLoading(null);
+        return;
+      }
+      const resp = await fetch(
+        "https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/generate-event-summary",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+            "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g",
+          },
+          body: JSON.stringify({
+            source_table: sourceTable,
+            source_id: eventId,
+            source_url: sourceUrl,
+            event_title: eventTitle,
+          }),
+        }
+      );
+      const data = await resp.json();
+      if (data.error) {
+        setSummaryCache(prev => ({ ...prev, [eventId]: { error: data.error } }));
+      } else {
+        setSummaryCache(prev => ({ ...prev, [eventId]: data.summary }));
+      }
+    } catch (e) {
+      setSummaryCache(prev => ({ ...prev, [eventId]: { error: e.message } }));
+    }
+    setSummaryLoading(null);
+  }, [summaryCache]);
 
   const selectedSector = SECTORS.find(s => s.id === sector);
   const selectedJurisdiction = JURISDICTIONS.find(j => j.id === jurisdiction);
@@ -2295,7 +2346,7 @@ function CEODashboard() {
   const sizeFactor = headcount < 100 ? 0.95 : headcount < 500 ? 1.0 : 1.03;
   const simCCI = Math.round(baseCCI * sizeFactor);
 
-  // --- v3.0 Data Fetching ---
+  // --- v3.1 Data Fetching ---
   useEffect(() => {
     async function fetchPlatformData() {
       setPlatformLoading(true);
@@ -2385,6 +2436,7 @@ function CEODashboard() {
         @keyframes pulseGold { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes pageEnter { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
       {/* ═══ STANDALONE CATEGORY PAGE (replaces entire dashboard chrome) ═══ */}
@@ -2416,7 +2468,7 @@ function CEODashboard() {
                 background: "rgba(201,162,39,0.1)", border: `1px solid rgba(201,162,39,0.2)`,
                 color: mibAccent, fontWeight: 600, letterSpacing: 0.5,
               }}>AILANE MARKET INTELLIGENCE BRIEF</span>
-              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v3.0</span>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v3.1</span>
             </div>
           </div>
           {/* Full-page content */}
@@ -2440,7 +2492,7 @@ function CEODashboard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 3, background: "rgba(192,57,43,0.15)", color: "#E74C3C", fontWeight: 600, letterSpacing: 0.5 }}>INTERNAL ONLY</span>
-          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v3.0 • 01 Mar 2026</span>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v3.1 • 01 Mar 2026</span>
           <button onClick={() => { supabaseClient.auth.signOut(); }} style={{
             background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4,
             padding: "3px 10px", fontSize: 9, color: "rgba(255,255,255,0.3)",
@@ -3172,31 +3224,154 @@ function CEODashboard() {
                   {(() => {
                     let events = [];
                     if (eventsFilter !== "legislative") {
-                      events = events.concat(eventsData.enforcement.map(e => ({ type: "enforcement", date: e.date_issued, title: e.organisation || "Unknown", source: e.source?.toUpperCase(), category: e.acei_category, catNum: e.acei_category_number, penalty: e.penalty_amount, url: e.source_url })));
+                      events = events.concat(eventsData.enforcement.map(e => ({ type: "enforcement", id: e.id, sourceTable: "enforcement_events_unified", date: e.date_issued, title: e.organisation || "Unknown", source: e.source?.toUpperCase(), category: e.acei_category, catNum: e.acei_category_number, penalty: e.penalty_amount, url: e.source_url })));
                     }
                     if (eventsFilter !== "enforcement") {
                       const legItems = eventsFilter === "employment" ? eventsData.legislative.filter(l => l.employment_related) : eventsData.legislative;
-                      events = events.concat(legItems.map(l => ({ type: "legislative", date: l.date_published, title: l.title, source: l.legislation_type?.toUpperCase(), category: (l.acei_categories || []).join(", ").replace(/_/g, " "), impact: l.sci_impact_level, url: l.source_url, jurisdiction: l.jurisdiction_code })));
+                      events = events.concat(legItems.map(l => ({ type: "legislative", id: l.id, sourceTable: "legislative_changes", date: l.date_published, title: l.title, source: l.legislation_type?.toUpperCase(), category: (l.acei_categories || []).join(", ").replace(/_/g, " "), impact: l.sci_impact_level, url: l.source_url, jurisdiction: l.jurisdiction_code })));
                     }
                     events.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-                    return events.slice(0, 50).map((evt, i) => (
-                      <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `fadeIn 0.2s ease ${Math.min(i * 0.03, 0.5)}s both` }}>
-                        <div style={{ minWidth: 60, textAlign: "right" }}>
-                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{evt.date ? new Date(evt.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "\u2014"}</div>
-                          <div style={{ fontSize: 8, padding: "1px 5px", borderRadius: 2, marginTop: 3, display: "inline-block", background: evt.type === "enforcement" ? "rgba(231,76,60,0.1)" : "rgba(142,68,173,0.1)", color: evt.type === "enforcement" ? "#E74C3C" : "#8E44AD" }}>{evt.type === "enforcement" ? "ENF" : "LEG"}</div>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", lineHeight: 1.4 }}>{evt.title}</div>
-                          <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-                            {evt.source && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{evt.source}</span>}
-                            {evt.category && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 2, background: "rgba(46,117,182,0.1)", color: accent }}>{evt.category}</span>}
-                            {evt.penalty && <span style={{ fontSize: 9, color: "#E74C3C" }}>\u00A3{parseFloat(evt.penalty).toLocaleString()}</span>}
-                            {evt.impact && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 2, background: `rgba(201,162,39,${evt.impact * 0.08})`, color: "#C9A227" }}>SCI Impact: {evt.impact}</span>}
-                            {evt.jurisdiction && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>{evt.jurisdiction}</span>}
+                    return events.slice(0, 50).map((evt, i) => {
+                      const evtKey = evt.id || `${evt.type}-${i}`;
+                      const isExpanded = expandedEventId === evt.id;
+                      const summary = evt.id ? summaryCache[evt.id] : null;
+                      const isLoading = summaryLoading === evt.id;
+                      return (
+                        <div key={evtKey} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `fadeIn 0.2s ease ${Math.min(i * 0.03, 0.5)}s both` }}>
+                          {/* Clickable event row */}
+                          <div
+                            onClick={() => {
+                              if (evt.id && evt.sourceTable) {
+                                fetchEventSummary(evt.id, evt.sourceTable, evt.url, evt.title);
+                              } else {
+                                setExpandedEventId(prev => prev === evtKey ? null : evtKey);
+                              }
+                            }}
+                            style={{
+                              display: "flex", gap: 12, padding: "10px 0", cursor: "pointer",
+                              transition: "background 0.2s", borderRadius: 4,
+                              background: isExpanded ? "rgba(201,162,39,0.03)" : "transparent",
+                            }}
+                            onMouseOver={e => { if (!isExpanded) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                            onMouseOut={e => { if (!isExpanded) e.currentTarget.style.background = "transparent"; }}
+                          >
+                            <div style={{ minWidth: 60, textAlign: "right" }}>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+                                {evt.date ? new Date(evt.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "\u2014"}
+                              </div>
+                              <div style={{
+                                fontSize: 8, padding: "1px 5px", borderRadius: 2, marginTop: 3, display: "inline-block",
+                                background: evt.type === "enforcement" ? "rgba(231,76,60,0.1)" : "rgba(142,68,173,0.1)",
+                                color: evt.type === "enforcement" ? "#E74C3C" : "#8E44AD"
+                              }}>{evt.type === "enforcement" ? "ENF" : "LEG"}</div>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", lineHeight: 1.4 }}>{evt.title}</div>
+                              <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                                {evt.source && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{evt.source}</span>}
+                                {evt.category && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 2, background: "rgba(46,117,182,0.1)", color: accent }}>{evt.category}</span>}
+                                {evt.penalty && <span style={{ fontSize: 9, color: "#E74C3C" }}>{"\u00A3"}{parseFloat(evt.penalty).toLocaleString()}</span>}
+                                {evt.impact && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 2, background: `rgba(201,162,39,${evt.impact * 0.08})`, color: "#C9A227" }}>SCI Impact: {evt.impact}</span>}
+                                {evt.jurisdiction && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>{evt.jurisdiction}</span>}
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", minWidth: 20 }}>
+                              <span style={{
+                                fontSize: 10, color: "rgba(255,255,255,0.2)", transition: "transform 0.3s",
+                                transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)"
+                              }}>{"\u25BC"}</span>
+                            </div>
                           </div>
+                          {/* Expanded AI Summary Panel */}
+                          {isExpanded && (
+                            <div style={{
+                              margin: "0 0 8px 72px", padding: 16,
+                              background: "rgba(201,162,39,0.03)", border: "1px solid rgba(201,162,39,0.12)",
+                              borderRadius: 8, animation: "fadeIn 0.3s ease",
+                            }}>
+                              {isLoading ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, color: "rgba(255,255,255,0.4)" }}>
+                                  <span className="auth-spinner" style={{
+                                    width: 16, height: 16, display: "inline-block",
+                                    border: "2px solid rgba(201,162,39,0.2)", borderTopColor: "#C9A227",
+                                    borderRadius: "50%", animation: "spin 0.8s linear infinite"
+                                  }}></span>
+                                  <span style={{ fontSize: 11 }}>Generating AI intelligence summary...</span>
+                                </div>
+                              ) : summary?.error ? (
+                                <div style={{ fontSize: 11, color: "#E74C3C" }}>
+                                  {"\u26A0"} {summary.error}
+                                </div>
+                              ) : summary ? (
+                                <div>
+                                  {/* Relevance badge */}
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                      {summary.employment_relevant ? (
+                                        <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(39,174,96,0.12)", color: "#27AE60", fontWeight: 600 }}>EMPLOYMENT RELEVANT</span>
+                                      ) : (
+                                        <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(192,57,43,0.12)", color: "#E74C3C", fontWeight: 600 }}>NOT EMPLOYMENT LAW</span>
+                                      )}
+                                      <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(201,162,39,0.1)", color: "#C9A227", fontWeight: 600 }}>
+                                        Relevance: {summary.relevance_score}/100
+                                      </span>
+                                      {summary.outcome_type && (
+                                        <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }}>
+                                          {summary.outcome_type.replace(/_/g, " ")}
+                                        </span>
+                                      )}
+                                      {summary.cached && (
+                                        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>{"\u26A1"} cached</span>
+                                      )}
+                                    </div>
+                                    {summary.privacy_compliant && (
+                                      <span style={{ fontSize: 8, color: "rgba(39,174,96,0.5)" }}>{"\u2713"} Privacy compliant</span>
+                                    )}
+                                  </div>
+                                  {/* Summary text */}
+                                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.7, marginBottom: 12 }}>
+                                    {summary.summary_text}
+                                  </div>
+                                  {/* Key points */}
+                                  {summary.key_points && summary.key_points.length > 0 && (
+                                    <div style={{ marginBottom: 12 }}>
+                                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>KEY POINTS</div>
+                                      {summary.key_points.map((point, pi) => (
+                                        <div key={pi} style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", padding: "3px 0 3px 12px", borderLeft: "2px solid rgba(201,162,39,0.2)", marginBottom: 4 }}>
+                                          {point}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Tags row */}
+                                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                    {summary.acei_categories && summary.acei_categories.map((cat, ci) => (
+                                      <span key={ci} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, background: "rgba(46,117,182,0.1)", color: accent }}>{cat}</span>
+                                    ))}
+                                    {summary.legal_principles && summary.legal_principles.map((lp, li) => (
+                                      <span key={li} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, background: "rgba(142,68,173,0.08)", color: "#8E44AD" }}>{lp}</span>
+                                    ))}
+                                    {summary.sector_tags && summary.sector_tags.map((st, si) => (
+                                      <span key={si} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.35)" }}>{st}</span>
+                                    ))}
+                                  </div>
+                                  {/* Source link */}
+                                  {summary.source_url && (
+                                    <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                                      <a href={summary.source_url} target="_blank" rel="noopener noreferrer" style={{
+                                        fontSize: 10, color: "rgba(201,162,39,0.6)", textDecoration: "none"
+                                      }}>View source {"\u2192"}</a>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Click to generate AI summary</div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ));
+                      );
+                    });
                   })()}
                 </div>
               </div>
