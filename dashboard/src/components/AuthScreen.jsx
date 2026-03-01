@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { login, signup, magicLink } from '../auth'
+import { login, signup, magicLink, recover } from '../auth'
 import './AuthScreen.css'
 
 export default function AuthScreen({ onAuth }) {
@@ -17,7 +17,10 @@ export default function AuthScreen({ onAuth }) {
     setLoading(true)
 
     try {
-      if (mode === 'magic') {
+      if (mode === 'reset') {
+        await recover(email)
+        setInfo('Check your email for a password reset link.')
+      } else if (mode === 'magic') {
         await magicLink(email)
         setInfo('Check your email for a magic link.')
       } else if (mode === 'signup') {
@@ -46,6 +49,7 @@ export default function AuthScreen({ onAuth }) {
           {mode === 'login' && 'Sign in to your dashboard'}
           {mode === 'signup' && 'Create your account'}
           {mode === 'magic' && 'Sign in with magic link'}
+          {mode === 'reset' && 'Reset your password'}
         </h1>
 
         <div className="auth-tabs">
@@ -72,7 +76,7 @@ export default function AuthScreen({ onAuth }) {
             required
             className="auth-input"
           />
-          {mode !== 'magic' && (
+          {(mode === 'login' || mode === 'signup') && (
             <input
               type="password"
               placeholder="Password"
@@ -83,10 +87,28 @@ export default function AuthScreen({ onAuth }) {
               className="auth-input"
             />
           )}
+          {mode === 'login' && (
+            <button
+              type="button"
+              className="auth-forgot"
+              onClick={() => { setMode('reset'); setError(''); setInfo('') }}
+            >Forgot password?</button>
+          )}
           <button type="submit" className="auth-btn" disabled={loading}>
-            {loading ? 'Please wait...' : mode === 'magic' ? 'Send Magic Link' : mode === 'signup' ? 'Create Account' : 'Sign In'}
+            {loading ? 'Please wait...' :
+              mode === 'reset' ? 'Send Reset Link' :
+              mode === 'magic' ? 'Send Magic Link' :
+              mode === 'signup' ? 'Create Account' : 'Sign In'}
           </button>
         </form>
+
+        {mode === 'reset' && (
+          <button
+            type="button"
+            className="auth-back"
+            onClick={() => { setMode('login'); setError(''); setInfo('') }}
+          >Back to login</button>
+        )}
 
         {error && <p className="auth-error">{error}</p>}
         {info && <p className="auth-info">{info}</p>}

@@ -49,14 +49,42 @@ export async function magicLink(email) {
   return res.json()
 }
 
+export async function recover(email) {
+  const redirectTo = window.location.origin + window.location.pathname
+  const res = await fetch(`${AUTH_BASE}/recover`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ email, redirect_to: redirectTo }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error_description || err.msg || 'Password reset failed')
+  }
+  return res.json()
+}
+
+export async function updatePassword(accessToken, newPassword) {
+  const res = await fetch(`${AUTH_BASE}/user`, {
+    method: 'PUT',
+    headers: headers(accessToken),
+    body: JSON.stringify({ password: newPassword }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error_description || err.msg || 'Password update failed')
+  }
+  return res.json()
+}
+
 export function parseHashToken() {
   const hash = window.location.hash.substring(1)
   const params = new URLSearchParams(hash)
   const accessToken = params.get('access_token')
   const tokenType = params.get('token_type')
+  const type = params.get('type')
   if (accessToken && tokenType === 'bearer') {
     window.history.replaceState(null, '', window.location.pathname + window.location.search)
-    return accessToken
+    return { token: accessToken, type: type || 'login' }
   }
   return null
 }
