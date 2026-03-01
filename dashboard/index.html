@@ -247,16 +247,16 @@
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // CEO DASHBOARD COMPONENT (v2.3 — Full 12-Category MIB)
+    // CEO DASHBOARD COMPONENT (v3.0 — Full 12-Category MIB)
     // ════════════════════════════════════════════════════════════════════
 const { useState, useEffect, useRef, useCallback } = React;
 
 // ════════════════════════════════════════════════════════════════════
-// AILANE CEO COMMAND CENTRE v2.3
+// AILANE CEO COMMAND CENTRE v3.0
 // Internal Operational Dashboard — Not Client-Facing
 // Constitutional References: ACEI v1.0, RRI v1.0, CCI v1.0
 // New: Category Intelligence Tab with Ailane Market Intelligence Brief
-// v2.3: All 12 Categories complete — Categories 10-12 MIB data (Health & Safety, Data Protection, Business Transfers) (Parental, Trade Union, Breach of Contract)
+// v3.0: All 12 Categories complete — Categories 10-12 MIB data (Health & Safety, Data Protection, Business Transfers) (Parental, Trade Union, Breach of Contract)
 // ════════════════════════════════════════════════════════════════════
 
 const accent = "#2E75B6";
@@ -2259,6 +2259,19 @@ function CEODashboard() {
   const [onboardingView, setOnboardingView] = useState("design");
   const [selectedCatId, setSelectedCatId] = useState(null);
 
+  // --- v3.0 state ---
+  const [platformData, setPlatformData] = useState(null);
+  const [clientData, setClientData] = useState(null);
+  const [eventsData, setEventsData] = useState(null);
+  const [eventsFilter, setEventsFilter] = useState("all");
+  const [simSector, setSimSector] = useState("technology");
+  const [simJurisdiction, setSimJurisdiction] = useState("london");
+  const [simHeadcount, setSimHeadcount] = useState(250);
+  const [simRiskOverrides, setSimRiskOverrides] = useState({});
+  const [platformLoading, setPlatformLoading] = useState(false);
+  const [clientLoading, setClientLoading] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(false);
+
   const selectedSector = SECTORS.find(s => s.id === sector);
   const selectedJurisdiction = JURISDICTIONS.find(j => j.id === jurisdiction);
   const sm = selectedSector?.sm || 1.0;
@@ -2282,11 +2295,75 @@ function CEODashboard() {
   const sizeFactor = headcount < 100 ? 0.95 : headcount < 500 ? 1.0 : 1.03;
   const simCCI = Math.round(baseCCI * sizeFactor);
 
+  // --- v3.0 Data Fetching ---
+  useEffect(() => {
+    async function fetchPlatformData() {
+      setPlatformLoading(true);
+      try {
+        const [
+          { count: tribunalCount },
+          { count: regCount },
+          { count: enfCount },
+          { count: legCount },
+          { count: catScoreCount },
+          { count: domScoreCount },
+          { count: jurisdictionCount },
+          { data: scraperRuns },
+          { data: recentDecisions },
+        ] = await Promise.all([
+          supabaseClient.from("tribunal_decisions").select("*", { count: "exact", head: true }),
+          supabaseClient.from("regulatory_updates").select("*", { count: "exact", head: true }),
+          supabaseClient.from("enforcement_events_unified").select("*", { count: "exact", head: true }),
+          supabaseClient.from("legislative_changes").select("*", { count: "exact", head: true }),
+          supabaseClient.from("acei_category_scores").select("*", { count: "exact", head: true }),
+          supabaseClient.from("acei_domain_scores").select("*", { count: "exact", head: true }),
+          supabaseClient.from("jurisdictions").select("*", { count: "exact", head: true }),
+          supabaseClient.from("scraper_runs").select("*").order("started_at", { ascending: false }).limit(50),
+          supabaseClient.from("tribunal_decisions").select("case_name, decision_date, jurisdiction_code").order("decision_date", { ascending: false }).limit(5),
+        ]);
+        setPlatformData({
+          tribunalCount, regCount, enfCount, legCount, catScoreCount, domScoreCount, jurisdictionCount,
+          scraperRuns: scraperRuns || [], recentDecisions: recentDecisions || [],
+        });
+      } catch (e) { console.error("Platform fetch error:", e); }
+      setPlatformLoading(false);
+    }
+    async function fetchClientData() {
+      setClientLoading(true);
+      try {
+        const [{ data: signups }, { data: orgs }, { data: users }] = await Promise.all([
+          supabaseClient.from("early_access_signups").select("*").order("created_at", { ascending: false }),
+          supabaseClient.from("organisations").select("*").order("created_at", { ascending: false }),
+          supabaseClient.from("app_users").select("*").order("created_at", { ascending: false }),
+        ]);
+        setClientData({ signups: signups || [], orgs: orgs || [], users: users || [] });
+      } catch (e) { console.error("Client fetch error:", e); }
+      setClientLoading(false);
+    }
+    async function fetchEventsData() {
+      setEventsLoading(true);
+      try {
+        const [{ data: enforcement }, { data: legislative }] = await Promise.all([
+          supabaseClient.from("enforcement_events_unified").select("*").order("date_issued", { ascending: false }).limit(200),
+          supabaseClient.from("legislative_changes").select("*").order("date_published", { ascending: false }).limit(200),
+        ]);
+        setEventsData({ enforcement: enforcement || [], legislative: legislative || [] });
+      } catch (e) { console.error("Events fetch error:", e); }
+      setEventsLoading(false);
+    }
+    fetchPlatformData();
+    fetchClientData();
+    fetchEventsData();
+  }, []);
+
   const views = [
     { id: "simulator", label: "ACEI Simulator", icon: "\u26A1" },
     { id: "categories", label: "Category Intelligence", icon: "\u{1F4CB}" },
-    { id: "onboarding", label: "Onboarding Architecture", icon: "\u{1F4DD}" },
+    { id: "simulation", label: "Client Simulation", icon: "\u{1F3AF}" },
+    { id: "onboarding", label: "Onboarding", icon: "\u{1F4DD}" },
     { id: "intelligence", label: "Client Intelligence", icon: "\u{1F50D}" },
+    { id: "reports", label: "Ailane Reports", icon: "\u{1F4C4}" },
+    { id: "events", label: "Events", icon: "\u{1F4E1}" },
     { id: "platform", label: "Platform Status", icon: "\u{1F4CA}" },
   ];
 
@@ -2339,7 +2416,7 @@ function CEODashboard() {
                 background: "rgba(201,162,39,0.1)", border: `1px solid rgba(201,162,39,0.2)`,
                 color: mibAccent, fontWeight: 600, letterSpacing: 0.5,
               }}>AILANE MARKET INTELLIGENCE BRIEF</span>
-              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v2.3</span>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v3.0</span>
             </div>
           </div>
           {/* Full-page content */}
@@ -2363,7 +2440,7 @@ function CEODashboard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 3, background: "rgba(192,57,43,0.15)", color: "#E74C3C", fontWeight: 600, letterSpacing: 0.5 }}>INTERNAL ONLY</span>
-          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v2.3 • 01 Mar 2026</span>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Courier New', monospace" }}>v3.0 • 01 Mar 2026</span>
           <button onClick={() => { supabaseClient.auth.signOut(); }} style={{
             background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4,
             padding: "3px 10px", fontSize: 9, color: "rgba(255,255,255,0.3)",
@@ -2720,18 +2797,413 @@ function CEODashboard() {
         {/* CLIENT INTELLIGENCE                                        */}
         {/* ═══════════════════════════════════════════════════════════ */}
         {activeView === "intelligence" && (
-          <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>
-            Client Intelligence view — as per existing dashboard
-          </div>
+          <>
+            {clientLoading ? (
+              <div style={{ padding: 60, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>Loading client data...</div>
+            ) : clientData ? (
+              <div style={{ animation: "fadeIn 0.4s ease" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+                  {[
+                    { label: "Early Access Leads", value: clientData.signups.length, color: "#C9A227" },
+                    { label: "Active Organisations", value: clientData.orgs.length, color: accent },
+                    { label: "Platform Users", value: clientData.users.length, color: "#27AE60" },
+                    { label: "Pipeline Value", value: `\u00A3${clientData.signups.length * 799}`, color: "#E74C3C" },
+                  ].map((card, i) => (
+                    <div key={i} style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, borderTop: `2px solid ${card.color}` }}>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{card.label}</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: card.color }}>{card.value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginBottom: 20, padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Lead Pipeline \u2014 Early Access Signups</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 14 }}>Inbound interest captured via ailane.ai landing page</div>
+                  {clientData.signups.length === 0 ? (
+                    <div style={{ padding: 20, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>No signups yet</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {clientData.signups.map((s, i) => {
+                        const tierScore = (s.employee_count === "500+" ? 3 : s.employee_count === "200-499" ? 2.5 : s.employee_count === "50-199" ? 2 : 1);
+                        const multiScore = s.multinational ? 1.5 : 1;
+                        const leadScore = Math.round(tierScore * multiScore * 33);
+                        return (
+                          <div key={i} style={{ padding: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 6, borderLeft: `3px solid ${leadScore > 80 ? "#C9A227" : leadScore > 50 ? accent : "rgba(255,255,255,0.1)"}`, animation: `fadeIn 0.3s ease ${i * 0.1}s both` }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>
+                                  {s.full_name || "Unknown"} {s.company_name && <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>\u2014 {s.company_name}</span>}
+                                </div>
+                                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{s.email}</div>
+                                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                                  {s.sector && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(46,117,182,0.1)", color: accent }}>{s.sector}</span>}
+                                  {s.employee_count && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }}>{s.employee_count} employees</span>}
+                                  {s.uk_region && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }}>{s.uk_region}</span>}
+                                  {s.multinational && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: "rgba(201,162,39,0.1)", color: "#C9A227" }}>Multinational</span>}
+                                </div>
+                                {s.compliance_concerns && s.compliance_concerns.length > 0 && (
+                                  <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                    <span style={{ fontSize: 8, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textTransform: "uppercase" }}>CONCERNS:</span>
+                                    {s.compliance_concerns.map((c, ci) => (
+                                      <span key={ci} style={{ fontSize: 9, padding: "1px 6px", borderRadius: 2, background: "rgba(192,57,43,0.1)", color: "#E74C3C" }}>{c.replace(/_/g, " ")}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ textAlign: "right", minWidth: 70 }}>
+                                <div style={{ fontSize: 22, fontWeight: 700, color: leadScore > 80 ? "#C9A227" : leadScore > 50 ? accent : "rgba(255,255,255,0.4)" }}>{leadScore}</div>
+                                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.25)", letterSpacing: 1, textTransform: "uppercase" }}>Lead Score</div>
+                                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>{new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Active Organisations</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 14 }}>Provisioned accounts on ailane-core</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                    {clientData.orgs.map((org, i) => (
+                      <div key={i} style={{ padding: 14, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 6 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{org.name}</div>
+                          <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: org.plan === "enterprise" ? "rgba(201,162,39,0.1)" : "rgba(46,117,182,0.1)", color: org.plan === "enterprise" ? "#C9A227" : accent, textTransform: "uppercase", fontWeight: 600 }}>{org.plan}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 12, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                          <span>{org.industry}</span><span>\u2022</span><span>{org.headcount} employees</span><span>\u2022</span><span>{org.jurisdiction}</span>
+                        </div>
+                        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 6 }}>Created {new Date(org.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: 60, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Failed to load client data</div>
+            )}
+          </>
         )}
 
         {/* ═══════════════════════════════════════════════════════════ */}
         {/* PLATFORM STATUS                                            */}
         {/* ═══════════════════════════════════════════════════════════ */}
         {activeView === "platform" && (
-          <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>
-            Platform Status view — as per existing dashboard
-          </div>
+          <>
+            {platformLoading ? (
+              <div style={{ padding: 60, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>Loading platform data...</div>
+            ) : platformData ? (
+              <div style={{ animation: "fadeIn 0.4s ease" }}>
+                <div style={{ marginBottom: 14, padding: 14, background: "rgba(39,174,96,0.05)", border: "1px solid rgba(39,174,96,0.15)", borderRadius: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>System Status</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>ailane-core \u2022 eu-central-1 \u2022 Supabase PostgreSQL 17</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#27AE60", animation: "pulseGold 2s infinite" }} />
+                      <span style={{ fontSize: 11, color: "#27AE60", fontWeight: 600 }}>OPERATIONAL</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
+                  {[
+                    { label: "Tribunal Decisions", value: (platformData.tribunalCount || 0).toLocaleString(), color: accent, icon: "\u2696\uFE0F" },
+                    { label: "Regulatory Updates", value: (platformData.regCount || 0).toLocaleString(), color: "#C9A227", icon: "\u{1F4DC}" },
+                    { label: "Enforcement Events", value: (platformData.enfCount || 0).toLocaleString(), color: "#E74C3C", icon: "\u{1F6A8}" },
+                    { label: "Legislative Changes", value: (platformData.legCount || 0).toLocaleString(), color: "#8E44AD", icon: "\u{1F4F0}" },
+                    { label: "ACEI Category Scores", value: (platformData.catScoreCount || 0).toLocaleString(), color: "#2ECC71", icon: "\u{1F4CA}" },
+                    { label: "ACEI Domain Scores", value: (platformData.domScoreCount || 0).toLocaleString(), color: "#3498DB", icon: "\u{1F3AF}" },
+                    { label: "Jurisdictions", value: (platformData.jurisdictionCount || 0).toLocaleString(), color: "#E67E22", icon: "\u{1F30D}" },
+                    { label: "Scraper Runs Logged", value: platformData.scraperRuns.length, color: "#1ABC9C", icon: "\u2699\uFE0F" },
+                  ].map((item, i) => (
+                    <div key={i} style={{ padding: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, animation: `fadeIn 0.3s ease ${i * 0.05}s both` }}>
+                      <div style={{ fontSize: 16, marginBottom: 4 }}>{item.icon}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: item.color }}>{item.value}</div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1, textTransform: "uppercase", marginTop: 2 }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginBottom: 16, padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Scraper Infrastructure \u2014 Global Collection Network</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 14 }}>Automated 6-hourly collection across 18 jurisdictions</div>
+                  {(() => {
+                    const grouped = {};
+                    (platformData.scraperRuns || []).forEach(r => {
+                      const key = `${r.source_name || "Unknown"}_${r.jurisdiction_code || "GB"}`;
+                      if (!grouped[key]) grouped[key] = { source: r.source_name || "Unknown", jurisdiction: r.jurisdiction_code || "GB", runs: [] };
+                      grouped[key].runs.push(r);
+                    });
+                    return Object.values(grouped).sort((a, b) => new Date(b.runs[0]?.started_at || 0) - new Date(a.runs[0]?.started_at || 0)).map((group, i) => {
+                      const latest = group.runs[0];
+                      const totalInserted = group.runs.reduce((s, r) => s + (r.records_inserted || 0), 0);
+                      const totalCollected = group.runs.reduce((s, r) => s + (r.records_collected || 0), 0);
+                      const isHealthy = latest.status === "completed";
+                      const hoursAgo = Math.round((Date.now() - new Date(latest.started_at)) / (1000 * 60 * 60));
+                      return (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `fadeIn 0.3s ease ${i * 0.05}s both` }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: isHealthy ? "#27AE60" : "#E74C3C" }} />
+                            <div>
+                              <div style={{ fontSize: 12, color: "#fff", fontWeight: 500 }}>{group.source}</div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{group.jurisdiction} \u2022 {group.runs.length} runs</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{totalCollected.toLocaleString()} collected</div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>{totalInserted.toLocaleString()} inserted</div>
+                            </div>
+                            <div style={{ textAlign: "right", minWidth: 80 }}>
+                              <div style={{ fontSize: 10, color: hoursAgo < 12 ? "#27AE60" : hoursAgo < 48 ? "#E67E22" : "#E74C3C" }}>{hoursAgo < 1 ? "< 1hr ago" : hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.round(hoursAgo / 24)}d ago`}</div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>{latest.elapsed_seconds ? `${parseFloat(latest.elapsed_seconds).toFixed(1)}s` : "\u2014"}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+                {platformData.recentDecisions.length > 0 && (
+                  <div style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 10 }}>Latest Tribunal Decisions Ingested</div>
+                    {platformData.recentDecisions.map((d, i) => (
+                      <div key={i} style={{ padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
+                        <span style={{ color: "rgba(255,255,255,0.7)" }}>{d.case_name || "Unnamed"}</span>
+                        <span style={{ marginLeft: 8, fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{d.decision_date} \u2022 {d.jurisdiction_code}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ padding: 60, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Failed to load platform data</div>
+            )}
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* CLIENT SIMULATION                                          */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "simulation" && (
+          <>
+            <div style={{ marginBottom: 14, padding: 14, background: "rgba(201,162,39,0.05)", border: "1px solid rgba(201,162,39,0.15)", borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Prospect Risk Simulation Engine</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>Configure a prospective client\u2019s parameters to generate a projected ACEI score. Uses constitutional formula L_raw = (0.4 \u00D7 EVI) + (0.3 \u00D7 EII) + (0.3 \u00D7 SCI) with sector and jurisdiction multipliers per ACEI Art. III \u00A73.5.</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Sector</div>
+                <select value={simSector} onChange={e => setSimSector(e.target.value)} style={selectStyle}>{SECTORS.map(s => <option key={s.id} value={s.id}>{s.name} (SM: {s.sm})</option>)}</select>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Jurisdiction</div>
+                <select value={simJurisdiction} onChange={e => setSimJurisdiction(e.target.value)} style={selectStyle}>{JURISDICTIONS.map(j => <option key={j.id} value={j.id}>{j.name} (JM: {j.jm})</option>)}</select>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Headcount</div>
+                <input type="number" min="1" max="100000" value={simHeadcount} onChange={e => setSimHeadcount(parseInt(e.target.value) || 1)} style={{ ...selectStyle, appearance: "auto" }} />
+              </div>
+            </div>
+            {(() => {
+              const simSmVal = SECTORS.find(s => s.id === simSector)?.sm || 1.0;
+              const simJmVal = JURISDICTIONS.find(j => j.id === simJurisdiction)?.jm || 1.0;
+              const simCats = CATEGORIES.map(c => { const crs = c.baseL * c.baseI; const wcs = crs * simSmVal * simJmVal; return { ...c, crs, wcs }; });
+              const simDrt = simCats.reduce((sum, c) => sum + c.wcs, 0);
+              const simDiVal = Math.min(100, Math.round((simDrt / 300) * 100));
+              const simBand = getBand(simDiVal);
+              const sizeTier = simHeadcount < 50 ? "Micro" : simHeadcount < 250 ? "SME" : simHeadcount < 1000 ? "Mid-Market" : "Enterprise";
+              const pricingTier = simHeadcount < 50 ? { name: "Operational Readiness", price: "\u00A3199/mo" } : simHeadcount < 500 ? { name: "Governance", price: "\u00A3799/mo" } : { name: "Institutional", price: "Custom" };
+              const annualExposure = Math.round(simDrt * simHeadcount * 0.12);
+              return (
+                <div>
+                  <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 16, marginBottom: 20 }}>
+                    <div style={{ padding: 20, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, textAlign: "center" }}>
+                      <MiniGauge score={simDiVal} size={120} />
+                      <div style={{ fontSize: 11, color: simBand.color, fontWeight: 600, marginTop: 8 }}>{simBand.label}</div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>Domain Risk Total: {simDrt.toFixed(1)}</div>
+                      <div style={{ marginTop: 10, padding: "6px 12px", background: "rgba(201,162,39,0.1)", borderRadius: 4, display: "inline-block" }}>
+                        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1 }}>ANNUAL EXPOSURE EST.</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: "#C9A227" }}>\u00A3{annualExposure.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                      {[
+                        { label: "Size Classification", value: sizeTier, sub: `${simHeadcount.toLocaleString()} employees` },
+                        { label: "Sector Multiplier", value: `${simSmVal}\u00D7`, sub: SECTORS.find(s => s.id === simSector)?.name },
+                        { label: "Jurisdiction Multiplier", value: `${simJmVal}\u00D7`, sub: JURISDICTIONS.find(j => j.id === simJurisdiction)?.name },
+                        { label: "Recommended Tier", value: pricingTier.name, sub: pricingTier.price, color: "#C9A227" },
+                        { label: "Elevated Categories", value: simCats.filter(c => c.wcs > 10).length, sub: "WCS > 10" },
+                        { label: "Uncapped Categories", value: simCats.filter(c => c.uncapped).length, sub: "No statutory ceiling" },
+                      ].map((item, i) => (
+                        <div key={i} style={{ padding: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 6 }}>
+                          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{item.label}</div>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: item.color || "#fff" }}>{item.value}</div>
+                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>{item.sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 12 }}>12-Category Risk Projection</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                      {simCats.map((c, i) => {
+                        const pct = Math.min(100, Math.round((c.wcs / 30) * 100));
+                        return (
+                          <div key={i} style={{ padding: 10, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 6, animation: `fadeIn 0.3s ease ${i * 0.03}s both` }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>{c.short}</div>
+                              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                {c.uncapped && <span style={{ fontSize: 7, padding: "1px 4px", borderRadius: 2, background: "rgba(192,57,43,0.15)", color: "#E74C3C" }}>UNCAPPED</span>}
+                                <span style={{ fontSize: 12, fontWeight: 700, color: c.wcs > 10 ? "#E74C3C" : c.wcs > 5 ? "#E67E22" : "rgba(255,255,255,0.5)" }}>{c.wcs.toFixed(1)}</span>
+                              </div>
+                            </div>
+                            <div style={{ height: 4, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${pct}%`, background: c.wcs > 10 ? "#E74C3C" : c.wcs > 5 ? "#E67E22" : accent, borderRadius: 2, transition: "width 0.5s" }} />
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                              <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>L:{c.baseL} \u00D7 I:{c.baseI} = CRS:{c.crs}</span>
+                              <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>\u00D7 {simSmVal} \u00D7 {simJmVal}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* AILANE REPORTS                                             */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "reports" && (
+          <>
+            <div style={{ marginBottom: 14, padding: 14, background: "rgba(46,117,182,0.05)", border: "1px solid rgba(46,117,182,0.15)", borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Ailane Intelligence Reports</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>Institutional-grade compliance reporting powered by {(platformData?.tribunalCount || 130854).toLocaleString()} tribunal decisions, {(platformData?.legCount || 534).toLocaleString()} legislative instruments, and {(platformData?.enfCount || 152).toLocaleString()} enforcement events.</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 20 }}>
+              {[
+                { title: "Weekly ACEI Digest", desc: "Domain Index movement, category-level changes, and regulatory velocity summary for the trailing 7 days.", status: "Auto-generated", statusColor: "#27AE60", frequency: "Every Monday 06:00 UTC", icon: "\u{1F4CA}", data: `DI: ${acei.di} | DRT: ${acei.drt.toFixed(1)}` },
+                { title: "Category Alert Report", desc: "Triggered when any category crosses a constitutional threshold band. Includes root-cause decomposition and recommended mitigations.", status: "Threshold-triggered", statusColor: "#E67E22", frequency: "On breach detection", icon: "\u{1F6A8}", data: `${CATEGORIES.filter(c => c.uncapped).length} uncapped categories monitored` },
+                { title: "ERA 2025 Implementation Tracker", desc: "Maps Employment Rights Act 2025 commencement dates against each ACEI category with projected SCI impact scores.", status: "Active", statusColor: "#C9A227", frequency: "Monthly", icon: "\u{1F4DC}", data: "12 categories mapped | 7 Apr 2026 next commencement" },
+                { title: "Client Compliance Summary", desc: "Per-organisation ACEI score with sector benchmarking, category risk heatmap, and tailored mitigation recommendations.", status: "On-demand", statusColor: accent, frequency: "Per client request", icon: "\u{1F3E2}", data: `${(clientData?.orgs?.length || 2)} active organisations` },
+                { title: "Enforcement Intelligence Brief", desc: "Aggregated enforcement actions from EHRC, ICO, and HSE with ACEI category mapping and penalty trend analysis.", status: "Auto-generated", statusColor: "#27AE60", frequency: "Fortnightly", icon: "\u2696\uFE0F", data: `${(platformData?.enfCount || 152)} enforcement events tracked` },
+                { title: "Investor Readiness Pack", desc: "Board-level overview for Innovation Wales and institutional investors. Methodology validation, market sizing, and competitive positioning.", status: "Draft", statusColor: "#8E44AD", frequency: "Quarterly", icon: "\u{1F4BC}", data: "Innovation Wales panel \u2014 April 2026" },
+              ].map((report, i) => (
+                <div key={i} style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, animation: `fadeIn 0.3s ease ${i * 0.06}s both` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 20 }}>{report.icon}</span>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{report.title}</div>
+                    </div>
+                    <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 3, background: `${report.statusColor}15`, color: report.statusColor, fontWeight: 600 }}>{report.status}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, marginBottom: 10 }}>{report.desc}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{report.frequency}</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace" }}>{report.data}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 10 }}>ACEI Domain Index \u2014 12-Week Trend Preview</div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80, padding: "0 4px" }}>
+                {[39, 42, 40, 30, 30, 36, 34, 35, 33, 29, 29, 22].map((score, i) => {
+                  const tBand = getBand(score);
+                  return (
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)" }}>{score}</div>
+                      <div style={{ width: "100%", height: `${score * 1.5}px`, background: tBand.color, borderRadius: 2, opacity: i === 11 ? 1 : 0.5, transition: "height 0.3s" }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 8, color: "rgba(255,255,255,0.2)" }}>
+                <span>W/C 1 Dec</span><span>W/C 23 Feb (Current)</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* EVENTS                                                     */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeView === "events" && (
+          <>
+            {eventsLoading ? (
+              <div style={{ padding: 60, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>Loading events...</div>
+            ) : eventsData ? (
+              <div style={{ animation: "fadeIn 0.4s ease" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
+                  {[
+                    { label: "Enforcement Events", value: eventsData.enforcement.length, color: "#E74C3C" },
+                    { label: "Legislative Changes", value: eventsData.legislative.length, color: "#8E44AD" },
+                    { label: "Employment-Related", value: eventsData.legislative.filter(l => l.employment_related).length, color: "#C9A227" },
+                  ].map((card, i) => (
+                    <div key={i} style={{ padding: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, borderTop: `2px solid ${card.color}` }}>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>{card.label}</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: card.color }}>{card.value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                  {[
+                    { id: "all", label: "All Events" },
+                    { id: "enforcement", label: "Enforcement" },
+                    { id: "legislative", label: "Legislative" },
+                    { id: "employment", label: "Employment Law Only" },
+                  ].map(f => (
+                    <button key={f.id} onClick={() => setEventsFilter(f.id)} style={{
+                      background: eventsFilter === f.id ? "rgba(201,162,39,0.15)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${eventsFilter === f.id ? "rgba(201,162,39,0.3)" : "rgba(255,255,255,0.06)"}`,
+                      borderRadius: 6, padding: "5px 12px", fontSize: 10, fontWeight: 500,
+                      color: eventsFilter === f.id ? "#C9A227" : "rgba(255,255,255,0.4)", cursor: "pointer"
+                    }}>{f.label}</button>
+                  ))}
+                </div>
+                <div style={{ padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 12 }}>Regulatory Event Feed</div>
+                  {(() => {
+                    let events = [];
+                    if (eventsFilter !== "legislative") {
+                      events = events.concat(eventsData.enforcement.map(e => ({ type: "enforcement", date: e.date_issued, title: e.organisation || "Unknown", source: e.source?.toUpperCase(), category: e.acei_category, catNum: e.acei_category_number, penalty: e.penalty_amount, url: e.source_url })));
+                    }
+                    if (eventsFilter !== "enforcement") {
+                      const legItems = eventsFilter === "employment" ? eventsData.legislative.filter(l => l.employment_related) : eventsData.legislative;
+                      events = events.concat(legItems.map(l => ({ type: "legislative", date: l.date_published, title: l.title, source: l.legislation_type?.toUpperCase(), category: (l.acei_categories || []).join(", ").replace(/_/g, " "), impact: l.sci_impact_level, url: l.source_url, jurisdiction: l.jurisdiction_code })));
+                    }
+                    events.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                    return events.slice(0, 50).map((evt, i) => (
+                      <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `fadeIn 0.2s ease ${Math.min(i * 0.03, 0.5)}s both` }}>
+                        <div style={{ minWidth: 60, textAlign: "right" }}>
+                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{evt.date ? new Date(evt.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "\u2014"}</div>
+                          <div style={{ fontSize: 8, padding: "1px 5px", borderRadius: 2, marginTop: 3, display: "inline-block", background: evt.type === "enforcement" ? "rgba(231,76,60,0.1)" : "rgba(142,68,173,0.1)", color: evt.type === "enforcement" ? "#E74C3C" : "#8E44AD" }}>{evt.type === "enforcement" ? "ENF" : "LEG"}</div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", lineHeight: 1.4 }}>{evt.title}</div>
+                          <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                            {evt.source && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{evt.source}</span>}
+                            {evt.category && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 2, background: "rgba(46,117,182,0.1)", color: accent }}>{evt.category}</span>}
+                            {evt.penalty && <span style={{ fontSize: 9, color: "#E74C3C" }}>\u00A3{parseFloat(evt.penalty).toLocaleString()}</span>}
+                            {evt.impact && <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 2, background: `rgba(201,162,39,${evt.impact * 0.08})`, color: "#C9A227" }}>SCI Impact: {evt.impact}</span>}
+                            {evt.jurisdiction && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>{evt.jurisdiction}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: 60, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>Failed to load events data</div>
+            )}
+          </>
         )}
 
       </div>
