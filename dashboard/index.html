@@ -124,6 +124,42 @@
       cursor: not-allowed;
       transform: none;
     }
+    .auth-forgot {
+      display: block;
+      background: none;
+      border: none;
+      color: rgba(201, 162, 39, 0.6);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: right;
+      margin: -12px 0 8px;
+      padding: 0;
+      transition: color 0.2s;
+    }
+    .auth-forgot:hover { color: #C9A227; }
+    .auth-back {
+      display: block;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.35);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      margin-top: 16px;
+      padding: 0;
+      transition: color 0.2s;
+    }
+    .auth-back:hover { color: rgba(255,255,255,0.6); }
+    .auth-info {
+      background: rgba(46, 160, 67, 0.1);
+      border: 1px solid rgba(46, 160, 67, 0.3);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #3fb950;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
     .auth-error {
       background: rgba(248, 81, 73, 0.1);
       border: 1px solid rgba(248, 81, 73, 0.3);
@@ -173,11 +209,14 @@
     // ════════════════════════════════════════════════════════════════════
     // AUTH GATE COMPONENT
     // ════════════════════════════════════════════════════════════════════
-    function AuthGate({ onAuth }) {
+    function AuthGate({ onAuth, initialMode }) {
       const { useState } = React;
-      const [email] = useState("mark@ailane.ai");
+      const [mode, setMode] = useState(initialMode || "login"); // "login" | "reset" | "newpass"
+      const [email, setEmail] = useState("mark@ailane.ai");
       const [password, setPassword] = useState("");
+      const [confirmPassword, setConfirmPassword] = useState("");
       const [error, setError] = useState(null);
+      const [info, setInfo] = useState(null);
       const [loading, setLoading] = useState(false);
 
       const handleLogin = async (e) => {
@@ -198,6 +237,144 @@
         }
       };
 
+      const handleReset = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        setInfo(null);
+        try {
+          const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + window.location.pathname,
+          });
+          if (resetError) throw resetError;
+          setInfo("Password reset link sent — check your email inbox (and spam folder).");
+        } catch (err) {
+          setError(err.message || "Failed to send reset email");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleUpdatePassword = async (e) => {
+        e.preventDefault();
+        if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+        if (password !== confirmPassword) { setError("Passwords do not match."); return; }
+        setLoading(true);
+        setError(null);
+        try {
+          const { error: updateError } = await supabaseClient.auth.updateUser({ password });
+          if (updateError) throw updateError;
+          setInfo("Password updated successfully. Signing you in...");
+          setMode("login");
+          setPassword("");
+          setConfirmPassword("");
+        } catch (err) {
+          setError(err.message || "Failed to update password");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      // New password mode (after clicking email link)
+      if (mode === "newpass") {
+        return (
+          <div className="auth-container">
+            <div className="auth-card">
+              <div className="auth-logo">
+                <div className="auth-logo-text">ailane</div>
+              </div>
+              <div className="auth-subtitle">Set New Password</div>
+
+              {error && <div className="auth-error">{error}</div>}
+              {info && <div className="auth-info">{info}</div>}
+
+              <div>
+                <label className="auth-label">New Password</label>
+                <input
+                  className="auth-input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  minLength={6}
+                  autoFocus
+                />
+
+                <label className="auth-label">Confirm Password</label>
+                <input
+                  className="auth-input"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleUpdatePassword(e)}
+                  placeholder="Confirm new password"
+                  minLength={6}
+                />
+
+                <button
+                  className="auth-btn"
+                  onClick={handleUpdatePassword}
+                  disabled={loading || !password || !confirmPassword}
+                >
+                  {loading ? <><span className="auth-spinner"></span>Updating...</> : "Update Password"}
+                </button>
+              </div>
+
+              <div className="auth-footer">
+                AI Lane Limited — Company No. 17035654 — Institutional Access Only
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Reset mode
+      if (mode === "reset") {
+        return (
+          <div className="auth-container">
+            <div className="auth-card">
+              <div className="auth-logo">
+                <div className="auth-logo-text">ailane</div>
+              </div>
+              <div className="auth-subtitle">Reset Password</div>
+
+              {error && <div className="auth-error">{error}</div>}
+              {info && <div className="auth-info">{info}</div>}
+
+              <div>
+                <label className="auth-label">Email</label>
+                <input
+                  className="auth-input"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  autoFocus
+                />
+
+                <button
+                  className="auth-btn"
+                  onClick={handleReset}
+                  disabled={loading || !email}
+                >
+                  {loading ? <><span className="auth-spinner"></span>Sending...</> : "Send Reset Link"}
+                </button>
+              </div>
+
+              <button
+                className="auth-back"
+                onClick={() => { setMode("login"); setError(null); setInfo(null); }}
+              >← Back to sign in</button>
+
+              <div className="auth-footer">
+                AI Lane Limited — Company No. 17035654 — Institutional Access Only
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Login mode (default)
       return (
         <div className="auth-container">
           <div className="auth-card">
@@ -207,6 +384,7 @@
             <div className="auth-subtitle">CEO Command Centre</div>
 
             {error && <div className="auth-error">{error}</div>}
+            {info && <div className="auth-info">{info}</div>}
 
             <div>
               <label className="auth-label">Email</label>
@@ -228,6 +406,12 @@
                 placeholder="Enter password"
                 autoFocus
               />
+
+              <button
+                type="button"
+                className="auth-forgot"
+                onClick={() => { setMode("reset"); setError(null); setInfo(null); }}
+              >Forgot password?</button>
 
               <button
                 className="auth-btn"
@@ -3392,9 +3576,11 @@ function CEODashboard() {
     // ROOT APP — Session Management
     // ════════════════════════════════════════════════════════════════════
     function App() {
-      const { useState, useEffect } = React;
+      const { useState, useEffect, useRef } = React;
       const [session, setSession] = useState(null);
       const [checking, setChecking] = useState(true);
+      const [recoveryMode, setRecoveryMode] = useState(false);
+      const authGateRef = useRef(null);
 
       useEffect(() => {
         // Check existing session
@@ -3403,9 +3589,16 @@ function CEODashboard() {
           setChecking(false);
         });
 
-        // Listen for auth changes
+        // Listen for auth changes — detect PASSWORD_RECOVERY event
         const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-          (_event, session) => setSession(session)
+          (event, session) => {
+            if (event === "PASSWORD_RECOVERY") {
+              setRecoveryMode(true);
+              setSession(session);
+            } else {
+              setSession(session);
+            }
+          }
         );
         return () => subscription.unsubscribe();
       }, []);
@@ -3427,6 +3620,11 @@ function CEODashboard() {
             Initialising...
           </div>
         );
+      }
+
+      // Show password update form when user arrives via recovery link
+      if (recoveryMode && session) {
+        return <AuthGate onAuth={(s) => { setRecoveryMode(false); setSession(s); }} initialMode="newpass" />;
       }
 
       if (!session) {
