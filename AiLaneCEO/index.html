@@ -1,36 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CEO Command Centre — Ailane</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0}
-body{font-family:'Inter',-apple-system,sans-serif;background:#0a0e1a;color:#e2e8f0;min-height:100vh}
-::-webkit-scrollbar{width:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
-@keyframes pulse{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
-input::placeholder{color:#475569}
-select option{background:#0f172a;color:#e2e8f0}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ailane CEO Command Centre</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%230a0e1a' font-weight='700' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; width: 100%; }
+    body { background: #0a0e1a; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 </head>
 <body>
-<div id="root"></div>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="text/babel">
-const { useState, useEffect, useMemo } = React;
-const { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } = Recharts;
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+    const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell, CartesianGrid, PieChart, Pie, Legend } = Recharts;
 
-// ─── SUPABASE CONFIG ────────────────────────────────────────────────────
 const SB_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
 const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
 
-// ─── CONSTANTS ──────────────────────────────────────────────────────────
 const SECTORS = [
   { id: "public_sector", label: "Public Sector", sm: 1.30 },
   { id: "financial_services", label: "Financial Services", sm: 1.25 },
@@ -73,8 +68,6 @@ const CAT_LABELS = {
   parental_family_rights: "Parental & Family Rights", trade_union_collective: "Trade Union & Collective",
   business_transfers_insolvency: "Business Transfers (TUPE)", data_protection_privacy: "Data Protection",
 };
-
-// ─── API HELPER ─────────────────────────────────────────────────────────
 const sbFetch = async (path, token) => {
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
     headers: { apikey: SB_ANON, Authorization: `Bearer ${token || SB_ANON}`, "Content-Type": "application/json" }
@@ -83,7 +76,6 @@ const sbFetch = async (path, token) => {
   return res.json();
 };
 
-// ─── COMPONENTS ─────────────────────────────────────────────────────────
 const Gauge = ({ value, size = 180 }) => {
   const band = getBand(value);
   const r = size / 2 - 16, cx = size / 2, cy = size / 2 + 10;
@@ -103,7 +95,6 @@ const Gauge = ({ value, size = 180 }) => {
     </svg>
   );
 };
-
 const StatCard = ({ label, value, sub, accent, icon }) => (
   <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 4 }}>
     <div style={{ fontSize: 11, color: "#64748b", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
@@ -113,11 +104,9 @@ const StatCard = ({ label, value, sub, accent, icon }) => (
     {sub && <div style={{ fontSize: 11, color: "#94a3b8" }}>{sub}</div>}
   </div>
 );
-
 const Badge = ({ children, color = "#22d3ee" }) => (
   <span style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", background: `${color}18`, color, border: `1px solid ${color}30` }}>{children}</span>
 );
-
 const SectionHeader = ({ title, subtitle, action }) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
     <div>
@@ -127,7 +116,6 @@ const SectionHeader = ({ title, subtitle, action }) => (
     {action}
   </div>
 );
-
 const Table = ({ columns, rows, onRowClick }) => (
   <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -148,7 +136,6 @@ const Table = ({ columns, rows, onRowClick }) => (
     </table>
   </div>
 );
-
 const LoadingPulse = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, gap: 8 }}>
     <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22d3ee", animation: "pulse 1s ease infinite" }} />
@@ -157,7 +144,6 @@ const LoadingPulse = () => (
   </div>
 );
 
-// ─── NAV CONFIG ─────────────────────────────────────────────────────────
 const NAV = [
   { id: "overview", label: "Command Overview", icon: "\u26A1" },
   { id: "pipeline", label: "Client Pipeline", icon: "\uD83D\uDCCA" },
@@ -168,17 +154,102 @@ const NAV = [
   { id: "notifications", label: "Notifications", icon: "\uD83D\uDD14" },
   { id: "business", label: "Business Hub", icon: "\uD83C\uDFE2" },
   { id: "governance", label: "Governance", icon: "\uD83D\uDCDC" },
+  { id: "knowledge", label: "Knowledge Library", icon: "\uD83D\uDCDA", href: "/knowledge-library/" },
 ];
 
-// ─── MAIN APP ───────────────────────────────────────────────────────────
+const CAT_DETAIL = {
+  unfair_dismissal: {
+    num: 1, cap: "\u00A3115,115 (or 52 weeks' pay, whichever is lower)",
+    statutes: ["Employment Rights Act 1996 s.94-134", "Employment Act 2002"],
+    desc: "Claims arising from termination of employment without fair reason or without following fair procedure. Covers constructive dismissal, wrongful dismissal during notice period, and automatically unfair reasons (pregnancy, whistleblowing, trade union).",
+    eviBaseline: "15/week", uncapped: false,
+    rriPillars: ["Policy Alignment", "Contractual Conformity", "Governance Oversight"],
+  },
+  discrimination_harassment: {
+    num: 2, cap: "UNCAPPED \u2014 no statutory maximum",
+    statutes: ["Equality Act 2010", "Human Rights Act 1998"],
+    desc: "Claims based on protected characteristics: age, disability, gender reassignment, marriage/civil partnership, pregnancy/maternity, race, religion/belief, sex, sexual orientation. Includes direct/indirect discrimination, harassment, and victimisation.",
+    eviBaseline: "12/week", uncapped: true,
+    rriPillars: ["Policy Alignment", "Training Deployment", "Governance Oversight"],
+  },
+  wages_working_time: {
+    num: 3, cap: "Varies \u2014 unlawful deductions uncapped, WTR claims limited",
+    statutes: ["Employment Rights Act 1996 s.13-27", "Working Time Regulations 1998", "National Minimum Wage Act 1998"],
+    desc: "Unauthorised deductions from wages, failure to pay national minimum/living wage, breach of working time limits (48-hour week), rest break violations, holiday pay disputes, and overtime payment failures.",
+    eviBaseline: "8/week", uncapped: false,
+    rriPillars: ["Contractual Conformity", "Systems & Process Adaptation"],
+  },
+  whistleblowing: {
+    num: 4, cap: "UNCAPPED \u2014 no statutory maximum",
+    statutes: ["Employment Rights Act 1996 s.43A-43L (as inserted by PIDA 1998)", "Enterprise and Regulatory Reform Act 2013 s.18"],
+    desc: "Detriment or dismissal for making a protected disclosure about criminal offences, breach of legal obligations, miscarriages of justice, health & safety dangers, environmental damage, or deliberate concealment of any of these.",
+    eviBaseline: "5/week", uncapped: true,
+    rriPillars: ["Policy Alignment", "Governance Oversight"],
+  },
+  health_safety: {
+    num: 5, cap: "Varies \u2014 dismissal claims capped, personal injury uncapped",
+    statutes: ["Health and Safety at Work Act 1974", "Management of Health and Safety at Work Regulations 1999", "Employment Rights Act 1996 s.44, s.100"],
+    desc: "Claims for detriment or dismissal related to raising health and safety concerns, refusing to work in dangerous conditions, or employer failure to provide safe working environment, equipment, or training.",
+    eviBaseline: "5/week", uncapped: false,
+    rriPillars: ["Policy Alignment", "Training Deployment", "Systems & Process Adaptation"],
+  },
+  redundancy_org_change: {
+    num: 6, cap: "\u00A321,000 statutory redundancy + unfair dismissal cap if process unfair",
+    statutes: ["Employment Rights Act 1996 s.135-165", "Trade Union and Labour Relations (Consolidation) Act 1992 s.188-198"],
+    desc: "Failure to follow fair redundancy selection, inadequate consultation (individual and collective), failure to consider alternative employment, and protective award claims for collective redundancy consultation breaches.",
+    eviBaseline: "5/week", uncapped: false,
+    rriPillars: ["Policy Alignment", "Contractual Conformity", "Governance Oversight"],
+  },
+  breach_of_contract: {
+    num: 7, cap: "\u00A325,000 in tribunal (unlimited in county court)",
+    statutes: ["Employment Tribunals Extension of Jurisdiction Order 1994", "Employment Rights Act 1996 s.1-12"],
+    desc: "Claims for breach of employment contract terms including notice pay, restrictive covenants, bonus entitlements, and failure to provide written statement of employment particulars.",
+    eviBaseline: "5/week", uncapped: false,
+    rriPillars: ["Contractual Conformity"],
+  },
+  employment_status: {
+    num: 8, cap: "Depends on underlying claim \u2014 status determines access to other rights",
+    statutes: ["Employment Rights Act 1996 s.230", "Equality Act 2010 s.83"],
+    desc: "Disputes over whether an individual is an employee, worker, or self-employed. Determines access to unfair dismissal, redundancy pay, holiday pay, and discrimination protections. Key battleground for gig economy and agency workers.",
+    eviBaseline: "3/week", uncapped: false,
+    rriPillars: ["Contractual Conformity", "Systems & Process Adaptation"],
+  },
+  parental_family_rights: {
+    num: 9, cap: "Dismissal for pregnancy/maternity is automatically unfair \u2014 discrimination claim uncapped",
+    statutes: ["Employment Rights Act 1996 s.71-80I", "Maternity and Parental Leave etc Regulations 1999", "Shared Parental Leave Regulations 2014"],
+    desc: "Claims relating to maternity leave, paternity leave, shared parental leave, adoption leave, parental bereavement leave, flexible working requests, and time off for dependants. Pregnancy dismissal is automatically unfair.",
+    eviBaseline: "3/week", uncapped: false,
+    rriPillars: ["Policy Alignment", "Contractual Conformity", "Training Deployment"],
+  },
+  trade_union_collective: {
+    num: 10, cap: "Varies \u2014 detriment claims uncapped if dismissal related",
+    statutes: ["Trade Union and Labour Relations (Consolidation) Act 1992", "Employment Relations Act 1999"],
+    desc: "Detriment or dismissal for trade union membership, activities, or use of union services. Failure to recognise a union, breach of collective agreements, and refusal to allow time off for union duties.",
+    eviBaseline: "3/week", uncapped: false,
+    rriPillars: ["Policy Alignment", "Governance Oversight"],
+  },
+  business_transfers_insolvency: {
+    num: 11, cap: "Automatically unfair dismissal cap + failure to inform/consult protective award",
+    statutes: ["Transfer of Undertakings (Protection of Employment) Regulations 2006 (TUPE)", "Insolvency Act 1986"],
+    desc: "Claims arising from business transfers where employee terms are changed, employees are dismissed by reason of the transfer, or employer fails to inform and consult representatives. TUPE protects employment terms on transfer.",
+    eviBaseline: "3/week", uncapped: false,
+    rriPillars: ["Contractual Conformity", "Governance Oversight"],
+  },
+  data_protection_privacy: {
+    num: 12, cap: "Uncapped compensation for distress \u2014 plus ICO fines up to \u00A317.5m / 4% of turnover",
+    statutes: ["UK GDPR (retained EU law)", "Data Protection Act 2018", "Employment Practices Code (ICO)"],
+    desc: "Misuse of employee personal data, excessive monitoring, failure to respond to subject access requests, inadequate privacy notices, data breaches affecting employee records, and transfer of employee data without lawful basis.",
+    eviBaseline: "3/week", uncapped: true,
+    rriPillars: ["Policy Alignment", "Systems & Process Adaptation", "Governance Oversight"],
+  },
+};
+
 function AilaneCEO() {
   const [activeTab, setActiveTab] = useState("overview");
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sideOpen, setSideOpen] = useState(true);
-
-  // Data state
   const [domainScores, setDomainScores] = useState([]);
   const [categoryScores, setCategoryScores] = useState([]);
   const [scraperRuns, setScraperRuns] = useState([]);
@@ -193,38 +264,71 @@ function AilaneCEO() {
   const [intelQuery, setIntelQuery] = useState("");
   const [intelResults, setIntelResults] = useState(null);
   const [intelLoading, setIntelLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [authEmail, setAuthEmail] = useState("mark@ailane.ai");
+  const [authPass, setAuthPass] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
 
-  // Auth
   useEffect(() => {
     const stored = localStorage.getItem("sb-token");
-    if (stored) {
-      setToken(stored);
-      setUser({ email: "mark@ailane.ai" });
-    }
-    (async () => {
-      try {
-        const pw = prompt("Enter password:");
-        if (!pw) { setLoading(false); return; }
-        const res = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
-          method: "POST",
-          headers: { apikey: SB_ANON, "Content-Type": "application/json" },
-          body: JSON.stringify({ email: "mark@ailane.ai", password: pw }),
-        });
-        if (res.ok) {
-          const d = await res.json();
-          setToken(d.access_token);
-          setUser(d.user);
-          localStorage.setItem("sb-token", d.access_token);
-        }
-      } catch (e) { console.error(e); }
+    const storedUser = localStorage.getItem("sb-user");
+    if (stored && storedUser) {
+      (async () => {
+        try {
+          const res = await fetch(`${SB_URL}/auth/v1/user`, {
+            headers: { apikey: SB_ANON, Authorization: `Bearer ${stored}` }
+          });
+          if (res.ok) {
+            const u = await res.json();
+            setToken(stored);
+            setUser(u);
+          } else {
+            localStorage.removeItem("sb-token");
+            localStorage.removeItem("sb-user");
+          }
+        } catch (e) { console.error("Session restore error:", e); }
+        setLoading(false);
+      })();
+    } else {
       setLoading(false);
-    })();
+    }
   }, []);
 
-  // Load data
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
+    setAuthError("");
+    setAuthLoading(true);
+    try {
+      const res = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { apikey: SB_ANON, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail, password: authPass }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setToken(d.access_token);
+        setUser(d.user);
+        localStorage.setItem("sb-token", d.access_token);
+        localStorage.setItem("sb-user", JSON.stringify(d.user));
+        setAuthPass("");
+      } else {
+        const err = await res.json();
+        setAuthError(err.error_description || err.msg || "Invalid credentials");
+      }
+    } catch (e) { setAuthError("Connection failed"); }
+    setAuthLoading(false);
+  };
+
+  const handleLogout = () => {
+    setToken(null); setUser(null);
+    localStorage.removeItem("sb-token");
+    localStorage.removeItem("sb-user");
+  };
+
   useEffect(() => {
     if (!token) return;
-    const load = async () => {
+    (async () => {
       try {
         const [ds, cs, sr, su, lc, cb] = await Promise.all([
           sbFetch("acei_domain_scores?org_id=eq.00000000-0000-0000-0000-000000000000&order=week_start_date.desc&limit=52", token),
@@ -234,18 +338,13 @@ function AilaneCEO() {
           sbFetch("legislative_changes?employment_related=eq.true&order=date_published.desc&limit=30", token),
           sbFetch("ceo_daily_briefs?order=brief_date.desc&limit=1", token),
         ]);
-        setDomainScores(ds);
-        setCategoryScores(cs);
-        setScraperRuns(sr);
-        setSignups(su);
-        setLegislativeChanges(lc);
+        setDomainScores(ds); setCategoryScores(cs); setScraperRuns(sr);
+        setSignups(su); setLegislativeChanges(lc);
         if (cb.length) setCeoBrief(cb[0]);
       } catch (e) { console.error("Data load error:", e); }
-    };
-    load();
+    })();
   }, [token]);
 
-  // Employer count
   useEffect(() => {
     if (!token) return;
     (async () => {
@@ -259,27 +358,19 @@ function AilaneCEO() {
     })();
   }, [token]);
 
-  // Company simulator
   const runSimulation = async () => {
     if (!simQuery.trim() || !token) return;
     try {
-      const results = await sbFetch(
-        `employer_master?or=(raw_name.ilike.*${encodeURIComponent(simQuery)}*,normalised_name.ilike.*${encodeURIComponent(simQuery)}*)&limit=20&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,sic_codes,headcount_estimate,ch_fetch_status`,
-        token
-      );
+      const results = await sbFetch(`employer_master?or=(raw_name.ilike.*${encodeURIComponent(simQuery)}*,normalised_name.ilike.*${encodeURIComponent(simQuery)}*)&limit=20&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,sic_codes,headcount_estimate,ch_fetch_status`, token);
       if (results.length) {
         const ids = results.map(r => r.id).join(",");
         const profiles = await sbFetch(`employer_tribunal_profile?employer_id=in.(${ids})&select=*`, token);
-        const profileMap = {};
-        profiles.forEach(p => profileMap[p.employer_id] = p);
-        setSimResults(results.map(r => ({ ...r, profile: profileMap[r.id] || null })));
-      } else {
-        setSimResults([]);
-      }
+        const pm = {}; profiles.forEach(p => pm[p.employer_id] = p);
+        setSimResults(results.map(r => ({ ...r, profile: pm[r.id] || null })));
+      } else { setSimResults([]); }
     } catch (e) { console.error(e); setSimResults([]); }
   };
 
-  // Intelligence search
   const runIntelSearch = async () => {
     if (!intelQuery.trim() || !token) return;
     setIntelLoading(true);
@@ -293,12 +384,8 @@ function AilaneCEO() {
         const ids = emps.map(r => r.id).join(",");
         profiles = await sbFetch(`employer_tribunal_profile?employer_id=in.(${ids})&select=*`, token);
       }
-      const profileMap = {};
-      profiles.forEach(p => profileMap[p.employer_id] = p);
-      setIntelResults({
-        employers: emps.map(e => ({ ...e, profile: profileMap[e.id] })),
-        decisions,
-      });
+      const pm = {}; profiles.forEach(p => pm[p.employer_id] = p);
+      setIntelResults({ employers: emps.map(e => ({ ...e, profile: pm[e.id] })), decisions });
     } catch (e) { console.error(e); }
     setIntelLoading(false);
   };
@@ -306,14 +393,7 @@ function AilaneCEO() {
   const latest = domainScores[0] || {};
   const prev = domainScores[1] || {};
   const delta = (latest.di || 0) - (prev.di || 0);
-
-  const trendData = useMemo(() =>
-    [...domainScores].reverse().map(d => ({
-      week: d.week_start_date ? d.week_start_date.slice(5) : "",
-      di: d.di,
-      drt: parseFloat(d.drt),
-    })), [domainScores]);
-
+  const trendData = useMemo(() => [...domainScores].reverse().map(d => ({ week: (d.week_start_date || "").slice(5), di: d.di, drt: parseFloat(d.drt) })), [domainScores]);
   const segmentData = [
     { name: "A \u2014 Critical", value: 513, fill: "#ef4444" },
     { name: "B \u2014 Elevated", value: 3823, fill: "#f59e0b" },
@@ -321,25 +401,24 @@ function AilaneCEO() {
     { name: "D \u2014 Clean", value: 50529, fill: "#10b981" },
   ];
 
-  // ─── RENDER SECTIONS ──────────────────────────────────────────────────
   const renderOverview = () => (
     <div>
-      <SectionHeader title="Command Overview" subtitle={`AI Lane Limited \u00B7 ${new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`} />
+      <SectionHeader title="Command Overview" subtitle={`AI Lane Limited \u00b7 ${new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`} />
       {ceoBrief && (
         <div style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.06) 0%, rgba(139,92,246,0.04) 100%)", border: "1px solid rgba(34,211,238,0.15)", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
-          <div style={{ fontSize: 11, color: "#22d3ee", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Daily Brief \u2014 {ceoBrief.mood}</div>
+          <div style={{ fontSize: 11, color: "#22d3ee", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Daily Brief — {ceoBrief.mood}</div>
           <div style={{ fontSize: 14, color: "#e2e8f0", lineHeight: 1.5 }}>{ceoBrief.headline}</div>
         </div>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12, marginBottom: 28 }}>
-        <StatCard label="Domain Index" value={latest.di || "\u2014"} sub={`${delta >= 0 ? "+" : ""}${delta} from last week`} accent={getBand(latest.di || 0).color} icon="\uD83D\uDCC8" />
-        <StatCard label="Tribunal Decisions" value="130,854" sub="UK database" accent="#22d3ee" icon="\u2696\uFE0F" />
-        <StatCard label="Employer Profiles" value="78,699" sub={`${((10849/78699)*100).toFixed(0)}% CH enriched`} accent="#a78bfa" icon="\uD83C\uDFE2" />
-        <StatCard label="Legislation Library" value="30" sub="All 12 ACEI categories" accent="#10b981" icon="\uD83D\uDCDA" />
-        <StatCard label="Early Access" value={signups.length || "3"} sub="Signups captured" accent="#f59e0b" icon="\uD83D\uDC65" />
-        <StatCard label="Scrapers" value="7" sub="Automated jobs" accent="#22d3ee" icon="\u2699\uFE0F" />
-        <StatCard label="Jurisdictions" value="53" sub="Global coverage" accent="#f472b6" icon="\uD83C\uDF0D" />
-        <StatCard label="EHRC Actions" value="152" sub="Enforcement tracked" accent="#ef4444" icon="\uD83D\uDD34" />
+        <StatCard label="Domain Index" value={latest.di || "\u2014"} sub={`${delta >= 0 ? "+" : ""}${delta} from last week`} accent={getBand(latest.di || 0).color} icon="\ud83d\udcc8" />
+        <StatCard label="Tribunal Decisions" value="130,854" sub="UK database" accent="#22d3ee" icon="\u2696\ufe0f" />
+        <StatCard label="Employer Profiles" value="78,699" sub={`${((10849/78699)*100).toFixed(0)}% CH enriched`} accent="#a78bfa" icon="\ud83c\udfe2" />
+        <StatCard label="Legislation Library" value="30" sub="All 12 ACEI categories" accent="#10b981" icon="\ud83d\udcda" />
+        <StatCard label="Early Access" value={signups.length || "3"} sub="Signups captured" accent="#f59e0b" icon="\ud83d\udc65" />
+        <StatCard label="Scrapers" value="7" sub="Automated jobs" accent="#22d3ee" icon="\u2699\ufe0f" />
+        <StatCard label="Jurisdictions" value="53" sub="Global coverage" accent="#f472b6" icon="\ud83c\udf0d" />
+        <StatCard label="EHRC Actions" value="152" sub="Enforcement tracked" accent="#ef4444" icon="\ud83d\udd34" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 20, marginBottom: 28 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 24, textAlign: "center" }}>
@@ -348,19 +427,14 @@ function AilaneCEO() {
           <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 16 }}>
             <div><div style={{ fontSize: 10, color: "#64748b" }}>DRT</div><div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{parseFloat(latest.drt || 0).toFixed(0)}</div></div>
             <div><div style={{ fontSize: 10, color: "#64748b" }}>DMR</div><div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{latest.dmr || 300}</div></div>
-            <div><div style={{ fontSize: 10, color: "#64748b" }}>Structural</div><div style={{ fontSize: 16, fontWeight: 700, color: latest.structural_flag ? "#ef4444" : "#10b981" }}>{latest.structural_flag ? "\u26A0\uFE0F" : "\u2713"}</div></div>
+            <div><div style={{ fontSize: 10, color: "#64748b" }}>Structural</div><div style={{ fontSize: 16, fontWeight: 700, color: latest.structural_flag ? "#ef4444" : "#10b981" }}>{latest.structural_flag ? "\u26a0\ufe0f" : "\u2713"}</div></div>
           </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "20px 20px 8px" }}>
-          <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Domain Index \u2014 12-Week Trend</div>
+          <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Domain Index — 12-Week Trend</div>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="diGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+              <defs><linearGradient id="diGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} /><stop offset="100%" stopColor="#22d3ee" stopOpacity={0} /></linearGradient></defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="week" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -371,32 +445,76 @@ function AilaneCEO() {
         </div>
       </div>
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Category Breakdown \u2014 Week of {latest.week_start_date || "2026-02-23"}</div>
+        <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Category Breakdown — Week of {latest.week_start_date || "2026-02-23"} <span style={{ color: "#475569", fontStyle: "italic", textTransform: "none" }}>\u00b7 click any category for details</span></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
           {categoryScores.map((c, i) => {
             const pct = Math.min((parseFloat(c.wcs) / 15) * 100, 100);
             const clr = pct > 70 ? "#ef4444" : pct > 40 ? "#f59e0b" : "#22d3ee";
+            const detail = CAT_DETAIL[c.category];
+            const isSelected = selectedCategory === c.category;
             return (
-              <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, padding: "12px 14px", borderLeft: `3px solid ${clr}` }}>
-                <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{CAT_LABELS[c.category] || c.category}</div>
+              <div key={i} onClick={() => setSelectedCategory(isSelected ? null : c.category)}
+                style={{ background: isSelected ? "rgba(34,211,238,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${isSelected ? "rgba(34,211,238,0.25)" : "rgba(255,255,255,0.06)"}`, borderRadius: 8, padding: "12px 14px", borderLeft: `3px solid ${clr}`, cursor: "pointer", transition: "all 0.2s" }}>
+                <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {detail ? `${detail.num}. ` : ""}{CAT_LABELS[c.category] || c.category}
+                  {detail && detail.uncapped && <span style={{ marginLeft: 6, padding: "1px 5px", background: "rgba(239,68,68,0.15)", color: "#ef4444", borderRadius: 3, fontSize: 8, fontWeight: 700, letterSpacing: "0.5px" }}>UNCAPPED</span>}
+                </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
                   <span style={{ fontSize: 20, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{parseFloat(c.wcs).toFixed(1)}</span>
-                  <span style={{ fontSize: 10, color: "#64748b" }}>L={c.l} \u00B7 I={c.i}</span>
+                  <span style={{ fontSize: 10, color: "#64748b" }}>L={c.l} \u00b7 I={c.i} \u00b7 CRS={c.crs}</span>
                 </div>
-                <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2 }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: clr, borderRadius: 2, transition: "width 0.6s ease" }} />
+                <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2 }}><div style={{ height: "100%", width: `${pct}%`, background: clr, borderRadius: 2, transition: "width 0.6s ease" }} /></div>
+                <div style={{ fontSize: 10, color: "#475569", marginTop: 4, display: "flex", justifyContent: "space-between" }}>
+                  <span>SM: {parseFloat(c.sm).toFixed(2)}</span><span>JM: {parseFloat(c.jm).toFixed(2)}</span><span>WCS: {parseFloat(c.wcs).toFixed(1)}</span>
                 </div>
               </div>
             );
           })}
         </div>
+        {selectedCategory && CAT_DETAIL[selectedCategory] && (() => {
+          const d = CAT_DETAIL[selectedCategory];
+          const cs = categoryScores.find(c => c.category === selectedCategory);
+          const clr = d.uncapped ? "#ef4444" : "#22d3ee";
+          return (
+            <div style={{ marginTop: 14, background: "rgba(255,255,255,0.02)", border: `1px solid ${clr}30`, borderRadius: 10, padding: 20, animation: "fadeIn 0.2s ease" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0" }}>{d.num}. {CAT_LABELS[selectedCategory]}{d.uncapped && <span style={{ marginLeft: 10, padding: "2px 8px", background: "rgba(239,68,68,0.15)", color: "#ef4444", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>UNCAPPED</span>}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4, maxWidth: 700, lineHeight: 1.5 }}>{d.desc}</div>
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); setSelectedCategory(null); }} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", color: "#94a3b8", fontSize: 11, cursor: "pointer" }}>\u2715 Close</button>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
+                <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
+                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Compensation Cap</div>
+                  <div style={{ fontSize: 12, color: d.uncapped ? "#ef4444" : "#e2e8f0", fontWeight: 600, marginTop: 4 }}>{d.cap}</div>
+                </div>
+                <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
+                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>EVI Baseline</div>
+                  <div style={{ fontSize: 16, color: "#22d3ee", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>{d.eviBaseline}</div>
+                </div>
+                {cs && (<><div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Current Score</div><div style={{ fontSize: 16, color: "#e2e8f0", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>L={cs.l} \u00d7 I={cs.i} = CRS {cs.crs}</div></div>
+                <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Weighted Score</div><div style={{ fontSize: 16, color: clr, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>{parseFloat(cs.wcs).toFixed(2)}</div></div></>)}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Key Legislation</div>
+                  {d.statutes.map((s, si) => (<div key={si} style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", display: "flex", alignItems: "center", gap: 6 }}><span style={{ color: "#22d3ee", fontSize: 10 }}>\u00a7</span> {s}</div>))}
+                </div>
+                <div><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>RRI Pillar Impact</div>
+                  {d.rriPillars.map((p, pi) => (<div key={pi} style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", flexShrink: 0 }} /> {p}</div>))}
+                  <div style={{ marginTop: 12, fontSize: 10, color: "#475569" }}>Constitutional Reference: ACEI Art. III \u00b7 Category {d.num} of 12</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
         {[
-          { label: "Run Company Simulation", desc: "Search any UK employer", tab: "simulator", icon: "\uD83D\uDD2C" },
-          { label: "Intelligence Report", desc: "Deep research on a company", tab: "intelligence", icon: "\uD83D\uDD0D" },
-          { label: "View Client Pipeline", desc: `${signups.length || 3} signups pending`, tab: "pipeline", icon: "\uD83D\uDCCA" },
-          { label: "Check Scraper Health", desc: "7 automated jobs", tab: "scrapers", icon: "\u2699\uFE0F" },
+          { label: "Run Company Simulation", desc: "Search any UK employer", tab: "simulator", icon: "\ud83d\udd2c" },
+          { label: "Intelligence Report", desc: "Deep research on a company", tab: "intelligence", icon: "\ud83d\udd0d" },
+          { label: "View Client Pipeline", desc: `${signups.length || 3} signups pending`, tab: "pipeline", icon: "\ud83d\udcca" },
+          { label: "Check Scraper Health", desc: "7 automated jobs", tab: "scrapers", icon: "\u2699\ufe0f" },
         ].map((q, i) => (
           <div key={i} onClick={() => setActiveTab(q.tab)} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "16px 18px", cursor: "pointer", transition: "all 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(34,211,238,0.3)"; e.currentTarget.style.background = "rgba(34,211,238,0.04)"; }}
@@ -414,22 +532,19 @@ function AilaneCEO() {
     <div>
       <SectionHeader title="Client Pipeline" subtitle="Early access signups, onboarding tracking, conversion monitoring" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-        <StatCard label="Total Signups" value={signups.length || 3} accent="#22d3ee" icon="\uD83D\uDCE5" />
-        <StatCard label="Pending Onboard" value={signups.length || 3} accent="#f59e0b" icon="\u23F3" />
+        <StatCard label="Total Signups" value={signups.length || 3} accent="#22d3ee" icon="\ud83d\udce5" />
+        <StatCard label="Pending Onboard" value={signups.length || 3} accent="#f59e0b" icon="\u23f3" />
         <StatCard label="Active Clients" value="0" sub="Pre-launch" accent="#10b981" icon="\u2705" />
-        <StatCard label="Conv. Rate" value="\u2014" sub="No conversions yet" accent="#64748b" icon="\uD83D\uDCC8" />
+        <StatCard label="Conv. Rate" value="\u2014" sub="No conversions yet" accent="#64748b" icon="\ud83d\udcc8" />
       </div>
-      <Table
-        columns={[
-          { key: "full_name", label: "Name" },
-          { key: "email", label: "Email" },
-          { key: "company_name", label: "Company", render: r => r.company_name || "\u2014" },
-          { key: "sector", label: "Sector", render: r => r.sector || "\u2014" },
-          { key: "employee_count", label: "Size", render: r => r.employee_count || "\u2014" },
-          { key: "created_at", label: "Signed Up", render: r => new Date(r.created_at).toLocaleDateString("en-GB") },
-        ]}
-        rows={signups}
-      />
+      <Table columns={[
+        { key: "full_name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "company_name", label: "Company", render: r => r.company_name || "\u2014" },
+        { key: "sector", label: "Sector", render: r => r.sector || "\u2014" },
+        { key: "employee_count", label: "Size", render: r => r.employee_count || "\u2014" },
+        { key: "created_at", label: "Signed Up", render: r => new Date(r.created_at).toLocaleDateString("en-GB") },
+      ]} rows={signups} />
     </div>
   );
 
@@ -440,20 +555,12 @@ function AilaneCEO() {
       <div>
         <SectionHeader title="Company Simulator" subtitle="Simulate the client dashboard view for any UK employer \u2014 ACEI scoring with sector and jurisdiction multipliers" />
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <input value={simQuery} onChange={e => setSimQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runSimulation()}
-            placeholder="Enter company name (e.g. Tesco, Barclays, NHS Trust...)"
-            style={{ flex: 1, minWidth: 280, padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, outline: "none" }} />
-          <select value={simSector} onChange={e => setSimSector(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>
-            {SECTORS.map(s => <option key={s.id} value={s.id}>{s.label} (SM {s.sm})</option>)}
-          </select>
-          <select value={simJurisdiction} onChange={e => setSimJurisdiction(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>
-            {JURISDICTIONS.map(j => <option key={j.id} value={j.id}>{j.label} (JM {j.jm})</option>)}
-          </select>
+          <input value={simQuery} onChange={e => setSimQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runSimulation()} placeholder="Enter company name (e.g. Tesco, Barclays, NHS Trust...)" style={{ flex: 1, minWidth: 280, padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, outline: "none" }} />
+          <select value={simSector} onChange={e => setSimSector(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>{SECTORS.map(s => <option key={s.id} value={s.id}>{s.label} (SM {s.sm})</option>)}</select>
+          <select value={simJurisdiction} onChange={e => setSimJurisdiction(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>{JURISDICTIONS.map(j => <option key={j.id} value={j.id}>{j.label} (JM {j.jm})</option>)}</select>
           <button onClick={runSimulation} style={{ padding: "12px 24px", background: "linear-gradient(135deg, #22d3ee, #06b6d4)", border: "none", borderRadius: 8, color: "#0f172a", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Search</button>
         </div>
-        {simResults && simResults.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>No employers found matching "{simQuery}"</div>
-        )}
+        {simResults && simResults.length === 0 && (<div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>No employers found matching "{simQuery}"</div>)}
         {simResults && simResults.length > 0 && (
           <div>
             <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>{simResults.length} employer{simResults.length > 1 ? "s" : ""} found</div>
@@ -467,43 +574,18 @@ function AilaneCEO() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0" }}>{emp.normalised_name || emp.raw_name}</div>
-                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                        {emp.companies_house_number && <span>CH: {emp.companies_house_number} \u00B7 </span>}
-                        {emp.acei_sector && <span>{emp.acei_sector} \u00B7 </span>}
-                        {emp.jurisdiction_region && <span>{emp.jurisdiction_region}</span>}
-                      </div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{emp.companies_house_number && <span>CH: {emp.companies_house_number} \u00b7 </span>}{emp.acei_sector && <span>{emp.acei_sector} \u00b7 </span>}{emp.jurisdiction_region && <span>{emp.jurisdiction_region}</span>}</div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 28, fontWeight: 700, color: band.color, fontFamily: "'JetBrains Mono',monospace" }}>{simulatedDI}</div>
-                      <Badge color={band.color}>{band.label}</Badge>
-                    </div>
+                    <div style={{ textAlign: "right" }}><div style={{ fontSize: 28, fontWeight: 700, color: band.color, fontFamily: "'JetBrains Mono',monospace" }}>{simulatedDI}</div><Badge color={band.color}>{band.label}</Badge></div>
                   </div>
                   {p && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Total Decisions</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{p.total_decisions}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>APS Score</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono',monospace" }}>{p.aps_total ? p.aps_total.toFixed(1) : "\u2014"}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Segment</div>
-                        <Badge color={p.aps_segment === "A_critical" ? "#ef4444" : p.aps_segment === "B_elevated" ? "#f59e0b" : "#22d3ee"}>{p.aps_segment ? p.aps_segment.replace("_", " ") : "\u2014"}</Badge>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Repeat Pattern</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: p.has_repeat_pattern ? "#ef4444" : "#10b981" }}>{p.has_repeat_pattern ? "Yes \u26A0\uFE0F" : "No \u2713"}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Categories Affected</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#a78bfa", fontFamily: "'JetBrains Mono',monospace" }}>{p.categories_affected || "\u2014"}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Applied SM \u00D7 JM</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{sm.toFixed(2)} \u00D7 {jm.toFixed(2)}</div>
-                      </div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Total Decisions</div><div style={{ fontSize: 18, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{p.total_decisions}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>APS Score</div><div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono',monospace" }}>{p.aps_total ? p.aps_total.toFixed(1) : "\u2014"}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Segment</div><Badge color={p.aps_segment === "A_critical" ? "#ef4444" : p.aps_segment === "B_elevated" ? "#f59e0b" : "#22d3ee"}>{p.aps_segment ? p.aps_segment.replace("_", " ") : "\u2014"}</Badge></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Repeat Pattern</div><div style={{ fontSize: 14, fontWeight: 700, color: p.has_repeat_pattern ? "#ef4444" : "#10b981" }}>{p.has_repeat_pattern ? "Yes \u26a0\ufe0f" : "No \u2713"}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Categories Affected</div><div style={{ fontSize: 18, fontWeight: 700, color: "#a78bfa", fontFamily: "'JetBrains Mono',monospace" }}>{p.categories_affected || "\u2014"}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Applied SM \u00d7 JM</div><div style={{ fontSize: 14, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{sm.toFixed(2)} \u00d7 {jm.toFixed(2)}</div></div>
                     </div>
                   )}
                   {!p && <div style={{ fontSize: 12, color: "#64748b", fontStyle: "italic" }}>No tribunal profile \u2014 clean employer or not yet indexed</div>}
@@ -520,12 +602,8 @@ function AilaneCEO() {
     <div>
       <SectionHeader title="Intelligence Hub" subtitle="Deep research on companies, clients, and employers \u2014 powered by 130,854 tribunal decisions and 78,699 employer profiles" />
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-        <input value={intelQuery} onChange={e => setIntelQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runIntelSearch()}
-          placeholder="Search company name, case reference, or individual..."
-          style={{ flex: 1, padding: "14px 18px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, outline: "none" }} />
-        <button onClick={runIntelSearch} disabled={intelLoading} style={{ padding: "14px 28px", background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: intelLoading ? 0.6 : 1 }}>
-          {intelLoading ? "Searching..." : "Research"}
-        </button>
+        <input value={intelQuery} onChange={e => setIntelQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runIntelSearch()} placeholder="Search company name, case reference, or individual..." style={{ flex: 1, padding: "14px 18px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, outline: "none" }} />
+        <button onClick={runIntelSearch} disabled={intelLoading} style={{ padding: "14px 28px", background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: intelLoading ? 0.6 : 1 }}>{intelLoading ? "Searching..." : "Research"}</button>
       </div>
       {intelResults && (
         <div>
@@ -537,61 +615,26 @@ function AilaneCEO() {
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>{emp.normalised_name || emp.raw_name}</div>
-                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                        {emp.companies_house_number && ("CH: " + emp.companies_house_number)}
-                        {emp.acei_sector && (" \u00B7 " + emp.acei_sector)}
-                        {emp.jurisdiction_region && (" \u00B7 " + emp.jurisdiction_region)}
-                        {emp.headcount_estimate && (" \u00B7 ~" + emp.headcount_estimate + " employees")}
-                      </div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{emp.companies_house_number && ("CH: " + emp.companies_house_number)}{emp.acei_sector && (" \u00b7 " + emp.acei_sector)}{emp.jurisdiction_region && (" \u00b7 " + emp.jurisdiction_region)}{emp.headcount_estimate && (" \u00b7 ~" + emp.headcount_estimate + " employees")}</div>
                     </div>
-                    {emp.profile && (
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 11, color: "#64748b" }}>APS</div>
-                        <div style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono',monospace" }}>{emp.profile.aps_total ? emp.profile.aps_total.toFixed(1) : "\u2014"}</div>
-                        <Badge color={emp.profile.aps_segment === "A_critical" ? "#ef4444" : "#f59e0b"}>{emp.profile.aps_segment ? emp.profile.aps_segment.replace("_", " ") : "\u2014"}</Badge>
-                      </div>
-                    )}
+                    {emp.profile && (<div style={{ textAlign: "right" }}><div style={{ fontSize: 11, color: "#64748b" }}>APS</div><div style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono',monospace" }}>{emp.profile.aps_total ? emp.profile.aps_total.toFixed(1) : "\u2014"}</div><Badge color={emp.profile.aps_segment === "A_critical" ? "#ef4444" : "#f59e0b"}>{emp.profile.aps_segment ? emp.profile.aps_segment.replace("_", " ") : "\u2014"}</Badge></div>)}
                   </div>
-                  {emp.profile && (
-                    <div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
-                      <span>Decisions: <strong style={{ color: "#e2e8f0" }}>{emp.profile.total_decisions}</strong></span>
-                      <span>Categories: <strong style={{ color: "#e2e8f0" }}>{emp.profile.categories_affected}</strong></span>
-                      <span>Repeat: <strong style={{ color: emp.profile.has_repeat_pattern ? "#ef4444" : "#10b981" }}>{emp.profile.has_repeat_pattern ? "Yes" : "No"}</strong></span>
-                      <span>Freq: <strong style={{ color: "#e2e8f0" }}>{emp.profile.aps_frequency ? emp.profile.aps_frequency.toFixed(1) : "\u2014"}</strong></span>
-                      <span>Severity: <strong style={{ color: "#e2e8f0" }}>{emp.profile.aps_severity ? emp.profile.aps_severity.toFixed(1) : "\u2014"}</strong></span>
-                    </div>
-                  )}
+                  {emp.profile && (<div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 11, color: "#94a3b8" }}><span>Decisions: <strong style={{ color: "#e2e8f0" }}>{emp.profile.total_decisions}</strong></span><span>Categories: <strong style={{ color: "#e2e8f0" }}>{emp.profile.categories_affected}</strong></span><span>Repeat: <strong style={{ color: emp.profile.has_repeat_pattern ? "#ef4444" : "#10b981" }}>{emp.profile.has_repeat_pattern ? "Yes" : "No"}</strong></span><span>Freq: <strong style={{ color: "#e2e8f0" }}>{emp.profile.aps_frequency ? emp.profile.aps_frequency.toFixed(1) : "\u2014"}</strong></span><span>Severity: <strong style={{ color: "#e2e8f0" }}>{emp.profile.aps_severity ? emp.profile.aps_severity.toFixed(1) : "\u2014"}</strong></span></div>)}
                 </div>
               ))}
             </div>
           )}
-          {intelResults.decisions.length > 0 && (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Tribunal Decisions ({intelResults.decisions.length})</div>
-              <Table
-                columns={[
-                  { key: "case_number", label: "Case No." },
-                  { key: "title", label: "Title", render: r => <span style={{ maxWidth: 300, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</span> },
-                  { key: "decision_date", label: "Date", render: r => r.decision_date ? new Date(r.decision_date).toLocaleDateString("en-GB") : "\u2014" },
-                  { key: "acei_category", label: "Category", render: r => <Badge>{r.acei_category || "\u2014"}</Badge> },
-                  { key: "compensation_awarded", label: "Award", render: r => r.compensation_awarded ? ("\u00A3" + r.compensation_awarded.toLocaleString()) : "\u2014" },
-                ]}
-                rows={intelResults.decisions}
-              />
-            </div>
-          )}
-          {intelResults.employers.length === 0 && intelResults.decisions.length === 0 && (
-            <div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>No results found for "{intelQuery}"</div>
-          )}
+          {intelResults.decisions.length > 0 && (<div><div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Tribunal Decisions ({intelResults.decisions.length})</div><Table columns={[
+            { key: "case_number", label: "Case No." },
+            { key: "title", label: "Title", render: r => <span style={{ maxWidth: 300, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</span> },
+            { key: "decision_date", label: "Date", render: r => r.decision_date ? new Date(r.decision_date).toLocaleDateString("en-GB") : "\u2014" },
+            { key: "acei_category", label: "Category", render: r => <Badge>{r.acei_category || "\u2014"}</Badge> },
+            { key: "compensation_awarded", label: "Award", render: r => r.compensation_awarded ? ("\u00a3" + r.compensation_awarded.toLocaleString()) : "\u2014" },
+          ]} rows={intelResults.decisions} /></div>)}
+          {intelResults.employers.length === 0 && intelResults.decisions.length === 0 && (<div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>No results found for "{intelQuery}"</div>)}
         </div>
       )}
-      {!intelResults && (
-        <div style={{ padding: 60, textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>{"\uD83D\uDD0D"}</div>
-          <div style={{ fontSize: 14, color: "#64748b" }}>Search for any UK employer to generate an intelligence report</div>
-          <div style={{ fontSize: 12, color: "#475569", marginTop: 8 }}>Data sources: 130,854 tribunal decisions \u00B7 78,699 employer profiles \u00B7 Companies House \u00B7 EHRC enforcement</div>
-        </div>
-      )}
+      {!intelResults && (<div style={{ padding: 60, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 16 }}>{"\ud83d\udd0d"}</div><div style={{ fontSize: 14, color: "#64748b" }}>Search for any UK employer to generate an intelligence report</div><div style={{ fontSize: 12, color: "#475569", marginTop: 8 }}>Data sources: 130,854 tribunal decisions \u00b7 78,699 employer profiles \u00b7 Companies House \u00b7 EHRC enforcement</div></div>)}
     </div>
   );
 
@@ -599,24 +642,16 @@ function AilaneCEO() {
     <div>
       <SectionHeader title="Regulatory Feed" subtitle="Live legislative changes, enforcement actions, and regulatory events across UK employment law" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
-        <StatCard label="Legislative Changes" value={legislativeChanges.length || 534} accent="#a78bfa" icon="\uD83D\uDCDC" />
-        <StatCard label="EHRC Actions" value="152" accent="#ef4444" icon="\u2696\uFE0F" />
-        <StatCard label="Active Legislation" value="30" accent="#10b981" icon="\uD83D\uDCDA" />
+        <StatCard label="Legislative Changes" value={legislativeChanges.length || 534} accent="#a78bfa" icon="\ud83d\udcdc" />
+        <StatCard label="EHRC Actions" value="152" accent="#ef4444" icon="\u2696\ufe0f" />
+        <StatCard label="Active Legislation" value="30" accent="#10b981" icon="\ud83d\udcda" />
       </div>
       <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Recent Legislative Changes</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {legislativeChanges.slice(0, 15).map((lc, i) => (
           <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 500 }}>{lc.title}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", gap: 4, flexWrap: "wrap" }}>
-                <Badge color="#a78bfa">{lc.legislation_type}</Badge>
-                {lc.acei_categories && lc.acei_categories.map((c, ci) => <Badge key={ci} color="#22d3ee">{c}</Badge>)}
-              </div>
-            </div>
-            <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", marginLeft: 16 }}>
-              {lc.date_published && new Date(lc.date_published).toLocaleDateString("en-GB")}
-            </div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 500 }}>{lc.title}</div><div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", gap: 4, flexWrap: "wrap" }}><Badge color="#a78bfa">{lc.legislation_type}</Badge>{lc.acei_categories && lc.acei_categories.map((c, ci) => <Badge key={ci} color="#22d3ee">{c}</Badge>)}</div></div>
+            <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", marginLeft: 16 }}>{lc.date_published && new Date(lc.date_published).toLocaleDateString("en-GB")}</div>
           </div>
         ))}
       </div>
@@ -629,45 +664,33 @@ function AilaneCEO() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16 }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Companies House Enrichment</div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontSize: 20, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>10,849</span>
-            <span style={{ fontSize: 12, color: "#64748b" }}>/ 78,699</span>
-          </div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
-            <div style={{ height: "100%", width: `${(10849/78699*100).toFixed(1)}%`, background: "#22d3ee", borderRadius: 3 }} />
-          </div>
-          <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{(10849/78699*100).toFixed(1)}% complete \u00B7 66,018 pending</div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ fontSize: 20, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>10,849</span><span style={{ fontSize: 12, color: "#64748b" }}>/ 78,699</span></div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}><div style={{ height: "100%", width: `${(10849/78699*100).toFixed(1)}%`, background: "#22d3ee", borderRadius: 3 }} /></div>
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{(10849/78699*100).toFixed(1)}% complete \u00b7 66,018 pending</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16 }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Sector Classification</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#a78bfa", fontFamily: "'JetBrains Mono',monospace", marginBottom: 6 }}>10,576</div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
-            <div style={{ height: "100%", width: `${(10576/78699*100).toFixed(1)}%`, background: "#a78bfa", borderRadius: 3 }} />
-          </div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}><div style={{ height: "100%", width: `${(10576/78699*100).toFixed(1)}%`, background: "#a78bfa", borderRadius: 3 }} /></div>
           <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{(10576/78699*100).toFixed(1)}% classified</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16 }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Jurisdiction Mapping</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#f472b6", fontFamily: "'JetBrains Mono',monospace", marginBottom: 6 }}>10,716</div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
-            <div style={{ height: "100%", width: `${(10716/78699*100).toFixed(1)}%`, background: "#f472b6", borderRadius: 3 }} />
-          </div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}><div style={{ height: "100%", width: `${(10716/78699*100).toFixed(1)}%`, background: "#f472b6", borderRadius: 3 }} /></div>
           <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{(10716/78699*100).toFixed(1)}% mapped</div>
         </div>
       </div>
       <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Recent Scraper Runs</div>
-      <Table
-        columns={[
-          { key: "scraper_name", label: "Scraper", render: r => r.scraper_name || r.source_name },
-          { key: "jurisdiction_code", label: "Jurisdiction", render: r => <Badge>{r.jurisdiction_code || "GB"}</Badge> },
-          { key: "status", label: "Status", render: r => <Badge color={r.status === "completed" ? "#10b981" : r.status === "running" ? "#f59e0b" : "#ef4444"}>{r.status}</Badge> },
-          { key: "records_collected", label: "Found", render: r => r.decisions_found || r.records_collected || 0 },
-          { key: "records_inserted", label: "New", render: r => r.decisions_new || r.records_inserted || 0 },
-          { key: "elapsed_seconds", label: "Duration", render: r => r.elapsed_seconds ? `${parseFloat(r.elapsed_seconds).toFixed(0)}s` : "\u2014" },
-          { key: "started_at", label: "Run Date", render: r => new Date(r.started_at).toLocaleDateString("en-GB") },
-        ]}
-        rows={scraperRuns}
-      />
+      <Table columns={[
+        { key: "scraper_name", label: "Scraper", render: r => r.scraper_name || r.source_name },
+        { key: "jurisdiction_code", label: "Jurisdiction", render: r => <Badge>{r.jurisdiction_code || "GB"}</Badge> },
+        { key: "status", label: "Status", render: r => <Badge color={r.status === "completed" ? "#10b981" : r.status === "running" ? "#f59e0b" : "#ef4444"}>{r.status}</Badge> },
+        { key: "records_collected", label: "Found", render: r => r.decisions_found || r.records_collected || 0 },
+        { key: "records_inserted", label: "New", render: r => r.decisions_new || r.records_inserted || 0 },
+        { key: "elapsed_seconds", label: "Duration", render: r => r.elapsed_seconds ? `${parseFloat(r.elapsed_seconds).toFixed(0)}s` : "\u2014" },
+        { key: "started_at", label: "Run Date", render: r => new Date(r.started_at).toLocaleDateString("en-GB") },
+      ]} rows={scraperRuns} />
     </div>
   );
 
@@ -675,17 +698,10 @@ function AilaneCEO() {
     <div>
       <SectionHeader title="Notifications" subtitle="Client alerts for employment-related court actions, enforcement notices, and regulatory events" />
       <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>{"\uD83D\uDD14"}</div>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>{"\ud83d\udd14"}</div>
         <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 600 }}>Notification Engine</div>
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, maxWidth: 460, margin: "8px auto 0" }}>
-          When clients onboard, their employer details are cross-referenced against incoming tribunal decisions and enforcement actions.
-          Alerts will appear here when a match is detected.
-        </div>
-        <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 8 }}>
-          <Badge color="#f59e0b">Pre-Launch</Badge>
-          <Badge color="#22d3ee">0 Active Clients</Badge>
-          <Badge color="#a78bfa">Monitoring 152 EHRC Actions</Badge>
-        </div>
+        <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, maxWidth: 460, margin: "8px auto 0" }}>When clients onboard, their employer details are cross-referenced against incoming tribunal decisions and enforcement actions. Alerts will appear here when a match is detected.</div>
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 8 }}><Badge color="#f59e0b">Pre-Launch</Badge><Badge color="#22d3ee">0 Active Clients</Badge><Badge color="#a78bfa">Monitoring 152 EHRC Actions</Badge></div>
       </div>
       <div style={{ marginTop: 24 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Notification Rules (Configured)</div>
@@ -693,15 +709,12 @@ function AilaneCEO() {
           { rule: "Client employer appears in new tribunal decision", trigger: "Real-time on scraper completion", status: "Ready" },
           { rule: "Client employer receives EHRC enforcement action", trigger: "Daily EHRC feed check", status: "Ready" },
           { rule: "Client employer receives HSE prosecution notice", trigger: "Weekly HSE feed check", status: "Ready" },
-          { rule: "Legislative change affects client's ACEI categories", trigger: "Weekly legislation scraper", status: "Ready" },
+          { rule: "Legislative change affects client\u2019s ACEI categories", trigger: "Weekly legislation scraper", status: "Ready" },
           { rule: "Client Domain Index crosses band threshold", trigger: "Weekly score recomputation", status: "Ready" },
         ].map((n, i) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 6, marginBottom: 6 }}>
             <div style={{ fontSize: 13, color: "#e2e8f0" }}>{n.rule}</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{n.trigger}</span>
-              <Badge color="#10b981">{n.status}</Badge>
-            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}><span style={{ fontSize: 11, color: "#64748b" }}>{n.trigger}</span><Badge color="#10b981">{n.status}</Badge></div>
           </div>
         ))}
       </div>
@@ -712,48 +725,30 @@ function AilaneCEO() {
     <div>
       <SectionHeader title="Business Hub" subtitle="AI Lane Limited (Company No. 17035654) \u2014 Reports, financials, planning, and corporate governance" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 28 }}>
-        <StatCard label="Company Status" value="Active" sub="Incorporated 2026" accent="#10b981" icon="\uD83C\uDFE2" />
-        <StatCard label="Funding" value="\u00A375,000" sub="Innovation Wales \u2014 Secured" accent="#22d3ee" icon="\uD83D\uDCB0" />
-        <StatCard label="Current MRR" value="\u00A30" sub="Pre-launch" accent="#64748b" icon="\uD83D\uDCCA" />
-        <StatCard label="Target ARR" value="\u00A3250k" sub="Year 1 objective" accent="#f59e0b" icon="\uD83C\uDFAF" />
-        <StatCard label="Trademark" value="Filed" sub="UK00004347220" accent="#a78bfa" icon="\u2122\uFE0F" />
-        <StatCard label="Innovation Panel" value="April" sub="\u00A375k presentation" accent="#f472b6" icon="\uD83D\uDCC5" />
+        <StatCard label="Company Status" value="Active" sub="Incorporated 2026" accent="#10b981" icon="\ud83c\udfe2" />
+        <StatCard label="Funding" value="\u00a375,000" sub="Innovation Wales \u2014 Secured" accent="#22d3ee" icon="\ud83d\udcb0" />
+        <StatCard label="Current MRR" value="\u00a30" sub="Pre-launch" accent="#64748b" icon="\ud83d\udcca" />
+        <StatCard label="Target ARR" value="\u00a3250k" sub="Year 1 objective" accent="#f59e0b" icon="\ud83c\udfaf" />
+        <StatCard label="Trademark" value="Filed" sub="UK00004347220" accent="#a78bfa" icon="\u2122\ufe0f" />
+        <StatCard label="Innovation Panel" value="April" sub="\u00a375k presentation" accent="#f472b6" icon="\ud83d\udcc5" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Revenue Streams</div>
-          {[
-            { stream: "Operational Readiness", price: "\u00A3199/mo", status: "Ready" },
-            { stream: "Governance Tier", price: "\u00A3799/mo", status: "Ready" },
-            { stream: "Institutional Tier", price: "Custom", status: "Ready" },
-            { stream: "EPLI Data Licensing", price: "\u00A3375k\u2013\u00A3750k/yr", status: "Pipeline" },
-            { stream: "Regulatory Ticker Feed", price: "TBC", status: "Building" },
-          ].map((s, i) => (
+          {[{stream:"Operational Readiness",price:"\u00a3199/mo",status:"Ready"},{stream:"Governance Tier",price:"\u00a3799/mo",status:"Ready"},{stream:"Institutional Tier",price:"Custom",status:"Ready"},{stream:"EPLI Data Licensing",price:"\u00a3375k\u2013\u00a3750k/yr",status:"Pipeline"},{stream:"Regulatory Ticker Feed",price:"TBC",status:"Building"}].map((s,i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
               <span style={{ fontSize: 13, color: "#e2e8f0" }}>{s.stream}</span>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{s.price}</span>
-                <Badge color={s.status === "Ready" ? "#10b981" : s.status === "Pipeline" ? "#f59e0b" : "#a78bfa"}>{s.status}</Badge>
-              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}><span style={{ fontSize: 12, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{s.price}</span><Badge color={s.status === "Ready" ? "#10b981" : s.status === "Pipeline" ? "#f59e0b" : "#a78bfa"}>{s.status}</Badge></div>
             </div>
           ))}
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Milestones</div>
-          {[
-            { milestone: "Company incorporated", date: "Feb 2026", done: true },
-            { milestone: "Three constitutions adopted", date: "26 Feb 2026", done: true },
-            { milestone: "Trademark filed", date: "28 Feb 2026", done: true },
-            { milestone: "130,854 decisions scraped", date: "27 Feb 2026", done: true },
-            { milestone: "78,699 employer profiles", date: "28 Feb 2026", done: true },
-            { milestone: "Innovation Wales panel", date: "Apr 2026", done: false },
-            { milestone: "First paying client", date: "Target Q2", done: false },
-            { milestone: "Insurance data pilot", date: "Target Q3", done: false },
-          ].map((m, i) => (
+          {[{m:"Company incorporated",d:"Feb 2026",done:true},{m:"Three constitutions adopted",d:"26 Feb 2026",done:true},{m:"Trademark filed",d:"28 Feb 2026",done:true},{m:"130,854 decisions scraped",d:"27 Feb 2026",done:true},{m:"78,699 employer profiles",d:"28 Feb 2026",done:true},{m:"Innovation Wales panel",d:"Apr 2026",done:false},{m:"First paying client",d:"Target Q2",done:false},{m:"Insurance data pilot",d:"Target Q3",done:false}].map((ml,i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-              <div style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: m.done ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.05)", color: m.done ? "#10b981" : "#64748b", fontSize: 10 }}>{m.done ? "\u2713" : "\u25CB"}</div>
-              <span style={{ flex: 1, fontSize: 12, color: m.done ? "#e2e8f0" : "#94a3b8" }}>{m.milestone}</span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{m.date}</span>
+              <div style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: ml.done ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.05)", color: ml.done ? "#10b981" : "#64748b", fontSize: 10 }}>{ml.done ? "\u2713" : "\u25cb"}</div>
+              <span style={{ flex: 1, fontSize: 12, color: ml.done ? "#e2e8f0" : "#94a3b8" }}>{ml.m}</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{ml.d}</span>
             </div>
           ))}
         </div>
@@ -761,13 +756,7 @@ function AilaneCEO() {
       <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Acquisition Intelligence \u2014 Employer Segments (AIE)</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          {segmentData.map((s, i) => (
-            <div key={i} style={{ padding: 14, background: `${s.fill}10`, border: `1px solid ${s.fill}25`, borderRadius: 8, textAlign: "center" }}>
-              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>{s.name}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: s.fill, fontFamily: "'JetBrains Mono',monospace" }}>{s.value.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>{(s.value / 78699 * 100).toFixed(1)}%</div>
-            </div>
-          ))}
+          {segmentData.map((s, i) => (<div key={i} style={{ padding: 14, background: `${s.fill}10`, border: `1px solid ${s.fill}25`, borderRadius: 8, textAlign: "center" }}><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>{s.name}</div><div style={{ fontSize: 22, fontWeight: 700, color: s.fill, fontFamily: "'JetBrains Mono',monospace" }}>{s.value.toLocaleString()}</div><div style={{ fontSize: 11, color: "#64748b" }}>{(s.value / 78699 * 100).toFixed(1)}%</div></div>))}
         </div>
       </div>
     </div>
@@ -775,18 +764,11 @@ function AilaneCEO() {
 
   const renderGovernance = () => (
     <div>
-      <SectionHeader title="Constitutional Governance" subtitle="ACEI v1.0 \u00B7 RRI v1.0 \u00B7 CCI v1.0 \u2014 Adopted 26 February 2026" />
+      <SectionHeader title="Constitutional Governance" subtitle="ACEI v1.0 \u00b7 RRI v1.0 \u00b7 CCI v1.0 \u2014 Adopted 26 February 2026" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-        {[
-          { name: "ACEI", version: "v1.0", desc: "Aggregate Compliance Exposure Index", status: "Compliant", color: "#22d3ee", categories: "12 categories", engine: "EVI + EII + SCI \u2192 L \u00D7 I \u2192 DI" },
-          { name: "RRI", version: "v1.0", desc: "Regulatory Readiness Index", status: "Compliant", color: "#10b981", categories: "5 pillars / 9 EIP", engine: "Policy + Contractual + Training + Systems + Governance" },
-          { name: "CCI", version: "v1.0", desc: "Corporate Conduct Index", status: "Compliant", color: "#a78bfa", categories: "6 components", engine: "Bayesian credibility framework" },
-        ].map((c, i) => (
+        {[{name:"ACEI",version:"v1.0",desc:"Aggregate Compliance Exposure Index",status:"Compliant",color:"#22d3ee",categories:"12 categories",engine:"EVI + EII + SCI \u2192 L \u00d7 I \u2192 DI"},{name:"RRI",version:"v1.0",desc:"Regulatory Readiness Index",status:"Compliant",color:"#10b981",categories:"5 pillars / 9 EIP",engine:"Policy + Contractual + Training + Systems + Governance"},{name:"CCI",version:"v1.0",desc:"Corporate Conduct Index",status:"Compliant",color:"#a78bfa",categories:"6 components",engine:"Bayesian credibility framework"}].map((c,i) => (
           <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${c.color}25`, borderRadius: 10, padding: 20, borderTop: `3px solid ${c.color}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c.color, fontFamily: "'JetBrains Mono',monospace" }}>{c.name}</div>
-              <Badge color={c.color}>{c.version}</Badge>
-            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><div style={{ fontSize: 18, fontWeight: 700, color: c.color, fontFamily: "'JetBrains Mono',monospace" }}>{c.name}</div><Badge color={c.color}>{c.version}</Badge></div>
             <div style={{ fontSize: 12, color: "#e2e8f0", marginBottom: 8 }}>{c.desc}</div>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>{c.categories}</div>
             <div style={{ fontSize: 10, color: "#475569", fontFamily: "'JetBrains Mono',monospace" }}>{c.engine}</div>
@@ -797,63 +779,69 @@ function AilaneCEO() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Governance Controls</div>
-          {[
-            { control: "Separation Doctrine", desc: "Index cross-contamination prevention", status: "Enforced" },
-            { control: "Deterministic Computation", desc: "Identical inputs \u2192 identical outputs", status: "Enforced" },
-            { control: "Model Risk Disclosure", desc: "Constitutional audit obligations", status: "Active" },
-            { control: "Clinical Neutrality", desc: "No moral judgment in scoring", status: "Active" },
-            { control: "Anti-Perverse Incentive", desc: "No reward for suppression", status: "Active" },
-            { control: "AIC Governance", desc: "Ailane Index Committee oversight", status: "Active" },
-          ].map((g, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-              <div>
-                <div style={{ fontSize: 12, color: "#e2e8f0" }}>{g.control}</div>
-                <div style={{ fontSize: 10, color: "#64748b" }}>{g.desc}</div>
-              </div>
-              <Badge color="#10b981">{g.status}</Badge>
-            </div>
+          {[{control:"Separation Doctrine",desc:"Index cross-contamination prevention",status:"Enforced"},{control:"Deterministic Computation",desc:"Identical inputs \u2192 identical outputs",status:"Enforced"},{control:"Model Risk Disclosure",desc:"Constitutional audit obligations",status:"Active"},{control:"Clinical Neutrality",desc:"No moral judgment in scoring",status:"Active"},{control:"Anti-Perverse Incentive",desc:"No reward for suppression",status:"Active"},{control:"AIC Governance",desc:"Ailane Index Committee oversight",status:"Active"}].map((g,i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}><div><div style={{ fontSize: 12, color: "#e2e8f0" }}>{g.control}</div><div style={{ fontSize: 10, color: "#64748b" }}>{g.desc}</div></div><Badge color="#10b981">{g.status}</Badge></div>
           ))}
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>ACEI Parameter Calibration</div>
           <div style={{ fontSize: 11, color: "#64748b", marginBottom: 16 }}>Current market baseline parameters (ACEI Article III)</div>
-          {[
-            { param: "DMR (Domain Max Reference)", value: "300", ref: "Art. III \u00A73.4" },
-            { param: "EVI Baseline \u2014 Dismissal", value: "15/week", ref: "Annex A" },
-            { param: "EVI Baseline \u2014 Discrimination", value: "12/week", ref: "Annex A" },
-            { param: "EVI Baseline \u2014 Wages", value: "8/week", ref: "Annex A" },
-            { param: "SM Range", value: "0.90 \u2013 1.30", ref: "Annex B" },
-            { param: "JM Range", value: "0.90 \u2013 1.40", ref: "Annex B" },
-            { param: "Band Thresholds", value: "20/40/60/80", ref: "Art. IV" },
-          ].map((p, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", fontSize: 12 }}>
-              <span style={{ color: "#94a3b8" }}>{p.param}</span>
-              <div style={{ display: "flex", gap: 12 }}>
-                <span style={{ color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{p.value}</span>
-                <span style={{ color: "#475569", fontSize: 10 }}>{p.ref}</span>
-              </div>
-            </div>
+          {[{param:"DMR (Domain Max Reference)",value:"300",ref:"Art. III \u00a73.4"},{param:"EVI Baseline \u2014 Dismissal",value:"15/week",ref:"Annex A"},{param:"EVI Baseline \u2014 Discrimination",value:"12/week",ref:"Annex A"},{param:"EVI Baseline \u2014 Wages",value:"8/week",ref:"Annex A"},{param:"SM Range",value:"0.90 \u2013 1.30",ref:"Annex B"},{param:"JM Range",value:"0.90 \u2013 1.40",ref:"Annex B"},{param:"Band Thresholds",value:"20/40/60/80",ref:"Art. IV"}].map((p,i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", fontSize: 12 }}><span style={{ color: "#94a3b8" }}>{p.param}</span><div style={{ display: "flex", gap: 12 }}><span style={{ color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{p.value}</span><span style={{ color: "#475569", fontSize: 10 }}>{p.ref}</span></div></div>
           ))}
         </div>
       </div>
     </div>
   );
 
-  const sections = {
-    overview: renderOverview,
-    pipeline: renderPipeline,
-    simulator: renderSimulator,
-    intelligence: renderIntelligence,
-    regulatory: renderRegulatory,
-    scrapers: renderScrapers,
-    notifications: renderNotifications,
-    business: renderBusiness,
-    governance: renderGovernance,
-  };
+  const sections = { overview: renderOverview, pipeline: renderPipeline, simulator: renderSimulator, intelligence: renderIntelligence, regulatory: renderRegulatory, scrapers: renderScrapers, notifications: renderNotifications, business: renderBusiness, governance: renderGovernance };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0e1a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap'); @keyframes pulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }`}</style>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", letterSpacing: 3, marginBottom: 16 }}>AILANE</div>
+          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22d3ee", animation: "pulse 1s ease infinite" }} />
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22d3ee", animation: "pulse 1s ease infinite 0.2s" }} />
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22d3ee", animation: "pulse 1s ease infinite 0.4s" }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!token) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0e1a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter',-apple-system,sans-serif" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; } input::placeholder { color: #475569; } .login-btn:hover { opacity: 0.9; } .login-input:focus { border-color: rgba(34,211,238,0.5) !important; outline: none; }`}</style>
+        <div style={{ width: 400, padding: 40, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}>
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", letterSpacing: 3, marginBottom: 4 }}>AILANE</div>
+            <div style={{ fontSize: 12, color: "#64748b", letterSpacing: 1, textTransform: "uppercase" }}>CEO Command Centre</div>
+          </div>
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Email</label>
+              <input className="login-input" type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} style={{ width: "100%", padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, transition: "border-color 0.2s" }} />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 11, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Password</label>
+              <input className="login-input" type="password" value={authPass} onChange={e => setAuthPass(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Enter your password" style={{ width: "100%", padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, transition: "border-color 0.2s" }} />
+            </div>
+            {authError && (<div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, fontSize: 12, color: "#ef4444", marginBottom: 16 }}>{authError}</div>)}
+            <button className="login-btn" onClick={handleLogin} disabled={authLoading} style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg, #22d3ee, #06b6d4)", border: "none", borderRadius: 8, color: "#0a0e1a", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: authLoading ? 0.7 : 1, transition: "opacity 0.2s" }}>{authLoading ? "Authenticating..." : "Sign In"}</button>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#475569" }}>AI Lane Limited \u00b7 Company No. 17035654 \u00b7 Internal Use Only</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0e1a", color: "#e2e8f0", fontFamily: "'Inter',-apple-system,sans-serif", display: "flex" }}>
-      {/* Sidebar */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; } ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; } @keyframes pulse { 0%,100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } } @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } } input::placeholder { color: #475569; } select option { background: #0f172a; color: #e2e8f0; }`}</style>
       <aside style={{ width: sideOpen ? 220 : 56, minHeight: "100vh", background: "rgba(255,255,255,0.02)", borderRight: "1px solid rgba(255,255,255,0.06)", transition: "width 0.2s ease", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: sideOpen ? "20px 18px" : "20px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setSideOpen(!sideOpen)}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #22d3ee, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#0a0e1a", flexShrink: 0 }}>A</div>
@@ -861,34 +849,27 @@ function AilaneCEO() {
         </div>
         <nav style={{ flex: 1, padding: "12px 8px" }}>
           {NAV.map(n => (
-            <div key={n.id} onClick={() => setActiveTab(n.id)} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: sideOpen ? "10px 12px" : "10px 14px", borderRadius: 8, marginBottom: 2, cursor: "pointer",
-              background: activeTab === n.id ? "rgba(34,211,238,0.08)" : "transparent",
-              color: activeTab === n.id ? "#22d3ee" : "#94a3b8",
-              transition: "all 0.15s",
-            }}
+            <div key={n.id} onClick={() => n.href ? window.open(n.href, "_blank") : setActiveTab(n.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: sideOpen ? "10px 12px" : "10px 14px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: activeTab === n.id && !n.href ? "rgba(34,211,238,0.08)" : "transparent", color: activeTab === n.id && !n.href ? "#22d3ee" : "#94a3b8", transition: "all 0.15s" }}
               onMouseEnter={e => { if (activeTab !== n.id) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-              onMouseLeave={e => { if (activeTab !== n.id) e.currentTarget.style.background = "transparent"; }}>
+              onMouseLeave={e => { if (activeTab !== n.id || n.href) e.currentTarget.style.background = activeTab === n.id && !n.href ? "rgba(34,211,238,0.08)" : "transparent"; }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>{n.icon}</span>
-              {sideOpen && <span style={{ fontSize: 12, fontWeight: activeTab === n.id ? 600 : 400, whiteSpace: "nowrap" }}>{n.label}</span>}
+              {sideOpen && <span style={{ fontSize: 12, fontWeight: activeTab === n.id && !n.href ? 600 : 400, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>{n.label}{n.href && <span style={{ fontSize: 9, opacity: 0.5 }}>\u2197</span>}</span>}
             </div>
           ))}
         </nav>
         {sideOpen && (
-          <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.06)", fontSize: 10, color: "#475569" }}>
-            <div>AI Lane Limited</div>
-            <div>Co. No. 17035654</div>
-            <div style={{ marginTop: 4 }}>
-              <a href="/dashboard/" style={{ color: "#22d3ee", textDecoration: "none" }}>Client Dashboard</a>
-              {" \u00B7 "}
-              <a href="/knowledge-library/" style={{ color: "#22d3ee", textDecoration: "none" }}>Library</a>
-              {" \u00B7 "}
-              <a href="/ticker/" style={{ color: "#22d3ee", textDecoration: "none" }}>Ticker</a>
+          <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user && user.email ? user.email : "mark@ailane.ai"}</div>
+              <button onClick={handleLogout} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 4, padding: "3px 8px", color: "#ef4444", fontSize: 9, fontWeight: 600, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.5px" }}>Logout</button>
+            </div>
+            <div style={{ fontSize: 10, color: "#475569" }}>
+              <div>AI Lane Limited</div><div>Co. No. 17035654</div>
+              <div style={{ marginTop: 4 }}><a href="/dashboard/" style={{ color: "#22d3ee", textDecoration: "none" }}>Client Dashboard</a>{" \u00b7 "}<a href="/knowledge-library/" style={{ color: "#22d3ee", textDecoration: "none" }}>Library</a>{" \u00b7 "}<a href="/ticker/" style={{ color: "#22d3ee", textDecoration: "none" }}>Ticker</a></div>
             </div>
           </div>
         )}
       </aside>
-      {/* Main Content */}
       <main style={{ flex: 1, padding: "28px 36px", overflowY: "auto", maxHeight: "100vh" }}>
         {sections[activeTab] ? sections[activeTab]() : renderOverview()}
       </main>
@@ -896,7 +877,8 @@ function AilaneCEO() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<AilaneCEO />);
-</script>
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(AilaneCEO));
+  </script>
 </body>
 </html>
