@@ -11,7 +11,6 @@
     html, body, #root { height: 100%; width: 100%; }
     body { background: #0a0e1a; }
   </style>
-  <!-- CDN Dependencies — no build step required -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
@@ -21,126 +20,12 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    // ─── React and Recharts destructuring (loaded from CDN) ─────────────
     const { useState, useEffect, useMemo, useCallback } = React;
     const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell, CartesianGrid, PieChart, Pie, Legend } = Recharts;
 
-
-// ─── SUPABASE CONFIG ────────────────────────────────────────────────────
 const SB_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
 const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
 
-// ─── COMPANIES HOUSE API ─────────────────────────────────────────────────
-// Register free at: https://developer.company-information.service.gov.uk
-const CH_API_KEY = "3ecea037-9ebe-4128-956c-68a0102e7e17";
-const CH_BASE = "https://api.company-information.service.gov.uk";
-const chFetch = async (path) => {
-  const res = await fetch(`${CH_BASE}${path}`, {
-    headers: { "Authorization": `Basic ${btoa(CH_API_KEY + ":")}` }
-  });
-  if (!res.ok) throw new Error(`CH_API_${res.status}`);
-  return res.json();
-};
-
-// ─── SIC → ACEI SECTOR MAPPING ───────────────────────────────────────────
-const mapSicToSector = (sic) => {
-  if (!sic) return null;
-  const c = parseInt(String(sic).replace(/\D/g, "").substring(0, 4));
-  if (c >= 6400 && c < 6700) return "financial_services";
-  if (c >= 6900 && c < 7600) return "professional_services";
-  if (c >= 8600 && c < 8900) return "healthcare";
-  if (c >= 6200 && c < 6400) return "technology";
-  if ((c >= 4700 && c < 4800) || (c >= 5500 && c < 5700)) return "retail_hospitality";
-  if (c >= 1000 && c < 3400) return "manufacturing";
-  if (c >= 4100 && c < 4400) return "construction";
-  if (c >= 8500 && c < 8600) return "education";
-  if (c >= 8400 && c < 8500) return "public_sector";
-  if ((c >= 9400 && c < 9500) || c === 9000) return "charities";
-  if (c >= 4900 && c < 5500) return "transport_logistics";
-  if ((c >= 5900 && c < 6200) || (c >= 9000 && c < 9400)) return "media_entertainment";
-  return "professional_services";
-};
-
-// ─── POSTCODE → JURISDICTION MAPPING ─────────────────────────────────────
-const mapPostcodeToJurisdiction = (pc) => {
-  if (!pc) return "wales";
-  const p = pc.toUpperCase().replace(/\s/g,"");
-  if (/^(E\d|EC|N\d|NW|SE|SW|W\d|WC)/.test(p)) return "london";
-  if (/^(AB|DD|DG|EH|FK|G\d|IV|KA|KW|KY|ML|PA|PH|TD|ZE)/.test(p)) return "scotland";
-  if (/^BT/.test(p)) return "northern_ireland";
-  if (/^(AL|CM|CO|EN|HP|LU|MK|OX|RG|RH|SG|SL|SO|TN|TW|UB|WD)/.test(p)) return "south_east";
-  if (/^(BL|FY|LA|M\d|OL|PR|SK|WA|WN)/.test(p)) return "north_west";
-  if (/^(B\d|CV|DY|ST|TF|WS|WV)/.test(p)) return "west_midlands";
-  if (/^(DE|DN|LE|LN|NG|NN|PE)/.test(p)) return "east_midlands";
-  if (/^(CF|LD|LL|NP|SA|SY)/.test(p)) return "wales";
-  if (/^(BA|BH|BS|DT|EX|GL|GU|PL|PO|TA|TQ|TR)/.test(p)) return "south_west";
-  if (/^(DH|DL|HG|HU|HX|LS|NE|SR|TS|YO)/.test(p)) return "north_east";
-  return "wales";
-};
-
-// ─── SECTOR BASE EXPOSURE (median DI by sector, pre-jurisdiction) ─────────
-const SECTOR_BASE_DI = {
-  public_sector: 72, financial_services: 68, professional_services: 62,
-  healthcare: 65, media_entertainment: 58, technology: 52, education: 60,
-  retail_hospitality: 54, transport_logistics: 50, manufacturing: 46,
-  construction: 40, charities: 38,
-};
-
-// ─── CIP ACEI ESTIMATE COMPUTATION ───────────────────────────────────────
-const computeACEIEstimate = (sector, jurisdiction) => {
-  const baseDi = SECTOR_BASE_DI[sector] || 50;
-  const jObj = JURISDICTIONS.find(j => j.id === jurisdiction);
-  const jm = jObj ? jObj.jm : 1.0;
-  return Math.min(100, Math.round(baseDi * jm));
-};
-
-// ─── CIP GRADE COMPUTATION (CIP-SPEC-v1.0 §3.2) ──────────────────────────
-const GRADE_BANDS = [
-  { min: 85, grade: "A+", label: "Prime Target",    color: "#8B0000", action: "Direct CEO outreach — priority queue" },
-  { min: 70, grade: "A",  label: "High Priority",   color: "#C0392B", action: "CEO outreach within 5 business days" },
-  { min: 55, grade: "B+", label: "Solid Prospect",  color: "#D4760A", action: "Queue for outreach in next cycle" },
-  { min: 40, grade: "B",  label: "Qualified Lead",  color: "#B8860B", action: "Add to watchlist; revisit in 30 days" },
-  { min: 20, grade: "C",  label: "Early Stage",     color: "#5588AA", action: "Log only — no active outreach" },
-  { min:  0, grade: "D",  label: "Disqualified",    color: "#888888", action: "Exclude from pipeline" },
-];
-const computeCIPGrade = ({ aceiEst, headcount, hasTribunal, sectorMultiplier, hasEmail, hasWebsite, companyStatus, hasDisputeSignals, newlyIncorporated }) => {
-  const dissolved = ["dissolved","removed","liquidation","administration","converted-closed"].includes((companyStatus||"").toLowerCase());
-  if (dissolved) return { score: 0, ...GRADE_BANDS[5], signals: [{ label: "Company Status", pts: -50, reason: "Dissolved / removed / administration" }] };
-  const signals = [];
-  let score = 50;
-  // ACEI band
-  if (aceiEst >= 80)      { score += 25; signals.push({ label: "ACEI Band", pts: +25, reason: `Critical band (${aceiEst})` }); }
-  else if (aceiEst >= 60) { score += 18; signals.push({ label: "ACEI Band", pts: +18, reason: `Elevated band (${aceiEst})` }); }
-  else if (aceiEst >= 40) { score += 10; signals.push({ label: "ACEI Band", pts: +10, reason: `Moderate band (${aceiEst})` }); }
-  else                    { signals.push({ label: "ACEI Band", pts: 0, reason: `Low/Minimal band (${aceiEst})` }); }
-  // Headcount
-  if (headcount >= 2000)       { score += 15; signals.push({ label: "Headcount", pts: +15, reason: "2,000+ employees (Institutional range)" }); }
-  else if (headcount >= 100)   { score += 20; signals.push({ label: "Headcount", pts: +20, reason: "100–2,000 employees (Governance range)" }); }
-  else if (headcount >= 25)    { score += 10; signals.push({ label: "Headcount", pts: +10, reason: "25–100 employees (Operational Readiness range)" }); }
-  else if (headcount > 0)      { score -= 10; signals.push({ label: "Headcount", pts: -10, reason: "Under 25 employees" }); }
-  else                         { signals.push({ label: "Headcount", pts: 0, reason: "Headcount unknown" }); }
-  // Tribunal
-  if (hasTribunal) { score += 20; signals.push({ label: "Tribunal History", pts: +20, reason: "Decisions found in Ailane DB" }); }
-  else             { signals.push({ label: "Tribunal History", pts: 0, reason: "No tribunal record found" }); }
-  // Sector multiplier
-  if (sectorMultiplier >= 1.20)      { score += 12; signals.push({ label: "Sector Multiplier", pts: +12, reason: `High-risk sector (×${sectorMultiplier})` }); }
-  else if (sectorMultiplier >= 1.05) { score += 6;  signals.push({ label: "Sector Multiplier", pts: +6,  reason: `Elevated sector (×${sectorMultiplier})` }); }
-  else                               { signals.push({ label: "Sector Multiplier", pts: 0, reason: `Baseline sector (×${sectorMultiplier})` }); }
-  // Contact
-  if (hasEmail)        { score += 8; signals.push({ label: "Contact Intelligence", pts: +8, reason: "Decision-maker email identified" }); }
-  else if (hasWebsite) { score += 3; signals.push({ label: "Contact Intelligence", pts: +3, reason: "Website only — no direct email" }); }
-  else                 { signals.push({ label: "Contact Intelligence", pts: 0, reason: "No contact data found" }); }
-  // Dispute signals
-  if (hasDisputeSignals) { score += 5; signals.push({ label: "Dispute Signals", pts: +5, reason: "Public dispute/news signals found" }); }
-  else                   { signals.push({ label: "Dispute Signals", pts: 0, reason: "No public dispute signals" }); }
-  // Newly incorporated
-  if (newlyIncorporated) { score -= 8; signals.push({ label: "Incorporation Age", pts: -8, reason: "Incorporated < 18 months ago" }); }
-  score = Math.max(0, Math.min(100, score));
-  const g = GRADE_BANDS.find(b => score >= b.min) || GRADE_BANDS[5];
-  return { score, ...g, signals };
-};
-
-// ─── CONSTANTS ──────────────────────────────────────────────────────────
 const SECTORS = [
   { id: "public_sector", label: "Public Sector", sm: 1.30 },
   { id: "financial_services", label: "Financial Services", sm: 1.25 },
@@ -183,8 +68,6 @@ const CAT_LABELS = {
   parental_family_rights: "Parental & Family Rights", trade_union_collective: "Trade Union & Collective",
   business_transfers_insolvency: "Business Transfers (TUPE)", data_protection_privacy: "Data Protection",
 };
-
-// ─── API HELPER ─────────────────────────────────────────────────────────
 const sbFetch = async (path, token) => {
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
     headers: { apikey: SB_ANON, Authorization: `Bearer ${token || SB_ANON}`, "Content-Type": "application/json" }
@@ -193,7 +76,6 @@ const sbFetch = async (path, token) => {
   return res.json();
 };
 
-// ─── COMPONENTS ─────────────────────────────────────────────────────────
 const Gauge = ({ value, size = 180 }) => {
   const band = getBand(value);
   const r = size / 2 - 16, cx = size / 2, cy = size / 2 + 10;
@@ -213,7 +95,6 @@ const Gauge = ({ value, size = 180 }) => {
     </svg>
   );
 };
-
 const StatCard = ({ label, value, sub, accent, icon }) => (
   <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 4 }}>
     <div style={{ fontSize: 11, color: "#64748b", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
@@ -223,11 +104,9 @@ const StatCard = ({ label, value, sub, accent, icon }) => (
     {sub && <div style={{ fontSize: 11, color: "#94a3b8" }}>{sub}</div>}
   </div>
 );
-
 const Badge = ({ children, color = "#22d3ee" }) => (
   <span style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", background: `${color}18`, color, border: `1px solid ${color}30` }}>{children}</span>
 );
-
 const SectionHeader = ({ title, subtitle, action }) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
     <div>
@@ -237,7 +116,6 @@ const SectionHeader = ({ title, subtitle, action }) => (
     {action}
   </div>
 );
-
 const Table = ({ columns, rows, onRowClick }) => (
   <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -248,7 +126,7 @@ const Table = ({ columns, rows, onRowClick }) => (
       </thead>
       <tbody>
         {rows.map((row, ri) => (
-          <tr key={ri} onClick={() => onRowClick?.(row)} style={{ cursor: onRowClick ? "pointer" : "default", borderBottom: "1px solid rgba(255,255,255,0.03)" }}
+          <tr key={ri} onClick={() => onRowClick && onRowClick(row)} style={{ cursor: onRowClick ? "pointer" : "default", borderBottom: "1px solid rgba(255,255,255,0.03)" }}
             onMouseEnter={e => e.currentTarget.style.background = "rgba(34,211,238,0.04)"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
             {columns.map((c, ci) => <td key={ci} style={{ padding: "10px 14px", color: "#cbd5e1" }}>{c.render ? c.render(row) : row[c.key]}</td>)}
@@ -258,7 +136,6 @@ const Table = ({ columns, rows, onRowClick }) => (
     </table>
   </div>
 );
-
 const LoadingPulse = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, gap: 8 }}>
     <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22d3ee", animation: "pulse 1s ease infinite" }} />
@@ -267,7 +144,6 @@ const LoadingPulse = () => (
   </div>
 );
 
-// ─── NAV CONFIG ─────────────────────────────────────────────────────────
 const NAV = [
   { id: "overview", label: "Command Overview", icon: "⚡" },
   { id: "pipeline", label: "Client Pipeline", icon: "📊" },
@@ -279,10 +155,8 @@ const NAV = [
   { id: "business", label: "Business Hub", icon: "🏢" },
   { id: "governance", label: "Governance", icon: "📜" },
   { id: "knowledge", label: "Knowledge Library", icon: "📚", href: "/knowledge-library/" },
-{ id: "compliance", label: "Compliance Intel", icon: "📋", href: "/AiLaneCEO/compliance/" },  
 ];
 
-// ─── CATEGORY DETAIL METADATA (ACEI Article III) ────────────────────────
 const CAT_DETAIL = {
   unfair_dismissal: {
     num: 1, cap: "£115,115 (or 52 weeks' pay, whichever is lower)",
@@ -370,21 +244,17 @@ const CAT_DETAIL = {
   },
 };
 
-// ─── MAIN APP ───────────────────────────────────────────────────────────
 function AilaneCEO() {
   const [activeTab, setActiveTab] = useState("overview");
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sideOpen, setSideOpen] = useState(true);
-
-  // Data state
   const [domainScores, setDomainScores] = useState([]);
   const [categoryScores, setCategoryScores] = useState([]);
   const [scraperRuns, setScraperRuns] = useState([]);
   const [signups, setSignups] = useState([]);
   const [employers, setEmployers] = useState({ total: 0, ch_linked: 0, ch_pending: 0 });
-  const [segments, setSegments] = useState([]);
   const [legislativeChanges, setLegislativeChanges] = useState([]);
   const [ceoBrief, setCeoBrief] = useState(null);
   const [simQuery, setSimQuery] = useState("");
@@ -394,26 +264,16 @@ function AilaneCEO() {
   const [intelQuery, setIntelQuery] = useState("");
   const [intelResults, setIntelResults] = useState(null);
   const [intelLoading, setIntelLoading] = useState(false);
-  const [cipResult, setCipResult] = useState(null);
-  const [cipLoading, setCipLoading] = useState(false);
-  const [cipStage, setCipStage] = useState("");
-  const [cipSaved, setCipSaved] = useState(false);
-  const [cipChKeyMissing, setCipChKeyMissing] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-
-  // Auth state
   const [authEmail, setAuthEmail] = useState("mark@ailane.ai");
   const [authPass, setAuthPass] = useState("");
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Restore session on mount
   useEffect(() => {
     const stored = localStorage.getItem("sb-token");
     const storedUser = localStorage.getItem("sb-user");
     if (stored && storedUser) {
-      // Verify token is still valid
       (async () => {
         try {
           const res = await fetch(`${SB_URL}/auth/v1/user`, {
@@ -424,13 +284,10 @@ function AilaneCEO() {
             setToken(stored);
             setUser(u);
           } else {
-            // Token expired — clear and show login
             localStorage.removeItem("sb-token");
             localStorage.removeItem("sb-user");
           }
-        } catch (e) {
-          console.error("Session restore error:", e);
-        }
+        } catch (e) { console.error("Session restore error:", e); }
         setLoading(false);
       })();
     } else {
@@ -438,7 +295,6 @@ function AilaneCEO() {
     }
   }, []);
 
-  // Login handler
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
     setAuthError("");
@@ -460,24 +316,19 @@ function AilaneCEO() {
         const err = await res.json();
         setAuthError(err.error_description || err.msg || "Invalid credentials");
       }
-    } catch (e) {
-      setAuthError("Connection failed — check your network");
-    }
+    } catch (e) { setAuthError("Connection failed"); }
     setAuthLoading(false);
   };
 
-  // Logout handler
   const handleLogout = () => {
-    setToken(null);
-    setUser(null);
+    setToken(null); setUser(null);
     localStorage.removeItem("sb-token");
     localStorage.removeItem("sb-user");
   };
 
-  // Load data when token available
   useEffect(() => {
     if (!token) return;
-    const load = async () => {
+    (async () => {
       try {
         const [ds, cs, sr, su, lc, cb] = await Promise.all([
           sbFetch("acei_domain_scores?org_id=eq.00000000-0000-0000-0000-000000000000&order=week_start_date.desc&limit=52", token),
@@ -487,182 +338,62 @@ function AilaneCEO() {
           sbFetch("legislative_changes?employment_related=eq.true&order=date_published.desc&limit=30", token),
           sbFetch("ceo_daily_briefs?order=brief_date.desc&limit=1", token),
         ]);
-        setDomainScores(ds);
-        setCategoryScores(cs);
-        setScraperRuns(sr);
-        setSignups(su);
-        setLegislativeChanges(lc);
+        setDomainScores(ds); setCategoryScores(cs); setScraperRuns(sr);
+        setSignups(su); setLegislativeChanges(lc);
         if (cb.length) setCeoBrief(cb[0]);
       } catch (e) { console.error("Data load error:", e); }
-    };
-    load();
+    })();
   }, [token]);
 
-  // Employer stats (separate — uses RPC or direct)
   useEffect(() => {
     if (!token) return;
     (async () => {
       try {
-        // Use count headers
         const res = await fetch(`${SB_URL}/rest/v1/employer_master?select=id&limit=1`, {
           headers: { apikey: SB_ANON, Authorization: `Bearer ${token}`, Prefer: "count=exact" }
         });
-        const total = parseInt(res.headers.get("content-range")?.split("/")?.[1] || "0");
+        const total = parseInt((res.headers.get("content-range") || "").split("/")[1] || "0");
         setEmployers(prev => ({ ...prev, total }));
       } catch (e) {}
     })();
   }, [token]);
 
-  // Company simulator search
   const runSimulation = async () => {
     if (!simQuery.trim() || !token) return;
     try {
-      const results = await sbFetch(
-        `employer_master?or=(raw_name.ilike.*${encodeURIComponent(simQuery)}*,normalised_name.ilike.*${encodeURIComponent(simQuery)}*)&limit=20&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,sic_codes,headcount_estimate,ch_fetch_status`,
-        token
-      );
-      // Get tribunal profiles for these employers
+      const results = await sbFetch(`employer_master?or=(raw_name.ilike.*${encodeURIComponent(simQuery)}*,normalised_name.ilike.*${encodeURIComponent(simQuery)}*)&limit=20&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,sic_codes,headcount_estimate,ch_fetch_status`, token);
       if (results.length) {
         const ids = results.map(r => r.id).join(",");
         const profiles = await sbFetch(`employer_tribunal_profile?employer_id=in.(${ids})&select=*`, token);
-        const profileMap = {};
-        profiles.forEach(p => profileMap[p.employer_id] = p);
-        setSimResults(results.map(r => ({ ...r, profile: profileMap[r.id] || null })));
-      } else {
-        setSimResults([]);
-      }
+        const pm = {}; profiles.forEach(p => pm[p.employer_id] = p);
+        setSimResults(results.map(r => ({ ...r, profile: pm[r.id] || null })));
+      } else { setSimResults([]); }
     } catch (e) { console.error(e); setSimResults([]); }
   };
 
-  // ── FULL CIP LOOKUP ENGINE ───────────────────────────────────────────────
   const runIntelSearch = async () => {
     if (!intelQuery.trim() || !token) return;
-    if (CH_API_KEY === "YOUR_CH_API_KEY_HERE") { setCipChKeyMissing(true); return; }
-    setCipChKeyMissing(false);
-    setCipLoading(true); setCipResult(null); setCipSaved(false);
+    setIntelLoading(true);
     try {
-      // ── STAGE 1: Ailane DB ────────────────────────────────────────────
-      setCipStage("Searching Ailane database…");
-      const isChNum = /^\d{6,8}$/.test(intelQuery.trim());
-      const [ailaneEmployers, ailaneTribunals] = await Promise.all([
-        sbFetch(`employer_master?or=(raw_name.ilike.*${encodeURIComponent(intelQuery)}*,normalised_name.ilike.*${encodeURIComponent(intelQuery)}*${isChNum ? `,companies_house_number.eq.${intelQuery.trim()}` : ""})&limit=5&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,headcount_estimate,sic_codes,sic_primary,officers`, token),
-        sbFetch(`tribunal_decisions?title.ilike.*${encodeURIComponent(intelQuery)}*&order=decision_date.desc&limit=25&select=id,title,decision_date,acei_category,jurisdiction,case_number,compensation_awarded`, token),
+      const [emps, decisions] = await Promise.all([
+        sbFetch(`employer_master?or=(raw_name.ilike.*${encodeURIComponent(intelQuery)}*,normalised_name.ilike.*${encodeURIComponent(intelQuery)}*)&limit=10&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,headcount_estimate`, token),
+        sbFetch(`tribunal_decisions?title.ilike.*${encodeURIComponent(intelQuery)}*&order=decision_date.desc&limit=20&select=id,title,decision_date,acei_category,jurisdiction,case_number,compensation_awarded`, token),
       ]);
-      let ailaneProfile = null;
-      if (ailaneEmployers.length) {
-        const profiles = await sbFetch(`employer_tribunal_profile?employer_id=in.(${ailaneEmployers.map(e=>e.id).join(",")})&select=*`, token);
-        if (profiles.length) ailaneProfile = profiles[0];
+      let profiles = [];
+      if (emps.length) {
+        const ids = emps.map(r => r.id).join(",");
+        profiles = await sbFetch(`employer_tribunal_profile?employer_id=in.(${ids})&select=*`, token);
       }
-      const bestAilane = ailaneEmployers[0] || null;
-
-      // ── STAGE 2: Companies House ──────────────────────────────────────
-      setCipStage("Querying Companies House…");
-      let chCompany = null, chOfficers = [], chNum = null;
-      try {
-        if (isChNum) {
-          chNum = intelQuery.trim().padStart(8, "0");
-        } else if (bestAilane?.companies_house_number) {
-          chNum = bestAilane.companies_house_number.padStart(8, "0");
-        } else {
-          const searchRes = await chFetch(`/search/companies?q=${encodeURIComponent(intelQuery.trim())}&items_per_page=3`);
-          const items = searchRes.items || [];
-          if (items.length) chNum = items[0].company_number;
-        }
-        if (chNum) {
-          [chCompany, chOfficers] = await Promise.all([
-            chFetch(`/company/${chNum}`),
-            chFetch(`/company/${chNum}/officers?register_type=directors&items_per_page=10`).then(r => r.items || []).catch(() => []),
-          ]);
-        }
-      } catch (e) { console.warn("CH API error:", e.message); }
-
-      // ── STAGE 3: ACEI Estimate ────────────────────────────────────────
-      setCipStage("Computing ACEI estimate…");
-      const rawSic = chCompany?.sic_codes?.[0] || bestAilane?.sic_primary || bestAilane?.sic_codes?.[0];
-      const sector = mapSicToSector(rawSic) || bestAilane?.acei_sector || "professional_services";
-      const sObj = SECTORS.find(s => s.id === sector);
-      const sectorMultiplier = sObj?.sm || 1.0;
-      const regAddress = chCompany?.registered_office_address;
-      const postcode = regAddress?.postal_code || regAddress?.postcode || "";
-      const jurisdiction = mapPostcodeToJurisdiction(postcode) || bestAilane?.jurisdiction_region || "wales";
-      const aceiEst = computeACEIEstimate(sector, jurisdiction);
-
-      // ── STAGE 4: CIP Grade ────────────────────────────────────────────
-      setCipStage("Computing CIP grade…");
-      const headcount = chCompany?.accounts?.last_accounts?.made_up_to
-        ? (bestAilane?.headcount_estimate || 0)
-        : (bestAilane?.headcount_estimate || 0);
-      const companyStatus = chCompany?.company_status || "active";
-      const website = chCompany?.links?.self ? "" : ""; // CH doesn't provide website
-      const hasWebsite = false; // Phase 2: website scrape
-      const hasEmail = false;   // Phase 2: website scrape
-      const hasTribunal = (ailaneProfile?.total_decisions || ailaneTribunals.length) > 0;
-      const hasDisputeSignals = ailaneTribunals.length > 0;
-      const incDate = chCompany?.date_of_creation ? new Date(chCompany.date_of_creation) : null;
-      const newlyIncorporated = incDate && (Date.now() - incDate.getTime()) < (18 * 30 * 24 * 60 * 60 * 1000);
-      const grade = computeCIPGrade({ aceiEst, headcount, hasTribunal, sectorMultiplier, hasEmail, hasWebsite, companyStatus, hasDisputeSignals, newlyIncorporated });
-
-      // ── STAGE 5: Assemble CIP ─────────────────────────────────────────
-      setCipResult({
-        query: intelQuery,
-        // Layer 1 — Identity
-        chNumber: chCompany?.company_number || bestAilane?.companies_house_number || chNum,
-        registeredName: chCompany?.company_name || bestAilane?.normalised_name || bestAilane?.raw_name || intelQuery,
-        companyStatus: chCompany?.company_status || "unknown",
-        companyType: chCompany?.type || "",
-        incorporationDate: chCompany?.date_of_creation || null,
-        registeredAddress: regAddress || null,
-        sicCodes: chCompany?.sic_codes || (bestAilane?.sic_codes ? bestAilane.sic_codes : []),
-        // Layer 2 — Firmographics
-        headcount,
-        headcountBand: headcount >= 2000 ? "Enterprise (2,000+)" : headcount >= 500 ? "Large (500–1,999)" : headcount >= 100 ? "Medium (100–499)" : headcount >= 25 ? "Small (25–99)" : headcount > 0 ? "Micro (<25)" : "Unknown",
-        accountsCategory: chCompany?.accounts?.accounting_reference_date ? `ARD: ${chCompany.accounts.accounting_reference_date.day}/${chCompany.accounts.accounting_reference_date.month}` : "",
-        // Layer 3 — Sector
-        sector,
-        sectorLabel: sObj?.label || sector,
-        sectorMultiplier,
-        jurisdiction,
-        jurisdictionLabel: JURISDICTIONS.find(j=>j.id===jurisdiction)?.label || jurisdiction,
-        jurisdictionMultiplier: JURISDICTIONS.find(j=>j.id===jurisdiction)?.jm || 1.0,
-        // Layer 4 — ACEI Estimate
-        aceiEst,
-        aceiModelDisclosure: true,
-        // Layer 5 — Tribunal
-        ailaneProfile,
-        tribunalDecisions: ailaneTribunals,
-        ailaneEmployerRecord: bestAilane,
-        // Layer 6 — Dispute signals (from tribunal DB — web signals Phase 2)
-        disputeSignals: ailaneTribunals.length > 0 ? ailaneTribunals.map(d => ({ text: d.title, date: d.decision_date, category: d.acei_category, caseNo: d.case_number })).slice(0, 5) : [],
-        // Layer 7 — Contact
-        registeredOfficeAddress: regAddress,
-        website: null,
-        email: null,
-        // Layer 8 — Officers
-        officers: chOfficers.filter(o => !o.resigned_on).slice(0, 8),
-        // Grade
-        grade,
-        generatedAt: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.error("CIP error:", e);
-      setCipResult({ error: e.message, query: intelQuery });
-    }
-    setCipLoading(false); setCipStage("");
+      const pm = {}; profiles.forEach(p => pm[p.employer_id] = p);
+      setIntelResults({ employers: emps.map(e => ({ ...e, profile: pm[e.id] })), decisions });
+    } catch (e) { console.error(e); }
+    setIntelLoading(false);
   };
 
   const latest = domainScores[0] || {};
   const prev = domainScores[1] || {};
   const delta = (latest.di || 0) - (prev.di || 0);
-
-  // Trend data for chart
-  const trendData = useMemo(() =>
-    [...domainScores].reverse().map(d => ({
-      week: d.week_start_date?.slice(5),
-      di: d.di,
-      drt: parseFloat(d.drt),
-    })), [domainScores]);
-
-  // Segment data for pie chart
+  const trendData = useMemo(() => [...domainScores].reverse().map(d => ({ week: (d.week_start_date || "").slice(5), di: d.di, drt: parseFloat(d.drt) })), [domainScores]);
   const segmentData = [
     { name: "A — Critical", value: 513, fill: "#ef4444" },
     { name: "B — Elevated", value: 3823, fill: "#f59e0b" },
@@ -670,20 +401,15 @@ function AilaneCEO() {
     { name: "D — Clean", value: 50529, fill: "#10b981" },
   ];
 
-  // ─── RENDER SECTIONS ──────────────────────────────────────────────────
-
   const renderOverview = () => (
     <div>
       <SectionHeader title="Command Overview" subtitle={`AI Lane Limited · ${new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`} />
-
       {ceoBrief && (
         <div style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.06) 0%, rgba(139,92,246,0.04) 100%)", border: "1px solid rgba(34,211,238,0.15)", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
           <div style={{ fontSize: 11, color: "#22d3ee", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Daily Brief — {ceoBrief.mood}</div>
           <div style={{ fontSize: 14, color: "#e2e8f0", lineHeight: 1.5 }}>{ceoBrief.headline}</div>
         </div>
       )}
-
-      {/* KPI Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12, marginBottom: 28 }}>
         <StatCard label="Domain Index" value={latest.di || "—"} sub={`${delta >= 0 ? "+" : ""}${delta} from last week`} accent={getBand(latest.di || 0).color} icon="📈" />
         <StatCard label="Tribunal Decisions" value="130,854" sub="UK database" accent="#22d3ee" icon="⚖️" />
@@ -694,8 +420,6 @@ function AilaneCEO() {
         <StatCard label="Jurisdictions" value="53" sub="Global coverage" accent="#f472b6" icon="🌍" />
         <StatCard label="EHRC Actions" value="152" sub="Enforcement tracked" accent="#ef4444" icon="🔴" />
       </div>
-
-      {/* Two-column: Gauge + Trend */}
       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 20, marginBottom: 28 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 24, textAlign: "center" }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>ACEI Market Index</div>
@@ -710,12 +434,7 @@ function AilaneCEO() {
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Domain Index — 12-Week Trend</div>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="diGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+              <defs><linearGradient id="diGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} /><stop offset="100%" stopColor="#22d3ee" stopOpacity={0} /></linearGradient></defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="week" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -725,8 +444,6 @@ function AilaneCEO() {
           </ResponsiveContainer>
         </div>
       </div>
-
-      {/* Category Scores Grid — click to expand */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Category Breakdown — Week of {latest.week_start_date || "2026-02-23"} <span style={{ color: "#475569", fontStyle: "italic", textTransform: "none" }}>· click any category for details</span></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
@@ -740,26 +457,20 @@ function AilaneCEO() {
                 style={{ background: isSelected ? "rgba(34,211,238,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${isSelected ? "rgba(34,211,238,0.25)" : "rgba(255,255,255,0.06)"}`, borderRadius: 8, padding: "12px 14px", borderLeft: `3px solid ${clr}`, cursor: "pointer", transition: "all 0.2s" }}>
                 <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {detail ? `${detail.num}. ` : ""}{CAT_LABELS[c.category] || c.category}
-                  {detail?.uncapped && <span style={{ marginLeft: 6, padding: "1px 5px", background: "rgba(239,68,68,0.15)", color: "#ef4444", borderRadius: 3, fontSize: 8, fontWeight: 700, letterSpacing: "0.5px" }}>UNCAPPED</span>}
+                  {detail && detail.uncapped && <span style={{ marginLeft: 6, padding: "1px 5px", background: "rgba(239,68,68,0.15)", color: "#ef4444", borderRadius: 3, fontSize: 8, fontWeight: 700, letterSpacing: "0.5px" }}>UNCAPPED</span>}
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
                   <span style={{ fontSize: 20, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{parseFloat(c.wcs).toFixed(1)}</span>
                   <span style={{ fontSize: 10, color: "#64748b" }}>L={c.l} · I={c.i} · CRS={c.crs}</span>
                 </div>
-                <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2 }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: clr, borderRadius: 2, transition: "width 0.6s ease" }} />
-                </div>
+                <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2 }}><div style={{ height: "100%", width: `${pct}%`, background: clr, borderRadius: 2, transition: "width 0.6s ease" }} /></div>
                 <div style={{ fontSize: 10, color: "#475569", marginTop: 4, display: "flex", justifyContent: "space-between" }}>
-                  <span>SM: {parseFloat(c.sm).toFixed(2)}</span>
-                  <span>JM: {parseFloat(c.jm).toFixed(2)}</span>
-                  <span>WCS: {parseFloat(c.wcs).toFixed(1)}</span>
+                  <span>SM: {parseFloat(c.sm).toFixed(2)}</span><span>JM: {parseFloat(c.jm).toFixed(2)}</span><span>WCS: {parseFloat(c.wcs).toFixed(1)}</span>
                 </div>
               </div>
             );
           })}
         </div>
-
-        {/* Expanded Category Detail Panel */}
         {selectedCategory && CAT_DETAIL[selectedCategory] && (() => {
           const d = CAT_DETAIL[selectedCategory];
           const cs = categoryScores.find(c => c.category === selectedCategory);
@@ -768,15 +479,11 @@ function AilaneCEO() {
             <div style={{ marginTop: 14, background: "rgba(255,255,255,0.02)", border: `1px solid ${clr}30`, borderRadius: 10, padding: 20, animation: "fadeIn 0.2s ease" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0" }}>
-                    {d.num}. {CAT_LABELS[selectedCategory]}
-                    {d.uncapped && <span style={{ marginLeft: 10, padding: "2px 8px", background: "rgba(239,68,68,0.15)", color: "#ef4444", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>UNCAPPED</span>}
-                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0" }}>{d.num}. {CAT_LABELS[selectedCategory]}{d.uncapped && <span style={{ marginLeft: 10, padding: "2px 8px", background: "rgba(239,68,68,0.15)", color: "#ef4444", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>UNCAPPED</span>}</div>
                   <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4, maxWidth: 700, lineHeight: 1.5 }}>{d.desc}</div>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); setSelectedCategory(null); }} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", color: "#94a3b8", fontSize: 11, cursor: "pointer" }}>✕ Close</button>
               </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
                 <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
                   <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Compensation Cap</div>
@@ -786,36 +493,15 @@ function AilaneCEO() {
                   <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>EVI Baseline</div>
                   <div style={{ fontSize: 16, color: "#22d3ee", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>{d.eviBaseline}</div>
                 </div>
-                {cs && (
-                  <>
-                    <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                      <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Current Score</div>
-                      <div style={{ fontSize: 16, color: "#e2e8f0", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>L={cs.l} × I={cs.i} = CRS {cs.crs}</div>
-                    </div>
-                    <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                      <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Weighted Score</div>
-                      <div style={{ fontSize: 16, color: clr, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>{parseFloat(cs.wcs).toFixed(2)}</div>
-                    </div>
-                  </>
-                )}
+                {cs && (<><div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Current Score</div><div style={{ fontSize: 16, color: "#e2e8f0", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>L={cs.l} × I={cs.i} = CRS {cs.crs}</div></div>
+                <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Weighted Score</div><div style={{ fontSize: 16, color: clr, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>{parseFloat(cs.wcs).toFixed(2)}</div></div></>)}
               </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Key Legislation</div>
-                  {d.statutes.map((s, si) => (
-                    <div key={si} style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ color: "#22d3ee", fontSize: 10 }}>§</span> {s}
-                    </div>
-                  ))}
+                <div><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Key Legislation</div>
+                  {d.statutes.map((s, si) => (<div key={si} style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", display: "flex", alignItems: "center", gap: 6 }}><span style={{ color: "#22d3ee", fontSize: 10 }}>§</span> {s}</div>))}
                 </div>
-                <div>
-                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>RRI Pillar Impact</div>
-                  {d.rriPillars.map((p, pi) => (
-                    <div key={pi} style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", flexShrink: 0 }} /> {p}
-                    </div>
-                  ))}
+                <div><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>RRI Pillar Impact</div>
+                  {d.rriPillars.map((p, pi) => (<div key={pi} style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", flexShrink: 0 }} /> {p}</div>))}
                   <div style={{ marginTop: 12, fontSize: 10, color: "#475569" }}>Constitutional Reference: ACEI Art. III · Category {d.num} of 12</div>
                 </div>
               </div>
@@ -823,8 +509,6 @@ function AilaneCEO() {
           );
         })()}
       </div>
-
-      {/* Quick Links */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
         {[
           { label: "Run Company Simulation", desc: "Search any UK employer", tab: "simulator", icon: "🔬" },
@@ -853,43 +537,30 @@ function AilaneCEO() {
         <StatCard label="Active Clients" value="0" sub="Pre-launch" accent="#10b981" icon="✅" />
         <StatCard label="Conv. Rate" value="—" sub="No conversions yet" accent="#64748b" icon="📈" />
       </div>
-      <Table
-        columns={[
-          { key: "full_name", label: "Name" },
-          { key: "email", label: "Email" },
-          { key: "company_name", label: "Company", render: r => r.company_name || "—" },
-          { key: "sector", label: "Sector", render: r => r.sector || "—" },
-          { key: "employee_count", label: "Size", render: r => r.employee_count || "—" },
-          { key: "created_at", label: "Signed Up", render: r => new Date(r.created_at).toLocaleDateString("en-GB") },
-        ]}
-        rows={signups}
-      />
+      <Table columns={[
+        { key: "full_name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "company_name", label: "Company", render: r => r.company_name || "—" },
+        { key: "sector", label: "Sector", render: r => r.sector || "—" },
+        { key: "employee_count", label: "Size", render: r => r.employee_count || "—" },
+        { key: "created_at", label: "Signed Up", render: r => new Date(r.created_at).toLocaleDateString("en-GB") },
+      ]} rows={signups} />
     </div>
   );
 
   const renderSimulator = () => {
-    const sm = SECTORS.find(s => s.id === simSector)?.sm || 1.0;
-    const jm = JURISDICTIONS.find(j => j.id === simJurisdiction)?.jm || 1.0;
+    const sm = (SECTORS.find(s => s.id === simSector) || {}).sm || 1.0;
+    const jm = (JURISDICTIONS.find(j => j.id === simJurisdiction) || {}).jm || 1.0;
     return (
       <div>
         <SectionHeader title="Company Simulator" subtitle="Simulate the client dashboard view for any UK employer — ACEI scoring with sector and jurisdiction multipliers" />
         <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <input value={simQuery} onChange={e => setSimQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runSimulation()}
-            placeholder="Enter company name (e.g. Tesco, Barclays, NHS Trust...)"
-            style={{ flex: 1, minWidth: 280, padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, outline: "none" }} />
-          <select value={simSector} onChange={e => setSimSector(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>
-            {SECTORS.map(s => <option key={s.id} value={s.id}>{s.label} (SM {s.sm})</option>)}
-          </select>
-          <select value={simJurisdiction} onChange={e => setSimJurisdiction(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>
-            {JURISDICTIONS.map(j => <option key={j.id} value={j.id}>{j.label} (JM {j.jm})</option>)}
-          </select>
+          <input value={simQuery} onChange={e => setSimQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runSimulation()} placeholder="Enter company name (e.g. Tesco, Barclays, NHS Trust...)" style={{ flex: 1, minWidth: 280, padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, outline: "none" }} />
+          <select value={simSector} onChange={e => setSimSector(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>{SECTORS.map(s => <option key={s.id} value={s.id}>{s.label} (SM {s.sm})</option>)}</select>
+          <select value={simJurisdiction} onChange={e => setSimJurisdiction(e.target.value)} style={{ padding: "12px 14px", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 12 }}>{JURISDICTIONS.map(j => <option key={j.id} value={j.id}>{j.label} (JM {j.jm})</option>)}</select>
           <button onClick={runSimulation} style={{ padding: "12px 24px", background: "linear-gradient(135deg, #22d3ee, #06b6d4)", border: "none", borderRadius: 8, color: "#0f172a", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Search</button>
         </div>
-
-        {simResults && simResults.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>No employers found matching "{simQuery}"</div>
-        )}
-
+        {simResults && simResults.length === 0 && (<div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>No employers found matching "{simQuery}"</div>)}
         {simResults && simResults.length > 0 && (
           <div>
             <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>{simResults.length} employer{simResults.length > 1 ? "s" : ""} found</div>
@@ -903,43 +574,18 @@ function AilaneCEO() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div>
                       <div style={{ fontSize: 16, fontWeight: 700, color: "#e2e8f0" }}>{emp.normalised_name || emp.raw_name}</div>
-                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                        {emp.companies_house_number && <span>CH: {emp.companies_house_number} · </span>}
-                        {emp.acei_sector && <span>{emp.acei_sector} · </span>}
-                        {emp.jurisdiction_region && <span>{emp.jurisdiction_region}</span>}
-                      </div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{emp.companies_house_number && <span>CH: {emp.companies_house_number} · </span>}{emp.acei_sector && <span>{emp.acei_sector} · </span>}{emp.jurisdiction_region && <span>{emp.jurisdiction_region}</span>}</div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 28, fontWeight: 700, color: band.color, fontFamily: "'JetBrains Mono',monospace" }}>{simulatedDI}</div>
-                      <Badge color={band.color}>{band.label}</Badge>
-                    </div>
+                    <div style={{ textAlign: "right" }}><div style={{ fontSize: 28, fontWeight: 700, color: band.color, fontFamily: "'JetBrains Mono',monospace" }}>{simulatedDI}</div><Badge color={band.color}>{band.label}</Badge></div>
                   </div>
                   {p && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Total Decisions</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{p.total_decisions}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>APS Score</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono',monospace" }}>{p.aps_total?.toFixed?.(1) || "—"}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Segment</div>
-                        <Badge color={p.aps_segment === "A_critical" ? "#ef4444" : p.aps_segment === "B_elevated" ? "#f59e0b" : "#22d3ee"}>{p.aps_segment?.replace("_", " ") || "—"}</Badge>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Repeat Pattern</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: p.has_repeat_pattern ? "#ef4444" : "#10b981" }}>{p.has_repeat_pattern ? "Yes ⚠️" : "No ✓"}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Categories Affected</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: "#a78bfa", fontFamily: "'JetBrains Mono',monospace" }}>{p.categories_affected || "—"}</div>
-                      </div>
-                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, color: "#64748b" }}>Applied SM × JM</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{sm.toFixed(2)} × {jm.toFixed(2)}</div>
-                      </div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Total Decisions</div><div style={{ fontSize: 18, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{p.total_decisions}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>APS Score</div><div style={{ fontSize: 18, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono',monospace" }}>{p.aps_total ? p.aps_total.toFixed(1) : "—"}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Segment</div><Badge color={p.aps_segment === "A_critical" ? "#ef4444" : p.aps_segment === "B_elevated" ? "#f59e0b" : "#22d3ee"}>{p.aps_segment ? p.aps_segment.replace("_", " ") : "—"}</Badge></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Repeat Pattern</div><div style={{ fontSize: 14, fontWeight: 700, color: p.has_repeat_pattern ? "#ef4444" : "#10b981" }}>{p.has_repeat_pattern ? "Yes ⚠️" : "No ✓"}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Categories Affected</div><div style={{ fontSize: 18, fontWeight: 700, color: "#a78bfa", fontFamily: "'JetBrains Mono',monospace" }}>{p.categories_affected || "—"}</div></div>
+                      <div style={{ padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6 }}><div style={{ fontSize: 10, color: "#64748b" }}>Applied SM × JM</div><div style={{ fontSize: 14, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{sm.toFixed(2)} × {jm.toFixed(2)}</div></div>
                     </div>
                   )}
                   {!p && <div style={{ fontSize: 12, color: "#64748b", fontStyle: "italic" }}>No tribunal profile — clean employer or not yet indexed</div>}
@@ -952,322 +598,45 @@ function AilaneCEO() {
     );
   };
 
-  const renderIntelligence = () => {
-    const cip = cipResult;
-    const band = cip && !cip.error ? getBand(cip.aceiEst) : null;
-    const fmtAddr = (a) => a ? [a.address_line_1, a.address_line_2, a.locality, a.region, a.postal_code].filter(Boolean).join(", ") : "—";
-    const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—";
-
-    return (
-      <div>
-        <SectionHeader title="Intelligence Hub" subtitle="Company Intelligence Profile (CIP) — CEO restricted · CIP-SPEC-v1.0 · Data sources: Ailane DB · Companies House · 130,854 tribunal decisions" />
-
-        {/* ── SEARCH BAR ── */}
-        <div style={{ display:"flex", gap:12, marginBottom:20 }}>
-          <input value={intelQuery} onChange={e => { setIntelQuery(e.target.value); setCipResult(null); }}
-            onKeyDown={e => e.key==="Enter" && runIntelSearch()}
-            placeholder="Enter company name or Companies House number…"
-            style={{ flex:1, padding:"14px 18px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#e2e8f0", fontSize:14, outline:"none" }} />
-          <button onClick={() => { setCipResult(null); runIntelSearch(); }} disabled={cipLoading}
-            style={{ padding:"14px 28px", background:"linear-gradient(135deg,#22d3ee,#0891b2)", border:"none", borderRadius:8, color:"#0a0e1a", fontWeight:700, fontSize:13, cursor:"pointer", opacity:cipLoading?0.6:1, whiteSpace:"nowrap" }}>
-            {cipLoading ? `${cipStage || "Working…"}` : "Generate CIP"}
-          </button>
-        </div>
-
-        {/* ── CH API KEY WARNING ── */}
-        {cipChKeyMissing && (
-          <div style={{ background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.3)", borderRadius:8, padding:"14px 18px", marginBottom:20, fontSize:13, color:"#fca5a5" }}>
-            <strong>⚠ Companies House API key not configured.</strong> Add your CH API key to the <code>CH_API_KEY</code> constant in the dashboard source.
-            Register free at <a href="https://developer.company-information.service.gov.uk" target="_blank" style={{color:"#22d3ee"}}>developer.company-information.service.gov.uk</a>
-          </div>
-        )}
-
-        {/* ── LOADING STATE ── */}
-        {cipLoading && (
-          <div style={{ textAlign:"center", padding:"60px 20px" }}>
-            <div style={{ fontSize:32, marginBottom:16 }}>⚙️</div>
-            <div style={{ fontSize:14, color:"#22d3ee", fontWeight:600 }}>{cipStage}</div>
-            <div style={{ fontSize:12, color:"#475569", marginTop:8 }}>Assembling Company Intelligence Profile…</div>
-          </div>
-        )}
-
-        {/* ── ERROR STATE ── */}
-        {cip?.error && (
-          <div style={{ background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:8, padding:20, color:"#fca5a5", fontSize:13 }}>
-            Error generating CIP for "{cip.query}": {cip.error}
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════
-            CIP CARD
-        ════════════════════════════════════════════════════════════ */}
-        {cip && !cip.error && !cipLoading && (() => {
-          const g = cip.grade;
-          return (
-            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-
-              {/* ── ROW 1: IDENTITY + GRADE ── */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:16 }}>
-                {/* Identity Card */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"18px 20px" }}>
-                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:10 }}>
+  const renderIntelligence = () => (
+    <div>
+      <SectionHeader title="Intelligence Hub" subtitle="Deep research on companies, clients, and employers — powered by 130,854 tribunal decisions and 78,699 employer profiles" />
+      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+        <input value={intelQuery} onChange={e => setIntelQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && runIntelSearch()} placeholder="Search company name, case reference, or individual..." style={{ flex: 1, padding: "14px 18px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, outline: "none" }} />
+        <button onClick={runIntelSearch} disabled={intelLoading} style={{ padding: "14px 28px", background: "linear-gradient(135deg, #a78bfa, #8b5cf6)", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: intelLoading ? 0.6 : 1 }}>{intelLoading ? "Searching..." : "Research"}</button>
+      </div>
+      {intelResults && (
+        <div>
+          {intelResults.employers.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Employer Profiles ({intelResults.employers.length})</div>
+              {intelResults.employers.map((emp, i) => (
+                <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, padding: 16, marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <div>
-                      <div style={{ fontSize:11, color:"#64748b", marginBottom:4, textTransform:"uppercase", letterSpacing:1 }}>Layer 1 — Identity & Registration</div>
-                      <div style={{ fontSize:20, fontWeight:700, color:"#e2e8f0" }}>{cip.registeredName}</div>
-                      {cip.chNumber && <div style={{ fontSize:12, color:"#64748b", marginTop:3 }}>Companies House No. {cip.chNumber}</div>}
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>{emp.normalised_name || emp.raw_name}</div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{emp.companies_house_number && ("CH: " + emp.companies_house_number)}{emp.acei_sector && (" · " + emp.acei_sector)}{emp.jurisdiction_region && (" · " + emp.jurisdiction_region)}{emp.headcount_estimate && (" · ~" + emp.headcount_estimate + " employees")}</div>
                     </div>
-                    <div style={{ textAlign:"right" }}>
-                      <span style={{ display:"inline-block", padding:"4px 12px", borderRadius:20, fontSize:12, fontWeight:700,
-                        background: cip.companyStatus==="active" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
-                        color: cip.companyStatus==="active" ? "#10b981" : "#ef4444",
-                        border: `1px solid ${cip.companyStatus==="active" ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}` }}>
-                        {(cip.companyStatus||"unknown").toUpperCase()}
-                      </span>
-                    </div>
+                    {emp.profile && (<div style={{ textAlign: "right" }}><div style={{ fontSize: 11, color: "#64748b" }}>APS</div><div style={{ fontSize: 20, fontWeight: 700, color: "#f59e0b", fontFamily: "'JetBrains Mono',monospace" }}>{emp.profile.aps_total ? emp.profile.aps_total.toFixed(1) : "—"}</div><Badge color={emp.profile.aps_segment === "A_critical" ? "#ef4444" : "#f59e0b"}>{emp.profile.aps_segment ? emp.profile.aps_segment.replace("_", " ") : "—"}</Badge></div>)}
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
-                    {[
-                      { label:"Type", val: (cip.companyType||"").replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase()) || "—" },
-                      { label:"Incorporated", val: fmtDate(cip.incorporationDate) },
-                      { label:"SIC Codes", val: (cip.sicCodes||[]).slice(0,2).join(", ") || "—" },
-                      { label:"Registered Address", val: fmtAddr(cip.registeredAddress) },
-                    ].map((item,i) => (
-                      <div key={i} style={{ background:"rgba(255,255,255,0.02)", borderRadius:6, padding:"10px 12px" }}>
-                        <div style={{ fontSize:10, color:"#64748b", marginBottom:4 }}>{item.label}</div>
-                        <div style={{ fontSize:12, color:"#e2e8f0", lineHeight:1.4 }}>{item.val}</div>
-                      </div>
-                    ))}
-                  </div>
+                  {emp.profile && (<div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 11, color: "#94a3b8" }}><span>Decisions: <strong style={{ color: "#e2e8f0" }}>{emp.profile.total_decisions}</strong></span><span>Categories: <strong style={{ color: "#e2e8f0" }}>{emp.profile.categories_affected}</strong></span><span>Repeat: <strong style={{ color: emp.profile.has_repeat_pattern ? "#ef4444" : "#10b981" }}>{emp.profile.has_repeat_pattern ? "Yes" : "No"}</strong></span><span>Freq: <strong style={{ color: "#e2e8f0" }}>{emp.profile.aps_frequency ? emp.profile.aps_frequency.toFixed(1) : "—"}</strong></span><span>Severity: <strong style={{ color: "#e2e8f0" }}>{emp.profile.aps_severity ? emp.profile.aps_severity.toFixed(1) : "—"}</strong></span></div>)}
                 </div>
-
-                {/* CIP GRADE BADGE */}
-                <div style={{ background:`rgba(${g.color.replace("#","").match(/../g).map(x=>parseInt(x,16)).join(",")},0.08)`,
-                  border:`2px solid ${g.color}`, borderRadius:12, padding:"20px 24px", textAlign:"center", minWidth:180,
-                  display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>CIP Grade</div>
-                  <div style={{ fontSize:56, fontWeight:900, color:g.color, lineHeight:1, fontFamily:"'JetBrains Mono',monospace" }}>{g.grade}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color:g.color, marginTop:4 }}>{g.label}</div>
-                  <div style={{ fontSize:18, fontWeight:700, color:"#e2e8f0", marginTop:8, fontFamily:"'JetBrains Mono',monospace" }}>{g.score}<span style={{fontSize:12,color:"#64748b"}}>/100</span></div>
-                  <div style={{ fontSize:11, color:"#94a3b8", marginTop:8, lineHeight:1.4, maxWidth:140 }}>{g.action}</div>
-                </div>
-              </div>
-
-              {/* ── ROW 2: FIRMOGRAPHICS + SECTOR + ACEI ── */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16 }}>
-                {/* Layer 2 — Firmographics */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:12, textTransform:"uppercase", letterSpacing:1 }}>Layer 2 — Firmographics</div>
-                  {[
-                    { label:"Headcount", val: cip.headcount > 0 ? `~${cip.headcount.toLocaleString()} employees` : "Not available" },
-                    { label:"Size Band", val: cip.headcountBand },
-                    { label:"Company Type", val: (cip.companyType||"").replace(/-/g," ") || "—" },
-                    { label:"Target Tier", val: cip.headcount >= 2000 ? "Institutional" : cip.headcount >= 100 ? "Governance" : cip.headcount >= 25 ? "Op. Readiness" : "TBC" },
-                  ].map((r,i) => (
-                    <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom: i<3 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                      <span style={{ fontSize:12, color:"#64748b" }}>{r.label}</span>
-                      <span style={{ fontSize:12, color:"#e2e8f0", fontWeight:600 }}>{r.val}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Layer 3 — Sector */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:12, textTransform:"uppercase", letterSpacing:1 }}>Layer 3 — Sector Classification</div>
-                  {[
-                    { label:"ACEI Sector", val: cip.sectorLabel },
-                    { label:"Sector Multiplier", val: `×${cip.sectorMultiplier}` },
-                    { label:"Jurisdiction", val: cip.jurisdictionLabel },
-                    { label:"Jurisdiction Multiplier", val: `×${cip.jurisdictionMultiplier}` },
-                  ].map((r,i) => (
-                    <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom: i<3 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                      <span style={{ fontSize:12, color:"#64748b" }}>{r.label}</span>
-                      <span style={{ fontSize:12, color:"#22d3ee", fontWeight:700 }}>{r.val}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Layer 4 — ACEI Estimate */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>Layer 4 — Estimated ACEI Domain Index</div>
-                  <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                    <Gauge value={cip.aceiEst} size={110} />
-                    <div>
-                      <div style={{ fontSize:28, fontWeight:900, color:band.color, fontFamily:"'JetBrains Mono',monospace" }}>{cip.aceiEst}</div>
-                      <div style={{ fontSize:13, fontWeight:600, color:band.color }}>{band.label}</div>
-                      <div style={{ fontSize:11, color:"#475569", marginTop:6 }}>Sector × Jurisdiction estimate</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop:10, padding:"8px 10px", background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.15)", borderRadius:6, fontSize:10, color:"#94a3b8", lineHeight:1.5 }}>
-                    ⚠ Model Risk (ACEI Art. X): This is a sector-estimated projection. Not a computed client score. Requires onboarding to compute.
-                  </div>
-                </div>
-              </div>
-
-              {/* ── ROW 3: TRIBUNAL EXPOSURE + SIGNAL BREAKDOWN ── */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-                {/* Layer 5 — Tribunal Exposure */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:12, textTransform:"uppercase", letterSpacing:1 }}>Layer 5 — Tribunal Exposure (Ailane DB)</div>
-                  {cip.ailaneProfile ? (
-                    <div>
-                      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:12 }}>
-                        {[
-                          { label:"Total Decisions", val: cip.ailaneProfile.total_decisions, color:"#ef4444" },
-                          { label:"Categories", val: cip.ailaneProfile.categories_affected, color:"#f59e0b" },
-                          { label:"Repeat Pattern", val: cip.ailaneProfile.has_repeat_pattern ? "Yes ⚠" : "No", color: cip.ailaneProfile.has_repeat_pattern ? "#ef4444" : "#10b981" },
-                        ].map((s,i) => (
-                          <div key={i} style={{ background:"rgba(255,255,255,0.03)", borderRadius:6, padding:"10px 12px", textAlign:"center" }}>
-                            <div style={{ fontSize:10, color:"#64748b", marginBottom:4 }}>{s.label}</div>
-                            <div style={{ fontSize:18, fontWeight:700, color:s.color }}>{s.val}</div>
-                          </div>
-                        ))}
-                      </div>
-                      {cip.tribunalDecisions.slice(0,4).map((d,i) => (
-                        <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)", fontSize:12 }}>
-                          <span style={{ color:"#94a3b8", maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.title}</span>
-                          <span style={{ color:"#64748b", whiteSpace:"nowrap", marginLeft:8 }}>{fmtDate(d.decision_date)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : cip.tribunalDecisions.length > 0 ? (
-                    <div>
-                      <div style={{ fontSize:12, color:"#f59e0b", marginBottom:8 }}>⚠ {cip.tribunalDecisions.length} tribunal decisions found (no employer profile yet)</div>
-                      {cip.tribunalDecisions.slice(0,4).map((d,i) => (
-                        <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)", fontSize:12 }}>
-                          <span style={{ color:"#94a3b8", maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.title}</span>
-                          <span style={{ color:"#64748b", whiteSpace:"nowrap", marginLeft:8 }}>{fmtDate(d.decision_date)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ padding:"20px 0", textAlign:"center" }}>
-                      <div style={{ fontSize:13, color:"#10b981" }}>✓ No tribunal record found in Ailane DB</div>
-                      <div style={{ fontSize:11, color:"#475569", marginTop:4 }}>Coverage: 130,854 GOV.UK published decisions</div>
-                    </div>
-                  )}
-                </div>
-
-                {/* CIP Grade Signal Breakdown */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:12, textTransform:"uppercase", letterSpacing:1 }}>CIP Grade Signal Breakdown (v1.0)</div>
-                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                    {(cip.grade.signals||[]).map((s,i) => (
-                      <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 10px", background:"rgba(255,255,255,0.02)", borderRadius:6 }}>
-                        <div>
-                          <div style={{ fontSize:12, color:"#e2e8f0", fontWeight:600 }}>{s.label}</div>
-                          <div style={{ fontSize:11, color:"#64748b" }}>{s.reason}</div>
-                        </div>
-                        <div style={{ fontSize:14, fontWeight:700, minWidth:36, textAlign:"right",
-                          color: s.pts > 0 ? "#10b981" : s.pts < 0 ? "#ef4444" : "#64748b" }}>
-                          {s.pts > 0 ? `+${s.pts}` : s.pts}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop:12, padding:"8px 12px", background:"rgba(255,255,255,0.03)", borderRadius:6, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:12, color:"#64748b" }}>Base score</span>
-                    <span style={{ fontSize:12, color:"#e2e8f0" }}>50</span>
-                  </div>
-                  <div style={{ marginTop:4, padding:"8px 12px", background:`rgba(${cip.grade.color.replace("#","").match(/../g).map(x=>parseInt(x,16)).join(",")},0.12)`, borderRadius:6, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:13, fontWeight:700, color:cip.grade.color }}>Final Score</span>
-                    <span style={{ fontSize:18, fontWeight:900, color:cip.grade.color, fontFamily:"'JetBrains Mono',monospace" }}>{cip.grade.score}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── ROW 4: OFFICERS + CONTACT + DISPUTE SIGNALS ── */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16 }}>
-                {/* Layer 8 — Officers */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:12, textTransform:"uppercase", letterSpacing:1 }}>Layer 8 — Directors & Officers</div>
-                  {cip.officers.length > 0 ? cip.officers.map((o,i) => (
-                    <div key={i} style={{ padding:"8px 0", borderBottom: i<cip.officers.length-1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                      <div style={{ fontSize:13, color:"#e2e8f0", fontWeight:600 }}>{o.name}</div>
-                      <div style={{ fontSize:11, color:"#64748b" }}>{o.officer_role?.replace(/-/g," ")} · Appointed {fmtDate(o.appointed_on)}</div>
-                    </div>
-                  )) : (
-                    <div style={{ fontSize:12, color:"#475569", padding:"16px 0", textAlign:"center" }}>
-                      {cip.chNumber ? "No current officers returned" : "Companies House not matched — officer data unavailable"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Layer 7 — Contact */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:12, textTransform:"uppercase", letterSpacing:1 }}>Layer 7 — Contact Intelligence</div>
-                  {[
-                    { label:"Registered Address", val: fmtAddr(cip.registeredOfficeAddress), icon:"📍" },
-                    { label:"Website", val: cip.website || "Not yet sourced (Phase 2)", icon:"🌐" },
-                    { label:"Email", val: cip.email || "Not yet sourced (Phase 2)", icon:"✉️" },
-                  ].map((r,i) => (
-                    <div key={i} style={{ padding:"8px 0", borderBottom: i<2 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                      <div style={{ fontSize:11, color:"#64748b", marginBottom:2 }}>{r.icon} {r.label}</div>
-                      <div style={{ fontSize:12, color: r.val.includes("Phase 2") ? "#475569" : "#e2e8f0", fontStyle: r.val.includes("Phase 2") ? "italic" : "normal" }}>{r.val}</div>
-                    </div>
-                  ))}
-                  <div style={{ marginTop:10, padding:"6px 10px", background:"rgba(255,255,255,0.03)", borderRadius:6, fontSize:11, color:"#475569" }}>
-                    Phase 2: website scrape for email & LinkedIn
-                  </div>
-                </div>
-
-                {/* Layer 6 — Dispute Signals */}
-                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"16px 18px" }}>
-                  <div style={{ fontSize:11, color:"#64748b", marginBottom:4, textTransform:"uppercase", letterSpacing:1 }}>Layer 6 — Dispute Signals</div>
-                  <div style={{ fontSize:10, color:"#475569", marginBottom:10, fontStyle:"italic" }}>Surface-level signals from Ailane tribunal DB · Web news index: Phase 2</div>
-                  {cip.disputeSignals.length > 0 ? cip.disputeSignals.map((s,i) => (
-                    <div key={i} style={{ padding:"7px 0", borderBottom: i<cip.disputeSignals.length-1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", gap:8 }}>
-                        <div style={{ fontSize:11, color:"#e2e8f0", lineHeight:1.4 }}>{s.text?.substring(0,70)}{s.text?.length>70?"…":""}</div>
-                        <Badge color="#f59e0b">{s.category?.replace(/_/g," ")}</Badge>
-                      </div>
-                      <div style={{ fontSize:10, color:"#64748b", marginTop:2 }}>Case: {s.caseNo} · {fmtDate(s.date)}</div>
-                    </div>
-                  )) : (
-                    <div style={{ padding:"16px 0", textAlign:"center" }}>
-                      <div style={{ fontSize:13, color:"#10b981" }}>✓ No dispute signals in Ailane DB</div>
-                      <div style={{ fontSize:11, color:"#475569", marginTop:4 }}>Web news index available in Phase 2</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── ACTIONS BAR ── */}
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10, padding:"14px 20px" }}>
-                <div style={{ fontSize:11, color:"#475569" }}>
-                  CIP generated {new Date(cip.generatedAt).toLocaleString("en-GB")} · {cip.chNumber ? "Companies House matched ✓" : "Companies House — no match"} · CIP-SPEC-v1.0
-                </div>
-                <div style={{ display:"flex", gap:10 }}>
-                  <button onClick={() => { setCipResult(null); setIntelQuery(""); }}
-                    style={{ padding:"8px 18px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, color:"#94a3b8", fontSize:12, cursor:"pointer" }}>
-                    Clear CIP
-                  </button>
-                  <button onClick={() => { setCipSaved(true); /* Phase 2: persist to pipeline table */ }}
-                    disabled={cipSaved}
-                    style={{ padding:"8px 18px", background: cipSaved ? "rgba(16,185,129,0.15)" : "linear-gradient(135deg,#a78bfa,#8b5cf6)", border:`1px solid ${cipSaved?"rgba(16,185,129,0.3)":"transparent"}`, borderRadius:6, color: cipSaved ? "#10b981" : "#fff", fontWeight:700, fontSize:12, cursor:cipSaved?"default":"pointer" }}>
-                    {cipSaved ? "✓ Saved to Pipeline" : "Save to Pipeline"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ── EMPTY STATE ── */}
-        {!cipResult && !cipLoading && (
-          <div style={{ padding:"60px 20px", textAlign:"center" }}>
-            <div style={{ fontSize:40, marginBottom:16 }}>🔍</div>
-            <div style={{ fontSize:15, fontWeight:600, color:"#e2e8f0", marginBottom:8 }}>Company Intelligence Profile</div>
-            <div style={{ fontSize:13, color:"#64748b", marginBottom:4 }}>Enter a company name or Companies House registration number to generate a full CIP</div>
-            <div style={{ fontSize:12, color:"#475569", marginTop:12, display:"flex", justifyContent:"center", gap:20 }}>
-              {["8-layer intelligence card", "ACEI sector estimate", "CIP Grade (A+ → D)", "Tribunal exposure", "Director & officer data", "Companies House live data"].map((f,i) => (
-                <span key={i} style={{ padding:"4px 10px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, fontSize:11, color:"#64748b" }}>{f}</span>
               ))}
             </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+          )}
+          {intelResults.decisions.length > 0 && (<div><div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Tribunal Decisions ({intelResults.decisions.length})</div><Table columns={[
+            { key: "case_number", label: "Case No." },
+            { key: "title", label: "Title", render: r => <span style={{ maxWidth: 300, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</span> },
+            { key: "decision_date", label: "Date", render: r => r.decision_date ? new Date(r.decision_date).toLocaleDateString("en-GB") : "—" },
+            { key: "acei_category", label: "Category", render: r => <Badge>{r.acei_category || "—"}</Badge> },
+            { key: "compensation_awarded", label: "Award", render: r => r.compensation_awarded ? ("£" + r.compensation_awarded.toLocaleString()) : "—" },
+          ]} rows={intelResults.decisions} /></div>)}
+          {intelResults.employers.length === 0 && intelResults.decisions.length === 0 && (<div style={{ padding: 40, textAlign: "center", color: "#64748b" }}>No results found for "{intelQuery}"</div>)}
+        </div>
+      )}
+      {!intelResults && (<div style={{ padding: 60, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 16 }}>{"🔍"}</div><div style={{ fontSize: 14, color: "#64748b" }}>Search for any UK employer to generate an intelligence report</div><div style={{ fontSize: 12, color: "#475569", marginTop: 8 }}>Data sources: 130,854 tribunal decisions · 78,699 employer profiles · Companies House · EHRC enforcement</div></div>)}
+    </div>
+  );
 
   const renderRegulatory = () => (
     <div>
@@ -1281,16 +650,8 @@ function AilaneCEO() {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {legislativeChanges.slice(0, 15).map((lc, i) => (
           <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 500 }}>{lc.title}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                <Badge color="#a78bfa">{lc.legislation_type}</Badge>
-                {lc.acei_categories && lc.acei_categories.map((c, ci) => <Badge key={ci} color="#22d3ee">{c}</Badge>)}
-              </div>
-            </div>
-            <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", marginLeft: 16 }}>
-              {lc.date_published && new Date(lc.date_published).toLocaleDateString("en-GB")}
-            </div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 500 }}>{lc.title}</div><div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", gap: 4, flexWrap: "wrap" }}><Badge color="#a78bfa">{lc.legislation_type}</Badge>{lc.acei_categories && lc.acei_categories.map((c, ci) => <Badge key={ci} color="#22d3ee">{c}</Badge>)}</div></div>
+            <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", marginLeft: 16 }}>{lc.date_published && new Date(lc.date_published).toLocaleDateString("en-GB")}</div>
           </div>
         ))}
       </div>
@@ -1300,52 +661,36 @@ function AilaneCEO() {
   const renderScrapers = () => (
     <div>
       <SectionHeader title="Data Pipeline" subtitle="Scraper automation status, Companies House enrichment progress, and data quality monitoring" />
-
-      {/* Enrichment Progress */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16 }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Companies House Enrichment</div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontSize: 20, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>10,849</span>
-            <span style={{ fontSize: 12, color: "#64748b" }}>/ 78,699</span>
-          </div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
-            <div style={{ height: "100%", width: `${(10849/78699*100).toFixed(1)}%`, background: "#22d3ee", borderRadius: 3 }} />
-          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ fontSize: 20, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>10,849</span><span style={{ fontSize: 12, color: "#64748b" }}>/ 78,699</span></div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}><div style={{ height: "100%", width: `${(10849/78699*100).toFixed(1)}%`, background: "#22d3ee", borderRadius: 3 }} /></div>
           <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{(10849/78699*100).toFixed(1)}% complete · 66,018 pending</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16 }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Sector Classification</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#a78bfa", fontFamily: "'JetBrains Mono',monospace", marginBottom: 6 }}>10,576</div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
-            <div style={{ height: "100%", width: `${(10576/78699*100).toFixed(1)}%`, background: "#a78bfa", borderRadius: 3 }} />
-          </div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}><div style={{ height: "100%", width: `${(10576/78699*100).toFixed(1)}%`, background: "#a78bfa", borderRadius: 3 }} /></div>
           <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{(10576/78699*100).toFixed(1)}% classified</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 16 }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>Jurisdiction Mapping</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#f472b6", fontFamily: "'JetBrains Mono',monospace", marginBottom: 6 }}>10,716</div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
-            <div style={{ height: "100%", width: `${(10716/78699*100).toFixed(1)}%`, background: "#f472b6", borderRadius: 3 }} />
-          </div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}><div style={{ height: "100%", width: `${(10716/78699*100).toFixed(1)}%`, background: "#f472b6", borderRadius: 3 }} /></div>
           <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{(10716/78699*100).toFixed(1)}% mapped</div>
         </div>
       </div>
-
-      {/* Scraper Runs */}
       <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Recent Scraper Runs</div>
-      <Table
-        columns={[
-          { key: "scraper_name", label: "Scraper", render: r => r.scraper_name || r.source_name },
-          { key: "jurisdiction_code", label: "Jurisdiction", render: r => <Badge>{r.jurisdiction_code || "GB"}</Badge> },
-          { key: "status", label: "Status", render: r => <Badge color={r.status === "completed" ? "#10b981" : r.status === "running" ? "#f59e0b" : "#ef4444"}>{r.status}</Badge> },
-          { key: "records_collected", label: "Found", render: r => r.decisions_found || r.records_collected || 0 },
-          { key: "records_inserted", label: "New", render: r => r.decisions_new || r.records_inserted || 0 },
-          { key: "elapsed_seconds", label: "Duration", render: r => r.elapsed_seconds ? `${parseFloat(r.elapsed_seconds).toFixed(0)}s` : "—" },
-          { key: "started_at", label: "Run Date", render: r => new Date(r.started_at).toLocaleDateString("en-GB") },
-        ]}
-        rows={scraperRuns}
-      />
+      <Table columns={[
+        { key: "scraper_name", label: "Scraper", render: r => r.scraper_name || r.source_name },
+        { key: "jurisdiction_code", label: "Jurisdiction", render: r => <Badge>{r.jurisdiction_code || "GB"}</Badge> },
+        { key: "status", label: "Status", render: r => <Badge color={r.status === "completed" ? "#10b981" : r.status === "running" ? "#f59e0b" : "#ef4444"}>{r.status}</Badge> },
+        { key: "records_collected", label: "Found", render: r => r.decisions_found || r.records_collected || 0 },
+        { key: "records_inserted", label: "New", render: r => r.decisions_new || r.records_inserted || 0 },
+        { key: "elapsed_seconds", label: "Duration", render: r => r.elapsed_seconds ? `${parseFloat(r.elapsed_seconds).toFixed(0)}s` : "—" },
+        { key: "started_at", label: "Run Date", render: r => new Date(r.started_at).toLocaleDateString("en-GB") },
+      ]} rows={scraperRuns} />
     </div>
   );
 
@@ -1353,34 +698,23 @@ function AilaneCEO() {
     <div>
       <SectionHeader title="Notifications" subtitle="Client alerts for employment-related court actions, enforcement notices, and regulatory events" />
       <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>🔔</div>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>{"🔔"}</div>
         <div style={{ fontSize: 14, color: "#e2e8f0", fontWeight: 600 }}>Notification Engine</div>
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, maxWidth: 460, margin: "8px auto 0" }}>
-          When clients onboard, their employer details are cross-referenced against incoming tribunal decisions and enforcement actions.
-          Alerts will appear here when a match is detected.
-        </div>
-        <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 8 }}>
-          <Badge color="#f59e0b">Pre-Launch</Badge>
-          <Badge color="#22d3ee">0 Active Clients</Badge>
-          <Badge color="#a78bfa">Monitoring 152 EHRC Actions</Badge>
-        </div>
+        <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, maxWidth: 460, margin: "8px auto 0" }}>When clients onboard, their employer details are cross-referenced against incoming tribunal decisions and enforcement actions. Alerts will appear here when a match is detected.</div>
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 8 }}><Badge color="#f59e0b">Pre-Launch</Badge><Badge color="#22d3ee">0 Active Clients</Badge><Badge color="#a78bfa">Monitoring 152 EHRC Actions</Badge></div>
       </div>
-
       <div style={{ marginTop: 24 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Notification Rules (Configured)</div>
         {[
           { rule: "Client employer appears in new tribunal decision", trigger: "Real-time on scraper completion", status: "Ready" },
           { rule: "Client employer receives EHRC enforcement action", trigger: "Daily EHRC feed check", status: "Ready" },
           { rule: "Client employer receives HSE prosecution notice", trigger: "Weekly HSE feed check", status: "Ready" },
-          { rule: "Legislative change affects client's ACEI categories", trigger: "Weekly legislation scraper", status: "Ready" },
+          { rule: "Legislative change affects client’s ACEI categories", trigger: "Weekly legislation scraper", status: "Ready" },
           { rule: "Client Domain Index crosses band threshold", trigger: "Weekly score recomputation", status: "Ready" },
         ].map((n, i) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 6, marginBottom: 6 }}>
             <div style={{ fontSize: 13, color: "#e2e8f0" }}>{n.rule}</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{n.trigger}</span>
-              <Badge color="#10b981">{n.status}</Badge>
-            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}><span style={{ fontSize: 11, color: "#64748b" }}>{n.trigger}</span><Badge color="#10b981">{n.status}</Badge></div>
           </div>
         ))}
       </div>
@@ -1390,7 +724,6 @@ function AilaneCEO() {
   const renderBusiness = () => (
     <div>
       <SectionHeader title="Business Hub" subtitle="AI Lane Limited (Company No. 17035654) — Reports, financials, planning, and corporate governance" />
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 28 }}>
         <StatCard label="Company Status" value="Active" sub="Incorporated 2026" accent="#10b981" icon="🏢" />
         <StatCard label="Funding" value="£75,000" sub="Innovation Wales — Secured" accent="#22d3ee" icon="💰" />
@@ -1399,58 +732,31 @@ function AilaneCEO() {
         <StatCard label="Trademark" value="Filed" sub="UK00004347220" accent="#a78bfa" icon="™️" />
         <StatCard label="Innovation Panel" value="April" sub="£75k presentation" accent="#f472b6" icon="📅" />
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Revenue Streams</div>
-          {[
-            { stream: "Operational Readiness", price: "£199/mo", status: "Ready" },
-            { stream: "Governance Tier", price: "£799/mo", status: "Ready" },
-            { stream: "Institutional Tier", price: "Custom", status: "Ready" },
-            { stream: "EPLI Data Licensing", price: "£375k–£750k/yr", status: "Pipeline" },
-            { stream: "Regulatory Ticker Feed", price: "TBC", status: "Building" },
-          ].map((s, i) => (
+          {[{stream:"Operational Readiness",price:"£199/mo",status:"Ready"},{stream:"Governance Tier",price:"£799/mo",status:"Ready"},{stream:"Institutional Tier",price:"Custom",status:"Ready"},{stream:"EPLI Data Licensing",price:"£375k–£750k/yr",status:"Pipeline"},{stream:"Regulatory Ticker Feed",price:"TBC",status:"Building"}].map((s,i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
               <span style={{ fontSize: 13, color: "#e2e8f0" }}>{s.stream}</span>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{s.price}</span>
-                <Badge color={s.status === "Ready" ? "#10b981" : s.status === "Pipeline" ? "#f59e0b" : "#a78bfa"}>{s.status}</Badge>
-              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}><span style={{ fontSize: 12, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace" }}>{s.price}</span><Badge color={s.status === "Ready" ? "#10b981" : s.status === "Pipeline" ? "#f59e0b" : "#a78bfa"}>{s.status}</Badge></div>
             </div>
           ))}
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Milestones</div>
-          {[
-            { milestone: "Company incorporated", date: "Feb 2026", done: true },
-            { milestone: "Three constitutions adopted", date: "26 Feb 2026", done: true },
-            { milestone: "Trademark filed", date: "28 Feb 2026", done: true },
-            { milestone: "130,854 decisions scraped", date: "27 Feb 2026", done: true },
-            { milestone: "78,699 employer profiles", date: "28 Feb 2026", done: true },
-            { milestone: "Innovation Wales panel", date: "Apr 2026", done: false },
-            { milestone: "First paying client", date: "Target Q2", done: false },
-            { milestone: "Insurance data pilot", date: "Target Q3", done: false },
-          ].map((m, i) => (
+          {[{m:"Company incorporated",d:"Feb 2026",done:true},{m:"Three constitutions adopted",d:"26 Feb 2026",done:true},{m:"Trademark filed",d:"28 Feb 2026",done:true},{m:"130,854 decisions scraped",d:"27 Feb 2026",done:true},{m:"78,699 employer profiles",d:"28 Feb 2026",done:true},{m:"Innovation Wales panel",d:"Apr 2026",done:false},{m:"First paying client",d:"Target Q2",done:false},{m:"Insurance data pilot",d:"Target Q3",done:false}].map((ml,i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-              <div style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: m.done ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.05)", color: m.done ? "#10b981" : "#64748b", fontSize: 10 }}>{m.done ? "✓" : "○"}</div>
-              <span style={{ flex: 1, fontSize: 12, color: m.done ? "#e2e8f0" : "#94a3b8" }}>{m.milestone}</span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{m.date}</span>
+              <div style={{ width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: ml.done ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.05)", color: ml.done ? "#10b981" : "#64748b", fontSize: 10 }}>{ml.done ? "✓" : "○"}</div>
+              <span style={{ flex: 1, fontSize: 12, color: ml.done ? "#e2e8f0" : "#94a3b8" }}>{ml.m}</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{ml.d}</span>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Employer Segment Breakdown */}
       <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Acquisition Intelligence — Employer Segments (AIE)</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          {segmentData.map((s, i) => (
-            <div key={i} style={{ padding: 14, background: `${s.fill}10`, border: `1px solid ${s.fill}25`, borderRadius: 8, textAlign: "center" }}>
-              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>{s.name}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: s.fill, fontFamily: "'JetBrains Mono',monospace" }}>{s.value.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>{(s.value / 78699 * 100).toFixed(1)}%</div>
-            </div>
-          ))}
+          {segmentData.map((s, i) => (<div key={i} style={{ padding: 14, background: `${s.fill}10`, border: `1px solid ${s.fill}25`, borderRadius: 8, textAlign: "center" }}><div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>{s.name}</div><div style={{ fontSize: 22, fontWeight: 700, color: s.fill, fontFamily: "'JetBrains Mono',monospace" }}>{s.value.toLocaleString()}</div><div style={{ fontSize: 11, color: "#64748b" }}>{(s.value / 78699 * 100).toFixed(1)}%</div></div>))}
         </div>
       </div>
     </div>
@@ -1460,16 +766,9 @@ function AilaneCEO() {
     <div>
       <SectionHeader title="Constitutional Governance" subtitle="ACEI v1.0 · RRI v1.0 · CCI v1.0 — Adopted 26 February 2026" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-        {[
-          { name: "ACEI", version: "v1.0", desc: "Aggregate Compliance Exposure Index", status: "Compliant", color: "#22d3ee", categories: "12 categories", engine: "EVI + EII + SCI → L × I → DI" },
-          { name: "RRI", version: "v1.0", desc: "Regulatory Readiness Index", status: "Compliant", color: "#10b981", categories: "5 pillars / 9 EIP", engine: "Policy + Contractual + Training + Systems + Governance" },
-          { name: "CCI", version: "v1.0", desc: "Corporate Conduct Index", status: "Compliant", color: "#a78bfa", categories: "6 components", engine: "Bayesian credibility framework" },
-        ].map((c, i) => (
+        {[{name:"ACEI",version:"v1.0",desc:"Aggregate Compliance Exposure Index",status:"Compliant",color:"#22d3ee",categories:"12 categories",engine:"EVI + EII + SCI → L × I → DI"},{name:"RRI",version:"v1.0",desc:"Regulatory Readiness Index",status:"Compliant",color:"#10b981",categories:"5 pillars / 9 EIP",engine:"Policy + Contractual + Training + Systems + Governance"},{name:"CCI",version:"v1.0",desc:"Corporate Conduct Index",status:"Compliant",color:"#a78bfa",categories:"6 components",engine:"Bayesian credibility framework"}].map((c,i) => (
           <div key={i} style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${c.color}25`, borderRadius: 10, padding: 20, borderTop: `3px solid ${c.color}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c.color, fontFamily: "'JetBrains Mono',monospace" }}>{c.name}</div>
-              <Badge color={c.color}>{c.version}</Badge>
-            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><div style={{ fontSize: 18, fontWeight: 700, color: c.color, fontFamily: "'JetBrains Mono',monospace" }}>{c.name}</div><Badge color={c.color}>{c.version}</Badge></div>
             <div style={{ fontSize: 12, color: "#e2e8f0", marginBottom: 8 }}>{c.desc}</div>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>{c.categories}</div>
             <div style={{ fontSize: 10, color: "#475569", fontFamily: "'JetBrains Mono',monospace" }}>{c.engine}</div>
@@ -1477,65 +776,26 @@ function AilaneCEO() {
           </div>
         ))}
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Governance Controls</div>
-          {[
-            { control: "Separation Doctrine", desc: "Index cross-contamination prevention", status: "Enforced" },
-            { control: "Deterministic Computation", desc: "Identical inputs → identical outputs", status: "Enforced" },
-            { control: "Model Risk Disclosure", desc: "Constitutional audit obligations", status: "Active" },
-            { control: "Clinical Neutrality", desc: "No moral judgment in scoring", status: "Active" },
-            { control: "Anti-Perverse Incentive", desc: "No reward for suppression", status: "Active" },
-            { control: "AIC Governance", desc: "Ailane Index Committee oversight", status: "Active" },
-          ].map((g, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-              <div>
-                <div style={{ fontSize: 12, color: "#e2e8f0" }}>{g.control}</div>
-                <div style={{ fontSize: 10, color: "#64748b" }}>{g.desc}</div>
-              </div>
-              <Badge color="#10b981">{g.status}</Badge>
-            </div>
+          {[{control:"Separation Doctrine",desc:"Index cross-contamination prevention",status:"Enforced"},{control:"Deterministic Computation",desc:"Identical inputs → identical outputs",status:"Enforced"},{control:"Model Risk Disclosure",desc:"Constitutional audit obligations",status:"Active"},{control:"Clinical Neutrality",desc:"No moral judgment in scoring",status:"Active"},{control:"Anti-Perverse Incentive",desc:"No reward for suppression",status:"Active"},{control:"AIC Governance",desc:"Ailane Index Committee oversight",status:"Active"}].map((g,i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}><div><div style={{ fontSize: 12, color: "#e2e8f0" }}>{g.control}</div><div style={{ fontSize: 10, color: "#64748b" }}>{g.desc}</div></div><Badge color="#10b981">{g.status}</Badge></div>
           ))}
         </div>
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>ACEI Parameter Calibration</div>
           <div style={{ fontSize: 11, color: "#64748b", marginBottom: 16 }}>Current market baseline parameters (ACEI Article III)</div>
-          {[
-            { param: "DMR (Domain Max Reference)", value: "300", ref: "Art. III §3.4" },
-            { param: "EVI Baseline — Dismissal", value: "15/week", ref: "Annex A" },
-            { param: "EVI Baseline — Discrimination", value: "12/week", ref: "Annex A" },
-            { param: "EVI Baseline — Wages", value: "8/week", ref: "Annex A" },
-            { param: "SM Range", value: "0.90 – 1.30", ref: "Annex B" },
-            { param: "JM Range", value: "0.90 – 1.40", ref: "Annex B" },
-            { param: "Band Thresholds", value: "20/40/60/80", ref: "Art. IV" },
-          ].map((p, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", fontSize: 12 }}>
-              <span style={{ color: "#94a3b8" }}>{p.param}</span>
-              <div style={{ display: "flex", gap: 12 }}>
-                <span style={{ color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{p.value}</span>
-                <span style={{ color: "#475569", fontSize: 10 }}>{p.ref}</span>
-              </div>
-            </div>
+          {[{param:"DMR (Domain Max Reference)",value:"300",ref:"Art. III §3.4"},{param:"EVI Baseline — Dismissal",value:"15/week",ref:"Annex A"},{param:"EVI Baseline — Discrimination",value:"12/week",ref:"Annex A"},{param:"EVI Baseline — Wages",value:"8/week",ref:"Annex A"},{param:"SM Range",value:"0.90 – 1.30",ref:"Annex B"},{param:"JM Range",value:"0.90 – 1.40",ref:"Annex B"},{param:"Band Thresholds",value:"20/40/60/80",ref:"Art. IV"}].map((p,i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", fontSize: 12 }}><span style={{ color: "#94a3b8" }}>{p.param}</span><div style={{ display: "flex", gap: 12 }}><span style={{ color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{p.value}</span><span style={{ color: "#475569", fontSize: 10 }}>{p.ref}</span></div></div>
           ))}
         </div>
       </div>
     </div>
   );
 
-  const sections = {
-    overview: renderOverview,
-    pipeline: renderPipeline,
-    simulator: renderSimulator,
-    intelligence: renderIntelligence,
-    regulatory: renderRegulatory,
-    scrapers: renderScrapers,
-    notifications: renderNotifications,
-    business: renderBusiness,
-    governance: renderGovernance,
-  };
+  const sections = { overview: renderOverview, pipeline: renderPipeline, simulator: renderSimulator, intelligence: renderIntelligence, regulatory: renderRegulatory, scrapers: renderScrapers, notifications: renderNotifications, business: renderBusiness, governance: renderGovernance };
 
-  // ─── LOADING STATE ──────────────────────────────────────────────────
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", background: "#0a0e1a", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1552,17 +812,10 @@ function AilaneCEO() {
     );
   }
 
-  // ─── LOGIN SCREEN ─────────────────────────────────────────────────────
   if (!token) {
     return (
       <div style={{ minHeight: "100vh", background: "#0a0e1a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter',-apple-system,sans-serif" }}>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-          * { box-sizing: border-box; margin: 0; }
-          input::placeholder { color: #475569; }
-          .login-btn:hover { opacity: 0.9; }
-          .login-input:focus { border-color: rgba(34,211,238,0.5) !important; outline: none; }
-        `}</style>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; } input::placeholder { color: #475569; } .login-btn:hover { opacity: 0.9; } .login-input:focus { border-color: rgba(34,211,238,0.5) !important; outline: none; }`}</style>
         <div style={{ width: 400, padding: 40, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}>
           <div style={{ textAlign: "center", marginBottom: 32 }}>
             <div style={{ fontSize: 28, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", letterSpacing: 3, marginBottom: 4 }}>AILANE</div>
@@ -1571,110 +824,59 @@ function AilaneCEO() {
           <div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 11, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Email</label>
-              <input className="login-input" type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
-                style={{ width: "100%", padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, transition: "border-color 0.2s" }} />
+              <input className="login-input" type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} style={{ width: "100%", padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, transition: "border-color 0.2s" }} />
             </div>
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: "block", fontSize: 11, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Password</label>
-              <input className="login-input" type="password" value={authPass} onChange={e => setAuthPass(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
-                placeholder="Enter your password"
-                style={{ width: "100%", padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, transition: "border-color 0.2s" }} />
+              <input className="login-input" type="password" value={authPass} onChange={e => setAuthPass(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Enter your password" style={{ width: "100%", padding: "12px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e2e8f0", fontSize: 14, transition: "border-color 0.2s" }} />
             </div>
-            {authError && (
-              <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, fontSize: 12, color: "#ef4444", marginBottom: 16 }}>{authError}</div>
-            )}
-            <button className="login-btn" onClick={handleLogin} disabled={authLoading}
-              style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg, #22d3ee, #06b6d4)", border: "none", borderRadius: 8, color: "#0a0e1a", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: authLoading ? 0.7 : 1, transition: "opacity 0.2s" }}>
-              {authLoading ? "Authenticating..." : "Sign In"}
-            </button>
+            {authError && (<div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, fontSize: 12, color: "#ef4444", marginBottom: 16 }}>{authError}</div>)}
+            <button className="login-btn" onClick={handleLogin} disabled={authLoading} style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg, #22d3ee, #06b6d4)", border: "none", borderRadius: 8, color: "#0a0e1a", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: authLoading ? 0.7 : 1, transition: "opacity 0.2s" }}>{authLoading ? "Authenticating..." : "Sign In"}</button>
           </div>
-          <div style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#475569" }}>
-            AI Lane Limited · Company No. 17035654 · Internal Use Only
-          </div>
+          <div style={{ textAlign: "center", marginTop: 24, fontSize: 10, color: "#475569" }}>AI Lane Limited · Company No. 17035654 · Internal Use Only</div>
         </div>
       </div>
     );
   }
 
-  // ─── AUTHENTICATED DASHBOARD ──────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: "#0a0e1a", color: "#e2e8f0", fontFamily: "'Inter',-apple-system,sans-serif", display: "flex" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-        * { box-sizing: border-box; margin: 0; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-        @keyframes pulse { 0%,100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-        input::placeholder { color: #475569; }
-        select option { background: #0f172a; color: #e2e8f0; }
-        .login-input:focus { border-color: rgba(34,211,238,0.5) !important; outline: none; }
-      `}</style>
-
-      {/* Sidebar */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap'); * { box-sizing: border-box; margin: 0; } ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; } @keyframes pulse { 0%,100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } } @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } } input::placeholder { color: #475569; } select option { background: #0f172a; color: #e2e8f0; }`}</style>
       <aside style={{ width: sideOpen ? 220 : 56, minHeight: "100vh", background: "rgba(255,255,255,0.02)", borderRight: "1px solid rgba(255,255,255,0.06)", transition: "width 0.2s ease", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        {/* Logo */}
         <div style={{ padding: sideOpen ? "20px 18px" : "20px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setSideOpen(!sideOpen)}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #22d3ee, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#0a0e1a", flexShrink: 0 }}>A</div>
           {sideOpen && <div style={{ fontSize: 14, fontWeight: 700, color: "#22d3ee", letterSpacing: 2, fontFamily: "'JetBrains Mono',monospace" }}>AILANE<span style={{ color: "#475569", fontSize: 10, display: "block", letterSpacing: 0 }}>CEO Command</span></div>}
         </div>
-
-        {/* Nav Items */}
         <nav style={{ flex: 1, padding: "12px 8px" }}>
           {NAV.map(n => (
-            <div key={n.id} onClick={() => n.href ? window.open(n.href, "_blank") : setActiveTab(n.id)} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: sideOpen ? "10px 12px" : "10px 14px", borderRadius: 8, marginBottom: 2, cursor: "pointer",
-              background: activeTab === n.id && !n.href ? "rgba(34,211,238,0.08)" : "transparent",
-              color: activeTab === n.id && !n.href ? "#22d3ee" : "#94a3b8",
-              transition: "all 0.15s",
-            }}
+            <div key={n.id} onClick={() => n.href ? window.open(n.href, "_blank") : setActiveTab(n.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: sideOpen ? "10px 12px" : "10px 14px", borderRadius: 8, marginBottom: 2, cursor: "pointer", background: activeTab === n.id && !n.href ? "rgba(34,211,238,0.08)" : "transparent", color: activeTab === n.id && !n.href ? "#22d3ee" : "#94a3b8", transition: "all 0.15s" }}
               onMouseEnter={e => { if (activeTab !== n.id) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
               onMouseLeave={e => { if (activeTab !== n.id || n.href) e.currentTarget.style.background = activeTab === n.id && !n.href ? "rgba(34,211,238,0.08)" : "transparent"; }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>{n.icon}</span>
-              {sideOpen && (
-                <span style={{ fontSize: 12, fontWeight: activeTab === n.id && !n.href ? 600 : 400, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
-                  {n.label}
-                  {n.href && <span style={{ fontSize: 9, opacity: 0.5 }}>↗</span>}
-                </span>
-              )}
+              {sideOpen && <span style={{ fontSize: 12, fontWeight: activeTab === n.id && !n.href ? 600 : 400, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>{n.label}{n.href && <span style={{ fontSize: 9, opacity: 0.5 }}>↗</span>}</span>}
             </div>
           ))}
         </nav>
-
-        {/* Footer */}
         {sideOpen && (
           <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || "mark@ailane.ai"}</div>
+              <div style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user && user.email ? user.email : "mark@ailane.ai"}</div>
               <button onClick={handleLogout} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 4, padding: "3px 8px", color: "#ef4444", fontSize: 9, fontWeight: 600, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.5px" }}>Logout</button>
             </div>
             <div style={{ fontSize: 10, color: "#475569" }}>
-              <div>AI Lane Limited</div>
-              <div>Co. No. 17035654</div>
-              <div style={{ marginTop: 4 }}>
-                <a href="/dashboard/" style={{ color: "#22d3ee", textDecoration: "none" }}>Client Dashboard</a>
-                {" · "}
-                <a href="/knowledge-library/" style={{ color: "#22d3ee", textDecoration: "none" }}>Library</a>
-                {" · "}
-                <a href="/ticker/" style={{ color: "#22d3ee", textDecoration: "none" }}>Ticker</a>
-              </div>
+              <div>AI Lane Limited</div><div>Co. No. 17035654</div>
+              <div style={{ marginTop: 4 }}><a href="/dashboard/" style={{ color: "#22d3ee", textDecoration: "none" }}>Client Dashboard</a>{" · "}<a href="/knowledge-library/" style={{ color: "#22d3ee", textDecoration: "none" }}>Library</a>{" · "}<a href="/ticker/" style={{ color: "#22d3ee", textDecoration: "none" }}>Ticker</a></div>
             </div>
           </div>
         )}
       </aside>
-
-      {/* Main Content */}
       <main style={{ flex: 1, padding: "28px 36px", overflowY: "auto", maxHeight: "100vh" }}>
-        {sections[activeTab]?.() || renderOverview()}
+        {sections[activeTab] ? sections[activeTab]() : renderOverview()}
       </main>
     </div>
   );
 }
 
-    // ─── MOUNT ──────────────────────────────────────────────────────────
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(React.createElement(AilaneCEO));
   </script>
