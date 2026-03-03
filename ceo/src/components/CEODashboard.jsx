@@ -245,7 +245,10 @@ export default function CEODashboard({ onLogout }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 2, color: "#fff" }}>AILANE</div>
           <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }} />
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: 1.5, textTransform: "uppercase" }}>CEO Command Centre</div>
+          <a href="/dashboard/" style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textDecoration: "none", letterSpacing: 0.5, transition: "color 0.2s" }}>Dashboard</a>
+          <a href="/AiLaneCEO/" style={{ fontSize: 11, color: "#fff", textDecoration: "none", letterSpacing: 0.5, borderBottom: `1px solid ${accent}`, paddingBottom: 1 }}>CEO Command Centre</a>
+          <a href="/knowledge-library/" style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textDecoration: "none", letterSpacing: 0.5, transition: "color 0.2s" }}>Knowledge Library</a>
+          <a href="/ticker/" style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textDecoration: "none", letterSpacing: 0.5, transition: "color 0.2s" }}>Ticker</a>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 3, background: "rgba(192,57,43,0.15)", color: "#E74C3C", fontWeight: 600, letterSpacing: 0.5 }}>INTERNAL ONLY</span>

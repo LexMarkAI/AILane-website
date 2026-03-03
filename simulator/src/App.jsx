@@ -259,11 +259,11 @@ export default function App() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="sim-badge">SIMULATED DATA</div>
           {userEmail ? (
-            <a href="/dashboard-app/" style={{ fontSize: 11, color: 'var(--accent-cyan)', textDecoration: 'none' }}>
+            <a href="/dashboard/" style={{ fontSize: 11, color: 'var(--accent-cyan)', textDecoration: 'none' }}>
               Go to Dashboard {'\u2192'}
             </a>
           ) : (
-            <a href="/dashboard-app/" style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'none' }}>
+            <a href="/dashboard/" style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'none' }}>
               Sign in
             </a>
           )}
@@ -275,7 +275,7 @@ export default function App() {
         <div className="sim-welcome">
           <div className="sim-welcome-inner">
             <span>{'\u2713'} Signed in as <strong>{userEmail}</strong></span>
-            <span>This is a simulator with illustrative data. To get your real ACEI score, <a href="/dashboard-app/">subscribe via the dashboard</a>.</span>
+            <span>This is a simulator with illustrative data. To get your real ACEI score, <a href="/dashboard/">subscribe via the dashboard</a>.</span>
           </div>
         </div>
       )}

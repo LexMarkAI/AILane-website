@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/ceo-app/',
+  base: '/AiLaneCEO/',
   build: {
-    outDir: '../ceo-app',
+    outDir: '../AiLaneCEO',
     emptyOutDir: true,
   },
 })

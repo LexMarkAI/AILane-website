@@ -8,7 +8,9 @@ export default function Navbar({ email, version, weekDate, onLogout }) {
         <div className="dash-nav-left">
           <span className="dash-logo">AILANE <span className="dash-logo-sub">ACEI</span></span>
           <div className="dash-nav-sep" />
-          <span className="dash-nav-label">Core Exposure Index</span>
+          <a href="/dashboard/" className="dash-nav-link active">Dashboard</a>
+          <a href="/knowledge-library/" className="dash-nav-link">Knowledge Library</a>
+          <a href="/ticker/" className="dash-nav-link">Ticker</a>
         </div>
         <div className="dash-nav-right">
           <span className="dash-live-badge">{'\u25CF'} LIVE</span>
