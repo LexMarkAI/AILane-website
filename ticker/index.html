@@ -68,6 +68,12 @@ const sbFetch = async (path, token) => {
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
     headers: { apikey: SB_ANON, Authorization: `Bearer ${token || SB_ANON}`, "Content-Type": "application/json" }
   });
+  if (res.status === 401) {
+    localStorage.removeItem("ailane-ticker-token");
+    localStorage.removeItem("ailane-ticker-user");
+    window.location.reload();
+    return [];
+  }
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
 };
@@ -301,7 +307,12 @@ function AilaneTicker() {
         }),
       });
       const data = await res.json();
-      setAiSummary(data.summary || data.analysis || data.content || "Analysis generated — see full report.");
+      const content = data.summary || data.analysis || data.content;
+      if (content && content.length > 50) {
+        setAiSummary(content);
+      } else {
+        setAiSummary(generateFallbackSummary(event));
+      }
     } catch (e) {
       console.error("AI summary error:", e);
       // Fallback: generate a structured placeholder
