@@ -290,6 +290,7 @@ function AilaneTicker() {
         body: JSON.stringify({
           event_type: event._type,
           event_data: {
+            id: event.id,
             title: event._title,
             case_number: event.case_number,
             date: event._date,
@@ -302,6 +303,7 @@ function AilaneTicker() {
             event_type: event.event_type,
             source: event.source,
             description: event.description,
+            source_url: event.source_url,
           },
           tier: currentTier,
           analysis_mode: "ticker_deep_analysis",
@@ -579,6 +581,29 @@ function AilaneTicker() {
     setSelectedEvent(event);
     setPanelOpen(true);
     setAiSummary(null);
+    // Auto-load cached briefing for governance/institutional
+    if (currentTier !== "operational" && event.id) {
+      loadCachedBriefing(event);
+    }
+  };
+
+  const loadCachedBriefing = async (event, overrideTier) => {
+    const useTier = overrideTier || currentTier;
+    try {
+      const sourceTableMap = { tribunal: "tribunal_decisions", legislative: "legislative_changes", enforcement: "enforcement_events_unified" };
+      const sourceTable = sourceTableMap[event._type] || "legislative_changes";
+      const res = await fetch(`${SB_URL}/rest/v1/ticker_briefings?source_table=eq.${sourceTable}&source_id=eq.${event.id}&tier=eq.${useTier}&generation_status=eq.completed&quality_passed=eq.true&select=briefing_text,quality_score,generated_at`, {
+        headers: { apikey: SB_ANON, Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0 && data[0].briefing_text && data[0].briefing_text.length > 50) {
+          setAiSummary(data[0].briefing_text);
+        }
+      }
+    } catch (e) {
+      // Silent fail — user can still click Generate Analysis
+    }
   };
 
   const closePanel = () => {
@@ -924,7 +949,14 @@ function AilaneTicker() {
           )}
 
           {/* Tier selector */}
-          <select value={currentTier} onChange={e => setCurrentTier(e.target.value)} style={{
+          <select value={currentTier} onChange={e => { 
+            const newTier = e.target.value;
+            setCurrentTier(newTier); 
+            setAiSummary(null);
+            if (selectedEvent && newTier !== "operational" && selectedEvent.id) {
+              setTimeout(() => loadCachedBriefing(selectedEvent, newTier), 100);
+            }
+          }} style={{
             background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 6, padding: "5px 8px", fontSize: 10, color: "#e2e8f0", fontFamily: "inherit",
           }}>
