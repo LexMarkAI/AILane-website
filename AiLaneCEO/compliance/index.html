@@ -124,6 +124,7 @@ function ComplianceApp() {
   // Auth
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [orgId, setOrgId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authEmail, setAuthEmail] = useState("");
   const [authPass, setAuthPass] = useState("");
@@ -175,13 +176,25 @@ function ComplianceApp() {
   const [newFolderParent, setNewFolderParent] = useState(null);
   const [newFolderIcon, setNewFolderIcon] = useState("📁");
 
+  // Resolve org_id from app_users
+  const resolveOrg = async (t, uid) => {
+    try {
+      const rows = await api(`app_users?id=eq.${uid}&select=org_id&org_id=neq.00000000-0000-0000-0000-000000000000&limit=1`, t);
+      if (rows.length) { setOrgId(rows[0].org_id); return rows[0].org_id; }
+      // Fallback: any org for this user
+      const all = await api(`app_users?id=eq.${uid}&select=org_id&limit=1`, t);
+      if (all.length) { setOrgId(all[0].org_id); return all[0].org_id; }
+    } catch (e) { console.error("Org resolve error:", e); }
+    return null;
+  };
+
   // ─── AUTH ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const t = localStorage.getItem("sb-token");
     if (t) {
       fetch(`${SB}/auth/v1/user`, { headers: { apikey: AK, Authorization: `Bearer ${t}` } })
         .then(r => r.ok ? r.json() : Promise.reject())
-        .then(u => { setToken(t); setUser(u); })
+        .then(async (u) => { setToken(t); setUser(u); await resolveOrg(t, u.id); })
         .catch(() => localStorage.removeItem("sb-token"))
         .finally(() => setLoading(false));
     } else setLoading(false);
@@ -194,7 +207,7 @@ function ComplianceApp() {
         method: "POST", headers: { apikey: AK, "Content-Type": "application/json" },
         body: JSON.stringify({ email: authEmail, password: authPass }),
       });
-      if (r.ok) { const d = await r.json(); setToken(d.access_token); setUser(d.user); localStorage.setItem("sb-token", d.access_token); }
+      if (r.ok) { const d = await r.json(); setToken(d.access_token); setUser(d.user); localStorage.setItem("sb-token", d.access_token); await resolveOrg(d.access_token, d.user.id); }
       else { const e = await r.json(); setAuthErr(e.error_description || "Invalid credentials"); }
     } catch { setAuthErr("Connection failed"); }
   };
@@ -224,15 +237,15 @@ function ComplianceApp() {
 
   // ─── FOLDER OPERATIONS ───────────────────────────────────────────────
   const createFolder = async () => {
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim() || !orgId) return;
     try {
       await api("compliance_folders", token, {
         method: "POST", headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ name: newFolderName.trim(), color: newFolderColor, icon: newFolderIcon, parent_id: newFolderParent, created_by: user.id }),
+        body: JSON.stringify({ organisation_id: orgId, name: newFolderName.trim(), color: newFolderColor, icon: newFolderIcon, parent_id: newFolderParent, created_by: user.id }),
       });
       setFolderModal(false); setNewFolderName(""); setNewFolderParent(null);
       loadAll();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Create folder error:", e); alert("Failed to create folder: " + e.message); }
   };
 
   const deleteFolder = async (id) => {
@@ -281,8 +294,8 @@ function ComplianceApp() {
 
   const startUpload = async (file) => {
     const ext = file.name.toLowerCase();
-    if (!ext.endsWith(".docx") && !ext.endsWith(".pdf")) { setUploadProgress("Only .docx and .pdf files accepted"); return; }
-    if (file.size > 10 * 1024 * 1024) { setUploadProgress("File exceeds 10MB limit"); return; }
+    if (!ext.endsWith(".docx") && !ext.endsWith(".pdf")) { setUploadProgress("Error: Only .docx and .pdf files accepted"); return; }
+    if (file.size > 10 * 1024 * 1024) { setUploadProgress("Error: File exceeds 10MB limit"); return; }
 
     setUploading(true); setUploadProgress("Uploading document...");
     try {
@@ -290,43 +303,53 @@ function ComplianceApp() {
       form.append("file", file);
       form.append("document_type", uploadDocType);
       if (uploadFolder) form.append("folder_id", uploadFolder);
+      if (uploadName.trim()) form.append("display_name", uploadName.trim());
+      if (uploadNotes.trim()) form.append("notes", uploadNotes.trim());
 
       const r = await fetch(`${SB}/functions/v1/compliance-upload`, {
         method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: AK }, body: form,
       });
+
+      if (!r.ok) {
+        const errText = await r.text();
+        setUploadProgress(`Error (${r.status}): ${errText}`);
+        setUploading(false); return;
+      }
+
       const data = await r.json();
       if (data.error) { setUploadProgress(`Error: ${data.error}`); setUploading(false); return; }
 
-      setUploadProgress("Document uploaded. Running compliance analysis...");
+      setUploadProgress("Document uploaded. Running compliance analysis (3–8 seconds)...");
 
-      // Update display_name and notes and folder_id on the record
-      if (uploadName.trim() || uploadNotes.trim() || uploadFolder) {
-        await api(`compliance_uploads?id=eq.${data.upload_id}`, token, {
-          method: "PATCH", body: JSON.stringify({
-            ...(uploadName.trim() ? { display_name: uploadName.trim() } : {}),
-            ...(uploadNotes.trim() ? { notes: uploadNotes.trim() } : {}),
-            ...(uploadFolder ? { folder_id: uploadFolder } : {}),
-          }),
-        });
-      }
-
-      // Poll for completion
+      // Poll for completion — typical contract takes 3-8 seconds
+      let polls = 0;
+      const maxPolls = 30; // 75 seconds max
       const poll = setInterval(async () => {
-        const [check] = await api(`compliance_uploads?id=eq.${data.upload_id}`, token);
-        if (check?.status === "complete") {
-          clearInterval(poll);
-          setUploadProgress("Analysis complete!");
-          setSelectedUpload(check); setView("report");
-          setUploading(false); setUploadName(""); setUploadNotes("");
-          loadAll();
-        } else if (check?.status === "error") {
-          clearInterval(poll);
-          setUploadProgress(`Error: ${check.processing_error || "Analysis failed"}`);
-          setUploading(false); loadAll();
+        polls++;
+        try {
+          const [check] = await api(`compliance_uploads?id=eq.${data.upload_id}`, token);
+          if (check?.status === "complete") {
+            clearInterval(poll);
+            setUploadProgress("Analysis complete!");
+            setSelectedUpload(check); setView("report");
+            setUploading(false); setUploadName(""); setUploadNotes("");
+            loadAll();
+          } else if (check?.status === "error") {
+            clearInterval(poll);
+            setUploadProgress(`Error: ${check.processing_error || "Analysis failed — the document may not contain extractable text."}`);
+            setUploading(false); loadAll();
+          } else if (polls >= maxPolls) {
+            clearInterval(poll);
+            setUploadProgress("Analysis is taking longer than expected. Check back in the document list shortly.");
+            setUploading(false); loadAll();
+          } else if (polls > 4) {
+            setUploadProgress(`Analysing document... (${polls * 2.5}s)`);
+          }
+        } catch (e) {
+          console.error("Poll error:", e);
         }
       }, 2500);
-      setTimeout(() => clearInterval(poll), 120000);
-    } catch (e) { setUploadProgress(`Upload failed: ${e.message}`); setUploading(false); }
+    } catch (e) { setUploadProgress(`Error: Upload failed — ${e.message}`); setUploading(false); }
   };
 
   // ─── TRACK A ATTESTATION ─────────────────────────────────────────────
@@ -351,20 +374,19 @@ function ComplianceApp() {
         body: JSON.stringify({
           document_type: attestDocType,
           attestation_details: { requirements: reqs },
-          folder_id: attestFolder,
+          folder_id: attestFolder || null,
+          display_name: `${attestDocType === "contract" ? "Contract" : "Handbook"} Attestation — ${new Date().toLocaleDateString("en-GB")}`,
         }),
       });
-      const data = await r.json();
 
-      // Update folder and name
-      if (data.upload_id && attestFolder) {
-        await api(`compliance_uploads?id=eq.${data.upload_id}`, token, {
-          method: "PATCH", body: JSON.stringify({
-            folder_id: attestFolder,
-            display_name: `${attestDocType === "contract" ? "Contract" : "Handbook"} Attestation — ${new Date().toLocaleDateString("en-GB")}`,
-          }),
-        });
+      if (!r.ok) {
+        const errText = await r.text();
+        console.error("Attestation error:", errText);
+        setAttestSubmitting(false); return;
       }
+
+      const data = await r.json();
+      if (data.error) { console.error("Attestation error:", data.error); setAttestSubmitting(false); return; }
 
       loadAll();
       if (data.upload_id) {
@@ -381,7 +403,8 @@ function ComplianceApp() {
   // ─── FILTERED DOCUMENTS ──────────────────────────────────────────────
   const filteredUploads = useMemo(() => {
     let list = [...uploads];
-    if (activeFolder) list = list.filter(u => u.folder_id === activeFolder);
+    if (activeFolder === "__unfiled") list = list.filter(u => !u.folder_id);
+    else if (activeFolder) list = list.filter(u => u.folder_id === activeFolder);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(u => (u.display_name || u.file_name || "attestation").toLowerCase().includes(q) || u.document_type.includes(q));
@@ -1049,7 +1072,7 @@ function ComplianceApp() {
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
             <Btn variant="secondary" onClick={() => setFolderModal(false)}>Cancel</Btn>
-            <Btn onClick={createFolder} disabled={!newFolderName.trim()}>Create Folder</Btn>
+            <Btn onClick={createFolder} disabled={!newFolderName.trim() || !orgId}>{orgId ? "Create Folder" : "Loading org..."}</Btn>
           </div>
         </div>
       </Modal>
