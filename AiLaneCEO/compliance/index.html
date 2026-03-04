@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compliance Intelligence — Ailane CEO</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%230a0e1a' font-weight='700' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; width: 100%; }
+    body { background: #0a0e1a; font-family: 'DM Sans', -apple-system, sans-serif; color: #e2e8f0; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+const { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } = Recharts;
+
+// ─── CONFIG ──────────────────────────────────────────────────────────
+const SB_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+
+const SEVERITY_COLORS = { compliant: "#10b981", minor: "#f59e0b", major: "#f97316", critical: "#ef4444" };
+const SEVERITY_ICONS = { compliant: "✓", minor: "△", major: "▲", critical: "⬆" };
+const PILLAR_LABELS = { PA: "Policy Alignment", CC: "Contractual Conformity", TD: "Training Deployment", SPA: "Systems & Process", GO: "Governance Oversight" };
+const PILLAR_COLORS = { PA: "#8b5cf6", CC: "#22d3ee", TD: "#f59e0b", SPA: "#10b981", GO: "#f97316" };
+
+const sbFetch = async (path, token) => {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers: { apikey: SB_ANON, Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+  });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+};
+
+// ─── SHARED COMPONENTS ───────────────────────────────────────────────
+const Badge = ({ children, color = "#22d3ee" }) => (
+  <span style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", background: `${color}18`, color, border: `1px solid ${color}30` }}>{children}</span>
+);
+
+const StatCard = ({ label, value, sub, accent = "#22d3ee", icon }) => (
+  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 4 }}>
+    <div style={{ fontSize: 11, color: "#64748b", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+      {icon && <span style={{ fontSize: 14 }}>{icon}</span>}{label}
+    </div>
+    <div style={{ fontSize: 26, fontWeight: 700, color: accent, fontFamily: "'JetBrains Mono',monospace" }}>{value}</div>
+    {sub && <div style={{ fontSize: 11, color: "#94a3b8" }}>{sub}</div>}
+  </div>
+);
+
+const SectionHeader = ({ title, subtitle, action }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+    <div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: "#e2e8f0", margin: 0 }}>{title}</h2>
+      {subtitle && <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{subtitle}</div>}
+    </div>
+    {action}
+  </div>
+);
+
+const LoadingPulse = () => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, gap: 8 }}>
+    {[0, 0.2, 0.4].map((d, i) => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#22d3ee", animation: `pulse 1s ease infinite ${d}s` }} />)}
+  </div>
+);
+
+const MiniGauge = ({ value, max, size = 60, color }) => {
+  const r = size / 2 - 6;
+  const circ = 2 * Math.PI * r;
+  const pct = max > 0 ? value / max : 0;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={5} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={5}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`} style={{ transition: "stroke-dashoffset 1s ease" }} />
+      <text x={size/2} y={size/2 + 1} textAnchor="middle" dominantBaseline="middle" fill={color}
+        fontSize={size * 0.28} fontWeight="700" fontFamily="'JetBrains Mono',monospace">{value}</text>
+    </svg>
+  );
+};
+
+// ─── MAIN APP ────────────────────────────────────────────────────────
+function CEOComplianceIntel() {
+  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authEmail, setAuthEmail] = useState("mark@ailane.ai");
+  const [authPass, setAuthPass] = useState("");
+  const [authError, setAuthError] = useState("");
+
+  // Data
+  const [uploads, setUploads] = useState([]);
+  const [findings, setFindings] = useState([]);
+  const [requirements, setRequirements] = useState([]);
+  const [organisations, setOrganisations] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState(null);
+  const [selectedUpload, setSelectedUpload] = useState(null);
+  const [orgFindings, setOrgFindings] = useState([]);
+  const [view, setView] = useState("overview"); // overview | org | report
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Auth
+  useEffect(() => {
+    const stored = localStorage.getItem("sb-token");
+    if (stored) {
+      fetch(`${SB_URL}/auth/v1/user`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${stored}` } })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(u => { setToken(stored); setUser(u); })
+        .catch(() => localStorage.removeItem("sb-token"))
+        .finally(() => setLoading(false));
+    } else setLoading(false);
+  }, []);
+
+  const handleLogin = async () => {
+    setAuthError("");
+    try {
+      const res = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST", headers: { apikey: SB_ANON, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail, password: authPass }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setToken(d.access_token); setUser(d.user);
+        localStorage.setItem("sb-token", d.access_token);
+      } else { const e = await res.json(); setAuthError(e.error_description || "Invalid"); }
+    } catch { setAuthError("Connection failed"); }
+  };
+
+  const handleLogout = () => { setToken(null); setUser(null); localStorage.removeItem("sb-token"); };
+
+  // Load all data (CEO sees everything via service-role patterns or own-org if scoped)
+  const loadData = async () => {
+    if (!token) return;
+    setRefreshing(true);
+    try {
+      const [u, r, orgs] = await Promise.all([
+        sbFetch("compliance_uploads?order=created_at.desc&limit=200", token),
+        sbFetch("regulatory_requirements?order=category,requirement_name", token),
+        sbFetch("organisations?select=id,name,plan,headcount,industry,jurisdiction&order=name", token),
+      ]);
+      setUploads(u); setRequirements(r); setOrganisations(orgs);
+
+      // Load all findings for uploaded documents
+      if (u.length > 0) {
+        const uploadIds = u.map(x => x.id).join(",");
+        const f = await sbFetch(`compliance_findings?upload_id=in.(${uploadIds})&order=severity.desc`, token);
+        setFindings(f);
+      }
+    } catch (e) { console.error("Load error:", e); }
+    setRefreshing(false);
+  };
+
+  useEffect(() => { loadData(); }, [token]);
+
+  // Load findings for selected upload
+  useEffect(() => {
+    if (!selectedUpload || !token) { setOrgFindings([]); return; }
+    sbFetch(`compliance_findings?upload_id=eq.${selectedUpload.id}&order=severity.desc,clause_category`, token)
+      .then(setOrgFindings).catch(console.error);
+  }, [selectedUpload, token]);
+
+  // ─── COMPUTED METRICS ──────────────────────────────────────────────
+  const metrics = useMemo(() => {
+    const totalUploads = uploads.length;
+    const trackA = uploads.filter(u => u.evidence_track === "attestation");
+    const trackB = uploads.filter(u => u.evidence_track === "documentary");
+    const complete = uploads.filter(u => u.status === "complete");
+    const avgScore = complete.length > 0 ? (complete.reduce((s, u) => s + (u.overall_score || 0), 0) / complete.length).toFixed(1) : "—";
+    const avgPillar = complete.length > 0 ? (complete.reduce((s, u) => s + (u.translated_pillar_score || 0), 0) / complete.length).toFixed(1) : "—";
+
+    // Severity breakdown across all findings
+    const sevCounts = findings.reduce((acc, f) => { acc[f.severity] = (acc[f.severity] || 0) + 1; return acc; }, {});
+
+    // Pillar coverage
+    const pillarCounts = findings.reduce((acc, f) => {
+      if (!acc[f.pillar_mapping]) acc[f.pillar_mapping] = { compliant: 0, total: 0 };
+      acc[f.pillar_mapping].total++;
+      if (f.severity === "compliant") acc[f.pillar_mapping].compliant++;
+      return acc;
+    }, {});
+
+    // Organisation compliance map
+    const orgMap = {};
+    uploads.forEach(u => {
+      if (!orgMap[u.organisation_id]) orgMap[u.organisation_id] = { uploads: [], totalScore: 0, complete: 0 };
+      orgMap[u.organisation_id].uploads.push(u);
+      if (u.status === "complete") {
+        orgMap[u.organisation_id].totalScore += u.overall_score || 0;
+        orgMap[u.organisation_id].complete++;
+      }
+    });
+
+    // Critical gaps (most common critical findings)
+    const criticalFindings = findings.filter(f => f.severity === "critical");
+    const criticalByRef = criticalFindings.reduce((acc, f) => {
+      const key = f.statutory_ref;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const topCritical = Object.entries(criticalByRef).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+    // Track adoption
+    const trackAdoption = [
+      { name: "Track A", value: trackA.length, fill: "#f59e0b" },
+      { name: "Track B", value: trackB.length, fill: "#10b981" },
+    ];
+
+    // Document type split
+    const docTypes = uploads.reduce((acc, u) => { acc[u.document_type] = (acc[u.document_type] || 0) + 1; return acc; }, {});
+
+    return { totalUploads, trackA: trackA.length, trackB: trackB.length, complete: complete.length,
+      avgScore, avgPillar, sevCounts, pillarCounts, orgMap, topCritical, trackAdoption, docTypes,
+      criticalCount: criticalFindings.length, totalFindings: findings.length };
+  }, [uploads, findings]);
+
+  // Org list with metrics
+  const orgList = useMemo(() => {
+    return organisations.map(org => {
+      const data = metrics.orgMap[org.id];
+      if (!data) return { ...org, uploads: 0, avgScore: null, status: "none" };
+      const avg = data.complete > 0 ? (data.totalScore / data.complete) : null;
+      return { ...org, uploads: data.uploads.length, avgScore: avg,
+        status: avg === null ? "pending" : avg >= 65 ? "strong" : avg >= 30 ? "moderate" : "weak",
+        latestUpload: data.uploads[0] };
+    }).filter(o => o.uploads > 0).sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0));
+  }, [organisations, metrics]);
+
+  // ─── RENDER: LOGIN ───────────────────────────────────────────────────
+  if (loading) return <LoadingPulse />;
+  if (!token) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #0a0e1a 0%, #0f172a 100%)" }}>
+      <div style={{ width: 380, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 36, animation: "fadeIn 0.4s ease" }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", letterSpacing: "-1px" }}>AILANE</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>CEO Compliance Intelligence</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="Email" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 14px", color: "#e2e8f0", fontSize: 14, outline: "none", fontFamily: "'DM Sans',sans-serif" }} />
+          <input value={authPass} onChange={e => setAuthPass(e.target.value)} type="password" placeholder="Password" onKeyDown={e => e.key === "Enter" && handleLogin()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 14px", color: "#e2e8f0", fontSize: 14, outline: "none", fontFamily: "'DM Sans',sans-serif" }} />
+          <button onClick={handleLogin} style={{ background: "linear-gradient(135deg, #0d9488, #22d3ee)", border: "none", borderRadius: 8, padding: "11px 0", color: "#0a0e1a", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>Sign In</button>
+          {authError && <div style={{ fontSize: 12, color: "#ef4444", textAlign: "center" }}>{authError}</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── RENDER: DETAIL REPORT ───────────────────────────────────────────
+  const renderReport = () => {
+    if (!selectedUpload) return null;
+    const upload = selectedUpload;
+    const sevCounts = orgFindings.reduce((acc, f) => { acc[f.severity] = (acc[f.severity] || 0) + 1; return acc; }, {});
+
+    return (
+      <div style={{ animation: "fadeIn 0.3s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer" }} onClick={() => setView(selectedOrg ? "org" : "overview")}>
+          <span style={{ color: "#22d3ee", fontSize: 16 }}>←</span>
+          <span style={{ color: "#22d3ee", fontSize: 13, fontWeight: 500 }}>Back</span>
+        </div>
+
+        <SectionHeader
+          title={upload.file_name || "Attestation Analysis"}
+          subtitle={`${upload.document_type} · ${upload.evidence_track === "documentary" ? "Track B — Documentary" : "Track A — Attestation"} · ${new Date(upload.created_at).toLocaleString()}`}
+        />
+
+        {/* Score overview */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 24 }}>
+          <div style={{ background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.15)", borderRadius: 10, padding: "14px 16px", gridColumn: "span 2", display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
+            <MiniGauge value={Math.round(upload.overall_score || 0)} max={100} size={70} color={upload.overall_score >= 65 ? "#10b981" : upload.overall_score >= 30 ? "#f59e0b" : "#f97316"} />
+            <div>
+              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" }}>Overall Score</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: "#e2e8f0", fontFamily: "'JetBrains Mono',monospace" }}>{upload.overall_score || 0}%</div>
+              <div style={{ fontSize: 10, color: "#94a3b8" }}>Pillar: {upload.translated_pillar_score}/{upload.evidence_track === "documentary" ? "3" : "2"}</div>
+            </div>
+          </div>
+          {["compliant", "minor", "major", "critical"].map(sev => (
+            <div key={sev} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${SEVERITY_COLORS[sev]}20`, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: SEVERITY_COLORS[sev], fontFamily: "'JetBrains Mono',monospace" }}>{sevCounts[sev] || 0}</div>
+              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.3px" }}>{sev}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Findings list */}
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>
+            Findings ({orgFindings.length})
+          </div>
+          <div style={{ maxHeight: 500, overflowY: "auto" }}>
+            {orgFindings.length === 0 ? <LoadingPulse /> : orgFindings.map((f, i) => (
+              <div key={f.id} style={{ padding: "12px 18px", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `slideUp 0.2s ease ${i * 0.015}s both` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: SEVERITY_COLORS[f.severity], display: "inline-block" }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{f.statutory_ref}</span>
+                    <Badge color={PILLAR_COLORS[f.pillar_mapping]}>{f.pillar_mapping}</Badge>
+                  </div>
+                  <Badge color={SEVERITY_COLORS[f.severity]}>{f.severity}</Badge>
+                </div>
+                <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.6, marginLeft: 15 }}>{f.finding_detail}</div>
+                {f.remediation && (
+                  <div style={{ marginTop: 6, marginLeft: 15, padding: "6px 10px", background: "rgba(34,211,238,0.04)", border: "1px solid rgba(34,211,238,0.1)", borderRadius: 5, fontSize: 10, color: "#22d3ee", lineHeight: 1.5 }}>
+                    {f.remediation}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── RENDER: ORG DRILLDOWN ───────────────────────────────────────────
+  const renderOrgDetail = () => {
+    if (!selectedOrg) return null;
+    const orgUploads = uploads.filter(u => u.organisation_id === selectedOrg.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const orgFindingsAll = findings.filter(f => orgUploads.some(u => u.id === f.upload_id));
+    const sevCounts = orgFindingsAll.reduce((acc, f) => { acc[f.severity] = (acc[f.severity] || 0) + 1; return acc; }, {});
+    const complete = orgUploads.filter(u => u.status === "complete");
+    const avgScore = complete.length > 0 ? (complete.reduce((s, u) => s + (u.overall_score || 0), 0) / complete.length).toFixed(1) : "—";
+
+    return (
+      <div style={{ animation: "fadeIn 0.3s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer" }} onClick={() => { setView("overview"); setSelectedOrg(null); }}>
+          <span style={{ color: "#22d3ee", fontSize: 16 }}>←</span>
+          <span style={{ color: "#22d3ee", fontSize: 13, fontWeight: 500 }}>All Organisations</span>
+        </div>
+
+        <SectionHeader
+          title={selectedOrg.name}
+          subtitle={`${selectedOrg.plan} plan · ${selectedOrg.industry || "—"} · ${selectedOrg.headcount || "—"} employees`}
+        />
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
+          <StatCard label="Analyses" value={orgUploads.length} icon="📄" accent="#22d3ee" />
+          <StatCard label="Avg Score" value={`${avgScore}%`} icon="📊" accent={parseFloat(avgScore) >= 65 ? "#10b981" : "#f59e0b"} />
+          <StatCard label="Compliant" value={sevCounts.compliant || 0} icon="✓" accent="#10b981" />
+          <StatCard label="Critical" value={sevCounts.critical || 0} icon="⬆" accent="#ef4444" />
+          <StatCard label="Track B %" value={orgUploads.length > 0 ? `${Math.round((orgUploads.filter(u => u.evidence_track === "documentary").length / orgUploads.length) * 100)}%` : "—"} icon="📎" accent="#8b5cf6" />
+        </div>
+
+        {/* Uploads table */}
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>
+            Compliance Analyses ({orgUploads.length})
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: "rgba(255,255,255,0.02)" }}>
+                {["Document", "Type", "Track", "Score", "Pillar", "Status", "Date"].map((h, i) => (
+                  <th key={i} style={{ padding: "9px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orgUploads.map((u, i) => (
+                <tr key={u.id} onClick={() => { setSelectedUpload(u); setView("report"); }} style={{ cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `slideUp 0.2s ease ${i * 0.03}s both` }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(34,211,238,0.04)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <td style={{ padding: "9px 14px", color: "#e2e8f0", fontWeight: 500 }}>{u.file_name || "Attestation"}</td>
+                  <td style={{ padding: "9px 14px" }}><Badge color="#8b5cf6">{u.document_type}</Badge></td>
+                  <td style={{ padding: "9px 14px" }}><Badge color={u.evidence_track === "documentary" ? "#10b981" : "#f59e0b"}>{u.evidence_track === "documentary" ? "B" : "A"}</Badge></td>
+                  <td style={{ padding: "9px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, color: u.overall_score >= 65 ? "#10b981" : u.overall_score >= 30 ? "#f59e0b" : "#f97316" }}>{u.overall_score != null ? `${u.overall_score}%` : "—"}</td>
+                  <td style={{ padding: "9px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: "#22d3ee" }}>{u.translated_pillar_score ?? "—"}</td>
+                  <td style={{ padding: "9px 14px" }}><Badge color={u.status === "complete" ? "#10b981" : u.status === "error" ? "#ef4444" : "#f59e0b"}>{u.status}</Badge></td>
+                  <td style={{ padding: "9px 14px", color: "#64748b", fontSize: 11 }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── RENDER: OVERVIEW ────────────────────────────────────────────────
+  const renderOverview = () => (
+    <div style={{ animation: "fadeIn 0.3s ease" }}>
+      <SectionHeader
+        title="Compliance Intelligence"
+        subtitle={`Platform-wide compliance posture · ${new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
+        action={<button onClick={loadData} disabled={refreshing} style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 6, padding: "6px 14px", color: "#22d3ee", fontSize: 11, fontWeight: 600, cursor: "pointer", opacity: refreshing ? 0.5 : 1 }}>{refreshing ? "Refreshing..." : "⟳ Refresh"}</button>}
+      />
+
+      {/* KPI Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginBottom: 28 }}>
+        <StatCard label="Total Analyses" value={metrics.totalUploads} icon="📄" accent="#22d3ee" sub={`${metrics.complete} complete`} />
+        <StatCard label="Track A" value={metrics.trackA} icon="☑️" accent="#f59e0b" sub="Attestation (≤2)" />
+        <StatCard label="Track B" value={metrics.trackB} icon="📎" accent="#10b981" sub="Documentary (≤3)" />
+        <StatCard label="Avg Score" value={`${metrics.avgScore}%`} icon="📊" accent={parseFloat(metrics.avgScore) >= 65 ? "#10b981" : "#f59e0b"} />
+        <StatCard label="Avg Pillar" value={metrics.avgPillar} icon="🏛️" accent="#8b5cf6" sub="Tier I (0–3)" />
+        <StatCard label="Critical Gaps" value={metrics.criticalCount} icon="🔴" accent="#ef4444" sub={`of ${metrics.totalFindings} findings`} />
+        <StatCard label="Requirements" value={requirements.length} icon="⚖️" accent="#22d3ee" sub="Statutory checklist" />
+        <StatCard label="Organisations" value={orgList.length} icon="🏢" accent="#a78bfa" sub={`of ${organisations.length} total`} />
+      </div>
+
+      {/* Two-column: Charts */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+        {/* Track Adoption */}
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 }}>Evidence Track Adoption</div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>Track B uploads demonstrate higher evidentiary quality</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={metrics.trackAdoption} cx="50%" cy="50%" innerRadius={50} outerRadius={72} dataKey="value" strokeWidth={0} label={({ name, value }) => `${name}: ${value}`}>
+                {metrics.trackAdoption.map((d, i) => <Cell key={i} fill={d.fill} />)}
+              </Pie>
+              <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12, color: "#e2e8f0" }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Pillar Compliance */}
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 }}>RRI Pillar Compliance Rates</div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>Compliance rate per pillar across all analysed documents</div>
+          {Object.entries(metrics.pillarCounts).map(([pillar, data]) => {
+            const pct = data.total > 0 ? Math.round((data.compliant / data.total) * 100) : 0;
+            return (
+              <div key={pillar} style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+                  <span style={{ color: PILLAR_COLORS[pillar], fontWeight: 600 }}>{PILLAR_LABELS[pillar]}</span>
+                  <span style={{ color: "#94a3b8", fontFamily: "'JetBrains Mono',monospace" }}>{pct}% <span style={{ color: "#475569" }}>({data.compliant}/{data.total})</span></span>
+                </div>
+                <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${PILLAR_COLORS[pillar]}88, ${PILLAR_COLORS[pillar]})`, borderRadius: 4, transition: "width 0.8s ease" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Top Critical Gaps */}
+      {metrics.topCritical.length > 0 && (
+        <div style={{ background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.12)", borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", marginBottom: 4 }}>Most Common Critical Gaps</div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 14 }}>Statutory requirements most frequently flagged as critical across all organisations</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {metrics.topCritical.map(([ref, count], i) => (
+              <div key={ref} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 6, animation: `slideUp 0.2s ease ${i * 0.04}s both` }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#ef4444", fontFamily: "'JetBrains Mono',monospace", minWidth: 28 }}>{count}</span>
+                <span style={{ fontSize: 11, color: "#e2e8f0" }}>{ref}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Organisation Compliance Table */}
+      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>Organisation Compliance Status</div>
+            <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Click to drill down into individual compliance posture</div>
+          </div>
+        </div>
+        {orgList.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+            <div style={{ fontSize: 13, color: "#94a3b8" }}>No compliance analyses submitted yet</div>
+            <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>Organisations will appear here once they upload documents or submit attestations</div>
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: "rgba(255,255,255,0.02)" }}>
+                {["Organisation", "Plan", "Analyses", "Avg Score", "Status", "Conversion Signal"].map((h, i) => (
+                  <th key={i} style={{ padding: "9px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orgList.map((org, i) => {
+                const statusColors = { strong: "#10b981", moderate: "#f59e0b", weak: "#ef4444", pending: "#64748b", none: "#334155" };
+                const statusLabels = { strong: "Strong", moderate: "Moderate", weak: "Weak", pending: "Pending", none: "No Data" };
+                // Conversion signal: orgs with analyses are engaged; high scores = ready for upsell
+                const signal = org.uploads >= 3 ? "🔥 Hot" : org.uploads >= 1 ? "📈 Active" : "💤 Cold";
+                const signalColor = org.uploads >= 3 ? "#ef4444" : org.uploads >= 1 ? "#f59e0b" : "#334155";
+                return (
+                  <tr key={org.id} onClick={() => { setSelectedOrg(org); setView("org"); }} style={{ cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `slideUp 0.2s ease ${i * 0.03}s both` }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(34,211,238,0.04)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <td style={{ padding: "10px 14px", color: "#e2e8f0", fontWeight: 600 }}>{org.name}</td>
+                    <td style={{ padding: "10px 14px" }}><Badge color="#8b5cf6">{org.plan}</Badge></td>
+                    <td style={{ padding: "10px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, color: "#22d3ee" }}>{org.uploads}</td>
+                    <td style={{ padding: "10px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, color: statusColors[org.status] }}>{org.avgScore != null ? `${org.avgScore.toFixed(1)}%` : "—"}</td>
+                    <td style={{ padding: "10px 14px" }}><Badge color={statusColors[org.status]}>{statusLabels[org.status]}</Badge></td>
+                    <td style={{ padding: "10px 14px", fontSize: 12, color: signalColor, fontWeight: 600 }}>{signal}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Constitutional compliance footer */}
+      <div style={{ padding: "14px 18px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 10, color: "#475569", lineHeight: 1.7 }}>
+        <strong style={{ color: "#64748b" }}>Constitutional Framework:</strong> All compliance scoring operates within RRI v1.0 Article V (Evidence Classification), Article VI (Computational Sequence). Dual-track model per AILANE-CC-RRI-INT-001 v1.1 Section 5.1. Strict separation doctrine maintained — ACEI data never enters RRI scoring pathway. Tier I ceiling enforced: Track A ≤ 2 (Initiated), Track B ≤ 3 (Developed).
+      </div>
+    </div>
+  );
+
+  // ─── RENDER: MAIN LAYOUT ─────────────────────────────────────────────
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a0e1a", color: "#e2e8f0" }}>
+      {/* Top bar */}
+      <header style={{ padding: "12px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <a href="/AiLaneCEO/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", letterSpacing: "-1px" }}>AILANE</span>
+          </a>
+          <span style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }} />
+          <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>Compliance Intelligence</span>
+          <Badge color="#ef4444">CEO</Badge>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Badge color="#10b981">RRI v1.0</Badge>
+          <Badge color="#22d3ee">Tier I</Badge>
+          <span style={{ fontSize: 11, color: "#64748b" }}>{user?.email}</span>
+          <button onClick={handleLogout} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 4, padding: "3px 8px", color: "#ef4444", fontSize: 9, fontWeight: 600, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.5px" }}>Logout</button>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main style={{ padding: "24px 32px", maxWidth: 1300, margin: "0 auto" }}>
+        {view === "overview" && renderOverview()}
+        {view === "org" && renderOrgDetail()}
+        {view === "report" && renderReport()}
+      </main>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(CEOComplianceIntel));
+  </script>
+</body>
+</html>
