@@ -301,7 +301,8 @@ function AilaneTicker() {
         }),
       });
       const data = await res.json();
-      setAiSummary(data.summary || data.analysis || data.content || "Analysis generated — see full report.");
+     const content = data.summary || data.analysis || data.content;
+if (content && content.length > 50) { setAiSummary(content); } else { setAiSummary(generateFallbackSummary(event)); }
     } catch (e) {
       console.error("AI summary error:", e);
       // Fallback: generate a structured placeholder
