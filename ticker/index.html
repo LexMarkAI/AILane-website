@@ -17,6 +17,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -332,7 +333,221 @@ function AilaneTicker() {
     return `EXECUTIVE SUMMARY\nEnforcement action: ${event._title}. Regulatory signalling event requiring monitoring.\n\nKEY FINDINGS\n• Source: ${event.source || "Regulatory body"}\n• Category: ${cat?.label || "Pending classification"}\n• Significance: ${event._significance}\n\nACTION REQUIRED\nMonitor for pattern development. Review internal compliance posture against enforcement criteria.`;
   };
 
-  // ─── FILTERING ──────────────────────────────────────────────────────
+  // ─── PDF EXPORT (Institutional Briefing) ─────────────────────────
+  const downloadBriefingPdf = (event, analysisText) => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pw = 210, ph = 297, mx = 20, mxr = 190;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const type = EVENT_TYPES[event._type] || EVENT_TYPES.regulatory;
+    const categories = (event._categories || (event._category ? [event._category] : [])).map(c => {
+      const cat = ACEI_CATEGORIES[c];
+      return cat ? `Category ${cat.num}: ${cat.label}` : c;
+    });
+
+    // --- Helper: add page footer ---
+    const addFooter = (pageNum, totalPages) => {
+      doc.setDrawColor(34, 211, 238);
+      doc.setLineWidth(0.3);
+      doc.line(mx, ph - 18, mxr, ph - 18);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(120, 130, 150);
+      doc.text("AILANE · Regulatory Intelligence Platform · ailane.ai", mx, ph - 13);
+      doc.text("AI Lane Limited · Company No. 17035654", mx, ph - 9.5);
+      doc.text(`Classification: Institutional — Confidential`, mxr, ph - 13, { align: "right" });
+      doc.text(`Page ${pageNum} of ${totalPages}`, mxr, ph - 9.5, { align: "right" });
+    };
+
+    // --- Helper: wrap & print text, returning new Y ---
+    const printWrapped = (text, x, y, maxW, fontSize, fontStyle, color, lineH) => {
+      doc.setFont("helvetica", fontStyle);
+      doc.setFontSize(fontSize);
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(text, maxW);
+      for (let i = 0; i < lines.length; i++) {
+        if (y > ph - 25) {
+          doc.addPage();
+          y = 25;
+        }
+        doc.text(lines[i], x, y);
+        y += lineH;
+      }
+      return y;
+    };
+
+    // ======== PAGE 1: COVER ========
+    // Brand bar
+    doc.setFillColor(10, 14, 26);
+    doc.rect(0, 0, pw, 50, "F");
+    doc.setFillColor(34, 211, 238);
+    doc.rect(0, 48, pw, 2, "F");
+
+    // Logo text
+    doc.setFont("courier", "bold");
+    doc.setFontSize(28);
+    doc.setTextColor(34, 211, 238);
+    doc.text("AILANE", mx, 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("REGULATORY INTELLIGENCE PLATFORM", mx + 62, 30);
+
+    // Classification strip
+    doc.setFillColor(245, 158, 11);
+    doc.rect(0, 56, pw, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(10, 14, 26);
+    doc.text("INSTITUTIONAL REGULATORY INTELLIGENCE BRIEFING", pw / 2, 61.5, { align: "center" });
+
+    // Event title
+    let y = 78;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(30, 41, 59);
+    const titleLines = doc.splitTextToSize(event._title || "Regulatory Event", mxr - mx);
+    titleLines.forEach(line => { doc.text(line, mx, y); y += 7; });
+    y += 4;
+
+    // Meta info box
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(mx, y, mxr - mx, 36, 3, 3, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    const metaY = y + 7;
+    doc.text("EVENT TYPE", mx + 5, metaY);
+    doc.text("DATE", mx + 55, metaY);
+    doc.text("JURISDICTION", mx + 100, metaY);
+    doc.text("SIGNIFICANCE", mx + 140, metaY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(30, 41, 59);
+    doc.text(type.label, mx + 5, metaY + 6);
+    doc.text(event._date ? new Date(event._date).toLocaleDateString("en-GB") : "—", mx + 55, metaY + 6);
+    doc.text(event._jurisdiction === "GB" ? "United Kingdom" : (event._jurisdiction || "—"), mx + 100, metaY + 6);
+    doc.text((SIGNIFICANCE_LEVELS.find(s => s.id === event._significance) || {}).label || "—", mx + 140, metaY + 6);
+
+    if (event.case_number || event.compensation_awarded) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      if (event.case_number) { doc.text("CASE NUMBER", mx + 5, metaY + 15); }
+      if (event.compensation_awarded) { doc.text("COMPENSATION", mx + 55, metaY + 15); }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      if (event.case_number) { doc.text(event.case_number, mx + 5, metaY + 21); }
+      if (event.compensation_awarded) { doc.text(`£${parseFloat(event.compensation_awarded).toLocaleString()}`, mx + 55, metaY + 21); }
+    }
+
+    y += 42;
+    // ACEI categories
+    if (categories.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(34, 211, 238);
+      doc.text("ACEI CATEGORY IMPACT", mx, y);
+      y += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      categories.forEach(c => { doc.text(`• ${c}`, mx + 2, y); y += 5; });
+      y += 4;
+    }
+
+    // Generation info
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Generated: ${dateStr} at ${timeStr} UTC · Powered by Ailane Constitutional AI Engine`, mx, y);
+    y += 3;
+    doc.text("ACEI v1.0 · RRI v1.0 · CCI v1.0 — Founding Constitutions adopted 26 February 2026", mx, y + 4);
+
+    addFooter(1, "—");
+
+    // ======== PAGE 2+: ANALYSIS CONTENT ========
+    doc.addPage();
+    y = 25;
+
+    // Section header bar
+    doc.setFillColor(10, 14, 26);
+    doc.rect(0, 0, pw, 16, "F");
+    doc.setFillColor(34, 211, 238);
+    doc.rect(0, 15, pw, 1, "F");
+    doc.setFont("courier", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(34, 211, 238);
+    doc.text("AILANE", mx, 10);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    doc.text("INSTITUTIONAL BRIEFING — AI ANALYSIS", mx + 30, 10);
+    doc.text(dateStr, mxr, 10, { align: "right" });
+
+    y = 25;
+
+    // Parse analysis text into sections
+    const blocks = analysisText.split("\n");
+    for (let i = 0; i < blocks.length; i++) {
+      const line = blocks[i].trim();
+      if (!line) { y += 3; continue; }
+
+      // Check if section header (ALL CAPS, no bullet)
+      if (/^[A-Z][A-Z &\u2014\u2013\-]{3,}$/.test(line)) {
+        y += 5;
+        if (y > ph - 40) { doc.addPage(); y = 25; }
+        // Accent line
+        doc.setDrawColor(34, 211, 238);
+        doc.setLineWidth(0.6);
+        doc.line(mx, y, mx + 30, y);
+        y += 5;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(10, 14, 26);
+        doc.text(line, mx, y);
+        y += 8;
+      } else if (line.startsWith("•") || line.startsWith("\\u2022") || line.startsWith("-")) {
+        // Bullet point
+        const bulletText = line.replace(/^[•\\u2022\\-]\\s*/, "").trim();
+        doc.setFillColor(34, 211, 238);
+        doc.circle(mx + 2, y - 1.2, 0.8, "F");
+        y = printWrapped(bulletText, mx + 6, y, mxr - mx - 6, 9.5, "normal", [51, 65, 85], 4.5);
+        y += 1.5;
+      } else {
+        // Body text
+        y = printWrapped(line, mx, y, mxr - mx, 9.5, "normal", [51, 65, 85], 4.5);
+        y += 2;
+      }
+    }
+
+    // Disclaimer
+    y += 8;
+    if (y > ph - 50) { doc.addPage(); y = 25; }
+    doc.setDrawColor(200, 210, 220);
+    doc.setLineWidth(0.2);
+    doc.line(mx, y, mxr, y);
+    y += 6;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    const disclaimer = "This briefing is generated by the Ailane Constitutional AI Engine for regulatory intelligence purposes only. It does not constitute legal advice, compliance certification, or a prediction of case outcomes. The ACEI describes exposure magnitude only per Article I §1.5 (Clinical Neutrality Standard). Recipients should consult qualified legal counsel before taking action based on this analysis. AI Lane Limited accepts no liability for decisions made in reliance upon this document.";
+    y = printWrapped(disclaimer, mx, y, mxr - mx, 7, "italic", [148, 163, 184], 3.5);
+
+    // Add footers to all pages
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      addFooter(p, totalPages);
+    }
+
+    // Save
+    const filename = `Ailane_Briefing_${(event._title || "Event").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 40)}_${now.toISOString().split("T")[0]}.pdf`;
+    doc.save(filename);
+  };
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
       if (categoryFilter.size > 0) {
@@ -494,6 +709,20 @@ function AilaneTicker() {
               }
               return <div key={i} style={{ marginBottom: 10 }}>{block.trim()}</div>;
             })}
+
+            {currentTier === "institutional" && (
+              <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => downloadBriefingPdf(selectedEvent, aiSummary)} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  background: "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06))",
+                  border: "1px solid rgba(245,158,11,0.25)", borderRadius: 6,
+                  padding: "9px 18px", fontSize: 11, fontWeight: 600, color: "#f59e0b",
+                  cursor: "pointer", letterSpacing: "0.3px", transition: "all 0.2s",
+                }}>
+                  📄 Download Board Briefing (PDF)
+                </button>
+              </div>
+            )}
 
             {currentTier !== "institutional" && (
               <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 6, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)", fontSize: 11, color: "#f59e0b", textAlign: "center" }}>
@@ -723,14 +952,16 @@ function AilaneTicker() {
       </header>
 
       {/* ─── SCROLLING HEADLINE BAR ────────────────────────────────────── */}
-      <div style={{ padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", overflow: "hidden", background: "rgba(34,211,238,0.02)" }}>
-        <div style={{ display: "flex", gap: 40, whiteSpace: "nowrap", animation: filteredEvents.length > 3 ? "tickerScroll 60s linear infinite" : "none", width: "fit-content" }}>
+      <div style={{ padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", overflow: "hidden", background: "rgba(34,211,238,0.02)" }}
+        onMouseEnter={e => { const inner = e.currentTarget.firstChild; if (inner) inner.style.animationPlayState = "paused"; }}
+        onMouseLeave={e => { const inner = e.currentTarget.firstChild; if (inner) inner.style.animationPlayState = "running"; }}>
+        <div style={{ display: "flex", gap: 50, whiteSpace: "nowrap", animation: filteredEvents.length > 3 ? "tickerScroll 100s linear infinite" : "none", width: "fit-content" }}>
           {[...filteredEvents.slice(0, 20), ...filteredEvents.slice(0, 20)].map((e, i) => {
             const type = EVENT_TYPES[e._type] || EVENT_TYPES.regulatory;
             return (
-              <span key={i} style={{ fontSize: 11, color: "#94a3b8", cursor: "pointer", paddingLeft: i === 0 ? 20 : 0 }} onClick={() => handleEventClick(e)}>
+              <span key={i} style={{ fontSize: 13, color: "#94a3b8", cursor: "pointer", paddingLeft: i === 0 ? 20 : 0 }} onClick={() => handleEventClick(e)}>
                 <span style={{ color: type.color, fontWeight: 600 }}>{type.icon}</span>{" "}
-                <span style={{ color: "#cbd5e1" }}>{(e._title || "").substring(0, 70)}{(e._title || "").length > 70 ? "…" : ""}</span>{" "}
+                <span style={{ color: "#cbd5e1", fontWeight: 500 }}>{(e._title || "").substring(0, 70)}{(e._title || "").length > 70 ? "…" : ""}</span>{" "}
                 <span style={{ color: "#475569" }}>· {timeAgo(e._date)}</span>
               </span>
             );
