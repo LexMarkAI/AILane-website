@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ailane — Regulatory Exposure Intelligence for UK Businesses</title>
-<meta name="description" content="The Ailane Core Exposure Index (ACEI) quantifies your employment regulatory exposure into a single, constitutionally-governed score. Updated weekly. Deterministic. Litigation-proof.">
+<meta name="description" content="The Ailane constitutional index suite quantifies UK employment regulatory exposure across 12 categories. Constitutionally governed. Updated weekly. Litigation-proof.">
 <meta name="theme-color" content="#0a0f1a">
 <meta property="og:title" content="Ailane — Quantify regulatory exposure before it lands">
 <meta property="og:description" content="Real-time regulatory exposure intelligence across 12 employment law categories. Constitutionally governed. Litigation-proof.">
@@ -20,945 +19,51 @@
 /* DESIGN SYSTEM                                      */
 /* ══════════════════════════════════════════════════ */
 :root {
-  --bg-primary: #0a0f1a;
-  --bg-secondary: #0d1321;
-  --bg-card: #111827;
-  --bg-card-hover: #151d2e;
-  --bg-elevated: #1a2332;
-  --border-subtle: rgba(56,189,248,0.08);
-  --border-hover: rgba(56,189,248,0.18);
-  --accent-cyan: #38bdf8;
+  --bg-primary:      #0a0f1a;
+  --bg-secondary:    #0d1321;
+  --bg-card:         #111827;
+  --bg-card-hover:   #151d2e;
+  --bg-elevated:     #1a2332;
+  --border-subtle:   rgba(56,189,248,0.08);
+  --border-hover:    rgba(56,189,248,0.18);
+  --accent-cyan:     #38bdf8;
   --accent-cyan-dim: rgba(56,189,248,0.12);
-  --accent-cyan-glow: rgba(56,189,248,0.25);
-  --accent-green: #34d399;
-  --accent-amber: #fbbf24;
-  --accent-red: #f87171;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
-  --gradient-hero: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56,189,248,0.08), transparent);
-  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'Space Mono', 'JetBrains Mono', monospace;
+  --accent-gold:     #f59e0b;
+  --accent-gold-dim: rgba(245,158,11,0.10);
+  --accent-green:    #34d399;
+  --accent-amber:    #fbbf24;
+  --accent-red:      #f87171;
+  --text-primary:    #f1f5f9;
+  --text-secondary:  #94a3b8;
+  --text-muted:      #64748b;
+  --text-dim:        #475569;
+  --gradient-hero:   radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56,189,248,0.08), transparent);
+  --font-body:       'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:       'Space Mono', 'JetBrains Mono', monospace;
+  --ease-card:       cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
 html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; overflow-x: hidden; }
+::selection { background: var(--accent-cyan-dim); color: var(--accent-cyan); }
 
-body {
-font-family: var(–font-body);
-background: var(–bg-primary);
-color: var(–text-primary);
-line-height: 1.7;
-overflow-x: hidden;
-}
-
-::selection { background: var(–accent-cyan-dim); color: var(–accent-cyan); }
-
-/* ── LAYOUT ── */
 .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
-section { padding: 100px 24px; }
+section { padding: 88px 24px; }
 
-/* ── NAVIGATION ── */
-nav {
-position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-background: rgba(10,15,26,0.85);
-backdrop-filter: blur(20px) saturate(1.4);
--webkit-backdrop-filter: blur(20px) saturate(1.4);
-border-bottom: 1px solid var(–border-subtle);
-transition: box-shadow 0.3s;
-}
-.nav-inner {
-max-width: 1140px; margin: 0 auto;
-display: flex; align-items: center; justify-content: space-between;
-padding: 16px 24px;
-}
-.logo {
-font-family: var(–font-mono); font-weight: 700; font-size: 16px;
-letter-spacing: 4px; color: var(–text-primary); text-decoration: none;
-display: flex; align-items: baseline; gap: 8px;
-}
-.logo-sub {
-color: var(–accent-cyan); font-weight: 400; font-size: 10px;
-letter-spacing: 1.5px;
-}
-.nav-links {
-display: flex; align-items: center; gap: 32px; list-style: none;
-}
-.nav-links a {
-font-size: 13px; color: var(–text-secondary); text-decoration: none;
-letter-spacing: 0.3px; transition: color 0.2s; font-weight: 500;
-}
-.nav-links a:hover { color: var(–text-primary); }
-.nav-cta {
-background: var(–accent-cyan-dim) !important;
-color: var(–accent-cyan) !important;
-padding: 8px 20px !important; border-radius: 6px;
-font-weight: 600 !important; letter-spacing: 0.5px !important;
-transition: all 0.2s !important;
-border: 1px solid rgba(56,189,248,0.15);
-}
-.nav-cta:hover {
-background: rgba(56,189,248,0.2) !important;
-border-color: rgba(56,189,248,0.3) !important;
-}
-.nav-signin {
-color: var(–text-muted) !important; font-size: 12px !important;
-letter-spacing: 0.5px !important;
-}
-.nav-signin:hover { color: var(–accent-cyan) !important; }
-
-/* Mobile nav */
-.nav-toggle {
-display: none; background: none; border: none;
-color: var(–text-secondary); cursor: pointer; padding: 8px;
-}
-@media (max-width: 768px) {
-.nav-toggle { display: block; }
-.nav-links {
-display: none; flex-direction: column;
-position: absolute; top: 100%; left: 0; right: 0;
-background: rgba(10,15,26,0.97); backdrop-filter: blur(20px);
-padding: 24px; gap: 20px;
-border-bottom: 1px solid var(–border-subtle);
-}
-.nav-links.open { display: flex; }
-}
-
-/* ── HERO ── */
-.hero {
-padding: 160px 24px 120px; text-align: center;
-position: relative; overflow: hidden;
-}
-.hero::before {
-content: ‘’; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-background: var(–gradient-hero); pointer-events: none;
-}
-
-/* Animated mesh background */
-.hero-mesh {
-position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-overflow: hidden; pointer-events: none;
-}
-.hero-mesh .orb {
-position: absolute; border-radius: 50%; filter: blur(80px);
-opacity: 0.07; animation: orbFloat 20s ease-in-out infinite;
-}
-.hero-mesh .orb-1 {
-width: 600px; height: 600px; top: -200px; left: -100px;
-background: var(–accent-cyan);
-animation-duration: 25s;
-}
-.hero-mesh .orb-2 {
-width: 500px; height: 500px; top: 100px; right: -150px;
-background: #818cf8;
-animation-duration: 30s; animation-delay: -5s;
-}
-.hero-mesh .orb-3 {
-width: 400px; height: 400px; bottom: -100px; left: 30%;
-background: var(–accent-green);
-animation-duration: 22s; animation-delay: -10s;
-}
-@keyframes orbFloat {
-0%, 100% { transform: translate(0, 0) scale(1); }
-25% { transform: translate(30px, -40px) scale(1.05); }
-50% { transform: translate(-20px, 20px) scale(0.95); }
-75% { transform: translate(40px, 30px) scale(1.02); }
-}
-
-/* Dot grid */
-.hero-dots {
-position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-pointer-events: none; opacity: 0.3;
-background-image: radial-gradient(rgba(56,189,248,0.15) 1px, transparent 1px);
-background-size: 40px 40px;
-mask-image: radial-gradient(ellipse 50% 60% at 50% 40%, black 20%, transparent 70%);
--webkit-mask-image: radial-gradient(ellipse 50% 60% at 50% 40%, black 20%, transparent 70%);
-}
-
-.hero-badge {
-display: inline-flex; align-items: center; gap: 10px;
-font-family: var(–font-mono);
-font-size: 11px; font-weight: 400; letter-spacing: 1.5px;
-color: var(–accent-cyan);
-background: var(–accent-cyan-dim);
-border: 1px solid rgba(56,189,248,0.12);
-border-radius: 100px; padding: 8px 20px; margin-bottom: 36px;
-animation: fadeInDown 0.6s ease;
-}
-.hero-badge-sep { color: rgba(56,189,248,0.3); }
-.hero h1 {
-font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 700;
-line-height: 1.15; max-width: 780px; margin: 0 auto 24px;
-letter-spacing: -0.5px; animation: fadeInUp 0.7s ease 0.1s both;
-}
-.hero h1 em {
-font-style: italic; color: var(–accent-cyan);
-text-decoration: underline; text-decoration-color: rgba(56,189,248,0.3);
-text-underline-offset: 4px;
-}
-.hero > .container > p {
-font-size: 17px; color: var(–text-secondary);
-max-width: 620px; margin: 0 auto 48px; line-height: 1.8;
-animation: fadeInUp 0.7s ease 0.2s both;
-}
-.hero-cta {
-display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
-animation: fadeInUp 0.7s ease 0.3s both;
-}
-.btn-primary {
-display: inline-flex; align-items: center; gap: 8px;
-background: var(–accent-cyan); color: var(–bg-primary);
-padding: 14px 32px; border-radius: 8px; border: none;
-font-family: var(–font-body); font-size: 14px; font-weight: 600;
-letter-spacing: 0.3px; cursor: pointer; text-decoration: none;
-transition: all 0.25s; position: relative; overflow: hidden;
-}
-.btn-primary::after {
-content: ‘’; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-transition: left 0.5s;
-}
-.btn-primary:hover::after { left: 100%; }
-.btn-primary:hover {
-background: #5cc9f5; transform: translateY(-1px);
-box-shadow: 0 8px 24px rgba(56,189,248,0.25);
-}
-.btn-secondary {
-display: inline-flex; align-items: center; gap: 8px;
-background: transparent; color: var(–text-secondary);
-padding: 14px 32px; border-radius: 8px;
-border: 1px solid var(–border-subtle);
-font-family: var(–font-body); font-size: 14px; font-weight: 500;
-cursor: pointer; text-decoration: none; transition: all 0.25s;
-}
-.btn-secondary:hover {
-color: var(–text-primary); border-color: var(–border-hover);
-background: rgba(255,255,255,0.02);
-}
-
-/* ── GAUGE ── */
-.gauge-container {
-margin: 64px auto 0; max-width: 480px;
-animation: fadeInUp 0.8s ease 0.4s both;
-position: relative;
-}
-.gauge-svg { width: 100%; height: auto; }
-.gauge-track {
-fill: none; stroke: var(–bg-card); stroke-width: 6; stroke-linecap: round;
-}
-.gauge-fill {
-fill: none; stroke: url(#gaugeGrad); stroke-width: 6; stroke-linecap: round;
-stroke-dasharray: 251.2; stroke-dashoffset: 251.2;
-animation: gaugeReveal 2s ease 0.8s forwards;
-filter: drop-shadow(0 0 8px rgba(56,189,248,0.3));
-}
-@keyframes gaugeReveal { to { stroke-dashoffset: 138; } }
-.gauge-score {
-font-family: var(–font-mono); font-size: 42px; font-weight: 700;
-fill: var(–text-primary); text-anchor: middle;
-opacity: 0; animation: fadeIn 0.5s ease 1.5s forwards;
-}
-.gauge-label {
-font-family: var(–font-body); font-size: 11px; fill: var(–text-muted);
-text-anchor: middle; letter-spacing: 1.5px;
-}
-.gauge-sublabel {
-font-family: var(–font-mono); font-size: 10px; fill: var(–accent-cyan);
-text-anchor: middle; letter-spacing: 1px; opacity: 0.7;
-}
-.gauge-caption {
-font-family: var(–font-mono); font-size: 10px;
-color: var(–text-dim); letter-spacing: 1px;
-text-align: center; margin-top: 8px; text-transform: uppercase;
-}
-
-/* ── RISK TICKER (hero mini) ── */
-.risk-ticker {
-margin-top: 32px; overflow: hidden; position: relative;
-height: 32px; max-width: 600px; margin-left: auto; margin-right: auto;
-animation: fadeInUp 0.8s ease 1.8s both;
-}
-.risk-ticker::before, .risk-ticker::after {
-content: ‘’; position: absolute; top: 0; bottom: 0; width: 60px; z-index: 2;
-pointer-events: none;
-}
-.risk-ticker::before {
-left: 0;
-background: linear-gradient(90deg, var(–bg-primary), transparent);
-}
-.risk-ticker::after {
-right: 0;
-background: linear-gradient(270deg, var(–bg-primary), transparent);
-}
-.risk-ticker-track {
-display: flex; gap: 32px; align-items: center;
-animation: tickerScroll 30s linear infinite;
-width: max-content;
-}
-.risk-ticker-item {
-display: flex; align-items: center; gap: 8px;
-white-space: nowrap; font-family: var(–font-mono);
-font-size: 11px; letter-spacing: 0.5px;
-}
-.risk-ticker-item .ticker-cat { color: var(–text-muted); }
-.risk-ticker-item .ticker-val { font-weight: 700; }
-.risk-ticker-item .ticker-up { color: var(–accent-red); }
-.risk-ticker-item .ticker-down { color: var(–accent-green); }
-.risk-ticker-item .ticker-flat { color: var(–accent-amber); }
-.risk-ticker-item .ticker-dot {
-width: 4px; height: 4px; border-radius: 50%;
-animation: tickerPulse 2s ease-in-out infinite;
-}
-.risk-ticker-item .ticker-dot.dot-up { background: var(–accent-red); }
-.risk-ticker-item .ticker-dot.dot-down { background: var(–accent-green); }
-.risk-ticker-item .ticker-dot.dot-flat { background: var(–accent-amber); }
-@keyframes tickerScroll {
-0% { transform: translateX(0); }
-100% { transform: translateX(-50%); }
-}
-@keyframes tickerPulse {
-0%, 100% { opacity: 0.4; transform: scale(1); }
-50% { opacity: 1; transform: scale(1.8); }
-}
-
-/* ── STATS BAR ── */
-.stats-bar {
-display: grid; grid-template-columns: repeat(4, 1fr);
-gap: 1px; background: var(–border-subtle);
-border: 1px solid var(–border-subtle); border-radius: 12px;
-overflow: hidden; max-width: 800px; margin: 48px auto 0;
-animation: fadeInUp 0.7s ease 0.5s both;
-}
-.stat-item {
-background: var(–bg-card); padding: 28px 20px; text-align: center;
-transition: background 0.3s;
-}
-.stat-item:hover { background: var(–bg-card-hover); }
-.stat-value {
-font-family: var(–font-mono); font-size: 28px; font-weight: 700;
-color: var(–text-primary); margin-bottom: 6px;
-}
-.stat-value .accent { color: var(–accent-cyan); }
-.stat-label { font-size: 12px; color: var(–text-muted); letter-spacing: 0.5px; }
-@media (max-width: 640px) {
-.stats-bar { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ── SECTION HEADERS ── */
-.section-eyebrow {
-font-family: var(–font-mono); font-size: 11px; letter-spacing: 3px;
-color: var(–accent-cyan); text-transform: uppercase; margin-bottom: 16px;
-}
-.section-title {
-font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 700;
-line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.3px;
-}
-.section-subtitle {
-font-size: 16px; color: var(–text-secondary);
-max-width: 600px; line-height: 1.8;
-}
+.section-eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 3px; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 16px; }
+.section-title { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 700; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.3px; }
+.section-subtitle { font-size: 16px; color: var(--text-secondary); max-width: 600px; line-height: 1.8; }
 .section-subtitle.centered { margin: 0 auto; text-align: center; }
 
-/* ── HOW IT WORKS ── */
-.how-section { background: var(–bg-secondary); }
-.how-grid {
-display: grid; grid-template-columns: repeat(3, 1fr);
-gap: 32px; margin-top: 56px;
-}
-.how-card {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 12px; padding: 36px 28px;
-position: relative; transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-.how-card:hover {
-border-color: var(–border-hover);
-transform: translateY(-4px);
-box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(56,189,248,0.1);
-}
-.how-number {
-font-family: var(–font-mono); font-size: 48px; font-weight: 700;
-color: rgba(56,189,248,0.08); position: absolute;
-top: 16px; right: 20px; line-height: 1;
-}
-.how-icon {
-width: 44px; height: 44px; border-radius: 10px;
-background: var(–accent-cyan-dim);
-display: flex; align-items: center; justify-content: center;
-margin-bottom: 20px; font-size: 20px;
-transition: transform 0.3s, box-shadow 0.3s;
-}
-.how-card:hover .how-icon {
-transform: scale(1.1);
-box-shadow: 0 0 20px rgba(56,189,248,0.2);
-}
-.how-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 12px; }
-.how-card p { font-size: 14px; color: var(–text-secondary); line-height: 1.7; }
-@media (max-width: 768px) {
-.how-grid { grid-template-columns: 1fr; }
-}
+/* Shared card */
+.card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; transition: all 0.35s var(--ease-card); }
+.card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: 0 12px 36px rgba(0,0,0,0.25), 0 0 0 1px rgba(56,189,248,0.04); }
+.card-gold { border-color: rgba(245,158,11,0.18) !important; }
+.card-gold:hover { border-color: rgba(245,158,11,0.35) !important; box-shadow: 0 12px 36px rgba(0,0,0,0.25), 0 0 24px rgba(245,158,11,0.04) !important; }
 
-/* ── DATA SOURCES ── */
-.data-section { border-bottom: 1px solid var(–border-subtle); }
-.data-grid {
-display: grid; grid-template-columns: repeat(2, 1fr);
-gap: 20px; margin-top: 56px;
-}
-.data-card {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 12px; padding: 28px;
-display: flex; gap: 16px; align-items: flex-start;
-transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-.data-card:hover {
-border-color: var(–border-hover);
-transform: translateY(-2px);
-box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-}
-.data-icon {
-flex-shrink: 0; width: 40px; height: 40px; border-radius: 8px;
-background: var(–accent-cyan-dim);
-display: flex; align-items: center; justify-content: center;
-font-size: 18px;
-}
-.data-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-.data-card p { font-size: 13px; color: var(–text-secondary); line-height: 1.6; }
-.data-card .data-stat {
-font-family: var(–font-mono); font-size: 11px;
-color: var(–accent-cyan); margin-top: 8px; letter-spacing: 0.5px;
-}
-@media (max-width: 640px) {
-.data-grid { grid-template-columns: 1fr; }
-}
-
-/* ── CATEGORIES ── */
-.categories-section { background: var(–bg-secondary); }
-.cat-grid {
-display: grid; grid-template-columns: repeat(4, 1fr);
-gap: 12px; margin-top: 56px;
-}
-.cat-card {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 10px; padding: 22px 18px;
-transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-cursor: default; position: relative; overflow: hidden;
-}
-.cat-card::before {
-content: ‘’; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-background: linear-gradient(90deg, transparent, var(–accent-cyan), transparent);
-opacity: 0; transition: opacity 0.3s;
-}
-.cat-card:hover::before { opacity: 1; }
-.cat-card:hover {
-border-color: var(–border-hover);
-background: var(–bg-card-hover);
-transform: translateY(-2px);
-box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-}
-.cat-id {
-font-family: var(–font-mono); font-size: 10px;
-color: var(–text-dim); letter-spacing: 1px; margin-bottom: 8px;
-}
-.cat-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; line-height: 1.3; }
-.cat-desc { font-size: 11px; color: var(–text-muted); line-height: 1.5; }
-.cat-severity {
-display: inline-flex; align-items: center; gap: 6px;
-margin-top: 10px; font-family: var(–font-mono); font-size: 10px;
-letter-spacing: 0.5px; padding: 3px 8px; border-radius: 4px;
-}
-.cat-severity::before {
-content: ‘’; width: 5px; height: 5px; border-radius: 50%;
-animation: severityPulse 2.5s ease-in-out infinite;
-}
-.severity-high { background: rgba(248,113,113,0.1); color: var(–accent-red); }
-.severity-high::before { background: var(–accent-red); box-shadow: 0 0 6px var(–accent-red); }
-.severity-elevated { background: rgba(251,191,36,0.1); color: var(–accent-amber); }
-.severity-elevated::before { background: var(–accent-amber); box-shadow: 0 0 6px var(–accent-amber); }
-.severity-standard { background: rgba(52,211,153,0.1); color: var(–accent-green); }
-.severity-standard::before { background: var(–accent-green); box-shadow: 0 0 6px var(–accent-green); }
-@keyframes severityPulse {
-0%, 100% { opacity: 0.5; transform: scale(0.8); }
-50% { opacity: 1; transform: scale(1.3); }
-}
-@media (max-width: 900px) { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .cat-grid { grid-template-columns: 1fr; } }
-
-/* ── CONSTITUTIONAL ── */
-.const-section {
-border-bottom: 1px solid var(–border-subtle);
-background: linear-gradient(180deg, rgba(56,189,248,0.02) 0%, transparent 60%);
-padding: 120px 24px;
-border-top: 1px solid rgba(56,189,248,0.06);
-}
-.const-declaration {
-font-family: var(–font-mono); font-size: 13px;
-color: var(–accent-cyan); letter-spacing: 0.5px;
-margin-top: 12px; opacity: 0.85;
-max-width: 600px;
-}
-.const-grid {
-display: grid; grid-template-columns: repeat(3, 1fr);
-gap: 24px; margin-top: 56px;
-}
-.const-card {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 14px; padding: 40px 32px;
-border-color: rgba(56,189,248,0.12);
-box-shadow: 0 0 40px rgba(56,189,248,0.04);
-transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-.const-card:hover {
-border-color: var(–border-hover);
-transform: translateY(-3px);
-box-shadow: 0 12px 36px rgba(0,0,0,0.25), 0 0 40px rgba(56,189,248,0.06);
-}
-.const-badge {
-font-family: var(–font-mono); font-size: 10px;
-letter-spacing: 2px; color: var(–accent-cyan); margin-bottom: 16px;
-}
-.const-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
-.const-card p { font-size: 14px; color: var(–text-secondary); line-height: 1.7; }
-.const-features {
-list-style: none; margin-top: 16px;
-display: flex; flex-direction: column; gap: 8px;
-}
-.const-features li {
-font-size: 12px; color: var(–text-muted);
-padding-left: 16px; position: relative;
-}
-.const-features li::before {
-content: ‘\2192’; position: absolute; left: 0;
-color: var(–accent-cyan); font-family: var(–font-mono);
-}
-@media (max-width: 768px) { .const-grid { grid-template-columns: 1fr; } }
-
-/* ── USE CASES ── */
-.use-section { background: var(–bg-secondary); }
-.use-grid {
-display: grid; grid-template-columns: repeat(2, 1fr);
-gap: 24px; margin-top: 56px;
-}
-.use-card {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 12px; padding: 32px;
-transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-.use-card:hover {
-border-color: var(–border-hover);
-transform: translateY(-3px);
-box-shadow: 0 10px 32px rgba(0,0,0,0.25);
-}
-.use-icon { font-size: 24px; margin-bottom: 16px; }
-.use-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
-.use-card p { font-size: 13px; color: var(–text-secondary); line-height: 1.7; }
-.use-quote {
-margin-top: 16px; padding-top: 16px;
-border-top: 1px solid var(–border-subtle);
-font-size: 12px; color: var(–text-muted); font-style: italic;
-}
-@media (max-width: 640px) { .use-grid { grid-template-columns: 1fr; } }
-
-/* ══════════════════════════════════════════════════ */
-/* ERA 2025 URGENCY SECTION — NEW                     */
-/* ══════════════════════════════════════════════════ */
-.era-section {
-padding: 80px 24px;
-background: linear-gradient(135deg,
-rgba(251,191,36,0.03) 0%,
-rgba(248,113,113,0.03) 50%,
-rgba(10,15,26,0) 100%);
-border-top: 1px solid rgba(251,191,36,0.12);
-border-bottom: 1px solid rgba(251,191,36,0.08);
-position: relative; overflow: hidden;
-}
-.era-section::before {
-content: ‘’;
-position: absolute; top: 0; left: 0; right: 0; height: 2px;
-background: linear-gradient(90deg,
-transparent 0%,
-rgba(251,191,36,0.5) 20%,
-rgba(248,113,113,0.4) 50%,
-rgba(251,191,36,0.5) 80%,
-transparent 100%);
-}
-.era-alert-bar {
-display: inline-flex; align-items: center; gap: 10px;
-font-family: var(–font-mono); font-size: 10px; letter-spacing: 2px;
-color: var(–accent-amber);
-background: rgba(251,191,36,0.08);
-border: 1px solid rgba(251,191,36,0.2);
-border-radius: 100px; padding: 6px 16px; margin-bottom: 24px;
-}
-.era-alert-dot {
-width: 6px; height: 6px; border-radius: 50%;
-background: var(–accent-amber);
-animation: eraPulse 1.5s ease-in-out infinite;
-box-shadow: 0 0 8px rgba(251,191,36,0.6);
-}
-@keyframes eraPulse {
-0%, 100% { opacity: 0.5; transform: scale(0.8); }
-50% { opacity: 1; transform: scale(1.3); }
-}
-.era-layout {
-display: grid; grid-template-columns: 1fr 420px;
-gap: 64px; align-items: center; margin-top: 0;
-}
-.era-content .era-title {
-font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700;
-line-height: 1.2; letter-spacing: -0.3px; margin-bottom: 16px;
-}
-.era-content .era-title span { color: var(–accent-amber); }
-.era-content .era-desc {
-font-size: 15px; color: var(–text-secondary); line-height: 1.8;
-max-width: 520px; margin-bottom: 28px;
-}
-.era-meta {
-display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
-margin-bottom: 32px;
-}
-.era-meta-item {
-display: flex; align-items: center; gap: 8px;
-font-family: var(–font-mono); font-size: 11px; color: var(–text-muted);
-}
-.era-meta-item span { color: var(–text-primary); font-weight: 700; }
-.era-categories {
-display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px;
-}
-.era-cat-tag {
-font-family: var(–font-mono); font-size: 10px; letter-spacing: 0.5px;
-color: var(–accent-amber); background: rgba(251,191,36,0.08);
-border: 1px solid rgba(251,191,36,0.15);
-border-radius: 4px; padding: 4px 10px;
-}
-.era-card {
-background: var(–bg-card);
-border: 1px solid rgba(251,191,36,0.15);
-border-radius: 14px; padding: 32px;
-position: relative; overflow: hidden;
-}
-.era-card::before {
-content: ‘’;
-position: absolute; top: 0; left: 0; right: 0; height: 2px;
-background: linear-gradient(90deg, var(–accent-amber), var(–accent-red));
-}
-.era-card-label {
-font-family: var(–font-mono); font-size: 9px; letter-spacing: 2px;
-color: var(–accent-amber); text-transform: uppercase; margin-bottom: 20px;
-}
-.era-provision {
-display: flex; align-items: flex-start; gap: 12px;
-padding: 12px 0; border-bottom: 1px solid var(–border-subtle);
-}
-.era-provision:last-child { border-bottom: none; padding-bottom: 0; }
-.era-provision-icon {
-width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
-background: rgba(251,191,36,0.1);
-display: flex; align-items: center; justify-content: center;
-font-size: 13px;
-}
-.era-provision-text { flex: 1; }
-.era-provision-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-.era-provision-sub { font-size: 11px; color: var(–text-muted); line-height: 1.5; }
-.era-acei-flag {
-margin-top: 20px; padding: 12px 16px; border-radius: 8px;
-background: rgba(248,113,113,0.08);
-border: 1px solid rgba(248,113,113,0.15);
-display: flex; align-items: center; gap: 10px;
-}
-.era-acei-flag-label {
-font-family: var(–font-mono); font-size: 10px; letter-spacing: 1px;
-color: var(–accent-red);
-}
-.era-acei-flag-value {
-font-family: var(–font-mono); font-size: 13px; font-weight: 700;
-color: var(–text-primary); margin-left: auto;
-}
-@media (max-width: 900px) {
-.era-layout { grid-template-columns: 1fr; gap: 40px; }
-}
-
-/* ══════════════════════════════════════════════════ */
-/* LIVE TICKER SHOWCASE — NEW                         */
-/* ══════════════════════════════════════════════════ */
-.ticker-showcase-section {
-padding: 80px 24px;
-background: var(–bg-secondary);
-border-bottom: 1px solid var(–border-subtle);
-}
-.ticker-showcase-header {
-display: flex; justify-content: space-between; align-items: flex-end;
-flex-wrap: wrap; gap: 24px; margin-bottom: 40px;
-}
-.ticker-showcase-header .header-left { max-width: 560px; }
-.ticker-live-badge {
-display: inline-flex; align-items: center; gap: 8px;
-font-family: var(–font-mono); font-size: 10px; letter-spacing: 2px;
-color: var(–accent-green);
-background: rgba(52,211,153,0.08);
-border: 1px solid rgba(52,211,153,0.2);
-border-radius: 100px; padding: 6px 14px; margin-bottom: 16px;
-}
-.ticker-live-dot {
-width: 6px; height: 6px; border-radius: 50%;
-background: var(–accent-green);
-animation: eraPulse 1.5s ease-in-out infinite;
-box-shadow: 0 0 8px rgba(52,211,153,0.6);
-}
-.ticker-showcase-link {
-display: inline-flex; align-items: center; gap: 8px;
-font-size: 13px; font-weight: 600; color: var(–accent-cyan);
-text-decoration: none; letter-spacing: 0.3px;
-border: 1px solid rgba(56,189,248,0.18);
-background: var(–accent-cyan-dim);
-border-radius: 8px; padding: 10px 20px;
-transition: all 0.2s; white-space: nowrap;
-}
-.ticker-showcase-link:hover {
-background: rgba(56,189,248,0.2);
-border-color: rgba(56,189,248,0.3);
-transform: translateY(-1px);
-}
-.ticker-frame-wrapper {
-border-radius: 14px; overflow: hidden;
-border: 1px solid rgba(56,189,248,0.12);
-box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(56,189,248,0.04);
-background: var(–bg-card);
-position: relative;
-}
-.ticker-frame-header {
-display: flex; align-items: center; gap: 8px;
-padding: 12px 16px;
-background: var(–bg-elevated);
-border-bottom: 1px solid var(–border-subtle);
-}
-.ticker-frame-dot {
-width: 10px; height: 10px; border-radius: 50%;
-}
-.ticker-frame-url {
-flex: 1; font-family: var(–font-mono); font-size: 11px;
-color: var(–text-muted); letter-spacing: 0.5px;
-background: rgba(255,255,255,0.03);
-border: 1px solid var(–border-subtle);
-border-radius: 4px; padding: 4px 10px;
-}
-.ticker-frame-status {
-font-family: var(–font-mono); font-size: 10px;
-color: var(–accent-green); letter-spacing: 1px;
-}
-.ticker-iframe {
-width: 100%; height: 580px; border: none; display: block;
-background: var(–bg-primary);
-}
-.ticker-frame-caption {
-padding: 14px 20px;
-display: flex; align-items: center; justify-content: space-between;
-background: var(–bg-elevated);
-border-top: 1px solid var(–border-subtle);
-}
-.ticker-frame-caption-text {
-font-size: 12px; color: var(–text-muted);
-}
-.ticker-frame-caption-meta {
-font-family: var(–font-mono); font-size: 10px;
-color: var(–text-dim); letter-spacing: 0.5px;
-}
-.ticker-differentiators {
-display: grid; grid-template-columns: repeat(3, 1fr);
-gap: 20px; margin-top: 32px;
-}
-.ticker-diff-item {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 10px; padding: 20px;
-text-align: center;
-transition: all 0.3s;
-}
-.ticker-diff-item:hover {
-border-color: var(–border-hover);
-transform: translateY(-2px);
-}
-.ticker-diff-icon { font-size: 22px; margin-bottom: 10px; }
-.ticker-diff-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-.ticker-diff-desc { font-size: 12px; color: var(–text-muted); line-height: 1.5; }
-@media (max-width: 640px) {
-.ticker-differentiators { grid-template-columns: 1fr; }
-}
-
-/* ── PRICING ── */
-.pricing-section { border-bottom: 1px solid var(–border-subtle); padding: 80px 24px; }
-.pricing-grid {
-display: grid; grid-template-columns: repeat(3, 1fr);
-gap: 24px; margin-top: 56px; align-items: start;
-}
-.pricing-card {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 12px; padding: 32px 24px;
-transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-position: relative;
-}
-.pricing-card:hover {
-border-color: var(–border-hover);
-transform: translateY(-4px);
-box-shadow: 0 12px 40px rgba(0,0,0,0.3);
-}
-.pricing-card.featured {
-border-color: rgba(56,189,248,0.25);
-background: linear-gradient(180deg, rgba(56,189,248,0.04), var(–bg-card));
-}
-.pricing-card.featured::before {
-content: ‘MOST POPULAR’; position: absolute; top: -11px; left: 50%;
-transform: translateX(-50%);
-background: var(–accent-cyan); color: var(–bg-primary);
-font-family: var(–font-mono); font-size: 10px; font-weight: 700;
-letter-spacing: 1.5px; padding: 4px 16px; border-radius: 100px;
-}
-.pricing-tier {
-font-family: var(–font-mono); font-size: 11px;
-letter-spacing: 2px; color: var(–accent-cyan); margin-bottom: 12px;
-}
-.pricing-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-.pricing-target {
-font-size: 12px; color: var(–text-muted); font-style: italic; margin-bottom: 0;
-}
-.pricing-price {
-font-family: var(–font-mono); font-size: 36px;
-font-weight: 700; margin: 16px 0 4px;
-}
-.pricing-price span {
-font-size: 14px; font-weight: 400; color: var(–text-muted);
-}
-.pricing-period { font-size: 12px; color: var(–text-muted); margin-bottom: 24px; }
-.pricing-features {
-list-style: none; display: flex; flex-direction: column; gap: 10px;
-padding-top: 24px; border-top: 1px solid var(–border-subtle);
-}
-.pricing-features li {
-font-size: 13px; color: var(–text-secondary);
-padding-left: 22px; position: relative; line-height: 1.5;
-}
-.pricing-features li::before {
-content: ‘\2713’; position: absolute; left: 0;
-color: var(–accent-green); font-weight: 700; font-size: 13px;
-}
-.pricing-cta {
-display: block; text-align: center; margin-top: 28px;
-padding: 12px 24px; border-radius: 8px; font-size: 13px;
-font-weight: 600; text-decoration: none; transition: all 0.2s;
-}
-.pricing-cta-primary { background: var(–accent-cyan); color: var(–bg-primary); }
-.pricing-cta-primary:hover { background: #5cc9f5; }
-.pricing-cta-secondary {
-background: var(–accent-cyan-dim); color: var(–accent-cyan);
-border: 1px solid rgba(56,189,248,0.12);
-}
-.pricing-cta-secondary:hover { background: rgba(56,189,248,0.2); }
-@media (max-width: 768px) {
-.pricing-grid {
-grid-template-columns: 1fr; max-width: 400px;
-margin-left: auto; margin-right: auto;
-}
-}
-
-/* ── EARLY ACCESS / CTA ── */
-.cta-section {
-text-align: center;
-background: linear-gradient(180deg, transparent, rgba(56,189,248,0.03), transparent);
-}
-.cta-form {
-display: flex; gap: 12px; max-width: 480px;
-margin: 32px auto 0; flex-wrap: wrap; justify-content: center;
-}
-.cta-input {
-flex: 1; min-width: 240px;
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 8px; padding: 14px 18px;
-color: var(–text-primary); font-size: 14px;
-font-family: var(–font-body); outline: none;
-transition: border-color 0.2s, box-shadow 0.2s;
-}
-.cta-input:focus {
-border-color: var(–accent-cyan);
-box-shadow: 0 0 0 3px rgba(56,189,248,0.1);
-}
-.cta-input::placeholder { color: var(–text-muted); }
-.cta-submit {
-background: var(–accent-cyan); color: var(–bg-primary);
-padding: 14px 28px; border-radius: 8px; border: none;
-font-family: var(–font-body); font-size: 14px; font-weight: 600;
-cursor: pointer; transition: all 0.2s; white-space: nowrap;
-position: relative; overflow: hidden;
-}
-.cta-submit::after {
-content: ‘’; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-transition: left 0.5s;
-}
-.cta-submit:hover::after { left: 100%; }
-.cta-submit:hover { background: #5cc9f5; }
-.cta-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-.cta-msg { font-size: 13px; margin-top: 12px; max-width: 480px; margin-left: auto; margin-right: auto; }
-.cta-msg.success { color: var(–accent-green); }
-.cta-msg.error { color: var(–accent-red); }
-.cta-legal { font-size: 11px; color: var(–text-dim); margin-top: 16px; }
-
-/* ── FOOTER ── */
-footer { border-top: 1px solid var(–border-subtle); padding: 48px 24px; }
-.footer-inner {
-max-width: 1140px; margin: 0 auto;
-display: flex; justify-content: space-between;
-align-items: flex-start; flex-wrap: wrap; gap: 32px;
-}
-.footer-brand { max-width: 340px; }
-.footer-brand .logo { display: block; margin-bottom: 12px; }
-.footer-brand p { font-size: 12px; color: var(–text-muted); line-height: 1.7; }
-.footer-links-group h4 {
-font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
-color: var(–text-muted); margin-bottom: 12px; text-transform: uppercase;
-}
-.footer-links-group a {
-display: block; font-size: 13px; color: var(–text-secondary);
-text-decoration: none; margin-bottom: 8px; transition: color 0.2s;
-}
-.footer-links-group a:hover { color: var(–text-primary); }
-.footer-bottom {
-max-width: 1140px; margin: 32px auto 0; padding-top: 24px;
-border-top: 1px solid var(–border-subtle);
-display: flex; justify-content: space-between;
-align-items: center; flex-wrap: wrap; gap: 12px;
-}
-.footer-legal { font-size: 11px; color: var(–text-dim); }
-.footer-constitutions {
-font-family: var(–font-mono); font-size: 10px;
-color: var(–text-dim); letter-spacing: 0.5px;
-}
-
-/* ── ANIMATIONS ── */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes fadeInUp {
-from { opacity: 0; transform: translateY(20px); }
-to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeInDown {
-from { opacity: 0; transform: translateY(-10px); }
-to { opacity: 1; transform: translateY(0); }
-}
-@keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-
-.fade-in {
-opacity: 0; transform: translateY(20px);
-transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
+/* Fade in */
+.fade-in { opacity: 0; transform: translateY(20px); transition: all 0.6s var(--ease-card); }
 .fade-in.visible { opacity: 1; transform: translateY(0); }
-
-/* Staggered card reveals */
 .fade-in:nth-child(2) { transition-delay: 0.08s; }
 .fade-in:nth-child(3) { transition-delay: 0.16s; }
 .fade-in:nth-child(4) { transition-delay: 0.24s; }
@@ -971,391 +76,382 @@ transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 .fade-in:nth-child(11) { transition-delay: 0.80s; }
 .fade-in:nth-child(12) { transition-delay: 0.88s; }
 
+/* Keyframes */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1);} 25%{transform:translate(30px,-40px) scale(1.05);} 50%{transform:translate(-20px,20px) scale(0.95);} 75%{transform:translate(40px,30px) scale(1.02);} }
+@keyframes tickerScroll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+@keyframes pulse { 0%,100%{opacity:0.5;transform:scale(0.8);} 50%{opacity:1;transform:scale(1.3);} }
+@keyframes gaugeReveal { to { stroke-dashoffset: 138; } }
+@keyframes severityPulse { 0%,100%{opacity:0.5;transform:scale(0.8);} 50%{opacity:1;transform:scale(1.3);} }
+
 /* ══════════════════════════════════════════════════ */
-/* KNOWLEDGE LIBRARY SECTION — NEW                    */
+/* NAVIGATION                                         */
 /* ══════════════════════════════════════════════════ */
-.kl-section {
-padding: 80px 24px;
-background: var(–bg-primary);
-border-bottom: 1px solid var(–border-subtle);
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10,15,26,0.88); backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--border-subtle); transition: box-shadow 0.3s;
 }
-.kl-layout {
-display: grid; grid-template-columns: 1fr 1fr;
-gap: 64px; align-items: center; margin-top: 48px;
-}
-.kl-stats-grid {
-display: grid; grid-template-columns: 1fr 1fr;
-gap: 12px; margin-bottom: 28px;
-}
-.kl-stat-card {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 10px; padding: 20px;
-transition: all 0.3s;
-}
-.kl-stat-card:hover {
-border-color: var(–border-hover);
-transform: translateY(-2px);
-}
-.kl-stat-card .kl-stat-val {
-font-family: var(–font-mono); font-size: 26px; font-weight: 700;
-color: var(–accent-cyan); margin-bottom: 4px;
-}
-.kl-stat-card .kl-stat-label {
-font-size: 12px; color: var(–text-muted); line-height: 1.4;
-}
-.kl-lifecycle {
-display: flex; flex-direction: column; gap: 0;
-margin-top: 28px;
-}
-.kl-stage {
-display: flex; align-items: flex-start; gap: 16px;
-position: relative; padding-bottom: 20px;
-}
-.kl-stage:last-child { padding-bottom: 0; }
-.kl-stage-left {
-display: flex; flex-direction: column; align-items: center;
-flex-shrink: 0;
-}
-.kl-stage-dot {
-width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-display: flex; align-items: center; justify-content: center;
-font-size: 11px; font-weight: 700; font-family: var(–font-mono);
-border: 2px solid;
-position: relative; z-index: 1;
-}
-.kl-stage-dot.active {
-background: rgba(56,189,248,0.15);
-border-color: var(–accent-cyan);
-color: var(–accent-cyan);
-}
-.kl-stage-dot.scored {
-background: rgba(52,211,153,0.1);
-border-color: var(–accent-green);
-color: var(–accent-green);
-}
-.kl-stage-line {
-width: 1px; flex: 1; min-height: 20px;
-background: linear-gradient(180deg, rgba(56,189,248,0.3), rgba(56,189,248,0.05));
-margin-top: 4px;
-}
-.kl-stage-content { padding-top: 3px; }
-.kl-stage-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-.kl-stage-desc { font-size: 11px; color: var(–text-muted); line-height: 1.5; }
-.kl-tier-row {
-display: flex; align-items: center; gap: 10px;
-padding: 10px 14px; border-radius: 8px;
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-margin-bottom: 8px;
-transition: all 0.2s;
-}
-.kl-tier-row:hover { border-color: var(–border-hover); }
-.kl-tier-badge {
-font-family: var(–font-mono); font-size: 9px; letter-spacing: 1px;
-color: var(–accent-cyan); background: var(–accent-cyan-dim);
-border-radius: 4px; padding: 3px 8px; flex-shrink: 0;
-white-space: nowrap;
-}
-.kl-tier-desc { font-size: 12px; color: var(–text-secondary); }
-.kl-link {
-display: inline-flex; align-items: center; gap: 8px;
-font-size: 13px; font-weight: 600; color: var(–accent-cyan);
-text-decoration: none;
-border: 1px solid rgba(56,189,248,0.18);
-background: var(–accent-cyan-dim);
-border-radius: 8px; padding: 10px 20px;
-margin-top: 20px;
-transition: all 0.2s;
-}
-.kl-link:hover {
-background: rgba(56,189,248,0.2);
-border-color: rgba(56,189,248,0.3);
-transform: translateY(-1px);
-}
-@media (max-width: 900px) {
-.kl-layout { grid-template-columns: 1fr; gap: 40px; }
+.nav-inner { max-width: 1140px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 15px 24px; }
+.logo { font-family: var(--font-mono); font-weight: 700; font-size: 16px; letter-spacing: 4px; color: var(--text-primary); text-decoration: none; display: flex; align-items: baseline; gap: 8px; }
+.logo-sub { color: var(--accent-cyan); font-weight: 400; font-size: 10px; letter-spacing: 1.5px; }
+.nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
+.nav-links a { font-size: 13px; color: var(--text-secondary); text-decoration: none; letter-spacing: 0.3px; transition: color 0.2s; font-weight: 500; }
+.nav-links a:hover { color: var(--text-primary); }
+.nav-cta { background: var(--accent-cyan-dim) !important; color: var(--accent-cyan) !important; padding: 8px 18px !important; border-radius: 6px; font-weight: 600 !important; letter-spacing: 0.5px !important; border: 1px solid rgba(56,189,248,0.15) !important; transition: all 0.2s !important; }
+.nav-cta:hover { background: rgba(56,189,248,0.2) !important; border-color: rgba(56,189,248,0.3) !important; }
+.nav-signin { color: var(--text-muted) !important; font-size: 12px !important; letter-spacing: 0.5px !important; }
+.nav-signin:hover { color: var(--accent-cyan) !important; }
+.nav-toggle { display: none; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; }
+@media (max-width: 768px) {
+  .nav-toggle { display: block; }
+  .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: rgba(10,15,26,0.97); backdrop-filter: blur(20px); padding: 24px; gap: 20px; border-bottom: 1px solid var(--border-subtle); }
+  .nav-links.open { display: flex; }
 }
 
 /* ══════════════════════════════════════════════════ */
-/* COMPLIANCE CHECKER SECTION — NEW                   */
+/* HERO                                               */
 /* ══════════════════════════════════════════════════ */
-.cc-section {
-padding: 80px 24px;
-background: var(–bg-secondary);
-border-bottom: 1px solid var(–border-subtle);
-}
-.cc-layout {
-display: grid; grid-template-columns: 1fr 1fr;
-gap: 64px; align-items: start; margin-top: 48px;
-}
-.cc-steps {
-display: flex; flex-direction: column; gap: 0;
-}
-.cc-step {
-display: flex; gap: 16px; padding-bottom: 28px;
-position: relative;
-}
-.cc-step:last-child { padding-bottom: 0; }
-.cc-step-left {
-display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
-}
-.cc-step-num {
-width: 32px; height: 32px; border-radius: 50%;
-background: var(–accent-cyan-dim);
-border: 1px solid rgba(56,189,248,0.2);
-display: flex; align-items: center; justify-content: center;
-font-family: var(–font-mono); font-size: 11px; font-weight: 700;
-color: var(–accent-cyan); flex-shrink: 0; z-index: 1;
-}
-.cc-step-connector {
-width: 1px; flex: 1; min-height: 16px;
-background: linear-gradient(180deg, rgba(56,189,248,0.25), rgba(56,189,248,0.04));
-margin-top: 4px;
-}
-.cc-step-content { padding-top: 4px; }
-.cc-step-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-.cc-step-desc { font-size: 13px; color: var(–text-secondary); line-height: 1.6; }
-.cc-step-tag {
-display: inline-flex; align-items: center; gap: 5px;
-font-family: var(–font-mono); font-size: 10px; letter-spacing: 0.5px;
-color: var(–accent-green); background: rgba(52,211,153,0.08);
-border: 1px solid rgba(52,211,153,0.15);
-border-radius: 4px; padding: 3px 8px; margin-top: 6px;
-}
-.cc-mockup {
-background: var(–bg-card);
-border: 1px solid rgba(56,189,248,0.12);
-border-radius: 14px; overflow: hidden;
-box-shadow: 0 12px 40px rgba(0,0,0,0.3);
-}
-.cc-mockup-header {
-background: var(–bg-elevated);
-border-bottom: 1px solid var(–border-subtle);
-padding: 14px 18px;
-display: flex; align-items: center; gap: 10px;
-}
-.cc-mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
-.cc-mockup-title {
-font-family: var(–font-mono); font-size: 11px;
-color: var(–text-muted); letter-spacing: 1px; margin-left: 4px;
-}
-.cc-mockup-body { padding: 24px; }
-.cc-upload-zone {
-border: 1px dashed rgba(56,189,248,0.25);
-border-radius: 8px; padding: 24px;
-text-align: center; margin-bottom: 20px;
-background: rgba(56,189,248,0.03);
-}
-.cc-upload-icon { font-size: 28px; margin-bottom: 8px; }
-.cc-upload-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.cc-upload-sub { font-size: 11px; color: var(–text-muted); }
-.cc-upload-types {
-display: flex; gap: 8px; justify-content: center; margin-top: 12px;
-}
-.cc-upload-type {
-font-family: var(–font-mono); font-size: 10px;
-color: var(–accent-cyan); background: var(–accent-cyan-dim);
-border: 1px solid rgba(56,189,248,0.15);
-border-radius: 4px; padding: 3px 8px;
-}
-.cc-findings { display: flex; flex-direction: column; gap: 8px; }
-.cc-finding {
-display: flex; align-items: flex-start; gap: 10px;
-padding: 10px 12px; border-radius: 8px;
-border: 1px solid;
-}
-.cc-finding-critical {
-background: rgba(248,113,113,0.06);
-border-color: rgba(248,113,113,0.15);
-}
-.cc-finding-warning {
-background: rgba(251,191,36,0.06);
-border-color: rgba(251,191,36,0.12);
-}
-.cc-finding-pass {
-background: rgba(52,211,153,0.05);
-border-color: rgba(52,211,153,0.12);
-}
-.cc-finding-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-.cc-finding-text { flex: 1; }
-.cc-finding-clause {
-font-family: var(–font-mono); font-size: 10px; letter-spacing: 0.5px;
-color: var(–text-dim); margin-bottom: 2px;
-}
-.cc-finding-title { font-size: 12px; font-weight: 600; margin-bottom: 1px; }
-.cc-finding-desc { font-size: 11px; color: var(–text-muted); line-height: 1.4; }
-.cc-rri-bridge {
-margin-top: 16px; padding: 12px 16px; border-radius: 8px;
-background: rgba(56,189,248,0.06);
-border: 1px solid rgba(56,189,248,0.15);
-display: flex; align-items: center; gap: 12px;
-}
-.cc-rri-bridge-label {
-font-family: var(–font-mono); font-size: 10px;
-letter-spacing: 1px; color: var(–accent-cyan); flex-shrink: 0;
-}
-.cc-rri-bridge-value {
-font-size: 12px; color: var(–text-secondary);
-}
-.cc-evidence-tracks {
-display: grid; grid-template-columns: 1fr 1fr;
-gap: 12px; margin-top: 28px;
-}
-.cc-track {
-background: var(–bg-card);
-border: 1px solid var(–border-subtle);
-border-radius: 10px; padding: 18px;
-transition: all 0.3s;
-}
-.cc-track:hover { border-color: var(–border-hover); transform: translateY(-2px); }
-.cc-track-label {
-font-family: var(–font-mono); font-size: 9px; letter-spacing: 1.5px;
-color: var(–accent-cyan); margin-bottom: 8px;
-}
-.cc-track-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-.cc-track-desc { font-size: 12px; color: var(–text-muted); line-height: 1.5; }
-.cc-track-ceiling {
-display: inline-flex; align-items: center; gap: 5px;
-font-family: var(–font-mono); font-size: 10px;
-color: var(–accent-amber); margin-top: 8px;
-}
-@media (max-width: 900px) {
-.cc-layout { grid-template-columns: 1fr; gap: 40px; }
-.cc-evidence-tracks { grid-template-columns: 1fr; }
+.hero { padding: 160px 24px 100px; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:var(--gradient-hero); pointer-events:none; }
+.hero-mesh { position:absolute; top:0; left:0; right:0; bottom:0; overflow:hidden; pointer-events:none; }
+.orb { position:absolute; border-radius:50%; filter:blur(80px); opacity:0.07; animation:orbFloat 20s ease-in-out infinite; }
+.orb-1 { width:600px; height:600px; top:-200px; left:-100px; background:var(--accent-cyan); animation-duration:25s; }
+.orb-2 { width:500px; height:500px; top:100px; right:-150px; background:#818cf8; animation-duration:30s; animation-delay:-5s; }
+.orb-3 { width:400px; height:400px; bottom:-100px; left:30%; background:var(--accent-green); animation-duration:22s; animation-delay:-10s; }
+.hero-dots { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; opacity:0.3; background-image:radial-gradient(rgba(56,189,248,0.15) 1px, transparent 1px); background-size:40px 40px; mask-image:radial-gradient(ellipse 50% 60% at 50% 40%, black 20%, transparent 70%); -webkit-mask-image:radial-gradient(ellipse 50% 60% at 50% 40%, black 20%, transparent 70%); }
+
+.hero-badge { display:inline-flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:11px; letter-spacing:1.5px; color:var(--accent-cyan); background:var(--accent-cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:100px; padding:8px 20px; margin-bottom:36px; animation:fadeInDown 0.6s ease; }
+.hero-badge-sep { color:rgba(56,189,248,0.3); }
+.hero h1 { font-size:clamp(2.2rem,5vw,3.6rem); font-weight:700; line-height:1.15; max-width:780px; margin:0 auto 24px; letter-spacing:-0.5px; animation:fadeInUp 0.7s ease 0.1s both; }
+.hero h1 em { font-style:italic; color:var(--accent-cyan); text-decoration:underline; text-decoration-color:rgba(56,189,248,0.3); text-underline-offset:4px; }
+.hero-sub { font-size:17px; color:var(--text-secondary); max-width:620px; margin:0 auto 48px; line-height:1.8; animation:fadeInUp 0.7s ease 0.2s both; }
+.hero-cta { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; animation:fadeInUp 0.7s ease 0.3s both; }
+
+.btn-primary { display:inline-flex; align-items:center; gap:8px; background:var(--accent-cyan); color:var(--bg-primary); padding:14px 32px; border-radius:8px; border:none; font-family:var(--font-body); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; transition:all 0.25s; position:relative; overflow:hidden; }
+.btn-primary::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); transition:left 0.5s; }
+.btn-primary:hover::after { left:100%; }
+.btn-primary:hover { background:#5cc9f5; transform:translateY(-1px); box-shadow:0 8px 24px rgba(56,189,248,0.25); }
+.btn-secondary { display:inline-flex; align-items:center; gap:8px; background:transparent; color:var(--text-secondary); padding:14px 32px; border-radius:8px; border:1px solid var(--border-subtle); font-family:var(--font-body); font-size:14px; font-weight:500; cursor:pointer; text-decoration:none; transition:all 0.25s; }
+.btn-secondary:hover { color:var(--text-primary); border-color:var(--border-hover); background:rgba(255,255,255,0.02); }
+
+/* Gauge */
+.gauge-container { margin:60px auto 0; max-width:440px; animation:fadeInUp 0.8s ease 0.4s both; }
+.gauge-svg { width:100%; height:auto; }
+.gauge-track { fill:none; stroke:var(--bg-card); stroke-width:6; stroke-linecap:round; }
+.gauge-fill { fill:none; stroke:url(#gaugeGrad); stroke-width:6; stroke-linecap:round; stroke-dasharray:251.2; stroke-dashoffset:251.2; animation:gaugeReveal 2s ease 0.8s forwards; filter:drop-shadow(0 0 8px rgba(56,189,248,0.3)); }
+.gauge-score { font-family:var(--font-mono); font-size:42px; font-weight:700; fill:var(--text-primary); text-anchor:middle; opacity:0; animation:fadeIn 0.5s ease 1.5s forwards; }
+.gauge-label { font-family:var(--font-body); font-size:11px; fill:var(--text-muted); text-anchor:middle; letter-spacing:1.5px; }
+.gauge-sublabel { font-family:var(--font-mono); font-size:10px; fill:var(--accent-cyan); text-anchor:middle; letter-spacing:1px; opacity:0.7; }
+.gauge-caption { font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:1px; text-align:center; margin-top:8px; text-transform:uppercase; }
+
+/* Hero ticker strip */
+.hero-ticker { margin-top:28px; overflow:hidden; position:relative; height:30px; max-width:580px; margin-left:auto; margin-right:auto; animation:fadeInUp 0.8s ease 1.8s both; }
+.hero-ticker::before,.hero-ticker::after { content:''; position:absolute; top:0; bottom:0; width:60px; z-index:2; pointer-events:none; }
+.hero-ticker::before { left:0; background:linear-gradient(90deg,var(--bg-primary),transparent); }
+.hero-ticker::after { right:0; background:linear-gradient(270deg,var(--bg-primary),transparent); }
+.ticker-track { display:flex; gap:28px; align-items:center; animation:tickerScroll 30s linear infinite; width:max-content; }
+.t-item { display:flex; align-items:center; gap:8px; white-space:nowrap; font-family:var(--font-mono); font-size:11px; }
+.t-dot { width:4px; height:4px; border-radius:50%; animation:pulse 2s ease-in-out infinite; }
+.t-dot-up { background:var(--accent-red); }
+.t-dot-down { background:var(--accent-green); }
+.t-dot-flat { background:var(--accent-amber); }
+.t-cat { color:var(--text-muted); }
+.t-val { font-weight:700; }
+.t-up { color:var(--accent-red); }
+.t-down { color:var(--accent-green); }
+.t-flat { color:var(--accent-amber); }
+
+/* Stats bar */
+.stats-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border-subtle); border:1px solid var(--border-subtle); border-radius:12px; overflow:hidden; max-width:780px; margin:44px auto 0; animation:fadeInUp 0.7s ease 0.5s both; }
+.stat-item { background:var(--bg-card); padding:26px 18px; text-align:center; transition:background 0.3s; }
+.stat-item:hover { background:var(--bg-card-hover); }
+.stat-value { font-family:var(--font-mono); font-size:26px; font-weight:700; color:var(--text-primary); margin-bottom:5px; }
+.stat-value .accent { color:var(--accent-cyan); }
+.stat-label { font-size:11px; color:var(--text-muted); letter-spacing:0.3px; }
+@media (max-width:640px) { .stats-bar { grid-template-columns:repeat(2,1fr); } }
+
+/* ══════════════════════════════════════════════════ */
+/* HOW IT WORKS                                       */
+/* ══════════════════════════════════════════════════ */
+.how-section { background:var(--bg-secondary); }
+.how-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; }
+.how-card { padding:36px 28px; position:relative; }
+.how-number { font-family:var(--font-mono); font-size:48px; font-weight:700; color:rgba(56,189,248,0.07); position:absolute; top:16px; right:20px; line-height:1; }
+.how-icon { width:44px; height:44px; border-radius:10px; background:var(--accent-cyan-dim); display:flex; align-items:center; justify-content:center; margin-bottom:20px; font-size:20px; transition:transform 0.3s,box-shadow 0.3s; }
+.how-card:hover .how-icon { transform:scale(1.1); box-shadow:0 0 20px rgba(56,189,248,0.2); }
+.how-card h3 { font-size:16px; font-weight:600; margin-bottom:10px; }
+.how-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; }
+.formula-block { text-align:center; margin-top:44px; opacity:0; transform:translateY(10px); transition:all 0.6s ease; }
+.formula-block.visible { opacity:1; transform:translateY(0); }
+.formula-text { font-family:var(--font-mono); font-size:14px; color:var(--text-muted); letter-spacing:1px; display:inline-block; padding:12px 24px; background:rgba(56,189,248,0.04); border:1px solid var(--border-subtle); border-radius:8px; }
+.formula-ref { font-size:12px; color:var(--text-dim); margin-top:8px; }
+@media (max-width:768px) { .how-grid { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════ */
+/* PRICING                                            */
+/* ══════════════════════════════════════════════════ */
+.pricing-section { border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); }
+.pricing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; align-items:start; }
+.pricing-card { padding:32px 24px; position:relative; }
+.pricing-card.featured { border-color:rgba(56,189,248,0.25); background:linear-gradient(180deg,rgba(56,189,248,0.04),var(--bg-card)); }
+.pricing-card.featured::before { content:'MOST POPULAR'; position:absolute; top:-11px; left:50%; transform:translateX(-50%); background:var(--accent-cyan); color:var(--bg-primary); font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1.5px; padding:4px 16px; border-radius:100px; }
+.pricing-tier { font-family:var(--font-mono); font-size:11px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:10px; }
+.pricing-tier-gold { color:var(--accent-gold); }
+.pricing-card h3 { font-size:18px; font-weight:600; margin-bottom:4px; }
+.pricing-target { font-size:12px; color:var(--text-muted); font-style:italic; margin-bottom:16px; line-height:1.4; }
+.pricing-price { font-family:var(--font-mono); font-size:36px; font-weight:700; margin-bottom:4px; }
+.pricing-price span { font-size:14px; font-weight:400; color:var(--text-muted); }
+.pricing-period { font-size:12px; color:var(--text-muted); margin-bottom:24px; }
+.pricing-features { list-style:none; display:flex; flex-direction:column; gap:10px; padding-top:20px; border-top:1px solid var(--border-subtle); }
+.pricing-features li { font-size:13px; color:var(--text-secondary); padding-left:22px; position:relative; line-height:1.5; }
+.pricing-features li::before { content:'\2713'; position:absolute; left:0; color:var(--accent-green); font-weight:700; font-size:13px; }
+.pricing-cta { display:block; text-align:center; margin-top:24px; padding:12px 24px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; transition:all 0.2s; }
+.pricing-cta-primary { background:var(--accent-cyan); color:var(--bg-primary); }
+.pricing-cta-primary:hover { background:#5cc9f5; }
+.pricing-cta-secondary { background:var(--accent-cyan-dim); color:var(--accent-cyan); border:1px solid rgba(56,189,248,0.12); }
+.pricing-cta-secondary:hover { background:rgba(56,189,248,0.2); }
+.pricing-cta-gold { background:var(--accent-gold-dim); color:var(--accent-gold); border:1px solid rgba(245,158,11,0.2); }
+.pricing-cta-gold:hover { background:rgba(245,158,11,0.18); border-color:rgba(245,158,11,0.35); }
+@media (max-width:768px) { .pricing-grid { grid-template-columns:1fr; max-width:400px; margin-left:auto; margin-right:auto; } }
+
+/* ══════════════════════════════════════════════════ */
+/* KNOWLEDGE LIBRARY                                  */
+/* ══════════════════════════════════════════════════ */
+.kl-section { background:var(--bg-secondary); }
+.kl-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; }
+.kl-card { padding:36px 32px; }
+.kl-card-icon { font-size:26px; margin-bottom:16px; }
+.kl-card h3 { font-size:17px; font-weight:700; margin-bottom:10px; }
+.kl-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; }
+.kl-stat { font-family:var(--font-mono); font-size:11px; color:var(--accent-cyan); margin-top:14px; letter-spacing:0.5px; }
+.kl-lifecycle { display:flex; flex-direction:column; margin-top:52px; max-width:700px; margin-left:auto; margin-right:auto; }
+.kl-stage { display:flex; gap:20px; padding-bottom:24px; }
+.kl-stage:last-child { padding-bottom:0; }
+.kl-stage-track { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+.kl-stage-dot { width:30px; height:30px; border-radius:50%; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--accent-cyan); flex-shrink:0; }
+.kl-stage-dot.scored { background:rgba(52,211,153,0.1); border-color:rgba(52,211,153,0.25); color:var(--accent-green); }
+.kl-stage-line { width:1px; flex:1; min-height:16px; background:linear-gradient(180deg,rgba(56,189,248,0.25),rgba(56,189,248,0.04)); margin-top:4px; }
+.kl-stage-body { padding-top:4px; }
+.kl-stage-title { font-size:14px; font-weight:600; margin-bottom:3px; }
+.kl-stage-desc { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+.kl-tier-strip { display:flex; flex-direction:column; gap:8px; margin-top:52px; max-width:700px; margin-left:auto; margin-right:auto; }
+.kl-tier-row { display:flex; align-items:center; gap:14px; padding:12px 18px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:8px; transition:all 0.2s; }
+.kl-tier-row:hover { border-color:var(--border-hover); }
+.kl-tier-row.gold-tier { border-color:rgba(245,158,11,0.15); }
+.kl-tier-row.gold-tier:hover { border-color:rgba(245,158,11,0.3); }
+.kl-tier-badge { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; color:var(--accent-cyan); background:var(--accent-cyan-dim); border-radius:4px; padding:3px 10px; flex-shrink:0; white-space:nowrap; }
+.kl-tier-badge.gold { color:var(--accent-gold); background:var(--accent-gold-dim); }
+.kl-tier-desc { font-size:12px; color:var(--text-secondary); }
+.kl-cta-row { text-align:center; margin-top:36px; }
+.kl-link { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--accent-cyan); text-decoration:none; border:1px solid rgba(56,189,248,0.18); background:var(--accent-cyan-dim); border-radius:8px; padding:11px 22px; transition:all 0.2s; }
+.kl-link:hover { background:rgba(56,189,248,0.2); border-color:rgba(56,189,248,0.3); transform:translateY(-1px); }
+@media (max-width:768px) { .kl-grid { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════ */
+/* COMPLIANCE CHECKER                                 */
+/* ══════════════════════════════════════════════════ */
+.cc-section { background:var(--bg-primary); border-top:1px solid var(--border-subtle); }
+.cc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; }
+.cc-card { padding:36px 32px; }
+.cc-card-icon { font-size:26px; margin-bottom:16px; }
+.cc-card h3 { font-size:17px; font-weight:700; margin-bottom:10px; }
+.cc-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; }
+.cc-stat { font-family:var(--font-mono); font-size:11px; color:var(--accent-green); margin-top:14px; letter-spacing:0.5px; }
+.cc-tracks { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:52px; max-width:700px; margin-left:auto; margin-right:auto; }
+.cc-track { padding:24px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; transition:all 0.35s var(--ease-card); }
+.cc-track:hover { border-color:var(--border-hover); transform:translateY(-2px); }
+.cc-track-label { font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:8px; }
+.cc-track-title { font-size:14px; font-weight:600; margin-bottom:6px; }
+.cc-track-desc { font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:10px; }
+.cc-track-ceiling { font-family:var(--font-mono); font-size:11px; color:var(--accent-amber); }
+.cc-rri-note { max-width:700px; margin:20px auto 0; padding:14px 20px; border-radius:8px; background:rgba(56,189,248,0.04); border:1px solid rgba(56,189,248,0.1); font-size:13px; color:var(--text-secondary); line-height:1.6; text-align:center; }
+.cc-rri-note strong { color:var(--accent-cyan); }
+@media (max-width:640px) { .cc-tracks { grid-template-columns:1fr; } }
+@media (max-width:768px) { .cc-grid { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════ */
+/* INTELLIGENCE LOOP                                  */
+/* ══════════════════════════════════════════════════ */
+.loop-section { background:var(--bg-secondary); border-top:1px solid rgba(56,189,248,0.06); }
+.loop-row { display:flex; align-items:center; justify-content:center; margin-top:52px; flex-wrap:nowrap; }
+.loop-node { padding:32px 20px; width:196px; text-align:center; flex-shrink:0; }
+.loop-node-icon { font-size:24px; margin-bottom:12px; }
+.loop-node-label { font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:6px; }
+.loop-node-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
+.loop-connector { display:flex; flex-direction:column; align-items:center; padding:0 2px; flex-shrink:0; margin-bottom:18px; }
+.loop-connector-line { width:32px; height:1px; background:linear-gradient(90deg,rgba(56,189,248,0.4),rgba(56,189,248,0.1)); }
+.loop-connector-arrow { font-size:12px; color:rgba(56,189,248,0.35); margin-left:22px; margin-top:-7px; }
+.loop-connector-label { font-family:var(--font-mono); font-size:9px; letter-spacing:0.5px; color:var(--text-dim); margin-top:4px; white-space:nowrap; }
+.loop-caption { max-width:640px; margin:40px auto 0; text-align:center; font-size:15px; color:var(--text-secondary); line-height:1.8; }
+.loop-caption strong { color:var(--text-primary); }
+@media (max-width:860px) {
+  .loop-row { flex-direction:column; }
+  .loop-connector { flex-direction:row; padding:4px 0; }
+  .loop-connector-line { width:1px; height:28px; background:linear-gradient(180deg,rgba(56,189,248,0.4),rgba(56,189,248,0.1)); }
+  .loop-connector-arrow { transform:rotate(90deg); margin-left:0; margin-top:0; }
 }
 
 /* ══════════════════════════════════════════════════ */
-/* INTELLIGENCE LOOP SECTION — NEW                    */
+/* ERA 2025 URGENCY                                   */
 /* ══════════════════════════════════════════════════ */
-.loop-section {
-padding: 80px 24px;
-background: linear-gradient(180deg,
-rgba(56,189,248,0.02) 0%, transparent 100%);
-border-bottom: 1px solid var(–border-subtle);
-border-top: 1px solid rgba(56,189,248,0.06);
-text-align: center;
-}
-.loop-diagram {
-display: flex; align-items: center; justify-content: center;
-gap: 0; margin: 56px auto 0; max-width: 900px;
-flex-wrap: wrap;
-}
-.loop-node {
-background: var(–bg-card);
-border: 1px solid rgba(56,189,248,0.15);
-border-radius: 14px; padding: 28px 24px;
-width: 190px; text-align: center;
-transition: all 0.3s;
-flex-shrink: 0;
-}
-.loop-node:hover {
-border-color: rgba(56,189,248,0.35);
-transform: translateY(-4px);
-box-shadow: 0 12px 32px rgba(0,0,0,0.3), 0 0 24px rgba(56,189,248,0.06);
-}
-.loop-node-icon { font-size: 28px; margin-bottom: 12px; }
-.loop-node-title {
-font-family: var(–font-mono); font-size: 10px; letter-spacing: 1.5px;
-color: var(–accent-cyan); margin-bottom: 6px;
-}
-.loop-node-desc { font-size: 12px; color: var(–text-muted); line-height: 1.5; }
-.loop-arrow {
-display: flex; flex-direction: column; align-items: center;
-gap: 4px; padding: 0 8px; flex-shrink: 0;
-}
-.loop-arrow-line {
-width: 40px; height: 1px;
-background: linear-gradient(90deg, rgba(56,189,248,0.4), rgba(56,189,248,0.1));
-}
-.loop-arrow-head {
-font-family: var(–font-mono); font-size: 14px;
-color: rgba(56,189,248,0.4);
-margin-left: 30px; margin-top: -10px;
-}
-.loop-arrow-label {
-font-family: var(–font-mono); font-size: 9px; letter-spacing: 0.5px;
-color: var(–text-dim); white-space: nowrap; margin-top: 4px;
-}
-.loop-caption {
-margin-top: 40px; max-width: 640px; margin-left: auto; margin-right: auto;
-font-size: 15px; color: var(–text-secondary); line-height: 1.8;
-}
-.loop-caption strong { color: var(–text-primary); }
-@media (max-width: 860px) {
-.loop-diagram { flex-direction: column; }
-.loop-arrow { flex-direction: row; padding: 8px 0; }
-.loop-arrow-line { width: 1px; height: 30px; background: linear-gradient(180deg, rgba(56,189,248,0.4), rgba(56,189,248,0.1)); }
-.loop-arrow-head { transform: rotate(90deg); margin-left: 0; margin-top: 0; }
-}
+.era-section { padding:72px 24px; background:linear-gradient(135deg,rgba(251,191,36,0.03) 0%,rgba(10,15,26,0) 60%); border-top:1px solid rgba(251,191,36,0.12); border-bottom:1px solid rgba(251,191,36,0.06); position:relative; overflow:hidden; }
+.era-section::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,rgba(251,191,36,0.5) 30%,rgba(248,113,113,0.3) 60%,transparent); }
+.era-alert-bar { display:inline-flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:var(--accent-amber); background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); border-radius:100px; padding:6px 16px; margin-bottom:24px; }
+.era-alert-dot { width:6px; height:6px; border-radius:50%; background:var(--accent-amber); animation:pulse 1.5s ease-in-out infinite; box-shadow:0 0 8px rgba(251,191,36,0.6); }
+.era-layout { display:grid; grid-template-columns:1fr 400px; gap:60px; align-items:center; }
+.era-title { font-size:clamp(1.5rem,3vw,2.1rem); font-weight:700; line-height:1.2; letter-spacing:-0.3px; margin-bottom:16px; }
+.era-title span { color:var(--accent-amber); }
+.era-desc { font-size:15px; color:var(--text-secondary); line-height:1.8; margin-bottom:24px; max-width:520px; }
+.era-meta { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:28px; }
+.era-meta-item { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
+.era-meta-item span { color:var(--text-primary); font-weight:700; }
+.era-cats { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:32px; }
+.era-cat-tag { font-family:var(--font-mono); font-size:10px; color:var(--accent-amber); background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15); border-radius:4px; padding:3px 9px; }
+.era-card { background:var(--bg-card); border:1px solid rgba(251,191,36,0.15); border-radius:14px; padding:28px; position:relative; overflow:hidden; }
+.era-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--accent-amber),var(--accent-red)); }
+.era-card-label { font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--accent-amber); text-transform:uppercase; margin-bottom:18px; }
+.era-provision { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+.era-provision:last-child { border-bottom:none; padding-bottom:0; }
+.era-prov-icon { width:26px; height:26px; border-radius:6px; background:rgba(251,191,36,0.1); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.era-prov-title { font-size:13px; font-weight:600; margin-bottom:1px; }
+.era-prov-sub { font-size:11px; color:var(--text-muted); line-height:1.4; }
+.era-acei-flag { margin-top:16px; padding:10px 14px; border-radius:8px; background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.14); display:flex; align-items:center; gap:10px; }
+.era-acei-flag-label { font-family:var(--font-mono); font-size:10px; letter-spacing:1px; color:var(--accent-red); }
+.era-acei-flag-value { font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--text-primary); margin-left:auto; }
+@media (max-width:900px) { .era-layout { grid-template-columns:1fr; gap:40px; } }
 
-/* ── FORMULA ANIMATION ── */
-.formula-block {
-text-align: center; margin-top: 48px;
-opacity: 0; transform: translateY(10px);
-transition: all 0.6s ease;
-}
-.formula-block.visible { opacity: 1; transform: translateY(0); }
-.formula-text {
-font-family: var(–font-mono); font-size: 14px;
-color: var(–text-muted); letter-spacing: 1px;
-display: inline-block; padding: 12px 24px;
-background: rgba(56,189,248,0.04);
-border: 1px solid var(–border-subtle);
-border-radius: 8px;
-}
-.formula-ref { font-size: 12px; color: var(–text-dim); margin-top: 8px; }
+/* ══════════════════════════════════════════════════ */
+/* TICKER BAND — THIN SCROLLING STRIP                 */
+/* ══════════════════════════════════════════════════ */
+.ticker-section { background:var(--bg-secondary); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); }
+.ticker-band-header { display:flex; align-items:center; justify-content:space-between; padding:13px 24px; max-width:1140px; margin:0 auto; }
+.ticker-live-label { display:flex; align-items:center; gap:8px; }
+.ticker-live-dot { width:6px; height:6px; border-radius:50%; background:var(--accent-green); animation:pulse 1.5s ease-in-out infinite; box-shadow:0 0 8px rgba(52,211,153,0.6); }
+.ticker-live-text { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:var(--accent-green); }
+.ticker-upsell { font-family:var(--font-mono); font-size:11px; color:var(--accent-cyan); text-decoration:none; letter-spacing:0.5px; border:1px solid rgba(56,189,248,0.15); border-radius:4px; padding:5px 12px; background:var(--accent-cyan-dim); transition:all 0.2s; white-space:nowrap; }
+.ticker-upsell:hover { background:rgba(56,189,248,0.2); border-color:rgba(56,189,248,0.3); }
+.ticker-band { overflow:hidden; position:relative; height:36px; border-top:1px solid rgba(56,189,248,0.05); background:rgba(56,189,248,0.02); cursor:pointer; }
+.ticker-band:hover { background:rgba(56,189,248,0.04); }
+.ticker-band::before,.ticker-band::after { content:''; position:absolute; top:0; bottom:0; width:80px; z-index:2; pointer-events:none; }
+.ticker-band::before { left:0; background:linear-gradient(90deg,var(--bg-secondary),transparent); }
+.ticker-band::after { right:0; background:linear-gradient(270deg,var(--bg-secondary),transparent); }
+.ticker-band-track { display:flex; gap:40px; align-items:center; height:100%; padding:0 80px; animation:tickerScroll 35s linear infinite; width:max-content; }
+
+/* ══════════════════════════════════════════════════ */
+/* CONSTITUTIONAL GOVERNANCE                          */
+/* ══════════════════════════════════════════════════ */
+.const-section { background:linear-gradient(180deg,rgba(56,189,248,0.02) 0%,transparent 60%); border-top:1px solid rgba(56,189,248,0.06); }
+.const-declaration { font-family:var(--font-mono); font-size:13px; color:var(--accent-cyan); letter-spacing:0.5px; margin-top:12px; opacity:0.85; max-width:600px; }
+.const-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; }
+.const-card { padding:40px 32px; border-color:rgba(56,189,248,0.12); }
+.const-badge { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:14px; }
+.const-card h3 { font-size:18px; font-weight:700; margin-bottom:10px; }
+.const-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; }
+.const-features { list-style:none; margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+.const-features li { font-size:12px; color:var(--text-muted); padding-left:16px; position:relative; }
+.const-features li::before { content:'\2192'; position:absolute; left:0; color:var(--accent-cyan); font-family:var(--font-mono); }
+@media (max-width:768px) { .const-grid { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════ */
+/* DATA SOURCES                                       */
+/* ══════════════════════════════════════════════════ */
+.data-section { background:var(--bg-secondary); border-top:1px solid var(--border-subtle); }
+.data-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; margin-top:52px; }
+.data-card { padding:28px; display:flex; gap:16px; align-items:flex-start; }
+.data-icon { flex-shrink:0; width:40px; height:40px; border-radius:8px; background:var(--accent-cyan-dim); display:flex; align-items:center; justify-content:center; font-size:18px; }
+.data-card h4 { font-size:14px; font-weight:600; margin-bottom:6px; }
+.data-card p { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+.data-stat { font-family:var(--font-mono); font-size:11px; color:var(--accent-cyan); margin-top:8px; letter-spacing:0.5px; }
+@media (max-width:640px) { .data-grid { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════ */
+/* 12 CATEGORIES                                      */
+/* ══════════════════════════════════════════════════ */
+.categories-section { background:var(--bg-primary); border-top:1px solid var(--border-subtle); }
+.cat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:52px; }
+.cat-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:10px; padding:22px 18px; transition:all 0.3s var(--ease-card); position:relative; overflow:hidden; }
+.cat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--accent-cyan),transparent); opacity:0; transition:opacity 0.3s; }
+.cat-card:hover::before { opacity:1; }
+.cat-card:hover { border-color:var(--border-hover); background:var(--bg-card-hover); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+.cat-id { font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:8px; }
+.cat-name { font-size:13px; font-weight:600; margin-bottom:6px; line-height:1.3; }
+.cat-desc { font-size:11px; color:var(--text-muted); line-height:1.5; }
+.cat-severity { display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.5px; padding:3px 8px; border-radius:4px; }
+.cat-severity::before { content:''; width:5px; height:5px; border-radius:50%; animation:severityPulse 2.5s ease-in-out infinite; }
+.severity-high { background:rgba(248,113,113,0.1); color:var(--accent-red); }
+.severity-high::before { background:var(--accent-red); box-shadow:0 0 6px var(--accent-red); }
+.severity-elevated { background:rgba(251,191,36,0.1); color:var(--accent-amber); }
+.severity-elevated::before { background:var(--accent-amber); box-shadow:0 0 6px var(--accent-amber); }
+@media (max-width:900px) { .cat-grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:480px) { .cat-grid { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════ */
+/* WHO IT'S FOR                                       */
+/* ══════════════════════════════════════════════════ */
+.use-section { background:var(--bg-secondary); border-top:1px solid var(--border-subtle); }
+.use-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:24px; margin-top:52px; }
+.use-card { padding:32px; }
+.use-icon { font-size:24px; margin-bottom:16px; }
+.use-card h3 { font-size:16px; font-weight:600; margin-bottom:10px; }
+.use-card p { font-size:13px; color:var(--text-secondary); line-height:1.7; }
+.use-quote { margin-top:16px; padding-top:16px; border-top:1px solid var(--border-subtle); font-size:12px; color:var(--text-muted); font-style:italic; }
+@media (max-width:640px) { .use-grid { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════ */
+/* EARLY ACCESS CTA                                   */
+/* ══════════════════════════════════════════════════ */
+.cta-section { text-align:center; background:linear-gradient(180deg,transparent,rgba(56,189,248,0.03),transparent); border-top:1px solid var(--border-subtle); }
+.cta-form { display:flex; gap:12px; max-width:480px; margin:32px auto 0; flex-wrap:wrap; justify-content:center; }
+.cta-input { flex:1; min-width:240px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:8px; padding:14px 18px; color:var(--text-primary); font-size:14px; font-family:var(--font-body); outline:none; transition:border-color 0.2s,box-shadow 0.2s; }
+.cta-input:focus { border-color:var(--accent-cyan); box-shadow:0 0 0 3px rgba(56,189,248,0.1); }
+.cta-input::placeholder { color:var(--text-muted); }
+.cta-submit { background:var(--accent-cyan); color:var(--bg-primary); padding:14px 28px; border-radius:8px; border:none; font-family:var(--font-body); font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.cta-submit:hover { background:#5cc9f5; }
+.cta-submit:disabled { opacity:0.5; cursor:not-allowed; }
+.cta-msg { font-size:13px; margin-top:12px; max-width:480px; margin-left:auto; margin-right:auto; }
+.cta-msg.success { color:var(--accent-green); }
+.cta-msg.error { color:var(--accent-red); }
+.cta-legal { font-size:11px; color:var(--text-dim); margin-top:16px; }
+
+/* ══════════════════════════════════════════════════ */
+/* FOOTER                                             */
+/* ══════════════════════════════════════════════════ */
+footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
+.footer-inner { max-width:1140px; margin:0 auto; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:32px; }
+.footer-brand { max-width:320px; }
+.footer-brand p { font-size:12px; color:var(--text-muted); line-height:1.7; margin-top:12px; }
+.footer-links-group h4 { font-size:11px; font-weight:600; letter-spacing:1.5px; color:var(--text-muted); margin-bottom:12px; text-transform:uppercase; }
+.footer-links-group a { display:block; font-size:13px; color:var(--text-secondary); text-decoration:none; margin-bottom:8px; transition:color 0.2s; }
+.footer-links-group a:hover { color:var(--text-primary); }
+.footer-bottom { max-width:1140px; margin:32px auto 0; padding-top:24px; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.footer-legal { font-size:11px; color:var(--text-dim); }
+.footer-constitutions { font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:0.5px; }
 </style>
-
 </head>
 <body>
 
-<!-- Auth redirect: after Supabase confirmation/magic-link, route to simulator or dashboard -->
-
+<!-- Auth redirect -->
 <script>
-(function() {
-  var hash = window.location.hash.substring(1);
-  if (!hash) return;
-  var params = new URLSearchParams(hash);
-  var token = params.get('access_token');
-  var tokenType = params.get('token_type');
-  var type = params.get('type');
-  if (!token || tokenType !== 'bearer') return;
-
-  if (type === 'recovery') {
-    window.location.replace('/dashboard/' + window.location.hash);
-    return;
-  }
-
-  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-
-  document.documentElement.style.visibility = 'hidden';
-
-  fetch(SUPABASE_URL + '/rest/v1/organisations?select=id&limit=1', {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + token
-    }
-  }).then(function(res) { return res.json(); })
-    .then(function(data) {
-      if (Array.isArray(data) && data.length > 0) {
-        window.location.replace('/dashboard/' + window.location.hash);
-      } else {
-        window.location.replace('/simulator-app/' + window.location.hash);
-      }
-    }).catch(function() {
-      window.location.replace('/simulator-app/' + window.location.hash);
-    });
+(function(){
+  var h=window.location.hash.substring(1); if(!h)return;
+  var p=new URLSearchParams(h),token=p.get('access_token'),tt=p.get('token_type'),type=p.get('type');
+  if(!token||tt!=='bearer')return;
+  if(type==='recovery'){window.location.replace('/dashboard/'+window.location.hash);return;}
+  var SU='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  document.documentElement.style.visibility='hidden';
+  fetch(SU+'/rest/v1/organisations?select=id&limit=1',{headers:{'apikey':SK,'Authorization':'Bearer '+token}})
+    .then(function(r){return r.json();})
+    .then(function(d){window.location.replace((Array.isArray(d)&&d.length>0?'/dashboard/':'/simulator-app/')+window.location.hash);})
+    .catch(function(){window.location.replace('/simulator-app/'+window.location.hash);});
 })();
 </script>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- NAVIGATION                                        -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
+<!-- NAVIGATION -->
 <nav>
   <div class="nav-inner">
     <a href="#" class="logo">AILANE <span class="logo-sub">ACEI · RRI · CCI</span></a>
@@ -1364,977 +460,383 @@ border-radius: 8px;
     </button>
     <ul class="nav-links">
       <li><a href="#how">How It Works</a></li>
+      <li><a href="#pricing">Pricing</a></li>
       <li><a href="#knowledge-library">Knowledge Library</a></li>
       <li><a href="#compliance-checker">Compliance Checker</a></li>
       <li><a href="#governance">Governance</a></li>
-      <li><a href="#pricing">Pricing</a></li>
       <li><a href="/dashboard/" class="nav-signin">Sign In &#8594;</a></li>
       <li><a href="#early-access" class="nav-cta">Early Access</a></li>
     </ul>
   </div>
 </nav>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- HERO                                              -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
+<!-- HERO -->
 <section class="hero">
-  <div class="hero-mesh">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-  </div>
+  <div class="hero-mesh"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
   <div class="hero-dots"></div>
   <div class="container">
-    <div class="hero-badge">
-      ACEI v1.0
-      <span class="hero-badge-sep">·</span>
-      RRI v1.0
-      <span class="hero-badge-sep">·</span>
-      CCI v1.0
-    </div>
+    <div class="hero-badge">ACEI v1.0 <span class="hero-badge-sep">·</span> RRI v1.0 <span class="hero-badge-sep">·</span> CCI v1.0</div>
     <h1>Quantify regulatory exposure <em>before it lands</em></h1>
-    <p>The Ailane constitutional index suite monitors UK employment tribunal activity, enforcement actions, and legislative change across 12 categories &#8212; quantifying your compliance risk on a constitutionally-governed 0&#8211;100 scale. Updated weekly. Deterministic. Litigation-proof.</p>
+    <p class="hero-sub">The Ailane constitutional index suite monitors UK employment tribunal activity, enforcement actions, and legislative change across 12 categories &#8212; quantifying your compliance risk on a constitutionally-governed 0&#8211;100 scale. Updated weekly. Deterministic. Litigation-proof.</p>
     <div class="hero-cta">
       <a href="#early-access" class="btn-primary">Request Early Access</a>
       <a href="#how" class="btn-secondary">See How It Works</a>
     </div>
-
-```
-<!-- ACEI Gauge -->
-<div class="gauge-container">
-  <svg viewBox="0 0 200 130" class="gauge-svg">
-    <defs>
-      <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#34d399"/>
-        <stop offset="40%" stop-color="#38bdf8"/>
-        <stop offset="70%" stop-color="#fbbf24"/>
-        <stop offset="100%" stop-color="#f87171"/>
-      </linearGradient>
-    </defs>
-    <path d="M 20 110 A 80 80 0 0 1 180 110" class="gauge-track"/>
-    <path d="M 20 110 A 80 80 0 0 1 180 110" class="gauge-fill"/>
-    <text x="100" y="92" class="gauge-score">45</text>
-    <text x="100" y="108" class="gauge-label">ELEVATED EXPOSURE</text>
-    <text x="100" y="122" class="gauge-sublabel">ACEI DOMAIN INDEX</text>
-  </svg>
-  <div class="gauge-caption">Illustrative domain score. Updated weekly.</div>
-</div>
-
-<!-- Risk Ticker (hero mini-strip) -->
-<div class="risk-ticker" aria-hidden="true">
-  <div class="risk-ticker-track" id="risk-ticker-track"></div>
-</div>
-
-<!-- Stats bar -->
-<div class="stats-bar">
-  <div class="stat-item">
-    <div class="stat-value" data-target="130854">130,854</div>
-    <div class="stat-label">Tribunal decisions tracked</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value" data-target="80124">80,124</div>
-    <div class="stat-label">Employers profiled</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value"><span class="accent">12</span></div>
-    <div class="stat-label">Exposure categories</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value">Weekly</div>
-    <div class="stat-label">Score computation cycle</div>
-  </div>
-</div>
-```
-
+    <div class="gauge-container">
+      <svg viewBox="0 0 200 130" class="gauge-svg">
+        <defs>
+          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#34d399"/><stop offset="40%" stop-color="#38bdf8"/>
+            <stop offset="70%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f87171"/>
+          </linearGradient>
+        </defs>
+        <path d="M 20 110 A 80 80 0 0 1 180 110" class="gauge-track"/>
+        <path d="M 20 110 A 80 80 0 0 1 180 110" class="gauge-fill"/>
+        <text x="100" y="92" class="gauge-score">45</text>
+        <text x="100" y="108" class="gauge-label">ELEVATED EXPOSURE</text>
+        <text x="100" y="122" class="gauge-sublabel">ACEI DOMAIN INDEX</text>
+      </svg>
+      <div class="gauge-caption">Illustrative domain score. Updated weekly.</div>
+    </div>
+    <div class="hero-ticker" aria-hidden="true">
+      <div class="ticker-track" id="hero-ticker-track"></div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-value" data-target="130854">130,854</div><div class="stat-label">Tribunal decisions tracked</div></div>
+      <div class="stat-item"><div class="stat-value" data-target="80124">80,124</div><div class="stat-label">Employers profiled</div></div>
+      <div class="stat-item"><div class="stat-value"><span class="accent">12</span></div><div class="stat-label">Exposure categories</div></div>
+      <div class="stat-item"><div class="stat-value">Weekly</div><div class="stat-label">Score computation</div></div>
+    </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- HOW IT WORKS                                      -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
+<!-- HOW IT WORKS -->
 <section class="how-section" id="how">
   <div class="container">
     <div class="section-eyebrow">How It Works</div>
     <div class="section-title">Three inputs. One constitutionally-governed score.</div>
     <div class="section-subtitle">The ACEI calculates employer exposure using a deterministic formula defined in Article III of its founding constitution. Identical inputs always produce identical outputs.</div>
-
-```
-<div class="how-grid">
-  <div class="how-card fade-in">
-    <div class="how-number">01</div>
-    <div class="how-icon">&#128202;</div>
-    <h3>Event Volume Index (EVI)</h3>
-    <p>Tracks weekly tribunal decision volumes per category against 52-week empirical baselines. A surge in discrimination claims in your sector triggers an immediate EVI spike &#8212; before it becomes a headline.</p>
-  </div>
-  <div class="how-card fade-in">
-    <div class="how-number">02</div>
-    <div class="how-icon">&#9889;</div>
-    <h3>Enforcement Intensity Index (EII)</h3>
-    <p>Monitors real-time enforcement actions from the EHRC, HSE, and ICO using 90-day rolling windows. When a regulator ramps up activity in your category, your EII responds within the week.</p>
-  </div>
-  <div class="how-card fade-in">
-    <div class="how-number">03</div>
-    <div class="how-icon">&#128220;</div>
-    <h3>Structural Change Index (SCI)</h3>
-    <p>Maps legislative changes and regulatory updates to your exposure categories with impact-level scoring. The Employment Rights Act 2025, data protection amendments, working time reforms &#8212; all captured and weighted.</p>
-  </div>
-</div>
-
-<div class="formula-block fade-in">
-  <div class="formula-text">
-    L<sub>raw</sub> = (0.4 &#215; EVI) + (0.3 &#215; EII) + (0.3 &#215; SCI)
-  </div>
-  <div class="formula-ref">Article III &#167;3.2.1 &#8212; Likelihood Derivation Formula</div>
-</div>
-```
-
+    <div class="how-grid">
+      <div class="how-card card fade-in"><div class="how-number">01</div><div class="how-icon">&#128202;</div><h3>Event Volume Index (EVI)</h3><p>Tracks weekly tribunal decision volumes per category against 52-week empirical baselines. A surge in discrimination claims in your sector triggers an immediate EVI spike &#8212; before it becomes a headline.</p></div>
+      <div class="how-card card fade-in"><div class="how-number">02</div><div class="how-icon">&#9889;</div><h3>Enforcement Intensity Index (EII)</h3><p>Monitors real-time enforcement actions from the EHRC, HSE, and ICO using 90-day rolling windows. When a regulator ramps up activity in your category, your EII responds within the week.</p></div>
+      <div class="how-card card fade-in"><div class="how-number">03</div><div class="how-icon">&#128220;</div><h3>Structural Change Index (SCI)</h3><p>Maps legislative changes and regulatory updates to your exposure categories with impact-level scoring. The Employment Rights Act 2025, data protection amendments, working time reforms &#8212; all captured and weighted.</p></div>
+    </div>
+    <div class="formula-block fade-in">
+      <div class="formula-text">L<sub>raw</sub> = (0.4 &#215; EVI) + (0.3 &#215; EII) + (0.3 &#215; SCI)</div>
+      <div class="formula-ref">Article III &#167;3.2.1 &#8212; Likelihood Derivation Formula</div>
+    </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- DATA SOURCES                                      -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="data-section" id="data">
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
   <div class="container">
-    <div class="section-eyebrow">Data Sources</div>
-    <div class="section-title">Built on authoritative public data. Not surveys.</div>
-    <div class="section-subtitle">Every score traces back to published tribunal decisions, official enforcement records, and legislative instruments. Independently verifiable. Open Government Licence compliant.</div>
-
-```
-<div class="data-grid">
-  <div class="data-card fade-in">
-    <div class="data-icon">&#9878;&#65039;</div>
-    <div>
-      <h4>UK Employment Tribunals</h4>
-      <p>Full-text decisions scraped from GOV.UK, classified by respondent, claim type, jurisdiction, and outcome across all 12 ACEI categories.</p>
-      <div class="data-stat">130,854 decisions &#183; 16 years &#183; 80,124 employers</div>
+    <div class="section-eyebrow" style="text-align:center;">Pricing</div>
+    <div class="section-title" style="text-align:center;">Transparent pricing. No hidden fees.</div>
+    <p class="section-subtitle centered">Three tiers designed around distinct decision-makers. Each delivers genuine intelligence at its price point, with natural depth as your organisation grows.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card card fade-in">
+        <div class="pricing-tier">OPERATIONAL READINESS</div>
+        <h3>Operational Readiness</h3>
+        <p class="pricing-target">HR managers &amp; compliance leads · 25&#8211;100 employees</p>
+        <div class="pricing-price">&#163;199<span>/mo</span></div>
+        <div class="pricing-period">Billed monthly · Cancel anytime</div>
+        <ul class="pricing-features">
+          <li>ACEI Domain Index score</li>
+          <li>12-category exposure breakdown</li>
+          <li>Weekly score updates</li>
+          <li>Legislative change alerts</li>
+          <li>Knowledge Library · UK instruments</li>
+          <li>Compliance Checker · employment contracts</li>
+          <li>ERA 2025 impact assessment</li>
+          <li>Email support</li>
+        </ul>
+        <a href="#early-access" class="pricing-cta pricing-cta-secondary">Request Access</a>
+      </div>
+      <div class="pricing-card card featured fade-in">
+        <div class="pricing-tier">GOVERNANCE</div>
+        <h3>Governance</h3>
+        <p class="pricing-target">HR directors &amp; board reporting · 75&#8211;500 employees</p>
+        <div class="pricing-price">&#163;799<span>/mo</span></div>
+        <div class="pricing-period">Billed monthly · Cancel anytime</div>
+        <ul class="pricing-features">
+          <li>Everything in Operational Readiness</li>
+          <li>Full Index Triad &#8212; ACEI + RRI + CCI</li>
+          <li>Full sub-index transparency (EVI, EII, SCI)</li>
+          <li>RRI Readiness assessment (5 pillars)</li>
+          <li>CCI Conduct Score per employer</li>
+          <li>Knowledge Library · multi-jurisdiction</li>
+          <li>Sector benchmarking</li>
+          <li>Board-ready reporting &amp; PDF exports</li>
+          <li>Quarterly review call · priority support</li>
+        </ul>
+        <a href="#early-access" class="pricing-cta pricing-cta-primary">Request Access</a>
+      </div>
+      <div class="pricing-card card card-gold fade-in">
+        <div class="pricing-tier pricing-tier-gold">INSTITUTIONAL</div>
+        <h3>Institutional</h3>
+        <p class="pricing-target">Enterprises, insurers &amp; legal firms · 500+ employees</p>
+        <div class="pricing-price">Custom</div>
+        <div class="pricing-period">Tailored engagement · SLA-backed</div>
+        <ul class="pricing-features">
+          <li>Everything in Governance</li>
+          <li>Full global Knowledge Library · 53 jurisdictions</li>
+          <li>Multi-entity &amp; group scoring</li>
+          <li>API access for internal systems</li>
+          <li>EPLI insurance integration feeds</li>
+          <li>Custom category weighting</li>
+          <li>Dedicated account manager</li>
+          <li>White-label reporting</li>
+          <li>Bespoke board briefing packs</li>
+        </ul>
+        <a href="#early-access" class="pricing-cta pricing-cta-gold">Contact Sales</a>
+      </div>
     </div>
-  </div>
-  <div class="data-card fade-in">
-    <div class="data-icon">&#127963;&#65039;</div>
-    <div>
-      <h4>EHRC Enforcement Actions</h4>
-      <p>Equality and Human Rights Commission enforcement notices, investigations, and compliance actions mapped to discrimination and equality categories.</p>
-      <div class="data-stat">152 enforcement actions tracked</div>
-    </div>
-  </div>
-  <div class="data-card fade-in">
-    <div class="data-icon">&#129466;</div>
-    <div>
-      <h4>HSE Enforcement Notices</h4>
-      <p>Health and Safety Executive improvement notices, prohibition notices, and prosecutions feeding the Health &amp; Safety exposure category.</p>
-      <div class="data-stat">Automated collection pipeline active</div>
-    </div>
-  </div>
-  <div class="data-card fade-in">
-    <div class="data-icon">&#128274;</div>
-    <div>
-      <h4>ICO Enforcement Actions</h4>
-      <p>Information Commissioner's Office enforcement notices, monetary penalties, and reprimands mapped to data protection exposure.</p>
-      <div class="data-stat">Automated collection pipeline active</div>
-    </div>
-  </div>
-  <div class="data-card fade-in">
-    <div class="data-icon">&#128203;</div>
-    <div>
-      <h4>UK Legislative Changes</h4>
-      <p>Primary and secondary legislation, statutory instruments, and regulatory guidance tracked with impact-level scoring across all employment law domains.</p>
-      <div class="data-stat">534 legislative changes &#183; impact-scored</div>
-    </div>
-  </div>
-  <div class="data-card fade-in">
-    <div class="data-icon">&#127758;</div>
-    <div>
-      <h4>Global Expansion Pipeline</h4>
-      <p>Multi-jurisdiction architecture supporting 53 jurisdictions across 6 continents. Ireland, Australia, New Zealand, Singapore, EU, US, and Canada in the roadmap.</p>
-      <div class="data-stat">53 jurisdictions &#183; 70+ regulatory categories</div>
-    </div>
-  </div>
-</div>
-```
-
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- 12 CATEGORIES                                     -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="categories-section" id="categories">
+<!-- KNOWLEDGE LIBRARY -->
+<section class="kl-section" id="knowledge-library">
   <div class="container">
-    <div class="section-eyebrow">Exposure Categories</div>
-    <div class="section-title">12 constitutional categories. Complete coverage.</div>
-    <div class="section-subtitle">Every employment law risk maps to one of 12 categories defined in Article II of the ACEI constitution. No gaps, no overlaps, no ambiguity.</div>
+    <div class="section-eyebrow">Knowledge Library</div>
+    <div class="section-title">The intelligence engine behind every score.</div>
+    <div class="section-subtitle">Every legislative instrument that moves the ACEI lives here &#8212; tracked from parliamentary passage through royal assent, commencement, and ongoing enforcement. When law changes, the library updates first.</div>
+    <div class="kl-grid">
+      <div class="kl-card card fade-in">
+        <div class="kl-card-icon">&#128218;</div>
+        <h3>47 Instruments · 12 Categories</h3>
+        <p>Every piece of legislation affecting employment law exposure is catalogued, impact-scored, and mapped to the ACEI constitutional category it affects. Updated continuously from six authoritative sources per jurisdiction.</p>
+        <div class="kl-stat">legislation.gov.uk · HSE · ICO · EHRC · ACAS · HMRC</div>
+      </div>
+      <div class="kl-card card fade-in">
+        <div class="kl-card-icon">&#127758;</div>
+        <h3>53-Jurisdiction Architecture</h3>
+        <p>Built global from day one. UK instruments feed the Operational tier. Governance clients access sector-filtered multi-jurisdiction coverage. Institutional clients receive the complete global library with territorial reach mapping.</p>
+        <div class="kl-stat">6 continents · 70+ regulatory categories</div>
+      </div>
+      <div class="kl-card card fade-in">
+        <div class="kl-card-icon">&#9889;</div>
+        <h3>Live Lifecycle Tracking</h3>
+        <p>Each instrument tracked through four stages: parliamentary passage, royal assent, commencement, and post-commencement monitoring. The Employment Rights Act 2025 is actively tracked through commencement now.</p>
+        <div class="kl-stat">ERA 2025 · actively commencing · 8 categories affected</div>
+      </div>
+    </div>
 
-```
-<div class="cat-grid">
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 01</div>
-    <div class="cat-name">Unfair Dismissal</div>
-    <div class="cat-desc">Ordinary and automatic unfair dismissal claims, constructive dismissal, interim relief.</div>
-    <span class="cat-severity severity-elevated">I = 3 &#183; ELEVATED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 02</div>
-    <div class="cat-name">Discrimination &amp; Harassment</div>
-    <div class="cat-desc">All protected characteristics under Equality Act 2010, victimisation, failure to make reasonable adjustments.</div>
-    <span class="cat-severity severity-high">I = 5 &#183; UNCAPPED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 03</div>
-    <div class="cat-name">Wages &amp; Working Time</div>
-    <div class="cat-desc">Unlawful deductions, minimum wage, holiday pay, working time regulations, equal pay.</div>
-    <span class="cat-severity severity-elevated">I = 3 &#183; ELEVATED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 04</div>
-    <div class="cat-name">Whistleblowing</div>
-    <div class="cat-desc">Protected disclosure detriment and dismissal. Qualifying disclosures to prescribed persons.</div>
-    <span class="cat-severity severity-high">I = 5 &#183; UNCAPPED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 05</div>
-    <div class="cat-name">Breach of Contract</div>
-    <div class="cat-desc">Notice pay, restrictive covenants, contractual entitlements, wrongful dismissal.</div>
-    <span class="cat-severity severity-elevated">I = 3 &#183; ELEVATED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 06</div>
-    <div class="cat-name">Redundancy &amp; Org Change</div>
-    <div class="cat-desc">Unfair selection, collective consultation failures, protective awards, suitable alternative employment.</div>
-    <span class="cat-severity severity-high">I = 4 &#183; HIGH</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 07</div>
-    <div class="cat-name">Parental &amp; Family Rights</div>
-    <div class="cat-desc">Maternity, paternity, shared parental, adoption leave. Flexible working refusals. Pregnancy discrimination.</div>
-    <span class="cat-severity severity-elevated">I = 3 &#183; ELEVATED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 08</div>
-    <div class="cat-name">Trade Union &amp; Collective</div>
-    <div class="cat-desc">Detriment for union activities, recognition disputes, collective bargaining, industrial action protections.</div>
-    <span class="cat-severity severity-elevated">I = 3 &#183; ELEVATED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 09</div>
-    <div class="cat-name">Employment Status</div>
-    <div class="cat-desc">Worker vs employee vs self-employed. IR35 implications. Agency worker rights. Gig economy classification.</div>
-    <span class="cat-severity severity-elevated">I = 3 &#183; ELEVATED</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 10</div>
-    <div class="cat-name">Health &amp; Safety</div>
-    <div class="cat-desc">Detriment for raising H&amp;S concerns, unsafe working conditions, HSE enforcement, workplace stress claims.</div>
-    <span class="cat-severity severity-high">I = 4 &#183; HIGH</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 11</div>
-    <div class="cat-name">Data Protection</div>
-    <div class="cat-desc">UK GDPR workplace obligations, employee monitoring, subject access requests, ICO enforcement actions.</div>
-    <span class="cat-severity severity-high">I = 4 &#183; HIGH</span>
-  </div>
-  <div class="cat-card fade-in">
-    <div class="cat-id">CAT 12</div>
-    <div class="cat-name">Business Transfers</div>
-    <div class="cat-desc">TUPE protections, service provision changes, information and consultation obligations, ETO reasons.</div>
-    <span class="cat-severity severity-high">I = 4 &#183; HIGH</span>
-  </div>
-</div>
-```
+    <div style="margin-top:52px;">
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text-dim);text-align:center;margin-bottom:28px;text-transform:uppercase;">Legislative lifecycle — how Ailane tracks it</div>
+      <div class="kl-lifecycle">
+        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot">01</div><div class="kl-stage-line"></div></div><div class="kl-stage-body"><div class="kl-stage-title">Parliamentary Passage — SCI forward exposure flag raised</div><div class="kl-stage-desc">Bill enters the library. Significance rating assigned across affected ACEI categories. Forward Exposure Register updated. Clients notified at their tier before the bill becomes law.</div></div></div>
+        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot">02</div><div class="kl-stage-line"></div></div><div class="kl-stage-body"><div class="kl-stage-title">Royal Assent — obligations mapped, SCI weight assigned</div><div class="kl-stage-desc">Act confirmed. Employer obligations extracted and structured. SCI significance score calculated. Commencement timeline tracked instrument by instrument.</div></div></div>
+        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot">03</div><div class="kl-stage-line"></div></div><div class="kl-stage-body"><div class="kl-stage-title">Commencement — ACEI recomputed, Compliance Checker updated</div><div class="kl-stage-desc">Law enters force. Full ACEI SCI recalculation triggered. Compliance Checker requirement set updated — contracts assessed against the new obligation immediately. RRI readiness scoring activated.</div></div></div>
+        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot scored">04</div></div><div class="kl-stage-body"><div class="kl-stage-title">Post-Commencement — tribunal signals feed EVI and EII</div><div class="kl-stage-desc">Tribunal decisions under the new law tracked weekly. First-wave enforcement signals feed back into Event Volume and Enforcement Intensity sub-indices. Score reflects real enforcement patterns, not just legislative text.</div></div></div>
+      </div>
+    </div>
 
+    <div class="kl-tier-strip">
+      <div class="kl-tier-row"><span class="kl-tier-badge">OPERATIONAL READINESS</span><span class="kl-tier-desc">UK instruments only · all 12 ACEI categories · weekly updates</span></div>
+      <div class="kl-tier-row"><span class="kl-tier-badge">GOVERNANCE</span><span class="kl-tier-desc">UK + sector-filtered multi-jurisdiction · ACEI Domain Index per jurisdiction</span></div>
+      <div class="kl-tier-row gold-tier"><span class="kl-tier-badge gold">INSTITUTIONAL</span><span class="kl-tier-desc">Full global library · 53 jurisdictions · complete territorial reach mapping</span></div>
+    </div>
+    <div class="kl-cta-row"><a href="/knowledge-library/" class="kl-link">Browse the Knowledge Library &#8599;</a></div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════ -->
+<!-- COMPLIANCE CHECKER -->
+<section class="cc-section" id="compliance-checker">
+  <div class="container">
+    <div class="section-eyebrow">Compliance Checker</div>
+    <div class="section-title">Upload a contract. See where you stand.</div>
+    <div class="section-subtitle">Analyses your employment contracts and staff handbooks against current UK employment law &#8212; clause by clause. Every finding maps directly to your RRI Regulatory Readiness score. Your documents become evidence, not filed paperwork.</div>
+    <div class="cc-grid">
+      <div class="cc-card card fade-in">
+        <div class="cc-card-icon">&#128196;</div>
+        <h3>Clause-Level Analysis</h3>
+        <p>Every clause assessed against the Knowledge Library's live requirement set. Critical gaps, warnings, and compliant provisions each identified individually with severity ratings and the specific statutory provision that applies.</p>
+        <div class="cc-stat">Assessed against live law — updated with every Knowledge Library change</div>
+      </div>
+      <div class="cc-card card fade-in">
+        <div class="cc-card-icon">&#127919;</div>
+        <h3>RRI Pillar Integration</h3>
+        <p>Findings translate into evidence inputs for your RRI Regulatory Readiness score — specifically the Contractual Conformity and Policy Alignment pillars. Fix a clause, re-upload, and the RRI score reflects the improvement immediately.</p>
+        <div class="cc-stat">Governed by RRI v1.0 Art. V — constitutional evidence tier framework</div>
+      </div>
+      <div class="cc-card card fade-in">
+        <div class="cc-card-icon">&#128221;</div>
+        <h3>Remediation Guidance</h3>
+        <p>Every critical and warning finding includes specific remediation steps referenced to the relevant statutory provision. The Compliance Checker tells you not just what is wrong but exactly what the obligation requires and how to bring the clause into conformity.</p>
+        <div class="cc-stat">ERA 2025 pre-loaded — day-one rights, flexible working, zero hours reform</div>
+      </div>
+    </div>
+    <div class="cc-tracks">
+      <div class="cc-track">
+        <div class="cc-track-label">TRACK A · ATTESTATION</div>
+        <div class="cc-track-title">Structured Declaration</div>
+        <div class="cc-track-desc">Confirm compliance requirements via a structured checklist. Available where document upload is not yet in place.</div>
+        <div class="cc-track-ceiling">RRI pillar score ceiling: 2 / 5</div>
+      </div>
+      <div class="cc-track">
+        <div class="cc-track-label">TRACK B · DOCUMENTARY</div>
+        <div class="cc-track-title">Document Upload</div>
+        <div class="cc-track-desc">Upload your actual employment contract or handbook. Computational verification produces a higher evidence tier than declaration alone.</div>
+        <div class="cc-track-ceiling">RRI pillar score ceiling: 3 / 5</div>
+      </div>
+    </div>
+    <div class="cc-rri-note">Track B documentary evidence always supersedes Track A for the same requirement. <strong>The higher evidence prevails.</strong> Evidence tier ceilings are constitutionally governed — a document scoring 100% produces Pillar Score 3, not 5. Tier III requires Ailane-administered assurance under RRI v1.0 Annex G.</div>
+  </div>
+</section>
 
-<!-- CONSTITUTIONAL GOVERNANCE                         -->
+<!-- INTELLIGENCE LOOP -->
+<section class="loop-section" id="intelligence-loop">
+  <div class="container">
+    <div class="section-eyebrow" style="text-align:center;">The Intelligence Loop</div>
+    <div class="section-title" style="text-align:center;">One connected system.</div>
+    <p class="section-subtitle centered">The Knowledge Library, ACEI score, Compliance Checker, and RRI are not four separate products. They are one constitutionally-governed loop &#8212; running continuously.</p>
+    <div class="loop-row">
+      <div class="loop-node card fade-in"><div class="loop-node-icon">&#128218;</div><div class="loop-node-label">KNOWLEDGE LIBRARY</div><div class="loop-node-desc">Tracks legislation from bill to commencement. Updates requirement set as law changes.</div></div>
+      <div class="loop-connector"><div style="display:flex;align-items:center;"><div class="loop-connector-line"></div><div class="loop-connector-arrow">&#8250;</div></div><div class="loop-connector-label">SCI FEED</div></div>
+      <div class="loop-node card fade-in"><div class="loop-node-icon">&#128202;</div><div class="loop-node-label">ACEI SCORE</div><div class="loop-node-desc">SCI sub-index updated. Domain Index recomputed. Your exposure reflects live law.</div></div>
+      <div class="loop-connector"><div style="display:flex;align-items:center;"><div class="loop-connector-line"></div><div class="loop-connector-arrow">&#8250;</div></div><div class="loop-connector-label">REQUIREMENTS</div></div>
+      <div class="loop-node card fade-in"><div class="loop-node-icon">&#128196;</div><div class="loop-node-label">COMPLIANCE CHECKER</div><div class="loop-node-desc">Analyses your contracts against the current requirement set. Clause-level findings produced.</div></div>
+      <div class="loop-connector"><div style="display:flex;align-items:center;"><div class="loop-connector-line"></div><div class="loop-connector-arrow">&#8250;</div></div><div class="loop-connector-label">RRI PILLARS</div></div>
+      <div class="loop-node card fade-in"><div class="loop-node-icon">&#127919;</div><div class="loop-node-label">RRI READINESS</div><div class="loop-node-desc">Preparedness score updated from your document evidence. Measures how well governance mitigates ACEI exposure.</div></div>
+    </div>
+    <p class="loop-caption">When legislation changes, <strong>the Knowledge Library captures it first</strong>. The ACEI scores the new exposure. The Compliance Checker flags what your contracts must update. Your <strong>RRI score reflects both the gap and the remediation</strong>. One constitutional framework. Updated weekly.</p>
+  </div>
+</section>
 
-<!-- ══════════════════════════════════════════════════ -->
+<!-- ERA 2025 URGENCY -->
+<section class="era-section" id="era2025">
+  <div class="container">
+    <div class="era-alert-bar"><span class="era-alert-dot"></span> LEGISLATIVE ALERT &#183; ACTIVE</div>
+    <div class="era-layout">
+      <div>
+        <div class="era-title">The <span>Employment Rights Act 2025</span> is now law.<br>Is your exposure scored?</div>
+        <p class="era-desc">Royal Assent: 18 December 2025. The most significant overhaul of UK employment law in a generation &#8212; with commencement dates already rolling. Most employers are running on annual compliance cycles. Ailane scores it weekly.</p>
+        <div class="era-meta">
+          <div class="era-meta-item">&#9679;&nbsp; Royal Assent <span>18 Dec 2025</span></div>
+          <div class="era-meta-item">&#9679;&nbsp; Status <span>Active &amp; Commencing</span></div>
+          <div class="era-meta-item">&#9679;&nbsp; ACEI Impact <span>8 of 12 categories</span></div>
+        </div>
+        <div class="era-cats">
+          <span class="era-cat-tag">CAT 01 · Unfair Dismissal</span><span class="era-cat-tag">CAT 07 · Parental Rights</span>
+          <span class="era-cat-tag">CAT 06 · Redundancy</span><span class="era-cat-tag">CAT 08 · Trade Union</span>
+          <span class="era-cat-tag">CAT 09 · Employment Status</span><span class="era-cat-tag">CAT 03 · Wages</span>
+          <span class="era-cat-tag">CAT 02 · Discrimination</span><span class="era-cat-tag">CAT 10 · Health &amp; Safety</span>
+        </div>
+        <a href="#early-access" class="btn-primary" style="display:inline-flex;">Get Your Exposure Score &#8594;</a>
+      </div>
+      <div class="era-card fade-in">
+        <div class="era-card-label">ERA 2025 &#183; Key Provisions — Scored</div>
+        <div class="era-provision"><div class="era-prov-icon">&#128221;</div><div><div class="era-prov-title">Day-One Unfair Dismissal Rights</div><div class="era-prov-sub">Two-year qualifying period removed. Affects every employer immediately.</div></div></div>
+        <div class="era-provision"><div class="era-prov-icon">&#127919;</div><div><div class="era-prov-title">Strengthened Flexible Working</div><div class="era-prov-sub">Default right from day one. Burden of refusal shifts to employer.</div></div></div>
+        <div class="era-provision"><div class="era-prov-icon">&#128101;</div><div><div class="era-prov-title">Zero Hours Contract Reform</div><div class="era-prov-sub">Guaranteed hours obligations for regular workers. Sector-wide implications.</div></div></div>
+        <div class="era-provision"><div class="era-prov-icon">&#127968;</div><div><div class="era-prov-title">Enhanced Family Leave</div><div class="era-prov-sub">Expanded parental protections. Bereavement leave statutory entitlement.</div></div></div>
+        <div class="era-provision"><div class="era-prov-icon">&#129309;</div><div><div class="era-prov-title">Trade Union Access Rights</div><div class="era-prov-sub">Simplified recognition. Strengthened industrial action protections.</div></div></div>
+        <div class="era-acei-flag"><div class="era-acei-flag-label">ACEI SCI IMPACT</div><div class="era-acei-flag-value">&#8679; STRUCTURAL</div></div>
+      </div>
+    </div>
+  </div>
+</section>
 
+<!-- TICKER BAND -->
+<div class="ticker-section" id="ticker">
+  <div class="ticker-band-header">
+    <div class="ticker-live-label">
+      <span class="ticker-live-dot"></span>
+      <span class="ticker-live-text">REGULATORY INTELLIGENCE TICKER · LIVE</span>
+    </div>
+    <a href="#early-access" class="ticker-upsell">Full ticker access from Governance tier &#8594;</a>
+  </div>
+  <div class="ticker-band" onclick="window.location.href='#early-access'" title="Full access — Governance tier and above">
+    <div class="ticker-band-track" id="ticker-band-track"></div>
+  </div>
+</div>
+
+<!-- CONSTITUTIONAL GOVERNANCE -->
 <section class="const-section" id="governance">
   <div class="container">
     <div class="section-eyebrow">Constitutional Governance</div>
     <div class="section-title">Three founding constitutions. Institutional-grade rigour.</div>
     <div class="section-subtitle">Every score produced by Ailane is governed by binding constitutional documents. Methodology is deterministic, auditable, and version-controlled.</div>
     <p class="const-declaration">The UK&#8217;s first constitutionally-governed regulatory measurement framework.</p>
-
-```
-<div class="const-grid">
-  <div class="const-card fade-in">
-    <div class="const-badge">ACEI v1.0</div>
-    <h3>Core Exposure Index</h3>
-    <p>Quantifies regulatory exposure across 12 employment law categories using a three-component formula combining tribunal volumes, enforcement intensity, and structural legislative change.</p>
-    <ul class="const-features">
-      <li>0&#8211;100 domain index scale</li>
-      <li>Deterministic computation (Art I &#167;1.3)</li>
-      <li>Weekly calculation cycle</li>
-      <li>Full sub-index transparency</li>
-      <li>Model risk disclosure compliant</li>
-    </ul>
-  </div>
-  <div class="const-card fade-in">
-    <div class="const-badge">RRI v1.0</div>
-    <h3>Regulatory Readiness Index</h3>
-    <p>Assesses organisational preparedness through 5 pillars and a 9-attribute Evidence Impact Profile. Measures how well your governance, policies, and culture mitigate the raw exposure identified by the ACEI.</p>
-    <ul class="const-features">
-      <li>5 readiness pillars</li>
-      <li>9-attribute evidence framework</li>
-      <li>Strict separation from ACEI</li>
-      <li>Self-assessment with verification</li>
-      <li>Mitigation offset computation</li>
-    </ul>
-  </div>
-  <div class="const-card fade-in">
-    <div class="const-badge">CCI v1.0</div>
-    <h3>Compliance Conduct Index</h3>
-    <p>Evaluates employer conduct using 6 weighted components with Bayesian credibility weighting. Tribunal claim frequency, adverse outcomes, payout severity, enforcement events, and repeat allegation patterns.</p>
-    <ul class="const-features">
-      <li>6 weighted components</li>
-      <li>Bayesian credibility scoring</li>
-      <li>Per-employer conduct rating</li>
-      <li>Independent verification layer</li>
-      <li>Insurance-grade underwriting input</li>
-    </ul>
-  </div>
-</div>
-```
-
+    <div class="const-grid">
+      <div class="const-card card fade-in"><div class="const-badge">ACEI v1.0</div><h3>Core Exposure Index</h3><p>Quantifies regulatory exposure across 12 employment law categories using a three-component formula combining tribunal volumes, enforcement intensity, and structural legislative change.</p><ul class="const-features"><li>0&#8211;100 domain index scale</li><li>Deterministic computation (Art I &#167;1.3)</li><li>Weekly calculation cycle</li><li>Full sub-index transparency</li><li>Model risk disclosure compliant</li></ul></div>
+      <div class="const-card card fade-in"><div class="const-badge">RRI v1.0</div><h3>Regulatory Readiness Index</h3><p>Assesses organisational preparedness through 5 pillars and a 9-attribute Evidence Impact Profile. Measures how well your governance, policies, and culture mitigate raw exposure identified by the ACEI.</p><ul class="const-features"><li>5 readiness pillars</li><li>9-attribute evidence framework</li><li>Strict separation from ACEI</li><li>Self-assessment with verification</li><li>Mitigation offset computation</li></ul></div>
+      <div class="const-card card fade-in"><div class="const-badge">CCI v1.0</div><h3>Compliance Conduct Index</h3><p>Evaluates employer conduct using 6 weighted components with Bayesian credibility weighting. Tribunal claim frequency, adverse outcomes, payout severity, enforcement events, and repeat allegation patterns.</p><ul class="const-features"><li>6 weighted components</li><li>Bayesian credibility scoring</li><li>Per-employer conduct rating</li><li>Independent verification layer</li><li>Insurance-grade underwriting input</li></ul></div>
+    </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════ -->
+<!-- DATA SOURCES -->
+<section class="data-section" id="data">
+  <div class="container">
+    <div class="section-eyebrow">Data Sources</div>
+    <div class="section-title">Built on authoritative public data. Not surveys.</div>
+    <div class="section-subtitle">Every score traces back to published tribunal decisions, official enforcement records, and legislative instruments. Independently verifiable. Open Government Licence compliant.</div>
+    <div class="data-grid">
+      <div class="data-card card fade-in"><div class="data-icon">&#9878;&#65039;</div><div><h4>UK Employment Tribunals</h4><p>Full-text decisions scraped from GOV.UK, classified by respondent, claim type, jurisdiction, and outcome across all 12 ACEI categories.</p><div class="data-stat">130,854 decisions · 16 years · 80,124 employers</div></div></div>
+      <div class="data-card card fade-in"><div class="data-icon">&#127963;&#65039;</div><div><h4>EHRC Enforcement Actions</h4><p>Equality and Human Rights Commission enforcement notices, investigations, and compliance actions mapped to discrimination and equality categories.</p><div class="data-stat">152 enforcement actions tracked</div></div></div>
+      <div class="data-card card fade-in"><div class="data-icon">&#129466;</div><div><h4>HSE Enforcement Notices</h4><p>Health and Safety Executive improvement notices, prohibition notices, and prosecutions feeding the Health &amp; Safety exposure category.</p><div class="data-stat">Automated collection pipeline active</div></div></div>
+      <div class="data-card card fade-in"><div class="data-icon">&#128274;</div><div><h4>ICO Enforcement Actions</h4><p>Information Commissioner's Office enforcement notices, monetary penalties, and reprimands mapped to data protection exposure.</p><div class="data-stat">Automated collection pipeline active</div></div></div>
+      <div class="data-card card fade-in"><div class="data-icon">&#128203;</div><div><h4>UK Legislative Changes</h4><p>Primary and secondary legislation, statutory instruments, and regulatory guidance tracked with impact-level scoring across all employment law domains.</p><div class="data-stat">534 legislative changes · impact-scored</div></div></div>
+      <div class="data-card card fade-in"><div class="data-icon">&#127758;</div><div><h4>Global Expansion Pipeline</h4><p>Multi-jurisdiction architecture supporting 53 jurisdictions across 6 continents. Ireland, Australia, New Zealand, Singapore, EU, US, and Canada in the roadmap.</p><div class="data-stat">53 jurisdictions · 70+ regulatory categories</div></div></div>
+    </div>
+  </div>
+</section>
 
-<!-- USE CASES                                         -->
+<!-- 12 CATEGORIES -->
+<section class="categories-section" id="categories">
+  <div class="container">
+    <div class="section-eyebrow">Exposure Categories</div>
+    <div class="section-title">12 constitutional categories. Complete coverage.</div>
+    <div class="section-subtitle">Every employment law risk maps to one of 12 categories defined in Article II of the ACEI constitution. No gaps, no overlaps, no ambiguity.</div>
+    <div class="cat-grid">
+      <div class="cat-card fade-in"><div class="cat-id">CAT 01</div><div class="cat-name">Unfair Dismissal</div><div class="cat-desc">Ordinary and automatic unfair dismissal claims, constructive dismissal, interim relief.</div><span class="cat-severity severity-elevated">I = 3 · ELEVATED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 02</div><div class="cat-name">Discrimination &amp; Harassment</div><div class="cat-desc">All protected characteristics under Equality Act 2010, victimisation, failure to make reasonable adjustments.</div><span class="cat-severity severity-high">I = 5 · UNCAPPED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 03</div><div class="cat-name">Wages &amp; Working Time</div><div class="cat-desc">Unlawful deductions, minimum wage, holiday pay, working time regulations, equal pay.</div><span class="cat-severity severity-elevated">I = 3 · ELEVATED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 04</div><div class="cat-name">Whistleblowing</div><div class="cat-desc">Protected disclosure detriment and dismissal. Qualifying disclosures to prescribed persons.</div><span class="cat-severity severity-high">I = 5 · UNCAPPED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 05</div><div class="cat-name">Breach of Contract</div><div class="cat-desc">Notice pay, restrictive covenants, contractual entitlements, wrongful dismissal.</div><span class="cat-severity severity-elevated">I = 3 · ELEVATED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 06</div><div class="cat-name">Redundancy &amp; Org Change</div><div class="cat-desc">Unfair selection, collective consultation failures, protective awards, suitable alternative employment.</div><span class="cat-severity severity-high">I = 4 · HIGH</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 07</div><div class="cat-name">Parental &amp; Family Rights</div><div class="cat-desc">Maternity, paternity, shared parental, adoption leave. Flexible working refusals. Pregnancy discrimination.</div><span class="cat-severity severity-elevated">I = 3 · ELEVATED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 08</div><div class="cat-name">Trade Union &amp; Collective</div><div class="cat-desc">Detriment for union activities, recognition disputes, collective bargaining, industrial action protections.</div><span class="cat-severity severity-elevated">I = 3 · ELEVATED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 09</div><div class="cat-name">Employment Status</div><div class="cat-desc">Worker vs employee vs self-employed. IR35 implications. Agency worker rights. Gig economy classification.</div><span class="cat-severity severity-elevated">I = 3 · ELEVATED</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 10</div><div class="cat-name">Health &amp; Safety</div><div class="cat-desc">Detriment for raising H&amp;S concerns, unsafe working conditions, HSE enforcement, workplace stress claims.</div><span class="cat-severity severity-high">I = 4 · HIGH</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 11</div><div class="cat-name">Data Protection</div><div class="cat-desc">UK GDPR workplace obligations, employee monitoring, subject access requests, ICO enforcement actions.</div><span class="cat-severity severity-high">I = 4 · HIGH</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 12</div><div class="cat-name">Business Transfers</div><div class="cat-desc">TUPE protections, service provision changes, information and consultation obligations, ETO reasons.</div><span class="cat-severity severity-high">I = 4 · HIGH</span></div>
+    </div>
+  </div>
+</section>
 
-<!-- ══════════════════════════════════════════════════ -->
-
+<!-- WHO IT'S FOR -->
 <section class="use-section" id="use-cases">
   <div class="container">
     <div class="section-eyebrow">Who It's For</div>
     <div class="section-title">Intelligence for the people who carry the risk.</div>
-
-```
-<div class="use-grid">
-  <div class="use-card fade-in">
-    <div class="use-icon">&#128100;</div>
-    <h3>HR Directors &amp; People Leaders</h3>
-    <p>See category-level exposure before the tribunal claim lands. Benchmark against sector norms, track weekly shifts, and present board-ready evidence of proactive compliance governance.</p>
-    <div class="use-quote">"We could really do with this product ourselves." &#8212; Innovation Wales panel member</div>
-  </div>
-  <div class="use-card fade-in">
-    <div class="use-icon">&#128200;</div>
-    <h3>Risk &amp; Compliance Teams</h3>
-    <p>Replace annual compliance audits with weekly quantified intelligence. Track how legislative changes like the Employment Rights Act 2025 shift your exposure profile in real time.</p>
-  </div>
-  <div class="use-card fade-in">
-    <div class="use-icon">&#127970;</div>
-    <h3>Insurance Underwriters</h3>
-    <p>Independently verify self-reported claims history. The CCI score provides a standardised conduct rating for EPLI pricing &#8212; like a credit score for employment practices risk.</p>
-  </div>
-  <div class="use-card fade-in">
-    <div class="use-icon">&#9878;&#65039;</div>
-    <h3>Employment Law Firms</h3>
-    <p>Advise clients with data, not intuition. Access employer-specific tribunal histories, category exposure profiles, and enforcement activity to deliver evidence-based counsel.</p>
-  </div>
-</div>
-```
-
+    <div class="use-grid">
+      <div class="use-card card fade-in"><div class="use-icon">&#128100;</div><h3>HR Directors &amp; People Leaders</h3><p>See category-level exposure before the tribunal claim lands. Benchmark against sector norms, track weekly shifts, and present board-ready evidence of proactive compliance governance.</p><div class="use-quote">"We could really do with this product ourselves." &#8212; Innovation Wales panel member</div></div>
+      <div class="use-card card fade-in"><div class="use-icon">&#128200;</div><h3>Risk &amp; Compliance Teams</h3><p>Replace annual compliance audits with weekly quantified intelligence. Track how legislative changes like the Employment Rights Act 2025 shift your exposure profile in real time.</p></div>
+      <div class="use-card card fade-in"><div class="use-icon">&#127970;</div><h3>Insurance Underwriters</h3><p>Independently verify self-reported claims history. The CCI score provides a standardised conduct rating for EPLI pricing &#8212; like a credit score for employment practices risk.</p></div>
+      <div class="use-card card fade-in"><div class="use-icon">&#9878;&#65039;</div><h3>Employment Law Firms</h3><p>Advise clients with data, not intuition. Access employer-specific tribunal histories, category exposure profiles, and enforcement activity to deliver evidence-based counsel.</p></div>
+    </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- KNOWLEDGE LIBRARY                                 -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="kl-section" id="knowledge-library">
-  <div class="container">
-    <div class="section-eyebrow">Knowledge Library</div>
-    <div class="section-title">The intelligence engine behind your score.</div>
-    <div class="section-subtitle">Every legislative instrument that moves the ACEI lives in a constitutionally-governed, continuously maintained Knowledge Library — tracked from parliamentary passage through royal assent, commencement, and ongoing enforcement. Your score moves because the library moves.</div>
-
-```
-<div class="kl-layout">
-  <!-- Left: stats + tier access -->
-  <div>
-    <div class="kl-stats-grid">
-      <div class="kl-stat-card fade-in">
-        <div class="kl-stat-val">47</div>
-        <div class="kl-stat-label">Legislative instruments across all 12 ACEI categories</div>
-      </div>
-      <div class="kl-stat-card fade-in">
-        <div class="kl-stat-val">53</div>
-        <div class="kl-stat-label">Jurisdictions in the global architecture</div>
-      </div>
-      <div class="kl-stat-card fade-in">
-        <div class="kl-stat-val">6</div>
-        <div class="kl-stat-label">Authoritative sources per jurisdiction (legislation.gov.uk, HSE, ICO, EHRC, ACAS, HMRC)</div>
-      </div>
-      <div class="kl-stat-card fade-in">
-        <div class="kl-stat-val">Live</div>
-        <div class="kl-stat-label">Commencement tracking — ERA 2025 actively monitored</div>
-      </div>
-    </div>
-
-    <div style="margin-top:8px;">
-      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:12px;text-transform:uppercase;">Access by subscription tier</div>
-      <div class="kl-tier-row">
-        <span class="kl-tier-badge">OPERATIONAL READINESS</span>
-        <span class="kl-tier-desc">UK instruments · all 12 ACEI categories · weekly updates</span>
-      </div>
-      <div class="kl-tier-row">
-        <span class="kl-tier-badge">GOVERNANCE</span>
-        <span class="kl-tier-desc">UK + sector-filtered multi-jurisdiction · ACEI DI per jurisdiction</span>
-      </div>
-      <div class="kl-tier-row">
-        <span class="kl-tier-badge">INSTITUTIONAL</span>
-        <span class="kl-tier-desc">Full global library · 53 jurisdictions · territorial reach mapping</span>
-      </div>
-    </div>
-
-    <a href="/knowledge-library/" class="kl-link">
-      Browse the Knowledge Library &#8599;
-    </a>
-  </div>
-
-  <!-- Right: lifecycle pipeline -->
-  <div>
-    <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:20px;text-transform:uppercase;">Legislative lifecycle — how it's tracked</div>
-    <div class="kl-lifecycle">
-      <div class="kl-stage">
-        <div class="kl-stage-left">
-          <div class="kl-stage-dot active">01</div>
-          <div class="kl-stage-line"></div>
-        </div>
-        <div class="kl-stage-content">
-          <div class="kl-stage-title">Parliamentary Passage</div>
-          <div class="kl-stage-desc">Bill enters the library. Significance rating assigned. ACEI Forward Exposure flag raised. Clients notified at their tier.</div>
-        </div>
-      </div>
-      <div class="kl-stage">
-        <div class="kl-stage-left">
-          <div class="kl-stage-dot active">02</div>
-          <div class="kl-stage-line"></div>
-        </div>
-        <div class="kl-stage-content">
-          <div class="kl-stage-title">Royal Assent</div>
-          <div class="kl-stage-desc">Act confirmed. Obligations mapped across affected ACEI categories. SCI significance score assigned. Commencement timeline tracked.</div>
-        </div>
-      </div>
-      <div class="kl-stage">
-        <div class="kl-stage-left">
-          <div class="kl-stage-dot active">03</div>
-          <div class="kl-stage-line"></div>
-        </div>
-        <div class="kl-stage-content">
-          <div class="kl-stage-title">Commencement</div>
-          <div class="kl-stage-desc">Law enters force. Full ACEI SCI recalculation triggered. RRI readiness scoring activated. Compliance Checker requirement set updated.</div>
-        </div>
-      </div>
-      <div class="kl-stage">
-        <div class="kl-stage-left">
-          <div class="kl-stage-dot scored">04</div>
-        </div>
-        <div class="kl-stage-content">
-          <div class="kl-stage-title">Post-Commencement Monitoring</div>
-          <div class="kl-stage-desc">Tribunal decisions against the new law tracked weekly. First-wave enforcement signals feed back into EVI and EII. Score updated continuously.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-```
-
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- COMPLIANCE CHECKER                                -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="cc-section" id="compliance-checker">
-  <div class="container">
-    <div class="section-eyebrow">Compliance Checker</div>
-    <div class="section-title">Upload a contract. See where you stand.</div>
-    <div class="section-subtitle">The Compliance Checker analyses your employment contracts and staff handbooks against current UK employment law — clause by clause — and maps every finding directly to your RRI Regulatory Readiness score. Your documents become scored evidence, not just filed paperwork.</div>
-
-```
-<div class="cc-layout">
-  <!-- Left: how it works steps + evidence tracks -->
-  <div>
-    <div class="cc-steps">
-      <div class="cc-step">
-        <div class="cc-step-left">
-          <div class="cc-step-num">01</div>
-          <div class="cc-step-connector"></div>
-        </div>
-        <div class="cc-step-content">
-          <div class="cc-step-title">Upload your documents</div>
-          <div class="cc-step-desc">Employment contracts and staff handbooks uploaded securely. Accepted formats: PDF, DOCX, DOC. The Compliance Checker references the live Knowledge Library for current legal requirements.</div>
-        </div>
-      </div>
-      <div class="cc-step">
-        <div class="cc-step-left">
-          <div class="cc-step-num">02</div>
-          <div class="cc-step-connector"></div>
-        </div>
-        <div class="cc-step-content">
-          <div class="cc-step-title">Clause-level analysis</div>
-          <div class="cc-step-desc">Every clause is assessed against mandatory statutory requirements. Critical gaps, warnings, and compliant provisions are each identified individually with severity ratings.</div>
-          <div class="cc-step-tag">&#9679; Powered by the live Knowledge Library requirement set</div>
-        </div>
-      </div>
-      <div class="cc-step">
-        <div class="cc-step-left">
-          <div class="cc-step-num">03</div>
-          <div class="cc-step-connector"></div>
-        </div>
-        <div class="cc-step-content">
-          <div class="cc-step-title">RRI pillar scoring</div>
-          <div class="cc-step-desc">Findings are translated into evidence inputs for your RRI Regulatory Readiness score. Contractual Conformity and Policy Alignment pillars are directly updated. Your document evidence feeds your readiness posture — not just a compliance tick-box.</div>
-          <div class="cc-step-tag">&#9679; Governed by RRI v1.0 Art. V — evidence tier framework</div>
-        </div>
-      </div>
-      <div class="cc-step">
-        <div class="cc-step-left">
-          <div class="cc-step-num">04</div>
-        </div>
-        <div class="cc-step-content">
-          <div class="cc-step-title">Remediation guidance</div>
-          <div class="cc-step-desc">Every critical and warning finding includes specific remediation steps referenced to the relevant statutory provision. Fix the clause, re-upload, and your RRI score reflects the improvement.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="cc-evidence-tracks">
-      <div class="cc-track">
-        <div class="cc-track-label">TRACK A</div>
-        <div class="cc-track-title">Attestation</div>
-        <div class="cc-track-desc">Confirm compliance via structured declaration. Available where documentary upload is not yet in place.</div>
-        <div class="cc-track-ceiling">&#8679; RRI Score ceiling: 2 / 5</div>
-      </div>
-      <div class="cc-track">
-        <div class="cc-track-label">TRACK B</div>
-        <div class="cc-track-title">Documentary</div>
-        <div class="cc-track-desc">Upload the actual contract or handbook. Computational verification produces a higher evidence tier than attestation alone.</div>
-        <div class="cc-track-ceiling">&#8679; RRI Score ceiling: 3 / 5</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Right: mockup -->
-  <div class="cc-mockup fade-in">
-    <div class="cc-mockup-header">
-      <div class="cc-mockup-dot" style="background:#f87171;"></div>
-      <div class="cc-mockup-dot" style="background:#fbbf24;"></div>
-      <div class="cc-mockup-dot" style="background:#34d399;"></div>
-      <div class="cc-mockup-title">COMPLIANCE CHECKER &#183; EMPLOYMENT CONTRACT</div>
-    </div>
-    <div class="cc-mockup-body">
-      <div class="cc-upload-zone">
-        <div class="cc-upload-icon">&#128196;</div>
-        <div class="cc-upload-title">Employment Contract — Standard.docx</div>
-        <div class="cc-upload-sub">Analysed against ERA 2025 &amp; current UK employment law</div>
-        <div class="cc-upload-types">
-          <span class="cc-upload-type">PDF</span>
-          <span class="cc-upload-type">DOCX</span>
-          <span class="cc-upload-type">DOC</span>
-        </div>
-      </div>
-
-      <div class="cc-findings">
-        <div class="cc-finding cc-finding-critical">
-          <div class="cc-finding-icon">&#9888;&#65039;</div>
-          <div class="cc-finding-text">
-            <div class="cc-finding-clause">CLAUSE 4 · DISMISSAL PROVISIONS</div>
-            <div class="cc-finding-title">Day-one unfair dismissal rights not reflected</div>
-            <div class="cc-finding-desc">ERA 2025 s.22 removes qualifying period. Contract still references 2-year qualifying period — must be updated.</div>
-          </div>
-        </div>
-        <div class="cc-finding cc-finding-warning">
-          <div class="cc-finding-icon">&#9432;</div>
-          <div class="cc-finding-text">
-            <div class="cc-finding-clause">CLAUSE 9 · FLEXIBLE WORKING</div>
-            <div class="cc-finding-title">Flexible working policy requires revision</div>
-            <div class="cc-finding-desc">Default right now applies from day one. Refusal grounds should be explicitly documented.</div>
-          </div>
-        </div>
-        <div class="cc-finding cc-finding-pass">
-          <div class="cc-finding-icon">&#10003;</div>
-          <div class="cc-finding-text">
-            <div class="cc-finding-clause">CLAUSE 12 · HOLIDAY ENTITLEMENT</div>
-            <div class="cc-finding-title">Statutory minimum met</div>
-            <div class="cc-finding-desc">28 days inclusive of bank holidays — compliant with Working Time Regulations 1998.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="cc-rri-bridge">
-        <div class="cc-rri-bridge-label">RRI IMPACT</div>
-        <div class="cc-rri-bridge-value">Contractual Conformity pillar updated · Evidence Tier I applied · Score pending remediation</div>
-      </div>
-    </div>
-  </div>
-</div>
-```
-
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- INTELLIGENCE LOOP                                  -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="loop-section" id="intelligence-loop">
-  <div class="container">
-    <div class="section-eyebrow" style="text-align:center;">The Intelligence Loop</div>
-    <div class="section-title" style="text-align:center;">One connected system. Not three separate products.</div>
-
-```
-<div class="loop-diagram">
-  <div class="loop-node fade-in">
-    <div class="loop-node-icon">&#128218;</div>
-    <div class="loop-node-title">KNOWLEDGE LIBRARY</div>
-    <div class="loop-node-desc">Tracks legislation from bill to commencement. Updates the requirement set as law changes.</div>
-  </div>
-
-  <div class="loop-arrow">
-    <div style="display:flex;align-items:center;gap:0;">
-      <div class="loop-arrow-line"></div>
-      <div class="loop-arrow-head">&#8250;</div>
-    </div>
-    <div class="loop-arrow-label">SCI FEED</div>
-  </div>
-
-  <div class="loop-node fade-in">
-    <div class="loop-node-icon">&#128202;</div>
-    <div class="loop-node-title">ACEI SCORE</div>
-    <div class="loop-node-desc">SCI sub-index updated. Domain Index recomputed. Your exposure score reflects live law — not last year's statute book.</div>
-  </div>
-
-  <div class="loop-arrow">
-    <div style="display:flex;align-items:center;gap:0;">
-      <div class="loop-arrow-line"></div>
-      <div class="loop-arrow-head">&#8250;</div>
-    </div>
-    <div class="loop-arrow-label">EVIDENCE INPUT</div>
-  </div>
-
-  <div class="loop-node fade-in">
-    <div class="loop-node-icon">&#128196;</div>
-    <div class="loop-node-title">COMPLIANCE CHECKER</div>
-    <div class="loop-node-desc">Analyses your contracts against the current Knowledge Library requirement set. Findings feed your RRI readiness score.</div>
-  </div>
-
-  <div class="loop-arrow">
-    <div style="display:flex;align-items:center;gap:0;">
-      <div class="loop-arrow-line"></div>
-      <div class="loop-arrow-head">&#8250;</div>
-    </div>
-    <div class="loop-arrow-label">RRI PILLARS</div>
-  </div>
-
-  <div class="loop-node fade-in">
-    <div class="loop-node-icon">&#127919;</div>
-    <div class="loop-node-title">RRI READINESS</div>
-    <div class="loop-node-desc">Preparedness score updated from your document evidence. Measures how well your governance mitigates the ACEI exposure.</div>
-  </div>
-</div>
-
-<p class="loop-caption">
-  When legislation changes, <strong>the Knowledge Library captures it</strong>. The ACEI scores the new exposure. The Compliance Checker flags what your contracts need to update. Your <strong>RRI score reflects the gap — and the remediation</strong>. The entire loop runs on the same constitutional framework, updated weekly.
-</p>
-```
-
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- ERA 2025 URGENCY — NEW SECTION                    -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="era-section" id="era2025">
-  <div class="container">
-    <div class="era-alert-bar">
-      <span class="era-alert-dot"></span>
-      LEGISLATIVE ALERT &#183; ACTIVE
-    </div>
-
-```
-<div class="era-layout">
-  <div class="era-content">
-    <div class="era-title">
-      The <span>Employment Rights Act 2025</span> is now law.<br>
-      Is your exposure scored?
-    </div>
-    <p class="era-desc">
-      Royal Assent: 18 December 2025. The most significant overhaul of UK employment law in a generation is now in force &#8212; with commencement dates already rolling. Most employers are running on annual compliance cycles. Ailane scores it weekly.
-    </p>
-    <div class="era-meta">
-      <div class="era-meta-item">&#9679;&nbsp; Royal Assent <span>18 Dec 2025</span></div>
-      <div class="era-meta-item">&#9679;&nbsp; Status <span>Active &amp; Commencing</span></div>
-      <div class="era-meta-item">&#9679;&nbsp; ACEI Impact <span>8 of 12 categories</span></div>
-    </div>
-    <div class="era-categories">
-      <span class="era-cat-tag">CAT 01 · Unfair Dismissal</span>
-      <span class="era-cat-tag">CAT 07 · Parental Rights</span>
-      <span class="era-cat-tag">CAT 06 · Redundancy</span>
-      <span class="era-cat-tag">CAT 08 · Trade Union</span>
-      <span class="era-cat-tag">CAT 09 · Employment Status</span>
-      <span class="era-cat-tag">CAT 03 · Wages</span>
-      <span class="era-cat-tag">CAT 02 · Discrimination</span>
-      <span class="era-cat-tag">CAT 10 · Health &amp; Safety</span>
-    </div>
-    <a href="#early-access" class="btn-primary" style="display:inline-flex;">Get Your Exposure Score &#8594;</a>
-  </div>
-
-  <div class="era-card fade-in">
-    <div class="era-card-label">ERA 2025 &#183; Key Provisions Scored</div>
-
-    <div class="era-provision">
-      <div class="era-provision-icon">&#128221;</div>
-      <div class="era-provision-text">
-        <div class="era-provision-title">Day-One Unfair Dismissal Rights</div>
-        <div class="era-provision-sub">Two-year qualifying period removed. Affects every employer immediately.</div>
-      </div>
-    </div>
-    <div class="era-provision">
-      <div class="era-provision-icon">&#127919;</div>
-      <div class="era-provision-text">
-        <div class="era-provision-title">Strengthened Flexible Working</div>
-        <div class="era-provision-sub">Default right from day one. Burden of refusal shifts to employer.</div>
-      </div>
-    </div>
-    <div class="era-provision">
-      <div class="era-provision-icon">&#128101;</div>
-      <div class="era-provision-text">
-        <div class="era-provision-title">Zero Hours Contract Reform</div>
-        <div class="era-provision-sub">Guaranteed hours obligations for regular workers. Sector-wide implications.</div>
-      </div>
-    </div>
-    <div class="era-provision">
-      <div class="era-provision-icon">&#127968;</div>
-      <div class="era-provision-text">
-        <div class="era-provision-title">Enhanced Family Leave</div>
-        <div class="era-provision-sub">Expanded parental protections. Bereavement leave statutory entitlement.</div>
-      </div>
-    </div>
-    <div class="era-provision">
-      <div class="era-provision-icon">&#129309;</div>
-      <div class="era-provision-text">
-        <div class="era-provision-title">Trade Union Access Rights</div>
-        <div class="era-provision-sub">Simplified recognition. Strengthened industrial action protections.</div>
-      </div>
-    </div>
-
-    <div class="era-acei-flag">
-      <div class="era-acei-flag-label">ACEI SCI IMPACT FLAG</div>
-      <div class="era-acei-flag-value">&#8679; STRUCTURAL</div>
-    </div>
-  </div>
-</div>
-```
-
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- LIVE TICKER SHOWCASE — NEW SECTION                -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="ticker-showcase-section" id="ticker">
-  <div class="container">
-    <div class="ticker-showcase-header">
-      <div class="header-left">
-        <div class="ticker-live-badge">
-          <span class="ticker-live-dot"></span>
-          LIVE INTELLIGENCE FEED
-        </div>
-        <div class="section-title" style="margin-bottom:12px;">The regulatory event feed your competitors don't have.</div>
-        <p class="section-subtitle">Existing compliance tools update annually. Ailane's Regulatory Intelligence Ticker updates continuously &#8212; tracking legislative events, enforcement actions, and tribunal shifts across all 12 ACEI categories in real time.</p>
-      </div>
-      <a href="/ticker/" class="ticker-showcase-link" target="_blank">
-        Open Full Ticker &#8599;
-      </a>
-    </div>
-
-```
-<!-- Live ticker iframe embed -->
-<div class="ticker-frame-wrapper">
-  <div class="ticker-frame-header">
-    <div class="ticker-frame-dot" style="background:#f87171;"></div>
-    <div class="ticker-frame-dot" style="background:#fbbf24;"></div>
-    <div class="ticker-frame-dot" style="background:#34d399;"></div>
-    <div class="ticker-frame-url">ailane.ai/ticker/</div>
-    <div class="ticker-frame-status">&#9679; LIVE</div>
-  </div>
-  <iframe
-    src="/ticker/"
-    class="ticker-iframe"
-    title="Ailane Regulatory Intelligence Ticker"
-    loading="lazy"
-    sandbox="allow-scripts allow-same-origin">
-  </iframe>
-  <div class="ticker-frame-caption">
-    <span class="ticker-frame-caption-text">Live regulatory intelligence feed &#183; Updated continuously</span>
-    <span class="ticker-frame-caption-meta">ACEI v1.0 &#183; Constitutional governance applied</span>
-  </div>
-</div>
-
-<!-- Differentiators -->
-<div class="ticker-differentiators">
-  <div class="ticker-diff-item fade-in">
-    <div class="ticker-diff-icon">&#9889;</div>
-    <div class="ticker-diff-title">Continuous Updates</div>
-    <div class="ticker-diff-desc">Legislation, tribunal surges, and enforcement actions tracked as they happen &#8212; not at year-end.</div>
-  </div>
-  <div class="ticker-diff-item fade-in">
-    <div class="ticker-diff-icon">&#128203;</div>
-    <div class="ticker-diff-title">12-Category Classification</div>
-    <div class="ticker-diff-desc">Every event is mapped to the ACEI constitutional category it affects and scored for SCI impact.</div>
-  </div>
-  <div class="ticker-diff-item fade-in">
-    <div class="ticker-diff-icon">&#128202;</div>
-    <div class="ticker-diff-title">Score Impact Flagged</div>
-    <div class="ticker-diff-desc">Significant events trigger forward exposure register flags, feeding directly into your ACEI score computation.</div>
-  </div>
-</div>
-```
-
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- PRICING                                           -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<section class="pricing-section" id="pricing">
-  <div class="container">
-    <div class="section-eyebrow" style="text-align:center;">Pricing</div>
-    <div class="section-title" style="text-align:center;">Transparent pricing. No hidden fees.</div>
-    <p class="section-subtitle centered">Three tiers designed around distinct decision-makers &#8212; not arbitrary feature gating. Each plan delivers genuine intelligence at its price point.</p>
-
-```
-<div class="pricing-grid">
-  <!-- Operational Readiness -->
-  <div class="pricing-card">
-    <div class="pricing-tier">OPERATIONAL READINESS</div>
-    <h3>Operational Readiness</h3>
-    <p class="pricing-target">HR managers &amp; compliance leads &#183; 25&#8211;100 employees</p>
-    <div class="pricing-price">&#163;199<span>/mo</span></div>
-    <div class="pricing-period">Billed monthly &#183; Cancel anytime</div>
-    <ul class="pricing-features">
-      <li>ACEI Domain Index score</li>
-      <li>12-category exposure breakdown</li>
-      <li>Weekly score updates</li>
-      <li>12-week trend tracking</li>
-      <li>Legislative change alerts</li>
-      <li>ERA 2025 impact assessment</li>
-      <li>Email support</li>
-    </ul>
-    <a href="#early-access" class="pricing-cta pricing-cta-secondary">Request Access</a>
-  </div>
-
-  <!-- Governance -->
-  <div class="pricing-card featured">
-    <div class="pricing-tier">GOVERNANCE</div>
-    <h3>Governance</h3>
-    <p class="pricing-target">HR directors &amp; board reporting &#183; 75&#8211;500 employees</p>
-    <div class="pricing-price">&#163;799<span>/mo</span></div>
-    <div class="pricing-period">Billed monthly &#183; Cancel anytime</div>
-    <ul class="pricing-features">
-      <li>Everything in Operational Readiness</li>
-      <li>Full Index Triad (ACEI + RRI + CCI)</li>
-      <li>Full sub-index transparency (EVI, EII, SCI)</li>
-      <li>CCI Conduct Score per employer</li>
-      <li>RRI Readiness assessment (5 pillars)</li>
-      <li>Sector benchmarking</li>
-      <li>Board-ready reporting &amp; PDF exports</li>
-      <li>Quarterly review call</li>
-      <li>Priority support</li>
-    </ul>
-    <a href="#early-access" class="pricing-cta pricing-cta-primary">Request Access</a>
-  </div>
-
-  <!-- Institutional -->
-  <div class="pricing-card">
-    <div class="pricing-tier">INSTITUTIONAL</div>
-    <h3>Institutional</h3>
-    <p class="pricing-target">Enterprises, insurers &amp; legal firms &#183; 500+ employees</p>
-    <div class="pricing-price">Custom</div>
-    <div class="pricing-period">Tailored engagement &#183; SLA-backed</div>
-    <ul class="pricing-features">
-      <li>Everything in Governance</li>
-      <li>Multi-entity / group scoring</li>
-      <li>API access for internal systems</li>
-      <li>Custom category weighting</li>
-      <li>EPLI insurance integration feeds</li>
-      <li>Dedicated account manager</li>
-      <li>White-label reporting available</li>
-      <li>Multi-jurisdiction scoring</li>
-      <li>Bespoke board briefing packs</li>
-    </ul>
-    <a href="#early-access" class="pricing-cta pricing-cta-secondary">Contact Sales</a>
-  </div>
-</div>
-```
-
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- EARLY ACCESS CTA                                  -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
+<!-- EARLY ACCESS -->
 <section class="cta-section" id="early-access">
   <div class="container">
     <div class="section-eyebrow" style="text-align:center;">Early Access</div>
     <div class="section-title" style="text-align:center;">See your exposure score first.</div>
     <p class="section-subtitle centered">Join the early access programme and be among the first UK organisations to receive constitutionally-governed regulatory exposure intelligence.</p>
-
-```
-<form class="cta-form" id="signup-form" onsubmit="handleSignup(event)">
-  <input type="email" class="cta-input" id="signup-email" placeholder="Enter your work email" required>
-  <button type="submit" class="cta-submit" id="signup-btn">Request Access</button>
-</form>
-<div class="cta-msg" id="signup-msg"></div>
-<div class="cta-legal">No spam. No obligations. We&#8217;ll be in touch to discuss your exposure profile.</div>
-```
-
+    <form class="cta-form" id="signup-form" onsubmit="handleSignup(event)">
+      <input type="email" class="cta-input" id="signup-email" placeholder="Enter your work email" required>
+      <button type="submit" class="cta-submit" id="signup-btn">Request Access</button>
+    </form>
+    <div class="cta-msg" id="signup-msg"></div>
+    <div class="cta-legal">No spam. No obligations. We&#8217;ll be in touch to discuss your exposure profile.</div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- FOOTER                                            -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
+<!-- FOOTER -->
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
@@ -2346,9 +848,7 @@ border-radius: 8px;
       <a href="#how">How It Works</a>
       <a href="#knowledge-library">Knowledge Library</a>
       <a href="#compliance-checker">Compliance Checker</a>
-      <a href="#categories">Exposure Categories</a>
       <a href="#governance">Governance</a>
-      <a href="#ticker">Live Ticker</a>
       <a href="#pricing">Pricing</a>
     </div>
     <div class="footer-links-group">
@@ -2359,220 +859,107 @@ border-radius: 8px;
     </div>
   </div>
   <div class="footer-bottom">
-    <div class="footer-legal">
-      &copy; 2026 AI Lane Limited (Company No. 17035654) trading as Ailane. UK Trademark Application No. UK00004347220. Ailane Index Committee (AIC).
-    </div>
-    <div class="footer-constitutions">
-      ACEI v1.0 &#183; RRI v1.0 &#183; CCI v1.0
-    </div>
+    <div class="footer-legal">&copy; 2026 AI Lane Limited (Company No. 17035654) trading as Ailane. UK Trademark Application No. UK00004347220. Ailane Index Committee (AIC).</div>
+    <div class="footer-constitutions">ACEI v1.0 &#183; RRI v1.0 &#183; CCI v1.0</div>
   </div>
 </footer>
 
-<!-- ══════════════════════════════════════════════════ -->
-
-<!-- SCRIPTS                                           -->
-
-<!-- ══════════════════════════════════════════════════ -->
-
+<!-- SCRIPTS -->
 <script>
-// ── Supabase signup ──
-const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzMzE5NTIsImV4cCI6MjA1NTkwNzk1Mn0.se9C1MRXz6zJBJGJx5kYDTRmLaGGG9MjmaXMfRFmgSA';
+// ── Ticker data shared across both strips ──
+const TICKER_DATA=[
+  {cat:'CAT 02',val:'+3.2',dir:'up'},{cat:'CAT 06',val:'+1.8',dir:'up'},
+  {cat:'CAT 11',val:'+2.1',dir:'up'},{cat:'CAT 01',val:'-0.4',dir:'down'},
+  {cat:'CAT 04',val:'+4.7',dir:'up'},{cat:'CAT 09',val:'\u00b10.0',dir:'flat'},
+  {cat:'CAT 10',val:'+1.3',dir:'up'},{cat:'CAT 03',val:'-1.1',dir:'down'},
+  {cat:'CAT 05',val:'\u00b10.0',dir:'flat'},{cat:'CAT 07',val:'+0.6',dir:'up'},
+  {cat:'CAT 12',val:'-0.3',dir:'down'},{cat:'CAT 08',val:'+0.9',dir:'up'},
+];
 
-async function handleSignup(e) {
-  e.preventDefault();
-  const email = document.getElementById('signup-email').value.trim();
-  const btn = document.getElementById('signup-btn');
-  const msg = document.getElementById('signup-msg');
-  if (!email) return;
-  btn.disabled = true;
-  btn.textContent = 'Submitting...';
-  msg.textContent = '';
-  msg.className = 'cta-msg';
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/early_access_signups`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({ email, source: 'ailane.ai' })
+function buildItems(data){
+  return data.map(d=>{
+    const a=d.dir==='up'?'\u25B2':d.dir==='down'?'\u25BC':'\u25C6';
+    return `<div class="t-item"><span class="t-dot t-dot-${d.dir}"></span><span class="t-cat">${d.cat}</span><span class="t-val t-${d.dir}">${a} ${d.val}</span></div>`;
+  }).join('');
+}
+
+function initTicker(trackId){
+  const t=document.getElementById(trackId);
+  if(!t)return;
+  t.innerHTML=buildItems(TICKER_DATA)+buildItems(TICKER_DATA);
+  setInterval(()=>{
+    const items=t.querySelectorAll('.t-item');
+    const half=Math.floor(items.length/2);
+    const idx=Math.floor(Math.random()*half);
+    const dirs=['up','down','flat'];
+    const nd=dirs[Math.floor(Math.random()*dirs.length)];
+    const nv=nd==='flat'?'\u00b10.0':(nd==='up'?'+':'-')+(Math.random()*5).toFixed(1);
+    const na=nd==='up'?'\u25B2':nd==='down'?'\u25BC':'\u25C6';
+    [items[idx],items[idx+half]].forEach(item=>{
+      if(!item)return;
+      const v=item.querySelector('.t-val'),d=item.querySelector('.t-dot');
+      if(v){v.className='t-val t-'+nd;v.textContent=na+' '+nv;}
+      if(d){d.className='t-dot t-dot-'+nd;}
     });
-    if (res.ok || res.status === 201) {
-      msg.textContent = 'Thank you \u2014 we\'ll be in touch to discuss your exposure profile.';
-      msg.className = 'cta-msg success';
-      document.getElementById('signup-email').value = '';
-    } else {
-      const data = await res.json().catch(() => ({}));
-      if (data.code === '23505') {
-        msg.textContent = 'You\'re already on the list \u2014 we\'ll be in touch shortly.';
-        msg.className = 'cta-msg success';
-      } else {
-        msg.textContent = 'Something went wrong. Please try again or email info@ailane.ai';
-        msg.className = 'cta-msg error';
-      }
-    }
-  } catch (err) {
-    msg.textContent = 'Connection error. Please try again.';
-    msg.className = 'cta-msg error';
-  }
-  btn.disabled = false;
-  btn.textContent = 'Request Access';
+  },3000);
+}
+initTicker('hero-ticker-track');
+initTicker('ticker-band-track');
+
+// ── Supabase signup ──
+const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzMzE5NTIsImV4cCI6MjA1NTkwNzk1Mn0.se9C1MRXz6zJBJGJx5kYDTRmLaGGG9MjmaXMfRFmgSA';
+async function handleSignup(e){
+  e.preventDefault();
+  const email=document.getElementById('signup-email').value.trim();
+  const btn=document.getElementById('signup-btn'),msg=document.getElementById('signup-msg');
+  if(!email)return;
+  btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';msg.className='cta-msg';
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/early_access_signups`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':`Bearer ${SUPABASE_ANON}`,'Prefer':'return=minimal'},body:JSON.stringify({email,source:'ailane.ai'})});
+    if(res.ok||res.status===201){msg.textContent='Thank you \u2014 we\'ll be in touch to discuss your exposure profile.';msg.className='cta-msg success';document.getElementById('signup-email').value='';}
+    else{const d=await res.json().catch(()=>({}));if(d.code==='23505'){msg.textContent='You\'re already on the list \u2014 we\'ll be in touch shortly.';msg.className='cta-msg success';}else{msg.textContent='Something went wrong. Please try again or email info@ailane.ai';msg.className='cta-msg error';}}
+  }catch{msg.textContent='Connection error. Please try again.';msg.className='cta-msg error';}
+  btn.disabled=false;btn.textContent='Request Access';
 }
 
 // ── Scroll animations ──
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) entry.target.classList.add('visible');
-  });
-}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.fade-in,.formula-block').forEach(el=>obs.observe(el));
 
-// ── Nav shadow on scroll ──
-window.addEventListener('scroll', () => {
-  const nav = document.querySelector('nav');
-  nav.style.boxShadow = window.scrollY > 50 ? '0 4px 24px rgba(0,0,0,0.3)' : 'none';
-});
+// ── Nav shadow ──
+window.addEventListener('scroll',()=>{document.querySelector('nav').style.boxShadow=window.scrollY>50?'0 4px 24px rgba(0,0,0,0.3)':'none';});
 
 // ── Smooth scroll ──
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
-    e.preventDefault();
-    const target = document.querySelector(a.getAttribute('href'));
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const href=a.getAttribute('href');if(href==='#')return;
+    e.preventDefault();const t=document.querySelector(href);
+    if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
     document.querySelector('.nav-links')?.classList.remove('open');
   });
 });
 
-// ── Gauge counter animation ──
-let gaugeCounted = false;
-const gaugeObs = new IntersectionObserver((entries) => {
-  if (entries[0].isIntersecting && !gaugeCounted) {
-    gaugeCounted = true;
-    const scoreEl = document.querySelector('.gauge-score');
-    let current = 0;
-    const target = 45;
-    const interval = setInterval(() => {
-      current++;
-      scoreEl.textContent = current;
-      if (current >= target) clearInterval(interval);
-    }, 30);
-  }
-}, { threshold: 0.5 });
-const gaugeEl = document.querySelector('.gauge-container');
-if (gaugeEl) gaugeObs.observe(gaugeEl);
+// ── Gauge counter ──
+let gc=false;
+const go=new IntersectionObserver(e=>{if(e[0].isIntersecting&&!gc){gc=true;const s=document.querySelector('.gauge-score');let c=0;const iv=setInterval(()=>{c++;s.textContent=c;if(c>=45)clearInterval(iv);},30);}},{threshold:0.5});
+const ge=document.querySelector('.gauge-container');if(ge)go.observe(ge);
 
-// ── Stats counter animation ──
-function animateCounter(el, target) {
-  const duration = 1800;
-  const startTime = performance.now();
-  function update(currentTime) {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const current = Math.floor(eased * target);
-    el.textContent = current.toLocaleString();
-    if (progress < 1) requestAnimationFrame(update);
-    else el.textContent = target.toLocaleString(); // ensure exact final value
-  }
-  requestAnimationFrame(update);
+// ── Stats counters ──
+function animateCounter(el,target){
+  const dur=1800,start=performance.now();
+  function step(now){const p=Math.min((now-start)/dur,1),e2=1-Math.pow(1-p,3);el.textContent=Math.floor(e2*target).toLocaleString();if(p<1)requestAnimationFrame(step);else el.textContent=target.toLocaleString();}
+  requestAnimationFrame(step);
 }
-
-// Run counters — triggered by intersection OR immediately if already in viewport on load
-const statsObs = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const el = entry.target;
-      const target = parseInt(el.dataset.target, 10);
-      if (target && !el.dataset.animated) {
-        el.dataset.animated = '1';
-        animateCounter(el, target);
-      }
-    }
-  });
-}, { threshold: 0.3 });
-
-function initCounters() {
-  document.querySelectorAll('.stat-value[data-target]').forEach(el => {
-    statsObs.observe(el);
-    // Also fire immediately if element is already visible in the viewport on load
-    const rect = el.getBoundingClientRect();
-    const inView = rect.top < window.innerHeight && rect.bottom > 0;
-    if (inView && !el.dataset.animated) {
-      const target = parseInt(el.dataset.target, 10);
-      if (target) {
-        el.dataset.animated = '1';
-        animateCounter(el, target);
-      }
-    }
+const so=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const el=e.target,t=parseInt(el.dataset.target,10);if(t&&!el.dataset.animated){el.dataset.animated='1';animateCounter(el,t);}}});},{threshold:0.3});
+function initCounters(){
+  document.querySelectorAll('.stat-value[data-target]').forEach(el=>{
+    so.observe(el);
+    const r=el.getBoundingClientRect();
+    if(r.top<window.innerHeight&&r.bottom>0&&!el.dataset.animated){el.dataset.animated='1';animateCounter(el,parseInt(el.dataset.target,10));}
   });
 }
-
-// Run after DOM + fonts are ready to avoid race with CSS animation delay
-if (document.readyState === 'complete') {
-  initCounters();
-} else {
-  window.addEventListener('load', initCounters);
-}
-
-// ── Risk ticker (hero mini-strip) ──
-(function initTicker() {
-  const tickerData = [
-    { cat: 'CAT 02', name: 'Discrimination', val: '+3.2', dir: 'up' },
-    { cat: 'CAT 06', name: 'Redundancy', val: '+1.8', dir: 'up' },
-    { cat: 'CAT 11', name: 'Data Protection', val: '+2.1', dir: 'up' },
-    { cat: 'CAT 01', name: 'Unfair Dismissal', val: '-0.4', dir: 'down' },
-    { cat: 'CAT 04', name: 'Whistleblowing', val: '+4.7', dir: 'up' },
-    { cat: 'CAT 09', name: 'Employment Status', val: '\u00b10.0', dir: 'flat' },
-    { cat: 'CAT 10', name: 'Health & Safety', val: '+1.3', dir: 'up' },
-    { cat: 'CAT 03', name: 'Wages', val: '-1.1', dir: 'down' },
-    { cat: 'CAT 05', name: 'Breach of Contract', val: '\u00b10.0', dir: 'flat' },
-    { cat: 'CAT 07', name: 'Parental Rights', val: '+0.6', dir: 'up' },
-    { cat: 'CAT 12', name: 'Business Transfers', val: '-0.3', dir: 'down' },
-    { cat: 'CAT 08', name: 'Trade Union', val: '+0.9', dir: 'up' },
-  ];
-
-  const track = document.getElementById('risk-ticker-track');
-  if (!track) return;
-
-  function buildItems(data) {
-    return data.map(d => {
-      const arrow = d.dir === 'up' ? '\u25B2' : d.dir === 'down' ? '\u25BC' : '\u25C6';
-      return `<div class="risk-ticker-item">
-        <span class="ticker-dot dot-${d.dir}"></span>
-        <span class="ticker-cat">${d.cat}</span>
-        <span class="ticker-val ticker-${d.dir}">${arrow} ${d.val}</span>
-      </div>`;
-    }).join('');
-  }
-
-  // Duplicate for seamless loop
-  track.innerHTML = buildItems(tickerData) + buildItems(tickerData);
-
-  // Periodically randomise values for dynamic feel
-  setInterval(() => {
-    const items = track.querySelectorAll('.risk-ticker-item');
-    const half = items.length / 2;
-    const idx = Math.floor(Math.random() * half);
-    const item1 = items[idx];
-    const item2 = items[idx + half];
-    if (!item1 || !item2) return;
-    const dirs = ['up', 'down', 'flat'];
-    const newDir = dirs[Math.floor(Math.random() * dirs.length)];
-    const newVal = newDir === 'flat' ? '\u00b10.0'
-      : (newDir === 'up' ? '+' : '-') + (Math.random() * 5).toFixed(1);
-    const arrow = newDir === 'up' ? '\u25B2' : newDir === 'down' ? '\u25BC' : '\u25C6';
-    [item1, item2].forEach(item => {
-      const valEl = item.querySelector('.ticker-val');
-      const dotEl = item.querySelector('.ticker-dot');
-      if (valEl) { valEl.className = 'ticker-val ticker-' + newDir; valEl.textContent = arrow + ' ' + newVal; }
-      if (dotEl) { dotEl.className = 'ticker-dot dot-' + newDir; }
-    });
-  }, 3000);
-})();
+document.readyState==='complete'?initCounters():window.addEventListener('load',initCounters);
 </script>
-
 </body>
 </html>
