@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Library — Ailane Regulatory Intelligence</title>
+<meta name="description" content="Preview the Ailane Knowledge Library — 47 legislative instruments across 12 employment law categories, tracked from parliamentary passage through commencement.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:          #0a0f1a;
+  --bg-sec:      #0d1321;
+  --bg-card:     #111827;
+  --bg-elev:     #1a2332;
+  --border:      rgba(56,189,248,0.08);
+  --border-h:    rgba(56,189,248,0.18);
+  --cyan:        #38bdf8;
+  --cyan-dim:    rgba(56,189,248,0.12);
+  --gold:        #f59e0b;
+  --gold-dim:    rgba(245,158,11,0.10);
+  --green:       #34d399;
+  --amber:       #fbbf24;
+  --red:         #f87171;
+  --t1:          #f1f5f9;
+  --t2:          #94a3b8;
+  --t3:          #64748b;
+  --t4:          #475569;
+  --mono:        'Space Mono', 'JetBrains Mono', monospace;
+  --body:        'DM Sans', -apple-system, sans-serif;
+  --ease:        cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--body); background: var(--bg); color: var(--t1); line-height: 1.7; overflow-x: hidden; }
+::selection { background: var(--cyan-dim); color: var(--cyan); }
+
+@keyframes fadeInDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100%{opacity:0.5;transform:scale(0.85);} 50%{opacity:1;transform:scale(1.2);} }
+@keyframes shimmer { 0%{background-position:-400px 0;} 100%{background-position:400px 0;} }
+@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+
+.fade-in { opacity:0; transform:translateY(16px); transition: all 0.55s var(--ease); }
+.fade-in.visible { opacity:1; transform:translateY(0); }
+.fade-in:nth-child(2){transition-delay:0.07s;}
+.fade-in:nth-child(3){transition-delay:0.14s;}
+.fade-in:nth-child(4){transition-delay:0.21s;}
+.fade-in:nth-child(5){transition-delay:0.28s;}
+.fade-in:nth-child(6){transition-delay:0.35s;}
+.fade-in:nth-child(7){transition-delay:0.42s;}
+.fade-in:nth-child(8){transition-delay:0.49s;}
+
+/* ── NAV (minimal, standalone) ── */
+nav {
+  position: fixed; top:0; left:0; right:0; z-index:100;
+  background: rgba(10,15,26,0.9); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner { max-width:1100px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; }
+.logo { font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:4px; color:var(--t1); text-decoration:none; }
+.logo-sub { color:var(--cyan); font-size:9px; letter-spacing:1.5px; font-weight:400; margin-left:8px; }
+.nav-right { display:flex; align-items:center; gap:16px; }
+.nav-pill { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:var(--t3); background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:100px; padding:5px 14px; }
+.nav-cta { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--bg); background:var(--cyan); border-radius:6px; padding:8px 18px; text-decoration:none; font-weight:700; transition:all 0.2s; white-space:nowrap; }
+.nav-cta:hover { background:#5cc9f5; }
+
+/* ── HERO ── */
+.hero { padding:140px 24px 64px; text-align:center; position:relative; overflow:hidden; }
+.hero-bg { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; }
+.hero-bg::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse 70% 50% at 50% -10%, rgba(56,189,248,0.07), transparent); }
+.hero-bg::after { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background-image:radial-gradient(rgba(56,189,248,0.12) 1px, transparent 1px); background-size:36px 36px; opacity:0.25; mask-image:radial-gradient(ellipse 60% 70% at 50% 30%, black 10%, transparent 65%); -webkit-mask-image:radial-gradient(ellipse 60% 70% at 50% 30%, black 10%, transparent 65%); }
+
+.hero-eyebrow { display:inline-flex; align-items:center; gap:10px; font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:100px; padding:7px 18px; margin-bottom:28px; animation:fadeInDown 0.6s ease; }
+.hero-dot { width:5px; height:5px; border-radius:50%; background:var(--cyan); animation:pulse 2s ease-in-out infinite; }
+.hero h1 { font-size:clamp(1.8rem,4vw,3rem); font-weight:700; line-height:1.15; max-width:700px; margin:0 auto 18px; letter-spacing:-0.3px; animation:fadeInUp 0.65s ease 0.1s both; }
+.hero h1 em { font-style:italic; color:var(--cyan); }
+.hero-sub { font-size:16px; color:var(--t2); max-width:560px; margin:0 auto 40px; line-height:1.8; animation:fadeInUp 0.65s ease 0.2s both; }
+
+/* Stats row */
+.hero-stats { display:inline-flex; gap:1px; background:var(--border); border:1px solid var(--border); border-radius:10px; overflow:hidden; animation:fadeInUp 0.65s ease 0.3s both; }
+.h-stat { background:var(--bg-card); padding:18px 28px; text-align:center; }
+.h-stat-val { font-family:var(--mono); font-size:22px; font-weight:700; color:var(--cyan); margin-bottom:3px; }
+.h-stat-lab { font-size:11px; color:var(--t3); letter-spacing:0.3px; }
+@media(max-width:600px){ .hero-stats{flex-direction:column;} .h-stat{padding:14px 24px;} }
+
+/* ── ACCESS GATE BANNER ── */
+.gate-banner { background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(56,189,248,0.05)); border-top:1px solid rgba(245,158,11,0.15); border-bottom:1px solid rgba(56,189,248,0.08); padding:18px 24px; }
+.gate-inner { max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+.gate-msg { display:flex; align-items:center; gap:12px; }
+.gate-icon { font-size:18px; }
+.gate-text { font-size:14px; color:var(--t2); }
+.gate-text strong { color:var(--t1); }
+.gate-tiers { display:flex; gap:8px; flex-wrap:wrap; }
+.gate-tier { font-family:var(--mono); font-size:10px; letter-spacing:1px; padding:4px 10px; border-radius:4px; }
+.gate-tier.op { color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.15); }
+.gate-tier.gov { color:var(--cyan); background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); }
+.gate-tier.inst { color:var(--gold); background:var(--gold-dim); border:1px solid rgba(245,158,11,0.2); }
+.gate-cta { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--bg); background:var(--cyan); border-radius:6px; padding:9px 20px; text-decoration:none; font-weight:700; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
+.gate-cta:hover { background:#5cc9f5; }
+
+/* ── MAIN CONTENT ── */
+.main { max-width:1100px; margin:0 auto; padding:48px 24px 80px; }
+
+/* Category tabs */
+.cat-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:28px; }
+.cat-tab { font-family:var(--mono); font-size:10px; letter-spacing:1px; padding:6px 14px; border-radius:6px; cursor:pointer; border:1px solid var(--border); color:var(--t3); background:var(--bg-card); transition:all 0.2s; }
+.cat-tab:hover,.cat-tab.active { border-color:rgba(56,189,248,0.25); color:var(--cyan); background:var(--cyan-dim); }
+
+/* Instrument grid */
+.instruments-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:32px; }
+
+/* Sample instrument card (fully visible) */
+.instrument-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:24px; transition:all 0.3s var(--ease); position:relative; overflow:hidden; }
+.instrument-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); opacity:0; transition:opacity 0.3s; }
+.instrument-card:hover::before { opacity:1; }
+.instrument-card:hover { border-color:var(--border-h); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.3); }
+.inst-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.inst-title { font-size:14px; font-weight:700; line-height:1.3; flex:1; }
+.inst-status { font-family:var(--mono); font-size:9px; letter-spacing:1px; padding:3px 8px; border-radius:4px; white-space:nowrap; flex-shrink:0; }
+.status-force { color:var(--green); background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2); }
+.status-commencing { color:var(--amber); background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.2); }
+.status-enacted { color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.2); }
+.inst-meta { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+.inst-meta-item { font-family:var(--mono); font-size:10px; color:var(--t4); letter-spacing:0.5px; }
+.inst-meta-item span { color:var(--t2); }
+.inst-cats { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
+.inst-cat { font-family:var(--mono); font-size:9px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:3px; padding:2px 7px; }
+.inst-summary { font-size:12px; color:var(--t2); line-height:1.6; margin-bottom:12px; }
+.inst-sci { display:flex; align-items:center; gap:8px; }
+.inst-sci-label { font-family:var(--mono); font-size:10px; color:var(--t4); }
+.inst-sci-dots { display:flex; gap:3px; }
+.sci-dot { width:10px; height:10px; border-radius:2px; }
+.sci-dot.filled { background:var(--cyan); }
+.sci-dot.empty { background:var(--bg-elev); }
+.sci-dot.filled.high { background:var(--red); }
+.inst-sci-val { font-family:var(--mono); font-size:10px; color:var(--t3); }
+
+/* Gated instrument card */
+.instrument-card.gated { position:relative; cursor:default; }
+.instrument-card.gated:hover { transform:none; box-shadow:none; border-color:var(--border); }
+.instrument-card.gated::before { display:none; }
+.gated-overlay { position:absolute; inset:0; border-radius:12px; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); background:rgba(10,15,26,0.7); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; z-index:2; }
+.gated-badge { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.2); border-radius:6px; padding:6px 16px; }
+.gated-tier { font-size:12px; color:var(--t3); }
+.gated-cta { font-family:var(--mono); font-size:11px; font-weight:700; color:var(--bg); background:var(--cyan); border-radius:6px; padding:8px 20px; text-decoration:none; transition:all 0.2s; }
+.gated-cta:hover { background:#5cc9f5; }
+/* blurred content beneath overlay */
+.gated-content { filter:blur(3px); pointer-events:none; user-select:none; }
+
+/* Load more / count row */
+.count-row { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; margin-bottom:40px; }
+.count-row-left { font-family:var(--mono); font-size:12px; color:var(--t3); }
+.count-row-left strong { color:var(--t1); }
+.count-row-right { font-family:var(--mono); font-size:11px; color:var(--cyan); text-decoration:none; background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:6px; padding:6px 14px; cursor:pointer; transition:all 0.2s; }
+.count-row-right:hover { background:rgba(56,189,248,0.2); }
+
+/* ── TIER SECTION ── */
+.tier-section { margin-top:60px; }
+.tier-section-label { font-family:var(--mono); font-size:10px; letter-spacing:3px; color:var(--cyan); text-transform:uppercase; margin-bottom:20px; }
+.tier-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.tier-card { padding:28px 24px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; transition:all 0.3s var(--ease); }
+.tier-card:hover { border-color:var(--border-h); transform:translateY(-2px); }
+.tier-card.gold-card { border-color:rgba(245,158,11,0.18); }
+.tier-card.gold-card:hover { border-color:rgba(245,158,11,0.35); box-shadow:0 8px 32px rgba(0,0,0,0.25),0 0 20px rgba(245,158,11,0.04); }
+.tier-name { font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--cyan); margin-bottom:8px; }
+.tier-name.gold { color:var(--gold); }
+.tier-card h3 { font-size:16px; font-weight:700; margin-bottom:8px; }
+.tier-access { font-size:13px; color:var(--t2); line-height:1.6; margin-bottom:16px; }
+.tier-features { list-style:none; display:flex; flex-direction:column; gap:7px; }
+.tier-features li { font-size:12px; color:var(--t3); padding-left:16px; position:relative; }
+.tier-features li::before { content:'\2192'; position:absolute; left:0; color:var(--cyan); font-family:var(--mono); }
+.tier-cta { display:block; text-align:center; margin-top:20px; padding:10px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; transition:all 0.2s; font-family:var(--mono); letter-spacing:0.5px; }
+.tier-cta.cyan { background:var(--cyan-dim); color:var(--cyan); border:1px solid rgba(56,189,248,0.15); }
+.tier-cta.cyan:hover { background:rgba(56,189,248,0.2); }
+.tier-cta.primary { background:var(--cyan); color:var(--bg); }
+.tier-cta.primary:hover { background:#5cc9f5; }
+.tier-cta.gold { background:var(--gold-dim); color:var(--gold); border:1px solid rgba(245,158,11,0.2); }
+.tier-cta.gold:hover { background:rgba(245,158,11,0.18); }
+@media(max-width:768px) { .tier-grid{grid-template-columns:1fr;} }
+
+/* ── CTA STRIP ── */
+.cta-strip { margin-top:60px; background:linear-gradient(135deg,rgba(56,189,248,0.06),rgba(56,189,248,0.02)); border:1px solid rgba(56,189,248,0.1); border-radius:14px; padding:40px; text-align:center; }
+.cta-strip h2 { font-size:1.6rem; font-weight:700; margin-bottom:12px; }
+.cta-strip p { font-size:14px; color:var(--t2); max-width:480px; margin:0 auto 28px; line-height:1.8; }
+.cta-strip-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+.cta-btn-primary { background:var(--cyan); color:var(--bg); padding:13px 28px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none; transition:all 0.2s; }
+.cta-btn-primary:hover { background:#5cc9f5; transform:translateY(-1px); }
+.cta-btn-sec { background:transparent; color:var(--t2); padding:13px 28px; border-radius:8px; font-size:14px; font-weight:500; text-decoration:none; border:1px solid var(--border); transition:all 0.2s; }
+.cta-btn-sec:hover { color:var(--t1); border-color:var(--border-h); }
+
+/* ── FOOTER (minimal) ── */
+.preview-footer { border-top:1px solid var(--border); padding:24px; text-align:center; }
+.preview-footer-text { font-family:var(--mono); font-size:10px; color:var(--t4); letter-spacing:0.5px; }
+.preview-footer-text a { color:var(--t3); text-decoration:none; transition:color 0.2s; }
+.preview-footer-text a:hover { color:var(--cyan); }
+
+@media(max-width:768px){ .instruments-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="https://ailane.ai" class="logo">AILANE<span class="logo-sub">ACEI · RRI · CCI</span></a>
+    <div class="nav-right">
+      <span class="nav-pill">KNOWLEDGE LIBRARY · PREVIEW</span>
+      <a href="https://ailane.ai/#early-access" class="nav-cta">Request Full Access</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-eyebrow"><span class="hero-dot"></span> KNOWLEDGE LIBRARY · PREVIEW MODE</div>
+  <h1>The legislation behind <em>every score</em></h1>
+  <p class="hero-sub">47 legislative instruments tracked from parliamentary passage through commencement and enforcement. Every instrument that moves your ACEI score lives here — mapped to the 12 constitutional categories.</p>
+  <div class="hero-stats">
+    <div class="h-stat"><div class="h-stat-val">47</div><div class="h-stat-lab">Instruments tracked</div></div>
+    <div class="h-stat"><div class="h-stat-val">12</div><div class="h-stat-lab">ACEI categories</div></div>
+    <div class="h-stat"><div class="h-stat-val">53</div><div class="h-stat-lab">Jurisdictions</div></div>
+    <div class="h-stat"><div class="h-stat-val">6</div><div class="h-stat-lab">Authoritative sources</div></div>
+  </div>
+</section>
+
+<!-- ACCESS GATE BANNER -->
+<div class="gate-banner">
+  <div class="gate-inner">
+    <div class="gate-msg">
+      <span class="gate-icon">&#128274;</span>
+      <div class="gate-text"><strong>Preview mode.</strong> Sample instruments are shown in full. Full library access is available from Operational Readiness tier.</div>
+    </div>
+    <div class="gate-tiers">
+      <span class="gate-tier op">OPERATIONAL · UK</span>
+      <span class="gate-tier gov">GOVERNANCE · MULTI-JX</span>
+      <span class="gate-tier inst">INSTITUTIONAL · GLOBAL</span>
+    </div>
+    <a href="https://ailane.ai/#early-access" class="gate-cta">Unlock Full Library &#8594;</a>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- Category filter tabs -->
+  <div class="cat-tabs" id="cat-tabs">
+    <div class="cat-tab active" data-cat="all">ALL CATEGORIES</div>
+    <div class="cat-tab" data-cat="01">CAT 01 · Unfair Dismissal</div>
+    <div class="cat-tab" data-cat="02">CAT 02 · Discrimination</div>
+    <div class="cat-tab" data-cat="03">CAT 03 · Wages</div>
+    <div class="cat-tab" data-cat="07">CAT 07 · Parental Rights</div>
+    <div class="cat-tab" data-cat="09">CAT 09 · Employment Status</div>
+    <div class="cat-tab" data-cat="10">CAT 10 · Health &amp; Safety</div>
+  </div>
+
+  <!-- Instrument cards — 3 sample, rest gated -->
+  <div class="instruments-grid" id="instruments-grid">
+
+    <!-- SAMPLE 1: ERA 2025 (full access) -->
+    <div class="instrument-card fade-in" data-cats="01,07,06,08,09,03,02,10">
+      <div class="inst-header">
+        <div class="inst-title">Employment Rights Act 2025</div>
+        <span class="inst-status status-commencing">COMMENCING</span>
+      </div>
+      <div class="inst-meta">
+        <div class="inst-meta-item">Royal Assent <span>18 Dec 2025</span></div>
+        <div class="inst-meta-item">Citation <span>ERA 2025 c.36</span></div>
+        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
+      </div>
+      <div class="inst-cats">
+        <span class="inst-cat">CAT 01</span><span class="inst-cat">CAT 02</span>
+        <span class="inst-cat">CAT 03</span><span class="inst-cat">CAT 06</span>
+        <span class="inst-cat">CAT 07</span><span class="inst-cat">CAT 08</span>
+        <span class="inst-cat">CAT 09</span><span class="inst-cat">CAT 10</span>
+      </div>
+      <div class="inst-summary">The most significant overhaul of UK employment law in a generation. Removes the two-year qualifying period for unfair dismissal claims, establishes flexible working as a day-one right, introduces guaranteed hours obligations for zero-hours workers, and strengthens trade union access rights. Commencement dates are rolling by provision.</div>
+      <div class="inst-sci">
+        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
+        <div class="inst-sci-dots">
+          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
+          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
+          <div class="sci-dot filled high"></div>
+        </div>
+        <span class="inst-sci-val">5 / 5 · STRUCTURAL</span>
+      </div>
+    </div>
+
+    <!-- SAMPLE 2: Equality Act 2010 (full access) -->
+    <div class="instrument-card fade-in" data-cats="02">
+      <div class="inst-header">
+        <div class="inst-title">Equality Act 2010</div>
+        <span class="inst-status status-force">IN FORCE</span>
+      </div>
+      <div class="inst-meta">
+        <div class="inst-meta-item">Commenced <span>1 Oct 2010</span></div>
+        <div class="inst-meta-item">Citation <span>EA 2010 c.15</span></div>
+        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
+      </div>
+      <div class="inst-cats">
+        <span class="inst-cat">CAT 02</span>
+      </div>
+      <div class="inst-summary">Consolidated and replaced previous anti-discrimination legislation. Defines nine protected characteristics and prohibits direct discrimination, indirect discrimination, harassment, and victimisation in employment. Provides for uncapped compensation. Basis for the highest-value employment tribunal claims.</div>
+      <div class="inst-sci">
+        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
+        <div class="inst-sci-dots">
+          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
+          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
+          <div class="sci-dot filled high"></div>
+        </div>
+        <span class="inst-sci-val">5 / 5 · FOUNDATIONAL</span>
+      </div>
+    </div>
+
+    <!-- SAMPLE 3: Working Time Regulations 1998 -->
+    <div class="instrument-card fade-in" data-cats="03">
+      <div class="inst-header">
+        <div class="inst-title">Working Time Regulations 1998</div>
+        <span class="inst-status status-force">IN FORCE</span>
+      </div>
+      <div class="inst-meta">
+        <div class="inst-meta-item">Commenced <span>1 Oct 1998</span></div>
+        <div class="inst-meta-item">Citation <span>SI 1998/1833</span></div>
+        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
+      </div>
+      <div class="inst-cats">
+        <span class="inst-cat">CAT 03</span>
+      </div>
+      <div class="inst-summary">Implements the EU Working Time Directive. Governs maximum weekly working hours (48h average), rest break entitlements, night work restrictions, and statutory annual leave (28 days inclusive). Holiday pay calculation remains a primary driver of wages tribunal claims.</div>
+      <div class="inst-sci">
+        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
+        <div class="inst-sci-dots">
+          <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
+          <div class="sci-dot filled"></div><div class="sci-dot empty"></div>
+          <div class="sci-dot empty"></div>
+        </div>
+        <span class="inst-sci-val">3 / 5 · ELEVATED</span>
+      </div>
+    </div>
+
+    <!-- GATED: Health & Safety at Work Act 1974 -->
+    <div class="instrument-card gated fade-in" data-cats="10">
+      <div class="gated-overlay">
+        <div class="gated-badge">&#128274; FULL ACCESS REQUIRED</div>
+        <div class="gated-tier">Available from Operational Readiness tier</div>
+        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
+      </div>
+      <div class="gated-content">
+        <div class="inst-header">
+          <div class="inst-title">Health and Safety at Work etc. Act 1974</div>
+          <span class="inst-status status-force">IN FORCE</span>
+        </div>
+        <div class="inst-meta">
+          <div class="inst-meta-item">Commenced <span>1 Jan 1975</span></div>
+          <div class="inst-meta-item">Citation <span>HSWA 1974 c.37</span></div>
+        </div>
+        <div class="inst-cats"><span class="inst-cat">CAT 10</span></div>
+        <div class="inst-summary">Primary framework legislation for health and safety in Great Britain. Establishes general duties on employers, employees, and self-employed persons. HSE enforcement powers and criminal sanctions governed here.</div>
+        <div class="inst-sci">
+          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
+          <div class="inst-sci-dots">
+            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
+            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
+            <div class="sci-dot empty"></div>
+          </div>
+          <span class="inst-sci-val">4 / 5 · HIGH</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GATED: Trade Union and Labour Relations Act -->
+    <div class="instrument-card gated fade-in" data-cats="08">
+      <div class="gated-overlay">
+        <div class="gated-badge">&#128274; FULL ACCESS REQUIRED</div>
+        <div class="gated-tier">Available from Operational Readiness tier</div>
+        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
+      </div>
+      <div class="gated-content">
+        <div class="inst-header">
+          <div class="inst-title">Trade Union and Labour Relations (Consolidation) Act 1992</div>
+          <span class="inst-status status-force">IN FORCE</span>
+        </div>
+        <div class="inst-meta">
+          <div class="inst-meta-item">Commenced <span>16 Oct 1992</span></div>
+          <div class="inst-meta-item">Citation <span>TULRCA 1992 c.52</span></div>
+        </div>
+        <div class="inst-cats"><span class="inst-cat">CAT 08</span></div>
+        <div class="inst-summary">Primary legislation governing collective employment law in Great Britain. Trade union recognition, collective bargaining obligations, industrial action protections, and detriment for union activities. Amended significantly by ERA 2025.</div>
+        <div class="inst-sci">
+          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
+          <div class="inst-sci-dots">
+            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
+            <div class="sci-dot filled"></div><div class="sci-dot empty"></div>
+            <div class="sci-dot empty"></div>
+          </div>
+          <span class="inst-sci-val">3 / 5 · ELEVATED</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GATED: UK GDPR -->
+    <div class="instrument-card gated fade-in" data-cats="11">
+      <div class="gated-overlay">
+        <div class="gated-badge">&#128274; GOVERNANCE TIER</div>
+        <div class="gated-tier">Multi-jurisdiction instruments from Governance tier</div>
+        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
+      </div>
+      <div class="gated-content">
+        <div class="inst-header">
+          <div class="inst-title">UK General Data Protection Regulation</div>
+          <span class="inst-status status-force">IN FORCE</span>
+        </div>
+        <div class="inst-meta">
+          <div class="inst-meta-item">Commenced <span>1 Jan 2021</span></div>
+          <div class="inst-meta-item">Citation <span>UK GDPR 2021</span></div>
+        </div>
+        <div class="inst-cats"><span class="inst-cat">CAT 11</span></div>
+        <div class="inst-summary">Retained EU law governing data protection in the UK post-Brexit. Applies to employee data, monitoring, subject access requests, and data sharing with third parties. ICO enforcement powers flow from this instrument.</div>
+        <div class="inst-sci">
+          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
+          <div class="inst-sci-dots">
+            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
+            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
+            <div class="sci-dot empty"></div>
+          </div>
+          <span class="inst-sci-val">4 / 5 · HIGH</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Count row -->
+  <div class="count-row">
+    <div class="count-row-left">Showing <strong>3 of 47</strong> instruments in preview. <strong>44</strong> instruments require subscription access.</div>
+    <a href="https://ailane.ai/#early-access" class="count-row-right">Unlock all 47 instruments &#8594;</a>
+  </div>
+
+  <!-- Tier comparison -->
+  <div class="tier-section">
+    <div class="tier-section-label">Knowledge Library access by tier</div>
+    <div class="tier-grid">
+      <div class="tier-card fade-in">
+        <div class="tier-name">OPERATIONAL READINESS</div>
+        <h3>UK Full Coverage</h3>
+        <div class="tier-access">All 47 instruments across 12 ACEI categories. Updated weekly. Commencement alerts. Includes ERA 2025 live tracking.</div>
+        <ul class="tier-features">
+          <li>All 47 UK instruments, full detail</li>
+          <li>12 ACEI category mapping</li>
+          <li>SCI significance ratings</li>
+          <li>Commencement timeline tracking</li>
+          <li>Legislative change alerts</li>
+          <li>Employer obligation summaries</li>
+        </ul>
+        <a href="https://ailane.ai/#early-access" class="tier-cta cyan">&#163;199/mo · Request Access</a>
+      </div>
+      <div class="tier-card fade-in">
+        <div class="tier-name">GOVERNANCE</div>
+        <h3>Multi-Jurisdiction</h3>
+        <div class="tier-access">UK instruments plus sector-filtered coverage across additional jurisdictions. ACEI Domain Index computed per jurisdiction.</div>
+        <ul class="tier-features">
+          <li>Everything in Operational</li>
+          <li>Sector-filtered multi-jurisdiction feed</li>
+          <li>ACEI DI per jurisdiction</li>
+          <li>Cross-border instrument mapping</li>
+          <li>Territorial reach analysis</li>
+          <li>Devolved jurisdiction divergence</li>
+        </ul>
+        <a href="https://ailane.ai/#early-access" class="tier-cta primary">&#163;799/mo · Request Access</a>
+      </div>
+      <div class="tier-card gold-card fade-in">
+        <div class="tier-name gold">INSTITUTIONAL</div>
+        <h3>Growing Global Library</h3>
+        <div class="tier-access">53-jurisdiction architecture expanding continuously. Full instrument library with territorial reach mapping as coverage develops.</div>
+        <ul class="tier-features">
+          <li>Everything in Governance</li>
+          <li>53-jurisdiction architecture</li>
+          <li>Expanding global instrument set</li>
+          <li>Workforce-weighted multi-jurisdiction DI</li>
+          <li>Custom jurisdiction blending</li>
+          <li>API access for internal systems</li>
+        </ul>
+        <a href="https://ailane.ai/#early-access" class="tier-cta gold">Custom · Contact Sales</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA strip -->
+  <div class="cta-strip fade-in">
+    <h2>Ready to see the full library?</h2>
+    <p>Join the early access programme and get constitutionally-governed regulatory intelligence from your first session. 47 instruments. 12 categories. Updated weekly.</p>
+    <div class="cta-strip-actions">
+      <a href="https://ailane.ai/#early-access" class="cta-btn-primary">Request Early Access</a>
+      <a href="https://ailane.ai/#governance" class="cta-btn-sec">How the scoring works</a>
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER (minimal) -->
+<footer class="preview-footer">
+  <div class="preview-footer-text">
+    &copy; 2026 AI Lane Limited (Company No. 17035654) trading as Ailane &nbsp;&#183;&nbsp;
+    <a href="https://ailane.ai">ailane.ai</a> &nbsp;&#183;&nbsp;
+    ACEI v1.0 · RRI v1.0 · CCI v1.0 &nbsp;&#183;&nbsp;
+    UK Trademark UK00004347220
+  </div>
+</footer>
+
+<script>
+// Category tab filtering
+document.querySelectorAll('.cat-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const cat = tab.dataset.cat;
+    document.querySelectorAll('.instrument-card').forEach(card => {
+      const cats = card.dataset.cats || '';
+      const show = cat === 'all' || cats.split(',').some(c => c.trim() === cat);
+      card.style.display = show ? '' : 'none';
+    });
+  });
+});
+
+// Fade-in observer
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
