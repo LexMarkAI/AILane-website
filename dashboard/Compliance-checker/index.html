@@ -90,6 +90,7 @@ button{cursor:pointer;font-family:var(--ff-b);border:none;outline:none}
   background:var(--teal);color:#fff;border-radius:5px;display:none;
 }
 #run-btn.visible{display:block}
+#run-btn:disabled{opacity:.4;cursor:not-allowed}
 
 .fw-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px}
 .fw-chip{font-family:var(--ff-m);font-size:10px;color:var(--cream-m);border:1px solid var(--bord);border-radius:3px;padding:4px 9px;letter-spacing:.03em}
@@ -264,6 +265,24 @@ button{cursor:pointer;font-family:var(--ff-b);border:none;outline:none}
 
   <!-- ══ UPLOAD PHASE ══════════════════════════════════════════ -->
   <div id="upload-phase" class="phase active">
+    <!-- API Key input -->
+    <div id="apikey-wrap" style="background:#1A2E44;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:14px 18px;margin-bottom:22px">
+      <div style="font-family:var(--ff-m);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#14A8AE;margin-bottom:6px">Anthropic API Key Required</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off"
+          style="flex:1;background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:9px 12px;
+          font-family:var(--ff-m);font-size:12px;color:#F0EBE0;outline:none;"
+          oninput="checkApiKey()"/>
+        <button id="key-toggle" onclick="toggleKeyVis()"
+          style="font-family:var(--ff-m);font-size:10px;color:rgba(240,235,224,.5);background:transparent;
+          border:1px solid rgba(255,255,255,.08);border-radius:3px;padding:7px 10px;white-space:nowrap">Show</button>
+      </div>
+      <div style="font-family:var(--ff-m);font-size:10px;color:rgba(240,235,224,.35);margin-top:6px;line-height:1.5">
+        Your key is used only for this analysis and is never stored or transmitted anywhere except directly to Anthropic.
+        Get a key at <span style="color:#14A8AE">console.anthropic.com</span>
+      </div>
+    </div>
+
     <div class="page-eyebrow">Operational Readiness · Contract Analysis</div>
     <div class="page-title">Contract Compliance Checker</div>
     <div class="page-desc">Upload a UK employment contract for AI-assisted compliance analysis against the statutory framework. The tool identifies potential legal issues for review by a qualified legal professional.</div>
@@ -298,7 +317,7 @@ button{cursor:pointer;font-family:var(--ff-b);border:none;outline:none}
       <span id="fi-size"></span>
       <button class="fi-clear" id="fi-clear" onclick="clearFile()">✕</button>
     </div>
-    <button id="run-btn" onclick="runAnalysis()">Run Compliance Analysis →</button>
+    <button id="run-btn" onclick="runAnalysis()" disabled>Run Compliance Analysis →</button>
 
     <div class="fw-chips">
       <span class="fw-chip">Written Particulars</span>
@@ -558,6 +577,7 @@ function applyFile(f) {
   document.getElementById('run-btn').classList.add('visible');
   document.getElementById('drop-zone').classList.add('has-file');
   document.getElementById('dz-btn-label').textContent = 'Change File';
+  checkApiKey();
 }
 
 function clearFile() {
@@ -567,6 +587,7 @@ function clearFile() {
   document.getElementById('drop-zone').classList.remove('has-file');
   document.getElementById('dz-btn-label').textContent = 'Select File';
   document.getElementById('file-input').value = '';
+  document.getElementById('run-btn').disabled = true;
 }
 
 function fmtBytes(b) {
@@ -605,9 +626,33 @@ function setStage(n) {
   }
 }
 
+// ══ API KEY HELPERS ══════════════════════════════════════════════════════════
+function checkApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const btn = document.getElementById('run-btn');
+  // Enable run button only if key looks valid AND a file is selected
+  if (key.startsWith('sk-ant-') && currentFile) {
+    btn.disabled = false;
+  } else {
+    btn.disabled = !currentFile || !key.startsWith('sk-ant-');
+  }
+}
+
+function toggleKeyVis() {
+  const inp = document.getElementById('api-key-input');
+  const btn = document.getElementById('key-toggle');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+  else { inp.type = 'password'; btn.textContent = 'Show'; }
+}
+
 // ══ MAIN ANALYSIS ═════════════════════════════════════════════════════════════
 async function runAnalysis() {
   if (!currentFile) return;
+  const apiKey = document.getElementById('api-key-input').value.trim();
+  if (!apiKey.startsWith('sk-ant-')) {
+    alert('Please enter a valid Anthropic API key (starts with sk-ant-)');
+    return;
+  }
   showPhase('scan-phase');
   document.getElementById('scan-filename').textContent = currentFile.name;
   setStage(0);
@@ -639,7 +684,12 @@ async function runAnalysis() {
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': document.getElementById('api-key-input').value.trim(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 16000, system: SYSTEM_PROMPT, messages })
     });
 
