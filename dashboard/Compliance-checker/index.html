@@ -640,7 +640,7 @@ async function runAnalysis() {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000, system: SYSTEM_PROMPT, messages })
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 16000, system: SYSTEM_PROMPT, messages })
     });
 
     setStage(3);
@@ -656,7 +656,20 @@ async function runAnalysis() {
 
     setStage(4); await sleep(350);
 
-    const parsed = JSON.parse(clean);
+    // Parse with truncation recovery — large contracts can hit token limits mid-JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch(jsonErr) {
+      const lastBrace = clean.lastIndexOf('}');
+      if (lastBrace < 0) throw new Error('The API returned an unexpected response format. Please try again.');
+      let recovered = false;
+      const suffixes = [']}', '],\"analyst_notes\":\"Note: response truncated. Please consult a solicitor for complete review.\"}'];
+      for (const sfx of suffixes) {
+        try { parsed = JSON.parse(clean.slice(0, lastBrace + 1) + sfx); recovered = true; break; } catch(e) {}
+      }
+      if (!recovered) throw new Error('Contract too large to parse fully. Try uploading key clauses only.');
+    }
     parsed.findings = (parsed.findings || []).map((f, i) => ({ ...f, id: f.id || ('CC-' + String(i+1).padStart(3,'0')) }));
 
     currentReport = parsed;
