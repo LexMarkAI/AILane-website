@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchDomainScores, fetchCategoryScores } from '../api'
 import Navbar from './Navbar'
+import Sidebar from './Sidebar'
 import ScoreCard from './ScoreCard'
 import TrendChart from './TrendChart'
 import CategoryGrid from './CategoryGrid'
@@ -38,7 +39,8 @@ export default function Dashboard({ token, email, onLogout }) {
   return (
     <div className="dashboard">
       <Navbar email={email} onLogout={onLogout} />
-      <main className="dashboard-main">
+      <Sidebar />
+      <main className="dashboard-main dashboard-main--with-sidebar">
         {loading && <div className="dashboard-loading">Loading ACEI data...</div>}
         {error && <div className="dashboard-error">{error}</div>}
         {!loading && !error && latest && (
