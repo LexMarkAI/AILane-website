@@ -6,24 +6,33 @@
   <title>Compliance Checker — Ailane</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%230a0e1a' font-weight='700' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #0a0e1a; --bg2: #0f1422; --bg3: rgba(255,255,255,0.03); --bg4: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.06); --border2: rgba(255,255,255,0.1);
+      --text: #e2e8f0; --text2: #94a3b8; --text3: #64748b; --text4: #475569;
+      --cyan: #22d3ee; --cyan-bg: rgba(34,211,238,0.08); --cyan-border: rgba(34,211,238,0.2);
+      --green: #10b981; --green-bg: rgba(16,185,129,0.08);
+      --amber: #f59e0b; --amber-bg: rgba(245,158,11,0.08);
+      --orange: #f97316; --red: #ef4444; --red-bg: rgba(239,68,68,0.08);
+      --purple: #8b5cf6; --purple-bg: rgba(139,92,246,0.08);
+      --mono: 'JetBrains Mono', monospace; --sans: 'DM Sans', -apple-system, sans-serif;
+      --sidebar-w: 260px; --header-h: 56px;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; width: 100%; }
-    body { background: #0a0e1a; font-family: 'DM Sans', -apple-system, sans-serif; color: #e2e8f0; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    body { background: var(--bg); font-family: var(--sans); color: var(--text); }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-    input[type="file"]::file-selector-button {
-      background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.3); color: #22d3ee;
-      padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif;
-      font-size: 13px; font-weight: 600; transition: all 0.2s;
-    }
-    input[type="file"]::file-selector-button:hover { background: rgba(34,211,238,0.2); }
+    @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    @keyframes dropGlow { 0%,100% { box-shadow: 0 0 20px rgba(34,211,238,0.1); } 50% { box-shadow: 0 0 40px rgba(34,211,238,0.25); } }
+    @keyframes checkPop { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    input::placeholder, textarea::placeholder { color: var(--text4); }
+    input[type="file"] { display: none; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -34,459 +43,1106 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-const { useState, useEffect, useCallback, useRef } = React;
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
 const { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } = Recharts;
 
-// ─── CONFIG ──────────────────────────────────────────────────────────
-const SB_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
-const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
-
-const SEVERITY_COLORS = { compliant: "#10b981", minor: "#f59e0b", major: "#f97316", critical: "#ef4444" };
-const SEVERITY_LABELS = { compliant: "Compliant", minor: "Minor Gap", major: "Major Gap", critical: "Critical Gap" };
-const PILLAR_LABELS = { PA: "Policy Alignment", CC: "Contractual Conformity", TD: "Training Deployment", SPA: "Systems & Process", GO: "Governance Oversight" };
-const PILLAR_COLORS = { PA: "#8b5cf6", CC: "#22d3ee", TD: "#f59e0b", SPA: "#10b981", GO: "#f97316" };
-const TRACK_LABELS = { attestation: "Track A — Attestation", documentary: "Track B — Documentary" };
-
-const sbFetch = async (path, token) => {
-  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
-    headers: { apikey: SB_ANON, Authorization: `Bearer ${token || SB_ANON}`, "Content-Type": "application/json" }
+// ─── CONFIG ────────────────────────────────────────────────────────────
+const SB = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+const AK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+const api = async (path, token, opts = {}) => {
+  const r = await fetch(`${SB}/rest/v1/${path}`, {
+    ...opts, headers: { apikey: AK, Authorization: `Bearer ${token || AK}`, "Content-Type": "application/json", ...opts.headers }
   });
-  if (!res.ok) throw new Error(`${res.status}`);
-  return res.json();
+  if (!r.ok) { const e = await r.text(); throw new Error(e); }
+  return opts.method === "DELETE" ? null : r.json();
 };
 
-// ─── SHARED COMPONENTS ───────────────────────────────────────────────
-const Badge = ({ children, color = "#22d3ee" }) => (
-  <span style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", background: `${color}18`, color, border: `1px solid ${color}30` }}>{children}</span>
+// ─── CONSTANTS ─────────────────────────────────────────────────────────
+const SEV = { compliant: { color: "#10b981", label: "Compliant", icon: "✓" }, minor: { color: "#f59e0b", label: "Minor Gap", icon: "△" }, major: { color: "#f97316", label: "Major Gap", icon: "▲" }, critical: { color: "#ef4444", label: "Critical", icon: "⬆" } };
+const PILLARS = { PA: { label: "Policy Alignment", color: "#8b5cf6" }, CC: { label: "Contractual Conformity", color: "#22d3ee" }, TD: { label: "Training Deployment", color: "#f59e0b" }, SPA: { label: "Systems & Process", color: "#10b981" }, GO: { label: "Governance Oversight", color: "#f97316" } };
+const DOC_ICONS = { contract: "📄", handbook: "📘", policy: "📋" };
+const STATUS_COLORS = { complete: "#10b981", processing: "#f59e0b", pending: "#64748b", error: "#ef4444" };
+
+// ─── MICRO COMPONENTS ──────────────────────────────────────────────────
+const Badge = ({ children, color = "var(--cyan)", small }) => (
+  <span style={{ display: "inline-flex", alignItems: "center", padding: small ? "2px 6px" : "3px 10px", borderRadius: 4, fontSize: small ? 9 : 10, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase", background: `${color}16`, color, border: `1px solid ${color}28` }}>{children}</span>
 );
 
-const ScoreRing = ({ score, size = 120, trackCeiling = 3 }) => {
-  const r = size / 2 - 12;
-  const circ = 2 * Math.PI * r;
-  const pct = Math.min(score, 100) / 100;
-  const color = score >= 65 ? "#10b981" : score >= 30 ? "#f59e0b" : score > 0 ? "#f97316" : "#64748b";
+const Btn = ({ children, onClick, variant = "primary", disabled, icon, small, style: s }) => {
+  const styles = {
+    primary: { background: "linear-gradient(135deg, #0d9488, #22d3ee)", color: "#0a0e1a", border: "none" },
+    secondary: { background: "var(--bg4)", color: "var(--text2)", border: "1px solid var(--border2)" },
+    danger: { background: "var(--red-bg)", color: "var(--red)", border: "1px solid rgba(239,68,68,0.2)" },
+    ghost: { background: "transparent", color: "var(--text3)", border: "1px solid transparent" },
+    accent: { background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid rgba(139,92,246,0.2)" },
+  };
+  return (
+    <button onClick={onClick} disabled={disabled} style={{ ...styles[variant], borderRadius: 8, padding: small ? "5px 10px" : "9px 18px", fontSize: small ? 11 : 13, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", fontFamily: "var(--sans)", display: "inline-flex", alignItems: "center", gap: 6, opacity: disabled ? 0.5 : 1, transition: "all 0.15s", whiteSpace: "nowrap", ...s }}>{icon && <span style={{ fontSize: small ? 12 : 14 }}>{icon}</span>}{children}</button>
+  );
+};
+
+const Input = ({ value, onChange, placeholder, style: s, ...props }) => (
+  <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} {...props}
+    style={{ background: "var(--bg4)", border: "1px solid var(--border2)", borderRadius: 8, padding: "9px 14px", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "var(--sans)", width: "100%", transition: "border-color 0.2s", ...s }}
+    onFocus={e => e.target.style.borderColor = "var(--cyan-border)"} onBlur={e => e.target.style.borderColor = "var(--border2)"} />
+);
+
+const Spinner = ({ size = 28 }) => <div style={{ width: size, height: size, border: `3px solid var(--cyan-bg)`, borderTopColor: "var(--cyan)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />;
+
+const Modal = ({ open, onClose, title, children, wide }) => {
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "var(--bg2)", border: "1px solid var(--border2)", borderRadius: 16, padding: 0, width: wide ? 720 : 480, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", animation: "fadeIn 0.2s ease", boxShadow: "0 25px 60px rgba(0,0,0,0.5)" }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{title}</div>
+          <div onClick={onClose} style={{ cursor: "pointer", color: "var(--text3)", fontSize: 18, lineHeight: 1, padding: "4px 8px", borderRadius: 4 }}>✕</div>
+        </div>
+        <div style={{ padding: "20px 22px", overflowY: "auto", flex: 1 }}>{children}</div>
+      </div>
+    </div>
+  );
+};
+
+const ScoreRing = ({ score, size = 100, ceiling = 3 }) => {
+  const r = size / 2 - 10, circ = 2 * Math.PI * r, pct = Math.min(score, 100) / 100;
+  const color = score >= 65 ? "var(--green)" : score >= 30 ? "var(--amber)" : score > 0 ? "var(--orange)" : "var(--text3)";
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={8} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={8}
-        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
-        strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}
-        style={{ transition: "stroke-dashoffset 1s ease" }} />
-      <text x={size/2} y={size/2 - 6} textAnchor="middle" fill={color} fontSize={size * 0.24} fontWeight="700" fontFamily="'JetBrains Mono',monospace">{score}%</text>
-      <text x={size/2} y={size/2 + 14} textAnchor="middle" fill="#64748b" fontSize={10} fontWeight="500">Score {trackCeiling > 0 ? `≤${trackCeiling}` : ""}</text>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border)" strokeWidth={7} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={7}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+      <text x={size/2} y={size/2 - 4} textAnchor="middle" fill={color} fontSize={size * 0.22} fontWeight="700" fontFamily="var(--mono)">{Math.round(score)}%</text>
+      <text x={size/2} y={size/2 + 12} textAnchor="middle" fill="var(--text3)" fontSize={9}>Pillar ≤{ceiling}</text>
     </svg>
   );
 };
 
-const PillarScore = ({ pillar, score }) => {
-  const color = PILLAR_COLORS[pillar] || "#22d3ee";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
-      <div style={{ width: 36, height: 36, borderRadius: 8, background: `${color}18`, border: `1px solid ${color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color }}>{score}</div>
-      <div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{PILLAR_LABELS[pillar] || pillar}</div>
-        <div style={{ fontSize: 10, color: "#64748b" }}>{pillar} Pillar · Tier I</div>
-      </div>
-    </div>
-  );
-};
-
-const LoadingSpinner = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60 }}>
-    <div style={{ width: 32, height: 32, border: "3px solid rgba(34,211,238,0.2)", borderTopColor: "#22d3ee", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-  </div>
-);
-
-// ─── COMPLIANCE DASHBOARD APP ────────────────────────────────────────
-function ComplianceDashboard() {
+// ─── MAIN APPLICATION ──────────────────────────────────────────────────
+function ComplianceApp() {
+  // Auth
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [orgId, setOrgId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authEmail, setAuthEmail] = useState("");
   const [authPass, setAuthPass] = useState("");
-  const [authError, setAuthError] = useState("");
+  const [authErr, setAuthErr] = useState("");
 
   // Data
+  const [folders, setFolders] = useState([]);
   const [uploads, setUploads] = useState([]);
   const [findings, setFindings] = useState([]);
   const [requirements, setRequirements] = useState([]);
-  const [selectedUpload, setSelectedUpload] = useState(null);
-  const [view, setView] = useState("overview"); // overview | upload | report
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadResult, setUploadResult] = useState(null);
-  const fileRef = useRef(null);
 
-  // Auth restore
+  // UI State
+  const [view, setView] = useState("library"); // library | upload-b | upload-a | report
+  const [activeFolder, setActiveFolder] = useState(null); // null = all documents
+  const [selectedUpload, setSelectedUpload] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterTrack, setFilterTrack] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [viewMode, setViewMode] = useState("grid"); // grid | list
+
+  // Modals
+  const [folderModal, setFolderModal] = useState(false);
+  const [renameModal, setRenameModal] = useState(null);
+  const [moveModal, setMoveModal] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Upload state
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const fileRef = useRef(null);
+  const [uploadDocType, setUploadDocType] = useState("contract");
+  const [uploadFolder, setUploadFolder] = useState(null);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadNotes, setUploadNotes] = useState("");
+
+  // Attestation state
+  const [attestDocType, setAttestDocType] = useState("contract");
+  const [attestFolder, setAttestFolder] = useState(null);
+  const [attestChecks, setAttestChecks] = useState({});
+  const [attestNotes, setAttestNotes] = useState({});
+  const [attestSubmitting, setAttestSubmitting] = useState(false);
+  const [attestStep, setAttestStep] = useState(0); // 0 = setup, 1 = checklist, 2 = review
+
+  // Folder creation
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderColor, setNewFolderColor] = useState("#22d3ee");
+  const [newFolderParent, setNewFolderParent] = useState(null);
+  const [newFolderIcon, setNewFolderIcon] = useState("📁");
+
+  // Resolve org_id from app_users
+  const resolveOrg = async (t, uid) => {
+    try {
+      const rows = await api(`app_users?id=eq.${uid}&select=org_id&org_id=neq.00000000-0000-0000-0000-000000000000&limit=1`, t);
+      if (rows.length) { setOrgId(rows[0].org_id); return rows[0].org_id; }
+      // Fallback: any org for this user
+      const all = await api(`app_users?id=eq.${uid}&select=org_id&limit=1`, t);
+      if (all.length) { setOrgId(all[0].org_id); return all[0].org_id; }
+    } catch (e) { console.error("Org resolve error:", e); }
+    return null;
+  };
+
+  // ─── AUTH ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const stored = localStorage.getItem("sb-token");
-    if (stored) {
-      fetch(`${SB_URL}/auth/v1/user`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${stored}` } })
+    const t = localStorage.getItem("sb-token");
+    if (t) {
+      fetch(`${SB}/auth/v1/user`, { headers: { apikey: AK, Authorization: `Bearer ${t}` } })
         .then(r => r.ok ? r.json() : Promise.reject())
-        .then(u => { setToken(stored); setUser(u); })
-        .catch(() => { localStorage.removeItem("sb-token"); })
+        .then(async (u) => { setToken(t); setUser(u); await resolveOrg(t, u.id); })
+        .catch(() => localStorage.removeItem("sb-token"))
         .finally(() => setLoading(false));
     } else setLoading(false);
   }, []);
 
-  const handleLogin = async () => {
-    setAuthError("");
+  const login = async () => {
+    setAuthErr("");
     try {
-      const res = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
-        method: "POST", headers: { apikey: SB_ANON, "Content-Type": "application/json" },
+      const r = await fetch(`${SB}/auth/v1/token?grant_type=password`, {
+        method: "POST", headers: { apikey: AK, "Content-Type": "application/json" },
         body: JSON.stringify({ email: authEmail, password: authPass }),
       });
-      if (res.ok) {
-        const d = await res.json();
-        setToken(d.access_token); setUser(d.user);
-        localStorage.setItem("sb-token", d.access_token);
-      } else { const e = await res.json(); setAuthError(e.error_description || "Invalid credentials"); }
-    } catch { setAuthError("Connection failed"); }
+      if (r.ok) { const d = await r.json(); setToken(d.access_token); setUser(d.user); localStorage.setItem("sb-token", d.access_token); await resolveOrg(d.access_token, d.user.id); }
+      else { const e = await r.json(); setAuthErr(e.error_description || "Invalid credentials"); }
+    } catch { setAuthErr("Connection failed"); }
   };
 
-  // Load data
-  useEffect(() => {
+  const logout = () => { setToken(null); setUser(null); localStorage.removeItem("sb-token"); };
+
+  // ─── DATA LOADING ────────────────────────────────────────────────────
+  const loadAll = useCallback(async () => {
     if (!token) return;
-    Promise.all([
-      sbFetch("compliance_uploads?order=created_at.desc&limit=50", token),
-      sbFetch("regulatory_requirements?order=category,requirement_name", token),
-    ]).then(([u, r]) => { setUploads(u); setRequirements(r); }).catch(console.error);
-  }, [token, uploadResult]);
+    try {
+      const [f, u, r] = await Promise.all([
+        api("compliance_folders?order=sort_order,name", token),
+        api("compliance_uploads?order=created_at.desc&limit=500", token),
+        api("regulatory_requirements?effective_to=is.null&order=category,requirement_name", token),
+      ]);
+      setFolders(f); setUploads(u); setRequirements(r);
+    } catch (e) { console.error("Load error:", e); }
+  }, [token]);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   // Load findings for selected upload
   useEffect(() => {
     if (!selectedUpload || !token) { setFindings([]); return; }
-    sbFetch(`compliance_findings?upload_id=eq.${selectedUpload.id}&order=severity.desc,clause_category`, token)
-      .then(setFindings).catch(console.error);
+    api(`compliance_findings?upload_id=eq.${selectedUpload.id}&order=severity.desc,clause_category`, token).then(setFindings);
   }, [selectedUpload, token]);
 
-  // File upload handler (Track B)
-  const handleFileUpload = async (docType) => {
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
-    setUploadLoading(true); setUploadResult(null);
+  // ─── FOLDER OPERATIONS ───────────────────────────────────────────────
+  const createFolder = async () => {
+    if (!newFolderName.trim() || !orgId) return;
+    try {
+      await api("compliance_folders", token, {
+        method: "POST", headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ organisation_id: orgId, name: newFolderName.trim(), color: newFolderColor, icon: newFolderIcon, parent_id: newFolderParent, created_by: user.id }),
+      });
+      setFolderModal(false); setNewFolderName(""); setNewFolderParent(null);
+      loadAll();
+    } catch (e) { console.error("Create folder error:", e); alert("Failed to create folder: " + e.message); }
+  };
+
+  const deleteFolder = async (id) => {
+    try {
+      // Move any uploads in this folder to root
+      await api(`compliance_uploads?folder_id=eq.${id}`, token, {
+        method: "PATCH", body: JSON.stringify({ folder_id: null }),
+      });
+      await api(`compliance_folders?id=eq.${id}`, token, { method: "DELETE" });
+      if (activeFolder === id) setActiveFolder(null);
+      setDeleteConfirm(null); loadAll();
+    } catch (e) { console.error(e); }
+  };
+
+  const renameFolder = async (id, newName) => {
+    try {
+      await api(`compliance_folders?id=eq.${id}`, token, {
+        method: "PATCH", body: JSON.stringify({ name: newName }),
+      });
+      setRenameModal(null); loadAll();
+    } catch (e) { console.error(e); }
+  };
+
+  // ─── DOCUMENT OPERATIONS ─────────────────────────────────────────────
+  const moveDocument = async (uploadId, folderId) => {
+    try {
+      await api(`compliance_uploads?id=eq.${uploadId}`, token, {
+        method: "PATCH", body: JSON.stringify({ folder_id: folderId }),
+      });
+      setMoveModal(null); loadAll();
+    } catch (e) { console.error(e); }
+  };
+
+  const renameDocument = async (uploadId, name, notes) => {
+    try {
+      await api(`compliance_uploads?id=eq.${uploadId}`, token, {
+        method: "PATCH", body: JSON.stringify({ display_name: name, notes }),
+      });
+      setRenameModal(null); loadAll();
+    } catch (e) { console.error(e); }
+  };
+
+  // ─── TRACK B UPLOAD ──────────────────────────────────────────────────
+  const handleFileDrop = (e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer?.files?.[0]; if (f) startUpload(f); };
+  const handleFileSelect = (e) => { const f = e.target.files?.[0]; if (f) startUpload(f); };
+
+  const startUpload = async (file) => {
+    const ext = file.name.toLowerCase();
+    if (!ext.endsWith(".docx") && !ext.endsWith(".pdf")) { setUploadProgress("Error: Only .docx and .pdf files accepted"); return; }
+    if (file.size > 10 * 1024 * 1024) { setUploadProgress("Error: File exceeds 10MB limit"); return; }
+
+    setUploading(true); setUploadProgress("Uploading document...");
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("document_type", docType);
-      const res = await fetch(`${SB_URL}/functions/v1/compliance-upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, apikey: SB_ANON },
-        body: form,
+      form.append("document_type", uploadDocType);
+      if (uploadFolder) form.append("folder_id", uploadFolder);
+      if (uploadName.trim()) form.append("display_name", uploadName.trim());
+      if (uploadNotes.trim()) form.append("notes", uploadNotes.trim());
+
+      const r = await fetch(`${SB}/functions/v1/compliance-upload`, {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: AK }, body: form,
       });
-      const data = await res.json();
-      setUploadResult(data);
-      if (data.upload_id) {
-        // Poll for completion
-        const poll = setInterval(async () => {
-          try {
-            const check = await sbFetch(`compliance_uploads?id=eq.${data.upload_id}`, token);
-            if (check[0]?.status === "complete" || check[0]?.status === "error") {
-              clearInterval(poll);
-              setUploadResult({ ...data, ...check[0] });
-              setSelectedUpload(check[0]);
-              setView("report");
-              // Refresh uploads list
-              sbFetch("compliance_uploads?order=created_at.desc&limit=50", token).then(setUploads);
-            }
-          } catch {}
-        }, 2000);
-        setTimeout(() => clearInterval(poll), 60000);
+
+      if (!r.ok) {
+        const errText = await r.text();
+        setUploadProgress(`Error (${r.status}): ${errText}`);
+        setUploading(false); return;
       }
-    } catch (e) { setUploadResult({ error: e.message }); }
-    setUploadLoading(false);
+
+      const data = await r.json();
+      if (data.error) { setUploadProgress(`Error: ${data.error}`); setUploading(false); return; }
+
+      setUploadProgress("Document uploaded. Running compliance analysis (3–8 seconds)...");
+
+      // Poll for completion — typical contract takes 3-8 seconds
+      let polls = 0;
+      const maxPolls = 30; // 75 seconds max
+      const poll = setInterval(async () => {
+        polls++;
+        try {
+          const [check] = await api(`compliance_uploads?id=eq.${data.upload_id}`, token);
+          if (check?.status === "complete") {
+            clearInterval(poll);
+            setUploadProgress("Analysis complete!");
+            setSelectedUpload(check); setView("report");
+            setUploading(false); setUploadName(""); setUploadNotes("");
+            loadAll();
+          } else if (check?.status === "error") {
+            clearInterval(poll);
+            setUploadProgress(`Error: ${check.processing_error || "Analysis failed — the document may not contain extractable text."}`);
+            setUploading(false); loadAll();
+          } else if (polls >= maxPolls) {
+            clearInterval(poll);
+            setUploadProgress("Analysis is taking longer than expected. Check back in the document list shortly.");
+            setUploading(false); loadAll();
+          } else if (polls > 4) {
+            setUploadProgress(`Analysing document... (${polls * 2.5}s)`);
+          }
+        } catch (e) {
+          console.error("Poll error:", e);
+        }
+      }, 2500);
+    } catch (e) { setUploadProgress(`Error: Upload failed — ${e.message}`); setUploading(false); }
   };
 
-  // ─── RENDER: LOGIN ───────────────────────────────────────────────────
-  if (loading) return <LoadingSpinner />;
+  // ─── TRACK A ATTESTATION ─────────────────────────────────────────────
+  const attestReqs = useMemo(() =>
+    requirements.filter(r => r.applies_to === attestDocType || r.applies_to === "both"),
+    [requirements, attestDocType]
+  );
+
+  const submitAttestation = async () => {
+    setAttestSubmitting(true);
+    try {
+      const reqs = attestReqs.map(r => ({
+        requirement_id: r.id,
+        requirement_name: r.requirement_name,
+        confirmed: !!attestChecks[r.id],
+        details: attestNotes[r.id] || "",
+      }));
+
+      const r = await fetch(`${SB}/functions/v1/compliance-upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, apikey: AK, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type: attestDocType,
+          attestation_details: { requirements: reqs },
+          folder_id: attestFolder || null,
+          display_name: `${attestDocType === "contract" ? "Contract" : "Handbook"} Attestation — ${new Date().toLocaleDateString("en-GB")}`,
+        }),
+      });
+
+      if (!r.ok) {
+        const errText = await r.text();
+        console.error("Attestation error:", errText);
+        setAttestSubmitting(false); return;
+      }
+
+      const data = await r.json();
+      if (data.error) { console.error("Attestation error:", data.error); setAttestSubmitting(false); return; }
+
+      loadAll();
+      if (data.upload_id) {
+        const [u] = await api(`compliance_uploads?id=eq.${data.upload_id}`, token);
+        if (u) { setSelectedUpload(u); setView("report"); }
+      }
+    } catch (e) { console.error(e); }
+    setAttestSubmitting(false);
+    setAttestChecks({}); setAttestNotes({}); setAttestStep(0);
+  };
+
+  const attestCheckedCount = Object.values(attestChecks).filter(Boolean).length;
+
+  // ─── FILTERED DOCUMENTS ──────────────────────────────────────────────
+  const filteredUploads = useMemo(() => {
+    let list = [...uploads];
+    if (activeFolder === "__unfiled") list = list.filter(u => !u.folder_id);
+    else if (activeFolder) list = list.filter(u => u.folder_id === activeFolder);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(u => (u.display_name || u.file_name || "attestation").toLowerCase().includes(q) || u.document_type.includes(q));
+    }
+    if (filterStatus !== "all") list = list.filter(u => u.status === filterStatus);
+    if (filterTrack !== "all") list = list.filter(u => u.evidence_track === filterTrack);
+    if (filterType !== "all") list = list.filter(u => u.document_type === filterType);
+    return list;
+  }, [uploads, activeFolder, search, filterStatus, filterTrack, filterType]);
+
+  // Folder tree (simple one-level nesting)
+  const rootFolders = folders.filter(f => !f.parent_id);
+  const childFolders = (parentId) => folders.filter(f => f.parent_id === parentId);
+
+  const folderDocCount = (fId) => uploads.filter(u => u.folder_id === fId).length;
+  const unfolderedCount = uploads.filter(u => !u.folder_id).length;
+
+  // ─── LOGIN SCREEN ────────────────────────────────────────────────────
+  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><Spinner size={36} /></div>;
   if (!token) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #0a0e1a 0%, #0f172a 100%)" }}>
-      <div style={{ width: 380, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 36, animation: "fadeIn 0.4s ease" }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", letterSpacing: "-1px" }}>AILANE</div>
-          <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Compliance Checker</div>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0a0e1a 0%, #111827 50%, #0a0e1a 100%)" }}>
+      <div style={{ width: 400, background: "var(--bg3)", border: "1px solid var(--border2)", borderRadius: 20, padding: 40, animation: "fadeIn 0.4s ease", boxShadow: "0 30px 60px rgba(0,0,0,0.4)" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 32, fontWeight: 700, color: "var(--cyan)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>AILANE</div>
+          <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 6, fontWeight: 500 }}>Compliance Checker</div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="Email" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 14px", color: "#e2e8f0", fontSize: 14, outline: "none", fontFamily: "'DM Sans', sans-serif" }} />
-          <input value={authPass} onChange={e => setAuthPass(e.target.value)} type="password" placeholder="Password" onKeyDown={e => e.key === "Enter" && handleLogin()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 14px", color: "#e2e8f0", fontSize: 14, outline: "none", fontFamily: "'DM Sans', sans-serif" }} />
-          <button onClick={handleLogin} style={{ background: "linear-gradient(135deg, #0d9488, #22d3ee)", border: "none", borderRadius: 8, padding: "11px 0", color: "#0a0e1a", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Sign In</button>
-          {authError && <div style={{ fontSize: 12, color: "#ef4444", textAlign: "center" }}>{authError}</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Input value={authEmail} onChange={setAuthEmail} placeholder="Email address" />
+          <Input value={authPass} onChange={setAuthPass} placeholder="Password" type="password" onKeyDown={e => e.key === "Enter" && login()} />
+          <Btn onClick={login} style={{ width: "100%", justifyContent: "center", padding: "12px 0" }}>Sign In</Btn>
+          {authErr && <div style={{ fontSize: 12, color: "var(--red)", textAlign: "center" }}>{authErr}</div>}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 28, fontSize: 10, color: "var(--text4)" }}>AI Lane Limited · Regulatory Readiness Index v1.0</div>
+      </div>
+    </div>
+  );
+
+  // ─── REPORT VIEW ─────────────────────────────────────────────────────
+  const renderReport = () => {
+    if (!selectedUpload) return null;
+    const u = selectedUpload;
+    const sev = findings.reduce((a, f) => { a[f.severity] = (a[f.severity] || 0) + 1; return a; }, {});
+    const pillarData = findings.reduce((a, f) => {
+      if (!a[f.pillar_mapping]) a[f.pillar_mapping] = { c: 0, t: 0 };
+      a[f.pillar_mapping].t++; if (f.severity === "compliant") a[f.pillar_mapping].c++;
+      return a;
+    }, {});
+    const pieData = Object.entries(sev).map(([k, v]) => ({ name: SEV[k].label, value: v, fill: SEV[k].color }));
+    const ceiling = u.evidence_track === "documentary" ? 3 : 2;
+
+    return (
+      <div style={{ animation: "fadeIn 0.25s ease" }}>
+        {/* Breadcrumb */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, fontSize: 13 }}>
+          <span onClick={() => { setView("library"); setSelectedUpload(null); }} style={{ color: "var(--cyan)", cursor: "pointer" }}>Documents</span>
+          <span style={{ color: "var(--text4)" }}>›</span>
+          <span style={{ color: "var(--text2)" }}>{u.display_name || u.file_name || "Attestation"}</span>
+        </div>
+
+        {/* Header card */}
+        <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 14, padding: 24, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>{u.display_name || u.file_name || "Attestation Analysis"}</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <Badge color={PILLARS.CC.color}>{u.document_type}</Badge>
+              <Badge color={u.evidence_track === "documentary" ? "var(--green)" : "var(--amber)"}>
+                {u.evidence_track === "documentary" ? "Track B — Documentary" : "Track A — Attestation"}
+              </Badge>
+              <Badge color={STATUS_COLORS[u.status]}>{u.status}</Badge>
+              <span style={{ fontSize: 11, color: "var(--text3)" }}>{new Date(u.created_at).toLocaleString()}</span>
+            </div>
+            {u.notes && <div style={{ fontSize: 12, color: "var(--text2)", marginTop: 8, fontStyle: "italic" }}>{u.notes}</div>}
+          </div>
+          <ScoreRing score={u.overall_score || 0} ceiling={ceiling} />
+        </div>
+
+        {/* Severity + Pillar Score cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
+          {Object.entries(SEV).map(([k, v]) => (
+            <div key={k} style={{ background: "var(--bg3)", border: `1px solid ${v.color}20`, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: v.color, fontFamily: "var(--mono)" }}>{sev[k] || 0}</div>
+              <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", marginTop: 2 }}>{v.label}</div>
+            </div>
+          ))}
+          <div style={{ background: "var(--cyan-bg)", border: "1px solid var(--cyan-border)", borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: "var(--cyan)", fontFamily: "var(--mono)" }}>{u.translated_pillar_score ?? "—"}<span style={{ fontSize: 12, color: "var(--text3)", fontWeight: 400 }}>/{ceiling}</span></div>
+            <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", marginTop: 2 }}>RRI Pillar</div>
+          </div>
+        </div>
+
+        {/* Charts row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>Finding Distribution</div>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={170}>
+                <PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={42} outerRadius={68} dataKey="value" strokeWidth={0}>
+                  {pieData.map((d, i) => <Cell key={i} fill={d.fill} />)}
+                </Pie><Tooltip contentStyle={{ background: "#1e293b", border: "1px solid var(--border2)", borderRadius: 8, fontSize: 12, color: "var(--text)" }} /></PieChart>
+              </ResponsiveContainer>
+            ) : <div style={{ padding: 40, textAlign: "center", color: "var(--text3)", fontSize: 12 }}>Loading findings...</div>}
+          </div>
+          <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 14 }}>RRI Pillar Coverage</div>
+            {Object.entries(pillarData).map(([p, d]) => {
+              const pct = d.t > 0 ? Math.round((d.c / d.t) * 100) : 0;
+              return (
+                <div key={p} style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+                    <span style={{ color: PILLARS[p]?.color, fontWeight: 600 }}>{PILLARS[p]?.label || p}</span>
+                    <span style={{ color: "var(--text2)", fontFamily: "var(--mono)" }}>{pct}%</span>
+                  </div>
+                  <div style={{ height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: PILLARS[p]?.color, borderRadius: 3, transition: "width 0.6s ease" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Findings list */}
+        <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Detailed Findings ({findings.length})</div>
+          </div>
+          {findings.length === 0 ? <div style={{ padding: 40, textAlign: "center" }}><Spinner /></div> : (
+            <div style={{ maxHeight: 600, overflowY: "auto" }}>
+              {findings.map((f, i) => (
+                <div key={f.id} style={{ padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.02)", animation: `slideUp 0.15s ease ${i * 0.015}s both` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: SEV[f.severity]?.color, display: "inline-block", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{f.statutory_ref}</span>
+                      <Badge small color={PILLARS[f.pillar_mapping]?.color}>{f.pillar_mapping}</Badge>
+                    </div>
+                    <Badge small color={SEV[f.severity]?.color}>{f.severity}</Badge>
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.6, marginLeft: 16 }}>{f.finding_detail}</div>
+                  {f.remediation && (
+                    <div style={{ marginTop: 6, marginLeft: 16, padding: "7px 11px", background: "var(--cyan-bg)", border: "1px solid rgba(34,211,238,0.1)", borderRadius: 6, fontSize: 11, color: "var(--cyan)", lineHeight: 1.5 }}>
+                      <strong>Remediation:</strong> {f.remediation}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Disclaimer */}
+        <div style={{ marginTop: 20, padding: "12px 16px", background: "var(--amber-bg)", border: "1px solid rgba(245,158,11,0.15)", borderRadius: 8, fontSize: 10, color: "var(--text2)", lineHeight: 1.7 }}>
+          <strong style={{ color: "var(--amber)" }}>Important:</strong> This report is for general educational and reference purposes only and does not constitute legal advice. Professional legal review is recommended for all critical findings. Constitutional basis: RRI v1.0, Tier I.
+        </div>
+      </div>
+    );
+  };
+
+  // ─── TRACK B UPLOAD VIEW ─────────────────────────────────────────────
+  const renderUploadB = () => (
+    <div style={{ animation: "fadeIn 0.25s ease", maxWidth: 680 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, fontSize: 13 }}>
+        <span onClick={() => setView("library")} style={{ color: "var(--cyan)", cursor: "pointer" }}>Documents</span>
+        <span style={{ color: "var(--text4)" }}>›</span>
+        <span style={{ color: "var(--text2)" }}>Upload Document</span>
+      </div>
+
+      <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Upload Document for Analysis</div>
+      <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 24 }}>Track B — Documentary evidence. Your document will be parsed and checked against statutory requirements.</div>
+
+      {/* Config row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+        <div>
+          <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Document Type</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            {["contract", "handbook", "policy"].map(t => (
+              <Btn key={t} variant={uploadDocType === t ? "primary" : "secondary"} small onClick={() => setUploadDocType(t)} icon={DOC_ICONS[t]}>{t}</Btn>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Save to Folder</label>
+          <select value={uploadFolder || ""} onChange={e => setUploadFolder(e.target.value || null)} style={{ background: "var(--bg4)", border: "1px solid var(--border2)", borderRadius: 8, padding: "9px 12px", color: "var(--text)", fontSize: 13, width: "100%", fontFamily: "var(--sans)" }}>
+            <option value="">No folder (root)</option>
+            {folders.map(f => <option key={f.id} value={f.id}>{f.icon} {f.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+        <div>
+          <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Display Name (optional)</label>
+          <Input value={uploadName} onChange={setUploadName} placeholder="e.g. Senior Developer Contract 2026" />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Notes (optional)</label>
+          <Input value={uploadNotes} onChange={setUploadNotes} placeholder="Internal reference or context" />
+        </div>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleFileDrop}
+        onClick={() => fileRef.current?.click()}
+        style={{
+          border: `2px dashed ${dragOver ? "var(--cyan)" : "var(--border2)"}`,
+          borderRadius: 16, padding: "48px 24px", textAlign: "center", cursor: "pointer",
+          background: dragOver ? "var(--cyan-bg)" : "var(--bg3)",
+          transition: "all 0.2s", animation: dragOver ? "dropGlow 1.5s ease infinite" : "none",
+          marginBottom: 16,
+        }}>
+        <input ref={fileRef} type="file" accept=".docx,.pdf" onChange={handleFileSelect} />
+        <div style={{ fontSize: 40, marginBottom: 12 }}>{dragOver ? "📥" : "📎"}</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: dragOver ? "var(--cyan)" : "var(--text)", marginBottom: 6 }}>
+          {dragOver ? "Release to upload" : "Drag & drop your document here"}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text3)" }}>or click to browse · DOCX and PDF · Max 10MB</div>
+      </div>
+
+      {/* Upload status */}
+      {(uploading || uploadProgress) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: uploading ? "var(--cyan-bg)" : uploadProgress.startsWith("Error") ? "var(--red-bg)" : "var(--green-bg)", border: `1px solid ${uploading ? "var(--cyan-border)" : uploadProgress.startsWith("Error") ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}`, borderRadius: 10 }}>
+          {uploading && <Spinner size={18} />}
+          <div style={{ fontSize: 13, color: uploading ? "var(--cyan)" : uploadProgress.startsWith("Error") ? "var(--red)" : "var(--green)", fontWeight: 500 }}>{uploadProgress}</div>
+        </div>
+      )}
+
+      {/* Score guide */}
+      <div style={{ marginTop: 24, padding: "16px 18px", background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>Track B Scoring</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+          {[{ pct: "0%", score: "0", label: "Not Started" }, { pct: "1-29%", score: "1", label: "Emerging" }, { pct: "30-64%", score: "2", label: "Initiated" }, { pct: "65-100%", score: "3", label: "Developed" }].map((s, i) => (
+            <div key={i} style={{ padding: "8px 10px", background: "var(--bg4)", borderRadius: 6, textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--cyan)", fontFamily: "var(--mono)" }}>{s.score}</div>
+              <div style={{ fontSize: 9, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.3px" }}>{s.pct}</div>
+              <div style={{ fontSize: 10, color: "var(--text2)" }}>{s.label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 
-  // ─── FINDINGS SUMMARY ────────────────────────────────────────────────
-  const sevCounts = findings.reduce((acc, f) => { acc[f.severity] = (acc[f.severity] || 0) + 1; return acc; }, {});
-  const pillarCounts = findings.reduce((acc, f) => {
-    if (!acc[f.pillar_mapping]) acc[f.pillar_mapping] = { compliant: 0, total: 0 };
-    acc[f.pillar_mapping].total++;
-    if (f.severity === "compliant") acc[f.pillar_mapping].compliant++;
-    return acc;
-  }, {});
+  // ─── TRACK A ATTESTATION WIZARD ──────────────────────────────────────
+  const renderUploadA = () => {
+    const grouped = {};
+    attestReqs.forEach(r => { if (!grouped[r.category]) grouped[r.category] = []; grouped[r.category].push(r); });
 
-  const pieData = Object.entries(sevCounts).map(([k, v]) => ({ name: SEVERITY_LABELS[k], value: v, color: SEVERITY_COLORS[k] }));
-
-  // ─── RENDER: MAIN APP ────────────────────────────────────────────────
-  return (
-    <div style={{ minHeight: "100vh", background: "#0a0e1a" }}>
-      {/* Header */}
-      <header style={{ padding: "16px 32px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", letterSpacing: "-1px" }}>AILANE</span>
-          <span style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
-          <span style={{ fontSize: 14, color: "#94a3b8", fontWeight: 500 }}>Compliance Checker</span>
+    return (
+      <div style={{ animation: "fadeIn 0.25s ease", maxWidth: 760 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, fontSize: 13 }}>
+          <span onClick={() => setView("library")} style={{ color: "var(--cyan)", cursor: "pointer" }}>Documents</span>
+          <span style={{ color: "var(--text4)" }}>›</span>
+          <span style={{ color: "var(--text2)" }}>Attestation Wizard</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Badge color="#10b981">RRI v1.0</Badge>
-          <span style={{ fontSize: 12, color: "#64748b" }}>{user?.email}</span>
-          <a href="/dashboard/" style={{ fontSize: 11, color: "#22d3ee", textDecoration: "none" }}>← Dashboard</a>
+
+        {/* Progress steps */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 24 }}>
+          {["Setup", "Requirements Checklist", "Review & Submit"].map((s, i) => (
+            <div key={i} style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ height: 4, borderRadius: 2, background: i <= attestStep ? "var(--cyan)" : "var(--border)", transition: "background 0.3s", marginBottom: 6 }} />
+              <div style={{ fontSize: 10, color: i <= attestStep ? "var(--cyan)" : "var(--text4)", fontWeight: i === attestStep ? 600 : 400 }}>{s}</div>
+            </div>
+          ))}
         </div>
-      </header>
 
-      {/* Tab Bar */}
-      <div style={{ padding: "0 32px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 4 }}>
-        {[
-          { id: "overview", label: "Overview", icon: "📊" },
-          { id: "upload", label: "Upload Document", icon: "📄" },
-          { id: "report", label: "Compliance Report", icon: "📋", disabled: !selectedUpload },
-        ].map(t => (
-          <button key={t.id} onClick={() => !t.disabled && setView(t.id)} disabled={t.disabled} style={{
-            padding: "12px 18px", background: "transparent", border: "none", borderBottom: view === t.id ? "2px solid #22d3ee" : "2px solid transparent",
-            color: t.disabled ? "#334155" : view === t.id ? "#22d3ee" : "#94a3b8", fontSize: 13, fontWeight: view === t.id ? 600 : 400,
-            cursor: t.disabled ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif",
-          }}>
-            <span style={{ fontSize: 14 }}>{t.icon}</span>{t.label}
-          </button>
-        ))}
-      </div>
+        {/* Step 0: Setup */}
+        {attestStep === 0 && (
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Attestation Setup</div>
+            <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 24 }}>Confirm what your organisation has in place. Score ceiling: 2 (Initiated).</div>
 
-      {/* Content */}
-      <div style={{ padding: "28px 32px", maxWidth: 1200, margin: "0 auto" }}>
-        {/* ─── OVERVIEW ─────────────────────────────────────────── */}
-        {view === "overview" && (
-          <div style={{ animation: "fadeIn 0.3s ease" }}>
-            {/* Stats row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
-              {[
-                { label: "Total Analyses", value: uploads.length, icon: "📄", color: "#22d3ee" },
-                { label: "Track A (Attestation)", value: uploads.filter(u => u.evidence_track === "attestation").length, icon: "☑️", color: "#8b5cf6" },
-                { label: "Track B (Documentary)", value: uploads.filter(u => u.evidence_track === "documentary").length, icon: "📎", color: "#10b981" },
-                { label: "Requirements Checked", value: requirements.length, icon: "⚖️", color: "#f59e0b" },
-              ].map((s, i) => (
-                <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "18px 20px", animation: `slideUp 0.3s ease ${i * 0.05}s both` }}>
-                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 6 }}>
-                    <span>{s.icon}</span>{s.label}
-                  </div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: s.color, fontFamily: "'JetBrains Mono',monospace", marginTop: 6 }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Recent Analyses Table */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>Recent Compliance Analyses</h3>
-                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Click any row to view the full compliance report</div>
-                </div>
-                <button onClick={() => setView("upload")} style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 8, padding: "8px 16px", color: "#22d3ee", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>+ New Analysis</button>
-              </div>
-              {uploads.length === 0 ? (
-                <div style={{ padding: 48, textAlign: "center" }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>📄</div>
-                  <div style={{ fontSize: 14, color: "#94a3b8" }}>No compliance analyses yet</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Upload a contract or handbook to get started</div>
-                  <button onClick={() => setView("upload")} style={{ marginTop: 16, background: "linear-gradient(135deg, #0d9488, #22d3ee)", border: "none", borderRadius: 8, padding: "10px 24px", color: "#0a0e1a", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Upload Document</button>
-                </div>
-              ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: "rgba(255,255,255,0.02)" }}>
-                      {["Document", "Type", "Track", "Score", "Pillar Score", "Status", "Date"].map((h, i) => (
-                        <th key={i} style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {uploads.map((u, i) => (
-                      <tr key={u.id} onClick={() => { setSelectedUpload(u); setView("report"); }} style={{ cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `slideUp 0.3s ease ${i * 0.03}s both` }}
-                        onMouseEnter={e => e.currentTarget.style.background = "rgba(34,211,238,0.04)"}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        <td style={{ padding: "10px 14px", color: "#e2e8f0", fontWeight: 500 }}>{u.file_name || "Attestation"}</td>
-                        <td style={{ padding: "10px 14px" }}><Badge color="#8b5cf6">{u.document_type}</Badge></td>
-                        <td style={{ padding: "10px 14px" }}><Badge color={u.evidence_track === "documentary" ? "#10b981" : "#f59e0b"}>{u.evidence_track === "documentary" ? "Track B" : "Track A"}</Badge></td>
-                        <td style={{ padding: "10px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, color: u.overall_score >= 65 ? "#10b981" : u.overall_score >= 30 ? "#f59e0b" : "#f97316" }}>{u.overall_score != null ? `${u.overall_score}%` : "—"}</td>
-                        <td style={{ padding: "10px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: "#22d3ee" }}>{u.translated_pillar_score ?? "—"}<span style={{ fontSize: 10, color: "#64748b", fontWeight: 400 }}>/{ u.evidence_track === "documentary" ? "3" : "2"}</span></td>
-                        <td style={{ padding: "10px 14px" }}><Badge color={u.status === "complete" ? "#10b981" : u.status === "error" ? "#ef4444" : "#f59e0b"}>{u.status}</Badge></td>
-                        <td style={{ padding: "10px 14px", color: "#64748b", fontSize: 12 }}>{new Date(u.created_at).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ─── UPLOAD VIEW ──────────────────────────────────────── */}
-        {view === "upload" && (
-          <div style={{ animation: "fadeIn 0.3s ease", maxWidth: 700 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Upload Document for Analysis</h2>
-            <p style={{ fontSize: 13, color: "#64748b", marginBottom: 28 }}>Upload an employment contract or staff handbook for compliance checking against statutory requirements.</p>
-
-            {/* Track B: Documentary Upload */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(34,211,238,0.15)", borderRadius: 12, padding: 24, marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <Badge color="#10b981">Track B — Documentary</Badge>
-                <span style={{ fontSize: 11, color: "#64748b" }}>Score ceiling: 3 (Developed)</span>
-              </div>
-              <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 16 }}>Upload the actual document for computational verification. The engine will parse clauses, check against statutory requirements, and generate a detailed compliance report.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <input ref={fileRef} type="file" accept=".docx,.pdf" style={{ flex: 1, color: "#94a3b8", fontSize: 13 }} />
-              </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => handleFileUpload("contract")} disabled={uploadLoading} style={{ background: "linear-gradient(135deg, #0d9488, #22d3ee)", border: "none", borderRadius: 8, padding: "10px 20px", color: "#0a0e1a", fontSize: 13, fontWeight: 700, cursor: uploadLoading ? "wait" : "pointer", opacity: uploadLoading ? 0.6 : 1 }}>
-                  {uploadLoading ? "Analysing..." : "Analyse as Contract"}
-                </button>
-                <button onClick={() => handleFileUpload("handbook")} disabled={uploadLoading} style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 8, padding: "10px 20px", color: "#8b5cf6", fontSize: 13, fontWeight: 700, cursor: uploadLoading ? "wait" : "pointer", opacity: uploadLoading ? 0.6 : 1 }}>
-                  {uploadLoading ? "Analysing..." : "Analyse as Handbook"}
-                </button>
-              </div>
-              {uploadResult && (
-                <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: uploadResult.error ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)", border: `1px solid ${uploadResult.error ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}`, fontSize: 12, color: uploadResult.error ? "#ef4444" : "#10b981" }}>
-                  {uploadResult.error || uploadResult.message || "Processing..."}
-                </div>
-              )}
-            </div>
-
-            {/* Info panel */}
-            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 8 }}>How Scoring Works</div>
-              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>
-                Your document is checked against {requirements.length} statutory requirements derived from the Employment Rights Act 1996 s.1 written particulars, ACAS Code of Practice, and key employment legislation. Each finding maps to an RRI pillar under the Regulatory Readiness Index v1.0 constitutional framework.
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
-                <div style={{ padding: 12, borderRadius: 8, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)" }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b", marginBottom: 4 }}>Track A — Attestation</div>
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>Checkbox confirmation. Score ceiling: 2 (Initiated). Best for establishing breadth across many requirements.</div>
-                </div>
-                <div style={{ padding: 12, borderRadius: 8, background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)" }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#10b981", marginBottom: 4 }}>Track B — Documentary</div>
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>Upload actual document. Score ceiling: 3 (Developed). Computationally verified for higher evidentiary value.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ─── REPORT VIEW ──────────────────────────────────────── */}
-        {view === "report" && selectedUpload && (
-          <div style={{ animation: "fadeIn 0.3s ease" }}>
-            {/* Report Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Compliance Report</h2>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <Badge color="#8b5cf6">{selectedUpload.document_type}</Badge>
-                  <Badge color={selectedUpload.evidence_track === "documentary" ? "#10b981" : "#f59e0b"}>
-                    {TRACK_LABELS[selectedUpload.evidence_track]}
-                  </Badge>
-                  <span style={{ fontSize: 11, color: "#64748b" }}>{selectedUpload.file_name || "Attestation"} · {new Date(selectedUpload.created_at).toLocaleString()}</span>
+                <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Document Type</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {["contract", "handbook"].map(t => (
+                    <Btn key={t} variant={attestDocType === t ? "primary" : "secondary"} onClick={() => { setAttestDocType(t); setAttestChecks({}); setAttestNotes({}); }} icon={DOC_ICONS[t]}>{t}</Btn>
+                  ))}
                 </div>
               </div>
-              <ScoreRing score={Math.round(selectedUpload.overall_score || 0)} trackCeiling={selectedUpload.evidence_track === "documentary" ? 3 : 2} />
-            </div>
-
-            {/* Score Cards Row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
-              {["compliant", "minor", "major", "critical"].map(sev => (
-                <div key={sev} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${SEVERITY_COLORS[sev]}25`, borderRadius: 10, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{SEVERITY_LABELS[sev]}</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: SEVERITY_COLORS[sev], fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>{sevCounts[sev] || 0}</div>
-                </div>
-              ))}
-              <div style={{ background: "rgba(34,211,238,0.05)", border: "1px solid rgba(34,211,238,0.15)", borderRadius: 10, padding: "14px 16px" }}>
-                <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>RRI Pillar Score</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: "#22d3ee", fontFamily: "'JetBrains Mono',monospace", marginTop: 4 }}>
-                  {selectedUpload.translated_pillar_score ?? "—"}<span style={{ fontSize: 14, color: "#64748b", fontWeight: 400 }}>/{selectedUpload.evidence_track === "documentary" ? "3" : "2"}</span>
-                </div>
+              <div>
+                <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Save to Folder</label>
+                <select value={attestFolder || ""} onChange={e => setAttestFolder(e.target.value || null)} style={{ background: "var(--bg4)", border: "1px solid var(--border2)", borderRadius: 8, padding: "9px 12px", color: "var(--text)", fontSize: 13, width: "100%", fontFamily: "var(--sans)" }}>
+                  <option value="">No folder (root)</option>
+                  {folders.map(f => <option key={f.id} value={f.id}>{f.icon} {f.name}</option>)}
+                </select>
               </div>
             </div>
 
-            {/* Charts Row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-              {/* Severity Distribution */}
-              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>Finding Distribution</div>
-                <ResponsiveContainer width="100%" height={180}>
-                  <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" strokeWidth={0}>
-                      {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12, color: "#e2e8f0" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            <div style={{ padding: "14px 18px", background: "var(--amber-bg)", border: "1px solid rgba(245,158,11,0.15)", borderRadius: 8, fontSize: 12, color: "var(--text2)", lineHeight: 1.6, marginBottom: 20 }}>
+              You'll be asked to confirm whether your {attestDocType} addresses each of the {attestReqs.length} statutory requirements. This creates a compliance baseline — you can upgrade to Track B by uploading the actual document later for a higher score.
+            </div>
 
-              {/* Pillar Breakdown */}
-              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 12 }}>RRI Pillar Compliance</div>
-                {Object.entries(pillarCounts).map(([pillar, data]) => (
-                  <div key={pillar} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-                      <span style={{ color: PILLAR_COLORS[pillar], fontWeight: 600 }}>{PILLAR_LABELS[pillar]}</span>
-                      <span style={{ color: "#94a3b8", fontFamily: "'JetBrains Mono',monospace" }}>{data.compliant}/{data.total}</span>
-                    </div>
-                    <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${(data.compliant / data.total) * 100}%`, background: PILLAR_COLORS[pillar], borderRadius: 3, transition: "width 0.8s ease" }} />
+            <Btn onClick={() => setAttestStep(1)} icon="→">Begin Checklist ({attestReqs.length} requirements)</Btn>
+          </div>
+        )}
+
+        {/* Step 1: Checklist */}
+        {attestStep === 1 && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>Requirements Checklist</div>
+                <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>Tick each requirement your {attestDocType} addresses · {attestCheckedCount}/{attestReqs.length} confirmed</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--mono)", color: attestCheckedCount === attestReqs.length ? "var(--green)" : "var(--cyan)" }}>{Math.round((attestCheckedCount / attestReqs.length) * 100)}%</div>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 6, background: "var(--border)", borderRadius: 3, marginBottom: 24, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${(attestCheckedCount / attestReqs.length) * 100}%`, background: attestCheckedCount === attestReqs.length ? "var(--green)" : "var(--cyan)", borderRadius: 3, transition: "width 0.3s ease" }} />
+            </div>
+
+            {Object.entries(grouped).map(([cat, reqs]) => (
+              <div key={cat} style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10, paddingBottom: 6, borderBottom: "1px solid var(--border)" }}>
+                  {cat === "written_particulars" ? "📄 Written Particulars (s.1 ERA 1996)" : "📘 Handbook Policies"}
+                </div>
+                {reqs.map(r => (
+                  <div key={r.id} style={{ padding: "12px 14px", marginBottom: 6, background: attestChecks[r.id] ? "var(--green-bg)" : "var(--bg3)", border: `1px solid ${attestChecks[r.id] ? "rgba(16,185,129,0.2)" : "var(--border)"}`, borderRadius: 10, transition: "all 0.2s" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      {/* Checkbox */}
+                      <div onClick={() => setAttestChecks(p => ({ ...p, [r.id]: !p[r.id] }))}
+                        style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${attestChecks[r.id] ? "var(--green)" : "var(--border2)"}`, background: attestChecks[r.id] ? "var(--green)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.15s" }}>
+                        {attestChecks[r.id] && <span style={{ color: "#fff", fontSize: 14, fontWeight: 700, animation: "checkPop 0.2s ease" }}>✓</span>}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{r.requirement_name}</span>
+                          {r.mandatory ? <Badge small color="var(--red)">mandatory</Badge> : <Badge small color="var(--text3)">recommended</Badge>}
+                          <Badge small color={PILLARS[r.pillar_mapping]?.color}>{r.pillar_mapping}</Badge>
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.5 }}>{r.description}</div>
+                        <div style={{ fontSize: 10, color: "var(--text4)", marginTop: 2 }}>{r.statutory_basis}</div>
+                        {/* Optional details field */}
+                        {attestChecks[r.id] && (
+                          <input value={attestNotes[r.id] || ""} onChange={e => setAttestNotes(p => ({ ...p, [r.id]: e.target.value }))}
+                            placeholder="Optional: add details (e.g. 'Section 4 of our contract')"
+                            style={{ marginTop: 8, background: "var(--bg4)", border: "1px solid var(--border2)", borderRadius: 6, padding: "6px 10px", color: "var(--text)", fontSize: 11, width: "100%", fontFamily: "var(--sans)", outline: "none" }} />
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            ))}
 
-            {/* Findings Table */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>Detailed Findings ({findings.length})</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
+              <Btn variant="secondary" onClick={() => setAttestStep(0)} icon="←">Back</Btn>
+              <Btn onClick={() => setAttestStep(2)} icon="→">Review ({attestCheckedCount}/{attestReqs.length})</Btn>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Review & Submit */}
+        {attestStep === 2 && (
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Review & Submit</div>
+            <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 20 }}>Please review your attestation before submitting.</div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+              <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Confirmed</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: "var(--green)", fontFamily: "var(--mono)" }}>{attestCheckedCount}</div>
               </div>
-              {findings.length === 0 ? <LoadingSpinner /> : (
-                <div style={{ maxHeight: 500, overflowY: "auto" }}>
-                  {findings.map((f, i) => (
-                    <div key={f.id} style={{ padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.03)", animation: `slideUp 0.2s ease ${i * 0.02}s both` }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: SEVERITY_COLORS[f.severity], flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{f.statutory_ref}</span>
-                          <Badge color={PILLAR_COLORS[f.pillar_mapping]}>{f.pillar_mapping}</Badge>
-                        </div>
-                        <Badge color={SEVERITY_COLORS[f.severity]}>{SEVERITY_LABELS[f.severity]}</Badge>
-                      </div>
-                      <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6, marginLeft: 16 }}>{f.finding_detail}</div>
-                      {f.remediation && (
-                        <div style={{ marginTop: 8, marginLeft: 16, padding: "8px 12px", background: "rgba(34,211,238,0.04)", border: "1px solid rgba(34,211,238,0.1)", borderRadius: 6, fontSize: 11, color: "#22d3ee", lineHeight: 1.5 }}>
-                          <span style={{ fontWeight: 600 }}>Remediation: </span>{f.remediation}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Not Confirmed</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: "var(--red)", fontFamily: "var(--mono)" }}>{attestReqs.length - attestCheckedCount}</div>
+              </div>
+              <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Completion</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: "var(--cyan)", fontFamily: "var(--mono)" }}>{Math.round((attestCheckedCount / attestReqs.length) * 100)}%</div>
+              </div>
             </div>
 
-            {/* Disclaimer */}
-            <div style={{ marginTop: 20, padding: "14px 18px", background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.15)", borderRadius: 8, fontSize: 10, color: "#94a3b8", lineHeight: 1.7 }}>
-              <strong style={{ color: "#f59e0b" }}>Important Notice:</strong> This report is provided by AI Lane Limited for general educational and reference purposes only. It does not constitute legal advice and should not be relied upon as such. The analysis identifies potential compliance gaps against statutory requirements but does not guarantee regulatory compliance. Professional legal review is recommended for all critical findings. Constitutional basis: RRI v1.0, Tier I evidence classification.
+            {/* Missing items warning */}
+            {attestCheckedCount < attestReqs.length && (
+              <div style={{ padding: "12px 16px", background: "var(--red-bg)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 8, marginBottom: 20, fontSize: 12, color: "var(--text2)", lineHeight: 1.6 }}>
+                <strong style={{ color: "var(--red)" }}>{attestReqs.length - attestCheckedCount} requirement(s) not confirmed.</strong> These will be flagged as gaps. You can always return to improve your score later, or upload the actual document for Track B scoring.
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <Btn variant="secondary" onClick={() => setAttestStep(1)} icon="←">Back to Checklist</Btn>
+              <Btn onClick={submitAttestation} disabled={attestSubmitting}>{attestSubmitting ? "Submitting..." : "Submit Attestation"}</Btn>
             </div>
           </div>
         )}
       </div>
+    );
+  };
+
+  // ─── MAIN LAYOUT ─────────────────────────────────────────────────────
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+      {/* Header */}
+      <header style={{ height: "var(--header-h)", padding: "0 24px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg2)", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ fontSize: 20, fontWeight: 700, color: "var(--cyan)", fontFamily: "var(--mono)", letterSpacing: "-1px" }}>AILANE</span>
+          <span style={{ width: 1, height: 18, background: "var(--border2)" }} />
+          <span style={{ fontSize: 13, color: "var(--text2)", fontWeight: 500 }}>Compliance Checker</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Badge color="var(--green)">RRI v1.0</Badge>
+          <span style={{ fontSize: 11, color: "var(--text3)" }}>{user?.email}</span>
+          <a href="/dashboard/" style={{ fontSize: 11, color: "var(--cyan)", textDecoration: "none", fontWeight: 500 }}>← Dashboard</a>
+        </div>
+      </header>
+
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* ─── SIDEBAR ─────────────────────────────────────────────── */}
+        <aside style={{ width: "var(--sidebar-w)", borderRight: "1px solid var(--border)", background: "var(--bg2)", display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
+          {/* Upload buttons */}
+          <div style={{ padding: "16px 14px 12px", borderBottom: "1px solid var(--border)" }}>
+            <Btn onClick={() => { setView("upload-b"); setUploadProgress(""); }} style={{ width: "100%", justifyContent: "center", marginBottom: 8 }} icon="📎">Upload Document</Btn>
+            <Btn variant="accent" onClick={() => { setView("upload-a"); setAttestStep(0); setAttestChecks({}); setAttestNotes({}); }} style={{ width: "100%", justifyContent: "center" }} icon="☑️">Attestation Wizard</Btn>
+          </div>
+
+          {/* Folders */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "8px 6px" }}>
+            {/* All documents */}
+            <div onClick={() => { setActiveFolder(null); setView("library"); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, cursor: "pointer", marginBottom: 2,
+                background: !activeFolder && view === "library" ? "var(--cyan-bg)" : "transparent",
+                color: !activeFolder && view === "library" ? "var(--cyan)" : "var(--text2)" }}
+              onMouseEnter={e => { if (activeFolder || view !== "library") e.currentTarget.style.background = "var(--bg4)"; }}
+              onMouseLeave={e => { if (activeFolder || view !== "library") e.currentTarget.style.background = "transparent"; }}>
+              <span style={{ fontSize: 14 }}>📂</span>
+              <span style={{ fontSize: 12, fontWeight: !activeFolder && view === "library" ? 600 : 400, flex: 1 }}>All Documents</span>
+              <span style={{ fontSize: 10, color: "var(--text4)", fontFamily: "var(--mono)" }}>{uploads.length}</span>
+            </div>
+
+            {/* Unfoldered */}
+            {unfolderedCount > 0 && unfolderedCount < uploads.length && (
+              <div onClick={() => { setActiveFolder("__unfiled"); setView("library"); }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, cursor: "pointer", marginBottom: 2,
+                  background: activeFolder === "__unfiled" ? "var(--cyan-bg)" : "transparent",
+                  color: activeFolder === "__unfiled" ? "var(--cyan)" : "var(--text3)" }}>
+                <span style={{ fontSize: 14 }}>📄</span>
+                <span style={{ fontSize: 12, flex: 1 }}>Unfiled</span>
+                <span style={{ fontSize: 10, color: "var(--text4)", fontFamily: "var(--mono)" }}>{unfolderedCount}</span>
+              </div>
+            )}
+
+            <div style={{ height: 1, background: "var(--border)", margin: "8px 10px" }} />
+
+            {/* Folder tree */}
+            {rootFolders.map(f => (
+              <div key={f.id}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, cursor: "pointer", marginBottom: 1,
+                  background: activeFolder === f.id ? `${f.color}14` : "transparent",
+                  color: activeFolder === f.id ? f.color : "var(--text2)" }}
+                  onClick={() => { setActiveFolder(f.id); setView("library"); }}
+                  onMouseEnter={e => { if (activeFolder !== f.id) e.currentTarget.style.background = "var(--bg4)"; }}
+                  onMouseLeave={e => { if (activeFolder !== f.id) e.currentTarget.style.background = activeFolder === f.id ? `${f.color}14` : "transparent"; }}
+                  onContextMenu={e => { e.preventDefault(); setRenameModal(f); }}>
+                  <span style={{ fontSize: 14 }}>{f.icon}</span>
+                  <span style={{ fontSize: 12, fontWeight: activeFolder === f.id ? 600 : 400, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                  <span style={{ fontSize: 10, color: "var(--text4)", fontFamily: "var(--mono)" }}>{folderDocCount(f.id)}</span>
+                </div>
+                {/* Children */}
+                {childFolders(f.id).map(cf => (
+                  <div key={cf.id} onClick={() => { setActiveFolder(cf.id); setView("library"); }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 30px", borderRadius: 8, cursor: "pointer", marginBottom: 1,
+                      background: activeFolder === cf.id ? `${cf.color}14` : "transparent",
+                      color: activeFolder === cf.id ? cf.color : "var(--text3)" }}
+                    onContextMenu={e => { e.preventDefault(); setRenameModal(cf); }}>
+                    <span style={{ fontSize: 12 }}>{cf.icon}</span>
+                    <span style={{ fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cf.name}</span>
+                    <span style={{ fontSize: 9, color: "var(--text4)", fontFamily: "var(--mono)" }}>{folderDocCount(cf.id)}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            {/* New folder button */}
+            <div onClick={() => setFolderModal(true)}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, cursor: "pointer", marginTop: 4, color: "var(--text4)" }}
+              onMouseEnter={e => e.currentTarget.style.color = "var(--cyan)"} onMouseLeave={e => e.currentTarget.style.color = "var(--text4)"}>
+              <span style={{ fontSize: 14 }}>+</span>
+              <span style={{ fontSize: 11 }}>New Folder</span>
+            </div>
+          </div>
+
+          {/* Sidebar footer */}
+          <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", fontSize: 10, color: "var(--text4)" }}>
+            <div>AI Lane Limited</div>
+            <div>RRI v1.0 · Tier I</div>
+          </div>
+        </aside>
+
+        {/* ─── MAIN CONTENT ───────────────────────────────────────── */}
+        <main style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+          {view === "library" && (
+            <div style={{ animation: "fadeIn 0.2s ease" }}>
+              {/* Toolbar */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
+                    {activeFolder && activeFolder !== "__unfiled" ? folders.find(f => f.id === activeFolder)?.name || "Documents" : activeFolder === "__unfiled" ? "Unfiled Documents" : "All Documents"}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 2 }}>{filteredUploads.length} document{filteredUploads.length !== 1 ? "s" : ""}</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <Input value={search} onChange={setSearch} placeholder="Search documents..." style={{ width: 220 }} />
+                  {/* View toggle */}
+                  <div style={{ display: "flex", border: "1px solid var(--border2)", borderRadius: 6, overflow: "hidden" }}>
+                    <div onClick={() => setViewMode("grid")} style={{ padding: "6px 10px", cursor: "pointer", background: viewMode === "grid" ? "var(--cyan-bg)" : "transparent", color: viewMode === "grid" ? "var(--cyan)" : "var(--text3)", fontSize: 12, fontWeight: 600 }}>⊞</div>
+                    <div onClick={() => setViewMode("list")} style={{ padding: "6px 10px", cursor: "pointer", background: viewMode === "list" ? "var(--cyan-bg)" : "transparent", color: viewMode === "list" ? "var(--cyan)" : "var(--text3)", fontSize: 12, fontWeight: 600 }}>☰</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+                {[{ key: "filterStatus", val: filterStatus, set: setFilterStatus, opts: ["all", "complete", "processing", "pending", "error"], label: "Status" },
+                  { key: "filterTrack", val: filterTrack, set: setFilterTrack, opts: ["all", "documentary", "attestation"], label: "Track" },
+                  { key: "filterType", val: filterType, set: setFilterType, opts: ["all", "contract", "handbook", "policy"], label: "Type" },
+                ].map(f => (
+                  <div key={f.key} style={{ display: "flex", gap: 4 }}>
+                    {f.opts.map(o => (
+                      <Btn key={o} variant={f.val === o ? "primary" : "ghost"} small onClick={() => f.set(o)}>
+                        {o === "all" ? `All ${f.label}` : o === "documentary" ? "Track B" : o === "attestation" ? "Track A" : o}
+                      </Btn>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Documents Grid / List */}
+              {filteredUploads.length === 0 ? (
+                <div style={{ padding: "60px 20px", textAlign: "center", background: "var(--bg3)", borderRadius: 16, border: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 44, marginBottom: 12 }}>📋</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>No documents yet</div>
+                  <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 20 }}>Upload a contract or handbook, or use the attestation wizard to get started.</div>
+                  <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+                    <Btn onClick={() => setView("upload-b")} icon="📎">Upload Document</Btn>
+                    <Btn variant="accent" onClick={() => { setView("upload-a"); setAttestStep(0); }} icon="☑️">Attestation Wizard</Btn>
+                  </div>
+                </div>
+              ) : viewMode === "grid" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+                  {filteredUploads.map((u, i) => {
+                    const scoreColor = u.overall_score >= 65 ? "var(--green)" : u.overall_score >= 30 ? "var(--amber)" : u.overall_score > 0 ? "var(--orange)" : "var(--text4)";
+                    const folder = folders.find(f => f.id === u.folder_id);
+                    return (
+                      <div key={u.id} onClick={() => { setSelectedUpload(u); setView("report"); }}
+                        style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px", cursor: "pointer", transition: "all 0.15s", animation: `slideUp 0.2s ease ${i * 0.02}s both`, position: "relative" }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--cyan-border)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+                        {/* Top row: icon + type + track */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <span style={{ fontSize: 24 }}>{DOC_ICONS[u.document_type]}</span>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <Badge small color={u.evidence_track === "documentary" ? "var(--green)" : "var(--amber)"}>{u.evidence_track === "documentary" ? "B" : "A"}</Badge>
+                            <Badge small color={STATUS_COLORS[u.status]}>{u.status}</Badge>
+                          </div>
+                        </div>
+                        {/* Name */}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {u.display_name || u.file_name || "Attestation"}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 10 }}>{u.document_type} · {new Date(u.created_at).toLocaleDateString("en-GB")}</div>
+                        {/* Score bar */}
+                        {u.status === "complete" && (
+                          <div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                              <span style={{ fontSize: 18, fontWeight: 700, color: scoreColor, fontFamily: "var(--mono)" }}>{Math.round(u.overall_score || 0)}%</span>
+                              <span style={{ fontSize: 11, color: "var(--cyan)", fontFamily: "var(--mono)", fontWeight: 600 }}>Pillar {u.translated_pillar_score}/{u.evidence_track === "documentary" ? 3 : 2}</span>
+                            </div>
+                            <div style={{ height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${u.overall_score || 0}%`, background: scoreColor, borderRadius: 2 }} />
+                            </div>
+                          </div>
+                        )}
+                        {/* Folder tag */}
+                        {folder && <div style={{ marginTop: 8, fontSize: 10, color: folder.color, display: "flex", alignItems: "center", gap: 4 }}><span>{folder.icon}</span>{folder.name}</div>}
+                        {/* Context menu */}
+                        <div onClick={e => { e.stopPropagation(); setMoveModal(u); }} style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text4)", fontSize: 14 }}
+                          onMouseEnter={e => e.currentTarget.style.background = "var(--bg4)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>⋮</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* List view */
+                <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "var(--bg4)" }}>
+                        {["Document", "Type", "Track", "Score", "Pillar", "Folder", "Status", "Date", ""].map((h, i) => (
+                          <th key={i} style={{ padding: "9px 12px", textAlign: "left", color: "var(--text3)", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.4px", borderBottom: "1px solid var(--border)" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUploads.map((u, i) => {
+                        const folder = folders.find(f => f.id === u.folder_id);
+                        return (
+                          <tr key={u.id} onClick={() => { setSelectedUpload(u); setView("report"); }}
+                            style={{ cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.02)", animation: `slideUp 0.15s ease ${i * 0.015}s both` }}
+                            onMouseEnter={e => e.currentTarget.style.background = "var(--cyan-bg)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                            <td style={{ padding: "9px 12px", color: "var(--text)", fontWeight: 500, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.display_name || u.file_name || "Attestation"}</td>
+                            <td style={{ padding: "9px 12px" }}><Badge small color="var(--purple)">{u.document_type}</Badge></td>
+                            <td style={{ padding: "9px 12px" }}><Badge small color={u.evidence_track === "documentary" ? "var(--green)" : "var(--amber)"}>{u.evidence_track === "documentary" ? "Track B" : "Track A"}</Badge></td>
+                            <td style={{ padding: "9px 12px", fontFamily: "var(--mono)", fontWeight: 600, color: u.overall_score >= 65 ? "var(--green)" : u.overall_score >= 30 ? "var(--amber)" : "var(--orange)" }}>{u.overall_score != null ? `${Math.round(u.overall_score)}%` : "—"}</td>
+                            <td style={{ padding: "9px 12px", fontFamily: "var(--mono)", fontWeight: 700, color: "var(--cyan)" }}>{u.translated_pillar_score ?? "—"}</td>
+                            <td style={{ padding: "9px 12px", fontSize: 11, color: folder ? folder.color : "var(--text4)" }}>{folder ? `${folder.icon} ${folder.name}` : "—"}</td>
+                            <td style={{ padding: "9px 12px" }}><Badge small color={STATUS_COLORS[u.status]}>{u.status}</Badge></td>
+                            <td style={{ padding: "9px 12px", color: "var(--text3)", fontSize: 11 }}>{new Date(u.created_at).toLocaleDateString("en-GB")}</td>
+                            <td style={{ padding: "9px 12px" }}>
+                              <span onClick={e => { e.stopPropagation(); setMoveModal(u); }} style={{ cursor: "pointer", color: "var(--text4)", fontSize: 14 }}>⋮</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {view === "upload-b" && renderUploadB()}
+          {view === "upload-a" && renderUploadA()}
+          {view === "report" && renderReport()}
+        </main>
+      </div>
+
+      {/* ─── MODALS ───────────────────────────────────────────────── */}
+
+      {/* New Folder */}
+      <Modal open={folderModal} onClose={() => setFolderModal(false)} title="Create Folder">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Folder Name</label>
+            <Input value={newFolderName} onChange={setNewFolderName} placeholder="e.g. Head Office Contracts" />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Parent Folder (optional)</label>
+            <select value={newFolderParent || ""} onChange={e => setNewFolderParent(e.target.value || null)} style={{ background: "var(--bg4)", border: "1px solid var(--border2)", borderRadius: 8, padding: "9px 12px", color: "var(--text)", fontSize: 13, width: "100%", fontFamily: "var(--sans)" }}>
+              <option value="">Root level</option>
+              {rootFolders.map(f => <option key={f.id} value={f.id}>{f.icon} {f.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Icon & Colour</label>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 4 }}>
+                {["📁", "📂", "🏢", "📋", "⚖️", "🔒", "🌍", "👥"].map(ic => (
+                  <div key={ic} onClick={() => setNewFolderIcon(ic)} style={{ width: 32, height: 32, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, background: newFolderIcon === ic ? "var(--cyan-bg)" : "var(--bg4)", border: `1px solid ${newFolderIcon === ic ? "var(--cyan-border)" : "var(--border)"}` }}>{ic}</div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+                {["#22d3ee", "#10b981", "#8b5cf6", "#f59e0b", "#f97316", "#ef4444", "#ec4899", "#64748b"].map(c => (
+                  <div key={c} onClick={() => setNewFolderColor(c)} style={{ width: 24, height: 24, borderRadius: "50%", background: c, cursor: "pointer", border: newFolderColor === c ? "2px solid white" : "2px solid transparent" }} />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+            <Btn variant="secondary" onClick={() => setFolderModal(false)}>Cancel</Btn>
+            <Btn onClick={createFolder} disabled={!newFolderName.trim() || !orgId}>{orgId ? "Create Folder" : "Loading org..."}</Btn>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Move / Manage Document */}
+      <Modal open={!!moveModal} onClose={() => setMoveModal(null)} title={moveModal ? `Manage: ${moveModal.display_name || moveModal.file_name || "Attestation"}` : ""}>
+        {moveModal && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Move to Folder</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div onClick={() => moveDocument(moveModal.id, null)} style={{ padding: "8px 12px", borderRadius: 8, cursor: "pointer", background: !moveModal.folder_id ? "var(--cyan-bg)" : "var(--bg4)", border: `1px solid ${!moveModal.folder_id ? "var(--cyan-border)" : "var(--border)"}`, fontSize: 12, color: "var(--text)" }}>📂 Root (no folder)</div>
+                {folders.map(f => (
+                  <div key={f.id} onClick={() => moveDocument(moveModal.id, f.id)} style={{ padding: "8px 12px", borderRadius: 8, cursor: "pointer", background: moveModal.folder_id === f.id ? `${f.color}14` : "var(--bg4)", border: `1px solid ${moveModal.folder_id === f.id ? `${f.color}30` : "var(--border)"}`, fontSize: 12, color: "var(--text)", display: "flex", gap: 8, alignItems: "center" }}>
+                    <span>{f.icon}</span>{f.name}{f.parent_id && <span style={{ fontSize: 10, color: "var(--text4)" }}>(subfolder)</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Rename Document</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Input value={moveModal._rename ?? (moveModal.display_name || moveModal.file_name || "")} onChange={v => setMoveModal(p => ({ ...p, _rename: v }))} placeholder="Document name" />
+                <Btn small onClick={() => renameDocument(moveModal.id, moveModal._rename || moveModal.display_name, moveModal._notes || moveModal.notes)}>Save</Btn>
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Notes</label>
+              <textarea value={moveModal._notes ?? (moveModal.notes || "")} onChange={e => setMoveModal(p => ({ ...p, _notes: e.target.value }))} placeholder="Add internal notes..." rows={3}
+                style={{ background: "var(--bg4)", border: "1px solid var(--border2)", borderRadius: 8, padding: "9px 14px", color: "var(--text)", fontSize: 13, width: "100%", fontFamily: "var(--sans)", resize: "vertical", outline: "none" }} />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Rename Folder */}
+      <Modal open={!!renameModal} onClose={() => setRenameModal(null)} title={renameModal ? `Edit: ${renameModal.name}` : ""}>
+        {renameModal && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 11, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.4px", display: "block", marginBottom: 6 }}>Folder Name</label>
+              <Input value={renameModal._name ?? renameModal.name} onChange={v => setRenameModal(p => ({ ...p, _name: v }))} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <Btn variant="danger" small onClick={() => { setDeleteConfirm(renameModal.id); setRenameModal(null); }}>Delete Folder</Btn>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn variant="secondary" onClick={() => setRenameModal(null)}>Cancel</Btn>
+                <Btn onClick={() => renameFolder(renameModal.id, renameModal._name || renameModal.name)}>Save</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Folder Confirm */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Folder?">
+        <div style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, marginBottom: 20 }}>
+          This will delete the folder. Documents inside will be moved to root (unfiled). This action cannot be undone.
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Btn variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Btn>
+          <Btn variant="danger" onClick={() => deleteFolder(deleteConfirm)}>Delete Folder</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(ComplianceDashboard));
+root.render(React.createElement(ComplianceApp));
   </script>
 </body>
 </html>
