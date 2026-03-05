@@ -189,11 +189,48 @@ function ComplianceApp() {
     try {
       const rows = await api(`app_users?id=eq.${uid}&select=org_id&org_id=neq.00000000-0000-0000-0000-000000000000&limit=1`, t);
       if (rows.length) { setOrgId(rows[0].org_id); return rows[0].org_id; }
-      // Fallback: any org for this user
       const all = await api(`app_users?id=eq.${uid}&select=org_id&limit=1`, t);
       if (all.length) { setOrgId(all[0].org_id); return all[0].org_id; }
     } catch (e) { console.error("Org resolve error:", e); }
     return null;
+  };
+
+  // Token refresh — Supabase access tokens expire after 1 hour
+  const refreshSession = async () => {
+    const rt = localStorage.getItem("sb-refresh");
+    if (!rt) return null;
+    try {
+      const r = await fetch(`${SB}/auth/v1/token?grant_type=refresh_token`, {
+        method: "POST", headers: { apikey: AK, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: rt }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setToken(d.access_token); setUser(d.user);
+        localStorage.setItem("sb-token", d.access_token);
+        localStorage.setItem("sb-refresh", d.refresh_token);
+        return d.access_token;
+      } else {
+        // Refresh token also expired — force re-login
+        localStorage.removeItem("sb-token");
+        localStorage.removeItem("sb-refresh");
+        setToken(null); setUser(null);
+        return null;
+      }
+    } catch { return null; }
+  };
+
+  // Get a valid token — refreshes automatically if expired
+  const getFreshToken = async () => {
+    const t = token || localStorage.getItem("sb-token");
+    if (!t) return null;
+    // Quick check: verify token is still valid
+    try {
+      const r = await fetch(`${SB}/auth/v1/user`, { headers: { apikey: AK, Authorization: `Bearer ${t}` } });
+      if (r.ok) return t;
+    } catch {}
+    // Token expired, try refresh
+    return await refreshSession();
   };
 
   // ─── AUTH ──────────────────────────────────────────────────────────────
@@ -201,9 +238,16 @@ function ComplianceApp() {
     const t = localStorage.getItem("sb-token");
     if (t) {
       fetch(`${SB}/auth/v1/user`, { headers: { apikey: AK, Authorization: `Bearer ${t}` } })
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(async (u) => { setToken(t); setUser(u); await resolveOrg(t, u.id); })
-        .catch(() => localStorage.removeItem("sb-token"))
+        .then(r => {
+          if (r.ok) return r.json();
+          // Token expired on load — try refresh
+          return refreshSession().then(newT => {
+            if (newT) return fetch(`${SB}/auth/v1/user`, { headers: { apikey: AK, Authorization: `Bearer ${newT}` } }).then(r2 => r2.ok ? r2.json() : Promise.reject());
+            return Promise.reject();
+          });
+        })
+        .then(async (u) => { setToken(localStorage.getItem("sb-token")); setUser(u); await resolveOrg(localStorage.getItem("sb-token"), u.id); })
+        .catch(() => { localStorage.removeItem("sb-token"); localStorage.removeItem("sb-refresh"); })
         .finally(() => setLoading(false));
     } else setLoading(false);
   }, []);
@@ -215,12 +259,17 @@ function ComplianceApp() {
         method: "POST", headers: { apikey: AK, "Content-Type": "application/json" },
         body: JSON.stringify({ email: authEmail, password: authPass }),
       });
-      if (r.ok) { const d = await r.json(); setToken(d.access_token); setUser(d.user); localStorage.setItem("sb-token", d.access_token); await resolveOrg(d.access_token, d.user.id); }
-      else { const e = await r.json(); setAuthErr(e.error_description || "Invalid credentials"); }
+      if (r.ok) {
+        const d = await r.json();
+        setToken(d.access_token); setUser(d.user);
+        localStorage.setItem("sb-token", d.access_token);
+        localStorage.setItem("sb-refresh", d.refresh_token);
+        await resolveOrg(d.access_token, d.user.id);
+      } else { const e = await r.json(); setAuthErr(e.error_description || "Invalid credentials"); }
     } catch { setAuthErr("Connection failed"); }
   };
 
-  const logout = () => { setToken(null); setUser(null); localStorage.removeItem("sb-token"); };
+  const logout = () => { setToken(null); setUser(null); setOrgId(null); localStorage.removeItem("sb-token"); localStorage.removeItem("sb-refresh"); };
 
   // ─── DATA LOADING ────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
@@ -307,6 +356,10 @@ function ComplianceApp() {
 
     setUploading(true); setUploadProgress("Uploading document...");
     try {
+      // Ensure we have a valid token before calling Edge Function
+      const freshToken = await getFreshToken();
+      if (!freshToken) { setUploadProgress("Error: Session expired. Please log in again."); setUploading(false); return; }
+
       const form = new FormData();
       form.append("file", file);
       form.append("document_type", uploadDocType);
@@ -315,7 +368,7 @@ function ComplianceApp() {
       if (uploadNotes.trim()) form.append("notes", uploadNotes.trim());
 
       const r = await fetch(`${SB}/functions/v1/compliance-upload`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: AK }, body: form,
+        method: "POST", headers: { Authorization: `Bearer ${freshToken}`, apikey: AK }, body: form,
       });
 
       if (!r.ok) {
@@ -329,13 +382,14 @@ function ComplianceApp() {
 
       setUploadProgress("Document uploaded. Running compliance analysis (3–8 seconds)...");
 
-      // Poll for completion — typical contract takes 3-8 seconds
+      // Poll for completion — typical contract takes 8-15 seconds with AI analysis
       let polls = 0;
       const maxPolls = 30; // 75 seconds max
       const poll = setInterval(async () => {
         polls++;
         try {
-          const [check] = await api(`compliance_uploads?id=eq.${data.upload_id}`, token);
+          const currentToken = localStorage.getItem("sb-token");
+          const [check] = await api(`compliance_uploads?id=eq.${data.upload_id}`, currentToken);
           if (check?.status === "complete") {
             clearInterval(poll);
             setUploadProgress("Analysis complete!");
@@ -369,6 +423,10 @@ function ComplianceApp() {
   const submitAttestation = async () => {
     setAttestSubmitting(true);
     try {
+      // Ensure valid token
+      const freshToken = await getFreshToken();
+      if (!freshToken) { setAttestSubmitting(false); alert("Session expired. Please log in again."); return; }
+
       const reqs = attestReqs.map(r => ({
         requirement_id: r.id,
         requirement_name: r.requirement_name,
@@ -378,7 +436,7 @@ function ComplianceApp() {
 
       const r = await fetch(`${SB}/functions/v1/compliance-upload`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, apikey: AK, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${freshToken}`, apikey: AK, "Content-Type": "application/json" },
         body: JSON.stringify({
           document_type: attestDocType,
           attestation_details: { requirements: reqs },
@@ -572,9 +630,22 @@ function ComplianceApp() {
           )}
         </div>
 
-        {/* Disclaimer */}
-        <div style={{ marginTop: 20, padding: "12px 16px", background: "var(--amber-bg)", border: "1px solid rgba(245,158,11,0.15)", borderRadius: 8, fontSize: 10, color: "var(--text2)", lineHeight: 1.7 }}>
-          <strong style={{ color: "var(--amber)" }}>Important:</strong> This report is for general educational and reference purposes only and does not constitute legal advice. Professional legal review is recommended for all critical findings. Constitutional basis: RRI v1.0, Tier I.
+        {/* Legal Disclaimer */}
+        <div style={{ marginTop: 24, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(245,158,11,0.25)" }}>
+          <div style={{ padding: "12px 18px", background: "rgba(245,158,11,0.12)", borderBottom: "1px solid rgba(245,158,11,0.15)", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 16 }}>⚠️</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--amber)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Legal Disclaimer — Please Read</span>
+          </div>
+          <div style={{ padding: "16px 18px", background: "rgba(245,158,11,0.04)", fontSize: 11, color: "var(--text2)", lineHeight: 1.8 }}>
+            <p style={{ marginBottom: 10 }}>This compliance report is produced by <strong style={{ color: "var(--text)" }}>AI Lane Limited</strong> (Company No. 17035624) using automated analysis technology. It is provided for <strong style={{ color: "var(--text)" }}>general informational and educational purposes only</strong> and <strong style={{ color: "var(--red)" }}>does not constitute legal advice</strong>.</p>
+            <p style={{ marginBottom: 10 }}>The analysis identifies potential compliance gaps by comparing document text against statutory requirements using artificial intelligence. While every effort is made to ensure accuracy, AI Lane Limited <strong style={{ color: "var(--text)" }}>does not guarantee</strong> that the analysis is complete, correct, or current. Employment law is subject to change and judicial interpretation. Specific facts and circumstances may alter the legal position.</p>
+            <p style={{ marginBottom: 10 }}><strong style={{ color: "var(--text)" }}>You should not rely on this report as a substitute for professional legal advice.</strong> We strongly recommend that all findings — particularly those classified as Critical or Major — are reviewed by a qualified employment law solicitor or barrister before any action is taken or omitted.</p>
+            <p style={{ marginBottom: 10 }}>AI Lane Limited accepts no liability for any loss, damage, or regulatory consequence arising from reliance on this report. Use of this service is subject to our Terms and Conditions.</p>
+            <div style={{ paddingTop: 10, borderTop: "1px solid rgba(245,158,11,0.12)", fontSize: 10, color: "var(--text3)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <span>Constitutional basis: Regulatory Readiness Index (RRI) v1.0 · Evidence Tier I · {u.evidence_track === "documentary" ? "Track B — Documentary" : "Track A — Attestation"}</span>
+              <span>Engine: Compliance Checker v7 · AI Lane Limited © {new Date().getFullYear()}</span>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -650,6 +721,11 @@ function ComplianceApp() {
           <div style={{ fontSize: 13, color: uploading ? "var(--cyan)" : uploadProgress.startsWith("Error") ? "var(--red)" : "var(--green)", fontWeight: 500 }}>{uploadProgress}</div>
         </div>
       )}
+
+      {/* Legal notice */}
+      <div style={{ marginTop: 20, marginBottom: 16, padding: "12px 16px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)", borderRadius: 10, fontSize: 11, color: "var(--text2)", lineHeight: 1.7 }}>
+        <strong style={{ color: "var(--amber)" }}>⚠️ Important:</strong> This tool provides automated compliance analysis for informational purposes only. It <strong style={{ color: "var(--text)" }}>does not constitute legal advice</strong>. All findings should be reviewed by a qualified employment law professional before reliance. By uploading a document you confirm you are authorised to share its contents with AI Lane Limited for analysis.
+      </div>
 
       {/* Score guide */}
       <div style={{ marginTop: 24, padding: "16px 18px", background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 10 }}>
@@ -808,6 +884,10 @@ function ComplianceApp() {
                 <strong style={{ color: "var(--red)" }}>{attestReqs.length - attestCheckedCount} requirement(s) not confirmed.</strong> These will be flagged as gaps. You can always return to improve your score later, or upload the actual document for Track B scoring.
               </div>
             )}
+
+            <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.12)", borderRadius: 8, marginBottom: 16, fontSize: 10, color: "var(--text3)", lineHeight: 1.7 }}>
+              By submitting this attestation you confirm the information provided is accurate to the best of your knowledge. This analysis does not constitute legal advice. All findings should be reviewed by a qualified employment law professional.
+            </div>
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <Btn variant="secondary" onClick={() => setAttestStep(1)} icon="←">Back to Checklist</Btn>
