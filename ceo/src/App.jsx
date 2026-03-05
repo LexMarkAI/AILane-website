@@ -202,8 +202,7 @@ export default function App() {
 
   function handleAuth(accessToken, userEmail) {
     setSession(accessToken, userEmail)
-    setToken(accessToken)
-    setEmailState(userEmail)
+    window.location.href = '/dashboard/router/'
   }
 
   function handleLogout() {
