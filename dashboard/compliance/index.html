@@ -38,13 +38,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
   <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script>
+    // Fallback if unpkg fails
+    if (typeof Recharts === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.js"><\/script>');
+    }
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
 const { useState, useEffect, useCallback, useRef, useMemo } = React;
-const { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } = Recharts;
+const _RC = typeof Recharts !== 'undefined' ? Recharts : {};
+const { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } = _RC;
+const chartsAvailable = typeof Recharts !== 'undefined';
 
 // ─── CONFIG ────────────────────────────────────────────────────────────
 const SB = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
@@ -499,12 +507,21 @@ function ComplianceApp() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
           <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>Finding Distribution</div>
-            {pieData.length > 0 ? (
+            {chartsAvailable && pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={170}>
                 <PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={42} outerRadius={68} dataKey="value" strokeWidth={0}>
                   {pieData.map((d, i) => <Cell key={i} fill={d.fill} />)}
                 </Pie><Tooltip contentStyle={{ background: "#1e293b", border: "1px solid var(--border2)", borderRadius: 8, fontSize: 12, color: "var(--text)" }} /></PieChart>
               </ResponsiveContainer>
+            ) : !chartsAvailable ? (
+              <div style={{ padding: 20, textAlign: "center" }}>
+                {Object.entries(sev).map(([k, v]) => (
+                  <div key={k} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 14, fontSize: 12 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: SEV[k]?.color, display: "inline-block" }} />
+                    <span style={{ color: "var(--text2)" }}>{SEV[k]?.label}: {v}</span>
+                  </div>
+                ))}
+              </div>
             ) : <div style={{ padding: 40, textAlign: "center", color: "var(--text3)", fontSize: 12 }}>Loading findings...</div>}
           </div>
           <div style={{ background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: 12, padding: 20 }}>
