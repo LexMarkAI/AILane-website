@@ -119,7 +119,6 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:36px 1
 .score-circle{width:84px;height:84px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid var(--teal);background:rgba(13,115,119,0.08);}
 .sc-num{font-size:25px;font-weight:900;line-height:1;}
 .sc-denom{font-size:9px;color:var(--grey);}
-.score-right{}
 .risk-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:2px;display:inline-block;letter-spacing:0.5px;margin-bottom:7px;}
 .score-summary{font-size:12px;color:var(--grey);line-height:1.65;}
 .score-summary strong{color:var(--white);}
@@ -247,9 +246,7 @@ footer{text-align:center;padding:18px;font-size:10px;color:rgba(255,255,255,0.18
         <p style="font-size:13px;font-weight:600;color:#14BDAD;margin:0 0 5px;">Your report is likely already done.</p>
         <p style="font-size:12px;color:#8A9BB0;line-height:1.65;margin:0;">If the wheel is still turning, no need to wait &mdash; Ailane has reached your inbox. Check your email for the report, or <button onclick="checkNow()" style="background:none;border:none;color:#14BDAD;font-size:12px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;">tap here to check now</button>.</p>
       </div>
-      <div id="analysis-wordmark-wrap">
-      </div>
-      </div><div class="wordmark">AILANE</div>
+      <div class="wordmark" style="margin-top:18px;">AILANE</div>
     </div>
   </div>
 
@@ -329,11 +326,11 @@ footer{text-align:center;padding:18px;font-size:10px;color:rgba(255,255,255,0.18
 </main>
 
 <footer>
-  AI Lane Limited &middot; Company No. 17035624 &middot; ailane.ai &middot; <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6a5a3a6a6b9a4a296b7bfbab7b8b3f8b7bf">[email&#160;protected]</a><br>
+  AI Lane Limited &middot; Company No. 17035624 &middot; ailane.ai &middot; support@ailane.ai<br>
   Advisory output only. Not legal advice. Documents permanently deleted after analysis.
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 const FN_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1';
 const REST    = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1';
 const ANON    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDI0MDcsImV4cCI6MjA4ODIxODQwN30.QNdN7dIdMJoqjBjP5dJLMPMbxCkNmSqCjl2bCnMeNlw';
@@ -370,12 +367,28 @@ window.addEventListener('DOMContentLoaded', () => {
   verify();
 });
 
-// ── verify ───────────────────────────────────────────────────────────────
+// ── verify (with polling retry — handles Stripe redirect race condition) ──
+let verifyAttempts = 0;
 async function verify() {
+  verifyAttempts++;
   try {
     const r = await fetch(`${FN_BASE}/portal-upload/verify?session=${stripeSession}`);
     const d = await r.json();
-    if (!d.verified) { setTimeout(verify, 3500); return; }
+
+    if (!d.verified) {
+      // Retry up to 12 times (~40s) then show a helpful message
+      if (verifyAttempts < 12) {
+        setTimeout(verify, 3500);
+      } else {
+        document.getElementById('screen-verify').innerHTML =
+          '<div style="padding:48px 28px;text-align:center;">' +
+          '<p style="font-size:14px;font-weight:700;color:#F87171;margin-bottom:10px;">Payment confirmation is taking longer than expected.</p>' +
+          '<p style="font-size:12px;color:#8A9BB0;line-height:1.7;">Your payment has been received. Please check your email for confirmation, or contact <strong style="color:#F0F4F8;">support@ailane.ai</strong> quoting reference: <span style="font-family:monospace;color:#14BDAD;">' + stripeSession.slice(-16) + '</span></p>' +
+          '<button onclick="verifyAttempts=0;verify();" style="margin-top:18px;padding:10px 22px;background:#0D7377;border:none;border-radius:4px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Try again</button>' +
+          '</div>';
+      }
+      return;
+    }
 
     // ── RETURNING SESSION: already analysing or complete ──────────────────
     if (d.existing_upload_id) {
@@ -406,7 +419,10 @@ async function verify() {
     // ── FRESH SESSION: go to upload ───────────────────────────────────────
     setStep(2);
     show('screen-upload');
-  } catch { setTimeout(verify, 4000); }
+
+  } catch(e) {
+    setTimeout(verify, 4000);
+  }
 }
 
 // ── file selection ────────────────────────────────────────────────────────
@@ -474,12 +490,9 @@ document.getElementById('btn-upload').addEventListener('click', async () => {
 // ── analysis step animation ───────────────────────────────────────────────
 function animateSteps() {
   const steps = document.querySelectorAll('.a-step');
-  // reset
   steps.forEach(s => { s.classList.remove('done','active'); });
-  // stagger each step completing
   steps.forEach((s, i) => {
     setTimeout(() => {
-      // mark previous done
       if (i > 0) steps[i-1].classList.replace('active','done');
       s.classList.add('active');
     }, i * 8000);
@@ -492,7 +505,7 @@ function pollForCompletion() {
   clearTimeout(pollTimer);
   pollAttempts++;
 
-  // After 90 seconds show the inbox nudge — analysis is likely done but page hasn't caught up
+  // After ~90 seconds show the inbox nudge
   if (pollAttempts >= 15) {
     const nudge = document.getElementById('inbox-nudge');
     if (nudge) nudge.style.display = 'block';
@@ -554,17 +567,17 @@ function showOutOfScope(message) {
 
 // ── show report ───────────────────────────────────────────────────────────
 async function showReport(row, findingCounts) {
-  // Use finding counts from verify endpoint if provided; otherwise fallback to zero
   const counts = findingCounts || { critical:0, major:0, minor:0, compliant:0 };
+  const totalAssessed = counts.critical + counts.major + counts.minor + counts.compliant;
 
-  const score    = Math.round(parseFloat(row.overall_score || 0));
-  const isHigh   = score < 45;
-  const isMed    = score < 75;
-  const riskLabel = isHigh ? 'HIGH RISK' : isMed ? 'ELEVATED RISK' : 'LOW RISK';
-  const riskColor = isHigh ? '#F87171'   : isMed ? '#FBBF24'       : '#34D399';
+  const score     = Math.round(parseFloat(row.overall_score || 0));
+  const isHigh    = score < 45;
+  const isMed     = score < 75;
+  const riskLabel = isHigh ? 'HIGH RISK'      : isMed ? 'ELEVATED RISK' : 'LOW RISK';
+  const riskColor = isHigh ? '#F87171'         : isMed ? '#FBBF24'       : '#34D399';
   const riskBg    = isHigh ? 'rgba(153,27,27,0.2)' : isMed ? 'rgba(146,64,14,0.2)' : 'rgba(6,78,59,0.2)';
 
-  document.getElementById('sc-num').textContent     = score;
+  document.getElementById('sc-num').textContent = score;
   document.getElementById('score-circle').style.borderColor = riskColor;
   const rb = document.getElementById('risk-badge');
   rb.textContent = riskLabel; rb.style.background = riskBg; rb.style.color = riskColor;
@@ -572,7 +585,7 @@ async function showReport(row, findingCounts) {
   document.getElementById('score-summary').innerHTML =
     `This document contains <strong>${counts.critical} critical violation${counts.critical!==1?'s':''}</strong> ` +
     `and <strong>${counts.major} major deficiencie${counts.major!==1?'s':'y'}</strong>. ` +
-    `${(findings||[]).length} provisions assessed in total.`;
+    `${totalAssessed} provisions assessed in total.`;
 
   document.getElementById('dc-critical').textContent  = counts.critical;
   document.getElementById('dc-major').textContent     = counts.major;
@@ -588,7 +601,7 @@ async function showReport(row, findingCounts) {
   };
 
   document.getElementById('btn-docx').onclick = async () => {
-    const btn = document.getElementById('btn-docx');
+    const btn  = document.getElementById('btn-docx');
     const orig = btn.innerHTML;
     btn.innerHTML = '⏳ Preparing…'; btn.disabled = true;
     try {
@@ -606,5 +619,14 @@ async function showReport(row, findingCounts) {
       });
       document.body.appendChild(a); a.click();
       document.body.removeChild(a); URL.revokeObjectURL(url);
-    } catch {
-      al
+    } catch(e) {
+      alert('Download failed. Please contact support@ailane.ai');
+    }
+    btn.innerHTML = orig; btn.disabled = false;
+  };
+
+  show('screen-report');
+}
+</script>
+</body>
+</html>
