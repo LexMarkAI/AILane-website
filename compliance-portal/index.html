@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Secure Compliance Portal</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080d16;--bg-card:#0e1520;--bg-elev:#141e2e;--bg-input:#0b1219;
+  --border:rgba(56,189,248,0.08);--border-h:rgba(56,189,248,0.22);
+  --cyan:#38bdf8;--cyan-dim:rgba(56,189,248,0.10);
+  --green:#34d399;--green-dim:rgba(52,211,153,0.10);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.08);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.08);
+  --t1:#f1f5f9;--t2:#94a3b8;--t3:#64748b;--t4:#475569;
+  --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
+  --ease:cubic-bezier(0.25,0.46,0.45,0.94);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{-webkit-font-smoothing:antialiased;}
+body{font-family:var(--body);background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(56,189,248,0.06) 1px,transparent 1px);background-size:32px 32px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 20%,transparent 70%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 20%,transparent 70%);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(.85);}50%{opacity:1;transform:scale(1.15);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes scanline{0%{top:-10%;}100%{top:110%;}}
+.wrap{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:36px 24px 80px;}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:48px;}
+.nav-logo{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:4px;color:var(--t1);text-decoration:none;}
+.nav-logo span{color:var(--cyan);font-size:9px;letter-spacing:1.5px;font-weight:400;margin-left:8px;}
+.secure-badge{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--green);background:var(--green-dim);border:1px solid rgba(52,211,153,0.15);border-radius:100px;padding:5px 14px;}
+.secure-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;}
+.state{display:none;}
+.state.active{display:block;animation:fadeUp 0.45s var(--ease) both;}
+.progress{display:flex;align-items:center;gap:0;margin-bottom:32px;}
+.prog-step{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:0.5px;color:var(--t4);}
+.prog-step.active{color:var(--cyan);}.prog-step.done{color:var(--green);}
+.prog-num{width:22px;height:22px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+.prog-step.done .prog-num{background:var(--green);border-color:var(--green);color:var(--bg);}
+.prog-div{flex:1;height:1px;background:var(--border);margin:0 8px;}
+.loading-wrap{text-align:center;padding:60px 0;}
+.spinner{width:48px;height:48px;border:2px solid var(--border);border-top:2px solid var(--cyan);border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 20px;}
+.loading-text{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--t3);}
+.error-wrap{text-align:center;padding:60px 20px;}
+.error-icon{font-size:48px;margin-bottom:20px;}
+.error-title{font-size:1.4rem;font-weight:700;margin-bottom:10px;}
+.error-sub{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:28px;max-width:440px;margin-left:auto;margin-right:auto;}
+.btn-back{display:inline-block;background:var(--bg-card);border:1px solid var(--border-h);color:var(--cyan);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;padding:12px 24px;border-radius:8px;text-decoration:none;transition:all 0.2s;}
+.session-banner{background:var(--green-dim);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.sb-left{display:flex;align-items:center;gap:10px;}
+.sb-name{font-size:14px;font-weight:600;}
+.sb-email{font-size:12px;color:var(--t3);}
+.sb-tier{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--green);background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.2);border-radius:4px;padding:3px 10px;white-space:nowrap;}
+.upload-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;}
+.upload-title{font-size:1.4rem;font-weight:700;letter-spacing:-0.2px;margin-bottom:8px;}
+.upload-sub{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:24px;}
+.upload-sub strong{color:var(--t1);}
+.slot-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:24px;}
+.slot-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:all 0.25s;}
+.slot-card.req{border-left:2px solid var(--cyan);}
+.slot-card.filled{border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.02);}
+.slot-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.slot-lbl{display:flex;align-items:center;gap:10px;}
+.slot-icon{font-size:18px;}
+.slot-name{font-size:13px;font-weight:600;}
+.badge-req{font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--cyan);background:var(--cyan-dim);border:1px solid rgba(56,189,248,0.15);border-radius:3px;padding:2px 7px;}
+.badge-opt{font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--t4);background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:3px;padding:2px 7px;}
+.slot-status{font-family:var(--mono);font-size:10px;color:var(--t4);}
+.slot-status.ok{color:var(--green);}
+.slot-drop{border:1.5px dashed rgba(56,189,248,0.15);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.slot-drop:hover,.slot-drop.over{border-color:rgba(56,189,248,0.4);background:rgba(56,189,248,0.03);}
+.slot-drop-text{font-size:12px;color:var(--t3);}
+.slot-drop-text span{color:var(--cyan);}
+.slot-drop-fmt{font-family:var(--mono);font-size:9px;color:var(--t4);margin-top:5px;letter-spacing:0.3px;}
+.slot-file{display:flex;align-items:center;justify-content:space-between;}
+.slot-file-info{display:flex;align-items:center;gap:10px;}
+.slot-file-name{font-size:13px;font-weight:500;}
+.slot-file-size{font-family:var(--mono);font-size:10px;color:var(--t3);}
+.slot-remove{background:none;border:none;color:var(--t4);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:4px;transition:all 0.2s;}
+.slot-remove:hover{color:var(--red);background:var(--red-dim);}
+.advisory{display:flex;gap:10px;background:var(--amber-dim);border:1px solid rgba(251,191,36,0.12);border-radius:8px;padding:12px 16px;margin-bottom:22px;font-size:12px;color:var(--t2);line-height:1.6;}
+.advisory-icon{color:var(--amber);flex-shrink:0;font-size:14px;margin-top:1px;}
+.upload-btn{width:100%;padding:15px;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px;border:none;border-radius:10px;cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.upload-btn:hover:not(:disabled){background:#5cc9f5;transform:translateY(-1px);box-shadow:0 8px 28px rgba(56,189,248,0.25);}
+.upload-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.upload-err{font-size:12px;color:var(--red);margin-top:10px;text-align:center;min-height:18px;}
+.analysis-wrap{text-align:center;padding:16px 0;}
+.analysis-visual{position:relative;width:112px;height:112px;margin:0 auto 24px;}
+.analysis-ring{width:112px;height:112px;border-radius:50%;border:2px solid var(--border);position:relative;overflow:hidden;}
+.analysis-ring::after{content:'';position:absolute;top:-10%;left:0;right:0;height:20%;background:linear-gradient(180deg,transparent,rgba(56,189,248,0.4),transparent);animation:scanline 1.5s linear infinite;}
+.analysis-spin{position:absolute;inset:8px;border-radius:50%;border:2px solid transparent;border-top:2px solid var(--cyan);border-right:2px solid var(--cyan);animation:spin 1s linear infinite;}
+.analysis-icon-el{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;}
+.analysis-title{font-size:1.25rem;font-weight:700;margin-bottom:6px;}
+.analysis-sub{font-size:13px;color:var(--t2);margin-bottom:28px;}
+.a-steps{text-align:left;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;}
+.a-step{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--t3);transition:all 0.3s;}
+.a-step:last-child{border-bottom:none;}
+.a-step.active{color:var(--t1);}.a-step.done{color:var(--green);}
+.a-dot{width:8px;height:8px;border-radius:50%;background:var(--bg-elev);border:1px solid var(--t4);flex-shrink:0;transition:all 0.3s;}
+.a-step.active .a-dot{background:var(--cyan);border-color:var(--cyan);animation:pulse 1s ease-in-out infinite;}
+.a-step.done .a-dot{background:var(--green);border-color:var(--green);}
+.a-step-txt{flex:1;}.a-step-tag{font-family:var(--mono);font-size:10px;color:var(--t4);}
+.a-step.done .a-step-tag{color:var(--green);}
+.results-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+.results-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--green);margin-bottom:6px;}
+.results-title{font-size:1.35rem;font-weight:700;}
+.results-ref{font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:4px;}
+.dl-btn{display:flex;align-items:center;gap:8px;background:var(--green);color:var(--bg);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;padding:11px 20px;border:none;border-radius:8px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.dl-btn:hover{background:#5ee8b5;transform:translateY(-1px);box-shadow:0 6px 20px rgba(52,211,153,0.3);}
+.score-panel{display:grid;grid-template-columns:170px 1fr;gap:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;}
+.gauge-wrap{text-align:center;}.gauge-lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--t3);margin-bottom:8px;}
+.gauge-svg{width:100%;max-width:155px;}
+.risk-band{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:1px;border-radius:100px;padding:4px 12px;margin-top:8px;}
+.risk-elevated{color:var(--amber);background:var(--amber-dim);border:1px solid rgba(251,191,36,0.2);}
+.risk-high{color:var(--red);background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);}
+.risk-low{color:var(--green);background:var(--green-dim);border:1px solid rgba(52,211,153,0.2);}
+.risk-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite;}
+.dist-wrap{display:flex;flex-direction:column;justify-content:center;gap:10px;}
+.dist-row{display:flex;align-items:center;gap:10px;}
+.dist-label{font-family:var(--mono);font-size:10px;width:80px;flex-shrink:0;}
+.dist-bar-bg{flex:1;height:7px;background:var(--bg-elev);border-radius:4px;overflow:hidden;}
+.dist-bar-fill{height:100%;border-radius:4px;width:0;transition:width 1.4s var(--ease);}
+.dist-count{font-family:var(--mono);font-size:13px;font-weight:700;width:22px;text-align:right;}
+.findings-section{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;}
+.findings-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);}
+.findings-hdr-title{font-size:13px;font-weight:600;}
+.findings-count{font-family:var(--mono);font-size:10px;color:var(--t3);background:var(--bg-elev);border:1px solid var(--border);border-radius:4px;padding:3px 9px;}
+.finding-item{padding:16px 20px;border-bottom:1px solid var(--border);}
+.finding-item:last-child{border-bottom:none;}
+.finding-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.sev{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 9px;border-radius:4px;white-space:nowrap;flex-shrink:0;font-weight:700;margin-top:2px;}
+.sev-critical{color:var(--red);background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);}
+.sev-major{color:var(--amber);background:var(--amber-dim);border:1px solid rgba(251,191,36,0.15);}
+.sev-minor{color:var(--cyan);background:var(--cyan-dim);border:1px solid rgba(56,189,248,0.15);}
+.sev-compliant{color:var(--green);background:var(--green-dim);border:1px solid rgba(52,211,153,0.15);}
+.finding-name{font-size:13px;font-weight:600;margin-bottom:4px;}
+.finding-detail{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:6px;}
+.finding-remediation{font-size:12px;color:var(--t2);line-height:1.65;padding:8px 12px;background:rgba(56,189,248,0.04);border-left:2px solid var(--cyan);border-radius:0 4px 4px 0;margin-bottom:6px;}
+.finding-remediation strong{color:var(--cyan);}
+.finding-ref{font-family:var(--mono);font-size:10px;color:var(--cyan);opacity:0.6;}
+.findings-empty{padding:24px 20px;text-align:center;color:var(--t3);font-size:13px;}
+.disclaimer{background:var(--amber-dim);border:1px solid rgba(251,191,36,0.12);border-radius:10px;padding:14px 18px;margin-bottom:14px;font-size:11px;color:var(--t2);line-height:1.7;}
+.disclaimer strong{color:var(--amber);}
+.cta-box{background:var(--bg-card);border:1px solid var(--border-h);border-radius:14px;padding:22px;text-align:center;margin-top:4px;}
+.cta-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;}
+.cta-title{font-size:15px;font-weight:700;margin-bottom:8px;}
+.cta-sub{font-size:13px;color:var(--t2);margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.7;}
+.cta-link{display:inline-block;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;padding:12px 26px;border-radius:8px;text-decoration:none;}
+@media print{
+  @page{margin:22mm 15mm 30mm 15mm;size:A4;}
+  html,body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#fff!important;color:#1B2A4A!important;}
+  body::before{display:none!important;}
+  .nav,.dl-btn,.cta-box,.progress,.advisory{display:none!important;}
+  .state{display:block!important;}
+  #state-loading,#state-error,#state-upload,#state-analysis{display:none!important;}
+  .score-panel,.findings-section,.disclaimer{border:1px solid #dde4ee!important;background:#fff!important;color:#1B2A4A!important;}
+  .finding-item{border-color:#dde4ee!important;color:#1B2A4A!important;}
+  .finding-detail,.finding-remediation,.finding-ref,.results-ref,.dist-label,.dist-count,.gauge-lbl{color:#1B2A4A!important;}
+  .sev-critical{color:#c0392b!important;background:#fdf2f2!important;border-color:#e8b4b4!important;}
+  .sev-major{color:#b7770d!important;background:#fdf8ef!important;border-color:#f0d090!important;}
+  .sev-minor{color:#1a6fa8!important;background:#f0f7fd!important;border-color:#a8d4ef!important;}
+  .sev-compliant{color:#1e8a5e!important;background:#f0fdf6!important;border-color:#a0e0c4!important;}
+  .findings-hdr-title,.upload-title,.results-title{color:#1B2A4A!important;}
+  .pdf-hdr{display:flex!important;}
+  .print-watermark{display:block!important;}
+  .print-footer{display:flex!important;}
+  .print-hint{display:none!important;}
+}
+.pdf-hdr{display:none;}
+.print-watermark{
+  display:none;
+  position:fixed;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-35deg);
+  font-family:'Space Mono',monospace;
+  font-size:68px;font-weight:700;letter-spacing:8px;
+  color:rgba(13,115,119,0.055);
+  white-space:nowrap;pointer-events:none;z-index:9999;
+}
+.print-footer{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:auto;
+  background:#fff;
+  border-top:2.5px solid #0D7377;
+  padding:5px 15mm 6px;
+  flex-direction:row;align-items:center;justify-content:space-between;gap:8px;
+}
+.print-footer-brand{font-family:monospace;font-size:10px;font-weight:700;letter-spacing:3px;color:#1B2A4A;}
+.print-footer-advisory{font-size:7.5px;color:#64748b;font-style:italic;text-align:center;max-width:320px;line-height:1.45;}
+.print-footer-info{font-size:7.5px;color:#94a3b8;text-align:right;line-height:1.5;}
+.print-hint{display:flex;align-items:center;gap:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:7px;padding:9px 14px;margin-bottom:14px;font-size:12px;color:#94a3b8;}
+.print-hint-icon{flex-shrink:0;font-size:14px;}
+@media(max-width:600px){.score-panel{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="print-watermark">ADVISORY ONLY</div>
+<div class="print-footer">
+  <div class="print-footer-brand">AILANE</div>
+  <div class="print-footer-advisory">Advisory output only — not legal advice. This report must not be relied upon without independent legal verification. AI Lane Limited, Company No. 17035624.</div>
+  <div class="print-footer-info">ailane.ai<br>support@ailane.ai</div>
+</div>
+<div class="wrap">
+  <nav class="nav">
+    <a href="https://ailane.ai" class="nav-logo">AILANE<span>COMPLIANCE PORTAL</span></a>
+    <div class="secure-badge"><span class="secure-dot"></span>SECURE SESSION</div>
+  </nav>
+
+  <div class="pdf-hdr" style="display:none;flex-direction:row;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:3px solid #0D7377;margin-bottom:20px;">
+    <div style="font-family:monospace;font-size:18px;font-weight:700;letter-spacing:3px;color:#1B2A4A;">AILANE</div>
+    <div style="font-size:10px;color:#64748b;text-align:right;line-height:1.6;">Compliance Analysis Report<br>AI Lane Limited &middot; ailane.ai<br><span id="pdf-ref">—</span></div>
+  </div>
+  <div class="pdf-ftr">ADVISORY OUTPUT ONLY — This report does not constitute legal advice. Generated by Ailane regulatory intelligence software. AI Lane Limited &middot; ailane.ai</div>
+
+  <!-- LOADING -->
+  <div class="state active" id="state-loading">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">VERIFYING PAYMENT SESSION...</div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="state" id="state-error">
+    <div class="error-wrap">
+      <div class="error-icon" id="error-icon">⚠️</div>
+      <div class="error-title" id="error-title">Session Not Found</div>
+      <div class="error-sub" id="error-sub">We couldn't verify your payment. Please ensure you've completed checkout and are using the correct link from your confirmation email.</div>
+      <a href="https://ailane.ai/#compliance-checker" class="btn-back">← Return to Pricing</a>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="state" id="state-upload">
+    <div class="progress">
+      <div class="prog-step done"><div class="prog-num">✓</div>Payment</div>
+      <div class="prog-div"></div>
+      <div class="prog-step active"><div class="prog-num">2</div>Upload</div>
+      <div class="prog-div"></div>
+      <div class="prog-step"><div class="prog-num">3</div>Analysis</div>
+      <div class="prog-div"></div>
+      <div class="prog-step"><div class="prog-num">4</div>Report</div>
+    </div>
+    <div class="session-banner">
+      <div class="sb-left">
+        <div style="font-size:18px;">✅</div>
+        <div><div class="sb-name" id="sb-name">Payment Verified</div><div class="sb-email" id="sb-email"></div></div>
+      </div>
+      <div class="sb-tier" id="sb-tier">—</div>
+    </div>
+    <div class="upload-eyebrow">DOCUMENT UPLOAD</div>
+    <div class="upload-title">Upload your documents</div>
+    <div class="upload-sub" id="upload-sub">Upload your <strong>employment contract</strong> to begin your compliance analysis.</div>
+    <div class="slot-grid" id="slot-grid"></div>
+    <div class="advisory">
+      <span class="advisory-icon">ⓘ</span>
+      <span>Advisory outputs only — not legal advice. Documents are <strong>permanently deleted after analysis completes</strong>.</span>
+    </div>
+    <button class="upload-btn" id="upload-btn" onclick="startUpload()" disabled><span>⚡</span> Run Compliance Analysis</button>
+    <div class="upload-err" id="upload-err"></div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div class="state" id="state-analysis">
+    <div class="progress">
+      <div class="prog-step done"><div class="prog-num">✓</div>Payment</div><div class="prog-div"></div>
+      <div class="prog-step done"><div class="prog-num">✓</div>Upload</div><div class="prog-div"></div>
+      <div class="prog-step active"><div class="prog-num">3</div>Analysis</div><div class="prog-div"></div>
+      <div class="prog-step"><div class="prog-num">4</div>Report</div>
+    </div>
+    <div class="analysis-wrap">
+      <div class="analysis-visual">
+        <div class="analysis-ring"></div>
+        <div class="analysis-spin"></div>
+        <div class="analysis-icon-el">⚖️</div>
+      </div>
+      <div class="analysis-title">Analysing your documents</div>
+      <div class="analysis-sub">Checking against 47 legislative instruments including ERA 2025</div>
+      <div class="a-steps">
+        <div class="a-step active" id="as-0"><div class="a-dot"></div><div class="a-step-txt">Parsing document structure and extracting clauses</div><div class="a-step-tag" id="ast-0"></div></div>
+        <div class="a-step" id="as-1"><div class="a-dot"></div><div class="a-step-txt">Mapping obligations against Knowledge Library &mdash; 47 instruments</div><div class="a-step-tag" id="ast-1"></div></div>
+        <div class="a-step" id="as-2"><div class="a-dot"></div><div class="a-step-txt">ERA 2025 provisions assessed &mdash; s.22, s.118, s.1, s.73A</div><div class="a-step-tag" id="ast-2"></div></div>
+        <div class="a-step" id="as-3"><div class="a-dot"></div><div class="a-step-txt">Equality Act 2010 &middot; Working Time Regulations cross-check</div><div class="a-step-tag" id="ast-3"></div></div>
+        <div class="a-step" id="as-4"><div class="a-dot"></div><div class="a-step-txt">Scanning for unlawful deductions and restraint of trade</div><div class="a-step-tag" id="ast-4"></div></div>
+        <div class="a-step" id="as-5"><div class="a-dot"></div><div class="a-step-txt">Generating clause-level remediation recommendations</div><div class="a-step-tag" id="ast-5"></div></div>
+        <div class="a-step" id="as-6"><div class="a-dot"></div><div class="a-step-txt">Source document securely deleted &middot; Compiling report</div><div class="a-step-tag" id="ast-6"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="state" id="state-results">
+    <div class="progress">
+      <div class="prog-step done"><div class="prog-num">✓</div>Payment</div><div class="prog-div"></div>
+      <div class="prog-step done"><div class="prog-num">✓</div>Upload</div><div class="prog-div"></div>
+      <div class="prog-step done"><div class="prog-num">✓</div>Analysis</div><div class="prog-div"></div>
+      <div class="prog-step done active"><div class="prog-num">✓</div>Report</div>
+    </div>
+    <div class="results-hdr">
+      <div>
+        <div class="results-eyebrow">ANALYSIS COMPLETE</div>
+        <div class="results-title">Your Compliance Report</div>
+        <div class="results-ref" id="r-ref">—</div>
+      </div>
+      <div class="print-hint" id="print-hint"><span class="print-hint-icon">💡</span><span>For a clean PDF: in the print dialog, uncheck <strong style="color:#f1f5f9">"Headers and footers"</strong> to remove the browser URL line.</span></div>
+<button class="dl-btn" onclick="window.print()">⬇ Download PDF</button>
+    </div>
+    <div class="score-panel">
+      <div class="gauge-wrap">
+        <div class="gauge-lbl">COMPLIANCE SCORE</div>
+        <svg viewBox="0 0 160 100" class="gauge-svg">
+          <defs><linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#34d399"/><stop offset="40%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f87171"/>
+          </linearGradient></defs>
+          <path d="M 12 88 A 68 68 0 0 1 148 88" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M 12 88 A 68 68 0 0 1 148 88" fill="none" stroke="url(#gGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="gauge-arc" style="transition:stroke-dashoffset 2s cubic-bezier(0.25,0.46,0.45,0.94)"/>
+          <text x="80" y="72" text-anchor="middle" font-family="'Space Mono',monospace" font-size="30" font-weight="700" fill="#f1f5f9" id="gauge-num">0</text>
+          <text x="80" y="86" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="8" fill="#64748b" letter-spacing="1">SCORE</text>
+        </svg>
+        <div class="risk-band risk-elevated" id="risk-band"><span class="risk-dot"></span><span id="risk-label">CALCULATING</span></div>
+      </div>
+      <div class="dist-wrap">
+        <div class="dist-row"><div class="dist-label" style="color:var(--red)">&#9888; Critical</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-critical" style="background:var(--red)"></div></div><div class="dist-count" id="cnt-critical" style="color:var(--red)">0</div></div>
+        <div class="dist-row"><div class="dist-label" style="color:var(--amber)">&#9889; Major</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-major" style="background:var(--amber)"></div></div><div class="dist-count" id="cnt-major" style="color:var(--amber)">0</div></div>
+        <div class="dist-row"><div class="dist-label" style="color:var(--cyan)">&#9432; Minor</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-minor" style="background:var(--cyan)"></div></div><div class="dist-count" id="cnt-minor" style="color:var(--cyan)">0</div></div>
+        <div class="dist-row"><div class="dist-label" style="color:var(--green)">&#10003; Clear</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-compliant" style="background:var(--green)"></div></div><div class="dist-count" id="cnt-compliant" style="color:var(--green)">0</div></div>
+      </div>
+    </div>
+    <div class="findings-section">
+      <div class="findings-hdr">
+        <div class="findings-hdr-title">Clause-Level Findings</div>
+        <div class="findings-count" id="findings-count">Loading&hellip;</div>
+      </div>
+      <div id="findings-list"></div>
+    </div>
+    <div class="disclaimer">
+      <strong>Advisory Output &mdash; Not Legal Advice.</strong> This report is generated by Ailane's regulatory intelligence software and constitutes an advisory output only. It does not constitute legal advice and must not be relied upon without independent legal verification. Analysis performed against the Ailane Knowledge Library. AI Lane Limited, Company No. 17035624. Ref: <span id="disc-ref">—</span>. Generated: <span id="disc-date">—</span>.
+    </div>
+    <div class="cta-box">
+      <div class="cta-eyebrow">CONTINUOUS MONITORING</div>
+      <div class="cta-title">Address these gaps before they become claims</div>
+      <div class="cta-sub">An Ailane subscription monitors your employer profile continuously &mdash; live exposure scoring, readiness tracking, and instant Knowledge Library updates. From &pound;199/month.</div>
+      <a href="https://ailane.ai/#early-access" class="cta-link">Request Subscription Access &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<script>
+var SUPA_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+var SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+var FN_BASE   = SUPA_URL + '/functions/v1';
+var stripeSession = null, portalSession = null, currentTier = 'flash';
+var slots = {}, uploadIds = {};
+
+window.addEventListener('DOMContentLoaded', function() {
+  var params = new URLSearchParams(window.location.search);
+  stripeSession = params.get('session');
+  if (!stripeSession) {
+    showErr('🔗','No Session Found','This link is missing a payment session. Please complete checkout first.');
+    return;
+  }
+  verifySession(stripeSession);
+});
+
+function verifySession(sid) {
+  fetch(FN_BASE + '/portal-upload/verify?session=' + encodeURIComponent(sid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.verified) { showErr('💳','Payment Not Confirmed','Your payment could not be verified yet. Please wait 30 seconds and refresh this page. If this persists contact support@ailane.ai.'); return; }
+      portalSession = d; currentTier = d.tier || 'flash';
+      document.getElementById('sb-name').textContent = d.name || 'Payment Verified';
+      document.getElementById('sb-email').textContent = d.email || '';
+      document.getElementById('sb-tier').textContent = d.tier === 'full' ? 'FULL CHECK · £39' : 'FLASH CHECK · £19';
+      if (d.tier === 'full') document.getElementById('upload-sub').innerHTML = 'Upload your <strong>employment contract</strong> (required) plus handbook and HR policies for full analysis.';
+      buildSlots(d.tier);
+      showState('state-upload');
+    })
+    .catch(function(){ showErr('⏳','Verifying Payment…','Your payment is being confirmed. Please refresh this page in 30 seconds. Contact support@ailane.ai if this persists.'); });
+}
+
+function buildSlots(tier) {
+  var defs = tier === 'full'
+    ? [{id:'contract',label:'Employment Contract',icon:'📄',req:true},{id:'handbook',label:'Staff Handbook',icon:'📋',req:false},{id:'policies',label:'HR Policies',icon:'📑',req:false}]
+    : [{id:'contract',label:'Employment Contract',icon:'📄',req:true}];
+  slots = {};
+  var g = document.getElementById('slot-grid'); g.innerHTML = '';
+  defs.forEach(function(def){
+    slots[def.id] = null;
+    var c = document.createElement('div');
+    c.className = 'slot-card' + (def.req ? ' req' : '');
+    c.id = 'sc-' + def.id;
+    c.innerHTML = slotEmpty(def);
+    g.appendChild(c);
+  });
+}
+
+function slotEmpty(def) {
+  return '<div class="slot-hdr"><div class="slot-lbl"><span class="slot-icon">' + def.icon + '</span><span class="slot-name">' + def.label + '</span>'
+    + (def.req ? '<span class="badge-req">REQUIRED</span>' : '<span class="badge-opt">OPTIONAL</span>')
+    + '</div><span class="slot-status" id="ss-' + def.id + '">No file</span></div>'
+    + '<div class="slot-drop" id="sd-' + def.id + '" onclick="trig(\'' + def.id + '\')" ondragover="sOver(event,\'' + def.id + '\')" ondragleave="sLeave(\'' + def.id + '\')" ondrop="sDrop(event,\'' + def.id + '\')">'
+    + '<div class="slot-drop-text">Drag file here or <span>browse</span></div>'
+    + '<div class="slot-drop-fmt">.docx &nbsp;&middot;&nbsp; .pdf &nbsp;&middot;&nbsp; max 10MB</div></div>'
+    + '<input type="file" id="si-' + def.id + '" accept=".docx,.pdf" style="display:none" onchange="sSel(event,\'' + def.id + '\')">';
+}
+
+function trig(id){ document.getElementById('si-'+id).click(); }
+function sOver(e,id){ e.preventDefault(); document.getElementById('sd-'+id).classList.add('over'); }
+function sLeave(id){ document.getElementById('sd-'+id).classList.remove('over'); }
+function sDrop(e,id){ e.preventDefault(); sLeave(id); applyFile(id, e.dataTransfer.files[0]); }
+function sSel(e,id){ applyFile(id, e.target.files[0]); }
+
+function applyFile(id, file) {
+  if (!file) return;
+  var ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (!['.docx','.pdf'].includes(ext)) { alert('Please upload a .docx or .pdf file.'); return; }
+  if (file.size > 10*1024*1024) { alert('File too large — max 10MB.'); return; }
+  slots[id] = file;
+  document.getElementById('sc-'+id).classList.add('filled');
+  var ss = document.getElementById('ss-'+id); ss.textContent = '✓ Ready'; ss.className = 'slot-status ok';
+  document.getElementById('sd-'+id).innerHTML = '<div class="slot-file"><div class="slot-file-info"><span style="font-size:22px">📄</span>'
+    + '<div><div class="slot-file-name">' + file.name + '</div><div class="slot-file-size">' + fmtB(file.size) + '</div></div></div>'
+    + '<button class="slot-remove" onclick="remFile(event,\'' + id + '\')">✕</button></div>';
+  checkReady();
+}
+
+function remFile(e, id) {
+  e.stopPropagation(); slots[id] = null;
+  var m = {contract:{icon:'📄',label:'Employment Contract',req:true}, handbook:{icon:'📋',label:'Staff Handbook',req:false}, policies:{icon:'📑',label:'HR Policies',req:false}};
+  var c = document.getElementById('sc-'+id); c.classList.remove('filled');
+  c.innerHTML = slotEmpty({id:id, label:m[id].label, icon:m[id].icon, req:m[id].req});
+  checkReady();
+}
+
+function checkReady(){ document.getElementById('upload-btn').disabled = !slots['contract']; }
+function fmtB(b){ return b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB'; }
+
+function startUpload() {
+  if (!slots['contract']) return;
+  document.getElementById('upload-btn').disabled = true;
+  document.getElementById('upload-err').textContent = '';
+  showState('state-analysis');
+  startAnim();
+  var toUp = ['contract','handbook','policies'].filter(function(id){ return slots[id]; }).map(function(id){ return {id:id,file:slots[id]}; });
+  upSeq(toUp, 0);
+}
+
+function upSeq(items, idx) {
+  if (idx >= items.length) { pollResult(uploadIds['contract'], 0); return; }
+  var item = items[idx];
+  var fd = new FormData();
+  fd.append('file', item.file);
+  fd.append('document_type', item.id === 'policies' ? 'policy' : item.id);
+  fetch(FN_BASE + '/portal-upload', { method:'POST', headers:{'x-portal-session': stripeSession}, body:fd })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) { upErr('Upload failed: ' + d.error); return; }
+      uploadIds[item.id] = d.upload_id;
+      upSeq(items, idx + 1);
+    })
+    .catch(function(e){ upErr('Network error. Please try again.'); });
+}
+
+function upErr(msg){ showState('state-upload'); document.getElementById('upload-err').textContent = msg; document.getElementById('upload-btn').disabled = false; }
+
+function startAnim() {
+  var delays = [0, 4000, 10000, 18000, 28000, 38000, 48000];
+  delays.forEach(function(d, i){
+    setTimeout(function(){
+      if (i > 0) { document.getElementById('as-'+(i-1)).className='a-step done'; document.getElementById('ast-'+(i-1)).textContent='✓'; }
+      var el = document.getElementById('as-'+i); if (el) el.className = 'a-step active';
+    }, d);
+  });
+}
+
+function pollResult(uploadId, attempts) {
+  if (!uploadId) { upErr('Upload ID missing. Please try again.'); return; }
+  if (attempts > 72) { upErr('Analysis taking longer than expected. Please refresh in a few minutes.'); return; }
+  fetch(SUPA_URL + '/rest/v1/compliance_uploads?id=eq.' + uploadId + '&select=status,overall_score', {
+    headers: { 'apikey': SUPA_ANON, 'Authorization': 'Bearer ' + SUPA_ANON }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(rows){
+    var row = rows && rows[0];
+    if (!row) { setTimeout(function(){ pollResult(uploadId, attempts+1); }, 5000); return; }
+    if (row.status === 'complete') {
+      for (var i=0;i<=6;i++){ document.getElementById('as-'+i).className='a-step done'; document.getElementById('ast-'+i).textContent='✓'; }
+      setTimeout(function(){ fetchResults(uploadId, row.overall_score); }, 800);
+    } else if (row.status === 'error') {
+      upErr('Analysis error. Contact support@ailane.ai with ref: ' + uploadId);
+    } else {
+      var delay = Math.min(5000 + attempts * 500, 15000);
+      setTimeout(function(){ pollResult(uploadId, attempts+1); }, delay);
+    }
+  })
+  .catch(function(){ setTimeout(function(){ pollResult(uploadId, attempts+1); }, 5000); });
+}
+
+function fetchResults(uploadId, score) {
+  fetch(SUPA_URL + '/rest/v1/compliance_findings?upload_id=eq.' + uploadId + '&select=*&order=severity.asc', {
+    headers: { 'apikey': SUPA_ANON, 'Authorization': 'Bearer ' + SUPA_ANON }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(findings){ renderResults(score, findings || []); })
+  .catch(function(){ renderResults(score, []); });
+}
+
+function renderResults(score, findings) {
+  showState('state-results');
+  var ref = 'ACP-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + (uploadIds['contract']||'').slice(0,8).toUpperCase();
+  var dt = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('r-ref').textContent = 'REF: ' + ref;
+  document.getElementById('disc-ref').textContent = ref;
+  document.getElementById('disc-date').textContent = dt;
+  document.getElementById('pdf-ref').textContent = ref + ' · ' + dt;
+  var s = Math.round(score || 0);
+  setTimeout(function(){
+    document.getElementById('gauge-arc').style.strokeDashoffset = 213.6 - (s/100)*213.6;
+    var cur=0, iv=setInterval(function(){ cur=Math.min(cur+2,s); document.getElementById('gauge-num').textContent=cur; if(cur>=s)clearInterval(iv); }, 28);
+  }, 200);
+  var rb = document.getElementById('risk-band'), rl = document.getElementById('risk-label');
+  if (s >= 75) { rb.className='risk-band risk-low'; rl.textContent='LOW RISK'; }
+  else if (s >= 45) { rb.className='risk-band risk-elevated'; rl.textContent='ELEVATED RISK'; }
+  else { rb.className='risk-band risk-high'; rl.textContent='HIGH RISK'; }
+  var c = {critical:0,major:0,minor:0,compliant:0};
+  findings.forEach(function(f){ if(c[f.severity]!==undefined) c[f.severity]++; });
+  var total = findings.length || 1;
+  ['critical','major','minor','compliant'].forEach(function(sv){
+    document.getElementById('cnt-'+sv).textContent = c[sv];
+    setTimeout(function(){ document.getElementById('bar-'+sv).style.width = ((c[sv]/total)*100)+'%'; }, 400);
+  });
+  document.getElementById('findings-count').textContent = findings.length + ' findings · ' + c.critical + ' critical';
+  var list = document.getElementById('findings-list');
+  if (!findings.length) { list.innerHTML = '<div class="findings-empty">No findings returned.</div>'; return; }
+  var sevOrd = ['critical','major','minor','compliant'];
+  var sorted = findings.slice().sort(function(a,b){ return sevOrd.indexOf(a.severity)-sevOrd.indexOf(b.severity); });
+  list.innerHTML = sorted.map(function(f){
+    var sl = f.severity==='compliant'?'✓ COMPLIANT':f.severity==='critical'?'⚠ CRITICAL':f.severity==='major'?'⚡ MAJOR':'ⓘ MINOR';
+    return '<div class="finding-item">'
+      + '<div class="finding-top"><div class="sev sev-'+f.severity+'">'+sl+'</div>'
+      + '<div><div class="finding-name">'+esc(f.clause_category||'Finding')+'</div></div></div>'
+      + (f.clause_text && f.clause_text!=='[Not found]' && f.clause_text!=='[Not analysed]'
+        ? '<div class="finding-detail" style="font-style:italic;color:var(--t4);margin-bottom:6px;">&ldquo;'+esc(f.clause_text.slice(0,200))+(f.clause_text.length>200?'&hellip;':'')+'&rdquo;</div>' : '')
+      + '<div class="finding-detail">'+esc(f.finding_detail||'')+'</div>'
+      + (f.remediation ? '<div class="finding-remediation"><strong>Remediation:</strong> '+esc(f.remediation)+'</div>' : '')
+      + (f.statutory_ref ? '<div class="finding-ref">&rarr; '+esc(f.statutory_ref)+'</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showState(id){ document.querySelectorAll('.state').forEach(function(el){el.classList.remove('active');}); document.getElementById(id).classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); }
+function showErr(icon,title,sub){ document.getElementById('error-icon').textContent=icon; document.getElementById('error-title').textContent=title; document.getElementById('error-sub').textContent=sub; showState('state-error'); }
+</script>
+</body>
+</html>
