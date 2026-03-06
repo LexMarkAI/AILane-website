@@ -2,523 +2,549 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ailane · Secure Compliance Portal</title>
-<meta name="robots" content="noindex, nofollow">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ailane | Compliance Portal</title>
 <style>
-:root {
-  --bg:#080d16;--bg-card:#0e1520;--bg-elev:#141e2e;--bg-input:#0b1219;
-  --border:rgba(56,189,248,0.08);--border-h:rgba(56,189,248,0.22);
-  --cyan:#38bdf8;--cyan-dim:rgba(56,189,248,0.10);
-  --green:#34d399;--green-dim:rgba(52,211,153,0.10);
-  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.08);
-  --red:#f87171;--red-dim:rgba(248,113,113,0.08);
-  --t1:#f1f5f9;--t2:#94a3b8;--t3:#64748b;--t4:#475569;
-  --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
-  --ease:cubic-bezier(0.25,0.46,0.45,0.94);
-}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-html{-webkit-font-smoothing:antialiased;}
-body{font-family:var(--body);background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden;}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:radial-gradient(rgba(56,189,248,0.06) 1px,transparent 1px);background-size:32px 32px;
-  mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 20%,transparent 70%);
-  -webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 20%,transparent 70%);}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-@keyframes pulse{0%,100%{opacity:.5;transform:scale(.85);}50%{opacity:1;transform:scale(1.15);}}
-@keyframes spin{to{transform:rotate(360deg);}}
-@keyframes scanline{0%{top:-10%;}100%{top:110%;}}
-.wrap{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:36px 24px 80px;}
-.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:48px;}
-.nav-logo{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:4px;color:var(--t1);text-decoration:none;}
-.nav-logo span{color:var(--cyan);font-size:9px;letter-spacing:1.5px;font-weight:400;margin-left:8px;}
-.secure-badge{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--green);background:var(--green-dim);border:1px solid rgba(52,211,153,0.15);border-radius:100px;padding:5px 14px;}
-.secure-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;}
-.state{display:none;}
-.state.active{display:block;animation:fadeUp 0.45s var(--ease) both;}
-.progress{display:flex;align-items:center;gap:0;margin-bottom:32px;}
-.prog-step{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:0.5px;color:var(--t4);}
-.prog-step.active{color:var(--cyan);}.prog-step.done{color:var(--green);}
-.prog-num{width:22px;height:22px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
-.prog-step.done .prog-num{background:var(--green);border-color:var(--green);color:var(--bg);}
-.prog-div{flex:1;height:1px;background:var(--border);margin:0 8px;}
-.loading-wrap{text-align:center;padding:60px 0;}
-.spinner{width:48px;height:48px;border:2px solid var(--border);border-top:2px solid var(--cyan);border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 20px;}
-.loading-text{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--t3);}
-.error-wrap{text-align:center;padding:60px 20px;}
-.error-icon{font-size:48px;margin-bottom:20px;}
-.error-title{font-size:1.4rem;font-weight:700;margin-bottom:10px;}
-.error-sub{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:28px;max-width:440px;margin-left:auto;margin-right:auto;}
-.btn-back{display:inline-block;background:var(--bg-card);border:1px solid var(--border-h);color:var(--cyan);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;padding:12px 24px;border-radius:8px;text-decoration:none;transition:all 0.2s;}
-.session-banner{background:var(--green-dim);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.sb-left{display:flex;align-items:center;gap:10px;}
-.sb-name{font-size:14px;font-weight:600;}
-.sb-email{font-size:12px;color:var(--t3);}
-.sb-tier{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--green);background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.2);border-radius:4px;padding:3px 10px;white-space:nowrap;}
-.upload-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;}
-.upload-title{font-size:1.4rem;font-weight:700;letter-spacing:-0.2px;margin-bottom:8px;}
-.upload-sub{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:24px;}
-.upload-sub strong{color:var(--t1);}
-.slot-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:24px;}
-.slot-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:all 0.25s;}
-.slot-card.req{border-left:2px solid var(--cyan);}
-.slot-card.filled{border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.02);}
-.slot-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.slot-lbl{display:flex;align-items:center;gap:10px;}
-.slot-icon{font-size:18px;}
-.slot-name{font-size:13px;font-weight:600;}
-.badge-req{font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--cyan);background:var(--cyan-dim);border:1px solid rgba(56,189,248,0.15);border-radius:3px;padding:2px 7px;}
-.badge-opt{font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--t4);background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:3px;padding:2px 7px;}
-.slot-status{font-family:var(--mono);font-size:10px;color:var(--t4);}
-.slot-status.ok{color:var(--green);}
-.slot-drop{border:1.5px dashed rgba(56,189,248,0.15);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;}
-.slot-drop:hover,.slot-drop.over{border-color:rgba(56,189,248,0.4);background:rgba(56,189,248,0.03);}
-.slot-drop-text{font-size:12px;color:var(--t3);}
-.slot-drop-text span{color:var(--cyan);}
-.slot-drop-fmt{font-family:var(--mono);font-size:9px;color:var(--t4);margin-top:5px;letter-spacing:0.3px;}
-.slot-file{display:flex;align-items:center;justify-content:space-between;}
-.slot-file-info{display:flex;align-items:center;gap:10px;}
-.slot-file-name{font-size:13px;font-weight:500;}
-.slot-file-size{font-family:var(--mono);font-size:10px;color:var(--t3);}
-.slot-remove{background:none;border:none;color:var(--t4);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:4px;transition:all 0.2s;}
-.slot-remove:hover{color:var(--red);background:var(--red-dim);}
-.advisory{display:flex;gap:10px;background:var(--amber-dim);border:1px solid rgba(251,191,36,0.12);border-radius:8px;padding:12px 16px;margin-bottom:22px;font-size:12px;color:var(--t2);line-height:1.6;}
-.advisory-icon{color:var(--amber);flex-shrink:0;font-size:14px;margin-top:1px;}
-.upload-btn{width:100%;padding:15px;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px;border:none;border-radius:10px;cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:10px;}
-.upload-btn:hover:not(:disabled){background:#5cc9f5;transform:translateY(-1px);box-shadow:0 8px 28px rgba(56,189,248,0.25);}
-.upload-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.upload-err{font-size:12px;color:var(--red);margin-top:10px;text-align:center;min-height:18px;}
-.analysis-wrap{text-align:center;padding:16px 0;}
-.analysis-visual{position:relative;width:112px;height:112px;margin:0 auto 24px;}
-.analysis-ring{width:112px;height:112px;border-radius:50%;border:2px solid var(--border);position:relative;overflow:hidden;}
-.analysis-ring::after{content:'';position:absolute;top:-10%;left:0;right:0;height:20%;background:linear-gradient(180deg,transparent,rgba(56,189,248,0.4),transparent);animation:scanline 1.5s linear infinite;}
-.analysis-spin{position:absolute;inset:8px;border-radius:50%;border:2px solid transparent;border-top:2px solid var(--cyan);border-right:2px solid var(--cyan);animation:spin 1s linear infinite;}
-.analysis-icon-el{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;}
-.analysis-title{font-size:1.25rem;font-weight:700;margin-bottom:6px;}
-.analysis-sub{font-size:13px;color:var(--t2);margin-bottom:28px;}
-.a-steps{text-align:left;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;}
-.a-step{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--t3);transition:all 0.3s;}
-.a-step:last-child{border-bottom:none;}
-.a-step.active{color:var(--t1);}.a-step.done{color:var(--green);}
-.a-dot{width:8px;height:8px;border-radius:50%;background:var(--bg-elev);border:1px solid var(--t4);flex-shrink:0;transition:all 0.3s;}
-.a-step.active .a-dot{background:var(--cyan);border-color:var(--cyan);animation:pulse 1s ease-in-out infinite;}
-.a-step.done .a-dot{background:var(--green);border-color:var(--green);}
-.a-step-txt{flex:1;}.a-step-tag{font-family:var(--mono);font-size:10px;color:var(--t4);}
-.a-step.done .a-step-tag{color:var(--green);}
-.results-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
-.results-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--green);margin-bottom:6px;}
-.results-title{font-size:1.35rem;font-weight:700;}
-.results-ref{font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:4px;}
-.dl-btn{display:flex;align-items:center;gap:8px;background:var(--green);color:var(--bg);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;padding:11px 20px;border:none;border-radius:8px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
-.dl-btn:hover{background:#5ee8b5;transform:translateY(-1px);box-shadow:0 6px 20px rgba(52,211,153,0.3);}
-.score-panel{display:grid;grid-template-columns:170px 1fr;gap:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;}
-.gauge-wrap{text-align:center;}.gauge-lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--t3);margin-bottom:8px;}
-.gauge-svg{width:100%;max-width:155px;}
-.risk-band{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:1px;border-radius:100px;padding:4px 12px;margin-top:8px;}
-.risk-elevated{color:var(--amber);background:var(--amber-dim);border:1px solid rgba(251,191,36,0.2);}
-.risk-high{color:var(--red);background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);}
-.risk-low{color:var(--green);background:var(--green-dim);border:1px solid rgba(52,211,153,0.2);}
-.risk-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite;}
-.dist-wrap{display:flex;flex-direction:column;justify-content:center;gap:10px;}
-.dist-row{display:flex;align-items:center;gap:10px;}
-.dist-label{font-family:var(--mono);font-size:10px;width:80px;flex-shrink:0;}
-.dist-bar-bg{flex:1;height:7px;background:var(--bg-elev);border-radius:4px;overflow:hidden;}
-.dist-bar-fill{height:100%;border-radius:4px;width:0;transition:width 1.4s var(--ease);}
-.dist-count{font-family:var(--mono);font-size:13px;font-weight:700;width:22px;text-align:right;}
-.findings-section{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;}
-.findings-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);}
-.findings-hdr-title{font-size:13px;font-weight:600;}
-.findings-count{font-family:var(--mono);font-size:10px;color:var(--t3);background:var(--bg-elev);border:1px solid var(--border);border-radius:4px;padding:3px 9px;}
-.finding-item{padding:16px 20px;border-bottom:1px solid var(--border);}
-.finding-item:last-child{border-bottom:none;}
-.finding-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
-.sev{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 9px;border-radius:4px;white-space:nowrap;flex-shrink:0;font-weight:700;margin-top:2px;}
-.sev-critical{color:var(--red);background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);}
-.sev-major{color:var(--amber);background:var(--amber-dim);border:1px solid rgba(251,191,36,0.15);}
-.sev-minor{color:var(--cyan);background:var(--cyan-dim);border:1px solid rgba(56,189,248,0.15);}
-.sev-compliant{color:var(--green);background:var(--green-dim);border:1px solid rgba(52,211,153,0.15);}
-.finding-name{font-size:13px;font-weight:600;margin-bottom:4px;}
-.finding-detail{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:6px;}
-.finding-remediation{font-size:12px;color:var(--t2);line-height:1.65;padding:8px 12px;background:rgba(56,189,248,0.04);border-left:2px solid var(--cyan);border-radius:0 4px 4px 0;margin-bottom:6px;}
-.finding-remediation strong{color:var(--cyan);}
-.finding-ref{font-family:var(--mono);font-size:10px;color:var(--cyan);opacity:0.6;}
-.findings-empty{padding:24px 20px;text-align:center;color:var(--t3);font-size:13px;}
-.disclaimer{background:var(--amber-dim);border:1px solid rgba(251,191,36,0.12);border-radius:10px;padding:14px 18px;margin-bottom:14px;font-size:11px;color:var(--t2);line-height:1.7;}
-.disclaimer strong{color:var(--amber);}
-.cta-box{background:var(--bg-card);border:1px solid var(--border-h);border-radius:14px;padding:22px;text-align:center;margin-top:4px;}
-.cta-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;}
-.cta-title{font-size:15px;font-weight:700;margin-bottom:8px;}
-.cta-sub{font-size:13px;color:var(--t2);margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.7;}
-.cta-link{display:inline-block;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;padding:12px 26px;border-radius:8px;text-decoration:none;}
-@media print{
-  body{background:#fff!important;color:#1B2A4A!important;}
-  body::before{display:none;}
-  .nav,.dl-btn,.cta-box,.progress{display:none!important;}
-  .state{display:block!important;}
-  #state-loading,#state-error,#state-upload,#state-analysis{display:none!important;}
-  .score-panel,.findings-section,.disclaimer{border:1px solid #dde4ee!important;background:#fff!important;}
-  .finding-item{border-color:#dde4ee!important;}
-  .pdf-hdr,.pdf-ftr{display:block!important;}
-  @page{margin:20mm 15mm;}
+:root{
+  --navy:#0D1B2A;--navy2:#1B2A4A;--teal:#0D7377;--teal2:#14BDAD;
+  --gold:#C4973A;--white:#F0F4F8;--grey:#8A9BB0;--dark:#070F1A;
 }
-.pdf-hdr{display:none;}
-.pdf-ftr{display:none;position:fixed;bottom:0;left:0;right:0;padding:10px 15mm;border-top:1px solid #dde4ee;font-size:9px;color:#94a3b8;background:#fff;text-align:center;line-height:1.5;}
-@media(max-width:600px){.score-panel{grid-template-columns:1fr;}}
+html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:var(--dark);color:var(--white);}
+body{display:flex;flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+header{
+  padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(13,115,119,0.3);background:rgba(13,27,42,0.97);
+  position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);
+}
+.logo{font-size:18px;font-weight:900;letter-spacing:2px;}
+.logo span{color:var(--teal2);}
+.secure-badge{
+  display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;
+  color:var(--teal2);letter-spacing:1px;
+  background:rgba(13,115,119,0.15);border:1px solid rgba(20,189,173,0.3);
+  padding:5px 12px;border-radius:20px;
+}
+.secure-dot{width:7px;height:7px;border-radius:50%;background:var(--teal2);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* MAIN */
+main{flex:1;display:flex;flex-direction:column;align-items:center;padding:36px 16px 72px;}
+
+/* STEPPER */
+.stepper{
+  display:flex;align-items:center;margin-bottom:36px;
+  background:rgba(27,42,74,0.5);border:1px solid rgba(255,255,255,0.06);
+  border-radius:4px;padding:10px 20px;gap:0;
+}
+.step{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--grey);white-space:nowrap;}
+.step.active{color:var(--teal2);}
+.step.done{color:var(--teal);}
+.step-num{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;border:1.5px solid currentColor;flex-shrink:0;
+}
+.step.done .step-num::after{content:'✓';}
+.step.done .step-num span{display:none;}
+.step-div{width:28px;height:1px;background:rgba(255,255,255,0.1);margin:0 6px;flex-shrink:0;}
+
+/* CARD */
+.card{width:100%;max-width:600px;background:rgba(13,27,42,0.92);border:1px solid rgba(255,255,255,0.07);border-radius:8px;overflow:hidden;}
+.card-header{padding:24px 28px 0;}
+.card-body{padding:22px 28px 28px;}
+
+/* VERIFY SCREEN */
+#screen-verify{display:flex;flex-direction:column;align-items:center;padding:52px 28px;}
+.spinner{width:52px;height:52px;border-radius:50%;border:3px solid rgba(13,115,119,0.15);border-top-color:var(--teal2);animation:spin 0.9s linear infinite;margin-bottom:18px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* UPLOAD SCREEN */
+.upload-zone{
+  border:2px dashed rgba(13,115,119,0.35);border-radius:6px;
+  padding:30px 20px;text-align:center;cursor:pointer;
+  transition:all 0.2s;background:rgba(13,115,119,0.04);margin-bottom:14px;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--teal2);background:rgba(13,115,119,0.09);}
+.upload-icon{font-size:30px;margin-bottom:10px;opacity:0.6;}
+.upload-zone p{font-size:13px;color:var(--grey);line-height:1.65;}
+.upload-zone strong{color:var(--teal2);}
+#file-input{display:none;}
+.file-selected{display:none;background:rgba(13,115,119,0.12);border:1px solid rgba(13,115,119,0.3);border-radius:4px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--teal2);}
+.doc-type-row{display:flex;gap:8px;margin-bottom:18px;}
+.dtype-btn{flex:1;padding:9px 6px;font-size:11px;font-weight:700;letter-spacing:0.3px;border:1.5px solid rgba(255,255,255,0.09);border-radius:4px;background:rgba(255,255,255,0.03);color:var(--grey);cursor:pointer;transition:all 0.15s;}
+.dtype-btn.active{border-color:var(--teal);background:rgba(13,115,119,0.13);color:var(--teal2);}
+.btn-primary{width:100%;padding:14px;border-radius:4px;border:none;cursor:pointer;background:var(--teal);color:#fff;font-size:13px;font-weight:700;letter-spacing:0.5px;transition:all 0.15s;}
+.btn-primary:hover:not(:disabled){background:var(--teal2);}
+.btn-primary:disabled{opacity:0.38;cursor:not-allowed;}
+
+/* ANALYSIS SCREEN */
+#screen-analysis{display:flex;flex-direction:column;align-items:center;padding:40px 28px 36px;}
+.analysis-ring{
+  width:90px;height:90px;border-radius:50%;
+  border:3px solid rgba(13,115,119,0.12);
+  border-top-color:var(--teal2);border-right-color:var(--teal);
+  animation:spin 1.2s linear infinite;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:22px;position:relative;
+}
+.analysis-icon{font-size:26px;position:absolute;animation:none;}
+.analysis-title{font-size:20px;font-weight:700;margin-bottom:6px;text-align:center;}
+.analysis-sub{font-size:12px;color:var(--grey);margin-bottom:26px;text-align:center;line-height:1.65;}
+.a-steps{width:100%;max-width:460px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);border-radius:6px;overflow:hidden;margin-bottom:12px;}
+.a-step{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--grey);}
+.a-step:last-child{border-bottom:none;}
+.a-step.done{color:var(--teal2);}
+.a-step.active{color:var(--white);}
+.a-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:10px;flex-shrink:0;transition:background 0.3s;}
+.a-step.done .a-dot{background:var(--teal);}
+.a-step.active .a-dot{background:var(--teal2);animation:pulse 1.4s infinite;}
+.a-step.done::after{content:'✓';font-size:10px;color:var(--teal);}
+.wordmark{font-size:10px;color:rgba(255,255,255,0.15);letter-spacing:2.5px;margin-top:6px;}
+
+/* REPORT SCREEN */
+#screen-report{padding:0;}
+.legal-banner{background:var(--navy2);padding:10px 22px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.legal-icon{font-size:12px;margin-top:2px;flex-shrink:0;opacity:0.6;}
+.legal-text{font-size:10px;color:rgba(255,255,255,0.48);line-height:1.6;}
+.legal-text strong{color:rgba(255,255,255,0.7);}
+.report-body{padding:22px 24px 28px;}
+.report-eyebrow{font-size:9px;font-weight:700;color:var(--teal2);letter-spacing:1.5px;margin-bottom:8px;}
+.report-title{font-size:18px;font-weight:700;margin-bottom:18px;line-height:1.25;}
+
+/* score row */
+.score-row{display:flex;align-items:center;gap:18px;margin-bottom:18px;}
+.score-circle{width:84px;height:84px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid var(--teal);background:rgba(13,115,119,0.08);}
+.sc-num{font-size:25px;font-weight:900;line-height:1;}
+.sc-denom{font-size:9px;color:var(--grey);}
+.score-right{}
+.risk-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:2px;display:inline-block;letter-spacing:0.5px;margin-bottom:7px;}
+.score-summary{font-size:12px;color:var(--grey);line-height:1.65;}
+.score-summary strong{color:var(--white);}
+
+/* dist */
+.dist-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:18px;}
+.dist-cell{background:rgba(255,255,255,0.028);border:1px solid rgba(255,255,255,0.055);border-radius:4px;padding:10px 6px;text-align:center;}
+.dc-num{font-size:20px;font-weight:900;line-height:1;display:block;margin-bottom:2px;}
+.dc-lbl{font-size:8px;font-weight:700;letter-spacing:1px;display:block;margin-bottom:2px;}
+.dc-desc{font-size:9px;color:var(--grey);}
+
+/* download section */
+.dl-section{border:1px solid rgba(13,115,119,0.28);border-radius:6px;padding:16px 18px;margin-bottom:18px;background:rgba(13,115,119,0.055);}
+.dl-title{font-size:10px;font-weight:700;color:var(--teal2);letter-spacing:1px;margin-bottom:4px;}
+.dl-sub{font-size:11px;color:var(--grey);line-height:1.55;margin-bottom:14px;}
+.dl-btns{display:flex;gap:10px;}
+.dl-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 14px;border-radius:4px;font-size:12px;font-weight:700;
+  cursor:pointer;border:none;transition:all 0.15s;letter-spacing:0.3px;
+}
+.dl-btn-pdf{background:var(--navy2);color:var(--white);border:1.5px solid var(--teal);}
+.dl-btn-pdf:hover:not(:disabled){background:var(--teal);}
+.dl-btn-docx{background:transparent;color:var(--teal2);border:1.5px solid rgba(13,115,119,0.38);}
+.dl-btn-docx:hover:not(:disabled){background:rgba(13,115,119,0.1);border-color:var(--teal2);}
+.dl-btn:disabled{opacity:0.38;cursor:not-allowed;}
+
+/* tier panel */
+.tier-panel{background:var(--navy2);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:18px 20px;}
+.tp-eyebrow{font-size:7.5px;font-weight:700;color:var(--gold);letter-spacing:2px;margin-bottom:6px;}
+.tp-headline{font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.3;}
+.tp-body{font-size:11px;color:var(--grey);line-height:1.65;margin-bottom:16px;}
+.tp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.tp-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:4px;padding:12px 10px;}
+.tp-card.featured{background:rgba(196,151,58,0.1);border-color:var(--gold);}
+.tp-badge{font-size:7px;font-weight:700;color:var(--gold);letter-spacing:1.5px;margin-bottom:4px;}
+.tp-name{font-size:10px;font-weight:700;margin-bottom:3px;}
+.tp-price{font-size:14px;font-weight:900;color:var(--gold);line-height:1;margin-bottom:4px;}
+.tp-price span{font-size:9px;color:var(--grey);font-weight:400;}
+.tp-desc{font-size:9px;color:var(--grey);line-height:1.5;}
+.tp-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.tp-btn{display:inline-block;padding:9px 18px;background:var(--gold);color:#fff;font-size:11px;font-weight:700;border-radius:3px;text-decoration:none;}
+.tp-link{font-size:11px;color:var(--grey);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.18);padding-bottom:1px;}
+
+/* footer */
+footer{text-align:center;padding:18px;font-size:10px;color:rgba(255,255,255,0.18);border-top:1px solid rgba(255,255,255,0.04);}
+
+/* utils */
+.hidden{display:none!important;}
+.error-box{background:rgba(153,27,27,0.14);border:1px solid rgba(153,27,27,0.38);border-radius:4px;padding:10px 14px;font-size:12px;color:#FCA5A5;margin-bottom:12px;}
+.advisory{font-size:10px;color:rgba(255,255,255,0.25);text-align:center;margin-top:14px;line-height:1.65;}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <nav class="nav">
-    <a href="https://ailane.ai" class="nav-logo">AILANE<span>COMPLIANCE PORTAL</span></a>
-    <div class="secure-badge"><span class="secure-dot"></span>SECURE SESSION</div>
-  </nav>
 
-  <div class="pdf-hdr" style="display:none;flex-direction:row;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:3px solid #0D7377;margin-bottom:20px;">
-    <div style="font-family:monospace;font-size:18px;font-weight:700;letter-spacing:3px;color:#1B2A4A;">AILANE</div>
-    <div style="font-size:10px;color:#64748b;text-align:right;line-height:1.6;">Compliance Analysis Report<br>AI Lane Limited &middot; ailane.ai<br><span id="pdf-ref">—</span></div>
+<header>
+  <div class="logo">AIL<span>ANE</span></div>
+  <div class="secure-badge"><div class="secure-dot"></div>SECURE SESSION</div>
+</header>
+
+<main>
+
+  <!-- STEPPER -->
+  <div class="stepper">
+    <div class="step done" id="step1"><div class="step-num"><span>1</span></div>Payment</div>
+    <div class="step-div"></div>
+    <div class="step active" id="step2"><div class="step-num"><span>2</span></div>Upload</div>
+    <div class="step-div"></div>
+    <div class="step" id="step3"><div class="step-num"><span>3</span></div>Analysis</div>
+    <div class="step-div"></div>
+    <div class="step" id="step4"><div class="step-num"><span>4</span></div>Report</div>
   </div>
-  <div class="pdf-ftr">ADVISORY OUTPUT ONLY — This report does not constitute legal advice. Generated by Ailane regulatory intelligence software. AI Lane Limited &middot; ailane.ai</div>
 
-  <!-- LOADING -->
-  <div class="state active" id="state-loading">
-    <div class="loading-wrap">
+  <!-- SCREEN: VERIFY -->
+  <div class="card" id="screen-verify">
+    <div style="display:flex;flex-direction:column;align-items:center;padding:52px 28px;">
       <div class="spinner"></div>
-      <div class="loading-text">VERIFYING PAYMENT SESSION...</div>
+      <p style="font-size:13px;color:var(--grey);">Verifying your payment session&hellip;</p>
     </div>
   </div>
 
-  <!-- ERROR -->
-  <div class="state" id="state-error">
-    <div class="error-wrap">
-      <div class="error-icon" id="error-icon">⚠️</div>
-      <div class="error-title" id="error-title">Session Not Found</div>
-      <div class="error-sub" id="error-sub">We couldn't verify your payment. Please ensure you've completed checkout and are using the correct link from your confirmation email.</div>
-      <a href="https://ailane.ai/#compliance-checker" class="btn-back">← Return to Pricing</a>
+  <!-- SCREEN: UPLOAD -->
+  <div class="card hidden" id="screen-upload">
+    <div class="card-header">
+      <p style="font-size:9px;font-weight:700;color:var(--teal2);letter-spacing:1.5px;margin-bottom:6px;">STEP 2 OF 4 &mdash; UPLOAD DOCUMENT</p>
+      <h1 style="font-size:20px;font-weight:700;margin-bottom:6px;">Upload Your Document</h1>
+      <p style="font-size:12px;color:var(--grey);line-height:1.65;margin-bottom:18px;">Accepted formats: .docx and .pdf up to 10MB. Your document is <strong style="color:var(--teal2);">permanently deleted</strong> immediately after analysis is complete.</p>
     </div>
-  </div>
-
-  <!-- UPLOAD -->
-  <div class="state" id="state-upload">
-    <div class="progress">
-      <div class="prog-step done"><div class="prog-num">✓</div>Payment</div>
-      <div class="prog-div"></div>
-      <div class="prog-step active"><div class="prog-num">2</div>Upload</div>
-      <div class="prog-div"></div>
-      <div class="prog-step"><div class="prog-num">3</div>Analysis</div>
-      <div class="prog-div"></div>
-      <div class="prog-step"><div class="prog-num">4</div>Report</div>
-    </div>
-    <div class="session-banner">
-      <div class="sb-left">
-        <div style="font-size:18px;">✅</div>
-        <div><div class="sb-name" id="sb-name">Payment Verified</div><div class="sb-email" id="sb-email"></div></div>
+    <div class="card-body">
+      <div id="err-upload" class="error-box hidden"></div>
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">📄</div>
+        <p><strong>Click to select</strong> or drag and drop</p>
+        <p style="margin-top:5px;font-size:11px;">.docx or .pdf &nbsp;&middot;&nbsp; max 10MB</p>
       </div>
-      <div class="sb-tier" id="sb-tier">—</div>
+      <input type="file" id="file-input" accept=".docx,.pdf">
+      <div class="file-selected" id="file-selected">📎 &nbsp;<span id="fname-display"></span></div>
+      <p style="font-size:10px;font-weight:700;color:var(--grey);letter-spacing:0.5px;margin-bottom:8px;">DOCUMENT TYPE</p>
+      <div class="doc-type-row">
+        <button class="dtype-btn active" data-type="contract">Employment Contract</button>
+        <button class="dtype-btn" data-type="handbook">Staff Handbook</button>
+        <button class="dtype-btn" data-type="policy">Policy Document</button>
+      </div>
+      <button class="btn-primary" id="btn-upload" disabled>Analyse Document</button>
+      <p class="advisory">Results are advisory only and do not constitute legal advice.<br>No document content is retained after analysis.</p>
     </div>
-    <div class="upload-eyebrow">DOCUMENT UPLOAD</div>
-    <div class="upload-title">Upload your documents</div>
-    <div class="upload-sub" id="upload-sub">Upload your <strong>employment contract</strong> to begin your compliance analysis.</div>
-    <div class="slot-grid" id="slot-grid"></div>
-    <div class="advisory">
-      <span class="advisory-icon">ⓘ</span>
-      <span>Advisory outputs only — not legal advice. Documents are <strong>permanently deleted after analysis completes</strong>.</span>
-    </div>
-    <button class="upload-btn" id="upload-btn" onclick="startUpload()" disabled><span>⚡</span> Run Compliance Analysis</button>
-    <div class="upload-err" id="upload-err"></div>
   </div>
 
-  <!-- ANALYSIS -->
-  <div class="state" id="state-analysis">
-    <div class="progress">
-      <div class="prog-step done"><div class="prog-num">✓</div>Payment</div><div class="prog-div"></div>
-      <div class="prog-step done"><div class="prog-num">✓</div>Upload</div><div class="prog-div"></div>
-      <div class="prog-step active"><div class="prog-num">3</div>Analysis</div><div class="prog-div"></div>
-      <div class="prog-step"><div class="prog-num">4</div>Report</div>
-    </div>
-    <div class="analysis-wrap">
-      <div class="analysis-visual">
-        <div class="analysis-ring"></div>
-        <div class="analysis-spin"></div>
-        <div class="analysis-icon-el">⚖️</div>
-      </div>
-      <div class="analysis-title">Analysing your documents</div>
-      <div class="analysis-sub">Checking against 47 legislative instruments including ERA 2025</div>
+  <!-- SCREEN: ANALYSIS -->
+  <div class="card hidden" id="screen-analysis">
+    <div style="display:flex;flex-direction:column;align-items:center;padding:40px 28px 36px;" id="analysis-inner">
+      <div class="analysis-ring"><span class="analysis-icon">⚖️</span></div>
+      <div class="analysis-title">Analysing your document</div>
+      <div class="analysis-sub">Checking against 47 legislative instruments including ERA 2025<br>This typically takes 60–120 seconds</div>
       <div class="a-steps">
-        <div class="a-step active" id="as-0"><div class="a-dot"></div><div class="a-step-txt">Parsing document structure and extracting clauses</div><div class="a-step-tag" id="ast-0"></div></div>
-        <div class="a-step" id="as-1"><div class="a-dot"></div><div class="a-step-txt">Mapping obligations against Knowledge Library &mdash; 47 instruments</div><div class="a-step-tag" id="ast-1"></div></div>
-        <div class="a-step" id="as-2"><div class="a-dot"></div><div class="a-step-txt">ERA 2025 provisions assessed &mdash; s.22, s.118, s.1, s.73A</div><div class="a-step-tag" id="ast-2"></div></div>
-        <div class="a-step" id="as-3"><div class="a-dot"></div><div class="a-step-txt">Equality Act 2010 &middot; Working Time Regulations cross-check</div><div class="a-step-tag" id="ast-3"></div></div>
-        <div class="a-step" id="as-4"><div class="a-dot"></div><div class="a-step-txt">Scanning for unlawful deductions and restraint of trade</div><div class="a-step-tag" id="ast-4"></div></div>
-        <div class="a-step" id="as-5"><div class="a-dot"></div><div class="a-step-txt">Generating clause-level remediation recommendations</div><div class="a-step-tag" id="ast-5"></div></div>
-        <div class="a-step" id="as-6"><div class="a-dot"></div><div class="a-step-txt">Source document securely deleted &middot; Compiling report</div><div class="a-step-tag" id="ast-6"></div></div>
+        <div class="a-step done"><div class="a-dot"></div><span>Parsing document structure and extracting clauses</span></div>
+        <div class="a-step done"><div class="a-dot"></div><span>Mapping obligations against Knowledge Library &mdash; 47 instruments</span></div>
+        <div class="a-step done"><div class="a-dot"></div><span>ERA 2025 provisions assessed &mdash; s.22, s.118, s.1, s.73A</span></div>
+        <div class="a-step done"><div class="a-dot"></div><span>Equality Act 2010 &middot; Working Time Regulations cross-check</span></div>
+        <div class="a-step done"><div class="a-dot"></div><span>Scanning for unlawful deductions and restraint of trade</span></div>
+        <div class="a-step done"><div class="a-dot"></div><span>Generating clause-level remediation recommendations</span></div>
+        <div class="a-step active" id="step-final"><div class="a-dot"></div><span>Source document securely deleted &middot; Compiling report</span></div>
+      </div>
+      <div class="wordmark">AILANE</div>
+    </div>
+  </div>
+
+  <!-- SCREEN: REPORT -->
+  <div class="card hidden" id="screen-report">
+
+    <div class="legal-banner">
+      <span class="legal-icon">⚠</span>
+      <p class="legal-text"><strong>Advisory output only &mdash; not legal advice.</strong> This report is generated by Ailane regulatory intelligence software. It does not constitute legal advice and must not be relied upon without independent advice from a solicitor or barrister qualified to practise in England and Wales.</p>
+    </div>
+
+    <div class="report-body">
+      <div class="report-eyebrow">ANALYSIS COMPLETE</div>
+      <div class="report-title" id="report-title">Compliance Report</div>
+
+      <!-- Score -->
+      <div class="score-row">
+        <div class="score-circle" id="score-circle">
+          <span class="sc-num" id="sc-num">—</span>
+          <span class="sc-denom">/100</span>
+        </div>
+        <div>
+          <div class="risk-badge" id="risk-badge">—</div>
+          <div class="score-summary" id="score-summary"></div>
+        </div>
+      </div>
+
+      <!-- Distribution -->
+      <div class="dist-grid">
+        <div class="dist-cell"><span class="dc-num" id="dc-critical" style="color:#F87171">—</span><span class="dc-lbl" style="color:#F87171">CRITICAL</span><span class="dc-desc">Unlawful or void</span></div>
+        <div class="dist-cell"><span class="dc-num" id="dc-major" style="color:#FBBF24">—</span><span class="dc-lbl" style="color:#FBBF24">MAJOR</span><span class="dc-desc">Significant gaps</span></div>
+        <div class="dist-cell"><span class="dc-num" id="dc-minor" style="color:#60A5FA">—</span><span class="dc-lbl" style="color:#60A5FA">MINOR</span><span class="dc-desc">Improvements</span></div>
+        <div class="dist-cell"><span class="dc-num" id="dc-compliant" style="color:#34D399">—</span><span class="dc-lbl" style="color:#34D399">COMPLIANT</span><span class="dc-desc">Requirements met</span></div>
+      </div>
+
+      <!-- Download -->
+      <div class="dl-section">
+        <div class="dl-title">YOUR FULL REPORT IS READY</div>
+        <div class="dl-sub">Download your complete compliance report with clause-level findings, statutory references, and remediation guidance. The PDF opens in a new tab for print-to-save. DOCX downloads directly.</div>
+        <div class="dl-btns">
+          <button class="dl-btn dl-btn-pdf" id="btn-pdf">&#8595;&nbsp; View &amp; Download PDF</button>
+          <button class="dl-btn dl-btn-docx" id="btn-docx">&#8595;&nbsp; Download DOCX</button>
+        </div>
+      </div>
+
+      <!-- Tier -->
+      <div class="tier-panel">
+        <div class="tp-eyebrow">ONE-OFF CHECK COMPLETE</div>
+        <div class="tp-headline" id="tp-headline">This document had issues. What about your next hire?</div>
+        <div class="tp-body">A single check covers one document. An Ailane subscription monitors every contract, every policy update, and every change in UK employment law — continuously.</div>
+        <div class="tp-grid">
+          <div class="tp-card">
+            <div class="tp-name">Flash Check</div>
+            <div class="tp-price">£19 <span>per check</span></div>
+            <div class="tp-desc">Single document. You are here.</div>
+          </div>
+          <div class="tp-card featured">
+            <div class="tp-badge">MOST POPULAR</div>
+            <div class="tp-name">Operational</div>
+            <div class="tp-price">£199 <span>/ month</span></div>
+            <div class="tp-desc">Unlimited checks. Live regulatory alerts. Benchmarking.</div>
+          </div>
+          <div class="tp-card">
+            <div class="tp-name">Governance</div>
+            <div class="tp-price">£799 <span>/ month</span></div>
+            <div class="tp-desc">Full index suite. Board-ready reporting. Priority support.</div>
+          </div>
+        </div>
+        <div class="tp-cta">
+          <a href="https://ailane.ai/#pricing" class="tp-btn">View all plans &rarr;</a>
+          <a href="https://ailane.ai/#early-access" class="tp-link">Talk to us about your organisation</a>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- RESULTS -->
-  <div class="state" id="state-results">
-    <div class="progress">
-      <div class="prog-step done"><div class="prog-num">✓</div>Payment</div><div class="prog-div"></div>
-      <div class="prog-step done"><div class="prog-num">✓</div>Upload</div><div class="prog-div"></div>
-      <div class="prog-step done"><div class="prog-num">✓</div>Analysis</div><div class="prog-div"></div>
-      <div class="prog-step done active"><div class="prog-num">✓</div>Report</div>
-    </div>
-    <div class="results-hdr">
-      <div>
-        <div class="results-eyebrow">ANALYSIS COMPLETE</div>
-        <div class="results-title">Your Compliance Report</div>
-        <div class="results-ref" id="r-ref">—</div>
-      </div>
-      <button class="dl-btn" onclick="window.print()">⬇ Download PDF</button>
-    </div>
-    <div class="score-panel">
-      <div class="gauge-wrap">
-        <div class="gauge-lbl">COMPLIANCE SCORE</div>
-        <svg viewBox="0 0 160 100" class="gauge-svg">
-          <defs><linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#34d399"/><stop offset="40%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f87171"/>
-          </linearGradient></defs>
-          <path d="M 12 88 A 68 68 0 0 1 148 88" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" stroke-linecap="round"/>
-          <path d="M 12 88 A 68 68 0 0 1 148 88" fill="none" stroke="url(#gGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="gauge-arc" style="transition:stroke-dashoffset 2s cubic-bezier(0.25,0.46,0.45,0.94)"/>
-          <text x="80" y="72" text-anchor="middle" font-family="'Space Mono',monospace" font-size="30" font-weight="700" fill="#f1f5f9" id="gauge-num">0</text>
-          <text x="80" y="86" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="8" fill="#64748b" letter-spacing="1">SCORE</text>
-        </svg>
-        <div class="risk-band risk-elevated" id="risk-band"><span class="risk-dot"></span><span id="risk-label">CALCULATING</span></div>
-      </div>
-      <div class="dist-wrap">
-        <div class="dist-row"><div class="dist-label" style="color:var(--red)">&#9888; Critical</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-critical" style="background:var(--red)"></div></div><div class="dist-count" id="cnt-critical" style="color:var(--red)">0</div></div>
-        <div class="dist-row"><div class="dist-label" style="color:var(--amber)">&#9889; Major</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-major" style="background:var(--amber)"></div></div><div class="dist-count" id="cnt-major" style="color:var(--amber)">0</div></div>
-        <div class="dist-row"><div class="dist-label" style="color:var(--cyan)">&#9432; Minor</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-minor" style="background:var(--cyan)"></div></div><div class="dist-count" id="cnt-minor" style="color:var(--cyan)">0</div></div>
-        <div class="dist-row"><div class="dist-label" style="color:var(--green)">&#10003; Clear</div><div class="dist-bar-bg"><div class="dist-bar-fill" id="bar-compliant" style="background:var(--green)"></div></div><div class="dist-count" id="cnt-compliant" style="color:var(--green)">0</div></div>
-      </div>
-    </div>
-    <div class="findings-section">
-      <div class="findings-hdr">
-        <div class="findings-hdr-title">Clause-Level Findings</div>
-        <div class="findings-count" id="findings-count">Loading&hellip;</div>
-      </div>
-      <div id="findings-list"></div>
-    </div>
-    <div class="disclaimer">
-      <strong>Advisory Output &mdash; Not Legal Advice.</strong> This report is generated by Ailane's regulatory intelligence software and constitutes an advisory output only. It does not constitute legal advice and must not be relied upon without independent legal verification. Analysis performed against the Ailane Knowledge Library. AI Lane Limited, Company No. 17035624. Ref: <span id="disc-ref">—</span>. Generated: <span id="disc-date">—</span>.
-    </div>
-    <div class="cta-box">
-      <div class="cta-eyebrow">CONTINUOUS MONITORING</div>
-      <div class="cta-title">Address these gaps before they become claims</div>
-      <div class="cta-sub">An Ailane subscription monitors your employer profile continuously &mdash; live exposure scoring, readiness tracking, and instant Knowledge Library updates. From &pound;199/month.</div>
-      <a href="https://ailane.ai/#early-access" class="cta-link">Request Subscription Access &rarr;</a>
-    </div>
-  </div>
-</div>
+</main>
+
+<footer>
+  AI Lane Limited &middot; Company No. 17035624 &middot; ailane.ai &middot; support@ailane.ai<br>
+  Advisory output only. Not legal advice. Documents permanently deleted after analysis.
+</footer>
 
 <script>
-var SUPA_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-var SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-var FN_BASE   = SUPA_URL + '/functions/v1';
-var stripeSession = null, portalSession = null, currentTier = 'flash';
-var slots = {}, uploadIds = {};
+const FN_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1';
+const REST    = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1';
+const ANON    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDI0MDcsImV4cCI6MjA4ODIxODQwN30.QNdN7dIdMJoqjBjP5dJLMPMbxCkNmSqCjl2bCnMeNlw';
 
-window.addEventListener('DOMContentLoaded', function() {
-  var params = new URLSearchParams(window.location.search);
-  stripeSession = params.get('session');
+let stripeSession = null;
+let uploadId      = null;
+let docType       = 'contract';
+let selectedFile  = null;
+let pollTimer     = null;
+
+// ── helpers ──────────────────────────────────────────────────────────────
+function show(id) {
+  ['screen-verify','screen-upload','screen-analysis','screen-report']
+    .forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+}
+
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('step'+i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+}
+
+// ── init ─────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  stripeSession = new URLSearchParams(window.location.search).get('session');
   if (!stripeSession) {
-    showErr('🔗','No Session Found','This link is missing a payment session. Please complete checkout first.');
+    document.getElementById('screen-verify').innerHTML =
+      '<div style="padding:48px 28px;text-align:center;"><p style="font-size:13px;color:#8A9BB0;">No payment session found. Please complete payment at <a href="https://ailane.ai" style="color:#14BDAD;">ailane.ai</a>.</p></div>';
     return;
   }
-  verifySession(stripeSession);
+  verify();
 });
 
-function verifySession(sid) {
-  fetch(FN_BASE + '/portal-upload/verify?session=' + encodeURIComponent(sid))
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (!d.verified) { showErr('💳','Payment Not Confirmed','Your payment could not be verified yet. Please wait 30 seconds and refresh this page. If this persists contact support@ailane.ai.'); return; }
-      portalSession = d; currentTier = d.tier || 'flash';
-      document.getElementById('sb-name').textContent = d.name || 'Payment Verified';
-      document.getElementById('sb-email').textContent = d.email || '';
-      document.getElementById('sb-tier').textContent = d.tier === 'full' ? 'FULL CHECK · £39' : 'FLASH CHECK · £19';
-      if (d.tier === 'full') document.getElementById('upload-sub').innerHTML = 'Upload your <strong>employment contract</strong> (required) plus handbook and HR policies for full analysis.';
-      buildSlots(d.tier);
-      showState('state-upload');
-    })
-    .catch(function(){ showErr('⏳','Verifying Payment…','Your payment is being confirmed. Please refresh this page in 30 seconds. Contact support@ailane.ai if this persists.'); });
+// ── verify ───────────────────────────────────────────────────────────────
+async function verify() {
+  try {
+    const r = await fetch(`${FN_BASE}/portal-upload/verify?session=${stripeSession}`);
+    const d = await r.json();
+    if (!d.verified) { setTimeout(verify, 3500); return; }
+    setStep(2);
+    show('screen-upload');
+  } catch { setTimeout(verify, 4000); }
 }
 
-function buildSlots(tier) {
-  var defs = tier === 'full'
-    ? [{id:'contract',label:'Employment Contract',icon:'📄',req:true},{id:'handbook',label:'Staff Handbook',icon:'📋',req:false},{id:'policies',label:'HR Policies',icon:'📑',req:false}]
-    : [{id:'contract',label:'Employment Contract',icon:'📄',req:true}];
-  slots = {};
-  var g = document.getElementById('slot-grid'); g.innerHTML = '';
-  defs.forEach(function(def){
-    slots[def.id] = null;
-    var c = document.createElement('div');
-    c.className = 'slot-card' + (def.req ? ' req' : '');
-    c.id = 'sc-' + def.id;
-    c.innerHTML = slotEmpty(def);
-    g.appendChild(c);
+// ── file selection ────────────────────────────────────────────────────────
+const uploadZone = document.getElementById('upload-zone');
+const fileInput  = document.getElementById('file-input');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('fname-display').textContent = f.name + ' (' + (f.size/1024).toFixed(0) + ' KB)';
+  document.getElementById('file-selected').style.display = 'block';
+  document.getElementById('btn-upload').disabled = false;
+}
+
+document.querySelectorAll('.dtype-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dtype-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    docType = btn.dataset.type;
+  });
+});
+
+// ── upload ────────────────────────────────────────────────────────────────
+document.getElementById('btn-upload').addEventListener('click', async () => {
+  if (!selectedFile) return;
+  const btn = document.getElementById('btn-upload');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  document.getElementById('err-upload').classList.add('hidden');
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  fd.append('document_type', docType);
+
+  try {
+    const r = await fetch(`${FN_BASE}/portal-upload`, {
+      method: 'POST',
+      headers: { 'x-portal-session': stripeSession },
+      body: fd,
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Upload failed');
+    uploadId = d.upload_id;
+    setStep(3);
+    show('screen-analysis');
+    animateSteps();
+    pollForCompletion();
+  } catch(e) {
+    const el = document.getElementById('err-upload');
+    el.textContent = '⚠ ' + e.message;
+    el.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Analyse Document';
+  }
+});
+
+// ── analysis step animation ───────────────────────────────────────────────
+function animateSteps() {
+  const steps = document.querySelectorAll('.a-step');
+  // reset
+  steps.forEach(s => { s.classList.remove('done','active'); });
+  // stagger each step completing
+  steps.forEach((s, i) => {
+    setTimeout(() => {
+      // mark previous done
+      if (i > 0) steps[i-1].classList.replace('active','done');
+      s.classList.add('active');
+    }, i * 8000);
   });
 }
 
-function slotEmpty(def) {
-  return '<div class="slot-hdr"><div class="slot-lbl"><span class="slot-icon">' + def.icon + '</span><span class="slot-name">' + def.label + '</span>'
-    + (def.req ? '<span class="badge-req">REQUIRED</span>' : '<span class="badge-opt">OPTIONAL</span>')
-    + '</div><span class="slot-status" id="ss-' + def.id + '">No file</span></div>'
-    + '<div class="slot-drop" id="sd-' + def.id + '" onclick="trig(\'' + def.id + '\')" ondragover="sOver(event,\'' + def.id + '\')" ondragleave="sLeave(\'' + def.id + '\')" ondrop="sDrop(event,\'' + def.id + '\')">'
-    + '<div class="slot-drop-text">Drag file here or <span>browse</span></div>'
-    + '<div class="slot-drop-fmt">.docx &nbsp;&middot;&nbsp; .pdf &nbsp;&middot;&nbsp; max 10MB</div></div>'
-    + '<input type="file" id="si-' + def.id + '" accept=".docx,.pdf" style="display:none" onchange="sSel(event,\'' + def.id + '\')">';
-}
-
-function trig(id){ document.getElementById('si-'+id).click(); }
-function sOver(e,id){ e.preventDefault(); document.getElementById('sd-'+id).classList.add('over'); }
-function sLeave(id){ document.getElementById('sd-'+id).classList.remove('over'); }
-function sDrop(e,id){ e.preventDefault(); sLeave(id); applyFile(id, e.dataTransfer.files[0]); }
-function sSel(e,id){ applyFile(id, e.target.files[0]); }
-
-function applyFile(id, file) {
-  if (!file) return;
-  var ext = '.' + file.name.split('.').pop().toLowerCase();
-  if (!['.docx','.pdf'].includes(ext)) { alert('Please upload a .docx or .pdf file.'); return; }
-  if (file.size > 10*1024*1024) { alert('File too large — max 10MB.'); return; }
-  slots[id] = file;
-  document.getElementById('sc-'+id).classList.add('filled');
-  var ss = document.getElementById('ss-'+id); ss.textContent = '✓ Ready'; ss.className = 'slot-status ok';
-  document.getElementById('sd-'+id).innerHTML = '<div class="slot-file"><div class="slot-file-info"><span style="font-size:22px">📄</span>'
-    + '<div><div class="slot-file-name">' + file.name + '</div><div class="slot-file-size">' + fmtB(file.size) + '</div></div></div>'
-    + '<button class="slot-remove" onclick="remFile(event,\'' + id + '\')">✕</button></div>';
-  checkReady();
-}
-
-function remFile(e, id) {
-  e.stopPropagation(); slots[id] = null;
-  var m = {contract:{icon:'📄',label:'Employment Contract',req:true}, handbook:{icon:'📋',label:'Staff Handbook',req:false}, policies:{icon:'📑',label:'HR Policies',req:false}};
-  var c = document.getElementById('sc-'+id); c.classList.remove('filled');
-  c.innerHTML = slotEmpty({id:id, label:m[id].label, icon:m[id].icon, req:m[id].req});
-  checkReady();
-}
-
-function checkReady(){ document.getElementById('upload-btn').disabled = !slots['contract']; }
-function fmtB(b){ return b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB'; }
-
-function startUpload() {
-  if (!slots['contract']) return;
-  document.getElementById('upload-btn').disabled = true;
-  document.getElementById('upload-err').textContent = '';
-  showState('state-analysis');
-  startAnim();
-  var toUp = ['contract','handbook','policies'].filter(function(id){ return slots[id]; }).map(function(id){ return {id:id,file:slots[id]}; });
-  upSeq(toUp, 0);
-}
-
-function upSeq(items, idx) {
-  if (idx >= items.length) { pollResult(uploadIds['contract'], 0); return; }
-  var item = items[idx];
-  var fd = new FormData();
-  fd.append('file', item.file);
-  fd.append('document_type', item.id === 'policies' ? 'policy' : item.id);
-  fetch(FN_BASE + '/portal-upload', { method:'POST', headers:{'x-portal-session': stripeSession}, body:fd })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (d.error) { upErr('Upload failed: ' + d.error); return; }
-      uploadIds[item.id] = d.upload_id;
-      upSeq(items, idx + 1);
-    })
-    .catch(function(e){ upErr('Network error. Please try again.'); });
-}
-
-function upErr(msg){ showState('state-upload'); document.getElementById('upload-err').textContent = msg; document.getElementById('upload-btn').disabled = false; }
-
-function startAnim() {
-  var delays = [0, 4000, 10000, 18000, 28000, 38000, 48000];
-  delays.forEach(function(d, i){
-    setTimeout(function(){
-      if (i > 0) { document.getElementById('as-'+(i-1)).className='a-step done'; document.getElementById('ast-'+(i-1)).textContent='✓'; }
-      var el = document.getElementById('as-'+i); if (el) el.className = 'a-step active';
-    }, d);
-  });
-}
-
-function pollResult(uploadId, attempts) {
-  if (!uploadId) { upErr('Upload ID missing. Please try again.'); return; }
-  if (attempts > 72) { upErr('Analysis taking longer than expected. Please refresh in a few minutes.'); return; }
-  fetch(SUPA_URL + '/rest/v1/compliance_uploads?id=eq.' + uploadId + '&select=status,overall_score', {
-    headers: { 'apikey': SUPA_ANON, 'Authorization': 'Bearer ' + SUPA_ANON }
+// ── poll ──────────────────────────────────────────────────────────────────
+function pollForCompletion() {
+  clearTimeout(pollTimer);
+  fetch(`${REST}/compliance_uploads?id=eq.${uploadId}&select=status,overall_score`, {
+    headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
   })
-  .then(function(r){ return r.json(); })
-  .then(function(rows){
-    var row = rows && rows[0];
-    if (!row) { setTimeout(function(){ pollResult(uploadId, attempts+1); }, 5000); return; }
+  .then(r => r.json())
+  .then(rows => {
+    const row = rows[0];
+    if (!row) { pollTimer = setTimeout(pollForCompletion, 6000); return; }
     if (row.status === 'complete') {
-      for (var i=0;i<=6;i++){ document.getElementById('as-'+i).className='a-step done'; document.getElementById('ast-'+i).textContent='✓'; }
-      setTimeout(function(){ fetchResults(uploadId, row.overall_score); }, 800);
+      showReport(row);
     } else if (row.status === 'error') {
-      upErr('Analysis error. Contact support@ailane.ai with ref: ' + uploadId);
+      document.getElementById('analysis-inner').innerHTML =
+        '<div style="text-align:center;padding:20px;"><div style="font-size:28px;margin-bottom:12px;">⚠️</div>' +
+        '<p style="font-size:14px;font-weight:700;margin-bottom:8px;">Analysis could not be completed</p>' +
+        '<p style="font-size:12px;color:#8A9BB0;">Please contact <strong>support@ailane.ai</strong> quoting session: ' + stripeSession + '</p></div>';
     } else {
-      var delay = Math.min(5000 + attempts * 500, 15000);
-      setTimeout(function(){ pollResult(uploadId, attempts+1); }, delay);
+      pollTimer = setTimeout(pollForCompletion, 6000);
     }
   })
-  .catch(function(){ setTimeout(function(){ pollResult(uploadId, attempts+1); }, 5000); });
+  .catch(() => { pollTimer = setTimeout(pollForCompletion, 8000); });
 }
 
-function fetchResults(uploadId, score) {
-  fetch(SUPA_URL + '/rest/v1/compliance_findings?upload_id=eq.' + uploadId + '&select=*&order=severity.asc', {
-    headers: { 'apikey': SUPA_ANON, 'Authorization': 'Bearer ' + SUPA_ANON }
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(findings){ renderResults(score, findings || []); })
-  .catch(function(){ renderResults(score, []); });
-}
+// ── show report ───────────────────────────────────────────────────────────
+async function showReport(row) {
+  // fetch finding counts
+  const fr = await fetch(
+    `${REST}/compliance_findings?upload_id=eq.${uploadId}&select=severity`,
+    { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }
+  );
+  const findings = await fr.json();
+  const counts = { critical:0, major:0, minor:0, compliant:0 };
+  (findings || []).forEach(f => { if (f.severity in counts) counts[f.severity]++; });
 
-function renderResults(score, findings) {
-  showState('state-results');
-  var ref = 'ACP-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + (uploadIds['contract']||'').slice(0,8).toUpperCase();
-  var dt = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('r-ref').textContent = 'REF: ' + ref;
-  document.getElementById('disc-ref').textContent = ref;
-  document.getElementById('disc-date').textContent = dt;
-  document.getElementById('pdf-ref').textContent = ref + ' · ' + dt;
-  var s = Math.round(score || 0);
-  setTimeout(function(){
-    document.getElementById('gauge-arc').style.strokeDashoffset = 213.6 - (s/100)*213.6;
-    var cur=0, iv=setInterval(function(){ cur=Math.min(cur+2,s); document.getElementById('gauge-num').textContent=cur; if(cur>=s)clearInterval(iv); }, 28);
-  }, 200);
-  var rb = document.getElementById('risk-band'), rl = document.getElementById('risk-label');
-  if (s >= 75) { rb.className='risk-band risk-low'; rl.textContent='LOW RISK'; }
-  else if (s >= 45) { rb.className='risk-band risk-elevated'; rl.textContent='ELEVATED RISK'; }
-  else { rb.className='risk-band risk-high'; rl.textContent='HIGH RISK'; }
-  var c = {critical:0,major:0,minor:0,compliant:0};
-  findings.forEach(function(f){ if(c[f.severity]!==undefined) c[f.severity]++; });
-  var total = findings.length || 1;
-  ['critical','major','minor','compliant'].forEach(function(sv){
-    document.getElementById('cnt-'+sv).textContent = c[sv];
-    setTimeout(function(){ document.getElementById('bar-'+sv).style.width = ((c[sv]/total)*100)+'%'; }, 400);
-  });
-  document.getElementById('findings-count').textContent = findings.length + ' findings · ' + c.critical + ' critical';
-  var list = document.getElementById('findings-list');
-  if (!findings.length) { list.innerHTML = '<div class="findings-empty">No findings returned.</div>'; return; }
-  var sevOrd = ['critical','major','minor','compliant'];
-  var sorted = findings.slice().sort(function(a,b){ return sevOrd.indexOf(a.severity)-sevOrd.indexOf(b.severity); });
-  list.innerHTML = sorted.map(function(f){
-    var sl = f.severity==='compliant'?'✓ COMPLIANT':f.severity==='critical'?'⚠ CRITICAL':f.severity==='major'?'⚡ MAJOR':'ⓘ MINOR';
-    return '<div class="finding-item">'
-      + '<div class="finding-top"><div class="sev sev-'+f.severity+'">'+sl+'</div>'
-      + '<div><div class="finding-name">'+esc(f.clause_category||'Finding')+'</div></div></div>'
-      + (f.clause_text && f.clause_text!=='[Not found]' && f.clause_text!=='[Not analysed]'
-        ? '<div class="finding-detail" style="font-style:italic;color:var(--t4);margin-bottom:6px;">&ldquo;'+esc(f.clause_text.slice(0,200))+(f.clause_text.length>200?'&hellip;':'')+'&rdquo;</div>' : '')
-      + '<div class="finding-detail">'+esc(f.finding_detail||'')+'</div>'
-      + (f.remediation ? '<div class="finding-remediation"><strong>Remediation:</strong> '+esc(f.remediation)+'</div>' : '')
-      + (f.statutory_ref ? '<div class="finding-ref">&rarr; '+esc(f.statutory_ref)+'</div>' : '')
-      + '</div>';
-  }).join('');
-}
+  const score    = Math.round(parseFloat(row.overall_score || 0));
+  const isHigh   = score < 45;
+  const isMed    = score < 75;
+  const riskLabel = isHigh ? 'HIGH RISK' : isMed ? 'ELEVATED RISK' : 'LOW RISK';
+  const riskColor = isHigh ? '#F87171'   : isMed ? '#FBBF24'       : '#34D399';
+  const riskBg    = isHigh ? 'rgba(153,27,27,0.2)' : isMed ? 'rgba(146,64,14,0.2)' : 'rgba(6,78,59,0.2)';
 
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function showState(id){ document.querySelectorAll('.state').forEach(function(el){el.classList.remove('active');}); document.getElementById(id).classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); }
-function showErr(icon,title,sub){ document.getElementById('error-icon').textContent=icon; document.getElementById('error-title').textContent=title; document.getElementById('error-sub').textContent=sub; showState('state-error'); }
+  document.getElementById('sc-num').textContent     = score;
+  document.getElementById('score-circle').style.borderColor = riskColor;
+  const rb = document.getElementById('risk-badge');
+  rb.textContent = riskLabel; rb.style.background = riskBg; rb.style.color = riskColor;
+
+  document.getElementById('score-summary').innerHTML =
+    `This document contains <strong>${counts.critical} critical violation${counts.critical!==1?'s':''}</strong> ` +
+    `and <strong>${counts.major} major deficiencie${counts.major!==1?'s':'y'}</strong>. ` +
+    `${(findings||[]).length} provisions assessed in total.`;
+
+  document.getElementById('dc-critical').textContent  = counts.critical;
+  document.getElementById('dc-major').textContent     = counts.major;
+  document.getElementById('dc-minor').textContent     = counts.minor;
+  document.getElementById('dc-compliant').textContent = counts.compliant;
+
+  document.getElementById('tp-headline').textContent =
+    `This document had ${counts.critical} unlawful provision${counts.critical!==1?'s':''}. What about your next hire?`;
+
+  // wire downloads
+  document.getElementById('btn-pdf').onclick = () => {
+    window.open(`${FN_BASE}/generate-report-pdf?upload_id=${uploadId}`, '_blank');
+  };
+
+  document.getElementById('btn-docx').onclick = async () => {
+    const btn = document.getElementById('btn-docx');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '⏳ Preparing…'; btn.disabled = true;
+    try {
+      const res = await fetch(`${FN_BASE}/generate-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ upload_id: uploadId }),
+      });
+      if (!res.ok) throw new Error('Generation failed: ' + res.status);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = Object.assign(document.createElement('a'), {
+        href: url,
+        download: `Ailane_Report_${uploadId.slice(0,8).toUpperCase()}.docx`,
+      });
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch {
+      alert('DOCX could not be generated. Please try again or contact support@ailane.ai');
+    } finally {
+      btn.innerHTML = orig; btn.disabled = false;
+    }
+  };
+
+  setStep(4);
+  show('screen-report');
+}
 </script>
 </body>
 </html>
