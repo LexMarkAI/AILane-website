@@ -241,9 +241,15 @@ footer{text-align:center;padding:18px;font-size:10px;color:rgba(255,255,255,0.18
         <div class="a-step done"><div class="a-dot"></div><span>Equality Act 2010 &middot; Working Time Regulations cross-check</span></div>
         <div class="a-step done"><div class="a-dot"></div><span>Scanning for unlawful deductions and restraint of trade</span></div>
         <div class="a-step done"><div class="a-dot"></div><span>Generating clause-level remediation recommendations</span></div>
-        <div class="a-step active" id="step-final"><div class="a-dot"></div><span>Source document securely deleted &middot; Compiling report</span></div>
+        <div class="a-step active" id="step-final"><div class="a-dot"></div><span>Source document securely deleted &middot; Finalising report</span></div>
       </div>
-      <div class="wordmark">AILANE</div>
+      <div id="inbox-nudge" style="display:none;margin-top:22px;background:rgba(13,115,119,0.10);border:1px solid rgba(13,115,119,0.28);border-radius:6px;padding:14px 18px;text-align:center;max-width:400px;">
+        <p style="font-size:13px;font-weight:600;color:#14BDAD;margin:0 0 5px;">Your report is likely already done.</p>
+        <p style="font-size:12px;color:#8A9BB0;line-height:1.65;margin:0;">If the wheel is still turning, no need to wait &mdash; Ailane has reached your inbox. Check your email for the report, or <button onclick="checkNow()" style="background:none;border:none;color:#14BDAD;font-size:12px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;">tap here to check now</button>.</p>
+      </div>
+      <div id="analysis-wordmark-wrap">
+      </div>
+      </div><div class="wordmark">AILANE</div>
     </div>
   </div>
 
@@ -323,11 +329,11 @@ footer{text-align:center;padding:18px;font-size:10px;color:rgba(255,255,255,0.18
 </main>
 
 <footer>
-  AI Lane Limited &middot; Company No. 17035624 &middot; ailane.ai &middot; support@ailane.ai<br>
+  AI Lane Limited &middot; Company No. 17035624 &middot; ailane.ai &middot; <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6a5a3a6a6b9a4a296b7bfbab7b8b3f8b7bf">[email&#160;protected]</a><br>
   Advisory output only. Not legal advice. Documents permanently deleted after analysis.
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const FN_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1';
 const REST    = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1';
 const ANON    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDI0MDcsImV4cCI6MjA4ODIxODQwN30.QNdN7dIdMJoqjBjP5dJLMPMbxCkNmSqCjl2bCnMeNlw';
@@ -376,22 +382,18 @@ async function verify() {
       uploadId = d.existing_upload_id;
 
       if (d.session_status === 'complete') {
-        // Fetch the upload row and go straight to report
-        const ur = await fetch(`${REST}/compliance_uploads?id=eq.${uploadId}&select=status,overall_score`, {
-          headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
-        });
-        const rows = await ur.json();
-        const row = rows[0];
-        if (row && row.status === 'complete') {
-          setStep(4);
-          show('screen-analysis'); // show briefly while report loads
-          await showReport(row);
-          return;
-        }
-        if (row && row.status === 'out_of_scope') {
-          showOutOfScope(row.processing_error);
-          return;
-        }
+        setStep(4);
+        show('screen-analysis');
+        await showReport({ overall_score: d.overall_score }, d.finding_counts);
+        return;
+      }
+      if (d.session_status === 'out_of_scope') {
+        showOutOfScope(d.processing_error);
+        return;
+      }
+      if (d.session_status === 'error') {
+        showError();
+        return;
       }
 
       // Still analysing — jump to analysis screen and poll
@@ -455,6 +457,7 @@ document.getElementById('btn-upload').addEventListener('click', async () => {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Upload failed');
     uploadId = d.upload_id;
+    pollAttempts = 0;
     setStep(3);
     show('screen-analysis');
     animateSteps();
@@ -484,31 +487,49 @@ function animateSteps() {
 }
 
 // ── poll ──────────────────────────────────────────────────────────────────
+let pollAttempts = 0;
 function pollForCompletion() {
   clearTimeout(pollTimer);
-  fetch(`${REST}/compliance_uploads?id=eq.${uploadId}&select=status,overall_score,processing_error`, {
-    headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
-  })
+  pollAttempts++;
+
+  // After 90 seconds show the inbox nudge — analysis is likely done but page hasn't caught up
+  if (pollAttempts >= 15) {
+    const nudge = document.getElementById('inbox-nudge');
+    if (nudge) nudge.style.display = 'block';
+  }
+
+  fetch(`${FN_BASE}/portal-upload/verify?session=${stripeSession}`)
   .then(r => r.json())
-  .then(rows => {
-    const row = rows[0];
-    if (!row) { pollTimer = setTimeout(pollForCompletion, 6000); return; }
-    if (row.status === 'complete') {
-      showReport(row);
-    } else if (row.status === 'out_of_scope') {
-      showOutOfScope(row.processing_error);
-    } else if (row.status === 'error') {
-      document.getElementById('analysis-inner').innerHTML =
-        '<div style="text-align:center;padding:28px;">' +
-        '<div style="font-size:28px;margin-bottom:14px;">⚠️</div>' +
-        '<p style="font-size:14px;font-weight:700;margin-bottom:8px;">Analysis could not be completed</p>' +
-        '<p style="font-size:12px;color:#8A9BB0;line-height:1.6;">Please contact <strong style="color:var(--white);">support@ailane.ai</strong> quoting your session reference:<br>' +
-        '<span style="font-family:monospace;color:var(--teal2);font-size:11px;">' + stripeSession.slice(-20) + '</span></p></div>';
+  .then(async d => {
+    if (!d.verified) { pollTimer = setTimeout(pollForCompletion, 6000); return; }
+    const status = d.session_status;
+    if (status === 'complete') {
+      setStep(4);
+      await showReport({ overall_score: d.overall_score }, d.finding_counts);
+    } else if (status === 'out_of_scope') {
+      showOutOfScope(d.processing_error);
+    } else if (status === 'error') {
+      showError();
     } else {
       pollTimer = setTimeout(pollForCompletion, 6000);
     }
   })
   .catch(() => { pollTimer = setTimeout(pollForCompletion, 8000); });
+}
+
+function checkNow() {
+  clearTimeout(pollTimer);
+  pollAttempts = 0;
+  pollForCompletion();
+}
+
+function showError() {
+  document.getElementById('analysis-inner').innerHTML =
+    '<div style="text-align:center;padding:28px;">' +
+    '<div style="font-size:28px;margin-bottom:14px;">⚠️</div>' +
+    '<p style="font-size:14px;font-weight:700;margin-bottom:8px;">Analysis could not be completed</p>' +
+    '<p style="font-size:12px;color:#8A9BB0;line-height:1.6;">Please contact <strong style="color:var(--white);">support@ailane.ai</strong> quoting your session reference:<br>' +
+    '<span style="font-family:monospace;color:var(--teal2);font-size:11px;">' + stripeSession.slice(-20) + '</span></p></div>';
 }
 
 // ── out of scope ──────────────────────────────────────────────────────────
@@ -532,15 +553,9 @@ function showOutOfScope(message) {
 }
 
 // ── show report ───────────────────────────────────────────────────────────
-async function showReport(row) {
-  // fetch finding counts
-  const fr = await fetch(
-    `${REST}/compliance_findings?upload_id=eq.${uploadId}&select=severity`,
-    { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } }
-  );
-  const findings = await fr.json();
-  const counts = { critical:0, major:0, minor:0, compliant:0 };
-  (findings || []).forEach(f => { if (f.severity in counts) counts[f.severity]++; });
+async function showReport(row, findingCounts) {
+  // Use finding counts from verify endpoint if provided; otherwise fallback to zero
+  const counts = findingCounts || { critical:0, major:0, minor:0, compliant:0 };
 
   const score    = Math.round(parseFloat(row.overall_score || 0));
   const isHigh   = score < 45;
@@ -592,15 +607,4 @@ async function showReport(row) {
       document.body.appendChild(a); a.click();
       document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch {
-      alert('DOCX could not be generated. Please try again or contact support@ailane.ai');
-    } finally {
-      btn.innerHTML = orig; btn.disabled = false;
-    }
-  };
-
-  setStep(4);
-  show('screen-report');
-}
-</script>
-</body>
-</html>
+      al
