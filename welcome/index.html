@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Welcome to Ailane | Setup Your Intelligence Profile</title>
+<meta name="robots" content="noindex">
+<style>
+:root {
+  --navy:   #0D1B2A;
+  --navy2:  #132236;
+  --navy3:  #0a1520;
+  --teal:   #0D7377;
+  --teal2:  #14BDAD;
+  --gold:   #C4973A;
+  --white:  #ffffff;
+  --muted:  #8A9BB0;
+  --border: rgba(138,155,176,0.15);
+  --error:  #ef4444;
+  --success:#10b981;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--navy);
+  color: var(--white);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(13,115,119,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,115,119,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+
+/* HEADER */
+header {
+  position: relative; z-index: 1;
+  width: 100%; padding: 22px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.logo-text { font-size: 18px; font-weight: 900; letter-spacing: 3px; color: var(--white); text-decoration: none; }
+.logo-text span { color: var(--teal2); }
+.logo-sub { font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-top: 2px; }
+.skip-link { font-size: 11px; color: var(--muted); text-decoration: none; }
+.skip-link:hover { color: var(--teal2); }
+
+/* MAIN */
+main {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 680px;
+  padding: 48px 16px 80px;
+  flex: 1;
+}
+
+/* PROGRESS */
+.progress-wrap { display: flex; align-items: center; gap: 0; margin-bottom: 40px; }
+.progress-step {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1;
+}
+.step-circle {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  transition: all 0.3s; flex-shrink: 0;
+}
+.step-circle.active { border-color: var(--teal); background: var(--teal); color: var(--white); }
+.step-circle.done   { border-color: var(--success); background: rgba(16,185,129,0.1); color: var(--success); }
+.step-label { font-size: 10px; letter-spacing: 0.5px; color: var(--muted); white-space: nowrap; }
+.step-label.active { color: var(--white); }
+.progress-line { flex: 1; height: 1px; background: var(--border); margin: 0 8px; }
+.progress-line.done { background: var(--teal); }
+
+/* CARD */
+.card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+  margin-bottom: 20px;
+}
+.card-header {
+  background: var(--navy2);
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.step-badge {
+  width: 36px; height: 36px; border-radius: 6px;
+  background: rgba(13,115,119,0.12);
+  border: 1px solid rgba(13,115,119,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.card-title { font-size: 16px; font-weight: 800; color: var(--white); margin-bottom: 4px; letter-spacing: -0.2px; }
+.card-subtitle { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.index-tag {
+  display: inline-block;
+  font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+  padding: 2px 7px; border-radius: 2px; margin-top: 6px;
+}
+.tag-acei { background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+.tag-cci  { background: rgba(196,151,58,0.1); color: #fcd34d; border: 1px solid rgba(196,151,58,0.2); }
+.tag-rri  { background: rgba(13,115,119,0.1); color: var(--teal2); border: 1px solid rgba(13,115,119,0.2); }
+
+.card-body { padding: 28px 32px; }
+
+/* FORM FIELDS */
+.field { margin-bottom: 20px; }
+.field label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  color: var(--muted); margin-bottom: 7px;
+}
+.field label .opt { color: rgba(138,155,176,0.45); font-weight: 400; font-size: 9px; }
+.field input, .field select {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px; padding: 11px 14px;
+  font-size: 14px; color: var(--white); outline: none;
+  font-family: inherit; transition: border-color 0.2s;
+}
+.field input:focus, .field select:focus { border-color: var(--teal); }
+.field input::placeholder { color: rgba(138,155,176,0.4); }
+.field select option { background: var(--navy2); color: var(--white); }
+.field select { appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238A9BB0'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+}
+
+.field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* CH LOOKUP */
+.ch-wrap { display: flex; gap: 10px; }
+.ch-wrap input { flex: 1; }
+.btn-lookup {
+  background: rgba(13,115,119,0.15); border: 1px solid rgba(13,115,119,0.3);
+  border-radius: 4px; padding: 0 16px;
+  font-size: 11px; font-weight: 700; color: var(--teal2);
+  cursor: pointer; white-space: nowrap; font-family: inherit;
+  transition: background 0.2s;
+}
+.btn-lookup:hover { background: rgba(13,115,119,0.25); }
+.ch-result {
+  display: none; margin-top: 10px;
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.15);
+  border-radius: 4px; padding: 12px 14px;
+  font-size: 12px; color: #6ee7b7;
+}
+.ch-result strong { color: var(--white); }
+
+/* MULTI-SELECT CHIPS */
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 7px 14px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--muted); cursor: pointer;
+  transition: all 0.15s; user-select: none;
+}
+.chip:hover { border-color: var(--teal); color: var(--teal2); }
+.chip.selected {
+  background: rgba(13,115,119,0.15);
+  border-color: var(--teal); color: var(--teal2);
+}
+
+/* CLAIMS TOGGLE */
+.claims-toggle { display: flex; gap: 10px; margin-bottom: 16px; }
+.toggle-btn {
+  flex: 1; padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 4px; background: rgba(255,255,255,0.03);
+  color: var(--muted); font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+  text-align: center;
+}
+.toggle-btn:hover { border-color: var(--teal); color: var(--teal2); }
+.toggle-btn.selected-yes { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+.toggle-btn.selected-no  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6ee7b7; }
+.claims-detail { display: none; }
+
+/* INFO CALLOUT */
+.callout {
+  background: rgba(13,115,119,0.06);
+  border: 1px solid rgba(13,115,119,0.15);
+  border-radius: 4px; padding: 12px 16px;
+  font-size: 11px; color: var(--muted);
+  line-height: 1.65; margin-top: 6px;
+}
+.callout strong { color: var(--teal2); }
+
+/* BUTTONS */
+.btn-row { display: flex; gap: 12px; margin-top: 8px; }
+.btn-primary {
+  flex: 1; background: var(--teal); border: none;
+  border-radius: 4px; padding: 13px;
+  font-size: 13px; font-weight: 700; color: var(--white);
+  cursor: pointer; font-family: inherit; transition: background 0.2s;
+  letter-spacing: 0.4px;
+}
+.btn-primary:hover:not(:disabled) { background: var(--teal2); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px; padding: 13px 20px;
+  font-size: 13px; color: var(--muted);
+  cursor: pointer; font-family: inherit;
+}
+.btn-secondary:hover { border-color: var(--muted); color: var(--white); }
+
+/* SCREENS */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* SUCCESS */
+#screen-complete { text-align: center; padding: 60px 20px; }
+.complete-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(13,115,119,0.1);
+  border: 1px solid rgba(13,115,119,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; margin: 0 auto 24px;
+}
+#screen-complete h1 { font-size: 24px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
+#screen-complete p { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 440px; margin: 0 auto 24px; }
+.index-summary {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px; max-width: 480px; margin: 0 auto 32px;
+}
+.index-card {
+  background: var(--navy2);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px 10px; text-align: center;
+}
+.index-card .name { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+.index-card .status { font-size: 12px; font-weight: 600; }
+.status-computing { color: var(--teal2); }
+.btn-dashboard {
+  display: inline-block; background: var(--teal);
+  border-radius: 4px; padding: 14px 36px;
+  font-size: 13px; font-weight: 700; color: var(--white);
+  text-decoration: none; letter-spacing: 0.5px;
+}
+.btn-dashboard:hover { background: var(--teal2); }
+
+/* MSG */
+.msg { display: none; padding: 10px 14px; border-radius: 4px; font-size: 12px; margin-bottom: 16px; line-height: 1.5; }
+.msg.error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; display: block; }
+
+/* FOOTER */
+footer {
+  position: relative; z-index: 1;
+  width: 100%; padding: 18px 40px;
+  border-top: 1px solid var(--border);
+  text-align: center; font-size: 11px; color: var(--muted);
+}
+footer a { color: var(--muted); text-decoration: none; }
+footer a:hover { color: var(--teal2); }
+
+@media (max-width: 640px) {
+  header { padding: 18px 16px; }
+  .card-header, .card-body { padding: 20px; }
+  .field-row-2 { grid-template-columns: 1fr; }
+  .index-summary { grid-template-columns: 1fr; max-width: 240px; }
+  .progress-step .step-label { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="https://ailane.ai" style="text-decoration:none;">
+    <div class="logo-text">AIL<span>ANE</span></div>
+    <div class="logo-sub">REGULATORY INTELLIGENCE</div>
+  </a>
+  <a href="https://ailane.ai/governance-dashboard/" class="skip-link" id="skip-link">Skip setup →</a>
+</header>
+
+<main>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-wrap" id="progress-bar">
+    <div class="progress-step">
+      <div class="step-circle active" id="circle-1">1</div>
+      <div class="step-label active" id="label-1">Organisation</div>
+    </div>
+    <div class="progress-line" id="line-1"></div>
+    <div class="progress-step">
+      <div class="step-circle" id="circle-2">2</div>
+      <div class="step-label" id="label-2">Risk Profile</div>
+    </div>
+    <div class="progress-line" id="line-2"></div>
+    <div class="progress-step">
+      <div class="step-circle" id="circle-3">3</div>
+      <div class="step-label" id="label-3">Compliance History</div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 1: ORGANISATION ═══ -->
+  <div class="screen active" id="screen-1">
+    <div class="card">
+      <div class="card-header">
+        <div class="step-badge">🏢</div>
+        <div>
+          <div class="card-title">Tell us about your organisation</div>
+          <div class="card-subtitle">This calibrates your index baselines and benchmark comparisons against similar employers in your sector.</div>
+          <span class="index-tag tag-acei">ACEI CALIBRATION</span>
+          <span class="index-tag tag-rri" style="margin-left:6px;">RRI BASELINE</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="msg" id="err-1"></div>
+
+        <div class="field">
+          <label>ORGANISATION NAME <span class="opt">REQUIRED</span></label>
+          <input type="text" id="org-name" placeholder="Acme Ltd">
+        </div>
+
+        <div class="field-row-2">
+          <div class="field">
+            <label>SECTOR <span class="opt">REQUIRED</span></label>
+            <select id="sector">
+              <option value="" disabled selected>Select sector</option>
+              <option>Accommodation & Hospitality</option>
+              <option>Construction & Engineering</option>
+              <option>Education & Training</option>
+              <option>Financial & Professional Services</option>
+              <option>Health & Social Care</option>
+              <option>Legal Services</option>
+              <option>Manufacturing</option>
+              <option>Public Sector & Government</option>
+              <option>Retail & Consumer</option>
+              <option>Technology & Digital</option>
+              <option>Transport & Logistics</option>
+              <option>Wholesale & Distribution</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>EMPLOYEE COUNT <span class="opt">REQUIRED</span></label>
+            <select id="headcount">
+              <option value="" disabled selected>Select range</option>
+              <option value="10">Under 25</option>
+              <option value="37">25–49</option>
+              <option value="75">50–99</option>
+              <option value="150">100–199</option>
+              <option value="350">200–499</option>
+              <option value="750">500–999</option>
+              <option value="1500">1,000+</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>PRIMARY UK REGION <span class="opt">REQUIRED</span></label>
+          <select id="region">
+            <option value="" disabled selected>Select region</option>
+            <option>East Midlands</option>
+            <option>East of England</option>
+            <option>London</option>
+            <option>North East England</option>
+            <option>North West England</option>
+            <option>Northern Ireland</option>
+            <option>Scotland</option>
+            <option>South East England</option>
+            <option>South West England</option>
+            <option>Wales</option>
+            <option>West Midlands</option>
+            <option>Yorkshire & Humber</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>COMPANIES HOUSE NUMBER <span class="opt">OPTIONAL — enables tribunal cross-referencing</span></label>
+          <div class="ch-wrap">
+            <input type="text" id="ch-number" placeholder="e.g. 12345678" maxlength="8">
+            <button class="btn-lookup" id="btn-ch-lookup" onclick="lookupCH()">Look up →</button>
+          </div>
+          <div class="ch-result" id="ch-result"></div>
+          <div class="callout" style="margin-top:10px;">
+            <strong>Why this matters:</strong> Ailane cross-references your Companies House registration against 130,000+ tribunal decisions. If your organisation or any associated entity appears in our database, your ACEI and CCI scores reflect actual historical exposure — not just sector averages.
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-primary" onclick="nextStep(1)">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: RISK PROFILE ═══ -->
+  <div class="screen" id="screen-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="step-badge">⚖️</div>
+        <div>
+          <div class="card-title">Your compliance risk profile</div>
+          <div class="card-subtitle">Select your primary areas of concern. This prioritises the regulatory categories most relevant to your business in your ACEI report.</div>
+          <span class="index-tag tag-acei">ACEI WEIGHTING</span>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div class="field">
+          <label>BIGGEST COMPLIANCE CONCERNS <span class="opt">SELECT ALL THAT APPLY</span></label>
+          <div class="chip-group" id="concerns-group">
+            <div class="chip" data-val="unfair_dismissal">Unfair dismissal</div>
+            <div class="chip" data-val="discrimination">Discrimination &amp; equality</div>
+            <div class="chip" data-val="working_time">Working time &amp; holidays</div>
+            <div class="chip" data-val="employment_status">Employment status</div>
+            <div class="chip" data-val="pay_wages">Pay &amp; wages</div>
+            <div class="chip" data-val="data_protection">Data protection</div>
+            <div class="chip" data-val="whistleblowing">Whistleblowing</div>
+            <div class="chip" data-val="tupe">TUPE &amp; business transfers</div>
+            <div class="chip" data-val="redundancy">Redundancy &amp; restructuring</div>
+            <div class="chip" data-val="general_uncertainty">General uncertainty</div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:24px;">
+          <label>CURRENT LEGAL REPRESENTATION <span class="opt">OPTIONAL</span></label>
+          <select id="legal-rep">
+            <option value="" disabled selected>Select option</option>
+            <option value="none">No current legal representation</option>
+            <option value="in_house">In-house legal team</option>
+            <option value="retained_solicitor">Retained external solicitor</option>
+            <option value="hr_consultancy">HR consultancy (e.g. Peninsula, Croner)</option>
+            <option value="insurance_panel">Employment practice liability insurance panel</option>
+            <option value="ad_hoc">Ad hoc / as needed</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>CURRENT HR SYSTEMS <span class="opt">OPTIONAL</span></label>
+          <select id="hr-system">
+            <option value="" disabled selected>Select option</option>
+            <option value="none">No dedicated HR system</option>
+            <option value="spreadsheets">Spreadsheets / manual records</option>
+            <option value="basic_hr">Basic HR software (e.g. BambooHR, Breathe)</option>
+            <option value="mid_tier">Mid-tier HRIS (e.g. Sage HR, Cezanne)</option>
+            <option value="enterprise">Enterprise HRIS (e.g. Workday, SAP, Oracle)</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="callout">
+          <strong>How this shapes your intelligence:</strong> Concern areas map directly to Ailane's 12 ACEI regulatory categories. Higher-weighted categories receive deeper tribunal data analysis, sector benchmarking, and proactive regulatory alerts when case law shifts.
+        </div>
+
+        <div class="btn-row" style="margin-top:20px;">
+          <button class="btn-secondary" onclick="prevStep(2)">← Back</button>
+          <button class="btn-primary" onclick="nextStep(2)">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: COMPLIANCE HISTORY ═══ -->
+  <div class="screen" id="screen-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="step-badge">📋</div>
+        <div>
+          <div class="card-title">Compliance &amp; claims history</div>
+          <div class="card-subtitle">This information is used exclusively to calibrate your CCI score. All data is treated as strictly confidential and is never shared externally.</div>
+          <span class="index-tag tag-cci">CCI CALIBRATION</span>
+          <span class="index-tag tag-rri" style="margin-left:6px;">RRI EVIDENCE</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="msg" id="err-3"></div>
+
+        <div class="field">
+          <label>EMPLOYMENT TRIBUNAL CLAIMS IN LAST 3 YEARS <span class="opt">OPTIONAL</span></label>
+          <div class="claims-toggle">
+            <button class="toggle-btn" id="claims-yes" onclick="setClaims(true)">✓ &nbsp;Yes — we have had claims</button>
+            <button class="toggle-btn" id="claims-no" onclick="setClaims(false)">✗ &nbsp;No claims in this period</button>
+          </div>
+          <div class="claims-detail" id="claims-detail">
+            <div class="field-row-2">
+              <div class="field">
+                <label>APPROXIMATE NUMBER OF CLAIMS</label>
+                <select id="claims-count">
+                  <option value="1">1 claim</option>
+                  <option value="2">2–3 claims</option>
+                  <option value="5">4–6 claims</option>
+                  <option value="8">7–10 claims</option>
+                  <option value="15">More than 10</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>MOST RECENT OUTCOME</label>
+                <select id="claims-outcome">
+                  <option value="" disabled selected>Select outcome</option>
+                  <option value="settled">Settled / ACAS conciliated</option>
+                  <option value="won">Tribunal found in our favour</option>
+                  <option value="lost">Tribunal found against us</option>
+                  <option value="withdrawn">Withdrawn by claimant</option>
+                  <option value="ongoing">Ongoing / pending</option>
+                  <option value="mixed">Mixed outcomes</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>CLAIM TYPES <span class="opt">SELECT ALL THAT APPLY</span></label>
+              <div class="chip-group" id="claim-types-group">
+                <div class="chip" data-val="unfair_dismissal">Unfair dismissal</div>
+                <div class="chip" data-val="discrimination">Discrimination</div>
+                <div class="chip" data-val="wages">Unlawful deduction from wages</div>
+                <div class="chip" data-val="whistleblowing">Whistleblowing / PIDA</div>
+                <div class="chip" data-val="redundancy">Redundancy pay</div>
+                <div class="chip" data-val="breach_contract">Breach of contract</div>
+                <div class="chip" data-val="working_time">Working time</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:8px;">
+          <label>DISCIPLINARY / GRIEVANCE ACTIVITY IN LAST 12 MONTHS <span class="opt">OPTIONAL</span></label>
+          <select id="dg-activity">
+            <option value="" disabled selected>Select option</option>
+            <option value="none">None</option>
+            <option value="low">Low (1–2 cases)</option>
+            <option value="moderate">Moderate (3–5 cases)</option>
+            <option value="high">High (6+ cases)</option>
+            <option value="prefer_not">Prefer not to say</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>EXISTING COMPLIANCE DOCUMENTATION <span class="opt">SELECT ALL THAT APPLY</span></label>
+          <div class="chip-group" id="docs-group">
+            <div class="chip" data-val="employment_contracts">Written employment contracts</div>
+            <div class="chip" data-val="staff_handbook">Staff handbook</div>
+            <div class="chip" data-val="disciplinary_policy">Disciplinary &amp; grievance policy</div>
+            <div class="chip" data-val="equality_policy">Equality &amp; diversity policy</div>
+            <div class="chip" data-val="dsar_process">Data subject access request process</div>
+            <div class="chip" data-val="risk_assessments">Risk assessments</div>
+          </div>
+          <div class="callout" style="margin-top:12px;">
+            <strong>RRI benefit:</strong> Existing documentation directly improves your Regulatory Readiness Index score. Ailane's Compliance Checker can verify and score each document against current statutory requirements.
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:20px;">
+          <button class="btn-secondary" onclick="prevStep(3)">← Back</button>
+          <button class="btn-primary" id="btn-complete" onclick="completeOnboarding()">Complete setup →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ COMPLETE ═══ -->
+  <div class="screen" id="screen-complete">
+    <div id="progress-bar-spacer" style="height:0;"></div>
+    <div class="complete-icon">🎯</div>
+    <h1>Intelligence profile created</h1>
+    <p>Your organisation profile is being processed. Ailane is now computing your baseline indices using your sector, region, size, and compliance history against 130,000+ tribunal decisions.</p>
+    <div class="index-summary">
+      <div class="index-card">
+        <div class="name">ACEI</div>
+        <div class="status status-computing">Computing…</div>
+      </div>
+      <div class="index-card">
+        <div class="name">RRI</div>
+        <div class="status status-computing">Computing…</div>
+      </div>
+      <div class="index-card">
+        <div class="name">CCI</div>
+        <div class="status status-computing">Computing…</div>
+      </div>
+    </div>
+    <p style="margin-bottom:32px;">Your dashboard is ready. Initial scores will populate within minutes as your profile is processed.</p>
+    <a href="https://ailane.ai/governance-dashboard/" class="btn-dashboard">Access My Dashboard →</a>
+  </div>
+
+</main>
+
+<footer>
+  AI Lane Limited &middot; Company No. 17035624 &middot; ICO Reg. No. 00013389720 &middot;
+  <a href="https://ailane.ai/privacy/">Privacy Policy</a> &middot;
+  <a href="https://ailane.ai/terms/">Terms of Service</a> &middot;
+  <a href="mailto:support@ailane.ai">support@ailane.ai</a>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0OTI5NzUsImV4cCI6MjA1NjA2ODk3NX0.2S3mBuKsQZUeUnA9MhYPKKZiDYxwZGJcFwRIEHlPjqQ';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentStep = 1;
+let session = null;
+let orgId = null;
+let hasClaims = null;
+const selectedConcerns  = new Set();
+const selectedClaimTypes = new Set();
+const selectedDocs      = new Set();
+
+// ── AUTH CHECK ──────────────────────────────────────────────────────────────
+sb.auth.getSession().then(({ data }) => {
+  session = data.session;
+  if (!session) {
+    window.location.href = 'https://ailane.ai/signup/';
+    return;
+  }
+  // Pre-fill org name from signup metadata if available
+  const meta = session.user?.user_metadata || {};
+  if (meta.organisation) document.getElementById('org-name').value = meta.organisation;
+  // Resolve org ID
+  resolveOrgId();
+});
+
+async function resolveOrgId() {
+  const { data } = await sb.from('organisations').select('id, onboarding_completed').limit(1).single();
+  if (data) {
+    orgId = data.id;
+    if (data.onboarding_completed) {
+      window.location.href = 'https://ailane.ai/governance-dashboard/';
+    }
+  }
+}
+
+// ── CHIP TOGGLE ─────────────────────────────────────────────────────────────
+function initChips(groupId, store) {
+  document.getElementById(groupId).querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.val;
+      if (store.has(v)) { store.delete(v); chip.classList.remove('selected'); }
+      else               { store.add(v);    chip.classList.add('selected'); }
+    });
+  });
+}
+initChips('concerns-group',    selectedConcerns);
+initChips('claim-types-group', selectedClaimTypes);
+initChips('docs-group',        selectedDocs);
+
+// ── CLAIMS TOGGLE ────────────────────────────────────────────────────────────
+function setClaims(val) {
+  hasClaims = val;
+  document.getElementById('claims-yes').className = 'toggle-btn' + (val ? ' selected-yes' : '');
+  document.getElementById('claims-no').className  = 'toggle-btn' + (!val ? ' selected-no'  : '');
+  document.getElementById('claims-detail').style.display = val ? 'block' : 'none';
+}
+
+// ── COMPANIES HOUSE LOOKUP ───────────────────────────────────────────────────
+async function lookupCH() {
+  const num = document.getElementById('ch-number').value.trim();
+  if (!num || num.length < 6) return;
+  const btn = document.getElementById('btn-ch-lookup');
+  btn.textContent = 'Looking up…'; btn.disabled = true;
+  try {
+    const r = await fetch(`https://api.company-information.service.gov.uk/company/${num.toUpperCase()}`, {
+      headers: { 'Authorization': 'Basic ' + btoa('3ecea037-9ebe-4128-956c-68a0102e7e17:') }
+    });
+    if (!r.ok) throw new Error('Not found');
+    const d = await r.json();
+    const el = document.getElementById('ch-result');
+    el.style.display = 'block';
+    el.innerHTML = `<strong>${d.company_name}</strong> &nbsp;&middot;&nbsp; ${d.company_status} &nbsp;&middot;&nbsp; Incorporated ${d.date_of_creation || '—'}`;
+    // Auto-fill org name if empty
+    if (!document.getElementById('org-name').value) {
+      document.getElementById('org-name').value = d.company_name;
+    }
+  } catch {
+    document.getElementById('ch-result').style.display = 'none';
+  }
+  btn.textContent = 'Look up →'; btn.disabled = false;
+}
+document.getElementById('ch-number').addEventListener('keydown', e => { if (e.key === 'Enter') lookupCH(); });
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+function showStep(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const s = document.getElementById('screen-' + n) || document.getElementById('screen-complete');
+  if (s) s.classList.add('active');
+
+  // Update progress
+  for (let i = 1; i <= 3; i++) {
+    const circ  = document.getElementById('circle-' + i);
+    const label = document.getElementById('label-' + i);
+    if (!circ) continue;
+    if (i < n)       { circ.className = 'step-circle done'; circ.textContent = '✓'; label.className = 'step-label'; }
+    else if (i === n){ circ.className = 'step-circle active'; circ.textContent = i; label.className = 'step-label active'; }
+    else             { circ.className = 'step-circle'; circ.textContent = i; label.className = 'step-label'; }
+    const line = document.getElementById('line-' + i);
+    if (line) line.className = 'progress-line' + (i < n ? ' done' : '');
+  }
+  currentStep = n;
+  window.scrollTo(0, 0);
+}
+
+function nextStep(from) {
+  // Validate step 1
+  if (from === 1) {
+    const name    = document.getElementById('org-name').value.trim();
+    const sector  = document.getElementById('sector').value;
+    const count   = document.getElementById('headcount').value;
+    const region  = document.getElementById('region').value;
+    if (!name || !sector || !count || !region) {
+      const el = document.getElementById('err-1');
+      el.textContent = 'Please complete all required fields before continuing.';
+      el.className = 'msg error'; return;
+    }
+    document.getElementById('err-1').className = 'msg';
+  }
+  if (from < 3) showStep(from + 1);
+}
+
+function prevStep(from) {
+  if (from > 1) showStep(from - 1);
+}
+
+// ── COMPLETE ─────────────────────────────────────────────────────────────────
+async function completeOnboarding() {
+  const btn = document.getElementById('btn-complete');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const claimsCount = hasClaims
+    ? parseInt(document.getElementById('claims-count').value || '0')
+    : 0;
+
+  const payload = {
+    // Step 1
+    name:     document.getElementById('org-name').value.trim(),
+    industry: document.getElementById('sector').value,
+    headcount: parseInt(document.getElementById('headcount').value || '0'),
+    region:   document.getElementById('region').value,
+    companies_house_number: document.getElementById('ch-number').value.trim() || null,
+    // Step 2
+    primary_compliance_concerns: [...selectedConcerns],
+    // Step 3
+    recent_claims: hasClaims === true,
+    recent_claims_count: claimsCount,
+    recent_claims_types: [...selectedClaimTypes],
+    onboarding_completed: true,
+    onboarding_completed_at: new Date().toISOString(),
+    // Extended data as JSON
+    onboarding_data: {
+      legal_rep:    document.getElementById('legal-rep').value || null,
+      hr_system:    document.getElementById('hr-system').value || null,
+      dg_activity:  document.getElementById('dg-activity').value || null,
+      existing_docs:[...selectedDocs],
+      claims_outcome: hasClaims ? (document.getElementById('claims-outcome').value || null) : null,
+    }
+  };
+
+  try {
+    if (orgId) {
+      await sb.from('organisations').update(payload).eq('id', orgId);
+    }
+    // Show completion screen
+    document.getElementById('progress-bar').style.display = 'none';
+    document.getElementById('skip-link').style.display = 'none';
+    showStep('complete');
+    document.getElementById('screen-complete').classList.add('active');
+  } catch (e) {
+    const el = document.getElementById('err-3');
+    el.textContent = 'Could not save your profile. Please try again or contact support@ailane.ai.';
+    el.className = 'msg error';
+    btn.disabled = false; btn.textContent = 'Complete setup →';
+  }
+}
+
+// Allow Enter key on CH lookup
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement.id === 'ch-number') lookupCH();
+});
+</script>
+</body>
+</html>
