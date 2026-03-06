@@ -887,14 +887,14 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
                     <div class="cci-price-tier">FLASH CHECK</div>
                     <div class="cci-price-val">&#163;19</div>
                     <div class="cci-price-desc">One contract · Full findings &amp; references · Delivered within 24hrs</div>
-                    <a href="#early-access" class="cci-price-btn cyan-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Get Results &#8594;</a>
+                    <a href="https://buy.stripe.com/cNibJ26rmfwmgcb5hlfMA00" target="_blank" rel="noopener" class="cci-price-btn cyan-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Get Results &#8594;</a>
                   </div>
                   <div class="cci-price-card featured-price">
                     <div class="cci-price-popular">MOST CHOSEN</div>
                     <div class="cci-price-tier">FULL CHECK</div>
                     <div class="cci-price-val">&#163;39</div>
                     <div class="cci-price-desc">Contract, handbook &amp; policies · Findings, remediation &amp; RRI score</div>
-                    <a href="#early-access" class="cci-price-btn primary-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Get Results &#8594;</a>
+                    <a href="https://buy.stripe.com/fZu3cw2b697Ygcb115fMA01" target="_blank" rel="noopener" class="cci-price-btn primary-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Get Results &#8594;</a>
                   </div>
                   <div class="cci-price-card">
                     <div class="cci-price-tier">SUBSCRIBE</div>
@@ -1329,7 +1329,7 @@ function checkDisclaimer(e) {
   var cb = document.getElementById('cci-disclaimer-check');
   if (!cb || !cb.checked) {
     e.preventDefault();
-    // Pulse the checkbox to draw attention
+    // Pulse the disclaimer box red to draw attention
     var wrap = document.querySelector('.cci-gate-disclaimer');
     if (wrap) {
       wrap.style.borderColor = 'rgba(248,113,113,0.5)';
@@ -1340,6 +1340,12 @@ function checkDisclaimer(e) {
       }, 1200);
     }
     return false;
+  }
+  // Disclaimer accepted — if link has a real Stripe URL, open in new tab
+  var href = e.currentTarget ? e.currentTarget.getAttribute('href') : null;
+  if (href && href.indexOf('stripe.com') !== -1) {
+    e.preventDefault();
+    window.open(href, '_blank', 'noopener,noreferrer');
   }
   return true;
 }
