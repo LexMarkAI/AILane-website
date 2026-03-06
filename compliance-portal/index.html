@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Secure Compliance Portal</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #080d16;
+  --bg-card:   #0e1520;
+  --bg-elev:   #141e2e;
+  --bg-input:  #0b1219;
+  --border:    rgba(56,189,248,0.08);
+  --border-h:  rgba(56,189,248,0.22);
+  --cyan:      #38bdf8;
+  --cyan-dim:  rgba(56,189,248,0.10);
+  --cyan-glow: rgba(56,189,248,0.15);
+  --green:     #34d399;
+  --green-dim: rgba(52,211,153,0.10);
+  --amber:     #fbbf24;
+  --amber-dim: rgba(251,191,36,0.08);
+  --red:       #f87171;
+  --red-dim:   rgba(248,113,113,0.08);
+  --gold:      #f59e0b;
+  --t1:        #f1f5f9;
+  --t2:        #94a3b8;
+  --t3:        #64748b;
+  --t4:        #475569;
+  --mono:      'Space Mono', monospace;
+  --body:      'DM Sans', sans-serif;
+  --ease:      cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --navy:      #1B2A4A;
+  --teal:      #0D7377;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-font-smoothing:antialiased; }
+body { font-family:var(--body); background:var(--bg); color:var(--t1); min-height:100vh; overflow-x:hidden; }
+::selection { background:var(--cyan-dim); color:var(--cyan); }
+
+/* Grid background */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: radial-gradient(rgba(56,189,248,0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 20%, transparent 70%);
+}
+
+@keyframes fadeUp   { from{opacity:0;transform:translateY(18px);} to{opacity:1;transform:translateY(0);} }
+@keyframes fadeIn   { from{opacity:0;} to{opacity:1;} }
+@keyframes pulse    { 0%,100%{opacity:.5;transform:scale(.85);} 50%{opacity:1;transform:scale(1.2);} }
+@keyframes spin     { to{transform:rotate(360deg);} }
+@keyframes scanline { 0%{top:-10%;} 100%{top:110%;} }
+@keyframes fillBar  { from{width:0} to{width:var(--w)} }
+@keyframes countUp  { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+@keyframes shimmer  { 0%{background-position:-600px 0;} 100%{background-position:600px 0;} }
+@keyframes glow     { 0%,100%{box-shadow:0 0 20px rgba(56,189,248,0.1);} 50%{box-shadow:0 0 40px rgba(56,189,248,0.25);} }
+
+/* ── LAYOUT ── */
+.portal-wrap { position:relative; z-index:1; max-width:720px; margin:0 auto; padding:40px 24px 80px; }
+
+/* ── NAV ── */
+.portal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:48px; }
+.portal-logo { font-family:var(--mono); font-size:14px; font-weight:700; letter-spacing:4px; color:var(--t1); text-decoration:none; }
+.portal-logo span { color:var(--cyan); font-size:9px; letter-spacing:1.5px; font-weight:400; margin-left:8px; }
+.portal-secure-badge { display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:9px; letter-spacing:1.5px; color:var(--green); background:var(--green-dim); border:1px solid rgba(52,211,153,0.15); border-radius:100px; padding:5px 14px; }
+.portal-secure-dot { width:5px; height:5px; border-radius:50%; background:var(--green); animation:pulse 2s ease-in-out infinite; }
+
+/* ── STATE MACHINE ── */
+.portal-state { display:none; animation:fadeUp 0.5s var(--ease) both; }
+.portal-state.active { display:block; }
+
+/* ── ACCESS GATE (State 0) ── */
+.gate-wrap { text-align:center; padding:20px 0; }
+.gate-lock { font-size:48px; margin-bottom:20px; animation:fadeIn 0.6s ease; }
+.gate-title { font-size:1.6rem; font-weight:700; margin-bottom:10px; letter-spacing:-0.3px; }
+.gate-sub { font-size:14px; color:var(--t2); margin-bottom:36px; line-height:1.8; max-width:440px; margin-left:auto; margin-right:auto; }
+
+.gate-card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:32px; text-align:left; animation:glow 4s ease-in-out infinite; }
+.gate-card-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--cyan); margin-bottom:20px; }
+.gate-field { margin-bottom:18px; }
+.gate-field label { display:block; font-size:12px; font-weight:600; color:var(--t2); margin-bottom:7px; letter-spacing:0.3px; }
+.gate-field label span { color:var(--red); margin-left:2px; }
+.gate-input { width:100%; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:12px 16px; font-family:var(--body); font-size:14px; color:var(--t1); outline:none; transition:border-color 0.2s; }
+.gate-input:focus { border-color:var(--border-h); }
+.gate-input::placeholder { color:var(--t4); }
+.gate-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+.tier-selector { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+.tier-opt { border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.2s; position:relative; }
+.tier-opt:hover { border-color:var(--border-h); }
+.tier-opt.selected { border-color:rgba(56,189,248,0.35); background:var(--cyan-dim); }
+.tier-opt input { position:absolute; opacity:0; }
+.tier-opt-name { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--cyan); margin-bottom:4px; }
+.tier-opt-price { font-size:20px; font-weight:700; margin-bottom:3px; }
+.tier-opt-desc { font-size:11px; color:var(--t3); line-height:1.4; }
+.tier-opt-check { position:absolute; top:10px; right:12px; width:16px; height:16px; border-radius:50%; border:1px solid var(--border); background:var(--bg-elev); display:flex; align-items:center; justify-content:center; font-size:9px; transition:all 0.2s; }
+.tier-opt.selected .tier-opt-check { background:var(--cyan); border-color:var(--cyan); color:var(--bg); }
+
+.gate-privacy { background:var(--amber-dim); border:1px solid rgba(251,191,36,0.15); border-radius:8px; padding:12px 14px; margin-bottom:20px; font-size:11px; color:var(--t2); line-height:1.6; }
+.gate-privacy strong { color:var(--amber); }
+
+.gate-consent { display:flex; align-items:flex-start; gap:10px; margin-bottom:24px; cursor:pointer; }
+.gate-consent input { margin-top:3px; accent-color:var(--cyan); flex-shrink:0; width:14px; height:14px; cursor:pointer; }
+.gate-consent span { font-size:12px; color:var(--t2); line-height:1.6; }
+.gate-consent strong { color:var(--t1); }
+.gate-consent a { color:var(--cyan); text-decoration:none; }
+
+.gate-btn { width:100%; padding:15px; background:var(--cyan); color:var(--bg); font-family:var(--mono); font-size:13px; font-weight:700; letter-spacing:1px; border:none; border-radius:10px; cursor:pointer; transition:all 0.25s; }
+.gate-btn:hover { background:#5cc9f5; transform:translateY(-1px); box-shadow:0 8px 28px rgba(56,189,248,0.25); }
+.gate-btn:disabled { opacity:0.35; cursor:not-allowed; transform:none; box-shadow:none; }
+.gate-err { font-size:12px; color:var(--red); margin-top:8px; text-align:center; min-height:18px; }
+
+/* ── UPLOAD STATE (State 1) ── */
+.upload-header { margin-bottom:28px; }
+.upload-eyebrow { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--cyan); margin-bottom:10px; }
+.upload-title { font-size:1.5rem; font-weight:700; letter-spacing:-0.2px; margin-bottom:8px; }
+.upload-sub { font-size:14px; color:var(--t2); line-height:1.7; }
+.upload-sub strong { color:var(--t1); }
+
+.upload-progress-track { display:flex; align-items:center; gap:0; margin-bottom:32px; }
+.up-step { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; letter-spacing:0.5px; color:var(--t4); }
+.up-step.active { color:var(--cyan); }
+.up-step.done { color:var(--green); }
+.up-step-num { width:22px; height:22px; border-radius:50%; border:1px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:9px; flex-shrink:0; }
+.up-step.done .up-step-num { background:var(--green); border-color:var(--green); color:var(--bg); }
+.up-divider { flex:1; height:1px; background:var(--border); margin:0 8px; }
+
+/* Slot cards */
+.slot-grid { display:flex; flex-direction:column; gap:12px; margin-bottom:28px; }
+.slot-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:20px 22px; transition:all 0.25s; }
+.slot-card.has-file { border-color:rgba(52,211,153,0.25); background:rgba(52,211,153,0.03); }
+.slot-card.required-slot { border-left:2px solid var(--cyan); }
+.slot-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.slot-label-wrap { display:flex; align-items:center; gap:10px; }
+.slot-icon { font-size:18px; }
+.slot-label { font-size:13px; font-weight:600; }
+.slot-required { font-family:var(--mono); font-size:8px; letter-spacing:1px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.15); border-radius:3px; padding:2px 7px; }
+.slot-optional { font-family:var(--mono); font-size:8px; letter-spacing:1px; color:var(--t4); background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:3px; padding:2px 7px; }
+.slot-status { font-family:var(--mono); font-size:10px; color:var(--t4); }
+.slot-status.filled { color:var(--green); }
+.slot-drop { border:1.5px dashed rgba(56,189,248,0.15); border-radius:8px; padding:16px; text-align:center; cursor:pointer; transition:all 0.2s; }
+.slot-drop:hover, .slot-drop.drag-over { border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.04); }
+.slot-drop-text { font-size:12px; color:var(--t3); }
+.slot-drop-text span { color:var(--cyan); }
+.slot-drop-formats { font-family:var(--mono); font-size:9px; color:var(--t4); margin-top:5px; letter-spacing:0.3px; }
+.slot-file-preview { display:flex; align-items:center; justify-content:space-between; }
+.slot-file-info { display:flex; align-items:center; gap:10px; }
+.slot-file-icon { font-size:22px; }
+.slot-file-name { font-size:13px; font-weight:500; }
+.slot-file-size { font-family:var(--mono); font-size:10px; color:var(--t3); }
+.slot-file-remove { background:none; border:none; color:var(--t4); font-size:16px; cursor:pointer; padding:4px 8px; border-radius:4px; transition:all 0.2s; }
+.slot-file-remove:hover { color:var(--red); background:var(--red-dim); }
+
+/* Advisory reminder */
+.upload-advisory { display:flex; gap:10px; background:var(--amber-dim); border:1px solid rgba(251,191,36,0.12); border-radius:8px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:var(--t2); line-height:1.6; }
+.upload-advisory-icon { color:var(--amber); flex-shrink:0; font-size:14px; margin-top:1px; }
+
+.upload-btn { width:100%; padding:15px; background:var(--cyan); color:var(--bg); font-family:var(--mono); font-size:13px; font-weight:700; letter-spacing:1px; border:none; border-radius:10px; cursor:pointer; transition:all 0.25s; display:flex; align-items:center; justify-content:center; gap:10px; }
+.upload-btn:hover { background:#5cc9f5; transform:translateY(-1px); box-shadow:0 8px 28px rgba(56,189,248,0.25); }
+.upload-btn:disabled { opacity:0.35; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* ── ANALYSIS STATE (State 2) ── */
+.analysis-wrap { text-align:center; padding:20px 0; }
+.analysis-visual { position:relative; width:120px; height:120px; margin:0 auto 28px; }
+.analysis-ring { width:120px; height:120px; border-radius:50%; border:2px solid var(--border); position:relative; overflow:hidden; }
+.analysis-ring::after { content:''; position:absolute; top:-10%; left:0; right:0; height:20%; background:linear-gradient(180deg,transparent,rgba(56,189,248,0.4),transparent); animation:scanline 1.5s linear infinite; }
+.analysis-spinner { position:absolute; inset:8px; border-radius:50%; border:2px solid transparent; border-top:2px solid var(--cyan); border-right:2px solid var(--cyan); animation:spin 1s linear infinite; }
+.analysis-icon { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:28px; }
+.analysis-title { font-size:1.3rem; font-weight:700; margin-bottom:8px; }
+.analysis-sub { font-size:13px; color:var(--t2); margin-bottom:32px; }
+.analysis-steps { text-align:left; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:20px 24px; }
+.a-step { display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; color:var(--t3); transition:all 0.3s; }
+.a-step:last-child { border-bottom:none; }
+.a-step.active { color:var(--t1); }
+.a-step.done { color:var(--green); }
+.a-step-dot { width:8px; height:8px; border-radius:50%; background:var(--bg-elev); border:1px solid var(--t4); flex-shrink:0; transition:all 0.3s; }
+.a-step.active .a-step-dot { background:var(--cyan); border-color:var(--cyan); animation:pulse 1s ease-in-out infinite; }
+.a-step.done .a-step-dot { background:var(--green); border-color:var(--green); }
+.a-step-text { flex:1; }
+.a-step-time { font-family:var(--mono); font-size:10px; color:var(--t4); }
+.a-step.done .a-step-time { color:var(--green); }
+
+/* ── RESULTS STATE (State 3) ── */
+.results-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.results-title-wrap {}
+.results-eyebrow { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--green); margin-bottom:6px; }
+.results-title { font-size:1.4rem; font-weight:700; }
+.results-ref { font-family:var(--mono); font-size:10px; color:var(--t4); margin-top:4px; }
+.download-btn { display:flex; align-items:center; gap:8px; background:var(--green); color:var(--bg); font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:1px; padding:11px 22px; border:none; border-radius:8px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.download-btn:hover { background:#5ee8b5; transform:translateY(-1px); box-shadow:0 6px 20px rgba(52,211,153,0.3); }
+
+/* Score panel */
+.score-panel { display:grid; grid-template-columns:180px 1fr; gap:20px; background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:16px; }
+.gauge-wrap { text-align:center; }
+.gauge-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--t3); margin-bottom:8px; }
+.gauge-svg { width:100%; max-width:160px; }
+.risk-band { display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; letter-spacing:1px; border-radius:100px; padding:4px 12px; margin-top:8px; }
+.risk-elevated { color:var(--amber); background:var(--amber-dim); border:1px solid rgba(251,191,36,0.2); }
+.risk-high { color:var(--red); background:var(--red-dim); border:1px solid rgba(248,113,113,0.2); }
+.risk-low { color:var(--green); background:var(--green-dim); border:1px solid rgba(52,211,153,0.2); }
+.risk-dot { width:5px; height:5px; border-radius:50%; background:currentColor; animation:pulse 1.5s ease-in-out infinite; }
+
+.dist-wrap { display:flex; flex-direction:column; justify-content:center; gap:10px; }
+.dist-row { display:flex; align-items:center; gap:10px; }
+.dist-label { font-family:var(--mono); font-size:10px; width:82px; flex-shrink:0; }
+.dist-bar-bg { flex:1; height:7px; background:var(--bg-elev); border-radius:4px; overflow:hidden; }
+.dist-bar-fill { height:100%; border-radius:4px; width:0; transition:width 1.4s var(--ease); }
+.dist-count { font-family:var(--mono); font-size:13px; font-weight:700; width:22px; text-align:right; }
+
+/* Findings */
+.findings-section { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:16px; }
+.findings-hdr { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--border); }
+.findings-hdr-title { font-size:13px; font-weight:600; }
+.findings-count-badge { font-family:var(--mono); font-size:10px; color:var(--t3); background:var(--bg-elev); border:1px solid var(--border); border-radius:4px; padding:3px 9px; }
+
+.finding-item { padding:16px 22px; border-bottom:1px solid var(--border); transition:background 0.2s; }
+.finding-item:last-child { border-bottom:none; }
+.finding-item:hover { background:rgba(255,255,255,0.01); }
+.finding-top { display:flex; align-items:flex-start; gap:12px; margin-bottom:8px; }
+.finding-sev { font-family:var(--mono); font-size:9px; letter-spacing:1px; padding:3px 9px; border-radius:4px; white-space:nowrap; flex-shrink:0; font-weight:700; margin-top:2px; }
+.sev-critical { color:var(--red); background:var(--red-dim); border:1px solid rgba(248,113,113,0.2); }
+.sev-warning { color:var(--amber); background:var(--amber-dim); border:1px solid rgba(251,191,36,0.15); }
+.sev-pass { color:var(--green); background:var(--green-dim); border:1px solid rgba(52,211,153,0.15); }
+.finding-clause { font-family:var(--mono); font-size:9px; color:var(--t4); margin-bottom:3px; }
+.finding-title { font-size:13px; font-weight:600; margin-bottom:4px; }
+.finding-desc { font-size:12px; color:var(--t2); line-height:1.6; margin-bottom:6px; }
+.finding-remediation { font-size:12px; color:var(--t2); line-height:1.6; padding:8px 12px; background:rgba(56,189,248,0.04); border-left:2px solid var(--cyan); border-radius:0 4px 4px 0; margin-bottom:6px; }
+.finding-remediation strong { color:var(--cyan); }
+.finding-ref { font-family:var(--mono); font-size:10px; color:var(--cyan); opacity:0.65; }
+
+/* RRI panel */
+.rri-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:22px 24px; margin-bottom:16px; }
+.rri-panel-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.rri-panel-title { font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--cyan); }
+.rri-tier-badge { font-family:var(--mono); font-size:9px; letter-spacing:1px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.15); border-radius:4px; padding:3px 9px; }
+.rri-pillars { display:flex; flex-direction:column; gap:14px; }
+.rri-pillar-row { display:flex; align-items:center; gap:12px; }
+.rri-pillar-name { font-size:12px; color:var(--t2); width:160px; flex-shrink:0; }
+.rri-pillar-bar { flex:1; height:5px; background:var(--bg-elev); border-radius:3px; overflow:hidden; }
+.rri-pillar-fill { height:100%; border-radius:3px; width:0; transition:width 1.6s var(--ease) 0.4s; }
+.rri-pillar-score { font-family:var(--mono); font-size:11px; color:var(--t3); width:36px; text-align:right; flex-shrink:0; }
+
+/* Disclaimer on results */
+.results-disclaimer { background:var(--amber-dim); border:1px solid rgba(251,191,36,0.12); border-radius:10px; padding:16px 20px; margin-bottom:16px; font-size:12px; color:var(--t2); line-height:1.7; }
+.results-disclaimer strong { color:var(--amber); }
+
+/* ── PDF PRINT STYLES ── */
+@media print {
+  body { background:#fff !important; color:#1B2A4A !important; }
+  body::before { display:none; }
+  .portal-nav, .download-btn, .portal-state:not(#state-results) { display:none !important; }
+  #state-results { display:block !important; }
+  .results-disclaimer { background:#fff8e6 !important; border:1px solid #f59e0b !important; color:#1B2A4A !important; }
+  .score-panel, .findings-section, .rri-panel { border:1px solid #dde4ee !important; background:#fff !important; }
+  .finding-item { border-color:#dde4ee !important; }
+  .pdf-header { display:block !important; }
+  .pdf-footer { display:block !important; }
+  @page { margin:20mm 15mm; }
+}
+.pdf-header { display:none; }
+.pdf-footer { display:none; }
+
+@media print {
+  .pdf-header {
+    display:flex !important; align-items:center; justify-content:space-between;
+    padding-bottom:12px; border-bottom:3px solid #0D7377; margin-bottom:20px;
+  }
+  .pdf-header-logo { font-family:var(--mono); font-size:18px; font-weight:700; letter-spacing:3px; color:#1B2A4A; }
+  .pdf-header-meta { font-size:10px; color:#64748b; text-align:right; line-height:1.6; }
+  .pdf-footer {
+    display:block !important; position:fixed; bottom:0; left:0; right:0;
+    padding:10px 15mm; border-top:1px solid #dde4ee; font-size:9px; color:#94a3b8;
+    background:#fff; text-align:center; line-height:1.5;
+  }
+}
+
+@media (max-width:600px) {
+  .score-panel { grid-template-columns:1fr; }
+  .gate-row { grid-template-columns:1fr; }
+  .tier-selector { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="portal-wrap">
+
+  <!-- NAV -->
+  <nav class="portal-nav">
+    <a href="https://ailane.ai" class="portal-logo">AILANE<span>COMPLIANCE PORTAL</span></a>
+    <div class="portal-secure-badge">
+      <span class="portal-secure-dot"></span>
+      SECURE SESSION
+    </div>
+  </nav>
+
+  <!-- PDF HEADER (print only) -->
+  <div class="pdf-header">
+    <div class="pdf-header-logo">AILANE</div>
+    <div class="pdf-header-meta">
+      Compliance Analysis Report<br>
+      AI Lane Limited · Company No. 17035654 · ailane.ai<br>
+      <span id="pdf-ref">REF: —</span> · <span id="pdf-date">—</span>
+    </div>
+  </div>
+
+  <!-- PDF FOOTER (print only) -->
+  <div class="pdf-footer" id="pdf-footer">
+    ADVISORY OUTPUT ONLY — This report does not constitute legal advice and should not be relied upon as such without independent legal verification.
+    Generated by Ailane regulatory intelligence software. Analysis performed against the Ailane Knowledge Library (ACEI v1.0 · RRI v1.0 · CCI v1.0).
+    AI Lane Limited · ailane.ai · Company No. 17035654
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STATE 0: ACCESS GATE                          -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="portal-state active" id="state-gate">
+    <div class="gate-wrap">
+      <div class="gate-lock">🔒</div>
+      <div class="gate-title">Secure Compliance Portal</div>
+      <div class="gate-sub">Enter your details to access your compliance analysis. Your report will be generated in minutes and available to download as a PDF.</div>
+
+      <div class="gate-card">
+        <div class="gate-card-label">PORTAL ACCESS · PROVIDE YOUR DETAILS</div>
+
+        <div class="gate-row">
+          <div class="gate-field">
+            <label>First Name <span>*</span></label>
+            <input type="text" class="gate-input" id="gate-fname" placeholder="Jane">
+          </div>
+          <div class="gate-field">
+            <label>Last Name <span>*</span></label>
+            <input type="text" class="gate-input" id="gate-lname" placeholder="Smith">
+          </div>
+        </div>
+
+        <div class="gate-field">
+          <label>Work Email Address <span>*</span></label>
+          <input type="email" class="gate-input" id="gate-email" placeholder="jane.smith@company.com">
+        </div>
+
+        <div class="gate-field">
+          <label>Company Name <span>*</span></label>
+          <input type="text" class="gate-input" id="gate-company" placeholder="Acme Ltd">
+        </div>
+
+        <div class="gate-field">
+          <label>Job Title</label>
+          <input type="text" class="gate-input" id="gate-jobtitle" placeholder="HR Director">
+        </div>
+
+        <div class="gate-field">
+          <label>Select Your Purchase</label>
+          <div class="tier-selector">
+            <label class="tier-opt selected" id="tier-flash" onclick="selectTier('flash')">
+              <input type="radio" name="tier" value="flash" checked>
+              <div class="tier-opt-name">FLASH CHECK</div>
+              <div class="tier-opt-price">£19</div>
+              <div class="tier-opt-desc">1 contract · Full findings</div>
+              <div class="tier-opt-check">✓</div>
+            </label>
+            <label class="tier-opt" id="tier-full" onclick="selectTier('full')">
+              <input type="radio" name="tier" value="full">
+              <div class="tier-opt-name">FULL CHECK</div>
+              <div class="tier-opt-price">£39</div>
+              <div class="tier-opt-desc">Contract + handbook + policies</div>
+              <div class="tier-opt-check"></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="gate-privacy">
+          <strong>Data & Privacy Notice:</strong> We process your documents solely to perform this compliance analysis. <strong>Source documents are permanently deleted immediately after analysis completes.</strong> Your findings are retained for 30 days for re-download. Your name, email, and company name are retained for service records. You have the right to access, correct, or delete your data at any time — contact <a href="mailto:privacy@ailane.ai" style="color:var(--amber)">privacy@ailane.ai</a>. Full privacy policy at ailane.ai/privacy.
+        </div>
+
+        <label class="gate-consent">
+          <input type="checkbox" id="gate-consent-1">
+          <span>I confirm this service provides <strong>regulatory intelligence and advisory outputs only</strong>, not legal advice, and I will not rely on this report as a substitute for qualified legal counsel.</span>
+        </label>
+
+        <label class="gate-consent">
+          <input type="checkbox" id="gate-consent-2">
+          <span>I confirm I have paid for this service and I have read and accept the <strong>data processing notice</strong> above and Ailane's <a href="https://ailane.ai/terms">terms of service</a>.</span>
+        </label>
+
+        <button class="gate-btn" id="gate-btn" onclick="proceedToUpload()">Access My Analysis Portal →</button>
+        <div class="gate-err" id="gate-err"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STATE 1: UPLOAD                               -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="portal-state" id="state-upload">
+
+    <div class="upload-progress-track">
+      <div class="up-step done" id="prog-0"><div class="up-step-num">✓</div>Access</div>
+      <div class="up-divider"></div>
+      <div class="up-step active" id="prog-1"><div class="up-step-num">2</div>Upload</div>
+      <div class="up-divider"></div>
+      <div class="up-step" id="prog-2"><div class="up-step-num">3</div>Analysis</div>
+      <div class="up-divider"></div>
+      <div class="up-step" id="prog-3"><div class="up-step-num">4</div>Report</div>
+    </div>
+
+    <div class="upload-header">
+      <div class="upload-eyebrow">DOCUMENT UPLOAD</div>
+      <div class="upload-title">Upload your documents</div>
+      <div class="upload-sub" id="upload-sub-text">
+        Upload your <strong>employment contract</strong> below. Accepted formats: .docx, .pdf, .txt — max 10MB per file.
+      </div>
+    </div>
+
+    <!-- Slot grid — populated by JS based on tier -->
+    <div class="slot-grid" id="slot-grid"></div>
+
+    <div class="upload-advisory">
+      <span class="upload-advisory-icon">ⓘ</span>
+      <span>Ailane's Compliance Checker provides <strong>regulatory intelligence and advisory outputs only</strong>. It does not constitute legal advice. For advice on your specific circumstances, consult a qualified employment solicitor. Your documents are processed securely and <strong>permanently deleted immediately after analysis completes</strong>.</span>
+    </div>
+
+    <button class="upload-btn" id="upload-btn" onclick="startAnalysis()" disabled>
+      <span>&#9889;</span> Run Compliance Analysis
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STATE 2: ANALYSIS                             -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="portal-state" id="state-analysis">
+
+    <div class="upload-progress-track" style="margin-bottom:36px;">
+      <div class="up-step done"><div class="up-step-num">✓</div>Access</div>
+      <div class="up-divider"></div>
+      <div class="up-step done"><div class="up-step-num">✓</div>Upload</div>
+      <div class="up-divider"></div>
+      <div class="up-step active"><div class="up-step-num">3</div>Analysis</div>
+      <div class="up-divider"></div>
+      <div class="up-step"><div class="up-step-num">4</div>Report</div>
+    </div>
+
+    <div class="analysis-wrap">
+      <div class="analysis-visual">
+        <div class="analysis-ring"></div>
+        <div class="analysis-spinner"></div>
+        <div class="analysis-icon">⚖️</div>
+      </div>
+      <div class="analysis-title">Analysing your documents</div>
+      <div class="analysis-sub">Checking against 47 legislative instruments including ERA 2025</div>
+
+      <div class="analysis-steps">
+        <div class="a-step active" id="as-0">
+          <div class="a-step-dot"></div>
+          <div class="a-step-text">Parsing document structure and extracting clauses</div>
+          <div class="a-step-time" id="ast-0"></div>
+        </div>
+        <div class="a-step" id="as-1">
+          <div class="a-step-dot"></div>
+          <div class="a-step-text">Mapping obligations against Knowledge Library — 47 instruments</div>
+          <div class="a-step-time" id="ast-1"></div>
+        </div>
+        <div class="a-step" id="as-2">
+          <div class="a-step-dot"></div>
+          <div class="a-step-text">ERA 2025 provisions assessed — s.22, s.118, s.1, s.73A</div>
+          <div class="a-step-time" id="ast-2"></div>
+        </div>
+        <div class="a-step" id="as-3">
+          <div class="a-step-dot"></div>
+          <div class="a-step-text">Equality Act 2010 · Working Time Regulations cross-check</div>
+          <div class="a-step-time" id="ast-3"></div>
+        </div>
+        <div class="a-step" id="as-4">
+          <div class="a-step-dot"></div>
+          <div class="a-step-text">RRI Regulatory Readiness pillar scoring initiated</div>
+          <div class="a-step-time" id="ast-4"></div>
+        </div>
+        <div class="a-step" id="as-5">
+          <div class="a-step-dot"></div>
+          <div class="a-step-text">Generating remediation recommendations</div>
+          <div class="a-step-time" id="ast-5"></div>
+        </div>
+        <div class="a-step" id="as-6">
+          <div class="a-step-dot"></div>
+          <div class="a-step-text">Source document securely deleted · Report compiling</div>
+          <div class="a-step-time" id="ast-6"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- STATE 3: RESULTS / REPORT                     -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="portal-state" id="state-results">
+
+    <div class="upload-progress-track" style="margin-bottom:28px;">
+      <div class="up-step done"><div class="up-step-num">✓</div>Access</div>
+      <div class="up-divider"></div>
+      <div class="up-step done"><div class="up-step-num">✓</div>Upload</div>
+      <div class="up-divider"></div>
+      <div class="up-step done"><div class="up-step-num">✓</div>Analysis</div>
+      <div class="up-divider"></div>
+      <div class="up-step done active"><div class="up-step-num">✓</div>Report</div>
+    </div>
+
+    <div class="results-header">
+      <div class="results-title-wrap">
+        <div class="results-eyebrow">ANALYSIS COMPLETE</div>
+        <div class="results-title">Your Compliance Report</div>
+        <div class="results-ref" id="results-ref">REF: ACP-2026-000001</div>
+      </div>
+      <button class="download-btn" onclick="downloadReport()">
+        ⬇ Download PDF Report
+      </button>
+    </div>
+
+    <!-- Score panel -->
+    <div class="score-panel">
+      <div class="gauge-wrap">
+        <div class="gauge-label">COMPLIANCE SCORE</div>
+        <svg viewBox="0 0 160 100" class="gauge-svg">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#34d399"/>
+              <stop offset="40%" stop-color="#fbbf24"/>
+              <stop offset="100%" stop-color="#f87171"/>
+            </linearGradient>
+          </defs>
+          <path d="M 12 88 A 68 68 0 0 1 148 88" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M 12 88 A 68 68 0 0 1 148 88" fill="none" stroke="url(#gaugeGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" id="gauge-arc" style="transition:stroke-dashoffset 2s cubic-bezier(0.25,0.46,0.45,0.94)"/>
+          <text x="80" y="72" text-anchor="middle" font-family="'Space Mono',monospace" font-size="30" font-weight="700" fill="#f1f5f9" id="gauge-num">0</text>
+          <text x="80" y="86" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="8" fill="#64748b" letter-spacing="1">SCORE</text>
+        </svg>
+        <div class="risk-band risk-elevated" id="risk-band">
+          <span class="risk-dot"></span>ELEVATED RISK
+        </div>
+      </div>
+      <div class="dist-wrap">
+        <div class="dist-row">
+          <div class="dist-label" style="color:var(--red)">⚠ Critical</div>
+          <div class="dist-bar-bg"><div class="dist-bar-fill" id="dist-critical" style="background:var(--red)" data-w="13%"></div></div>
+          <div class="dist-count" id="cnt-critical" style="color:var(--red)">3</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-label" style="color:var(--amber)">ⓘ Warning</div>
+          <div class="dist-bar-bg"><div class="dist-bar-fill" id="dist-warning" style="background:var(--amber)" data-w="17%"></div></div>
+          <div class="dist-count" id="cnt-warning" style="color:var(--amber)">4</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-label" style="color:var(--green)">✓ Compliant</div>
+          <div class="dist-bar-bg"><div class="dist-bar-fill" id="dist-pass" style="background:var(--green)" data-w="70%"></div></div>
+          <div class="dist-count" id="cnt-pass" style="color:var(--green)">16</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Findings — full, unblurred, with remediation -->
+    <div class="findings-section">
+      <div class="findings-hdr">
+        <div class="findings-hdr-title">Clause-Level Findings</div>
+        <div class="findings-count-badge">7 findings · 23 clauses assessed</div>
+      </div>
+
+      <div class="finding-item">
+        <div class="finding-top">
+          <div class="finding-sev sev-critical">⚠ CRITICAL</div>
+          <div>
+            <div class="finding-clause">Clause 4 · Dismissal Provisions</div>
+            <div class="finding-title">Day-one unfair dismissal rights not reflected</div>
+          </div>
+        </div>
+        <div class="finding-desc">ERA 2025 s.22 removes the two-year qualifying period for unfair dismissal claims with effect from commencement. This contract still references the qualifying period and is non-compliant from the commencement date.</div>
+        <div class="finding-remediation"><strong>Remediation:</strong> Remove all references to qualifying periods for unfair dismissal. Replace with language confirming the right applies from day one of employment. Update your contract template before the ERA 2025 commencement date for this provision.</div>
+        <div class="finding-ref">→ ERA 2025 s.22 · Employment Rights Act 1996 s.94 (as amended) · ACEI CAT 01</div>
+      </div>
+
+      <div class="finding-item">
+        <div class="finding-top">
+          <div class="finding-sev sev-critical">⚠ CRITICAL</div>
+          <div>
+            <div class="finding-clause">Clause 9 · Flexible Working</div>
+            <div class="finding-title">Flexible working default right absent</div>
+          </div>
+        </div>
+        <div class="finding-desc">ERA 2025 s.118 establishes flexible working as a default right from day one of employment. The contract makes no provision for this. Refusal must be based on one of the eight statutory grounds and must be documented.</div>
+        <div class="finding-remediation"><strong>Remediation:</strong> Add a clause acknowledging the employee's right to request flexible working from day one. Include a reference to the employer's flexible working policy and the obligation to respond within the statutory timeframe (two months). Document all refusal grounds.</div>
+        <div class="finding-ref">→ ERA 2025 s.118 · Employment Rights Act 1996 s.80F (as amended) · ACEI CAT 07</div>
+      </div>
+
+      <div class="finding-item">
+        <div class="finding-top">
+          <div class="finding-sev sev-critical">⚠ CRITICAL</div>
+          <div>
+            <div class="finding-clause">Clause 14 · Hours and Zero Hours</div>
+            <div class="finding-title">Guaranteed hours obligation not addressed</div>
+          </div>
+        </div>
+        <div class="finding-desc">ERA 2025 s.1 introduces a right to guaranteed hours for workers whose hours exceed a reference period average. If this contract applies to variable-hours staff, the obligation to offer guaranteed hours must be addressed.</div>
+        <div class="finding-remediation"><strong>Remediation:</strong> If applicable to zero or variable-hours workers, add provisions addressing the guaranteed hours framework. If this contract applies to guaranteed-hours employees only, add a clause confirming this explicitly to remove ambiguity.</div>
+        <div class="finding-ref">→ ERA 2025 s.1 · ACEI CAT 09</div>
+      </div>
+
+      <div class="finding-item">
+        <div class="finding-top">
+          <div class="finding-sev sev-warning">ⓘ WARNING</div>
+          <div>
+            <div class="finding-clause">Clause 6 · Leave Entitlements</div>
+            <div class="finding-title">Bereavement leave entitlement not reflected</div>
+          </div>
+        </div>
+        <div class="finding-desc">ERA 2025 s.73A introduces a statutory entitlement to bereavement leave. The contract's leave provisions do not reference this entitlement, creating a potential gap and a risk of grievance if employees are unaware of the right.</div>
+        <div class="finding-remediation"><strong>Remediation:</strong> Add a bereavement leave clause referencing the statutory entitlement and any enhanced company provision. Cross-reference your staff handbook if the detail is held there.</div>
+        <div class="finding-ref">→ ERA 2025 s.73A · ACEI CAT 07</div>
+      </div>
+
+      <div class="finding-item">
+        <div class="finding-top">
+          <div class="finding-sev sev-warning">ⓘ WARNING</div>
+          <div>
+            <div class="finding-clause">Clause 17 · Trade Union Rights</div>
+            <div class="finding-title">Updated trade union access rights not acknowledged</div>
+          </div>
+        </div>
+        <div class="finding-desc">ERA 2025 strengthens trade union access rights and introduces new protections against detriment for union activities. The contract's existing clause does not reflect the updated statutory position.</div>
+        <div class="finding-remediation"><strong>Remediation:</strong> Update the trade union clause to reflect current statutory rights under ERA 2025. Confirm no provisions in the contract could be construed as discouraging union membership or activities.</div>
+        <div class="finding-ref">→ ERA 2025 · TULRCA 1992 (as amended) · ACEI CAT 08</div>
+      </div>
+
+      <div class="finding-item">
+        <div class="finding-top">
+          <div class="finding-sev sev-pass">✓ COMPLIANT</div>
+          <div>
+            <div class="finding-clause">Clause 12 · Holiday Entitlement</div>
+            <div class="finding-title">Statutory minimum holiday entitlement met</div>
+          </div>
+        </div>
+        <div class="finding-desc">28 days inclusive of bank holidays — compliant with Working Time Regulations 1998 s.13. Holiday pay calculation methodology is clearly stated.</div>
+        <div class="finding-ref">→ Working Time Regulations 1998 s.13 · ACEI CAT 03</div>
+      </div>
+
+      <div class="finding-item">
+        <div class="finding-top">
+          <div class="finding-sev sev-pass">✓ COMPLIANT</div>
+          <div>
+            <div class="finding-clause">Clause 3 · Written Statement of Particulars</div>
+            <div class="finding-title">Section 1 statement requirements met</div>
+          </div>
+        </div>
+        <div class="finding-desc">Contract contains all required particulars under Employment Rights Act 1996 s.1 as amended by the Employment Act 2002, including the required day-one written statement items.</div>
+        <div class="finding-ref">→ Employment Rights Act 1996 s.1 · ACEI CAT 01</div>
+      </div>
+    </div>
+
+    <!-- RRI Panel -->
+    <div class="rri-panel">
+      <div class="rri-panel-hdr">
+        <div class="rri-panel-title">RRI REGULATORY READINESS IMPACT</div>
+        <div class="rri-tier-badge">TRACK B · TIER I · DOCUMENTARY</div>
+      </div>
+      <div class="rri-pillars">
+        <div class="rri-pillar-row">
+          <div class="rri-pillar-name">Contractual Conformity</div>
+          <div class="rri-pillar-bar"><div class="rri-pillar-fill" id="rri-p1" style="background:var(--amber)"></div></div>
+          <div class="rri-pillar-score">2.1 / 5</div>
+        </div>
+        <div class="rri-pillar-row">
+          <div class="rri-pillar-name">Policy Alignment</div>
+          <div class="rri-pillar-bar"><div class="rri-pillar-fill" id="rri-p2" style="background:var(--cyan)"></div></div>
+          <div class="rri-pillar-score">2.7 / 5</div>
+        </div>
+        <div class="rri-pillar-row">
+          <div class="rri-pillar-name">Evidence Quality</div>
+          <div class="rri-pillar-bar"><div class="rri-pillar-fill" id="rri-p3" style="background:var(--cyan)"></div></div>
+          <div class="rri-pillar-score">3.0 / 5</div>
+        </div>
+      </div>
+      <div style="margin-top:14px; font-size:11px; color:var(--t4); font-family:var(--mono); letter-spacing:0.3px;">
+        Evidence tier ceiling: Score 3/5 (Track B Documentary). Tier III (Score 5/5) requires Ailane-administered assurance under RRI v1.0 Annex G.
+      </div>
+    </div>
+
+    <!-- Full disclaimer -->
+    <div class="results-disclaimer">
+      <strong>Advisory Output — Not Legal Advice.</strong> This report has been generated by Ailane's regulatory intelligence software and constitutes an advisory output only. It does not constitute legal advice and should not be relied upon as a substitute for advice from a qualified employment solicitor. Analysis was performed against the Ailane Knowledge Library as at the date of this report. Ailane accepts no liability for decisions taken in reliance on this report without independent legal verification. Report reference: <span id="disclaimer-ref">—</span>. Generated: <span id="disclaimer-date">—</span>. AI Lane Limited, Company No. 17035654.
+    </div>
+
+    <!-- CTA -->
+    <div style="background:var(--bg-card);border:1px solid var(--border-h);border-radius:14px;padding:24px;text-align:center;margin-top:8px;">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;">CONTINUOUS MONITORING</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:8px;">Address these gaps before they become claims</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:20px;max-width:420px;margin-left:auto;margin-right:auto;line-height:1.7;">An Ailane subscription monitors your employer profile continuously — ACEI exposure scores, RRI readiness, and Knowledge Library updates all live. From £199/month.</div>
+      <a href="https://ailane.ai/#early-access" style="display:inline-block;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;padding:12px 28px;border-radius:8px;text-decoration:none;transition:all 0.2s;">Request Subscription Access →</a>
+    </div>
+
+  </div><!-- /state-results -->
+
+</div><!-- /portal-wrap -->
+
+<script>
+// ── GLOBALS ──
+var currentTier = 'flash';
+var userData = {};
+var slots = {};
+var reportRef = '';
+
+// ── UTILITIES ──
+function generateRef() {
+  var d = new Date();
+  var y = d.getFullYear();
+  var m = String(d.getMonth()+1).padStart(2,'0');
+  var day = String(d.getDate()).padStart(2,'0');
+  var rand = Math.floor(Math.random()*900000)+100000;
+  return 'ACP-' + y + m + day + '-' + rand;
+}
+
+function formatDate() {
+  return new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function showState(id) {
+  document.querySelectorAll('.portal-state').forEach(s => {
+    s.classList.remove('active');
+  });
+  var el = document.getElementById(id);
+  el.classList.add('active');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+// ── TIER SELECTION ──
+function selectTier(tier) {
+  currentTier = tier;
+  document.getElementById('tier-flash').classList.toggle('selected', tier === 'flash');
+  document.getElementById('tier-full').classList.toggle('selected', tier === 'full');
+  document.querySelector('#tier-flash .tier-opt-check').textContent = tier === 'flash' ? '✓' : '';
+  document.querySelector('#tier-full .tier-opt-check').textContent = tier === 'full' ? '✓' : '';
+}
+
+// ── ACCESS GATE ──
+function proceedToUpload() {
+  var fname   = document.getElementById('gate-fname').value.trim();
+  var lname   = document.getElementById('gate-lname').value.trim();
+  var email   = document.getElementById('gate-email').value.trim();
+  var company = document.getElementById('gate-company').value.trim();
+  var c1      = document.getElementById('gate-consent-1').checked;
+  var c2      = document.getElementById('gate-consent-2').checked;
+  var err     = document.getElementById('gate-err');
+
+  if (!fname || !lname) { err.textContent = 'Please enter your full name.'; return; }
+  if (!email || !email.includes('@')) { err.textContent = 'Please enter a valid work email address.'; return; }
+  if (!company) { err.textContent = 'Please enter your company name.'; return; }
+  if (!c1) { err.textContent = 'Please confirm you have read and accept the advisory notice.'; return; }
+  if (!c2) { err.textContent = 'Please confirm you accept the data processing notice and terms.'; return; }
+
+  err.textContent = '';
+  userData = {
+    name: fname + ' ' + lname,
+    email: email,
+    company: company,
+    jobtitle: document.getElementById('gate-jobtitle').value.trim(),
+    tier: currentTier,
+  };
+
+  // Save to Supabase early_access_signups for data capture
+  saveUserData(userData);
+
+  buildUploadSlots();
+  showState('state-upload');
+}
+
+function saveUserData(data) {
+  // Supabase anon key insert — data capture even before analysis
+  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk2NDI4MDAsImV4cCI6MjAyNTIxODgwMH0.placeholder';
+  // Non-blocking — failure doesn't interrupt the flow
+  fetch(SUPABASE_URL + '/rest/v1/compliance_portal_sessions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({
+      name: data.name,
+      email: data.email,
+      company_name: data.company,
+      job_title: data.jobtitle,
+      tier: data.tier,
+      source: 'compliance_portal',
+      created_at: new Date().toISOString()
+    })
+  }).catch(function(){
+    // Silent — don't interrupt user flow on any DB error
+  });
+}
+
+// ── UPLOAD SLOTS ──
+function buildUploadSlots() {
+  var grid = document.getElementById('slot-grid');
+  var sub  = document.getElementById('upload-sub-text');
+  grid.innerHTML = '';
+  slots = {};
+
+  var slotDefs = currentTier === 'flash'
+    ? [{ id:'contract', label:'Employment Contract', icon:'📄', required:true }]
+    : [
+        { id:'contract', label:'Employment Contract', icon:'📄', required:true },
+        { id:'handbook', label:'Staff Handbook',      icon:'📋', required:false },
+        { id:'policies', label:'HR Policies',         icon:'📑', required:false },
+      ];
+
+  if (currentTier === 'full') {
+    sub.innerHTML = 'Upload your documents below. The <strong>employment contract is required</strong>. Handbook and HR policies are optional but will increase the depth of analysis.';
+  }
+
+  slotDefs.forEach(function(def) {
+    slots[def.id] = null;
+    var card = document.createElement('div');
+    card.className = 'slot-card' + (def.required ? ' required-slot' : '');
+    card.id = 'slot-card-' + def.id;
+    card.innerHTML = buildSlotEmpty(def);
+    grid.appendChild(card);
+  });
+}
+
+function buildSlotEmpty(def) {
+  return '<div class="slot-header">' +
+    '<div class="slot-label-wrap">' +
+      '<span class="slot-icon">' + def.icon + '</span>' +
+      '<span class="slot-label">' + def.label + '</span>' +
+      (def.required
+        ? '<span class="slot-required">REQUIRED</span>'
+        : '<span class="slot-optional">OPTIONAL</span>') +
+    '</div>' +
+    '<span class="slot-status" id="slot-status-' + def.id + '">No file</span>' +
+  '</div>' +
+  '<div class="slot-drop" id="slot-drop-' + def.id + '" ' +
+    'onclick="triggerSlot(\'' + def.id + '\')" ' +
+    'ondragover="slotDragOver(event,\'' + def.id + '\')" ' +
+    'ondragleave="slotDragLeave(\'' + def.id + '\')" ' +
+    'ondrop="slotDrop(event,\'' + def.id + '\')">' +
+    '<div class="slot-drop-text">Drag file here or <span>browse</span></div>' +
+    '<div class="slot-drop-formats">.docx &nbsp;·&nbsp; .pdf &nbsp;·&nbsp; .txt &nbsp;·&nbsp; max 10MB</div>' +
+  '</div>' +
+  '<input type="file" id="slot-input-' + def.id + '" accept=".docx,.pdf,.txt" style="display:none" ' +
+    'onchange="slotFileSelected(event,\'' + def.id + '\')">';
+}
+
+function triggerSlot(id) {
+  document.getElementById('slot-input-' + id).click();
+}
+
+function slotDragOver(e, id) {
+  e.preventDefault();
+  document.getElementById('slot-drop-' + id).classList.add('drag-over');
+}
+
+function slotDragLeave(id) {
+  document.getElementById('slot-drop-' + id).classList.remove('drag-over');
+}
+
+function slotDrop(e, id) {
+  e.preventDefault();
+  slotDragLeave(id);
+  var file = e.dataTransfer.files[0];
+  if (file) applyFile(id, file);
+}
+
+function slotFileSelected(e, id) {
+  var file = e.target.files[0];
+  if (file) applyFile(id, file);
+}
+
+function applyFile(id, file) {
+  // Validate type
+  var allowed = ['.docx', '.pdf', '.txt'];
+  var ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (!allowed.includes(ext)) {
+    alert('Please upload a .docx, .pdf, or .txt file.');
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    alert('File is too large. Maximum size is 10MB.');
+    return;
+  }
+  slots[id] = file;
+
+  // Update slot card UI to show file
+  var card = document.getElementById('slot-card-' + id);
+  card.classList.add('has-file');
+  document.getElementById('slot-status-' + id).textContent = '✓ Ready';
+  document.getElementById('slot-status-' + id).className = 'slot-status filled';
+  var drop = document.getElementById('slot-drop-' + id);
+  drop.innerHTML =
+    '<div class="slot-file-preview">' +
+      '<div class="slot-file-info">' +
+        '<span class="slot-file-icon">📄</span>' +
+        '<div>' +
+          '<div class="slot-file-name">' + file.name + '</div>' +
+          '<div class="slot-file-size">' + formatBytes(file.size) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<button class="slot-file-remove" onclick="removeFile(event,\'' + id + '\')">✕</button>' +
+    '</div>';
+
+  checkUploadReady();
+}
+
+function removeFile(e, id) {
+  e.stopPropagation();
+  slots[id] = null;
+
+  var def = {
+    contract: { icon:'📄', label:'Employment Contract', required:true },
+    handbook: { icon:'📋', label:'Staff Handbook', required:false },
+    policies: { icon:'📑', label:'HR Policies', required:false },
+  }[id];
+
+  var card = document.getElementById('slot-card-' + id);
+  card.classList.remove('has-file');
+  card.innerHTML = buildSlotEmpty(def);
+  checkUploadReady();
+}
+
+function checkUploadReady() {
+  // Contract slot is always required
+  var ready = slots['contract'] !== null && slots['contract'] !== undefined;
+  document.getElementById('upload-btn').disabled = !ready;
+}
+
+// ── ANALYSIS ──
+function startAnalysis() {
+  showState('state-analysis');
+
+  var steps = [0,1,2,3,4,5,6];
+  var timings = [800, 1600, 2400, 3200, 3900, 4500, 5100];
+
+  steps.forEach(function(i) {
+    setTimeout(function() {
+      // Mark previous as done
+      if (i > 0) {
+        var prev = document.getElementById('as-'+(i-1));
+        prev.className = 'a-step done';
+        document.getElementById('ast-'+(i-1)).textContent = '✓';
+      }
+      var curr = document.getElementById('as-'+i);
+      curr.className = 'a-step active';
+    }, timings[i]);
+  });
+
+  // Complete
+  setTimeout(function() {
+    var last = document.getElementById('as-6');
+    last.className = 'a-step done';
+    document.getElementById('ast-6').textContent = '✓';
+    setTimeout(showResults, 600);
+  }, 5800);
+}
+
+function showResults() {
+  // Generate report reference
+  reportRef = generateRef();
+  var dateStr = formatDate();
+
+  // Set refs and dates
+  document.getElementById('results-ref').textContent = 'REF: ' + reportRef;
+  document.getElementById('disclaimer-ref').textContent = reportRef;
+  document.getElementById('disclaimer-date').textContent = dateStr;
+  document.getElementById('pdf-ref').textContent = 'REF: ' + reportRef;
+  document.getElementById('pdf-date').textContent = dateStr;
+
+  showState('state-results');
+
+  // Animate gauge
+  setTimeout(function() {
+    var arc = document.getElementById('gauge-arc');
+    var numEl = document.getElementById('gauge-num');
+    var total = 213.6;
+    var score = 69;
+    arc.style.strokeDashoffset = total - (score/100) * total;
+    var cur = 0;
+    var iv = setInterval(function() {
+      cur = Math.min(cur + 2, score);
+      numEl.textContent = cur;
+      if (cur >= score) clearInterval(iv);
+    }, 28);
+  }, 200);
+
+  // Animate distribution bars
+  setTimeout(function() {
+    document.querySelectorAll('.dist-bar-fill').forEach(function(bar) {
+      bar.style.width = bar.dataset.w;
+    });
+  }, 400);
+
+  // Animate RRI pillars
+  setTimeout(function() {
+    document.getElementById('rri-p1').style.width = '42%';
+    document.getElementById('rri-p2').style.width = '54%';
+    document.getElementById('rri-p3').style.width = '60%';
+  }, 600);
+}
+
+// ── PDF REPORT DOWNLOAD ──
+function downloadReport() {
+  // Set company name in print header
+  document.getElementById('pdf-ref').textContent = 'REF: ' + reportRef + '  ·  ' + (userData.company || '');
+  // Trigger browser print as PDF
+  window.print();
+}
+</script>
+</body>
+</html>
