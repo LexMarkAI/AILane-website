@@ -722,10 +722,11 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
             <span class="cci-advisory-icon">&#9432;</span>
             <span>Ailane&#8217;s Compliance Checker provides <strong>regulatory intelligence and advisory outputs only</strong>. It does not constitute legal advice. For advice on your specific circumstances, consult a qualified employment solicitor.</span>
           </div>
-          <div class="cci-dropzone" id="cci-dropzone" onclick="triggerUpload()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+          <div class="cci-dropzone" id="cci-dropzone" onclick="runDemoAnalysis()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" style="position:relative;">
+            <div style="position:absolute;top:10px;right:12px;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--accent-cyan);background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.15);border-radius:3px;padding:2px 8px;">INTERACTIVE PREVIEW</div>
             <div class="cci-drop-icon">&#128196;</div>
-            <div class="cci-drop-title">Drag your document here or <span class="cci-drop-link">browse files</span></div>
-            <div class="cci-drop-sub">Accepted: .docx &nbsp;·&nbsp; .pdf &nbsp;·&nbsp; .txt &nbsp;&nbsp;|&nbsp;&nbsp; Max 10MB</div>
+            <div class="cci-drop-title">Click to run a <span class="cci-drop-link">live demo analysis</span></div>
+            <div class="cci-drop-sub">See how Ailane analyses your documents &nbsp;&middot;&nbsp; No file required for this preview</div>
             <div class="cci-drop-formats">
               <span>&#9679; ERA 2025</span>
               <span>&#9679; Equality Act 2010</span>
@@ -734,13 +735,11 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
               <span>&#9679; +43 instruments</span>
             </div>
           </div>
-          <input type="file" id="cci-file-input" accept=".docx,.pdf,.txt" style="display:none" onchange="handleFileSelect(event)">
-          <div class="cci-upload-footer">
             <div class="cci-track-pills">
               <span class="cci-track-pill">Track A · Attestation · RRI ceiling 2/5</span>
               <span class="cci-track-pill active">Track B · Documentary · RRI ceiling 3/5</span>
             </div>
-            <button class="cci-analyse-btn" id="cci-analyse-btn" onclick="startAnalysis()">Analyse Document &#8594;</button>
+            <button class="cci-analyse-btn" id="cci-analyse-btn" onclick="runDemoAnalysis()">Run Demo Analysis &#8594;</button>
           </div>
         </div>
 
@@ -881,20 +880,20 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
               <div class="cci-gate-overlay">
                 <div class="cci-gate-icon">&#128274;</div>
                 <div class="cci-gate-title">Your analysis is complete</div>
-                <div class="cci-gate-sub">3 critical gaps and 4 warnings identified in this document. Purchase to unlock your full clause-level report &#8212; generated in minutes, downloadable as PDF, delivered securely via your private results portal.</div>
+                <div class="cci-gate-sub">This is a live preview of how Ailane analyses your documents. Purchase below to upload your real contract and receive your full clause-level compliance report &#8212; generated in minutes, downloadable as PDF, delivered via your secure private portal.</div>
                 <div class="cci-pricing-grid">
                   <div class="cci-price-card">
                     <div class="cci-price-tier">FLASH CHECK</div>
                     <div class="cci-price-val">&#163;19</div>
                     <div class="cci-price-desc">One contract · Full findings &amp; references · Report ready in minutes</div>
-                    <a href="https://buy.stripe.com/cNibJ26rmfwmgcb5hlfMA00" target="_blank" rel="noopener" class="cci-price-btn cyan-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Get Results &#8594;</a>
+                    <a href="https://buy.stripe.com/cNibJ26rmfwmgcb5hlfMA00" target="_blank" rel="noopener" class="cci-price-btn cyan-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Buy &amp; Upload My Contract &#8594;</a>
                   </div>
                   <div class="cci-price-card featured-price">
                     <div class="cci-price-popular">MOST CHOSEN</div>
                     <div class="cci-price-tier">FULL CHECK</div>
                     <div class="cci-price-val">&#163;39</div>
                     <div class="cci-price-desc">Contract, handbook &amp; policies · Full findings, remediation &amp; RRI score · Report ready in minutes</div>
-                    <a href="https://buy.stripe.com/fZu3cw2b697Ygcb115fMA01" target="_blank" rel="noopener" class="cci-price-btn primary-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Get Results &#8594;</a>
+                    <a href="https://buy.stripe.com/fZu3cw2b697Ygcb115fMA01" target="_blank" rel="noopener" class="cci-price-btn primary-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Buy &amp; Upload My Documents &#8594;</a>
                   </div>
                   <div class="cci-price-card">
                     <div class="cci-price-tier">SUBSCRIBE</div>
@@ -1360,13 +1359,10 @@ function selectDocType(btn, type) {
   selectedDocType = type;
 }
 
-function triggerUpload() {
-  document.getElementById('cci-file-input').click();
-}
-
-function handleFileSelect(e) {
-  var file = e.target.files[0];
-  if (file) { selectedFileName = file.name; startAnalysis(); }
+function runDemoAnalysis() {
+  // Preview demo — no real file processed
+  selectedFileName = 'Employment_Contract_Demo.docx';
+  startAnalysis();
 }
 
 function handleDragOver(e) {
@@ -1381,8 +1377,8 @@ function handleDragLeave(e) {
 function handleDrop(e) {
   e.preventDefault();
   document.getElementById('cci-dropzone').classList.remove('drag-over');
-  var file = e.dataTransfer.files[0];
-  if (file) { selectedFileName = file.name; startAnalysis(); }
+  // Demo only — drag triggers the preview animation, no file is processed
+  runDemoAnalysis();
 }
 
 function startAnalysis() {
@@ -1467,7 +1463,7 @@ function resetChecker() {
   document.getElementById('cci-gauge-arc').style.strokeDashoffset = '235.6';
   document.getElementById('cci-gauge-num').textContent = '0';
   document.querySelectorAll('.cci-dist-bar-fill').forEach(function(b) { b.style.width = '0%'; });
-  document.getElementById('cci-file-input').value = '';
+  selectedFileName = '';
   var cb = document.getElementById('cci-disclaimer-check'); if(cb) cb.checked = false;
   document.querySelectorAll('.gate-purchase-btn').forEach(function(b){ b.classList.add('disabled-btn'); b.classList.remove('enabled'); });
 }
