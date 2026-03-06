@@ -571,12 +571,66 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
 .cci-advisory-notice { display:flex; align-items:flex-start; gap:10px; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.18); border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
 .cci-advisory-icon { color:var(--accent-amber); font-size:15px; flex-shrink:0; margin-top:1px; }
 .cci-advisory-notice strong { color:var(--text-primary); }
-.cci-gate-disclaimer { max-width:540px; margin:0 auto 14px; background:rgba(251,191,36,0.05); border:1px solid rgba(251,191,36,0.15); border-radius:8px; padding:14px 16px; }
-.cci-disclaimer-label { display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:12px; color:var(--text-secondary); line-height:1.6; }
-.cci-disclaimer-label input[type="checkbox"] { margin-top:3px; flex-shrink:0; width:15px; height:15px; accent-color:var(--accent-cyan); cursor:pointer; }
-.cci-disclaimer-label strong { color:var(--text-primary); }
-.disabled-btn { opacity:0.35; cursor:not-allowed !important; pointer-events:none; }
-.disabled-btn.enabled { opacity:1; pointer-events:auto; cursor:pointer !important; }
+.cci-gate-disclaimer {
+  margin:0 0 20px 0;
+  background:rgba(251,191,36,0.10);
+  border:2px solid rgba(251,191,36,0.55);
+  border-radius:10px;
+  padding:18px 20px;
+  box-shadow: 0 0 24px rgba(251,191,36,0.08);
+}
+.cci-disclaimer-required-flag {
+  font-family:'Space Mono',monospace;
+  font-size:9px;
+  letter-spacing:1.5px;
+  color:#fbbf24;
+  font-weight:700;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+.cci-disclaimer-required-flag::before {
+  content:'';
+  display:inline-block;
+  width:6px; height:6px;
+  border-radius:50%;
+  background:#fbbf24;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.cci-disclaimer-label {
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  cursor:pointer;
+  font-size:13px;
+  color:#e2e8f0;
+  line-height:1.7;
+}
+.cci-disclaimer-checkbox-wrap {
+  flex-shrink:0;
+  width:24px; height:24px;
+  margin-top:2px;
+  border:2px solid #fbbf24;
+  border-radius:5px;
+  background:rgba(251,191,36,0.08);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all 0.2s;
+  cursor:pointer;
+}
+.cci-disclaimer-checkbox-wrap.ticked {
+  background:#fbbf24;
+  border-color:#fbbf24;
+}
+.cci-disclaimer-checkbox-wrap .tick { display:none; color:#0a0f1a; font-size:14px; font-weight:900; }
+.cci-disclaimer-checkbox-wrap.ticked .tick { display:block; }
+.cci-disclaimer-label input[type="checkbox"] { position:absolute; opacity:0; width:0; height:0; }
+.cci-disclaimer-label strong { color:#fbbf24; }
+.cci-disclaimer-label a { color:var(--accent-cyan); }
+.disabled-btn { opacity:0.25; cursor:not-allowed !important; pointer-events:none; filter:saturate(0.3); }
+.disabled-btn.enabled { opacity:1; pointer-events:auto; cursor:pointer !important; filter:none; }
 </style>
 </head>
 <body>
@@ -881,6 +935,16 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
                 <div class="cci-gate-icon">&#128274;</div>
                 <div class="cci-gate-title">Your analysis is complete</div>
                 <div class="cci-gate-sub">This is a live preview of how Ailane analyses your documents. Purchase below to upload your real contract and receive your full clause-level compliance report &#8212; generated in minutes, downloadable as PDF, delivered via your secure private portal.</div>
+                <div class="cci-gate-disclaimer">
+                  <div class="cci-disclaimer-required-flag">REQUIRED BEFORE PURCHASE</div>
+                  <label class="cci-disclaimer-label" onclick="toggleDisclaimerBox()">
+                    <input type="checkbox" id="cci-disclaimer-check" onchange="toggleGateBtns(this)">
+                    <div class="cci-disclaimer-checkbox-wrap" id="cci-disclaimer-box">
+                      <span class="tick">&#10003;</span>
+                    </div>
+                    <span>I confirm I understand that this service provides <strong>regulatory intelligence and advisory outputs only</strong> — it is not legal advice and cannot substitute for a qualified employment solicitor. I have read and accept the <a href="https://ailane.ai/terms" target="_blank">terms of service</a> and <a href="https://ailane.ai/privacy" target="_blank">privacy policy</a>.</span>
+                  </label>
+                </div>
                 <div class="cci-pricing-grid">
                   <div class="cci-price-card">
                     <div class="cci-price-tier">FLASH CHECK</div>
@@ -902,12 +966,7 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
                     <a href="#early-access" class="cci-price-btn cyan-btn gate-purchase-btn disabled-btn" onclick="return checkDisclaimer(event)">Request Access &#8594;</a>
                   </div>
                 </div>
-                <div class="cci-gate-disclaimer">
-                  <label class="cci-disclaimer-label">
-                    <input type="checkbox" id="cci-disclaimer-check" onchange="toggleGateBtns(this)">
-                    <span>I confirm I have read and understood that this service provides <strong>regulatory intelligence and advisory outputs only</strong>, not legal advice, and is not a substitute for qualified legal counsel. I accept the <a href="#" onclick="return false;" style="color:var(--accent-cyan)">terms of service</a>.</span>
-                  </label>
-                </div>
+
                 <button class="cci-reset-btn" onclick="resetChecker()">&#8592; Analyse another document</button>
               </div>
             </div>
@@ -1312,7 +1371,16 @@ const ge=document.querySelector('.gauge-container');if(ge)go.observe(ge);
 
 
 // ── Disclaimer checkbox gate ──
+function toggleDisclaimerBox() {
+  var cb = document.getElementById('cci-disclaimer-check');
+  var box = document.getElementById('cci-disclaimer-box');
+  cb.checked = !cb.checked;
+  box.classList.toggle('ticked', cb.checked);
+  toggleGateBtns(cb);
+}
+
 function toggleGateBtns(checkbox) {
+  var disc = document.querySelector('.cci-gate-disclaimer');
   document.querySelectorAll('.gate-purchase-btn').forEach(function(btn) {
     if (checkbox.checked) {
       btn.classList.remove('disabled-btn');
@@ -1322,6 +1390,15 @@ function toggleGateBtns(checkbox) {
       btn.classList.remove('enabled');
     }
   });
+  // Visual feedback on the disclaimer box itself
+  if (disc) {
+    disc.style.borderColor = checkbox.checked
+      ? 'rgba(52,211,153,0.6)'
+      : 'rgba(251,191,36,0.55)';
+    disc.style.background = checkbox.checked
+      ? 'rgba(52,211,153,0.07)'
+      : 'rgba(251,191,36,0.10)';
+  }
 }
 
 function checkDisclaimer(e) {
@@ -1465,6 +1542,8 @@ function resetChecker() {
   document.querySelectorAll('.cci-dist-bar-fill').forEach(function(b) { b.style.width = '0%'; });
   selectedFileName = '';
   var cb = document.getElementById('cci-disclaimer-check'); if(cb) cb.checked = false;
+  var box = document.getElementById('cci-disclaimer-box'); if(box) box.classList.remove('ticked');
+  var disc = document.querySelector('.cci-gate-disclaimer'); if(disc){ disc.style.borderColor=''; disc.style.background=''; }
   document.querySelectorAll('.gate-purchase-btn').forEach(function(b){ b.classList.add('disabled-btn'); b.classList.remove('enabled'); });
 }
 (function(){
