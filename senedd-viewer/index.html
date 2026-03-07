@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ailane — Statutory Text Viewer</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%230a0e1a' font-weight='700' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body,#root{height:100%;width:100%}
+    body{background:#f8f6f1;font-family:'EB Garamond',Georgia,serif;color:#1a1a1a;overflow-x:hidden}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:#f0ede6}
+    ::-webkit-scrollbar-thumb{background:#c8b89a;border-radius:3px}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const SB_URL  = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+const DEMO_ORG = "de000001-0000-4000-8000-000000000001";
+
+// Fallback for Social Partnership Act 2023 (not yet in OGL XML feed)
+const OGL_FALLBACK = {
+  '7aa72110-4a20-4843-81a4-f8bb5a07b1d8': 'https://www.legislation.gov.uk/asc/2023/34/enacted'
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const getToken = () => {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.includes("supabase") && k.includes("auth"));
+    for (const k of keys) {
+      const d = JSON.parse(localStorage.getItem(k) || "{}");
+      if (d?.access_token) return d.access_token;
+      if (d?.session?.access_token) return d.session.access_token;
+    }
+  } catch {}
+  return null;
+};
+
+const getOrgId = (token) => {
+  if (!token) return DEMO_ORG;
+  try {
+    const p = JSON.parse(atob(token.split(".")[1]));
+    return p?.org_id || DEMO_ORG;
+  } catch { return DEMO_ORG; }
+};
+
+const sbFetch = async (path, token) => {
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers: { apikey: SB_ANON, Authorization: `Bearer ${token || SB_ANON}`, "Content-Type": "application/json" }
+  });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+};
+
+const sbRpc = async (fn, params, token) => {
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SB_ANON, Authorization: `Bearer ${token || SB_ANON}`, "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+};
+
+// ── UI STRINGS ────────────────────────────────────────────────────────────
+const UI = {
+  en: {
+    appTitle: "Statutory Text Viewer",
+    selectInstrument: "Select an instrument",
+    loading: "Loading statutory text…",
+    loadingInstruments: "Loading instruments…",
+    noFullText: "Full statutory text not yet available in the database.",
+    viewOnLegislation: "View on legislation.gov.uk",
+    words: "words",
+    sections: "sections",
+    schedules: "schedules",
+    official: "Official bilingual text · legislation.gov.uk OGL v3",
+    aiAssisted: "AI-assisted translation · Not official legal Welsh",
+    jumpTo: "Jump to",
+    backToTop: "↑ Top",
+    contents: "Contents",
+    closeContents: "Close",
+    en: "English", cy: "Cymraeg",
+    walesLayer: "Wales Layer",
+    footerNote: "Official text under OGL v3 · © Crown Copyright",
+    govTier: "Governance Tier",
+    copyLink: "Copy link",
+    inForce: "In Force",
+  },
+  cy: {
+    appTitle: "Gwylydd Testun Statudol",
+    selectInstrument: "Dewiswch offeryn",
+    loading: "Yn llwytho'r testun statudol…",
+    loadingInstruments: "Yn llwytho offerynnau…",
+    noFullText: "Nid yw'r testun statudol llawn ar gael yn y gronfa ddata eto.",
+    viewOnLegislation: "Gweld ar legislation.gov.uk",
+    words: "gair",
+    sections: "adran",
+    schedules: "atodlen",
+    official: "Testun dwyieithog swyddogol · legislation.gov.uk OGL v3",
+    aiAssisted: "Cyfieithiad a gynorthwyir gan AI · Nid cyfraith Gymraeg swyddogol",
+    jumpTo: "Neidio i",
+    backToTop: "↑ Brig",
+    contents: "Cynnwys",
+    closeContents: "Cau",
+    en: "English", cy: "Cymraeg",
+    walesLayer: "Haen Cymru",
+    footerNote: "Testun swyddogol o dan OGL v3 · © Hawlfraint y Goron",
+    govTier: "Haen Llywodraethu",
+    copyLink: "Copïo dolen",
+    inForce: "Mewn Grym",
+  }
+};
+
+// ── PARLIAMENTARY CSS (injected inline) ──────────────────────────────────
+const PARL_CSS = `
+  .parl-document {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.75;
+    color: #1a1505;
+    max-width: 780px;
+  }
+  .parl-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a1505;
+    margin-bottom: 6px;
+    line-height: 1.3;
+    border-bottom: 3px solid #c41230;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+  .parl-number, .parl-year {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #6b5e45;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .parl-part {
+    margin-top: 36px;
+    border-top: 2px solid #c41230;
+    padding-top: 18px;
+  }
+  .parl-part-heading {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #c41230;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 16px;
+  }
+  .parl-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: 0.75;
+  }
+  .parl-part-title, .parl-sched-title {
+    font-size: 17px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #1a1505;
+  }
+  .parl-section {
+    margin-top: 20px;
+    padding-left: 0;
+    scroll-margin-top: 80px;
+  }
+  .parl-section-heading {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    margin-bottom: 8px;
+    color: #2c1f0e;
+  }
+  .parl-section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #c41230;
+    font-weight: 600;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+  .parl-section-title {
+    font-style: italic;
+    color: #4a3b28;
+    font-size: 15px;
+    font-weight: 400;
+  }
+  .parl-subsection {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 10px;
+    margin-left: 0;
+    align-items: baseline;
+  }
+  .parl-sub-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #8a6b45;
+    min-width: 30px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .parl-sub-text {
+    flex: 1;
+    color: #1a1505;
+  }
+  .parl-para {
+    margin-bottom: 12px;
+    text-indent: 0;
+    color: #1a1505;
+  }
+  .parl-schedule {
+    margin-top: 36px;
+    border-top: 2px solid #2d5a1b;
+    padding-top: 18px;
+  }
+  .parl-schedule-heading {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #2d5a1b;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 16px;
+  }
+  .parl-sched-para {
+    margin-bottom: 12px;
+    color: #1a1505;
+  }
+  .parl-fallback p {
+    margin-bottom: 12px;
+    color: #1a1505;
+  }
+`;
+
+// ── CONTENTS PANEL ────────────────────────────────────────────────────────
+const ContentsPanel = ({ html, lang, ui, visible, onClose }) => {
+  const headings = useMemo(() => {
+    if (!html) return [];
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    const items = [];
+    div.querySelectorAll(".parl-part-heading, .parl-section-heading, .parl-schedule-heading").forEach(el => {
+      const isPart = el.classList.contains("parl-part-heading") || el.classList.contains("parl-schedule-heading");
+      const numEl = el.querySelector(".parl-section-num, .parl-label");
+      const titleEl = el.querySelector(".parl-section-title, .parl-part-title, .parl-sched-title");
+      const num = numEl?.textContent?.trim() || "";
+      const title = titleEl?.textContent?.trim() || "";
+      const parentSection = el.closest(".parl-section, .parl-part, .parl-schedule");
+      const id = parentSection?.id || null;
+      if (num || title) items.push({ num, title, isPart, id });
+    });
+    return items;
+  }, [html]);
+
+  if (!visible) return null;
+
+  return (
+    <div style={{
+      position: "fixed", left: 0, top: 0, bottom: 0, width: 280,
+      background: "#f0ede6", borderRight: "1px solid #d4c9b0",
+      overflowY: "auto", zIndex: 200, padding: "16px 0",
+      boxShadow: "4px 0 20px rgba(0,0,0,0.12)",
+      transition: "transform 0.3s ease",
+    }}>
+      <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #d4c9b0" }}>
+        <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1.5px", color: "#6b5e45" }}>
+          {ui.contents.toUpperCase()}
+        </span>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#8a6b45", fontSize: 16 }}>✕</button>
+      </div>
+      <div style={{ padding: "12px 0" }}>
+        {headings.map((h, i) => (
+          <a
+            key={i}
+            href={h.id ? `#${h.id}` : "#"}
+            onClick={() => { if (window.innerWidth < 768) onClose(); }}
+            style={{
+              display: "block",
+              padding: h.isPart ? "6px 16px" : "3px 16px 3px 28px",
+              fontSize: h.isPart ? 11 : 13,
+              fontFamily: h.isPart ? "'JetBrains Mono', monospace" : "'EB Garamond', Georgia, serif",
+              color: h.isPart ? "#c41230" : "#4a3b28",
+              letterSpacing: h.isPart ? "0.8px" : "0",
+              textDecoration: "none",
+              borderLeft: h.isPart ? "2px solid #c41230" : "none",
+              textTransform: h.isPart ? "uppercase" : "none",
+              lineHeight: 1.4,
+            }}
+          >
+            {h.num && <span style={{ color: h.isPart ? "#c41230" : "#8a6b45", marginRight: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>{h.num}</span>}
+            {h.title || (h.num && !h.title ? "" : "—")}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── INSTRUMENT SELECTOR ───────────────────────────────────────────────────
+const InstrumentSelector = ({ instruments, selected, onSelect, lang, ui }) => (
+  <div style={{ padding: "12px 24px", borderBottom: "1px solid #d4c9b0", background: "#f0ede6", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+    <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1px", color: "#8a6b45" }}>
+      🏴󠁧󠁢󠁷󠁬󠁳󠁿 {ui.selectInstrument.toUpperCase()}
+    </span>
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      {instruments.map(inst => {
+        const title = (lang === "cy" && inst.title_cy) ? inst.title_cy : inst.short_title;
+        const isSelected = selected?.id === inst.id;
+        return (
+          <button
+            key={inst.id}
+            onClick={() => onSelect(inst)}
+            style={{
+              background: isSelected ? "#c41230" : "rgba(196,18,48,0.06)",
+              color: isSelected ? "#fff" : "#c41230",
+              border: `1px solid ${isSelected ? "#c41230" : "rgba(196,18,48,0.25)"}`,
+              borderRadius: 5, padding: "5px 12px", cursor: "pointer",
+              fontSize: 13, fontFamily: "'EB Garamond', Georgia, serif",
+              transition: "all 0.15s ease", lineHeight: 1.3,
+              maxWidth: 280, textAlign: "left",
+            }}
+          >
+            {title}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────
+const App = () => {
+  const [lang, setLang] = useState(() => {
+    try { return localStorage.getItem("ailane_lang") || "en"; } catch { return "en"; }
+  });
+  const [instruments, setInstruments] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [fulltext, setFulltext] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingInstruments, setLoadingInstruments] = useState(true);
+  const [contentsOpen, setContentsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const docRef = useRef(null);
+
+  const ui = UI[lang];
+
+  // Persist lang
+  useEffect(() => {
+    try { localStorage.setItem("ailane_lang", lang); } catch {}
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  // Load Welsh instruments
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const token = getToken();
+        const orgId = getOrgId(token);
+        const data = await sbRpc("get_legislation_for_org", { p_org_id: orgId }, token);
+        const welsh = (data || []).filter(i => i.jurisdiction_codes?.includes("Wales"));
+        setInstruments(welsh);
+        if (welsh.length > 0) setSelected(welsh[0]);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingInstruments(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Load full text when instrument or language changes
+  useEffect(() => {
+    if (!selected) return;
+    const load = async () => {
+      setLoading(true);
+      setFulltext(null);
+      try {
+        const token = getToken();
+        const orgId = getOrgId(token);
+        const data = await sbRpc("get_fulltext_for_org", {
+          p_org_id: orgId,
+          p_legislation_id: selected.id,
+          p_language_code: lang,
+        }, token);
+        setFulltext(data?.[0] || null);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [selected, lang]);
+
+  // Scroll to top on instrument change
+  useEffect(() => {
+    if (docRef.current) docRef.current.scrollTop = 0;
+  }, [selected, lang]);
+
+  const hasFallback = selected && OGL_FALLBACK[selected.id];
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f8f6f1" }}>
+
+      {/* HEADER */}
+      <header style={{
+        background: "#1a1505",
+        borderBottom: "3px solid #c41230",
+        padding: "0 24px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        minHeight: 52, flexShrink: 0, gap: 12, flexWrap: "wrap",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 6, background: "linear-gradient(135deg, #22d3ee, #0e7490)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: 15, color: "#080c18" }}>A</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#f5f0e8", fontFamily: "'EB Garamond', Georgia, serif" }}>{ui.appTitle}</div>
+            <div style={{ fontSize: 10, color: "#8a6b45", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1.2px" }}>
+              AILANE · 🏴󠁧󠁢󠁷󠁬󠁳󠁿 {ui.walesLayer.toUpperCase()} · {ui.govTier.toUpperCase()}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Language toggle */}
+          <div style={{ display: "flex", background: "rgba(255,255,255,0.07)", borderRadius: 6, padding: 3, gap: 3 }}>
+            {["en","cy"].map(l => (
+              <button key={l} onClick={() => setLang(l)} style={{
+                background: lang === l ? "#c41230" : "transparent",
+                color: lang === l ? "#fff" : "#8a6b45",
+                border: "none", borderRadius: 4, padding: "4px 10px", cursor: "pointer",
+                fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+                letterSpacing: "0.5px", transition: "all 0.15s ease",
+              }}>
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          {/* Contents toggle */}
+          {fulltext && (
+            <button onClick={() => setContentsOpen(v => !v)} style={{
+              background: contentsOpen ? "rgba(196,18,48,0.2)" : "rgba(255,255,255,0.07)",
+              color: "#d4c9b0", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5,
+              padding: "4px 12px", cursor: "pointer", fontSize: 11,
+              fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.5px",
+            }}>
+              ≡ {ui.contents}
+            </button>
+          )}
+          {/* Back to library */}
+          <a href="/governance-dashboard/" style={{
+            color: "#8a6b45", fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+            textDecoration: "none", letterSpacing: "0.5px",
+            padding: "4px 10px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 5,
+          }}>← {lang === "cy" ? "Llyfrgell" : "Library"}</a>
+        </div>
+      </header>
+
+      {/* INSTRUMENT SELECTOR */}
+      {!loadingInstruments && instruments.length > 0 && (
+        <InstrumentSelector
+          instruments={instruments}
+          selected={selected}
+          onSelect={setSelected}
+          lang={lang}
+          ui={ui}
+        />
+      )}
+
+      {/* MAIN LAYOUT */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+
+        {/* CONTENTS SIDEBAR */}
+        <ContentsPanel
+          html={fulltext?.html_rendered}
+          lang={lang}
+          ui={ui}
+          visible={contentsOpen}
+          onClose={() => setContentsOpen(false)}
+        />
+
+        {/* DOCUMENT PANE */}
+        <div
+          ref={docRef}
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            marginLeft: contentsOpen ? 280 : 0,
+            transition: "margin-left 0.3s ease",
+            padding: "0 0 80px 0",
+          }}
+        >
+          {/* Document meta bar */}
+          {selected && (
+            <div style={{
+              background: "#edeadf",
+              borderBottom: "1px solid #d4c9b0",
+              padding: "10px 32px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 12, flexWrap: "wrap",
+            }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                {fulltext && (
+                  <>
+                    <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#6b5e45" }}>
+                      {fulltext.word_count?.toLocaleString()} {ui.words}
+                    </span>
+                    <span style={{ color: "#c8b89a" }}>·</span>
+                    <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#6b5e45" }}>
+                      {fulltext.section_count > 0 ? `${fulltext.section_count} ${ui.sections}` : `${fulltext.schedule_count} ${ui.schedules}`}
+                    </span>
+                    <span style={{ color: "#c8b89a" }}>·</span>
+                    <span style={{
+                      fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                      padding: "2px 7px", borderRadius: 3,
+                      background: "rgba(45,90,27,0.08)", border: "1px solid rgba(45,90,27,0.2)",
+                      color: "#2d5a1b",
+                    }}>
+                      ✓ {ui.official}
+                    </span>
+                  </>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {selected.legislation_gov_url && (
+                  <a href={selected.legislation_gov_url} target="_blank" rel="noreferrer" style={{
+                    fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+                    color: "#6b5e45", textDecoration: "none",
+                    padding: "3px 8px", border: "1px solid #d4c9b0", borderRadius: 4,
+                  }}>
+                    ↗ legislation.gov.uk
+                  </a>
+                )}
+                <button onClick={copyLink} style={{
+                  fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+                  color: "#6b5e45", background: "none",
+                  padding: "3px 8px", border: "1px solid #d4c9b0", borderRadius: 4, cursor: "pointer",
+                }}>
+                  {copied ? "✓" : ui.copyLink}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Document content */}
+          <div style={{ maxWidth: 860, margin: "0 auto", padding: "40px 40px" }}>
+
+            {loadingInstruments && (
+              <div style={{ color: "#8a6b45", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, padding: 40 }}>
+                ◌ {ui.loadingInstruments}
+              </div>
+            )}
+
+            {loading && (
+              <div style={{ color: "#8a6b45", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, padding: 40 }}>
+                ◌ {ui.loading}
+              </div>
+            )}
+
+            {!loading && selected && !fulltext && !hasFallback && (
+              <div style={{ padding: "32px 0" }}>
+                <p style={{ color: "#8a6b45", fontFamily: "'EB Garamond', Georgia, serif", fontSize: 16, marginBottom: 16 }}>
+                  {ui.noFullText}
+                </p>
+              </div>
+            )}
+
+            {!loading && selected && !fulltext && hasFallback && (
+              <div style={{ padding: "32px 0" }}>
+                <h2 style={{ fontSize: 22, fontWeight: 600, color: "#1a1505", marginBottom: 16, fontFamily: "'EB Garamond', Georgia, serif" }}>
+                  {lang === "cy" && selected.title_cy ? selected.title_cy : selected.short_title}
+                </h2>
+                <div style={{
+                  background: "#fff8e8", border: "1px solid #d4a843", borderRadius: 8,
+                  padding: "18px 24px", marginBottom: 20,
+                }}>
+                  <p style={{ fontSize: 14, color: "#6b4a0e", fontFamily: "'JetBrains Mono', monospace", marginBottom: 10 }}>
+                    ⚠ Full XML text not yet available in OGL feed (2023 Act — processing lag expected)
+                  </p>
+                  <a
+                    href={OGL_FALLBACK[selected.id]}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      background: "#c41230", color: "#fff", borderRadius: 6,
+                      padding: "8px 18px", textDecoration: "none",
+                      fontSize: 14, fontFamily: "'EB Garamond', Georgia, serif",
+                    }}
+                  >
+                    ↗ {ui.viewOnLegislation}
+                  </a>
+                </div>
+                <div style={{ background: "#f0ede6", borderRadius: 8, padding: "18px 24px" }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, color: "#4a3b28", marginBottom: 10 }}>
+                    {lang === "cy" ? "Crynodeb" : "Summary"}
+                  </h3>
+                  <p style={{ fontSize: 16, color: "#4a3b28", lineHeight: 1.7 }}>
+                    {lang === "cy" ? selected.summary_cy : selected.summary}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PARLIAMENTARY DOCUMENT */}
+            {!loading && fulltext?.html_rendered && (
+              <>
+                <style>{PARL_CSS}</style>
+                <div
+                  dangerouslySetInnerHTML={{ __html: fulltext.html_rendered }}
+                  style={{ wordBreak: "break-word" }}
+                />
+                <div style={{ marginTop: 48, paddingTop: 20, borderTop: "1px solid #d4c9b0" }}>
+                  <p style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#a89880", letterSpacing: "0.5px" }}>
+                    {ui.footerNote} · {fulltext.fetch_url}
+                  </p>
+                  {fulltext.translation_notice && (
+                    <p style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#2d5a1b", marginTop: 6 }}>
+                      ✓ {fulltext.translation_notice}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
