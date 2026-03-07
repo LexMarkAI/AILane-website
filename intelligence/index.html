@@ -785,16 +785,44 @@ function renderDashboard() {
       </div>
       <div class="constitution-ref">ACEI v1.0</div>
     </div>
+    ${currentTier === 'operational' ? `
+    <div class="score-card rri" style="position:relative;overflow:hidden">
+      <div class="score-card-label">RRI · Regulatory Readiness Index</div>
+      <div class="score-card-name">Forward-Looking Preparedness</div>
+      <div style="filter:blur(6px);pointer-events:none;opacity:0.25">
+        <div class="score-number" style="color:var(--teal-bright)">54</div>
+        <span class="score-band band-elevated">⬤ Initiated–Developing</span>
+        <div class="score-desc">Five-pillar readiness assessment across policy, contracts, training, systems, and governance.</div>
+      </div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.82);backdrop-filter:blur(3px);gap:10px;padding:20px;text-align:center">
+        <div class="lock-icon lock-icon-gov" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🔒</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5">RRI Regulatory Readiness Score — five-pillar preparedness breakdown. <strong style="color:var(--teal-bright)">Governance tier.</strong></div>
+        <a href="${STRIPE_GOV_LINK}" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;text-decoration:none">Upgrade to Governance</a>
+      </div>
+      <div class="constitution-ref">RRI v1.0</div>
+    </div>
+    <div class="score-card cci" style="position:relative;overflow:hidden">
+      <div class="score-card-label">CCI · Compliance Conduct Index</div>
+      <div class="score-card-name">Historical Conduct Posture</div>
+      <div style="filter:blur(6px);pointer-events:none;opacity:0.25">
+        <div class="score-number" style="color:#c084fc">62</div>
+        <span class="score-band band-elevated">⬤ Below Sector Median</span>
+        <div class="score-desc">Bayesian credibility-weighted conduct posture across 36-month observation window.</div>
+      </div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.82);backdrop-filter:blur(3px);gap:10px;padding:20px;text-align:center">
+        <div class="lock-icon lock-icon-gov" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🔒</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5">CCI Compliance Conduct Score — historical conduct posture with Bayesian weighting. <strong style="color:var(--teal-bright)">Governance tier.</strong></div>
+        <a href="${STRIPE_GOV_LINK}" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;text-decoration:none">Upgrade to Governance</a>
+      </div>
+      <div class="constitution-ref">CCI v1.0</div>
+    </div>` : `
     <div class="score-card rri">
       <div class="score-card-label">RRI · Regulatory Readiness Index</div>
       <div class="score-card-name">Forward-Looking Preparedness</div>
       <div class="score-number">${wdrs}</div>
       ${rriScoreBand(wdrs)}
       <div class="score-desc">
-        ${currentTier === 'operational'
-          ? 'Five-pillar preparedness assessment across policy, contracts, training, systems, and governance.'
-          : `WDRS = Σ(PillarScore × PWV) × 20. Weakest pillars: Contractual Conformity (${rriData?.cc_score}/5) and Training Deployment (${rriData?.td_score}/5).`
-        }
+        WDRS = Σ(PillarScore × PWV) × 20. Weakest pillars: Contractual Conformity (${rriData?.cc_score}/5) and Training Deployment (${rriData?.td_score}/5).
       </div>
       <div class="constitution-ref">RRI v1.0</div>
     </div>
@@ -804,13 +832,10 @@ function renderDashboard() {
       <div class="score-number">${cci.toFixed(0)}</div>
       ${cciScoreBand(cci)}
       <div class="score-desc">
-        ${currentTier === 'operational'
-          ? 'Historical conduct posture across 36 months. Bayesian credibility weighting applied.'
-          : `Bayesian-weighted across ${cciComponents.length} conduct events. Primary negative: WTR claim 2023 (£3,800 award). Improvement signal: clean conduct 2014–2019.`
-        }
+        Bayesian-weighted across ${cciComponents.length} conduct events. Primary negative: WTR claim 2023 (£3,800 award). Improvement signal: clean conduct 2014–2019.
       </div>
       <div class="constitution-ref">CCI v1.0</div>
-    </div>
+    </div>`}
   </div>`;
 
   // ─── OPERATIONAL TIER ─────────────────────────────────────────────────────────
