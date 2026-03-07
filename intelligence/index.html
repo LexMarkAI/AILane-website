@@ -554,7 +554,10 @@
       <div class="entity-details" id="entity-details">...</div>
     </div>
     <div class="tier-selector-wrap">
-      <div class="tier-selector-label">View as tier</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <div class="tier-selector-label" style="margin-bottom:0">View as tier</div>
+        <button id="tier-back-btn" onclick="tierBack()" title="Go back" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:5px;cursor:pointer;letter-spacing:0.03em">← Back</button>
+      </div>
       <div class="tier-selector">
         <button class="tier-btn active-op" data-tier="operational" onclick="setTier('operational')">Operational<br><span style="font-size:10px;font-weight:400;color:inherit;opacity:0.7">£199/mo</span></button>
         <button class="tier-btn" data-tier="governance" onclick="setTier('governance')">Governance<br><span style="font-size:10px;font-weight:400;color:inherit;opacity:0.7">£799/mo</span></button>
@@ -622,6 +625,7 @@ const KL_INSTRUMENTS = [
 
 // ─── STATE ─────────────────────────────────────────────────────────────────────
 let currentTier = 'operational';
+let tierHistory = [];
 let entityData = null;
 let rriData = null;
 let cciData = null;
@@ -669,6 +673,7 @@ function renderHeader() {
 
 // ─── TIER SWITCHER ──────────────────────────────────────────────────────────────
 function setTier(tier) {
+  if (tier !== currentTier) tierHistory.push(currentTier);
   currentTier = tier;
   document.querySelectorAll('.tier-btn').forEach(b => {
     b.className = 'tier-btn';
@@ -676,6 +681,28 @@ function setTier(tier) {
       b.classList.add(tier === 'operational' ? 'active-op' : tier === 'governance' ? 'active-gov' : 'active-inst');
     }
   });
+  // Show/hide back button
+  const backBtn = document.getElementById('tier-back-btn');
+  if (backBtn) {
+    backBtn.style.display = tierHistory.length > 0 ? 'flex' : 'none';
+    const prev = tierHistory[tierHistory.length - 1];
+    if (prev) backBtn.title = `Back to ${prev.charAt(0).toUpperCase() + prev.slice(1)} view`;
+  }
+  renderDashboard();
+}
+
+function tierBack() {
+  if (tierHistory.length === 0) return;
+  const prev = tierHistory.pop();
+  currentTier = prev;
+  document.querySelectorAll('.tier-btn').forEach(b => {
+    b.className = 'tier-btn';
+    if (b.dataset.tier === prev) {
+      b.classList.add(prev === 'operational' ? 'active-op' : prev === 'governance' ? 'active-gov' : 'active-inst');
+    }
+  });
+  const backBtn = document.getElementById('tier-back-btn');
+  if (backBtn) backBtn.style.display = tierHistory.length > 0 ? 'flex' : 'none';
   renderDashboard();
 }
 
@@ -708,16 +735,19 @@ function lockedPanel(bodyHtml, lockTier, lockLabel) {
   const isGov = lockTier === 'governance';
   const btnClass = isGov ? 'lock-cta-gov' : 'lock-cta-inst';
   const iconClass = isGov ? 'lock-icon-gov' : 'lock-icon-inst';
-  const ctaText = isGov ? 'Upgrade to Governance' : 'Upgrade to Institutional';
-  const ctaLink = isGov ? STRIPE_GOV_LINK : '#';
+  const ctaText = isGov ? 'See Governance View →' : 'See Institutional View →';
+  const ctaAction = isGov ? "setTier('governance')" : "setTier('institutional')";
   return `
     <div class="panel-locked">
       <div class="panel-body">${bodyHtml}</div>
       <div class="lock-overlay">
         <div class="lock-icon ${iconClass}">🔒</div>
         <div class="lock-label">${lockLabel}</div>
-        <a href="${ctaLink}" class="lock-cta ${btnClass}">${ctaText}</a>
+        <button onclick="${ctaAction}" class="lock-cta ${btnClass}">${ctaText}</button>
       </div>
+    </div>
+  `;
+}
     </div>`;
 }
 
@@ -797,7 +827,7 @@ function renderDashboard() {
       <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.82);backdrop-filter:blur(3px);gap:10px;padding:20px;text-align:center">
         <div class="lock-icon lock-icon-gov" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🔒</div>
         <div style="font-size:12px;color:var(--text);line-height:1.5">RRI Regulatory Readiness Score — five-pillar preparedness breakdown. <strong style="color:var(--teal-bright)">Governance tier.</strong></div>
-        <a href="${STRIPE_GOV_LINK}" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;text-decoration:none">Upgrade to Governance</a>
+        <button onclick="setTier('governance')" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border:none;cursor:pointer">See Governance View →</button>
       </div>
       <div class="constitution-ref">RRI v1.0</div>
     </div>
@@ -812,7 +842,7 @@ function renderDashboard() {
       <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.82);backdrop-filter:blur(3px);gap:10px;padding:20px;text-align:center">
         <div class="lock-icon lock-icon-gov" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🔒</div>
         <div style="font-size:12px;color:var(--text);line-height:1.5">CCI Compliance Conduct Score — historical conduct posture with Bayesian weighting. <strong style="color:var(--teal-bright)">Governance tier.</strong></div>
-        <a href="${STRIPE_GOV_LINK}" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;text-decoration:none">Upgrade to Governance</a>
+        <button onclick="setTier('governance')" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border:none;cursor:pointer">See Governance View →</button>
       </div>
       <div class="constitution-ref">CCI v1.0</div>
     </div>` : `
@@ -983,7 +1013,7 @@ function renderOperationalView(di, wdrs, cci, wcc) {
 
   html += `<div class="upsell-bar">
     <div class="upsell-bar-text">Ready to see your own company's exposure profile? <strong>Governance tier</strong> unlocks full 12-category ACEI breakdown, clause-level compliance analysis, and sub-regional enforcement alerts.</div>
-    <a href="${STRIPE_GOV_LINK}" class="upsell-bar-cta">Start Governance — £799/mo</a>
+    <a href="${STRIPE_GOV_LINK}" class="upsell-bar-cta" style="white-space:nowrap">Start Governance — £799/mo</a>
   </div>`;
 
   return html;
@@ -1235,7 +1265,7 @@ function renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents) {
     ${lockedPanel(
       `<div style="height:120px;background:var(--navy-raised);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Map preview</div>`,
       'institutional',
-      'Know when a regulator visits within 25km of your site. Institutional tier.'
+      'Know when HSE, ICO or EHRC enforcement activity is formally recorded in your sub-region. Institutional tier.'
     )}
   </div>`;
 
