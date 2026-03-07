@@ -3,1026 +3,769 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ailane · Governance Dashboard</title>
+  <title>Ailane — Governance Dashboard</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%230a0e1a' font-weight='700' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body,#root{height:100%;width:100%}
+    body{background:#080c18;font-family:'EB Garamond',Georgia,serif;color:#dde4f0;overflow-x:hidden}
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
+  </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body, #root { height: 100%; width: 100%; }
-    body { background: #080d1a; font-family: 'Manrope', sans-serif; color: #e2e8f0; overflow-x: hidden; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(13,115,119,0.4); border-radius: 2px; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    .fade-up   { animation: fadeUp 0.4s ease both; }
-    .fade-up-1 { animation: fadeUp 0.4s 0.05s ease both; }
-    .fade-up-2 { animation: fadeUp 0.4s 0.10s ease both; }
-    .fade-up-3 { animation: fadeUp 0.4s 0.15s ease both; }
-    .fade-up-4 { animation: fadeUp 0.4s 0.20s ease both; }
-    .fade-up-5 { animation: fadeUp 0.4s 0.25s ease both; }
-    .upload-zone { border: 2px dashed rgba(13,115,119,0.4); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(13,115,119,0.04); }
-    .upload-zone:hover { border-color: rgba(13,115,119,0.8); background: rgba(13,115,119,0.08); }
-    input[type=checkbox] { accent-color: #0D7377; width: 14px; height: 14px; cursor: pointer; }
-    input[type=text], input[type=search] { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 12px; color: #e2e8f0; font-size: 12px; outline: none; font-family: 'IBM Plex Mono', monospace; }
-    input[type=text]:focus, input[type=search]:focus { border-color: rgba(13,115,119,0.5); }
-  </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-  const { useState, useRef } = React;
-  const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell, Legend } = Recharts;
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-  const C = {
-    navy:"#1B2A4A", teal:"#0D7377", tealL:"#14A9AF", tealXL:"#22d3e7",
-    acei:"#22d3e7", rri:"#10b981", cci:"#a78bfa",
-    warn:"#f59e0b", danger:"#ef4444", ok:"#10b981",
-    bg:"#080d1a", bgCard:"#0d1525",
-    border:"rgba(255,255,255,0.06)", borderM:"rgba(255,255,255,0.10)",
-    muted:"#64748b",
-  };
-  const mono = { fontFamily:"'IBM Plex Mono', monospace" };
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const SB_URL  = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
 
-  // ── CLIENT DATA ─────────────────────────────────────────────────────────
-  const CLIENT = {
-    name:"Meridian Systems Limited", sector:"Technology", jurisdiction:"South East", headcount:180,
-    dataAsOf:"5 March 2026",
-    acei:{
-      score:52, delta:"+4", sectorMultiplier:1.10, jurisdictionMultiplier:1.25, velocityFlag:true,
-      categories:[
-        {label:"Unfair Dismissal",         score:68,weight:1.0},
-        {label:"Discrimination",           score:72,weight:1.5},
-        {label:"Wages & Working Time",     score:41,weight:1.0},
-        {label:"Whistleblowing",           score:58,weight:1.2},
-        {label:"Health & Safety",          score:35,weight:1.0},
-        {label:"Redundancy & Org Change",  score:29,weight:1.0},
-        {label:"Breach of Contract",       score:55,weight:1.0},
-        {label:"Employment Status",        score:63,weight:1.1},
-        {label:"Parental & Family Rights", score:44,weight:1.0},
-        {label:"Trade Union & Collective", score:22,weight:0.9},
-        {label:"TUPE / Transfers",         score:31,weight:1.0},
-        {label:"Data Protection",          score:47,weight:1.1},
-      ],
-      trend:[{q:"Q1 2025",score:43},{q:"Q2 2025",score:46},{q:"Q3 2025",score:48},{q:"Q4 2025",score:48},{q:"Q1 2026",score:52}],
+// Demo org — authenticated users get real org_id from JWT
+const DEMO_ORG = "de000001-0000-4000-8000-000000000001";
+
+// ── STRINGS (bilingual UI) ────────────────────────────────────────────────
+const UI = {
+  en: {
+    title: "Knowledge Library",
+    subtitle: "Regulatory Intelligence Platform",
+    searchPlaceholder: "Search instruments…",
+    filterAll: "All Instruments",
+    filterWales: "Wales Only",
+    filterGB: "Great Britain",
+    sortSig: "By Significance",
+    sortTitle: "Alphabetical",
+    noResults: "No instruments match your current filters.",
+    loading: "Loading library…",
+    error: "Failed to load library. Please refresh.",
+    expand: "View full instrument",
+    collapse: "Collapse",
+    summary: "Summary",
+    obligations: "Key Obligations",
+    provisions: "Key Provisions",
+    tierLabel: "Access Tier",
+    jurisdictionLabel: "Jurisdiction",
+    translationNotice: "AI-assisted translation · Not official legal Welsh",
+    officialBilingual: "Official bilingual legislation",
+    walesLayer: "Wales Layer Active",
+    instrumentCount: (n) => `${n} instrument${n !== 1 ? "s" : ""}`,
+    welshAvail: "Welsh available",
+    poweredBy: "Powered by Ailane Constitutional Intelligence",
+    lastUpdated: "Knowledge Library",
+    cyToggle: "Cymraeg",
+    enToggle: "English",
+  },
+  cy: {
+    title: "Llyfrgell Wybodaeth",
+    subtitle: "Platfform Cuddwybodaeth Reoleiddiol",
+    searchPlaceholder: "Chwilio offerynnau…",
+    filterAll: "Pob Offeryn",
+    filterWales: "Cymru yn Unig",
+    filterGB: "Prydain Fawr",
+    sortSig: "Yn ôl Arwyddocâd",
+    sortTitle: "Yn Nhrefn yr Wyddor",
+    noResults: "Nid oes offerynnau'n cyfateb â'ch hidlyddion cyfredol.",
+    loading: "Yn llwytho'r llyfrgell…",
+    error: "Methwyd â llwytho'r llyfrgell. Adnewyddwch y dudalen.",
+    expand: "Gweld yr offeryn llawn",
+    collapse: "Cau",
+    summary: "Crynodeb",
+    obligations: "Prif Rwymedigaethau",
+    provisions: "Prif Ddarpariaethau",
+    tierLabel: "Haen Mynediad",
+    jurisdictionLabel: "Awdurdodaeth",
+    translationNotice: "Cyfieithiad a gynorthwyir gan AI · Nid cyfraith Gymraeg swyddogol",
+    officialBilingual: "Deddfwriaeth ddwyieithog swyddogol",
+    walesLayer: "Haen Cymru Weithredol",
+    instrumentCount: (n) => `${n} offeryn${n !== 1 ? "" : ""}`,
+    welshAvail: "Cymraeg ar gael",
+    poweredBy: "Grymherir gan Ailane Constitutional Intelligence",
+    lastUpdated: "Llyfrgell Wybodaeth",
+    cyToggle: "Cymraeg",
+    enToggle: "English",
+  }
+};
+
+// ── ACEI CATEGORY MAP ─────────────────────────────────────────────────────
+const CATS = {
+  1: { en: "General Employment", cy: "Cyflogaeth Cyffredinol", color: "#22d3ee" },
+  2: { en: "Discrimination & Harassment", cy: "Gwahaniaethu ac Aflonyddu", color: "#a78bfa" },
+  3: { en: "Wages & Working Time", cy: "Cyflogau ac Amser Gweithio", color: "#34d399" },
+  4: { en: "Employment Status", cy: "Statws Cyflogaeth", color: "#fb923c" },
+  5: { en: "Whistleblowing", cy: "Chwibanodd", color: "#f472b6" },
+  6: { en: "Parental & Family Rights", cy: "Hawliau Rhieni a Theulu", color: "#60a5fa" },
+  7: { en: "Trade Union & Collective", cy: "Undeb Llafur a Chyfunol", color: "#fbbf24" },
+  8: { en: "Business Transfers", cy: "Trosglwyddo Busnesau", color: "#4ade80" },
+  9: { en: "Health & Safety", cy: "Iechyd a Diogelwch", color: "#f87171" },
+  10: { en: "Data Protection", cy: "Diogelu Data", color: "#818cf8" },
+  11: { en: "Immigration & Right to Work", cy: "Mewnfudo a Hawl i Weithio", color: "#38bdf8" },
+  12: { en: "Tribunal & Enforcement", cy: "Tribiwnlys a Gorfodaeth", color: "#e879f9" },
+};
+
+const TIER_CONFIG = {
+  all: { label: "All Tiers", cy: "Pob Haen", color: "#64748b" },
+  governance: { label: "Governance", cy: "Llywodraethu", color: "#22d3ee" },
+  institutional: { label: "Institutional", cy: "Sefydliadol", color: "#f59e0b" },
+};
+
+// ── SUPABASE HELPERS ──────────────────────────────────────────────────────
+const getToken = () => {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.includes("supabase") && k.includes("auth"));
+    for (const k of keys) {
+      const d = JSON.parse(localStorage.getItem(k) || "{}");
+      if (d?.access_token) return d.access_token;
+      if (d?.session?.access_token) return d.session.access_token;
+    }
+  } catch {}
+  return null;
+};
+
+const getOrgId = (token) => {
+  if (!token) return DEMO_ORG;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload?.org_id || DEMO_ORG;
+  } catch { return DEMO_ORG; }
+};
+
+const sbRpc = async (fn, params, token) => {
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: {
+      apikey: SB_ANON,
+      Authorization: `Bearer ${token || SB_ANON}`,
+      "Content-Type": "application/json",
     },
-    rri:{
-      pcs:61, delta:"+6", drPcs:72, eIntP:{ec:81,ef:88,def:1}, activeRCEs:3,
-      pillars:[
-        {label:"Policy Alignment",       score:70},
-        {label:"Contractual Conformity", score:58},
-        {label:"Training Deployment",    score:65},
-        {label:"Systems & Process",      score:52},
-        {label:"Governance Oversight",   score:61},
-      ],
-      trend:[{q:"Q1 2025",score:44},{q:"Q2 2025",score:50},{q:"Q3 2025",score:55},{q:"Q4 2025",score:55},{q:"Q1 2026",score:61}],
-    },
-    cci:{
-      pub:69, raw:71, cw:0.38, mode:"Full CCI", scbTier:"SCB-A", delta:"+3", ect:"Stable",
-      components:[
-        {label:"Tribunal Claim Frequency",   score:64,weight:0.25},
-        {label:"Adverse Outcome Rate",       score:58,weight:0.20},
-        {label:"Penalty Severity Index",     score:64,weight:0.20},
-        {label:"Regulatory Enforcement Rate",score:85,weight:0.15},
-        {label:"Governance Responsiveness",  score:85,weight:0.10},
-        {label:"Recurrence & Pattern",       score:72,weight:0.10},
-      ],
-      trend:[{q:"Q1 2025",score:61},{q:"Q2 2025",score:64},{q:"Q3 2025",score:64},{q:"Q4 2025",score:66},{q:"Q1 2026",score:69}],
-    },
-    tribunal:{
-      total:7, won:3, lost:2, settled:2, totalCompensation:"£142,800", avgPerCase:"£20,400", sectorAvg:6.2,
-      recent:[
-        {ref:"ET/3200147/2025",cat:"Discrimination & Harassment",outcome:"Lost",   comp:"£42,000",date:"Nov 2025"},
-        {ref:"ET/3100892/2025",cat:"Unfair Dismissal",           outcome:"Settled",comp:"£18,500",date:"Aug 2025"},
-        {ref:"ET/2900441/2025",cat:"Employment Status",          outcome:"Won",    comp:"—",       date:"Jun 2025"},
-        {ref:"ET/2800223/2025",cat:"Discrimination & Harassment",outcome:"Lost",   comp:"£38,200", date:"Mar 2025"},
-      ],
-      compTrend:[{q:"Q1 2025",v:38200},{q:"Q2 2025",v:18500},{q:"Q3 2025",v:0},{q:"Q4 2025",v:42000},{q:"Q1 2026",v:0}],
-    },
-    legislation:[
-      {title:"Employment Rights Bill",                    stageNo:2,impact:"High",  aceiCat:"Unfair Dismissal, Whistleblowing", commence:"Oct 2026",        rce:true },
-      {title:"Workers (Predictability of Pay) Act 2025",  stageNo:3,impact:"High",  aceiCat:"Wages & Working Time",            commence:"1 Apr 2026",      rce:true },
-      {title:"Equality (Race and Disability) Bill",        stageNo:1,impact:"Medium",aceiCat:"Discrimination & Harassment",     commence:"TBC",             rce:false},
-      {title:"Data Protection & Digital Information Act",  stageNo:4,impact:"Low",   aceiCat:"Data Protection",                 commence:"Already in Force",rce:false},
-    ],
-    alerts:[
-      {id:1,type:"velocity",   title:"ACEI velocity flag triggered",         detail:"Discrimination & Harassment category score increased 14 points Q-o-Q",                 date:"3 Mar 2026", read:false},
-      {id:2,type:"legislation",title:"Employment Rights Bill — Royal Assent",detail:"Full Act text now available. RRI pre-registration recommended.",                       date:"28 Feb 2026",read:false},
-      {id:3,type:"tribunal",   title:"Sector tribunal digest — Technology",  detail:"12 new decisions in Technology sector this week. 4 involve Employment Status claims.", date:"28 Feb 2026",read:true },
-      {id:4,type:"rri",        title:"RRI Deadline Risk: Workers Act",       detail:"Commencement 1 April 2026 — 27 days. RRI DR-PCS: 78.",                                date:"5 Mar 2026", read:false},
-      {id:5,type:"cci",        title:"CCI Quarterly Recomputation",          detail:"Q4 2025: Score 69 (+3). Classification: Adequate Conduct. SCB-A.",                    date:"15 Feb 2026",read:true },
-    ],
-  };
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+};
 
-  // ── KNOWLEDGE LIBRARY DATA (AILANE-KL-GLOBAL-002) ────────────────────
-  const KL = [
-    {id:1, title:"Employment Rights Act 1996",                  cat:"Unfair Dismissal",         jur:"GB",  stageNo:4,impact:"High",  rce:false,source:"legislation.gov.uk",  ref:"c.18",          updated:"Oct 2025"},
-    {id:2, title:"Employment Rights Bill 2024–25",              cat:"Unfair Dismissal",         jur:"GB",  stageNo:2,impact:"High",  rce:true, source:"bills.parliament.uk", ref:"Bill 11",       updated:"Mar 2026"},
-    {id:3, title:"Equality Act 2010",                           cat:"Discrimination",           jur:"GB",  stageNo:4,impact:"High",  rce:false,source:"legislation.gov.uk",  ref:"c.15",          updated:"Jan 2024"},
-    {id:4, title:"Equality (Race and Disability) Bill",         cat:"Discrimination",           jur:"GB",  stageNo:1,impact:"Medium",rce:false,source:"bills.parliament.uk", ref:"Draft",         updated:"Feb 2026"},
-    {id:5, title:"Workers (Predictability of Pay) Act 2025",    cat:"Wages & Working Time",     jur:"GB",  stageNo:3,impact:"High",  rce:true, source:"legislation.gov.uk",  ref:"c.7",           updated:"Mar 2026"},
-    {id:6, title:"National Minimum Wage Act 1998",              cat:"Wages & Working Time",     jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"c.39",          updated:"Apr 2025"},
-    {id:7, title:"Working Time Regulations 1998",               cat:"Wages & Working Time",     jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"SI 1998/1833",  updated:"Jan 2024"},
-    {id:8, title:"Public Interest Disclosure Act 1998",         cat:"Whistleblowing",           jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"c.23",          updated:"Jan 2024"},
-    {id:9, title:"Health and Safety at Work Act 1974",          cat:"Health & Safety",          jur:"GB",  stageNo:4,impact:"High",  rce:false,source:"legislation.gov.uk",  ref:"c.37",          updated:"Jan 2024"},
-    {id:10,title:"Management of H&S at Work Regs 1999",         cat:"Health & Safety",          jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"SI 1999/3242",  updated:"Jan 2024"},
-    {id:11,title:"Transfer of Undertakings (TUPE) Regs 2006",   cat:"TUPE / Transfers",         jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"SI 2006/246",   updated:"Jan 2024"},
-    {id:12,title:"UK GDPR & Data Protection Act 2018",          cat:"Data Protection",          jur:"GB",  stageNo:4,impact:"High",  rce:false,source:"legislation.gov.uk",  ref:"c.12",          updated:"Jun 2025"},
-    {id:13,title:"Data Protection & Digital Information Act",   cat:"Data Protection",          jur:"GB",  stageNo:4,impact:"Low",   rce:false,source:"legislation.gov.uk",  ref:"c.35",          updated:"Mar 2026"},
-    {id:14,title:"Employment Relations Act 1999",               cat:"Trade Union & Collective", jur:"GB",  stageNo:4,impact:"Low",   rce:false,source:"legislation.gov.uk",  ref:"c.26",          updated:"Jan 2024"},
-    {id:15,title:"Maternity & Parental Leave Regs 1999",        cat:"Parental & Family Rights", jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"SI 1999/3312",  updated:"Jan 2024"},
-    {id:16,title:"Shared Parental Leave Regulations 2014",      cat:"Parental & Family Rights", jur:"GB",  stageNo:4,impact:"Low",   rce:false,source:"legislation.gov.uk",  ref:"SI 2014/3050",  updated:"Jan 2024"},
-    {id:17,title:"ERA 1996 (Redundancy Provisions)",            cat:"Redundancy & Org Change",  jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"c.18 s.135",    updated:"Oct 2025"},
-    {id:18,title:"ERA 1996 s.43 (Whistleblowing Carve-out)",    cat:"Whistleblowing",           jur:"GB",  stageNo:4,impact:"Medium",rce:false,source:"legislation.gov.uk",  ref:"c.18 s.43",     updated:"Oct 2025"},
-  ];
+// ── LANG TOGGLE COMPONENT ─────────────────────────────────────────────────
+const LangToggle = ({ lang, setLang, hasWelsh }) => (
+  <div style={{
+    display: "flex", alignItems: "center", gap: 8,
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 8, padding: "4px 6px",
+  }}>
+    {hasWelsh && (
+      <span style={{ fontSize: 13, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+        🏴󠁧󠁢󠁷󠁬󠁳󠁿
+      </span>
+    )}
+    <button
+      onClick={() => setLang("en")}
+      style={{
+        background: lang === "en" ? "rgba(34,211,238,0.15)" : "transparent",
+        color: lang === "en" ? "#22d3ee" : "#64748b",
+        border: lang === "en" ? "1px solid rgba(34,211,238,0.3)" : "1px solid transparent",
+        borderRadius: 5, padding: "5px 12px", cursor: "pointer",
+        fontSize: 13, fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600, letterSpacing: "0.5px",
+        transition: "all 0.18s ease",
+      }}
+    >
+      EN
+    </button>
+    <button
+      onClick={() => setLang("cy")}
+      style={{
+        background: lang === "cy" ? "rgba(210,60,60,0.15)" : "transparent",
+        color: lang === "cy" ? "#ef4444" : "#64748b",
+        border: lang === "cy" ? "1px solid rgba(239,68,68,0.35)" : "1px solid transparent",
+        borderRadius: 5, padding: "5px 12px", cursor: "pointer",
+        fontSize: 13, fontFamily: "'JetBrains Mono', monospace",
+        fontWeight: 600, letterSpacing: "0.5px",
+        transition: "all 0.18s ease",
+      }}
+    >
+      CY
+    </button>
+  </div>
+);
 
-  // ── COMPLIANCE CHECKER FINDINGS ────────────────────────────────────────
-  const CC_FINDINGS = [
-    {id:1,clause:"Notice Period Provisions",     req:"ERA 1996 s.86 / Written Particulars",    sev:"High",  pillar:"CC", pillarFull:"Contractual Conformity",status:"Non-Compliant",    fix:"Must specify minimum statutory notice per ERA 1996 s.86. Current clause references only contractual notice without ERA 1996 minimum floor."},
-    {id:2,clause:"Disciplinary Procedure",       req:"ACAS Code of Practice 2015",             sev:"High",  pillar:"PA", pillarFull:"Policy Alignment",       status:"Partially Compliant",fix:"Procedure references ACAS Code 2009 revision. Must be updated to 2015 revision. Failure creates unfair dismissal risk at tribunal."},
-    {id:3,clause:"Confidentiality Restrictions", req:"ERA 1996 s.43B / PIDA 1998",             sev:"Medium",pillar:"CC", pillarFull:"Contractual Conformity",status:"Non-Compliant",    fix:"Confidentiality clause may unlawfully restrict protected disclosures under PIDA 1998. A whistleblowing carve-out is required."},
-    {id:4,clause:"Flexible Working Policy",      req:"ERA 1996 s.80F (amended 2023)",          sev:"Medium",pillar:"PA", pillarFull:"Policy Alignment",       status:"Partially Compliant",fix:"Policy does not reflect the 2023 day-one right amendment. Update required to reflect new statutory entitlement from 6 Apr 2024."},
-    {id:5,clause:"Working Time Opt-Out",         req:"Working Time Regs 1998 r.5",             sev:"Low",   pillar:"CC", pillarFull:"Contractual Conformity",status:"Compliant",        fix:"Clause is valid. Ensure individual opt-out agreements are separately signed and retained per r.5(3)."},
-    {id:6,clause:"Data Protection Clause",       req:"UK GDPR Art. 13 / DPA 2018",            sev:"Low",   pillar:"SPA",pillarFull:"Systems & Process",      status:"Compliant",        fix:"Processing notice is referenced correctly. Verify that the linked employee privacy notice is current and GDPR-compliant."},
-    {id:7,clause:"Grievance Procedure",          req:"ACAS Code of Practice 2015",             sev:"Low",   pillar:"GO", pillarFull:"Governance Oversight",   status:"Compliant",        fix:"Broadly compliant. Recommend review against Employment Rights Bill when enacted — new statutory grievance provisions expected."},
-  ];
-
-  // ── UTILS ────────────────────────────────────────────────────────────────
-  const getAceiBand = s => s<=20?{label:"Low Exposure",color:C.ok}:s<=40?{label:"Controlled",color:C.tealXL}:s<=60?{label:"Elevated Exposure",color:C.warn}:s<=80?{label:"High Exposure",color:"#f97316"}:{label:"Critical Exposure",color:C.danger};
-  const getRRIBand  = s => s>=80?{label:"Advanced Readiness",color:C.rri}:s>=60?{label:"Operational Readiness",color:"#3b82f6"}:s>=40?{label:"Developing Readiness",color:C.warn}:{label:"Emerging Readiness",color:C.danger};
-  const getCCIBand  = s => s>=80?{label:"Strong Conduct",color:C.rri}:s>=60?{label:"Adequate Conduct",color:C.cci}:s>=40?{label:"Concerning Conduct",color:C.warn}:{label:"Poor Conduct",color:C.danger};
-  const getQuadrant = (r,c) => {
-    if(r>=60&&c>=60) return {id:"strong", label:"Strong Position",   color:C.rri,   desc:"Prepared for change and historically well-governed. Priority: maintain."};
-    if(r>=60)        return {id:"govgap", label:"Governance Gap",    color:C.warn,  desc:"Prepared for change but historical track record raises credibility concerns."};
-    if(c>=60)        return {id:"impgap", label:"Implementation Gap",color:"#3b82f6",desc:"Historically compliant culture but slow on current implementation."};
-    return                  {id:"high",   label:"Highest Priority",  color:C.danger,desc:"Both current readiness and historical conduct require immediate attention."};
-  };
-  const stageName = n => ["","Parliamentary","Royal Assent","Commencement","In Force"][n]||"Unknown";
-  const stageColor= n => ["","#64748b",C.warn,C.rri,C.tealXL][n]||C.muted;
-
-  // ── SHARED UI ────────────────────────────────────────────────────────────
-  const Pill=({label,color,small})=>(
-    <span style={{display:"inline-block",background:`${color}18`,color,border:`1px solid ${color}35`,borderRadius:4,padding:small?"1px 6px":"3px 9px",fontSize:small?10:11,fontWeight:600,letterSpacing:"0.04em",...mono}}>{label}</span>
-  );
-  const Card=({children,style={},glowColor,className})=>(
-    <div className={className} style={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:12,padding:20,...(glowColor?{boxShadow:`0 0 0 1px ${glowColor}20,inset 0 1px 0 rgba(255,255,255,0.04)`}:{}),...style}}>{children}</div>
-  );
-  const SectionTitle=({children,sub})=>(
-    <div style={{marginBottom:20}}>
-      <div style={{fontSize:13,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:C.muted,marginBottom:4}}>{children}</div>
-      {sub&&<div style={{fontSize:11,color:"#475569"}}>{sub}</div>}
-    </div>
-  );
-  const ScoreGauge=({score,color,size=80})=>{
-    const R=(size/2)-8,circ=2*Math.PI*R,dash=(score/100)*circ*0.75,cx=size/2,cy=size/2;
-    return(<svg width={size} height={size*0.7} viewBox={`0 0 ${size} ${size*0.85}`} style={{overflow:"visible"}}>
-      <circle cx={cx} cy={cy} r={R} fill="none" stroke={`${color}18`} strokeWidth={6} strokeDasharray={`${circ*0.75} ${circ*0.25}`} strokeDashoffset={circ*0.125} strokeLinecap="round" transform={`rotate(135 ${cx} ${cy})`}/>
-      <circle cx={cx} cy={cy} r={R} fill="none" stroke={color} strokeWidth={6} strokeDasharray={`${dash} ${circ-dash}`} strokeDashoffset={circ*0.125} strokeLinecap="round" transform={`rotate(135 ${cx} ${cy})`} style={{filter:`drop-shadow(0 0 6px ${color}60)`}}/>
-      <text x={cx} y={cy+4} textAnchor="middle" fill={color} style={{...mono,fontSize:size*0.25,fontWeight:700}}>{score}</text>
-    </svg>);
-  };
-  const PillarBar=({label,score,color})=>(
-    <div style={{marginBottom:12}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-        <span style={{fontSize:12,color:"#94a3b8"}}>{label}</span>
-        <span style={{fontSize:12,fontWeight:600,color,...mono}}>{score}</span>
-      </div>
-      <div style={{height:5,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
-        <div style={{height:"100%",width:`${score}%`,background:color,borderRadius:3,boxShadow:`0 0 6px ${color}50`,transition:"width 0.6s ease"}}/>
-      </div>
-    </div>
-  );
-  const Lock=({title,desc})=>(
-    <div style={{background:"rgba(167,139,250,0.05)",border:"1px dashed rgba(167,139,250,0.25)",borderRadius:10,padding:16,display:"flex",alignItems:"center",gap:14}}>
-      <div style={{fontSize:18,opacity:0.6}}>🔒</div>
-      <div style={{flex:1}}>
-        <div style={{fontSize:12,fontWeight:700,color:"#a78bfa",marginBottom:2}}>{title}</div>
-        <div style={{fontSize:11,color:C.muted}}>{desc}</div>
-      </div>
-      <div style={{fontSize:10,fontWeight:600,color:"#a78bfa",border:"1px solid rgba(167,139,250,0.3)",borderRadius:5,padding:"3px 8px",whiteSpace:"nowrap",cursor:"pointer",...mono}}>Institutional ↑</div>
-    </div>
-  );
-
-  // ── QUADRANT PANEL ──────────────────────────────────────────────────────
-  const QuadrantPanel=({rri,cci})=>{
-    const q=getQuadrant(rri,cci);
-    const quads=[
-      {id:"impgap",label:"Implementation Gap",rH:false,cH:true, color:"#3b82f6",desc:"Historically compliant but slow on implementation."},
-      {id:"strong",label:"Strong Position",   rH:true, cH:true, color:C.rri,   desc:"Prepared and well-governed. Priority: maintain."},
-      {id:"high",  label:"Highest Priority",  rH:false,cH:false,color:C.danger,desc:"Both readiness and conduct require attention."},
-      {id:"govgap",label:"Governance Gap",    rH:true, cH:false,color:C.warn,  desc:"Prepared but historical credibility concerns."},
-    ];
-    return(<div>
-      <div style={{fontSize:11,color:C.muted,marginBottom:12}}>CCI Art. 7.4.1 — Quadrant Interpretation · RRI PCS vs CCI_pub</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
-        {quads.map(({id,label,rH,cH,color,desc})=>{
-          const active=id===q.id;
-          return(<div key={id} style={{background:active?`${color}15`:"rgba(255,255,255,0.02)",border:`1px solid ${active?`${color}50`:C.border}`,borderRadius:8,padding:12,boxShadow:active?`0 0 16px ${color}20`:"none",transition:"all 0.3s"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-              <div style={{fontSize:11,fontWeight:700,color:active?color:"#475569"}}>{label}</div>
-              {active&&<div style={{fontSize:9,background:`${color}20`,color,border:`1px solid ${color}40`,borderRadius:4,padding:"1px 5px",...mono,fontWeight:700}}>YOU</div>}
-            </div>
-            <div style={{fontSize:10,color:C.muted,lineHeight:1.5}}>{desc}</div>
-            <div style={{display:"flex",gap:5,marginTop:7}}>
-              <Pill label={`RRI ${rH?"≥60":"<60"}`} color={rH?C.rri:"#64748b"} small/>
-              <Pill label={`CCI ${cH?"≥60":"<60"}`} color={cH?C.cci:"#64748b"} small/>
-            </div>
-          </div>);
-        })}
-      </div>
-      <div style={{background:`${q.color}10`,border:`1px solid ${q.color}30`,borderRadius:8,padding:12}}>
-        <div style={{fontSize:12,fontWeight:700,color:q.color,marginBottom:4}}>◆ {q.label}</div>
-        <div style={{fontSize:11,color:"#94a3b8"}}>{q.desc}</div>
-      </div>
-    </div>);
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // TABS
-  // ═══════════════════════════════════════════════════════════════════════
-
-  const OverviewTab=()=>{
-    const ab=getAceiBand(CLIENT.acei.score),rb=getRRIBand(CLIENT.rri.pcs),cb=getCCIBand(CLIENT.cci.pub);
-    const indices=[
-      {k:"acei",label:"ACEI",desc:"Adverse Claim Exposure Index",color:C.acei,score:CLIENT.acei.score,band:ab,delta:CLIENT.acei.delta,
-        meta:[{l:"Sector Multiplier (Tech)",v:`×${CLIENT.acei.sectorMultiplier}`},{l:"Jurisdiction (SE)",v:`×${CLIENT.acei.jurisdictionMultiplier}`}],
-        warn:CLIENT.acei.velocityFlag?"⚡ Velocity flag active":null,
-        foot:"Model Risk Disclosure: ACEI measures market-level regulatory exposure. Not legal advice. ACEI v1.0 Art. XII, Annex D."},
-      {k:"rri",label:"RRI",desc:"Regulatory Readiness Index",color:C.rri,score:CLIENT.rri.pcs,band:rb,delta:CLIENT.rri.delta,
-        meta:[{l:"Active RCEs",v:`${CLIENT.rri.activeRCEs}`},{l:"DR-PCS (highest)",v:`${CLIENT.rri.drPcs}`},{l:"Evidence Coverage",v:`${CLIENT.rri.eIntP.ec}%`}],
-        warn:"⚠ Workers Act commencement in 27 days — DR-PCS 78",foot:null},
-      {k:"cci",label:"CCI",desc:"Compliance Conduct Index",color:C.cci,score:CLIENT.cci.pub,band:cb,delta:CLIENT.cci.delta,
-        meta:[{l:"Credibility Weight (CW)",v:`${CLIENT.cci.cw}`},{l:"Mode",v:CLIENT.cci.mode},{l:"SCB Tier",v:CLIENT.cci.scbTier},{l:"Conduct Trend",v:CLIENT.cci.ect}],
-        warn:null,foot:null},
-    ];
-    return(<div style={{display:"flex",flexDirection:"column",gap:20}}>
-      {CLIENT.alerts.filter(a=>!a.read).length>0&&(
-        <div className="fade-up" style={{background:"rgba(245,158,11,0.07)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:"10px 16px",display:"flex",alignItems:"center",gap:12}}>
-          <span>⚡</span>
-          <div style={{flex:1}}><span style={{fontSize:12,fontWeight:700,color:C.warn}}>{CLIENT.alerts.filter(a=>!a.read).length} unread alerts</span><span style={{fontSize:12,color:"#94a3b8",marginLeft:8}}>— ACEI velocity flag · Employment Rights Bill at Royal Assent · DR-PCS 78 on Workers Act</span></div>
-          <span style={{fontSize:11,color:C.warn,cursor:"pointer",...mono}}>View All →</span>
-        </div>
+// ── JURISDICTION BADGE ────────────────────────────────────────────────────
+const JurisdictionBadge = ({ codes, lang }) => {
+  const isWales = codes?.includes("Wales");
+  const isGB = codes?.includes("GB");
+  return (
+    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+      {isWales && (
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+          padding: "2px 7px", borderRadius: 3,
+          background: "rgba(185,28,28,0.15)",
+          border: "1px solid rgba(239,68,68,0.3)",
+          color: "#fca5a5", letterSpacing: "0.5px",
+        }}>
+          🏴󠁧󠁢󠁷󠁬󠁳󠁿 {lang === "cy" ? "CYMRU" : "WALES"}
+        </span>
       )}
-      <div>
-        <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"#334155",marginBottom:12,...mono}}>INDEX TRIAD — ACEI v1.0 · RRI v1.0 · CCI v1.0 · Strict Separation Doctrine (ACEI Art. 12A.3)</div>
-        <div className="fade-up-1" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
-          {indices.map(idx=>(
-            <div key={idx.k} style={{background:C.bgCard,borderRadius:14,padding:24,border:`1px solid ${idx.color}22`,borderTop:`3px solid ${idx.color}`,boxShadow:`0 0 30px ${idx.color}08`}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
-                <div><div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:idx.color,...mono}}>{idx.label}</div><div style={{fontSize:10,color:C.muted,marginTop:2}}>{idx.desc}</div></div>
-                <Pill label="v1.0" color={idx.color} small/>
-              </div>
-              <div style={{display:"flex",justifyContent:"center",marginBottom:8}}><ScoreGauge score={idx.score} color={idx.color} size={110}/></div>
-              <div style={{textAlign:"center",marginBottom:14}}>
-                <div style={{fontSize:12,fontWeight:700,color:idx.band.color,marginBottom:4}}>{idx.band.label}</div>
-                <div style={{display:"inline-flex",alignItems:"center",gap:8}}><span style={{fontSize:11,fontWeight:600,color:C.warn,...mono}}>{idx.delta}</span><span style={{fontSize:10,color:C.muted}}>vs last quarter</span></div>
-              </div>
-              <div style={{borderTop:`1px solid ${C.border}`,paddingTop:12,display:"flex",flexDirection:"column",gap:5}}>
-                {idx.meta.map((m,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                    <span style={{color:C.muted}}>{m.l}</span><span style={{color:idx.color,...mono}}>{m.v}</span>
-                  </div>
-                ))}
-                {idx.warn&&<div style={{marginTop:6,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:5,padding:"5px 8px",fontSize:10,color:C.warn}}>{idx.warn}</div>}
-              </div>
-              {idx.foot&&<div style={{marginTop:10,fontSize:10,color:"#334155",fontStyle:"italic",lineHeight:1.5}}>{idx.foot}</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="fade-up-2" style={{background:"rgba(255,255,255,0.015)",border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:10}}>
-        <span>🔒</span><span style={{fontSize:10,color:"#334155"}}>Separation Doctrine — No composite ACEI+RRI+CCI index is computed or disclosed. ACEI Art. 12A.3.3. Combined reporting permitted under Art. 12A.4(a).</span>
-      </div>
-      <div className="fade-up-3" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        <Card><SectionTitle sub="RRI PCS × CCI_pub — CCI Art. 7.4.1">Combined Interpretation</SectionTitle><QuadrantPanel rri={CLIENT.rri.pcs} cci={CLIENT.cci.pub}/></Card>
-        <Card>
-          <SectionTitle sub="ACEI · RRI · CCI — Quarterly progression">Index Trend</SectionTitle>
-          <ResponsiveContainer width="100%" height={185}>
-            <LineChart data={CLIENT.acei.trend.map((t,i)=>({q:t.q,acei:t.score,rri:CLIENT.rri.trend[i]?.score,cci:CLIENT.cci.trend[i]?.score}))}>
-              <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3"/>
-              <XAxis dataKey="q" tick={{fill:C.muted,fontSize:10}} axisLine={false}/>
-              <YAxis domain={[0,100]} tick={{fill:C.muted,fontSize:10}} axisLine={false}/>
-              <Tooltip contentStyle={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} labelStyle={{color:"#94a3b8"}}/>
-              <Line type="monotone" dataKey="acei" stroke={C.acei} strokeWidth={2} dot={false} name="ACEI"/>
-              <Line type="monotone" dataKey="rri"  stroke={C.rri}  strokeWidth={2} dot={false} name="RRI PCS"/>
-              <Line type="monotone" dataKey="cci"  stroke={C.cci}  strokeWidth={2} dot={false} name="CCI_pub"/>
-              <Legend iconType="circle" iconSize={6} wrapperStyle={{fontSize:10,color:C.muted}}/>
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
-      <Card className="fade-up-4">
-        <SectionTitle sub="ACEI Art. III — All 12 statutory exposure categories">ACEI Category Breakdown</SectionTitle>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={CLIENT.acei.categories} layout="vertical" margin={{left:145,right:20}}>
-            <XAxis type="number" domain={[0,100]} tick={{fill:C.muted,fontSize:9}} axisLine={false}/>
-            <YAxis type="category" dataKey="label" tick={{fill:"#94a3b8",fontSize:10}} axisLine={false} width={145}/>
-            <Tooltip contentStyle={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} labelStyle={{color:"#94a3b8"}}/>
-            <Bar dataKey="score" radius={[0,3,3,0]} maxBarSize={12}>
-              {CLIENT.acei.categories.map((c,i)=><Cell key={i} fill={getAceiBand(c.score).color}/>)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-    </div>);
-  };
-
-  const ComplianceTab=()=>(
-    <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div className="fade-up" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        <Card glowColor={C.rri}>
-          <SectionTitle sub="5-Pillar Evidence Impact Profile — RRI v1.0">Regulatory Readiness Pillars</SectionTitle>
-          {CLIENT.rri.pillars.map((p,i)=><PillarBar key={i} label={p.label} score={p.score} color={C.rri}/>)}
-          <div style={{marginTop:14,padding:12,background:"rgba(16,185,129,0.06)",border:`1px solid ${C.rri}25`,borderRadius:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:C.rri,marginBottom:6}}>Evidence Integrity Profile (EIntP)</div>
-            <div style={{display:"flex",gap:16,fontSize:11}}>
-              <div><span style={{color:C.muted}}>Coverage: </span><span style={{color:C.rri,...mono}}>{CLIENT.rri.eIntP.ec}%</span></div>
-              <div><span style={{color:C.muted}}>Freshness: </span><span style={{color:C.rri,...mono}}>{CLIENT.rri.eIntP.ef}%</span></div>
-              <div><span style={{color:C.muted}}>Deficient: </span><span style={{color:CLIENT.rri.eIntP.def>0?C.warn:C.rri,...mono}}>{CLIENT.rri.eIntP.def}</span></div>
-            </div>
-          </div>
-        </Card>
-        <Card glowColor={C.cci}>
-          <SectionTitle sub="6-Component Bayesian credibility framework — CCI v1.0">Conduct Components</SectionTitle>
-          {CLIENT.cci.components.map((c,i)=><PillarBar key={i} label={`${c.label} (w:${c.weight})`} score={c.score} color={C.cci}/>)}
-          <div style={{marginTop:14,padding:12,background:"rgba(167,139,250,0.06)",border:`1px solid ${C.cci}25`,borderRadius:8,fontSize:11}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.muted}}>CCI_raw:</span><span style={{color:C.cci,...mono}}>{CLIENT.cci.raw}</span></div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:C.muted}}>CCI_pub (adjusted):</span><span style={{color:C.cci,...mono}}>{CLIENT.cci.pub}</span></div>
-            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.muted}}>Divergence:</span><span style={{color:Math.abs(CLIENT.cci.raw-CLIENT.cci.pub)>5?C.warn:C.rri,...mono}}>{Math.abs(CLIENT.cci.raw-CLIENT.cci.pub)} pts</span></div>
-          </div>
-        </Card>
-      </div>
-      <Card className="fade-up-1">
-        <SectionTitle sub="Active RCE deadline risk scores — RRI v1.0">Deadline Risk Monitor</SectionTitle>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {CLIENT.legislation.filter(l=>l.rce).map((l,i)=>(
-            <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:14,background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:9}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0",marginBottom:4}}>{l.title}</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <Pill label={stageName(l.stageNo)} color={stageColor(l.stageNo)} small/>
-                  <Pill label={`Impact: ${l.impact}`} color={l.impact==="High"?C.danger:C.warn} small/>
-                  <Pill label={l.aceiCat} color={C.acei} small/>
-                </div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div style={{fontSize:10,color:C.muted,marginBottom:2}}>DR-PCS</div>
-                <div style={{fontSize:22,fontWeight:700,...mono,color:l.title.includes("Workers")?C.warn:C.rri}}>{l.title.includes("Workers")?78:44}</div>
-                <div style={{fontSize:10,color:C.muted}}>{l.commence}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-      <Card className="fade-up-2">
-        <SectionTitle sub="Constitutional compliance evidence — Governance tier">Audit Trail Export</SectionTitle>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-          {[{label:"ACEI Computation Log",desc:"Full scoring trace, Q1 2026",icon:"📊"},{label:"RRI Evidence Register",desc:"Pillar inputs, version history",icon:"📋"},{label:"CCI Methodology Record",desc:"Component scores, CW, SCB tier",icon:"🔬"}].map((e,i)=>(
-            <div key={i} style={{background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:9,padding:14,cursor:"pointer",transition:"border-color 0.2s"}}
-              onMouseEnter={ev=>ev.currentTarget.style.borderColor="#14A9AF40"}
-              onMouseLeave={ev=>ev.currentTarget.style.borderColor=C.border}>
-              <div style={{fontSize:20,marginBottom:8}}>{e.icon}</div>
-              <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0",marginBottom:3}}>{e.label}</div>
-              <div style={{fontSize:10,color:C.muted}}>{e.desc}</div>
-              <div style={{marginTop:10,fontSize:10,color:C.tealL,fontWeight:600,...mono}}>EXPORT →</div>
-            </div>
-          ))}
-        </div>
-      </Card>
+      {isGB && (
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+          padding: "2px 7px", borderRadius: 3,
+          background: "rgba(30,64,175,0.2)",
+          border: "1px solid rgba(96,165,250,0.25)",
+          color: "#93c5fd", letterSpacing: "0.5px",
+        }}>
+          🇬🇧 {lang === "cy" ? "PF" : "GB"}
+        </span>
+      )}
     </div>
   );
+};
 
-  const TribunalTab=()=>(
-    <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div className="fade-up" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
-        {[{l:"Total",v:CLIENT.tribunal.total,c:"#e2e8f0"},{l:"Won",v:CLIENT.tribunal.won,c:C.rri},{l:"Settled",v:CLIENT.tribunal.settled,c:C.warn},{l:"Lost",v:CLIENT.tribunal.lost,c:C.danger}].map((s,i)=>(
-          <Card key={i}><div style={{fontSize:10,color:C.muted,marginBottom:6}}>{s.l}</div><div style={{fontSize:28,fontWeight:800,color:s.c,...mono}}>{s.v}</div><div style={{fontSize:10,color:"#334155",marginTop:4}}>36-month · CCI Art. I §1.2</div></Card>
-        ))}
-      </div>
-      <div className="fade-up-1" style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:16}}>
-        <Card>
-          <SectionTitle sub="Compensation paid per quarter">Compensation Trend</SectionTitle>
-          <ResponsiveContainer width="100%" height={155}>
-            <BarChart data={CLIENT.tribunal.compTrend}>
-              <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3"/>
-              <XAxis dataKey="q" tick={{fill:C.muted,fontSize:10}} axisLine={false}/>
-              <YAxis tick={{fill:C.muted,fontSize:10}} axisLine={false} tickFormatter={v=>v?`£${(v/1000).toFixed(0)}k`:"£0"}/>
-              <Tooltip contentStyle={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} formatter={v=>[`£${v.toLocaleString()}`,"Compensation"]}/>
-              <Bar dataKey="v" fill={C.danger} radius={[3,3,0,0]} maxBarSize={40}/>
-            </BarChart>
-          </ResponsiveContainer>
-          <div style={{marginTop:10,display:"flex",gap:16,fontSize:11}}>
-            <div><span style={{color:C.muted}}>Total: </span><span style={{color:C.danger,fontWeight:700,...mono}}>{CLIENT.tribunal.totalCompensation}</span></div>
-            <div><span style={{color:C.muted}}>Avg: </span><span style={{color:C.warn,fontWeight:700,...mono}}>{CLIENT.tribunal.avgPerCase}</span></div>
-          </div>
-        </Card>
-        <Card>
-          <SectionTitle sub="Technology sector · SCB-A baseline · CCI Art. VIII">Sector Benchmarking</SectionTitle>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:8,padding:12}}>
-              <div style={{fontSize:10,color:C.muted,marginBottom:4}}>Your claims (36-month)</div>
-              <div style={{fontSize:24,fontWeight:800,color:C.warn,...mono}}>7</div>
-            </div>
-            <div style={{background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:8,padding:12}}>
-              <div style={{fontSize:10,color:C.muted,marginBottom:4}}>Tech sector average</div>
-              <div style={{fontSize:24,fontWeight:800,color:C.rri,...mono}}>{CLIENT.tribunal.sectorAvg}</div>
-            </div>
-            <div style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:10}}>
-              <div style={{fontSize:10,color:C.danger,fontWeight:600}}>⚠ Above sector average</div>
-              <div style={{fontSize:10,color:C.muted,marginTop:2}}>Employer cross-referencing active — CCI Art. V</div>
-            </div>
-          </div>
-        </Card>
-      </div>
-      <Card className="fade-up-2">
-        <SectionTitle sub="130,854+ classified decisions · Employer cross-referencing">Decision History</SectionTitle>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <div style={{display:"grid",gridTemplateColumns:"1.5fr 2fr 0.8fr 0.8fr 0.8fr",padding:"6px 10px",fontSize:10,fontWeight:700,color:C.muted,letterSpacing:"0.08em",...mono}}>
-            <span>REF</span><span>CATEGORY</span><span>OUTCOME</span><span>COMPENSATION</span><span>DATE</span>
-          </div>
-          {CLIENT.tribunal.recent.map((d,i)=>(
-            <div key={i} style={{display:"grid",gridTemplateColumns:"1.5fr 2fr 0.8fr 0.8fr 0.8fr",padding:10,background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:7,alignItems:"center",fontSize:11}}>
-              <span style={{color:C.tealXL,...mono}}>{d.ref}</span>
-              <span style={{color:"#94a3b8"}}>{d.cat}</span>
-              <Pill label={d.outcome} color={d.outcome==="Won"?C.rri:d.outcome==="Settled"?C.warn:C.danger} small/>
-              <span style={{color:d.comp==="—"?C.muted:C.warn,fontWeight:600,...mono}}>{d.comp}</span>
-              <span style={{color:C.muted}}>{d.date}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-          <Lock title="Individual Decision Alerts — Institutional" desc="Real-time alerts when new tribunal decisions match your sector, size, and claim category."/>
-        </div>
-      </Card>
+// ── TRANSLATION NOTICE ────────────────────────────────────────────────────
+const TranslationNotice = ({ method, lang, ui }) => {
+  if (lang === "en" || !method) return null;
+  const isOfficial = method === "official_bilingual";
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: 6,
+      fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+      padding: "3px 8px", borderRadius: 4,
+      background: isOfficial ? "rgba(52,211,153,0.08)" : "rgba(245,158,11,0.08)",
+      border: `1px solid ${isOfficial ? "rgba(52,211,153,0.25)" : "rgba(245,158,11,0.25)"}`,
+      color: isOfficial ? "#6ee7b7" : "#fcd34d",
+      letterSpacing: "0.3px",
+    }}>
+      {isOfficial ? "✓ " : "⚠ "}
+      {isOfficial ? ui.officialBilingual : ui.translationNotice}
     </div>
   );
+};
 
-  // ── KNOWLEDGE LIBRARY TAB ──────────────────────────────────────────────
-  const KnowledgeLibraryTab=()=>{
-    const [catF,setCatF]=useState("All");
-    const [stageF,setStageF]=useState("All");
-    const [q,setQ]=useState("");
-    const cats=["All",...[...new Set(KL.map(i=>i.cat))]];
-    const stageFilters=["All","Parliamentary","Royal Assent","Commencement","In Force"];
-    const filtered=KL.filter(i=>{
-      const mc=catF==="All"||i.cat===catF;
-      const ms=stageF==="All"||(stageF==="Parliamentary"&&i.stageNo===1)||(stageF==="Royal Assent"&&i.stageNo===2)||(stageF==="Commencement"&&i.stageNo===3)||(stageF==="In Force"&&i.stageNo===4);
-      const mq=q===""||i.title.toLowerCase().includes(q.toLowerCase())||i.cat.toLowerCase().includes(q.toLowerCase());
-      return mc&&ms&&mq;
-    });
-    const rceCount=KL.filter(i=>i.rce).length;
-    return(<div style={{display:"flex",flexDirection:"column",gap:20}}>
-      {/* Banner */}
-      <div className="fade-up" style={{background:"linear-gradient(135deg,rgba(27,42,74,0.9),rgba(13,115,119,0.12))",border:"1px solid rgba(13,115,119,0.3)",borderRadius:12,padding:20}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-              <span style={{fontSize:20}}>📚</span>
-              <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:C.tealXL,...mono}}>KNOWLEDGE LIBRARY</div>
-              <Pill label="AILANE-KL-GLOBAL-002" color={C.teal} small/>
-              <Pill label="GB + Sector-Filtered" color={C.rri} small/>
-            </div>
-            <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0",marginBottom:6}}>Legislative Intelligence — GB Employment Law</div>
-            <div style={{fontSize:11,color:"#64748b",lineHeight:1.7,maxWidth:600}}>
-              Full access to GB employment legislation across all 12 ACEI categories. Cross-referenced against your exposure profile and active RCE pipeline. Governance tier = GB + sector-filtered jurisdictions per AILANE-KL-GLOBAL-002 §4.2.
-            </div>
+// ── INSTRUMENT CARD ───────────────────────────────────────────────────────
+const InstrumentCard = ({ inst, lang, ui, expanded, onToggle }) => {
+  const isCy = lang === "cy";
+  const isWales = inst.jurisdiction_codes?.includes("Wales") && !inst.jurisdiction_codes?.includes("GB");
+  const isWalesGB = inst.jurisdiction_codes?.includes("Wales") && inst.jurisdiction_codes?.includes("GB");
+
+  const title = (isCy && inst.title_cy) ? inst.title_cy : inst.short_title;
+  const summary = (isCy && inst.summary_cy) ? inst.summary_cy : inst.summary;
+  const obligations = (isCy && inst.obligations_cy) ? inst.obligations_cy : inst.obligations_summary;
+  const provisions = (isCy && inst.key_provisions_cy) ? inst.key_provisions_cy : inst.key_provisions;
+
+  const tierCfg = TIER_CONFIG[inst.tier_access] || TIER_CONFIG.all;
+  const cats = (inst.acei_categories || []).map(n => CATS[n]).filter(Boolean);
+  const primaryCat = cats[0];
+
+  const isWalesSpecific = isWales || isWalesGB;
+
+  return (
+    <div style={{
+      background: isWalesSpecific
+        ? "linear-gradient(135deg, rgba(185,28,28,0.06) 0%, rgba(15,20,40,0.95) 100%)"
+        : "rgba(255,255,255,0.028)",
+      border: isWalesSpecific
+        ? "1px solid rgba(239,68,68,0.18)"
+        : "1px solid rgba(255,255,255,0.06)",
+      borderRadius: 10,
+      marginBottom: 10,
+      overflow: "hidden",
+      transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+      boxShadow: expanded
+        ? (isWalesSpecific ? "0 4px 24px rgba(185,28,28,0.12)" : "0 4px 20px rgba(34,211,238,0.06)")
+        : "none",
+    }}>
+      {/* Card Header — always visible */}
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          padding: "14px 18px", textAlign: "left", display: "flex",
+          alignItems: "flex-start", gap: 14,
+        }}
+      >
+        {/* Significance Bar */}
+        <div style={{
+          flexShrink: 0, width: 3, alignSelf: "stretch",
+          borderRadius: 2, minHeight: 32,
+          background: primaryCat
+            ? `linear-gradient(180deg, ${primaryCat.color} 0%, ${primaryCat.color}44 100%)`
+            : "rgba(100,116,139,0.4)",
+        }} />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Title row */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+            <h3 style={{
+              fontSize: 15, fontWeight: 500, lineHeight: 1.4,
+              color: isWalesSpecific ? "#fde8e8" : "#e2e8f0",
+              fontFamily: "'EB Garamond', Georgia, serif",
+              flex: 1, minWidth: 200,
+            }}>
+              {title}
+            </h3>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end",flexShrink:0,marginLeft:24}}>
-            {[{l:"Total Instruments",v:KL.length,c:C.tealXL},{l:"Active RCEs",v:rceCount,c:C.warn},{l:"In Force",v:KL.filter(i=>i.stageNo===4).length,c:C.rri}].map((s,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,0.03)",border:`1px solid ${C.border}`,borderRadius:8,padding:"6px 14px",minWidth:150}}>
-                <span style={{fontSize:16,fontWeight:800,color:s.c,...mono}}>{s.v}</span>
-                <span style={{fontSize:10,color:C.muted}}>{s.l}</span>
-              </div>
+
+          {/* Badge row */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <JurisdictionBadge codes={inst.jurisdiction_codes} lang={lang} />
+
+            {cats.slice(0, 2).map((cat, i) => (
+              <span key={i} style={{
+                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                padding: "2px 7px", borderRadius: 3, letterSpacing: "0.3px",
+                background: `${cat.color}15`, border: `1px solid ${cat.color}30`,
+                color: cat.color,
+              }}>
+                {isCy ? cat.cy : cat.en}
+              </span>
             ))}
-          </div>
-        </div>
-      </div>
 
-      {/* Filters */}
-      <div className="fade-up-1" style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-        <input type="text" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search instruments..." style={{flex:1,minWidth:200}}/>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {stageFilters.map(s=>(
-            <button key={s} onClick={()=>setStageF(s)} style={{padding:"5px 11px",borderRadius:6,border:`1px solid ${stageF===s?`${C.rri}50`:C.border}`,background:stageF===s?`${C.rri}12`:"transparent",color:stageF===s?C.rri:C.muted,fontSize:10,fontWeight:600,cursor:"pointer",...mono}}>{s}</button>
-          ))}
-        </div>
-      </div>
-      <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-        {cats.map(c=>(
-          <button key={c} onClick={()=>setCatF(c)} style={{padding:"5px 11px",borderRadius:6,border:`1px solid ${catF===c?`${C.tealXL}50`:C.border}`,background:catF===c?`${C.tealXL}10`:"transparent",color:catF===c?C.tealXL:C.muted,fontSize:10,fontWeight:600,cursor:"pointer",...mono}}>{c==="All"?"All Categories":c}</button>
-        ))}
-      </div>
-      <div style={{fontSize:11,color:C.muted,...mono,marginTop:-10}}>{filtered.length} instrument{filtered.length!==1?"s":""} · {rceCount} with active RCE</div>
+            <span style={{
+              fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+              padding: "2px 7px", borderRadius: 3, letterSpacing: "0.3px",
+              background: `${tierCfg.color}12`, border: `1px solid ${tierCfg.color}28`,
+              color: tierCfg.color,
+            }}>
+              {isCy ? tierCfg.cy : tierCfg.label}
+            </span>
 
-      {/* Instruments table */}
-      <Card className="fade-up-2" style={{padding:0,overflow:"hidden"}}>
-        <div style={{padding:"10px 20px",borderBottom:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"2.5fr 1.2fr 0.6fr 0.9fr 0.6fr 0.7fr 0.6fr",gap:8,fontSize:10,fontWeight:700,color:C.muted,letterSpacing:"0.08em",...mono}}>
-          <span>INSTRUMENT</span><span>ACEI CATEGORY</span><span>JUR.</span><span>STAGE</span><span>IMPACT</span><span>UPDATED</span><span>RCE</span>
-        </div>
-        <div style={{maxHeight:500,overflowY:"auto"}}>
-          {filtered.map(inst=>(
-            <div key={inst.id} style={{display:"grid",gridTemplateColumns:"2.5fr 1.2fr 0.6fr 0.9fr 0.6fr 0.7fr 0.6fr",gap:8,padding:"11px 20px",borderBottom:`1px solid ${C.border}`,alignItems:"center",fontSize:11,cursor:"pointer",transition:"background 0.12s"}}
-              onMouseEnter={ev=>ev.currentTarget.style.background="rgba(34,211,238,0.03)"}
-              onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0",marginBottom:2,lineHeight:1.3}}>{inst.title}</div>
-                <div style={{fontSize:10,color:C.muted,...mono}}>{inst.ref} · {inst.source}</div>
-              </div>
-              <span style={{fontSize:11,color:"#94a3b8"}}>{inst.cat}</span>
-              <Pill label={inst.jur} color={C.teal} small/>
-              <Pill label={stageName(inst.stageNo)} color={stageColor(inst.stageNo)} small/>
-              <Pill label={inst.impact} color={inst.impact==="High"?C.danger:inst.impact==="Medium"?C.warn:C.rri} small/>
-              <span style={{fontSize:10,color:C.muted,...mono}}>{inst.updated}</span>
-              <div>{inst.rce?<Pill label="RCE" color={C.warn} small/>:<span style={{fontSize:10,color:"#1e2d3d"}}>—</span>}</div>
-            </div>
-          ))}
-          {filtered.length===0&&(
-            <div style={{padding:32,textAlign:"center",color:C.muted,fontSize:12}}>No instruments match current filters.</div>
-          )}
-        </div>
-      </Card>
+            {inst.welsh_available && lang === "en" && (
+              <span style={{
+                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                padding: "2px 7px", borderRadius: 3, letterSpacing: "0.3px",
+                background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)",
+                color: "#fca5a5",
+              }}>
+                🏴󠁧󠁢󠁷󠁬󠁳󠁿 {ui.welshAvail}
+              </span>
+            )}
 
-      {/* Access tiers + ACEI map */}
-      <div className="fade-up-3" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        <Card>
-          <SectionTitle sub="Governance tier entitlements — AILANE-KL-GLOBAL-002 §4.2">Your Jurisdiction Access</SectionTitle>
-          {[
-            {label:"GB — England & Wales",   status:"Active",             color:C.rri},
-            {label:"GB — Scotland",          status:"Active",             color:C.rri},
-            {label:"GB — Northern Ireland",  status:"Active",             color:C.rri},
-            {label:"ICO / Tech Sector (GDPR)",status:"Sector-filtered",  color:C.tealXL},
-            {label:"HSE / Tech Sector",      status:"Sector-filtered",   color:C.tealXL},
-            {label:"EU Cross-border",        status:"🔒 Institutional",  color:"#334155"},
-            {label:"53 Global Jurisdictions",status:"🔒 Institutional",  color:"#334155"},
-          ].map((j,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:7,fontSize:11,marginBottom:6}}>
-              <span style={{color:j.status.includes("🔒")?"#334155":"#94a3b8"}}>{j.label}</span>
-              <Pill label={j.status} color={j.color} small/>
-            </div>
-          ))}
-        </Card>
-        <Card>
-          <SectionTitle sub="ACEI category × Knowledge Library cross-reference">Exposure Map</SectionTitle>
-          {CLIENT.acei.categories.map((cat,i)=>{
-            const count=KL.filter(inst=>inst.cat===cat.label||cat.label.toLowerCase().includes(inst.cat.toLowerCase().split(" ")[0])).length||1;
-            const band=getAceiBand(cat.score);
-            return(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:6,marginBottom:5,fontSize:11}}>
-                <span style={{color:"#94a3b8",flex:1}}>{cat.label}</span>
-                <span style={{color:band.color,...mono,marginRight:12,fontSize:12,fontWeight:700}}>{cat.score}</span>
-                <Pill label={`${count} Act${count!==1?"s":""}`} color={C.teal} small/>
-              </div>
-            );
-          })}
-        </Card>
-      </div>
-
-      <Card className="fade-up-4">
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <Lock title="Global Multi-Jurisdiction Library — Institutional" desc="Full access across 53 jurisdictions, 6 continents. Custom blending per ACEI Art. VIII. Territorial reach mapping."/>
-          <Lock title="Regulatory Body Registry — Institutional" desc="Direct integration with HSE, ICO, EHRC, ACAS, HMRC enforcement pipelines. Cross-referenced against ACEI category scores."/>
-        </div>
-      </Card>
-    </div>);
-  };
-
-  // ── COMPLIANCE CHECKER TAB ─────────────────────────────────────────────
-  const ComplianceCheckerTab=()=>{
-    const [track,setTrack]=useState("B");
-    const [file,setFile]=useState(null);
-    const [showResults,setShowResults]=useState(true);
-    const [open,setOpen]=useState(null);
-    const [attest,setAttest]=useState({});
-    const fileRef=useRef(null);
-    const handleFile=e=>{const f=e.target.files?.[0];if(f){setFile(f);setShowResults(true);}};
-    const high=CC_FINDINGS.filter(f=>f.sev==="High").length;
-    const med=CC_FINDINGS.filter(f=>f.sev==="Medium").length;
-    const comp=CC_FINDINGS.filter(f=>f.status==="Compliant").length;
-    const pct=Math.round((comp/CC_FINDINGS.length)*100);
-    const pillarMap=[
-      {id:"PA", label:"Policy Alignment",       color:"#3b82f6",f:CC_FINDINGS.filter(f=>f.pillar==="PA")},
-      {id:"CC", label:"Contractual Conformity",  color:C.rri,   f:CC_FINDINGS.filter(f=>f.pillar==="CC")},
-      {id:"TD", label:"Training Deployment",     color:C.cci,   f:CC_FINDINGS.filter(f=>f.pillar==="TD")},
-      {id:"SPA",label:"Systems & Process",       color:C.tealXL,f:CC_FINDINGS.filter(f=>f.pillar==="SPA")},
-      {id:"GO", label:"Governance Oversight",    color:C.warn,  f:CC_FINDINGS.filter(f=>f.pillar==="GO")},
-    ];
-    return(<div style={{display:"flex",flexDirection:"column",gap:20}}>
-      {/* Banner */}
-      <div className="fade-up" style={{background:"linear-gradient(135deg,rgba(27,42,74,0.9),rgba(167,139,250,0.08))",border:"1px solid rgba(167,139,250,0.25)",borderRadius:12,padding:20}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-              <span style={{fontSize:20}}>📋</span>
-              <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:C.cci,...mono}}>COMPLIANCE CHECKER</div>
-              <Pill label="AILANE-CC-RRI-INT-001 v1.1" color={C.cci} small/>
-              <Pill label="RRI Pillar Integration" color={C.rri} small/>
-            </div>
-            <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0",marginBottom:6}}>Contract & Handbook Compliance Analyser</div>
-            <div style={{fontSize:11,color:"#64748b",lineHeight:1.7,maxWidth:600}}>
-              Upload employment contracts, handbooks, or policies for constitutional compliance analysis. Clause-level findings map to RRI pillars (PA, CC, TD, SPA, GO) per AILANE-CC-RRI-INT-001 §3.1. Evidence feeds RRI Pillar Scoring — Step (d) of RRI Art. VI §6.1.1.
-            </div>
-          </div>
-          <div style={{flexShrink:0,marginLeft:24,textAlign:"center"}}>
-            <div style={{background:"rgba(167,139,250,0.08)",border:"1px solid rgba(167,139,250,0.2)",borderRadius:10,padding:"14px 20px"}}>
-              <div style={{fontSize:10,color:C.muted,marginBottom:4,...mono}}>EVIDENCE TIER</div>
-              <div style={{fontSize:18,fontWeight:800,color:C.cci,...mono}}>TIER I</div>
-              <div style={{marginTop:10,fontSize:11,color:"#64748b",lineHeight:1.6}}>
-                <div>Track A ceiling: <span style={{color:"#3b82f6",fontWeight:700,...mono}}>Score 2/5</span></div>
-                <div>Track B ceiling: <span style={{color:C.rri,fontWeight:700,...mono}}>Score 3/5</span></div>
-              </div>
-              <div style={{fontSize:10,color:"#334155",marginTop:6}}>RRI Art. V §5.3</div>
+            {/* Significance dots */}
+            <div style={{ display: "flex", gap: 2, marginLeft: 2 }}>
+              {[1,2,3,4,5].map(n => (
+                <div key={n} style={{
+                  width: 5, height: 5, borderRadius: "50%",
+                  background: n <= inst.sci_significance
+                    ? (primaryCat?.color || "#22d3ee")
+                    : "rgba(255,255,255,0.1)",
+                }} />
+              ))}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Track Selector */}
-      <div className="fade-up-1" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        {[
-          {id:"A",icon:"✅",label:"Track A — Attestation",sub:"Checkbox self-declaration · Score ceiling 2/5",color:"#3b82f6",
-            desc:"Assert compliance via structured checklist. You confirm that a response exists and describe it in the free-text field. Score ceiling 2 (Initiated) — checkbox attestation alone cannot achieve Score 3.",
-            note:"Track A ceiling: Score 2/5. To achieve Score 3 (Developed), upload the actual document via Track B. RRI Art. V §5.3."},
-          {id:"B",icon:"📄",label:"Track B — Documentary",sub:"Upload & analyse document · Score ceiling 3/5",color:C.rri,
-            desc:"Upload the actual contract, handbook, or policy. Platform computationally parses and maps clauses against statutory requirements. Independent, verifiable basis for scoring.",
-            note:"Track B ceiling: Score 3/5 (Tier I). Full 0–3 range based on compliance percentage. RRI Art. V §5.3."},
-        ].map(t=>{
-          const active=track===t.id;
-          return(
-            <div key={t.id} onClick={()=>setTrack(t.id)} style={{background:active?`${t.color}10`:"rgba(255,255,255,0.02)",border:`1px solid ${active?`${t.color}50`:C.border}`,borderRadius:12,padding:20,cursor:"pointer",transition:"all 0.2s",boxShadow:active?`0 0 20px ${t.color}12`:"none"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                <span style={{fontSize:18}}>{t.icon}</span>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:700,color:active?t.color:"#94a3b8"}}>{t.label}</div>
-                  <div style={{fontSize:10,color:C.muted}}>{t.sub}</div>
-                </div>
-                {active&&<Pill label="SELECTED" color={t.color} small/>}
-              </div>
-              <div style={{fontSize:11,color:active?"#94a3b8":"#475569",lineHeight:1.6,marginBottom:10}}>{t.desc}</div>
-              <div style={{padding:"8px 12px",background:`${t.color}06`,border:`1px solid ${t.color}20`,borderRadius:7,fontSize:10,color:active?t.color:"#475569",lineHeight:1.5}}>{t.note}</div>
-            </div>
-          );
-        })}
-      </div>
+        {/* Expand chevron */}
+        <div style={{
+          flexShrink: 0, color: "#475569", fontSize: 12,
+          transition: "transform 0.2s ease",
+          transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+          paddingTop: 2,
+        }}>
+          ▼
+        </div>
+      </button>
 
-      {/* Input Area */}
-      {track==="B"?(
-        <Card className="fade-up-2">
-          <SectionTitle sub="Employment contract, handbook, or policy — GB jurisdiction · Track B Documentary">Document Upload</SectionTitle>
-          <input ref={fileRef} type="file" accept=".pdf,.docx,.doc" style={{display:"none"}} onChange={handleFile}/>
-          {!file&&!showResults?(
-            <div className="upload-zone" onClick={()=>fileRef.current?.click()}>
-              <div style={{fontSize:36,marginBottom:12}}>📂</div>
-              <div style={{fontSize:14,fontWeight:600,color:"#94a3b8",marginBottom:8}}>Drop document here or click to browse</div>
-              <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Supported: PDF, DOCX · Max 10MB · GB employment law analysis</div>
-              <div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap"}}>
-                {["Employment Contract","Staff Handbook","Disciplinary Policy","Data Protection Policy","Flexible Working Policy"].map(t=><Pill key={t} label={t} color={C.teal} small/>)}
-              </div>
-            </div>
-          ):(
-            <div style={{display:"flex",alignItems:"center",gap:14,padding:16,background:"rgba(16,185,129,0.06)",border:`1px solid ${C.rri}30`,borderRadius:10}}>
-              <span style={{fontSize:24}}>📄</span>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0",marginBottom:2}}>{file?.name||"employment_contract_meridian_v3.docx"}<span style={{fontSize:10,color:C.rri,marginLeft:8,...mono}}>[DEMO ANALYSIS]</span></div>
-                <div style={{fontSize:11,color:C.muted}}>Employment Contract · GB · Track B · Tier I Evidence · Uploaded 5 March 2026</div>
-              </div>
-              <div style={{textAlign:"center"}}>
-                <div style={{fontSize:10,color:C.muted,marginBottom:2}}>OVERALL COMPLIANCE</div>
-                <div style={{fontSize:28,fontWeight:800,color:pct>=70?C.rri:pct>=40?C.warn:C.danger,...mono}}>{pct}%</div>
-              </div>
-              <button onClick={()=>{setFile(null);setShowResults(false);}} style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:6,padding:"6px 12px",fontSize:11,color:C.danger,cursor:"pointer"}}>Replace</button>
+      {/* Expanded Content */}
+      {expanded && (
+        <div style={{
+          padding: "0 18px 18px 35px",
+          borderTop: "1px solid rgba(255,255,255,0.05)",
+          animation: "fadeIn 0.2s ease",
+        }}>
+          {/* Translation notice */}
+          {isCy && inst.translation_method && (
+            <div style={{ paddingTop: 12, paddingBottom: 10 }}>
+              <TranslationNotice method={inst.translation_method} lang={lang} ui={ui} />
             </div>
           )}
-        </Card>
-      ):(
-        <Card className="fade-up-2">
-          <SectionTitle sub="Track A — structured attestation · Score ceiling 2/5 · RRI Art. V §5.3">Attestation Checklist</SectionTitle>
-          {[
-            {id:"a1",req:"Written statement of employment particulars (ERA 1996 s.1)",pillar:"CC"},
-            {id:"a2",req:"Disciplinary and grievance procedure (ACAS Code 2015)",pillar:"PA"},
-            {id:"a3",req:"Whistleblowing policy with ERA 1996 s.43B carve-out",pillar:"PA"},
-            {id:"a4",req:"Employee data protection / privacy notice (UK GDPR Art.13)",pillar:"SPA"},
-            {id:"a5",req:"Health & safety policy (HSaWA 1974 s.2(3)) — 5+ employees",pillar:"GO"},
-            {id:"a6",req:"Flexible working policy — day-one rights (ERA 1996 s.80F)",pillar:"PA"},
-          ].map(item=>(
-            <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:12,background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:8,marginBottom:8}}>
-              <input type="checkbox" checked={!!attest[item.id]} onChange={e=>setAttest(p=>({...p,[item.id]:e.target.checked}))}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:12,color:"#94a3b8"}}>{item.req}</div>
-                <div style={{marginTop:4}}><Pill label={`RRI: ${item.pillar}`} color={C.rri} small/></div>
+
+          {/* Summary */}
+          {summary && (
+            <div style={{ marginTop: isCy ? 4 : 12 }}>
+              <div style={{
+                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                color: "#475569", letterSpacing: "1px", marginBottom: 6,
+                textTransform: "uppercase",
+              }}>
+                {ui.summary}
               </div>
+              <p style={{
+                fontSize: 14, lineHeight: 1.7, color: "#94a3b8",
+                fontFamily: "'EB Garamond', Georgia, serif",
+              }}>
+                {summary}
+              </p>
             </div>
-          ))}
-          <div style={{marginTop:4,padding:12,background:"rgba(59,130,246,0.06)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:8,fontSize:11,color:"#94a3b8"}}>
-            <span style={{color:"#3b82f6",fontWeight:700}}>Track A ceiling — Score 2/5 (Initiated).</span> Upload the actual document via Track B to achieve Score 3. RRI Art. V §5.3.
-          </div>
-          <button style={{marginTop:14,background:`${C.teal}15`,border:`1px solid ${C.teal}40`,color:C.tealXL,borderRadius:7,padding:"8px 20px",fontSize:12,fontWeight:700,cursor:"pointer",...mono}}>Submit Attestation → RRI Pillar Update</button>
-        </Card>
+          )}
+
+          {/* Obligations */}
+          {obligations && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{
+                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                color: "#475569", letterSpacing: "1px", marginBottom: 6,
+                textTransform: "uppercase",
+              }}>
+                {ui.obligations}
+              </div>
+              <p style={{
+                fontSize: 14, lineHeight: 1.7, color: "#94a3b8",
+                fontFamily: "'EB Garamond', Georgia, serif",
+              }}>
+                {obligations}
+              </p>
+            </div>
+          )}
+
+          {/* Key Provisions */}
+          {provisions && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{
+                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+                color: "#475569", letterSpacing: "1px", marginBottom: 6,
+                textTransform: "uppercase",
+              }}>
+                {ui.provisions}
+              </div>
+              <p style={{
+                fontSize: 14, lineHeight: 1.7, color: "#94a3b8",
+                fontFamily: "'EB Garamond', Georgia, serif",
+              }}>
+                {provisions}
+              </p>
+            </div>
+          )}
+
+          {/* Legislation.gov.uk link */}
+          {inst.legislation_gov_url && (
+            <div style={{ marginTop: 14 }}>
+              <a
+                href={inst.legislation_gov_url}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+                  color: "#22d3ee", textDecoration: "none",
+                  letterSpacing: "0.5px",
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                }}
+              >
+                ↗ legislation.gov.uk
+              </a>
+            </div>
+          )}
+        </div>
       )}
-
-      {/* Results */}
-      {showResults&&(<div className="fade-up-3" style={{display:"flex",flexDirection:"column",gap:16}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
-          {[{l:"Clauses Analysed",v:CC_FINDINGS.length,c:"#e2e8f0"},{l:"High Severity",v:high,c:C.danger},{l:"Medium Severity",v:med,c:C.warn},{l:"Compliant",v:comp,c:C.rri}].map((s,i)=>(
-            <Card key={i}><div style={{fontSize:10,color:C.muted,marginBottom:6}}>{s.l}</div><div style={{fontSize:24,fontWeight:800,color:s.c,...mono}}>{s.v}</div></Card>
-          ))}
-        </div>
-
-        {/* RRI Pillar Impact */}
-        <Card glowColor={C.rri}>
-          <SectionTitle sub="Compliance findings mapped to RRI 5-pillar structure — AILANE-CC-RRI-INT-001 §3.1">RRI Pillar Impact</SectionTitle>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>
-            {pillarMap.map(p=>{
-              const hF=p.f.filter(f=>f.sev==="High").length;
-              const allC=p.f.length>0&&p.f.every(f=>f.status==="Compliant");
-              const col=hF>0?C.danger:allC?C.rri:p.f.length>0?C.warn:C.muted;
-              return(
-                <div key={p.id} style={{background:`${col}06`,border:`1px solid ${col}35`,borderRadius:10,padding:14,textAlign:"center"}}>
-                  <div style={{fontSize:11,fontWeight:700,color:p.color,...mono,marginBottom:6}}>{p.id}</div>
-                  <div style={{fontSize:10,color:"#94a3b8",marginBottom:10,lineHeight:1.3}}>{p.label}</div>
-                  <div style={{fontSize:20,fontWeight:800,color:col,...mono}}>{p.f.length}</div>
-                  <div style={{fontSize:9,color:C.muted,marginTop:3}}>finding{p.f.length!==1?"s":""}</div>
-                  {hF>0&&<div style={{marginTop:8}}><Pill label={`${hF} High`} color={C.danger} small/></div>}
-                  {allC&&p.f.length>0&&<div style={{marginTop:8}}><Pill label="All Clear" color={C.rri} small/></div>}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{marginTop:14,padding:10,background:"rgba(16,185,129,0.04)",border:`1px solid ${C.rri}20`,borderRadius:7,fontSize:11,color:"#64748b"}}>
-            Findings feed into RRI Pillar Scoring at Step (d) — RRI Art. VI §6.1.1. Track B ceiling Score 3/5 (Tier I). WDRS = Σ(PillarScore × PWV) × 20 per Art. VI §6.5. Ref: AILANE-CC-RRI-INT-001.
-          </div>
-        </Card>
-
-        {/* Findings table */}
-        <Card>
-          <SectionTitle sub="Per-clause findings with RRI pillar mapping and remediation guidance">Clause-Level Analysis</SectionTitle>
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            <div style={{display:"grid",gridTemplateColumns:"1.8fr 1.5fr 0.6fr 0.6fr 1fr 0.8fr",padding:"6px 14px",fontSize:10,fontWeight:700,color:C.muted,letterSpacing:"0.08em",...mono}}>
-              <span>CLAUSE</span><span>REQUIREMENT</span><span>SEVERITY</span><span>PILLAR</span><span>STATUS</span><span>ACTION</span>
-            </div>
-            {CC_FINDINGS.map(f=>{
-              const pc=pillarMap.find(p=>p.id===f.pillar);
-              return(<div key={f.id}>
-                <div style={{display:"grid",gridTemplateColumns:"1.8fr 1.5fr 0.6fr 0.6fr 1fr 0.8fr",padding:"10px 14px",background:"rgba(255,255,255,0.02)",border:`1px solid ${open===f.id?`${C.tealXL}40`:C.border}`,borderRadius:open===f.id?"8px 8px 0 0":"8px",alignItems:"center",fontSize:11,cursor:"pointer",transition:"all 0.15s"}}
-                  onClick={()=>setOpen(open===f.id?null:f.id)}
-                  onMouseEnter={ev=>ev.currentTarget.style.background="rgba(34,211,238,0.04)"}
-                  onMouseLeave={ev=>ev.currentTarget.style.background="rgba(255,255,255,0.02)"}>
-                  <span style={{fontWeight:600,color:"#e2e8f0"}}>{f.clause}</span>
-                  <span style={{fontSize:10,color:"#64748b"}}>{f.req}</span>
-                  <Pill label={f.sev} color={f.sev==="High"?C.danger:f.sev==="Medium"?C.warn:C.rri} small/>
-                  <Pill label={f.pillar} color={pc?.color||C.muted} small/>
-                  <Pill label={f.status} color={f.status==="Compliant"?C.rri:f.status==="Partially Compliant"?C.warn:C.danger} small/>
-                  <span style={{fontSize:10,color:C.tealXL,cursor:"pointer",...mono}}>{open===f.id?"▲ Hide":"▼ Detail"}</span>
-                </div>
-                {open===f.id&&(
-                  <div style={{padding:"12px 16px",background:"rgba(13,115,119,0.05)",border:`1px solid ${C.teal}25`,borderTop:"none",borderRadius:"0 0 8px 8px",marginBottom:7}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.tealXL,marginBottom:6}}>Remediation Guidance</div>
-                    <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.7,marginBottom:10}}>{f.fix}</div>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      <Pill label={`Pillar: ${f.pillarFull}`} color={C.rri} small/>
-                      <Pill label="Tier I Evidence" color={C.teal} small/>
-                      <Pill label={`Track ${track}`} color={track==="B"?C.rri:"#3b82f6"} small/>
-                    </div>
-                  </div>
-                )}
-              </div>);
-            })}
-          </div>
-        </Card>
-
-        <Card className="fade-up-4">
-          <SectionTitle sub="Advanced pathways — Institutional tier">Enhanced Evidence Pathways</SectionTitle>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <Lock title="Tier II Evidence Pathway — Institutional" desc="Operational verification via HR system and training platform APIs. Unlocks Score 4/5. Requires Major Amendment to RRI Art. V §5.3."/>
-            <Lock title="Ailane Controlled Assurance (Annex G) — Institutional" desc="Ailane-administered Tier III verification under defined sampling methodology. Score 5/5 ceiling."/>
-            <Lock title="Batch Document Analysis — Institutional" desc="Analyse complete contract suites and handbook libraries. Cross-document consistency checking."/>
-          </div>
-        </Card>
-      </div>)}
-    </div>);
-  };
-
-  const RegulatoryTab=()=>(
-    <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <Card className="fade-up">
-        <SectionTitle sub="Full Act access for Governance+ · Stage-triggered assessments">Legislative Lifecycle Tracker</SectionTitle>
-        {CLIENT.legislation.map((l,i)=>(
-          <div key={i} style={{background:"rgba(255,255,255,0.02)",border:`1px solid ${C.border}`,borderRadius:10,padding:16,marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0",marginBottom:6}}>{l.title}</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <Pill label={stageName(l.stageNo)} color={stageColor(l.stageNo)} small/>
-                  <Pill label={`Impact: ${l.impact}`} color={l.impact==="High"?C.danger:C.warn} small/>
-                  <Pill label={l.aceiCat} color={C.acei} small/>
-                  {l.rce&&<Pill label="RCE Active" color={C.rri} small/>}
-                </div>
-              </div>
-              <div style={{textAlign:"right",marginLeft:16}}>
-                <div style={{fontSize:10,color:C.muted,marginBottom:2}}>Commencement</div>
-                <div style={{fontSize:12,fontWeight:700,color:l.stageNo>=3?C.warn:"#94a3b8",...mono}}>{l.commence}</div>
-              </div>
-            </div>
-            <div style={{display:"flex",marginTop:10}}>
-              {["Parliamentary","Royal Assent","Commencement","Post-Commencement"].map((s,si)=>{
-                const active=si<l.stageNo,current=si===l.stageNo-1;
-                const colors=["#64748b",C.warn,C.rri,C.tealXL];
-                return(<div key={si} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
-                  <div style={{width:20,height:20,borderRadius:"50%",background:active?colors[si]:"rgba(255,255,255,0.06)",border:current?`2px solid ${colors[si]}`:"none",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:current?`0 0 10px ${colors[si]}40`:"none"}}>
-                    {active&&<span style={{fontSize:8,color:"#fff"}}>✓</span>}
-                  </div>
-                  <div style={{fontSize:8,color:active?colors[si]:"#334155",marginTop:4,textAlign:"center",lineHeight:1.3}}>{s}</div>
-                </div>);
-              })}
-            </div>
-          </div>
-        ))}
-      </Card>
-      <Card className="fade-up-1">
-        <SectionTitle sub="Upcoming statutory commencement dates">Regulatory Calendar</SectionTitle>
-        {[{date:"1 Apr 2026",event:"Workers (Predictability of Pay) Act 2025",days:27,urgent:true},{date:"Oct 2026",event:"Employment Rights Bill (est.)",days:200,urgent:false},{date:"TBC 2027",event:"Equality (Race & Disability) Bill",days:null,urgent:false}].map((e,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"10px 14px",background:e.urgent?"rgba(245,158,11,0.06)":"rgba(255,255,255,0.02)",border:`1px solid ${e.urgent?"rgba(245,158,11,0.25)":C.border}`,borderRadius:8,marginBottom:8}}>
-            <div style={{minWidth:54}}><div style={{fontSize:11,fontWeight:700,color:e.urgent?C.warn:"#64748b",...mono}}>{e.date}</div></div>
-            <div style={{flex:1,fontSize:12,color:"#94a3b8"}}>{e.event}</div>
-            {e.days&&<div style={{fontSize:10,fontWeight:700,color:e.urgent?C.warn:C.muted,...mono,background:e.urgent?"rgba(245,158,11,0.1)":"rgba(255,255,255,0.04)",padding:"3px 8px",borderRadius:4}}>{e.days}d</div>}
-          </div>
-        ))}
-      </Card>
-      <Card className="fade-up-2">
-        <SectionTitle sub="Sector-filtered · Technology · South East">Intelligence Ticker</SectionTitle>
-        <div style={{overflow:"hidden",borderRadius:8,background:"rgba(0,0,0,0.3)",padding:"10px 0",marginBottom:10}}>
-          <div style={{display:"flex",gap:32,animation:"tickerScroll 40s linear infinite",whiteSpace:"nowrap",width:"fit-content"}}>
-            {["⚡ Employment Rights Bill progresses · ACEI Forward Exposure flagged","📊 ET Q4 2025: 11,400 Discrimination claims (↑8% YoY)","⚖ ICO: £210,000 penalty · Tech sector · ACEI Cat 12","📜 Workers Act T-27 days · RRI activation required","📈 South East tribunal volumes: 4-quarter high","🔬 HSE: 12 notices in Technology sector · Jan 2026","⚡ Employment Rights Bill progresses · ACEI Forward Exposure flagged","📊 ET Q4 2025: 11,400 Discrimination claims (↑8% YoY)"].map((t,i)=>(
-              <span key={i} style={{fontSize:11,color:"#94a3b8",padding:"0 20px",borderLeft:i>0?`1px solid ${C.border}`:"none"}}>{t}</span>
-            ))}
-          </div>
-        </div>
-        <Lock title="Global Intelligence Feeds — Institutional" desc="53 jurisdictions, 6 continents. API integration. Custom sector filtering at categorical depth."/>
-      </Card>
     </div>
   );
+};
 
-  const ReportsTab=()=>(
-    <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div className="fade-up" style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:16}}>
-        {[
-          {title:"Monthly ACEI Exposure Report",  icon:"📊",desc:"Full 12-category breakdown, sector context, band classification, trend.",cta:"Generate PDF"},
-          {title:"Monthly Full Triad Report",     icon:"📋",desc:"ACEI, RRI PCS, and CCI_pub combined. Quadrant interpretation. Board-ready.",cta:"Generate PDF"},
-          {title:"Quarterly Board Briefing Pack", icon:"📁",desc:"Executive summary, triad trends, legislative pipeline, tribunal intelligence.",cta:"Generate Pack"},
-          {title:"Audit Trail Export",            icon:"🔐",desc:"Constitutional compliance evidence: ACEI logs, RRI register, CCI record.",cta:"Export CSV/JSON"},
-        ].map((r,i)=>(
-          <div key={i} style={{background:C.bgCard,border:`1px solid ${C.border}`,borderRadius:12,padding:20,display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontSize:22}}>{r.icon}</div><Pill label="Governance" color={C.tealXL} small/></div>
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color:"#e2e8f0",marginBottom:6}}>{r.title}</div>
-              <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>{r.desc}</div>
-            </div>
-            <div style={{marginTop:"auto",paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-              <button style={{background:`${C.teal}15`,border:`1px solid ${C.teal}40`,color:C.tealXL,borderRadius:7,padding:"8px 16px",fontSize:11,fontWeight:700,cursor:"pointer",...mono}}>{r.cta} →</button>
-            </div>
-          </div>
-        ))}
-      </div>
-      <Card className="fade-up-5">
-        <SectionTitle sub="Available on upgrade to Institutional">Institutional Reports</SectionTitle>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <Lock title="White-label Reports" desc="Company-branded board packs and executive summaries."/>
-          <Lock title="Custom Reporting Frequency" desc="On-demand generation and event-triggered report dispatch."/>
-          <Lock title="Benchmarking Report" desc="Anonymised sector comparison — ACEI, RRI, and CCI vs comparable employers."/>
-          <Lock title="API Data Access" desc="Programmatic access to full scoring history. JSON/REST."/>
-        </div>
-      </Card>
-    </div>
-  );
+// ── MAIN APP ──────────────────────────────────────────────────────────────
+const App = () => {
+  const [lang, setLang] = useState("en");
+  const [instruments, setInstruments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [jurisdictionFilter, setJurisdictionFilter] = useState("all");
+  const [sortMode, setSortMode] = useState("sig");
+  const [expandedId, setExpandedId] = useState(null);
+  const [hasWelsh, setHasWelsh] = useState(false);
 
-  const AlertsTab=()=>(
-    <div style={{display:"flex",flexDirection:"column",gap:14}}>
-      {CLIENT.alerts.map(a=>(
-        <div key={a.id} style={{background:C.bgCard,border:`1px solid ${a.read?C.border:C.borderM}`,borderLeft:`3px solid ${a.read?C.border:C.teal}`,borderRadius:10,padding:16,display:"flex",gap:14,alignItems:"flex-start"}}>
-          <div style={{fontSize:14,marginTop:2}}>{{velocity:"⚡",legislation:"📜",tribunal:"⚖️",rri:"🎯",cci:"🔬"}[a.type]||"🔔"}</div>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontSize:12,fontWeight:700,color:a.read?"#64748b":"#e2e8f0"}}>{a.title}</div>
-              {!a.read&&<div style={{width:7,height:7,borderRadius:"50%",background:C.teal,marginTop:3}}/>}
-            </div>
-            <div style={{fontSize:11,color:a.read?"#475569":"#94a3b8",lineHeight:1.6}}>{a.detail}</div>
-            <div style={{fontSize:10,color:"#334155",marginTop:6,...mono}}>{a.date}</div>
-          </div>
-        </div>
-      ))}
-      <Card>
-        <SectionTitle sub="Institutional tier delivery">Advanced Notifications</SectionTitle>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <Lock title="Webhook / Slack Integration" desc="Push alerts to your internal channels instantly."/>
-          <Lock title="Individual Tribunal Decision Alerts" desc="Real-time alerts when a decision matches your sector, size, and claim category."/>
-        </div>
-      </Card>
-    </div>
-  );
+  const ui = UI[lang];
 
-  // ── APP SHELL ───────────────────────────────────────────────────────────
-  const TABS=[
-    {id:"overview",  label:"Overview",          icon:"◈"},
-    {id:"compliance",label:"Compliance Posture", icon:"◎"},
-    {id:"tribunal",  label:"Tribunal Intel",     icon:"⚖"},
-    {id:"regulatory",label:"Regulatory Feed",    icon:"📜"},
-    {id:"library",   label:"Knowledge Library",  icon:"📚"},
-    {id:"checker",   label:"Compliance Checker", icon:"📋"},
-    {id:"reports",   label:"Reports & Exports",  icon:"📁"},
-    {id:"alerts",    label:"Alerts",             icon:"🔔",badge:3},
-  ];
-
-  const App=()=>{
-    const [tab,setTab]=useState("overview");
-    const [showUp,setShowUp]=useState(false);
-    const renderTab=()=>{
-      if(tab==="overview")   return <OverviewTab/>;
-      if(tab==="compliance") return <ComplianceTab/>;
-      if(tab==="tribunal")   return <TribunalTab/>;
-      if(tab==="regulatory") return <RegulatoryTab/>;
-      if(tab==="library")    return <KnowledgeLibraryTab/>;
-      if(tab==="checker")    return <ComplianceCheckerTab/>;
-      if(tab==="reports")    return <ReportsTab/>;
-      if(tab==="alerts")     return <AlertsTab/>;
-      return <OverviewTab/>;
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const token = getToken();
+        const orgId = getOrgId(token);
+        const data = await sbRpc("get_legislation_for_org", { p_org_id: orgId }, token);
+        setInstruments(data || []);
+        const welsh = (data || []).some(i => i.jurisdiction_codes?.includes("Wales"));
+        setHasWelsh(welsh);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
     };
-    return(
-      <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column"}}>
-        {/* Header */}
-        <div style={{background:"rgba(13,21,37,0.95)",backdropFilter:"blur(12px)",borderBottom:"1px solid rgba(255,255,255,0.05)",position:"sticky",top:0,zIndex:100}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 28px",maxWidth:1600,margin:"0 auto",width:"100%"}}>
-            <div style={{display:"flex",alignItems:"center",gap:20}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:30,height:30,borderRadius:7,background:C.teal,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#fff",...mono}}>A</div>
-                <div>
-                  <div style={{fontSize:13,fontWeight:800,color:"#fff",letterSpacing:"-0.02em"}}>ailane</div>
-                  <div style={{fontSize:9,color:"#334155",letterSpacing:"0.1em",...mono}}>REGULATORY INTELLIGENCE</div>
-                </div>
+    load();
+  }, []);
+
+  const filtered = useMemo(() => {
+    let list = [...instruments];
+
+    // Jurisdiction filter
+    if (jurisdictionFilter === "wales") {
+      list = list.filter(i => i.jurisdiction_codes?.includes("Wales"));
+    } else if (jurisdictionFilter === "gb") {
+      list = list.filter(i => i.jurisdiction_codes?.includes("GB"));
+    }
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(i => {
+        const enMatch = (i.short_title + " " + (i.summary || "") + " " + (i.tags || []).join(" ")).toLowerCase().includes(q);
+        const cyMatch = lang === "cy" && ((i.title_cy || "") + " " + (i.summary_cy || "")).toLowerCase().includes(q);
+        return enMatch || cyMatch;
+      });
+    }
+
+    // Sort
+    if (sortMode === "sig") {
+      list.sort((a, b) => {
+        // Wales-specific always first
+        const aW = a.jurisdiction_codes?.includes("Wales") ? 1 : 0;
+        const bW = b.jurisdiction_codes?.includes("Wales") ? 1 : 0;
+        if (bW !== aW) return bW - aW;
+        return (b.sci_significance || 0) - (a.sci_significance || 0);
+      });
+    } else {
+      list.sort((a, b) => {
+        const aTitle = (lang === "cy" && a.title_cy) ? a.title_cy : a.short_title;
+        const bTitle = (lang === "cy" && b.title_cy) ? b.title_cy : b.short_title;
+        return aTitle.localeCompare(bTitle);
+      });
+    }
+
+    return list;
+  }, [instruments, search, jurisdictionFilter, sortMode, lang]);
+
+  const walesCount = instruments.filter(i => i.jurisdiction_codes?.includes("Wales")).length;
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#080c18", display: "flex", flexDirection: "column" }}>
+      {/* ── HEADER ─────────────────────────────────────────────────────── */}
+      <header style={{
+        background: "linear-gradient(180deg, rgba(15,22,45,0.98) 0%, rgba(10,14,26,0.98) 100%)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        padding: "0 28px",
+        position: "sticky", top: 0, zIndex: 100,
+        backdropFilter: "blur(12px)",
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          {/* Logo + Title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 7,
+              background: "linear-gradient(135deg, #22d3ee, #0e7490)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700, fontSize: 16, color: "#080c18",
+            }}>A</div>
+            <div>
+              <div style={{
+                fontSize: 16, fontWeight: 600, color: "#e2e8f0",
+                fontFamily: "'EB Garamond', Georgia, serif", letterSpacing: "0.3px",
+              }}>
+                {ui.title}
               </div>
-              <div style={{width:1,height:28,background:C.border}}/>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:"#e2e8f0"}}>{CLIENT.name}</div>
-                <div style={{fontSize:10,color:C.muted}}>{CLIENT.sector} · {CLIENT.jurisdiction} · {CLIENT.headcount} employees</div>
+              <div style={{
+                fontSize: 10, color: "#475569",
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: "1.5px", textTransform: "uppercase",
+              }}>
+                AILANE · {ui.subtitle}
               </div>
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <Pill label="GOVERNANCE TIER" color={C.tealXL}/>
-              <div style={{fontSize:11,color:C.muted}}>Data as of <span style={{color:"#94a3b8",...mono}}>{CLIENT.dataAsOf}</span></div>
-              <button onClick={()=>setShowUp(!showUp)} style={{background:`${C.cci}15`,border:`1px solid ${C.cci}35`,color:C.cci,borderRadius:7,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer",...mono}}>Upgrade ↑</button>
             </div>
           </div>
-          <div style={{display:"flex",padding:"0 28px",maxWidth:1600,margin:"0 auto",width:"100%",borderTop:"1px solid rgba(255,255,255,0.03)",gap:2,overflowX:"auto"}}>
-            {TABS.map(t=>{
-              const active=tab===t.id;
-              return(<button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 14px",background:"none",border:"none",borderBottom:active?`2px solid ${C.tealXL}`:"2px solid transparent",color:active?C.tealXL:C.muted,fontSize:12,fontWeight:active?700:500,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"color 0.2s",letterSpacing:"0.01em",whiteSpace:"nowrap"}}>
-                <span>{t.icon}</span><span>{t.label}</span>
-                {t.badge&&<span style={{background:C.teal,color:"#fff",borderRadius:10,fontSize:9,fontWeight:800,padding:"1px 5px",...mono}}>{t.badge}</span>}
-              </button>);
-            })}
+
+          {/* Right: Wales layer indicator + lang toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {hasWelsh && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+                padding: "5px 10px", borderRadius: 6,
+                background: "rgba(185,28,28,0.1)",
+                border: "1px solid rgba(239,68,68,0.2)",
+                color: "#fca5a5",
+              }}>
+                🏴󠁧󠁢󠁷󠁬󠁳󠁿 {ui.walesLayer}
+              </div>
+            )}
+            <LangToggle lang={lang} setLang={setLang} hasWelsh={hasWelsh} />
           </div>
         </div>
+      </header>
 
-        {/* Content */}
-        <div style={{flex:1,maxWidth:1600,margin:"0 auto",width:"100%",padding:"24px 28px"}}>
-          {showUp&&(
-            <div style={{background:"linear-gradient(135deg,rgba(27,42,74,0.8),rgba(13,115,119,0.15))",border:"1px solid rgba(13,115,119,0.4)",borderRadius:14,padding:24,marginBottom:20}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div style={{flex:1}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:C.cci,...mono}}>INSTITUTIONAL TIER</div><Pill label="Custom Pricing" color={C.cci} small/></div>
-                  <div style={{fontSize:16,fontWeight:700,color:"#e2e8f0",marginBottom:8}}>Ready to scale your compliance infrastructure?</div>
-                  <div style={{fontSize:12,color:"#64748b",lineHeight:1.7,maxWidth:580}}>CEO-ready executive summaries, white-label board packs, API access, real-time recomputation, Tier II/III evidence pathways, Ailane Controlled Assurance, and a dedicated account manager with SLA.</div>
-                  <div style={{marginTop:14,padding:12,background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.rri,marginBottom:4}}>✓ Seamless Migration Guaranteed</div>
-                    <div style={{fontSize:11,color:"#475569",lineHeight:1.6}}>All ACEI history, RRI evidence, CCI baseline, tribunal intelligence, Knowledge Library, Compliance Checker findings, and legislative data migrate automatically. No re-onboarding. No data loss.</div>
-                  </div>
-                </div>
-                <div style={{marginLeft:24,textAlign:"center",flexShrink:0}}>
-                  <button style={{background:`linear-gradient(135deg,${C.teal},${C.tealL})`,border:"none",color:"#fff",borderRadius:10,padding:"12px 24px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:"0.05em",boxShadow:`0 4px 20px ${C.teal}40`}}>Request Upgrade →</button>
-                  <div style={{fontSize:10,color:"#334155",marginTop:8}}>Account team in touch within 24h</div>
-                </div>
-              </div>
-            </div>
-          )}
-          {renderTab()}
-        </div>
+      {/* ── CONTROLS BAR ───────────────────────────────────────────────── */}
+      <div style={{
+        background: "rgba(12,17,35,0.9)",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        padding: "12px 28px",
+        position: "sticky", top: 65, zIndex: 99,
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Search */}
+          <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
+            <span style={{
+              position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
+              color: "#475569", fontSize: 13,
+            }}>⌕</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={ui.searchPlaceholder}
+              style={{
+                width: "100%", background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)", borderRadius: 7,
+                padding: "8px 10px 8px 30px",
+                color: "#dde4f0", fontSize: 14,
+                fontFamily: "'EB Garamond', Georgia, serif",
+                outline: "none",
+              }}
+            />
+          </div>
 
-        {/* Footer */}
-        <div style={{borderTop:`1px solid ${C.border}`,padding:"12px 28px",display:"flex",justifyContent:"space-between",alignItems:"center",maxWidth:1600,margin:"0 auto",width:"100%"}}>
-          <div style={{fontSize:10,color:"#1e2d3d",...mono}}>AILANE · AI Lane Limited (Co. No. 17035624) · ACEI v1.0 · RRI v1.0 · CCI v1.0 · Adopted 26 Feb 2026</div>
-          <div style={{display:"flex",gap:14,fontSize:10,color:"#334155"}}>
-            {["Support","Constitutional Reference","AIC Governance","Model Risk Disclosure"].map(l=><span key={l} style={{cursor:"pointer"}}>{l}</span>)}
+          {/* Jurisdiction filter */}
+          <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", borderRadius: 7, padding: 3 }}>
+            {[
+              { key: "all", label: ui.filterAll },
+              { key: "wales", label: ui.filterWales },
+              { key: "gb", label: ui.filterGB },
+            ].map(f => (
+              <button key={f.key} onClick={() => setJurisdictionFilter(f.key)} style={{
+                background: jurisdictionFilter === f.key ? "rgba(34,211,238,0.12)" : "transparent",
+                color: jurisdictionFilter === f.key ? "#22d3ee" : "#64748b",
+                border: jurisdictionFilter === f.key ? "1px solid rgba(34,211,238,0.25)" : "1px solid transparent",
+                borderRadius: 5, padding: "5px 12px", cursor: "pointer",
+                fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
+                transition: "all 0.15s ease",
+              }}>
+                {f.key === "wales" && "🏴󠁧󠁢󠁷󠁬󠁳󠁿 "}{f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort */}
+          <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", borderRadius: 7, padding: 3 }}>
+            {[
+              { key: "sig", label: ui.sortSig },
+              { key: "alpha", label: ui.sortTitle },
+            ].map(s => (
+              <button key={s.key} onClick={() => setSortMode(s.key)} style={{
+                background: sortMode === s.key ? "rgba(255,255,255,0.08)" : "transparent",
+                color: sortMode === s.key ? "#dde4f0" : "#64748b",
+                border: "1px solid transparent",
+                borderRadius: 5, padding: "5px 12px", cursor: "pointer",
+                fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
+                transition: "all 0.15s ease",
+              }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Count */}
+          <div style={{
+            marginLeft: "auto", fontSize: 11,
+            fontFamily: "'JetBrains Mono', monospace",
+            color: "#475569",
+          }}>
+            {ui.instrumentCount(filtered.length)}
+            {hasWelsh && walesCount > 0 && ` · ${walesCount} ${lang === "cy" ? "Cymru" : "Wales"}`}
           </div>
         </div>
       </div>
-    );
-  };
 
-  ReactDOM.render(<App/>, document.getElementById("root"));
+      {/* ── LIBRARY BODY ───────────────────────────────────────────────── */}
+      <main style={{ flex: 1, padding: "20px 28px 40px", maxWidth: 1100, margin: "0 auto", width: "100%" }}>
+        {loading && (
+          <div style={{ textAlign: "center", color: "#475569", padding: 60, fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>
+            <div style={{ fontSize: 24, marginBottom: 12 }}>◌</div>
+            {ui.loading}
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)",
+            borderRadius: 8, padding: 20, color: "#fca5a5", fontFamily: "'JetBrains Mono', monospace", fontSize: 13,
+          }}>
+            {ui.error} ({error})
+          </div>
+        )}
+
+        {!loading && !error && filtered.length === 0 && (
+          <div style={{ textAlign: "center", color: "#475569", padding: 60, fontFamily: "'EB Garamond', Georgia, serif", fontSize: 16 }}>
+            {ui.noResults}
+          </div>
+        )}
+
+        {/* Wales section header */}
+        {!loading && !error && jurisdictionFilter !== "gb" && walesCount > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            marginBottom: 12,
+            padding: "8px 12px",
+            background: "rgba(185,28,28,0.06)",
+            border: "1px solid rgba(239,68,68,0.12)",
+            borderRadius: 7,
+          }}>
+            <span style={{ fontSize: 16 }}>🏴󠁧󠁢󠁷󠁬󠁳󠁿</span>
+            <span style={{
+              fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+              color: "#fca5a5", letterSpacing: "1px",
+            }}>
+              {lang === "cy" ? "HAEN CYMRU · DEDDFWRIAETH BENODOL I GYMRU" : "WALES LAYER · WALES-SPECIFIC LEGISLATION"}
+            </span>
+            <div style={{ flex: 1, height: 1, background: "rgba(239,68,68,0.12)" }} />
+            <span style={{
+              fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
+              color: "#64748b",
+            }}>
+              {lang === "cy" ? "GWEDDILL YN DILYN ·" : "GB INSTRUMENTS FOLLOW ·"} {walesCount} {lang === "cy" ? "CYMRU" : "WALES"}
+            </span>
+          </div>
+        )}
+
+        {/* Instrument list */}
+        {!loading && !error && filtered.map(inst => (
+          <InstrumentCard
+            key={inst.id}
+            inst={inst}
+            lang={lang}
+            ui={ui}
+            expanded={expandedId === inst.id}
+            onToggle={() => setExpandedId(expandedId === inst.id ? null : inst.id)}
+          />
+        ))}
+      </main>
+
+      {/* ── FOOTER ─────────────────────────────────────────────────────── */}
+      <footer style={{
+        borderTop: "1px solid rgba(255,255,255,0.05)",
+        padding: "12px 28px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 8,
+      }}>
+        <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#2d3748", letterSpacing: "1px" }}>
+          © 2026 AI LANE LIMITED · {ui.poweredBy.toUpperCase()}
+        </span>
+        <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#2d3748" }}>
+          {lang === "cy" ? "AI-ASSISTED TRANSLATIONS · NIFER CYFANSWM:" : "AI-ASSISTED TRANSLATIONS · TOTAL INSTRUMENTS:"} {instruments.length}
+        </span>
+      </footer>
+
+      <style>{`
+        @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+        button:hover { opacity: 0.85; }
+        a:hover { opacity: 0.75; }
+      `}</style>
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById("root"));
 </script>
 </body>
 </html>
