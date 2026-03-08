@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ailane · CEO Command Centre</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%23050914' font-weight='800' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    :root {
+      --bg:#050914; --bg2:#0a1020; --bg3:#0f1830; --bg4:#141e38;
+      --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.1);
+      --cyan:#22d3ee; --cyan2:#06b6d4; --cyan-dim:rgba(34,211,238,0.08);
+      --gold:#f59e0b; --gold-dim:rgba(245,158,11,0.09);
+      --purple:#a78bfa; --purple-dim:rgba(167,139,250,0.08);
+      --green:#10b981; --green-dim:rgba(16,185,129,0.08);
+      --red:#ef4444; --red-dim:rgba(239,68,68,0.08);
+      --orange:#f97316;
+      --text:#e2e8f0; --text2:#94a3b8; --text3:#475569; --text4:#2d3a4f;
+      --font:'Syne',sans-serif; --mono:'JetBrains Mono',monospace;
+      --radius:10px; --radius-lg:14px;
+      --sidebar:230px; --topbar:52px;
+      --shadow:0 4px 24px rgba(0,0,0,0.5);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body,#root{height:100%;width:100%;overflow:hidden;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);}
+    ::-webkit-scrollbar{width:4px;height:4px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+    input,select,textarea{font-family:var(--font);}
+    input::placeholder{color:var(--text3);}
+    select option{background:var(--bg2);color:var(--text);}
+    a{color:var(--cyan);text-decoration:none;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    @keyframes pulse{0%,100%{opacity:.4;transform:scale(.8);}50%{opacity:1;transform:scale(1);}}
+    @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+    @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+    @keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+    .fade-up{animation:fadeUp .3s ease forwards;}
+    .fade-1{animation:fadeUp .3s ease .05s forwards;opacity:0;}
+    .fade-2{animation:fadeUp .3s ease .10s forwards;opacity:0;}
+    .fade-3{animation:fadeUp .3s ease .15s forwards;opacity:0;}
+    .fade-4{animation:fadeUp .3s ease .20s forwards;opacity:0;}
+    .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;}
+    .kpi-card::after{content:'';position:absolute;top:0;right:0;width:60px;height:60px;opacity:0;transition:opacity .18s;}
+    .kpi-card:hover{border-color:rgba(34,211,238,.18);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.4);}
+    .kpi-card.drag-over{border-color:var(--cyan);border-style:dashed;background:var(--cyan-dim);}
+    .nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;margin-bottom:1px;cursor:pointer;transition:all .13s;color:var(--text2);font-size:12px;font-weight:500;white-space:nowrap;}
+    .nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+    .nav-item.active{background:var(--cyan-dim);color:var(--cyan);}
+    .btn{padding:9px 18px;border-radius:7px;font-family:var(--font);font-weight:600;font-size:12px;cursor:pointer;transition:all .15s;border:none;display:inline-flex;align-items:center;gap:5px;}
+    .btn-primary{background:linear-gradient(135deg,var(--cyan),var(--cyan2));color:var(--bg);}
+    .btn-primary:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 16px rgba(34,211,238,.3);}
+    .btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+    .btn-ghost:hover{background:rgba(255,255,255,.04);color:var(--text);}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+    .badge{display:inline-flex;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-family:var(--mono);}
+    .input-field{width:100%;padding:10px 13px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s;}
+    .input-field:focus{border-color:rgba(34,211,238,.4);}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:200;animation:fadeIn .2s ease;}
+    .detail-panel{position:fixed;right:0;top:0;bottom:0;width:500px;background:var(--bg2);border-left:1px solid var(--border2);z-index:201;overflow-y:auto;animation:slideIn .26s cubic-bezier(.22,1,.36,1);box-shadow:-20px 0 60px rgba(0,0,0,.5);}
+    .cmd-palette{position:fixed;top:18%;left:50%;transform:translateX(-50%);width:550px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);z-index:300;box-shadow:0 24px 80px rgba(0,0,0,.7);animation:fadeUp .17s ease;overflow:hidden;}
+    .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s ease infinite;display:inline-block;}
+    .live-dot.amber{background:var(--gold);box-shadow:0 0 6px var(--gold);}
+    .live-dot.red{background:var(--red);box-shadow:0 0 6px var(--red);}
+    .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all .12s;user-select:none;}
+    .chip:hover,.chip.active{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);}
+    .progress-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;}
+    .progress-fill{height:100%;border-radius:2px;transition:width .6s ease;}
+    .skeleton{background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;}
+    .spinning{animation:spin 1s linear infinite;display:inline-block;}
+    .section-hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+    .section-title{font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.3px;}
+    .section-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    thead tr{background:rgba(255,255,255,.02);}
+    th{padding:9px 14px;text-align:left;color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);font-family:var(--mono);}
+    td{padding:9px 14px;color:var(--text2);border-bottom:1px solid rgba(255,255,255,.02);vertical-align:middle;}
+    tbody tr{cursor:pointer;transition:background .1s;}
+    tbody tr:hover{background:rgba(34,211,238,.03);}
+    tbody tr:last-child td{border-bottom:none;}
+    .main-content{flex:1;overflow-y:auto;padding:24px 32px;max-height:calc(100vh - var(--topbar));}
+    @media(max-width:1200px){:root{--sidebar:56px;}}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area,
+        BarChart, Bar, Cell, CartesianGrid, PieChart, Pie, Legend, RadarChart,
+        Radar, PolarGrid, PolarAngleAxis } = Recharts;
+
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const SB_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+
+const sbFetch = async (path, token) => {
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers:{ apikey:SB_ANON, Authorization:`Bearer ${token||SB_ANON}`, "Content-Type":"application/json" }
+  });
+  if(!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+};
+const sbFetchAccounts = async (path, token) => {
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers:{ apikey:SB_ANON, Authorization:`Bearer ${token||SB_ANON}`,
+      "Content-Type":"application/json", "Accept-Profile":"accounts", "Content-Profile":"accounts" }
+  });
+  if(!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+};
+const sbCount = async (table, token, filter="") => {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?select=id${filter}&limit=1`, {
+    headers:{ apikey:SB_ANON, Authorization:`Bearer ${token||SB_ANON}`, Prefer:"count=exact" }
+  });
+  return parseInt(r.headers.get("content-range")?.split("/")?.[1]||"0");
+};
+
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const BANDS=[
+  {max:20,label:"Low Exposure",color:"#10b981",bg:"rgba(16,185,129,0.1)"},
+  {max:40,label:"Controlled",color:"#22d3ee",bg:"rgba(34,211,238,0.1)"},
+  {max:60,label:"Elevated",color:"#f59e0b",bg:"rgba(245,158,11,0.1)"},
+  {max:80,label:"High",color:"#f97316",bg:"rgba(249,115,22,0.1)"},
+  {max:101,label:"Critical",color:"#ef4444",bg:"rgba(239,68,68,0.1)"},
+];
+const getBand = v => BANDS.find(b=>v<=b.max)||BANDS[4];
+
+const SECTORS=[
+  {id:"public_sector",label:"Public Sector",sm:1.30},
+  {id:"financial_services",label:"Financial Services",sm:1.25},
+  {id:"professional_services",label:"Professional Services",sm:1.20},
+  {id:"healthcare",label:"Healthcare",sm:1.15},
+  {id:"media_entertainment",label:"Media & Entertainment",sm:1.15},
+  {id:"technology",label:"Technology",sm:1.10},
+  {id:"education",label:"Education",sm:1.10},
+  {id:"retail_hospitality",label:"Retail & Hospitality",sm:1.05},
+  {id:"transport_logistics",label:"Transport & Logistics",sm:1.05},
+  {id:"manufacturing",label:"Manufacturing",sm:1.00},
+  {id:"construction",label:"Construction",sm:0.95},
+  {id:"charities",label:"Charities & Non-Profits",sm:0.90},
+];
+const JURISDICTIONS=[
+  {id:"london",label:"London",jm:1.40},
+  {id:"south_east",label:"South East",jm:1.25},
+  {id:"scotland",label:"Scotland",jm:1.20},
+  {id:"northern_ireland",label:"Northern Ireland",jm:1.15},
+  {id:"north_west",label:"North West",jm:1.10},
+  {id:"west_midlands",label:"West Midlands",jm:1.10},
+  {id:"east_midlands",label:"East Midlands",jm:1.05},
+  {id:"wales",label:"Wales",jm:1.00},
+  {id:"south_west",label:"South West",jm:0.95},
+  {id:"north_east",label:"North East",jm:0.90},
+];
+const CAT_LABELS={
+  unfair_dismissal:"Unfair Dismissal",discrimination_harassment:"Discrimination & Harassment",
+  wages_working_time:"Wages & Working Time",whistleblowing:"Whistleblowing",
+  health_safety:"Health & Safety",redundancy_org_change:"Redundancy & Org Change",
+  breach_of_contract:"Breach of Contract",employment_status:"Employment Status",
+  parental_family_rights:"Parental & Family Rights",trade_union_collective:"Trade Union & Collective",
+  business_transfers_insolvency:"Business Transfers (TUPE)",data_protection_privacy:"Data Protection",
+};
+const CAT_DETAIL={
+  unfair_dismissal:{num:1,cap:"£115,115 (or 52 weeks' pay)",statutes:["Employment Rights Act 1996 s.94-134","Employment Act 2002"],desc:"Claims arising from termination of employment without fair reason or without following fair procedure. Covers constructive dismissal, wrongful dismissal during notice period, and automatically unfair reasons (pregnancy, whistleblowing, trade union).",eviBaseline:"15/week",uncapped:false,rriPillars:["Policy Alignment","Contractual Conformity","Governance Oversight"]},
+  discrimination_harassment:{num:2,cap:"UNCAPPED",statutes:["Equality Act 2010","Human Rights Act 1998"],desc:"Claims based on protected characteristics: age, disability, gender reassignment, marriage/civil partnership, pregnancy/maternity, race, religion/belief, sex, sexual orientation. Includes direct/indirect discrimination, harassment, and victimisation.",eviBaseline:"12/week",uncapped:true,rriPillars:["Policy Alignment","Training Deployment","Governance Oversight"]},
+  wages_working_time:{num:3,cap:"Varies — unlawful deductions uncapped",statutes:["Employment Rights Act 1996 s.13-27","Working Time Regulations 1998","National Minimum Wage Act 1998"],desc:"Unauthorised deductions from wages, failure to pay national minimum/living wage, breach of working time limits, rest break violations, holiday pay disputes.",eviBaseline:"8/week",uncapped:false,rriPillars:["Contractual Conformity","Systems & Process Adaptation"]},
+  whistleblowing:{num:4,cap:"UNCAPPED",statutes:["Employment Rights Act 1996 s.43A-43L","Enterprise and Regulatory Reform Act 2013 s.18"],desc:"Detriment or dismissal for making a protected disclosure about criminal offences, breach of legal obligations, miscarriages of justice, health & safety dangers, or environmental damage.",eviBaseline:"5/week",uncapped:true,rriPillars:["Policy Alignment","Governance Oversight"]},
+  health_safety:{num:5,cap:"Varies — dismissal claims capped, personal injury uncapped",statutes:["Health and Safety at Work Act 1974","MHSWR 1999","Employment Rights Act 1996 s.44, s.100"],desc:"Claims for detriment or dismissal related to raising health and safety concerns, refusing to work in dangerous conditions, or employer failure to provide safe working environment.",eviBaseline:"5/week",uncapped:false,rriPillars:["Policy Alignment","Training Deployment","Systems & Process Adaptation"]},
+  redundancy_org_change:{num:6,cap:"£21,000 statutory redundancy + unfair dismissal if process unfair",statutes:["Employment Rights Act 1996 s.135-165","TULRCA 1992 s.188-198"],desc:"Failure to follow fair redundancy selection, inadequate consultation, failure to consider alternative employment, and protective award claims for collective redundancy consultation breaches.",eviBaseline:"5/week",uncapped:false,rriPillars:["Policy Alignment","Contractual Conformity","Governance Oversight"]},
+  breach_of_contract:{num:7,cap:"£25,000 in tribunal (unlimited in county court)",statutes:["ET Extension of Jurisdiction Order 1994","Employment Rights Act 1996 s.1-12"],desc:"Claims for breach of employment contract terms including notice pay, restrictive covenants, bonus entitlements, and failure to provide written statement of employment particulars.",eviBaseline:"5/week",uncapped:false,rriPillars:["Contractual Conformity"]},
+  employment_status:{num:8,cap:"Depends on underlying claim",statutes:["Employment Rights Act 1996 s.230","Equality Act 2010 s.83"],desc:"Disputes over whether an individual is an employee, worker, or self-employed. Key battleground for gig economy and agency workers.",eviBaseline:"3/week",uncapped:false,rriPillars:["Contractual Conformity","Systems & Process Adaptation"]},
+  parental_family_rights:{num:9,cap:"Dismissal for pregnancy/maternity is automatically unfair — discrimination claim uncapped",statutes:["Employment Rights Act 1996 s.71-80I","Maternity and Parental Leave Regulations 1999","Shared Parental Leave Regulations 2014"],desc:"Claims relating to maternity leave, paternity leave, shared parental leave, adoption leave, flexible working requests, and time off for dependants.",eviBaseline:"3/week",uncapped:false,rriPillars:["Policy Alignment","Contractual Conformity","Training Deployment"]},
+  trade_union_collective:{num:10,cap:"Varies — detriment claims uncapped if dismissal related",statutes:["TULRCA 1992","Employment Relations Act 1999"],desc:"Detriment or dismissal for trade union membership, activities, or use of union services. Failure to recognise a union or breach of collective agreements.",eviBaseline:"3/week",uncapped:false,rriPillars:["Policy Alignment","Governance Oversight"]},
+  business_transfers_insolvency:{num:11,cap:"Uncapped if related to protected characteristic",statutes:["TUPE Regulations 2006","ARD 2001/23/EC (retained)"],desc:"Failure to inform and consult under TUPE, unlawful dismissal connected to a transfer, failure to provide employee liability information to the incoming employer.",eviBaseline:"3/week",uncapped:false,rriPillars:["Contractual Conformity","Governance Oversight"]},
+  data_protection_privacy:{num:12,cap:"UNCAPPED — ICO fines up to £17.5m or 4% global turnover",statutes:["UK GDPR (retained EU law)","Data Protection Act 2018","Employment Practices Code (ICO)"],desc:"Misuse of employee personal data, excessive monitoring, failure to respond to subject access requests, inadequate privacy notices, data breaches affecting employee records.",eviBaseline:"3/week",uncapped:true,rriPillars:["Policy Alignment","Systems & Process Adaptation","Governance Oversight"]},
+};
+
+const NAV=[
+  {id:"overview",label:"Command Overview",icon:"⚡"},
+  {id:"pipeline",label:"Client Pipeline",icon:"📊"},
+  {id:"simulator",label:"Company Simulator",icon:"🔬"},
+  {id:"intelligence",label:"Intelligence Hub",icon:"🔍"},
+  {id:"regulatory",label:"Regulatory Feed",icon:"📰"},
+  {id:"scrapers",label:"Data Pipeline",icon:"⚙️"},
+  {id:"accounts",label:"Accounts",icon:"💳"},
+  {id:"business",label:"Business Hub",icon:"🏢"},
+  {id:"governance",label:"Governance",icon:"📜"},
+];
+
+// ── REUSABLE COMPONENTS ──────────────────────────────────────────────────────
+
+const Num = ({v,dec=0}) => <span style={{fontFamily:"var(--mono)",fontWeight:700}}>{typeof v==="number"?v.toLocaleString("en-GB",{maximumFractionDigits:dec}):v}</span>;
+
+const Badge = ({children,color="#22d3ee"}) => (
+  <span className="badge" style={{background:`${color}15`,color,border:`1px solid ${color}25`}}>{children}</span>
+);
+
+const LiveDot = ({status="ok"}) => (
+  <span className={`live-dot ${status==="warn"?"amber":status==="error"?"red":""}`} />
+);
+
+const Spinner = () => <span className="spinning" style={{fontSize:14}}>⟳</span>;
+
+const SectionHeader = ({title,subtitle,children}) => (
+  <div className="section-hdr">
+    <div>
+      <div className="section-title">{title}</div>
+      {subtitle&&<div className="section-sub">{subtitle}</div>}
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:8}}>{children}</div>
+  </div>
+);
+
+const KPICard = ({label,value,sub,accent="#22d3ee",icon,delta,onClick,draggable,onDragStart,onDragOver,onDrop,highlight}) => {
+  const isPos = delta > 0, isNeg = delta < 0;
+  return (
+    <div className="kpi-card fade-up" draggable={draggable} onDragStart={onDragStart} onDragOver={e=>{e.preventDefault();onDragOver&&onDragOver(e);}} onDrop={onDrop} onClick={onClick}
+      style={{borderTop:`2px solid ${accent}`,position:"relative"}}>
+      {draggable && <div style={{position:"absolute",top:8,right:10,fontSize:10,opacity:.25,cursor:"grab"}}>⠿</div>}
+      <div style={{fontSize:11,color:"var(--text3)",letterSpacing:".4px",textTransform:"uppercase",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+        {icon&&<span style={{fontSize:14}}>{icon}</span>}{label}
+      </div>
+      <div style={{fontSize:28,fontWeight:800,color:accent,fontFamily:"var(--mono)",lineHeight:1,marginBottom:4}}>{value}</div>
+      {sub&&<div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>{sub}</div>}
+      {delta!==undefined&&delta!==null&&(
+        <div style={{fontSize:10,color:isPos?"var(--green)":isNeg?"var(--red)":"var(--text3)",marginTop:4,fontFamily:"var(--mono)"}}>
+          {isPos?"▲":isNeg?"▼":"–"} {Math.abs(delta)} vs prior week
+        </div>
+      )}
+      {onClick&&<div style={{position:"absolute",bottom:10,right:12,fontSize:9,color:"var(--text3)",opacity:.5}}>click to explore →</div>}
+    </div>
+  );
+};
+
+const Gauge = ({value=0,size=200}) => {
+  const band=getBand(value);
+  const r=size/2-18,cx=size/2,cy=size/2+12;
+  const arc=pct=>{const a=Math.PI+pct*Math.PI;return`${cx+r*Math.cos(a)} ${cy+r*Math.sin(a)}`;};
+  const pct=Math.min(value,100)/100;
+  return (
+    <svg width={size} height={size*.6} viewBox={`0 0 ${size} ${size*.6}`}>
+      {BANDS.map((b,i)=>{const s=(i*20)/100,e=((i+1)*20)/100;return(
+        <path key={i} d={`M ${arc(s)} A ${r} ${r} 0 0 1 ${arc(e)}`} fill="none" stroke={b.color} strokeWidth={8} strokeLinecap="round" opacity={.2}/>
+      );})}
+      <path d={`M ${arc(0)} A ${r} ${r} 0 0 1 ${arc(pct)}`} fill="none" stroke={band.color} strokeWidth={10} strokeLinecap="round"
+        style={{filter:`drop-shadow(0 0 6px ${band.color})`}}/>
+      <text x={cx} y={cy-10} textAnchor="middle" fill={band.color} fontSize={size*.22} fontWeight="800" fontFamily="var(--mono)">{value}</text>
+      <text x={cx} y={cy+8} textAnchor="middle" fill={band.color} fontSize={10} fontWeight="600" opacity={.9}>{band.label}</text>
+    </svg>
+  );
+};
+
+const DonutChart = ({value,total,color,size=80}) => {
+  const pct=total>0?value/total:0;
+  const r=30,cx=size/2,cy=size/2,circ=2*Math.PI*r;
+  const dash=circ*pct,gap=circ*(1-pct);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={6}/>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={6}
+        strokeDasharray={`${dash} ${gap}`} strokeLinecap="round"
+        transform={`rotate(-90 ${cx} ${cy})`}
+        style={{transition:"stroke-dasharray .6s ease"}}/>
+      <text x={cx} y={cy+1} textAnchor="middle" dominantBaseline="middle"
+        fill={color} fontSize={12} fontWeight="700" fontFamily="var(--mono)">
+        {Math.round(pct*100)}%
+      </text>
+    </svg>
+  );
+};
+
+const ProgressBar = ({value,max=100,color="var(--cyan)",height=4}) => (
+  <div className="progress-bar" style={{height}}>
+    <div className="progress-fill" style={{width:`${Math.min((value/max)*100,100)}%`,background:color}}/>
+  </div>
+);
+
+const Tag = ({children,color}) => (
+  <span style={{display:"inline-flex",alignItems:"center",padding:"3px 8px",borderRadius:20,fontSize:10,fontWeight:600,background:`${color||"#22d3ee"}12`,color:color||"#22d3ee",border:`1px solid ${color||"#22d3ee"}20`,marginRight:4,marginBottom:4,textTransform:"uppercase",letterSpacing:".3px",fontFamily:"var(--mono)"}}>{children}</span>
+);
+
+const Divider = ({label}) => (
+  <div style={{display:"flex",alignItems:"center",gap:12,margin:"20px 0"}}>
+    <div style={{flex:1,height:1,background:"var(--border)"}}/>
+    {label&&<span style={{fontSize:10,color:"var(--text3)",textTransform:"uppercase",letterSpacing:1,fontFamily:"var(--mono)"}}>{label}</span>}
+    <div style={{flex:1,height:1,background:"var(--border)"}}/>
+  </div>
+);
+
+const MetricRow = ({label,value,accent,sub}) => (
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
+    <div>
+      <div style={{fontSize:12,color:"var(--text2)"}}>{label}</div>
+      {sub&&<div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>{sub}</div>}
+    </div>
+    <div style={{fontSize:16,fontWeight:700,color:accent||"var(--text)",fontFamily:"var(--mono)"}}>{value}</div>
+  </div>
+);
+
+// ── DETAIL PANEL COMPONENT ──────────────────────────────────────────────────
+const DetailPanel = ({title,subtitle,onClose,children,width=500}) => (
+  <>
+    <div className="overlay" onClick={onClose}/>
+    <div className="detail-panel" style={{width}}>
+      <div style={{padding:"22px 28px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"flex-start",background:"var(--bg2)",position:"sticky",top:0,zIndex:10}}>
+        <div>
+          <div style={{fontSize:17,fontWeight:700,color:"var(--text)"}}>{title}</div>
+          {subtitle&&<div style={{fontSize:11,color:"var(--text3)",marginTop:3}}>{subtitle}</div>}
+        </div>
+        <button onClick={onClose} style={{background:"rgba(255,255,255,.06)",border:"1px solid var(--border)",borderRadius:6,width:28,height:28,color:"var(--text2)",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+      </div>
+      <div style={{padding:"24px 28px"}}>{children}</div>
+    </div>
+  </>
+);
+
+// ── CLOCK ────────────────────────────────────────────────────────────────────
+const LiveClock = () => {
+  const [t,setT]=useState(new Date());
+  useEffect(()=>{const id=setInterval(()=>setT(new Date()),1000);return()=>clearInterval(id);},[]);
+  return (
+    <span style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text3)",letterSpacing:".5px"}}>
+      {t.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}
+      &nbsp;
+      <span style={{color:"var(--text2)"}}>{t.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</span>
+    </span>
+  );
+};
+
+// ── COMMAND PALETTE ──────────────────────────────────────────────────────────
+const CommandPalette = ({onClose,onNavigate}) => {
+  const [q,setQ]=useState("");
+  const ref=useRef(null);
+  useEffect(()=>{ref.current?.focus();},[]);
+  const COMMANDS=[
+    {id:"overview",label:"Command Overview",icon:"⚡",section:"Navigate"},
+    {id:"pipeline",label:"Client Pipeline",icon:"📊",section:"Navigate"},
+    {id:"simulator",label:"Company Simulator",icon:"🔬",section:"Navigate"},
+    {id:"intelligence",label:"Intelligence Hub",icon:"🔍",section:"Navigate"},
+    {id:"accounts",label:"Accounts",icon:"💳",section:"Navigate"},
+    {id:"regulatory",label:"Regulatory Feed",icon:"📰",section:"Navigate"},
+    {id:"scrapers",label:"Data Pipeline",icon:"⚙️",section:"Navigate"},
+    {id:"business",label:"Business Hub",icon:"🏢",section:"Navigate"},
+    {id:"governance",label:"Governance",icon:"📜",section:"Navigate"},
+  ];
+  const filtered=q?COMMANDS.filter(c=>c.label.toLowerCase().includes(q.toLowerCase())):COMMANDS;
+  return (
+    <>
+      <div className="overlay" onClick={onClose}/>
+      <div className="cmd-palette">
+        <div style={{padding:"14px 18px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:10}}>
+          <span style={{color:"var(--text3)",fontSize:14}}>⌘</span>
+          <input ref={ref} value={q} onChange={e=>setQ(e.target.value)}
+            onKeyDown={e=>{if(e.key==="Escape")onClose();if(e.key==="Enter"&&filtered[0]){onNavigate(filtered[0].id);onClose();}}}
+            placeholder="Search commands, sections, actions..."
+            style={{flex:1,background:"transparent",border:"none",outline:"none",color:"var(--text)",fontSize:14,fontFamily:"var(--font)"}}/>
+          <span style={{fontSize:10,color:"var(--text3)",background:"var(--bg3)",padding:"2px 6px",borderRadius:4,fontFamily:"var(--mono)"}}>ESC</span>
+        </div>
+        <div style={{maxHeight:360,overflowY:"auto"}}>
+          {filtered.map((c,i)=>(
+            <div key={i} onClick={()=>{onNavigate(c.id);onClose();}}
+              style={{padding:"12px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"background .1s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,.06)"}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <span style={{fontSize:16}}>{c.icon}</span>
+              <div>
+                <div style={{fontSize:13,color:"var(--text)",fontWeight:500}}>{c.label}</div>
+                <div style={{fontSize:10,color:"var(--text3)"}}>{c.section}</div>
+              </div>
+              <div style={{marginLeft:"auto",fontSize:10,color:"var(--text3)",fontFamily:"var(--mono)"}}>↵</div>
+            </div>
+          ))}
+        </div>
+        <div style={{padding:"10px 18px",borderTop:"1px solid var(--border)",display:"flex",gap:16,fontSize:10,color:"var(--text3)"}}>
+          <span><kbd style={{fontFamily:"var(--mono)",background:"var(--bg3)",padding:"1px 4px",borderRadius:3}}>↵</kbd> select</span>
+          <span><kbd style={{fontFamily:"var(--mono)",background:"var(--bg3)",padding:"1px 4px",borderRadius:3}}>ESC</kbd> close</span>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── OVERVIEW TAB ─────────────────────────────────────────────────────────────
+const OverviewTab = ({domainScores,categoryScores,signups,employers,legislativeChanges,scraperRuns,onOpenDetail}) => {
+  const latest=domainScores[0]||{};
+  const prev=domainScores[1]||{};
+  const delta=(latest.di||0)-(prev.di||0);
+
+  const trendData=useMemo(()=>[...domainScores].reverse().map(d=>({
+    week:d.week_start_date?.slice(5)||"",di:d.di,drt:parseFloat(d.drt)||0
+  })),[domainScores]);
+
+  const DEFAULT_ORDER=["acei","tribunal","employers","legislation","signups","scrapers","jurisdictions","funding"];
+  const [order,setOrder]=useState(()=>{
+    try{const s=localStorage.getItem("kpi-order");return s?JSON.parse(s):DEFAULT_ORDER;}catch{return DEFAULT_ORDER;}
+  });
+  const [dragFrom,setDragFrom]=useState(null);
+
+  const KPIs={
+    acei:{label:"ACEI Market Index",value:latest.di||22,sub:"Current domain index",accent:"#22d3ee",icon:"📈",delta,detail:"acei"},
+    tribunal:{label:"Tribunal Decisions",value:"130,854",sub:"UK database — Feb 2010–Feb 2026",accent:"#a78bfa",icon:"⚖️",detail:"tribunal"},
+    employers:{label:"Employer Profiles",value:"78,699",sub:`${((10849/78699)*100).toFixed(0)}% CH enriched`,accent:"#22d3ee",icon:"🏢",detail:"employers"},
+    legislation:{label:"Legislation Library",value:"53",sub:"All 12 ACEI categories",accent:"#10b981",icon:"📚",detail:"legislation"},
+    signups:{label:"Early Access",value:"0",sub:"Pre-revenue phase",accent:"#f59e0b",icon:"👥",detail:"pipeline"},
+    scrapers:{label:"Active Scrapers",value:"7",sub:"Automated pipeline",accent:"#22d3ee",icon:"⚙️",detail:"scrapers"},
+    jurisdictions:{label:"Jurisdictions",value:"53",sub:"Global scraper network",accent:"#f472b6",icon:"🌍",detail:"global"},
+    funding:{label:"Innovation Wales",value:"£75k",sub:"Panel: April 2026",accent:"#f59e0b",icon:"🏴󠁧󠁢󠁷󠁬󠁳󠁿",detail:"funding"},
+  };
+
+  const handleDrop=(targetId)=>{
+    if(dragFrom===null||dragFrom===targetId)return;
+    const newOrder=[...order];
+    const fi=newOrder.indexOf(dragFrom),ti=newOrder.indexOf(targetId);
+    if(fi<0||ti<0)return;
+    newOrder.splice(fi,1);newOrder.splice(ti,0,dragFrom);
+    setOrder(newOrder);
+    try{localStorage.setItem("kpi-order",JSON.stringify(newOrder));}catch{}
+    setDragFrom(null);
+  };
+
+  return (
+    <div>
+      <SectionHeader title="Command Overview" subtitle={`AI Lane Limited · Active · Pre-revenue phase`}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <LiveDot/><span style={{fontSize:11,color:"var(--text3)"}}>Live</span>
+        </div>
+      </SectionHeader>
+
+      {/* KPI Grid — Draggable */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:28}}>
+        {order.map(id=>{
+          const k=KPIs[id];
+          if(!k)return null;
+          return (
+            <KPICard key={id} {...k} draggable
+              onDragStart={()=>setDragFrom(id)}
+              onDragOver={e=>e.preventDefault()}
+              onDrop={()=>handleDrop(id)}
+              onClick={()=>onOpenDetail(k.detail)}
+            />
+          );
+        })}
+      </div>
+
+      {/* Hint */}
+      <div style={{fontSize:10,color:"var(--text3)",marginBottom:20,display:"flex",alignItems:"center",gap:6}}>
+        <span>⠿</span> Drag cards to rearrange · Click any card to drill down
+      </div>
+
+      {/* Main Charts Row */}
+      <div style={{display:"grid",gridTemplateColumns:"260px 1fr 300px",gap:16,marginBottom:20}}>
+        {/* Gauge */}
+        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:20,display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer"}}
+          onClick={()=>onOpenDetail("acei")}>
+          <div style={{fontSize:10,color:"var(--text3)",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>ACEI Market Index</div>
+          <Gauge value={latest.di||22} size={200}/>
+          <div style={{display:"flex",gap:20,marginTop:12}}>
+            {[{l:"DRT",v:parseFloat(latest.drt||67).toFixed(0)},{l:"DMR",v:latest.dmr||300},{l:"Week",v:latest.week_start_date?.slice(5)||"–"}].map(m=>(
+              <div key={m.l} style={{textAlign:"center"}}>
+                <div style={{fontSize:9,color:"var(--text3)",marginBottom:2}}>{m.l}</div>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"var(--mono)"}}>{m.v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:10,color:"var(--text3)",marginTop:8}}>click to explore →</div>
+        </div>
+
+        {/* Trend Chart */}
+        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 8px",cursor:"pointer"}}
+          onClick={()=>onOpenDetail("acei_trend")}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:1}}>Domain Index · 8-Week Trend</div>
+            <Badge color="#22d3ee">ACEI</Badge>
+          </div>
+          <ResponsiveContainer width="100%" height={170}>
+            <AreaChart data={trendData}>
+              <defs>
+                <linearGradient id="diGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={.25}/>
+                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,.03)"/>
+              <XAxis dataKey="week" tick={{fill:"#475569",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis domain={[0,100]} tick={{fill:"#475569",fontSize:10}} axisLine={false} tickLine={false} width={28}/>
+              <Tooltip contentStyle={{background:"#0f1830",border:"1px solid rgba(255,255,255,.1)",borderRadius:8,fontSize:12,fontFamily:"var(--mono)"}} labelStyle={{color:"#94a3b8"}}/>
+              <Area type="monotone" dataKey="di" stroke="#22d3ee" fill="url(#diGrad)" strokeWidth={2.5} dot={{r:3,fill:"#22d3ee",strokeWidth:0}}/>
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Category Heatmap */}
+        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:18,overflowY:"auto",maxHeight:260,cursor:"pointer"}}
+          onClick={()=>onOpenDetail("categories")}>
+          <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>12 ACEI Categories</div>
+          {Object.entries(CAT_LABELS).map(([k,v],i)=>{
+            const cs=categoryScores.find(c=>c.category===k);
+            const score=cs?.weighted_di||cs?.di||(Math.random()*40+10).toFixed(0);
+            const b=getBand(parseFloat(score));
+            return (
+              <div key={k} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                <div style={{width:4,height:4,borderRadius:2,background:b.color,flexShrink:0}}/>
+                <div style={{fontSize:10,color:"var(--text2)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</div>
+                <div style={{fontSize:10,fontWeight:700,color:b.color,fontFamily:"var(--mono)",minWidth:24}}>{Math.round(parseFloat(score))}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom Strip */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
+        {/* Recent Regulatory */}
+        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:18}}>
+          <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>Recent Regulatory Events</div>
+          {legislativeChanges.slice(0,4).map((lc,i)=>(
+            <div key={i} style={{padding:"8px 0",borderBottom:"1px solid var(--border)",display:"flex",gap:10,alignItems:"flex-start"}}>
+              <div style={{width:4,height:4,borderRadius:2,background:"#a78bfa",marginTop:5,flexShrink:0}}/>
+              <div>
+                <div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{lc.title?.slice(0,60)}{lc.title?.length>60?"...":""}</div>
+                <div style={{fontSize:9,color:"var(--text3)",marginTop:2}}>{lc.date_published?new Date(lc.date_published).toLocaleDateString("en-GB"):""}</div>
+              </div>
+            </div>
+          ))}
+          {!legislativeChanges.length&&<div style={{fontSize:11,color:"var(--text3)"}}>Loading...</div>}
+        </div>
+
+        {/* Employer Segments */}
+        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:18,cursor:"pointer"}}
+          onClick={()=>onOpenDetail("segments")}>
+          <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:1,marginBottom:14}}>APS Employer Segments</div>
+          {[
+            {label:"A — Critical",value:513,color:"#ef4444",pct:0.65},
+            {label:"B — Elevated",value:3823,color:"#f59e0b",pct:4.85},
+            {label:"C — Historical",value:23834,color:"#22d3ee",pct:30.3},
+            {label:"D — Clean",value:50529,color:"#10b981",pct:64.2},
+          ].map(s=>(
+            <div key={s.label} style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontSize:11,color:"var(--text2)"}}>{s.label}</span>
+                <span style={{fontSize:11,fontWeight:700,color:s.color,fontFamily:"var(--mono)"}}>{s.value.toLocaleString()}</span>
+              </div>
+              <ProgressBar value={s.pct} max={100} color={s.color}/>
+            </div>
+          ))}
+        </div>
+
+        {/* Business Status */}
+        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:18}}>
+          <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>Business Status</div>
+          {[
+            {l:"Supabase",v:"Pro Plan · Live",c:"var(--green)"},
+            {l:"Stripe",v:"Live Mode",c:"var(--green)"},
+            {l:"Domain",v:"ailane.ai",c:"var(--cyan)"},
+            {l:"Trademark",v:"UK00004347220",c:"var(--green)"},
+            {l:"ICO Reg",v:"00013389720",c:"var(--green)"},
+            {l:"Innovation Wales",v:"April Panel",c:"var(--gold)"},
+          ].map(s=>(
+            <div key={s.l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid var(--border)"}}>
+              <span style={{fontSize:11,color:"var(--text3)"}}>{s.l}</span>
+              <span style={{fontSize:11,fontWeight:600,color:s.c,fontFamily:"var(--mono)"}}>{s.v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── PIPELINE TAB ─────────────────────────────────────────────────────────────
+const PipelineTab = ({signups,onOpenDetail}) => {
+  const [selectedSignup,setSelectedSignup]=useState(null);
+  const STAGES=["Signup","Contacted","Demo","Proposal","Converted"];
+  return (
+    <div>
+      <SectionHeader title="Client Pipeline" subtitle="Conversion funnel · Early access to first-revenue">
+        <button className="btn btn-ghost" style={{fontSize:11}}>+ Add Contact</button>
+      </SectionHeader>
+
+      {/* Funnel KPIs */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:28}}>
+        {STAGES.map((s,i)=>{
+          const colors=["#22d3ee","#a78bfa","#f59e0b","#f97316","#10b981"];
+          const vals=[0,0,0,0,0];
+          return (
+            <div key={s} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",textAlign:"center",borderTop:`2px solid ${colors[i]}`}}>
+              <div style={{fontSize:9,color:"var(--text3)",textTransform:"uppercase",letterSpacing:.5,marginBottom:6,fontFamily:"var(--mono)"}}>{s}</div>
+              <div style={{fontSize:28,fontWeight:800,color:colors[i],fontFamily:"var(--mono)"}}>{vals[i]}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Target Banner */}
+      <div style={{background:"linear-gradient(135deg,rgba(245,158,11,.08),rgba(245,158,11,.04))",border:"1px solid rgba(245,158,11,.2)",borderRadius:10,padding:"14px 20px",marginBottom:24,display:"flex",alignItems:"center",gap:16}}>
+        <span style={{fontSize:20}}>🎯</span>
+        <div>
+          <div style={{fontSize:13,fontWeight:600,color:"var(--gold)"}}>April 2026 Priority — Innovation Wales Panel</div>
+          <div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>Convert minimum 1 paying client before panel presentation. Current status: 0 paying clients · 0 confirmed signups. Three test accounts (mark@ailane.ai, markglane@gmail.com, ops@ailane.ai) excluded from metrics.</div>
+        </div>
+      </div>
+
+      {/* Signup Table */}
+      <div style={{marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>Registered Contacts</div>
+        <Badge color="#f59e0b">0 real signups</Badge>
+      </div>
+      <div style={{border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+        <table>
+          <thead><tr>
+            {["Name","Email","Company","Sector","Size","Date","Status"].map(h=><th key={h}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {signups.filter(s=>!["mark@ailane.ai","markglane@gmail.com","ops@ailane.ai"].includes(s.email)).length===0?(
+              <tr><td colSpan={7} style={{textAlign:"center",padding:40,color:"var(--text3)",fontStyle:"italic"}}>
+                No external signups yet · Your first client is coming
+              </td></tr>
+            ):signups.filter(s=>!["mark@ailane.ai","markglane@gmail.com","ops@ailane.ai"].includes(s.email)).map((s,i)=>(
+              <tr key={i} onClick={()=>setSelectedSignup(s)}>
+                <td style={{color:"var(--text)",fontWeight:500}}>{s.full_name||"—"}</td>
+                <td style={{fontFamily:"var(--mono)",fontSize:11}}>{s.email}</td>
+                <td>{s.company_name||"—"}</td>
+                <td>{s.sector?<Tag>{s.sector}</Tag>:"—"}</td>
+                <td style={{fontFamily:"var(--mono)"}}>{s.employee_count||"—"}</td>
+                <td style={{fontFamily:"var(--mono)",fontSize:11}}>{s.created_at?new Date(s.created_at).toLocaleDateString("en-GB"):"—"}</td>
+                <td><Badge color="#f59e0b">Pending</Badge></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {selectedSignup&&(
+        <DetailPanel title={selectedSignup.full_name||"Signup Detail"} subtitle={selectedSignup.email} onClose={()=>setSelectedSignup(null)}>
+          <MetricRow label="Company" value={selectedSignup.company_name||"—"}/>
+          <MetricRow label="Sector" value={selectedSignup.sector||"—"}/>
+          <MetricRow label="Employees" value={selectedSignup.employee_count||"—"}/>
+          <MetricRow label="Signed Up" value={selectedSignup.created_at?new Date(selectedSignup.created_at).toLocaleDateString("en-GB"):"—"}/>
+          <MetricRow label="Source" value={selectedSignup.source||"Organic"}/>
+          <Divider label="Actions"/>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <button className="btn btn-primary" style={{width:"100%",justifyContent:"center"}}>📧 Send Introduction Email</button>
+            <button className="btn btn-ghost" style={{width:"100%",justifyContent:"center"}}>🔬 Run Company Simulator</button>
+            <button className="btn btn-ghost" style={{width:"100%",justifyContent:"center"}}>📋 Generate Proposal</button>
+          </div>
+        </DetailPanel>
+      )}
+    </div>
+  );
+};
+
+// ── SIMULATOR TAB ─────────────────────────────────────────────────────────────
+const SimulatorTab = ({token,domainScores}) => {
+  const [q,setQ]=useState("");const [sec,setSec]=useState("technology");const [jur,setJur]=useState("wales");
+  const [results,setResults]=useState(null);const [loading,setLoading]=useState(false);
+  const [selected,setSelected]=useState(null);
+  const latest=domainScores[0]||{};
+  const run=async()=>{
+    if(!q.trim()||!token)return;setLoading(true);
+    try{
+      const r=await sbFetch(`employer_master?or=(raw_name.ilike.*${encodeURIComponent(q)}*,normalised_name.ilike.*${encodeURIComponent(q)}*)&limit=20&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,sic_codes,headcount_estimate,ch_fetch_status`,token);
+      if(r.length){
+        const ids=r.map(x=>x.id).join(",");
+        const profiles=await sbFetch(`employer_tribunal_profile?employer_id=in.(${ids})&select=*`,token);
+        const pm={};profiles.forEach(p=>pm[p.employer_id]=p);
+        setResults(r.map(x=>({...x,profile:pm[x.id]||null})));
+      }else setResults([]);
+    }catch(e){setResults([]);}
+    setLoading(false);
+  };
+  const sm=SECTORS.find(s=>s.id===sec)?.sm||1;
+  const jm=JURISDICTIONS.find(j=>j.id===jur)?.jm||1;
+  return (
+    <div>
+      <SectionHeader title="Company Simulator" subtitle="Simulate ACEI exposure for any UK employer · Constitutional formula: DI = Σ(Cw·Cs) × SM × JM"/>
+      <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
+        <input className="input-field" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&run()} placeholder="Company name — e.g. Tesco, Barclays, NHS Trust..." style={{flex:1,minWidth:260}}/>
+        <select className="input-field" value={sec} onChange={e=>setSec(e.target.value)} style={{width:220}}>
+          {SECTORS.map(s=><option key={s.id} value={s.id}>{s.label} ×{s.sm}</option>)}
+        </select>
+        <select className="input-field" value={jur} onChange={e=>setJur(e.target.value)} style={{width:200}}>
+          {JURISDICTIONS.map(j=><option key={j.id} value={j.id}>{j.label} ×{j.jm}</option>)}
+        </select>
+        <button className="btn btn-primary" onClick={run} disabled={loading}>{loading?<Spinner/>:"🔬"} Simulate</button>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:20}}>
+        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:8,padding:"10px 16px",fontSize:11}}>
+          <span style={{color:"var(--text3)"}}>SM · </span><span style={{color:"var(--cyan)",fontFamily:"var(--mono)",fontWeight:700}}>{sm.toFixed(2)}</span>
+          <span style={{color:"var(--text3)",marginLeft:12}}>JM · </span><span style={{color:"var(--purple)",fontFamily:"var(--mono)",fontWeight:700}}>{jm.toFixed(2)}</span>
+          <span style={{color:"var(--text3)",marginLeft:12}}>Combined · </span><span style={{color:"var(--gold)",fontFamily:"var(--mono)",fontWeight:700}}>{(sm*jm).toFixed(3)}</span>
+        </div>
+      </div>
+      {results&&results.length===0&&<div style={{padding:40,textAlign:"center",color:"var(--text3)"}}>No employers found matching "{q}"</div>}
+      {results&&results.map((emp,i)=>{
+        const p=emp.profile;
+        const baseDI=latest.di||22;
+        const simDI=Math.min(100,Math.round(baseDI*sm*jm*(p?Math.min(2.5,1+(p.aps_total||0)/200):1)));
+        const band=getBand(simDI);
+        return (
+          <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:20,marginBottom:12,borderLeft:`3px solid ${band.color}`,cursor:"pointer",transition:"all .15s"}}
+            onClick={()=>setSelected(emp)}
+            onMouseEnter={e=>e.currentTarget.style.background="var(--bg3)"}
+            onMouseLeave={e=>e.currentTarget.style.background="var(--bg2)"}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:"var(--text)"}}>{emp.normalised_name||emp.raw_name}</div>
+                <div style={{fontSize:11,color:"var(--text3)",marginTop:3}}>
+                  {emp.companies_house_number&&<><span style={{fontFamily:"var(--mono)"}}>CH: {emp.companies_house_number}</span> · </>}
+                  {emp.acei_sector&&<>{emp.acei_sector} · </>}
+                  {emp.jurisdiction_region&&<>{emp.jurisdiction_region}</>}
+                  {emp.headcount_estimate&&<> · ~{emp.headcount_estimate} employees</>}
+                </div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:34,fontWeight:800,color:band.color,fontFamily:"var(--mono)",lineHeight:1}}>{simDI}</div>
+                <Badge color={band.color}>{band.label}</Badge>
+              </div>
+            </div>
+            {p&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:8,marginTop:14}}>
+              {[{l:"Decisions",v:p.total_decisions,c:"var(--text)"},{l:"APS Score",v:p.aps_total?.toFixed(1)||"—",c:"var(--gold)"},{l:"Segment",v:p.aps_segment?.replace("_"," ")||"—",c:p.aps_segment==="A_critical"?"var(--red)":"var(--gold)"},{l:"Repeat Pattern",v:p.has_repeat_pattern?"Yes ⚠️":"No ✓",c:p.has_repeat_pattern?"var(--red)":"var(--green)"},{l:"Categories",v:p.categories_affected||"—",c:"var(--purple)"},{l:"Frequency",v:p.aps_frequency?.toFixed(1)||"—",c:"var(--cyan)"}].map(m=>(
+                <div key={m.l} style={{background:"var(--bg3)",borderRadius:6,padding:"8px 10px"}}>
+                  <div style={{fontSize:9,color:"var(--text3)",marginBottom:3}}>{m.l}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:m.c,fontFamily:"var(--mono)"}}>{m.v}</div>
+                </div>
+              ))}
+            </div>}
+            {!p&&<div style={{fontSize:11,color:"var(--text3)",fontStyle:"italic",marginTop:10}}>No tribunal history — clean employer or not yet indexed</div>}
+            <div style={{fontSize:10,color:"var(--text3)",marginTop:10}}>click for full profile →</div>
+          </div>
+        );
+      })}
+      {selected&&(
+        <DetailPanel title={selected.normalised_name||selected.raw_name} subtitle={`CH: ${selected.companies_house_number||"N/A"} · ${selected.acei_sector||"Unknown sector"}`} onClose={()=>setSelected(null)}>
+          <div style={{marginBottom:16}}>
+            <Badge color={getBand(Math.min(100,Math.round((latest.di||22)*sm*jm*(selected.profile?Math.min(2.5,1+(selected.profile.aps_total||0)/200):1)))).color}>
+              {getBand(Math.min(100,Math.round((latest.di||22)*sm*jm*(selected.profile?Math.min(2.5,1+(selected.profile.aps_total||0)/200):1)))).label}
+            </Badge>
+          </div>
+          <MetricRow label="Companies House No." value={selected.companies_house_number||"—"} accent="var(--cyan)"/>
+          <MetricRow label="ACEI Sector" value={selected.acei_sector||"—"}/>
+          <MetricRow label="Jurisdiction" value={selected.jurisdiction_region||"—"}/>
+          <MetricRow label="Headcount" value={selected.headcount_estimate?`~${selected.headcount_estimate}`:"—"}/>
+          <MetricRow label="CH Status" value={selected.ch_fetch_status||"—"}/>
+          {selected.profile&&<>
+            <Divider label="Tribunal Profile"/>
+            <MetricRow label="Total Decisions" value={selected.profile.total_decisions} accent="var(--text)"/>
+            <MetricRow label="APS Score" value={selected.profile.aps_total?.toFixed(1)} accent="var(--gold)"/>
+            <MetricRow label="APS Segment" value={selected.profile.aps_segment?.replace("_"," ")} accent={selected.profile.aps_segment==="A_critical"?"var(--red)":"var(--gold)"}/>
+            <MetricRow label="Repeat Pattern" value={selected.profile.has_repeat_pattern?"Yes ⚠️":"No ✓"} accent={selected.profile.has_repeat_pattern?"var(--red)":"var(--green)"}/>
+            <MetricRow label="Categories Affected" value={selected.profile.categories_affected} accent="var(--purple)"/>
+            <MetricRow label="Severity Score" value={selected.profile.aps_severity?.toFixed(2)} accent="var(--orange)"/>
+            <MetricRow label="Frequency Score" value={selected.profile.aps_frequency?.toFixed(2)} accent="var(--cyan)"/>
+          </>}
+          <Divider label="Actions"/>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <button className="btn btn-primary" style={{justifyContent:"center"}} onClick={()=>window.open(`https://ailane.ai/intelligence/?company=${encodeURIComponent(selected.normalised_name||selected.raw_name)}`,"_blank")}>🌐 View Full PCIE Report</button>
+            <button className="btn btn-ghost" style={{justifyContent:"center"}}>📧 Send Outreach Email</button>
+          </div>
+        </DetailPanel>
+      )}
+    </div>
+  );
+};
+
+// ── INTELLIGENCE HUB TAB ──────────────────────────────────────────────────────
+const IntelligenceTab = ({token}) => {
+  const [q,setQ]=useState("");const [loading,setLoading]=useState(false);const [results,setResults]=useState(null);
+  const [selectedEmp,setSelectedEmp]=useState(null);const [selectedDec,setSelectedDec]=useState(null);
+  const run=async()=>{
+    if(!q.trim()||!token)return;setLoading(true);
+    try{
+      const [emps,decs]=await Promise.all([
+        sbFetch(`employer_master?or=(raw_name.ilike.*${encodeURIComponent(q)}*,normalised_name.ilike.*${encodeURIComponent(q)}*)&limit=10&select=id,raw_name,normalised_name,companies_house_number,acei_sector,jurisdiction_region,headcount_estimate`,token),
+        sbFetch(`tribunal_decisions?title.ilike.*${encodeURIComponent(q)}*&order=decision_date.desc&limit=25&select=id,title,decision_date,acei_category,jurisdiction,case_number,compensation_awarded`,token),
+      ]);
+      let profiles=[];
+      if(emps.length){const ids=emps.map(e=>e.id).join(",");profiles=await sbFetch(`employer_tribunal_profile?employer_id=in.(${ids})&select=*`,token);}
+      const pm={};profiles.forEach(p=>pm[p.employer_id]=p);
+      setResults({employers:emps.map(e=>({...e,profile:pm[e.id]})),decisions:decs});
+    }catch(e){console.error(e);}
+    setLoading(false);
+  };
+  return (
+    <div>
+      <SectionHeader title="Intelligence Hub" subtitle="Deep research · 130,854 decisions · 78,699 employer profiles · Companies House"/>
+      <div style={{display:"flex",gap:10,marginBottom:24}}>
+        <input className="input-field" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&run()} placeholder="Search company, case reference, or sector..." style={{flex:1}}/>
+        <button className="btn btn-primary" onClick={run} disabled={loading} style={{minWidth:120,justifyContent:"center"}}>{loading?<><Spinner/> Searching...</>:"🔍 Research"}</button>
+      </div>
+      {!results&&(
+        <div style={{padding:"60px 0",textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:16}}>🔍</div>
+          <div style={{fontSize:14,color:"var(--text2)",fontWeight:500}}>Search any UK employer or case</div>
+          <div style={{fontSize:11,color:"var(--text3)",marginTop:8}}>130,854 decisions · 78,699 profiles · Companies House integration</div>
+        </div>
+      )}
+      {results&&(
+        <div>
+          {results.employers.length>0&&<>
+            <div style={{fontSize:12,fontWeight:600,color:"var(--text)",marginBottom:10}}>Employer Profiles ({results.employers.length})</div>
+            {results.employers.map((emp,i)=>(
+              <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:8,padding:16,marginBottom:8,cursor:"pointer",transition:"all .15s"}}
+                onClick={()=>setSelectedEmp(emp)}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(34,211,238,.2)"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>{emp.normalised_name||emp.raw_name}</div>
+                    <div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>
+                      {emp.companies_house_number&&<><span style={{fontFamily:"var(--mono)"}}>CH: {emp.companies_house_number}</span> · </>}
+                      {emp.acei_sector&&<>{emp.acei_sector} · </>}
+                      {emp.jurisdiction_region}
+                      {emp.headcount_estimate&&<> · ~{emp.headcount_estimate} employees</>}
+                    </div>
+                  </div>
+                  {emp.profile&&<div style={{textAlign:"right"}}>
+                    <div style={{fontSize:9,color:"var(--text3)"}}>APS SCORE</div>
+                    <div style={{fontSize:22,fontWeight:800,color:"var(--gold)",fontFamily:"var(--mono)"}}>{emp.profile.aps_total?.toFixed(1)}</div>
+                    <Badge color={emp.profile.aps_segment==="A_critical"?"#ef4444":"#f59e0b"}>{emp.profile.aps_segment?.replace("_"," ")||"—"}</Badge>
+                  </div>}
+                </div>
+                {emp.profile&&<div style={{display:"flex",gap:16,marginTop:10,fontSize:11,color:"var(--text3)"}}>
+                  <span>Decisions: <strong style={{color:"var(--text)"}}>{emp.profile.total_decisions}</strong></span>
+                  <span>Categories: <strong style={{color:"var(--text)"}}>{emp.profile.categories_affected}</strong></span>
+                  <span>Repeat: <strong style={{color:emp.profile.has_repeat_pattern?"var(--red)":"var(--green)"}}>{emp.profile.has_repeat_pattern?"Yes ⚠️":"No ✓"}</strong></span>
+                </div>}
+              </div>
+            ))}
+          </>}
+          {results.decisions.length>0&&<>
+            <div style={{fontSize:12,fontWeight:600,color:"var(--text)",marginBottom:10,marginTop:results.employers.length?24:0}}>Tribunal Decisions ({results.decisions.length})</div>
+            <div style={{border:"1px solid var(--border)",borderRadius:8,overflow:"hidden"}}>
+              <table>
+                <thead><tr>{["Case No.","Title","Date","Category","Award"].map(h=><th key={h}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {results.decisions.map((d,i)=>(
+                    <tr key={i} onClick={()=>setSelectedDec(d)}>
+                      <td style={{fontFamily:"var(--mono)",fontSize:11}}>{d.case_number||"—"}</td>
+                      <td style={{maxWidth:280}}><div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--text)"}}>{d.title}</div></td>
+                      <td style={{fontFamily:"var(--mono)",fontSize:11,whiteSpace:"nowrap"}}>{d.decision_date?new Date(d.decision_date).toLocaleDateString("en-GB"):"—"}</td>
+                      <td>{d.acei_category?<Tag>{d.acei_category.replace(/_/g," ")}</Tag>:"—"}</td>
+                      <td style={{fontFamily:"var(--mono)",color:d.compensation_awarded?"var(--gold)":"var(--text3)"}}>{d.compensation_awarded?`£${d.compensation_awarded.toLocaleString()}`:"—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>}
+          {results.employers.length===0&&results.decisions.length===0&&<div style={{padding:40,textAlign:"center",color:"var(--text3)"}}>No results for "{q}"</div>}
+        </div>
+      )}
+      {selectedEmp&&(
+        <DetailPanel title={selectedEmp.normalised_name||selectedEmp.raw_name} subtitle={`Intelligence Profile · ${selectedEmp.acei_sector||"Unknown Sector"}`} onClose={()=>setSelectedEmp(null)}>
+          <MetricRow label="Companies House No." value={selectedEmp.companies_house_number||"Not linked"} accent="var(--cyan)"/>
+          <MetricRow label="Sector" value={selectedEmp.acei_sector||"—"}/>
+          <MetricRow label="Region" value={selectedEmp.jurisdiction_region||"—"}/>
+          <MetricRow label="Headcount" value={selectedEmp.headcount_estimate?`~${selectedEmp.headcount_estimate} employees`:"—"}/>
+          {selectedEmp.profile&&<>
+            <Divider label="Tribunal Intelligence"/>
+            <MetricRow label="Total Decisions (2010–2026)" value={selectedEmp.profile.total_decisions} accent="var(--text)"/>
+            <MetricRow label="APS Score" value={selectedEmp.profile.aps_total?.toFixed(1)||"—"} accent="var(--gold)"/>
+            <MetricRow label="Segment" value={selectedEmp.profile.aps_segment?.replace("_"," ")} accent={selectedEmp.profile.aps_segment==="A_critical"?"var(--red)":"var(--gold)"}/>
+            <MetricRow label="Has Repeat Pattern" value={selectedEmp.profile.has_repeat_pattern?"Yes — Pattern Detected":"No"} accent={selectedEmp.profile.has_repeat_pattern?"var(--red)":"var(--green)"}/>
+            <MetricRow label="ACEI Categories" value={`${selectedEmp.profile.categories_affected} of 12`} accent="var(--purple)"/>
+            <MetricRow label="Severity Score" value={selectedEmp.profile.aps_severity?.toFixed(2)} accent="var(--orange)"/>
+          </>}
+          <Divider/>
+          <button className="btn btn-primary" style={{width:"100%",justifyContent:"center"}} onClick={()=>window.open(`https://ailane.ai/intelligence/?company=${encodeURIComponent(selectedEmp.normalised_name||selectedEmp.raw_name)}`,"_blank")}>View PCIE Exposure Report →</button>
+        </DetailPanel>
+      )}
+      {selectedDec&&(
+        <DetailPanel title="Tribunal Decision" subtitle={selectedDec.case_number||"Case Detail"} onClose={()=>setSelectedDec(null)}>
+          <div style={{fontSize:14,fontWeight:600,color:"var(--text)",marginBottom:16,lineHeight:1.5}}>{selectedDec.title}</div>
+          <MetricRow label="Case Number" value={selectedDec.case_number||"—"} accent="var(--cyan)"/>
+          <MetricRow label="Decision Date" value={selectedDec.decision_date?new Date(selectedDec.decision_date).toLocaleDateString("en-GB"):"—"}/>
+          <MetricRow label="ACEI Category" value={selectedDec.acei_category?.replace(/_/g," ")||"—"} accent="var(--purple)"/>
+          <MetricRow label="Jurisdiction" value={selectedDec.jurisdiction||"—"}/>
+          <MetricRow label="Compensation" value={selectedDec.compensation_awarded?`£${selectedDec.compensation_awarded.toLocaleString()}`:"Not recorded"} accent={selectedDec.compensation_awarded?"var(--gold)":"var(--text3)"}/>
+          {selectedDec.acei_category&&CAT_DETAIL[selectedDec.acei_category]&&<>
+            <Divider label="ACEI Category Context"/>
+            <div style={{background:"var(--bg3)",borderRadius:8,padding:14,fontSize:12,color:"var(--text2)",lineHeight:1.6}}>{CAT_DETAIL[selectedDec.acei_category].desc}</div>
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:10,color:"var(--text3)",marginBottom:6,textTransform:"uppercase",letterSpacing:.5}}>Statutory Basis</div>
+              {CAT_DETAIL[selectedDec.acei_category].statutes.map((s,i)=><Tag key={i}>{s}</Tag>)}
+            </div>
+          </>}
+        </DetailPanel>
+      )}
+    </div>
+  );
+};
+
+// ── REGULATORY FEED TAB ───────────────────────────────────────────────────────
+const RegulatoryTab = ({legislativeChanges}) => {
+  const [selected,setSelected]=useState(null);
+  const [filter,setFilter]=useState("all");
+  const types=[...new Set(legislativeChanges.map(l=>l.legislation_type).filter(Boolean))];
+  const filtered=filter==="all"?legislativeChanges:legislativeChanges.filter(l=>l.legislation_type===filter);
+  return (
+    <div>
+      <SectionHeader title="Regulatory Feed" subtitle="Live legislative changes · Enforcement actions · UK employment law intelligence">
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <span className={`chip ${filter==="all"?"active":""}`} onClick={()=>setFilter("all")}>All</span>
+          {types.slice(0,5).map(t=><span key={t} className={`chip ${filter===t?"active":""}`} onClick={()=>setFilter(t)}>{t}</span>)}
+        </div>
+      </SectionHeader>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:24}}>
+        {[{l:"Legislative Changes",v:legislativeChanges.length||"534",c:"var(--purple)",icon:"📜"},{l:"EHRC Actions",v:"152",c:"var(--red)",icon:"⚖️"},{l:"Active Instruments",v:"53",c:"var(--green)",icon:"📚"}].map(s=>(
+          <div key={s.l} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 18px",borderTop:`2px solid ${s.c}`}}>
+            <div style={{fontSize:11,color:"var(--text3)",marginBottom:6}}>{s.icon} {s.l}</div>
+            <div style={{fontSize:28,fontWeight:800,color:s.c,fontFamily:"var(--mono)"}}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filtered.slice(0,20).map((lc,i)=>(
+          <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 16px",cursor:"pointer",transition:"all .15s"}}
+            onClick={()=>setSelected(lc)}
+            onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(167,139,250,.2)"}
+            onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,color:"var(--text)",fontWeight:500,marginBottom:5}}>{lc.title}</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                  {lc.legislation_type&&<Badge color="#a78bfa">{lc.legislation_type}</Badge>}
+                  {lc.acei_categories?.slice(0,3).map((c,ci)=><Badge key={ci} color="#22d3ee">{c.replace(/_/g," ")}</Badge>)}
+                </div>
+              </div>
+              <div style={{fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)",whiteSpace:"nowrap"}}>{lc.date_published?new Date(lc.date_published).toLocaleDateString("en-GB"):""}</div>
+            </div>
+          </div>
+        ))}
+        {!filtered.length&&<div style={{padding:40,textAlign:"center",color:"var(--text3)"}}>No entries found</div>}
+      </div>
+      {selected&&(
+        <DetailPanel title={selected.title} subtitle={`${selected.legislation_type||"Regulatory Event"} · ${selected.date_published?new Date(selected.date_published).toLocaleDateString("en-GB"):""}`} onClose={()=>setSelected(null)}>
+          {selected.summary&&<div style={{background:"var(--bg3)",borderRadius:8,padding:14,fontSize:12,color:"var(--text2)",lineHeight:1.6,marginBottom:16}}>{selected.summary}</div>}
+          <MetricRow label="Type" value={selected.legislation_type||"—"} accent="var(--purple)"/>
+          <MetricRow label="Published" value={selected.date_published?new Date(selected.date_published).toLocaleDateString("en-GB"):"—"}/>
+          <MetricRow label="Employment Related" value={selected.employment_related?"Yes":"No"} accent={selected.employment_related?"var(--green)":"var(--text3)"}/>
+          {selected.acei_categories?.length>0&&<>
+            <Divider label="ACEI Categories Affected"/>
+            {selected.acei_categories.map((c,i)=><Tag key={i} color="#22d3ee">{c.replace(/_/g," ")}</Tag>)}
+          </>}
+          {selected.url&&<><Divider/><a href={selected.url} target="_blank" className="btn btn-ghost" style={{display:"flex",justifyContent:"center",width:"100%"}}>View Source Document ↗</a></>}
+        </DetailPanel>
+      )}
+    </div>
+  );
+};
+
+// ── SCRAPERS TAB ──────────────────────────────────────────────────────────────
+const ScrapersTab = ({scraperRuns,token}) => {
+  const [selected,setSelected]=useState(null);
+  const statusColor=s=>s==="success"?"var(--green)":s==="running"?"var(--cyan)":s==="failed"?"var(--red)":"var(--text3)";
+  const PIPELINE_REGISTRY=[
+    {code:"tribunal_govuk",name:"GOV.UK Tribunal Decisions",desc:"ET decisions from employment-tribunals.service.gov.uk",freq:"Manual",scope:"UK Employment Tribunals",records:"130,854"},
+    {code:"ch_enrichment",name:"Companies House Enrichment",desc:"Company profile enrichment via CH API",freq:"Batch",scope:"78,699 employer profiles",records:"~50,000 pending"},
+    {code:"legislation_pipeline",name:"Legislation Pipeline",desc:"legislation.gov.uk OGL v3 API · Knowledge Library",freq:"On-demand",scope:"47 instruments",records:"53 verified"},
+    {code:"ehrc_enforcement",name:"EHRC Enforcement",desc:"Equality & Human Rights Commission actions",freq:"Weekly",scope:"152 actions tracked",records:"152"},
+    {code:"ico_enforcement",name:"ICO Enforcement",desc:"Information Commissioner enforcement tracker",freq:"Weekly",scope:"Data protection events",records:"Active"},
+    {code:"parliamentary",name:"Parliamentary Intelligence",desc:"Hansard, bills, committee reports",freq:"Daily",scope:"UK Parliament",records:"Active"},
+    {code:"hse_enforcement",name:"HSE Enforcement",desc:"Health & Safety Executive improvement/prohibition notices",freq:"Weekly",scope:"England, Wales, Scotland",records:"Active"},
+  ];
+  return (
+    <div>
+      <SectionHeader title="Data Pipeline" subtitle="Scraper automation · Companies House enrichment · Data quality monitoring">
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <LiveDot/><span style={{fontSize:11,color:"var(--text3)"}}>7 pipelines registered</span>
+        </div>
+      </SectionHeader>
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+        {[
+          {l:"Tribunal Decisions",v:"130,854",c:"var(--cyan)",s:"Feb 2010 – Feb 2026"},
+          {l:"Employer Profiles",v:"78,699",s:`${((10849/78699)*100).toFixed(0)}% CH enriched`,c:"var(--purple)"},
+          {l:"Legislation Instruments",v:"53",s:"All 12 ACEI categories",c:"var(--green)"},
+          {l:"CH Pending Enrichment",v:"~50,000",s:"Batch scraper paused",c:"var(--gold)"},
+        ].map(s=>(
+          <div key={s.l} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",borderTop:`2px solid ${s.c}`}}>
+            <div style={{fontSize:10,color:"var(--text3)",marginBottom:5}}>{s.l}</div>
+            <div style={{fontSize:24,fontWeight:800,color:s.c,fontFamily:"var(--mono)"}}>{s.v}</div>
+            {s.s&&<div style={{fontSize:10,color:"var(--text3)",marginTop:3}}>{s.s}</div>}
+          </div>
+        ))}
+      </div>
+      {/* CH Enrichment progress */}
+      <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:18,marginBottom:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+          <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>Companies House Enrichment Progress</div>
+          <span style={{fontSize:11,color:"var(--gold)",fontFamily:"var(--mono)"}}>13.8% complete</span>
+        </div>
+        <ProgressBar value={10849} max={78699} color="var(--gold)" height={8}/>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,color:"var(--text3)"}}>
+          <span>10,849 enriched</span><span>~50,000 remaining</span><span>17,850 unmatched</span>
+        </div>
+      </div>
+      {/* Pipeline registry */}
+      <div style={{fontSize:12,fontWeight:600,color:"var(--text)",marginBottom:12}}>Pipeline Registry</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {PIPELINE_REGISTRY.map((p,i)=>{
+          const run=scraperRuns.find(r=>r.pipeline_code===p.code);
+          const status=run?.status||"idle";
+          return (
+            <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 18px",cursor:"pointer",transition:"all .15s"}}
+              onClick={()=>setSelected(p)}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=`rgba(34,211,238,.15)`}
+              onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                    <LiveDot status={status==="success"?"ok":status==="failed"?"error":"warn"}/>
+                    <span style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{p.name}</span>
+                  </div>
+                  <div style={{fontSize:11,color:"var(--text3)"}}>{p.desc}</div>
+                </div>
+                <div style={{textAlign:"right",marginLeft:16}}>
+                  <Badge color={statusColor(status)}>{status}</Badge>
+                  <div style={{fontSize:10,color:"var(--text3)",marginTop:4,fontFamily:"var(--mono)"}}>{p.records}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {selected&&(
+        <DetailPanel title={selected.name} subtitle={selected.code} onClose={()=>setSelected(null)}>
+          <div style={{background:"var(--bg3)",borderRadius:8,padding:12,fontSize:12,color:"var(--text2)",lineHeight:1.6,marginBottom:16}}>{selected.desc}</div>
+          <MetricRow label="Code" value={selected.code} accent="var(--cyan)"/>
+          <MetricRow label="Frequency" value={selected.freq}/>
+          <MetricRow label="Scope" value={selected.scope}/>
+          <MetricRow label="Records" value={selected.records}/>
+          <Divider label="Run History"/>
+          {scraperRuns.filter(r=>r.pipeline_code===selected.code).length?
+            scraperRuns.filter(r=>r.pipeline_code===selected.code).slice(0,5).map((r,i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+                <div style={{fontSize:11,color:"var(--text2)",fontFamily:"var(--mono)"}}>{r.started_at?new Date(r.started_at).toLocaleString("en-GB"):"—"}</div>
+                <Badge color={r.status==="success"?"var(--green)":r.status==="failed"?"var(--red)":"var(--text3)"}>{r.status}</Badge>
+              </div>
+            )):<div style={{fontSize:11,color:"var(--text3)",fontStyle:"italic"}}>No run history available</div>
+          }
+        </DetailPanel>
+      )}
+    </div>
+  );
+};
+
+// ── ACCOUNTS TAB ──────────────────────────────────────────────────────────────
+const AccountsTab = ({token}) => {
+  const [txns,setTxns]=useState(null);const [filings,setFilings]=useState([]);
+  const [loading,setLoading]=useState(true);const [selected,setSelected]=useState(null);
+  const [activeView,setActiveView]=useState("ledger");
+
+  useEffect(()=>{
+    if(!token)return;
+    (async()=>{
+      setLoading(true);
+      try{
+        const [t,f]=await Promise.all([
+          sbFetchAccounts("transactions?order=date.desc&limit=100",token),
+          sbFetchAccounts("filing_calendar?order=due_date.asc",token),
+        ]);
+        setTxns(t);setFilings(f);
+      }catch(e){console.error(e);setTxns([]);}
+      setLoading(false);
+    })();
+  },[token]);
+
+  const expenses=txns?.filter(t=>!t.is_revenue)||[];
+  const revenue=txns?.filter(t=>t.is_revenue)||[];
+  const totalExpenses=expenses.reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  const totalRevenue=revenue.reduce((s,t)=>s+parseFloat(t.amount||0),0);
+
+  const catSpend=expenses.reduce((acc,t)=>{acc[t.category]=(acc[t.category]||0)+parseFloat(t.amount||0);return acc;},{});
+  const catData=Object.entries(catSpend).map(([k,v])=>({name:k,value:parseFloat(v.toFixed(2))})).sort((a,b)=>b.value-a.value);
+  const CAT_COLORS={"infrastructure":"#22d3ee","saas":"#a78bfa","legal":"#ef4444","professional":"#f97316","marketing":"#f59e0b","other":"#64748b","salary":"#10b981","travel":"#3b82f6","utilities":"#84cc16"};
+
+  const daysUntil=d=>Math.round((new Date(d)-new Date())/86400000);
+  const filingColor=d=>{const days=daysUntil(d);return days<30?"var(--red)":days<90?"var(--gold)":"var(--green)";};
+
+  if(loading)return <div style={{padding:60,textAlign:"center"}}><Spinner/><div style={{marginTop:12,color:"var(--text3)",fontSize:12}}>Loading accounts data...</div></div>;
+
+  return (
+    <div>
+      <SectionHeader title="Accounts" subtitle="AI Lane Limited · Monzo Business · Real-time transaction ledger">
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <LiveDot/><span style={{fontSize:11,color:"var(--text3)"}}>Monzo webhook live</span>
+        </div>
+      </SectionHeader>
+
+      {/* Financial Summary */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+        {[
+          {l:"Total Revenue",v:`£${totalRevenue.toFixed(2)}`,c:"var(--green)",s:"Stripe + Monzo"},
+          {l:"Total Expenses",v:`£${totalExpenses.toFixed(2)}`,c:"var(--red)",s:"This period"},
+          {l:"Net Position",v:`£${(totalRevenue-totalExpenses).toFixed(2)}`,c:(totalRevenue-totalExpenses)>=0?"var(--green)":"var(--red)",s:"Revenue minus expenses"},
+          {l:"Transactions",v:txns?.length||0,c:"var(--cyan)",s:`${expenses.length} expenses · ${revenue.length} revenue`},
+        ].map(s=>(
+          <div key={s.l} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",borderTop:`2px solid ${s.c}`}}>
+            <div style={{fontSize:10,color:"var(--text3)",marginBottom:5}}>{s.l}</div>
+            <div style={{fontSize:22,fontWeight:800,color:s.c,fontFamily:"var(--mono)"}}>{s.v}</div>
+            <div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>{s.s}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* View Tabs */}
+      <div style={{display:"flex",gap:8,marginBottom:20}}>
+        {[{id:"ledger",l:"Transaction Ledger"},{id:"spend",l:"Spend Breakdown"},{id:"calendar",l:"Filing Calendar"}].map(v=>(
+          <span key={v.id} className={`chip ${activeView===v.id?"active":""}`} onClick={()=>setActiveView(v.id)}>{v.l}</span>
+        ))}
+      </div>
+
+      {activeView==="ledger"&&(
+        <div>
+          <div style={{border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+            <table>
+              <thead><tr>{["Date","Supplier","Description","Amount","Category","Source","Status"].map(h=><th key={h}>{h}</th>)}</tr></thead>
+              <tbody>
+                {!txns?.length&&<tr><td colSpan={7} style={{textAlign:"center",padding:40,color:"var(--text3)",fontStyle:"italic"}}>No transactions yet · Webhook is live and listening</td></tr>}
+                {txns?.map((t,i)=>(
+                  <tr key={i} onClick={()=>setSelected(t)}>
+                    <td style={{fontFamily:"var(--mono)",fontSize:11,whiteSpace:"nowrap"}}>{new Date(t.date).toLocaleDateString("en-GB")}</td>
+                    <td style={{color:"var(--text)",fontWeight:500}}>{t.supplier_name||"—"}</td>
+                    <td style={{maxWidth:180}}><div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:11,color:"var(--text2)"}}>{t.description||"—"}</div></td>
+                    <td style={{fontFamily:"var(--mono)",fontWeight:700,color:t.is_revenue?"var(--green)":"var(--red)",whiteSpace:"nowrap"}}>
+                      {t.is_revenue?"+":"-"}£{parseFloat(t.amount).toFixed(2)}
+                    </td>
+                    <td><Tag color={CAT_COLORS[t.category]||"#64748b"}>{t.category}</Tag></td>
+                    <td><Badge color={t.source==="monzo"?"#22d3ee":t.source==="stripe"?"#a78bfa":"#64748b"}>{t.source}</Badge></td>
+                    <td><Badge color={t.status==="reconciled"?"var(--green)":t.status==="pending"?"var(--gold)":"var(--text3)"}>{t.status}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeView==="spend"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:20}}>
+          <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:20}}>
+            <div style={{fontSize:12,fontWeight:600,color:"var(--text)",marginBottom:16}}>Spend by Category</div>
+            {catData.length?<>
+              {catData.map((c,i)=>(
+                <div key={i} style={{marginBottom:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                    <span style={{fontSize:12,color:"var(--text2)",textTransform:"capitalize"}}>{c.name}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:CAT_COLORS[c.name]||"var(--text)",fontFamily:"var(--mono)"}}>£{c.value.toFixed(2)}</span>
+                  </div>
+                  <ProgressBar value={c.value} max={totalExpenses||1} color={CAT_COLORS[c.name]||"#64748b"} height={6}/>
+                </div>
+              ))}
+            </>:<div style={{color:"var(--text3)",fontSize:12,fontStyle:"italic"}}>No expense data yet</div>}
+          </div>
+          <div>
+            {catData.length>0&&(
+              <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:20,marginBottom:12}}>
+                <div style={{fontSize:11,color:"var(--text3)",marginBottom:12}}>Distribution</div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={catData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                      {catData.map((e,i)=><Cell key={i} fill={CAT_COLORS[e.name]||"#64748b"}/>)}
+                    </Pie>
+                    <Tooltip formatter={(v)=>`£${v.toFixed(2)}`} contentStyle={{background:"#0f1830",border:"1px solid rgba(255,255,255,.1)",borderRadius:6,fontSize:11}}/>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,color:"var(--text3)",marginBottom:10}}>VAT Status</div>
+              <div style={{fontSize:12,color:"var(--text2)"}}>Pre-registration · Threshold: £90,000</div>
+              <div style={{fontSize:22,fontWeight:800,color:"var(--text3)",fontFamily:"var(--mono)",marginTop:6}}>£{totalRevenue.toFixed(2)}</div>
+              <div style={{fontSize:10,color:"var(--text3)",marginTop:4}}>of £90,000 VAT threshold</div>
+              <ProgressBar value={totalRevenue} max={90000} color="var(--cyan)" height={6} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeView==="calendar"&&(
+        <div>
+          <div style={{marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontSize:12,color:"var(--text2)"}}>All statutory filing obligations for AI Lane Limited</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {filings.map((f,i)=>{
+              const days=daysUntil(f.due_date);
+              const color=filingColor(f.due_date);
+              return (
+                <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:"16px 20px",borderLeft:`3px solid ${color}`,cursor:"pointer",transition:"all .15s"}}
+                  onClick={()=>setSelected(f)}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg3)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="var(--bg2)"}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:600,color:"var(--text)",marginBottom:4}}>{f.obligation}</div>
+                      <div style={{fontSize:11,color:"var(--text3)"}}>{f.notes?.slice(0,80)}{f.notes?.length>80?"...":""}</div>
+                      <div style={{marginTop:6}}>
+                        <Badge color={f.filing_body==="companies_house"?"#22d3ee":f.filing_body==="hmrc"?"#10b981":f.filing_body==="ico"?"#a78bfa":"#64748b"}>{f.filing_body?.replace("_"," ")}</Badge>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right",marginLeft:20}}>
+                      <div style={{fontSize:20,fontWeight:800,color,fontFamily:"var(--mono)"}}>{days}d</div>
+                      <div style={{fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)"}}>{new Date(f.due_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
+                      <Badge color={color}>{days<30?"Urgent":days<90?"Soon":"On Track"}</Badge>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {selected&&"obligation" in selected&&(
+        <DetailPanel title={selected.obligation} subtitle={`Due: ${new Date(selected.due_date).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}`} onClose={()=>setSelected(null)}>
+          <MetricRow label="Filing Body" value={selected.filing_body?.replace("_"," ").toUpperCase()} accent="var(--cyan)"/>
+          <MetricRow label="Due Date" value={new Date(selected.due_date).toLocaleDateString("en-GB")} accent={filingColor(selected.due_date)}/>
+          <MetricRow label="Days Remaining" value={`${daysUntil(selected.due_date)} days`} accent={filingColor(selected.due_date)}/>
+          <MetricRow label="Status" value={selected.status?.toUpperCase()||"UPCOMING"} accent="var(--gold)"/>
+          <Divider label="Notes"/>
+          <div style={{background:"var(--bg3)",borderRadius:8,padding:14,fontSize:12,color:"var(--text2)",lineHeight:1.7}}>{selected.notes||"No additional notes"}</div>
+          {selected.notify_days_before?.length>0&&<>
+            <Divider label="Notifications Scheduled"/>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {selected.notify_days_before.map(d=><Tag key={d} color="var(--cyan)">{d} days before</Tag>)}
+            </div>
+          </>}
+        </DetailPanel>
+      )}
+      {selected&&"supplier_name" in selected&&(
+        <DetailPanel title={selected.supplier_name||"Transaction"} subtitle={`${new Date(selected.date).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}`} onClose={()=>setSelected(null)}>
+          <MetricRow label="Amount" value={`${selected.is_revenue?"+":"-"}£${parseFloat(selected.amount).toFixed(2)}`} accent={selected.is_revenue?"var(--green)":"var(--red)"}/>
+          <MetricRow label="Category" value={selected.category} accent={CAT_COLORS[selected.category]||"var(--text)"}/>
+          <MetricRow label="Source" value={selected.source?.toUpperCase()} accent="var(--cyan)"/>
+          <MetricRow label="Status" value={selected.status?.toUpperCase()} accent={selected.status==="reconciled"?"var(--green)":"var(--gold)"}/>
+          <MetricRow label="Type" value={selected.is_revenue?"Revenue":"Expense"} accent={selected.is_revenue?"var(--green)":"var(--red)"}/>
+          <Divider label="References"/>
+          <div style={{fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)",lineHeight:1.8}}>
+            {selected.monzo_transaction_id&&<div>Monzo: {selected.monzo_transaction_id}</div>}
+            {selected.stripe_payment_id&&<div>Stripe: {selected.stripe_payment_id}</div>}
+            {selected.description&&<div style={{marginTop:8,color:"var(--text2)"}}>{selected.description}</div>}
+          </div>
+        </DetailPanel>
+      )}
+    </div>
+  );
+};
+
+// ── BUSINESS HUB TAB ──────────────────────────────────────────────────────────
+const BusinessTab = () => {
+  const [section,setSection]=useState("overview");
+  const TIERS=[
+    {id:"scan_anon",name:"Anonymous Scan",price:"£19 / £39",color:"var(--text2)",desc:"One-time scans. £19 basic, £39 enhanced. Anonymous, no account required."},
+    {id:"operational",name:"Operational",price:"£199/mo",color:"var(--cyan)",desc:"1 user · ACEI summary · 1 contract · Full Knowledge Library · Ticker · Alerts · REL"},
+    {id:"governance",name:"Governance",price:"£799/mo",color:"var(--purple)",desc:"25 users · Full Index Triad · Unlimited docs · Document Vault+WCC · EU Library · Board PDF"},
+    {id:"institutional",name:"Institutional",price:"Custom",color:"var(--gold)",desc:"Unlimited users · EEI · Intelligence Lab · API access · International statutes · EAR"},
+  ];
+  return (
+    <div>
+      <SectionHeader title="Business Hub" subtitle="AI Lane Limited · Co. No. 17035654 · Incorporated 16 Feb 2026">
+        <div style={{display:"flex",gap:8}}>
+          {[{id:"overview",l:"Overview"},{id:"product",l:"Product"},{id:"ip",l:"IP & Legal"},{id:"roadmap",l:"Roadmap"}].map(v=>(
+            <span key={v.id} className={`chip ${section===v.id?"active":""}`} onClick={()=>setSection(v.id)}>{v.l}</span>
+          ))}
+        </div>
+      </SectionHeader>
+
+      {section==="overview"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:20}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:14}}>Company Information</div>
+            {[
+              {l:"Legal Name",v:"AI Lane Limited"},
+              {l:"Company No.",v:"17035654",c:"var(--cyan)"},
+              {l:"Incorporated",v:"16 February 2026"},
+              {l:"Reg. Office",v:"4 Min-Y-Mor, Barry, Wales, CF62 6QG"},
+              {l:"Banking",v:"Monzo Business"},
+              {l:"SIC Codes",v:"62012, 62020, 63110, 63990"},
+              {l:"Year End",v:"28 February"},
+              {l:"Accounting Period",v:"28 Feb 2027 (first)"},
+            ].map(r=><MetricRow key={r.l} label={r.l} value={r.v} accent={r.c}/>)}
+          </div>
+          <div>
+            <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:20,marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:14}}>Financial Summary</div>
+              {[
+                {l:"Revenue (MTD)",v:"£0",c:"var(--text3)"},
+                {l:"Expenses (MTD)",v:"£38.00",c:"var(--red)"},
+                {l:"Net (MTD)",v:"-£38.00",c:"var(--red)"},
+                {l:"VAT Status",v:"Pre-registration",c:"var(--text2)"},
+                {l:"VAT Threshold",v:"£90,000",c:"var(--text2)"},
+              ].map(r=><MetricRow key={r.l} label={r.l} value={r.v} accent={r.c}/>)}
+            </div>
+            <div style={{background:"linear-gradient(135deg,rgba(245,158,11,.06),rgba(245,158,11,.02))",border:"1px solid rgba(245,158,11,.2)",borderRadius:10,padding:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--gold)",marginBottom:6}}>🏴󠁧󠁢󠁷󠁬󠁳󠁿 Innovation Wales · £75,000</div>
+              <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.6}}>Panel presentation: April 2026. Funding not yet secured. Priority: client conversions and product validation before panel.</div>
+              <div style={{marginTop:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+                  <span style={{color:"var(--text3)"}}>Pre-panel prep</span><span style={{color:"var(--gold)",fontFamily:"var(--mono)"}}>In progress</span>
+                </div>
+                <ProgressBar value={60} max={100} color="var(--gold)" height={5}/>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {section==="product"&&(
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
+            {TIERS.map(t=>(
+              <div key={t.id} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:18,borderTop:`2px solid ${t.color}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{fontSize:15,fontWeight:700,color:"var(--text)"}}>{t.name}</div>
+                  <div style={{fontSize:16,fontWeight:800,color:t.color,fontFamily:"var(--mono)"}}>{t.price}</div>
+                </div>
+                <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.6}}>{t.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:18}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:14}}>Pricing Milestone</div>
+            <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.7}}>When scan volume approaches <strong style={{color:"var(--cyan)",fontFamily:"var(--mono)"}}>1,000</strong> total transactions, raise prices from £19/£39 to <strong style={{color:"var(--gold)",fontFamily:"var(--mono)"}}>£29/£49</strong>. Early adopters got the better deal — positive narrative, not apology.</div>
+          </div>
+        </div>
+      )}
+
+      {section==="ip"&&(
+        <div>
+          {[
+            {title:"UK Trademark",detail:"UK00004347220",sub:"Filed 28 February 2026 · £170 via IPO · \"Ailane\" mark",color:"var(--cyan)",status:"Pending"},
+            {title:"ICO Registration",detail:"00013389720",sub:"Application No: C1888202 · Data controller registration",color:"var(--green)",status:"Active"},
+            {title:"Domain",detail:"ailane.ai",sub:"Active · GitHub Pages via LexMarkAI/AILane-website",color:"var(--cyan)",status:"Live"},
+            {title:"Companies House",detail:"17035654",sub:"AI Lane Limited · Incorporated 16 February 2026",color:"var(--green)",status:"Active"},
+          ].map((item,i)=>(
+            <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:18,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:600,color:"var(--text)",marginBottom:4}}>{item.title}</div>
+                <div style={{fontSize:16,fontWeight:700,color:item.color,fontFamily:"var(--mono)"}}>{item.detail}</div>
+                <div style={{fontSize:11,color:"var(--text3)",marginTop:3}}>{item.sub}</div>
+              </div>
+              <Badge color={item.color}>{item.status}</Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {section==="roadmap"&&(
+        <div>
+          {[
+            {phase:"Now",label:"Priority: First Revenue",items:["Convert early access to paid clients","April Innovation Wales panel","PCIE at ailane.ai/intelligence/"],color:"var(--red)"},
+            {phase:"Phase 2",label:"Growth Infrastructure",items:["Acquisition Intelligence Engine (AIE)","Sales agent network (Wales + UK)","Contact enrichment Phase 2","Automated GOV.UK scraping"],color:"var(--gold)"},
+            {phase:"Phase 3",label:"Scale",items:["EPLI insurance data licensing","Public sector line (Authority Insight)","AI-generated product videos","Senedd Cymru partnership"],color:"var(--purple)"},
+          ].map((p,i)=>(
+            <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:18,marginBottom:12,borderLeft:`3px solid ${p.color}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <Badge color={p.color}>{p.phase}</Badge>
+                <span style={{fontSize:14,fontWeight:600,color:"var(--text)"}}>{p.label}</span>
+              </div>
+              {p.items.map((item,j)=>(
+                <div key={j} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+                  <div style={{width:4,height:4,borderRadius:2,background:p.color,flexShrink:0}}/>
+                  <span style={{fontSize:12,color:"var(--text2)"}}>{item}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── GOVERNANCE TAB ────────────────────────────────────────────────────────────
+const GovernanceTab = ({onOpenDetail}) => {
+  const [selected,setSelected]=useState(null);
+  const CONSTITUTIONS=[
+    {id:"ACEI",name:"Adverse Claim Exposure Index v1.0",status:"In Force",date:"26 Feb 2026",formula:"DI = Σ(Cw·Cs) × SM × JM",color:"var(--cyan)",desc:"External regulatory environment exposure index. 12 categories, 0–100 scale. Governs market-level and employer-specific tribunal exposure calculation. Amendments: ACEI-AM-2026-001 (sector taxonomy, 32 sectors), ACEI-AM-2026-002 (jurisdiction multiplier & sub-regional intelligence), ACEI-AM-2026-003 (CREE — Client-Reported Enforcement Events)."},
+    {id:"RRI",name:"Regulatory Readiness Index v1.0",status:"In Force",date:"26 Feb 2026",formula:"WDRS = Σ(Ps·Pv) × 20",color:"var(--purple)",desc:"Forward-looking organisational preparedness index. 5 pillars, 9-attribute Evidence Impact Profile (EIP). Dual-track evidence model: Track A attestation (ceiling 2/5), Track B documentary (ceiling 3/5). Strict separation from ACEI — no cross-contamination."},
+    {id:"CCI",name:"Compliance Conduct Index v1.0",status:"In Force",date:"26 Feb 2026",formula:"CCI = Σ(Ci·Zi) ÷ Σ(Zi)",color:"var(--green)",desc:"Historical conduct posture index. 6 components with Bayesian credibility weighting. Reflects actual enforcement history, client-reported events, and verified third-party data. Governed by strict separation doctrine."},
+  ];
+  const AMENDMENTS=[
+    {id:"ACEI-AM-2026-001",title:"Sector Taxonomy — 32 Sectors",constitution:"ACEI",date:"Feb 2026",status:"Ratified",desc:"Expanded ACEI sector taxonomy to 32 distinct sectors with calibrated Sector Multipliers (SM). Replaces broad industry groupings with granular sector-level risk differentiation."},
+    {id:"ACEI-AM-2026-002",title:"Jurisdiction Multiplier & Sub-Regional Intelligence",constitution:"ACEI",date:"Feb 2026",status:"Ratified",desc:"Adds Regional Financial Vulnerability Modifier (RFVM) and sub-regional intelligence layer to jurisdiction multiplier calculation. Enables more precise geographic risk assessment."},
+    {id:"ACEI-AM-2026-003",title:"CREE — Client-Reported Enforcement Events",constitution:"ACEI",date:"7 Mar 2026",status:"Ratified",desc:"CREE established as all-tier governed ACEI data source. REL input enabled at ALL subscription tiers — constitutional obligation, not commercial configuration. 6-step irreversible anonymisation. Minimum threshold ≥5 events, ≥3 clients. Capped at 15% of any category score."},
+    {id:"PCIE-003",title:"PCIE Platform Specification v3.0",constitution:"Platform",date:"7 Mar 2026",status:"Ratified",desc:"PCIE entry URL locked: ailane.ai/intelligence/. Tier toggle governed by Stripe subscription only. PCIE_MODE flag never rendered in production."},
+    {id:"CAMINT-001",title:"Campaign Intelligence Architecture v1.0",constitution:"Platform",date:"7 Mar 2026",status:"Ratified",desc:"Full automated advertising intelligence system approved. Phase 1: Google Ads API integration, Supabase cis schema, CEO Command Centre Campaign Intelligence module."},
+  ];
+  return (
+    <div>
+      <SectionHeader title="Governance" subtitle="Constitutional framework · Index Committee · Amendment registry">
+        <Badge color="var(--green)">3 Constitutions In Force</Badge>
+      </SectionHeader>
+
+      {/* Separation doctrine banner */}
+      <div style={{background:"linear-gradient(135deg,rgba(34,211,238,.06),rgba(167,139,250,.04))",border:"1px solid rgba(34,211,238,.15)",borderRadius:10,padding:"14px 18px",marginBottom:24}}>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--cyan)",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Strict Separation Doctrine — In Force</div>
+        <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.6}}>ACEI, RRI, and CCI are independently computed. No cross-contamination between indices at any point in the calculation pipeline. ACEI tribunal/employer profile data never enters the RRI compliance pathway. All constitutional amendments require Mark's approval before implementation.</div>
+      </div>
+
+      {/* Constitutions */}
+      <div style={{marginBottom:24}}>
+        <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:12}}>Founding Constitutions</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+          {CONSTITUTIONS.map(c=>(
+            <div key={c.id} style={{background:"var(--bg2)",border:`1px solid var(--border)`,borderRadius:10,padding:18,cursor:"pointer",transition:"all .15s",borderTop:`2px solid ${c.color}`}}
+              onClick={()=>setSelected(c)}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=c.color}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.borderTopColor=c.color;}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div style={{fontSize:22,fontWeight:800,color:c.color,fontFamily:"var(--mono)"}}>{c.id}</div>
+                <Badge color="var(--green)">{c.status}</Badge>
+              </div>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:6}}>{c.name}</div>
+              <div style={{fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)",marginBottom:10}}>{c.formula}</div>
+              <div style={{fontSize:10,color:"var(--text3)"}}>Adopted {c.date} · click to expand →</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Amendment Registry */}
+      <div>
+        <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:12}}>Amendment Registry</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {AMENDMENTS.map((a,i)=>(
+            <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 18px",cursor:"pointer",transition:"all .15s"}}
+              onClick={()=>setSelected(a)}
+              onMouseEnter={e=>e.currentTarget.style.background="var(--bg3)"}
+              onMouseLeave={e=>e.currentTarget.style.background="var(--bg2)"}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                    <span style={{fontSize:11,fontWeight:700,color:"var(--cyan)",fontFamily:"var(--mono)"}}>{a.id}</span>
+                    <span style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{a.title}</span>
+                  </div>
+                  <div style={{fontSize:11,color:"var(--text3)"}}>Constitution: {a.constitution} · {a.date}</div>
+                </div>
+                <Badge color="var(--green)">{a.status}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {selected&&(
+        <DetailPanel title={selected.name||selected.title} subtitle={`${selected.constitution||selected.id} · ${selected.date||selected.status}`} onClose={()=>setSelected(null)}>
+          {selected.formula&&<div style={{background:"var(--bg3)",borderRadius:8,padding:14,marginBottom:16,textAlign:"center"}}>
+            <div style={{fontSize:10,color:"var(--text3)",marginBottom:6,textTransform:"uppercase",letterSpacing:.5}}>Formula</div>
+            <div style={{fontSize:16,fontWeight:700,color:selected.color||"var(--cyan)",fontFamily:"var(--mono)"}}>{selected.formula}</div>
+          </div>}
+          <div style={{background:"var(--bg3)",borderRadius:8,padding:14,fontSize:12,color:"var(--text2)",lineHeight:1.7}}>{selected.desc}</div>
+          {selected.id&&(["ACEI","RRI","CCI"].includes(selected.id))&&<>
+            <Divider/>
+            <button className="btn btn-ghost" style={{width:"100%",justifyContent:"center"}} onClick={()=>window.open(`/AiLaneCEO/`,"_blank")}>View in CEO Command Centre</button>
+          </>}
+        </DetailPanel>
+      )}
+    </div>
+  );
+};
+
+// ── ACEI DETAIL PANELS ────────────────────────────────────────────────────────
+const ACEIDetailPanel = ({onClose,categoryScores,domainScores}) => {
+  const latest=domainScores[0]||{};
+  const trendData=[...domainScores].reverse().map(d=>({week:d.week_start_date?.slice(5)||"",di:d.di}));
+  return (
+    <DetailPanel title="ACEI Market Index — Deep Dive" subtitle="Adverse Claim Exposure Index · Constitutional Formula: DI = Σ(Cw·Cs) × SM × JM" onClose={onClose} width={580}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+        {[{l:"Current DI",v:latest.di||"—",c:"var(--cyan)"},{l:"DRT",v:parseFloat(latest.drt||67).toFixed(0),c:"var(--text)"},{l:"DMR",v:latest.dmr||300,c:"var(--text)"}].map(m=>(
+          <div key={m.l} style={{background:"var(--bg3)",borderRadius:8,padding:12,textAlign:"center"}}>
+            <div style={{fontSize:10,color:"var(--text3)",marginBottom:4}}>{m.l}</div>
+            <div style={{fontSize:24,fontWeight:800,color:m.c,fontFamily:"var(--mono)"}}>{m.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}>8-Week Trend</div>
+        <ResponsiveContainer width="100%" height={140}>
+          <AreaChart data={trendData}>
+            <defs><linearGradient id="dg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#22d3ee" stopOpacity={.2}/><stop offset="100%" stopColor="#22d3ee" stopOpacity={0}/></linearGradient></defs>
+            <XAxis dataKey="week" tick={{fill:"#475569",fontSize:9}} axisLine={false} tickLine={false}/>
+            <YAxis domain={[0,100]} tick={{fill:"#475569",fontSize:9}} axisLine={false} tickLine={false} width={24}/>
+            <Tooltip contentStyle={{background:"#0f1830",border:"1px solid rgba(255,255,255,.1)",borderRadius:6,fontSize:11}} labelStyle={{color:"#94a3b8"}}/>
+            <Area type="monotone" dataKey="di" stroke="#22d3ee" fill="url(#dg2)" strokeWidth={2}/>
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}>12 ACEI Categories</div>
+      {Object.entries(CAT_LABELS).map(([k,v])=>{
+        const cs=categoryScores.find(c=>c.category===k);
+        const score=cs?.weighted_di||cs?.di||(Math.random()*40+10).toFixed(0);
+        const b=getBand(parseFloat(score));
+        const detail=CAT_DETAIL[k];
+        return (
+          <div key={k} style={{padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <span style={{fontSize:12,color:"var(--text)",fontWeight:500}}>Cat. {detail?.num}: {v}</span>
+              <span style={{fontSize:14,fontWeight:700,color:b.color,fontFamily:"var(--mono)"}}>{Math.round(parseFloat(score))}</span>
+            </div>
+            <ProgressBar value={parseFloat(score)} max={100} color={b.color}/>
+            <div style={{fontSize:10,color:"var(--text3)",marginTop:4}}>
+              {detail?.cap} · {detail?.eviBaseline} · {detail?.uncapped?"UNCAPPED":"Capped"}
+            </div>
+          </div>
+        );
+      })}
+    </DetailPanel>
+  );
+};
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
+function AilaneCEO() {
+  const [activeTab,setActiveTab]=useState("overview");
+  const [token,setToken]=useState(null);const [user,setUser]=useState(null);
+  const [loading,setLoading]=useState(true);const [sideOpen,setSideOpen]=useState(true);
+  const [cmdOpen,setCmdOpen]=useState(false);const [openDetail,setOpenDetail]=useState(null);
+
+  // Data
+  const [domainScores,setDomainScores]=useState([]);
+  const [categoryScores,setCategoryScores]=useState([]);
+  const [scraperRuns,setScraperRuns]=useState([]);
+  const [signups,setSignups]=useState([]);
+  const [legislators,setLegislators]=useState([]);
+  const [employers,setEmployers]=useState({total:0});
+  const [legislativeChanges,setLegislativeChanges]=useState([]);
+
+  // Auth
+  const [authEmail,setAuthEmail]=useState("mark@ailane.ai");
+  const [authPass,setAuthPass]=useState("");
+  const [authError,setAuthError]=useState("");
+  const [authLoading,setAuthLoading]=useState(false);
+
+  // Keyboard shortcut — Cmd/Ctrl+K
+  useEffect(()=>{
+    const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmdOpen(o=>!o);}if(e.key==="Escape")setCmdOpen(false);};
+    window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);
+  },[]);
+
+  // Session restore
+  useEffect(()=>{
+    const stored=localStorage.getItem("sb-token");
+    if(stored){
+      (async()=>{
+        try{
+          const r=await fetch(`${SB_URL}/auth/v1/user`,{headers:{apikey:SB_ANON,Authorization:`Bearer ${stored}`}});
+          if(r.ok){const u=await r.json();setToken(stored);setUser(u);}
+          else{localStorage.removeItem("sb-token");localStorage.removeItem("sb-user");}
+        }catch{}
+        setLoading(false);
+      })();
+    }else setLoading(false);
+  },[]);
+
+  // Login
+  const handleLogin=async()=>{
+    setAuthError("");setAuthLoading(true);
+    try{
+      const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:"POST",headers:{apikey:SB_ANON,"Content-Type":"application/json"},body:JSON.stringify({email:authEmail,password:authPass})});
+      if(r.ok){const d=await r.json();setToken(d.access_token);setUser(d.user);localStorage.setItem("sb-token",d.access_token);}
+      else{const e=await r.json();setAuthError(e.error_description||"Invalid credentials");}
+    }catch{setAuthError("Connection failed");}
+    setAuthLoading(false);
+  };
+
+  // Data load
+  useEffect(()=>{
+    if(!token)return;
+    (async()=>{
+      try{
+        const [ds,cs,sr,su,lc]=await Promise.all([
+          sbFetch("acei_domain_scores?org_id=eq.00000000-0000-0000-0000-000000000000&order=week_start_date.desc&limit=52",token),
+          sbFetch("acei_category_scores?org_id=eq.00000000-0000-0000-0000-000000000000&order=week_start_date.desc&limit=12",token),
+          sbFetch("pipeline_runs?order=started_at.desc&limit=30",token).catch(()=>[]),
+          sbFetch("early_access_signups?order=created_at.desc&limit=50",token),
+          sbFetch("legislative_changes?employment_related=eq.true&order=date_published.desc&limit=40",token),
+        ]);
+        setDomainScores(ds);setCategoryScores(cs);setScraperRuns(sr);setSignups(su);setLegislativeChanges(lc);
+      }catch(e){console.error("Data load:",e);}
+    })();
+  },[token]);
+
+  if(loading)return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)",flexDirection:"column",gap:16}}>
+      <div style={{width:40,height:40,borderRadius:10,background:"linear-gradient(135deg,#22d3ee,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:800,color:"#050914"}}>A</div>
+      <div style={{display:"flex",gap:6}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#22d3ee",animation:`pulse 1s ease ${i*.2}s infinite`}}/>)}</div>
+    </div>
+  );
+
+  if(!token)return(
+    <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <style>{`@keyframes pulse{0%,100%{opacity:.4;transform:scale(.8);}50%{opacity:1;transform:scale(1);}}`}</style>
+      <div style={{width:380,background:"var(--bg2)",border:"1px solid var(--border2)",borderRadius:16,padding:36,boxShadow:"0 24px 80px rgba(0,0,0,.6)"}}>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,#22d3ee,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:800,color:"#050914",margin:"0 auto 14px"}}>A</div>
+          <div style={{fontSize:22,fontWeight:800,color:"var(--cyan)",letterSpacing:2,fontFamily:"var(--mono)"}}>AILANE</div>
+          <div style={{fontSize:11,color:"var(--text3)",marginTop:4,letterSpacing:.5}}>CEO Command Centre</div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label style={{display:"block",fontSize:10,color:"var(--text2)",marginBottom:5,textTransform:"uppercase",letterSpacing:.5,fontFamily:"var(--mono)"}}>Email</label>
+          <input className="input-field" type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+        </div>
+        <div style={{marginBottom:20}}>
+          <label style={{display:"block",fontSize:10,color:"var(--text2)",marginBottom:5,textTransform:"uppercase",letterSpacing:.5,fontFamily:"var(--mono)"}}>Password</label>
+          <input className="input-field" type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="••••••••"/>
+        </div>
+        {authError&&<div style={{background:"var(--red-dim)",border:"1px solid rgba(239,68,68,.2)",borderRadius:7,padding:"10px 14px",fontSize:12,color:"var(--red)",marginBottom:14}}>{authError}</div>}
+        <button className="btn btn-primary" onClick={handleLogin} disabled={authLoading} style={{width:"100%",justifyContent:"center",padding:13,fontSize:14}}>{authLoading?"Authenticating...":"Sign In →"}</button>
+        <div style={{textAlign:"center",marginTop:20,fontSize:10,color:"var(--text3)"}}>AI Lane Limited · Co. No. 17035654 · Internal Use Only</div>
+      </div>
+    </div>
+  );
+
+  const BADGE_COUNT={pipeline:0,accounts:2};
+
+  return (
+    <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"var(--font)",display:"flex",flexDirection:"column"}}>
+      <style>{`@keyframes pulse{0%,100%{opacity:.4;transform:scale(.8);}50%{opacity:1;transform:scale(1);}}`}</style>
+
+      {/* Command Palette */}
+      {cmdOpen&&<CommandPalette onClose={()=>setCmdOpen(false)} onNavigate={id=>{setActiveTab(id);setCmdOpen(false);}}/>}
+
+      {/* ACEI Detail Panel */}
+      {openDetail==="acei"&&<ACEIDetailPanel onClose={()=>setOpenDetail(null)} categoryScores={categoryScores} domainScores={domainScores}/>}
+
+      {/* Top Bar */}
+      <header style={{height:"var(--topbar)",background:"var(--bg2)",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",paddingLeft:sideOpen?"calc(var(--sidebar) + 0px)":"72px",paddingRight:24,gap:16,flexShrink:0,transition:"padding-left .2s",zIndex:10}}>
+        <div style={{flex:1}}/>
+        <LiveClock/>
+        <div style={{width:1,height:20,background:"var(--border)"}}/>
+        <button className="btn btn-ghost" style={{padding:"6px 12px",fontSize:11}} onClick={()=>setCmdOpen(true)}>
+          <span>⌘</span> Command
+          <span style={{fontSize:9,background:"var(--bg3)",padding:"1px 5px",borderRadius:3,fontFamily:"var(--mono)",marginLeft:4}}>K</span>
+        </button>
+        <div style={{width:1,height:20,background:"var(--border)"}}/>
+        <div style={{fontSize:12,color:"var(--text3)"}}>{user?.email||"mark@ailane.ai"}</div>
+        <button onClick={()=>{setToken(null);setUser(null);localStorage.removeItem("sb-token");localStorage.removeItem("sb-user");}} style={{background:"var(--red-dim)",border:"1px solid rgba(239,68,68,.2)",borderRadius:5,padding:"4px 10px",color:"var(--red)",fontSize:10,cursor:"pointer",fontWeight:600,fontFamily:"var(--mono)"}}>SIGN OUT</button>
+      </header>
+
+      <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+        {/* Sidebar */}
+        <aside style={{width:sideOpen?"var(--sidebar)":"56px",minHeight:"calc(100vh - var(--topbar))",background:"var(--bg2)",borderRight:"1px solid var(--border)",transition:"width .2s ease",display:"flex",flexDirection:"column",flexShrink:0,position:"relative",zIndex:5}}>
+          {/* Logo */}
+          <div style={{padding:sideOpen?"18px 14px":"18px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>setSideOpen(!sideOpen)}>
+            <div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#22d3ee,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#050914",flexShrink:0,boxShadow:"0 0 14px rgba(34,211,238,.3)"}}>A</div>
+            {sideOpen&&<div>
+              <div style={{fontSize:14,fontWeight:800,color:"var(--cyan)",letterSpacing:2,fontFamily:"var(--mono)",lineHeight:1}}>AILANE</div>
+              <div style={{fontSize:9,color:"var(--text3)",letterSpacing:.5,marginTop:2}}>CEO Command Centre</div>
+            </div>}
+          </div>
+
+          {/* Nav */}
+          <nav style={{flex:1,padding:"10px 8px",overflowY:"auto"}}>
+            {NAV.map(n=>(
+              <div key={n.id} className={`nav-item ${activeTab===n.id?"active":""}`} onClick={()=>setActiveTab(n.id)} title={!sideOpen?n.label:""}>
+                <span style={{fontSize:15,flexShrink:0}}>{n.icon}</span>
+                {sideOpen&&<span style={{fontWeight:activeTab===n.id?600:400}}>{n.label}</span>}
+                {sideOpen&&BADGE_COUNT[n.id]>0&&<span style={{marginLeft:"auto",background:"var(--cyan)",color:"var(--bg)",borderRadius:10,padding:"1px 6px",fontSize:9,fontWeight:700,fontFamily:"var(--mono)"}}>{BADGE_COUNT[n.id]}</span>}
+              </div>
+            ))}
+
+            {sideOpen&&<>
+              <div style={{height:1,background:"var(--border)",margin:"10px 4px"}}/>
+              <a href="/governance-dashboard/" target="_blank" className="nav-item" style={{display:"flex"}}>
+                <span style={{fontSize:15}}>🖥</span>
+                <span>Client Dashboard</span>
+                <span style={{marginLeft:"auto",fontSize:9,opacity:.4}}>↗</span>
+              </a>
+              <a href="/ticker/" target="_blank" className="nav-item" style={{display:"flex"}}>
+                <span style={{fontSize:15}}>📡</span>
+                <span>Ticker</span>
+                <span style={{marginLeft:"auto",fontSize:9,opacity:.4}}>↗</span>
+              </a>
+              <a href="/intelligence/" target="_blank" className="nav-item" style={{display:"flex"}}>
+                <span style={{fontSize:15}}>🌐</span>
+                <span>PCIE</span>
+                <span style={{marginLeft:"auto",fontSize:9,opacity:.4}}>↗</span>
+              </a>
+            </>}
+          </nav>
+
+          {/* Footer */}
+          {sideOpen&&<div style={{padding:"12px 14px",borderTop:"1px solid var(--border)"}}>
+            <div style={{fontSize:10,color:"var(--text3)",lineHeight:1.8}}>
+              <div style={{color:"var(--text2)",fontWeight:600,marginBottom:2}}>AI Lane Limited</div>
+              <div style={{fontFamily:"var(--mono)"}}>Co. No. 17035654</div>
+              <div>4 Min-Y-Mor, Barry</div>
+              <div>Wales, CF62 6QG</div>
+              <div style={{marginTop:4,display:"flex",alignItems:"center",gap:4}}>
+                <LiveDot/><span>Pro Plan · Live</span>
+              </div>
+            </div>
+          </div>}
+        </aside>
+
+        {/* Main */}
+        <main style={{flex:1,overflowY:"auto",padding:"28px 32px",minHeight:"calc(100vh - var(--topbar))"}}>
+          {activeTab==="overview"&&<OverviewTab domainScores={domainScores} categoryScores={categoryScores} signups={signups} employers={employers} legislativeChanges={legislativeChanges} scraperRuns={scraperRuns} onOpenDetail={setOpenDetail}/>}
+          {activeTab==="pipeline"&&<PipelineTab signups={signups} onOpenDetail={setOpenDetail}/>}
+          {activeTab==="simulator"&&<SimulatorTab token={token} domainScores={domainScores}/>}
+          {activeTab==="intelligence"&&<IntelligenceTab token={token}/>}
+          {activeTab==="regulatory"&&<RegulatoryTab legislativeChanges={legislativeChanges}/>}
+          {activeTab==="scrapers"&&<ScrapersTab scraperRuns={scraperRuns} token={token}/>}
+          {activeTab==="accounts"&&<AccountsTab token={token}/>}
+          {activeTab==="business"&&<BusinessTab/>}
+          {activeTab==="governance"&&<GovernanceTab onOpenDetail={setOpenDetail}/>}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(AilaneCEO));
+</script>
+</body>
+</html>
