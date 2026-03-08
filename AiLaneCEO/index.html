@@ -90,6 +90,25 @@ const callAssistant = async (messages, context, token) => {
   return d.content || d.error || "No response";
 };
 
+// ── ACCOUNTS SCHEMA HELPER ────────────────────────────────────────────────────
+const sbFetchAccounts = async (path, token, method = "GET", body = null) => {
+  const opts = {
+    method,
+    headers: {
+      apikey: SB_ANON,
+      Authorization: `Bearer ${token || SB_ANON}`,
+      "Content-Type": "application/json",
+      "Accept-Profile": "accounts",
+      "Content-Profile": "accounts",
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, opts);
+  if (!res.ok) throw new Error(await res.text());
+  if (method === "DELETE" || res.status === 204) return {};
+  return res.json();
+};
+
 // ── BASE COMPONENTS ───────────────────────────────────────────────────────────
 const Gauge = ({ value=0, size=160 }) => {
   const b = getBand(value), r=size/2-14, cx=size/2, cy=size/2+8;
@@ -163,15 +182,16 @@ const SectionHead = ({ title, sub, action }) => (
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
 const NAV = [
-  { id:"command",    label:"Command",       icon:"⚡" },
-  { id:"assistant",  label:"AI Assistant",  icon:"🤖" },
-  { id:"pipeline",   label:"Client Pipeline",icon:"📊" },
-  { id:"systems",    label:"Data Systems",  icon:"⚙️" },
-  { id:"intel",      label:"Intelligence",  icon:"🔍" },
-  { id:"regulatory", label:"Regulatory",    icon:"📰" },
-  { id:"business",   label:"Business Office",icon:"🏢" },
-  { id:"simulator",  label:"Simulator",     icon:"🔬" },
-  { id:"governance", label:"Governance",    icon:"📜" },
+  { id:"command",    label:"Command",          icon:"⚡" },
+  { id:"assistant",  label:"AI Assistant",     icon:"🤖" },
+  { id:"pipeline",   label:"Client Pipeline",  icon:"📊" },
+  { id:"systems",    label:"Data Systems",     icon:"⚙️" },
+  { id:"intel",      label:"Intelligence",     icon:"🔍" },
+  { id:"regulatory", label:"Regulatory",       icon:"📰" },
+  { id:"business",   label:"Business Office",  icon:"🏢" },
+  { id:"accounts",   label:"Accounts",         icon:"💷" },
+  { id:"simulator",  label:"Simulator",        icon:"🔬" },
+  { id:"governance", label:"Governance",       icon:"📜" },
   { id:"knowledge",  label:"Knowledge Library",icon:"📚", href:"/knowledge-library/" },
 ];
 
@@ -281,6 +301,17 @@ function App() {
     ]
   });
 
+  // ── ACCOUNTS STATE ────────────────────────────────────────────────────────
+  const [accTransactions, setAccTransactions]   = useState([]);
+  const [accFilingCalendar, setAccFilingCalendar] = useState([]);
+  const [accLoading, setAccLoading]             = useState(false);
+  const [receiptProcessing, setReceiptProcessing] = useState(false);
+  const [receiptResult, setReceiptResult]       = useState(null);
+  const [accAiQuery, setAccAiQuery]             = useState("");
+  const [accAiResponse, setAccAiResponse]       = useState("");
+  const [accAiLoading, setAccAiLoading]         = useState(false);
+  const [accActiveView, setAccActiveView]       = useState("dashboard");
+
   // ── AUTH ──────────────────────────────────────────────────────────────────
   useEffect(()=>{
     const t=localStorage.getItem("ailane-ceo-token");
@@ -355,6 +386,23 @@ function App() {
   },[token]);
 
   const unseen = signups.length - seenSignups;
+
+  // ── ACCOUNTS DATA LOAD (fires when Accounts tab activated) ────────────────
+  useEffect(()=>{
+    if(!token || tab !== "accounts") return;
+    setAccLoading(true);
+    (async()=>{
+      try{
+        const [txs, filing] = await Promise.all([
+          sbFetchAccounts("transactions?order=date.desc&limit=100", token),
+          sbFetchAccounts("filing_calendar?order=due_date.asc", token),
+        ]);
+        setAccTransactions(txs);
+        setAccFilingCalendar(filing);
+      }catch(e){ console.error("Accounts load error:", e); }
+      setAccLoading(false);
+    })();
+  },[token, tab]);
 
   // ── CHAT ──────────────────────────────────────────────────────────────────
   useEffect(()=>{ chatEndRef.current?.scrollIntoView({behavior:"smooth"}); },[chatHistory]);
@@ -935,7 +983,7 @@ function App() {
               </div>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:12}}>
-                {[["Name","AI Lane Limited"],["Number","17035654"],["Status","ACTIVE"],["ICO","00013389720"],["Trademark","UK00004347220"],["Incorporated","2025"]].map(([label,val])=>(
+                {[["Name","AI Lane Limited"],["Number","17035654"],["Status","ACTIVE"],["ICO","00013389720"],["Trademark","UK00004347220"],["Incorporated","16 Feb 2026"]].map(([label,val])=>(
                   <div key={label} style={{display:"flex",justifyContent:"space-between",paddingBottom:6,borderBottom:`1px solid ${C.border}`}}>
                     <span style={{color:C.t3}}>{label}</span><span style={{color:C.t1}}>{val}</span>
                   </div>
@@ -950,12 +998,12 @@ function App() {
             <div style={{fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:14,fontFamily:"'Syne',sans-serif"}}>Compliance Calendar</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {[
-                {label:"First Accounts Due",value:"~Sep 2027",status:"ok",note:"21 months from incorporation — time to establish good processes now"},
-                {label:"Confirmation Statement",value:"Annual",status:"ok",note:"Due annually from incorporation date"},
+                {label:"First Accounts Due",value:"16 Nov 2027",status:"ok",note:"Made up to 28 Feb 2027 · Micro-entity format"},
+                {label:"Confirmation Statement",value:"1 Mar 2027",status:"ok",note:"Statement date 15 Feb 2027"},
+                {label:"Corporation Tax (CT600)",value:"30 Nov 2027",status:"ok",note:"9 months after FY end 28 Feb 2027"},
                 {label:"UK Trademark Filed",value:"28 Feb 2026",status:"ok",note:"UK00004347220 · £170 · IPO processing"},
                 {label:"ICO Registration",value:"Active",status:"ok",note:"00013389720 · C1888202"},
-                {label:"VAT Registration",value:"Not yet",status:"info",note:"Required when turnover exceeds £90k threshold"},
-                {label:"PAYE / RTI",value:"Not yet",status:"info",note:"Required on first payroll run"},
+                {label:"VAT Registration",value:"Not yet",status:"info",note:"Required when rolling 12-month turnover exceeds £90k"},
               ].map((item,i)=>(
                 <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
                   <Dot color={item.status==="ok"?C.green:item.status==="warning"?C.orange:C.t3}/>
@@ -1022,6 +1070,316 @@ function App() {
             </div>
           )}
         </Card>
+      </div>
+    );
+  };
+
+  // ── ACCOUNTS ───────────────────────────────────────────────────────────────
+  const renderAccounts = () => {
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const expenses = accTransactions.filter(t => !t.is_revenue);
+    const revenue  = accTransactions.filter(t => t.is_revenue);
+    const totalMonthSpend   = expenses.filter(t => new Date(t.date) >= thisMonthStart).reduce((s,t) => s + parseFloat(t.amount||0), 0);
+    const totalMonthRevenue = revenue.filter(t => new Date(t.date) >= thisMonthStart).reduce((s,t) => s + parseFloat(t.amount||0), 0);
+    const pendingCount = accTransactions.filter(t => t.status === "pending").length;
+    const catTotals = {};
+    expenses.forEach(t => { const cat = t.category||"other"; catTotals[cat] = (catTotals[cat]||0) + parseFloat(t.amount||0); });
+    const daysUntil = d => Math.ceil((new Date(d) - now) / 86400000);
+
+    const handleReceiptUpload = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setReceiptProcessing(true);
+      setReceiptResult(null);
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64 = ev.target.result.split(",")[1];
+        try {
+          const res = await fetch(`${SB_URL}/functions/v1/receipt-ocr`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ image_base64: base64, media_type: file.type || "image/jpeg" }),
+          });
+          const data = await res.json();
+          setReceiptResult(data);
+          const txs = await sbFetchAccounts("transactions?order=date.desc&limit=100", token);
+          setAccTransactions(txs);
+        } catch (err) { setReceiptResult({ error: err.message }); }
+        setReceiptProcessing(false);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const handleAccAsk = async () => {
+      if (!accAiQuery.trim()) return;
+      setAccAiLoading(true);
+      setAccAiResponse("");
+      try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            system: `You are the accounts assistant for AI Lane Limited (Co. 17035654). Accounting year end: 28 February. Banking: Monzo Business. Answer concisely and professionally. Format numbers as GBP. Company context: Monthly spend £${totalMonthSpend.toFixed(2)}, pending items: ${pendingCount}. Filing calendar: ${JSON.stringify(accFilingCalendar.slice(0,5))}. Recent transactions: ${JSON.stringify(accTransactions.slice(0,15))}.`,
+            messages: [{ role: "user", content: accAiQuery }],
+          }),
+        });
+        const data = await res.json();
+        setAccAiResponse(data.content?.[0]?.text || "No response.");
+      } catch { setAccAiResponse("Error contacting AI assistant."); }
+      setAccAiLoading(false);
+    };
+
+    const sourceBadge = s => {
+      const m = { monzo:["🏦",C.gold,"Monzo"], email:["📧",C.cyan,"Email"], photo_upload:["📷",C.purple,"Upload"], manual:["✏️",C.t3,"Manual"], stripe:["💳",C.green,"Stripe"] };
+      const [ic,cl,lb] = m[s]||m.manual;
+      return <span style={{fontSize:10,background:`${cl}20`,color:cl,padding:"2px 8px",borderRadius:4,fontWeight:600,border:`1px solid ${cl}30`}}>{ic} {lb}</span>;
+    };
+    const statusBadge = s => {
+      const m = { pending:C.gold, categorised:C.cyan, reconciled:C.green, excluded:C.t3 };
+      return <span style={{fontSize:10,background:`${m[s]||C.t3}18`,color:m[s]||C.t3,padding:"2px 8px",borderRadius:4,fontWeight:600,textTransform:"capitalize",border:`1px solid ${(m[s]||C.t3)}28`}}>{s}</span>;
+    };
+
+    return (
+      <div style={{animation:"fadeUp .3s ease"}}>
+        <SectionHead title="Accounts"
+          sub="AI Lane Limited · FY ending 28 Feb · Monzo Business · VAT tracking · Filing calendar"
+        />
+
+        {/* Sub-nav */}
+        <div style={{display:"flex",gap:8,marginBottom:22,flexWrap:"wrap"}}>
+          {[["dashboard","📊 Dashboard"],["transactions","💳 Transactions"],["receipt","📷 Receipt Upload"],["calendar","📅 Filing Calendar"],["assistant","🤖 AI Assistant"]].map(([id,label])=>(
+            <button key={id} onClick={()=>setAccActiveView(id)} style={{
+              padding:"7px 16px", borderRadius:6, border:"none",
+              background: accActiveView===id ? `${C.cyan}15` : C.bg3,
+              color: accActiveView===id ? C.cyan : C.t3,
+              fontWeight: accActiveView===id ? 700 : 400,
+              fontSize:12, cursor:"pointer", fontFamily:"'Syne',sans-serif",
+              outline: accActiveView===id ? `1px solid ${C.cyan}40` : "none",
+            }}>{label}</button>
+          ))}
+        </div>
+
+        {accLoading && (
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,gap:8}}>
+            {[0,1,2].map(i=><span key={i} style={{width:8,height:8,borderRadius:"50%",background:C.cyan,display:"inline-block",animation:`pulse 1s ease infinite`,animationDelay:`${i*0.2}s`}}/>)}
+          </div>
+        )}
+
+        {/* ── DASHBOARD ── */}
+        {!accLoading && accActiveView==="dashboard" && (
+          <div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:10,marginBottom:20}}>
+              <Card><Stat label="Month Spend" value={`£${totalMonthSpend.toFixed(0)}`} sub="All expenses" color={C.red} icon="💸"/></Card>
+              <Card><Stat label="Month Revenue" value={`£${totalMonthRevenue.toFixed(0)}`} sub="Stripe + direct" color={C.green} icon="💰"/></Card>
+              <Card glow={pendingCount>0?C.gold:undefined}><Stat label="Pending Review" value={pendingCount} sub="Needs categorisation" color={pendingCount>0?C.gold:C.t3} icon="🔶"/></Card>
+              <Card><Stat label="Next Filing" value={accFilingCalendar[0]?`${daysUntil(accFilingCalendar[0].due_date)}d`:"—"} sub={accFilingCalendar[0]?.obligation||"None due"} color={C.purple} icon="📅"/></Card>
+              <Card><Stat label="VAT Rolling" value="£0" sub="Threshold: £90,000" color={C.cyan} icon="📊"/></Card>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+              <Card>
+                <div style={{fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:14,fontFamily:"'Syne',sans-serif"}}>Expense Categories</div>
+                {Object.keys(catTotals).length===0
+                  ? <div style={{fontSize:12,color:C.t3,textAlign:"center",padding:"24px 0"}}>No transactions yet — Monzo webhook will auto-populate</div>
+                  : Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).map(([cat,total])=>(
+                    <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{fontSize:12,color:C.t2,textTransform:"capitalize"}}>{cat}</span>
+                      <span style={{fontSize:12,color:C.cyan,fontFamily:"'JetBrains Mono',monospace"}}>£{total.toFixed(2)}</span>
+                    </div>
+                  ))
+                }
+              </Card>
+
+              <Card>
+                <div style={{fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:14,fontFamily:"'Syne',sans-serif"}}>VAT Tracker</div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                  <span style={{fontSize:12,color:C.t2}}>Rolling 12-month revenue</span>
+                  <span style={{fontSize:12,color:C.green,fontFamily:"'JetBrains Mono',monospace"}}>£{totalMonthRevenue.toFixed(2)}</span>
+                </div>
+                <div style={{height:8,background:"rgba(255,255,255,0.06)",borderRadius:4,overflow:"hidden",marginBottom:6}}>
+                  <div style={{width:`${Math.min((totalMonthRevenue/90000)*100,100)}%`,height:"100%",background:`linear-gradient(90deg,${C.green},${C.cyan})`,borderRadius:4,transition:"width 0.5s"}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+                  <span style={{fontSize:9,color:C.t3}}>£0</span>
+                  <span style={{fontSize:9,color:C.gold}}>Notify £70k</span>
+                  <span style={{fontSize:9,color:C.red}}>Register £90k</span>
+                </div>
+                <div style={{padding:"10px 12px",background:`${C.green}08`,border:`1px solid ${C.green}20`,borderRadius:6}}>
+                  <div style={{fontSize:11,color:C.green,fontWeight:600}}>✅ Below threshold — no registration required</div>
+                  <div style={{fontSize:10,color:C.t3,marginTop:2}}>Alerts trigger automatically at £70k, £80k, £89k</div>
+                </div>
+              </Card>
+            </div>
+
+            <Card>
+              <div style={{fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:14,fontFamily:"'Syne',sans-serif"}}>Recent Transactions</div>
+              {accTransactions.length===0
+                ? (
+                  <div style={{textAlign:"center",padding:"32px 0"}}>
+                    <div style={{fontSize:28,marginBottom:8}}>🏦</div>
+                    <div style={{fontSize:13,color:C.t3}}>No transactions yet</div>
+                    <div style={{fontSize:11,color:C.t3,marginTop:4,marginBottom:12}}>Register the Monzo webhook to begin live ingestion</div>
+                    <div style={{padding:"8px 16px",background:`${C.cyan}08`,border:`1px solid ${C.cyan}20`,borderRadius:6,display:"inline-block"}}>
+                      <div style={{fontSize:10,color:C.cyan,fontFamily:"'JetBrains Mono',monospace"}}>https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/monzo-webhook</div>
+                    </div>
+                  </div>
+                )
+                : accTransactions.slice(0,10).map((t,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,color:C.t1}}>{t.supplier_name||"Unknown"}</div>
+                      <div style={{fontSize:11,color:C.t3,marginTop:2}}>{t.date} · {t.category||"uncategorised"}</div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      {sourceBadge(t.source)}
+                      {statusBadge(t.status)}
+                      <span style={{fontSize:13,fontWeight:700,color:t.is_revenue?C.green:C.t1,fontFamily:"'JetBrains Mono',monospace",minWidth:70,textAlign:"right"}}>
+                        {t.is_revenue?"+":"-"}£{parseFloat(t.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              }
+            </Card>
+          </div>
+        )}
+
+        {/* ── TRANSACTIONS ── */}
+        {!accLoading && accActiveView==="transactions" && (
+          <Card>
+            <div style={{fontSize:13,fontWeight:600,color:C.t1,marginBottom:16,fontFamily:"'Syne',sans-serif"}}>All Transactions ({accTransactions.length})</div>
+            {accTransactions.length===0
+              ? <div style={{textAlign:"center",padding:"40px 0",color:C.t3,fontSize:13}}>No transactions yet. Monzo webhook and receipt uploads will populate this feed.</div>
+              : accTransactions.map((t,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,color:C.t1,fontWeight:500}}>{t.supplier_name||"Unknown"}</div>
+                    <div style={{fontSize:11,color:C.t3,marginTop:2}}>{t.date} · {t.category||"uncategorised"}{t.description?` · ${t.description}`:""}</div>
+                    {t.vat_amount>0&&<div style={{fontSize:10,color:C.t3,marginTop:1}}>VAT: £{parseFloat(t.vat_amount).toFixed(2)}</div>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                    {sourceBadge(t.source)}
+                    {statusBadge(t.status)}
+                    <span style={{fontSize:13,fontWeight:700,color:t.is_revenue?C.green:C.t1,fontFamily:"'JetBrains Mono',monospace",minWidth:80,textAlign:"right"}}>
+                      {t.is_revenue?"+":""}£{parseFloat(t.amount).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            }
+          </Card>
+        )}
+
+        {/* ── RECEIPT UPLOAD ── */}
+        {!accLoading && accActiveView==="receipt" && (
+          <div>
+            <Card style={{textAlign:"center",padding:"40px 20px",marginBottom:20}}>
+              <div style={{fontSize:40,marginBottom:12}}>📷</div>
+              <div style={{fontSize:15,fontWeight:700,color:C.t1,marginBottom:6,fontFamily:"'Syne',sans-serif"}}>Paper Receipt Upload</div>
+              <div style={{fontSize:12,color:C.t3,marginBottom:24,maxWidth:400,margin:"0 auto 24px"}}>Photograph any paper receipt. Claude Vision extracts supplier, amount, date, and VAT automatically.</div>
+              <label style={{display:"inline-block",padding:"12px 32px",background:`linear-gradient(135deg,${C.cyan},#06b6d4)`,borderRadius:8,color:"#080c18",fontWeight:700,fontSize:13,cursor:receiptProcessing?"not-allowed":"pointer",opacity:receiptProcessing?0.7:1,fontFamily:"'Syne',sans-serif"}}>
+                {receiptProcessing?"⏳ Processing with Claude Vision...":"📁 Choose Receipt Image"}
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={handleReceiptUpload} disabled={receiptProcessing}/>
+              </label>
+            </Card>
+            {receiptProcessing && (
+              <div style={{textAlign:"center",padding:20}}>
+                <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:8}}>
+                  {[0,1,2].map(i=><span key={i} style={{width:8,height:8,borderRadius:"50%",background:C.cyan,display:"inline-block",animation:`pulse 1s ease infinite`,animationDelay:`${i*0.2}s`}}/>)}
+                </div>
+                <div style={{fontSize:12,color:C.t3}}>Analysing with Claude Vision...</div>
+              </div>
+            )}
+            {receiptResult && !receiptResult.error && (
+              <Card glow={C.green}>
+                <div style={{fontSize:13,fontWeight:600,color:C.green,marginBottom:16}}>✅ Receipt Processed — Transaction Created</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                  {[["Supplier",receiptResult.prefilled?.supplier_name],["Amount",receiptResult.prefilled?.amount?`£${parseFloat(receiptResult.prefilled.amount).toFixed(2)}`:"—"],["Date",receiptResult.prefilled?.date],["VAT",receiptResult.prefilled?.vat_amount?`£${parseFloat(receiptResult.prefilled.vat_amount).toFixed(2)}`:"—"],["Category",receiptResult.prefilled?.category],["Description",receiptResult.prefilled?.description]].map(([label,value])=>(
+                    <div key={label} style={{background:"rgba(255,255,255,0.03)",borderRadius:6,padding:"10px 14px"}}>
+                      <div style={{fontSize:10,color:C.t3,marginBottom:4,textTransform:"uppercase"}}>{label}</div>
+                      <div style={{fontSize:12,color:C.t1}}>{value||"—"}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginTop:14,fontSize:11,color:C.t3}}>Saved as pending — review in Transactions to confirm categorisation.</div>
+              </Card>
+            )}
+            {receiptResult?.error && (
+              <Card glow={C.red}>
+                <div style={{fontSize:13,color:C.red}}>❌ Processing failed: {receiptResult.error}</div>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* ── FILING CALENDAR ── */}
+        {!accLoading && accActiveView==="calendar" && (
+          <div>
+            <div style={{marginBottom:16,padding:"10px 16px",background:`${C.cyan}06`,border:`1px solid ${C.cyan}15`,borderRadius:8}}>
+              <div style={{fontSize:11,color:C.cyan,fontWeight:600}}>AI Lane Limited · FY ending 28 February · Incorporated 16 February 2026 · Monzo Business</div>
+            </div>
+            {accFilingCalendar.map((item,i)=>{
+              const days = daysUntil(item.due_date);
+              const uc = days<=14?C.red:days<=30?C.orange:days<=60?C.gold:C.green;
+              const bodyLabel = {companies_house:"Companies House",hmrc:"HMRC",ico:"ICO",internal:"Internal"};
+              return (
+                <div key={i} style={{background:C.bg3,border:`1px solid ${uc}25`,borderLeft:`3px solid ${uc}`,borderRadius:10,padding:20,marginBottom:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:14,fontWeight:600,color:C.t1,marginBottom:6}}>{item.obligation}</div>
+                      <div style={{fontSize:11,color:C.t3,lineHeight:1.5}}>{item.notes}</div>
+                      <div style={{marginTop:8}}><Pill color={uc} size={9}>{bodyLabel[item.filing_body]||item.filing_body}</Pill></div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0,marginLeft:24}}>
+                      <div style={{fontSize:28,fontWeight:700,color:uc,fontFamily:"'JetBrains Mono',monospace",lineHeight:1}}>{days}</div>
+                      <div style={{fontSize:10,color:C.t3,marginTop:2}}>days remaining</div>
+                      <div style={{fontSize:11,color:C.t2,marginTop:4}}>{new Date(item.due_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── AI ASSISTANT ── */}
+        {!accLoading && accActiveView==="assistant" && (
+          <div>
+            <Card style={{marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:600,color:C.t1,marginBottom:4,fontFamily:"'Syne',sans-serif"}}>Accounts AI Assistant</div>
+              <div style={{fontSize:11,color:C.t3,marginBottom:16}}>Ask about expenses, VAT position, filing deadlines, or request summaries.</div>
+              <div style={{display:"flex",gap:10,marginBottom:12}}>
+                <input value={accAiQuery} onChange={e=>setAccAiQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAccAsk()}
+                  placeholder="e.g. What's my total SaaS spend? When is my next Companies House filing?"
+                  style={{flex:1,padding:"12px 16px",background:"rgba(255,255,255,0.04)",border:`1px solid ${C.border}`,borderRadius:8,color:C.t1,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                <Btn onClick={handleAccAsk} disabled={accAiLoading||!accAiQuery.trim()} color={C.cyan}>
+                  {accAiLoading?"...":"Ask"}
+                </Btn>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {["What's my total spend this month?","When is my next Companies House filing?","Am I close to the VAT threshold?","Summarise expenses by category"].map(q=>(
+                  <button key={q} onClick={()=>setAccAiQuery(q)} style={{padding:"4px 12px",background:C.bg3,border:`1px solid ${C.border}`,borderRadius:4,color:C.t3,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{q}</button>
+                ))}
+              </div>
+            </Card>
+            {accAiLoading && (
+              <div style={{textAlign:"center",padding:32}}>
+                <div style={{display:"flex",justifyContent:"center",gap:6}}>
+                  {[0,1,2].map(i=><span key={i} style={{width:8,height:8,borderRadius:"50%",background:C.cyan,display:"inline-block",animation:`pulse 1s ease infinite`,animationDelay:`${i*0.2}s`}}/>)}
+                </div>
+              </div>
+            )}
+            {accAiResponse && !accAiLoading && (
+              <Card glow={C.cyan}>
+                <div style={{fontSize:10,color:C.cyan,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:10,fontFamily:"'Syne',sans-serif"}}>AI Response</div>
+                <div style={{fontSize:13,color:C.t1,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{accAiResponse}</div>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -1102,7 +1460,7 @@ function App() {
         { code:"ACEI v1.0", title:"Adverse Claim Exposure Index", color:C.cyan, status:"In Force", date:"26 Feb 2026",
           formula:"DI = Σ(Cw·Cs) × SM × JM",
           summary:"12 categories. External regulatory environment exposure. Tribunal decision–driven. Sector (SM) and jurisdiction (JM) multipliers. Score 0–100.",
-          amendments:[{id:"ACEI-AM-2026-001",title:"Sector Taxonomy (32 sectors)",status:"Ratified"},{id:"ACEI-AM-2026-002",title:"Jurisdiction Multiplier & Sub-Regional Intelligence",status:"Ratified"},{id:"ACEI-AM-2026-003",title:"Enterprise Exposure Modifier (EEM)",status:"PROPOSED — NOT RATIFIED",warning:true}]
+          amendments:[{id:"ACEI-AM-2026-001",title:"Sector Taxonomy (32 sectors)",status:"Ratified"},{id:"ACEI-AM-2026-002",title:"Jurisdiction Multiplier & Sub-Regional Intelligence",status:"Ratified"},{id:"ACEI-AM-2026-003",title:"CREE — Client-Reported Enforcement Events",status:"Ratified"}]
         },
         { code:"RRI v1.0", title:"Regulatory Readiness Index", color:C.gold, status:"In Force", date:"26 Feb 2026",
           formula:"WDRS = Σ(Ps·Pv) × 20",
@@ -1157,7 +1515,7 @@ function App() {
       {id:1,text:"GOV.UK Tribunal Decisions database: 130,854 classified decisions · Feb 2010–Feb 2026",type:"intel"},
       {id:2,text:"Parliament Bills pipeline: active and running · 3 new bills ingested today",type:"parliament"},
       {id:3,text:"Companies House enrichment: 25,274 verified profiles · 32.1% coverage",type:"intel"},
-      {id:4,text:"ACEI-AM-2026-003 Enterprise Exposure Modifier: proposed · awaiting ratification",type:"intel"},
+      {id:4,text:"ACEI-AM-2026-003 CREE ratified 7 March 2026 — Client-Reported Enforcement Events live at all tiers",type:"intel"},
       {id:5,text:"PSC Scraper: populating corporate_relationships table · EEI Phase 2 in progress",type:"intel"},
     ];
     const doubled = [...items,...items];
@@ -1189,7 +1547,8 @@ function App() {
   const sections = {
     command:renderCommand, assistant:renderAssistant, pipeline:renderPipeline,
     systems:renderSystems, intel:renderIntel, regulatory:renderRegulatory,
-    business:renderBusiness, simulator:renderSimulator, governance:renderGovernance,
+    business:renderBusiness, accounts:renderAccounts,
+    simulator:renderSimulator, governance:renderGovernance,
   };
 
   // ─── LOADING ───────────────────────────────────────────────────────────────
