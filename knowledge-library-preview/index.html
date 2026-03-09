@@ -204,7 +204,88 @@ nav {
 .preview-footer-text a { color:var(--t3); text-decoration:none; transition:color 0.2s; }
 .preview-footer-text a:hover { color:var(--cyan); }
 
-@media(max-width:768px){ .instruments-grid{grid-template-columns:1fr;} }
+/* ── WTR 1998 GOLD CARD ── */
+.instrument-card.wtr-gold {
+  border:2px solid #f59e0b;
+  box-shadow:0 0 0 2px rgba(245,158,11,0.3), 0 4px 20px rgba(245,158,11,0.12);
+  cursor:pointer;
+}
+.instrument-card.wtr-gold:hover { transform:translateY(-2px); box-shadow:0 0 0 2px rgba(245,158,11,0.4), 0 8px 32px rgba(245,158,11,0.18); border-color:#f59e0b; }
+.instrument-card.wtr-gold::before { background:linear-gradient(90deg,transparent,#f59e0b,transparent); }
+.wtr-gold-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--mono); font-size:9px; letter-spacing:1.5px; font-weight:700;
+  color:#f59e0b; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25);
+  border-radius:4px; padding:3px 9px; margin-top:8px;
+}
+
+/* ── WTR EXPANDED PANEL ── */
+.wtr-expand-overlay {
+  display:none; position:fixed; inset:0; z-index:200;
+  background:rgba(6,8,13,0.85); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  overflow-y:auto; padding:40px 24px;
+}
+.wtr-expand-overlay.active { display:flex; justify-content:center; align-items:flex-start; animation:fadeInUp 0.25s var(--ease); }
+.wtr-expand-panel {
+  width:100%; max-width:760px; background:var(--bg-card); border:1px solid rgba(245,158,11,0.2);
+  border-radius:14px; padding:0; overflow:hidden; position:relative;
+  box-shadow:0 0 0 2px rgba(245,158,11,0.15), 0 24px 80px rgba(0,0,0,0.6);
+}
+.wtr-panel-header {
+  padding:24px 28px 20px; border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+}
+.wtr-panel-header h2 { font-size:20px; font-weight:700; color:var(--t1); line-height:1.3; }
+.wtr-panel-close {
+  font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--t3);
+  background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px;
+  padding:6px 14px; cursor:pointer; transition:all 0.2s; flex-shrink:0;
+}
+.wtr-panel-close:hover { color:var(--t1); border-color:var(--border-h); }
+.wtr-panel-body { padding:20px 28px 28px; }
+.wtr-section { margin-bottom:20px; }
+.wtr-section-label {
+  font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--t4);
+  text-transform:uppercase; margin-bottom:8px;
+}
+.wtr-section p, .wtr-section div.wtr-text { font-size:14px; line-height:1.7; color:var(--t2); }
+.wtr-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; }
+.wtr-meta-item { display:flex; flex-direction:column; gap:2px; }
+.wtr-meta-key { font-family:var(--mono); font-size:9px; letter-spacing:1px; color:var(--t4); text-transform:uppercase; }
+.wtr-meta-val { font-size:13px; color:var(--t2); }
+.wtr-provisions-list { list-style:none; display:flex; flex-direction:column; gap:10px; }
+.wtr-provisions-list li { font-size:13px; color:var(--t2); line-height:1.65; padding-left:18px; position:relative; }
+.wtr-provisions-list li::before { content:'\2192'; position:absolute; left:0; color:var(--gold); font-family:var(--mono); font-size:12px; }
+.wtr-provisions-list li strong { color:var(--t1); font-weight:600; }
+.wtr-source-link {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--mono); font-size:11px; letter-spacing:0.5px;
+  color:var(--cyan); text-decoration:none; margin-top:4px;
+}
+.wtr-source-link:hover { color:#5cc9f5; }
+
+/* Report generation button */
+.wtr-generate-report {
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:var(--mono); font-size:12px; letter-spacing:0.5px; font-weight:700;
+  color:var(--bg); background:linear-gradient(135deg,#f59e0b,#d97706);
+  border:none; border-radius:8px; padding:12px 24px; cursor:pointer;
+  transition:all 0.2s; margin-top:8px;
+}
+.wtr-generate-report:hover { background:linear-gradient(135deg,#fbbf24,#f59e0b); transform:translateY(-1px); box-shadow:0 4px 16px rgba(245,158,11,0.25); }
+.wtr-generate-report:disabled { opacity:0.6; cursor:wait; transform:none; box-shadow:none; }
+.wtr-report-output {
+  margin-top:16px; padding:20px; background:rgba(245,158,11,0.04);
+  border:1px solid rgba(245,158,11,0.12); border-radius:10px;
+  font-size:13px; color:var(--t2); line-height:1.7; display:none;
+}
+.wtr-report-output.visible { display:block; animation:fadeInUp 0.3s var(--ease); }
+.wtr-report-output h4 { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; color:var(--gold); margin-bottom:12px; }
+.wtr-report-section { margin-bottom:14px; }
+.wtr-report-section strong { color:var(--t1); font-size:12px; }
+.wtr-report-section p { font-size:12px; color:var(--t2); line-height:1.65; margin-top:4px; }
+
+@media(max-width:768px){ .instruments-grid{grid-template-columns:1fr;} .wtr-meta-grid{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
@@ -322,8 +403,8 @@ nav {
       </div>
     </div>
 
-    <!-- SAMPLE 3: Working Time Regulations 1998 -->
-    <div class="instrument-card fade-in" data-cats="03">
+    <!-- SAMPLE 3: Working Time Regulations 1998 — GOLD CARD -->
+    <div class="instrument-card wtr-gold fade-in" data-cats="03" id="wtr-card" onclick="document.getElementById('wtr-overlay').classList.add('active')">
       <div class="inst-header">
         <div class="inst-title">Working Time Regulations 1998</div>
         <span class="inst-status status-force">IN FORCE</span>
@@ -334,7 +415,7 @@ nav {
         <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
       </div>
       <div class="inst-cats">
-        <span class="inst-cat">CAT 03</span>
+        <span class="inst-cat">CAT 06</span>
       </div>
       <div class="inst-summary">Implements the EU Working Time Directive. Governs maximum weekly working hours (48h average), rest break entitlements, night work restrictions, and statutory annual leave (28 days inclusive). Holiday pay calculation remains a primary driver of wages tribunal claims.</div>
       <div class="inst-sci">
@@ -346,6 +427,7 @@ nav {
         </div>
         <span class="inst-sci-val">3 / 5 · ELEVATED</span>
       </div>
+      <div class="wtr-gold-badge">&#9733; VIEW INSTRUMENT &#8594;</div>
     </div>
 
     <!-- GATED: Health & Safety at Work Act 1974 -->
@@ -516,6 +598,141 @@ nav {
     UK Trademark UK00004347220
   </div>
 </footer>
+
+<!-- WTR 1998 EXPANDED PANEL OVERLAY -->
+<div class="wtr-expand-overlay" id="wtr-overlay" onclick="if(event.target===this)this.classList.remove('active')">
+  <div class="wtr-expand-panel">
+    <div class="wtr-panel-header">
+      <div>
+        <h2>Working Time Regulations 1998</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <span class="inst-status status-force">IN FORCE</span>
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:4px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(245,158,11,0.2);">GOVERNANCE TIER</span>
+        </div>
+      </div>
+      <button class="wtr-panel-close" onclick="event.stopPropagation();document.getElementById('wtr-overlay').classList.remove('active')">&#10005; CLOSE</button>
+    </div>
+    <div class="wtr-panel-body">
+
+      <!-- Meta grid -->
+      <div class="wtr-section">
+        <div class="wtr-meta-grid">
+          <div class="wtr-meta-item"><span class="wtr-meta-key">Reference</span><span class="wtr-meta-val">SI 1998/1833</span></div>
+          <div class="wtr-meta-item"><span class="wtr-meta-key">Category</span><span class="wtr-meta-val">Working Time &amp; Leave (ACEI Category 6)</span></div>
+          <div class="wtr-meta-item"><span class="wtr-meta-key">Lifecycle Stage</span><span class="wtr-meta-val">In Force</span></div>
+          <div class="wtr-meta-item"><span class="wtr-meta-key">Jurisdiction</span><span class="wtr-meta-val">England, Wales, Scotland (GB &mdash; excludes Northern Ireland on certain provisions)</span></div>
+          <div class="wtr-meta-item"><span class="wtr-meta-key">Effective Date</span><span class="wtr-meta-val">1 October 1998</span></div>
+          <div class="wtr-meta-item"><span class="wtr-meta-key">Last Amended</span><span class="wtr-meta-val">1 January 2024 (SI 2023/1181)</span></div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="wtr-section">
+        <div class="wtr-section-label">Summary</div>
+        <p>Implements the EU Working Time Directive (93/104/EC) into UK law. Establishes the 48-hour average weekly working time limit (with opt-out), minimum daily and weekly rest periods, rest breaks, annual leave entitlement (5.6 weeks / 28 days for full-time workers), night work restrictions, and protections for young workers. Enforcement is through employment tribunals and the relevant enforcing authority.</p>
+      </div>
+
+      <!-- Key Provisions -->
+      <div class="wtr-section">
+        <div class="wtr-section-label">Key Provisions</div>
+        <ul class="wtr-provisions-list">
+          <li><strong>Regulation 4:</strong> Maximum average 48-hour working week (reference period 17 weeks); individual opt-out available under Reg 5</li>
+          <li><strong>Regulation 10:</strong> Daily rest &mdash; 11 consecutive hours per 24-hour period</li>
+          <li><strong>Regulation 11:</strong> Weekly rest &mdash; 24 uninterrupted hours per 7-day period (or 48 hours per 14-day period)</li>
+          <li><strong>Regulation 12:</strong> Rest breaks &mdash; 20-minute uninterrupted break where working day exceeds 6 hours</li>
+          <li><strong>Regulations 13 &amp; 13A:</strong> Annual leave &mdash; 4 weeks (Reg 13) + 1.6 weeks (Reg 13A) = 5.6 weeks statutory minimum</li>
+          <li><strong>Regulation 14:</strong> Payment in lieu of annual leave on termination only</li>
+          <li><strong>Regulation 27A:</strong> Rolled-up holiday pay &mdash; prohibited following Tribunal and EAT case law</li>
+          <li><strong>Regulations 36&ndash;43:</strong> Young workers &mdash; stricter limits; no night work; 30-minute break after 4.5 hours</li>
+        </ul>
+      </div>
+
+      <!-- Constitutional Mapping -->
+      <div class="wtr-section">
+        <div class="wtr-section-label">Constitutional Mapping</div>
+        <div class="wtr-text" style="font-size:13px;color:var(--t2);line-height:1.7;">
+          <span style="color:var(--cyan);">ACEI Category 6</span> &mdash; Working Time &amp; Leave<br>
+          <span style="color:var(--cyan);">RRI Pillar 3</span> &mdash; Policy &amp; Procedure Conformity<br>
+          <span style="color:var(--cyan);">CCI Component 4</span> &mdash; Regulatory Cooperation
+        </div>
+      </div>
+
+      <!-- Enforcement Note -->
+      <div class="wtr-section">
+        <div class="wtr-section-label">Enforcement</div>
+        <p>Enforced by employment tribunals (annual leave, rest breaks). HSE responsible for working time limits and night work. Claims under Reg 30 for denial of rights.</p>
+      </div>
+
+      <!-- Source -->
+      <div class="wtr-section" style="margin-bottom:24px;">
+        <div class="wtr-section-label">Source</div>
+        <a href="https://www.legislation.gov.uk/uksi/1998/1833/contents" target="_blank" rel="noreferrer" class="wtr-source-link">&#8599; legislation.gov.uk &middot; OGL v3</a>
+      </div>
+
+      <!-- Divider -->
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:24px;"></div>
+
+      <!-- Generate Report Section -->
+      <div class="wtr-section" style="margin-bottom:0;">
+        <div class="wtr-section-label">Governance Analysis</div>
+        <p style="font-size:12px;color:var(--t3);margin-bottom:12px;">Generate an in-depth compliance analysis report for this instrument, mapped to your organisation's ACEI, RRI, and CCI obligations.</p>
+        <button class="wtr-generate-report" id="wtr-gen-btn" onclick="event.stopPropagation();generateWtrReport()">
+          <span id="wtr-gen-icon">&#9881;</span> Generate In-Depth Report
+        </button>
+        <div class="wtr-report-output" id="wtr-report-output">
+          <h4>&#9881; IN-DEPTH ANALYSIS &middot; WORKING TIME REGULATIONS 1998</h4>
+          <div class="wtr-report-section">
+            <strong>1. ACEI Exposure Assessment (Category 6)</strong>
+            <p>The Working Time Regulations 1998 remain a persistent source of employment tribunal claims, particularly concerning holiday pay calculation (following the <em>Bear Scotland</em> and <em>Harpur Trust v Brazel</em> line of authority). Organisations with variable-hours workers, shift patterns, or overtime structures face elevated exposure under EVI. Enforcement intensity is moderate: HSE interventions on working time limits remain low-frequency but high-impact, while tribunal claims on annual leave denial are high-volume. SCI significance is elevated at 3/5 due to ongoing case law development on rolled-up holiday pay and the interaction with the Employment Rights Act 2025 provisions on guaranteed hours.</p>
+          </div>
+          <div class="wtr-report-section">
+            <strong>2. RRI Readiness Gaps (Pillar 3)</strong>
+            <p>Key readiness obligations: (a) Written working time policy covering opt-out procedures, rest break entitlements, and annual leave accrual methodology; (b) Documented night worker health assessment process per Reg 7; (c) Training records demonstrating line manager awareness of rest break obligations and opt-out withdrawal rights; (d) Systems capability to track 17-week reference period calculations and flag breaches; (e) Governance sign-off on holiday pay calculation methodology (particularly for workers with variable pay components).</p>
+          </div>
+          <div class="wtr-report-section">
+            <strong>3. CCI Conduct Posture</strong>
+            <p>Historical compliance indicators to monitor: tribunal claim history under Reg 30 (denial of rights); HSE improvement or prohibition notices related to working time; any EAT or higher court decisions naming the organisation; pattern of holiday pay underpayment corrections. Organisations with clean CCI records on Category 6 should maintain documented evidence of proactive compliance reviews conducted at least annually.</p>
+          </div>
+          <div class="wtr-report-section">
+            <strong>4. Recommended Actions</strong>
+            <p>&#8594; Audit current holiday pay calculation methodology against <em>Harpur Trust v Brazel</em> [2022] UKSC 21<br>
+            &#8594; Review all opt-out agreements for Reg 5 validity (voluntary, written, 7-day withdrawal notice)<br>
+            &#8594; Verify night worker health assessment records are current (Reg 7)<br>
+            &#8594; Confirm rest break policies are communicated and enforced (Reg 12)<br>
+            &#8594; Map interaction with ERA 2025 guaranteed hours provisions for zero-hours and variable-hours workers</p>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(245,158,11,0.1);">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--t4);">GENERATED BY AILANE CONSTITUTIONAL INTELLIGENCE &middot; GOVERNANCE TIER &middot; FOR ILLUSTRATIVE PURPOSES</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// WTR Report generation
+function generateWtrReport() {
+  var btn = document.getElementById('wtr-gen-btn');
+  var output = document.getElementById('wtr-report-output');
+  var icon = document.getElementById('wtr-gen-icon');
+  btn.disabled = true;
+  icon.textContent = '⟳';
+  btn.innerHTML = '<span>&#8987;</span> Generating analysis\u2026';
+  setTimeout(function() {
+    output.classList.add('visible');
+    btn.innerHTML = '<span>&#10003;</span> Report generated';
+    btn.style.background = 'linear-gradient(135deg,#34d399,#059669)';
+    setTimeout(function() { output.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 100);
+  }, 1800);
+}
+
+// Close overlay on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('wtr-overlay').classList.remove('active');
+});
+</script>
 
 <script>
 // Category tab filtering
