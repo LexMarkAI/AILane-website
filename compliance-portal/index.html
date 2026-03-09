@@ -356,6 +356,13 @@ const FN_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1';
 const REST    = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1';
 const ANON    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDI0MDcsImV4cCI6MjA4ODIxODQwN30.QNdN7dIdMJoqjBjP5dJLMPMbxCkNmSqCjl2bCnMeNlw';
 
+const TIER_FILE_SIZE_LIMITS = {
+  one_time_scan:    500 * 1024,          // 500KB
+  operational:      1024 * 1024,         // 1MB
+  governance:       2 * 1024 * 1024,     // 2MB
+  institutional:    10 * 1024 * 1024,    // 10MB
+};
+
 let stripeSession = null;
 let uploadId      = null;
 let docType       = 'contract';
@@ -459,7 +466,28 @@ uploadZone.addEventListener('drop', e => {
 });
 fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
 
+function showUploadError(msg) {
+  const el = document.getElementById('err-upload');
+  el.textContent = '⚠ ' + msg;
+  el.classList.remove('hidden');
+}
+
 function setFile(f) {
+  const tier = (typeof sessionData !== 'undefined' && sessionData?.tier) || 'one_time_scan';
+  const sizeLimit = TIER_FILE_SIZE_LIMITS[tier] || TIER_FILE_SIZE_LIMITS.one_time_scan;
+
+  if (f.size > sizeLimit) {
+    const pageLimits = { one_time_scan: 15, operational: 30, governance: 60 };
+    const pageLimit = pageLimits[tier] || 15;
+    showUploadError(
+      `This document is too large for your plan (limit: ~${pageLimit} pages). ` +
+      `Please upload a shorter document, or contact support@ailane.ai ` +
+      `to discuss upgrading your plan for larger contract support.`
+    );
+    return;
+  }
+
+  document.getElementById('err-upload').classList.add('hidden');
   selectedFile = f;
   document.getElementById('fname-display').textContent = f.name + ' (' + (f.size/1024).toFixed(0) + ' KB)';
   document.getElementById('file-selected').style.display = 'block';
