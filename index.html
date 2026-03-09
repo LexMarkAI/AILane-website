@@ -4,1813 +4,1295 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ailane CEO Command Centre v3</title>
-  <meta name="robots" content="noindex, nofollow">
+  <title>Ailane — Employment Law Exposure Intelligence</title>
+  <meta name="description" content="Ailane quantifies your organisation's employment law risk across three independently governed indices — built on 130,000+ tribunal decisions and live enforcement data.">
+
+  <!-- GA4 -->
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- Fonts: Inter + JetBrains Mono (canonical) -->
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%230a0e1a' font-weight='700' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    html,body,#root{height:100%;width:100%;}
-    body{background:#060912;font-family:'Syne',sans-serif;color:#e2e8f0;overflow:hidden;}
-    ::-webkit-scrollbar{width:4px;height:4px;}
-    ::-webkit-scrollbar-track{background:#0d1221;}
-    ::-webkit-scrollbar-thumb{background:#2a3550;border-radius:2px;}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-    @keyframes slideInRight{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
-    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .fade-in{animation:fadeIn 0.3s ease forwards;}
-    .slide-in-right{animation:slideInRight 0.25s ease forwards;}
-    .pulse{animation:pulse 2s infinite;}
-    .spin{animation:spin 1s linear infinite;}
-    .scrollable{overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a3550 #0d1221;}
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── TOKENS ────────────────────────────────────────────────────────────── */
+:root {
+  --bg:        #0a0e1a;
+  --bg2:       #0d1220;
+  --bg3:       #111827;
+  --bg4:       #0f172a;
+  --panel:     rgba(255,255,255,0.025);
+  --panelh:    rgba(255,255,255,0.04);
+  --b:         rgba(255,255,255,0.07);
+  --bm:        rgba(255,255,255,0.12);
+
+  --c:         #22d3ee;   /* cyan – accent/decorative only */
+  --cd:        #0891b2;   /* dark cyan – coloured text */
+  --cdim:      rgba(34,211,238,0.06);
+  --cglow:     rgba(34,211,238,0.12);
+
+  --t1:        #f1f5f9;
+  --t2:        #94a3b8;
+  --t3:        #64748b;
+  --t4:        #475569;
+
+  --amber:     #f59e0b;   /* Institutional tier ONLY */
+  --amberd:    rgba(245,158,11,0.08);
+  --green:     #10b981;
+  --greend:    rgba(16,185,129,0.08);
+  --red:       #ef4444;
+  --redd:      rgba(239,68,68,0.08);
+  --indigo:    #818cf8;
+  --indigod:   rgba(129,140,248,0.08);
+}
+
+/* ── RESET ──────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{
+  background:var(--bg);
+  color:var(--t1);
+  font-family:'Inter',-apple-system,sans-serif;
+  font-size:15px;
+  line-height:1.6;
+  overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font-family:'Inter',sans-serif}
+img{display:block}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.18);border-radius:2px}
+
+/* ── NAV ─────────────────────────────────────────────────────────────────── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:62px;padding:0 48px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(10,14,26,0.88);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--b);
+  transition:border-color .3s;
+}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logomark{
+  width:30px;height:30px;border-radius:6px;
+  border:1.5px solid var(--c);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--c);
+  position:relative;
+}
+.nav-logomark::after{
+  content:'';position:absolute;inset:0;border-radius:5px;
+  background:var(--cdim);
+}
+.nav-wordmark{
+  font-family:'JetBrains Mono',monospace;
+  font-size:14px;font-weight:700;letter-spacing:.06em;color:var(--t1);
+}
+.nav-wordmark em{font-style:normal;color:var(--c)}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{
+  font-size:13px;font-weight:500;color:var(--t3);
+  transition:color .2s;letter-spacing:.01em;
+}
+.nav-links a:hover{color:var(--t1)}
+.nav-right{display:flex;align-items:center;gap:14px}
+.nav-lang{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;color:var(--t3);
+  padding:5px 10px;border:1px solid var(--b);border-radius:5px;
+  cursor:pointer;transition:border-color .2s,color .2s;
+}
+.nav-lang:hover{border-color:var(--bm);color:var(--t2)}
+.nav-cta{
+  padding:8px 18px;
+  border:1px solid var(--c);border-radius:6px;
+  background:transparent;color:var(--c);
+  font-size:13px;font-weight:600;letter-spacing:.02em;
+  transition:background .2s,color .2s;
+}
+.nav-cta:hover{background:var(--c);color:var(--bg)}
+
+/* ── HERO ─────────────────────────────────────────────────────────────────── */
+.hero{
+  min-height:100vh;
+  padding:140px 48px 80px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;position:relative;overflow:hidden;
+}
+/* Perspective grid */
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(34,211,238,0.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(34,211,238,0.035) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(ellipse 75% 60% at 50% 45%,black 30%,transparent 100%);
+  pointer-events:none;
+}
+/* Glow orb */
+.hero-glow{
+  position:absolute;top:15%;left:50%;transform:translateX(-50%);
+  width:700px;height:500px;
+  background:radial-gradient(ellipse,rgba(34,211,238,0.055) 0%,transparent 65%);
+  pointer-events:none;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 16px;
+  border:1px solid rgba(34,211,238,0.22);
+  border-radius:100px;background:rgba(34,211,238,0.05);
+  font-size:11px;font-weight:600;color:var(--c);
+  letter-spacing:.08em;text-transform:uppercase;
+  margin-bottom:30px;position:relative;z-index:1;
+}
+.pulse-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--c);
+  animation:pdot 2.2s ease-in-out infinite;
+}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}
+.hero-h1{
+  font-size:clamp(38px,5.8vw,76px);
+  font-weight:900;
+  line-height:1.06;letter-spacing:-.035em;
+  color:var(--t1);max-width:940px;
+  margin-bottom:24px;position:relative;z-index:1;
+}
+.hero-h1 em{font-style:normal;color:var(--c)}
+.hero-sub{
+  font-size:17px;color:var(--t2);
+  max-width:540px;line-height:1.72;
+  margin-bottom:40px;position:relative;z-index:1;
+}
+.hero-actions{
+  display:flex;gap:12px;
+  position:relative;z-index:1;margin-bottom:64px;
+}
+.btn-p{
+  padding:14px 28px;
+  background:var(--c);color:var(--bg);
+  border:none;border-radius:8px;
+  font-size:14px;font-weight:700;letter-spacing:.01em;
+  display:inline-flex;align-items:center;gap:8px;
+  transition:opacity .2s,transform .18s;
+}
+.btn-p:hover{opacity:.88;transform:translateY(-2px)}
+.btn-s{
+  padding:14px 28px;
+  background:transparent;color:var(--t1);
+  border:1px solid var(--bm);border-radius:8px;
+  font-size:14px;font-weight:600;
+  display:inline-flex;align-items:center;gap:8px;
+  transition:border-color .2s,background .2s;
+}
+.btn-s:hover{border-color:rgba(255,255,255,.2);background:var(--panelh)}
+/* Stats strip */
+.hero-stats{
+  display:flex;
+  border:1px solid var(--b);border-radius:12px;
+  background:rgba(10,14,26,.6);
+  backdrop-filter:blur(12px);
+  overflow:hidden;position:relative;z-index:1;
+}
+.hstat{
+  padding:20px 40px;
+  border-right:1px solid var(--b);text-align:center;
+}
+.hstat:last-child{border-right:none}
+.hstat-v{
+  font-family:'JetBrains Mono',monospace;
+  font-size:26px;font-weight:700;color:var(--t1);
+  letter-spacing:-.02em;display:block;
+}
+.hstat-v em{font-style:normal;color:var(--c)}
+.hstat-l{
+  font-size:10px;font-weight:600;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.07em;
+  margin-top:4px;display:block;
+}
+
+/* ── TICKER ──────────────────────────────────────────────────────────────── */
+.ticker-wrap{
+  background:var(--bg3);
+  border-top:1px solid var(--b);
+  border-bottom:1px solid var(--b);
+  padding:9px 0;overflow:hidden;position:relative;
+}
+.ticker-wrap::before,.ticker-wrap::after{
+  content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2;
+}
+.ticker-wrap::before{left:0;background:linear-gradient(90deg,var(--bg3),transparent)}
+.ticker-wrap::after{right:0;background:linear-gradient(270deg,var(--bg3),transparent)}
+.ticker-track{display:flex;animation:tickscroll 45s linear infinite;width:max-content}
+@keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.titem{
+  display:flex;align-items:center;gap:10px;
+  padding:0 28px;border-right:1px solid var(--b);white-space:nowrap;
+}
+.tlab{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.07em}
+.tval{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--t2)}
+.tbadge{
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.04em;
+}
+.tbadge.hi{background:var(--redd);color:var(--red)}
+.tbadge.md{background:var(--amberd);color:var(--amber)}
+.tbadge.lo{background:var(--cdim);color:var(--cd)}
+.tbadge.lv{background:var(--greend);color:var(--green)}
+
+/* ── SECTION SHELL ───────────────────────────────────────────────────────── */
+.sf{padding:96px 48px;border-top:1px solid var(--b)}
+.si{max-width:1180px;margin:0 auto}
+.eyebrow{
+  font-size:10px;font-weight:700;color:var(--cd);
+  text-transform:uppercase;letter-spacing:.1em;
+  font-family:'JetBrains Mono',monospace;
+  margin-bottom:12px;
+}
+.stitle{
+  font-size:clamp(28px,3.8vw,46px);
+  font-weight:800;color:var(--t1);
+  line-height:1.08;letter-spacing:-.028em;
+  margin-bottom:14px;
+}
+.ssub{
+  font-size:16px;color:var(--t2);
+  max-width:560px;line-height:1.72;
+  margin-bottom:52px;
+}
+
+/* ── PRICING ─────────────────────────────────────────────────────────────── */
+.pgrid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--b);
+  border:1px solid var(--b);border-radius:16px;overflow:hidden;
+}
+.pcard{
+  background:var(--bg3);padding:32px 26px;
+  position:relative;transition:background .2s;
+}
+.pcard:hover{background:#131d2e}
+.pcard.gov{background:#0e1c30}
+.pcard.inst{background:#12100000}/* will use JS for style */
+.pcard.inst{background:rgba(18,14,0,.9)}
+/* featured top line */
+.pcard.gov::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c)}
+.pcard.inst::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber)}
+.pbadge{
+  display:inline-block;font-size:9px;font-weight:700;
+  padding:3px 8px;border-radius:3px;
+  text-transform:uppercase;letter-spacing:.06em;
+  font-family:'JetBrains Mono',monospace;
+  margin-bottom:18px;
+}
+.pb-scan{background:rgba(100,116,139,.15);color:#94a3b8}
+.pb-op{background:var(--cdim);color:var(--cd);border:1px solid rgba(34,211,238,.15)}
+.pb-gov{background:var(--indigod);color:var(--indigo)}
+.pb-inst{background:var(--amberd);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.pname{font-size:12px;font-weight:600;color:var(--t3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.pamount{
+  font-family:'JetBrains Mono',monospace;
+  font-size:34px;font-weight:700;color:var(--t1);letter-spacing:-.02em;
+}
+.pamount.inst-amt{font-size:26px;color:var(--amber)}
+.pper{font-size:12px;color:var(--t3);margin-left:4px}
+.pdesc{font-size:13px;color:var(--t2);line-height:1.55;margin:10px 0 20px;min-height:44px}
+.pdivider{height:1px;background:var(--b);margin-bottom:20px}
+.pfeats{list-style:none;margin-bottom:24px;display:flex;flex-direction:column;gap:1px}
+.pfeats li{
+  display:flex;align-items:flex-start;gap:9px;
+  font-size:12.5px;color:var(--t2);padding:4px 0;line-height:1.45;
+}
+.pfeats li::before{
+  content:'✓';font-size:10px;font-weight:700;color:var(--cd);
+  flex-shrink:0;margin-top:3px;
+}
+.pfeats li.gold::before{color:var(--amber)}
+.pcta{
+  display:block;width:100%;padding:10px 0;border-radius:7px;
+  font-size:13px;font-weight:600;text-align:center;transition:all .2s;
+}
+.pcta-o{border:1px solid var(--bm);color:var(--t2);background:transparent}
+.pcta-o:hover{border-color:var(--cd);color:var(--cd)}
+.pcta-c{border:none;background:var(--c);color:var(--bg)}
+.pcta-c:hover{opacity:.88}
+.pcta-a{border:1px solid var(--amber);color:var(--amber);background:transparent}
+.pcta-a:hover{background:var(--amber);color:var(--bg)}
+/* Scan sub-grid */
+.scan-tiers{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stier{
+  background:var(--panel);border:1px solid var(--b);
+  border-radius:8px;padding:12px;
+}
+.stier-n{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.stier-p{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--t1)}
+
+/* ── HOW IT WORKS ─────────────────────────────────────────────────────────── */
+.steps{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--b);
+  border:1px solid var(--b);border-radius:16px;overflow:hidden;
+}
+.step{background:var(--bg3);padding:40px 32px}
+.step-n{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;font-weight:600;color:var(--t4);
+  text-transform:uppercase;letter-spacing:.1em;
+  display:flex;align-items:center;gap:10px;margin-bottom:22px;
+}
+.step-n::after{content:'';flex:1;height:1px;background:var(--b)}
+.step-icon{
+  width:46px;height:46px;
+  border:1px solid rgba(34,211,238,.18);border-radius:10px;
+  background:var(--cdim);
+  display:flex;align-items:center;justify-content:center;
+  font-size:21px;margin-bottom:18px;
+}
+.step h3{font-size:17px;font-weight:700;color:var(--t1);margin-bottom:10px;line-height:1.3}
+.step p{font-size:13px;color:var(--t2);line-height:1.68}
+
+/* ── COMPLIANCE CHECKER ───────────────────────────────────────────────────── */
+.cc-bg{
+  background:linear-gradient(180deg,transparent,rgba(34,211,238,0.018) 50%,transparent);
+}
+.cc-layout{
+  display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:start;
+}
+/* Upload zone */
+.cc-zone{
+  border:1.5px dashed rgba(34,211,238,.22);
+  border-radius:14px;padding:44px 28px;
+  text-align:center;background:rgba(34,211,238,.018);
+  cursor:pointer;transition:border-color .2s,background .2s;
+  position:relative;min-height:300px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.cc-zone:hover,.cc-zone.dov{border-color:rgba(34,211,238,.45);background:rgba(34,211,238,.03)}
+.cc-fInput{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.cc-zi{font-size:38px;margin-bottom:14px}
+.cc-zt{font-size:16px;font-weight:600;color:var(--t1);margin-bottom:6px}
+.cc-zs{font-size:13px;color:var(--t3);margin-bottom:18px}
+.cc-tags{display:flex;gap:7px;justify-content:center;margin-bottom:16px}
+.cc-tag{
+  font-size:10px;font-weight:600;padding:3px 7px;
+  border:1px solid var(--b);border-radius:3px;
+  color:var(--t3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;
+}
+.cc-dtypes{display:flex;gap:7px;justify-content:center}
+.cc-dtype{
+  flex:1;max-width:100px;padding:8px 0;
+  border:1px solid var(--b);border-radius:6px;
+  background:transparent;color:var(--t3);
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+  transition:all .2s;
+}
+.cc-dtype.act{border-color:var(--c);color:var(--c);background:var(--cdim)}
+/* Processing */
+#ccProc{display:none;width:100%;text-align:center}
+.cc-spin{
+  width:36px;height:36px;border:2px solid var(--b);
+  border-top-color:var(--c);border-radius:50%;
+  animation:spin .75s linear infinite;margin:0 auto 14px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cc-ptext{font-size:12px;color:var(--t2);font-family:'JetBrains Mono',monospace;margin-bottom:16px}
+.cc-psteps{list-style:none;text-align:left;display:flex;flex-direction:column;gap:2px}
+.cc-ps{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--t3);padding:5px 0;font-family:'JetBrains Mono',monospace;transition:color .3s}
+.cc-ps.done{color:var(--green)}
+.cc-ps.act{color:var(--t2)}
+.cc-ps .dot{width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0}
+.cc-ps.done .dot{background:var(--green);border-color:var(--green)}
+.cc-ps.act .dot{background:var(--c);border-color:var(--c);animation:pdot 1s infinite}
+/* Results */
+#ccRes{display:none;width:100%}
+.cc-rcard{
+  background:var(--bg4);border:1px solid var(--b);
+  border-radius:14px;padding:24px;
+}
+.cc-rscore-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cc-rfile{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.cc-rfname{font-size:14px;font-weight:700;color:var(--t1)}
+.cc-rnum{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;color:var(--t1);line-height:1}
+.cc-rlabel{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;text-align:right}
+.cc-rbar{background:var(--panel);border-radius:4px;height:5px;margin-bottom:18px;overflow:hidden}
+.cc-rbar-fill{height:100%;border-radius:4px;width:0%;transition:width 1.1s cubic-bezier(.16,1,.3,1)}
+.cc-findings{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.cc-finding{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 10px;border-radius:7px;
+  background:var(--panel);
+}
+.cc-finding-icon{font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+.cc-finding-title{font-size:12px;font-weight:600;color:var(--t1)}
+.cc-finding-note{font-size:10.5px;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.cc-rdisclaimer{
+  padding:10px 12px;border-radius:7px;
+  border:1px solid rgba(34,211,238,.1);background:rgba(34,211,238,.03);
+  font-size:11.5px;color:var(--t3);line-height:1.55;
+}
+/* Right panel */
+.cc-right{display:flex;flex-direction:column;gap:16px}
+.cc-infocard{
+  background:var(--bg3);border:1px solid var(--b);
+  border-radius:12px;padding:22px;
+}
+.cc-infocard h4{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:7px}
+.cc-infocard p{font-size:13px;color:var(--t2);line-height:1.6}
+.cc-flist{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:1px}
+.cc-flist li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--t2);padding:3px 0;line-height:1.45}
+.cc-flist li::before{content:'—';color:var(--cd);font-size:10px;flex-shrink:0;margin-top:4px}
+.cc-tiercard{
+  background:var(--bg3);border:1px solid rgba(34,211,238,.14);
+  border-radius:12px;padding:18px 22px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.cc-tinfo h5{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.cc-tinfo p{font-size:12px;color:var(--t3)}
+.cc-tcta{
+  padding:9px 18px;background:var(--c);color:var(--bg);
+  border:none;border-radius:6px;font-size:12px;font-weight:700;
+  white-space:nowrap;transition:opacity .2s;
+}
+.cc-tcta:hover{opacity:.88}
+
+/* ── KNOWLEDGE LIBRARY ────────────────────────────────────────────────────── */
+.kl-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px}
+.kl-count{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--t3);text-align:right;flex-shrink:0;padding-left:24px}
+.kl-count span{display:block;font-size:32px;font-weight:700;color:var(--t1);letter-spacing:-.02em;line-height:1}
+.klgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:36px}
+.klcard{
+  background:var(--bg3);border:1px solid var(--b);
+  border-radius:12px;padding:18px;position:relative;
+  transition:border-color .2s;overflow:hidden;
+}
+.klcard:hover{border-color:var(--bm)}
+.klcard.locked{opacity:.6}
+.klcard.locked::after{content:'🔒';position:absolute;top:12px;right:12px;font-size:13px}
+.klcat{font-size:10px;font-weight:600;color:var(--cd);text-transform:uppercase;letter-spacing:.08em;font-family:'JetBrains Mono',monospace;margin-bottom:7px}
+.kltitle{font-size:13px;font-weight:600;color:var(--t1);line-height:1.4;margin-bottom:10px}
+.klmeta{display:flex;gap:8px;align-items:center}
+.klst{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;font-family:'JetBrains Mono',monospace;letter-spacing:.03em}
+.st-live{background:var(--greend);color:var(--green)}
+.st-amend{background:var(--indigod);color:var(--indigo)}
+.st-pend{background:var(--amberd);color:var(--amber)}
+.klyear{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+.kl-foot{display:flex;align-items:center;justify-content:space-between}
+
+/* ── INDEX TRIAD ──────────────────────────────────────────────────────────── */
+.triad{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--b);
+  border:1px solid var(--b);border-radius:16px;overflow:hidden;
+}
+.tcard{background:var(--bg3);padding:38px 30px}
+.tcode{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+.tname{font-size:21px;font-weight:800;color:var(--t1);margin-bottom:4px;letter-spacing:-.025em;line-height:1.15}
+.tfull{font-size:12px;color:var(--t3);margin-bottom:22px}
+.tformula{
+  background:var(--panel);border:1px solid var(--b);border-radius:7px;
+  padding:10px 14px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cd);
+  margin-bottom:22px;letter-spacing:.03em;
+}
+.tdesc{font-size:13px;color:var(--t2);line-height:1.68;margin-bottom:20px}
+.tstats{display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--b);padding-top:16px}
+.tsr{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.tsk{color:var(--t3)}
+.tsv{font-family:'JetBrains Mono',monospace;color:var(--t2);font-weight:500}
+
+/* ── EARLY ACCESS ──────────────────────────────────────────────────────────── */
+.ea-bg{background:linear-gradient(180deg,transparent,rgba(34,211,238,.025) 50%,transparent)}
+.ea-inner{max-width:580px;margin:0 auto;text-align:center}
+.ea-form{display:flex;gap:10px;margin-top:32px}
+.ea-inp{
+  flex:1;padding:13px 16px;
+  background:var(--bg3);border:1px solid var(--bm);border-radius:8px;
+  color:var(--t1);font-size:14px;font-family:'Inter',sans-serif;
+  outline:none;transition:border-color .2s;
+}
+.ea-inp:focus{border-color:rgba(34,211,238,.38)}
+.ea-inp::placeholder{color:var(--t4)}
+.ea-sub{
+  padding:13px 24px;background:var(--c);color:var(--bg);
+  border:none;border-radius:8px;font-size:14px;font-weight:700;
+  white-space:nowrap;transition:opacity .2s;
+}
+.ea-sub:hover{opacity:.88}
+.ea-note{font-size:12px;color:var(--t3);margin-top:10px}
+.ea-ok{
+  display:none;margin-top:18px;padding:14px;
+  border:1px solid rgba(16,185,129,.2);border-radius:8px;
+  background:var(--greend);font-size:14px;color:var(--green);font-weight:500;
+}
+/* Trust badges */
+.trust-row{display:flex;gap:24px;justify-content:center;margin-top:40px;flex-wrap:wrap}
+.trust-badge{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px;border:1px solid var(--b);border-radius:8px;
+  background:var(--panel);
+  font-size:12px;color:var(--t3);
+}
+.trust-badge strong{color:var(--t2)}
+
+/* ── FOOTER ────────────────────────────────────────────────────────────────── */
+.footer{border-top:1px solid var(--b);padding:52px 48px 32px}
+.footer-inner{max-width:1180px;margin:0 auto}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+.footer-brand p{font-size:13px;color:var(--t3);line-height:1.68;margin-top:12px;max-width:260px}
+.fcol-t{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.flinks{list-style:none;display:flex;flex-direction:column;gap:9px}
+.flinks a{font-size:13px;color:var(--t3);transition:color .2s}
+.flinks a:hover{color:var(--t2)}
+.footer-bottom{
+  padding-top:24px;border-top:1px solid var(--b);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.flegal{font-size:11px;color:var(--t4);line-height:1.65}
+.flegal a{color:var(--t4);text-decoration:underline;text-underline-offset:2px}
+.flegal a:hover{color:var(--t3)}
+.freg{display:flex;gap:24px}
+.freg-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);text-align:right}
+.freg-item span{display:block;font-size:9px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+/* ── ANIMATIONS ─────────────────────────────────────────────────────────────── */
+.fu{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s ease}
+.fu.vis{opacity:1;transform:translateY(0)}
+.fu1{transition-delay:.1s}.fu2{transition-delay:.2s}.fu3{transition-delay:.3s}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────────────────── */
+@media(max-width:1024px){
+  .pgrid{grid-template-columns:1fr 1fr}
+  .triad{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .cc-layout{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr 1fr;gap:32px}
+}
+@media(max-width:768px){
+  .nav{padding:0 20px}
+  .nav-links{display:none}
+  .hero{padding:110px 24px 60px}
+  .hero-stats{flex-direction:column}
+  .hstat{border-right:none;border-bottom:1px solid var(--b)}
+  .sf{padding:64px 24px}
+  .pgrid{grid-template-columns:1fr}
+  .klgrid{grid-template-columns:1fr 1fr}
+  .footer-top{grid-template-columns:1fr 1fr}
+  .footer-bottom{flex-direction:column;gap:16px;text-align:center}
+  .freg{justify-content:center}
+  .ea-form{flex-direction:column}
+  .kl-head{flex-direction:column;gap:16px}
+}
+@media(max-width:480px){
+  .hero-h1{font-size:34px}
+  .hero-actions{flex-direction:column;width:100%}
+  .btn-p,.btn-s{justify-content:center}
+  .klgrid{grid-template-columns:1fr}
+  .scan-tiers{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr}
+  .trust-row{flex-direction:column;align-items:center}
+}
+</style>
+
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart, Line, AreaChart, Area } = Recharts;
 
-// ─── CONFIG ──────────────────────────────────────────────────────────────
-const SB_URL = “https://cnbsxwtvazfvzmltkuvx.supabase.co”;
-const SB_ANON = “eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g”;
-const CH_API_KEY = “3ecea037-9ebe-4128-956c-68a0102e7e17”;
-const GA4_PROPERTY = “G-NTNXWZN31C”;
-const GADS_CUSTOMER_ID = “156-660-7341”;
+<!-- ─── NAV ──────────────────────────────────────────────────────────────────── -->
 
-// ─── SUPABASE HELPERS ─────────────────────────────────────────────────────
-async function sbFetch(path, token) {
-const headers = { “apikey”: SB_ANON, “Content-Type”: “application/json” };
-if (token) headers[“Authorization”] = “Bearer “ + token;
-const r = await fetch(SB_URL + path, { headers });
-if (!r.ok) throw new Error(“SB “ + r.status);
-return r.json();
-}
-async function sbPost(path, body, token) {
-const headers = { “apikey”: SB_ANON, “Content-Type”: “application/json” };
-if (token) headers[“Authorization”] = “Bearer “ + token;
-const r = await fetch(SB_URL + path, { method: “POST”, headers, body: JSON.stringify(body) });
-if (!r.ok) { const t = await r.text(); throw new Error(t); }
-return r.json();
-}
-async function signIn(email, password) {
-const r = await fetch(SB_URL + “/auth/v1/token?grant_type=password”, {
-method: “POST”,
-headers: { “apikey”: SB_ANON, “Content-Type”: “application/json” },
-body: JSON.stringify({ email, password })
-});
-const d = await r.json();
-if (!r.ok) throw new Error(d.error_description || d.msg || “Login failed”);
-return d;
-}
-async function callCeoAssistant(token, message, context) {
-const r = await fetch(SB_URL + “/functions/v1/ceo-assistant”, {
-method: “POST”,
-headers: { “Authorization”: “Bearer “ + token, “Content-Type”: “application/json” },
-body: JSON.stringify({ message, context })
-});
-if (!r.ok) { const t = await r.text(); throw new Error(t); }
-const d = await r.json();
-return d.response || d.content || “No response”;
-}
+<nav class="nav" id="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logomark">A</div>
+    <span class="nav-wordmark">AI<em>LANE</em></span>
+  </a>
 
-// ─── DESIGN TOKENS ───────────────────────────────────────────────────────
-const C = {
-bg: “#060912”, bgCard: “#0d1221”, bgPanel: “#111827”,
-border: “#1e2d45”, borderBright: “#2a3f5f”,
-text: “#e2e8f0”, textMuted: “#64748b”, textDim: “#94a3b8”,
-blue: “#3b82f6”, blueD: “#1d4ed8”, blueMuted: “#1e3a5f”,
-cyan: “#22d3ee”, green: “#10b981”, red: “#ef4444”,
-amber: “#f59e0b”, purple: “#8b5cf6”, purpleD: “#5b21b6”,
-gold: “#f59e0b”
-};
+  <ul class="nav-links">
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#compliance-checker">Compliance Check</a></li>
+    <li><a href="#knowledge-library">Knowledge Library</a></li>
+  </ul>
 
-// ─── SHARED UI PRIMITIVES ─────────────────────────────────────────────────
-function Card({ children, style, className }) {
-return (
-<div className={className} style={{
-background: C.bgCard, border: “1px solid “ + C.border,
-borderRadius: 8, padding: 16, …style
-}}>
-{children}
-</div>
-);
-}
-
-function KpiCard({ label, value, sub, color, icon }) {
-return (
-<Card style={{ flex: 1, minWidth: 140 }}>
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “flex-start” }}>
-<div>
-<div style={{ fontSize: 11, color: C.textMuted, fontFamily: “‘JetBrains Mono’,monospace”, textTransform: “uppercase”, letterSpacing: 1, marginBottom: 6 }}>{label}</div>
-<div style={{ fontSize: 26, fontWeight: 700, color: color || C.text, fontFamily: “‘JetBrains Mono’,monospace” }}>{value}</div>
-{sub && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>{sub}</div>}
-</div>
-{icon && <div style={{ fontSize: 20, opacity: 0.6 }}>{icon}</div>}
-</div>
-</Card>
-);
-}
-
-function Badge({ label, color }) {
-const colors = {
-green: { bg: “#052e16”, text: “#4ade80”, border: “#15803d” },
-red: { bg: “#2d0a0a”, text: “#f87171”, border: “#7f1d1d” },
-amber: { bg: “#271a03”, text: “#fbbf24”, border: “#92400e” },
-blue: { bg: “#0c1a35”, text: “#60a5fa”, border: “#1d4ed8” },
-purple: { bg: “#1a0a2e”, text: “#a78bfa”, border: “#5b21b6” },
-gray: { bg: “#1a2030”, text: “#94a3b8”, border: “#2a3550” }
-};
-const c = colors[color] || colors.gray;
-return (
-<span style={{ fontSize: 10, padding: “2px 7px”, borderRadius: 3, background: c.bg, color: c.text, border: “1px solid “ + c.border, fontFamily: “‘JetBrains Mono’,monospace”, fontWeight: 600, textTransform: “uppercase”, letterSpacing: 0.5 }}>
-{label}
-</span>
-);
-}
-
-function SubNav({ tabs, active, onChange }) {
-return (
-<div style={{ display: “flex”, gap: 4, padding: “12px 20px”, borderBottom: “1px solid “ + C.border, background: C.bgCard }}>
-{tabs.map(t => (
-<button key={t.id} onClick={() => onChange(t.id)} style={{
-padding: “5px 14px”, borderRadius: 5, border: “1px solid “ + (active === t.id ? C.blue : “transparent”),
-background: active === t.id ? C.blueMuted : “transparent”, color: active === t.id ? C.text : C.textMuted,
-cursor: “pointer”, fontSize: 12, fontFamily: “‘Syne’,sans-serif”, fontWeight: active === t.id ? 600 : 400,
-transition: “all 0.15s”
-}}>
-{t.label}
-</button>
-))}
-</div>
-);
-}
-
-function Spinner() {
-return <div className=“spin” style={{ width: 16, height: 16, border: “2px solid “ + C.border, borderTopColor: C.blue, borderRadius: “50%”, display: “inline-block” }} />;
-}
-
-function SectionHeader({ title, sub, action }) {
-return (
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 16 }}>
-<div>
-<div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{title}</div>
-{sub && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{sub}</div>}
-</div>
-{action}
-</div>
-);
-}
-
-// ─── DRILL-DOWN PANEL ─────────────────────────────────────────────────────
-function DrillDown({ item, analysis, loading, onAnalyse, onClose }) {
-if (!item) return null;
-const stageBadge = { in_force: “green”, enacted: “blue”, pending_bill: “amber”, repealed: “red”, partially_commenced: “amber” };
-const tierBadge = { all: “gray”, governance: “blue”, institutional: “amber” };
-return (
-<Card className=“fade-in” style={{ border: “1px solid “ + C.blue, marginTop: 12, position: “relative” }}>
-<button onClick={onClose} style={{ position: “absolute”, top: 12, right: 12, background: “none”, border: “none”, color: C.textMuted, cursor: “pointer”, fontSize: 16, lineHeight: 1 }}>✕</button>
-<div style={{ display: “flex”, gap: 8, flexWrap: “wrap”, marginBottom: 12 }}>
-<Badge label={item.lifecycle_stage || “unknown”} color={stageBadge[item.lifecycle_stage] || “gray”} />
-<Badge label={“Cat “ + (item.primary_acei_category || “?”)} color=“blue” />
-<Badge label={item.tier_access || “all”} color={tierBadge[item.tier_access] || “gray”} />
-{item.sci_significance && <Badge label={“SCI “ + item.sci_significance} color=“purple” />}
-</div>
-<div style={{ fontSize: 16, fontWeight: 700, color: C.cyan, marginBottom: 8 }}>{item.short_title}</div>
-{item.summary && <p style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginBottom: 12 }}>{item.summary}</p>}
-{item.penalty_summary && (
-<div style={{ background: “#2d0a0a”, border: “1px solid #7f1d1d”, borderRadius: 6, padding: 10, marginBottom: 12 }}>
-<div style={{ fontSize: 11, color: “#f87171”, fontWeight: 700, marginBottom: 4, fontFamily: “‘JetBrains Mono’,monospace” }}>⚠ PENALTY EXPOSURE</div>
-<div style={{ fontSize: 12, color: “#fca5a5” }}>{item.penalty_summary}</div>
-</div>
-)}
-<div style={{ display: “flex”, gap: 8, flexWrap: “wrap”, marginBottom: 12 }}>
-{item.commencement_date && (
-<span style={{ fontSize: 11, color: C.textMuted }}><span style={{ color: C.textDim }}>Commenced:</span> {item.commencement_date}</span>
-)}
-{item.legislation_gov_url && (
-<a href={item.legislation_gov_url} target=”_blank” rel=“noopener noreferrer” style={{ fontSize: 11, color: C.blue, textDecoration: “none” }}>→ legislation.gov.uk</a>
-)}
-</div>
-{!analysis && (
-<button onClick={onAnalyse} disabled={loading} style={{
-padding: “7px 16px”, borderRadius: 5, background: loading ? C.purpleD : C.purple, border: “none”,
-color: “#fff”, cursor: loading ? “not-allowed” : “pointer”, fontSize: 12, fontWeight: 600,
-display: “flex”, alignItems: “center”, gap: 6
-}}>
-{loading ? <><Spinner /> Analysing…</> : “🤖 Full Intelligence Briefing”}
-</button>
-)}
-{analysis && (
-<div style={{ marginTop: 12, padding: 12, background: “#1a0a2e”, border: “1px solid “ + C.purpleD, borderRadius: 6 }}>
-<div style={{ fontSize: 11, color: C.purple, fontWeight: 700, marginBottom: 8, fontFamily: “‘JetBrains Mono’,monospace” }}>AI INTELLIGENCE BRIEFING</div>
-<p style={{ fontSize: 12, color: C.textDim, lineHeight: 1.7, whiteSpace: “pre-wrap” }}>{analysis}</p>
-</div>
-)}
-</Card>
-);
-}
-
-// ─── FLOATING AI ASSISTANT ────────────────────────────────────────────────
-function FloatingAI({ token, activeTab }) {
-const [open, setOpen] = useState(false);
-const [msgs, setMsgs] = useState([{ role: “assistant”, content: “CEO Intelligence active. Ask me anything about Ailane’s regulatory environment, metrics, or strategy.” }]);
-const [input, setInput] = useState(””);
-const [loading, setLoading] = useState(false);
-const endRef = useRef(null);
-
-useEffect(() => {
-if (endRef.current) endRef.current.scrollIntoView({ behavior: “smooth” });
-}, [msgs]);
-
-const send = useCallback(async (text) => {
-const msg = text || input.trim();
-if (!msg) return;
-setInput(””);
-setMsgs(prev => […prev, { role: “user”, content: msg }]);
-setLoading(true);
-try {
-const res = await callCeoAssistant(token, msg, “CEO Command Centre — current tab: “ + activeTab);
-setMsgs(prev => […prev, { role: “assistant”, content: res }]);
-} catch (e) {
-setMsgs(prev => […prev, { role: “assistant”, content: “Error: “ + e.message }]);
-}
-setLoading(false);
-}, [input, token, activeTab]);
-
-const PROMPTS = {
-“⚡ Command”: [“Summarise today’s risk exposure”, “What needs my attention?”],
-“📰 Regulatory Intel”: [“Latest legislative threats”, “Any new enforcement activity?”],
-“📚 Knowledge Library”: [“Which acts have highest penalty exposure?”, “Recently in-force legislation”],
-“🔍 Intelligence Hub”: [“Top employer risk profiles”, “Tribunal trend analysis”],
-“📊 Client Pipeline”: [“Conversion strategy for early access”, “How to close before April panel”],
-“⚙️ Data Systems”: [“Pipeline health summary”, “What’s causing the 422 error?”],
-“🏢 Business Office”: [“Filing calendar reminders”, “Valuation methodology”],
-“🔬 Simulator”: [“Explain ACEI formula”, “What SM×JM combinations drive highest DI?”],
-“📜 Governance”: [“Constitution summary”, “Status of pending amendments”],
-“📈 Analytics”: [“Campaign performance summary”, “GA4 traffic analysis”],
-“🤖 AI Assistant”: [“What can you help with?”, “Platform overview”]
-};
-const prompts = PROMPTS[activeTab] || PROMPTS[“🤖 AI Assistant”];
-
-return (
-<>
-<button onClick={() => setOpen(o => !o)} style={{
-position: “fixed”, bottom: 24, right: 24, width: 48, height: 48, borderRadius: “50%”,
-background: “linear-gradient(135deg, “ + C.purple + “, “ + C.purpleD + “)”,
-border: “none”, cursor: “pointer”, fontSize: 20, zIndex: 1000,
-boxShadow: “0 4px 20px rgba(139,92,246,0.4)”, display: “flex”, alignItems: “center”, justifyContent: “center”,
-transition: “transform 0.2s”
-}} title=“AI Assistant”>
-{open ? “✕” : “🤖”}
-</button>
-{open && (
-<div className=“slide-in-right” style={{
-position: “fixed”, right: 0, top: 0, bottom: 0, width: 440, background: C.bgPanel,
-borderLeft: “1px solid “ + C.border, zIndex: 999, display: “flex”, flexDirection: “column”
-}}>
-<div style={{ padding: “14px 16px”, borderBottom: “1px solid “ + C.border, background: C.bgCard }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: C.purple }}>🤖 CEO AI Assistant</div>
-<div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{activeTab} · claude-sonnet-4-6</div>
-</div>
-<div className=“scrollable” style={{ flex: 1, padding: 14, display: “flex”, flexDirection: “column”, gap: 10 }}>
-{msgs.map((m, i) => (
-<div key={i} style={{
-alignSelf: m.role === “user” ? “flex-end” : “flex-start”,
-maxWidth: “88%”, padding: “8px 12px”, borderRadius: 8,
-background: m.role === “user” ? C.blueMuted : “#1a0a2e”,
-border: “1px solid “ + (m.role === “user” ? C.blue : C.purpleD),
-fontSize: 12, color: C.textDim, lineHeight: 1.6
-}}>
-{m.content}
-</div>
-))}
-{loading && (
-<div style={{ alignSelf: “flex-start”, padding: “8px 12px”, borderRadius: 8, background: “#1a0a2e”, border: “1px solid “ + C.purpleD }}>
-<Spinner />
-</div>
-)}
-<div ref={endRef} />
-</div>
-<div style={{ padding: “8px 12px”, borderTop: “1px solid “ + C.border, display: “flex”, flexWrap: “wrap”, gap: 4 }}>
-{prompts.map((p, i) => (
-<button key={i} onClick={() => send(p)} style={{ fontSize: 10, padding: “3px 8px”, borderRadius: 3, background: “transparent”, border: “1px solid “ + C.border, color: C.textMuted, cursor: “pointer” }}>
-{p}
-</button>
-))}
-</div>
-<div style={{ padding: “10px 12px”, borderTop: “1px solid “ + C.border, display: “flex”, gap: 8 }}>
-<input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === “Enter” && send()}
-placeholder=“Ask anything…” style={{
-flex: 1, background: C.bgCard, border: “1px solid “ + C.border, borderRadius: 5,
-color: C.text, padding: “7px 10px”, fontSize: 12, outline: “none”, fontFamily: “‘Syne’,sans-serif”
-}} />
-<button onClick={() => send()} disabled={loading || !input.trim()} style={{
-padding: “7px 14px”, borderRadius: 5, background: C.purple, border: “none”,
-color: “#fff”, cursor: “pointer”, fontSize: 12, fontWeight: 600
-}}>Send</button>
-</div>
-</div>
-)}
-</>
-);
-}
-
-// ─── TAB: COMMAND ─────────────────────────────────────────────────────────
-function CommandTab({ token }) {
-const [stats, setStats] = useState(null);
-const [loading, setLoading] = useState(true);
-
-useEffect(() => {
-(async () => {
-try {
-const triCount = await fetch(SB_URL + “/rest/v1/tribunal_cases?select=id”, {
-headers: { apikey: SB_ANON, Authorization: “Bearer “ + token, “Prefer”: “count=exact”, Range: “0-0” }
-}).then(r => { const cr = r.headers.get(“content-range”); return cr ? parseInt(cr.split(”/”)[1]) : 130854; }).catch(() => 130854);
-const empCount = await fetch(SB_URL + “/rest/v1/employer_profiles?select=id”, {
-headers: { apikey: SB_ANON, Authorization: “Bearer “ + token, “Prefer”: “count=exact”, Range: “0-0” }
-}).then(r => { const cr = r.headers.get(“content-range”); return cr ? parseInt(cr.split(”/”)[1]) : 78699; }).catch(() => 78699);
-setStats({ triCount, empCount, legCount: 47, clients: 0 });
-} catch (e) {
-setStats({ triCount: 130854, empCount: 78699, legCount: 47, clients: 0 });
-}
-setLoading(false);
-})();
-}, [token]);
-
-const aceiData = [
-{ cat: “C1\nUnfair Dis.”, score: 72 }, { cat: “C2\nDiscrim.”, score: 85 },
-{ cat: “C3\nPay”, score: 61 }, { cat: “C4\nWhistle.”, score: 44 },
-{ cat: “C5\nCollective”, score: 38 }, { cat: “C6\nTransfer”, score: 29 },
-{ cat: “C7\nHealth”, score: 55 }, { cat: “C8\nData”, score: 67 },
-{ cat: “C9\nMinimum”, score: 78 }, { cat: “C10\nAgency”, score: 41 },
-{ cat: “C11\nEquality”, score: 83 }, { cat: “C12\nContract”, score: 52 }
-];
-const pipeline = [
-{ name: “GOV.UK Tribunal”, status: “ok”, last: “09 Mar 06:00” },
-{ name: “CH Enrichment”, status: “running”, last: “Now (~50k pending)” },
-{ name: “GOV.UK News”, status: “error”, last: “422 — needs fix” },
-{ name: “Enforcement (HSE/ICO)”, status: “ok”, last: “08 Mar 18:00” },
-{ name: “Legislation Pipeline”, status: “ok”, last: “08 Mar 12:00” }
-];
-const statusColor = { ok: C.green, running: C.amber, error: C.red };
-const statusIcon = { ok: “●”, running: “◌”, error: “✗” };
-
-return (
-<div className=“scrollable fade-in” style={{ padding: 24, height: “100%”, paddingBottom: 80 }}>
-<div style={{ background: “#271a03”, border: “1px solid #92400e”, borderRadius: 6, padding: “10px 14px”, marginBottom: 20, display: “flex”, gap: 10, alignItems: “center” }}>
-<span style={{ color: C.amber }}>⚠</span>
-<span style={{ fontSize: 12, color: “#fbbf24” }}>Innovation Wales panel — April 2026. Zero paying clients. Conversion of 3 early-access signups is Priority 1.</span>
-</div>
-<div style={{ background: “#0c1a35”, border: “1px solid “ + C.blue, borderRadius: 6, padding: “10px 14px”, marginBottom: 20 }}>
-<span style={{ fontSize: 12, color: C.blue }}>ℹ ACEI-AM-2026-003 (CREE) ratified 7 Mar 2026. REL input live at all tiers. Contribution cap: 15% per category.</span>
-</div>
-
-```
-  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
-    <KpiCard label="Tribunal Decisions" value={loading ? "…" : (stats.triCount).toLocaleString()} sub="Feb 2010 – Feb 2026" color={C.cyan} icon="⚖" />
-    <KpiCard label="Employer Profiles" value={loading ? "…" : stats.empCount.toLocaleString()} sub="CH verified ~31.8%" color={C.blue} icon="🏢" />
-    <KpiCard label="Legislative Instruments" value="47" sub="12 ACEI categories" color={C.green} icon="📜" />
-    <KpiCard label="Paying Clients" value="0" sub="Priority: convert 3 signups" color={C.red} icon="💰" />
-    <KpiCard label="Jurisdictions" value="53" sub="Global scraper network" color={C.purple} icon="🌐" />
-  </div>
-
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-    <Card>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14, color: C.cyan }}>ACEI Category Exposure Index</div>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={aceiData} margin={{ top: 0, right: 0, bottom: 30, left: -20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-          <XAxis dataKey="cat" tick={{ fontSize: 8, fill: C.textMuted }} interval={0} />
-          <YAxis tick={{ fontSize: 9, fill: C.textMuted }} domain={[0, 100]} />
-          <Tooltip contentStyle={{ background: C.bgPanel, border: "1px solid " + C.border, borderRadius: 6, fontSize: 11 }} />
-          <Bar dataKey="score" radius={[3, 3, 0, 0]}>
-            {aceiData.map((d, i) => <Cell key={i} fill={d.score > 70 ? C.red : d.score > 50 ? C.amber : C.green} />)}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </Card>
-
-    <Card>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14, color: C.cyan }}>Pipeline Health</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {pipeline.map((p, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: C.bgPanel, borderRadius: 5 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: statusColor[p.status], fontSize: 10 }}>{statusIcon[p.status]}</span>
-              <span style={{ fontSize: 12, color: C.textDim }}>{p.name}</span>
-            </div>
-            <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>{p.last}</span>
-          </div>
-        ))}
-      </div>
-    </Card>
-  </div>
-
-  <Card>
-    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: C.cyan }}>Constitutional Framework Status</div>
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      {[
-        { name: "ACEI v1.0 + AM-001/002/003", status: "Ratified", color: "green" },
-        { name: "RRI v1.0", status: "Ratified", color: "green" },
-        { name: "CCI v1.0", status: "Ratified", color: "green" },
-        { name: "PCIE v3.0 (SPEC-003)", status: "Ratified 7 Mar", color: "green" },
-        { name: "CAMINT-001 v1.0", status: "Ratified 7 Mar", color: "green" }
-      ].map((c, i) => (
-        <div key={i} style={{ padding: "6px 12px", background: C.bgPanel, borderRadius: 5, display: "flex", gap: 8, alignItems: "center" }}>
-          <Badge label={c.status} color={c.color} />
-          <span style={{ fontSize: 11, color: C.textDim }}>{c.name}</span>
-        </div>
-      ))}
+  <div class="nav-right">
+    <div class="nav-lang" title="Toggle Welsh / Cymraeg">
+      <img src="https://flagcdn.com/16x12/gb-wls.png"
+           srcset="https://flagcdn.com/32x24/gb-wls.png 2x"
+           width="16" height="12" alt="Welsh flag">
+      Cymraeg
     </div>
-  </Card>
+    <a href="#early-access" class="nav-cta">Request Access</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─────────────────────────────────────────────────────────────────── -->
+
+<section class="hero" style="max-width:none">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+
+  <div class="hero-eyebrow">
+    <span class="pulse-dot"></span>
+    Constitutional Regulatory Intelligence · UK Employment Law
+  </div>
+
+  <h1 class="hero-h1">
+    Know Your Employment<br>Law Exposure. <em>Before</em><br>It Costs You.
+  </h1>
+
+  <p class="hero-sub">
+    Ailane quantifies your organisation's employment law risk across three independently governed indices — built on 130,000+ tribunal decisions, live enforcement data, and 47 verified legislative instruments.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#compliance-checker" class="btn-p">⚡ Run Free Compliance Check</a>
+    <a href="#pricing" class="btn-s">View Pricing →</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hstat">
+      <span class="hstat-v">130,<em>854</em>+</span>
+      <span class="hstat-l">Tribunal Decisions</span>
+    </div>
+    <div class="hstat">
+      <span class="hstat-v">78,<em>699</em>+</span>
+      <span class="hstat-l">Employer Profiles</span>
+    </div>
+    <div class="hstat">
+      <span class="hstat-v"><em>47</em></span>
+      <span class="hstat-l">Legislative Instruments</span>
+    </div>
+    <div class="hstat">
+      <span class="hstat-v"><em>53</em></span>
+      <span class="hstat-l">Jurisdictions Monitored</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TICKER ────────────────────────────────────────────────────────────────── -->
+
+<div class="ticker-wrap">
+  <div class="ticker-track" id="tickerTrack">
+    <!-- items duplicated for seamless loop -->
+  </div>
+</div>
+
+<!-- ─── PRICING ───────────────────────────────────────────────────────────────── -->
+
+<div class="sf" id="pricing">
+  <div class="si">
+    <div class="eyebrow">Subscription Tiers</div>
+    <h2 class="stitle">Intelligence at Every Scale</h2>
+    <p class="ssub">From a one-off document scan to full institutional index monitoring. Every tier powered by the same constitutional data engine — independently governed, constitutionally separated.</p>
+
+```
+<div class="pgrid fu">
+
+  <!-- One-off Scans -->
+  <div class="pcard">
+    <div class="pbadge pb-scan">One-Off Scan</div>
+    <div class="pname">Document Analysis</div>
+    <div class="scan-tiers">
+      <div class="stier">
+        <div class="stier-n">Contract</div>
+        <div class="stier-p">£19</div>
+      </div>
+      <div class="stier">
+        <div class="stier-n">HR Pack</div>
+        <div class="stier-p">£39</div>
+      </div>
+    </div>
+    <div class="pdesc">Anonymous one-time document analysis. No account required to get started.</div>
+    <div class="pdivider"></div>
+    <ul class="pfeats">
+      <li>Employment contract or HR pack analysis</li>
+      <li>Compliance score with clause-level findings</li>
+      <li>Statutory gap identification</li>
+      <li>Instant downloadable report</li>
+    </ul>
+    <a href="#compliance-checker" class="pcta pcta-o">Run Free Sample →</a>
+  </div>
+
+  <!-- Operational -->
+  <div class="pcard">
+    <div class="pbadge pb-op">Operational</div>
+    <div class="pname">Operational Readiness</div>
+    <div><span class="pamount">£199</span><span class="pper">/month</span></div>
+    <div class="pdesc">ACEI exposure monitoring and ongoing contract compliance for growing businesses.</div>
+    <div class="pdivider"></div>
+    <ul class="pfeats">
+      <li>1 user · full platform access</li>
+      <li>ACEI exposure summary dashboard</li>
+      <li>1 contract — fully analysed, stored &amp; monitored</li>
+      <li>Full UK Knowledge Library (47 instruments)</li>
+      <li>Regulatory Intelligence Ticker</li>
+      <li>Enforcement alerts (HSE, ICO, EHRC)</li>
+      <li>REL input enabled</li>
+      <li>After 90 days: handbook &amp; policy uploads unlocked</li>
+    </ul>
+    <a href="#early-access" class="pcta pcta-o">Request Access →</a>
+  </div>
+
+  <!-- Governance -->
+  <div class="pcard gov">
+    <div class="pbadge pb-gov">Governance</div>
+    <div class="pname">Governance</div>
+    <div><span class="pamount">£799</span><span class="pper">/month</span></div>
+    <div class="pdesc">Full Index Triad with unlimited document analysis and board-ready reporting.</div>
+    <div class="pdivider"></div>
+    <ul class="pfeats">
+      <li>25 users</li>
+      <li>Full ACEI · RRI · CCI Index Triad</li>
+      <li>Unlimited documents — contracts, policies &amp; handbooks</li>
+      <li>Document Vault + Whole Contract Checker</li>
+      <li>UK + EU Knowledge Library</li>
+      <li>Clause-level analysis + remediation guidance</li>
+      <li>AI Regulatory Ticker with generated briefings</li>
+      <li>Board-ready PDF reporting</li>
+    </ul>
+    <a href="#early-access" class="pcta pcta-c">Request Access →</a>
+  </div>
+
+  <!-- Institutional -->
+  <div class="pcard inst">
+    <div class="pbadge pb-inst">Institutional</div>
+    <div class="pname">Institutional</div>
+    <div><span class="pamount inst-amt">Custom</span></div>
+    <div class="pdesc">Enterprise intelligence infrastructure with API access and the Intelligence Lab.</div>
+    <div class="pdivider"></div>
+    <ul class="pfeats">
+      <li>Unlimited users</li>
+      <li class="gold">Extended Enforcement Intelligence (EEI)</li>
+      <li class="gold">Intelligence Lab — bespoke analytics</li>
+      <li class="gold">Full API access</li>
+      <li class="gold">International statute library</li>
+      <li class="gold">External Advisory Reports (EAR)</li>
+      <li>All Governance tier features included</li>
+      <li>Dedicated account management</li>
+    </ul>
+    <a href="#early-access" class="pcta pcta-a">Contact Us →</a>
+  </div>
+
 </div>
 ```
 
-);
-}
+  </div>
+</div>
 
-// ─── TAB: REGULATORY INTEL ────────────────────────────────────────────────
-function RegulatoryIntelTab({ token }) {
-const [sub, setSub] = useState(“acts”);
-const [items, setItems] = useState([]);
-const [loading, setLoading] = useState(false);
-const [drill, setDrill] = useState(null);
-const [analysis, setAnalysis] = useState({});
-const [analysing, setAnalysing] = useState(null);
+<!-- ─── HOW IT WORKS ──────────────────────────────────────────────────────────── -->
 
-useEffect(() => {
-if (sub !== “acts”) return;
-setLoading(true);
-sbFetch(”/rest/v1/legislation_library?select=*&order=sci_significance.desc&limit=20”, token)
-.then(d => setItems(d || []))
-.catch(() => setItems([]))
-.finally(() => setLoading(false));
-}, [sub, token]);
-
-const analyse = async (item) => {
-setAnalysing(item.id);
-try {
-const r = await callCeoAssistant(token, “Provide a CEO intelligence briefing for: “ + item.short_title + “. Include: regulatory risk, recent enforcement, compliance priority, and commercial impact for a UK mid-market employer.”, item.short_title);
-setAnalysis(prev => ({ …prev, [item.id]: r }));
-} catch (e) {
-setAnalysis(prev => ({ …prev, [item.id]: “Error: “ + e.message }));
-}
-setAnalysing(null);
-};
-
-const stageBadge = { in_force: “green”, enacted: “blue”, pending_bill: “amber”, repealed: “red”, partially_commenced: “amber” };
-const enforcement = [
-{ body: “EHRC”, action: “Enforcement Notice — Disability Discrimination”, employer: “National Retailer”, date: “Mar 2026”, severity: “high” },
-{ body: “ICO”, action: “Civil Monetary Penalty — Employee Data Breach”, employer: “Tech Company”, date: “Feb 2026”, severity: “high” },
-{ body: “HSE”, action: “Improvement Notice — Workplace Safety”, employer: “Construction Firm”, date: “Feb 2026”, severity: “medium” },
-{ body: “HMRC”, action: “NMW Naming — Non-Compliance x14 workers”, employer: “Hospitality Group”, date: “Jan 2026”, severity: “medium” }
-];
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “acts”, label: “Active Acts & Bills” }, { id: “news”, label: “Parliament & News Feed” }, { id: “enforcement”, label: “Enforcement Tracker” }]} active={sub} onChange={setSub} />
-<div className=“scrollable fade-in” style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
+<div class="sf" id="how-it-works">
+  <div class="si">
+    <div class="eyebrow">The Process</div>
+    <h2 class="stitle">Constitutional Intelligence.<br>Three Precise Steps.</h2>
+    <p class="ssub">Every Ailane output is governed by independently constituted indices. Your exposure score is deterministic, auditable, and reproducible — not a black-box prediction.</p>
 
 ```
-    {sub === "acts" && (
-      <>
-        <SectionHeader title="Active Acts & Bills" sub={"47 instruments across 12 ACEI categories · ordered by SCI significance"} />
-        {loading ? <div style={{ textAlign: "center", padding: 40 }}><Spinner /></div> : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {items.map(item => (
-              <div key={item.id}>
-                <div onClick={() => setDrill(drill && drill.id === item.id ? null : item)} style={{
-                  padding: "10px 14px", background: C.bgCard, border: "1px solid " + (drill && drill.id === item.id ? C.blue : C.border),
-                  borderRadius: 6, cursor: "pointer", transition: "border-color 0.15s"
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                        <Badge label={item.lifecycle_stage || "unknown"} color={stageBadge[item.lifecycle_stage] || "gray"} />
-                        <Badge label={"Cat " + (item.primary_acei_category || "?")} color="blue" />
-                        {item.tier_access && item.tier_access !== "all" && <Badge label={item.tier_access} color={item.tier_access === "institutional" ? "amber" : "blue"} />}
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{item.short_title}</div>
-                      {item.summary && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{item.summary.substring(0, 120)}…</div>}
-                    </div>
-                    {item.sci_significance && (
-                      <div style={{ marginLeft: 12, textAlign: "right" }}>
-                        <div style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>SCI</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: item.sci_significance > 7 ? C.red : item.sci_significance > 4 ? C.amber : C.green, fontFamily: "'JetBrains Mono',monospace" }}>{item.sci_significance}</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {drill && drill.id === item.id && (
-                  <DrillDown item={drill} analysis={analysis[item.id]} loading={analysing === item.id}
-                    onAnalyse={() => analyse(item)} onClose={() => setDrill(null)} />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </>
-    )}
-
-    {sub === "news" && (
-      <>
-        <SectionHeader title="Parliament & News Feed" sub="GOV.UK employment news pipeline · CAUTION: 422 error on pipeline-govuk-news function" />
-        <div style={{ background: "#2d0a0a", border: "1px solid #7f1d1d", borderRadius: 6, padding: 12, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: "#f87171", fontWeight: 700, marginBottom: 4 }}>⚠ PIPELINE ISSUE DETECTED</div>
-          <div style={{ fontSize: 12, color: "#fca5a5" }}>pipeline-govuk-news Edge Function returning 422. POST body sent where GET params expected. Requires backend fix. News feed unavailable until resolved.</div>
-        </div>
-        {[
-          { title: "Employment Rights Bill — Report Stage Amendments", date: "7 Mar 2026", source: "Parliament", tag: "Legislative" },
-          { title: "EHRC Publishes New Guidance on Disability Reasonable Adjustments", date: "5 Mar 2026", source: "EHRC", tag: "Guidance" },
-          { title: "ICO Issues Updated Data Protection at Work Code", date: "3 Mar 2026", source: "ICO", tag: "Regulatory" },
-          { title: "HMRC NMW Enforcement Results Q4 2025", date: "1 Mar 2026", source: "HMRC", tag: "Enforcement" }
-        ].map((n, i) => (
-          <Card key={i} style={{ marginBottom: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <Badge label={n.tag} color="blue" />
-                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 6, color: C.text }}>{n.title}</div>
-                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>{n.source} · {n.date}</div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </>
-    )}
-
-    {sub === "enforcement" && (
-      <>
-        <SectionHeader title="Enforcement Tracker" sub="HSE · ICO · EHRC · HMRC active enforcement actions" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {enforcement.map((e, i) => (
-            <Card key={i} style={{ border: "1px solid " + (e.severity === "high" ? "#7f1d1d" : C.border) }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                    <Badge label={e.body} color={e.severity === "high" ? "red" : "amber"} />
-                    <Badge label={e.severity} color={e.severity === "high" ? "red" : "amber"} />
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{e.action}</div>
-                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>{e.employer} · {e.date}</div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </>
-    )}
+<div class="steps fu">
+  <div class="step">
+    <div class="step-n">Step 01</div>
+    <div class="step-icon">📂</div>
+    <h3>Upload Documents or Register Your Organisation</h3>
+    <p>Submit an employment contract, handbook, or HR policy — or register your employer profile for full Index Triad monitoring. The platform identifies your sector, jurisdiction, and exposure profile automatically.</p>
+  </div>
+  <div class="step">
+    <div class="step-n">Step 02</div>
+    <div class="step-icon">⚙️</div>
+    <h3>Constitutional Engine Analyses Your Exposure</h3>
+    <p>The ACEI, RRI, and CCI engines independently compute your regulatory position against 130,000+ tribunal decisions, 47 legislative instruments, and live enforcement data from HSE, ICO, and EHRC.</p>
+  </div>
+  <div class="step">
+    <div class="step-n">Step 03</div>
+    <div class="step-icon">📊</div>
+    <h3>Receive Index Scores and Remediation Guidance</h3>
+    <p>Clause-level findings, exposure band classification, and prioritised remediation steps — formatted for HR directors, legal teams, and board reporting. No jargon, no ambiguity.</p>
   </div>
 </div>
 ```
 
-);
-}
-
-// ─── TAB: KNOWLEDGE LIBRARY ───────────────────────────────────────────────
-function KnowledgeLibraryTab({ token }) {
-const [sub, setSub] = useState(“all”);
-const [items, setItems] = useState([]);
-const [loading, setLoading] = useState(true);
-const [search, setSearch] = useState(””);
-const [catFilter, setCatFilter] = useState(“all”);
-const [drill, setDrill] = useState(null);
-const [analysis, setAnalysis] = useState({});
-const [analysing, setAnalysing] = useState(null);
-
-useEffect(() => {
-setLoading(true);
-sbFetch(”/rest/v1/legislation_library?select=*&order=sci_significance.desc”, token)
-.then(d => setItems(d || []))
-.catch(() => setItems([]))
-.finally(() => setLoading(false));
-}, [token]);
-
-const analyse = async (item) => {
-setAnalysing(item.id);
-try {
-const r = await callCeoAssistant(token, “Provide a comprehensive intelligence briefing for: “ + item.short_title + “. Include: key obligations, enforcement history, penalty exposure, commencement timeline, and compliance priority score.”, item.short_title);
-setAnalysis(prev => ({ …prev, [item.id]: r }));
-} catch (e) {
-setAnalysis(prev => ({ …prev, [item.id]: “Error: “ + e.message }));
-}
-setAnalysing(null);
-};
-
-const cats = useMemo(() => {
-const s = new Set(items.map(i => i.primary_acei_category).filter(Boolean));
-return Array.from(s).sort((a, b) => a - b);
-}, [items]);
-
-const filtered = useMemo(() => {
-let r = items;
-if (search) r = r.filter(i => (i.short_title || “”).toLowerCase().includes(search.toLowerCase()) || (i.summary || “”).toLowerCase().includes(search.toLowerCase()));
-if (catFilter !== “all”) r = r.filter(i => String(i.primary_acei_category) === catFilter);
-if (sub === “recent”) r = […r].sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0)).slice(0, 15);
-return r;
-}, [items, search, catFilter, sub]);
-
-const stageBadge = { in_force: “green”, enacted: “blue”, pending_bill: “amber”, repealed: “red”, partially_commenced: “amber” };
-const catGroups = useMemo(() => {
-const g = {};
-items.forEach(i => {
-const c = i.primary_acei_category || “?”;
-if (!g[c]) g[c] = [];
-g[c].push(i);
-});
-return g;
-}, [items]);
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “all”, label: “All Instruments” }, { id: “category”, label: “By Category” }, { id: “recent”, label: “Recent Changes” }]} active={sub} onChange={setSub} />
-<div style={{ padding: “10px 20px”, borderBottom: “1px solid “ + C.border, display: “flex”, gap: 8, background: C.bgCard }}>
-<input value={search} onChange={e => setSearch(e.target.value)} placeholder=“Search instruments…” style={{ flex: 1, background: C.bgPanel, border: “1px solid “ + C.border, borderRadius: 5, color: C.text, padding: “6px 10px”, fontSize: 12, outline: “none”, fontFamily: “‘Syne’,sans-serif” }} />
-<select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ background: C.bgPanel, border: “1px solid “ + C.border, borderRadius: 5, color: C.textDim, padding: “6px 10px”, fontSize: 12, outline: “none”, cursor: “pointer” }}>
-<option value="all">All Categories</option>
-{cats.map(c => <option key={c} value={String(c)}>Category {c}</option>)}
-</select>
-</div>
-
-```
-  <div className="scrollable fade-in" style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
-    {loading ? (
-      <div style={{ textAlign: "center", padding: 60 }}><Spinner /></div>
-    ) : sub === "category" ? (
-      Object.entries(catGroups).sort((a, b) => Number(a[0]) - Number(b[0])).map(([cat, catItems]) => (
-        <div key={cat} style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, padding: "6px 0", borderBottom: "1px solid " + C.border, marginBottom: 10, fontFamily: "'JetBrains Mono',monospace" }}>
-            CATEGORY {cat} — {catItems.length} instrument{catItems.length !== 1 ? "s" : ""}
-          </div>
-          {catItems.map(item => (
-            <div key={item.id} style={{ marginBottom: 6, marginLeft: 12 }}>
-              <div onClick={() => setDrill(drill && drill.id === item.id ? null : item)} style={{ padding: "8px 12px", background: C.bgCard, border: "1px solid " + (drill && drill.id === item.id ? C.blue : C.border), borderRadius: 5, cursor: "pointer" }}>
-                <div style={{ display: "flex", gap: 6, marginBottom: 3 }}>
-                  <Badge label={item.lifecycle_stage || "?"} color={stageBadge[item.lifecycle_stage] || "gray"} />
-                </div>
-                <div style={{ fontSize: 12, color: C.text }}>{item.short_title}</div>
-              </div>
-              {drill && drill.id === item.id && (
-                <DrillDown item={drill} analysis={analysis[item.id]} loading={analysing === item.id}
-                  onAnalyse={() => analyse(item)} onClose={() => setDrill(null)} />
-              )}
-            </div>
-          ))}
-        </div>
-      ))
-    ) : (
-      <>
-        <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 12 }}>{filtered.length} instrument{filtered.length !== 1 ? "s" : ""} {sub === "recent" ? "(recently changed)" : ""}</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {filtered.map(item => (
-            <div key={item.id}>
-              <div onClick={() => setDrill(drill && drill.id === item.id ? null : item)} style={{
-                padding: "10px 14px", background: C.bgCard, border: "1px solid " + (drill && drill.id === item.id ? C.blue : C.border),
-                borderRadius: 6, cursor: "pointer"
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 5 }}>
-                      <Badge label={item.lifecycle_stage || "?"} color={stageBadge[item.lifecycle_stage] || "gray"} />
-                      <Badge label={"Cat " + (item.primary_acei_category || "?")} color="blue" />
-                      {item.tier_access && item.tier_access !== "all" && <Badge label={item.tier_access} color={item.tier_access === "institutional" ? "amber" : "blue"} />}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{item.short_title}</div>
-                    {item.summary && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>{item.summary.substring(0, 100)}…</div>}
-                  </div>
-                  {item.sci_significance && (
-                    <div style={{ marginLeft: 10, fontFamily: "'JetBrains Mono',monospace", fontSize: 16, fontWeight: 700, color: item.sci_significance > 7 ? C.red : item.sci_significance > 4 ? C.amber : C.green }}>
-                      {item.sci_significance}
-                    </div>
-                  )}
-                </div>
-              </div>
-              {drill && drill.id === item.id && (
-                <DrillDown item={drill} analysis={analysis[item.id]} loading={analysing === item.id}
-                  onAnalyse={() => analyse(item)} onClose={() => setDrill(null)} />
-              )}
-            </div>
-          ))}
-        </div>
-      </>
-    )}
   </div>
 </div>
-```
 
-);
-}
+<!-- ─── COMPLIANCE CHECKER ────────────────────────────────────────────────────── -->
 
-// ─── TAB: INTELLIGENCE HUB ────────────────────────────────────────────────
-function IntelligenceHubTab({ token }) {
-const [sub, setSub] = useState(“employer”);
-const [query, setQuery] = useState(””);
-const [results, setResults] = useState([]);
-const [loading, setLoading] = useState(false);
-const [chResult, setChResult] = useState(null);
-
-const searchEmployer = async () => {
-if (!query.trim()) return;
-setLoading(true);
-setResults([]);
-setChResult(null);
-try {
-const [dbRes, chRes] = await Promise.all([
-sbFetch(”/rest/v1/employer_profiles?select=*&company_name=ilike.” + encodeURIComponent(query) + “*&limit=10”, token).catch(() => []),
-fetch(“https://api.company-information.service.gov.uk/search/companies?q=” + encodeURIComponent(query), {
-headers: { “Authorization”: “Basic “ + btoa(CH_API_KEY + “:”) }
-}).then(r => r.json()).catch(() => null)
-]);
-setResults(dbRes || []);
-setChResult(chRes);
-} catch (e) {
-setResults([]);
-}
-setLoading(false);
-};
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “employer”, label: “Employer Search” }, { id: “tribunal”, label: “Tribunal Decisions” }, { id: “graph”, label: “Corporate Graph” }]} active={sub} onChange={setSub} />
-<div className=“scrollable fade-in” style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
+<div class="sf cc-bg" id="compliance-checker">
+  <div class="si">
+    <div class="eyebrow">Free Tool · No Account Required</div>
+    <h2 class="stitle">Run a Compliance Check Now</h2>
+    <p class="ssub">Upload an employment contract, HR policy, or staff handbook and receive an instant compliance assessment against current UK statutory requirements.</p>
 
 ```
-    {sub === "employer" && (
-      <>
-        <SectionHeader title="Employer Search" sub="Live Supabase DB + Companies House API integration" />
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchEmployer()}
-            placeholder="Search employer name (e.g. Northerly Hill Facilities Management)…" style={{ flex: 1, background: C.bgCard, border: "1px solid " + C.border, borderRadius: 5, color: C.text, padding: "8px 12px", fontSize: 12, outline: "none", fontFamily: "'Syne',sans-serif" }} />
-          <button onClick={searchEmployer} disabled={loading} style={{ padding: "8px 18px", borderRadius: 5, background: C.blue, border: "none", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-            {loading ? <Spinner /> : "Search"}
-          </button>
+<div class="cc-layout">
+
+  <!-- Left column: upload → processing → results -->
+  <div>
+    <!-- Upload zone -->
+    <div class="cc-zone" id="ccZone">
+      <input type="file" class="cc-fInput" id="ccFile" accept=".pdf,.docx,.txt">
+      <div id="ccUploadUI">
+        <div class="cc-zi">📄</div>
+        <div class="cc-zt">Drop your document here</div>
+        <div class="cc-zs">or click to browse files</div>
+        <div class="cc-tags">
+          <span class="cc-tag">PDF</span>
+          <span class="cc-tag">DOCX</span>
+          <span class="cc-tag">TXT</span>
         </div>
-        {results.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 8 }}>{results.length} employer profile{results.length !== 1 ? "s" : ""} found in Ailane DB</div>
-            {results.map((r, i) => (
-              <Card key={i} style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.cyan }}>{r.company_name}</div>
-                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
-                  {r.companies_house_number && <span>CH: {r.companies_house_number} · </span>}
-                  {r.sic_code && <span>SIC: {r.sic_code} · </span>}
-                  {r.employee_count && <span>Employees: {r.employee_count}</span>}
-                </div>
-                {r.tribunal_count && <div style={{ fontSize: 11, color: C.amber, marginTop: 4 }}>Tribunal cases: {r.tribunal_count}</div>}
-              </Card>
-            ))}
-          </div>
-        )}
-        {chResult && chResult.items && chResult.items.length > 0 && (
+        <div class="cc-dtypes" onclick="event.stopPropagation()">
+          <button class="cc-dtype act" onclick="setDT(this,'contract')">Contract</button>
+          <button class="cc-dtype" onclick="setDT(this,'handbook')">Handbook</button>
+          <button class="cc-dtype" onclick="setDT(this,'policy')">Policy</button>
+        </div>
+      </div>
+
+      <!-- Processing overlay -->
+      <div id="ccProc">
+        <div class="cc-spin"></div>
+        <div class="cc-ptext" id="ccPtxt">Initialising analysis engine...</div>
+        <ul class="cc-psteps" id="ccPsteps">
+          <li class="cc-ps" id="ps1"><span class="dot"></span>Parsing document structure</li>
+          <li class="cc-ps" id="ps2"><span class="dot"></span>Extracting employment clauses</li>
+          <li class="cc-ps" id="ps3"><span class="dot"></span>Mapping to 29 statutory requirements</li>
+          <li class="cc-ps" id="ps4"><span class="dot"></span>Computing RRI evidence profile</li>
+          <li class="cc-ps" id="ps5"><span class="dot"></span>Generating compliance score</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Results card (outside zone) -->
+    <div id="ccRes">
+      <div class="cc-rcard">
+        <div class="cc-rscore-row">
           <div>
-            <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 8 }}>Companies House results ({chResult.total_results} total)</div>
-            {chResult.items.slice(0, 5).map((c, i) => (
-              <Card key={i} style={{ marginBottom: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{c.title}</div>
-                    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>No. {c.company_number} · {c.company_status} · {c.company_type}</div>
-                  </div>
-                  <Badge label={c.company_status} color={c.company_status === "active" ? "green" : "red"} />
-                </div>
-              </Card>
-            ))}
+            <div class="cc-rfile">Compliance Report</div>
+            <div class="cc-rfname" id="ccFname">document.pdf</div>
           </div>
-        )}
-        {!loading && results.length === 0 && !chResult && (
-          <div style={{ textAlign: "center", padding: 40, color: C.textMuted, fontSize: 12 }}>
-            Search for an employer to view their profile, Companies House data, and tribunal history.<br />
-            <span style={{ fontSize: 11, marginTop: 8, display: "block" }}>Demo: try "Northerly Hill Facilities Management"</span>
+          <div style="text-align:right">
+            <div class="cc-rnum" id="ccScore">—</div>
+            <div class="cc-rlabel">Overall Score</div>
           </div>
-        )}
-      </>
-    )}
-
-    {sub === "tribunal" && (
-      <>
-        <SectionHeader title="Tribunal Decisions" sub="130,854+ decisions · Latest: 11 Feb 2026 · 24-day gap (automated run: 9 Mar 06:00)" />
-        <div style={{ background: "#271a03", border: "1px solid #92400e", borderRadius: 6, padding: 10, marginBottom: 16 }}>
-          <span style={{ fontSize: 11, color: "#fbbf24" }}>⚠ Latest decision in DB: 11 Feb 2026. Automated scraper first run: Monday 9 Mar 06:00 UTC. Gap resolving.</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <KpiCard label="Total Decisions" value="130,854" sub="Feb 2010 – Feb 2026" color={C.cyan} icon="⚖" />
-          <KpiCard label="Unique Employers" value="78,699" sub="In tribunal history" color={C.blue} icon="🏢" />
-          <KpiCard label="Latest Decision" value="11 Feb" sub="2026 · Closing gap" color={C.amber} icon="📅" />
+        <div class="cc-rbar"><div class="cc-rbar-fill" id="ccBar"></div></div>
+        <div class="cc-findings" id="ccFindings"></div>
+        <div class="cc-rdisclaimer">
+          Sample analysis — 5 of 29 checkpoints shown. Full Compliance Checker subscription provides clause-level findings, remediation guidance, and ongoing monitoring.
         </div>
-      </>
-    )}
-
-    {sub === "graph" && (
-      <>
-        <SectionHeader title="Corporate Graph" sub="Phase 2 — contact enrichment & relationship mapping" />
-        <Card style={{ textAlign: "center", padding: 60 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🕸</div>
-          <div style={{ fontSize: 13, color: C.textDim }}>Corporate Graph — Phase 2 build</div>
-          <div style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>Website scrape, email, LinkedIn enrichment. Deferred pending client conversion priority.</div>
-        </Card>
-      </>
-    )}
-  </div>
-</div>
-```
-
-);
-}
-
-// ─── TAB: CLIENT PIPELINE ─────────────────────────────────────────────────
-function ClientPipelineTab({ token }) {
-const [sub, setSub] = useState(“signups”);
-const prospects = [
-{ name: “Northerly Hill FM Ltd”, contact: “northerlyhill@ailane.ai”, status: “Early Access”, sector: “Facilities Management”, employees: 238, priority: “high” },
-{ name: “Prospect B”, contact: “—”, status: “Warm Lead”, sector: “Professional Services”, employees: “~150”, priority: “medium” },
-{ name: “Prospect C”, contact: “—”, status: “Cold”, sector: “Healthcare”, employees: “~300”, priority: “low” }
-];
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “signups”, label: “Early Access Signups” }, { id: “prospects”, label: “Prospect Board” }, { id: “strategy”, label: “Conversion Strategy” }]} active={sub} onChange={setSub} />
-<div className=“scrollable fade-in” style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
-
-```
-    {sub === "signups" && (
-      <>
-        <div style={{ background: "#2d0a0a", border: "1px solid #7f1d1d", borderRadius: 6, padding: 12, marginBottom: 16 }}>
-          <div style={{ fontSize: 12, color: "#f87171", fontWeight: 700 }}>⚠ PRIORITY ACTION: 0 paying clients · Innovation Wales panel April 2026</div>
-          <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 4 }}>Three early access signups exist. All are Mark's test accounts (mark@ailane.ai, markglane@gmail.com, ops@ailane.ai). Zero real client signups recorded. Conversion is the single highest priority before the April panel.</div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <KpiCard label="Real Client Signups" value="0" color={C.red} icon="👤" />
-          <KpiCard label="Early Access Emails" value="0" sub="Real accounts" color={C.red} icon="📧" />
-          <KpiCard label="Days to April Panel" value="~30" sub="Target: 3 paying clients" color={C.amber} icon="⏱" />
-        </div>
-      </>
-    )}
-
-    {sub === "prospects" && (
-      <>
-        <SectionHeader title="Prospect Board" sub="Demo entity: Northerly Hill FM Ltd (fictional)" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {prospects.map((p, i) => (
-            <Card key={i} style={{ border: "1px solid " + (p.priority === "high" ? C.blue : C.border) }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                    <Badge label={p.status} color={p.status === "Early Access" ? "blue" : p.status === "Warm Lead" ? "amber" : "gray"} />
-                    <Badge label={p.priority} color={p.priority === "high" ? "green" : p.priority === "medium" ? "amber" : "gray"} />
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>{p.sector} · {p.employees} employees · {p.contact}</div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </>
-    )}
-
-    {sub === "strategy" && (
-      <>
-        <SectionHeader title="Conversion Strategy" sub="Path to first paying client before April panel" />
-        {[
-          { step: "01", title: "Demo Northerly Hill FM profile", desc: "Run live PCIE demo using ailane.ai/intelligence/ — show real ACEI/RRI/CCI scores, Document Vault, tribunal history", action: "Open PCIE Demo", link: "https://ailane.ai/intelligence/" },
-          { step: "02", title: "Lead with £19 one-time scan", desc: "Low commitment entry. Anonymous scan removes friction. Demonstrate value before subscription ask.", action: null, link: null },
-          { step: "03", title: "Operational tier at £199/mo", desc: "1 user, ACEI summary, 1 contract analysed, full Knowledge Library, ticker, alerts, REL. Clear ROI story.", action: null, link: null },
-          { step: "04", title: "Governance tier upsell at £799/mo", desc: "25 users, full Index Triad, unlimited docs, Document Vault, WCC, clause-level checker. Drive by team access need, not fear.", action: null, link: null },
-          { step: "05", title: "Legal partner referral (post-findings)", desc: "Transparent disclosed referral to regulated UK employment solicitors. Shown post-findings only. Revenue: per-referral fee.", action: null, link: null }
-        ].map((s, i) => (
-          <Card key={i} style={{ marginBottom: 8, border: "1px solid " + C.border }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: C.blue, fontFamily: "'JetBrains Mono',monospace", minWidth: 30 }}>{s.step}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.title}</div>
-                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>{s.desc}</div>
-                {s.link && <a href={s.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: C.blue, textDecoration: "none", marginTop: 6, display: "block" }}>{s.action} →</a>}
-              </div>
-            </div>
-          </Card>
-        ))}
-      </>
-    )}
-  </div>
-</div>
-```
-
-);
-}
-
-// ─── TAB: DATA SYSTEMS ────────────────────────────────────────────────────
-function DataSystemsTab({ token }) {
-const [sub, setSub] = useState(“health”);
-const pipelines = [
-{ name: “GOV.UK Tribunal Scraper”, status: “ok”, freq: “Daily 06:00 UTC (automated from 9 Mar)”, last: “09 Mar 2026 06:00”, records: “130,854”, issue: null },
-{ name: “Companies House Enrichment”, status: “running”, freq: “Manual / triggered”, last: “Running”, records: “78,699 total · ~50k pending”, issue: null },
-{ name: “GOV.UK News Pipeline”, status: “error”, freq: “N/A — broken”, last: “Failing”, records: “N/A”, issue: “422 Error: pipeline-govuk-news Edge Function. POST body sent where GET params expected. Fix: convert to query param approach.” },
-{ name: “Enforcement (HSE/ICO/EHRC)”, status: “ok”, freq: “Weekly”, last: “08 Mar 2026”, records: “Active”, issue: null },
-{ name: “Legislation Pipeline”, status: “ok”, freq: “On-demand + scheduled”, last: “08 Mar 2026”, records: “47 instruments”, issue: null },
-{ name: “CREE Anonymisation Pipeline”, status: “ok”, freq: “On contribution”, last: “Constitution ratified 7 Mar”, records: “6-step irreversible anonymisation”, issue: null }
-];
-const statusColor = { ok: C.green, running: C.amber, error: C.red };
-const statusLabel = { ok: “LIVE”, running: “RUNNING”, error: “ERROR” };
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “health”, label: “Pipeline Health” }, { id: “enrichment”, label: “CH Enrichment” }, { id: “freshness”, label: “Data Freshness” }]} active={sub} onChange={setSub} />
-<div className=“scrollable fade-in” style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
-
-```
-    {sub === "health" && (
-      <>
-        <SectionHeader title="Pipeline Health Monitor" sub="All active data pipelines · Ailane scraper fleet" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {pipelines.map((p, i) => (
-            <Card key={i} style={{ border: "1px solid " + (p.status === "error" ? "#7f1d1d" : C.border) }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: statusColor[p.status], fontFamily: "'JetBrains Mono',monospace" }}>{statusLabel[p.status]}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</span>
-                </div>
-                <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>{p.last}</span>
-              </div>
-              <div style={{ fontSize: 11, color: C.textMuted }}>Frequency: {p.freq} · Records: {p.records}</div>
-              {p.issue && (
-                <div style={{ marginTop: 8, padding: "6px 10px", background: "#2d0a0a", borderRadius: 4, border: "1px solid #7f1d1d" }}>
-                  <div style={{ fontSize: 11, color: "#f87171" }}>{p.issue}</div>
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
-      </>
-    )}
-
-    {sub === "enrichment" && (
-      <>
-        <SectionHeader title="Companies House Enrichment" sub="Scraper: C:\\Users\\leand\\Desktop\\ailane-backend\\backend\\Scrapers\\ch_enrichment_scraper.py" />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <KpiCard label="Total Profiles" value="78,699" color={C.cyan} icon="🏢" />
-          <KpiCard label="CH Verified" value="~31.8%" sub="~25,046 profiles" color={C.green} icon="✓" />
-          <KpiCard label="Pending CH Match" value="~50,000" sub="Still to process" color={C.amber} icon="⏳" />
-        </div>
-        <Card>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 8 }}>Enrichment Pipeline Details</div>
-          <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.8 }}>
-            <div><span style={{ color: C.textMuted }}>Scraper location:</span> C:\Users\leand\Desktop\ailane-backend\backend\Scrapers\ch_enrichment_scraper.py</div>
-            <div><span style={{ color: C.textMuted }}>API key:</span> {CH_API_KEY}</div>
-            <div><span style={{ color: C.textMuted }}>Rate limit:</span> 600 req/min (CH API)</div>
-            <div><span style={{ color: C.textMuted }}>Status:</span> <span style={{ color: C.amber }}>Running · ~50,000 employers remaining</span></div>
-            <div><span style={{ color: C.textMuted }}>Completion ETA:</span> Depends on batch run frequency</div>
-          </div>
-        </Card>
-      </>
-    )}
-
-    {sub === "freshness" && (
-      <>
-        <SectionHeader title="Data Freshness" sub="Currency of all data assets" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[
-            { asset: "Tribunal Decisions", latest: "11 Feb 2026", gap: "24-day gap closing (scraper ran 9 Mar)", color: "amber" },
-            { asset: "Legislation Library", latest: "08 Mar 2026", gap: "Current", color: "green" },
-            { asset: "Employer Profiles", latest: "Ongoing", gap: "78,699 total · enrichment in progress", color: "amber" },
-            { asset: "Enforcement Data (HSE/ICO/EHRC)", latest: "08 Mar 2026", gap: "Weekly schedule", color: "green" },
-            { asset: "CREE Data", latest: "Live", gap: "On contribution · min 5 events / 3 clients threshold", color: "green" }
-          ].map((d, i) => (
-            <Card key={i}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{d.asset}</div>
-                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{d.gap}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <Badge label={d.latest} color={d.color} />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </>
-    )}
-  </div>
-</div>
-```
-
-);
-}
-
-// ─── TAB: BUSINESS OFFICE ─────────────────────────────────────────────────
-function BusinessOfficeTab({ token }) {
-const [sub, setSub] = useState(“profile”);
-const filings = [
-{ event: “Confirmation Statement”, due: “01 Mar 2027”, status: “upcoming”, days: 358 },
-{ event: “First Accounts”, due: “16 Nov 2027”, status: “upcoming”, days: 618 },
-{ event: “Accounts made up to”, due: “28 Feb 2027”, status: “upcoming”, days: 357 },
-{ event: “ICO Registration Renewal”, due: “~Mar 2027”, status: “upcoming”, days: null },
-{ event: “UK Trademark UK00004347220”, due: “28 Feb 2036”, status: “active”, days: null },
-{ event: “VAT Registration”, due: “Required at £90k turnover”, status: “monitor”, days: null }
-];
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “profile”, label: “Company Profile” }, { id: “accounts”, label: “Accounts & Assets” }, { id: “valuation”, label: “Valuation” }, { id: “calendar”, label: “Filing Calendar” }]} active={sub} onChange={setSub} />
-<div className=“scrollable fade-in” style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
-
-```
-    {sub === "profile" && (
-      <>
-        <SectionHeader title="AI Lane Limited" sub="Co. No. 17035654 · Trading as Ailane (ailane.ai)" />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <Card>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 10 }}>Incorporation Details</div>
-            {[
-              ["Company Name", "AI Lane Limited"],
-              ["Company Number", "17035654"],
-              ["Incorporated", "16 February 2026"],
-              ["Trading As", "Ailane (ailane.ai)"],
-              ["Registered Office", "4 Min-Y-Mor, Barry, Wales, CF62 6QG"],
-              ["SIC Codes", "62012, 62020, 63110, 63990"],
-              ["Accounting Year End", "28 February"],
-              ["Banking", "Monzo Business"]
-            ].map(([k, v], i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid " + C.border, fontSize: 12 }}>
-                <span style={{ color: C.textMuted }}>{k}</span>
-                <span style={{ color: C.textDim, textAlign: "right", maxWidth: "60%" }}>{v}</span>
-              </div>
-            ))}
-          </Card>
-          <Card>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 10 }}>Regulatory & IP</div>
-            {[
-              ["ICO Registration", "00013389720"],
-              ["ICO Application", "C1888202"],
-              ["UK Trademark", "UK00004347220 (Ailane)"],
-              ["TM Filed", "28 February 2026"],
-              ["TM Fee", "£170 via IPO"],
-              ["GA4 Property", GA4_PROPERTY],
-              ["Google Ads CID", GADS_CUSTOMER_ID],
-              ["CH API Key", CH_API_KEY.substring(0, 8) + "…"]
-            ].map(([k, v], i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid " + C.border, fontSize: 12 }}>
-                <span style={{ color: C.textMuted }}>{k}</span>
-                <span style={{ color: C.textDim, fontFamily: "'JetBrains Mono',monospace", fontSize: 11 }}>{v}</span>
-              </div>
-            ))}
-          </Card>
-        </div>
-      </>
-    )}
-
-    {sub === "accounts" && (
-      <>
-        <SectionHeader title="Accounts & Assets" sub="Ailane financial overview · Accounts automation system: Phase 1 approved" />
-        <div style={{ background: "#052e16", border: "1px solid #15803d", borderRadius: 6, padding: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: "#4ade80" }}>✓ Accounts automation approved: accounts@ailane.ai · Monzo webhook · Gmail receipt ingest · Claude OCR · VAT tracker · Filing calendar</div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <KpiCard label="Revenue (MTD)" value="£0" sub="No paying clients" color={C.red} icon="£" />
-          <KpiCard label="Innovation Wales" value="£75,000" sub="Pending — April panel" color={C.amber} icon="🏴󠁧󠁢󠁷󠁬󠁳󠁿" />
-          <KpiCard label="IPO Trademark" value="£170" sub="Filed 28 Feb 2026" color={C.textDim} icon="™" />
-        </div>
-        <Card>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 10 }}>Revenue Model</div>
-          {[
-            ["One-off Scan (Anonymous)", "£19 — basic · £39 — full"],
-            ["Operational Tier", "£199/mo · 1 user · ACEI summary · 1 contract"],
-            ["Governance Tier", "£799/mo · 25 users · Full Index Triad · Unlimited docs"],
-            ["Institutional Tier", "Custom · Unlimited users · EEI · Intelligence Lab · API"],
-            ["Price Milestone", "Raise to £29/£49 scans at 1,000 total transactions"],
-            ["Legal Referral", "Per-referral fee (post-findings, disclosed, transparent)"]
-          ].map(([k, v], i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid " + C.border, fontSize: 12 }}>
-              <span style={{ color: C.textMuted }}>{k}</span>
-              <span style={{ color: C.textDim }}>{v}</span>
-            </div>
-          ))}
-        </Card>
-      </>
-    )}
-
-    {sub === "valuation" && (
-      <>
-        <SectionHeader title="Valuation Intelligence" sub="Pre-revenue · SaaS multiple basis" />
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 10 }}>Valuation Basis (Pre-Revenue)</div>
-          {[
-            ["Methodology", "ARR multiple (SaaS) · IP premium · Data moat"],
-            ["Data Asset", "130,854+ tribunal decisions · 78,699+ employer profiles"],
-            ["IP", "Registered trademark · 3 founding constitutions · 11 Edge Functions"],
-            ["Target ARR at Governance x10", "£799 × 10 clients = £95,880/yr → ~£480k valuation"],
-            ["Target ARR at Institutional x5", "Custom × 5 = material uplift"],
-            ["Innovation Wales Validation", "£75k grant pending — external validation of concept"]
-          ].map(([k, v], i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid " + C.border, fontSize: 12 }}>
-              <span style={{ color: C.textMuted, flex: 1 }}>{k}</span>
-              <span style={{ color: C.textDim, flex: 1.5, textAlign: "right" }}>{v}</span>
-            </div>
-          ))}
-        </Card>
-      </>
-    )}
-
-    {sub === "calendar" && (
-      <>
-        <SectionHeader title="Filing Calendar" sub="Companies House · HMRC · ICO · IPO obligations" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {filings.map((f, i) => (
-            <Card key={i} style={{ border: "1px solid " + (f.status === "upcoming" ? C.border : f.status === "active" ? "#15803d" : "#92400e") }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{f.event}</div>
-                  {f.days && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>In approximately {f.days} days</div>}
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 12, color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>{f.due}</div>
-                  <Badge label={f.status} color={f.status === "active" ? "green" : f.status === "monitor" ? "amber" : "gray"} />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </>
-    )}
-  </div>
-</div>
-```
-
-);
-}
-
-// ─── TAB: SIMULATOR ───────────────────────────────────────────────────────
-function SimulatorTab() {
-const [sector, setSector] = useState(“financial_services”);
-const [jurisdiction, setJurisdiction] = useState(“london”);
-const [cats, setCats] = useState({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0 });
-
-const SECTORS_SIM = [
-{ id: “public_sector”, label: “Public Sector”, sm: 1.30 },
-{ id: “financial_services”, label: “Financial Services”, sm: 1.25 },
-{ id: “healthcare”, label: “Healthcare”, sm: 1.15 },
-{ id: “technology”, label: “Technology”, sm: 1.10 },
-{ id: “retail_hospitality”, label: “Retail & Hospitality”, sm: 1.05 },
-{ id: “manufacturing”, label: “Manufacturing”, sm: 1.00 },
-{ id: “construction”, label: “Construction”, sm: 0.95 },
-{ id: “facilities_management”, label: “Facilities Management”, sm: 0.98 }
-];
-const JURISDICTIONS_SIM = [
-{ id: “london”, label: “London”, jm: 1.40 },
-{ id: “south_east”, label: “South East”, jm: 1.25 },
-{ id: “wales”, label: “Wales”, jm: 0.95 },
-{ id: “north_west”, label: “North West”, jm: 1.00 },
-{ id: “scotland”, label: “Scotland”, jm: 0.90 }
-];
-const WEIGHTS = { 1: 0.15, 2: 0.15, 3: 0.12, 4: 0.10, 5: 0.08, 6: 0.07, 7: 0.09, 8: 0.08, 9: 0.06, 10: 0.04, 11: 0.04, 12: 0.02 };
-const CAT_NAMES = { 1: “Unfair Dismissal”, 2: “Discrimination”, 3: “Pay & Working Time”, 4: “Whistleblowing”, 5: “Collective Redundancy”, 6: “TUPE”, 7: “Health & Safety”, 8: “Data Protection”, 9: “National Min Wage”, 10: “Agency Workers”, 11: “Equality Act”, 12: “Contract Law” };
-
-const sm = (SECTORS_SIM.find(s => s.id === sector) || SECTORS_SIM[0]).sm;
-const jm = (JURISDICTIONS_SIM.find(j => j.id === jurisdiction) || JURISDICTIONS_SIM[0]).jm;
-const baseSum = Object.entries(cats).reduce((acc, [k, v]) => acc + WEIGHTS[k] * v, 0);
-const di = Math.min(100, baseSum * sm * jm);
-const diColor = di > 70 ? C.red : di > 40 ? C.amber : C.green;
-
-return (
-<div className=“scrollable fade-in” style={{ padding: 24, height: “100%”, paddingBottom: 80 }}>
-<SectionHeader title=“ACEI Simulator” sub={`DI = Σ(Cw·Cs) × SM × JM · SM=${sm} · JM=${jm}`} />
-<div style={{ display: “grid”, gridTemplateColumns: “1fr 1fr”, gap: 16, marginBottom: 20 }}>
-<div>
-<label style={{ fontSize: 11, color: C.textMuted, display: “block”, marginBottom: 6 }}>SECTOR MULTIPLIER (SM)</label>
-<select value={sector} onChange={e => setSector(e.target.value)} style={{ width: “100%”, background: C.bgCard, border: “1px solid “ + C.border, borderRadius: 5, color: C.text, padding: “8px 10px”, fontSize: 12, outline: “none” }}>
-{SECTORS_SIM.map(s => <option key={s.id} value={s.id}>{s.label} (SM {s.sm})</option>)}
-</select>
-</div>
-<div>
-<label style={{ fontSize: 11, color: C.textMuted, display: “block”, marginBottom: 6 }}>JURISDICTION MULTIPLIER (JM)</label>
-<select value={jurisdiction} onChange={e => setJurisdiction(e.target.value)} style={{ width: “100%”, background: C.bgCard, border: “1px solid “ + C.border, borderRadius: 5, color: C.text, padding: “8px 10px”, fontSize: 12, outline: “none” }}>
-{JURISDICTIONS_SIM.map(j => <option key={j.id} value={j.id}>{j.label} (JM {j.jm})</option>)}
-</select>
-</div>
-</div>
-
-```
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-    {Object.entries(cats).map(([k, v]) => (
-      <div key={k} style={{ background: C.bgCard, border: "1px solid " + C.border, borderRadius: 6, padding: "10px 12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <div style={{ fontSize: 11, color: C.textDim }}><span style={{ color: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>C{k}</span> {CAT_NAMES[k]}</div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.cyan, fontFamily: "'JetBrains Mono',monospace" }}>{v}</span>
-        </div>
-        <input type="range" min={0} max={100} value={v} onChange={e => setCats(prev => ({ ...prev, [k]: Number(e.target.value) }))}
-          style={{ width: "100%", accentColor: C.blue }} />
       </div>
-    ))}
+    </div>
   </div>
 
-  <Card style={{ textAlign: "center", border: "1px solid " + diColor }}>
-    <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8, fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase", letterSpacing: 1 }}>Derived Index (DI)</div>
-    <div style={{ fontSize: 56, fontWeight: 800, color: diColor, fontFamily: "'JetBrains Mono',monospace" }}>{di.toFixed(1)}</div>
-    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>{di > 70 ? "CRITICAL EXPOSURE" : di > 40 ? "ELEVATED RISK" : "MANAGED RISK"}</div>
-    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>SM {sm} × JM {jm} × base {baseSum.toFixed(2)}</div>
-  </Card>
-</div>
-```
+  <!-- Right column: info cards -->
+  <div class="cc-right">
+    <div class="cc-infocard">
+      <h4>What We Check</h4>
+      <p>Every document is assessed against 29 UK statutory compliance checkpoints across current employment law.</p>
+      <ul class="cc-flist">
+        <li>Written statement of particulars (ERA 1996 s.1)</li>
+        <li>Working time provisions (WTR 1998)</li>
+        <li>National Living Wage compliance</li>
+        <li>Discrimination &amp; equality provisions (EA 2010)</li>
+        <li>Whistleblowing protections (PIDA 1998)</li>
+        <li>Data protection clauses (UK GDPR)</li>
+        <li>Maternity / paternity / parental rights</li>
+        <li>Restrictive covenants — enforceability</li>
+      </ul>
+    </div>
 
-);
-}
+    <div class="cc-infocard">
+      <h4>Constitutional Separation Guaranteed</h4>
+      <p>Documents analysed by the RRI engine only. Results never contaminate ACEI or CCI indices. Strict separation is constitutionally mandated and enforced by the Ailane Index Committee.</p>
+    </div>
 
-// ─── TAB: GOVERNANCE ─────────────────────────────────────────────────────
-function GovernanceTab({ token }) {
-const [sub, setSub] = useState(“constitutions”);
-const amendments = [
-{ id: “ACEI-AM-2026-001”, title: “Sector Taxonomy (32 sectors)”, status: “ratified”, date: “Feb 2026”, signatory: “Mark Lane” },
-{ id: “ACEI-AM-2026-002”, title: “Jurisdiction Multiplier & Sub-Regional Intelligence (RFVM)”, status: “ratified”, date: “Feb 2026”, signatory: “Mark Lane” },
-{ id: “ACEI-AM-2026-003”, title: “CREE — Client-Reported Enforcement Events”, status: “ratified”, date: “7 Mar 2026”, signatory: “Mark Lane” },
-{ id: “SPEC-PCIE-003-AM-001”, title: “PCIE v3.0 — Platform Specification”, status: “ratified”, date: “7 Mar 2026”, signatory: “Mark Lane (CEO-RAT-PCIE-003)” },
-{ id: “SPEC-CAMINT-001”, title: “Campaign Intelligence Architecture v1.0”, status: “ratified”, date: “7 Mar 2026”, signatory: “Mark Lane” },
-{ id: “SPEC-LANG-001”, title: “Language & Tone Specification v1.0”, status: “ratified”, date: “Recent”, signatory: “Mark Lane” },
-{ id: “EEI-001-v2.0”, title: “Enterprise Exposure Index — ACEI-AM-2026-003 note”, status: “active_spec”, date: “Mar 2026”, signatory: “Spec only” }
-];
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “constitutions”, label: “Founding Constitutions” }, { id: “amendments”, label: “Amendment Register” }, { id: “doctrine”, label: “Separation Doctrine” }]} active={sub} onChange={setSub} />
-<div className=“scrollable fade-in” style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
-
-```
-    {sub === "constitutions" && (
-      <>
-        <SectionHeader title="Founding Constitutions" sub="Adopted 26 February 2026 · Binding on all product, technical, and commercial decisions" />
-        {[
-          {
-            id: "ACEI v1.0", icon: "⚡", color: C.red,
-            title: "Adverse Claim Exposure Index",
-            desc: "External regulatory environment exposure. 12 categories. Formula: DI = Σ(Cw·Cs) × SM × JM. Scores 0–100.",
-            pillars: ["12 ACEI categories", "Sector Multiplier (SM)", "Jurisdiction Multiplier (JM)", "CREE (ratified AM-003)"]
-          },
-          {
-            id: "RRI v1.0", icon: "🛡", color: C.blue,
-            title: "Regulatory Readiness Index",
-            desc: "Forward-looking organisational preparedness. 5 pillars, 9-attribute EIP. Formula: WDRS = Σ(Ps·Pv) × 20. Dual-track evidence model.",
-            pillars: ["5 pillars", "9-attribute EIP", "Track A attestation (ceiling 2/5)", "Track B documentary (ceiling 3/5)"]
-          },
-          {
-            id: "CCI v1.0", icon: "📋", color: C.green,
-            title: "Compliance Conduct Index",
-            desc: "Historical conduct posture. 6 components, Bayesian credibility weighting. Formula: CCI = Σ(Ci·Zi) ÷ Σ(Zi).",
-            pillars: ["6 components", "Bayesian credibility weighting", "Historical conduct analysis", "Scores 0–100"]
-          }
-        ].map((c, i) => (
-          <Card key={i} style={{ marginBottom: 16, border: "1px solid " + c.color + "40" }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 28 }}>{c.icon}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-                  <Badge label={c.id} color="gray" />
-                  <Badge label="Ratified" color="green" />
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: c.color, marginBottom: 6 }}>{c.title}</div>
-                <p style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginBottom: 10 }}>{c.desc}</p>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {c.pillars.map((p, pi) => (
-                    <span key={pi} style={{ fontSize: 10, padding: "2px 8px", background: C.bgPanel, border: "1px solid " + C.border, borderRadius: 3, color: C.textMuted }}>{p}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </>
-    )}
-
-    {sub === "amendments" && (
-      <>
-        <SectionHeader title="Amendment Register" sub="All ratified and pending constitutional amendments · AIC governed" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {amendments.map((a, i) => (
-            <Card key={i} style={{ border: "1px solid " + (a.status === "ratified" ? "#15803d" : a.status === "proposed" ? "#92400e" : C.border) }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                    <Badge label={a.id} color="gray" />
-                    <Badge label={a.status === "ratified" ? "Ratified" : a.status === "proposed" ? "⚠ Proposed" : "Active Spec"} color={a.status === "ratified" ? "green" : a.status === "proposed" ? "red" : "blue"} />
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{a.title}</div>
-                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>{a.date} · Signatory: {a.signatory}</div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </>
-    )}
-
-    {sub === "doctrine" && (
-      <>
-        <SectionHeader title="Strict Separation Doctrine" sub="Constitutional mandate — no cross-contamination between indices" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[
-            {
-              title: "ACEI ↔ RRI Separation",
-              desc: "ACEI tribunal and employer profile data must never enter the RRI compliance pathway. The ACEI measures external regulatory exposure; the RRI measures internal organisational readiness. These are independent lenses.",
-              severity: "critical"
-            },
-            {
-              title: "RRI ↔ CCI Separation",
-              desc: "RRI (forward-looking preparedness) must not be contaminated by CCI (historical conduct). Each index independently scores the organisation on its own axis.",
-              severity: "critical"
-            },
-            {
-              title: "CREE Contribution Cap",
-              desc: "Client-Reported Enforcement Events are capped at 15% contribution to any ACEI category score. Six-step irreversible anonymisation. Minimum threshold: ≥5 events, ≥3 clients. Constitutional obligation at all tiers.",
-              severity: "high"
-            },
-            {
-              title: "Legal Partner Referral Separation",
-              desc: "Compliance findings are deterministic and constitutionally governed. Legal partner referral fees are structurally separated and never influence findings output. Disclosure is non-negotiable.",
-              severity: "high"
-            }
-          ].map((d, i) => (
-            <Card key={i} style={{ border: "1px solid " + (d.severity === "critical" ? "#7f1d1d" : "#92400e") }}>
-              <div style={{ fontSize: 11, color: d.severity === "critical" ? "#f87171" : C.amber, fontWeight: 700, marginBottom: 6, fontFamily: "'JetBrains Mono',monospace" }}>
-                {d.severity === "critical" ? "⚠ CONSTITUTIONAL MANDATE" : "⚠ STRICT REQUIREMENT"}
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>{d.title}</div>
-              <p style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>{d.desc}</p>
-            </Card>
-          ))}
-        </div>
-      </>
-    )}
+    <div class="cc-tiercard">
+      <div class="cc-tinfo">
+        <h5>Operational Tier — £199/month</h5>
+        <p>1 contract, full monitoring &amp; enforcement alerts</p>
+      </div>
+      <a href="#early-access" class="cc-tcta">Get Started</a>
+    </div>
   </div>
 </div>
 ```
 
-);
-}
-
-// ─── TAB: AI ASSISTANT (FULL) ─────────────────────────────────────────────
-function AIAssistantTab({ token }) {
-const [msgs, setMsgs] = useState([
-{ role: “assistant”, content: “CEO Intelligence active. I have full awareness of Ailane’s constitutional framework, data estate, product architecture, and commercial priorities. Ask me anything.” }
-]);
-const [input, setInput] = useState(””);
-const [loading, setLoading] = useState(false);
-const endRef = useRef(null);
-
-useEffect(() => {
-if (endRef.current) endRef.current.scrollIntoView({ behavior: “smooth” });
-}, [msgs]);
-
-const send = useCallback(async (text) => {
-const msg = text || input.trim();
-if (!msg) return;
-setInput(””);
-setMsgs(prev => […prev, { role: “user”, content: msg }]);
-setLoading(true);
-try {
-const r = await callCeoAssistant(token, msg, “CEO Command Centre — AI Assistant tab — full chat mode”);
-setMsgs(prev => […prev, { role: “assistant”, content: r }]);
-} catch (e) {
-setMsgs(prev => […prev, { role: “assistant”, content: “Error connecting to CEO Assistant: “ + e.message }]);
-}
-setLoading(false);
-}, [input, token]);
-
-const QUICK = [“Constitutional framework overview”, “Innovation Wales pitch preparation”, “Client conversion strategy”, “ACEI formula explained”, “Risk: current regulatory environment”, “What should I prioritise today?”];
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<div style={{ padding: “10px 20px”, borderBottom: “1px solid “ + C.border, background: C.bgCard, display: “flex”, justifyContent: “space-between”, alignItems: “center” }}>
-<div>
-<div style={{ fontSize: 13, fontWeight: 700, color: C.purple }}>🤖 CEO AI Assistant — Full Mode</div>
-<div style={{ fontSize: 10, color: C.textMuted }}>claude-sonnet-4-6 · ceo-assistant Edge Function · JWT verified</div>
-</div>
-<div style={{ display: “flex”, gap: 6 }}>
-{QUICK.slice(0, 3).map((q, i) => (
-<button key={i} onClick={() => send(q)} style={{ fontSize: 10, padding: “4px 10px”, borderRadius: 4, background: “transparent”, border: “1px solid “ + C.border, color: C.textMuted, cursor: “pointer” }}>{q}</button>
-))}
-</div>
-</div>
-<div className=“scrollable” style={{ flex: 1, padding: 20, display: “flex”, flexDirection: “column”, gap: 12 }}>
-{msgs.map((m, i) => (
-<div key={i} style={{
-alignSelf: m.role === “user” ? “flex-end” : “flex-start”,
-maxWidth: “75%”, padding: “10px 14px”, borderRadius: 8,
-background: m.role === “user” ? C.blueMuted : “#1a0a2e”,
-border: “1px solid “ + (m.role === “user” ? C.blue : C.purpleD),
-fontSize: 13, color: C.textDim, lineHeight: 1.7, whiteSpace: “pre-wrap”
-}}>
-{m.role === “assistant” && <div style={{ fontSize: 10, color: C.purple, fontWeight: 700, marginBottom: 6 }}>CEO ASSISTANT</div>}
-{m.content}
-</div>
-))}
-{loading && (
-<div style={{ alignSelf: “flex-start”, padding: “10px 14px”, borderRadius: 8, background: “#1a0a2e”, border: “1px solid “ + C.purpleD, display: “flex”, gap: 8, alignItems: “center” }}>
-<Spinner /><span style={{ fontSize: 11, color: C.textMuted }}>Analysing…</span>
-</div>
-)}
-<div ref={endRef} />
-</div>
-<div style={{ padding: “8px 20px”, borderTop: “1px solid “ + C.border, display: “flex”, gap: 4 }}>
-{QUICK.slice(3).map((q, i) => (
-<button key={i} onClick={() => send(q)} style={{ fontSize: 10, padding: “4px 10px”, borderRadius: 4, background: “transparent”, border: “1px solid “ + C.border, color: C.textMuted, cursor: “pointer” }}>{q}</button>
-))}
-</div>
-<div style={{ padding: “10px 20px”, borderTop: “1px solid “ + C.border, display: “flex”, gap: 8 }}>
-<input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === “Enter” && send()}
-placeholder=“Ask the CEO Assistant anything about Ailane…” style={{ flex: 1, background: C.bgCard, border: “1px solid “ + C.border, borderRadius: 6, color: C.text, padding: “10px 14px”, fontSize: 13, outline: “none”, fontFamily: “‘Syne’,sans-serif” }} />
-<button onClick={() => send()} disabled={loading || !input.trim()} style={{ padding: “10px 20px”, borderRadius: 6, background: loading ? C.purpleD : C.purple, border: “none”, color: “#fff”, cursor: loading ? “not-allowed” : “pointer”, fontSize: 13, fontWeight: 700 }}>Send</button>
-</div>
-</div>
-);
-}
-
-// ─── TAB: ANALYTICS (CAMINT-001) ──────────────────────────────────────────
-function AnalyticsTab({ token }) {
-const [sub, setSub] = useState(“website”);
-const [camData, setCamData] = useState([]);
-const [camLoading, setCamLoading] = useState(false);
-
-useEffect(() => {
-if (sub !== “campaign”) return;
-setCamLoading(true);
-sbFetch(”/rest/v1/cis_campaign_performance?select=*&order=date.desc&limit=30”, token)
-.then(d => setCamData(d || []))
-.catch(() => setCamData([]))
-.finally(() => setCamLoading(false));
-}, [sub, token]);
-
-const sparkData = [
-{ d: “3/1”, sessions: 12, events: 4 }, { d: “3/2”, sessions: 18, events: 7 },
-{ d: “3/3”, sessions: 24, events: 9 }, { d: “3/4”, sessions: 31, events: 12 },
-{ d: “3/5”, sessions: 28, events: 10 }, { d: “3/6”, sessions: 42, events: 16 },
-{ d: “3/7”, sessions: 38, events: 14 }, { d: “3/8”, sessions: 55, events: 21 }
-];
-const adChannels = [
-{ channel: “Google Search”, status: “pending_connect” },
-{ channel: “Google Display”, status: “pending_connect” }
-];
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, height: “100%” }}>
-<SubNav tabs={[{ id: “website”, label: “Website Analytics” }, { id: “campaign”, label: “Campaign Intelligence” }, { id: “advertising”, label: “Advertising Performance” }]} active={sub} onChange={setSub} />
-<div className=“scrollable fade-in” style={{ flex: 1, padding: 20, paddingBottom: 80 }}>
-
-```
-    {sub === "website" && (
-      <>
-        <SectionHeader
-          title="Website Analytics"
-          sub={"GA4: " + GA4_PROPERTY + " · ailane.ai"}
-          action={
-            <a href={"https://analytics.google.com/analytics/web/?authuser=0#/p" + GA4_PROPERTY.replace("G-", "") + "/reports"} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: C.blue, textDecoration: "none", padding: "5px 12px", border: "1px solid " + C.blue, borderRadius: 4 }}>
-              Open GA4 Console →
-            </a>
-          }
-        />
-        <div style={{ background: "#052e16", border: "1px solid #15803d", borderRadius: 6, padding: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: "#4ade80" }}>✓ GA4 tag {GA4_PROPERTY} deployed — present in all pages (standing rule, no exceptions)</div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <KpiCard label="Sessions (7d)" value="248" sub="ailane.ai" color={C.cyan} icon="👁" />
-          <KpiCard label="Users (7d)" value="186" sub="Unique" color={C.blue} icon="👤" />
-          <KpiCard label="Events (7d)" value="93" sub="Engagement" color={C.green} icon="⚡" />
-          <KpiCard label="Avg Duration" value="2m 14s" sub="Per session" color={C.amber} icon="⏱" />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <Card>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 12 }}>Sessions — Last 8 Days</div>
-            <ResponsiveContainer width="100%" height={150}>
-              <AreaChart data={sparkData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                <XAxis dataKey="d" tick={{ fontSize: 9, fill: C.textMuted }} />
-                <YAxis tick={{ fontSize: 9, fill: C.textMuted }} />
-                <Tooltip contentStyle={{ background: C.bgPanel, border: "1px solid " + C.border, fontSize: 11 }} />
-                <Area type="monotone" dataKey="sessions" stroke={C.blue} fill={C.blueMuted} strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Card>
-          <Card>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 12 }}>Top Pages</div>
-            {[
-              { page: "/", label: "Home", sessions: 89 },
-              { page: "/AiLaneCEO/", label: "CEO Command Centre", sessions: 52 },
-              { page: "/governance-dashboard/", label: "Governance Dashboard", sessions: 31 },
-              { page: "/intelligence/", label: "PCIE (Intelligence)", sessions: 28 },
-              { page: "/ticker/", label: "Regulatory Ticker", sessions: 21 },
-              { page: "/knowledge-library/", label: "Knowledge Library", sessions: 17 }
-            ].map((p, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid " + C.border }}>
-                <div>
-                  <div style={{ fontSize: 12, color: C.textDim }}>{p.label}</div>
-                  <div style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>{p.page}</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 60, height: 4, background: C.border, borderRadius: 2 }}>
-                    <div style={{ width: (p.sessions / 89 * 100) + "%", height: "100%", background: C.blue, borderRadius: 2 }} />
-                  </div>
-                  <span style={{ fontSize: 11, color: C.textDim, fontFamily: "'JetBrains Mono',monospace", minWidth: 24, textAlign: "right" }}>{p.sessions}</span>
-                </div>
-              </div>
-            ))}
-          </Card>
-        </div>
-        <Card>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 10 }}>Traffic Sources</div>
-          <div style={{ display: "flex", gap: 20 }}>
-            {[
-              { source: "Direct", pct: 52, color: C.blue },
-              { source: "Organic", pct: 28, color: C.green },
-              { source: "Referral", pct: 12, color: C.amber },
-              { source: "Paid", pct: 8, color: C.purple }
-            ].map((s, i) => (
-              <div key={i} style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-                  <span style={{ color: C.textMuted }}>{s.source}</span>
-                  <span style={{ color: s.color, fontFamily: "'JetBrains Mono',monospace" }}>{s.pct}%</span>
-                </div>
-                <div style={{ height: 4, background: C.border, borderRadius: 2 }}>
-                  <div style={{ width: s.pct + "%", height: "100%", background: s.color, borderRadius: 2 }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </>
-    )}
-
-    {sub === "campaign" && (
-      <>
-        <SectionHeader title="Campaign Intelligence" sub={"AILANE-SPEC-CAMINT-001 v1.0 · Ratified 7 March 2026 · Phase 1 active"} />
-        <div style={{ background: "#0c1a35", border: "1px solid " + C.blue, borderRadius: 6, padding: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: C.blue, fontWeight: 700, marginBottom: 4 }}>CAMINT-001 Phase 1 — Google Ads API Integration</div>
-          <div style={{ fontSize: 11, color: C.textDim }}>Supabase cis schema · CEO Command Centre Campaign Intelligence module · Google OAuth: 252315537236</div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <KpiCard label="Active Campaigns" value="—" sub="Pending API sync" color={C.textMuted} icon="📢" />
-          <KpiCard label="Total Spend (MTD)" value="£—" sub="Google Ads" color={C.textMuted} icon="💰" />
-          <KpiCard label="Total Clicks (MTD)" value="—" sub="Search + Display" color={C.textMuted} icon="🖱" />
-          <KpiCard label="Conversions (MTD)" value="—" sub="Early access signups" color={C.textMuted} icon="✓" />
-        </div>
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 10 }}>Campaign Performance Table</div>
-          <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 12 }}>
-            Google Ads Customer ID: <span style={{ fontFamily: "'JetBrains Mono',monospace", color: C.textDim }}>{GADS_CUSTOMER_ID}</span>
-          </div>
-          {camLoading ? (
-            <div style={{ textAlign: "center", padding: 20 }}><Spinner /></div>
-          ) : camData.length > 0 ? (
-            <div>
-              {camData.slice(0, 10).map((c, i) => (
-                <div key={i} style={{ display: "flex", gap: 12, padding: "6px 0", borderBottom: "1px solid " + C.border, fontSize: 11 }}>
-                  <span style={{ color: C.textDim, flex: 2 }}>{c.campaign_name}</span>
-                  <span style={{ color: C.textMuted, flex: 1 }}>Clicks: {c.clicks}</span>
-                  <span style={{ color: C.textMuted, flex: 1 }}>Spend: £{c.spend}</span>
-                  <span style={{ color: C.textMuted, flex: 1 }}>CPC: £{c.cpc}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ padding: "20px 0", textAlign: "center" }}>
-              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>No campaign data in cis schema yet</div>
-              <div style={{ fontSize: 11, color: C.textMuted }}>Google Ads API backend worker populates cis.campaign_performance. Phase 1 build in progress.</div>
-            </div>
-          )}
-        </Card>
-        <Card>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 10 }}>CAMINT-001 Architecture Status</div>
-          {[
-            { item: "Google Ads API integration", status: "Phase 1 — in build", color: "amber" },
-            { item: "Supabase cis schema", status: "Approved — pending migration", color: "amber" },
-            { item: "CEO Command Centre module", status: "This tab", color: "green" },
-            { item: "Automated performance ingestion", status: "Phase 1 — queued", color: "amber" },
-            { item: "Audience intelligence layer", status: "Phase 2", color: "gray" },
-            { item: "Attribution modelling", status: "Phase 2", color: "gray" }
-          ].map((r, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid " + C.border }}>
-              <span style={{ fontSize: 12, color: C.textDim }}>{r.item}</span>
-              <Badge label={r.status} color={r.color} />
-            </div>
-          ))}
-        </Card>
-      </>
-    )}
-
-    {sub === "advertising" && (
-      <>
-        <SectionHeader
-          title="Advertising Performance"
-          sub={"Google Ads CID: " + GADS_CUSTOMER_ID + " · AI Lane Limited · mark@ailane.ai"}
-          action={
-            <a href="https://ads.google.com/aw/overview" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: C.blue, textDecoration: "none", padding: "5px 12px", border: "1px solid " + C.blue, borderRadius: 4 }}>
-              Open Google Ads →
-            </a>
-          }
-        />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <KpiCard label="Impressions (MTD)" value="—" sub="Pending API sync" color={C.textMuted} icon="👁" />
-          <KpiCard label="Clicks (MTD)" value="—" sub="Search + Display" color={C.textMuted} icon="🖱" />
-          <KpiCard label="CTR" value="—" sub="Click-through rate" color={C.textMuted} icon="%" />
-          <KpiCard label="Cost per Click" value="£—" sub="Average CPC" color={C.textMuted} icon="£" />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <Card>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 12 }}>Ad Channels</div>
-            {adChannels.map((ch, i) => (
-              <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid " + C.border }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: C.textDim }}>{ch.channel}</span>
-                  <Badge label="API sync pending" color="amber" />
-                </div>
-              </div>
-            ))}
-          </Card>
-          <Card>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 12 }}>Target Audience Profile</div>
-            {[
-              { label: "Primary", value: "HR Directors, UK mid-market employers" },
-              { label: "Secondary", value: "Compliance leads, employment solicitors" },
-              { label: "Geography", value: "UK — Wales, London, South East priority" },
-              { label: "Company size", value: "50–5,000 employees" },
-              { label: "Keywords", value: "Employment law compliance, tribunal risk" }
-            ].map((r, i) => (
-              <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid " + C.border, display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-                <span style={{ color: C.textMuted }}>{r.label}</span>
-                <span style={{ color: C.textDim, textAlign: "right", maxWidth: "60%" }}>{r.value}</span>
-              </div>
-            ))}
-          </Card>
-        </div>
-        <Card>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.cyan, marginBottom: 8 }}>Advertising Strategy Notes</div>
-          <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.8 }}>
-            <div>• Lead with <strong style={{ color: C.text }}>£19 anonymous scan</strong> — lowest friction entry point for Google Ads conversion</div>
-            <div>• Price milestone: raise scan prices to £29/£49 at 1,000 total transactions</div>
-            <div>• Positive pricing narrative: "Early adopters got the better deal" — not apology</div>
-            <div>• B2B institutional buyer framing — LinkedIn Ads consideration for Phase 2</div>
-            <div>• Welsh ICE and Business Wales partner network as organic channel</div>
-          </div>
-        </Card>
-      </>
-    )}
   </div>
 </div>
-```
 
-);
-}
+<!-- ─── KNOWLEDGE LIBRARY ─────────────────────────────────────────────────────── -->
 
-// ─── LOGIN SCREEN ─────────────────────────────────────────────────────────
-function Login({ onAuth }) {
-const [email, setEmail] = useState(“mark@ailane.ai”);
-const [pass, setPass] = useState(””);
-const [loading, setLoading] = useState(false);
-const [err, setErr] = useState(””);
-
-const doLogin = async () => {
-setLoading(true);
-setErr(””);
-try {
-const d = await signIn(email, pass);
-// Stay on this page — token stored in React state only, no redirect
-if (typeof gtag !== “undefined”) gtag(“event”, “ceo_login”, { email });
-onAuth(d.access_token, d.user);
-} catch (e) {
-setErr(e.message);
-}
-setLoading(false);
-};
-
-return (
-<div style={{ height: “100vh”, display: “flex”, alignItems: “center”, justifyContent: “center”, background: C.bg, fontFamily: “‘Syne’,sans-serif” }}>
-<div style={{ width: 380, padding: 40, background: C.bgCard, border: “1px solid “ + C.border, borderRadius: 12 }}>
-<div style={{ textAlign: “center”, marginBottom: 32 }}>
-<div style={{ fontSize: 28, fontWeight: 800, color: C.cyan, letterSpacing: -1 }}>AILANE</div>
-<div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontFamily: “‘JetBrains Mono’,monospace”, letterSpacing: 1 }}>CEO COMMAND CENTRE v3</div>
-</div>
-<div style={{ marginBottom: 14 }}>
-<label style={{ fontSize: 11, color: C.textMuted, display: “block”, marginBottom: 5 }}>EMAIL</label>
-<input value={email} onChange={e => setEmail(e.target.value)}
-style={{ width: “100%”, background: C.bgPanel, border: “1px solid “ + C.border, borderRadius: 6, color: C.text, padding: “10px 12px”, fontSize: 13, outline: “none”, fontFamily: “‘Syne’,sans-serif” }} />
-</div>
-<div style={{ marginBottom: 20 }}>
-<label style={{ fontSize: 11, color: C.textMuted, display: “block”, marginBottom: 5 }}>PASSWORD</label>
-<input type=“password” value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === “Enter” && doLogin()}
-style={{ width: “100%”, background: C.bgPanel, border: “1px solid “ + C.border, borderRadius: 6, color: C.text, padding: “10px 12px”, fontSize: 13, outline: “none”, fontFamily: “‘Syne’,sans-serif” }} />
-</div>
-{err && <div style={{ fontSize: 12, color: C.red, marginBottom: 14, padding: “8px 10px”, background: “#2d0a0a”, borderRadius: 5, border: “1px solid #7f1d1d” }}>{err}</div>}
-<button onClick={doLogin} disabled={loading} style={{ width: “100%”, padding: “11px”, borderRadius: 6, background: “linear-gradient(135deg, “ + C.blue + “, “ + C.blueD + “)”, border: “none”, color: “#fff”, cursor: loading ? “not-allowed” : “pointer”, fontSize: 14, fontWeight: 700 }}>
-{loading ? “Authenticating…” : “Access Command Centre”}
-</button>
-<div style={{ textAlign: “center”, fontSize: 10, color: C.textMuted, marginTop: 16 }}>AI Lane Limited · Co. No. 17035654 · Restricted access</div>
-</div>
-</div>
-);
-}
-
-// ─── MAIN APP ─────────────────────────────────────────────────────────────
-function App() {
-const [token, setToken] = useState(null);
-const [user, setUser] = useState(null);
-const [activeTab, setActiveTab] = useState(“⚡ Command”);
-
-const TABS = [
-“⚡ Command”, “📰 Regulatory Intel”, “📚 Knowledge Library”,
-“🔍 Intelligence Hub”, “📊 Client Pipeline”, “⚙️ Data Systems”,
-“🏢 Business Office”, “🔬 Simulator”, “📜 Governance”,
-“📈 Analytics”, “🤖 AI Assistant”
-];
-
-const renderTab = () => {
-switch (activeTab) {
-case “⚡ Command”:        return <CommandTab token={token} />;
-case “📰 Regulatory Intel”: return <RegulatoryIntelTab token={token} />;
-case “📚 Knowledge Library”: return <KnowledgeLibraryTab token={token} />;
-case “🔍 Intelligence Hub”: return <IntelligenceHubTab token={token} />;
-case “📊 Client Pipeline”: return <ClientPipelineTab token={token} />;
-case “⚙️ Data Systems”:   return <DataSystemsTab token={token} />;
-case “🏢 Business Office”: return <BusinessOfficeTab token={token} />;
-case “🔬 Simulator”:      return <SimulatorTab />;
-case “📜 Governance”:     return <GovernanceTab token={token} />;
-case “📈 Analytics”:      return <AnalyticsTab token={token} />;
-case “🤖 AI Assistant”:   return <AIAssistantTab token={token} />;
-default:                  return <CommandTab token={token} />;
-}
-};
-
-if (!token) return <Login onAuth={(t, u) => { setToken(t); setUser(u); }} />;
-
-return (
-<div style={{ display: “flex”, height: “100vh”, overflow: “hidden”, fontFamily: “‘Syne’,sans-serif” }}>
-{/* Sidebar */}
-<div style={{ width: 200, background: “#08111e”, borderRight: “1px solid “ + C.border, display: “flex”, flexDirection: “column”, flexShrink: 0 }}>
-<div style={{ padding: “16px 14px”, borderBottom: “1px solid “ + C.border }}>
-<div style={{ fontSize: 16, fontWeight: 800, color: C.cyan, letterSpacing: -0.5 }}>AILANE</div>
-<div style={{ fontSize: 9, color: C.textMuted, fontFamily: “‘JetBrains Mono’,monospace”, letterSpacing: 1, marginTop: 2 }}>CEO COMMAND CENTRE v3</div>
-</div>
-<div className=“scrollable” style={{ flex: 1, padding: “8px 0” }}>
-{TABS.map(t => (
-<button key={t} onClick={() => setActiveTab(t)} style={{
-width: “100%”, padding: “8px 14px”, background: activeTab === t ? C.blueMuted : “transparent”,
-border: “none”, borderLeft: “2px solid “ + (activeTab === t ? C.blue : “transparent”),
-color: activeTab === t ? C.text : C.textMuted, cursor: “pointer”, textAlign: “left”,
-fontSize: 12, fontFamily: “‘Syne’,sans-serif”, fontWeight: activeTab === t ? 600 : 400,
-transition: “all 0.15s”, display: “block”
-}}>
-{t}
-</button>
-))}
-</div>
-<div style={{ padding: “12px 14px”, borderTop: “1px solid “ + C.border }}>
-<div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>Authenticated</div>
-<div style={{ fontSize: 11, color: C.textDim, fontFamily: “‘JetBrains Mono’,monospace”, overflow: “hidden”, textOverflow: “ellipsis”, whiteSpace: “nowrap” }}>
-{user ? user.email : “mark@ailane.ai”}
-</div>
-<button onClick={() => { setToken(null); setUser(null); }} style={{ marginTop: 8, fontSize: 10, color: C.textMuted, background: “none”, border: “none”, cursor: “pointer”, padding: 0 }}>
-Sign out
-</button>
-</div>
-</div>
-
-```
-  {/* Main content */}
-  <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-    {/* Top bar */}
-    <div style={{ padding: "10px 20px", borderBottom: "1px solid " + C.border, background: C.bgCard, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+<div class="sf" id="knowledge-library">
+  <div class="si">
+    <div class="kl-head">
       <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{activeTab}</div>
-        <div style={{ fontSize: 10, color: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>
-          AI Lane Limited · Co. No. 17035654 · ICO: 00013389720 · {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-        </div>
+        <div class="eyebrow">Knowledge Library</div>
+        <h2 class="stitle" style="margin-bottom:8px">47 Legislative Instruments.<br>Always Current.</h2>
+        <p class="ssub" style="margin-bottom:0">Every statute verified against legislation.gov.uk under OGL v3. Updated automatically when amendments are enacted.</p>
       </div>
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 3, background: "#052e16", color: "#4ade80", border: "1px solid #15803d", fontFamily: "'JetBrains Mono',monospace" }}>● LIVE</span>
-        <span style={{ fontSize: 10, color: C.textMuted }}>Supabase Pro · eu-central-1</span>
-      </div>
+      <div class="kl-count"><span>47</span>instruments live</div>
     </div>
-    {/* Tab content */}
-    <div style={{ flex: 1, overflow: "hidden" }}>
-      {renderTab()}
-    </div>
-  </div>
 
-  {/* Floating AI */}
-  <FloatingAI token={token} activeTab={activeTab} />
+```
+<div class="klgrid fu">
+  <div class="klcard">
+    <div class="klcat">Employment Rights</div>
+    <div class="kltitle">Employment Rights Act 1996</div>
+    <div class="klmeta"><span class="klst st-live">In Force</span><span class="klyear">1996 c.18</span></div>
+  </div>
+  <div class="klcard">
+    <div class="klcat">Equality</div>
+    <div class="kltitle">Equality Act 2010</div>
+    <div class="klmeta"><span class="klst st-amend">Amended 2023</span><span class="klyear">2010 c.15</span></div>
+  </div>
+  <div class="klcard">
+    <div class="klcat">Working Time</div>
+    <div class="kltitle">Working Time Regulations 1998</div>
+    <div class="klmeta"><span class="klst st-live">In Force</span><span class="klyear">SI 1998/1833</span></div>
+  </div>
+  <div class="klcard locked">
+    <div class="klcat">Whistleblowing</div>
+    <div class="kltitle">Public Interest Disclosure Act 1998</div>
+    <div class="klmeta"><span class="klst st-live">In Force</span><span class="klyear">1998 c.23</span></div>
+  </div>
+  <div class="klcard locked">
+    <div class="klcat">Data Protection</div>
+    <div class="kltitle">UK GDPR · Data Protection Act 2018</div>
+    <div class="klmeta"><span class="klst st-amend">Post-Brexit</span><span class="klyear">2018 c.12</span></div>
+  </div>
+  <div class="klcard locked">
+    <div class="klcat">National Minimum Wage</div>
+    <div class="kltitle">National Minimum Wage Act 1998 + Regulations</div>
+    <div class="klmeta"><span class="klst st-pend">Updated Apr 2025</span><span class="klyear">1998 c.39</span></div>
+  </div>
+</div>
+
+<div class="kl-foot">
+  <div style="font-size:13px;color:var(--t3)">Showing 3 of 47 instruments. Full library from Operational tier.</div>
+  <a href="/intelligence/" class="btn-s" style="font-size:13px;padding:10px 20px">Browse Full Library →</a>
 </div>
 ```
 
-);
+  </div>
+</div>
+
+<!-- ─── INDEX TRIAD ───────────────────────────────────────────────────────────── -->
+
+<div class="sf">
+  <div class="si">
+    <div class="eyebrow">The Constitutional Framework</div>
+    <h2 class="stitle">Three Indices. One Governed Engine.</h2>
+    <p class="ssub">Each index is independently constituted, mathematically defined, and maintained by the Ailane Index Committee. No cross-contamination. No black boxes. Every score is auditable and reproducible.</p>
+
+```
+<div class="triad fu">
+  <div class="tcard">
+    <div class="tcode">ACEI v1.0</div>
+    <div class="tname">Adverse Claim<br>Exposure Index</div>
+    <div class="tfull">External Regulatory Environment</div>
+    <div class="tformula">DI = Σ(Cw · Cs) × SM × JM</div>
+    <div class="tdesc">Quantifies your organisation's exposure to adverse employment claims based on sector, jurisdiction, tribunal history, and live enforcement activity across 12 regulatory categories.</div>
+    <div class="tstats">
+      <div class="tsr"><span class="tsk">Categories</span><span class="tsv">12</span></div>
+      <div class="tsr"><span class="tsk">Tribunal dataset</span><span class="tsv">130,854+ decisions</span></div>
+      <div class="tsr"><span class="tsk">Score range</span><span class="tsv">0 – 100</span></div>
+      <div class="tsr"><span class="tsk">Sector taxonomy</span><span class="tsv">32 sectors</span></div>
+      <div class="tsr"><span class="tsk">Jurisdiction scope</span><span class="tsv">53 jurisdictions</span></div>
+    </div>
+  </div>
+
+  <div class="tcard">
+    <div class="tcode">RRI v1.0</div>
+    <div class="tname">Regulatory<br>Readiness Index</div>
+    <div class="tfull">Organisational Preparedness</div>
+    <div class="tformula">WDRS = Σ(Ps · Pv) × 20</div>
+    <div class="tdesc">Measures forward-looking preparedness across 5 constitutional pillars — from policy alignment to governance oversight — using a dual-track evidence model with strict evidentiary ceilings.</div>
+    <div class="tstats">
+      <div class="tsr"><span class="tsk">Constitutional pillars</span><span class="tsv">5</span></div>
+      <div class="tsr"><span class="tsk">Evidence model</span><span class="tsv">Track A + Track B</span></div>
+      <div class="tsr"><span class="tsk">Attributes</span><span class="tsv">9-attribute EIP</span></div>
+      <div class="tsr"><span class="tsk">Score range</span><span class="tsv">0 – 100</span></div>
+      <div class="tsr"><span class="tsk">Track A ceiling</span><span class="tsv">Score 2 / 5</span></div>
+    </div>
+  </div>
+
+  <div class="tcard">
+    <div class="tcode">CCI v1.0</div>
+    <div class="tname">Compliance<br>Conduct Index</div>
+    <div class="tfull">Historical Conduct Posture</div>
+    <div class="tformula">CCI = Σ(Ci · Zi) ÷ Σ(Zi)</div>
+    <div class="tdesc">Evaluates your organisation's historical compliance conduct across 6 components using Bayesian credibility weighting — providing an auditable record of your regulatory posture over time.</div>
+    <div class="tstats">
+      <div class="tsr"><span class="tsk">Components</span><span class="tsv">6</span></div>
+      <div class="tsr"><span class="tsk">Weighting model</span><span class="tsv">Bayesian credibility</span></div>
+      <div class="tsr"><span class="tsk">Score range</span><span class="tsv">0 – 100</span></div>
+      <div class="tsr"><span class="tsk">Governance</span><span class="tsv">AIC — Index Committee</span></div>
+      <div class="tsr"><span class="tsk">Separation</span><span class="tsv">Constitutionally mandated</span></div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ─── EARLY ACCESS ──────────────────────────────────────────────────────────── -->
+
+<div class="sf ea-bg" id="early-access">
+  <div class="ea-inner">
+    <div class="eyebrow" style="text-align:center">Early Access Programme</div>
+    <h2 class="stitle" style="text-align:center">Get Ahead of Your<br>Employment Law Risk</h2>
+    <p style="font-size:16px;color:var(--t2);line-height:1.72;text-align:center">
+      Join the early access programme. First clients receive priority onboarding, direct access to the platform team, and early-adopter pricing locked in for 12 months.
+    </p>
+
+```
+<form class="ea-form" id="eaForm" onsubmit="handleEA(event)">
+  <input type="email" class="ea-inp" id="eaEmail" placeholder="work@yourcompany.com" required>
+  <button type="submit" class="ea-sub" id="eaBtn">Request Access</button>
+</form>
+<p class="ea-note">No payment required. We will contact you within 24 hours.</p>
+<div class="ea-ok" id="eaOK">✓ &nbsp;Thank you — we will be in touch within 24 hours.</div>
+
+<div class="trust-row">
+  <div class="trust-badge"><strong>ICO</strong> Registered &nbsp;· &nbsp;00013389720</div>
+  <div class="trust-badge"><strong>UK</strong> Trademark Filed &nbsp;· &nbsp;UK00004347220</div>
+  <div class="trust-badge"><strong>Companies House</strong> &nbsp;· &nbsp;No. 17035654</div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ─── FOOTER ─────────────────────────────────────────────────────────────────── -->
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:27px;height:27px;border:1.5px solid var(--c);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--c)">A</div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--t1);letter-spacing:.06em">AILANE</span>
+        </div>
+        <p>Constitutional-grade employment law exposure intelligence for UK businesses. Built on 130,000+ tribunal decisions and governed by the Ailane Index Committee.</p>
+      </div>
+
+```
+  <div>
+    <div class="fcol-t">Platform</div>
+    <ul class="flinks">
+      <li><a href="#compliance-checker">Compliance Checker</a></li>
+      <li><a href="#knowledge-library">Knowledge Library</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="/governance-dashboard/">Client Dashboard</a></li>
+      <li><a href="/ticker/">Regulatory Ticker</a></li>
+    </ul>
+  </div>
+
+  <div>
+    <div class="fcol-t">Intelligence</div>
+    <ul class="flinks">
+      <li><a href="/intelligence/">Knowledge Library</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#pricing">Index Triad</a></li>
+    </ul>
+  </div>
+
+  <div>
+    <div class="fcol-t">Legal &amp; Contact</div>
+    <ul class="flinks">
+      <li><a href="/terms/">Terms of Service</a></li>
+      <li><a href="/privacy/">Privacy Policy</a></li>
+      <li><a href="mailto:support@ailane.ai">support@ailane.ai</a></li>
+      <li><a href="mailto:sales@ailane.ai">sales@ailane.ai</a></li>
+    </ul>
+  </div>
+</div>
+
+<div class="footer-bottom">
+  <div class="flegal">
+    © 2026 AI Lane Limited. All rights reserved. Registered in England and Wales.
+    Ailane provides regulatory exposure intelligence and does not constitute legal advice.<br>
+    <a href="/terms/">Terms of Service</a> &nbsp;·&nbsp;
+    <a href="/privacy/">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="mailto:privacy@ailane.ai">privacy@ailane.ai</a>
+  </div>
+  <div class="freg">
+    <div class="freg-item">00013389720<span>ICO Registration</span></div>
+    <div class="freg-item">17035654<span>Company No.</span></div>
+  </div>
+</div>
+```
+
+  </div>
+</footer>
+
+<script>
+/* ── TICKER DATA ──────────────────────────────────────────────────────────── */
+const TICK = [
+  {lab:'Unfair Dismissal',    val:'DI 72.4',          cls:'hi', badge:'HIGH'},
+  {lab:'Discrimination',      val:'DI 68.1',          cls:'hi', badge:'ELEVATED'},
+  {lab:'Wage Claims',         val:'DI 54.3',          cls:'md', badge:'MODERATE'},
+  {lab:'Whistleblowing',      val:'DI 61.8',          cls:'hi', badge:'ELEVATED'},
+  {lab:'TUPE',                val:'DI 44.2',          cls:'md', badge:'MODERATE'},
+  {lab:'Working Time',        val:'DI 38.9',          cls:'lo', badge:'LOW-MED'},
+  {lab:'Maternity Rights',    val:'DI 48.5',          cls:'md', badge:'MODERATE'},
+  {lab:'EHRC Enforcement',    val:'152 active',       cls:'lv', badge:'LIVE'},
+  {lab:'Tribunal Filings Feb','val':'3,847 decisions',cls:'lv', badge:'LIVE'},
+  {lab:'HSE Prosecutions',    val:'41 this quarter',  cls:'md', badge:'MONITORING'},
+  {lab:'ICO Employment Cases',val:'28 open',          cls:'lo', badge:'TRACKING'},
+  {lab:'Knowledge Library',   val:'47 instruments',   cls:'lv', badge:'VERIFIED'},
+];
+function buildTicker(){
+  const track=document.getElementById('tickerTrack');
+  const items=[...TICK,...TICK]; // duplicate for seamless loop
+  track.innerHTML=items.map(t=>`
+    <div class="titem">
+      <span class="tlab">${t.lab}</span>
+      <span class="tval">${t.val}</span>
+      <span class="tbadge ${t.cls}">${t.badge}</span>
+    </div>`).join('');
+}
+buildTicker();
+
+/* ── COMPLIANCE CHECKER ──────────────────────────────────────────────────── */
+let docType='contract';
+function setDT(btn,t){
+  document.querySelectorAll('.cc-dtype').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');docType=t;
 }
 
-const root = ReactDOM.createRoot(document.getElementById(“root”));
-root.render(<App />);
+const zone=document.getElementById('ccZone');
+const fileIn=document.getElementById('ccFile');
+
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dov')});
+zone.addEventListener('dragleave',()=>zone.classList.remove('dov'));
+zone.addEventListener('drop',e=>{
+  e.preventDefault();zone.classList.remove('dov');
+  if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);
+});
+fileIn.addEventListener('change',e=>{if(e.target.files[0])processFile(e.target.files[0])});
+
+function processFile(file){
+  const ok=['.pdf','.docx','.txt'];
+  if(!ok.some(x=>file.name.toLowerCase().endsWith(x))){alert('Please upload a PDF, DOCX, or TXT file.');return;}
+
+  // Transition: hide upload UI, show processing inside zone
+  document.getElementById('ccUploadUI').style.display='none';
+  document.getElementById('ccProc').style.display='block';
+  document.getElementById('ccFname').textContent=file.name;
+
+  const steps=['ps1','ps2','ps3','ps4','ps5'];
+  let i=0;
+  function next(){
+    if(i>0)document.getElementById(steps[i-1]).classList.replace('act','done');
+    if(i<steps.length){
+      document.getElementById(steps[i]).classList.add('act');
+      i++;setTimeout(next,800+Math.random()*500);
+    } else {
+      setTimeout(()=>showResults(file.name),500);
+    }
+  }
+  next();
+}
+
+function showResults(fname){
+  // Hide zone, show results card
+  document.getElementById('ccZone').style.display='none';
+  document.getElementById('ccRes').style.display='block';
+
+  const scoreMap={contract:58,handbook:44,policy:67};
+  const score=scoreMap[docType]||58;
+
+  document.getElementById('ccScore').textContent=score+'%';
+  setTimeout(()=>{
+    const bar=document.getElementById('ccBar');
+    bar.style.width=score+'%';
+    bar.style.background=score>=70?'#10b981':score>=50?'#f59e0b':'#ef4444';
+  },120);
+
+  const findingData={
+    contract:[
+      {s:'pass',title:'Written statement of particulars',note:'ERA 1996 s.1 — Compliant'},
+      {s:'warn',title:'Working time provisions',note:'WTR 1998 — Rest break clause incomplete'},
+      {s:'pass',title:'Discriminatory terms',note:'Equality Act 2010 — No issues identified'},
+      {s:'fail',title:'Whistleblowing protections',note:'PIDA 1998 — Not addressed in this document'},
+      {s:'warn',title:'Data protection provisions',note:'UK GDPR — Processing basis not specified'},
+    ],
+    handbook:[
+      {s:'pass',title:'Disciplinary procedure',note:'ACAS Code of Practice — Broadly compliant'},
+      {s:'warn',title:'Grievance procedure',note:'ACAS Code — Timelines not specified'},
+      {s:'fail',title:'Equal opportunities policy',note:'Equality Act 2010 — Policy absent'},
+      {s:'fail',title:'Data protection notice',note:'UK GDPR — Employee privacy notice missing'},
+      {s:'warn',title:'Flexible working rights',note:'ERA 1996 s.80F — Right not communicated'},
+    ],
+    policy:[
+      {s:'pass',title:'Legislative authority cited',note:'Statutory basis clearly identified'},
+      {s:'pass',title:'Data subject rights',note:'UK GDPR Articles 12–22 — Addressed'},
+      {s:'warn',title:'Retention schedules',note:'Specific retention periods not defined'},
+      {s:'fail',title:'International transfer mechanism',note:'UK GDPR Chapter V — Absent'},
+      {s:'pass',title:'ICO registration reference',note:'Data Protection Act 2018 — Confirmed'},
+    ],
+  };
+
+  const fc={pass:'#10b981',warn:'#f59e0b',fail:'#ef4444'};
+  const fi={pass:'✓',warn:'⚠',fail:'✗'};
+  document.getElementById('ccFindings').innerHTML=(findingData[docType]||findingData.contract).map(f=>`
+    <div class="cc-finding" style="border-left:3px solid ${fc[f.s]}">
+      <span class="cc-finding-icon" style="color:${fc[f.s]}">${fi[f.s]}</span>
+      <div>
+        <div class="cc-finding-title">${f.title}</div>
+        <div class="cc-finding-note">${f.note}</div>
+      </div>
+    </div>`).join('');
+
+  if(typeof gtag!=='undefined'){
+    gtag('event','compliance_check_completed',{doc_type:docType,demo_score:score});
+  }
+}
+
+/* ── EARLY ACCESS ─────────────────────────────────────────────────────────── */
+const SB_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1MDI4NzAsImV4cCI6MjA1NjA3ODg3MH0.rIjPuaXCzOBmz3X8bnP_-mUFlhQdqilPcMTHIfCwavA';
+
+async function handleEA(e){
+  e.preventDefault();
+  const email=document.getElementById('eaEmail').value.trim();
+  const btn=document.getElementById('eaBtn');
+  btn.textContent='Submitting…';btn.disabled=true;
+
+  if(typeof gtag!=='undefined'){
+    gtag('event','early_access_request',{email_domain:email.split('@')[1]||''});
+  }
+
+  try{
+    await fetch(`${SB_URL}/rest/v1/early_access_signups`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify({email,source:'landing_page_v1',created_at:new Date().toISOString()})
+    });
+  }catch(_){}
+
+  document.getElementById('eaForm').style.display='none';
+  document.getElementById('eaOK').style.display='block';
+}
+
+/* ── SCROLL ANIMATIONS ────────────────────────────────────────────────────── */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')});
+},{threshold:0.08});
+document.querySelectorAll('.fu').forEach(el=>obs.observe(el));
+
+/* ── NAV SCROLL ───────────────────────────────────────────────────────────── */
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').style.borderBottomColor=
+    window.scrollY>8?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.07)';
+},{ passive:true });
 </script>
 
 </body>
