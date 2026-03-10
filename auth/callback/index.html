@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Signing you in — Ailane</title>
-  <!-- GA4 -->
+  <title>Ailane — Signing in</title>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -12,114 +11,101 @@
     gtag('js', new Date());
     gtag('config', 'G-NTNXWZN31C');
   </script>
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body style="background:#0A2240;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:Arial,sans-serif;">
+<body style="background:#0A2240;display:flex;align-items:center;
+  justify-content:center;height:100vh;margin:0;font-family:Arial,sans-serif;">
   <div style="text-align:center;color:#ffffff;">
     <div style="font-size:28px;font-weight:700;letter-spacing:2px;">AILANE</div>
     <div style="font-size:14px;margin-top:12px;opacity:0.7;">Signing you in...</div>
   </div>
   <script>
-  (async function() {
-    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-    var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ── Step 1: Capture UTM parameters before any auth call ─────────────
-    var utmKeys = ['utm_source', 'utm_medium', 'utm_campaign',
-                   'utm_content', 'utm_term', 'gclid'];
-    var params = new URLSearchParams(window.location.search);
-    var utmData = {};
-    utmKeys.forEach(function(k) {
-      if (params.get(k)) utmData[k] = params.get(k);
-    });
-    if (Object.keys(utmData).length) {
-      sessionStorage.setItem('ailane_utm', JSON.stringify(utmData));
-    }
-
-    // ── Step 2: Check for existing valid session (fixes redirect loop) ──
-    var existing = await sb.auth.getSession();
-    if (existing.data && existing.data.session) {
-      await routeUser(existing.data.session);
-      return;
-    }
-
-    // ── Step 3: Exchange code for session (new authentication only) ──────
-    var code = params.get('code');
-    if (!code) {
-      window.location.replace('/account/');
-      return;
-    }
-    var ex = await sb.auth.exchangeCodeForSession(code);
-    if (ex.error || !ex.data || !ex.data.session) {
-      console.error('Session exchange failed:', ex.error);
-      window.location.replace('/account/?error=auth_failed');
-      return;
-    }
-    await routeUser(ex.data.session);
-
-    // ── Step 4: routeUser() ─────────────────────────────────────────────
     async function routeUser(session) {
-      // Retrieve stored UTM data for attribution
-      var storedUtm = sessionStorage.getItem('ailane_utm');
-      var utmParsed = storedUtm ? JSON.parse(storedUtm) : {};
+      // Retrieve UTM data captured before auth
+      const storedUtm = sessionStorage.getItem('ailane_utm');
+      const utmData = storedUtm ? JSON.parse(storedUtm) : {};
 
-      // Fire GA4 login conversion event
+      // Fire GA4 login event
       if (typeof gtag !== 'undefined') {
         gtag('event', 'login', {
-          method: utmParsed.utm_source || 'direct',
-          utm_source:   utmParsed.utm_source   || '',
-          utm_medium:   utmParsed.utm_medium   || '',
-          utm_campaign: utmParsed.utm_campaign || '',
-          utm_content:  utmParsed.utm_content  || '',
-          utm_term:     utmParsed.utm_term     || '',
-          gclid:        utmParsed.gclid        || ''
+          method: utmData.utm_source || 'direct',
+          ...utmData
         });
       }
 
-      // Resolve organisation ID via get_my_org_id() — sole permitted mechanism
-      var orgResult = await sb.rpc('get_my_org_id');
-      var orgId = orgResult.data;
-      var orgError = orgResult.error;
+      // Resolve org ID — sole permitted mechanism
+      const { data: orgId, error: orgError } = await supabase.rpc('get_my_org_id');
 
       if (orgError || !orgId) {
         window.location.replace('/account/?error=no_org');
         return;
       }
 
-      // Check for an active subscription
-      var subResult = await sb
-        .from('organisation_subscriptions')
+      // Query organisations directly — organisation_subscriptions does not exist
+      const { data: orgData, error: orgErr } = await supabase
+        .from('organisations')
         .select('tier, status')
-        .eq('organisation_id', orgId)
-        .eq('status', 'active')
-        .limit(1)
+        .eq('id', orgId)
         .single();
 
-      var subData  = subResult.data;
-      var subError = subResult.error;
-
-      if (subError || !subData) {
+      if (orgErr || !orgData || orgData.status !== 'active') {
         window.location.replace('/account/#upgrade');
         return;
       }
 
-      // Build UTM query string to carry attribution through
-      var utmString = storedUtm
+      // Build UTM string for attribution continuity
+      const utmString = storedUtm
         ? '?' + new URLSearchParams(JSON.parse(storedUtm)).toString()
         : '';
 
-      // Route by tier
-      var tier = subData.tier;
+      // Route by tier: 'governance' | 'institutional' | 'operational_readiness'
+      const tier = orgData.tier;
 
       if (tier === 'governance' || tier === 'institutional') {
         window.location.replace('/governance-dashboard/' + utmString);
       } else {
+        // operational_readiness and any other tier → operational dashboard
         window.location.replace('/account/dashboard/' + utmString);
       }
     }
-  })();
+
+    (async () => {
+      // Step 1 — Capture UTM parameters before any auth call
+      const utmKeys = ['utm_source','utm_medium','utm_campaign',
+                       'utm_content','utm_term','gclid'];
+      const params = new URLSearchParams(window.location.search);
+      const utmData = {};
+      utmKeys.forEach(k => { if (params.get(k)) utmData[k] = params.get(k); });
+      if (Object.keys(utmData).length) {
+        sessionStorage.setItem('ailane_utm', JSON.stringify(utmData));
+      }
+
+      // Step 2 — Check for existing valid session FIRST
+      // Do not call exchangeCodeForSession on an already-authenticated user
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession) {
+        await routeUser(existingSession);
+        return;
+      }
+
+      // Step 3 — Exchange code for session (new authentication only)
+      const code = params.get('code');
+      if (!code) {
+        window.location.replace('/account/');
+        return;
+      }
+      const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error || !session) {
+        console.error('Session exchange failed:', error);
+        window.location.replace('/account/?error=auth_failed');
+        return;
+      }
+      await routeUser(session);
+    })();
   </script>
 </body>
 </html>
