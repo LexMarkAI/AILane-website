@@ -21,11 +21,58 @@
     body{background:#080c18;font-family:'EB Garamond',Georgia,serif;color:#dde4f0;overflow-x:hidden}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 </head>
-<body>
+<body style="visibility:hidden">
+<script>
+(async function() {
+  try {
+    const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
+    // Wait for Supabase client to be available
+    let attempts = 0;
+    while (typeof supabase === 'undefined' && attempts < 20) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+    if (typeof supabase === 'undefined') {
+      window.location.replace('/login/');
+      return;
+    }
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      window.location.replace('/login/');
+      return;
+    }
+
+    const { data: profile } = await sb
+      .from('kl_account_profiles')
+      .select('subscription_tier')
+      .eq('user_id', session.user.id)
+      .single();
+
+    const allowedTiers = ['governance', 'institutional'];
+    if (!profile || !allowedTiers.includes(profile.subscription_tier)) {
+      window.location.replace('/account/');
+      return;
+    }
+
+    // Authorised — reveal the page
+    document.body.style.visibility = 'visible';
+
+  } catch(err) {
+    // Any error: redirect safely, never show a blank page
+    window.location.replace('/login/');
+  }
+})();
+</script>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
