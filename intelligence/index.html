@@ -630,6 +630,87 @@ const KL_INSTRUMENTS = [
   { name: 'Employment Act 2002', ref: 'EA 2002', status: 'in_force', category: 'Parental Rights', desc: 'Statutory paternity pay, additional maternity leave provisions.' },
 ];
 
+// ─── ERIC VILLAGE CACHED RESULT ───────────────────────────────────────────────
+const ERIC_VILLAGE_CACHED_RESULT = {
+  meta: {
+    report_ref: 'NHF-CC-2026-0047',
+    analysis_date: '9 March 2026',
+    entity: 'Northerly Hill Facilities Management Ltd',
+    employee: 'Eric Village',
+    role: 'Site Operations Manager',
+    contract_date: '12 February 2024',
+    engine_version: 'v19',
+    cached: true,
+  },
+  scores: {
+    wcc_score: 41,
+    band: 'Initiated',
+    band_range: '30–64%',
+    rri_pillar_score: 2,
+    rri_pillar_label: 'Initiated',
+    post_remediation_projection: 84,
+  },
+  summary: { critical: 3, major: 2, minor: 2, compliant: 22, total: 29 },
+  findings: [
+    {
+      id: 'CC-001', severity: 'critical',
+      title: 'Rolled-up holiday pay prohibited',
+      clause: 'Clause 9.4',
+      statutory_basis: 'Working Time Regulations 1998, Reg 16; Brazel v Harpur Trust [2022] UKSC 27',
+      finding: 'Clause 9.4 purports to incorporate holiday pay at 12.07% into the base salary. This practice was definitively prohibited by the Supreme Court in Brazel. Holiday pay must be calculated and paid at the time of leave, not rolled up into regular wages.',
+      remediation: 'Remove Clause 9.4 in its entirety. Implement a compliant holiday pay calculation and payment procedure under WTR 1998 Reg 16, calculated on the basis of a week\'s pay under ERA 1996 ss.221–224.',
+    },
+    {
+      id: 'CC-002', severity: 'critical',
+      title: 'Unlawful blanket wage deduction authority',
+      clause: 'Clause 11',
+      statutory_basis: 'Employment Rights Act 1996, ss.13–14',
+      finding: 'Clause 11 grants a pre-signed blanket authority for deductions covering losses, damage, equipment, shortfalls and similar. ERA 1996 ss.13–14 require that deduction consent must be specific and obtained before the event giving rise to the deduction. A general contractual pre-consent is insufficient.',
+      remediation: 'Redraft Clause 11 to identify only specific, defined deduction categories with precise monetary limits. Obtain fresh written consent for each deduction category at the time of the relevant event.',
+    },
+    {
+      id: 'CC-003', severity: 'critical',
+      title: 'Non-compete clause void — unreasonable restraint of trade',
+      clause: 'Clause 21.1',
+      statutory_basis: 'Restraint of Trade doctrine; Tillman v Egon Zehnder Ltd [2019] UKSC 32',
+      finding: 'Clause 21.1 imposes an 18-month post-termination non-compete across all FM, cleaning, grounds maintenance, building services, security and property activities UK-wide, with no geographic limitation. This is void as an unreasonable restraint of trade under Tillman. The scope is grossly disproportionate to Northerly Hill\'s operational territory.',
+      remediation: 'Redraft to a proportionate restriction: 6–9 months maximum duration; restrict to direct competitors in the specific FM/cleaning sector; limit geography to regions where Eric Village actually operated. Take specialist employment law advice before finalising.',
+    },
+    {
+      id: 'CC-004', severity: 'major',
+      title: 'SSP waiting days — unlawful post ERA 2025',
+      clause: 'Clause 10.3',
+      statutory_basis: 'Employment Rights Act 2025, s.9 (amending SSP Act 1982)',
+      finding: 'Clause 10.3 retains the three waiting-day rule under the pre-2025 SSP regime. ERA 2025 s.9 removes waiting days entirely — SSP is now payable from day one of sickness absence.',
+      remediation: 'Delete the waiting-days provision from Clause 10.3. Update to state that SSP is payable from the first qualifying day of sickness absence in accordance with ERA 2025 s.9.',
+    },
+    {
+      id: 'CC-005', severity: 'major',
+      title: 'Unilateral variation and deemed acceptance — incompatible with ERA 2025',
+      clause: 'Clauses 18.1–18.2',
+      statutory_basis: 'Employment Rights Act 2025 — fire-and-rehire provisions',
+      finding: 'Clauses 18.1–18.2 permit unilateral variation with continued attendance treated as acceptance. ERA 2025 fire-and-rehire provisions restrict this mechanism — continued employment can no longer be treated as implied consent to material changes.',
+      remediation: 'Remove the deemed-acceptance mechanism. Replace with a genuine consultation and agreement process. Obtain express written consent before implementing material changes.',
+    },
+    {
+      id: 'CC-006', severity: 'minor',
+      title: 'Probationary dismissal without process — ERA 2025 day-one rights',
+      clause: 'Clause 19.2',
+      statutory_basis: 'Employment Rights Act 2025 — day-one unfair dismissal rights',
+      finding: 'Clause 19.2 states dismissal during probation requires no process and that unfair dismissal rights do not apply until the qualifying period. ERA 2025 introduces day-one unfair dismissal rights subject to a modified initial period procedure.',
+      remediation: 'Redraft Clause 19.2 to reflect ERA 2025. A modified proportionate process is still required during the initial period. Remove any statement that unfair dismissal rights do not apply.',
+    },
+    {
+      id: 'CC-007', severity: 'minor',
+      title: 'Per-establishment collective redundancy threshold — superseded',
+      clause: 'Clause 20.2',
+      statutory_basis: 'TULRCA 1992, s.188 as amended by Employment Rights Act 2025',
+      finding: 'Clause 20.2 defines collective redundancy thresholds on a per-establishment basis. ERA 2025 amends TULRCA 1992 s.188 so the 20-employee threshold is calculated across the total workforce. Northerly Hill operates across Cardiff, Swansea, Bristol and Birmingham — this has material implications.',
+      remediation: 'Update Clause 20.2 to reflect the workforce-wide threshold calculation under TULRCA 1992 s.188 as amended. Review redundancy policies accordingly.',
+    },
+  ],
+};
+
 // ─── STATE ─────────────────────────────────────────────────────────────────────
 let currentTier = 'operational';
 let tierHistory = [];
@@ -638,6 +719,7 @@ let rriData = null;
 let cciData = null;
 let vaultData = null;
 let relSubmitted = false;
+let demoAnalysisState = 'idle'; // idle | analysing | complete
 
 // ─── FETCH ──────────────────────────────────────────────────────────────────────
 async function sbFetch(path) {
@@ -785,6 +867,82 @@ function pillarColor(score) {
   if (score >= 3) return 'var(--teal-bright)';
   if (score >= 2) return '#fbbf24';
   return 'var(--red)';
+}
+
+// ─── DEMO ANALYSIS ───────────────────────────────────────────────────────────
+function setDemoAnalysisState(state) {
+  demoAnalysisState = state;
+  renderDashboard();
+}
+
+async function runDemoAnalysis() {
+  setDemoAnalysisState('analysing');
+  await new Promise(resolve => setTimeout(resolve, 4000));
+  setDemoAnalysisState('complete');
+}
+
+function renderDemoResults(result) {
+  const m = result.meta;
+  const s = result.scores;
+  const sum = result.summary;
+  const severityColors = { critical: 'var(--red)', major: '#fbbf24', minor: '#60a5fa', compliant: 'var(--green)' };
+  const severityBg = { critical: 'var(--red-muted)', major: 'var(--amber-muted)', minor: 'rgba(96,165,250,0.12)', compliant: 'var(--green-muted)' };
+
+  let html = '';
+
+  // Score summary
+  html += `<div style="background:var(--navy-raised);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">
+      <div style="width:72px;height:72px;border-radius:50%;border:3px solid ${s.wcc_score < 50 ? 'var(--red)' : '#fbbf24'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--text)">${s.wcc_score}</span>
+        <span style="font-size:9px;color:var(--text-muted)">/100</span>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">${m.report_ref}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">${m.entity} — ${m.employee}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${m.role} · Contract dated ${m.contract_date} · Analysed ${m.analysis_date}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      ${['critical','major','minor','compliant'].map(sev => `
+        <div style="background:${severityBg[sev]};border-radius:6px;padding:10px;text-align:center">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:${severityColors[sev]}">${sum[sev]}</div>
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${severityColors[sev]}">${sev}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+
+  // Legislative change notice
+  html += `<div style="border-left:4px solid #0EA5E9;background:rgba(14,165,233,0.08);border-radius:0 6px 6px 0;padding:14px 18px;margin-bottom:24px;font-size:13px;color:rgba(255,255,255,0.80);line-height:1.6">
+    <strong style="color:#0EA5E9">Demo contract — Northerly Hill FM · Eric Village</strong><br>
+    This analysis reflects the contract as at 9 March 2026 against legislation in force at that date. If UK employment law changes materially after this date, the findings shown here may not reflect the updated position. To refresh the analysis against current legislation, the contract can be re-uploaded through the Ailane Intelligence environment by the platform administrator.
+  </div>`;
+
+  // Findings list
+  result.findings.forEach(f => {
+    const sevColor = severityColors[f.severity] || 'var(--text-muted)';
+    const sevBg = severityBg[f.severity] || 'rgba(255,255,255,0.06)';
+    html += `<div style="background:var(--navy-raised);border:1px solid ${f.severity==='critical'?'rgba(224,82,82,0.25)':'var(--border)'};border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <span style="font-size:9px;font-weight:700;background:${sevBg};color:${sevColor};padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:0.08em">${f.severity}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint)">${f.id} · ${f.clause}</span>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">${f.title}</div>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:6px">${f.finding}</div>
+      <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px"><strong>Statutory basis:</strong> ${f.statutory_basis}</div>
+      <div style="font-size:11px;color:var(--teal-bright);line-height:1.5"><strong>Remediation:</strong> ${f.remediation}</div>
+    </div>`;
+  });
+
+  // Report download buttons — visible after demo results render
+  html += `<div style="display:flex;gap:12px;margin:28px 0 8px 0;flex-wrap:wrap">
+    <a href="/intelligence/demo-assets/NHF-CC-2026-0047-ComplianceReport.pdf" download="NHF-CC-2026-0047-ComplianceReport.pdf" style="display:inline-flex;align-items:center;gap:8px;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.35);color:#7DD3FC;padding:10px 18px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer">↓ Download Report (PDF)</a>
+    <a href="/intelligence/demo-assets/NHF-CC-2026-0047-ComplianceReport.docx" download="NHF-CC-2026-0047-ComplianceReport.docx" style="display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.30);color:#FCD34D;padding:10px 18px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer">↓ Download Report (Word)</a>
+  </div>
+  <p style="font-size:12px;color:rgba(255,255,255,0.40);margin:0 0 24px 0;font-style:italic">Report NHF-CC-2026-0047 · Northerly Hill FM · Eric Village · Generated 9 March 2026 · AI Lane Limited</p>`;
+
+  return html;
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────────
@@ -960,22 +1118,41 @@ function renderOperationalView(di, wdrs, cci, wcc) {
   // Compliance Checker + REL row
   html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
 
-  // CC - single upload
+  // CC - demo with cached Eric Village result
   html += `<div class="panel">
     <div class="panel-header">
       <div class="panel-title">📋 Compliance Checker</div>
-      <span class="panel-badge badge-op">Single Upload</span>
+      <span class="panel-badge badge-op">Demo · Eric Village</span>
     </div>
-    <div class="panel-body">
-      <div class="cc-upload-zone" onclick="alert('Upload your employment contract to receive an instant compliance score and clause-level findings. Governed by RRI v1.0 Track A/B dual-evidence model.')">
+    <div class="panel-body" id="cc-demo-body-op">`;
+
+  if (demoAnalysisState === 'idle') {
+    html += `<div class="cc-upload-zone" onclick="runDemoAnalysis()">
         <div class="cc-upload-icon">📄</div>
-        <div class="cc-upload-label">Upload employment contract</div>
-        <div class="cc-upload-hint">PDF · DOCX · Max 10MB · Overall compliance score returned</div>
+        <div class="cc-upload-label">Run demo analysis — Eric Village contract</div>
+        <div class="cc-upload-hint">Cached result · No live AI call · Northerly Hill FM demo</div>
       </div>
       <div style="margin-top:12px;font-size:11px;color:var(--text-muted)">
         Returns an overall compliance score (0–100). Clause-level findings and remediation guidance available on Governance tier.
+      </div>`;
+  } else if (demoAnalysisState === 'analysing') {
+    html += `<!-- LEGAL DISCLAIMER — do not remove or reposition -->
+      <div style="border:2px solid #f59e0b;box-shadow:0 0 0 1px rgba(245,158,11,0.2),0 4px 16px rgba(245,158,11,0.08);border-radius:8px;background:rgba(255,251,235,0.07);padding:20px 24px;margin:0 auto 28px auto;max-width:640px;">
+        <p style="color:#f59e0b;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px 0;">Important Notice — Legal Disclaimer</p>
+        <p style="color:rgba(255,255,255,0.75);font-size:13px;font-style:italic;line-height:1.65;margin:0 0 10px 0;">The analysis produced by Ailane is generated by automated regulatory intelligence software and is provided for informational purposes only. It does not constitute legal advice. Ailane findings identify potential areas of concern based on current UK statutory requirements and should be treated as a starting point for review, not a definitive legal opinion.</p>
+        <p style="color:rgba(255,255,255,0.90);font-size:13px;font-style:italic;font-weight:600;line-height:1.65;margin:0 0 10px 0;">Always seek advice from a solicitor or barrister qualified to practice in England and Wales before making decisions based on this analysis or amending employment documentation.</p>
+        <p style="color:rgba(255,255,255,0.50);font-size:12px;font-style:italic;margin:0;">AI Lane Limited accepts no liability for reliance on automated analysis outputs.</p>
       </div>
-    </div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0">
+        <div class="spinner" style="width:40px;height:40px;margin-bottom:14px"></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Analysing contract…</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Checking against 47 legislative instruments</div>
+      </div>`;
+  } else {
+    html += renderDemoResults(ERIC_VILLAGE_CACHED_RESULT);
+  }
+
+  html += `</div>
   </div>`;
 
   // REL input form
@@ -1218,36 +1395,38 @@ function renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents) {
   // CC clause-level + REL with sub-regional
   html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
 
-  // CC clause-level findings
+  // CC clause-level findings — demo with cached Eric Village result
   html += `<div class="panel">
     <div class="panel-header">
       <div class="panel-title">📋 Compliance Checker</div>
-      <span class="panel-badge badge-gov">Clause-Level · Remediation</span>
+      <span class="panel-badge badge-gov">Demo · Clause-Level · Remediation</span>
     </div>
-    <div class="panel-body">
-      <div class="cc-upload-zone" onclick="alert('Upload any employment document for full clause-level analysis with statutory reference mapping and remediation roadmap.')">
+    <div class="panel-body" id="cc-demo-body-gov">`;
+
+  if (demoAnalysisState === 'idle') {
+    html += `<div class="cc-upload-zone" onclick="runDemoAnalysis()">
         <div class="cc-upload-icon">📄</div>
-        <div class="cc-upload-label">Upload document for full clause analysis</div>
-        <div class="cc-upload-hint">Returns clause-level findings · Statutory references · Remediation guidance</div>
+        <div class="cc-upload-label">Run demo analysis — Eric Village contract</div>
+        <div class="cc-upload-hint">Cached result · No live AI call · Full clause-level findings</div>
+      </div>`;
+  } else if (demoAnalysisState === 'analysing') {
+    html += `<!-- LEGAL DISCLAIMER — do not remove or reposition -->
+      <div style="border:2px solid #f59e0b;box-shadow:0 0 0 1px rgba(245,158,11,0.2),0 4px 16px rgba(245,158,11,0.08);border-radius:8px;background:rgba(255,251,235,0.07);padding:20px 24px;margin:0 auto 28px auto;max-width:640px;">
+        <p style="color:#f59e0b;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px 0;">Important Notice — Legal Disclaimer</p>
+        <p style="color:rgba(255,255,255,0.75);font-size:13px;font-style:italic;line-height:1.65;margin:0 0 10px 0;">The analysis produced by Ailane is generated by automated regulatory intelligence software and is provided for informational purposes only. It does not constitute legal advice. Ailane findings identify potential areas of concern based on current UK statutory requirements and should be treated as a starting point for review, not a definitive legal opinion.</p>
+        <p style="color:rgba(255,255,255,0.90);font-size:13px;font-style:italic;font-weight:600;line-height:1.65;margin:0 0 10px 0;">Always seek advice from a solicitor or barrister qualified to practice in England and Wales before making decisions based on this analysis or amending employment documentation.</p>
+        <p style="color:rgba(255,255,255,0.50);font-size:12px;font-style:italic;margin:0;">AI Lane Limited accepts no liability for reliance on automated analysis outputs.</p>
       </div>
-      <div style="margin-top:16px">
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase">Sample — NHF-DIR-002 Findings</div>
-        ${[
-          { ref: 'ERA 1996 s.80G', severity: 'critical', text: 'Flexible working refusal process fails ERRA 2023 statutory procedure — 2-month response deadline not specified' },
-          { ref: 'AWR 2010 r.5', severity: 'critical', text: 'No AWR qualifying period acknowledgement — agency worker equal treatment obligations absent' },
-          { ref: 'UK GDPR Art.13', severity: 'critical', text: 'Data processing notice references GDPR 2018 without UK GDPR divergence reference — post-Brexit non-compliant' },
-          { ref: 'ERA 1996 s.1', severity: 'medium', text: 'Garden leave clause present but geographic scope undefined — enforceability uncertain' },
-        ].map(f => `
-          <div style="background:var(--navy-raised);border:1px solid ${f.severity==='critical'?'rgba(224,82,82,0.25)':'var(--border)'};border-radius:7px;padding:10px 12px;margin-bottom:8px">
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
-              <span style="font-size:9px;font-weight:700;background:${f.severity==='critical'?'var(--red-muted)':'var(--amber-muted)'};color:${f.severity==='critical'?'var(--red)':'#fbbf24'};padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:0.08em">${f.severity}</span>
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint)">${f.ref}</span>
-            </div>
-            <div style="font-size:11px;color:var(--text);line-height:1.4">${f.text}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0">
+        <div class="spinner" style="width:40px;height:40px;margin-bottom:14px"></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Analysing contract…</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Checking against 47 legislative instruments</div>
+      </div>`;
+  } else {
+    html += renderDemoResults(ERIC_VILLAGE_CACHED_RESULT);
+  }
+
+  html += `</div>
   </div>`;
 
   // REL
