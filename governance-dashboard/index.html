@@ -25,8 +25,73 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 </head>
-<body>
+<body style="visibility:hidden">
 <div id="root"></div>
+<script>
+// ── AUTH GUARD — runs before React app ──────────────────────────────────
+(async function authGuard() {
+  try {
+    // Read Supabase session token
+    var token = null;
+    try {
+      var sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
+      if (sbSession) {
+        var parsed = JSON.parse(sbSession);
+        if (parsed && parsed.access_token) token = parsed.access_token;
+        else if (parsed && parsed.session && parsed.session.access_token) token = parsed.session.access_token;
+      }
+      if (!token) {
+        var keys = Object.keys(localStorage).filter(function(k) { return k.indexOf("supabase") !== -1 && k.indexOf("auth") !== -1; });
+        for (var i = 0; i < keys.length; i++) {
+          var d = JSON.parse(localStorage.getItem(keys[i]) || "{}");
+          if (d && d.access_token) { token = d.access_token; break; }
+          if (d && d.session && d.session.access_token) { token = d.session.access_token; break; }
+        }
+      }
+    } catch(e) { /* token stays null */ }
+
+    // No session — redirect
+    if (!token) {
+      window.location.replace('/login/');
+      return;
+    }
+
+    // Fetch user profile to check subscription tier
+    var res = await fetch(
+      "https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1/rpc/get_my_profile",
+      {
+        method: "POST",
+        headers: {
+          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g",
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: "{}"
+      }
+    );
+
+    if (!res.ok) {
+      window.location.replace('/login/');
+      return;
+    }
+
+    var profile = await res.json();
+
+    // No profile or wrong tier — redirect
+    var allowedTiers = ['governance', 'institutional'];
+    if (!profile || !allowedTiers.includes(profile.subscription_tier)) {
+      window.location.replace('/login/');
+      return;
+    }
+
+    // Auth passed — reveal page
+    document.body.style.visibility = 'visible';
+
+  } catch(err) {
+    window.location.replace('/login/');
+  }
+})();
+</script>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
@@ -660,7 +725,8 @@ const App = () => {
         const welsh = (data || []).some(i => i.jurisdiction_codes?.includes("Wales"));
         setHasWelsh(welsh);
       } catch (e) {
-        setError(e.message);
+        window.location.replace('/login/');
+        return;
       } finally {
         setLoading(false);
       }
