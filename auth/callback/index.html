@@ -83,12 +83,27 @@
       } else {
         // No code — check for existing session (password sign-in)
         var sessionResult = await sb.auth.getSession();
-        if (sessionResult.error || !sessionResult.data.session) {
-          window.location.replace('/account/?error=no_session');
-          return;
+        if (sessionResult.data && sessionResult.data.session) {
+          session = sessionResult.data.session;
+          user    = sessionResult.data.session.user;
+        } else {
+          // Session not in localStorage yet — wait for onAuthStateChange
+          var resolved = await new Promise(function(resolve) {
+            var timeout = setTimeout(function() { resolve(null); }, 5000);
+            sb.auth.onAuthStateChange(function(event, s) {
+              if (event === 'SIGNED_IN' && s) {
+                clearTimeout(timeout);
+                resolve(s);
+              }
+            });
+          });
+          if (!resolved) {
+            window.location.replace('/account/?error=no_session');
+            return;
+          }
+          session = resolved;
+          user    = resolved.user;
         }
-        session = sessionResult.data.session;
-        user    = sessionResult.data.session.user;
       }
 
       if (!session || !user) {
