@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Ailane</title>
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- GA4 — MANDATORY -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer=window.dataLayer||[];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js',new Date());
+    gtag('config','G-NTNXWZN31C');
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      /* Operational (default) */
+      --bg: #0A2342;
+      --bg-card: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.1);
+      --accent: #F59E0B;
+      --accent-hover: #D97706;
+      --text: #ffffff;
+      --text-muted: rgba(255,255,255,0.5);
+      --text-dim: rgba(255,255,255,0.35);
+      --logo-size: 42px;
+      --logo-font: 1.6rem;
+    }
+    /* Governance tier */
+    .tier-governance {
+      --bg: #080F1A;
+      --accent: #D97706;
+      --accent-hover: #B45309;
+      --logo-size: 48px;
+      --logo-font: 1.75rem;
+    }
+    /* Institutional tier */
+    .tier-institutional {
+      --bg: #060810;
+      --accent: #B8862A;
+      --accent-hover: #96701E;
+      --logo-size: 54px;
+      --logo-font: 1.9rem;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100vh; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+
+    body { display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
+
+    /* Subtle gold shimmer for governance */
+    .tier-governance body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse 600px 400px at 50% 30%, rgba(217,119,6,0.06) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* Gold sparkle effect for institutional — CSS only */
+    .tier-institutional body::before {
+      content: '';
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(1px 1px at 20% 15%, rgba(184,134,42,0.4), transparent),
+        radial-gradient(1px 1px at 70% 25%, rgba(184,134,42,0.3), transparent),
+        radial-gradient(1px 1px at 40% 55%, rgba(184,134,42,0.35), transparent),
+        radial-gradient(1px 1px at 85% 70%, rgba(184,134,42,0.25), transparent),
+        radial-gradient(1px 1px at 15% 80%, rgba(184,134,42,0.3), transparent),
+        radial-gradient(1px 1px at 55% 90%, rgba(184,134,42,0.2), transparent),
+        radial-gradient(1px 1px at 90% 10%, rgba(184,134,42,0.35), transparent),
+        radial-gradient(1px 1px at 30% 40%, rgba(184,134,42,0.25), transparent),
+        radial-gradient(ellipse 800px 500px at 50% 30%, rgba(184,134,42,0.04) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: shimmer 8s ease-in-out infinite alternate;
+    }
+    @keyframes shimmer { from { opacity: 0.6; } to { opacity: 1; } }
+
+    .login-card {
+      width: 100%; max-width: 420px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px 40px 40px;
+      position: relative; z-index: 1;
+      backdrop-filter: blur(20px);
+    }
+    @media (max-width: 480px) { .login-card { padding: 36px 24px 32px; } }
+
+    /* Logo */
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      text-decoration: none; margin-bottom: 32px; justify-content: center;
+    }
+    .logo-mark {
+      width: var(--logo-size); height: var(--logo-size);
+      background: var(--accent); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s;
+    }
+    .logo-mark svg { width: 60%; height: 60%; }
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: var(--logo-font); font-weight: 600;
+      color: var(--text);
+    }
+
+    .tier-heading {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem; font-weight: 500;
+      color: var(--text); text-align: center;
+      margin-bottom: 28px; line-height: 1.35;
+    }
+    .tier-heading em { font-style: normal; color: var(--accent); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 0.8rem; font-weight: 500;
+      color: var(--text-muted); margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .form-group input {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid var(--border);
+      border-radius: 8px; font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem; color: var(--text);
+      transition: border-color 0.2s;
+    }
+    .form-group input::placeholder { color: var(--text-dim); }
+    .form-group input:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+    }
+
+    .forgot-link {
+      text-align: right; margin-top: -10px; margin-bottom: 16px;
+    }
+    .forgot-link a {
+      font-size: 0.8rem; color: var(--text-muted);
+      text-decoration: none; cursor: pointer;
+    }
+    .forgot-link a:hover { color: var(--accent); text-decoration: underline; }
+
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: var(--accent); color: #0A2342;
+      border: none; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9375rem; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .status-msg {
+      padding: 11px 14px; border-radius: 8px;
+      font-size: 0.85rem; margin-bottom: 14px; display: none;
+      text-align: center;
+    }
+    .status-msg.error {
+      background: rgba(239,68,68,0.1); color: #fb7185;
+      border: 1px solid rgba(239,68,68,0.2); display: block;
+    }
+    .status-msg.success {
+      background: rgba(34,197,94,0.1); color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.2); display: block;
+    }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(10,35,66,0.3);
+      border-top-color: #0A2342;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      display: inline-block; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .card-footer {
+      margin-top: 28px; padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .card-footer .contact {
+      font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;
+    }
+    .card-footer .contact a {
+      color: var(--accent); text-decoration: none;
+    }
+    .card-footer .contact a:hover { text-decoration: underline; }
+    .card-footer .legal {
+      font-size: 0.7rem; color: var(--text-dim); line-height: 1.6;
+    }
+    .card-footer .legal a {
+      color: var(--text-dim); text-decoration: none;
+    }
+    .card-footer .legal a:hover { text-decoration: underline; }
+
+    /* Reset form (hidden by default) */
+    #login-view, #reset-view { display: none; }
+    #login-view.visible, #reset-view.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <a href="https://ailane.ai/" class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 22 22" fill="none"><path d="M11 2L3 7v8l8 5 8-5V7L11 2z" stroke="#0A2342" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 2v18M3 7l8 5 8-5" stroke="#0A2342" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Ailane</span>
+  </a>
+
+  <h1 class="tier-heading" id="tier-heading">Regulatory Intelligence <em>Platform</em></h1>
+
+  <div id="status-message" class="status-msg"></div>
+
+  <div id="login-view" class="visible">
+    <div class="form-group">
+      <label for="login-email">Email Address</label>
+      <input type="email" id="login-email" placeholder="you@organisation.co.uk" autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()" />
+    </div>
+    <div class="forgot-link"><a onclick="showReset()">Forgot your password?</a></div>
+    <button class="btn-primary" id="btn-login" onclick="handleLogin()">Sign In</button>
+  </div>
+
+  <div id="reset-view">
+    <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:16px;text-align:center;">Enter your email and we'll send a reset link.</p>
+    <div class="form-group">
+      <label for="reset-email">Email Address</label>
+      <input type="email" id="reset-email" placeholder="you@organisation.co.uk" />
+    </div>
+    <button class="btn-primary" id="btn-reset" onclick="handlePasswordReset()">Send Reset Link</button>
+    <p style="margin-top:14px;text-align:center;">
+      <a onclick="showLogin()" style="font-size:0.8rem;color:var(--text-muted);cursor:pointer;text-decoration:none;">&larr; Back to sign in</a>
+    </p>
+  </div>
+
+  <div class="card-footer">
+    <div class="contact">New to Ailane? Contact <a href="mailto:sales@ailane.ai">sales@ailane.ai</a></div>
+    <div class="legal">
+      AI Lane Limited &middot; Co. No. 17035654 &middot; ICO 00013389720<br/>
+      <a href="https://ailane.ai/terms/">Terms</a> &middot; <a href="https://ailane.ai/privacy/">Privacy</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── SUPABASE INIT ─────────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const REDIRECT_TO_ROUTER = window.location.origin + '/auth/callback/';
+
+  // ── TIER HINT (cosmetic only — tier confirmed server-side after auth) ────
+  const urlParams = new URLSearchParams(window.location.search);
+  const tierHint = urlParams.get('tier');
+
+  const TIER_CONFIG = {
+    governance: {
+      bodyClass: 'tier-governance',
+      heading: 'Governance Intelligence <em>Platform</em>',
+      title: 'Governance Sign In — Ailane'
+    },
+    institutional: {
+      bodyClass: 'tier-institutional',
+      heading: 'Institutional Intelligence <em>Platform</em>',
+      title: 'Institutional Sign In — Ailane'
+    }
+  };
+
+  if (tierHint && TIER_CONFIG[tierHint]) {
+    const cfg = TIER_CONFIG[tierHint];
+    document.documentElement.classList.add(cfg.bodyClass);
+    document.getElementById('tier-heading').innerHTML = cfg.heading;
+    document.title = cfg.title;
+  }
+
+  // ── UTM CAPTURE — run before any auth ─────────────────────────────────────
+  (function() {
+    const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'];
+    const params = new URLSearchParams(window.location.search);
+    const utmData = {};
+    utmKeys.forEach(function(k) { if (params.get(k)) utmData[k] = params.get(k); });
+    if (Object.keys(utmData).length) {
+      sessionStorage.setItem('ailane_utm', JSON.stringify(utmData));
+    }
+  })();
+
+  // ── VIEW SWITCHING ────────────────────────────────────────────────────────
+  function showReset() {
+    clearStatus();
+    document.getElementById('login-view').classList.remove('visible');
+    document.getElementById('reset-view').classList.add('visible');
+  }
+  function showLogin() {
+    clearStatus();
+    document.getElementById('reset-view').classList.remove('visible');
+    document.getElementById('login-view').classList.add('visible');
+  }
+
+  function showStatus(msg, type) {
+    var el = document.getElementById('status-message');
+    el.textContent = msg;
+    el.className = 'status-msg ' + type;
+  }
+  function clearStatus() {
+    var el = document.getElementById('status-message');
+    el.className = 'status-msg';
+    el.textContent = '';
+  }
+  function setLoading(btnId, loading, defaultText) {
+    var btn = document.getElementById(btnId);
+    btn.disabled = loading;
+    btn.innerHTML = loading ? '<span class="spinner"></span>' : defaultText;
+  }
+
+  // ── LOGIN ─────────────────────────────────────────────────────────────────
+  async function handleLogin() {
+    clearStatus();
+    var email = document.getElementById('login-email').value.trim();
+    var password = document.getElementById('login-password').value;
+    if (!email || !password) return showStatus('Please enter your email and password.', 'error');
+    setLoading('btn-login', true, 'Sign In');
+    try {
+      var result = await sb.auth.signInWithPassword({ email: email, password: password });
+      if (result.error) throw result.error;
+      // Redirect to the central auth router — NEVER directly to a product page
+      window.location.replace('/auth/callback/');
+    } catch (err) {
+      showStatus(err.message || 'Sign-in failed. Please check your credentials.', 'error');
+    } finally {
+      setLoading('btn-login', false, 'Sign In');
+    }
+  }
+
+  // ── PASSWORD RESET ────────────────────────────────────────────────────────
+  async function handlePasswordReset() {
+    clearStatus();
+    var email = document.getElementById('reset-email').value.trim();
+    if (!email) return showStatus('Please enter your email address.', 'error');
+    setLoading('btn-reset', true, 'Send Reset Link');
+    try {
+      var result = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: REDIRECT_TO_ROUTER
+      });
+      if (result.error) throw result.error;
+      showStatus('Reset link sent. Please check your email inbox.', 'success');
+    } catch (err) {
+      showStatus(err.message || 'Failed to send reset link.', 'error');
+    } finally {
+      setLoading('btn-reset', false, 'Send Reset Link');
+    }
+  }
+
+  // ── ONAUTH LISTENER — redirect to router on any auth event ───────────────
+  sb.auth.onAuthStateChange(async function(event, session) {
+    if (event === 'SIGNED_IN') {
+      window.location.replace('/auth/callback/');
+    }
+  });
+
+  // ── BOOT: redirect if already authenticated ──────────────────────────────
+  (async function() {
+    var result = await sb.auth.getSession();
+    if (result.data && result.data.session) {
+      window.location.replace('/auth/callback/');
+    }
+  })();
+</script>
+
+</body>
+</html>

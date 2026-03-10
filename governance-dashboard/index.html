@@ -481,6 +481,160 @@ const InstrumentCard = ({ inst, lang, ui, expanded, onToggle }) => {
   );
 };
 
+// ── AI QUERY WIDGET (Governance & Institutional only) ────────────────────
+const AIQueryWidget = ({ lang }) => {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
+
+  const ui = {
+    en: { title: "Ask Ailane AI", placeholder: "Ask about your compliance, scores, or legislation...", powered: "Powered by Ailane Constitutional Intelligence", helpful: "Helpful", notHelpful: "Not Helpful" },
+    cy: { title: "Gofynnwch i AI Ailane", placeholder: "Gofynnwch am eich cydymffurfiad, sgoriau, neu ddeddfwriaeth...", powered: "Wedi'i bweru gan Ddeallusrwydd Cyfansoddiadol Ailane", helpful: "Defnyddiol", notHelpful: "Ddim yn ddefnyddiol" },
+  };
+  const t = ui[lang] || ui.en;
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const sendQuery = async () => {
+    if (!input.trim() || loading) return;
+    const query = input.trim();
+    setInput("");
+    setMessages(prev => [...prev, { role: "user", text: query }]);
+    setLoading(true);
+
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch(SB_URL + "/functions/v1/comms-resolve", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json", apikey: SB_ANON },
+        body: JSON.stringify({ query, channel: "in_platform", preferred_language: lang }),
+      });
+      const data = await res.json();
+      if (data.response) {
+        setMessages(prev => [...prev, { role: "ai", text: data.response, id: data.interaction_id }]);
+      } else {
+        setMessages(prev => [...prev, { role: "ai", text: data.error || "Unable to process your query. Please try again.", error: true }]);
+      }
+    } catch (e) {
+      setMessages(prev => [...prev, { role: "ai", text: "Connection error. Please check you are signed in and try again.", error: true }]);
+    }
+    setLoading(false);
+  };
+
+  const sendFeedback = async (interactionId, rating) => {
+    try {
+      const token = getToken();
+      if (!token) return;
+      await fetch(SB_URL + "/rest/v1/rpc/exec_sql", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json", apikey: SB_ANON },
+        body: JSON.stringify({
+          sql: "INSERT INTO comms.feedback_signals (interaction_id, signal_type, rating) VALUES ($1, 'rating', $2)",
+          params: [interactionId, rating],
+        }),
+      });
+      setMessages(prev => prev.map(m => m.id === interactionId ? { ...m, feedbackSent: true } : m));
+    } catch (e) { /* silent */ }
+  };
+
+  // Floating button
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={{
+        position: "fixed", bottom: 24, right: 24, zIndex: 1000,
+        width: 56, height: 56, borderRadius: 28,
+        background: "linear-gradient(135deg, #22d3ee, #0891b2)",
+        border: "none", cursor: "pointer",
+        boxShadow: "0 4px 24px rgba(34,211,238,0.3)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "transform 0.2s, box-shadow 0.2s",
+      }}
+        onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 6px 32px rgba(34,211,238,0.4)"; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(34,211,238,0.3)"; }}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0e1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+    );
+  }
+
+  // Chat panel
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, right: 24, zIndex: 1000,
+      width: 360, height: 520, borderRadius: 14,
+      background: "#0c1221", border: "1px solid rgba(34,211,238,0.15)",
+      boxShadow: "0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(34,211,238,0.08)",
+      display: "flex", flexDirection: "column", overflow: "hidden",
+      animation: "slideUp 0.25s ease",
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#dde4f0" }}>{t.title}</div>
+          <div style={{ fontSize: 9, color: "#4a5568", fontFamily: "'JetBrains Mono',monospace", letterSpacing: 0.5, marginTop: 2 }}>ACEI v1.0 · RRI v1.0 · CCI v1.0</div>
+        </div>
+        <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "#4a5568", cursor: "pointer", fontSize: 18, padding: 4 }}>&#10005;</button>
+      </div>
+
+      {/* Messages */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: "center", padding: "40px 16px", color: "#4a5568" }}>
+            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.4 }}>&#128172;</div>
+            <div style={{ fontSize: 12, lineHeight: 1.6 }}>{t.powered}</div>
+          </div>
+        )}
+        {messages.map((msg, i) => (
+          <div key={i} style={{ marginBottom: 12 }}>
+            <div style={{
+              padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+              background: msg.role === "user" ? "rgba(34,211,238,0.1)" : msg.error ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)",
+              border: "1px solid " + (msg.role === "user" ? "rgba(34,211,238,0.15)" : msg.error ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.05)"),
+              marginLeft: msg.role === "user" ? 40 : 0, marginRight: msg.role === "ai" ? 20 : 0,
+            }}>
+              <div style={{ fontSize: 12, color: msg.error ? "#ef4444" : "#c8d0de", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{msg.text}</div>
+            </div>
+            {msg.role === "ai" && msg.id && !msg.feedbackSent && (
+              <div style={{ display: "flex", gap: 6, marginTop: 4, paddingLeft: 4 }}>
+                <button onClick={() => sendFeedback(msg.id, "helpful")} style={{ fontSize: 10, color: "#4a5568", background: "none", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>&#128077; {t.helpful}</button>
+                <button onClick={() => sendFeedback(msg.id, "not_helpful")} style={{ fontSize: 10, color: "#4a5568", background: "none", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>&#128078; {t.notHelpful}</button>
+              </div>
+            )}
+            {msg.feedbackSent && msg.role === "ai" && (
+              <div style={{ fontSize: 9, color: "#22d3ee", marginTop: 3, paddingLeft: 4, fontFamily: "'JetBrains Mono',monospace" }}>&#10003; Feedback recorded</div>
+            )}
+          </div>
+        ))}
+        {loading && (
+          <div style={{ padding: "10px 14px", fontSize: 11, color: "#4a5568", fontFamily: "'JetBrains Mono',monospace" }}>Generating response...</div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 8 }}>
+        <input
+          value={input} onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendQuery()}
+          placeholder={t.placeholder}
+          style={{ flex: 1, padding: "10px 12px", fontSize: 12, color: "#dde4f0", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, outline: "none", fontFamily: "'EB Garamond',Georgia,serif" }}
+        />
+        <button onClick={sendQuery} disabled={loading || !input.trim()} style={{
+          padding: "8px 14px", background: loading ? "#1a2332" : "linear-gradient(135deg, #22d3ee, #0891b2)",
+          border: "none", borderRadius: 8, cursor: loading ? "not-allowed" : "pointer", color: "#0a0e1a", fontWeight: 700, fontSize: 12,
+        }}>&#8594;</button>
+      </div>
+    </div>
+  );
+};
+
 // ── MAIN APP ──────────────────────────────────────────────────────────────
 const App = () => {
   const [lang, setLang] = useState("en");
@@ -771,8 +925,12 @@ const App = () => {
         </span>
       </footer>
 
+      {/* AI Query Widget — Governance & Institutional tier only */}
+      <AIQueryWidget lang={lang} />
+
       <style>{`
         @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         button:hover { opacity: 0.85; }
         a:hover { opacity: 0.75; }
       `}</style>
