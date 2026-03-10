@@ -125,7 +125,12 @@
       }
       // ── Routing matrix ────────────────────────────────────────────────────
       var destination = '/account/';
-      if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free' || tier === 'guest') {
+      var emailLower = (userEmail || '').toLowerCase();
+
+      // CEO override — mark@ailane.ai always routes to CEO Command Centre
+      if (emailLower === 'mark@ailane.ai') {
+        destination = '/AiLaneCEO/';
+      } else if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free' || tier === 'guest') {
         destination = '/account/dashboard/';
       } else if (tier === 'operational') {
         destination = '/intelligence/';
