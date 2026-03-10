@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -21,27 +20,19 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      font-family: 'DM Sans', system-ui, sans-serif;
+      font-family: system-ui, sans-serif;
     }
-    .container {
-      text-align: center;
-      color: #fff;
-    }
+    .container { text-align: center; color: #fff; }
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(245, 158, 11, 0.2);
+      width: 40px; height: 40px;
+      border: 3px solid rgba(245,158,11,0.2);
       border-top-color: #f59e0b;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin: 0 auto 20px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    p {
-      color: rgba(255,255,255,0.6);
-      font-size: 14px;
-      letter-spacing: 0.05em;
-    }
+    p { color: rgba(255,255,255,0.6); font-size: 14px; letter-spacing: 0.05em; }
   </style>
 </head>
 <body>
@@ -49,93 +40,99 @@
     <div class="spinner"></div>
     <p>Signing you in&hellip;</p>
   </div>
-
   <script>
   (async function() {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
     try {
-      const SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-      const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-      // ── Step 1: Retrieve stored UTM data ─────────────────────────────────
+      var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      // ── UTM attribution ───────────────────────────────────────────────────
       var utmData = {};
       try {
         var stored = sessionStorage.getItem('ailane_utm');
         if (stored) utmData = JSON.parse(stored);
       } catch(e) {}
-
-      // ── Step 2: Exchange auth code for session ────────────────────────────
+      // ── Get session — PKCE code exchange or wait for existing session ─────
       var session = null;
-      var user    = null;
-
-      // Handle PKCE code exchange (OAuth + magic link)
-      var params = new URLSearchParams(window.location.search);
-      var code   = params.get('code');
-
+      var params  = new URLSearchParams(window.location.search);
+      var code    = params.get('code');
       if (code) {
-        var exchangeResult = await sb.auth.exchangeCodeForSession(window.location.search);
-        if (exchangeResult.error || !exchangeResult.data.session) {
-          window.location.replace('/account/?error=auth_failed');
+        // Magic link / OAuth — exchange code for session
+        var ex = await sb.auth.exchangeCodeForSession(window.location.search);
+        if (ex.error || !ex.data || !ex.data.session) {
+          window.location.replace('/account/?error=exchange_failed');
           return;
         }
-        session = exchangeResult.data.session;
-        user    = exchangeResult.data.session.user;
+        session = ex.data.session;
       } else {
-        // No code — check for existing session (password sign-in)
-        var sessionResult = await sb.auth.getSession();
-        if (sessionResult.data && sessionResult.data.session) {
-          session = sessionResult.data.session;
-          user    = sessionResult.data.session.user;
+        // Password login — session may not be in storage yet, wait for it
+        var gs = await sb.auth.getSession();
+        if (gs.data && gs.data.session) {
+          session = gs.data.session;
         } else {
-          // Session not in localStorage yet — wait for onAuthStateChange
-          var resolved = await new Promise(function(resolve) {
-            var timeout = setTimeout(function() { resolve(null); }, 5000);
+          // Wait up to 6 seconds for SIGNED_IN event
+          session = await new Promise(function(resolve) {
+            var t = setTimeout(function() { resolve(null); }, 6000);
             sb.auth.onAuthStateChange(function(event, s) {
-              if (event === 'SIGNED_IN' && s) {
-                clearTimeout(timeout);
+              if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && s) {
+                clearTimeout(t);
                 resolve(s);
               }
             });
           });
-          if (!resolved) {
-            window.location.replace('/account/?error=no_session');
-            return;
-          }
-          session = resolved;
-          user    = resolved.user;
         }
       }
-
-      if (!session || !user) {
+      if (!session || !session.access_token) {
         window.location.replace('/account/?error=no_session');
         return;
       }
-
-      // ── Step 3: Determine if new user ─────────────────────────────────────
-      var accountAge = new Date() - new Date(user.created_at);
-      var isNewUser  = accountAge < 15000;
-
-      // ── Step 4: Query subscription tier ──────────────────────────────────
-      var profileResult = await sb
-        .from('kl_account_profiles')
-        .select('subscription_tier')
-        .eq('user_id', user.id)
-        .single();
-
-      var tier = profileResult.data ? profileResult.data.subscription_tier : null;
-
-      // ── Step 5: Determine destination ────────────────────────────────────
+      // ── Decode JWT to get user id — no client state dependency ───────────
+      var userId = null;
+      var userEmail = null;
+      var isNewUser = false;
+      try {
+        var payload = JSON.parse(atob(session.access_token.split('.')[1]));
+        userId    = payload.sub;
+        userEmail = session.user ? session.user.email : null;
+        var created = session.user ? new Date(session.user.created_at) : null;
+        isNewUser = created ? (new Date() - created < 15000) : false;
+      } catch(e) {
+        window.location.replace('/account/?error=jwt_decode_failed');
+        return;
+      }
+      // ── Query profile using raw fetch with Bearer token ───────────────────
+      // Bypasses Supabase client auth state entirely — guaranteed to work
+      var tier = null;
+      try {
+        var profileResp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          {
+            headers: {
+              'apikey':        SUPABASE_ANON,
+              'Authorization': 'Bearer ' + session.access_token,
+              'Accept':        'application/json'
+            }
+          }
+        );
+        if (profileResp.ok) {
+          var rows = await profileResp.json();
+          if (rows && rows.length > 0) {
+            tier = rows[0].subscription_tier;
+          }
+        }
+      } catch(e) {
+        // Profile fetch failed — fall through to default destination
+      }
+      // ── Routing matrix ────────────────────────────────────────────────────
       var destination = '/account/';
-      if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free') {
+      if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free' || tier === 'guest') {
         destination = '/account/dashboard/';
       } else if (tier === 'operational') {
         destination = '/intelligence/';
       } else if (tier === 'governance' || tier === 'institutional') {
         destination = '/governance-dashboard/';
       }
-      // null / no profile → /account/ (already set as default)
-
-      // ── Step 6: Fire GA4 conversion ───────────────────────────────────────
+      // ── GA4 conversion ────────────────────────────────────────────────────
       try {
         if (window.gtag) {
           gtag('event', isNewUser ? 'sign_up' : 'login', {
@@ -145,8 +142,7 @@
           });
         }
       } catch(e) {}
-
-      // ── Step 7: Append UTMs to destination, clear storage, redirect ───────
+      // ── Redirect ──────────────────────────────────────────────────────────
       try {
         var destUrl = new URL(destination, window.location.origin);
         Object.entries(utmData).forEach(function(kv) {
@@ -157,13 +153,10 @@
       } catch(e) {
         window.location.replace(destination);
       }
-
     } catch(err) {
-      // Any unhandled error — redirect safely
       window.location.replace('/account/?error=router_error');
     }
   })();
   </script>
-
 </body>
 </html>
