@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Analytics GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Ailane Account</title>
+<meta name="description" content="Your Ailane account dashboard. Manage sessions, projects, vault, and reports.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:          #06080d;
+  --bg-sec:      #0c1019;
+  --bg-card:     #0c1019;
+  --bg-elev:     #141b2a;
+  --border:      rgba(255,255,255,0.06);
+  --border-h:    rgba(56,189,248,0.18);
+  --cyan:        #38bdf8;
+  --cyan-dim:    rgba(56,189,248,0.12);
+  --gold:        #f59e0b;
+  --gold-dim:    rgba(245,158,11,0.10);
+  --green:       #34d399;
+  --amber:       #fbbf24;
+  --red:         #fb7185;
+  --violet:      #a78bfa;
+  --t1:          #e8ecf4;
+  --t2:          #8894aa;
+  --t3:          #5a6478;
+  --t4:          #3d4759;
+  --mono:        'Space Mono', 'JetBrains Mono', monospace;
+  --body:        'DM Sans', -apple-system, sans-serif;
+  --heading:     'Fraunces', Georgia, serif;
+  --ease:        cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+body { font-family:var(--body); background:var(--bg); color:var(--t1); line-height:1.7; overflow-x:hidden; }
+::selection { background:var(--cyan-dim); color:var(--cyan); }
+
+@keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes pulse { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+
+/* ── LOADING STATE ── */
+.loading-screen {
+  position:fixed; inset:0; z-index:999; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+}
+.loading-spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite; }
+.loading-text { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; color:var(--t3); }
+.loading-screen.hidden { display:none; }
+
+/* ── TOP NAV ── */
+.dash-nav {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  background:rgba(6,8,13,0.92); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.dash-nav-inner {
+  max-width:1200px; margin:0 auto; padding:12px 24px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.dash-nav-left { display:flex; align-items:center; gap:16px; }
+.dash-logo { font-family:var(--mono); font-size:14px; font-weight:700; letter-spacing:4px; color:var(--t1); text-decoration:none; }
+.dash-nav-sep { width:1px; height:20px; background:var(--border); }
+.dash-nav-label { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:var(--t3); }
+.dash-nav-right { display:flex; align-items:center; gap:12px; }
+.dash-user-badge {
+  font-family:var(--mono); font-size:10px; letter-spacing:0.5px; color:var(--t2);
+  background:var(--bg-sec); border:1px solid var(--border); border-radius:6px; padding:6px 12px;
+}
+.dash-nav-btn {
+  font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--t3);
+  background:none; border:1px solid var(--border); border-radius:6px; padding:6px 14px;
+  cursor:pointer; transition:all 0.2s; text-decoration:none;
+}
+.dash-nav-btn:hover { color:var(--t1); border-color:var(--border-h); }
+.dash-signout-btn { color:var(--red); border-color:rgba(251,113,133,0.15); }
+.dash-signout-btn:hover { border-color:rgba(251,113,133,0.3); background:rgba(251,113,133,0.05); }
+
+/* ── LAYOUT ── */
+.dash-layout { display:flex; max-width:1200px; margin:0 auto; padding-top:56px; min-height:100vh; }
+.dash-sidebar {
+  flex:0 0 280px; padding:24px 20px; border-right:1px solid var(--border);
+  position:sticky; top:56px; height:calc(100vh - 56px); overflow-y:auto;
+}
+.dash-main { flex:1; padding:28px 32px; }
+
+/* ── SIDEBAR ── */
+.sidebar-section { margin-bottom:28px; }
+.sidebar-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--t4); text-transform:uppercase; margin-bottom:12px; }
+.sidebar-tier {
+  display:flex; align-items:center; gap:8px; padding:12px 14px;
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; margin-bottom:12px;
+}
+.sidebar-tier-dot { width:8px; height:8px; border-radius:50%; }
+.sidebar-tier-dot.free { background:var(--t3); }
+.sidebar-tier-dot.op { background:var(--cyan); }
+.sidebar-tier-dot.gov { background:var(--green); }
+.sidebar-tier-dot.inst { background:var(--gold); }
+.sidebar-tier-name { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--t2); }
+.sidebar-tier-name strong { color:var(--t1); font-weight:700; }
+
+/* ACEI Score Block */
+.acei-block {
+  padding:20px 16px; background:linear-gradient(135deg,rgba(56,189,248,0.06),rgba(56,189,248,0.02));
+  border:1px solid rgba(56,189,248,0.1); border-radius:10px; margin-bottom:16px;
+}
+.acei-block-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--cyan); margin-bottom:10px; }
+.acei-score-display { display:flex; align-items:baseline; gap:6px; margin-bottom:8px; }
+.acei-score-val { font-family:var(--mono); font-size:32px; font-weight:700; color:var(--cyan); }
+.acei-score-max { font-family:var(--mono); font-size:14px; color:var(--t4); }
+.acei-score-bar { height:4px; border-radius:2px; background:rgba(255,255,255,0.06); margin-bottom:8px; overflow:hidden; }
+.acei-score-fill { height:100%; border-radius:2px; transition:width 0.6s var(--ease); }
+.acei-score-band { font-family:var(--mono); font-size:10px; letter-spacing:1px; }
+.band-low { color:#34d399; }
+.band-controlled { color:#38bdf8; }
+.band-elevated { color:#fbbf24; }
+.band-high { color:#f97316; }
+.band-severe { color:#ef4444; }
+
+.sidebar-upgrade {
+  display:block; width:100%; padding:10px 14px; font-family:var(--mono); font-size:11px;
+  font-weight:700; letter-spacing:0.5px; text-align:center; color:var(--bg);
+  background:var(--cyan); border:none; border-radius:8px; cursor:pointer;
+  transition:all 0.2s; text-decoration:none;
+}
+.sidebar-upgrade:hover { background:#5cc9f5; transform:translateY(-1px); }
+
+.sidebar-nav { list-style:none; }
+.sidebar-nav-item {
+  display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px;
+  font-size:13px; color:var(--t3); cursor:pointer; transition:all 0.15s; margin-bottom:2px;
+}
+.sidebar-nav-item:hover { color:var(--t2); background:rgba(255,255,255,0.02); }
+.sidebar-nav-item.active { color:var(--cyan); background:var(--cyan-dim); }
+.sidebar-nav-icon { font-size:16px; width:20px; text-align:center; }
+
+/* ── TABS (main content) ── */
+.tab-content { display:none; animation:fadeInUp 0.3s var(--ease); }
+.tab-content.active { display:block; }
+.tab-header { margin-bottom:28px; }
+.tab-title { font-size:20px; font-weight:700; margin-bottom:4px; }
+.tab-subtitle { font-size:14px; color:var(--t2); }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align:center; padding:60px 32px;
+  background:var(--bg-sec); border:1px solid var(--border); border-radius:12px;
+}
+.empty-icon { font-size:40px; margin-bottom:16px; opacity:0.5; }
+.empty-title { font-size:16px; font-weight:600; margin-bottom:8px; }
+.empty-text { font-size:13px; color:var(--t3); max-width:360px; margin:0 auto 20px; line-height:1.6; }
+.empty-cta {
+  display:inline-block; font-family:var(--mono); font-size:12px; font-weight:700;
+  color:var(--bg); background:var(--cyan); border-radius:8px; padding:10px 24px;
+  text-decoration:none; transition:all 0.2s;
+}
+.empty-cta:hover { background:#5cc9f5; }
+
+/* ── SESSION CARDS ── */
+.session-card {
+  padding:18px 20px; background:var(--bg-sec); border:1px solid var(--border);
+  border-radius:10px; margin-bottom:10px; transition:all 0.2s;
+}
+.session-card:hover { border-color:var(--border-h); }
+.session-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.session-card-title { font-size:14px; font-weight:600; }
+.session-card-time { font-family:var(--mono); font-size:10px; color:var(--t4); }
+.session-card-meta { display:flex; gap:12px; flex-wrap:wrap; }
+.session-meta-item { font-family:var(--mono); font-size:10px; color:var(--t3); }
+.session-meta-item span { color:var(--t2); }
+
+/* ── PROJECT CARDS ── */
+.project-card {
+  padding:20px; background:var(--bg-sec); border:1px solid var(--border);
+  border-radius:10px; margin-bottom:10px; transition:all 0.2s;
+}
+.project-card:hover { border-color:var(--border-h); }
+.project-name { font-size:15px; font-weight:600; margin-bottom:4px; }
+.project-desc { font-size:13px; color:var(--t3); margin-bottom:10px; }
+.project-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.project-badge {
+  font-family:var(--mono); font-size:9px; letter-spacing:0.5px; padding:3px 8px;
+  border-radius:4px; background:var(--cyan-dim); color:var(--cyan);
+  border:1px solid rgba(56,189,248,0.12);
+}
+
+/* ── VAULT ── */
+.vault-item {
+  display:flex; align-items:center; gap:14px; padding:14px 18px;
+  background:var(--bg-sec); border:1px solid var(--border); border-radius:8px;
+  margin-bottom:8px; transition:all 0.2s;
+}
+.vault-item:hover { border-color:var(--border-h); }
+.vault-icon { font-size:20px; flex-shrink:0; }
+.vault-info { flex:1; }
+.vault-name { font-size:13px; font-weight:600; }
+.vault-meta { font-family:var(--mono); font-size:10px; color:var(--t4); }
+.vault-notice {
+  font-family:var(--mono); font-size:10px; color:var(--amber);
+  background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15);
+  border-radius:6px; padding:10px 14px; margin-bottom:16px; line-height:1.6;
+}
+
+/* ── REPORTS ── */
+.report-card {
+  padding:18px 20px; background:var(--bg-sec); border:1px solid var(--border);
+  border-radius:10px; margin-bottom:10px; display:flex; align-items:center;
+  justify-content:space-between; transition:all 0.2s;
+}
+.report-card:hover { border-color:var(--border-h); }
+.report-info { flex:1; }
+.report-title { font-size:14px; font-weight:600; margin-bottom:2px; }
+.report-type { font-family:var(--mono); font-size:10px; color:var(--t4); letter-spacing:0.5px; }
+.report-download {
+  font-family:var(--mono); font-size:10px; letter-spacing:0.5px; color:var(--cyan);
+  background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:6px;
+  padding:6px 14px; cursor:pointer; transition:all 0.2s; text-decoration:none;
+}
+.report-download:hover { background:rgba(56,189,248,0.2); }
+
+/* ── FOOTER ── */
+.dash-footer {
+  border-top:1px solid var(--border); padding:20px 32px; text-align:center;
+  margin-top:40px;
+}
+.dash-footer-text { font-family:var(--mono); font-size:9px; color:var(--t4); letter-spacing:0.5px; line-height:1.8; }
+.dash-footer-text a { color:var(--t3); text-decoration:none; }
+.dash-footer-text a:hover { color:var(--cyan); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px) {
+  .dash-layout { flex-direction:column; }
+  .dash-sidebar {
+    position:static; flex:none; height:auto; border-right:none;
+    border-bottom:1px solid var(--border); padding:20px 24px;
+  }
+  .dash-main { padding:24px; }
+  .acei-block { display:none; }
+}
+@media(max-width:600px) {
+  .dash-nav-label { display:none; }
+  .dash-nav-sep { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">AUTHENTICATING</div>
+</div>
+
+<!-- Top Nav -->
+<nav class="dash-nav">
+  <div class="dash-nav-inner">
+    <div class="dash-nav-left">
+      <a href="https://ailane.ai" class="dash-logo">AILANE</a>
+      <div class="dash-nav-sep"></div>
+      <span class="dash-nav-label">ACCOUNT DASHBOARD</span>
+    </div>
+    <div class="dash-nav-right">
+      <span class="dash-user-badge" id="user-badge">Loading...</span>
+      <a href="/knowledge-library-preview/" class="dash-nav-btn">Knowledge Library</a>
+      <button class="dash-nav-btn dash-signout-btn" onclick="handleSignOut()">Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- Dashboard Layout -->
+<div class="dash-layout" id="dash-layout" style="display:none;">
+
+  <!-- Sidebar -->
+  <aside class="dash-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Current Tier</div>
+      <div class="sidebar-tier" id="tier-display">
+        <div class="sidebar-tier-dot free" id="tier-dot"></div>
+        <div class="sidebar-tier-name"><strong id="tier-name">Preview</strong></div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="acei-block">
+        <div class="acei-block-label">ACEI EXPOSURE SCORE</div>
+        <div class="acei-score-display">
+          <span class="acei-score-val" id="acei-score">--</span>
+          <span class="acei-score-max">/ 100</span>
+        </div>
+        <div class="acei-score-bar">
+          <div class="acei-score-fill" id="acei-fill" style="width:0%;background:var(--t3);"></div>
+        </div>
+        <div class="acei-score-band" id="acei-band">No score available</div>
+      </div>
+      <a href="https://ailane.ai/#early-access" class="sidebar-upgrade">Upgrade Tier</a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item active" data-tab="sessions" onclick="switchDashTab('sessions')">
+          <span class="sidebar-nav-icon">&#128337;</span> Sessions
+        </li>
+        <li class="sidebar-nav-item" data-tab="projects" onclick="switchDashTab('projects')">
+          <span class="sidebar-nav-icon">&#128194;</span> Projects
+        </li>
+        <li class="sidebar-nav-item" data-tab="vault" onclick="switchDashTab('vault')">
+          <span class="sidebar-nav-icon">&#128274;</span> Vault
+        </li>
+        <li class="sidebar-nav-item" data-tab="reports" onclick="switchDashTab('reports')">
+          <span class="sidebar-nav-icon">&#128202;</span> Reports
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dash-main">
+
+    <!-- SESSIONS TAB -->
+    <div class="tab-content active" id="tab-sessions">
+      <div class="tab-header">
+        <div class="tab-title">Sessions</div>
+        <div class="tab-subtitle">Your Knowledge Library AI consultation sessions.</div>
+      </div>
+      <div id="sessions-list">
+        <div class="empty-state">
+          <div class="empty-icon">&#128337;</div>
+          <div class="empty-title">No sessions yet</div>
+          <div class="empty-text">Start a Knowledge Library session to get AI-powered regulatory intelligence on any employment law topic.</div>
+          <a href="/knowledge-library-preview/" class="empty-cta">Open Knowledge Library</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECTS TAB -->
+    <div class="tab-content" id="tab-projects">
+      <div class="tab-header">
+        <div class="tab-title">Projects</div>
+        <div class="tab-subtitle">Saved compliance projects and assessments.</div>
+      </div>
+      <div id="projects-list">
+        <div class="empty-state">
+          <div class="empty-icon">&#128194;</div>
+          <div class="empty-title">No projects yet</div>
+          <div class="empty-text">Projects are created when you run compliance assessments or save instrument analysis. Upgrade to Operational Readiness to access project features.</div>
+          <a href="https://ailane.ai/#early-access" class="empty-cta">Request Upgrade</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- VAULT TAB -->
+    <div class="tab-content" id="tab-vault">
+      <div class="tab-header">
+        <div class="tab-title">Vault</div>
+        <div class="tab-subtitle">Temporary document storage for AI analysis.</div>
+      </div>
+      <div class="vault-notice">
+        &#9888; Vault documents are automatically deleted after 24 hours. No downloads or permanent storage. Documents are processed in-memory for AI analysis only.
+      </div>
+      <div id="vault-list">
+        <div class="empty-state">
+          <div class="empty-icon">&#128274;</div>
+          <div class="empty-title">Vault is empty</div>
+          <div class="empty-text">Upload documents during a Knowledge Library session for AI analysis. All files are automatically purged after 24 hours.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS TAB -->
+    <div class="tab-content" id="tab-reports">
+      <div class="tab-header">
+        <div class="tab-title">Reports</div>
+        <div class="tab-subtitle">Generated compliance and governance reports.</div>
+      </div>
+      <div id="reports-list">
+        <div class="empty-state">
+          <div class="empty-icon">&#128202;</div>
+          <div class="empty-title">No reports yet</div>
+          <div class="empty-text">Reports are generated from Knowledge Library sessions. Ask the AI to generate a compliance analysis, advisory report, or session transcript.</div>
+          <a href="/knowledge-library-preview/" class="empty-cta">Start a Session</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="dash-footer">
+      <div class="dash-footer-text">
+        &copy; 2026 AI Lane Limited (Company No. 17035654) trading as Ailane &nbsp;&middot;&nbsp;
+        <a href="https://ailane.ai">ailane.ai</a> &nbsp;&middot;&nbsp;
+        ACEI v1.0 &middot; RRI v1.0 &middot; CCI v1.0 &nbsp;&middot;&nbsp;
+        UK Trademark UK00004347220<br>
+        All indices governed by published constitutions. Methodology is transparent and auditable.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Supabase client
+var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+var currentUser = null;
+
+// Auth check
+(async function() {
+  var loadingScreen = document.getElementById('loading-screen');
+  var dashLayout = document.getElementById('dash-layout');
+
+  try {
+    var { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      window.location.href = '/account/';
+      return;
+    }
+
+    currentUser = session.user;
+    initDashboard(currentUser);
+    loadingScreen.classList.add('hidden');
+    dashLayout.style.display = '';
+  } catch (err) {
+    window.location.href = '/account/';
+  }
+})();
+
+// Listen for auth changes
+supabase.auth.onAuthStateChange(function(event, session) {
+  if (event === 'SIGNED_OUT') {
+    window.location.href = '/account/';
+  }
+});
+
+function initDashboard(user) {
+  // User badge
+  var meta = user.user_metadata || {};
+  var displayName = meta.display_name || meta.full_name || user.email;
+  document.getElementById('user-badge').textContent = displayName;
+
+  // Tier display (check user metadata or subscription table)
+  var tier = meta.tier || 'preview';
+  updateTierDisplay(tier);
+
+  // Load ACEI score if available
+  loadAceiScore(user.id);
+
+  // Load user data
+  loadSessions(user.id);
+  loadProjects(user.id);
+  loadVault(user.id);
+  loadReports(user.id);
+}
+
+function updateTierDisplay(tier) {
+  var tierName = document.getElementById('tier-name');
+  var tierDot = document.getElementById('tier-dot');
+  var tiers = {
+    'preview': { name: 'Preview', dot: 'free' },
+    'pay_per_hour': { name: 'Pay-Per-Hour', dot: 'free' },
+    'operational': { name: 'Operational Readiness', dot: 'op' },
+    'governance': { name: 'Governance', dot: 'gov' },
+    'institutional': { name: 'Institutional', dot: 'inst' }
+  };
+  var t = tiers[tier] || tiers['preview'];
+  tierName.textContent = t.name;
+  tierDot.className = 'sidebar-tier-dot ' + t.dot;
+}
+
+function loadAceiScore(userId) {
+  // Placeholder — will connect to ACEI calculation engine
+  var scoreEl = document.getElementById('acei-score');
+  var fillEl = document.getElementById('acei-fill');
+  var bandEl = document.getElementById('acei-band');
+
+  // For now show placeholder
+  scoreEl.textContent = '--';
+  fillEl.style.width = '0%';
+  bandEl.textContent = 'Subscribe to view your ACEI score';
+  bandEl.className = 'acei-score-band';
+}
+
+async function loadSessions(userId) {
+  try {
+    var { data, error } = await supabase
+      .from('kl_sessions')
+      .select('id, title, created_at, duration_minutes, tokens_used')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error || !data || data.length === 0) return;
+
+    var container = document.getElementById('sessions-list');
+    container.innerHTML = data.map(function(s) {
+      var date = new Date(s.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      var time = new Date(s.created_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+      return '<div class="session-card">' +
+        '<div class="session-card-header">' +
+          '<div class="session-card-title">' + escapeHtml(s.title || 'Untitled Session') + '</div>' +
+          '<div class="session-card-time">' + date + '</div>' +
+        '</div>' +
+        '<div class="session-card-meta">' +
+          '<div class="session-meta-item">Started <span>' + time + '</span></div>' +
+          (s.duration_minutes ? '<div class="session-meta-item">Duration <span>' + s.duration_minutes + ' min</span></div>' : '') +
+          (s.tokens_used ? '<div class="session-meta-item">Tokens <span>' + s.tokens_used.toLocaleString() + '</span></div>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) { /* silent — empty state remains */ }
+}
+
+async function loadProjects(userId) {
+  try {
+    var { data, error } = await supabase
+      .from('kl_projects')
+      .select('id, name, description, categories, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error || !data || data.length === 0) return;
+
+    var container = document.getElementById('projects-list');
+    container.innerHTML = data.map(function(p) {
+      var cats = (p.categories || []).map(function(c) {
+        return '<span class="project-badge">CAT ' + c + '</span>';
+      }).join('');
+      return '<div class="project-card">' +
+        '<div class="project-name">' + escapeHtml(p.name) + '</div>' +
+        '<div class="project-desc">' + escapeHtml(p.description || '') + '</div>' +
+        '<div class="project-badges">' + cats + '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) { /* silent */ }
+}
+
+async function loadVault(userId) {
+  try {
+    var { data, error } = await supabase
+      .from('kl_vault')
+      .select('id, filename, file_size, uploaded_at, expires_at')
+      .eq('user_id', userId)
+      .gt('expires_at', new Date().toISOString())
+      .order('uploaded_at', { ascending: false });
+
+    if (error || !data || data.length === 0) return;
+
+    var container = document.getElementById('vault-list');
+    container.innerHTML = data.map(function(v) {
+      var size = v.file_size ? (v.file_size / 1024).toFixed(1) + ' KB' : '';
+      var expires = new Date(v.expires_at).toLocaleString('en-GB');
+      return '<div class="vault-item">' +
+        '<div class="vault-icon">&#128196;</div>' +
+        '<div class="vault-info">' +
+          '<div class="vault-name">' + escapeHtml(v.filename) + '</div>' +
+          '<div class="vault-meta">' + size + ' &middot; Expires ' + expires + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) { /* silent */ }
+}
+
+async function loadReports(userId) {
+  try {
+    var { data, error } = await supabase
+      .from('kl_reports')
+      .select('id, title, report_type, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error || !data || data.length === 0) return;
+
+    var container = document.getElementById('reports-list');
+    container.innerHTML = data.map(function(r) {
+      var date = new Date(r.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      var typeLabels = { transcript: 'TRANSCRIPT', advisory: 'ADVISORY', summary: 'SUMMARY' };
+      return '<div class="report-card">' +
+        '<div class="report-info">' +
+          '<div class="report-title">' + escapeHtml(r.title || 'Untitled Report') + '</div>' +
+          '<div class="report-type">' + (typeLabels[r.report_type] || r.report_type || 'REPORT') + ' &middot; ' + date + '</div>' +
+        '</div>' +
+        '<span class="report-download" onclick="downloadReport(\'' + r.id + '\')">View</span>' +
+      '</div>';
+    }).join('');
+  } catch (e) { /* silent */ }
+}
+
+function downloadReport(reportId) {
+  // Placeholder — will connect to report download Edge Function
+  alert('Report download will be available when the report generation system is deployed (KLAC-001 Phase C2).');
+}
+
+// Tab switching
+function switchDashTab(tab) {
+  document.querySelectorAll('.sidebar-nav-item').forEach(function(item) {
+    item.classList.toggle('active', item.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(content) {
+    content.classList.remove('active');
+  });
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// Sign out
+async function handleSignOut() {
+  await supabase.auth.signOut();
+  window.location.href = '/account/';
+}
+
+// XSS protection
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

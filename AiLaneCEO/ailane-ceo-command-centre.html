@@ -296,10 +296,23 @@ function AilaneCEO() {
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Restore session on mount
+  // Restore session on mount — read shared Supabase session first
   useEffect(() => {
-    const stored = localStorage.getItem("sb-token");
-    const storedUser = localStorage.getItem("sb-user");
+    let stored = null;
+    let storedUser = null;
+    try {
+      const sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
+      if (sbSession) {
+        const parsed = JSON.parse(sbSession);
+        stored = parsed?.access_token || null;
+        storedUser = parsed?.user ? JSON.stringify(parsed.user) : null;
+      }
+    } catch(e) {}
+    // Fallback to legacy keys
+    if (!stored) {
+      stored = localStorage.getItem("sb-token");
+      storedUser = localStorage.getItem("sb-user");
+    }
     if (stored && storedUser) {
       // Verify token is still valid
       (async () => {
@@ -312,7 +325,8 @@ function AilaneCEO() {
             setToken(stored);
             setUser(u);
           } else {
-            // Token expired — clear and show login
+            // Token expired — clear all session keys
+            localStorage.removeItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
             localStorage.removeItem("sb-token");
             localStorage.removeItem("sb-user");
           }
@@ -341,6 +355,12 @@ function AilaneCEO() {
         const d = await res.json();
         setToken(d.access_token);
         setUser(d.user);
+        // Write to shared session key
+        localStorage.setItem("sb-cnbsxwtvazfvzmltkuvx-auth-token", JSON.stringify({
+          access_token: d.access_token,
+          user: d.user
+        }));
+        // Legacy keys for backwards compatibility
         localStorage.setItem("sb-token", d.access_token);
         localStorage.setItem("sb-user", JSON.stringify(d.user));
         setAuthPass("");
@@ -358,6 +378,7 @@ function AilaneCEO() {
   const handleLogout = () => {
     setToken(null);
     setUser(null);
+    localStorage.removeItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
     localStorage.removeItem("sb-token");
     localStorage.removeItem("sb-user");
   };

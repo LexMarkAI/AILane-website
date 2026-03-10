@@ -77,6 +77,7 @@ const sbFetch = async (path, token) => {
     headers: { apikey: SB_ANON, Authorization: `Bearer ${token || SB_ANON}`, "Content-Type": "application/json" }
   });
   if (res.status === 401) {
+    localStorage.removeItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
     localStorage.removeItem("ailane-ticker-token");
     localStorage.removeItem("ailane-ticker-user");
     window.location.reload();
@@ -187,8 +188,22 @@ function AilaneTicker() {
 
   // ─── AUTH: Restore session ──────────────────────────────────────────
   useEffect(() => {
-    const saved = localStorage.getItem("ailane-ticker-token");
-    const savedUser = localStorage.getItem("ailane-ticker-user");
+    // Read shared Supabase session
+    let saved = null;
+    let savedUser = null;
+    try {
+      const sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
+      if (sbSession) {
+        const parsed = JSON.parse(sbSession);
+        saved = parsed?.access_token || null;
+        savedUser = parsed?.user ? JSON.stringify(parsed.user) : null;
+      }
+    } catch(e) {}
+    // Fallback to legacy ticker-specific key
+    if (!saved) {
+      saved = localStorage.getItem("ailane-ticker-token");
+      savedUser = localStorage.getItem("ailane-ticker-user");
+    }
     if (saved) {
       setToken(saved);
       try { setUser(JSON.parse(savedUser)); } catch(e) {}
@@ -208,6 +223,12 @@ function AilaneTicker() {
       if (data.access_token) {
         setToken(data.access_token);
         setUser(data.user);
+        // Write to shared session key
+        localStorage.setItem("sb-cnbsxwtvazfvzmltkuvx-auth-token", JSON.stringify({
+          access_token: data.access_token,
+          user: data.user
+        }));
+        // Retain legacy keys for backwards compatibility during transition
         localStorage.setItem("ailane-ticker-token", data.access_token);
         localStorage.setItem("ailane-ticker-user", JSON.stringify(data.user));
       } else {
@@ -221,6 +242,7 @@ function AilaneTicker() {
   const handleLogout = () => {
     setToken(null);
     setUser(null);
+    localStorage.removeItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
     localStorage.removeItem("ailane-ticker-token");
     localStorage.removeItem("ailane-ticker-user");
   };
