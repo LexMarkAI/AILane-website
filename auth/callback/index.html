@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signing you in — Ailane</title>
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- GA4 — MANDATORY -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer=window.dataLayer||[];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js',new Date());
+    gtag('config','G-NTNXWZN31C');
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: #060912; color: #e2e8f0; }
+    .container {
+      height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 24px;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.12);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status { font-size: 0.9375rem; color: #94a3b8; }
+    .error-msg {
+      font-size: 0.875rem; color: #fb7185; margin-top: 12px;
+      max-width: 400px; line-height: 1.55;
+    }
+    .error-link {
+      display: inline-block; margin-top: 16px;
+      font-size: 0.8125rem; color: #38bdf8; text-decoration: none;
+    }
+    .error-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="container">
+  <div class="spinner" id="spinner"></div>
+  <div class="status" id="status">Signing you in&hellip;</div>
+</div>
+
+<script>
+(async function() {
+  // ── SUPABASE INIT ─────────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ── HELPERS ───────────────────────────────────────────────────────────────
+  function showError(msg, dest) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('status').textContent = 'Something went wrong';
+    const container = document.getElementById('container');
+    const errEl = document.createElement('div');
+    errEl.className = 'error-msg';
+    errEl.textContent = msg;
+    container.appendChild(errEl);
+    const link = document.createElement('a');
+    link.className = 'error-link';
+    link.href = dest || '/account/';
+    link.textContent = '\u2190 Return to sign in';
+    container.appendChild(link);
+  }
+
+  // ── STEP 1: Read UTM data from sessionStorage ────────────────────────────
+  let utmData = {};
+  try {
+    const storedUtm = sessionStorage.getItem('ailane_utm');
+    utmData = storedUtm ? JSON.parse(storedUtm) : {};
+  } catch(e) {}
+
+  // ── STEP 2: Exchange auth code for session ────────────────────────────────
+  // Supabase OAuth/magic-link redirects here with ?code= or hash fragments.
+  // exchangeCodeForSession handles both patterns.
+  let session = null;
+  try {
+    const { data, error } = await sb.auth.exchangeCodeForSession(window.location.search);
+    if (error || !data.session) {
+      // Fallback: check if a session already exists (e.g. password login redirect)
+      const { data: existing } = await sb.auth.getSession();
+      if (existing && existing.session) {
+        session = existing.session;
+      } else {
+        showError('Authentication failed. Please try signing in again.', '/account/?error=auth_failed');
+        return;
+      }
+    } else {
+      session = data.session;
+    }
+  } catch(e) {
+    // Fallback: check existing session
+    try {
+      const { data: existing } = await sb.auth.getSession();
+      if (existing && existing.session) {
+        session = existing.session;
+      } else {
+        showError('Session exchange failed. Please try again.', '/account/?error=session_failed');
+        return;
+      }
+    } catch(e2) {
+      showError('Session exchange failed. Please try again.', '/account/?error=session_failed');
+      return;
+    }
+  }
+
+  // ── STEP 3: Determine if new user (for GA4 event type) ───────────────────
+  const user = session.user;
+  const accountAge = new Date() - new Date(user.created_at);
+  const isNewUser = accountAge < 10000; // created within last 10 seconds
+
+  // ── STEP 4: Query kl_account_profiles for subscription_tier ──────────────
+  let profile = null;
+  try {
+    const { data: profileData } = await sb
+      .from('kl_account_profiles')
+      .select('subscription_tier, org_id')
+      .eq('user_id', user.id)
+      .single();
+    profile = profileData;
+  } catch(e) {}
+
+  if (!profile) {
+    // No profile — send to account/ to complete registration
+    window.location.replace('/account/');
+    return;
+  }
+
+  // ── STEP 5: Fire GA4 conversion event (non-blocking) ────────────────────
+  try {
+    if (window.gtag) {
+      gtag('event', isNewUser ? 'sign_up' : 'login', {
+        method: utmData.utm_source || 'direct',
+        campaign: utmData.utm_campaign || 'none',
+        subscription_tier: profile.subscription_tier,
+      });
+    }
+  } catch(e) { /* non-blocking */ }
+
+  // ── STEP 6: Determine destination from routing matrix ───────────────────
+  const tier = profile.subscription_tier;
+  let destination = '/account/'; // safe fallback
+
+  if (['per_session', 'monthly', 'guest_free'].includes(tier)) {
+    destination = '/account/dashboard/';
+  } else if (tier === 'operational') {
+    destination = '/intelligence/';
+  } else if (['governance', 'institutional'].includes(tier)) {
+    destination = '/governance-dashboard/';
+  }
+
+  // ── STEP 7: Append UTMs to destination URL, clear sessionStorage ────────
+  try {
+    const destUrl = new URL(destination, window.location.origin);
+    Object.entries(utmData).forEach(function(pair) {
+      destUrl.searchParams.set(pair[0], pair[1]);
+    });
+    sessionStorage.removeItem('ailane_utm');
+    window.location.replace(destUrl.toString());
+  } catch(e) {
+    window.location.replace(destination); // fallback without UTMs
+  }
+})();
+
+// ── ONAUTH LISTENER — catch email-confirmed and magic-link redirects ──────
+(function() {
+  const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  const sb2 = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let hasProcessed = false;
+
+  sb2.auth.onAuthStateChange(async function(event, session) {
+    if (hasProcessed) return;
+    if (event === 'SIGNED_IN' && session) {
+      hasProcessed = true;
+
+      const user = session.user;
+      const accountAge = new Date() - new Date(user.created_at);
+      const isNewUser = accountAge < 10000;
+
+      let utmData = {};
+      try {
+        const storedUtm = sessionStorage.getItem('ailane_utm');
+        utmData = storedUtm ? JSON.parse(storedUtm) : {};
+      } catch(e) {}
+
+      let profile = null;
+      try {
+        const { data: profileData } = await sb2
+          .from('kl_account_profiles')
+          .select('subscription_tier, org_id')
+          .eq('user_id', user.id)
+          .single();
+        profile = profileData;
+      } catch(e) {}
+
+      if (!profile) {
+        window.location.replace('/account/');
+        return;
+      }
+
+      try {
+        if (window.gtag) {
+          gtag('event', isNewUser ? 'sign_up' : 'login', {
+            method: utmData.utm_source || 'direct',
+            campaign: utmData.utm_campaign || 'none',
+            subscription_tier: profile.subscription_tier,
+          });
+        }
+      } catch(e) {}
+
+      const tier = profile.subscription_tier;
+      let destination = '/account/';
+      if (['per_session', 'monthly', 'guest_free'].includes(tier)) {
+        destination = '/account/dashboard/';
+      } else if (tier === 'operational') {
+        destination = '/intelligence/';
+      } else if (['governance', 'institutional'].includes(tier)) {
+        destination = '/governance-dashboard/';
+      }
+
+      try {
+        const destUrl = new URL(destination, window.location.origin);
+        Object.entries(utmData).forEach(function(pair) {
+          destUrl.searchParams.set(pair[0], pair[1]);
+        });
+        sessionStorage.removeItem('ailane_utm');
+        window.location.replace(destUrl.toString());
+      } catch(e) {
+        window.location.replace(destination);
+      }
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -292,12 +292,22 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ── LOCKED REDIRECT PATHS — DO NOT CHANGE ───────────────────────────────────
-  // account/index.html always redirects to /account/dashboard/ after any auth event.
-  // Never /dashboard/, never /governance-dashboard/. These constants are the single
-  // source of truth for all redirects in this file.
-  const REDIRECT_AFTER_AUTH = '/account/dashboard/';
-  const REDIRECT_OAUTH      = window.location.origin + '/account/dashboard/';
+  // ── UTM CAPTURE — run before any auth initiation ────────────────────────────
+  (function() {
+    const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'];
+    const params = new URLSearchParams(window.location.search);
+    const utmData = {};
+    utmKeys.forEach(function(k) { if (params.get(k)) utmData[k] = params.get(k); });
+    if (Object.keys(utmData).length) {
+      sessionStorage.setItem('ailane_utm', JSON.stringify(utmData));
+    }
+  })();
+
+  // ── REDIRECT PATHS — all auth events route via /auth/callback/ ──────────────
+  // The central router reads kl_account_profiles.subscription_tier and sends
+  // users to the correct product destination. No login page redirects directly.
+  const REDIRECT_AFTER_AUTH = '/auth/callback/';
+  const REDIRECT_OAUTH      = window.location.origin + '/auth/callback/';
 
   // ── TAB SWITCHING ────────────────────────────────────────────────────────────
   function switchTab(tab) {
@@ -367,7 +377,10 @@
     try {
       const { data: authData, error: authError } = await sb.auth.signUp({
         email, password,
-        options: { data: { display_name: name, role_type: role, organisation: org || null } }
+        options: {
+          data: { display_name: name, role_type: role, organisation: org || null },
+          emailRedirectTo: window.location.origin + '/auth/callback/'
+        }
       });
       if (authError) throw authError;
       const userId = authData.user?.id;
@@ -414,7 +427,7 @@
     try {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      window.location.href = REDIRECT_AFTER_AUTH; // LOCKED — always /account/dashboard/
+      window.location.href = REDIRECT_AFTER_AUTH;
     } catch (err) {
       showStatus(err.message || 'Sign-in failed. Please check your credentials.', 'error');
     } finally {
@@ -446,7 +459,7 @@
     clearStatus();
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: REDIRECT_OAUTH } // LOCKED — always /account/dashboard/
+      options: { redirectTo: REDIRECT_OAUTH }
     });
     if (error) showStatus(error.message, 'error');
   }
@@ -455,7 +468,7 @@
   (async () => {
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
-      window.location.href = REDIRECT_AFTER_AUTH; // LOCKED — always /account/dashboard/
+      window.location.href = REDIRECT_AFTER_AUTH;
     }
   })();
 </script>
