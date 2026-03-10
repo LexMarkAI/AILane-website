@@ -207,11 +207,17 @@ function ComplianceApp() {
       if (r.ok) {
         const d = await r.json();
         setToken(d.access_token); setUser(d.user);
+        // Write to shared session key
+        localStorage.setItem("sb-cnbsxwtvazfvzmltkuvx-auth-token", JSON.stringify({
+          access_token: d.access_token,
+          user: d.user
+        }));
         localStorage.setItem("sb-token", d.access_token);
         localStorage.setItem("sb-refresh", d.refresh_token);
         return d.access_token;
       } else {
         // Refresh token also expired — force re-login
+        localStorage.removeItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
         localStorage.removeItem("sb-token");
         localStorage.removeItem("sb-refresh");
         setToken(null); setUser(null);
@@ -235,7 +241,16 @@ function ComplianceApp() {
 
   // ─── AUTH ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const t = localStorage.getItem("sb-token");
+    // Read shared Supabase session first, fallback to legacy
+    let t = null;
+    try {
+      const sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
+      if (sbSession) {
+        const parsed = JSON.parse(sbSession);
+        t = parsed?.access_token || null;
+      }
+    } catch(e) {}
+    if (!t) t = localStorage.getItem("sb-token");
     if (t) {
       fetch(`${SB}/auth/v1/user`, { headers: { apikey: AK, Authorization: `Bearer ${t}` } })
         .then(r => {
@@ -262,6 +277,11 @@ function ComplianceApp() {
       if (r.ok) {
         const d = await r.json();
         setToken(d.access_token); setUser(d.user);
+        // Write to shared session key
+        localStorage.setItem("sb-cnbsxwtvazfvzmltkuvx-auth-token", JSON.stringify({
+          access_token: d.access_token,
+          user: d.user
+        }));
         localStorage.setItem("sb-token", d.access_token);
         localStorage.setItem("sb-refresh", d.refresh_token);
         await resolveOrg(d.access_token, d.user.id);
@@ -269,7 +289,7 @@ function ComplianceApp() {
     } catch { setAuthErr("Connection failed"); }
   };
 
-  const logout = () => { setToken(null); setUser(null); setOrgId(null); localStorage.removeItem("sb-token"); localStorage.removeItem("sb-refresh"); };
+  const logout = () => { setToken(null); setUser(null); setOrgId(null); localStorage.removeItem("sb-cnbsxwtvazfvzmltkuvx-auth-token"); localStorage.removeItem("sb-token"); localStorage.removeItem("sb-refresh"); };
 
   // ─── DATA LOADING ────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {

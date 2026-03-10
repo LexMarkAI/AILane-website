@@ -1907,9 +1907,17 @@ const [loading, setLoading] = useState(false);
 const [err, setErr] = useState(””);
 
 const doLogin = async () => {
-setLoading(true); setErr(””);
+setLoading(true); setErr(“”);
 try {
 const d = await signIn(email, pass);
+// Write to shared session key
+localStorage.setItem(“sb-cnbsxwtvazfvzmltkuvx-auth-token”, JSON.stringify({
+  access_token: d.access_token,
+  user: d.user
+}));
+// Legacy keys for ceo-nav.js compatibility
+localStorage.setItem(“sb-token”, d.access_token);
+localStorage.setItem(“sb-user”, JSON.stringify(d.user));
 onAuth(d.access_token, d.user);
 } catch (e) { setErr(e.message); }
 setLoading(false);
@@ -1944,6 +1952,28 @@ function App() {
 const [token, setToken] = useState(null);
 const [user, setUser] = useState(null);
 const [activeTab, setActiveTab] = useState(“⚡ Command”);
+
+// Restore shared session on mount
+useEffect(() => {
+  try {
+    const sbSession = localStorage.getItem(“sb-cnbsxwtvazfvzmltkuvx-auth-token”);
+    if (sbSession) {
+      const parsed = JSON.parse(sbSession);
+      if (parsed?.access_token && parsed?.user) {
+        setToken(parsed.access_token);
+        setUser(parsed.user);
+        return;
+      }
+    }
+    // Fallback to legacy sb-token
+    const legacyToken = localStorage.getItem(“sb-token”);
+    const legacyUser = localStorage.getItem(“sb-user”);
+    if (legacyToken && legacyUser) {
+      setToken(legacyToken);
+      try { setUser(JSON.parse(legacyUser)); } catch(e) {}
+    }
+  } catch(e) {}
+}, []);
 
 const TABS = [“⚡ Command”, “📰 Regulatory Intel”, “📚 Knowledge Library”, “🔍 Intelligence Hub”, “📊 Client Pipeline”, “⚙️ Data Systems”, “🏢 Business Office”, “🔬 Simulator”, “📜 Governance”, “📈 Analytics”, “🤖 AI Assistant”];
 
@@ -1988,7 +2018,7 @@ transition: “all 0.12s”, display: “block”
 <div style={{ padding: “10px 14px”, borderTop: “1px solid “ + C.border }}>
 <div style={{ fontSize: 9, color: C.muted, marginBottom: 2, fontFamily: “‘JetBrains Mono’,monospace”, textTransform: “uppercase”, letterSpacing: 1 }}>Authenticated</div>
 <div style={{ fontSize: 10, color: C.dim, overflow: “hidden”, textOverflow: “ellipsis”, whiteSpace: “nowrap” }}>{user ? user.email : “mark@ailane.ai”}</div>
-<button onClick={() => { setToken(null); setUser(null); }} style={{ marginTop: 7, fontSize: 10, color: C.muted, background: “none”, border: “none”, cursor: “pointer”, padding: 0 }}>Sign out</button>
+<button onClick={() => { setToken(null); setUser(null); localStorage.removeItem(“sb-cnbsxwtvazfvzmltkuvx-auth-token”); localStorage.removeItem(“sb-token”); localStorage.removeItem(“sb-user”); }} style={{ marginTop: 7, fontSize: 10, color: C.muted, background: “none”, border: “none”, cursor: “pointer”, padding: 0 }}>Sign out</button>
 </div>
 </div>
 

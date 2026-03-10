@@ -124,6 +124,14 @@ const TIER_CONFIG = {
 // ── SUPABASE HELPERS ──────────────────────────────────────────────────────
 const getToken = () => {
   try {
+    // Read shared Supabase session first
+    const sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
+    if (sbSession) {
+      const parsed = JSON.parse(sbSession);
+      if (parsed?.access_token) return parsed.access_token;
+      if (parsed?.session?.access_token) return parsed.session.access_token;
+    }
+    // Fallback: search for any supabase auth key
     const keys = Object.keys(localStorage).filter(k => k.includes("supabase") && k.includes("auth"));
     for (const k of keys) {
       const d = JSON.parse(localStorage.getItem(k) || "{}");

@@ -37,9 +37,19 @@
     var storedUser = null;
 
     try {
-      storedToken = localStorage.getItem("sb-token");
-      var rawUser = localStorage.getItem("sb-user");
-      if (rawUser) storedUser = JSON.parse(rawUser);
+      // Read shared Supabase session first
+      var sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
+      if (sbSession) {
+        var parsed = JSON.parse(sbSession);
+        storedToken = parsed && parsed.access_token || null;
+        storedUser = parsed && parsed.user || null;
+      }
+      // Fallback to legacy keys
+      if (!storedToken) {
+        storedToken = localStorage.getItem("sb-token");
+        var rawUser = localStorage.getItem("sb-user");
+        if (rawUser) storedUser = JSON.parse(rawUser);
+      }
     } catch (e) {
       return; // No access to localStorage or corrupt data — do nothing
     }
