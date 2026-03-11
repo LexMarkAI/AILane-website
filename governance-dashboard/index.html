@@ -1,1012 +1,1792 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<!-- Google Analytics GA4 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane Governance — Northerly Hill FM</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-NTNXWZN31C');
-</script>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ailane — Governance Dashboard</title>
-  <meta name="robots" content="noindex, nofollow">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2322d3ee'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%230a0e1a' font-weight='700' font-size='18' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body,#root{height:100%;width:100%}
-    body{background:#080c18;font-family:'EB Garamond',Georgia,serif;color:#dde4f0;overflow-x:hidden}
-    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:2px}
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   ROOT DESIGN TOKENS
+══════════════════════════════════════════ */
+:root{
+  --void:#050c18; --deep:#080f1c; --card:#0c1525; --raised:#101e33;
+  --hover:#152238; --border-dim:#182340; --border-mid:#1e2e52;
+  --border-lit:#263a68;
+  --text-prime:#e2e8f0; --text-sec:#8da3bf; --text-mute:#4a6280;
+  --cyan:#38bdf8; --cyan-dim:#0ea5e9; --cyan-glow:rgba(56,189,248,.18);
+  --teal:#0d9488; --teal-lit:#14b8a6; --teal-glow:rgba(20,184,166,.15);
+  --violet:#7c3aed; --violet-lit:#a78bfa; --violet-glow:rgba(139,92,246,.15);
+  --acei:#f97316; --acei-dim:#ea580c; --acei-glow:rgba(249,115,22,.15);
+  --green:#10b981; --red:#ef4444; --amber:#f59e0b;
+  --gold:#f59e0b; --gold-glow:rgba(245,158,11,.2);
+  --sidebar:220px; --hdr:56px; --ticker-h:34px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--void);color:var(--text-prime);}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-lit);border-radius:2px;}
+
+/* ══ GOLD PULSE ══ */
+@keyframes goldPulse{0%{box-shadow:0 0 0 0 var(–gold-glow);}60%{box-shadow:0 0 0 8px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideInRight{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes slideInLeft{from{transform:translateX(-100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+@keyframes ringFill{from{stroke-dashoffset:283;}to{stroke-dashoffset:var(–ring-target);}}
+@keyframes subtlePulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+@keyframes updatedFlash{0%{background:rgba(245,158,11,.25);}100%{background:transparent;}}
+
+/* ══ LAYOUT SHELL ══ */
+.shell{display:flex;flex-direction:column;height:100%;}
+.header{height:var(–hdr);background:var(–deep);border-bottom:1px solid var(–border-dim);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;z-index:200;position:relative;}
+.ticker-strip{height:var(–ticker-h);background:rgba(8,15,28,.95);border-bottom:1px solid var(–border-dim);overflow:hidden;flex-shrink:0;display:flex;align-items:center;z-index:199;}
+.app-body{display:flex;flex:1;overflow:hidden;}
+
+/* ══ HEADER ══ */
+.logo{font-family:‘Syne’,sans-serif;font-weight:800;font-size:17px;letter-spacing:.04em;color:var(–text-prime);white-space:nowrap;}
+.logo span{color:var(–cyan);}
+.tier-badge{background:linear-gradient(135deg,#0f2040,#091529);border:1px solid var(–border-lit);border-radius:3px;padding:2px 9px;font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;color:var(–cyan);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;}
+.hdr-sep{width:1px;height:28px;background:var(–border-mid);flex-shrink:0;}
+.hdr-entity{min-width:0;}
+.hdr-entity-name{font-weight:600;font-size:12px;color:var(–text-prime);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-entity-sub{font-family:‘Space Mono’,monospace;font-size:9px;color:var(–text-mute);margin-top:1px;white-space:nowrap;}
+.hdr-spacer{flex:1;}
+
+/* Index rings strip in header */
+.hdr-rings{display:flex;align-items:center;gap:14px;padding:0 14px;border-left:1px solid var(–border-mid);border-right:1px solid var(–border-mid);}
+.ring-item{display:flex;align-items:center;gap:7px;cursor:pointer;}
+.ring-item:hover .ring-label{color:var(–text-prime);}
+.ring-svg{flex-shrink:0;}
+.ring-track{fill:none;stroke:var(–border-mid);stroke-width:3;}
+.ring-fill{fill:none;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);transform:rotate(-90deg);transform-origin:50% 50%;}
+.ring-fill.acei{stroke:var(–acei);}
+.ring-fill.rri{stroke:var(–teal-lit);}
+.ring-fill.cci{stroke:var(–violet-lit);}
+.ring-info{display:flex;flex-direction:column;}
+.ring-label{font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(–text-mute);text-transform:uppercase;}
+.ring-val{font-family:‘Space Mono’,monospace;font-size:13px;font-weight:700;line-height:1;}
+.ring-val.acei{color:var(–acei);}
+.ring-val.rri{color:var(–teal-lit);}
+.ring-val.cci{color:var(–violet-lit);}
+.ring-trend{font-size:9px;color:var(–text-mute);}
+.ring-trend.up{color:var(–red);}
+.ring-trend.down{color:var(–green);}
+
+.hdr-actions{display:flex;align-items:center;gap:6px;}
+.hbtn{background:none;border:1px solid var(–border-mid);border-radius:5px;padding:5px 11px;font-family:‘DM Sans’,sans-serif;font-size:11px;color:var(–text-sec);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;}
+.hbtn:hover{border-color:var(–cyan);color:var(–cyan);}
+.hbtn-primary{background:var(–cyan);color:#04111e;border-color:var(–cyan);font-weight:700;}
+.hbtn-primary:hover{background:#7dd3fc;border-color:#7dd3fc;}
+.hdr-notif{position:relative;}
+.notif-dot{position:absolute;top:-3px;right:-3px;width:14px;height:14px;background:var(–red);border-radius:50%;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:‘Space Mono’,monospace;color:#fff;border:2px solid var(–deep);}
+.refresh-status{display:flex;align-items:center;gap:5px;font-size:10px;color:var(–text-mute);white-space:nowrap;}
+.refresh-dot{width:5px;height:5px;border-radius:50%;background:var(–green);animation:subtlePulse 2.5s infinite;}
+
+/* ══ TICKER STRIP ══ */
+.ticker-inner{display:flex;align-items:center;animation:ticker 60s linear infinite;white-space:nowrap;gap:0;}
+.ticker-strip:hover .ticker-inner{animation-play-state:paused;}
+.t-item{display:inline-flex;align-items:center;gap:7px;padding:0 24px;border-right:1px solid var(–border-dim);cursor:pointer;transition:background .15s;}
+.t-item:hover{background:var(–raised);}
+.t-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.t-cat{font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.6;}
+.t-text{font-size:11px;color:var(–text-sec);}
+.t-date{font-family:‘Space Mono’,monospace;font-size:9px;color:var(–text-mute);}
+.t-ai{font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;color:var(–cyan);background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:2px;padding:1px 4px;letter-spacing:.06em;}
+
+/* ══ SIDEBAR ══ */
+.sidebar{width:var(–sidebar);background:var(–deep);border-right:1px solid var(–border-dim);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.nav-section{padding:14px 10px 4px;font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(–text-mute);}
+.nav-divider{height:1px;background:var(–border-dim);margin:6px 10px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;border-radius:6px;margin:1px 6px;transition:all .12s;color:var(–text-sec);font-size:12px;font-weight:500;position:relative;user-select:none;}
+.nav-item:hover{background:var(–raised);color:var(–text-prime);}
+.nav-item.active{background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(56,189,248,.04));color:var(–cyan);}
+.nav-item.active::before{content:’’;position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:16px;background:var(–cyan);border-radius:0 2px 2px 0;}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7;}
+.nav-item.active .nav-icon{opacity:1;}
+.nav-badge{margin-left:auto;border-radius:8px;padding:1px 5px;font-size:8px;font-weight:700;font-family:‘Space Mono’,monospace;}
+.nb-red{background:rgba(239,68,68,.15);color:var(–red);border:1px solid rgba(239,68,68,.25);}
+.nb-cyan{background:rgba(56,189,248,.1);color:var(–cyan);border:1px solid rgba(56,189,248,.2);}
+.nb-teal{background:rgba(20,184,166,.1);color:var(–teal-lit);border:1px solid rgba(20,184,166,.2);}
+.nb-amber{background:rgba(245,158,11,.1);color:var(–amber);border:1px solid rgba(245,158,11,.2);}
+.sidebar-footer{margin-top:auto;padding:10px;border-top:1px solid var(–border-dim);}
+.user-pill{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(–raised);border-radius:6px;border:1px solid var(–border-dim);}
+.user-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(–cyan-dim),var(–teal));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#04111e;flex-shrink:0;}
+.user-nm{font-size:11px;font-weight:600;}
+.user-rl{font-size:9px;color:var(–text-mute);}
+
+/* ══ MAIN AREA ══ */
+.main{flex:1;overflow-y:auto;background:var(–void);position:relative;}
+.tab-pane{display:none;padding:22px 24px;animation:fadeUp .2s ease;}
+.tab-pane.active{display:block;}
+
+/* ══ PAGE HEADERS ══ */
+.pg-hdr{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
+.pg-title{font-family:‘Syne’,sans-serif;font-size:20px;font-weight:700;color:var(–text-prime);}
+.pg-sub{font-size:11px;color:var(–text-mute);margin-top:3px;}
+
+/* ══ CARDS ══ */
+.card{background:var(–card);border:1px solid var(–border-dim);border-radius:10px;padding:18px;}
+.card-hdr{font-family:‘Space Mono’,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(–text-mute);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+/* ══ GOLD LEADER CARDS ══ */
+.data-card{background:var(–card);border:1px solid var(–border-dim);border-radius:8px;padding:14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.data-card:hover{border-color:var(–border-lit);background:var(–raised);}
+.data-card.gold-trending{border-color:var(–gold);border-left:3px solid var(–gold);background:linear-gradient(135deg,rgba(245,158,11,.06),var(–card));animation:goldPulse 2.5s ease-out 1;}
+.data-card.gold-leader{border-left:3px solid rgba(245,158,11,.5);background:linear-gradient(135deg,rgba(245,158,11,.03),var(–card));}
+.gold-indicator{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:4px;}
+.gold-pip{width:6px;height:6px;border-radius:50%;background:var(–gold);}
+.gold-trending .gold-pip{animation:subtlePulse 1.8s infinite;}
+.gold-label{font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;color:var(–gold);letter-spacing:.08em;text-transform:uppercase;}
+.depth-hint{position:absolute;bottom:8px;right:8px;opacity:0;transition:opacity .2s;display:flex;align-items:center;gap:3px;}
+.data-card:hover .depth-hint{opacity:1;}
+.depth-dots{display:flex;gap:2px;}
+.depth-dots span{width:3px;height:3px;border-radius:50%;background:var(–text-mute);}
+.depth-dots .d1{opacity:1;}
+.depth-dots .d2{opacity:.6;}
+.depth-dots .d3{opacity:.3;}
+
+/* AI UPDATED BADGE */
+.ai-updated{display:inline-flex;align-items:center;gap:3px;font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;color:var(–amber);background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:3px;padding:1px 5px;letter-spacing:.06em;animation:updatedFlash .8s ease-out;}
+.ai-updated::before{content:’’;width:4px;height:4px;border-radius:50%;background:var(–amber);flex-shrink:0;}
+
+/* ══ STAT TILES ══ */
+.stat-tile{background:var(–card);border:1px solid var(–border-dim);border-radius:8px;padding:14px;}
+.stat-lbl{font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(–text-mute);margin-bottom:5px;}
+.stat-val{font-family:‘Space Mono’,monospace;font-size:22px;font-weight:700;color:var(–text-prime);}
+.stat-sub{font-size:10px;color:var(–text-mute);margin-top:3px;}
+.stat-delta{font-size:10px;margin-top:3px;}
+
+/* ══ TABLES ══ */
+.dt{width:100%;border-collapse:collapse;font-size:12px;}
+.dt th{padding:9px 12px;text-align:left;font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(–text-mute);border-bottom:1px solid var(–border-dim);}
+.dt td{padding:10px 12px;border-bottom:1px solid rgba(24,35,64,.5);vertical-align:middle;}
+.dt tbody tr{transition:background .12s;cursor:pointer;}
+.dt tbody tr:hover{background:var(–raised);}
+.dt tbody tr:last-child td{border-bottom:none;}
+
+/* ══ TAGS / BADGES ══ */
+.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-family:‘Space Mono’,monospace;}
+.t-c{background:rgba(56,189,248,.1);color:var(–cyan);border:1px solid rgba(56,189,248,.2);}
+.t-t{background:rgba(20,184,166,.1);color:var(–teal-lit);border:1px solid rgba(20,184,166,.2);}
+.t-v{background:rgba(139,92,246,.1);color:var(–violet-lit);border:1px solid rgba(139,92,246,.2);}
+.t-a{background:rgba(249,115,22,.1);color:var(–acei);border:1px solid rgba(249,115,22,.2);}
+.t-g{background:rgba(16,185,129,.1);color:var(–green);border:1px solid rgba(16,185,129,.2);}
+.t-r{background:rgba(239,68,68,.1);color:var(–red);border:1px solid rgba(239,68,68,.2);}
+.t-am{background:rgba(245,158,11,.1);color:var(–amber);border:1px solid rgba(245,158,11,.2);}
+
+/* ══ COUNTDOWN CHIP ══ */
+.countdown-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:4px;font-family:‘Space Mono’,monospace;font-size:9px;color:var(–red);}
+.countdown-chip.amber{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2);color:var(–amber);}
+.countdown-chip.green{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2);color:var(–green);}
+.cc-icon{font-size:8px;}
+
+/* ══ CATEGORY BARS ══ */
+.cat-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(24,35,64,.5);transition:all .15s;}
+.cat-row:last-child{border-bottom:none;}
+.cat-row.gold-trending{padding:10px 10px;margin:-1px -10px;border-radius:6px;border-color:rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(245,158,11,.06),transparent);border:1px solid rgba(245,158,11,.2);}
+.cat-name{font-size:11px;font-weight:500;width:180px;flex-shrink:0;color:var(–text-sec);}
+.cat-bar-wrap{flex:1;height:5px;background:var(–border-mid);border-radius:3px;overflow:hidden;}
+.cat-bar{height:100%;border-radius:3px;transition:width 1.1s ease;}
+.hi .cat-bar{background:linear-gradient(90deg,#7c1919,var(–red));}
+.hi .cat-score{color:var(–red);}
+.md .cat-bar{background:linear-gradient(90deg,#78350f,var(–amber));}
+.md .cat-score{color:var(–amber);}
+.lo .cat-bar{background:linear-gradient(90deg,#064e3b,var(–green));}
+.lo .cat-score{color:var(–green);}
+.cat-score{font-family:‘Space Mono’,monospace;font-size:11px;font-weight:700;width:28px;text-align:right;flex-shrink:0;}
+
+/* ══ L1 DEPTH PANEL ══ */
+.overlay-dim{position:fixed;inset:0;background:rgba(5,12,24,.5);z-index:300;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay-dim.active{opacity:1;pointer-events:all;}
+.l1-panel{position:fixed;top:var(–hdr);right:0;bottom:0;width:380px;background:var(–deep);border-left:1px solid var(–border-mid);z-index:400;transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;}
+.l1-panel.open{transform:translateX(0);}
+.l1-hdr{padding:16px 18px 12px;border-bottom:1px solid var(–border-dim);display:flex;align-items:flex-start;gap:10px;flex-shrink:0;}
+.l1-index-chip{padding:3px 8px;border-radius:4px;font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;letter-spacing:.1em;flex-shrink:0;}
+.l1-title{font-family:‘Syne’,sans-serif;font-size:14px;font-weight:700;color:var(–text-prime);line-height:1.3;flex:1;}
+.l1-close{background:none;border:none;color:var(–text-mute);cursor:pointer;font-size:18px;padding:0;flex-shrink:0;transition:color .15s;}
+.l1-close:hover{color:var(–text-prime);}
+.l1-body{flex:1;overflow-y:auto;padding:16px 18px;}
+.l1-gold-reason{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:6px;margin-bottom:14px;font-size:11px;color:var(–amber);line-height:1.5;}
+.l1-metric{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.l1-score{font-family:‘Space Mono’,monospace;font-size:32px;font-weight:700;}
+.l1-delta{font-family:‘Space Mono’,monospace;font-size:12px;}
+.l1-headline{font-size:13px;color:var(–text-prime);line-height:1.6;margin-bottom:14px;font-weight:500;}
+.l1-data-pairs{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.l1-pair{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(–raised);border-radius:5px;}
+.l1-pair-lbl{font-size:11px;color:var(–text-mute);}
+.l1-pair-val{font-family:‘Space Mono’,monospace;font-size:11px;font-weight:700;color:var(–text-prime);}
+.l1-kl-ref{padding:10px 12px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.12);border-radius:6px;margin-bottom:14px;}
+.l1-kl-lbl{font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;color:var(–cyan);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.l1-kl-text{font-size:11px;color:var(–text-sec);line-height:1.5;}
+.l1-note-input{width:100%;background:var(–raised);border:1px solid var(–border-mid);border-radius:6px;padding:8px 10px;font-size:11px;color:var(–text-prime);font-family:‘DM Sans’,sans-serif;resize:none;margin-bottom:12px;}
+.l1-note-input:focus{outline:none;border-color:var(–cyan);}
+.l1-footer{padding:12px 18px;border-top:1px solid var(–border-dim);display:flex;gap:8px;flex-shrink:0;}
+.btn{padding:7px 13px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:‘DM Sans’,sans-serif;border:1px solid;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(–cyan);color:#04111e;border-color:var(–cyan);}
+.btn-primary:hover{background:#7dd3fc;}
+.btn-sec{background:none;color:var(–text-sec);border-color:var(–border-mid);}
+.btn-sec:hover{border-color:var(–cyan);color:var(–cyan);}
+.btn-sm{padding:5px 10px;font-size:10px;}
+.btn-ghost{background:none;border:none;color:var(–text-mute);cursor:pointer;font-size:11px;font-family:‘DM Sans’,sans-serif;padding:0;transition:color .15s;}
+.btn-ghost:hover{color:var(–text-prime);}
+.l1-share-btn{background:none;border:1px solid var(–border-mid);border-radius:5px;padding:5px 10px;color:var(–text-mute);font-size:10px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:‘DM Sans’,sans-serif;transition:all .15s;}
+.l1-share-btn:hover{border-color:var(–cyan);color:var(–cyan);}
+
+/* ══ NOTEPAD PANEL ══ */
+.notepad-panel{position:fixed;top:var(–hdr);left:var(–sidebar);bottom:0;width:320px;background:var(–deep);border-right:1px solid var(–border-mid);z-index:350;transform:translateX(-100%);transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+.notepad-panel.open{transform:translateX(0);}
+.np-hdr{padding:14px 16px;border-bottom:1px solid var(–border-dim);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.np-title{font-family:‘Syne’,sans-serif;font-size:13px;font-weight:700;}
+.np-body{flex:1;overflow-y:auto;padding:12px 14px;}
+.note-item{padding:10px 12px;background:var(–raised);border-radius:7px;border:1px solid var(–border-dim);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.note-item:hover{border-color:var(–border-lit);}
+.note-tag{font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;color:var(–cyan);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.note-text{font-size:11px;color:var(–text-sec);line-height:1.5;}
+.note-date{font-size:9px;color:var(–text-mute);margin-top:4px;font-family:‘Space Mono’,monospace;}
+.np-add{margin:0 14px 12px;display:flex;gap:6px;}
+.np-input{flex:1;background:var(–raised);border:1px solid var(–border-mid);border-radius:6px;padding:7px 10px;font-size:11px;color:var(–text-prime);font-family:‘DM Sans’,sans-serif;}
+.np-input:focus{outline:none;border-color:var(–cyan);}
+
+/* ══ INFO BOXES ══ */
+.info-box{background:rgba(56,189,248,.04);border:1px solid rgba(56,189,248,.12);border-radius:7px;padding:11px 13px;font-size:11px;color:var(–text-sec);line-height:1.6;}
+.info-box strong{color:var(–cyan);}
+.warn-box{background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.15);border-radius:7px;padding:11px 13px;font-size:11px;color:var(–text-sec);line-height:1.6;}
+.warn-box strong{color:var(–amber);}
+
+/* ══ UPGRADE HINT ══ */
+.upgrade-hint{display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(135deg,rgba(245,158,11,.05),rgba(249,115,22,.03));border:1px solid rgba(245,158,11,.2);border-radius:8px;margin-top:16px;}
+.uh-text{flex:1;font-size:11px;color:var(–text-sec);line-height:1.5;}
+.uh-text strong{color:var(–amber);}
+.uh-cta{background:none;border:1px solid var(–amber);color:var(–amber);padding:5px 11px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:‘DM Sans’,sans-serif;white-space:nowrap;flex-shrink:0;transition:all .15s;}
+.uh-cta:hover{background:var(–amber);color:#04111e;}
+
+/* ══ VAULT SCORES ══ */
+.wcc-bar{width:56px;height:4px;background:var(–border-mid);border-radius:2px;overflow:hidden;margin-top:3px;}
+.wcc-fill{height:100%;border-radius:2px;}
+.ft-crit{background:rgba(239,68,68,.12);color:var(–red);border:1px solid rgba(239,68,68,.25);}
+.ft-gap{background:rgba(245,158,11,.12);color:var(–amber);border:1px solid rgba(245,158,11,.25);}
+.ft-ok{background:rgba(16,185,129,.12);color:var(–green);border:1px solid rgba(16,185,129,.25);}
+
+/* ══ ACTIVE MATTERS ══ */
+.matter-card{background:var(–card);border:1px solid var(–border-dim);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;position:relative;}
+.matter-card:hover{border-color:var(–border-lit);background:var(–raised);}
+.matter-card.urgent{border-left:3px solid var(–red);}
+.matter-card.active-m{border-left:3px solid var(–amber);}
+.matter-card.monitoring{border-left:3px solid var(–cyan);}
+.matter-card.resolved{border-left:3px solid var(–green);opacity:.7;}
+.matter-id{font-family:‘Space Mono’,monospace;font-size:9px;color:var(–text-mute);margin-bottom:5px;letter-spacing:.06em;}
+.matter-title{font-size:13px;font-weight:600;color:var(–text-prime);margin-bottom:4px;}
+.matter-sub{font-size:11px;color:var(–text-mute);margin-bottom:10px;}
+.matter-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.checklist-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(24,35,64,.5);}
+.checklist-row:last-child{border-bottom:none;}
+.check-icon{width:18px;height:18px;border-radius:4px;border:1px solid var(–border-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;}
+.check-icon.done{background:var(–green);border-color:var(–green);}
+.check-icon.done::after{content:‘✓’;color:#fff;font-size:10px;font-weight:700;}
+.check-icon.pending::after{content:’’;width:6px;height:6px;border-radius:50%;background:var(–text-mute);}
+.check-label{font-size:12px;color:var(–text-sec);}
+.check-label.done{text-decoration:line-through;color:var(–text-mute);}
+.matter-progress{height:3px;background:var(–border-mid);border-radius:2px;overflow:hidden;margin-top:8px;}
+.matter-progress-fill{height:100%;background:linear-gradient(90deg,var(–cyan-dim),var(–cyan));border-radius:2px;transition:width .6s ease;}
+.timeline-item{padding:10px 0 10px 20px;border-left:2px solid var(–border-mid);margin-left:6px;position:relative;}
+.timeline-item::before{content:’’;position:absolute;left:-5px;top:14px;width:8px;height:8px;border-radius:50%;background:var(–border-mid);border:2px solid var(–card);}
+.timeline-item.active-t::before{background:var(–cyan);border-color:var(–card);box-shadow:0 0 6px var(–cyan-glow);}
+.timeline-item.complete::before{background:var(–green);}
+.timeline-date{font-family:‘Space Mono’,monospace;font-size:9px;color:var(–text-mute);margin-bottom:3px;}
+.timeline-text{font-size:12px;color:var(–text-sec);}
+
+/* ══ PILLAR MINI CARDS ══ */
+.pillar-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.pillar-mini{background:var(–raised);border:1px solid var(–border-dim);border-radius:7px;padding:12px;text-align:center;}
+.pillar-score-val{font-family:‘Space Mono’,monospace;font-size:22px;font-weight:700;margin-bottom:3px;}
+.pillar-name-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(–text-mute);margin-bottom:6px;}
+.pillar-bar-mini{height:3px;background:var(–border-mid);border-radius:2px;overflow:hidden;}
+.pillar-bar-fill{height:100%;border-radius:2px;}
+
+/* ══ CCI COMPONENT ROWS ══ */
+.cci-comp-row{padding:11px 0;border-bottom:1px solid rgba(24,35,64,.5);}
+.cci-comp-row:last-child{border-bottom:none;}
+.cci-comp-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.cci-comp-name{font-size:12px;font-weight:600;}
+.cci-comp-val{font-family:‘Space Mono’,monospace;font-size:14px;font-weight:700;}
+.cci-comp-desc{font-size:10px;color:var(–text-mute);margin-bottom:5px;}
+.cci-bar{height:4px;background:var(–border-mid);border-radius:2px;overflow:hidden;}
+.cci-fill{height:100%;background:linear-gradient(90deg,var(–violet),var(–violet-lit));border-radius:2px;}
+
+/* ══ TICKER FULL PAGE ══ */
+.ticker-full-item{padding:14px 0;border-bottom:1px solid var(–border-dim);display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:background .12s;}
+.ticker-full-item:hover{background:rgba(21,34,56,.4);margin:0 -18px;padding:14px 18px;}
+.tfi-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;}
+.tfi-body{flex:1;}
+.tfi-top{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;}
+.tfi-title{font-size:13px;font-weight:600;color:var(–text-prime);}
+.tfi-meta{font-size:10px;color:var(–text-mute);display:flex;gap:10px;margin-bottom:6px;font-family:‘Space Mono’,monospace;}
+.tfi-brief{font-size:12px;color:var(–text-sec);line-height:1.55;}
+.tfi-tags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
+
+/* ══ LEGISLATIVE LIFECYCLE ══ */
+.lc-stage{padding:12px 0 12px 24px;border-left:2px solid var(–border-mid);margin-left:7px;position:relative;}
+.lc-stage::before{content:’’;position:absolute;left:-5px;top:15px;width:8px;height:8px;border-radius:50%;background:var(–border-mid);border:2px solid var(–void);}
+.lc-stage.done::before{background:var(–green);border-color:var(–void);}
+.lc-stage.now::before{background:var(–cyan);border-color:var(–void);box-shadow:0 0 8px var(–cyan-glow);}
+.lc-stage.pend::before{background:transparent;border-color:var(–text-mute);}
+.lc-stage-lbl{font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;color:var(–text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.lc-stage-title{font-size:12px;font-weight:600;color:var(–text-prime);margin-bottom:3px;}
+.lc-stage-detail{font-size:11px;color:var(–text-sec);line-height:1.5;}
+
+/* ══ INTELLIGENCE LAB PREVIEW ══ */
+.lab-preview{background:linear-gradient(135deg,#0a0f1e,#080f1c);border:1px solid rgba(139,92,246,.25);border-radius:12px;padding:20px;position:relative;overflow:hidden;}
+.lab-preview::before{content:’’;position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(139,92,246,.02) 4px,rgba(139,92,246,.02) 5px);}
+.lab-frosted{position:absolute;inset:0;backdrop-filter:blur(3px);background:rgba(5,12,24,.4);z-index:2;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;}
+.lab-lock-icon{font-size:28px;filter:drop-shadow(0 0 12px rgba(139,92,246,.5));}
+.lab-lock-text{font-family:‘Space Mono’,monospace;font-size:10px;font-weight:700;color:var(–violet-lit);letter-spacing:.12em;text-transform:uppercase;}
+.lab-content{position:relative;z-index:1;filter:blur(3px);}
+.lab-chart-bar{height:8px;background:linear-gradient(90deg,var(–violet),var(–violet-lit));border-radius:4px;margin-bottom:6px;}
+.lab-new-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:3px;font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;color:var(–violet-lit);letter-spacing:.08em;}
+
+/* ══ REL ══ */
+.rel-form-card{background:var(–raised);border:1px solid var(–border-mid);border-radius:8px;padding:15px;margin-bottom:18px;}
+.form-label{font-family:‘Space Mono’,monospace;font-size:9px;font-weight:700;color:var(–text-mute);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:5px;}
+.form-input{width:100%;background:var(–card);border:1px solid var(–border-dim);border-radius:6px;padding:8px 11px;font-size:12px;color:var(–text-prime);font-family:‘DM Sans’,sans-serif;transition:border-color .15s;}
+.form-input:focus{outline:none;border-color:var(–cyan);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+select.form-input option{background:var(–card);}
+textarea.form-input{resize:vertical;min-height:60px;}
+
+/* ══ AI ASSISTANT CHAT ══ */
+.ai-panel-wrap{display:flex;flex-direction:column;height:calc(100vh - var(–hdr) - var(–ticker-h) - 48px);}
+.ai-mandate-bar{background:rgba(56,189,248,.04);border:1px solid rgba(56,189,248,.12);border-radius:7px;padding:10px 13px;margin-bottom:12px;font-size:11px;color:var(–text-sec);line-height:1.5;}
+.ai-mandate-bar strong{color:var(–cyan);}
+.chat-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px;}
+.msg{max-width:78%;}
+.msg-user{align-self:flex-end;}
+.msg-ai{align-self:flex-start;}
+.msg-bubble{padding:10px 13px;border-radius:8px;font-size:12px;line-height:1.6;}
+.msg-user .msg-bubble{background:linear-gradient(135deg,#0f2e58,#1a3060);border:1px solid var(–border-lit);}
+.msg-ai .msg-bubble{background:var(–raised);border:1px solid var(–border-dim);color:var(–text-sec);}
+.msg-time{font-size:9px;color:var(–text-mute);font-family:‘Space Mono’,monospace;margin-top:3px;}
+.msg-user .msg-time{text-align:right;}
+.msg-src{font-size:9px;color:var(–cyan);margin-top:3px;font-family:‘Space Mono’,monospace;}
+.chat-input-row{display:flex;gap:8px;padding-top:12px;border-top:1px solid var(–border-dim);margin-top:auto;}
+.chat-input{flex:1;background:var(–raised);border:1px solid var(–border-mid);border-radius:7px;padding:10px 12px;font-size:12px;color:var(–text-prime);font-family:‘DM Sans’,sans-serif;resize:none;}
+.chat-input:focus{outline:none;border-color:var(–cyan);}
+.chat-send{background:var(–cyan);color:#04111e;border:none;border-radius:7px;padding:0 16px;font-weight:700;cursor:pointer;font-family:‘DM Sans’,sans-serif;font-size:12px;transition:background .15s;flex-shrink:0;}
+.chat-send:hover{background:#7dd3fc;}
+.chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.suggestion-chip{background:var(–raised);border:1px solid var(–border-mid);border-radius:14px;padding:4px 10px;font-size:10px;color:var(–text-sec);cursor:pointer;transition:all .15s;}
+.suggestion-chip:hover{border-color:var(–cyan);color:var(–cyan);}
+
+/* ══ CALENDAR / COUNTDOWN ══ */
+.cal-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(24,35,64,.5);}
+.cal-item:last-child{border-bottom:none;}
+.cal-date-block{width:44px;flex-shrink:0;text-align:center;background:var(–raised);border-radius:6px;padding:6px 4px;border:1px solid var(–border-dim);}
+.cal-month{font-family:‘Space Mono’,monospace;font-size:8px;font-weight:700;color:var(–text-mute);text-transform:uppercase;}
+.cal-day{font-family:‘Space Mono’,monospace;font-size:18px;font-weight:700;color:var(–text-prime);line-height:1;}
+.cal-body{flex:1;}
+.cal-title{font-size:12px;font-weight:600;margin-bottom:3px;}
+.cal-sub{font-size:10px;color:var(–text-mute);}
+.cal-countdown{font-family:‘Space Mono’,monospace;font-size:10px;font-weight:700;margin-top:4px;}
+
+/* ══ SHARE MODAL ══ */
+.share-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.95);background:var(–deep);border:1px solid var(–border-mid);border-radius:12px;padding:20px;width:380px;z-index:600;opacity:0;pointer-events:none;transition:all .2s;}
+.share-modal.open{opacity:1;pointer-events:all;transform:translate(-50%,-50%) scale(1);}
+.modal-overlay{position:fixed;inset:0;background:rgba(5,12,24,.7);z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+
+/* ══ REPORT DOWNLOAD BAR ══ */
+.dl-quota-bar{background:var(–raised);border:1px solid var(–border-dim);border-radius:7px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+.dl-quota-track{flex:1;height:4px;background:var(–border-mid);border-radius:2px;overflow:hidden;}
+.dl-quota-fill{height:100%;background:linear-gradient(90deg,var(–cyan-dim),var(–cyan));border-radius:2px;}
+.dl-quota-text{font-size:11px;color:var(–text-mute);}
+.dl-quota-val{font-family:‘Space Mono’,monospace;font-size:12px;font-weight:700;color:var(–text-prime);}
+
+/* ══ TEAM ══ */
+.team-card{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(–raised);border:1px solid var(–border-dim);border-radius:7px;}
+.team-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#04111e;flex-shrink:0;}
+.team-info{flex:1;}
+.team-name{font-size:12px;font-weight:600;}
+.team-role{font-size:10px;color:var(–text-mute);}
+.online-dot{width:6px;height:6px;border-radius:50%;}
+
+/* ══ MISC ══ */
+.section-line{height:1px;background:var(–border-dim);margin:16px 0;}
+.mono{font-family:‘Space Mono’,monospace;}
+.mt8{margin-top:8px;} .mt12{margin-top:12px;} .mt16{margin-top:16px;} .mt20{margin-top:20px;}
+.mb8{margin-bottom:8px;} .mb12{margin-bottom:12px;} .mb16{margin-bottom:16px;}
+.flex-c{display:flex;align-items:center;gap:8px;}
+.flex-sb{display:flex;align-items:center;justify-content:space-between;}
+</style>
+
 </head>
-<body style="visibility:hidden">
-<div id="root"></div>
-<script>
-// ── AUTH GUARD — runs before React app ──────────────────────────────────
-(async function authGuard() {
-  try {
-    // Read Supabase session token
-    var token = null;
-    try {
-      var sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
-      if (sbSession) {
-        var parsed = JSON.parse(sbSession);
-        if (parsed && parsed.access_token) token = parsed.access_token;
-        else if (parsed && parsed.session && parsed.session.access_token) token = parsed.session.access_token;
-      }
-      if (!token) {
-        var keys = Object.keys(localStorage).filter(function(k) { return k.indexOf("supabase") !== -1 && k.indexOf("auth") !== -1; });
-        for (var i = 0; i < keys.length; i++) {
-          var d = JSON.parse(localStorage.getItem(keys[i]) || "{}");
-          if (d && d.access_token) { token = d.access_token; break; }
-          if (d && d.session && d.session.access_token) { token = d.session.access_token; break; }
-        }
-      }
-    } catch(e) { /* token stays null */ }
+<body>
+<div class="shell">
 
-    // No session — redirect
-    if (!token) {
-      window.location.replace('/login/');
-      return;
-    }
+<!-- ═══ HEADER ═══ -->
 
-    // Fetch user profile to check subscription tier
-    var res = await fetch(
-      "https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1/rpc/get_my_profile",
-      {
-        method: "POST",
-        headers: {
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g",
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/json"
-        },
-        body: "{}"
-      }
-    );
+<div class="header">
+  <div class="logo">AI<span>lane</span></div>
+  <div class="tier-badge">Governance</div>
+  <div class="hdr-sep"></div>
+  <div class="hdr-entity">
+    <div class="hdr-entity-name">Northerly Hill Facilities Management Ltd</div>
+    <div class="hdr-entity-sub">NH-2014-0347 · Cardiff & 3 Depots · 238 employees</div>
+  </div>
+  <div class="hdr-spacer"></div>
 
-    if (!res.ok) {
-      window.location.replace('/login/');
-      return;
-    }
+  <!-- INDEX RINGS -->
 
-    var profile = await res.json();
+  <div class="hdr-rings">
+    <div class="ring-item" onclick="showTab('acei')">
+      <svg class="ring-svg" width="36" height="36" viewBox="0 0 36 36">
+        <circle class="ring-track" cx="18" cy="18" r="15"/>
+        <circle class="ring-fill acei" id="ring-acei" cx="18" cy="18" r="15" stroke-dasharray="94.2" stroke-dashoffset="94.2"/>
+      </svg>
+      <div class="ring-info">
+        <div class="ring-label">ACEI</div>
+        <div class="ring-val acei" id="hdr-acei">64</div>
+        <div class="ring-trend up">▲ +2</div>
+      </div>
+    </div>
+    <div class="ring-item" onclick="showTab('rri')">
+      <svg class="ring-svg" width="36" height="36" viewBox="0 0 36 36">
+        <circle class="ring-track" cx="18" cy="18" r="15"/>
+        <circle class="ring-fill rri" id="ring-rri" cx="18" cy="18" r="15" stroke-dasharray="94.2" stroke-dashoffset="94.2"/>
+      </svg>
+      <div class="ring-info">
+        <div class="ring-label">RRI</div>
+        <div class="ring-val rri" id="hdr-rri">54</div>
+        <div class="ring-trend down">▼ −3</div>
+      </div>
+    </div>
+    <div class="ring-item" onclick="showTab('cci')">
+      <svg class="ring-svg" width="36" height="36" viewBox="0 0 36 36">
+        <circle class="ring-track" cx="18" cy="18" r="15"/>
+        <circle class="ring-fill cci" id="ring-cci" cx="18" cy="18" r="15" stroke-dasharray="94.2" stroke-dashoffset="94.2"/>
+      </svg>
+      <div class="ring-info">
+        <div class="ring-label">CCI</div>
+        <div class="ring-val cci" id="hdr-cci">62</div>
+        <div class="ring-trend" style="color:var(--text-mute);">― stable</div>
+      </div>
+    </div>
+  </div>
 
-    // No profile or wrong tier — redirect
-    var allowedTiers = ['governance', 'institutional'];
-    if (!profile || !allowedTiers.includes(profile.subscription_tier)) {
-      window.location.replace('/login/');
-      return;
-    }
-
-    // Auth passed — reveal page
-    document.body.style.visibility = 'visible';
-
-  } catch(err) {
-    window.location.replace('/login/');
-  }
-})();
-</script>
-<script type="text/babel">
-const { useState, useEffect, useMemo, useCallback, useRef } = React;
-
-// ── CONFIG ────────────────────────────────────────────────────────────────
-const SB_URL  = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
-const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
-
-// Demo org — authenticated users get real org_id from JWT
-const DEMO_ORG = "de000001-0000-4000-8000-000000000001";
-
-// ── STRINGS (bilingual UI) ────────────────────────────────────────────────
-const UI = {
-  en: {
-    title: "Knowledge Library",
-    subtitle: "Regulatory Intelligence Platform",
-    searchPlaceholder: "Search instruments…",
-    filterAll: "All Instruments",
-    filterWales: "Wales Only",
-    filterGB: "Great Britain",
-    sortSig: "By Significance",
-    sortTitle: "Alphabetical",
-    noResults: "No instruments match your current filters.",
-    loading: "Loading library…",
-    error: "Failed to load library. Please refresh.",
-    expand: "View full instrument",
-    collapse: "Collapse",
-    summary: "Summary",
-    obligations: "Key Obligations",
-    provisions: "Key Provisions",
-    tierLabel: "Access Tier",
-    jurisdictionLabel: "Jurisdiction",
-    translationNotice: "AI-assisted translation · Not official legal Welsh",
-    officialBilingual: "Official bilingual legislation",
-    walesLayer: "Wales Layer Active",
-    instrumentCount: (n) => `${n} instrument${n !== 1 ? "s" : ""}`,
-    welshAvail: "Welsh available",
-    poweredBy: "Powered by Ailane Constitutional Intelligence",
-    lastUpdated: "Knowledge Library",
-    cyToggle: "Cymraeg",
-    enToggle: "English",
-  },
-  cy: {
-    title: "Llyfrgell Wybodaeth",
-    subtitle: "Platfform Cuddwybodaeth Reoleiddiol",
-    searchPlaceholder: "Chwilio offerynnau…",
-    filterAll: "Pob Offeryn",
-    filterWales: "Cymru yn Unig",
-    filterGB: "Prydain Fawr",
-    sortSig: "Yn ôl Arwyddocâd",
-    sortTitle: "Yn Nhrefn yr Wyddor",
-    noResults: "Nid oes offerynnau'n cyfateb â'ch hidlyddion cyfredol.",
-    loading: "Yn llwytho'r llyfrgell…",
-    error: "Methwyd â llwytho'r llyfrgell. Adnewyddwch y dudalen.",
-    expand: "Gweld yr offeryn llawn",
-    collapse: "Cau",
-    summary: "Crynodeb",
-    obligations: "Prif Rwymedigaethau",
-    provisions: "Prif Ddarpariaethau",
-    tierLabel: "Haen Mynediad",
-    jurisdictionLabel: "Awdurdodaeth",
-    translationNotice: "Cyfieithiad a gynorthwyir gan AI · Nid cyfraith Gymraeg swyddogol",
-    officialBilingual: "Deddfwriaeth ddwyieithog swyddogol",
-    walesLayer: "Haen Cymru Weithredol",
-    instrumentCount: (n) => `${n} offeryn${n !== 1 ? "" : ""}`,
-    welshAvail: "Cymraeg ar gael",
-    poweredBy: "Grymherir gan Ailane Constitutional Intelligence",
-    lastUpdated: "Llyfrgell Wybodaeth",
-    cyToggle: "Cymraeg",
-    enToggle: "English",
-  }
-};
-
-// ── ACEI CATEGORY MAP ─────────────────────────────────────────────────────
-const CATS = {
-  1: { en: "General Employment", cy: "Cyflogaeth Cyffredinol", color: "#22d3ee" },
-  2: { en: "Discrimination & Harassment", cy: "Gwahaniaethu ac Aflonyddu", color: "#a78bfa" },
-  3: { en: "Wages & Working Time", cy: "Cyflogau ac Amser Gweithio", color: "#34d399" },
-  4: { en: "Employment Status", cy: "Statws Cyflogaeth", color: "#fb923c" },
-  5: { en: "Whistleblowing", cy: "Chwibanodd", color: "#f472b6" },
-  6: { en: "Parental & Family Rights", cy: "Hawliau Rhieni a Theulu", color: "#60a5fa" },
-  7: { en: "Trade Union & Collective", cy: "Undeb Llafur a Chyfunol", color: "#fbbf24" },
-  8: { en: "Business Transfers", cy: "Trosglwyddo Busnesau", color: "#4ade80" },
-  9: { en: "Health & Safety", cy: "Iechyd a Diogelwch", color: "#f87171" },
-  10: { en: "Data Protection", cy: "Diogelu Data", color: "#818cf8" },
-  11: { en: "Immigration & Right to Work", cy: "Mewnfudo a Hawl i Weithio", color: "#38bdf8" },
-  12: { en: "Tribunal & Enforcement", cy: "Tribiwnlys a Gorfodaeth", color: "#e879f9" },
-};
-
-const TIER_CONFIG = {
-  all: { label: "All Tiers", cy: "Pob Haen", color: "#64748b" },
-  governance: { label: "Governance", cy: "Llywodraethu", color: "#22d3ee" },
-  institutional: { label: "Institutional", cy: "Sefydliadol", color: "#f59e0b" },
-};
-
-// ── SUPABASE HELPERS ──────────────────────────────────────────────────────
-const getToken = () => {
-  try {
-    // Read shared Supabase session first
-    const sbSession = localStorage.getItem("sb-cnbsxwtvazfvzmltkuvx-auth-token");
-    if (sbSession) {
-      const parsed = JSON.parse(sbSession);
-      if (parsed?.access_token) return parsed.access_token;
-      if (parsed?.session?.access_token) return parsed.session.access_token;
-    }
-    // Fallback: search for any supabase auth key
-    const keys = Object.keys(localStorage).filter(k => k.includes("supabase") && k.includes("auth"));
-    for (const k of keys) {
-      const d = JSON.parse(localStorage.getItem(k) || "{}");
-      if (d?.access_token) return d.access_token;
-      if (d?.session?.access_token) return d.session.access_token;
-    }
-  } catch {}
-  return null;
-};
-
-const getOrgId = (token) => {
-  if (!token) return DEMO_ORG;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload?.org_id || DEMO_ORG;
-  } catch { return DEMO_ORG; }
-};
-
-const sbRpc = async (fn, params, token) => {
-  const res = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
-    method: "POST",
-    headers: {
-      apikey: SB_ANON,
-      Authorization: `Bearer ${token || SB_ANON}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(params),
-  });
-  if (!res.ok) throw new Error(`${res.status}`);
-  return res.json();
-};
-
-// ── LANG TOGGLE COMPONENT ─────────────────────────────────────────────────
-const LangToggle = ({ lang, setLang, hasWelsh }) => (
-  <div style={{
-    display: "flex", alignItems: "center", gap: 8,
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 8, padding: "4px 6px",
-  }}>
-    {hasWelsh && (
-      <span style={{ fontSize: 13, color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
-        🏴󠁧󠁢󠁷󠁬󠁳󠁿
-      </span>
-    )}
-    <button
-      onClick={() => setLang("en")}
-      style={{
-        background: lang === "en" ? "rgba(34,211,238,0.15)" : "transparent",
-        color: lang === "en" ? "#22d3ee" : "#64748b",
-        border: lang === "en" ? "1px solid rgba(34,211,238,0.3)" : "1px solid transparent",
-        borderRadius: 5, padding: "5px 12px", cursor: "pointer",
-        fontSize: 13, fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 600, letterSpacing: "0.5px",
-        transition: "all 0.18s ease",
-      }}
-    >
-      EN
+  <div class="refresh-status">
+    <div class="refresh-dot"></div>
+    <span>11 Mar 2026 · 06:00 UTC</span>
+  </div>
+  <div class="hdr-actions">
+    <button class="hbtn" onclick="toggleNotepad()">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="5" x2="11" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="11" x2="8" y2="11" stroke="currentColor" stroke-width="1.2"/></svg>
+      Notes
     </button>
-    <button
-      onClick={() => setLang("cy")}
-      style={{
-        background: lang === "cy" ? "rgba(210,60,60,0.15)" : "transparent",
-        color: lang === "cy" ? "#ef4444" : "#64748b",
-        border: lang === "cy" ? "1px solid rgba(239,68,68,0.35)" : "1px solid transparent",
-        borderRadius: 5, padding: "5px 12px", cursor: "pointer",
-        fontSize: 13, fontFamily: "'JetBrains Mono', monospace",
-        fontWeight: 600, letterSpacing: "0.5px",
-        transition: "all 0.18s ease",
-      }}
-    >
-      CY
+    <button class="hbtn" onclick="showTab('calendar')">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="1" x2="5" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="1" x2="11" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="7" x2="15" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>
+      Calendar
+    </button>
+    <div class="hdr-notif">
+      <button class="hbtn" onclick="showTab('alerts')">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1a5 5 0 0 1 5 5v3l1.5 2.5H1.5L3 9V6a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.5"/><path d="M6 13a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.5"/></svg>
+        Alerts
+      </button>
+      <div class="notif-dot">3</div>
+    </div>
+    <button class="hbtn-primary hbtn" onclick="showTab('ai-assistant')">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/><line x1="8" y1="1" x2="8" y2="4" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="12" x2="8" y2="15" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="8" x2="4" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>
+      AI Assistant
     </button>
   </div>
-);
+</div>
 
-// ── JURISDICTION BADGE ────────────────────────────────────────────────────
-const JurisdictionBadge = ({ codes, lang }) => {
-  const isWales = codes?.includes("Wales");
-  const isGB = codes?.includes("GB");
-  return (
-    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-      {isWales && (
-        <span style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-          padding: "2px 7px", borderRadius: 3,
-          background: "rgba(185,28,28,0.15)",
-          border: "1px solid rgba(239,68,68,0.3)",
-          color: "#fca5a5", letterSpacing: "0.5px",
-        }}>
-          🏴󠁧󠁢󠁷󠁬󠁳󠁿 {lang === "cy" ? "CYMRU" : "WALES"}
-        </span>
-      )}
-      {isGB && (
-        <span style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-          padding: "2px 7px", borderRadius: 3,
-          background: "rgba(30,64,175,0.2)",
-          border: "1px solid rgba(96,165,250,0.25)",
-          color: "#93c5fd", letterSpacing: "0.5px",
-        }}>
-          🇬🇧 {lang === "cy" ? "PF" : "GB"}
-        </span>
-      )}
+<!-- ═══ TICKER STRIP ═══ -->
+
+<div class="ticker-strip" onclick="handleTickerClick(event)">
+  <div class="ticker-inner" id="ticker-inner">
+    <!-- set A -->
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--red)"></div><span class="t-cat">ACEI ·</span><span class="t-ai">AI</span><span class="t-text">Employment Rights Bill — Third Reading passed · Zero-hours provisions confirmed</span><span class="t-date">07 Mar</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--acei)"></div><span class="t-cat">WTR ·</span><span class="t-ai">AI</span><span class="t-text">EAT: Multi-site rest break entitlement cannot be averaged across deployment sites</span><span class="t-date">04 Mar</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--cyan)"></div><span class="t-cat">NMW ·</span><span class="t-ai">AI</span><span class="t-text">HMRC FM sector enforcement — 4 operators named for depot-to-site travel time</span><span class="t-date">22 Feb</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--teal-lit)"></div><span class="t-cat">Equality ·</span><span class="t-ai">AI</span><span class="t-text">Supreme Court: Reasonable adjustment duty extends to redeployment across all employer sites</span><span class="t-date">15 Feb</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--amber)"></div><span class="t-cat">WTR ·</span><span class="t-ai">AI</span><span class="t-text">Workers (Predictable Terms) Act — first ET decisions confirm strict 1-month response window</span><span class="t-date">28 Feb</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--violet-lit)"></div><span class="t-cat">TUPE ·</span><span class="t-ai">AI</span><span class="t-text">Employment Rights Bill: TUPE consultation extended to 45 days for 10+ employee transfers</span><span class="t-date">07 Mar</span></div>
+    <!-- duplicate for seamless loop -->
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--red)"></div><span class="t-cat">ACEI ·</span><span class="t-ai">AI</span><span class="t-text">Employment Rights Bill — Third Reading passed · Zero-hours provisions confirmed</span><span class="t-date">07 Mar</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--acei)"></div><span class="t-cat">WTR ·</span><span class="t-ai">AI</span><span class="t-text">EAT: Multi-site rest break entitlement cannot be averaged across deployment sites</span><span class="t-date">04 Mar</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--cyan)"></div><span class="t-cat">NMW ·</span><span class="t-ai">AI</span><span class="t-text">HMRC FM sector enforcement — 4 operators named for depot-to-site travel time</span><span class="t-date">22 Feb</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--teal-lit)"></div><span class="t-cat">Equality ·</span><span class="t-ai">AI</span><span class="t-text">Supreme Court: Reasonable adjustment duty extends to redeployment across all employer sites</span><span class="t-date">15 Feb</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--amber)"></div><span class="t-cat">WTR ·</span><span class="t-ai">AI</span><span class="t-text">Workers (Predictable Terms) Act — first ET decisions confirm strict 1-month response window</span><span class="t-date">28 Feb</span></div>
+    <div class="t-item" data-goto="ticker"><div class="t-dot" style="background:var(--violet-lit)"></div><span class="t-cat">TUPE ·</span><span class="t-ai">AI</span><span class="t-text">Employment Rights Bill: TUPE consultation extended to 45 days for 10+ employee transfers</span><span class="t-date">07 Mar</span></div>
+  </div>
+</div>
+
+<div class="app-body">
+<!-- ═══ SIDEBAR ═══ -->
+<nav class="sidebar">
+  <div style="padding:10px 6px 4px;">
+    <div class="nav-section">Intelligence</div>
+    <div class="nav-item active" onclick="showTab('overview')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
+      Overview
     </div>
-  );
-};
-
-// ── TRANSLATION NOTICE ────────────────────────────────────────────────────
-const TranslationNotice = ({ method, lang, ui }) => {
-  if (lang === "en" || !method) return null;
-  const isOfficial = method === "official_bilingual";
-  return (
-    <div style={{
-      display: "inline-flex", alignItems: "center", gap: 6,
-      fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-      padding: "3px 8px", borderRadius: 4,
-      background: isOfficial ? "rgba(52,211,153,0.08)" : "rgba(245,158,11,0.08)",
-      border: `1px solid ${isOfficial ? "rgba(52,211,153,0.25)" : "rgba(245,158,11,0.25)"}`,
-      color: isOfficial ? "#6ee7b7" : "#fcd34d",
-      letterSpacing: "0.3px",
-    }}>
-      {isOfficial ? "✓ " : "⚠ "}
-      {isOfficial ? ui.officialBilingual : ui.translationNotice}
+    <div class="nav-item" onclick="showTab('acei')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12 L5 7 L8 9 L11 4 L14 6" stroke="#f97316" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="14" x2="14" y2="14" stroke="currentColor" stroke-width="1.2" opacity=".4"/></svg>
+      Exposure Index
+      <span class="nav-badge nb-red">64</span>
     </div>
-  );
-};
+    <div class="nav-item" onclick="showTab('rri')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#14b8a6" stroke-width="1.4"/><path d="M8 5v3l2 2" stroke="#14b8a6" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Readiness Index
+      <span class="nav-badge nb-teal">54</span>
+    </div>
+    <div class="nav-item" onclick="showTab('cci')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2L9.8 6.2H14.2L10.7 8.8L12 13L8 10.4L4 13L5.3 8.8L1.8 6.2H6.2Z" stroke="#a78bfa" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      Conduct Index
+      <span class="nav-badge" style="background:rgba(139,92,246,.1);color:var(--violet-lit);border:1px solid rgba(139,92,246,.2);">62</span>
+    </div>
 
-// ── INSTRUMENT CARD ───────────────────────────────────────────────────────
-const InstrumentCard = ({ inst, lang, ui, expanded, onToggle }) => {
-  const isCy = lang === "cy";
-  const isWales = inst.jurisdiction_codes?.includes("Wales") && !inst.jurisdiction_codes?.includes("GB");
-  const isWalesGB = inst.jurisdiction_codes?.includes("Wales") && inst.jurisdiction_codes?.includes("GB");
+```
+<div class="nav-divider"></div>
+<div class="nav-section">Operations</div>
+<div class="nav-item" onclick="showTab('vault')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 3V2a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="9" r="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="10.5" x2="8" y2="12" stroke="currentColor" stroke-width="1.3"/></svg>
+  Document Vault
+  <span class="nav-badge nb-red">2</span>
+</div>
+<div class="nav-item" onclick="showTab('matters')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4"/><line x1="5" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="9" x2="9" y2="9" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="12" r="3.5" fill="var(--amber)" stroke="var(--deep)" stroke-width="1.5"/><text x="12" y="13.5" text-anchor="middle" font-size="4" font-weight="700" fill="#04111e">3</text></svg>
+  Active Matters
+  <span class="nav-badge nb-amber">3</span>
+</div>
+<div class="nav-item" onclick="showTab('rel')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.4"/></svg>
+  Reg. Event Log
+  <span class="nav-badge nb-cyan">REL</span>
+</div>
 
-  const title = (isCy && inst.title_cy) ? inst.title_cy : inst.short_title;
-  const summary = (isCy && inst.summary_cy) ? inst.summary_cy : inst.summary;
-  const obligations = (isCy && inst.obligations_cy) ? inst.obligations_cy : inst.obligations_summary;
-  const provisions = (isCy && inst.key_provisions_cy) ? inst.key_provisions_cy : inst.key_provisions;
+<div class="nav-divider"></div>
+<div class="nav-section">Regulatory</div>
+<div class="nav-item" onclick="showTab('ticker')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M1 8h2l2-5 3 10 2-6 1 3h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  Intelligence Feed
+  <span class="nav-badge nb-red">6</span>
+</div>
+<div class="nav-item" onclick="showTab('legislative')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="6" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="8" x2="10" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="11" x2="8" y2="11" stroke="currentColor" stroke-width="1.2"/></svg>
+  Legislative Tracker
+  <span class="nav-badge nb-red">Critical</span>
+</div>
 
-  const tierCfg = TIER_CONFIG[inst.tier_access] || TIER_CONFIG.all;
-  const cats = (inst.acei_categories || []).map(n => CATS[n]).filter(Boolean);
-  const primaryCat = cats[0];
+<div class="nav-divider"></div>
+<div class="nav-section">Tools</div>
+<div class="nav-item" onclick="showTab('ai-assistant')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="var(--cyan)" stroke-width="1.4"/><circle cx="8" cy="8" r="2" fill="var(--cyan)" opacity=".5"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2" stroke="var(--cyan)" stroke-width="1.4" stroke-linecap="round"/></svg>
+  AI Assistant
+</div>
+<div class="nav-item" onclick="showTab('reports')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="5" y1="5" x2="11" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.2"/><path d="M5 11h4" stroke="currentColor" stroke-width="1.2"/></svg>
+  Board Reports
+</div>
+<div class="nav-item" onclick="showTab('lab')">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M6 2v5L2 13a1 1 0 0 0 .9 1.5h10.2A1 1 0 0 0 14 13L10 7V2" stroke="var(--violet-lit)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="5" y1="2" x2="11" y2="2" stroke="var(--violet-lit)" stroke-width="1.4" stroke-linecap="round"/><circle cx="9" cy="11" r="1.2" fill="var(--violet-lit)" opacity=".6"/></svg>
+  Intelligence Lab
+  <span class="nav-badge" style="background:rgba(139,92,246,.1);color:var(--violet-lit);border:1px solid rgba(139,92,246,.2);font-size:7px;">INST</span>
+</div>
+```
 
-  const isWalesSpecific = isWales || isWalesGB;
+  </div>
 
-  return (
-    <div style={{
-      background: isWalesSpecific
-        ? "linear-gradient(135deg, rgba(185,28,28,0.06) 0%, rgba(15,20,40,0.95) 100%)"
-        : "rgba(255,255,255,0.028)",
-      border: isWalesSpecific
-        ? "1px solid rgba(239,68,68,0.18)"
-        : "1px solid rgba(255,255,255,0.06)",
-      borderRadius: 10,
-      marginBottom: 10,
-      overflow: "hidden",
-      transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-      boxShadow: expanded
-        ? (isWalesSpecific ? "0 4px 24px rgba(185,28,28,0.12)" : "0 4px 20px rgba(34,211,238,0.06)")
-        : "none",
-    }}>
-      {/* Card Header — always visible */}
-      <button
-        onClick={onToggle}
-        style={{
-          width: "100%", background: "none", border: "none", cursor: "pointer",
-          padding: "14px 18px", textAlign: "left", display: "flex",
-          alignItems: "flex-start", gap: 14,
-        }}
-      >
-        {/* Significance Bar */}
-        <div style={{
-          flexShrink: 0, width: 3, alignSelf: "stretch",
-          borderRadius: 2, minHeight: 32,
-          background: primaryCat
-            ? `linear-gradient(180deg, ${primaryCat.color} 0%, ${primaryCat.color}44 100%)`
-            : "rgba(100,116,139,0.4)",
-        }} />
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="user-av">SC</div>
+      <div>
+        <div class="user-nm">Sarah Chen</div>
+        <div class="user-rl">HR Director · Admin</div>
+      </div>
+    </div>
+  </div>
+</nav>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Title row */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-            <h3 style={{
-              fontSize: 15, fontWeight: 500, lineHeight: 1.4,
-              color: isWalesSpecific ? "#fde8e8" : "#e2e8f0",
-              fontFamily: "'EB Garamond', Georgia, serif",
-              flex: 1, minWidth: 200,
-            }}>
-              {title}
-            </h3>
+<!-- ═══ MAIN CONTENT ═══ -->
+
+<div class="main" id="main-content">
+
+<!-- ════════════════════════════════
+     TAB: OVERVIEW
+════════════════════════════════ -->
+
+<div class="tab-pane active" id="tab-overview">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Intelligence Overview</div>
+      <div class="pg-sub">Northerly Hill FM · Week ending 11 March 2026 · All three indices computed</div>
+    </div>
+    <div class="flex-c">
+      <span class="ai-updated">AI · UPDATED 06:00</span>
+      <div class="countdown-chip"><span class="cc-icon">⏱</span> ERB Royal Assent ~47 days</div>
+    </div>
+  </div>
+
+  <!-- Alert bar -->
+
+  <div class="warn-box mb16" style="display:flex;align-items:center;justify-content:space-between;">
+    <div><strong>3 Active Alerts</strong> — Working Time exposure elevated (+4 this period) · NHF-OPS-001 critical clause gap · HMRC FM enforcement wave active</div>
+    <button class="btn btn-sec btn-sm" onclick="showTab('alerts')">View Alerts →</button>
+  </div>
+
+  <div class="grid3">
+    <!-- ACEI CARD -->
+    <div class="data-card gold-trending" onclick="openL1('acei-wtr')">
+      <div class="gold-indicator"><div class="gold-pip"></div><span class="gold-label">Trending</span></div>
+      <div class="flex-c mb8">
+        <span class="tag t-a">ACEI</span>
+        <span class="ai-updated">AI · UPDATED</span>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--acei);">64</div>
+      <div style="font-size:11px;color:var(--text-mute);margin-bottom:6px;">Elevated Exposure · FM Sector</div>
+      <div class="cat-row gold-trending" style="border:none;padding:4px 0;background:none;margin:0;">
+        <div class="cat-name" style="font-size:10px;width:auto;">Working Time</div>
+        <div style="flex:1;"></div>
+        <span style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--red);">82 ▲+4</span>
+      </div>
+      <div style="font-size:10px;color:var(--text-mute);">EAT rest break ruling · 3 new FM decisions</div>
+      <div class="depth-hint"><div class="depth-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div></div>
+    </div>
+
+```
+<!-- RRI CARD -->
+<div class="data-card gold-leader" onclick="openL1('rri-contract')">
+  <div class="gold-indicator" style="opacity:.7;"><div class="gold-pip" style="background:rgba(245,158,11,.5);animation:none;"></div><span class="gold-label" style="opacity:.6;">Leader</span></div>
+  <div class="flex-c mb8"><span class="tag t-t">RRI</span></div>
+  <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--teal-lit);">54</div>
+  <div style="font-size:11px;color:var(--text-mute);margin-bottom:6px;">Initiated–Developed · 5 Pillars</div>
+  <div class="cat-row" style="border:none;padding:4px 0;">
+    <div style="font-size:10px;color:var(--text-mute);flex:1;">Contractual Conformity</div>
+    <span style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--amber);">49</span>
+  </div>
+  <div style="font-size:10px;color:var(--text-mute);">Weakest pillar · 4 contracts below threshold</div>
+  <div class="depth-hint"><div class="depth-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div></div>
+</div>
+
+<!-- CCI CARD -->
+<div class="data-card" onclick="openL1('cci-cred')">
+  <div class="flex-c mb8"><span class="tag t-v">CCI</span></div>
+  <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--violet-lit);">62</div>
+  <div style="font-size:11px;color:var(--text-mute);margin-bottom:6px;">Below Sector Median · 6 Components</div>
+  <div class="cat-row" style="border:none;padding:4px 0;">
+    <div style="font-size:10px;color:var(--text-mute);flex:1;">Bayesian Credibility</div>
+    <span style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--violet-lit);">0.89</span>
+  </div>
+  <div style="font-size:10px;color:var(--text-mute);">2023 WTR award highest weighted event</div>
+  <div class="depth-hint"><div class="depth-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div></div>
+</div>
+```
+
+  </div>
+
+  <div class="grid2 mt16">
+    <!-- Active Matters summary -->
+    <div class="card">
+      <div class="card-hdr">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4"/><line x1="5" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="9" x2="9" y2="9" stroke="currentColor" stroke-width="1.2"/></svg>
+        Active Matters Register
+        <span class="nav-badge nb-amber" style="margin-left:auto;">3 Open</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:7px;cursor:pointer;" onclick="showTab('matters')">
+          <div>
+            <div style="font-size:11px;font-weight:600;">AMR-2026-001 · J. Davies — WTR Grievance</div>
+            <div style="font-size:9px;color:var(--text-mute);font-family:'Space Mono',monospace;">Opened 04 Mar · Birmingham · Stage 2</div>
           </div>
-
-          {/* Badge row */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            <JurisdictionBadge codes={inst.jurisdiction_codes} lang={lang} />
-
-            {cats.slice(0, 2).map((cat, i) => (
-              <span key={i} style={{
-                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-                padding: "2px 7px", borderRadius: 3, letterSpacing: "0.3px",
-                background: `${cat.color}15`, border: `1px solid ${cat.color}30`,
-                color: cat.color,
-              }}>
-                {isCy ? cat.cy : cat.en}
-              </span>
-            ))}
-
-            <span style={{
-              fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-              padding: "2px 7px", borderRadius: 3, letterSpacing: "0.3px",
-              background: `${tierCfg.color}12`, border: `1px solid ${tierCfg.color}28`,
-              color: tierCfg.color,
-            }}>
-              {isCy ? tierCfg.cy : tierCfg.label}
-            </span>
-
-            {inst.welsh_available && lang === "en" && (
-              <span style={{
-                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-                padding: "2px 7px", borderRadius: 3, letterSpacing: "0.3px",
-                background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)",
-                color: "#fca5a5",
-              }}>
-                🏴󠁧󠁢󠁷󠁬󠁳󠁿 {ui.welshAvail}
-              </span>
-            )}
-
-            {/* Significance dots */}
-            <div style={{ display: "flex", gap: 2, marginLeft: 2 }}>
-              {[1,2,3,4,5].map(n => (
-                <div key={n} style={{
-                  width: 5, height: 5, borderRadius: "50%",
-                  background: n <= inst.sci_significance
-                    ? (primaryCat?.color || "#22d3ee")
-                    : "rgba(255,255,255,0.1)",
-                }} />
-              ))}
-            </div>
+          <span class="tag t-r">Urgent</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:7px;cursor:pointer;" onclick="showTab('matters')">
+          <div>
+            <div style="font-size:11px;font-weight:600;">AMR-2026-002 · TUPE Group (14 staff) — Transfer Objections</div>
+            <div style="font-size:9px;color:var(--text-mute);font-family:'Space Mono',monospace;">Opened 28 Feb · Swansea · Consultation</div>
           </div>
+          <span class="tag t-am">Active</span>
         </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:rgba(56,189,248,.04);border:1px solid rgba(56,189,248,.12);border-radius:7px;cursor:pointer;" onclick="showTab('matters')">
+          <div>
+            <div style="font-size:11px;font-weight:600;">AMR-2026-003 · K. Osei — Contractual Clause Dispute</div>
+            <div style="font-size:9px;color:var(--text-mute);font-family:'Space Mono',monospace;">Opened 10 Mar · Cardiff · Under Review</div>
+          </div>
+          <span class="tag t-c">Monitoring</span>
+        </div>
+      </div>
+      <button class="btn btn-sec btn-sm mt12" style="width:100%;justify-content:center;" onclick="showTab('matters')">Open Active Matters Register →</button>
+    </div>
 
-        {/* Expand chevron */}
-        <div style={{
-          flexShrink: 0, color: "#475569", fontSize: 12,
-          transition: "transform 0.2s ease",
-          transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-          paddingTop: 2,
-        }}>
-          ▼
-        </div>
+```
+<!-- Vault summary + countdown -->
+<div class="card">
+  <div class="card-hdr">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 3V2a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.4"/></svg>
+    Document Vault · Key Events
+    <span class="nav-badge nb-red" style="margin-left:auto;">2 Critical</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+    <div class="flex-sb" style="padding:7px 10px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:6px;cursor:pointer;" onclick="openL1('vault-ops001')">
+      <span style="font-size:11px;font-weight:600;">NHF-OPS-001</span>
+      <div class="flex-c" style="gap:6px;"><div class="wcc-bar" style="width:40px;"><div class="wcc-fill" style="width:47%;background:var(--red);"></div></div><span class="mono" style="font-size:11px;color:var(--red);">47%</span></div>
+    </div>
+    <div class="flex-sb" style="padding:7px 10px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:6px;cursor:pointer;" onclick="openL1('vault-ops002')">
+      <span style="font-size:11px;font-weight:600;">NHF-OPS-002</span>
+      <div class="flex-c" style="gap:6px;"><div class="wcc-bar" style="width:40px;"><div class="wcc-fill" style="width:43%;background:var(--red);"></div></div><span class="mono" style="font-size:11px;color:var(--red);">43%</span></div>
+    </div>
+  </div>
+  <div style="font-family:'Space Mono',monospace;font-size:9px;font-weight:700;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Commencement Countdowns</div>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div class="countdown-chip" style="width:fit-content;"><span>⏱</span> Employment Rights Bill · Royal Assent ~47 days</div>
+    <div class="countdown-chip amber" style="width:fit-content;"><span>⏱</span> WTR Amendment regulations · ~89 days</div>
+    <div class="countdown-chip green" style="width:fit-content;"><span>📋</span> NHF-OPS-001 Review Due · 18 days</div>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- Intelligence Lab teaser -->
+
+  <div class="lab-preview mt16">
+    <div class="lab-content">
+      <div style="font-family:'Space Mono',monospace;font-size:9px;font-weight:700;color:var(--violet-lit);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px;">Intelligence Lab Preview · Sector Benchmarking</div>
+      <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--text-mute);margin-bottom:4px;">Northerly Hill FM · ACEI vs FM Sector Peers</div></div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:10px;color:var(--violet-lit);width:80px;">Your Position</div><div class="lab-chart-bar" style="width:64%;"></div><span class="mono" style="font-size:10px;color:var(--violet-lit);">64</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:10px;color:var(--text-mute);width:80px;">Employer A</div><div class="lab-chart-bar" style="width:52%;opacity:.4;"></div><span class="mono" style="font-size:10px;color:var(--text-mute);">52</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:10px;color:var(--text-mute);width:80px;">Employer B</div><div class="lab-chart-bar" style="width:71%;opacity:.4;"></div><span class="mono" style="font-size:10px;color:var(--text-mute);">71</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:10px;color:var(--text-mute);width:80px;">Employer C</div><div class="lab-chart-bar" style="width:58%;opacity:.4;"></div><span class="mono" style="font-size:10px;color:var(--text-mute);">58</span></div>
+      </div>
+    </div>
+    <div class="lab-frosted">
+      <div class="lab-lock-icon">⚗</div>
+      <div class="lab-lock-text">Intelligence Lab · Institutional Tier</div>
+      <div class="lab-new-badge">✦ New this week</div>
+      <button class="uh-cta" style="margin-top:8px;" onclick="showTab('lab')">See what's inside →</button>
+    </div>
+  </div>
+</div>
+<!-- ════════════════════════════════
+     TAB: ACTIVE MATTERS REGISTER
+════════════════════════════════ -->
+<div class="tab-pane" id="tab-matters">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Active Matters Register</div>
+      <div class="pg-sub">Internal case management · Pre-legal preparation · Compliance analysis workspace</div>
+    </div>
+    <div class="flex-c">
+      <span class="ai-updated">AI · UPDATED 06:00</span>
+      <button class="btn btn-primary btn-sm" onclick="openNewMatter()">+ Open New Matter</button>
+    </div>
+  </div>
+
+  <div class="info-box mb16">
+    <strong>Active Matters Register</strong> — A structured workspace to manage internal compliance issues before formal legal proceedings. Each matter provides document analysis tools, procedural checklists, a timeline, AI-assisted preparation notes, and a direct pathway to qualified employment law advice. Matters are confidential to your organisation.<br><br>
+    <strong>Important:</strong> Analysis within matters identifies areas for review and supports internal preparation. It does not constitute legal advice. Legal partner referral is available on any matter where formal advice is recommended.
+  </div>
+
+  <!-- Matter filters -->
+
+  <div class="flex-c mb16" style="gap:6px;flex-wrap:wrap;">
+    <button class="btn btn-sec btn-sm" style="border-color:var(--red);color:var(--red);">Urgent (1)</button>
+    <button class="btn btn-sec btn-sm" style="border-color:var(--amber);color:var(--amber);">Active (1)</button>
+    <button class="btn btn-sec btn-sm" style="border-color:var(--cyan);color:var(--cyan);">Monitoring (1)</button>
+    <button class="btn btn-sec btn-sm">Resolved (2)</button>
+    <button class="btn btn-sec btn-sm">All Matters (5)</button>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px;" id="matters-list">
+
+```
+<!-- MATTER 1 - URGENT -->
+<div class="matter-card urgent" id="matter-1">
+  <div class="flex-sb mb8">
+    <div>
+      <div class="matter-id">AMR-2026-001 · Opened 04 Mar 2026 · Birmingham Depot</div>
+      <div class="matter-title">J. Davies — Working Time Grievance</div>
+      <div class="matter-sub">Field Operative · NHF-OPS-001 · Alleged failure to provide adequate rest breaks on multi-site deployment</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      <span class="tag t-r">Urgent</span>
+      <span class="tag" style="background:rgba(249,115,22,.1);color:var(--acei);border:1px solid rgba(249,115,22,.2);">ACEI · WTR</span>
+    </div>
+  </div>
+
+  <div class="matter-progress mb8">
+    <div class="matter-progress-fill" style="width:45%;"></div>
+  </div>
+  <div style="font-size:9px;color:var(--text-mute);font-family:'Space Mono',monospace;margin-bottom:12px;">Progress: 45% · Stage 2 Internal Investigation · Review deadline: 18 Mar 2026</div>
+
+  <!-- Procedural checklist -->
+  <div style="background:var(--raised);border-radius:7px;padding:12px;border:1px solid var(--border-dim);margin-bottom:12px;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;font-weight:700;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Procedural Compliance Checklist</div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Written contract provided to employee</div><span class="tag t-g" style="margin-left:auto;">✓ Verified</span></div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Staff handbook acknowledged (signed)</div><span class="tag t-g" style="margin-left:auto;">✓ Verified</span></div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Grievance procedure communicated in writing</div><span class="tag t-g" style="margin-left:auto;">✓ Verified</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">WTR opt-out agreement — <strong style="color:var(--amber);">Not on file</strong></div><span class="tag t-am" style="margin-left:auto;">⚠ Missing</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Written rest break record for deployment dates</div><span class="tag t-r" style="margin-left:auto;">Not obtained</span></div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Grievance acknowledged within 5 working days</div><span class="tag t-g" style="margin-left:auto;">✓ 04 Mar</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Investigation meeting scheduled and notified</div><span class="tag t-am" style="margin-left:auto;">Pending</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Right to be accompanied confirmed in writing</div><span class="tag t-r" style="margin-left:auto;">Outstanding</span></div>
+  </div>
+
+  <!-- Analysis tools row -->
+  <div class="grid3 mb12" style="gap:8px;">
+    <div style="padding:9px;background:rgba(249,115,22,.05);border:1px solid rgba(249,115,22,.15);border-radius:7px;cursor:pointer;" onclick="openL1('acei-wtr')">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--acei);font-family:'Space Mono',monospace;margin-bottom:3px;">ACEI Analysis</div>
+      <div style="font-size:11px;color:var(--text-sec);">Working Time exposure: <strong style="color:var(--red);">82/100</strong></div>
+      <div style="font-size:10px;color:var(--text-mute);">EAT ruling directly relevant →</div>
+    </div>
+    <div style="padding:9px;background:rgba(56,189,248,.04);border:1px solid rgba(56,189,248,.12);border-radius:7px;cursor:pointer;" onclick="openL1('vault-ops001')">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan);font-family:'Space Mono',monospace;margin-bottom:3px;">Contract Analysis</div>
+      <div style="font-size:11px;color:var(--text-sec);">NHF-OPS-001: <strong style="color:var(--red);">47% WCC</strong></div>
+      <div style="font-size:10px;color:var(--text-mute);">3 WTR clause gaps found →</div>
+    </div>
+    <div style="padding:9px;background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.15);border-radius:7px;cursor:pointer;" onclick="showTab('ai-assistant')">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--violet-lit);font-family:'Space Mono',monospace;margin-bottom:3px;">AI Preparation</div>
+      <div style="font-size:11px;color:var(--text-sec);">Context-primed analysis</div>
+      <div style="font-size:10px;color:var(--text-mute);">Explore with AI →</div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div style="background:var(--raised);border-radius:7px;padding:12px;border:1px solid var(--border-dim);margin-bottom:12px;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;font-weight:700;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Matter Timeline</div>
+    <div class="timeline-item complete"><div class="timeline-date">04 Mar 2026</div><div class="timeline-text">Grievance received in writing · Acknowledged same day</div></div>
+    <div class="timeline-item complete"><div class="timeline-date">05 Mar 2026</div><div class="timeline-text">ACEI Working Time exposure flagged — category score elevated to 82 following EAT ruling</div></div>
+    <div class="timeline-item active-t"><div class="timeline-date">11 Mar 2026 · NOW</div><div class="timeline-text">Stage 2 investigation · WTR opt-out confirmation outstanding · NHF-OPS-001 clause gap identified</div></div>
+    <div class="timeline-item pend"><div class="timeline-date">18 Mar 2026 · DEADLINE</div><div class="timeline-text">Investigation meeting must be held · Written outcome to follow within 5 days</div></div>
+    <div class="timeline-item pend"><div class="timeline-date">TBC</div><div class="timeline-text">If unresolved · Appeal stage or ET1 window opens</div></div>
+  </div>
+
+  <div class="flex-sb">
+    <div class="flex-c" style="gap:6px;">
+      <button class="btn btn-sec btn-sm">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add Note
       </button>
-
-      {/* Expanded Content */}
-      {expanded && (
-        <div style={{
-          padding: "0 18px 18px 35px",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          animation: "fadeIn 0.2s ease",
-        }}>
-          {/* Translation notice */}
-          {isCy && inst.translation_method && (
-            <div style={{ paddingTop: 12, paddingBottom: 10 }}>
-              <TranslationNotice method={inst.translation_method} lang={lang} ui={ui} />
-            </div>
-          )}
-
-          {/* Summary */}
-          {summary && (
-            <div style={{ marginTop: isCy ? 4 : 12 }}>
-              <div style={{
-                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-                color: "#475569", letterSpacing: "1px", marginBottom: 6,
-                textTransform: "uppercase",
-              }}>
-                {ui.summary}
-              </div>
-              <p style={{
-                fontSize: 14, lineHeight: 1.7, color: "#94a3b8",
-                fontFamily: "'EB Garamond', Georgia, serif",
-              }}>
-                {summary}
-              </p>
-            </div>
-          )}
-
-          {/* Obligations */}
-          {obligations && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{
-                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-                color: "#475569", letterSpacing: "1px", marginBottom: 6,
-                textTransform: "uppercase",
-              }}>
-                {ui.obligations}
-              </div>
-              <p style={{
-                fontSize: 14, lineHeight: 1.7, color: "#94a3b8",
-                fontFamily: "'EB Garamond', Georgia, serif",
-              }}>
-                {obligations}
-              </p>
-            </div>
-          )}
-
-          {/* Key Provisions */}
-          {provisions && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{
-                fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-                color: "#475569", letterSpacing: "1px", marginBottom: 6,
-                textTransform: "uppercase",
-              }}>
-                {ui.provisions}
-              </div>
-              <p style={{
-                fontSize: 14, lineHeight: 1.7, color: "#94a3b8",
-                fontFamily: "'EB Garamond', Georgia, serif",
-              }}>
-                {provisions}
-              </p>
-            </div>
-          )}
-
-          {/* Legislation.gov.uk link */}
-          {inst.legislation_gov_url && (
-            <div style={{ marginTop: 14 }}>
-              <a
-                href={inst.legislation_gov_url}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
-                  color: "#22d3ee", textDecoration: "none",
-                  letterSpacing: "0.5px",
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                }}
-              >
-                ↗ legislation.gov.uk
-              </a>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── AI QUERY WIDGET (Governance & Institutional only) ────────────────────
-const AIQueryWidget = ({ lang }) => {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const scrollRef = useRef(null);
-
-  const ui = {
-    en: { title: "Ask Ailane AI", placeholder: "Ask about your compliance, scores, or legislation...", powered: "Powered by Ailane Constitutional Intelligence", helpful: "Helpful", notHelpful: "Not Helpful" },
-    cy: { title: "Gofynnwch i AI Ailane", placeholder: "Gofynnwch am eich cydymffurfiad, sgoriau, neu ddeddfwriaeth...", powered: "Wedi'i bweru gan Ddeallusrwydd Cyfansoddiadol Ailane", helpful: "Defnyddiol", notHelpful: "Ddim yn ddefnyddiol" },
-  };
-  const t = ui[lang] || ui.en;
-
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
-
-  const sendQuery = async () => {
-    if (!input.trim() || loading) return;
-    const query = input.trim();
-    setInput("");
-    setMessages(prev => [...prev, { role: "user", text: query }]);
-    setLoading(true);
-
-    try {
-      const token = getToken();
-      if (!token) throw new Error("Not authenticated");
-      const res = await fetch(SB_URL + "/functions/v1/comms-resolve", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json", apikey: SB_ANON },
-        body: JSON.stringify({ query, channel: "in_platform", preferred_language: lang }),
-      });
-      const data = await res.json();
-      if (data.response) {
-        setMessages(prev => [...prev, { role: "ai", text: data.response, id: data.interaction_id }]);
-      } else {
-        setMessages(prev => [...prev, { role: "ai", text: data.error || "Unable to process your query. Please try again.", error: true }]);
-      }
-    } catch (e) {
-      setMessages(prev => [...prev, { role: "ai", text: "Connection error. Please check you are signed in and try again.", error: true }]);
-    }
-    setLoading(false);
-  };
-
-  const sendFeedback = async (interactionId, rating) => {
-    try {
-      const token = getToken();
-      if (!token) return;
-      await fetch(SB_URL + "/rest/v1/rpc/exec_sql", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json", apikey: SB_ANON },
-        body: JSON.stringify({
-          sql: "INSERT INTO comms.feedback_signals (interaction_id, signal_type, rating) VALUES ($1, 'rating', $2)",
-          params: [interactionId, rating],
-        }),
-      });
-      setMessages(prev => prev.map(m => m.id === interactionId ? { ...m, feedbackSent: true } : m));
-    } catch (e) { /* silent */ }
-  };
-
-  // Floating button
-  if (!open) {
-    return (
-      <button onClick={() => setOpen(true)} style={{
-        position: "fixed", bottom: 24, right: 24, zIndex: 1000,
-        width: 56, height: 56, borderRadius: 28,
-        background: "linear-gradient(135deg, #22d3ee, #0891b2)",
-        border: "none", cursor: "pointer",
-        boxShadow: "0 4px 24px rgba(34,211,238,0.3)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "transform 0.2s, box-shadow 0.2s",
-      }}
-        onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 6px 32px rgba(34,211,238,0.4)"; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(34,211,238,0.3)"; }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0e1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <button class="btn btn-sec btn-sm">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M10 2H6L2 6v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6z" stroke="currentColor" stroke-width="1.5"/></svg>
+        Attach Document
       </button>
-    );
-  }
+      <button class="btn btn-sec btn-sm" onclick="openShare()">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="12" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="4" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 7l4-2M6 9l4 2" stroke="currentColor" stroke-width="1.3"/></svg>
+        Share Finding
+      </button>
+    </div>
+    <div class="flex-c" style="gap:6px;">
+      <button class="btn btn-sec btn-sm" style="border-color:rgba(245,158,11,.4);color:var(--amber);">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM8 6v4M8 11v1" stroke="currentColor" stroke-width="1.5"/></svg>
+        Request Legal Advice
+      </button>
+    </div>
+  </div>
+</div>
 
-  // Chat panel
-  return (
-    <div style={{
-      position: "fixed", bottom: 24, right: 24, zIndex: 1000,
-      width: 360, height: 520, borderRadius: 14,
-      background: "#0c1221", border: "1px solid rgba(34,211,238,0.15)",
-      boxShadow: "0 8px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(34,211,238,0.08)",
-      display: "flex", flexDirection: "column", overflow: "hidden",
-      animation: "slideUp 0.25s ease",
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#dde4f0" }}>{t.title}</div>
-          <div style={{ fontSize: 9, color: "#4a5568", fontFamily: "'JetBrains Mono',monospace", letterSpacing: 0.5, marginTop: 2 }}>ACEI v1.0 · RRI v1.0 · CCI v1.0</div>
-        </div>
-        <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "#4a5568", cursor: "pointer", fontSize: 18, padding: 4 }}>&#10005;</button>
+<!-- MATTER 2 - GROUP -->
+<div class="matter-card active-m" id="matter-2">
+  <div class="flex-sb mb8">
+    <div>
+      <div class="matter-id">AMR-2026-002 · Opened 28 Feb 2026 · Swansea Depot</div>
+      <div class="matter-title">TUPE Transfer — Group Objections (14 staff)</div>
+      <div class="matter-sub">Service provision change · Bristol depot cleaning contract transfer · 14 affected employees</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      <span class="tag t-am">Active</span>
+      <span class="tag t-v">ACEI · TUPE</span>
+    </div>
+  </div>
+  <div class="matter-progress mb8">
+    <div class="matter-progress-fill" style="width:30%;background:linear-gradient(90deg,var(--amber),#fbbf24);"></div>
+  </div>
+  <div style="font-size:9px;color:var(--text-mute);font-family:'Space Mono',monospace;margin-bottom:12px;">Progress: 30% · TUPE Consultation Ongoing · Transfer date: 01 May 2026</div>
+
+  <div style="background:var(--raised);border-radius:7px;padding:12px;border:1px solid var(--border-dim);margin-bottom:12px;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;font-weight:700;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">TUPE Procedural Checklist · 14 Employees</div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Employee liability information provided to incoming employer</div><span class="tag t-g" style="margin-left:auto;">✓ 01 Mar</span></div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Affected employee notification letters issued</div><span class="tag t-g" style="margin-left:auto;">✓ 03 Mar</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Collective consultation commenced (45-day window required — ERB)</div><span class="tag t-am" style="margin-left:auto;">Day 11/45</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Employee representative election confirmed</div><span class="tag t-am" style="margin-left:auto;">In Progress</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Written objections from 6 employees — responses drafted</div><span class="tag t-r" style="margin-left:auto;">6 Outstanding</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Harmonisation proposals documented</div><span class="tag t-am" style="margin-left:auto;">Pending</span></div>
+  </div>
+
+  <div class="warn-box" style="margin-bottom:12px;">
+    <strong>Employment Rights Bill — Commencement Risk:</strong> ERB extends TUPE consultation to 45 days for 10+ employee transfers. Royal Assent est. ~47 days. If commencement precedes 01 May transfer date, revised obligations apply. <strong>Legal review recommended.</strong>
+  </div>
+
+  <div class="flex-sb">
+    <div class="flex-c" style="gap:6px;">
+      <button class="btn btn-sec btn-sm">Add Note</button>
+      <button class="btn btn-sec btn-sm" onclick="openShare()">Share Finding</button>
+    </div>
+    <button class="btn btn-sec btn-sm" style="border-color:rgba(245,158,11,.4);color:var(--amber);">Request Legal Advice</button>
+  </div>
+</div>
+
+<!-- MATTER 3 - MONITORING -->
+<div class="matter-card monitoring" id="matter-3">
+  <div class="flex-sb mb8">
+    <div>
+      <div class="matter-id">AMR-2026-003 · Opened 10 Mar 2026 · Cardiff HQ</div>
+      <div class="matter-title">K. Osei — Contractual Clause Dispute</div>
+      <div class="matter-sub">Senior Supervisor · NHF-MGT-002 · Objection to variation of on-call clause at contract renewal</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      <span class="tag t-c">Monitoring</span>
+      <span class="tag t-t">RRI · Contract</span>
+    </div>
+  </div>
+  <div class="matter-progress mb8">
+    <div class="matter-progress-fill" style="width:15%;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan));"></div>
+  </div>
+  <div style="font-size:9px;color:var(--text-mute);font-family:'Space Mono',monospace;margin-bottom:12px;">Progress: 15% · Initial Review · Opened yesterday</div>
+
+  <div style="background:var(--raised);border-radius:7px;padding:12px;border:1px solid var(--border-dim);margin-bottom:12px;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;font-weight:700;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Initial Procedural Check</div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Original contract on file — NHF-MGT-002</div><span class="tag t-g" style="margin-left:auto;">✓ Vault</span></div>
+    <div class="checklist-row"><div class="check-icon done"></div><div class="check-label done">Variation proposed in writing with 28 days notice</div><span class="tag t-g" style="margin-left:auto;">✓ Verified</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Employee's written objection formally acknowledged</div><span class="tag t-am" style="margin-left:auto;">Pending</span></div>
+    <div class="checklist-row"><div class="check-icon pending"></div><div class="check-label">Clause analysis against ERA s.1 requirements</div><span class="tag t-am" style="margin-left:auto;">In Progress</span></div>
+  </div>
+  <div class="flex-sb">
+    <div class="flex-c" style="gap:6px;">
+      <button class="btn btn-sec btn-sm">Add Note</button>
+      <button class="btn btn-sec btn-sm" onclick="openShare()">Share Finding</button>
+    </div>
+    <button class="btn btn-sec btn-sm" style="border-color:rgba(56,189,248,.3);color:var(--cyan);">Open Full Matter →</button>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+<!-- ════════════════════════════════
+     TAB: ACEI
+════════════════════════════════ -->
+<div class="tab-pane" id="tab-acei">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Adverse Claim Exposure Index</div><div class="pg-sub">12 categories · FM Sector ×1.18 · South West & Wales ×1.05 · Computed 11 Mar 2026</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span><div class="countdown-chip"><span>⏱</span> ERB ~47 days</div></div>
+  </div>
+  <div class="grid3 mb16">
+    <div class="stat-tile"><div class="stat-lbl">Overall ACEI</div><div class="stat-val" style="color:var(--acei);">64</div><div class="stat-delta" style="color:var(--red);">▲ +2 this period</div></div>
+    <div class="stat-tile"><div class="stat-lbl">Sector Multiplier</div><div class="stat-val" style="font-size:18px;">×1.18</div><div class="stat-sub">Facilities Management</div></div>
+    <div class="stat-tile"><div class="stat-lbl">Jurisdiction</div><div class="stat-val" style="font-size:18px;">×1.05</div><div class="stat-sub">South West & Wales RFVM</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">12-Category Breakdown <span style="margin-left:auto;font-size:10px;font-weight:400;color:var(--text-mute);">Gold = Category Leader · Gold pulse = Trending</span></div>
+    <div style="display:flex;flex-direction:column;">
+      <div class="cat-row gold-trending" onclick="openL1('acei-wtr')" style="cursor:pointer;">
+        <div class="gold-indicator" style="position:static;"><div class="gold-pip"></div><span class="gold-label" style="font-size:8px;">TREND</span></div>
+        <div class="cat-name">Working Time</div>
+        <div class="cat-bar-wrap"><div class="cat-bar hi" style="width:82%"></div></div>
+        <span class="cat-score hi">82</span>
+        <span class="ai-updated" style="margin-left:6px;font-size:7px;">AI</span>
+        <div class="depth-hint"><div class="depth-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div></div>
       </div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Unfair Dismissal</div><div class="cat-bar-wrap"><div class="cat-bar hi" style="width:71%"></div></div><span class="cat-score hi">71</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">TUPE</div><div class="cat-bar-wrap"><div class="cat-bar md" style="width:68%"></div></div><span class="cat-score md">68</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Discrimination</div><div class="cat-bar-wrap"><div class="cat-bar md" style="width:61%"></div></div><span class="cat-score md">61</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Health & Safety</div><div class="cat-bar-wrap"><div class="cat-bar md" style="width:58%"></div></div><span class="cat-score md">58</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Employment Status</div><div class="cat-bar-wrap"><div class="cat-bar md" style="width:54%"></div></div><span class="cat-score md">54</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">National Min. Wage</div><div class="cat-bar-wrap"><div class="cat-bar md" style="width:51%"></div></div><span class="cat-score md">51</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Whistleblowing</div><div class="cat-bar-wrap"><div class="cat-bar lo" style="width:44%"></div></div><span class="cat-score lo">44</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Redundancy</div><div class="cat-bar-wrap"><div class="cat-bar lo" style="width:41%"></div></div><span class="cat-score lo">41</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Maternity / Parental</div><div class="cat-bar-wrap"><div class="cat-bar lo" style="width:38%"></div></div><span class="cat-score lo">38</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Contract Formation</div><div class="cat-bar-wrap"><div class="cat-bar lo" style="width:35%"></div></div><span class="cat-score lo">35</span></div>
+      <div class="cat-row" onclick="openL1('acei-wtr')" style="cursor:pointer;"><div class="cat-name">Statutory Pay</div><div class="cat-bar-wrap"><div class="cat-bar lo" style="width:29%"></div></div><span class="cat-score lo">29</span></div>
+    </div>
+  </div>
+</div>
 
-      {/* Messages */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
-        {messages.length === 0 && (
-          <div style={{ textAlign: "center", padding: "40px 16px", color: "#4a5568" }}>
-            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.4 }}>&#128172;</div>
-            <div style={{ fontSize: 12, lineHeight: 1.6 }}>{t.powered}</div>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <div key={i} style={{ marginBottom: 12 }}>
-            <div style={{
-              padding: "10px 14px", borderRadius: msg.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
-              background: msg.role === "user" ? "rgba(34,211,238,0.1)" : msg.error ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)",
-              border: "1px solid " + (msg.role === "user" ? "rgba(34,211,238,0.15)" : msg.error ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.05)"),
-              marginLeft: msg.role === "user" ? 40 : 0, marginRight: msg.role === "ai" ? 20 : 0,
-            }}>
-              <div style={{ fontSize: 12, color: msg.error ? "#ef4444" : "#c8d0de", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{msg.text}</div>
-            </div>
-            {msg.role === "ai" && msg.id && !msg.feedbackSent && (
-              <div style={{ display: "flex", gap: 6, marginTop: 4, paddingLeft: 4 }}>
-                <button onClick={() => sendFeedback(msg.id, "helpful")} style={{ fontSize: 10, color: "#4a5568", background: "none", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>&#128077; {t.helpful}</button>
-                <button onClick={() => sendFeedback(msg.id, "not_helpful")} style={{ fontSize: 10, color: "#4a5568", background: "none", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>&#128078; {t.notHelpful}</button>
-              </div>
-            )}
-            {msg.feedbackSent && msg.role === "ai" && (
-              <div style={{ fontSize: 9, color: "#22d3ee", marginTop: 3, paddingLeft: 4, fontFamily: "'JetBrains Mono',monospace" }}>&#10003; Feedback recorded</div>
-            )}
-          </div>
-        ))}
-        {loading && (
-          <div style={{ padding: "10px 14px", fontSize: 11, color: "#4a5568", fontFamily: "'JetBrains Mono',monospace" }}>Generating response...</div>
-        )}
-      </div>
+<!-- ════════════════════════════════
+     TAB: RRI
+════════════════════════════════ -->
 
-      {/* Input */}
-      <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 8 }}>
-        <input
-          value={input} onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendQuery()}
-          placeholder={t.placeholder}
-          style={{ flex: 1, padding: "10px 12px", fontSize: 12, color: "#dde4f0", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, outline: "none", fontFamily: "'EB Garamond',Georgia,serif" }}
-        />
-        <button onClick={sendQuery} disabled={loading || !input.trim()} style={{
-          padding: "8px 14px", background: loading ? "#1a2332" : "linear-gradient(135deg, #22d3ee, #0891b2)",
-          border: "none", borderRadius: 8, cursor: loading ? "not-allowed" : "pointer", color: "#0a0e1a", fontWeight: 700, fontSize: 12,
-        }}>&#8594;</button>
+<div class="tab-pane" id="tab-rri">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Regulatory Readiness Index</div><div class="pg-sub">5 pillars · 9 EIP attributes · Computed 11 Mar 2026</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span></div>
+  </div>
+  <div class="pillar-row">
+    <div class="pillar-mini" onclick="openL1('rri-contract')" style="cursor:pointer;border-color:rgba(245,158,11,.3);background:linear-gradient(135deg,rgba(245,158,11,.04),var(--raised));">
+      <div class="pillar-score-val" style="color:var(--amber);">49</div>
+      <div class="pillar-name-lbl">Contractual</div>
+      <div class="pillar-bar-mini"><div class="pillar-bar-fill" style="width:49%;background:var(--amber);"></div></div>
+      <div style="font-size:8px;color:var(--gold);margin-top:4px;font-family:'Space Mono',monospace;">LEADER</div>
+    </div>
+    <div class="pillar-mini" onclick="openL1('rri-contract')" style="cursor:pointer;">
+      <div class="pillar-score-val" style="color:var(--amber);">52</div>
+      <div class="pillar-name-lbl">Policy</div>
+      <div class="pillar-bar-mini"><div class="pillar-bar-fill" style="width:52%;background:var(--amber);"></div></div>
+    </div>
+    <div class="pillar-mini" onclick="openL1('rri-contract')" style="cursor:pointer;">
+      <div class="pillar-score-val" style="color:var(--amber);">53</div>
+      <div class="pillar-name-lbl">Training</div>
+      <div class="pillar-bar-mini"><div class="pillar-bar-fill" style="width:53%;background:var(--amber);"></div></div>
+    </div>
+    <div class="pillar-mini" onclick="openL1('rri-contract')" style="cursor:pointer;">
+      <div class="pillar-score-val" style="color:var(--teal-lit);">61</div>
+      <div class="pillar-name-lbl">Systems</div>
+      <div class="pillar-bar-mini"><div class="pillar-bar-fill" style="width:61%;background:var(--teal-lit);"></div></div>
+    </div>
+    <div class="pillar-mini" onclick="openL1('rri-contract')" style="cursor:pointer;">
+      <div class="pillar-score-val" style="color:var(--amber);">55</div>
+      <div class="pillar-name-lbl">Governance</div>
+      <div class="pillar-bar-mini"><div class="pillar-bar-fill" style="width:55%;background:var(--amber);"></div></div>
+    </div>
+  </div>
+  <div class="info-box">
+    <strong>RRI Assessment:</strong> Contractual Conformity is the weakest pillar — 4 operative contracts have WCC scores below the 60% threshold required for Initiated status. Training Deployment records are incomplete for Birmingham depot operatives. Governance pillar improvement projected following ERB commencement readiness review.
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TAB: CCI
+════════════════════════════════ -->
+
+<div class="tab-pane" id="tab-cci">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Constitutional Conduct Index</div><div class="pg-sub">6 components · Bayesian conduct credibility · Historical posture from 2014</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span></div>
+  </div>
+  <div class="grid2 mb16">
+    <div class="stat-tile"><div class="stat-lbl">Overall CCI</div><div class="stat-val" style="color:var(--violet-lit);">62</div><div class="stat-sub">Below sector median (68)</div></div>
+    <div class="stat-tile"><div class="stat-lbl">Bayesian Credibility</div><div class="stat-val" style="font-size:18px;color:var(--violet-lit);">0.89</div><div class="stat-sub">High signal confidence</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">6-Component Breakdown</div>
+    <div class="cci-comp-row" onclick="openL1('cci-cred')" style="cursor:pointer;">
+      <div class="cci-comp-top"><span class="cci-comp-name">Tribunal Award History</span><span class="cci-comp-val" style="color:var(--red);">48</span></div>
+      <div class="cci-comp-desc">2023 Working Time award (£3,800) — highest Bayesian weight. Only FM event in record.</div>
+      <div class="cci-bar"><div class="cci-fill" style="width:48%;"></div></div>
+    </div>
+    <div class="cci-comp-row" onclick="openL1('cci-cred')" style="cursor:pointer;">
+      <div class="cci-comp-top"><span class="cci-comp-name">Enforcement Event History</span><span class="cci-comp-val" style="color:var(--amber);">61</span></div>
+      <div class="cci-comp-desc">No regulatory enforcement events logged in REL. Sector average regulatory contact rate: 14%.</div>
+      <div class="cci-bar"><div class="cci-fill" style="width:61%;"></div></div>
+    </div>
+    <div class="cci-comp-row" onclick="openL1('cci-cred')" style="cursor:pointer;">
+      <div class="cci-comp-top"><span class="cci-comp-name">Claim Settlement Pattern</span><span class="cci-comp-val" style="color:var(--teal-lit);">74</span></div>
+      <div class="cci-comp-desc">No ACAS Early Conciliation record. Neutral conduct signal — settlement neutrality applied.</div>
+      <div class="cci-bar"><div class="cci-fill" style="width:74%;"></div></div>
+    </div>
+    <div class="cci-comp-row" onclick="openL1('cci-cred')" style="cursor:pointer;">
+      <div class="cci-comp-top"><span class="cci-comp-name">Procedural Compliance Signal</span><span class="cci-comp-val" style="color:var(--amber);">59</span></div>
+      <div class="cci-comp-desc">Active Matters checklist gaps (WTR opt-out) introduce downward signal in current period.</div>
+      <div class="cci-bar"><div class="cci-fill" style="width:59%;"></div></div>
+    </div>
+    <div class="cci-comp-row" onclick="openL1('cci-cred')" style="cursor:pointer;">
+      <div class="cci-comp-top"><span class="cci-comp-name">Longitudinal Conduct Trend</span><span class="cci-comp-val" style="color:var(--teal-lit);">71</span></div>
+      <div class="cci-comp-desc">10-year record from 2014. One adverse event in 12 years — sector-competitive conduct profile.</div>
+      <div class="cci-bar"><div class="cci-fill" style="width:71%;"></div></div>
+    </div>
+    <div class="cci-comp-row" onclick="openL1('cci-cred')" style="cursor:pointer;">
+      <div class="cci-comp-top"><span class="cci-comp-name">Sector Peer Comparison</span><span class="cci-comp-val" style="color:var(--amber);">63</span></div>
+      <div class="cci-comp-desc">Below FM sector median (68). 2023 WTR award weighs against peer profile.</div>
+      <div class="cci-bar"><div class="cci-fill" style="width:63%;"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TAB: VAULT
+════════════════════════════════ -->
+
+<div class="tab-pane" id="tab-vault">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Document Vault</div><div class="pg-sub">8 contracts · WCC average 66% · Unlimited documents · Clause-level analysis</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span><button class="btn btn-primary btn-sm">+ Upload Contract</button></div>
+  </div>
+  <div class="info-box mb16"><strong>Clause-level analysis active.</strong> Each contract is assessed against 47 legislative instruments. WCC (Whole Contract Conformity) score reflects the proportion of assessed clauses meeting the required standard. Critical findings require attention before Employment Rights Bill commencement.</div>
+  <div class="card">
+    <div class="card-hdr">
+      Contract Register
+      <div class="flex-c" style="margin-left:auto;gap:6px;">
+        <button class="btn btn-sec btn-sm">Sort: Score ↑</button>
+        <button class="btn btn-sec btn-sm">Filter: All</button>
+        <button class="btn btn-sec btn-sm">Compare 2 Selected</button>
       </div>
     </div>
-  );
-};
+    <table class="dt">
+      <thead><tr><th>Contract</th><th>Role</th><th>Site</th><th>WCC</th><th>Critical Findings</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <tr onclick="openL1('vault-ops001')"><td><span class="mono" style="font-size:11px;">NHF-OPS-001</span></td><td>Field Operative</td><td>Birmingham</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:47%;background:var(--red);"></div></div><span class="mono" style="color:var(--red);">47%</span></div></td><td><span class="tag t-r ft-crit">3 Critical</span></td><td><span class="tag t-r">Review Required</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+        <tr onclick="openL1('vault-ops002')"><td><span class="mono" style="font-size:11px;">NHF-OPS-002</span></td><td>Field Operative</td><td>Bristol</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:43%;background:var(--red);"></div></div><span class="mono" style="color:var(--red);">43%</span></div></td><td><span class="tag t-r ft-crit">4 Critical</span></td><td><span class="tag t-r">Review Required</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+        <tr><td><span class="mono" style="font-size:11px;">NHF-SUP-001</span></td><td>Supervisor</td><td>All Sites</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:58%;background:var(--amber);"></div></div><span class="mono" style="color:var(--amber);">58%</span></div></td><td><span class="tag t-am ft-gap">2 Gaps</span></td><td><span class="tag t-am">Under Review</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+        <tr><td><span class="mono" style="font-size:11px;">NHF-MGT-002</span></td><td>Senior Manager</td><td>Cardiff</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:69%;background:var(--amber);"></div></div><span class="mono" style="color:var(--amber);">69%</span></div></td><td><span class="tag t-am ft-gap">1 Gap</span></td><td><span class="tag t-am">Active Matter</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+        <tr><td><span class="mono" style="font-size:11px;">NHF-MGT-001</span></td><td>Manager</td><td>Cardiff</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:77%;background:var(--green);"></div></div><span class="mono" style="color:var(--green);">77%</span></div></td><td><span class="tag t-g ft-ok">Clear</span></td><td><span class="tag t-g">Compliant</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+        <tr><td><span class="mono" style="font-size:11px;">NHF-ADM-001</span></td><td>Administration</td><td>Cardiff</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:81%;background:var(--green);"></div></div><span class="mono" style="color:var(--green);">81%</span></div></td><td><span class="tag t-g ft-ok">Clear</span></td><td><span class="tag t-g">Compliant</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+        <tr><td><span class="mono" style="font-size:11px;">NHF-DIR-002</span></td><td>Director</td><td>Cardiff</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:64%;background:var(--amber);"></div></div><span class="mono" style="color:var(--amber);">64%</span></div></td><td><span class="tag t-am ft-gap">1 Gap</span></td><td><span class="tag t-am">Monitor</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+        <tr><td><span class="mono" style="font-size:11px;">NHF-DIR-001</span></td><td>Director</td><td>Cardiff</td><td><div class="flex-c"><div class="wcc-bar"><div class="wcc-fill" style="width:91%;background:var(--green);"></div></div><span class="mono" style="color:var(--green);">91%</span></div></td><td><span class="tag t-g ft-ok">Clear</span></td><td><span class="tag t-g">Compliant</span></td><td><button class="btn-ghost" style="font-size:10px;">Open →</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-// ── MAIN APP ──────────────────────────────────────────────────────────────
-const App = () => {
-  const [lang, setLang] = useState("en");
-  const [instruments, setInstruments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState("");
-  const [jurisdictionFilter, setJurisdictionFilter] = useState("all");
-  const [sortMode, setSortMode] = useState("sig");
-  const [expandedId, setExpandedId] = useState(null);
-  const [hasWelsh, setHasWelsh] = useState(false);
+<!-- ════════════════════════════════
+     TAB: TICKER (full)
+════════════════════════════════ -->
 
-  const ui = UI[lang];
+<div class="tab-pane" id="tab-ticker">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Intelligence Feed</div><div class="pg-sub">AI-generated regulatory briefings · Constitutionally governed · Updated at compute cycle</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span></div>
+  </div>
+  <div class="info-box mb16"><strong>AI-generated content notice:</strong> All briefings are generated by the Ailane pipeline AI and reviewed against constitutional mandate. When content has been updated since your last session, the <span class="ai-updated" style="display:inline-flex;">AI · UPDATED</span> indicator appears. Content does not constitute legal advice.</div>
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const token = getToken();
-        const orgId = getOrgId(token);
-        const data = await sbRpc("get_legislation_for_org", { p_org_id: orgId }, token);
-        setInstruments(data || []);
-        const welsh = (data || []).some(i => i.jurisdiction_codes?.includes("Wales"));
-        setHasWelsh(welsh);
-      } catch (e) {
-        window.location.replace('/login/');
-        return;
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  <div id="ticker-full-list">
+    <div class="ticker-full-item" onclick="openL1('acei-wtr')">
+      <div class="tfi-icon" style="background:rgba(249,115,22,.1);color:var(--acei);">⚡</div>
+      <div class="tfi-body">
+        <div class="tfi-top"><span class="tfi-title">Employment Rights Bill — Third Reading Complete</span><span class="ai-updated">AI · UPDATED</span></div>
+        <div class="tfi-meta"><span>07 Mar 2026</span><span>Constitutional: ACEI v1.0</span><span>Categories: WTR · TUPE · Employment Status · Redundancy</span></div>
+        <div class="tfi-brief">Zero-hours contract provisions confirmed. Guaranteed-hours obligation triggers after 12-week reference period. TUPE consultation extended to 45 days (10+ employees). Royal Assent estimated within 47 days. FM operators with operative contracts require priority review.</div>
+        <div class="tfi-tags"><span class="tag t-a">ACEI</span><span class="tag t-r">Critical</span><span class="tag t-am">Action Required</span></div>
+      </div>
+    </div>
+    <div class="ticker-full-item" onclick="openL1('acei-wtr')">
+      <div class="tfi-icon" style="background:rgba(239,68,68,.1);color:var(--red);">⚖</div>
+      <div class="tfi-body">
+        <div class="tfi-top"><span class="tfi-title">EAT: Multi-Site Rest Break Entitlement Cannot Be Averaged</span><span class="ai-updated">AI · UPDATED</span></div>
+        <div class="tfi-meta"><span>04 Mar 2026</span><span>Constitutional: ACEI v1.0</span><span>Category: Working Time</span></div>
+        <div class="tfi-brief">Employment Appeal Tribunal confirms that rest break entitlements under WTR 1998 Reg.12 cannot be averaged across deployment sites. Each site constitutes a distinct working day for rest break purposes. Direct precedent for multi-site FM operatives. Your 2023 WTR tribunal award is directly relevant to this ruling.</div>
+        <div class="tfi-tags"><span class="tag t-a">ACEI · WTR</span><span class="tag t-r">High Impact</span><span class="tag t-c">Directly Relevant</span></div>
+      </div>
+    </div>
+    <div class="ticker-full-item">
+      <div class="tfi-icon" style="background:rgba(56,189,248,.08);color:var(--cyan);">🔍</div>
+      <div class="tfi-body">
+        <div class="tfi-top"><span class="tfi-title">HMRC FM Sector Enforcement Wave — Travel Time Focus</span></div>
+        <div class="tfi-meta"><span>22 Feb 2026</span><span>Constitutional: ACEI v1.0</span><span>Category: National Minimum Wage</span></div>
+        <div class="tfi-brief">HMRC has named 4 FM operators in the most recent enforcement publication for NMW non-compliance relating to depot-to-site travel time. Operative roles where travel time is not counted as working time remain the primary enforcement target. FM sector enforcement rate has increased 23% year-on-year.</div>
+        <div class="tfi-tags"><span class="tag t-a">ACEI · NMW</span><span class="tag t-am">Sector Warning</span></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  const filtered = useMemo(() => {
-    let list = [...instruments];
+<!-- ════════════════════════════════
+     TAB: LEGISLATIVE
+════════════════════════════════ -->
 
-    // Jurisdiction filter
-    if (jurisdictionFilter === "wales") {
-      list = list.filter(i => i.jurisdiction_codes?.includes("Wales"));
-    } else if (jurisdictionFilter === "gb") {
-      list = list.filter(i => i.jurisdiction_codes?.includes("GB"));
-    }
+<div class="tab-pane" id="tab-legislative">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Legislative Tracker</div><div class="pg-sub">Active bills and instruments · Commencement monitoring · FM sector impact analysis</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span></div>
+  </div>
+  <div class="card mb16">
+    <div class="card-hdr">Employment Rights Bill 2024–25 <span class="tag t-r" style="margin-left:8px;">Critical · Direct Impact</span><div class="countdown-chip" style="margin-left:auto;"><span>⏱</span> Royal Assent ~47 days</div></div>
+    <div class="grid2">
+      <div>
+        <div class="lc-stage done"><div class="lc-stage-lbl">Stage 1</div><div class="lc-stage-title">First Reading · Second Reading</div><div class="lc-stage-detail">Completed Oct 2024. Government majority secured at Second Reading.</div></div>
+        <div class="lc-stage done"><div class="lc-stage-lbl">Stage 2</div><div class="lc-stage-title">Committee Stage</div><div class="lc-stage-detail">Completed Jan 2026. 247 amendments tabled; 31 Government amendments accepted.</div></div>
+        <div class="lc-stage now"><div class="lc-stage-lbl">Stage 3 · CURRENT</div><div class="lc-stage-title">Third Reading Complete · Lords Stage Underway</div><div class="lc-stage-detail">Third Reading passed 07 Mar 2026. Lords Committee expected 4–6 weeks. Ping-pong likely minimal.</div></div>
+        <div class="lc-stage pend"><div class="lc-stage-lbl">Stage 4</div><div class="lc-stage-title">Royal Assent · Commencement Regulations</div><div class="lc-stage-detail">Est. late April / early May 2026. Commencement staggered — zero-hours and TUPE provisions likely July 2026 for FM sector.</div></div>
+      </div>
+      <div>
+        <div class="info-box mb12"><strong>FM Impact Summary:</strong><br><br>Zero-hours operative contracts — guaranteed-hours obligation triggers after 12-week reference period. Affects NHF-OPS-001 and NHF-OPS-002.<br><br>TUPE consultation extended to 45 days for 10+ employee transfers. AMR-2026-002 is directly in scope if Royal Assent precedes 01 May.<br><br>Rest break provisions codified in statute for multi-site workers — EAT ruling will be embedded in legislation.</div>
+        <div class="warn-box"><strong>Action required:</strong> NHF-OPS-001 and NHF-OPS-002 clause review cannot wait until Royal Assent. ERB provisions on zero-hours are retrospective in effect for ongoing contracts. Review window is now.</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    // Search
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(i => {
-        const enMatch = (i.short_title + " " + (i.summary || "") + " " + (i.tags || []).join(" ")).toLowerCase().includes(q);
-        const cyMatch = lang === "cy" && ((i.title_cy || "") + " " + (i.summary_cy || "")).toLowerCase().includes(q);
-        return enMatch || cyMatch;
-      });
-    }
+<!-- ════════════════════════════════
+     TAB: REL
+════════════════════════════════ -->
 
-    // Sort
-    if (sortMode === "sig") {
-      list.sort((a, b) => {
-        // Wales-specific always first
-        const aW = a.jurisdiction_codes?.includes("Wales") ? 1 : 0;
-        const bW = b.jurisdiction_codes?.includes("Wales") ? 1 : 0;
-        if (bW !== aW) return bW - aW;
-        return (b.sci_significance || 0) - (a.sci_significance || 0);
-      });
-    } else {
-      list.sort((a, b) => {
-        const aTitle = (lang === "cy" && a.title_cy) ? a.title_cy : a.short_title;
-        const bTitle = (lang === "cy" && b.title_cy) ? b.title_cy : b.short_title;
-        return aTitle.localeCompare(bTitle);
-      });
-    }
+<div class="tab-pane" id="tab-rel">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Regulatory Event Log</div><div class="pg-sub">All-tier constitutional mandate · Anonymised contribution to CREE data source</div></div>
+  </div>
+  <div class="warn-box mb16"><strong>Constitutional obligation:</strong> The Regulatory Event Log is required at all subscription tiers under ACEI v1.0 Constitutional Mandate. Logging enforcement events strengthens the collective exposure intelligence for all platform users through anonymised CREE aggregation. Individual entries are irreversibly anonymised through a 6-step process before aggregation. Minimum threshold for CREE contribution: 5 events / 3 clients.</div>
+  <div class="rel-form-card">
+    <div style="font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">Log New Regulatory Event</div>
+    <div class="form-row">
+      <div><label class="form-label">Event Type</label><select class="form-input"><option>HMRC Enquiry</option><option>ET1 Claim Received</option><option>Health &amp; Safety Inspection</option><option>ICO Investigation</option><option>ACAS Early Conciliation</option><option>Employment Agency Standards</option></select></div>
+      <div><label class="form-label">Category</label><select class="form-input"><option>Working Time</option><option>National Minimum Wage</option><option>TUPE</option><option>Discrimination</option><option>Health &amp; Safety</option></select></div>
+    </div>
+    <div class="form-row">
+      <div><label class="form-label">Date of Event</label><input type="date" class="form-input"></div>
+      <div><label class="form-label">Outcome (if known)</label><select class="form-input"><option>Pending</option><option>No Further Action</option><option>Enforcement Notice</option><option>Settlement</option><option>ET Award</option></select></div>
+    </div>
+    <div style="margin-bottom:10px;"><label class="form-label">Notes (internal — not contributed to CREE)</label><textarea class="form-input" rows="3" placeholder="Internal notes for your records only..."></textarea></div>
+    <button class="btn btn-primary btn-sm">Submit Event</button>
+  </div>
+</div>
+<!-- ════════════════════════════════
+     TAB: AI ASSISTANT
+════════════════════════════════ -->
+<div class="tab-pane" id="tab-ai-assistant">
+  <div class="pg-hdr">
+    <div><div class="pg-title">AI Assistant</div><div class="pg-sub">General UK employment law · Knowledge Library powered · Constitutional mandate</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span></div>
+  </div>
+  <div class="ai-mandate-bar mb12">
+    <strong>Governance Tier — General Mandate:</strong> The AI Assistant provides general UK employment law information powered by the Ailane Knowledge Library (47 instruments + EU sources). Analysis is not tailored to your specific organisation's index data, vault findings, or conduct history. For company-specific AI analysis informed by your compliance profile, this is available on the Institutional tier.
+    <br><strong>This AI does not provide legal advice.</strong> It identifies areas for review and informs your risk management thinking. Seek qualified legal counsel for specific matters.
+  </div>
+  <div class="chip-row">
+    <div class="suggestion-chip" onclick="addSuggestedMsg(this)">What does the EAT rest break ruling mean for multi-site shift workers?</div>
+    <div class="suggestion-chip" onclick="addSuggestedMsg(this)">What will the Employment Rights Bill change for Working Time obligations?</div>
+    <div class="suggestion-chip" onclick="addSuggestedMsg(this)">What are the TUPE consultation requirements for a service provision change?</div>
+    <div class="suggestion-chip" onclick="addSuggestedMsg(this)">How should WTR opt-out agreements be documented?</div>
+  </div>
+  <div class="ai-panel-wrap">
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="msg msg-ai">
+        <div class="msg-bubble">Hello. I'm your Ailane AI Assistant, operating under the Governance tier general mandate.<br><br>I can help you explore UK employment law, legislative developments, and compliance considerations. I have access to the full Ailane Knowledge Library including 47 legislative instruments and EU sources.<br><br>What would you like to explore?</div>
+        <div class="msg-src">Ailane Knowledge Library · ACEI/RRI/CCI v1.0 · General mandate</div>
+        <div class="msg-time">06:00 · This session</div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-input" placeholder="Ask about UK employment law..." rows="2" onkeydown="handleChatKey(event)"></textarea>
+      <button class="chat-send" onclick="sendChat()">Send</button>
+    </div>
+  </div>
+  <div class="upgrade-hint mt12">
+    <div class="uh-text"><strong>Institutional tier:</strong> AI analysis informed by your organisation's actual index data, vault findings, and conduct history. Company-specific insights and recommended actions based on your compliance profile.</div>
+    <button class="uh-cta">See Institutional →</button>
+  </div>
+</div>
 
-    return list;
-  }, [instruments, search, jurisdictionFilter, sortMode, lang]);
+<!-- ════════════════════════════════
+     TAB: BOARD REPORTS
+════════════════════════════════ -->
 
-  const walesCount = instruments.filter(i => i.jurisdiction_codes?.includes("Wales")).length;
+<div class="tab-pane" id="tab-reports">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Board Reports</div><div class="pg-sub">PDF generation · Branded output · Constitutionally governed</div></div>
+    <div class="flex-c"><span class="ai-updated">AI · UPDATED 06:00</span></div>
+  </div>
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#080c18", display: "flex", flexDirection: "column" }}>
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <header style={{
-        background: "linear-gradient(180deg, rgba(15,22,45,0.98) 0%, rgba(10,14,26,0.98) 100%)",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
-        padding: "0 28px",
-        position: "sticky", top: 0, zIndex: 100,
-        backdropFilter: "blur(12px)",
-      }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          {/* Logo + Title */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 7,
-              background: "linear-gradient(135deg, #22d3ee, #0e7490)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "'JetBrains Mono', monospace",
-              fontWeight: 700, fontSize: 16, color: "#080c18",
-            }}>A</div>
-            <div>
-              <div style={{
-                fontSize: 16, fontWeight: 600, color: "#e2e8f0",
-                fontFamily: "'EB Garamond', Georgia, serif", letterSpacing: "0.3px",
-              }}>
-                {ui.title}
-              </div>
-              <div style={{
-                fontSize: 10, color: "#475569",
-                fontFamily: "'JetBrains Mono', monospace",
-                letterSpacing: "1.5px", textTransform: "uppercase",
-              }}>
-                AILANE · {ui.subtitle}
-              </div>
-            </div>
-          </div>
+  <!-- Download quota bar -->
 
-          {/* Right: Wales layer indicator + lang toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {hasWelsh && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 6,
-                fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
-                padding: "5px 10px", borderRadius: 6,
-                background: "rgba(185,28,28,0.1)",
-                border: "1px solid rgba(239,68,68,0.2)",
-                color: "#fca5a5",
-              }}>
-                🏴󠁧󠁢󠁷󠁬󠁳󠁿 {ui.walesLayer}
-              </div>
-            )}
-            <LangToggle lang={lang} setLang={setLang} hasWelsh={hasWelsh} />
-          </div>
+  <div class="dl-quota-bar">
+    <div>
+      <div class="stat-lbl" style="font-size:8px;">Monthly PDF Downloads</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+        <span class="dl-quota-val">3 / 25</span>
+        <span class="dl-quota-text">used this month · Resets 01 Apr 2026</span>
+      </div>
+    </div>
+    <div class="dl-quota-track"><div class="dl-quota-fill" style="width:12%;"></div></div>
+    <div style="font-size:10px;color:var(--text-mute);text-align:right;">238 employees · 150–300 band<br>25 downloads/mo org quota · 8 per user</div>
+  </div>
+
+  <div class="info-box mb16">
+    <strong>PDF Download Policy:</strong> All reports are watermarked with organisation name, user name, unique download ID, and timestamp. Downloads are logged for 12 months in your audit trail for GDPR compliance. Each PDF carries the Ailane constitutional disclaimer and ICO registration (No. 00013389720). Downloads are governed by AI Lane Limited's Terms of Service (ailane.ai/terms/).<br><br>
+    <strong>Quota policy:</strong> Limits are set to prevent mass data distribution while remaining generous for legitimate board reporting. Your current quota (25/month org, 8/month user) reflects your headcount band (150–300 employees). Quota scales with headcount band — contact your account team if operational needs require review.
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-hdr">Available Reports</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="padding:12px;background:var(--raised);border-radius:7px;border:1px solid var(--border-dim);">
+          <div class="flex-sb mb8"><span style="font-weight:600;font-size:12px;">Quarterly Compliance Summary</span><span class="tag t-g">Ready</span></div>
+          <div style="font-size:10px;color:var(--text-mute);margin-bottom:8px;">Full index triad · All 12 ACEI categories · 5 RRI pillars · 6 CCI components · Vault summary · Active Matters status</div>
+          <div class="flex-c" style="gap:6px;"><button class="btn btn-primary btn-sm">Generate PDF</button><button class="btn btn-sec btn-sm">Preview</button></div>
         </div>
-      </header>
-
-      {/* ── CONTROLS BAR ───────────────────────────────────────────────── */}
-      <div style={{
-        background: "rgba(12,17,35,0.9)",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-        padding: "12px 28px",
-        position: "sticky", top: 65, zIndex: 99,
-      }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          {/* Search */}
-          <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
-            <span style={{
-              position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
-              color: "#475569", fontSize: 13,
-            }}>⌕</span>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={ui.searchPlaceholder}
-              style={{
-                width: "100%", background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)", borderRadius: 7,
-                padding: "8px 10px 8px 30px",
-                color: "#dde4f0", fontSize: 14,
-                fontFamily: "'EB Garamond', Georgia, serif",
-                outline: "none",
-              }}
-            />
-          </div>
-
-          {/* Jurisdiction filter */}
-          <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", borderRadius: 7, padding: 3 }}>
-            {[
-              { key: "all", label: ui.filterAll },
-              { key: "wales", label: ui.filterWales },
-              { key: "gb", label: ui.filterGB },
-            ].map(f => (
-              <button key={f.key} onClick={() => setJurisdictionFilter(f.key)} style={{
-                background: jurisdictionFilter === f.key ? "rgba(34,211,238,0.12)" : "transparent",
-                color: jurisdictionFilter === f.key ? "#22d3ee" : "#64748b",
-                border: jurisdictionFilter === f.key ? "1px solid rgba(34,211,238,0.25)" : "1px solid transparent",
-                borderRadius: 5, padding: "5px 12px", cursor: "pointer",
-                fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
-                transition: "all 0.15s ease",
-              }}>
-                {f.key === "wales" && "🏴󠁧󠁢󠁷󠁬󠁳󠁿 "}{f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Sort */}
-          <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", borderRadius: 7, padding: 3 }}>
-            {[
-              { key: "sig", label: ui.sortSig },
-              { key: "alpha", label: ui.sortTitle },
-            ].map(s => (
-              <button key={s.key} onClick={() => setSortMode(s.key)} style={{
-                background: sortMode === s.key ? "rgba(255,255,255,0.08)" : "transparent",
-                color: sortMode === s.key ? "#dde4f0" : "#64748b",
-                border: "1px solid transparent",
-                borderRadius: 5, padding: "5px 12px", cursor: "pointer",
-                fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
-                transition: "all 0.15s ease",
-              }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Count */}
-          <div style={{
-            marginLeft: "auto", fontSize: 11,
-            fontFamily: "'JetBrains Mono', monospace",
-            color: "#475569",
-          }}>
-            {ui.instrumentCount(filtered.length)}
-            {hasWelsh && walesCount > 0 && ` · ${walesCount} ${lang === "cy" ? "Cymru" : "Wales"}`}
-          </div>
+        <div style="padding:12px;background:var(--raised);border-radius:7px;border:1px solid var(--border-dim);">
+          <div class="flex-sb mb8"><span style="font-weight:600;font-size:12px;">Active Matters Report</span><span class="tag t-am">3 Matters</span></div>
+          <div style="font-size:10px;color:var(--text-mute);margin-bottom:8px;">All open matters, procedural checklists, timeline summaries. Suitable for HR Director and legal preparation.</div>
+          <div class="flex-c" style="gap:6px;"><button class="btn btn-primary btn-sm">Generate PDF</button><button class="btn btn-sec btn-sm">Preview</button></div>
+        </div>
+        <div style="padding:12px;background:var(--raised);border-radius:7px;border:1px solid var(--border-dim);">
+          <div class="flex-sb mb8"><span style="font-weight:600;font-size:12px;">Vault Critical Findings</span><span class="tag t-r">2 Critical</span></div>
+          <div style="font-size:10px;color:var(--text-mute);margin-bottom:8px;">NHF-OPS-001 and NHF-OPS-002 clause-level findings. Suitable for legal review and remediation briefing.</div>
+          <div class="flex-c" style="gap:6px;"><button class="btn btn-primary btn-sm">Generate PDF</button><button class="btn btn-sec btn-sm">Preview</button></div>
+        </div>
+        <div style="padding:12px;background:rgba(245,158,11,.04);border-radius:7px;border:1px solid rgba(245,158,11,.2);opacity:.7;">
+          <div class="flex-sb mb8"><span style="font-weight:600;font-size:12px;">CEO-Personalised Board Summary</span><span class="tag" style="background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.25);font-size:7px;letter-spacing:.1em;">INSTITUTIONAL</span></div>
+          <div style="font-size:10px;color:var(--text-mute);margin-bottom:8px;">AI-generated executive narrative incorporating your specific index profile, peer benchmarking, and tailored remediation priorities.</div>
+          <button class="uh-cta" style="font-size:10px;">Available on Institutional →</button>
         </div>
       </div>
-
-      {/* ── LIBRARY BODY ───────────────────────────────────────────────── */}
-      <main style={{ flex: 1, padding: "20px 28px 40px", maxWidth: 1100, margin: "0 auto", width: "100%" }}>
-        {loading && (
-          <div style={{ textAlign: "center", color: "#475569", padding: 60, fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>
-            <div style={{ fontSize: 24, marginBottom: 12 }}>◌</div>
-            {ui.loading}
-          </div>
-        )}
-
-        {error && (
-          <div style={{
-            background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)",
-            borderRadius: 8, padding: 20, color: "#fca5a5", fontFamily: "'JetBrains Mono', monospace", fontSize: 13,
-          }}>
-            {ui.error} ({error})
-          </div>
-        )}
-
-        {!loading && !error && filtered.length === 0 && (
-          <div style={{ textAlign: "center", color: "#475569", padding: 60, fontFamily: "'EB Garamond', Georgia, serif", fontSize: 16 }}>
-            {ui.noResults}
-          </div>
-        )}
-
-        {/* Wales section header */}
-        {!loading && !error && jurisdictionFilter !== "gb" && walesCount > 0 && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10,
-            marginBottom: 12,
-            padding: "8px 12px",
-            background: "rgba(185,28,28,0.06)",
-            border: "1px solid rgba(239,68,68,0.12)",
-            borderRadius: 7,
-          }}>
-            <span style={{ fontSize: 16 }}>🏴󠁧󠁢󠁷󠁬󠁳󠁿</span>
-            <span style={{
-              fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
-              color: "#fca5a5", letterSpacing: "1px",
-            }}>
-              {lang === "cy" ? "HAEN CYMRU · DEDDFWRIAETH BENODOL I GYMRU" : "WALES LAYER · WALES-SPECIFIC LEGISLATION"}
-            </span>
-            <div style={{ flex: 1, height: 1, background: "rgba(239,68,68,0.12)" }} />
-            <span style={{
-              fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-              color: "#64748b",
-            }}>
-              {lang === "cy" ? "GWEDDILL YN DILYN ·" : "GB INSTRUMENTS FOLLOW ·"} {walesCount} {lang === "cy" ? "CYMRU" : "WALES"}
-            </span>
-          </div>
-        )}
-
-        {/* Instrument list */}
-        {!loading && !error && filtered.map(inst => (
-          <InstrumentCard
-            key={inst.id}
-            inst={inst}
-            lang={lang}
-            ui={ui}
-            expanded={expandedId === inst.id}
-            onToggle={() => setExpandedId(expandedId === inst.id ? null : inst.id)}
-          />
-        ))}
-      </main>
-
-      {/* ── FOOTER ─────────────────────────────────────────────────────── */}
-      <footer style={{
-        borderTop: "1px solid rgba(255,255,255,0.05)",
-        padding: "12px 28px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexWrap: "wrap", gap: 8,
-      }}>
-        <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#2d3748", letterSpacing: "1px" }}>
-          © 2026 AI LANE LIMITED · {ui.poweredBy.toUpperCase()}
-        </span>
-        <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "#2d3748" }}>
-          {lang === "cy" ? "AI-ASSISTED TRANSLATIONS · NIFER CYFANSWM:" : "AI-ASSISTED TRANSLATIONS · TOTAL INSTRUMENTS:"} {instruments.length}
-        </span>
-      </footer>
-
-      {/* AI Query Widget — Governance & Institutional tier only */}
-      <AIQueryWidget lang={lang} />
-
-      <style>{`
-        @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-        button:hover { opacity: 0.85; }
-        a:hover { opacity: 0.75; }
-      `}</style>
     </div>
-  );
+
+```
+<div class="card">
+  <div class="card-hdr">Report History · Download Log</div>
+  <table class="dt">
+    <thead><tr><th>Report</th><th>User</th><th>Date</th><th>ID</th></tr></thead>
+    <tbody>
+      <tr><td>Quarterly Summary</td><td>S. Chen</td><td class="mono" style="font-size:10px;">10 Mar</td><td class="mono" style="font-size:9px;color:var(--text-mute);">RPT-2026-0047</td></tr>
+      <tr><td>Vault Critical</td><td>S. Chen</td><td class="mono" style="font-size:10px;">08 Mar</td><td class="mono" style="font-size:9px;color:var(--text-mute);">RPT-2026-0046</td></tr>
+      <tr><td>Quarterly Summary</td><td>J. Watkins</td><td class="mono" style="font-size:10px;">01 Mar</td><td class="mono" style="font-size:9px;color:var(--text-mute);">RPT-2026-0039</td></tr>
+    </tbody>
+  </table>
+  <div class="info-box mt12" style="font-size:10px;">All downloads are watermarked and audit-logged for 12 months. Download IDs are retained for GDPR compliance. Contact <strong>privacy@ailane.ai</strong> for data access requests.</div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TAB: CALENDAR
+════════════════════════════════ -->
+
+<div class="tab-pane" id="tab-calendar">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Compliance Calendar</div><div class="pg-sub">Legislative countdowns · Vault reviews · Matter deadlines · Board dates</div></div>
+    <button class="btn btn-primary btn-sm">+ Add Event</button>
+  </div>
+  <div class="card">
+    <div class="card-hdr">Upcoming · Next 90 Days</div>
+    <div class="cal-item"><div class="cal-date-block"><div class="cal-month">MAR</div><div class="cal-day">18</div></div><div class="cal-body"><div class="cal-title">AMR-2026-001 — Investigation Meeting Deadline</div><div class="cal-sub">J. Davies WTR Grievance · Birmingham · Stage 2 must conclude</div><div class="cal-countdown" style="color:var(--red);">7 days · Urgent</div></div><span class="tag t-r">Matter</span></div>
+    <div class="cal-item"><div class="cal-date-block"><div class="cal-month">MAR</div><div class="cal-day">29</div></div><div class="cal-body"><div class="cal-title">NHF-OPS-001 — Recommended Review Deadline</div><div class="cal-sub">Critical clause gaps · WTR and zero-hours provisions · Pre-ERB window</div><div class="cal-countdown" style="color:var(--amber);">18 days · Action Required</div></div><span class="tag t-am">Vault</span></div>
+    <div class="cal-item"><div class="cal-date-block"><div class="cal-month">APR</div><div class="cal-day">~27</div></div><div class="cal-body"><div class="cal-title">Employment Rights Bill — Royal Assent (Estimated)</div><div class="cal-sub">Zero-hours and TUPE provisions confirmed. FM operators: review all operative contracts.</div><div class="cal-countdown" style="color:var(--amber);">~47 days · Medium confidence</div></div><span class="tag t-r">Legislative</span></div>
+    <div class="cal-item"><div class="cal-date-block"><div class="cal-month">MAY</div><div class="cal-day">01</div></div><div class="cal-body"><div class="cal-title">TUPE Transfer Date — Bristol Contract (AMR-2026-002)</div><div class="cal-sub">14 staff · Consultation must conclude before this date · ERB risk if Royal Assent precedes</div><div class="cal-countdown" style="color:var(--amber);">51 days · ERB Risk</div></div><span class="tag t-am">Matter</span></div>
+    <div class="cal-item"><div class="cal-date-block"><div class="cal-month">JUN</div><div class="cal-day">08</div></div><div class="cal-body"><div class="cal-title">WTR Amendment Regulations — Est. Commencement</div><div class="cal-sub">Rest break statutory codification · EAT ruling embedded in legislation</div><div class="cal-countdown" style="color:var(--green);">89 days · Monitor</div></div><span class="tag t-t">Legislative</span></div>
+    <div class="cal-item"><div class="cal-date-block"><div class="cal-month">JUL</div><div class="cal-day">01</div></div><div class="cal-body"><div class="cal-title">Q2 Board Meeting</div><div class="cal-sub">Scheduled · Quarterly compliance summary report due</div><div class="cal-countdown" style="color:var(--green);">112 days</div></div><span class="tag" style="background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.2);">Board</span></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TAB: ALERTS
+════════════════════════════════ -->
+
+<div class="tab-pane" id="tab-alerts">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Alerts</div><div class="pg-sub">Unread: 3 · All alerts from last 30 days</div></div>
+    <button class="btn btn-sec btn-sm">Mark All Read</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="padding:12px 14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:8px;cursor:pointer;border-left:3px solid var(--red);" onclick="openL1('acei-wtr')">
+      <div class="flex-sb mb4"><span style="font-size:12px;font-weight:600;">Working Time Exposure Elevated — ACEI Score +4</span><span class="tag t-r">Unread</span></div>
+      <div style="font-size:11px;color:var(--text-sec);">EAT multi-site rest break ruling directly impacts your operative contracts. NHF-OPS-001 identified as priority review. AMR-2026-001 matter is in active stage.</div>
+      <div style="font-size:9px;color:var(--text-mute);margin-top:5px;font-family:'Space Mono',monospace;">11 Mar 2026 · 06:00 · ACEI · Working Time</div>
+    </div>
+    <div style="padding:12px 14px;background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.2);border-radius:8px;cursor:pointer;border-left:3px solid var(--amber);" onclick="showTab('matters')">
+      <div class="flex-sb mb4"><span style="font-size:12px;font-weight:600;">AMR-2026-001 — Investigation Deadline in 7 Days</span><span class="tag t-r">Unread</span></div>
+      <div style="font-size:11px;color:var(--text-sec);">J. Davies WTR grievance — Stage 2 investigation meeting must be concluded by 18 March 2026. WTR opt-out documentation still outstanding.</div>
+      <div style="font-size:9px;color:var(--text-mute);margin-top:5px;font-family:'Space Mono',monospace;">11 Mar 2026 · 06:00 · Active Matters</div>
+    </div>
+    <div style="padding:12px 14px;background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.2);border-radius:8px;cursor:pointer;border-left:3px solid var(--amber);" onclick="showTab('legislative')">
+      <div class="flex-sb mb4"><span style="font-size:12px;font-weight:600;">Employment Rights Bill — Third Reading Passed</span><span class="tag t-r">Unread</span></div>
+      <div style="font-size:11px;color:var(--text-sec);">ERB Third Reading completed 07 Mar. Royal Assent now estimated within 47 days. Zero-hours and TUPE provisions confirmed. TUPE transfer AMR-2026-002 is at risk if commencement precedes 01 May.</div>
+      <div style="font-size:9px;color:var(--text-mute);margin-top:5px;font-family:'Space Mono',monospace;">07 Mar 2026 · Legislative · ACEI Critical</div>
+    </div>
+    <div style="padding:12px 14px;background:var(--card);border:1px solid var(--border-dim);border-radius:8px;cursor:pointer;opacity:.7;">
+      <div class="flex-sb mb4"><span style="font-size:12px;font-weight:600;">Weekly Index Compute Complete</span><span class="tag t-g">Read</span></div>
+      <div style="font-size:11px;color:var(--text-sec);">All three indices computed. ACEI: 64 (+2). RRI: 54 (−3). CCI: 62 (stable). CREE threshold not reached this period.</div>
+      <div style="font-size:9px;color:var(--text-mute);margin-top:5px;font-family:'Space Mono',monospace;">04 Mar 2026 · System</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TAB: INTELLIGENCE LAB
+════════════════════════════════ -->
+
+<div class="tab-pane" id="tab-lab">
+  <div class="pg-hdr">
+    <div><div class="pg-title">Intelligence Lab</div><div class="pg-sub">Institutional tier · Queryable tribunal estate · Sector benchmarking · Custom watchlists</div></div>
+    <div class="lab-new-badge">✦ New this week</div>
+  </div>
+  <div style="background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(124,58,237,.04));border:1px solid rgba(139,92,246,.3);border-radius:12px;padding:24px;margin-bottom:20px;">
+    <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,var(--violet-lit),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Where compliance professionals stop reporting and start researching.</div>
+    <div style="font-size:13px;color:var(--text-sec);line-height:1.7;max-width:620px;margin-bottom:16px;">Intelligence Lab gives you direct, queryable access to 130,854+ classified tribunal decisions, real-time sector benchmarking against anonymised peer organisations, custom watchlists on employer respondents, and deep-dive intelligence on any employer in your sector. It's the difference between knowing your score and understanding why the sector looks the way it does.</div>
+    <div class="grid3" style="gap:12px;margin-bottom:16px;">
+      <div style="padding:13px;background:rgba(5,12,24,.5);border-radius:8px;border:1px solid rgba(139,92,246,.2);">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--violet-lit);font-family:'Space Mono',monospace;margin-bottom:6px;">Queryable Estate</div>
+        <div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--text-prime);">130,854</div>
+        <div style="font-size:10px;color:var(--text-mute);">Classified tribunal decisions · FM sector: 4,218</div>
+      </div>
+      <div style="padding:13px;background:rgba(5,12,24,.5);border-radius:8px;border:1px solid rgba(139,92,246,.2);">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--violet-lit);font-family:'Space Mono',monospace;margin-bottom:6px;">Peer Benchmarking</div>
+        <div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--text-prime);">80,124</div>
+        <div style="font-size:10px;color:var(--text-mute);">Unique employer profiles · Anonymised sector comparison</div>
+      </div>
+      <div style="padding:13px;background:rgba(5,12,24,.5);border-radius:8px;border:1px solid rgba(139,92,246,.2);">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--violet-lit);font-family:'Space Mono',monospace;margin-bottom:6px;">Global Network</div>
+        <div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--text-prime);">53</div>
+        <div style="font-size:10px;color:var(--text-mute);">Jurisdiction scraper network · Real-time regulatory monitoring</div>
+      </div>
+    </div>
+    <div style="background:rgba(5,12,24,.6);border-radius:8px;padding:14px;border:1px solid rgba(139,92,246,.15);margin-bottom:16px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-mute);font-family:'Space Mono',monospace;margin-bottom:8px;letter-spacing:.08em;">Sample Intelligence Lab Query — Anonymised Preview</div>
+      <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--violet-lit);margin-bottom:8px;">> "Show FM sector tribunal decisions in South Wales, Working Time category, claimant successful, last 24 months"</div>
+      <div style="filter:blur(3px);pointer-events:none;">
+        <div style="font-size:11px;color:var(--text-sec);line-height:1.6;">Returning 23 decisions · FM sector · South Wales RFVM · Jan 2024 – Mar 2026<br>Claimant success rate: 67% (sector average: 54%) · Average award: £4,200 · Peak category: Reg.12 rest breaks<br>Top employer respondent pattern: multi-site cleaning operators · 8 decisions involve depot-to-site travel time</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="font-size:12px;">Book an Institutional Demo →</button>
+    <span style="font-size:11px;color:var(--text-mute);margin-left:12px;">No obligation · 30 minutes · Live data demonstration</span>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app-body -->
+
+<!-- ════════════ NOTEPAD PANEL ════════════ -->
+
+<div class="notepad-panel" id="notepad-panel">
+  <div class="np-hdr">
+    <div class="np-title">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="display:inline;margin-right:5px;"><rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="5" x2="11" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.2"/></svg>
+      Notes
+    </div>
+    <button class="l1-close" onclick="toggleNotepad()">×</button>
+  </div>
+  <div class="np-add">
+    <input class="np-input" id="np-input-field" placeholder="Quick note..." onkeydown="if(event.key==='Enter'){addNote();event.preventDefault();}">
+    <button class="btn btn-primary btn-sm" onclick="addNote()">Add</button>
+  </div>
+  <div class="np-body" id="np-body">
+    <div class="note-item"><div class="note-tag">ACEI · Working Time</div><div class="note-text">Need to update operative contracts before April board meeting — WTR opt-out gap critical for AMR-2026-001</div><div class="note-date">08 Mar 2026 · S. Chen</div></div>
+    <div class="note-item"><div class="note-tag">Vault · NHF-OPS-001</div><div class="note-text">J. Watkins confirmed Birmingham ops team on zero-hours — ERB provisions will apply immediately on Royal Assent</div><div class="note-date">07 Mar 2026 · J. Watkins (shared)</div></div>
+    <div class="note-item"><div class="note-tag">Legislative · ERB</div><div class="note-text">Board needs Royal Assent update — prepare slide on zero-hours and TUPE impact for Q1 meeting</div><div class="note-date">05 Mar 2026 · S. Chen</div></div>
+  </div>
+</div>
+
+<!-- ════════════ L1 PANEL ════════════ -->
+
+<div class="overlay-dim" id="overlay-dim" onclick="closeL1()"></div>
+<div class="l1-panel" id="l1-panel">
+  <div class="l1-hdr">
+    <div id="l1-index-chip" class="l1-index-chip tag t-a">ACEI</div>
+    <div id="l1-title" class="l1-title">Working Time — Category Leader</div>
+    <button class="l1-share-btn" onclick="openShare()">
+      <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="12" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="4" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 7l4-2M6 9l4 2" stroke="currentColor" stroke-width="1.3"/></svg>
+      Share
+    </button>
+    <button class="l1-close" onclick="closeL1()">×</button>
+  </div>
+  <div class="l1-body" id="l1-body">
+    <!-- populated by JS -->
+  </div>
+  <div class="l1-footer">
+    <button class="btn btn-primary" onclick="goDeeper()" style="flex:1;">Go Deeper →</button>
+    <button class="btn btn-sec" onclick="closeL1()">Close</button>
+  </div>
+</div>
+
+<!-- ════════════ SHARE MODAL ════════════ -->
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeShare()"></div>
+<div class="share-modal" id="share-modal">
+  <div class="flex-sb mb16">
+    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;">Share a Finding</div>
+    <button class="l1-close" onclick="closeShare()">×</button>
+  </div>
+  <div style="margin-bottom:12px;">
+    <div class="form-label">Share with colleague</div>
+    <select class="form-input mb8">
+      <option>James Watkins — Operations Director</option>
+      <option>Rachel Pugh — Finance Director</option>
+      <option>Owen Thomas — Compliance Manager</option>
+      <option>Priya Sharma — HR Manager</option>
+    </select>
+    <div class="form-label mt8">Depth</div>
+    <div class="flex-c" style="gap:8px;margin-bottom:8px;">
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="sdepth" checked> Summary (L1)</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="sdepth"> Full Analysis (L2)</label>
+    </div>
+    <div class="form-label">Note for recipient</div>
+    <textarea class="form-input" rows="2" placeholder="Add context for your colleague..."></textarea>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-sec);margin-top:8px;cursor:pointer;"><input type="checkbox"> Flag as urgent</label>
+  </div>
+  <div class="warn-box mb12" style="font-size:10px;"><strong>External share:</strong> A time-limited link (7 days default) will be generated for any external recipient. All external shares carry the Ailane constitutional disclaimer, ICO registration, and branding. Shares are audit-logged.</div>
+  <div class="flex-c" style="gap:8px;">
+    <button class="btn btn-primary" style="flex:1;" onclick="closeShare()">Send to Colleague</button>
+    <button class="btn btn-sec" onclick="closeShare()">Generate External Link</button>
+  </div>
+</div>
+<script>
+// ══ TAB NAVIGATION ══
+function showTab(id){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pane=document.getElementById('tab-'+id);
+  if(pane) pane.classList.add('active');
+  // find matching nav item
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")){n.classList.add('active');}
+  });
+  closeL1();
+}
+
+// ══ RING ANIMATION ══
+function animateRing(id,score){
+const el=document.getElementById(‘ring-’+id);
+if(!el) return;
+const circumference=94.2;
+const offset=circumference-(score/100)*circumference;
+setTimeout(()=>{
+el.style.strokeDashoffset=offset;
+},300);
+}
+setTimeout(()=>{
+animateRing(‘acei’,64);
+animateRing(‘rri’,54);
+animateRing(‘cci’,62);
+},200);
+
+// ══ L1 PANEL DATA ══
+const l1Data={
+‘acei-wtr’:{
+chip:‘ACEI’,chipClass:‘tag t-a’,
+title:‘Working Time — Trending Category Leader’,
+gold:true,goldText:‘Trending: ACEI Working Time +4 this period · EAT multi-site rest break ruling 04 Mar 2026 · 3 new FM sector decisions’,
+score:‘82’,scoreColor:‘var(–acei)’,delta:‘▲ +4’,deltaColor:‘var(–red)’,
+headline:‘The Employment Appeal Tribunal has confirmed that rest break entitlements cannot be averaged across deployment sites. This ruling directly impacts your operative contracts and is amplified by the 2023 WTR tribunal award in your conduct history.’,
+pairs:[
+{l:‘ACEI Category Score’,v:‘82 / 100’},
+{l:‘FM Sector Multiplier Applied’,v:‘×1.18’},
+{l:‘New ET Decisions This Period’,v:‘3 (FM sector)’},
+{l:‘Related AMR Matter’,v:‘AMR-2026-001 · Active’}
+],
+kl:‘Working Time Regulations 1998, Reg.12 — EAT [2026] rest break entitlement for multi-site deployment workers. Employment Rights Bill s.47 codification pending.’,
+countdown:‘Employment Rights Bill · Royal Assent ~47 days · WTR provisions confirmed’,
+aiPrimed:true,
+aiContext:‘Working Time exposure · ACEI trending leader · EAT multi-site rest break ruling (04 Mar 2026) · 2023 WTR tribunal award · ERB commencement ~47 days · NHF-OPS-001 WTR clause gap confirmed’,
+aiChips:[‘What does the EAT ruling mean for multi-site shift workers?’,‘How should NHF-OPS-001 be updated for WTR compliance?’,‘What will the Employment Rights Bill add to Working Time obligations?’]
+},
+‘rri-contract’:{
+chip:‘RRI’,chipClass:‘tag t-t’,
+title:‘Contractual Conformity — Pillar Leader’,
+gold:false,goldText:’’,
+score:‘49’,scoreColor:‘var(–teal-lit)’,delta:‘▼ −3’,deltaColor:‘var(–red)’,
+headline:‘Contractual Conformity is your weakest RRI pillar. Four operative contracts score below the 60% WCC threshold. Training Deployment records are incomplete for Birmingham. Governance pillar improvement is contingent on ERB commencement readiness review.’,
+pairs:[
+{l:‘Pillar Score’,v:‘49 / 100’},
+{l:‘Contracts Below Threshold’,v:‘4 (NHF-OPS-001, 002, SUP-001, DIR-002)’},
+{l:‘Birmingham Training Records’,v:‘Incomplete’},
+{l:‘ERB Readiness Impact’,v:‘High — Zero-hours provisions’}
+],
+kl:‘Employment Rights Act 1996, s.1 — written statement of particulars requirements. Employment Rights Bill 2024–25 zero-hours contract provisions (s.1A proposed).’,
+countdown:‘NHF-OPS-001 Review Due · 18 days’,
+aiPrimed:true,
+aiContext:‘RRI Contractual Conformity pillar · Score 49/100 · 4 contracts below threshold · ERB zero-hours provisions pending commencement’,
+aiChips:[‘What are the ERA s.1 requirements for operative contracts?’,‘How does the Employment Rights Bill change contractual obligations?’,‘What remediation is recommended for a WCC score of 47%?’]
+},
+‘cci-cred’:{
+chip:‘CCI’,chipClass:‘tag t-v’,
+title:‘Conduct Profile — Bayesian Analysis’,
+gold:false,goldText:’’,
+score:‘62’,scoreColor:‘var(–violet-lit)’,delta:’― stable’,deltaColor:‘var(–text-mute)’,
+headline:‘Your conduct profile reflects one adverse event in 12 years of operation — the 2023 Working Time tribunal award carries the highest Bayesian weight. The below-median CCI score is driven primarily by this single event and the current procedural gaps identified in AMR-2026-001.’,
+pairs:[
+{l:‘Bayesian Credibility Score’,v:‘0.89’},
+{l:‘Sector Median CCI’,v:‘68 (you: 62)’},
+{l:‘Adverse Events (10yr)’,v:‘1 — 2023 WTR £3,800’},
+{l:‘Procedural Gap Signal’,v:‘Active (AMR-2026-001 WTR opt-out)’}
+],
+kl:‘CCI v1.0 Constitutional basis — Bayesian credibility weighting. Settlement neutrality applied. Anti-perverse-incentive principle: settlement does not improve or harm CCI score.’,
+countdown:null,
+aiPrimed:true,
+aiContext:‘CCI conduct profile · 62/100 · Below sector median (68) · 2023 WTR award highest Bayesian weight · AMR-2026-001 procedural gap introducing downward signal’,
+aiChips:[‘How is the Bayesian credibility score calculated?’,‘What would resolve the procedural compliance gap?’,‘How does a WTR tribunal award affect the CCI long-term?’]
+},
+‘vault-ops001’:{
+chip:‘Vault’,chipClass:‘tag t-r’,
+title:‘NHF-OPS-001 — Critical Clause Findings’,
+gold:false,goldText:’’,
+score:‘47%’,scoreColor:‘var(–red)’,delta:‘WCC Score’,deltaColor:‘var(–text-mute)’,
+headline:‘NHF-OPS-001 has three critical clause gaps. The Working Time rest break clause is non-compliant with EAT 2026 guidance. The zero-hours provisions will be directly affected by Employment Rights Bill commencement. A WTR opt-out agreement is not on file for the associated employee (AMR-2026-001).’,
+pairs:[
+{l:‘WCC Score’,v:‘47% (threshold: 60%)’},
+{l:‘Critical Findings’,v:‘3’},
+{l:‘WTR Rest Break Clause’,v:‘Non-compliant — EAT 2026’},
+{l:‘Zero-Hours Clause’,v:‘ERB risk — guaranteed hours obligation’},
+{l:‘Related Active Matter’,v:‘AMR-2026-001 · J. Davies’}
+],
+kl:‘Working Time Regulations 1998, Reg.12. Employment Rights Act 1996 s.1. Employment Rights Bill 2024–25 s.1A (proposed). ERA s.230 worker definition.’,
+countdown:‘Review deadline · 18 days · Pre-ERB window’,
+aiPrimed:true,
+aiContext:‘NHF-OPS-001 · WCC 47% · 3 critical gaps · WTR rest break non-compliant · Zero-hours ERB risk · AMR-2026-001 active matter related’,
+aiChips:[‘What are the required WTR clause provisions for operative contracts?’,‘How should a zero-hours clause be drafted for ERB compliance?’,‘What is the remediation priority order for these findings?’]
+},
+‘vault-ops002’:{
+chip:‘Vault’,chipClass:‘tag t-r’,
+title:‘NHF-OPS-002 — Critical Clause Findings’,
+gold:false,goldText:’’,
+score:‘43%’,scoreColor:‘var(–red)’,delta:‘WCC Score’,deltaColor:‘var(–text-mute)’,
+headline:‘NHF-OPS-002 has four critical findings and shares the same template as NHF-OPS-001. The identical holiday calculation clause in both contracts suggests a template issue rather than individual drafting error — updating the template source would remediate both simultaneously.’,
+pairs:[
+{l:‘WCC Score’,v:‘43% (threshold: 60%)’},
+{l:‘Critical Findings’,v:‘4’},
+{l:‘Template Match with OPS-001’,v:‘6 shared clause patterns’},
+{l:‘Holiday Calculation’,v:‘Non-compliant — WTR reg.13A’}
+],
+kl:‘Working Time Regulations 1998, Reg.13A — holiday pay calculation. EAT Bear Scotland v Fulton [2015] UKEAT — overtime in holiday pay. Employment Rights Bill holiday provisions.’,
+countdown:‘Review alongside OPS-001 · 18 days’,
+aiPrimed:true,
+aiContext:‘NHF-OPS-002 · WCC 43% · 4 critical gaps · Template match with NHF-OPS-001 · Holiday calculation non-compliant · Comparison mode recommended’,
+aiChips:[‘What does Bear Scotland mean for holiday pay calculations?’,‘How should we remediate a shared template defect across multiple contracts?’,‘What is the ERB impact on existing zero-hours operative contracts?’]
+}
 };
 
-ReactDOM.render(<App />, document.getElementById("root"));
+let currentL1=’’;
+function openL1(key){
+const d=l1Data[key];
+if(!d) return;
+currentL1=key;
+document.getElementById(‘l1-index-chip’).className=’l1-index-chip ’+d.chipClass;
+document.getElementById(‘l1-index-chip’).textContent=d.chip;
+document.getElementById(‘l1-title’).textContent=d.title;
+
+let html=’’;
+if(d.gold&&d.goldText){
+html+=`<div class="l1-gold-reason">✦ ${d.goldText}</div>`;
+}
+html+=`<div class="l1-metric"> <div class="l1-score" style="color:${d.scoreColor}">${d.score}</div> <div> <div class="l1-delta" style="color:${d.deltaColor}">${d.delta}</div> ${d.countdown?`<div class="countdown-chip" style="margin-top:4px;font-size:9px;"><span>⏱</span> ${d.countdown}</div>`:’’}
+</div>
+
+  </div>`;
+  html+=`<div class="l1-headline">${d.headline}</div>`;
+  html+=`<div class="l1-data-pairs">`;
+  d.pairs.forEach(p=>{
+    html+=`<div class="l1-pair"><span class="l1-pair-lbl">${p.l}</span><span class="l1-pair-val">${p.v}</span></div>`;
+  });
+  html+=`</div>`;
+  html+=`<div class="l1-kl-ref"><div class="l1-kl-lbl">Knowledge Library Reference</div><div class="l1-kl-text">${d.kl}</div></div>`;
+  html+=`<textarea class="l1-note-input" placeholder="Add a note to this finding..."></textarea>`;
+
+if(d.aiPrimed){
+html+=`<div style="background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.15);border-radius:7px;padding:10px 12px;"> <div style="font-size:9px;font-weight:700;font-family:'Space Mono',monospace;color:var(--violet-lit);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">AI Context Brief</div> <div style="font-size:10px;color:var(--text-sec);margin-bottom:8px;">${d.aiContext}</div> <div style="display:flex;flex-wrap:wrap;gap:4px;"> ${d.aiChips.map(c=>`<div class=“suggestion-chip” style=“font-size:9px;” onclick=“primeAndOpenAI(’${c.replace(/’/g,”\’”)}’)”>${c}</div>`).join('')} </div> </div>`;
+}
+
+document.getElementById(‘l1-body’).innerHTML=html;
+document.getElementById(‘l1-panel’).classList.add(‘open’);
+document.getElementById(‘overlay-dim’).classList.add(‘active’);
+}
+
+function closeL1(){
+document.getElementById(‘l1-panel’).classList.remove(‘open’);
+document.getElementById(‘overlay-dim’).classList.remove(‘active’);
+}
+
+function goDeeper(){
+closeL1();
+// map to best tab
+const map={‘acei-wtr’:‘acei’,‘rri-contract’:‘rri’,‘cci-cred’:‘cci’,‘vault-ops001’:‘vault’,‘vault-ops002’:‘vault’};
+const tab=map[currentL1]||‘overview’;
+showTab(tab);
+}
+
+function primeAndOpenAI(msg){
+closeL1();
+showTab(‘ai-assistant’);
+setTimeout(()=>{
+document.getElementById(‘chat-input’).value=msg;
+},200);
+}
+
+// ══ NOTEPAD ══
+let notepadOpen=false;
+function toggleNotepad(){
+notepadOpen=!notepadOpen;
+document.getElementById(‘notepad-panel’).classList.toggle(‘open’,notepadOpen);
+}
+function addNote(){
+const input=document.getElementById(‘np-input-field’);
+const val=input.value.trim();
+if(!val) return;
+const body=document.getElementById(‘np-body’);
+const div=document.createElement(‘div’);
+div.className=‘note-item’;
+div.innerHTML=`<div class="note-tag">General</div><div class="note-text">${val}</div><div class="note-date">${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} · S. Chen</div>`;
+body.insertBefore(div,body.firstChild);
+input.value=’’;
+}
+
+// ══ SHARE MODAL ══
+function openShare(){
+document.getElementById(‘share-modal’).classList.add(‘open’);
+document.getElementById(‘modal-overlay’).classList.add(‘open’);
+}
+function closeShare(){
+document.getElementById(‘share-modal’).classList.remove(‘open’);
+document.getElementById(‘modal-overlay’).classList.remove(‘open’);
+}
+
+// ══ CHAT ══
+const aiResponses={
+‘default’:‘I can help you explore that area of UK employment law. Based on the Ailane Knowledge Library and current legislative developments, here's what you need to know…’,
+‘eat’:‘The Employment Appeal Tribunal ruling of 04 March 2026 confirmed that rest break entitlements under Working Time Regulations 1998 Reg.12 cannot be averaged across deployment sites. Each site constitutes a discrete working day for rest break calculation purposes. This has direct implications for multi-site FM operatives working split shifts across two or more locations in a single day.’,
+‘erb’:‘The Employment Rights Bill will introduce several significant changes relevant to FM operators. Zero-hours contract workers acquire a right to guaranteed-hours contracts after a 12-week reference period. TUPE consultation periods extend to 45 days for transfers involving 10 or more employees. Rest break provisions will be codified in primary legislation, embedding the recent EAT ruling. Royal Assent is estimated within 47 days.’,
+‘tupe’:‘TUPE service provision changes require notification to affected employees and their representatives at least 28 days before the transfer (extending to 45 days under the Employment Rights Bill for 10+ employee transfers). Employee liability information must be provided to the incoming employer at least 28 days before transfer. Failure to comply exposes the transferor to awards of up to 13 weeks' pay per affected employee.’
+};
+
+function sendChat(){
+const input=document.getElementById(‘chat-input’);
+const msg=input.value.trim();
+if(!msg) return;
+const msgs=document.getElementById(‘chat-msgs’);
+// User msg
+const userDiv=document.createElement(‘div’);
+userDiv.className=‘msg msg-user’;
+userDiv.innerHTML=`<div class="msg-bubble">${msg}</div><div class="msg-time">${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+msgs.appendChild(userDiv);
+input.value=’’;
+msgs.scrollTop=msgs.scrollHeight;
+// AI response
+setTimeout(()=>{
+const lower=msg.toLowerCase();
+let resp=aiResponses.default;
+if(lower.includes(‘eat’)||lower.includes(‘rest break’)||lower.includes(‘multi-site’)) resp=aiResponses.eat;
+if(lower.includes(‘employment rights bill’)||lower.includes(‘erb’)||lower.includes(‘zero-hours’)) resp=aiResponses.erb;
+if(lower.includes(‘tupe’)||lower.includes(‘transfer’)) resp=aiResponses.tupe;
+const aiDiv=document.createElement(‘div’);
+aiDiv.className=‘msg msg-ai’;
+aiDiv.innerHTML=`<div class="msg-bubble">${resp}<br><br><em style="font-size:10px;color:var(--text-mute);">General UK employment law information — not legal advice tailored to your organisation. Seek qualified legal counsel for specific matters.</em></div><div class="msg-src">Ailane Knowledge Library · ACEI v1.0 · General mandate</div><div class="msg-time">${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>`;
+msgs.appendChild(aiDiv);
+msgs.scrollTop=msgs.scrollHeight;
+},700);
+}
+
+function handleChatKey(e){
+if(e.key===‘Enter’&&!e.shiftKey){e.preventDefault();sendChat();}
+}
+
+function addSuggestedMsg(el){
+document.getElementById(‘chat-input’).value=el.textContent;
+document.getElementById(‘chat-input’).focus();
+}
+
+// ══ TICKER CLICK ══
+function handleTickerClick(e){
+const item=e.target.closest(’.t-item’);
+if(item&&item.dataset.goto){showTab(item.dataset.goto);}
+}
+
+// ══ NEW MATTER ══
+function openNewMatter(){
+alert(‘Open New Matter — full intake form: employee/group name, category (ACEI/RRI), incident date, initial description, assigned handler. This would open as a guided AI-assisted intake flow in production.’);
+}
+
+// ══ ESCAPE KEY ══
+document.addEventListener(‘keydown’,e=>{
+if(e.key===‘Escape’){closeL1();closeShare();}
+});
+
+// ══ CAT BAR ANIMATION ══
+setTimeout(()=>{
+document.querySelectorAll(’.cat-bar’).forEach(b=>{
+const w=b.style.width;
+b.style.width=‘0%’;
+setTimeout(()=>{b.style.width=w;},100);
+});
+},400);
 </script>
+
 </body>
 </html>
