@@ -896,6 +896,126 @@
       .data-item:not(:last-child) { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 24px; }
       footer { flex-direction: column; padding: 32px 20px; }
     }
+
+    /* DISCLOSURE MODAL */
+    .disclosure-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.75);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .disclosure-overlay.active {
+      display: flex;
+    }
+    .disclosure-modal {
+      background: var(--bg-1);
+      border: 2px solid var(--amber);
+      border-radius: var(--radius-lg);
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 36px 32px;
+    }
+    .disclosure-modal h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--text-1);
+      margin-bottom: 20px;
+      border-bottom: 3px solid var(--amber);
+      padding-bottom: 16px;
+    }
+    .disclosure-modal p {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .disclosure-checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .disclosure-checkbox-row input[type="checkbox"] {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--amber);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .disclosure-checkbox-row label {
+      font-size: 14px;
+      color: var(--text-1);
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .disclosure-checkbox-row label a {
+      color: var(--amber);
+      text-decoration: underline;
+    }
+    .disclosure-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .disclosure-btn-cancel {
+      background: transparent;
+      border: 2px solid var(--border-2);
+      color: var(--text-2);
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .disclosure-btn-cancel:hover {
+      border-color: var(--text-1);
+      color: var(--text-1);
+    }
+    .disclosure-btn-proceed {
+      background: var(--amber);
+      border: none;
+      color: #07090F;
+      font-family: var(--font-ui);
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: var(--radius);
+      cursor: not-allowed;
+      opacity: 0.5;
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .disclosure-btn-proceed.enabled {
+      cursor: pointer;
+      opacity: 1;
+    }
+    .disclosure-btn-proceed.enabled:hover {
+      background: var(--amber-dim);
+    }
+    @media (max-width: 768px) {
+      .disclosure-modal {
+        padding: 28px 20px;
+      }
+      .disclosure-buttons {
+        flex-direction: column-reverse;
+      }
+      .disclosure-btn-cancel,
+      .disclosure-btn-proceed {
+        width: 100%;
+        text-align: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1137,7 +1257,67 @@
       <a href="https://ailane.ai/account/">Sign In</a>
     </div>
   </footer>
+  <!-- Disclosure Modal -->
+  <div class="disclosure-overlay" id="disclosure-overlay">
+    <div class="disclosure-modal">
+      <h2>Before You Continue</h2>
+      <p>Ailane operates an AI-assisted complaint and dispute resolution process. If you raise a complaint or refund request, it will be evaluated by our AI Dispute Resolution Agent, which will assess your case against the evidence on record and our published Terms of Service. You will receive a reasoned response within 5 business days. Where a complaint cannot be resolved at this stage, it will be escalated to senior review or, where applicable, formal dispute resolution. Full details are set out in our Complaint Handling Policy.</p>
+      <div class="disclosure-checkbox-row">
+        <input type="checkbox" id="disclosure-consent" />
+        <label for="disclosure-consent">I have read and agree to the <a href="/terms/" target="_blank">Terms of Service</a> including the AI-assisted <a href="/complaints/" target="_blank">Complaint Handling Policy</a>.</label>
+      </div>
+      <div class="disclosure-buttons">
+        <button class="disclosure-btn-cancel" id="disclosure-cancel">Cancel</button>
+        <button class="disclosure-btn-proceed" id="disclosure-proceed" disabled>Proceed to Payment</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // Disclosure modal logic
+    (function() {
+      var overlay = document.getElementById('disclosure-overlay');
+      var consent = document.getElementById('disclosure-consent');
+      var proceed = document.getElementById('disclosure-proceed');
+      var cancel = document.getElementById('disclosure-cancel');
+      var pendingURL = null;
+
+      consent.addEventListener('change', function() {
+        if (this.checked) {
+          proceed.disabled = false;
+          proceed.classList.add('enabled');
+        } else {
+          proceed.disabled = true;
+          proceed.classList.remove('enabled');
+        }
+      });
+
+      cancel.addEventListener('click', function() {
+        overlay.classList.remove('active');
+        consent.checked = false;
+        proceed.disabled = true;
+        proceed.classList.remove('enabled');
+        pendingURL = null;
+      });
+
+      proceed.addEventListener('click', function() {
+        if (!consent.checked) return;
+        sessionStorage.setItem('ailane_disclosure_accepted', 'true');
+        sessionStorage.setItem('ailane_disclosure_ts', new Date().toISOString());
+        sessionStorage.setItem('ailane_disclosure_version', 'CDRA-001-v1.0');
+        window.location.href = pendingURL;
+      });
+
+      // Intercept all links containing buy.stripe.com
+      document.querySelectorAll('a[href*="buy.stripe.com"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          pendingURL = this.href;
+          overlay.classList.add('active');
+        });
+      });
+    })();
+
     const targets = { ai: 54, di: 61, mo: 7 };
     function animateCount(el, target, duration) {
       const start = performance.now();
