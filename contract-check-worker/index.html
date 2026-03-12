@@ -1786,8 +1786,8 @@
       fileInput.addEventListener('change', function() { if (fileInput.files[0]) setFile(fileInput.files[0]); });
 
       function setFile(f) {
-        if (f.size > 500 * 1024) {
-          showError('Document is too large (max ~15 pages / 500KB).');
+        if (f.size > 10 * 1024 * 1024) {
+          showError('Document is too large (max 10MB).');
           return;
         }
         hideError();
@@ -1919,23 +1919,6 @@
           .catch(function() { alert('Download failed. Contact support@ailane.ai'); })
           .finally(function() { btn.innerHTML = orig; btn.disabled = false; });
         };
-
-        // Send results email (fire and forget)
-        var findingsSummary = 'Compliance Score: ' + score + '/100 (' + riskLabel + '). ' +
-          counts.critical + ' critical, ' + counts.major + ' major, ' + counts.minor + ' minor, ' + counts.compliant + ' compliant.';
-        fetch(FN_BASE + '/send-scan-results', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: sessionId,
-            scan_type: SCAN_TYPE,
-            findings_summary: findingsSummary,
-            overall_score: score,
-            document_name: uploadedFileName || 'Uploaded document'
-          })
-        })
-        .then(function(r) { console.log('Email send status:', r.status); })
-        .catch(function(e) { console.error('Email send failed:', e); });
       }
     })();
   </script>
