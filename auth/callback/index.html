@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ailane — Signing in</title>
+  <!-- GA4 — MANDATORY -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -17,42 +18,91 @@
   justify-content:center;height:100vh;margin:0;font-family:Arial,sans-serif;">
   <div style="text-align:center;color:#ffffff;">
     <div style="font-size:28px;font-weight:700;letter-spacing:2px;">AILANE</div>
-    <div style="font-size:14px;margin-top:12px;opacity:0.7;">Signing you in...</div>
+    <div id="status-text" style="font-size:14px;margin-top:12px;opacity:0.7;">Signing you in...</div>
   </div>
   <script>
     const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    function setStatus(msg) {
+      document.getElementById('status-text').textContent = msg;
+    }
+
+    // ── UTM capture — preserve attribution through auth redirect ──
+    function captureUtm() {
+      const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'];
+      const params = new URLSearchParams(window.location.search);
+      const utmData = {};
+      utmKeys.forEach(k => { if (params.get(k)) utmData[k] = params.get(k); });
+      if (Object.keys(utmData).length) {
+        sessionStorage.setItem('ailane_utm', JSON.stringify(utmData));
+      }
+    }
+
+    // ── Canonical route logic — JWT decode + raw fetch ONLY ──
+    // NEVER use sb.from() or sb.rpc() at callback time
     async function routeUser(session) {
-      // Retrieve UTM data captured before auth
-      const storedUtm = sessionStorage.getItem('ailane_utm');
-      const utmData = storedUtm ? JSON.parse(storedUtm) : {};
+      setStatus('Loading your account...');
 
       // Fire GA4 login event
+      const storedUtm = sessionStorage.getItem('ailane_utm');
+      const utmData = storedUtm ? JSON.parse(storedUtm) : {};
       if (typeof gtag !== 'undefined') {
-        gtag('event', 'login', {
-          method: utmData.utm_source || 'direct',
-          ...utmData
-        });
+        gtag('event', 'login', { method: utmData.utm_source || 'direct', ...utmData });
       }
 
-      // Resolve org ID — sole permitted mechanism
-      const { data: orgId, error: orgError } = await supabase.rpc('get_my_org_id');
+      // Step 1 — Decode JWT directly
+      const token = session.access_token;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userId = payload.sub;
 
-      if (orgError || !orgId) {
+      // Step 2 — Fetch app_users row via raw fetch to get org_id
+      const userResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/app_users?id=eq.${userId}&select=*`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!userResponse.ok) {
+        window.location.replace('/account/?error=profile_fetch_failed');
+        return;
+      }
+
+      const users = await userResponse.json();
+      const user = users[0];
+
+      if (!user || !user.org_id) {
         window.location.replace('/account/?error=no_org');
         return;
       }
 
-      // Query organisations directly — organisation_subscriptions does not exist
-      const { data: orgData, error: orgErr } = await supabase
-        .from('organisations')
-        .select('tier, status')
-        .eq('id', orgId)
-        .single();
+      // Step 3 — Fetch organisation via raw fetch (NOT sb.from())
+      const orgResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/organisations?id=eq.${user.org_id}&select=*`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (orgErr || !orgData || orgData.status !== 'active') {
+      if (!orgResponse.ok) {
+        window.location.replace('/account/?error=org_fetch_failed');
+        return;
+      }
+
+      const orgs = await orgResponse.json();
+      const org = orgs[0];
+
+      if (!org || org.status === 'inactive') {
         window.location.replace('/account/#upgrade');
         return;
       }
@@ -62,49 +112,66 @@
         ? '?' + new URLSearchParams(JSON.parse(storedUtm)).toString()
         : '';
 
-      // Route by tier: 'governance' | 'institutional' | 'operational_readiness'
-      const tier = orgData.tier;
+      // Step 4 — Route by tier (subscription_tier with fallback to tier)
+      const tier = org.subscription_tier || org.tier;
 
       if (tier === 'governance' || tier === 'institutional') {
         window.location.replace('/governance-dashboard/' + utmString);
+      } else if (tier === 'operational_readiness') {
+        window.location.replace('/account/dashboard/' + utmString);
       } else {
-        // operational_readiness and any other tier → operational dashboard
+        // per_session, preview, or unrecognised tier → account page
         window.location.replace('/account/dashboard/' + utmString);
       }
     }
 
+    // ── Main callback handler ──
     (async () => {
-      // Step 1 — Capture UTM parameters before any auth call
-      const utmKeys = ['utm_source','utm_medium','utm_campaign',
-                       'utm_content','utm_term','gclid'];
+      captureUtm();
+
       const params = new URLSearchParams(window.location.search);
-      const utmData = {};
-      utmKeys.forEach(k => { if (params.get(k)) utmData[k] = params.get(k); });
-      if (Object.keys(utmData).length) {
-        sessionStorage.setItem('ailane_utm', JSON.stringify(utmData));
-      }
-
-      // Step 2 — Check for existing valid session FIRST
-      // Do not call exchangeCodeForSession on an already-authenticated user
-      const { data: { session: existingSession } } = await supabase.auth.getSession();
-      if (existingSession) {
-        await routeUser(existingSession);
-        return;
-      }
-
-      // Step 3 — Exchange code for session (new authentication only)
       const code = params.get('code');
-      if (!code) {
-        window.location.replace('/account/');
-        return;
+
+      try {
+        // ── Path A — OAuth / PKCE (URL contains ?code=) ──
+        if (code) {
+          setStatus('Exchanging authorisation code...');
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error || !data?.session) {
+            console.error('Session exchange failed:', error);
+            window.location.replace('/account/?error=auth_failed');
+            return;
+          }
+          await routeUser(data.session);
+          return;
+        }
+
+        // ── Path B — Password / Magic Link / existing session (no ?code=) ──
+        setStatus('Checking session...');
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+
+        if (existingSession) {
+          await routeUser(existingSession);
+          return;
+        }
+
+        // 6-second timeout fallback via onAuthStateChange
+        setStatus('Waiting for authentication...');
+        const session = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('timeout')), 6000);
+          supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+              clearTimeout(timeout);
+              resolve(session);
+            }
+          });
+        });
+
+        await routeUser(session);
+      } catch (err) {
+        console.error('Auth callback error:', err);
+        window.location.replace('/account/?error=auth_timeout');
       }
-      const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error || !session) {
-        console.error('Session exchange failed:', error);
-        window.location.replace('/account/?error=auth_failed');
-        return;
-      }
-      await routeUser(session);
     })();
   </script>
 </body>
