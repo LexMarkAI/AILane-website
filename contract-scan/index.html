@@ -560,6 +560,31 @@ footer {
 }
 .findings-chip .count { font-size: 18px; font-weight: 900; }
 .findings-chip .label { font-size: 10px; color: var(--grey-400); letter-spacing: 0.5px; }
+.finding-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.feedback-label {
+  font-size: 0.78rem;
+  color: #94A3B8;
+}
+.feedback-btn {
+  background: none;
+  border: 1px solid #2A3A5C;
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+}
+.feedback-btn:hover { background: rgba(255,255,255,0.07); }
+.feedback-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.feedback-thanks { font-size: 0.78rem; color: #10B981; }
 .download-row {
   display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px;
 }
@@ -1028,6 +1053,9 @@ const PORTAL_UPLOAD = `${SUPABASE_BASE}/portal-upload`;
 const PDF_URL       = (id) => `${SUPABASE_BASE}/generate-report-pdf?upload_id=${id}`;
 const DOCX_URL      = (id) => `${SUPABASE_BASE}/generate-report?upload_id=${id}`;
 
+const SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
 const MAX_VERIFY_RETRIES = 12;
 const VERIFY_INTERVAL_MS = 3500;
 const POLL_INTERVAL_MS   = 6000;
@@ -1346,12 +1374,21 @@ function renderResults(score, findingCounts, email, fileName) {
   ];
   const fsEl = document.getElementById('findings-summary');
   if (fsEl) {
-    fsEl.innerHTML = counts.map(c =>
-      `<div class="findings-chip">
-        <span class="count" style="color:${c.color}">${fc[c.key] || 0}</span>
+    fsEl.innerHTML = counts.map(c => {
+      const count = fc[c.key] || 0;
+      const feedbackHtml = (c.key !== 'compliant' && count > 0) ? `
+        <div class="finding-feedback" data-session-id="${portalSessionId || ''}" data-severity="${c.key}">
+          <span class="feedback-label">Was this finding accurate?</span>
+          <button class="feedback-btn" data-accurate="true" onclick="submitFindingFeedback(this)" aria-label="Yes, accurate">&#128077;</button>
+          <button class="feedback-btn" data-accurate="false" onclick="submitFindingFeedback(this)" aria-label="Not accurate">&#128078;</button>
+          <span class="feedback-thanks" style="display:none">Feedback recorded. Thank you.</span>
+        </div>` : '';
+      return `<div class="findings-chip">
+        <span class="count" style="color:${c.color}">${count}</span>
         <span class="label">${c.label}</span>
-      </div>`
-    ).join('');
+        ${feedbackHtml}
+      </div>`;
+    }).join('');
   }
 
   // Download buttons
@@ -1371,6 +1408,44 @@ function renderResults(score, findingCounts, email, fileName) {
   const enEl = document.getElementById('email-notice');
   if (enEl && email) {
     enEl.innerHTML = `<span>✉</span> Your report has also been sent to <strong>${email}</strong>`;
+  }
+}
+
+// ── FINDING FEEDBACK ────────────────────────────────────────────────────────
+async function submitFindingFeedback(btn) {
+  const container = btn.closest('.finding-feedback');
+  const sessionId = container.dataset.sessionId;
+  const severity  = container.dataset.severity;
+  const accurate  = btn.dataset.accurate === 'true';
+
+  container.querySelectorAll('.feedback-btn')
+    .forEach(b => { b.disabled = true; });
+
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/finding_feedback', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + SUPABASE_ANON,
+        'apikey': SUPABASE_ANON,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        session_id:       sessionId || null,
+        ai_severity:      severity,
+        severity_agreed:  accurate,
+        feedback_source:  'client',
+        verified_severity: null,
+        reviewer_notes:   null
+      })
+    });
+    container.querySelector('.feedback-thanks').style.display = 'inline';
+    container.querySelectorAll('.feedback-btn')
+      .forEach(b => { b.style.display = 'none'; });
+  } catch (err) {
+    console.error('Feedback error:', err);
+    container.querySelectorAll('.feedback-btn')
+      .forEach(b => { b.disabled = false; });
   }
 }
 </script>
