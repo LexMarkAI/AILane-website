@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Product Suite</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#7A8BA8;--text-muted:#4A5568;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:15px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}
+.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}
+.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+.top-bar-left{display:flex;align-items:center;gap:12px;}
+.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}
+.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--text-primary);}
+.page-title span{color:var(--accent-amber);}
+.top-bar-right{display:flex;align-items:center;gap:10px;}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}
+.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}
+.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}
+.kpi-card .label{font-size:0.6rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
+.kpi-card .value{font-family:var(--font-mono);font-size:1.4rem;font-weight:600;line-height:1.2;}
+.kpi-card .sub{font-size:0.6rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+
+/* Cards */
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}
+.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;color:var(--text-primary);}
+.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}
+.card-body{padding:12px 18px 16px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+
+/* Product card */
+.prod-card{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 16px;display:flex;flex-direction:column;gap:6px;transition:all 0.2s;}
+.prod-card:hover{border-color:var(--border-strong);background:var(--bg-elevated);}
+.prod-card .prod-name{font-size:0.78rem;font-weight:600;color:var(--text-primary);}
+.prod-card .prod-type{font-size:0.58rem;color:var(--text-muted);font-family:var(--font-mono);}
+.prod-card .prod-price{font-family:var(--font-mono);font-size:1.1rem;font-weight:600;color:var(--accent-cyan);}
+.prod-card .prod-model{font-size:0.58rem;padding:2px 7px;border-radius:100px;display:inline-block;width:fit-content;}
+.prod-card .prod-model.one_time{background:var(--accent-cyan-dim);color:var(--accent-cyan);border:1px solid rgba(14,165,233,0.15);}
+.prod-card .prod-model.subscription{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.15);}
+.prod-card .prod-notes{font-size:0.65rem;color:var(--text-muted);line-height:1.4;}
+.prod-card .prod-link{font-size:0.62rem;color:var(--text-accent);text-decoration:none;font-family:var(--font-mono);}
+.prod-card .prod-link:hover{text-decoration:underline;}
+.prod-active{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;}
+.prod-active.on{background:var(--accent-green);}
+.prod-active.off{background:var(--accent-red);}
+
+/* Severity bars */
+.sev-row{display:flex;align-items:center;gap:10px;padding:5px 0;}
+.sev-label{font-size:0.72rem;min-width:80px;font-weight:500;text-transform:capitalize;}
+.sev-label.compliant{color:var(--accent-green);}
+.sev-label.critical{color:var(--accent-red);}
+.sev-label.major{color:var(--accent-amber);}
+.sev-label.minor{color:var(--text-secondary);}
+.sev-bar-wrap{flex:1;height:20px;background:var(--bg-base);border-radius:3px;overflow:hidden;}
+.sev-bar{height:100%;border-radius:3px;transition:width 0.6s ease;}
+.sev-bar.compliant{background:var(--accent-green);}
+.sev-bar.critical{background:var(--accent-red);}
+.sev-bar.major{background:var(--accent-amber);}
+.sev-bar.minor{background:rgba(122,139,168,0.4);}
+.sev-count{font-family:var(--font-mono);font-size:0.72rem;min-width:40px;text-align:right;color:var(--text-secondary);}
+
+/* Upload row */
+.upload-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border-subtle);}
+.upload-row:last-child{border-bottom:none;}
+.upload-name{font-size:0.74rem;color:var(--text-primary);font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.upload-type{font-size:0.58rem;padding:2px 7px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}
+.upload-score{font-family:var(--font-mono);font-size:0.82rem;font-weight:600;}
+.upload-score.good{color:var(--accent-green);}
+.upload-score.moderate{color:var(--accent-cyan);}
+.upload-score.concern{color:var(--accent-amber);}
+.upload-score.critical{color:var(--accent-red);}
+
+/* Section label */
+.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:8px 0 2px;}
+
+/* Category row */
+.cat-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.cat-name{font-size:0.7rem;color:var(--text-primary);min-width:160px;font-weight:400;}
+.cat-bar-wrap{flex:1;height:14px;background:var(--bg-base);border-radius:2px;overflow:hidden;}
+.cat-bar{height:100%;border-radius:2px;background:var(--accent-cyan);transition:width 0.6s ease;}
+.cat-count{font-family:var(--font-mono);font-size:0.65rem;min-width:30px;text-align:right;color:var(--text-muted);}
+
+/* Pricing milestone */
+.milestone-track{display:flex;align-items:center;gap:4px;padding:8px 0;}
+.milestone-dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--border-strong);flex-shrink:0;}
+.milestone-dot.active{background:var(--accent-cyan);border-color:var(--accent-cyan);}
+.milestone-dot.future{background:transparent;}
+.milestone-line{flex:1;height:2px;background:var(--border-default);}
+.milestone-line.done{background:var(--accent-cyan);}
+
+.skeleton{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--bg-hover) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm);}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.three-col{grid-template-columns:1fr;}}
+@media(max-width:700px){.kpi-strip{grid-template-columns:1fr 1fr;}.two-col{grid-template-columns:1fr;}}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL = 'mark@ailane.ai';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function formatGBP(v){const n=Number(v);return isNaN(n)?'—':'£'+n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function scoreClass(s){const n=Number(s);if(n>=80) return 'good';if(n>=60) return 'moderate';if(n>=40) return 'concern';return 'critical';}
+function timeAgo(d){if(!d) return '';const m=Math.floor((new Date()-new Date(d))/60000);if(m<60) return m+'m ago';const h=Math.floor(m/60);if(h<24) return h+'h ago';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+
+function App() {
+  const [auth, setAuth] = useState('checking');
+  const [token, setToken] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [catFilter, setCatFilter] = useState('all');
+
+  useEffect(() => {
+    async function check() {
+      const {data:{session}}=await sb.auth.getSession();
+      if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}
+      const t=setTimeout(()=>{window.location.href='/AiLaneCEO/';},3000);
+      sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/AiLaneCEO/';}});
+    }
+    check();
+  }, []);
+
+  useEffect(() => {
+    if(auth!=='ok'||!token) return;
+    (async()=>{
+      setLoading(true);
+      try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dashboard-data?section=products_detail`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+      if(r.ok){const j=await r.json();setData(j.sections?.products_detail||null);}}catch(e){console.error(e);}
+      setLoading(false);
+    })();
+  }, [auth, token]);
+
+  if(auth==='checking') return <div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Loading products...</div></div>;
+
+  const d = data || {};
+  const products = d.products || [];
+  const uploads = d.uploads || {};
+  const findings = d.findings || {};
+  const kl = d.kl || {};
+  const revTx = d.revenue_transactions || [];
+
+  // Group products by category
+  const compliance = products.filter(p => p.category === 'compliance');
+  const klProducts = products.filter(p => p.category === 'kl');
+  const platform = products.filter(p => p.category === 'platform');
+  const filteredProducts = catFilter === 'all' ? products : products.filter(p => p.category === catFilter);
+
+  const sevMax = Math.max(...(findings.severity || []).map(s => s.count), 1);
+  const catMax = Math.max(...(findings.categories || []).map(c => c.count), 1);
+
+  function ProductCard({ p }) {
+    return (
+      <div className="prod-card">
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div className="prod-name"><span className={`prod-active ${p.is_active?'on':'off'}`}/>{p.display_name}</div>
+        </div>
+        <div className="prod-type">{p.product_type}</div>
+        <div style={{display:'flex',alignItems:'baseline',gap:8}}>
+          <div className="prod-price">{formatGBP(p.price_gbp)}</div>
+          <span className={`prod-model ${p.billing_model}`}>{p.billing_model==='subscription'?'Monthly':'One-time'}</span>
+        </div>
+        {p.notes && <div className="prod-notes">{p.notes}</div>}
+        {p.payment_link_url && <a href={p.payment_link_url} target="_blank" rel="noopener" className="prod-link">Payment link →</a>}
+        {p.payment_link_url_worker && <a href={p.payment_link_url_worker} target="_blank" rel="noopener" className="prod-link">Worker link →</a>}
+        {p.portal_url && <a href={p.portal_url} target="_blank" rel="noopener" className="prod-link">Customer portal →</a>}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a>
+          <div className="page-title">Product <span>Suite</span></div>
+        </div>
+        <div className="top-bar-right">
+          <div className="status-pill live"><div className="dot"/>LIVE</div>
+          <div className="ts">{products.length} products · {products.filter(p=>p.is_active).length} active</div>
+        </div>
+      </div>
+
+      <div className="main">
+        {loading ? (
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div className="kpi-strip">{[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}</div>
+            <div className="skeleton" style={{height:250}}/>
+          </div>
+        ) : (
+          <>
+            {/* KPI STRIP */}
+            <div className="kpi-strip">
+              <div className="kpi-card">
+                <div className="label">Revenue MTD</div>
+                <div className="value" style={{color:'var(--text-muted)'}}>£0</div>
+                <div className="sub">Pre-revenue</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Compliance Checks</div>
+                <div className="value" style={{color:'var(--accent-cyan)'}}>{uploads.total || 0}</div>
+                <div className="sub">Documents analysed</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Avg Score</div>
+                <div className="value" style={{color:uploads.avg_score && Number(uploads.avg_score)<50?'var(--accent-amber)':'var(--accent-green)'}}>
+                  {uploads.avg_score || '—'}%
+                </div>
+                <div className="sub">Compliance score</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Total Findings</div>
+                <div className="value" style={{color:'var(--accent-red)'}}>{findings.total || 0}</div>
+                <div className="sub">Across all uploads</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">KL Sessions</div>
+                <div className="value" style={{color:'var(--text-muted)'}}>{kl.sessions || 0}</div>
+                <div className="sub">Pre-launch</div>
+              </div>
+            </div>
+
+            {/* PRODUCT CATALOGUE */}
+            <div className="card">
+              <div className="card-head">
+                <div className="card-head-title">Product Catalogue</div>
+                <div className="card-head-badge">{products.length} registered in Stripe</div>
+              </div>
+              <div className="card-body">
+                <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+                  {['all','compliance','kl','platform'].map(c => (
+                    <button key={c} onClick={()=>setCatFilter(c)} style={{
+                      padding:'5px 12px',borderRadius:'8px',border:`1px solid ${catFilter===c?'var(--border-accent)':'var(--border-default)'}`,
+                      background:catFilter===c?'var(--bg-hover)':'var(--bg-surface)',color:catFilter===c?'var(--text-primary)':'var(--text-muted)',
+                      fontSize:'0.68rem',fontFamily:'var(--font-body)',cursor:'pointer',transition:'all 0.2s',textTransform:'capitalize'
+                    }}>{c === 'all' ? `All (${products.length})` : c === 'kl' ? `Knowledge Library (${klProducts.length})` : c === 'compliance' ? `Compliance (${compliance.length})` : `Platform (${platform.length})`}</button>
+                  ))}
+                </div>
+                <div className="three-col">
+                  {filteredProducts.map((p, i) => <ProductCard key={i} p={p} />)}
+                </div>
+              </div>
+            </div>
+
+            {/* COMPLIANCE ENGINE + FINDINGS */}
+            <div className="two-col">
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-head-title">Compliance Engine Activity</div>
+                  <div className="card-head-badge">The Workhorse</div>
+                </div>
+                <div className="card-body">
+                  <div className="section-label">Recent Analyses</div>
+                  {(uploads.recent || []).filter(u => u.overall_score > 0).slice(0, 8).map((u, i) => (
+                    <div className="upload-row" key={i}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0,flex:1}}>
+                        <span className="upload-name">{u.file_name}</span>
+                        <span className="upload-type">{u.document_type}</span>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span className="ts">{timeAgo(u.created_at)}</span>
+                        <span className={`upload-score ${scoreClass(u.overall_score)}`}>{Number(u.overall_score).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{marginTop:12}}>
+                    <div className="section-label">By Document Type</div>
+                    {(uploads.by_type || []).map((t, i) => (
+                      <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
+                        <span style={{fontSize:'0.72rem',color:'var(--text-secondary)',textTransform:'capitalize'}}>{t.type.replace('_',' ')}</span>
+                        <span style={{fontFamily:'var(--font-mono)',fontSize:'0.72rem',color:'var(--text-primary)'}}>{t.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-head-title">Findings Analysis</div>
+                  <div className="card-head-badge">{findings.total} total</div>
+                </div>
+                <div className="card-body">
+                  <div className="section-label">By Severity</div>
+                  {(findings.severity || []).map((s, i) => (
+                    <div className="sev-row" key={i}>
+                      <div className={`sev-label ${s.severity}`}>{s.severity}</div>
+                      <div className="sev-bar-wrap">
+                        <div className={`sev-bar ${s.severity}`} style={{width:`${(s.count/sevMax)*100}%`}} />
+                      </div>
+                      <div className="sev-count">{s.count}</div>
+                    </div>
+                  ))}
+
+                  <div className="section-label" style={{marginTop:16}}>By Clause Category</div>
+                  {(findings.categories || []).map((c, i) => (
+                    <div className="cat-row" key={i}>
+                      <div className="cat-name">{(c.clause_category || 'unknown').replace(/_/g, ' ')}</div>
+                      <div className="cat-bar-wrap">
+                        <div className="cat-bar" style={{width:`${(c.count/catMax)*100}%`}} />
+                      </div>
+                      <div className="cat-count">{c.count}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* PRICING ARCHITECTURE + REVENUE READINESS */}
+            <div className="two-col">
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-head-title">Pricing Architecture</div>
+                </div>
+                <div className="card-body">
+                  <div className="section-label">Scan Products (Anonymous, One-Time)</div>
+                  <div style={{display:'flex',gap:12,marginBottom:16}}>
+                    <div className="prod-card" style={{flex:1,borderColor:'var(--accent-cyan)',borderWidth:1}}>
+                      <div className="prod-name">Flash Check</div>
+                      <div className="prod-price">£19</div>
+                      <div className="prod-notes">Single contract · Full findings</div>
+                    </div>
+                    <div className="prod-card" style={{flex:1,borderColor:'var(--accent-cyan)',borderWidth:1}}>
+                      <div className="prod-name">Full Check</div>
+                      <div className="prod-price">£39</div>
+                      <div className="prod-notes">Contract + handbook + policies · PDF report</div>
+                    </div>
+                  </div>
+
+                  <div className="section-label">Subscription Tiers</div>
+                  <div style={{display:'flex',gap:12,marginBottom:16}}>
+                    <div className="prod-card" style={{flex:1}}>
+                      <div className="prod-name">Operational</div>
+                      <div className="prod-price">£199/mo</div>
+                      <div className="prod-notes">ACEI only · 1 user · 3 doc slots</div>
+                    </div>
+                    <div className="prod-card" style={{flex:1}}>
+                      <div className="prod-name">Governance</div>
+                      <div className="prod-price">£799/mo</div>
+                      <div className="prod-notes">Full Index Triad · 25 users · Unlimited docs</div>
+                    </div>
+                  </div>
+
+                  <div className="section-label">Pricing Milestone</div>
+                  <div style={{fontSize:'0.72rem',color:'var(--text-secondary)',lineHeight:1.5,marginTop:4}}>
+                    At ~1,000 total scan transactions → raise £19/£39 to £29/£49. Update Stripe, pricing page, and internal docs. Contact Anthropic Startups Programme for "Powered by Claude" co-branding.
+                  </div>
+                  <div className="milestone-track" style={{marginTop:8}}>
+                    <div className="milestone-dot active" title="Products live"/>
+                    <div className="milestone-line done"/>
+                    <div className="milestone-dot active" title="Google Ads live"/>
+                    <div className="milestone-line"/>
+                    <div className="milestone-dot future" title="First paying client"/>
+                    <div className="milestone-line"/>
+                    <div className="milestone-dot future" title="1,000 scans"/>
+                    <div className="milestone-line"/>
+                    <div className="milestone-dot future" title="Price raise"/>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.55rem',color:'var(--text-muted)',fontFamily:'var(--font-mono)',marginTop:2}}>
+                    <span>Products live</span><span>Ads live</span><span>1st client</span><span>1K scans</span><span>Price raise</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-head-title">Revenue Pipeline</div>
+                  <div className="card-head-badge">Pre-Revenue</div>
+                </div>
+                <div className="card-body">
+                  <div style={{textAlign:'center',padding:'24px 0'}}>
+                    <div style={{fontFamily:'var(--font-mono)',fontSize:'2rem',fontWeight:700,color:'var(--text-muted)'}}>£0</div>
+                    <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:4}}>Revenue to date</div>
+                  </div>
+                  <div style={{borderTop:'1px solid var(--border-subtle)',paddingTop:12}}>
+                    <div className="section-label">Revenue Streams When Active</div>
+                    {[
+                      {name:'Contract Compliance Checks',range:'£19–£39 per scan',model:'Transactional'},
+                      {name:'Knowledge Library Access',range:'£5–£249 per session/mo',model:'Usage + Subscription'},
+                      {name:'Operational Subscriptions',range:'£199/mo',model:'Monthly Recurring'},
+                      {name:'Governance Subscriptions',range:'£799/mo',model:'Monthly Recurring'},
+                      {name:'Institutional (Custom)',range:'Custom pricing',model:'Enterprise Contract'},
+                    ].map((s,i) => (
+                      <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:i<4?'1px solid var(--border-subtle)':'none'}}>
+                        <div>
+                          <div style={{fontSize:'0.74rem',color:'var(--text-primary)',fontWeight:500}}>{s.name}</div>
+                          <div style={{fontSize:'0.6rem',color:'var(--text-muted)'}}>{s.model}</div>
+                        </div>
+                        <div style={{fontFamily:'var(--font-mono)',fontSize:'0.72rem',color:'var(--accent-cyan)',textAlign:'right'}}>{s.range}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{marginTop:16,padding:'12px',background:'var(--bg-base)',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-subtle)'}}>
+                    <div style={{fontSize:'0.68rem',color:'var(--accent-amber)',fontWeight:600,marginBottom:4}}>First Client = Highest-Leverage Action</div>
+                    <div style={{fontSize:'0.65rem',color:'var(--text-muted)',lineHeight:1.5}}>
+                      First paying client conversion before the Innovation Wales panel in April 2026 is the single greatest near-term valuation lever. Two Google Ads campaigns running at £15/day each since 14 March.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PUBLIC-FACING LINKS */}
+            <div className="card">
+              <div className="card-head">
+                <div className="card-head-title">Public-Facing Product Pages</div>
+              </div>
+              <div className="card-body">
+                <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                  {[
+                    {name:'Employer Compliance Check', url:'/contract-scan/'},
+                    {name:'Worker Contract Check', url:'/contract-check-worker/'},
+                    {name:'Knowledge Library Preview', url:'/knowledge-library-preview/'},
+                    {name:'Intelligence Hub (PCIE)', url:'/intelligence/'},
+                    {name:'Ticker', url:'/ticker/'},
+                    {name:'Homepage', url:'/'},
+                    {name:'Terms of Service', url:'/terms/'},
+                    {name:'Privacy Policy', url:'/privacy/'},
+                  ].map((link, i) => (
+                    <a key={i} href={link.url} target="_blank" rel="noopener" style={{
+                      padding:'8px 16px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-default)',background:'var(--bg-base)',
+                      color:'var(--text-secondary)',fontSize:'0.72rem',textDecoration:'none',transition:'all 0.2s',display:'flex',alignItems:'center',gap:6
+                    }}>
+                      {link.name}
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
