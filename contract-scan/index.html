@@ -995,6 +995,10 @@ footer {
       </div>
       <div class="progress-label" id="analysis-msg">Running compliance analysis…</div>
       <div class="progress-detail">Checking clauses against UK employment law requirements. This typically takes 60–120 seconds.</div>
+      <div style="max-width:480px;margin:20px auto 0;padding:12px 16px;border-left:4px solid var(--teal);background:rgba(13,115,119,0.08);border-radius:6px;text-align:left;">
+        <div style="font-size:13px;font-weight:600;color:var(--teal-light);margin-bottom:4px;">📧 Your report will also be delivered to your email.</div>
+        <div style="font-size:12px;color:var(--grey-400);line-height:1.5;">You do not need to keep this page open. Your full report will be available here when analysis completes, and a copy will be sent to the email address provided at checkout.</div>
+      </div>
     </div>
   </div>
 
@@ -1045,7 +1049,7 @@ footer {
           <div class="tier-card-name">Contract Compliance Check</div>
           <div class="tier-card-price">£19 <span>per document</span></div>
           <p class="tier-card-body">Have more contracts to review? Check each document individually against current UK employment law.</p>
-          <a href="#pricing" class="btn-tier btn-tier-standard" onclick="gtag('event','click_cta',{product:'repeat_check',location:'post_report',audience:'employer'})">Check Another Contract</a>
+          <a href="#pricing" class="btn-tier btn-tier-standard" onclick="event.preventDefault();checkAnother();">Check Another Contract</a>
         </div>
         <div class="tier-card featured">
           <div class="tier-card-badge">RECOMMENDED</div>
@@ -1192,6 +1196,12 @@ function checkConsent(checkId) {
 function showPortalMode() {
   document.getElementById('landing-content').style.display = 'none';
   document.getElementById('portal-content').style.display = 'block';
+}
+function checkAnother() {
+  if (window.gtag) { gtag('event', 'click_cta', { product: 'repeat_check', location: 'post_report', audience: 'employer' }); }
+  document.getElementById('portal-content').style.display = 'none';
+  document.getElementById('landing-content').style.display = 'block';
+  setTimeout(function() { document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' }); }, 50);
 }
 function showState(name) {
   ['verify','upload','analysing','results','oos','error'].forEach(s => {
