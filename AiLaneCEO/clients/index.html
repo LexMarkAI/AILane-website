@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Client Briefing Room</title>
+<meta name="robots" content="noindex, nofollow">
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#7A8BA8;--text-muted:#4A5568;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:15px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}
+.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}
+.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+.top-bar-left{display:flex;align-items:center;gap:12px;}
+.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}
+.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-cyan);}
+.top-bar-right{display:flex;align-items:center;gap:10px;}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}
+.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}
+.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}
+.kpi-card .label{font-size:0.6rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
+.kpi-card .value{font-family:var(--font-mono);font-size:1.4rem;font-weight:600;line-height:1.2;}
+.kpi-card .sub{font-size:0.6rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}
+.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;color:var(--text-primary);}
+.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}
+.card-body{padding:12px 18px 16px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:8px 0 2px;}
+.bar-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.bar-name{font-size:0.7rem;color:var(--text-primary);min-width:150px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-wrap{flex:1;height:16px;background:var(--bg-base);border-radius:2px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}
+.bar-count{font-family:var(--font-mono);font-size:0.65rem;min-width:40px;text-align:right;color:var(--text-muted);}
+.pipeline-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--radius-sm);font-size:0.72rem;font-weight:500;margin:3px 3px 3px 0;}
+.pipeline-pill.amber{background:var(--accent-amber-dim);color:var(--accent-amber);border:1px solid rgba(245,158,11,0.15);}
+.pipeline-pill.green{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.15);}
+.pipeline-pill.cyan{background:var(--accent-cyan-dim);color:var(--accent-cyan);border:1px solid rgba(14,165,233,0.15);}
+.pipeline-pill.purple{background:var(--accent-purple-dim);color:var(--accent-purple);border:1px solid rgba(139,92,246,0.15);}
+.tribunal-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border-subtle);}
+.tribunal-row:last-child{border-bottom:none;}
+.tribunal-date{font-family:var(--font-mono);font-size:0.68rem;color:var(--accent-cyan);min-width:60px;}
+.tribunal-title{font-size:0.72rem;color:var(--text-primary);font-weight:400;line-height:1.4;flex:1;}
+.tribunal-cat{font-size:0.55rem;padding:2px 7px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);white-space:nowrap;}
+.org-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-subtle);}
+.org-row:last-child{border-bottom:none;}
+.org-name{font-size:0.76rem;color:var(--text-primary);font-weight:500;}
+.org-tier{font-size:0.58rem;padding:2px 7px;border-radius:100px;text-transform:capitalize;}
+.org-tier.institutional{background:rgba(245,158,11,0.1);color:var(--accent-amber);border:1px solid rgba(245,158,11,0.15);}
+.org-tier.operational_readiness{background:var(--accent-cyan-dim);color:var(--accent-cyan);border:1px solid rgba(14,165,233,0.15);}
+.skeleton{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--bg-hover) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm);}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){.kpi-strip{grid-template-columns:1fr 1fr;}.two-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL = 'mark@ailane.ai';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function formatNum(n){if(!n) return ‘0’;const v=Number(n);if(v>=1000) return (v/1000).toFixed(1)+‘K’;return v.toLocaleString();}
+function shortDate(d){if(!d) return ‘’;return new Date(d).toLocaleDateString(‘en-GB’,{day:‘numeric’,month:‘short’});}
+function friendlyCat(c){if(!c) return ‘’;return c.replace(/_/g,’ ’).replace(/\b\w/g,l=>l.toUpperCase());}
+
+// Static intelligence — refreshed periodically via data pipeline, not per-request
+const EMPLOYER_SECTORS = [
+{name:‘Retail & Hospitality’,count:5803},{name:‘Manufacturing’,count:2685},{name:‘Construction’,count:2122},
+{name:‘Professional Services’,count:1998},{name:‘Healthcare’,count:1861},{name:‘Business Support’,count:1247},
+{name:‘Transport & Logistics’,count:1212},{name:‘Other Services’,count:963},{name:‘Technology’,count:940},
+{name:‘Employment Services’,count:801},{name:‘Media & Entertainment’,count:746},{name:‘Financial Services’,count:729},
+{name:‘Real Estate’,count:615},{name:‘Facilities Management’,count:522},{name:‘Education’,count:510},
+];
+const EMPLOYER_REGIONS = [
+{name:‘South East’,count:5529},{name:‘London’,count:4421},{name:‘North West’,count:3514},
+{name:‘Yorkshire & Humber’,count:2114},{name:‘West Midlands’,count:1804},{name:‘Scotland’,count:1571},
+{name:‘East Midlands’,count:1506},{name:‘South West’,count:1478},{name:‘Wales’,count:1019},
+{name:‘East of England’,count:923},{name:‘North East’,count:799},{name:‘Northern Ireland’,count:103},
+];
+const TRIBUNAL_CATEGORIES = [
+{name:‘Unfair Dismissal’,count:54292},{name:‘Wages & Working Time’,count:30312},{name:‘Discrimination & Harassment’,count:29933},
+{name:‘Redundancy & Org Change’,count:7238},{name:‘Whistleblowing’,count:3758},{name:‘Breach of Contract’,count:1948},
+{name:‘Employment Status’,count:1132},{name:‘Health & Safety’,count:703},{name:‘Parental & Family Rights’,count:603},
+{name:‘Business Transfers & Insolvency’,count:453},{name:‘Trade Union & Collective’,count:277},
+{name:‘Data Protection & Privacy’,count:105},{name:‘Unclassified’,count:100},
+];
+
+function App() {
+const [auth, setAuth] = useState(‘checking’);
+const [token, setToken] = useState(null);
+const [data, setData] = useState(null);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+(async()=>{
+const {data:{session}}=await sb.auth.getSession();
+if(session){const p=JSON.parse(atob(session.access_token.split(’.’)[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth(‘ok’);return;}}
+const t=setTimeout(()=>{window.location.href=’/AiLaneCEO/’;},3000);
+sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split(’.’)[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth(‘ok’);}else window.location.href=’/AiLaneCEO/’;}});
+})();
+}, []);
+
+useEffect(() => {
+if(auth!==‘ok’||!token) return;
+(async()=>{
+setLoading(true);
+try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dashboard-data?section=clients_detail`,{headers:{‘Authorization’:`Bearer ${token}`,‘apikey’:SUPABASE_ANON_KEY}});
+if(r.ok){const j=await r.json();setData(j.sections?.clients_detail||null);}}catch(e){console.error(e);}
+setLoading(false);
+})();
+}, [auth, token]);
+
+if(auth===‘checking’) return <div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Loading briefing room…</div></div>;
+
+const d = data || {};
+const empCount = d.employer_count || 78699;
+const triCount = d.tribunal_count || 130854;
+const orgs = d.organisations || [];
+const users = d.app_users || [];
+const triRecent = d.tribunal_recent || [];
+const compRecent = d.compliance_recent || [];
+
+const secMax = Math.max(…EMPLOYER_SECTORS.map(s=>s.count),1);
+const regMax = Math.max(…EMPLOYER_REGIONS.map(r=>r.count),1);
+const triMax = Math.max(…TRIBUNAL_CATEGORIES.map(c=>c.count),1);
+
+const barColors = [‘var(–accent-cyan)’,‘var(–accent-green)’,‘var(–accent-amber)’,‘var(–accent-purple)’,‘var(–accent-red)’];
+
+return (
+<div>
+<div className="top-bar">
+<div className="top-bar-left">
+<a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a>
+<div className="page-title">Client <span>Briefing Room</span></div>
+</div>
+<div className="top-bar-right">
+<div className="status-pill live"><div className="dot"/>LIVE</div>
+<div className="ts">Intelligence · Pre-Revenue</div>
+</div>
+</div>
+
+```
+  <div className="main">
+    {loading ? (
+      <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        <div className="kpi-strip">{[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}</div>
+        <div className="skeleton" style={{height:300}}/>
+      </div>
+    ) : (
+      <>
+        {/* KPI STRIP */}
+        <div className="kpi-strip">
+          <div className="kpi-card">
+            <div className="label">Paying Clients</div>
+            <div className="value" style={{color:'var(--text-muted)'}}>0</div>
+            <div className="sub">Pre-revenue</div>
+          </div>
+          <div className="kpi-card">
+            <div className="label">Prospect Pool</div>
+            <div className="value" style={{color:'var(--accent-cyan)'}}>{formatNum(empCount)}</div>
+            <div className="sub">UK employers indexed</div>
+          </div>
+          <div className="kpi-card">
+            <div className="label">Tribunal Intel</div>
+            <div className="value" style={{color:'var(--accent-green)'}}>{formatNum(triCount)}</div>
+            <div className="sub">Decisions classified</div>
+          </div>
+          <div className="kpi-card">
+            <div className="label">Organisations</div>
+            <div className="value" style={{color:'var(--accent-purple)'}}>{orgs.length}</div>
+            <div className="sub">Demo + internal</div>
+          </div>
+          <div className="kpi-card">
+            <div className="label">Platform Users</div>
+            <div className="value" style={{color:'var(--text-muted)'}}>{users.length}</div>
+            <div className="sub">Test accounts only</div>
+          </div>
+        </div>
+
+        {/* PIPELINE STATUS */}
+        <div className="card">
+          <div className="card-head">
+            <div className="card-head-title">Pipeline Status</div>
+            <div className="card-head-badge">Acquisition Phase</div>
+          </div>
+          <div className="card-body">
+            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:12}}>
+              <span className="pipeline-pill amber">Innovation Wales £75K — April 2026</span>
+              <span className="pipeline-pill green">First Client — Priority Target</span>
+              <span className="pipeline-pill cyan">Google Ads — Live 14 Mar</span>
+              <span className="pipeline-pill purple">Worker Market — 30.3M Payrolled</span>
+            </div>
+            <div style={{fontSize:'0.72rem',color:'var(--text-secondary)',lineHeight:1.6}}>
+              First paying client conversion before the Innovation Wales panel is the single greatest near-term valuation lever. Two Google Ads campaigns running at £15/day each. Worker market (30.3M payrolled employees) is a major untapped channel requiring different marketing playbook — social, Google Ads, forums — vs employer B2B via LinkedIn, email, and conferences.
+            </div>
+          </div>
+        </div>
+
+        {/* EMPLOYER INTELLIGENCE + REGIONAL DISTRIBUTION */}
+        <div className="two-col">
+          <div className="card">
+            <div className="card-head">
+              <div className="card-head-title">Employer Intelligence — By Sector</div>
+              <div className="card-head-badge">{formatNum(empCount)} indexed</div>
+            </div>
+            <div className="card-body">
+              {EMPLOYER_SECTORS.map((s,i) => (
+                <div className="bar-row" key={i}>
+                  <div className="bar-name">{s.name}</div>
+                  <div className="bar-wrap">
+                    <div className="bar-fill" style={{width:`${(s.count/secMax)*100}%`,background:barColors[i%barColors.length]}}/>
+                  </div>
+                  <div className="bar-count">{formatNum(s.count)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-head">
+              <div className="card-head-title">Regional Distribution</div>
+              <div className="card-head-badge">ACEI jurisdictions</div>
+            </div>
+            <div className="card-body">
+              {EMPLOYER_REGIONS.map((r,i) => (
+                <div className="bar-row" key={i}>
+                  <div className="bar-name">{r.name}</div>
+                  <div className="bar-wrap">
+                    <div className="bar-fill" style={{width:`${(r.count/regMax)*100}%`,background:'var(--accent-cyan)'}}/>
+                  </div>
+                  <div className="bar-count">{formatNum(r.count)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* TRIBUNAL INTELLIGENCE + RECENT DECISIONS */}
+        <div className="two-col">
+          <div className="card">
+            <div className="card-head">
+              <div className="card-head-title">Tribunal Intelligence — ACEI Categories</div>
+              <div className="card-head-badge">{formatNum(triCount)} decisions</div>
+            </div>
+            <div className="card-body">
+              {TRIBUNAL_CATEGORIES.map((c,i) => {
+                const color = c.name.includes('Unfair')?'var(--accent-red)':c.name.includes('Wages')?'var(--accent-amber)':c.name.includes('Discrim')?'var(--accent-purple)':'var(--accent-cyan)';
+                return (
+                  <div className="bar-row" key={i}>
+                    <div className="bar-name">{c.name}</div>
+                    <div className="bar-wrap">
+                      <div className="bar-fill" style={{width:`${(c.count/triMax)*100}%`,background:color}}/>
+                    </div>
+                    <div className="bar-count">{formatNum(c.count)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div className="card">
+              <div className="card-head">
+                <div className="card-head-title">Recent Tribunal Decisions</div>
+                <div className="card-head-badge">Latest scraped</div>
+              </div>
+              <div className="card-body">
+                {triRecent.map((t,i) => (
+                  <div className="tribunal-row" key={i}>
+                    <div className="tribunal-date">{shortDate(t.decision_date)}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="tribunal-title">{t.respondent_name || t.title}</div>
+                      <div style={{display:'flex',gap:6,marginTop:3}}>
+                        <span className="tribunal-cat">{friendlyCat(t.acei_category)}</span>
+                        {t.case_number && <span style={{fontSize:'0.55rem',color:'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{t.case_number}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {triRecent.length===0 && <div style={{color:'var(--text-muted)',fontSize:'0.75rem'}}>No recent decisions loaded</div>}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-head">
+                <div className="card-head-title">Market Opportunity</div>
+              </div>
+              <div className="card-body">
+                {[
+                  {label:'Employer market',value:'78.7K indexed',note:'UK tribunal respondents'},
+                  {label:'Worker market',value:'30.3M',note:'Payrolled employees (ONS)'},
+                  {label:'Annual tribunal claims',value:'~600K',note:'HMCTS annual volume'},
+                  {label:'Avg tribunal award',value:'~£13K',note:'Unfair dismissal median'},
+                  {label:'Legal costs exposure',value:'£8K–£50K',note:'Per contested claim'},
+                ].map((m,i) => (
+                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:i<4?'1px solid var(--border-subtle)':'none'}}>
+                    <div>
+                      <div style={{fontSize:'0.74rem',color:'var(--text-primary)',fontWeight:500}}>{m.label}</div>
+                      <div style={{fontSize:'0.58rem',color:'var(--text-muted)'}}>{m.note}</div>
+                    </div>
+                    <div style={{fontFamily:'var(--font-mono)',fontSize:'0.78rem',color:'var(--accent-cyan)',fontWeight:600}}>{m.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ORGANISATION REGISTER + RECENT ACTIVITY */}
+        <div className="two-col">
+          <div className="card">
+            <div className="card-head">
+              <div className="card-head-title">Organisation Register</div>
+              <div className="card-head-badge">{orgs.length} registered</div>
+            </div>
+            <div className="card-body">
+              {orgs.map((o,i) => (
+                <div className="org-row" key={i}>
+                  <div style={{minWidth:0}}>
+                    <div className="org-name">{o.name}</div>
+                    <div style={{display:'flex',gap:8,marginTop:3,alignItems:'center'}}>
+                      <span className={`org-tier ${o.tier}`}>{o.tier.replace(/_/g,' ')}</span>
+                      <span style={{fontSize:'0.55rem',color:'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{o.plan}</span>
+                      <span style={{fontSize:'0.55rem',color:o.status==='active'?'var(--accent-green)':'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{o.status}</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0}}>
+                    <div style={{fontSize:'0.72rem',color:'var(--text-primary)',fontFamily:'var(--font-mono)'}}>{o.upload_count} uploads</div>
+                    <div className="ts">{shortDate(o.created_at)}</div>
+                  </div>
+                </div>
+              ))}
+              <div style={{marginTop:12,padding:'10px',background:'var(--bg-base)',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-subtle)',fontSize:'0.65rem',color:'var(--text-muted)',lineHeight:1.5}}>
+                All organisations are demo and internal test entities. Zero real client signups exist. The 3 app_users (mark@ailane.ai, markglane@gmail.com, ops@ailane.ai) are all test accounts.
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-head">
+              <div className="card-head-title">Recent Compliance Activity</div>
+            </div>
+            <div className="card-body">
+              {compRecent.filter(c => c.overall_score && Number(c.overall_score) > 0).map((c,i) => (
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-subtle)'}}>
+                  <div style={{minWidth:0,flex:1}}>
+                    <div style={{fontSize:'0.74rem',color:'var(--text-primary)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.file_name}</div>
+                    <div style={{display:'flex',gap:6,marginTop:2}}>
+                      <span className="tribunal-cat">{c.document_type.replace('_',' ')}</span>
+                      {c.org_name && <span style={{fontSize:'0.55rem',color:'var(--text-muted)'}}>{c.org_name}</span>}
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0,marginLeft:12}}>
+                    <div style={{fontFamily:'var(--font-mono)',fontSize:'0.85rem',fontWeight:600,color:Number(c.overall_score)>=60?'var(--accent-green)':Number(c.overall_score)>=40?'var(--accent-amber)':'var(--accent-red)'}}>
+                      {Number(c.overall_score).toFixed(0)}%
+                    </div>
+                    <div className="ts">{shortDate(c.created_at)}</div>
+                  </div>
+                </div>
+              ))}
+              {compRecent.filter(c=>c.overall_score&&Number(c.overall_score)>0).length===0 && <div style={{color:'var(--text-muted)',fontSize:'0.75rem'}}>No scored analyses yet</div>}
+            </div>
+          </div>
+        </div>
+
+        {/* CIP / INTELLIGENCE LINKS */}
+        <div className="card">
+          <div className="card-head">
+            <div className="card-head-title">Client Intelligence Tools</div>
+          </div>
+          <div className="card-body">
+            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              {[
+                {name:'PCIE Intelligence Hub', url:'/intelligence/'},
+                {name:'Employer Compliance Check', url:'/contract-scan/'},
+                {name:'Worker Contract Check', url:'/contract-check-worker/'},
+                {name:'Ticker', url:'/ticker/'},
+              ].map((link,i) => (
+                <a key={i} href={link.url} target="_blank" rel="noopener" style={{
+                  padding:'8px 16px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-default)',background:'var(--bg-base)',
+                  color:'var(--text-secondary)',fontSize:'0.72rem',textDecoration:'none',transition:'all 0.2s',display:'flex',alignItems:'center',gap:6
+                }}>
+                  {link.name}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+</div>
+```
+
+);
+}
+ReactDOM.createRoot(document.getElementById(‘root’)).render(<App />);
+</script>
+
+</body>
+</html>
