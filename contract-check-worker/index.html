@@ -567,22 +567,44 @@ footer {
   font-size: 12px; color: var(--text-soft);
   margin-top: 12px; display: flex; align-items: center; gap: 6px;
 }
-.upsell-panel {
+/* ── TIER PANEL (post-report navigation) ───────────────────── */
+.tier-panel {
   background: linear-gradient(135deg, #0A5C52, #083D35);
   color: #FFFFFF;
-  border-radius: 10px; padding: 24px; margin-top: 20px;
+  border-radius: 10px; padding: 28px 24px; margin-top: 24px;
 }
-.upsell-label {
-  font-size: 9px; font-weight: 700; letter-spacing: 2px;
-  color: var(--teal-light); text-transform: uppercase; margin-bottom: 8px;
+.tier-guidance { margin-bottom: 28px; }
+.tier-guidance-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--teal-light); margin-bottom: 8px;
 }
-.upsell-panel h3 { font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px; }
-.upsell-panel p { font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.6; margin-bottom: 16px; }
-.btn-upsell {
-  display: inline-block;
-  background: var(--amber); color: #FFFFFF;
-  font-size: 12px; font-weight: 700;
-  padding: 10px 20px; border-radius: 4px;
+.tier-guidance h3 { font-size: 17px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px; line-height: 1.4; }
+.tier-guidance p { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.7; margin: 0; }
+.tier-cards {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;
+}
+.tier-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 20px; display: flex; flex-direction: column;
+}
+.tier-card-name { font-size: 15px; font-weight: 700; color: #FFFFFF; margin-bottom: 6px; }
+.tier-card-price { font-size: 22px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px; }
+.tier-card-price span { font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.55); }
+.tier-card-body { font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.6; margin: 12px 0; flex: 1; }
+.tier-card .btn-tier {
+  display: inline-block; text-align: center; padding: 10px 16px;
+  border-radius: 4px; font-size: 12px; font-weight: 700;
+  text-decoration: none; color: #FFFFFF; margin-top: auto; transition: opacity .2s;
+  background: var(--teal-mid);
+}
+.tier-card .btn-tier:hover { opacity: 0.85; }
+.tier-credibility {
+  text-align: center; font-size: 11px; color: rgba(255,255,255,0.4);
+  font-family: monospace; letter-spacing: 0.3px;
+}
+@media (max-width: 768px) {
+  .tier-cards { grid-template-columns: 1fr; }
 }
 
 .state-panel { text-align: center; padding: 40px 20px; }
@@ -967,11 +989,27 @@ footer {
       <div class="email-notice" id="email-notice"></div>
     </div>
 
-    <div class="upsell-panel">
-      <div class="upsell-label">One-Off Check Complete</div>
-      <h3>Know your position before any conversation.</h3>
-      <p>The Ailane platform monitors employment law changes and helps you stay informed of your rights as statutory provisions evolve.</p>
-      <a href="https://ailane.ai/#pricing" class="btn-upsell">Explore Ailane →</a>
+    <!-- TIER PANEL — post-report navigation -->
+    <div class="tier-panel">
+      <div class="tier-guidance">
+        <div class="tier-guidance-eyebrow" id="tp-eyebrow">ANALYSIS COMPLETE</div>
+        <h3 id="tp-headline">Review your findings above.</h3>
+        <p id="tp-body">Consider discussing your report with a qualified employment solicitor for advice specific to your situation.</p>
+      </div>
+      <div class="tier-cards">
+        <div class="tier-card">
+          <div class="tier-card-name">Contract Compliance Check</div>
+          <div class="tier-card-price">£19 <span>per document</span></div>
+          <p class="tier-card-body">Have another contract, handbook, or policy to check? Each document is reviewed individually against current UK employment law.</p>
+          <a href="#pricing" class="btn-tier" onclick="gtag('event','click_cta',{product:'repeat_check',location:'post_report',audience:'worker'})">Check Another Contract</a>
+        </div>
+        <div class="tier-card">
+          <div class="tier-card-name">Explore UK Employment Law</div>
+          <p class="tier-card-body">Research the legislation that protects your rights. The Ailane Knowledge Library gives you access to UK employment statutes explained in plain language.</p>
+          <a href="https://ailane.ai/account/" class="btn-tier">Explore the Knowledge Library →</a>
+        </div>
+      </div>
+      <div class="tier-credibility">130,854+ tribunal decisions · 47+ legislative instruments · ERA 2025 in force · WTR 1998 fully indexed</div>
     </div>
   </div>
 
@@ -1286,6 +1324,26 @@ function renderResults(score, findingCounts, email) {
   }
   const enEl = document.getElementById('email-notice');
   if (enEl && email) enEl.innerHTML = `<span>✉</span> Your report has also been sent to <strong>${email}</strong>`;
+
+  // Score-responsive tier guidance
+  const tpEyebrow = document.getElementById('tp-eyebrow');
+  const tpHeadline = document.getElementById('tp-headline');
+  const tpBody = document.getElementById('tp-body');
+  if (tpEyebrow && tpHeadline && tpBody) {
+    if (s < 50) {
+      tpEyebrow.textContent = 'AREAS OF CONCERN IDENTIFIED';
+      tpHeadline.textContent = 'Your contract has clauses worth discussing with a solicitor.';
+      tpBody.textContent = 'This analysis identified areas where your contract may not align with your statutory rights. Understanding your position is the first step. Consider discussing these findings with a qualified employment solicitor or contacting ACAS for free, impartial guidance.';
+    } else if (s <= 70) {
+      tpEyebrow.textContent = 'REVIEW AREAS IDENTIFIED';
+      tpHeadline.textContent = 'Your contract has some areas worth looking into.';
+      tpBody.textContent = 'This analysis found clauses that may not fully align with current UK employment law. While not necessarily meaning your employer has acted wrongly, these are areas you may want to understand better. A qualified employment solicitor can advise on your specific situation.';
+    } else {
+      tpEyebrow.textContent = 'BROADLY ALIGNED';
+      tpHeadline.textContent = 'Your contract aligns well with statutory requirements.';
+      tpBody.textContent = 'This analysis found your contract broadly meets current UK employment law requirements, with minor areas noted. Employment law evolves \u2014 staying informed of your rights helps you remain in a strong position.';
+    }
+  }
 }
 
 // ── FINDING FEEDBACK ────────────────────────────────────────────────────────
