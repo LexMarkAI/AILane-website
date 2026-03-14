@@ -509,7 +509,8 @@ function FloatingAI({ token, activeTab }) {
     "\uD83D\uDD2C Simulator": ["Explain ACEI formula", "Highest risk SM/JM combinations"],
     "\uD83D\uDCDC Governance": ["Constitution summary", "Amendment register status"],
     "\uD83D\uDCC8 Analytics": ["Campaign intelligence overview", "GA4 optimisation tips"],
-    "\uD83E\uDD16 AI Assistant": ["What can you help with?", "Ailane strategic overview"]
+    "\uD83E\uDD16 AI Assistant": ["What can you help with?", "Ailane strategic overview"],
+    "\u2705 Quality": ["Under-critical rate status", "Weekly QAI audit summary"]
   };
   var prompts = PROMPTS[activeTab] || PROMPTS["\uD83E\uDD16 AI Assistant"];
 
@@ -2193,6 +2194,127 @@ function Login({ onAuth }) {
   );
 }
 
+// ─── QUALITY TAB ──────────────────────────────────────────────────────────
+function QualityTab({ token }) {
+  var [data, setData] = useState(null);
+  var [loading, setLoading] = useState(true);
+
+  useEffect(function() {
+    loadQualityTab();
+  }, [token]);
+
+  async function loadQualityTab() {
+    setLoading(true);
+    try {
+      var authToken = token || SB_ANON;
+      var r = await fetch(
+        SB_URL + '/rest/v1/model_performance_log?order=computed_at.desc&limit=1&select=*',
+        { headers: { 'Authorization': 'Bearer ' + authToken, 'apikey': SB_ANON } }
+      );
+      var rows = await r.json();
+      var d = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+      setData(d);
+    } catch (err) {
+      console.error('Quality tab load error:', err);
+    }
+    setLoading(false);
+  }
+
+  var d = data;
+  var ucr = d && typeof d.under_critical_rate === 'number' ? d.under_critical_rate : 0;
+  var ucrDisplay = d ? (ucr * 100).toFixed(2) + '%' : '—';
+  var ucrElevated = d && ucr > 0;
+
+  var sessions = d ? (d.total_sessions ?? '—') : '—';
+  var findings = d ? (d.total_findings ?? '—') : '—';
+  var complaints = d ? (d.complaint_volume ?? '—') : '—';
+  var fmb = d ? (d.failure_mode_b_count ?? 0) : 0;
+
+  var dist = d ? (d.severity_distribution || {}) : {};
+  var cp = dist.critical_pct ?? 0;
+  var mp = dist.major_pct ?? 0;
+  var mn = dist.minor_pct ?? 0;
+
+  var lastAuditText = 'No audit data yet — first run Sunday 07:00 UTC.';
+  if (d && d.computed_at) {
+    var ts = new Date(d.computed_at);
+    lastAuditText = 'Last audit: ' + ts.toLocaleDateString('en-GB') +
+      ' at ' + ts.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) +
+      ' UTC. Week ending ' + new Date(d.period_end).toLocaleDateString('en-GB') + '.';
+  }
+
+  return (
+    <div className="scrollable fade-in" style={{ padding: "20px 24px", height: "100%" }}>
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "#F0F4FA", marginBottom: "0.25rem" }}>Quality Assurance</h2>
+        <p style={{ fontSize: "0.8rem", color: "#64748B" }}>Governed by AILANE-SPEC-QAI-001 v1.0 (AMD-019)</p>
+      </div>
+
+      <div style={{
+        borderLeft: "3px solid " + (ucrElevated ? "#F59E0B" : "#EF4444"),
+        background: ucrElevated ? "rgba(245,158,11,0.06)" : "rgba(239,68,68,0.05)",
+        borderRadius: "0 8px 8px 0", padding: "1rem 1.25rem", marginBottom: "1.5rem"
+      }}>
+        <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.25rem" }}>under_critical_rate — Existential Metric</div>
+        <div style={{ fontSize: "2rem", fontWeight: 800, color: "#F0F4FA" }}>{ucrDisplay}</div>
+        <div style={{ fontSize: "0.82rem", color: ucrElevated ? "#F59E0B" : (d ? "#10B981" : "#94A3B8"), marginTop: "0.25rem" }}>
+          {!d ? "Proportion of sessions where a Critical finding was not surfaced. Zero tolerance."
+            : ucrElevated ? "\u26A0 ELEVATED — Mandatory investigation required per QAI-001 \u00A75.3"
+            : "\u2713 Within tolerance this week"}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+        <div style={{ background: "#1B2A4A", border: "1px solid #2A3A5C", borderRadius: 8, padding: "1rem" }}>
+          <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginBottom: "0.25rem" }}>Sessions this week</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#F0F4FA" }}>{sessions}</div>
+        </div>
+        <div style={{ background: "#1B2A4A", border: "1px solid #2A3A5C", borderRadius: 8, padding: "1rem" }}>
+          <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginBottom: "0.25rem" }}>Findings this week</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#F0F4FA" }}>{findings}</div>
+        </div>
+        <div style={{ background: "#1B2A4A", border: "1px solid #2A3A5C", borderRadius: 8, padding: "1rem" }}>
+          <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginBottom: "0.25rem" }}>Complaints this week</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#F0F4FA" }}>{complaints}</div>
+        </div>
+        <div style={{ background: "#1B2A4A", border: fmb > 0 ? "1px solid rgba(239,68,68,0.4)" : "1px solid #2A3A5C", borderRadius: 8, padding: "1rem" }}>
+          <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginBottom: "0.25rem" }}>Failure Mode B</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: fmb > 0 ? "#EF4444" : "#F0F4FA" }}>{fmb}</div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#F0F4FA", marginBottom: "0.75rem" }}>Severity Distribution — this week</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span style={{ width: 64, fontSize: "0.78rem", fontWeight: 600, color: "#EF4444" }}>Critical</span>
+            <div style={{ flex: 1, height: 10, background: "rgba(255,255,255,0.06)", borderRadius: 5, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: cp + "%", background: "#EF4444", borderRadius: 5, transition: "width 0.5s" }}></div>
+            </div>
+            <span style={{ width: 36, fontSize: "0.78rem", color: "#94A3B8", textAlign: "right" }}>{cp}%</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span style={{ width: 64, fontSize: "0.78rem", fontWeight: 600, color: "#F59E0B" }}>Major</span>
+            <div style={{ flex: 1, height: 10, background: "rgba(255,255,255,0.06)", borderRadius: 5, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: mp + "%", background: "#F59E0B", borderRadius: 5, transition: "width 0.5s" }}></div>
+            </div>
+            <span style={{ width: 36, fontSize: "0.78rem", color: "#94A3B8", textAlign: "right" }}>{mp}%</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span style={{ width: 64, fontSize: "0.78rem", fontWeight: 600, color: "#10B981" }}>Minor</span>
+            <div style={{ flex: 1, height: 10, background: "rgba(255,255,255,0.06)", borderRadius: 5, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: mn + "%", background: "#10B981", borderRadius: 5, transition: "width 0.5s" }}></div>
+            </div>
+            <span style={{ width: 36, fontSize: "0.78rem", color: "#94A3B8", textAlign: "right" }}>{mn}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: "0.82rem", color: "#64748B" }}>{lastAuditText}</div>
+    </div>
+  );
+}
+
 // ─── APP SHELL ────────────────────────────────────────────────────────────
 function App() {
   var [token, setToken] = useState(null);
@@ -2219,7 +2341,7 @@ function App() {
     } catch(e) {}
   }, []);
 
-  var TABS = ["\u26A1 Command", "\uD83D\uDCE8 Communications", "\uD83D\uDCF0 Regulatory Intel", "\uD83D\uDCDA Knowledge Library", "\uD83D\uDD0D Intelligence Hub", "\uD83D\uDCCA Client Pipeline", "\u2699\uFE0F Data Systems", "\uD83C\uDFE2 Business Office", "\uD83D\uDD2C Simulator", "\uD83D\uDCDC Governance", "\uD83D\uDCC8 Analytics", "\uD83E\uDD16 AI Assistant"];
+  var TABS = ["\u26A1 Command", "\uD83D\uDCE8 Communications", "\uD83D\uDCF0 Regulatory Intel", "\uD83D\uDCDA Knowledge Library", "\uD83D\uDD0D Intelligence Hub", "\uD83D\uDCCA Client Pipeline", "\u2699\uFE0F Data Systems", "\uD83C\uDFE2 Business Office", "\uD83D\uDD2C Simulator", "\uD83D\uDCDC Governance", "\uD83D\uDCC8 Analytics", "\uD83E\uDD16 AI Assistant", "\u2705 Quality"];
 
   var renderTab = function() {
     switch (activeTab) {
@@ -2235,6 +2357,7 @@ function App() {
       case "\uD83D\uDCDC Governance": return <GovernanceTab />;
       case "\uD83D\uDCC8 Analytics": return <AnalyticsTab token={token} />;
       case "\uD83E\uDD16 AI Assistant": return <AIAssistantTab token={token} />;
+      case "\u2705 Quality": return <QualityTab token={token} />;
       default: return <CommandTab token={token} />;
     }
   };
