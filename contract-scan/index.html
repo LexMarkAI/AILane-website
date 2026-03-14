@@ -610,22 +610,64 @@ footer {
   margin-top: 12px;
   display: flex; align-items: center; gap: 6px;
 }
-.upsell-panel {
+/* ── TIER PANEL (post-report navigation) ───────────────────── */
+.tier-panel {
   background: linear-gradient(135deg, var(--navy-mid), #101820);
-  border: 1px solid rgba(232,169,35,0.2);
-  border-radius: 10px; padding: 24px; margin-top: 20px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px; padding: 28px 24px; margin-top: 24px;
 }
-.upsell-label {
-  font-size: 9px; font-weight: 700; letter-spacing: 2px;
-  color: var(--gold); text-transform: uppercase; margin-bottom: 8px;
+.tier-guidance { margin-bottom: 28px; }
+.tier-guidance-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--teal-light); margin-bottom: 8px;
 }
-.upsell-panel h3 { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
-.upsell-panel p { font-size: 12px; color: var(--grey-400); line-height: 1.6; margin-bottom: 16px; }
-.btn-upsell {
-  display: inline-block;
-  background: var(--gold); color: var(--navy);
-  font-size: 12px; font-weight: 700;
-  padding: 10px 20px; border-radius: 4px;
+.tier-guidance h3 { font-size: 17px; font-weight: 700; color: var(--white); margin-bottom: 8px; line-height: 1.4; }
+.tier-guidance p { font-size: 13px; color: var(--grey-400); line-height: 1.7; margin: 0; }
+.tier-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
+}
+.tier-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px; padding: 20px; display: flex; flex-direction: column;
+}
+.tier-card.featured {
+  border-color: var(--teal-light);
+  background: rgba(13,115,119,0.08);
+}
+.tier-card-badge {
+  display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--teal-light);
+  background: rgba(20,189,173,0.12); padding: 3px 8px; border-radius: 3px;
+  margin-bottom: 10px; width: fit-content;
+}
+.tier-card-name { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+.tier-card-price { font-size: 22px; font-weight: 700; color: var(--white); margin-bottom: 2px; }
+.tier-card-price span { font-size: 12px; font-weight: 400; color: var(--grey-400); }
+.tier-card-body { font-size: 12px; color: var(--grey-400); line-height: 1.6; margin: 12px 0; flex: 1; }
+.tier-card-features { list-style: none; padding: 0; margin: 0 0 16px; }
+.tier-card-features li {
+  font-size: 12px; color: var(--grey-400); line-height: 1.6;
+  padding-left: 16px; position: relative; margin-bottom: 4px;
+}
+.tier-card-features li::before {
+  content: '✓'; position: absolute; left: 0; color: var(--teal-light); font-weight: 700;
+}
+.tier-card .btn-tier {
+  display: inline-block; text-align: center; padding: 10px 16px;
+  border-radius: 4px; font-size: 12px; font-weight: 700;
+  text-decoration: none; margin-top: auto; transition: opacity .2s;
+}
+.tier-card .btn-tier:hover { opacity: 0.85; }
+.tier-card .btn-tier-standard { background: rgba(255,255,255,0.08); color: var(--white); }
+.tier-card.featured .btn-tier { background: var(--teal); color: var(--white); }
+.tier-card .btn-tier-premium { background: rgba(255,255,255,0.08); color: var(--white); }
+.tier-credibility {
+  text-align: center; font-size: 11px; color: var(--grey-600);
+  font-family: monospace; letter-spacing: 0.3px;
+}
+@media (max-width: 768px) {
+  .tier-cards { grid-template-columns: 1fr; }
 }
 
 /* OOS / ERROR STATES */
@@ -991,11 +1033,45 @@ footer {
       <div class="email-notice" id="email-notice"></div>
     </div>
 
-    <div class="upsell-panel">
-      <div class="upsell-label">One-Off Check Complete</div>
-      <h3>Monitor every document, continuously.</h3>
-      <p>An Ailane subscription monitors every contract, policy change, and shift in UK employment law — with board-ready reporting and live regulatory alerts.</p>
-      <a href="https://ailane.ai/#pricing" class="btn-upsell">View subscription plans →</a>
+    <!-- TIER PANEL — post-report navigation -->
+    <div class="tier-panel">
+      <div class="tier-guidance">
+        <div class="tier-guidance-eyebrow" id="tp-eyebrow">ANALYSIS COMPLETE</div>
+        <h3 id="tp-headline">Review your findings above.</h3>
+        <p id="tp-body">Consider discussing your report with a qualified employment solicitor for guidance specific to your organisation.</p>
+      </div>
+      <div class="tier-cards">
+        <div class="tier-card">
+          <div class="tier-card-name">Contract Compliance Check</div>
+          <div class="tier-card-price">£19 <span>per document</span></div>
+          <p class="tier-card-body">Have more contracts to review? Check each document individually against current UK employment law.</p>
+          <a href="#pricing" class="btn-tier btn-tier-standard" onclick="gtag('event','click_cta',{product:'repeat_check',location:'post_report',audience:'employer'})">Check Another Contract</a>
+        </div>
+        <div class="tier-card featured">
+          <div class="tier-card-badge">RECOMMENDED</div>
+          <div class="tier-card-name">Operational</div>
+          <div class="tier-card-price">£199 <span>/ month</span></div>
+          <ul class="tier-card-features">
+            <li>Monitor all contracts continuously</li>
+            <li>Live UK employment law alerts</li>
+            <li>Full Knowledge Library access</li>
+            <li>Regulatory Event Log</li>
+          </ul>
+          <a href="https://ailane.ai/account/" class="btn-tier">Start Monitoring →</a>
+        </div>
+        <div class="tier-card">
+          <div class="tier-card-name">Governance</div>
+          <div class="tier-card-price">£799 <span>/ month</span></div>
+          <ul class="tier-card-features">
+            <li>Full ACEI, RRI &amp; CCI Index Triad</li>
+            <li>Document Vault — 25 users</li>
+            <li>Clause-level analysis &amp; remediation</li>
+            <li>Board-ready compliance reports</li>
+          </ul>
+          <a href="https://ailane.ai/account/" class="btn-tier btn-tier-premium">Explore Governance →</a>
+        </div>
+      </div>
+      <div class="tier-credibility">130,854+ tribunal decisions · 78,699+ employer profiles · 47+ legislative instruments · ERA 2025 in force</div>
     </div>
   </div>
 
@@ -1408,6 +1484,26 @@ function renderResults(score, findingCounts, email, fileName) {
   const enEl = document.getElementById('email-notice');
   if (enEl && email) {
     enEl.innerHTML = `<span>✉</span> Your report has also been sent to <strong>${email}</strong>`;
+  }
+
+  // Score-responsive tier guidance
+  const tpEyebrow = document.getElementById('tp-eyebrow');
+  const tpHeadline = document.getElementById('tp-headline');
+  const tpBody = document.getElementById('tp-body');
+  if (tpEyebrow && tpHeadline && tpBody) {
+    if (s < 50) {
+      tpEyebrow.textContent = 'SIGNIFICANT EXPOSURE IDENTIFIED';
+      tpHeadline.textContent = 'Your document has areas requiring urgent attention.';
+      tpBody.textContent = 'This analysis identified critical gaps in your employment documentation. We recommend reviewing these findings with a qualified employment solicitor as a priority. Understanding your exposure is the first step to managing it.';
+    } else if (s <= 70) {
+      tpEyebrow.textContent = 'REMEDIATION AREAS IDENTIFIED';
+      tpHeadline.textContent = 'Your documentation has areas worth reviewing.';
+      tpBody.textContent = 'This analysis identified several clauses that may not align with current UK statutory requirements. Reviewing these with qualified legal support can help strengthen your compliance position.';
+    } else {
+      tpEyebrow.textContent = 'STRONG BASELINE';
+      tpHeadline.textContent = 'Your documentation demonstrates solid alignment.';
+      tpBody.textContent = 'This analysis found your documentation broadly aligns with current statutory requirements, with minor areas that may benefit from review. Maintaining this standard as legislation evolves is where ongoing monitoring adds value.';
+    }
   }
 }
 
