@@ -121,6 +121,23 @@ body::before { content:''; position:fixed; inset:0; background: linear-gradient(
 .site-desc { color:var(--text-secondary); }
 .skeleton { background:linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:var(--radius-sm); }
 @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+.cer-event { padding:10px 12px; border-left:3px solid var(--border-default); margin-bottom:8px; background:var(--bg-base); border-radius:0 var(--radius-sm) var(--radius-sm) 0; cursor:pointer; transition:all 0.2s; }
+.cer-event:hover { background:var(--bg-elevated); border-left-color:var(--accent-cyan); }
+.cer-event.critical { border-left-color:var(--accent-red); }
+.cer-event.major { border-left-color:var(--accent-amber); }
+.cer-event.minor { border-left-color:var(--accent-cyan); }
+.cer-event.informational { border-left-color:var(--accent-green); }
+.cer-panel { position:fixed; top:0; right:0; width:480px; max-width:90vw; height:100vh; background:var(--bg-surface); border-left:1px solid var(--border-strong); z-index:200; overflow-y:auto; padding:24px; animation:slideIn 0.2s ease-out; }
+@keyframes slideIn { from{transform:translateX(100%);} to{transform:translateX(0);} }
+.cer-panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:199; }
+.cer-field { margin-bottom:12px; }
+.cer-field-label { font-size:0.58rem; font-weight:500; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:3px; }
+.cer-field-value { font-size:0.72rem; color:var(--text-secondary); line-height:1.6; }
+.autonomy-bar { height:8px; border-radius:4px; background:var(--bg-hover); overflow:hidden; margin-top:6px; }
+.autonomy-fill { height:100%; border-radius:4px; transition:width 0.6s ease; }
+.cred-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-subtle); }
+.cred-row:last-child { border-bottom:none; }
+.cred-days { font-family:var(--font-mono); font-size:0.65rem; padding:2px 8px; border-radius:100px; }
 @media (max-width:1000px) { .kpi-strip { grid-template-columns:repeat(3,1fr); } .three-col { grid-template-columns:1fr; } }
 @media (max-width:700px) { .kpi-strip { grid-template-columns:1fr 1fr; } .two-col { grid-template-columns:1fr; } }
 </style>
@@ -253,6 +270,7 @@ function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [efFilter, setEfFilter] = useState('all');
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
     async function checkAuth() {
@@ -299,6 +317,9 @@ function App() {
   const scraperRuns = d.scraper_runs || [];
   const whStats = d.webhook_stats || {};
   const docs = d.company_documents || [];
+  const cerEvents = d.cer_events || [];
+  const cerStats = d.cer_stats || {};
+  const credentials = d.credentials || [];
   const filteredEF = efFilter === 'all' ? EDGE_FUNCTIONS : EDGE_FUNCTIONS.filter(f => f.cat === efFilter);
   const efCats = ['all','core','payments','pipeline','internal','kl','comms','campaign','ticker','accounts'];
   const failedPipes = pipeRuns.filter(p => p.status === 'failed');
@@ -335,6 +356,117 @@ function App() {
               <div className="kpi-card"><div className="label">Pipelines</div><div className="value" style={{color:'var(--accent-amber)'}}>{pipeRegistry.length}</div><div className="sub">Registered</div></div>
               <div className="kpi-card"><div className="label">Webhook Events</div><div className="value" style={{color:'var(--text-secondary)'}}>{whStats.total || 0}</div><div className="sub">{whStats.errored || 0} errors</div></div>
               <div className="kpi-card"><div className="label">Pipe Failures</div><div className="value" style={{color:failedPipes.length > 0 ? 'var(--accent-red)' : 'var(--accent-green)'}}>{failedPipes.length}</div><div className="sub">Last 20 runs</div></div>
+            </div>
+
+            {/* CER EVENT DETAIL PANEL */}
+            {selectedEvent && (
+              <>
+                <div className="cer-panel-overlay" onClick={() => setSelectedEvent(null)} />
+                <div className="cer-panel">
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+                    <div>
+                      <span style={{fontSize:'0.58rem',fontFamily:'var(--font-mono)',padding:'2px 8px',borderRadius:'100px',background: selectedEvent.severity==='critical'?'var(--accent-red-dim)':selectedEvent.severity==='major'?'var(--accent-amber-dim)':'var(--accent-cyan-dim)',color: selectedEvent.severity==='critical'?'var(--accent-red)':selectedEvent.severity==='major'?'var(--accent-amber)':'var(--accent-cyan)',textTransform:'uppercase'}}>{selectedEvent.severity}</span>
+                      <span style={{fontSize:'0.58rem',fontFamily:'var(--font-mono)',padding:'2px 8px',borderRadius:'100px',marginLeft:6,background: selectedEvent.status==='resolved'?'var(--accent-green-dim)':'var(--accent-amber-dim)',color: selectedEvent.status==='resolved'?'var(--accent-green)':'var(--accent-amber)',textTransform:'uppercase'}}>{selectedEvent.status}</span>
+                    </div>
+                    <button onClick={() => setSelectedEvent(null)} style={{background:'none',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-muted)',padding:'4px 8px',cursor:'pointer',fontSize:'0.7rem'}}>Close</button>
+                  </div>
+                  <div style={{fontSize:'1rem',fontWeight:700,fontFamily:'var(--font-display)',color:'var(--text-primary)',marginBottom:16,lineHeight:1.3}}>{selectedEvent.title}</div>
+                  <div className="cer-field"><div className="cer-field-label">Event Date</div><div className="cer-field-value">{new Date(selectedEvent.event_date).toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div></div>
+                  {selectedEvent.resolved_at && <div className="cer-field"><div className="cer-field-label">Resolved</div><div className="cer-field-value">{new Date(selectedEvent.resolved_at).toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})} ({selectedEvent.duration_minutes} mins)</div></div>}
+                  <div className="cer-field"><div className="cer-field-label">Category</div><div className="cer-field-value">{selectedEvent.category?.replace(/_/g, ' ')}</div></div>
+                  <div className="cer-field"><div className="cer-field-label">Description</div><div className="cer-field-value">{selectedEvent.description}</div></div>
+                  {selectedEvent.affected_systems?.length > 0 && <div className="cer-field"><div className="cer-field-label">Affected Systems</div><div className="cer-field-value">{selectedEvent.affected_systems.join(', ')}</div></div>}
+                  {selectedEvent.business_impact && <div className="cer-field"><div className="cer-field-label">Business Impact</div><div className="cer-field-value">{selectedEvent.business_impact}</div></div>}
+                  {selectedEvent.root_cause && <div className="cer-field"><div className="cer-field-label">Root Cause</div><div className="cer-field-value">{selectedEvent.root_cause}</div></div>}
+                  {selectedEvent.resolution_steps && <div className="cer-field"><div className="cer-field-label">Resolution Steps</div><div className="cer-field-value" style={{whiteSpace:'pre-line'}}>{selectedEvent.resolution_steps}</div></div>}
+                  <div style={{marginTop:16,padding:'14px',background:'var(--bg-base)',borderRadius:'var(--radius-md)',border:'1px solid var(--border-subtle)'}}>
+                    <div style={{fontSize:'0.72rem',fontWeight:700,fontFamily:'var(--font-display)',color:'var(--accent-cyan)',marginBottom:8}}>AI Autonomy Assessment</div>
+                    <div className="cer-field"><div className="cer-field-label">Resolution Type</div><div className="cer-field-value" style={{color: selectedEvent.resolution_type==='ai_autonomous'?'var(--accent-green)':selectedEvent.resolution_type==='ai_guided'?'var(--accent-cyan)':'var(--text-secondary)'}}>{selectedEvent.resolution_type?.replace(/_/g, ' ') || 'Pending'}</div></div>
+                    <div className="cer-field"><div className="cer-field-label">Human Intervention Required</div><div className="cer-field-value" style={{color: selectedEvent.human_intervention_required?'var(--accent-amber)':'var(--accent-green)'}}>{selectedEvent.human_intervention_required ? 'Yes' : 'No'}</div></div>
+                    <div className="cer-field"><div className="cer-field-label">AI Could Have Resolved Alone</div><div className="cer-field-value" style={{color: selectedEvent.ai_could_have_resolved?'var(--accent-green)':'var(--accent-red)'}}>{selectedEvent.ai_could_have_resolved ? 'Yes' : 'No'}</div></div>
+                    {selectedEvent.ai_confidence_note && <div className="cer-field"><div className="cer-field-label">AI Confidence Note</div><div className="cer-field-value" style={{fontStyle:'italic'}}>{selectedEvent.ai_confidence_note}</div></div>}
+                  </div>
+                  {selectedEvent.prevention_measures && <div className="cer-field" style={{marginTop:12}}><div className="cer-field-label">Prevention Measures</div><div className="cer-field-value">{selectedEvent.prevention_measures}</div></div>}
+                  {selectedEvent.tags?.length > 0 && <div style={{marginTop:8,display:'flex',flexWrap:'wrap',gap:4}}>{selectedEvent.tags.map((t,i) => <span key={i} style={{fontSize:'0.55rem',padding:'2px 7px',borderRadius:'100px',border:'1px solid var(--border-subtle)',background:'var(--bg-hover)',color:'var(--text-muted)'}}>{t}</span>)}</div>}
+                </div>
+              </>
+            )}
+
+            {/* AI-AUGMENTED OPERATIONS MODEL */}
+            <div className="card" style={{borderColor:'rgba(14,165,233,0.2)',background:'linear-gradient(135deg,rgba(14,165,233,0.03),rgba(139,92,246,0.03))'}}>
+              <div className="card-head"><div className="card-head-title" style={{color:'var(--accent-cyan)'}}>AI-Augmented Operations Model</div></div>
+              <div className="card-body">
+                <div style={{fontSize:'0.74rem',color:'var(--text-secondary)',lineHeight:1.7,marginBottom:14}}>
+                  Ailane operates with a single founder supported by an AI operations agent. The entire technology stack is monitored through this Infrastructure Centre which provides the AI agent with full system topology and state. When an incident occurs, the AI agent diagnoses root cause, assesses business impact, and implements a fix in real-time. No static runbooks. No 200-page manuals. The architecture IS the documentation.
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                  <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-md)',padding:'14px 16px',textAlign:'center'}}>
+                    <div style={{fontSize:'2rem',fontWeight:800,fontFamily:'var(--font-mono)',color:'var(--accent-cyan)'}}>{cerStats.autonomy_ratio || 0}%</div>
+                    <div style={{fontSize:'0.62rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>AI Resolvable</div>
+                    <div className="autonomy-bar"><div className="autonomy-fill" style={{width:(cerStats.autonomy_ratio||0)+'%',background:'linear-gradient(90deg,var(--accent-cyan),var(--accent-green))'}} /></div>
+                  </div>
+                  <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-md)',padding:'14px 16px',textAlign:'center'}}>
+                    <div style={{fontSize:'2rem',fontWeight:800,fontFamily:'var(--font-mono)',color:'var(--accent-green)'}}>{cerStats.resolved || 0}<span style={{fontSize:'1rem',color:'var(--text-muted)'}}>/{cerStats.total || 0}</span></div>
+                    <div style={{fontSize:'0.62rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Events Resolved</div>
+                  </div>
+                  <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-md)',padding:'14px 16px',textAlign:'center'}}>
+                    <div style={{fontSize:'2rem',fontWeight:800,fontFamily:'var(--font-mono)',color: cerStats.open > 0 ? 'var(--accent-amber)' : 'var(--accent-green)'}}>{cerStats.open || 0}</div>
+                    <div style={{fontSize:'0.62rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Open Events</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* COMPANY EVENT REGISTER + CREDENTIALS LIFECYCLE */}
+            <div className="two-col">
+              <div className="card">
+                <div className="card-head"><div className="card-head-title">Company Event Register</div><div className="card-head-badge">{cerEvents.length} events</div></div>
+                <div className="card-body" style={{maxHeight:'500px',overflowY:'auto'}}>
+                  {cerEvents.length === 0 && <div className="ts" style={{padding:12}}>No events recorded yet. Business-critical events will appear here.</div>}
+                  {cerEvents.map((ev, i) => (
+                    <div key={i} className={'cer-event ' + ev.severity} onClick={() => setSelectedEvent(ev)}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                        <div style={{display:'flex',alignItems:'center',gap:6}}>
+                          <span style={{fontSize:'0.58rem',fontFamily:'var(--font-mono)',padding:'1px 6px',borderRadius:'100px',background: ev.severity==='critical'?'var(--accent-red-dim)':ev.severity==='major'?'var(--accent-amber-dim)':'var(--accent-cyan-dim)',color: ev.severity==='critical'?'var(--accent-red)':ev.severity==='major'?'var(--accent-amber)':'var(--accent-cyan)',textTransform:'uppercase',fontWeight:600}}>{ev.severity}</span>
+                          <span style={{fontSize:'0.58rem',fontFamily:'var(--font-mono)',padding:'1px 6px',borderRadius:'100px',background: ev.status==='resolved'?'var(--accent-green-dim)':ev.status==='monitoring'?'var(--accent-amber-dim)':'var(--accent-red-dim)',color: ev.status==='resolved'?'var(--accent-green)':ev.status==='monitoring'?'var(--accent-amber)':'var(--accent-red)'}}>{ev.status}</span>
+                        </div>
+                        <span className="ts">{new Date(ev.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+                      </div>
+                      <div style={{fontSize:'0.76rem',fontWeight:600,color:'var(--text-primary)',marginBottom:3}}>{ev.title}</div>
+                      <div style={{fontSize:'0.62rem',color:'var(--text-muted)',display:'flex',gap:10}}>
+                        <span>{ev.category?.replace(/_/g, ' ')}</span>
+                        {ev.resolution_type && <span style={{color: ev.resolution_type==='ai_autonomous'?'var(--accent-green)':ev.resolution_type==='ai_guided'?'var(--accent-cyan)':'var(--text-muted)'}}>{ev.resolution_type.replace(/_/g, ' ')}</span>}
+                        {ev.ai_could_have_resolved && <span style={{color:'var(--accent-green)'}}>AI resolvable</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-head"><div className="card-head-title">Credentials Lifecycle</div><div className="card-head-badge">{credentials.length} tracked</div></div>
+                <div className="card-body" style={{maxHeight:'500px',overflowY:'auto'}}>
+                  {credentials.map((c, i) => {
+                    const review = c.next_review_date ? Math.ceil((new Date(c.next_review_date+'T00:00:00') - new Date()) / 86400000) : null;
+                    const urgency = review !== null ? (review <= 30 ? 'urgent' : review <= 90 ? 'soon' : 'ok') : 'ok';
+                    return (
+                      <div className="cred-row" key={i}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:'0.74rem',fontWeight:500,color:'var(--text-primary)'}}>{c.credential_name}</div>
+                          <div style={{fontSize:'0.58rem',color:'var(--text-muted)',marginTop:2}}>{c.provider} | {c.credential_type.replace(/_/g, ' ')} | {c.stored_in?.substring(0, 40)}{c.stored_in?.length > 40 ? '...' : ''}</div>
+                          <div style={{fontSize:'0.55rem',color:c.auto_renews?'var(--accent-green)':'var(--text-muted)',marginTop:2}}>{c.auto_renews ? 'Auto-renews' : 'Manual renewal'}</div>
+                        </div>
+                        {review !== null && (
+                          <span className="cred-days" style={{
+                            background: urgency==='urgent'?'var(--accent-red-dim)':urgency==='soon'?'var(--accent-amber-dim)':'var(--bg-hover)',
+                            color: urgency==='urgent'?'var(--accent-red)':urgency==='soon'?'var(--accent-amber)':'var(--text-muted)'
+                          }}>{review}d</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* CONNECTOR STATUS BOARD */}
