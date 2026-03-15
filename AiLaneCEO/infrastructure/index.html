@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane - Operations & Infrastructure</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root {
+  --bg-void: #050810; --bg-base: #070B14; --bg-surface: #0C1220; --bg-elevated: #111B2E;
+  --bg-hover: #162238; --bg-glass: rgba(12, 18, 32, 0.85);
+  --border-subtle: rgba(255,255,255,0.04); --border-default: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.12); --border-accent: rgba(14,165,233,0.3);
+  --text-primary: #E2E8F0; --text-secondary: #7A8BA8; --text-muted: #4A5568; --text-accent: #38BDF8;
+  --accent-cyan: #0EA5E9; --accent-cyan-dim: rgba(14,165,233,0.15);
+  --accent-green: #10B981; --accent-green-dim: rgba(16,185,129,0.15);
+  --accent-red: #EF4444; --accent-red-dim: rgba(239,68,68,0.15);
+  --accent-amber: #F59E0B; --accent-amber-dim: rgba(245,158,11,0.15);
+  --accent-purple: #8B5CF6; --accent-purple-dim: rgba(139,92,246,0.15);
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+  --font-display: 'Outfit', sans-serif; --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg-void); color: var(--text-primary); font-family: var(--font-body); min-height: 100vh; }
+body::before { content:''; position:fixed; inset:0; background: linear-gradient(rgba(14,165,233,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.02) 1px, transparent 1px); background-size:60px 60px; pointer-events:none; z-index:0; }
+#root { position: relative; z-index: 1; }
+.auth-gate { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; gap:20px; }
+.auth-gate .logo-mark { font-family:var(--font-display); font-size:1.4rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent-cyan); }
+.pulse-ring { width:40px; height:40px; border:2px solid var(--accent-cyan); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.top-bar { display:flex; align-items:center; justify-content:space-between; padding:14px 28px; border-bottom:1px solid var(--border-subtle); background:var(--bg-glass); backdrop-filter:blur(20px); position:sticky; top:0; z-index:100; }
+.top-bar-left { display:flex; align-items:center; gap:12px; }
+.back-btn { display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-default); background:var(--bg-surface); color:var(--text-secondary); font-family:var(--font-body); font-size:0.75rem; cursor:pointer; text-decoration:none; transition:all 0.2s; }
+.back-btn:hover { border-color:var(--border-accent); color:var(--text-accent); }
+.page-title { font-family:var(--font-display); font-size:1rem; font-weight:700; }
+.page-title span { color:var(--accent-cyan); }
+.status-pill { display:flex; align-items:center; gap:5px; padding:4px 10px; border-radius:100px; font-size:0.65rem; font-family:var(--font-mono); font-weight:500; }
+.status-pill.live { background:var(--accent-green-dim); color:var(--accent-green); border:1px solid rgba(16,185,129,0.2); }
+.status-pill .dot { width:5px; height:5px; border-radius:50%; background:currentColor; animation:pulse-dot 2s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.ts { font-family:var(--font-mono); font-size:0.68rem; color:var(--text-muted); }
+.main { max-width:1400px; margin:0 auto; padding:20px 28px 60px; display:flex; flex-direction:column; gap:16px; }
+.kpi-strip { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
+.kpi-card { background:var(--bg-surface); border:1px solid var(--border-default); border-radius:var(--radius-md); padding:14px 16px; }
+.kpi-card .label { font-size:0.58rem; font-weight:500; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:3px; }
+.kpi-card .value { font-family:var(--font-mono); font-size:1.3rem; font-weight:600; line-height:1.2; }
+.kpi-card .sub { font-size:0.58rem; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px; }
+.card { background:var(--bg-surface); border:1px solid var(--border-default); border-radius:var(--radius-lg); overflow:hidden; }
+.card-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px 0; }
+.card-head-title { font-family:var(--font-display); font-size:0.82rem; font-weight:600; }
+.card-head-badge { font-family:var(--font-mono); font-size:0.6rem; padding:3px 8px; border-radius:100px; background:var(--bg-hover); color:var(--text-muted); border:1px solid var(--border-subtle); }
+.card-body { padding:12px 18px 16px; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.section-label { font-family:var(--font-display); font-size:0.72rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; padding:8px 0 2px; }
+.node { background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px 14px; transition:all 0.2s; }
+.node:hover { border-color:var(--border-strong); }
+.node-name { font-size:0.74rem; font-weight:600; color:var(--text-primary); }
+.node-sub { font-size:0.6rem; color:var(--text-muted); margin-top:2px; }
+.node-stat { font-family:var(--font-mono); font-size:0.65rem; margin-top:4px; }
+.node-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px; }
+.node-dot.ok { background:var(--accent-green); }
+.node-dot.warn { background:var(--accent-amber); }
+.node-dot.err { background:var(--accent-red); }
+.node-dot.idle { background:var(--text-muted); }
+.ef-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border-subtle); font-size:0.7rem; }
+.ef-row:last-child { border-bottom:none; }
+.ef-name { color:var(--text-primary); font-weight:500; font-family:var(--font-mono); }
+.ef-ver { font-family:var(--font-mono); font-size:0.58rem; padding:1px 6px; border-radius:100px; background:var(--bg-hover); color:var(--text-muted); }
+.ef-jwt { font-size:0.55rem; padding:1px 5px; border-radius:100px; }
+.ef-jwt.on { background:var(--accent-green-dim); color:var(--accent-green); }
+.ef-jwt.off { background:var(--accent-amber-dim); color:var(--accent-amber); }
+.pipe-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border-subtle); }
+.pipe-row:last-child { border-bottom:none; }
+.pipe-status { font-family:var(--font-mono); font-size:0.58rem; padding:2px 7px; border-radius:100px; }
+.pipe-status.success { background:var(--accent-green-dim); color:var(--accent-green); }
+.pipe-status.failed { background:var(--accent-red-dim); color:var(--accent-red); }
+.doc-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border-subtle); }
+.doc-row:last-child { border-bottom:none; }
+.doc-title { font-size:0.74rem; font-weight:500; color:var(--text-primary); }
+.doc-cat { font-size:0.55rem; padding:2px 7px; border-radius:100px; border:1px solid var(--border-subtle); }
+.doc-cat.constitution { background:var(--accent-purple-dim); color:var(--accent-purple); }
+.doc-cat.corporate { background:var(--accent-cyan-dim); color:var(--accent-cyan); }
+.doc-cat.operations { background:var(--accent-amber-dim); color:var(--accent-amber); }
+.doc-cat.legal { background:var(--accent-green-dim); color:var(--accent-green); }
+.doc-cat.funding { background:var(--accent-red-dim); color:var(--accent-red); }
+.schema-tag { display:inline-flex; padding:2px 8px; border-radius:100px; font-size:0.58rem; font-family:var(--font-mono); font-weight:500; margin:2px; }
+.schema-tag.public { background:var(--accent-cyan-dim); color:var(--accent-cyan); }
+.schema-tag.accounts { background:var(--accent-green-dim); color:var(--accent-green); }
+.schema-tag.cis { background:var(--accent-purple-dim); color:var(--accent-purple); }
+.schema-tag.comms { background:var(--accent-amber-dim); color:var(--accent-amber); }
+.site-row { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:0.7rem; }
+.site-path { font-family:var(--font-mono); color:var(--accent-cyan); min-width:200px; }
+.site-desc { color:var(--text-secondary); }
+.skeleton { background:linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:var(--radius-sm); }
+@keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+@media (max-width:1000px) { .kpi-strip { grid-template-columns:repeat(3,1fr); } .three-col { grid-template-columns:1fr; } }
+@media (max-width:700px) { .kpi-strip { grid-template-columns:1fr 1fr; } .two-col { grid-template-columns:1fr; } }
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL = 'mark@ailane.ai';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function timeAgo(d) { if(!d) return 'never'; const h=Math.floor((Date.now()-new Date(d))/3600000); if(h<1) return 'just now'; if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; }
+
+// Static: Edge Function registry (39 functions)
+const EDGE_FUNCTIONS = [
+  {name:'compliance-check',v:35,jwt:false,cat:'core',desc:'ACEI compliance engine v23'},
+  {name:'portal-upload',v:20,jwt:false,cat:'core',desc:'Stripe checkout + document upload portal'},
+  {name:'generate-report',v:12,jwt:false,cat:'core',desc:'HTML compliance report generator'},
+  {name:'generate-report-pdf',v:12,jwt:false,cat:'core',desc:'PDF compliance report generator'},
+  {name:'send-report-email',v:16,jwt:false,cat:'core',desc:'Transactional email delivery'},
+  {name:'stripe-webhook',v:16,jwt:false,cat:'payments',desc:'Stripe event processor (16 events)'},
+  {name:'monzo-webhook',v:17,jwt:false,cat:'payments',desc:'Monzo transaction webhook'},
+  {name:'handle_kl_payment',v:8,jwt:false,cat:'payments',desc:'KL one-time payment handler'},
+  {name:'handle_kl_subscription',v:8,jwt:false,cat:'payments',desc:'KL subscription handler'},
+  {name:'handle_subscription_upgrade',v:8,jwt:false,cat:'payments',desc:'Tier upgrade handler'},
+  {name:'session-lifecycle',v:5,jwt:false,cat:'payments',desc:'Stripe session lifecycle manager'},
+  {name:'ceo-dashboard-data',v:7,jwt:false,cat:'internal',desc:'CEO Command Centre data API'},
+  {name:'ceo-assistant',v:9,jwt:true,cat:'internal',desc:'AI assistant (Anthropic API)'},
+  {name:'notify-signup',v:19,jwt:false,cat:'internal',desc:'Signup notification handler'},
+  {name:'finding-feedback',v:8,jwt:true,cat:'internal',desc:'Human verification of AI findings'},
+  {name:'qai-weekly-audit',v:1,jwt:false,cat:'internal',desc:'QAI weekly quality audit'},
+  {name:'compliance-upload',v:16,jwt:false,cat:'internal',desc:'Legacy upload handler'},
+  {name:'api-key-test',v:10,jwt:false,cat:'internal',desc:'API key validation test'},
+  {name:'generate-event-summary',v:27,jwt:false,cat:'ticker',desc:'AI event summary generator'},
+  {name:'pipeline-govuk-tribunals',v:9,jwt:false,cat:'pipeline',desc:'GOV.UK tribunal scraper'},
+  {name:'pipeline-parliament-bills',v:9,jwt:false,cat:'pipeline',desc:'Parliament Bills tracker'},
+  {name:'pipeline-parliament-committees',v:9,jwt:false,cat:'pipeline',desc:'Select Committee monitor'},
+  {name:'pipeline-hansard',v:9,jwt:false,cat:'pipeline',desc:'Hansard keyword monitor'},
+  {name:'pipeline-govuk-news',v:9,jwt:false,cat:'pipeline',desc:'GOV.UK employment news'},
+  {name:'pipeline-bbc-parliament',v:9,jwt:false,cat:'pipeline',desc:'BBC Parliament RSS feed'},
+  {name:'pipeline-ticker-parliamentary',v:9,jwt:false,cat:'pipeline',desc:'Parliamentary ticker feed'},
+  {name:'welsh-translation-pipeline',v:9,jwt:false,cat:'pipeline',desc:'Welsh language pipeline'},
+  {name:'welsh-translation-worker',v:9,jwt:false,cat:'pipeline',desc:'Welsh translation worker'},
+  {name:'fetch-senedd-fulltext',v:10,jwt:false,cat:'pipeline',desc:'Senedd full text fetcher'},
+  {name:'kl_ai_assistant',v:8,jwt:true,cat:'kl',desc:'KL AI research assistant'},
+  {name:'kl_document_extract',v:8,jwt:true,cat:'kl',desc:'KL document text extraction'},
+  {name:'kl_report_generate',v:8,jwt:true,cat:'kl',desc:'KL report generator'},
+  {name:'comms-triage',v:8,jwt:false,cat:'comms',desc:'Inbound comms triage router'},
+  {name:'comms-email-ack',v:8,jwt:false,cat:'comms',desc:'Email acknowledgment sender'},
+  {name:'comms-resolve',v:8,jwt:true,cat:'comms',desc:'Comms resolution handler'},
+  {name:'ads-sync',v:9,jwt:false,cat:'campaign',desc:'Google Ads sync pipeline'},
+  {name:'upload-gads-csv',v:4,jwt:false,cat:'campaign',desc:'Google Ads CSV uploader'},
+  {name:'receipt-ocr',v:9,jwt:true,cat:'accounts',desc:'Receipt OCR processor'},
+  {name:'test-send-attachment',v:1,jwt:false,cat:'internal',desc:'Email attachment test'},
+];
+
+// Static: Connector registry
+const CONNECTORS = [
+  {name:'Supabase',status:'active',plan:'Pro',region:'eu-central-1',detail:'PostgreSQL + Auth + Edge Functions + Storage + Realtime',schemas:4,tables:102},
+  {name:'Stripe',status:'active',plan:'Live',detail:'17 products, 16 webhook events, restricted keys',products:17,webhooks:16},
+  {name:'Monzo Business',status:'active',plan:'Business',detail:'Webhook v17, 180 events processed, 0 errors',webhooks:180},
+  {name:'Anthropic API',status:'active',plan:'API',detail:'Claude Sonnet, stored as ANTHROPIC_API_KEY in Edge Function secrets',model:'Claude Sonnet'},
+  {name:'GitHub',status:'active',plan:'Free',detail:'4 repos: AILane-website (Pages), ailane-backend, ai-saas, ailane-api',repos:4},
+  {name:'Google Workspace',status:'active',plan:'Business Plus',detail:'mark@ailane.ai + 7 aliases, Gmail + Calendar full access',aliases:7},
+  {name:'Google Ads',status:'active',plan:'Standard',detail:'Customer ID 156-660-7341, 2 campaigns at GBP 15/day each',campaigns:2},
+  {name:'Google Analytics',status:'active',plan:'GA4',detail:'G-NTNXWZN31C, linked to Google Ads',property:'G-NTNXWZN31C'},
+  {name:'ICO',status:'active',plan:'Registration',detail:'Reg No. 00013389720, renewal Feb 2027',reg:'00013389720'},
+  {name:'Companies House',status:'active',plan:'API',detail:'API key active, 31.8% employer enrichment complete',enrichment:'31.8%'},
+];
+
+// Static: Database schema summary
+const SCHEMAS = [
+  {name:'public',tables:90,desc:'Core platform: tribunal decisions, employer master, compliance engine, legislation, organisations, stripe products, KL, EEI, ticker, PCIE'},
+  {name:'accounts',tables:6,desc:'Financial: transactions, suppliers, filing calendar, VAT tracker, receipt images, Monzo webhook log'},
+  {name:'cis',tables:11,desc:'Campaign Intelligence: campaigns, ad groups, keywords, search terms, performance, conversions, audience segments'},
+  {name:'comms',tables:4,desc:'Communications: interactions, triage queue, escalations, feedback signals'},
+];
+
+// Static: Website architecture
+const SITE_PAGES = [
+  {path:'/',desc:'Homepage / Landing page',auth:false},
+  {path:'/account/',desc:'Sign-in / Registration (B1)',auth:false},
+  {path:'/account/dashboard/',desc:'Client dashboard (B2)',auth:true},
+  {path:'/contract-scan/',desc:'Employer compliance checker',auth:false},
+  {path:'/contract-check-worker/',desc:'Worker contract checker',auth:false},
+  {path:'/intelligence/',desc:'PCIE Intelligence Hub',auth:false},
+  {path:'/knowledge-library-preview/',desc:'Knowledge Library preview',auth:false},
+  {path:'/ticker/',desc:'Regulatory intelligence ticker',auth:false},
+  {path:'/governance-dashboard/',desc:'Governance tier dashboard',auth:true},
+  {path:'/terms/',desc:'Terms of Service',auth:false},
+  {path:'/privacy/',desc:'Privacy Policy (ICO 00013389720)',auth:false},
+  {path:'/AiLaneCEO/',desc:'CEO Command Centre hub',auth:true},
+  {path:'/AiLaneCEO/accounts/',desc:'Business & Accounts',auth:true},
+  {path:'/AiLaneCEO/products/',desc:'Product Suite',auth:true},
+  {path:'/AiLaneCEO/clients/',desc:'Client Briefing Room',auth:true},
+  {path:'/AiLaneCEO/analytics/',desc:'Analytics & Campaigns',auth:true},
+  {path:'/AiLaneCEO/legal/',desc:'Legal & Governance',auth:true},
+  {path:'/AiLaneCEO/calendar/',desc:'Calendar & Deadlines',auth:true},
+  {path:'/AiLaneCEO/infrastructure/',desc:'Operations & Infrastructure',auth:true},
+];
+
+// Static: Project specification documents
+const SPEC_DOCS = [
+  {ref:'ACEI v1.0',title:'Ailane Compliance & Exposure Index',category:'constitution'},
+  {ref:'RRI v1.0',title:'Regulatory Readiness Index',category:'constitution'},
+  {ref:'CCI v1.0',title:'Constitutional Compliance Index',category:'constitution'},
+  {ref:'AILANE-AMD-REG-001',title:'Master Amendment Register (AMD-019 current)',category:'operations'},
+  {ref:'AILANE-SPEC-AUTH-001 v2.1',title:'Authentication & Authorization Architecture',category:'operations'},
+  {ref:'AILANE-SPEC-PCIE-003 v3.0',title:'Platform Compliance Intelligence Engine',category:'operations'},
+  {ref:'AILANE-SPEC-KLAC-001 v1.0',title:'Knowledge Library Access & Commerce',category:'operations'},
+  {ref:'AILANE-SPEC-CC-ARCH-001 v1.0',title:'Compliance Checker Architecture',category:'operations'},
+  {ref:'AILANE-SPEC-COMMS-001 v1.0',title:'Communications Specification',category:'operations'},
+  {ref:'AILANE-SPEC-CAMINT-001 v1.0',title:'Campaign Intelligence System',category:'operations'},
+  {ref:'AILANE-SPEC-EEI-001 v2.0',title:'Enterprise Exposure Intelligence',category:'operations'},
+  {ref:'AILANE-SPEC-CDRA-001',title:'Client Data Rights & Access',category:'legal'},
+  {ref:'AILANE-STRIPE-SPEC-001',title:'Stripe Integration Specification',category:'operations'},
+  {ref:'AILANE-SPEC-CCPL-001',title:'Compliance Checker Pipeline',category:'operations'},
+  {ref:'AILANE-SPEC-DOCUSIGN-001',title:'DocuSign Integration (deferred)',category:'operations'},
+  {ref:'AILANE-QAI-IMP-001',title:'Quality Assurance Implementation',category:'operations'},
+  {ref:'Feature Matrix Tier Plan',title:'Governing gate document for tier access',category:'operations'},
+];
+
+function App() {
+  const [auth, setAuth] = useState('checking');
+  const [token, setToken] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [efFilter, setEfFilter] = useState('all');
+
+  useEffect(() => {
+    async function checkAuth() {
+      const { data:{session} } = await sb.auth.getSession();
+      if (session) {
+        const p = JSON.parse(atob(session.access_token.split('.')[1]));
+        if (p.email === CEO_EMAIL) { setToken(session.access_token); setAuth('ok'); return; }
+      }
+      const timeout = setTimeout(() => { window.location.href = '/AiLaneCEO/'; }, 5000);
+      sb.auth.onAuthStateChange((ev, sess) => {
+        if (sess) {
+          clearTimeout(timeout);
+          const p = JSON.parse(atob(sess.access_token.split('.')[1]));
+          if (p.email === CEO_EMAIL) { setToken(sess.access_token); setAuth('ok'); }
+          else window.location.href = '/AiLaneCEO/';
+        }
+      });
+    }
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (auth !== 'ok' || !token) return;
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch(SUPABASE_URL + '/functions/v1/ceo-dashboard-data?section=infrastructure_detail', {
+          headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY }
+        });
+        if (res.ok) { const j = await res.json(); setData(j.sections?.infrastructure_detail || null); }
+      } catch(e) { console.error(e); }
+      setLoading(false);
+    }
+    load();
+  }, [auth, token]);
+
+  if (auth === 'checking') return (
+    <div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring" /><div className="ts">Loading infrastructure...</div></div>
+  );
+
+  const d = data || {};
+  const pipeRegistry = d.pipeline_registry || [];
+  const pipeRuns = d.pipeline_runs || [];
+  const scraperRuns = d.scraper_runs || [];
+  const whStats = d.webhook_stats || {};
+  const docs = d.company_documents || [];
+  const filteredEF = efFilter === 'all' ? EDGE_FUNCTIONS : EDGE_FUNCTIONS.filter(f => f.cat === efFilter);
+  const efCats = ['all','core','payments','pipeline','internal','kl','comms','campaign','ticker','accounts'];
+  const failedPipes = pipeRuns.filter(p => p.status === 'failed');
+
+  return (
+    <div>
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <a href="/AiLaneCEO/" className="back-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Hub
+          </a>
+          <div className="page-title">Operations & <span>Infrastructure</span></div>
+        </div>
+        <div className="top-bar-right">
+          <div className="status-pill live"><div className="dot" />LIVE</div>
+          <div className="ts">System Operations Centre</div>
+        </div>
+      </div>
+
+      <div className="main">
+        {loading ? (
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div className="kpi-strip">{[1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{height:80}} />)}</div>
+            <div className="skeleton" style={{height:300}} />
+          </div>
+        ) : (
+          <>
+            {/* KPI STRIP */}
+            <div className="kpi-strip">
+              <div className="kpi-card"><div className="label">Edge Functions</div><div className="value" style={{color:'var(--accent-cyan)'}}>{EDGE_FUNCTIONS.length}</div><div className="sub">Deployed</div></div>
+              <div className="kpi-card"><div className="label">Database Tables</div><div className="value" style={{color:'var(--accent-green)'}}>102</div><div className="sub">4 schemas</div></div>
+              <div className="kpi-card"><div className="label">Connectors</div><div className="value" style={{color:'var(--accent-purple)'}}>{CONNECTORS.length}</div><div className="sub">All active</div></div>
+              <div className="kpi-card"><div className="label">Pipelines</div><div className="value" style={{color:'var(--accent-amber)'}}>{pipeRegistry.length}</div><div className="sub">Registered</div></div>
+              <div className="kpi-card"><div className="label">Webhook Events</div><div className="value" style={{color:'var(--text-secondary)'}}>{whStats.total || 0}</div><div className="sub">{whStats.errored || 0} errors</div></div>
+              <div className="kpi-card"><div className="label">Pipe Failures</div><div className="value" style={{color:failedPipes.length > 0 ? 'var(--accent-red)' : 'var(--accent-green)'}}>{failedPipes.length}</div><div className="sub">Last 20 runs</div></div>
+            </div>
+
+            {/* CONNECTOR STATUS BOARD */}
+            <div className="card">
+              <div className="card-head"><div className="card-head-title">Connector Status Board</div><div className="card-head-badge">{CONNECTORS.length} integrations</div></div>
+              <div className="card-body">
+                <div className="three-col">
+                  {CONNECTORS.map((c, i) => (
+                    <div className="node" key={i}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <div className="node-name"><span className="node-dot ok" />{c.name}</div>
+                        <span style={{fontSize:'0.55rem',fontFamily:'var(--font-mono)',color:'var(--accent-green)'}}>{c.plan}</span>
+                      </div>
+                      <div className="node-sub">{c.detail}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* PIPELINE MONITOR + RECENT RUNS */}
+            <div className="two-col">
+              <div className="card">
+                <div className="card-head"><div className="card-head-title">Pipeline Registry</div><div className="card-head-badge">{pipeRegistry.length} registered</div></div>
+                <div className="card-body">
+                  {pipeRegistry.map((p, i) => (
+                    <div className="pipe-row" key={i}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:'0.74rem',fontWeight:500,color:'var(--text-primary)'}}>{p.pipeline_name}</div>
+                        <div style={{fontSize:'0.58rem',color:'var(--text-muted)',marginTop:2}}>{p.cron_expression} | {p.target_table}</div>
+                      </div>
+                      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                        <span className="node-dot" style={{background: p.is_active ? 'var(--accent-green)' : 'var(--text-muted)'}} />
+                        <span className="ts">{timeAgo(p.last_run_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-head"><div className="card-head-title">Recent Pipeline Runs</div><div className="card-head-badge">{failedPipes.length > 0 ? failedPipes.length + ' failures' : 'Healthy'}</div></div>
+                <div className="card-body">
+                  {pipeRuns.slice(0, 12).map((p, i) => (
+                    <div className="pipe-row" key={i}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span className={'pipe-status ' + p.status}>{p.status}</span>
+                        <span style={{fontSize:'0.72rem',color:'var(--text-primary)'}}>{p.pipeline_code.replace(/_/g, ' ')}</span>
+                      </div>
+                      <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                        <span className="ts">{p.records_new || 0} new</span>
+                        <span className="ts">{timeAgo(p.started_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {failedPipes.length > 0 && (
+                    <div style={{marginTop:12,padding:'10px 12px',background:'var(--accent-red-dim)',borderRadius:'var(--radius-sm)',border:'1px solid rgba(239,68,68,0.15)'}}>
+                      <div style={{fontSize:'0.72rem',fontWeight:600,color:'var(--accent-red)',marginBottom:4}}>Active Failures</div>
+                      {failedPipes.map((f, i) => (
+                        <div key={i} style={{fontSize:'0.65rem',color:'var(--text-secondary)',marginBottom:4}}>
+                          <span style={{fontFamily:'var(--font-mono)',color:'var(--accent-red)'}}>{f.pipeline_code}</span>: {f.error_message || 'Unknown error'}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* EDGE FUNCTION REGISTRY */}
+            <div className="card">
+              <div className="card-head"><div className="card-head-title">Edge Function Registry</div><div className="card-head-badge">{EDGE_FUNCTIONS.length} deployed</div></div>
+              <div className="card-body">
+                <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
+                  {efCats.map(c => (
+                    <button key={c} onClick={() => setEfFilter(c)} style={{
+                      padding:'4px 10px', borderRadius:'var(--radius-sm)',
+                      border: efFilter===c ? '1px solid var(--border-accent)' : '1px solid var(--border-default)',
+                      background: efFilter===c ? 'var(--bg-hover)' : 'var(--bg-surface)',
+                      color: efFilter===c ? 'var(--text-primary)' : 'var(--text-muted)',
+                      fontSize:'0.62rem', fontFamily:'var(--font-body)', cursor:'pointer', textTransform:'capitalize'
+                    }}>{c} ({c === 'all' ? EDGE_FUNCTIONS.length : EDGE_FUNCTIONS.filter(f => f.cat === c).length})</button>
+                  ))}
+                </div>
+                {filteredEF.map((f, i) => (
+                  <div className="ef-row" key={i}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
+                      <span className="ef-name">{f.name}</span>
+                      <span className="ef-ver">v{f.v}</span>
+                      <span className={'ef-jwt ' + (f.jwt ? 'on' : 'off')}>{f.jwt ? 'JWT' : 'open'}</span>
+                    </div>
+                    <span style={{fontSize:'0.62rem',color:'var(--text-muted)',textAlign:'right'}}>{f.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* DATABASE SCHEMA + DOCUMENT CATALOGUE */}
+            <div className="two-col">
+              <div className="card">
+                <div className="card-head"><div className="card-head-title">Database Architecture</div><div className="card-head-badge">102 tables</div></div>
+                <div className="card-body">
+                  {SCHEMAS.map((s, i) => (
+                    <div key={i} style={{padding:'10px 0',borderBottom: i < 3 ? '1px solid var(--border-subtle)' : 'none'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <span className={'schema-tag ' + s.name}>{s.name}</span>
+                          <span style={{fontSize:'0.74rem',fontWeight:600,color:'var(--text-primary)'}}>{s.tables} tables</span>
+                        </div>
+                      </div>
+                      <div style={{fontSize:'0.62rem',color:'var(--text-muted)',marginTop:4,lineHeight:1.5}}>{s.desc}</div>
+                    </div>
+                  ))}
+                  <div style={{marginTop:12,fontSize:'0.65rem',color:'var(--text-secondary)',lineHeight:1.5}}>
+                    Non-public schemas (accounts, cis, comms) require .schema('name').from('table') pattern in supabase-js v2. Dot-notation in .from() silently fails. All schemas exposed via Dashboard Settings API Exposed Schemas.
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-head"><div className="card-head-title">Project Document Catalogue</div><div className="card-head-badge">{SPEC_DOCS.length + (docs || []).length} documents</div></div>
+                <div className="card-body">
+                  <div className="section-label">Specification Documents</div>
+                  {SPEC_DOCS.map((d, i) => (
+                    <div className="doc-row" key={i}>
+                      <div>
+                        <div className="doc-title">{d.ref}</div>
+                        <div style={{fontSize:'0.6rem',color:'var(--text-muted)'}}>{d.title}</div>
+                      </div>
+                      <span className={'doc-cat ' + d.category}>{d.category}</span>
+                    </div>
+                  ))}
+                  {docs && docs.length > 0 && (
+                    <>
+                      <div className="section-label" style={{marginTop:12}}>Company Documents (Supabase)</div>
+                      {docs.map((d, i) => (
+                        <div className="doc-row" key={i}>
+                          <div>
+                            <div className="doc-title">{d.title}</div>
+                            <div style={{fontSize:'0.6rem',color:'var(--text-muted)'}}>{d.document_ref || ''}</div>
+                          </div>
+                          <span className={'doc-cat ' + d.category}>{d.category}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* WEBSITE ARCHITECTURE + BACKUP PROCEDURES */}
+            <div className="two-col">
+              <div className="card">
+                <div className="card-head"><div className="card-head-title">Website Architecture</div><div className="card-head-badge">{SITE_PAGES.length} pages</div></div>
+                <div className="card-body">
+                  {SITE_PAGES.map((p, i) => (
+                    <div className="site-row" key={i}>
+                      <span className="site-path">{p.path}</span>
+                      <span className="site-desc">{p.desc}</span>
+                      <span style={{fontSize:'0.55rem',fontFamily:'var(--font-mono)',marginLeft:'auto',color: p.auth ? 'var(--accent-amber)' : 'var(--accent-green)'}}>{p.auth ? 'auth' : 'public'}</span>
+                    </div>
+                  ))}
+                  <div style={{marginTop:8,fontSize:'0.62rem',color:'var(--text-muted)',lineHeight:1.5}}>
+                    Hosted on GitHub Pages (LexMarkAI/AILane-website). Custom domain ailane.ai. Each page is [feature]/index.html in repo root. GA4 G-NTNXWZN31C on every page.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                <div className="card">
+                  <div className="card-head"><div className="card-head-title">Scraper Network</div><div className="card-head-badge">International</div></div>
+                  <div className="card-body">
+                    {scraperRuns.map((s, i) => (
+                      <div className="pipe-row" key={i}>
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <span className={'pipe-status ' + s.status}>{s.status}</span>
+                          <span style={{fontSize:'0.72rem',color:'var(--text-primary)'}}>{s.scraper_name}</span>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                          <span className="ts">{s.decisions_found} found</span>
+                          <span className="ts">{timeAgo(s.started_at)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card" style={{borderColor:'rgba(14,165,233,0.15)'}}>
+                  <div className="card-head"><div className="card-head-title" style={{color:'var(--accent-cyan)'}}>Recovery Procedures</div></div>
+                  <div className="card-body">
+                    {[
+                      {proc:'Edge Function rollback',action:'Download zip from Supabase Dashboard, inspect, redeploy previous version. compliance-check v23 is production engine.'},
+                      {proc:'Stripe webhook failure',action:'Check Supabase Edge Function logs. Verify stripe-webhook v16 secret. Re-register events in Stripe Dashboard if needed.'},
+                      {proc:'Auth recovery',action:'Canonical pattern: decode JWT directly, raw fetch with Bearer header. Never revert to Supabase JS client for profile queries.'},
+                      {proc:'Monzo webhook outage',action:'Check monzo-webhook v17 logs. Uses accounts schema .schema("accounts").from() pattern. 180 events processed, 0 errors to date.'},
+                      {proc:'Scraper failure',action:'Check pipeline_runs for error_message. GOV.UK 422 errors are transient API issues. Retry manually via Edge Function invocation.'},
+                      {proc:'Database backup',action:'Supabase Pro Plan includes daily automated backups with point-in-time recovery up to 7 days.'},
+                    ].map((r, i) => (
+                      <div key={i} style={{padding:'8px 0',borderBottom: i < 5 ? '1px solid var(--border-subtle)' : 'none'}}>
+                        <div style={{fontSize:'0.74rem',fontWeight:600,color:'var(--text-primary)'}}>{r.proc}</div>
+                        <div style={{fontSize:'0.62rem',color:'var(--text-secondary)',lineHeight:1.5,marginTop:3}}>{r.action}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* DATA FLOW ARCHITECTURE */}
+            <div className="card">
+              <div className="card-head"><div className="card-head-title">Core Data Flow Architecture</div></div>
+              <div className="card-body">
+                <div className="three-col">
+                  {[
+                    {title:'Compliance Check Flow',nodes:['Customer lands on contract-scan/ or contract-check-worker/','Stripe Checkout (portal-upload)','Document upload to Supabase Storage','compliance-check v23 (Anthropic API)','Findings stored in compliance_findings','generate-report + generate-report-pdf','send-report-email to customer','Portal session tracks in compliance_portal_sessions'],color:'var(--accent-cyan)'},
+                    {title:'Payment & Revenue Flow',nodes:['Stripe Checkout initiated by portal-upload','stripe-webhook receives checkout.session.completed','Transaction created in accounts.transactions via monzo-webhook','Monzo webhook logs to accounts.monzo_webhook_log','Revenue tracked: is_revenue flag + stripe_payment_id','17 products across 4 tiers in stripe_products'],color:'var(--accent-green)'},
+                    {title:'Intelligence Pipeline Flow',nodes:['6 daily cron pipelines (GOV.UK, Parliament, BBC, Hansard)','Records ingested to parliamentary_intelligence','Tribunal scraper feeds tribunal_decisions (130.9K)','generate-event-summary creates ticker_briefings','Employer enrichment from Companies House API','ACEI scoring: tribunal + employer + legislation'],color:'var(--accent-purple)'},
+                  ].map((flow, i) => (
+                    <div key={i} style={{background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:'var(--radius-md)',padding:'14px 16px'}}>
+                      <div style={{fontSize:'0.76rem',fontWeight:700,color:flow.color,marginBottom:10}}>{flow.title}</div>
+                      {flow.nodes.map((n, j) => (
+                        <div key={j} style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:6}}>
+                          <div style={{width:18,height:18,borderRadius:'50%',background:flow.color.replace(')',',0.15)'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.55rem',fontFamily:'var(--font-mono)',color:flow.color,flexShrink:0,marginTop:1}}>{j+1}</div>
+                          <div style={{fontSize:'0.65rem',color:'var(--text-secondary)',lineHeight:1.4}}>{n}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* CRITICAL PATTERNS */}
+            <div className="card" style={{borderColor:'rgba(245,158,11,0.15)'}}>
+              <div className="card-head"><div className="card-head-title" style={{color:'var(--accent-amber)'}}>Critical Technical Patterns</div><div className="card-head-badge">Must preserve</div></div>
+              <div className="card-body">
+                <div className="two-col" style={{gap:12}}>
+                  {[
+                    {pattern:'Non-public schema access',rule:'Always use .schema("name").from("table"). Dot-notation in .from() silently fails in supabase-js v2.'},
+                    {pattern:'Auth callback',rule:'Decode JWT directly: JSON.parse(atob(token.split(".")[1])).sub. Raw fetch() with Authorization: Bearer header. Never revert to Supabase JS client.'},
+                    {pattern:'Edge Function verify_jwt',rule:'true for user-facing functions. false for service-to-service (webhooks, pipelines). Gateway rejects stale anon keys.'},
+                    {pattern:'Schema DDL changes',rule:'Use apply_migration (transactional, rolls back on failure). execute_sql for targeted queries/DML only.'},
+                    {pattern:'PostgREST schema exposure',rule:'Two steps: SQL grants AND manual checkbox in Dashboard Settings API Exposed Schemas. Cannot be done programmatically.'},
+                    {pattern:'Edge Function deployment',rule:'Supabase CLI not installed. Manage via Dashboard only. Never deploy replacement without reading production source first.'},
+                  ].map((p, i) => (
+                    <div key={i} style={{background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:'var(--radius-sm)',padding:'10px 12px'}}>
+                      <div style={{fontSize:'0.72rem',fontWeight:600,color:'var(--accent-amber)'}}>{p.pattern}</div>
+                      <div style={{fontSize:'0.62rem',color:'var(--text-secondary)',lineHeight:1.5,marginTop:4}}>{p.rule}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
