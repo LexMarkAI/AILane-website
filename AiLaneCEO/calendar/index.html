@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Calendar & Deadlines</title><meta name="robots" content="noindex, nofollow">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#7A8BA8;--text-muted:#4A5568;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:15px;-webkit-font-smoothing:antialiased;}body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}.top-bar-left{display:flex;align-items:center;gap:12px;}.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-amber);}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1200px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;}.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}.card-body{padding:12px 18px 16px;}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* Hero countdown */
+.hero-count{text-align:center;padding:32px 20px;background:linear-gradient(135deg,rgba(14,165,233,0.05),rgba(139,92,246,0.05));border:1px solid var(–border-default);border-radius:var(–radius-lg);}
+.hero-count .hero-label{font-size:0.72rem;color:var(–text-muted);text-transform:uppercase;letter-spacing:0.12em;font-family:var(–font-display);font-weight:600;}
+.hero-count .hero-number{font-family:var(–font-mono);font-size:4rem;font-weight:800;background:linear-gradient(135deg,var(–accent-cyan),var(–accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:8px 0;}
+.hero-count .hero-event{font-size:0.85rem;color:var(–text-primary);font-weight:600;}
+.hero-count .hero-sub{font-size:0.68rem;color:var(–text-muted);margin-top:4px;line-height:1.5;}
+
+/* Timeline */
+.timeline{position:relative;padding-left:32px;}
+.timeline::before{content:’’;position:absolute;left:11px;top:4px;bottom:4px;width:2px;background:var(–border-default);}
+.tl-item{position:relative;padding:12px 0 16px;border-bottom:none;}
+.tl-dot{position:absolute;left:-25px;top:16px;width:12px;height:12px;border-radius:50%;border:2px solid var(–border-strong);background:var(–bg-surface);}
+.tl-dot.urgent{background:var(–accent-red);border-color:var(–accent-red);animation:pulse-dot 1.5s ease-in-out infinite;}
+.tl-dot.soon{background:var(–accent-amber);border-color:var(–accent-amber);}
+.tl-dot.normal{background:var(–accent-cyan);border-color:var(–accent-cyan);}
+.tl-dot.distant{background:var(–bg-hover);border-color:var(–border-strong);}
+.tl-dot.done{background:var(–accent-green);border-color:var(–accent-green);}
+.tl-header{display:flex;justify-content:space-between;align-items:center;}
+.tl-title{font-size:0.82rem;font-weight:600;color:var(–text-primary);}
+.tl-countdown{font-family:var(–font-mono);font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:100px;}
+.tl-countdown.urgent{background:var(–accent-red-dim);color:var(–accent-red);}
+.tl-countdown.soon{background:var(–accent-amber-dim);color:var(–accent-amber);}
+.tl-countdown.normal{background:var(–accent-cyan-dim);color:var(–accent-cyan);}
+.tl-countdown.distant{background:var(–bg-hover);color:var(–text-muted);}
+.tl-countdown.done{background:var(–accent-green-dim);color:var(–accent-green);}
+.tl-date{font-family:var(–font-mono);font-size:0.62rem;color:var(–text-muted);margin-top:3px;}
+.tl-body{font-size:0.68rem;color:var(–text-secondary);line-height:1.5;margin-top:6px;}
+.tl-tag{display:inline-flex;align-items:center;font-size:0.55rem;padding:2px 7px;border-radius:100px;border:1px solid var(–border-subtle);margin-right:4px;margin-top:4px;}
+.tl-tag.filing{background:var(–accent-cyan-dim);color:var(–accent-cyan);}.tl-tag.milestone{background:var(–accent-purple-dim);color:var(–accent-purple);}.tl-tag.business{background:var(–accent-amber-dim);color:var(–accent-amber);}.tl-tag.legal{background:var(–accent-green-dim);color:var(–accent-green);}
+
+/* Brief card */
+.brief-card{background:var(–bg-base);border:1px solid var(–border-subtle);border-radius:var(–radius-md);padding:14px 16px;margin-bottom:8px;}
+.brief-mood{display:inline-block;padding:2px 8px;border-radius:100px;font-size:0.6rem;font-family:var(–font-mono);font-weight:600;}
+.brief-mood.exceptional{background:var(–accent-green-dim);color:var(–accent-green);}.brief-mood.steady{background:var(–accent-cyan-dim);color:var(–accent-cyan);}
+
+.skeleton{background:linear-gradient(90deg,var(–bg-elevated) 25%,var(–bg-hover) 50%,var(–bg-elevated) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(–radius-sm);}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}.hero-count .hero-number{font-size:3rem;}}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL='mark@ailane.ai';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+function daysUntil(d){return Math.ceil((new Date(d+‘T00:00:00’)-new Date())/(86400000));}
+function urgency(days){if(days<=0)return’urgent’;if(days<=14)return’soon’;if(days<=60)return’normal’;return’distant’;}
+function shortDate(d){if(!d)return’’;return new Date(d+‘T00:00:00’).toLocaleDateString(‘en-GB’,{weekday:‘short’,day:‘numeric’,month:‘short’,year:‘numeric’});}
+function timeAgo(d){if(!d)return’’;const h=Math.floor((Date.now()-new Date(d))/3600000);if(h<1)return’just now’;if(h<24)return h+‘h ago’;return Math.floor(h/24)+‘d ago’;}
+
+// ALL key events — sorted by date, dynamic urgency
+const KEY_EVENTS = [
+{date:‘2026-03-16’,title:‘Google Ads Learning Phase Ends’,body:‘Both employer and worker campaigns exit learning mode. First real performance data available. Review CTR, CPC, impression share. Adjust targeting and bids based on initial data.’,tags:[‘business’],category:‘Campaign’},
+{date:‘2026-03-21’,title:‘Day 33 — One Month Trading Review’,body:‘One month since incorporation. Review: cash position, data estate growth, compliance engine accuracy, campaign performance, and Innovation Wales panel readiness.’,tags:[‘milestone’],category:‘Milestone’},
+{date:‘2026-04-01’,title:‘Innovation Wales £75K — Panel Month’,body:‘Panel presentation expected April 2026. The single most important near-term milestone. First paying client conversion before the panel is the highest-leverage action. Prepare: live demo, metrics deck, growth narrative, constitutional governance story.’,tags:[‘milestone’,‘business’],category:‘Funding’},
+{date:‘2026-04-06’,title:‘New Tax Year 2026/27’,body:‘UK new tax year. NMW/NLW rates update. Review all compliance engine regulatory requirements for updated thresholds. Update legislation_library entries.’,tags:[‘legal’,‘filing’],category:‘Regulatory’},
+{date:‘2026-04-14’,title:‘Day 57 — Two Month Mark’,body:‘Two months since incorporation. Target: first paying client acquired, Google Ads optimised, Innovation Wales panel completed or imminent.’,tags:[‘milestone’],category:‘Milestone’},
+{date:‘2026-05-15’,title:‘Trademark Opposition Window Closes’,body:‘UK00004347220 opposition period expected to close ~mid-May 2026. If no opposition filed, registration certificate follows ~late May. Monitor IPO correspondence.’,tags:[‘legal’],category:‘Legal’},
+{date:‘2026-05-31’,title:‘Trademark Registration Certificate Expected’,body:‘Registration certificate for UK00004347220 expected ~late May 2026 if no opposition. Enables formal trademark enforcement and brand protection.’,tags:[‘legal’],category:‘Legal’},
+{date:‘2026-06-16’,title:‘Day 120 — Four Month Review’,body:‘Four months since incorporation. If Innovation Wales secured: deployment phase begins. If not: pivot funding strategy. Evaluate product-market fit signals from compliance check volume.’,tags:[‘milestone’],category:‘Milestone’},
+];
+
+function App(){
+const[auth,setAuth]=useState(‘checking’);const[token,setToken]=useState(null);const[data,setData]=useState(null);const[loading,setLoading]=useState(true);const[now,setNow]=useState(new Date());
+useEffect(()=>{const i=setInterval(()=>setNow(new Date()),60000);return()=>clearInterval(i);},[]);
+useEffect(()=>{(async()=>{const{data:{session}}=await sb.auth.getSession();if(session){const p=JSON.parse(atob(session.access_token.split(’.’)[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth(‘ok’);return;}}const t=setTimeout(()=>{window.location.href=’/AiLaneCEO/’;},3000);sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split(’.’)[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth(‘ok’);}else window.location.href=’/AiLaneCEO/’;}});})();},[]);
+useEffect(()=>{if(auth!==‘ok’||!token)return;(async()=>{setLoading(true);try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dashboard-data?section=calendar_detail`,{headers:{‘Authorization’:`Bearer ${token}`,‘apikey’:SUPABASE_ANON_KEY}});if(r.ok){const j=await r.json();setData(j.sections?.calendar_detail||null);}}catch(e){console.error(e);}setLoading(false);})();},[auth,token]);
+if(auth===‘checking’)return<div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Loading timeline…</div></div>;
+
+const d=data||{};const filings=(d.filing_calendar||[]);const briefs=d.ceo_briefs||[];const pipelines=d.pipeline_health||[];
+
+// Merge filings + key events into unified timeline
+const allEvents = [
+…KEY_EVENTS.map(e=>({…e,source:‘event’})),
+…filings.map(f=>({date:f.due_date,title:f.obligation,body:f.notes,tags:[‘filing’],category:f.filing_body===‘hmrc’?‘HMRC’:f.filing_body===‘companies_house’?‘Companies House’:f.filing_body===‘ico’?‘ICO’:‘Internal’,source:‘filing’})),
+].sort((a,b)=>a.date.localeCompare(b.date));
+
+// Next upcoming event
+const nextEvent = allEvents.find(e=>daysUntil(e.date)>0);
+const nextDays = nextEvent ? daysUntil(nextEvent.date) : 0;
+
+// Company age
+const incDate = new Date(‘2026-02-16’);
+const companyDays = Math.floor((now - incDate) / 86400000);
+
+return(
+<div>
+<div className="top-bar"><div className="top-bar-left"><a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a><div className="page-title">Calendar & <span>Deadlines</span></div></div><div className="top-bar-right"><div className="status-pill live"><div className="dot"/>LIVE</div><div className="ts">{now.toLocaleDateString(‘en-GB’,{weekday:‘long’,day:‘numeric’,month:‘long’,year:‘numeric’})}</div></div></div>
+<div className="main">
+{loading?<div style={{display:‘flex’,flexDirection:‘column’,gap:16}}><div className="skeleton" style={{height:180}}/><div className="skeleton" style={{height:400}}/></div>:(
+<>
+{/* HERO COUNTDOWN */}
+<div style={{display:‘grid’,gridTemplateColumns:‘1fr 1fr 1fr’,gap:12}}>
+<div className="hero-count">
+<div className="hero-label">Next Key Event</div>
+<div className="hero-number">{nextDays}</div>
+<div className="hero-event">{nextEvent?.title || ‘None scheduled’}</div>
+<div className="hero-sub">{nextEvent ? shortDate(nextEvent.date) : ‘’}</div>
+</div>
+<div className="hero-count">
+<div className="hero-label">Company Age</div>
+<div className=“hero-number” style={{fontSize:‘3rem’}}>{companyDays}</div>
+<div className="hero-event">Days since incorporation</div>
+<div className="hero-sub">16 February 2026 · Day {companyDays}</div>
+</div>
+<div className="hero-count">
+<div className="hero-label">Innovation Wales Panel</div>
+<div className=“hero-number” style={{fontSize:‘3rem’,background:daysUntil(‘2026-04-01’)<=21?‘linear-gradient(135deg,var(–accent-red),var(–accent-amber))’:‘linear-gradient(135deg,var(–accent-cyan),var(–accent-purple))’,WebkitBackgroundClip:‘text’,WebkitTextFillColor:‘transparent’}}>{daysUntil(‘2026-04-01’)}</div>
+<div className="hero-event">Days to panel month</div>
+<div className="hero-sub">£75,000 funding · April 2026</div>
+</div>
+</div>
+
+```
+    {/* COMMAND TIMELINE + CEO BRIEFS */}
+    <div className="two-col">
+      <div className="card">
+        <div className="card-head"><div className="card-head-title">Command Timeline</div><div className="card-head-badge">{allEvents.length} events</div></div>
+        <div className="card-body">
+          <div className="timeline">
+            {allEvents.map((e,i)=>{
+              const days=daysUntil(e.date);const urg=days<=0?'done':urgency(days);
+              return(
+                <div className="tl-item" key={i}>
+                  <div className={`tl-dot ${urg}`}/>
+                  <div className="tl-header">
+                    <div className="tl-title">{e.title}</div>
+                    <span className={`tl-countdown ${urg}`}>{days<=0?'PAST':days===1?'Tomorrow':`${days} days`}</span>
+                  </div>
+                  <div className="tl-date">{shortDate(e.date)} · {e.category}</div>
+                  <div className="tl-body">{e.body}</div>
+                  <div>{(e.tags||[]).map((t,j)=><span key={j} className={`tl-tag ${t}`}>{t}</span>)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        {/* CEO DAILY BRIEFS */}
+        <div className="card">
+          <div className="card-head"><div className="card-head-title">CEO Daily Briefs</div><div className="card-head-badge">{briefs.length} briefs</div></div>
+          <div className="card-body">
+            {briefs.map((b,i)=>(
+              <div className="brief-card" key={i}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:'0.72rem',color:'var(--accent-cyan)',fontWeight:600}}>{new Date(b.brief_date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span>
+                  <span className={`brief-mood ${b.mood}`}>{b.mood}</span>
+                </div>
+                <div style={{fontSize:'0.78rem',fontWeight:600,color:'var(--text-primary)',marginBottom:4}}>{b.headline}</div>
+                <div style={{fontSize:'0.65rem',color:'var(--text-secondary)',lineHeight:1.5}}>{b.progress_summary?.substring(0,200)}{b.progress_summary?.length>200?'...':''}</div>
+                {b.week_focus&&<div style={{fontSize:'0.62rem',color:'var(--accent-amber)',marginTop:6,fontStyle:'italic'}}>{b.week_focus}</div>}
+              </div>
+            ))}
+            {briefs.length===0&&<div className="ts">No briefs generated yet</div>}
+          </div>
+        </div>
+
+        {/* PIPELINE PULSE */}
+        <div className="card">
+          <div className="card-head"><div className="card-head-title">Pipeline Pulse — Today</div><div className="card-head-badge">Data freshness</div></div>
+          <div className="card-body">
+            {pipelines.slice(0,6).map((p,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:i<5?'1px solid var(--border-subtle)':'none'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:6,height:6,borderRadius:'50%',background:p.status==='success'?'var(--accent-green)':'var(--accent-red)'}}/>
+                  <span style={{fontSize:'0.72rem',color:'var(--text-primary)'}}>{p.pipeline_code.replace(/_/g,' ')}</span>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <span className="ts">{p.records_new||0} new</span>
+                  <span className="ts">{timeAgo(p.started_at)}</span>
+                </div>
+              </div>
+            ))}
+            {pipelines.length===0&&<div className="ts">No pipeline data</div>}
+          </div>
+        </div>
+
+        {/* WHAT'S AHEAD THIS WEEK */}
+        <div className="card" style={{borderColor:'rgba(14,165,233,0.15)'}}>
+          <div className="card-head"><div className="card-head-title" style={{color:'var(--accent-cyan)'}}>Week Ahead</div></div>
+          <div className="card-body">
+            {allEvents.filter(e=>{const d=daysUntil(e.date);return d>=0&&d<=7;}).length===0?
+              <div style={{fontSize:'0.72rem',color:'var(--text-muted)',padding:'8px 0'}}>No events in the next 7 days. Focus window — build, ship, convert.</div>
+            :allEvents.filter(e=>{const d=daysUntil(e.date);return d>=0&&d<=7;}).map((e,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border-subtle)'}}>
+                <div><div style={{fontSize:'0.76rem',fontWeight:600,color:'var(--text-primary)'}}>{e.title}</div><div className="ts">{shortDate(e.date)}</div></div>
+                <span className={`tl-countdown ${urgency(daysUntil(e.date))}`}>{daysUntil(e.date)===0?'Today':daysUntil(e.date)===1?'Tomorrow':`${daysUntil(e.date)} days`}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+    </>)}
+  </div>
+</div>
+```
+
+);
+}
+ReactDOM.createRoot(document.getElementById(‘root’)).render(<App/>);
+</script>
+
+</body>
+</html>
