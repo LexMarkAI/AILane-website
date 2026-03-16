@@ -399,21 +399,90 @@
     }
   }
 
-  // ── LOGIN ─────────────────────────────────────────────────────────────────────
+  // ── LOGIN — direct routing (no callback redirect) ───────────────────────────
   async function handleLogin() {
-    clearStatus();
-    const email    = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
-    if (!email || !password) return showStatus('Please enter your email and password.', 'error');
-    setLoading('btn-login', true, 'Sign In');
+    var email = document.getElementById('login-email').value.trim();
+    var password = document.getElementById('login-password').value;
+    var errorEl = document.getElementById('login-error') || document.getElementById('error-msg');
+
+    if (errorEl) errorEl.textContent = '';
+    if (!email || !password) {
+      if (errorEl) errorEl.textContent = 'Please enter your email and password.';
+      return;
+    }
+
+    // Disable button during sign-in
+    var btn = document.getElementById('btn-login');
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
+
     try {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      window.location.href = REDIRECT_AFTER_AUTH;
-    } catch (err) {
-      showStatus(err.message || 'Sign-in failed. Please check your credentials.', 'error');
-    } finally {
-      setLoading('btn-login', false, 'Sign In');
+      var result = await sb.auth.signInWithPassword({ email: email, password: password });
+
+      if (result.error) {
+        if (errorEl) errorEl.textContent = result.error.message;
+        if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+        return;
+      }
+
+      var session = result.data.session;
+      if (!session) {
+        if (errorEl) errorEl.textContent = 'Sign-in succeeded but no session returned. Please try again.';
+        if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+        return;
+      }
+
+      // ── DIRECT ROUTING — do NOT redirect to /auth/callback/ ──────────
+      // We have the session right here. Use it.
+
+      // 1. Decode JWT for user ID
+      var payload = JSON.parse(atob(session.access_token.split('.')[1]));
+      var userId = payload.sub;
+
+      // 2. Query profile — raw fetch with Bearer token (canonical pattern)
+      var tier = null;
+      try {
+        var resp = await fetch(
+          'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          {
+            headers: {
+              'apikey':        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxNTM5NjAsImV4cCI6MjA1NDcyOTk2MH0.1TYFiSdOeMHLH_dPBR-YB2JlAgrLH3F7G9k7WlDVZ5g',
+              'Authorization': 'Bearer ' + session.access_token,
+              'Accept':        'application/json'
+            }
+          }
+        );
+        if (resp.ok) {
+          var rows = await resp.json();
+          if (rows && rows.length > 0) tier = rows[0].subscription_tier;
+        }
+      } catch(e) { /* tier stays null */ }
+
+      // 3. Routing matrix — locked rules
+      var destination = '/account/'; // default: no profile
+      if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free' || tier === 'guest') {
+        destination = '/account/dashboard/';
+      } else if (tier === 'operational' || tier === 'operational_readiness') {
+        destination = '/intelligence/';
+      } else if (tier === 'governance' || tier === 'institutional') {
+        destination = '/governance-dashboard/';
+      }
+
+      // 4. GA4 event (non-blocking)
+      try {
+        if (window.gtag) {
+          gtag('event', 'login', {
+            method: 'email',
+            subscription_tier: tier || 'none'
+          });
+        }
+      } catch(e) {}
+
+      // 5. Redirect
+      window.location.replace(destination);
+
+    } catch(err) {
+      if (errorEl) errorEl.textContent = 'An unexpected error occurred. Please try again.';
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     }
   }
 
