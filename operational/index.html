@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- Google Analytics GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operational Readiness — Ailane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #080f1c;
+    --navy-mid: #0d1929;
+    --navy-surface: #111e33;
+    --navy-card: #141f35;
+    --navy-raised: #1a2844;
+    --border: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #e8edf5;
+    --text-muted: #7a8ba8;
+    --text-faint: #4a5a73;
+    --teal: #0e8f8f;
+    --teal-bright: #12b0b0;
+    --teal-glow: rgba(14,143,143,0.15);
+    --red: #e05252;
+    --red-muted: rgba(224,82,82,0.12);
+    --amber: #d4840a;
+    --amber-muted: rgba(212,132,10,0.12);
+    --green: #1fa775;
+    --green-muted: rgba(31,167,117,0.12);
+    --gold: #f59e0b;
+    --gold-muted: rgba(245,158,11,0.12);
+    --gold-glow: rgba(245,158,11,0.2);
+    --locked-overlay: rgba(8,15,28,0.85);
+    --op-accent: #3b82f6;
+    --gov-accent: #0e8f8f;
+    --inst-accent: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--navy); }
+  ::-webkit-scrollbar-thumb { background: var(--navy-raised); border-radius: 3px; }
+
+  /* TOP BAR */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(8,15,28,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+  }
+  .topbar-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: #fff;
+    text-decoration: none;
+    letter-spacing: -0.01em;
+  }
+  .topbar-logo span { color: var(--teal-bright); }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .pcie-badge {
+    background: var(--teal-glow);
+    border: 1px solid rgba(14,143,143,0.3);
+    color: var(--teal-bright);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  .back-link {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 6px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--text); }
+
+  /* ENTITY HEADER */
+  .entity-header {
+    background: linear-gradient(135deg, var(--navy-surface) 0%, var(--navy-mid) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 32px;
+  }
+  .entity-header-inner {
+    max-width: 1400px; margin: 0 auto;
+    display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 24px;
+  }
+  .entity-meta { flex: 1; min-width: 300px; }
+  .entity-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .demo-pill {
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.3);
+    color: var(--gold);
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+  }
+  .entity-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px; font-weight: 400; color: #fff;
+    letter-spacing: -0.02em; margin-bottom: 6px;
+  }
+  .entity-details { font-size: 12px; color: var(--text-muted); }
+  .entity-details span { color: var(--text); }
+  .entity-details .sep { margin: 0 8px; color: var(--text-faint); }
+
+  /* TIER SELECTOR */
+  .tier-selector-wrap {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .tier-selector-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+  .tier-selector {
+    display: flex; background: var(--navy); border: 1px solid var(--border-strong);
+    border-radius: 8px; padding: 4px; gap: 4px;
+  }
+  .tier-btn {
+    padding: 8px 20px; border: none; border-radius: 6px;
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; background: transparent;
+    color: var(--text-muted); letter-spacing: 0.02em;
+  }
+  .tier-btn:hover { color: var(--text); background: var(--navy-raised); }
+  .tier-btn.active-op { background: rgba(59,130,246,0.15); color: #93bbfc; border: 1px solid rgba(59,130,246,0.3); }
+  .tier-btn.active-gov { background: var(--teal-glow); color: var(--teal-bright); border: 1px solid rgba(14,143,143,0.35); }
+  .tier-btn.active-inst { background: var(--gold-muted); color: var(--gold); border: 1px solid rgba(245,158,11,0.35); }
+
+  /* MAIN CONTENT */
+  .main { max-width: 1400px; margin: 0 auto; padding: 32px; }
+
+  /* INDEX SCORE ROW */
+  .index-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin-bottom: 24px;
+  }
+  .score-card {
+    background: var(--navy-card);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .score-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .score-card.acei::before { background: linear-gradient(90deg, var(--op-accent), transparent); }
+  .score-card.rri::before { background: linear-gradient(90deg, var(--gov-accent), transparent); }
+  .score-card.cci::before { background: linear-gradient(90deg, #8b5cf6, transparent); }
+  .score-card-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;
+  }
+  .score-card-name { font-size: 12px; color: var(--text-faint); margin-bottom: 16px; }
+  .score-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 48px; font-weight: 600; line-height: 1;
+    margin-bottom: 4px;
+  }
+  .score-card.acei .score-number { color: #93bbfc; }
+  .score-card.rri .score-number { color: var(--teal-bright); }
+  .score-card.cci .score-number { color: #c084fc; }
+  .score-band {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 3px 9px; border-radius: 4px; margin-bottom: 12px;
+  }
+  .band-elevated { background: var(--amber-muted); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+  .band-moderate { background: var(--teal-glow); color: var(--teal-bright); border: 1px solid rgba(14,143,143,0.25); }
+  .band-high { background: var(--red-muted); color: var(--red); border: 1px solid rgba(224,82,82,0.2); }
+  .score-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .constitution-ref {
+    position: absolute; bottom: 16px; right: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: var(--text-faint); letter-spacing: 0.05em;
+  }
+
+  /* SECTION GRID */
+  .section-grid {
+    display: grid; gap: 16px;
+  }
+  .section-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .section-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .section-grid.cols-2-1 { grid-template-columns: 2fr 1fr; }
+  .section-grid.cols-1-2 { grid-template-columns: 1fr 2fr; }
+
+  /* PANEL */
+  .panel {
+    background: var(--navy-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden; position: relative;
+  }
+  .panel-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-icon { width: 16px; height: 16px; }
+  .panel-body { padding: 20px; }
+  .panel-badge {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
+  }
+  .badge-op { background: rgba(59,130,246,0.1); color: #93bbfc; }
+  .badge-gov { background: var(--teal-glow); color: var(--teal-bright); }
+  .badge-inst { background: var(--gold-muted); color: var(--gold); }
+  .badge-all { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+
+  /* LOCKED PANEL */
+  .panel-locked {
+    position: relative; overflow: hidden;
+  }
+  .panel-locked .panel-body {
+    filter: blur(3px);
+    pointer-events: none;
+    opacity: 0.35;
+  }
+  .lock-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--locked-overlay);
+    backdrop-filter: blur(4px);
+    z-index: 10; padding: 24px; text-align: center;
+    gap: 12px;
+  }
+  .lock-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .lock-icon-gov { background: var(--teal-glow); border: 1px solid rgba(14,143,143,0.3); }
+  .lock-icon-inst { background: var(--gold-muted); border: 1px solid rgba(245,158,11,0.3); }
+  .lock-label { font-size: 12px; color: var(--text); line-height: 1.5; }
+  .lock-cta {
+    margin-top: 4px; padding: 8px 20px; border-radius: 6px;
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.05em; cursor: pointer; border: none;
+    text-decoration: none; display: inline-block;
+    transition: opacity 0.2s;
+  }
+  .lock-cta:hover { opacity: 0.85; }
+  .lock-cta-gov { background: var(--teal-bright); color: #fff; }
+  .lock-cta-inst { background: var(--gold); color: #000; }
+
+  /* ACEI 12-CAT BARS */
+  .cat-bar-list { display: flex; flex-direction: column; gap: 10px; }
+  .cat-bar-item { }
+  .cat-bar-meta {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 5px;
+  }
+  .cat-bar-name { font-size: 11px; color: var(--text); font-weight: 500; }
+  .cat-bar-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-muted); font-weight: 600;
+  }
+  .cat-bar-track {
+    height: 5px; background: var(--navy-raised); border-radius: 3px; overflow: hidden;
+  }
+  .cat-bar-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+  .fill-high { background: linear-gradient(90deg, #f87171, #ef4444); }
+  .fill-elevated { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+  .fill-moderate { background: linear-gradient(90deg, var(--teal-bright), #0e8f8f); }
+  .fill-standard { background: var(--navy-raised); }
+
+  /* RRI PILLARS */
+  .rri-pillar-list { display: flex; flex-direction: column; gap: 14px; }
+  .rri-pillar { }
+  .rri-pillar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .rri-pillar-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .rri-pillar-score-wrap { display: flex; align-items: center; gap: 8px; }
+  .rri-pillar-score {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; font-weight: 600;
+  }
+  .rri-pillar-label { font-size: 10px; color: var(--text-muted); }
+  .rri-dot-track { display: flex; gap: 5px; margin-bottom: 5px; }
+  .rri-dot {
+    width: 24px; height: 8px; border-radius: 2px;
+  }
+  .rri-dot.filled-3 { background: var(--teal-bright); }
+  .rri-dot.filled-2 { background: #fbbf24; }
+  .rri-dot.filled-empty { background: var(--navy-raised); }
+  .rri-pillar-gap { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+  /* CCI COMPONENTS */
+  .cci-event-list { display: flex; flex-direction: column; gap: 10px; }
+  .cci-event {
+    background: var(--navy-raised);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+    display: grid; grid-template-columns: 1fr auto; gap: 8px;
+  }
+  .cci-event-label { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .cci-event-outcome { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .cci-event-score {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px; font-weight: 600; text-align: right;
+  }
+  .cci-event-weight { font-size: 10px; color: var(--text-faint); text-align: right; }
+  .cci-total-row {
+    background: rgba(192,132,252,0.07);
+    border: 1px solid rgba(192,132,252,0.2);
+    border-radius: 8px; padding: 12px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .cci-total-label { font-size: 12px; font-weight: 700; color: var(--text); }
+  .cci-total-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px; font-weight: 600; color: #c084fc;
+  }
+
+  /* DOCUMENT VAULT */
+  .vault-wcc-bar {
+    background: var(--navy-raised); border-radius: 8px; padding: 16px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .vault-wcc-label { font-size: 11px; color: var(--text-muted); flex: 1; }
+  .vault-wcc-score { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #fbbf24; }
+  .vault-wcc-desc { font-size: 10px; color: var(--text-faint); text-align: right; }
+  .vault-contract-list { display: flex; flex-direction: column; gap: 8px; }
+  .vault-contract {
+    background: var(--navy-raised);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+    display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
+  }
+  .vault-contract-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .vault-contract-role { font-size: 11px; color: var(--text-muted); }
+  .vault-contract-score { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; }
+  .vault-contract-gaps { font-size: 10px; color: var(--red); }
+  .vault-contract-finding { font-size: 10px; color: var(--text-faint); grid-column: 1/-1; }
+  .score-good { color: var(--green); }
+  .score-ok { color: #fbbf24; }
+  .score-poor { color: var(--red); }
+
+  /* KNOWLEDGE LIBRARY */
+  .kl-item-list { display: flex; flex-direction: column; gap: 8px; }
+  .kl-item {
+    background: var(--navy-raised);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .kl-item-icon {
+    width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; background: var(--teal-glow); color: var(--teal-bright);
+    border: 1px solid rgba(14,143,143,0.25);
+  }
+  .kl-item-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .kl-item-meta { font-size: 11px; color: var(--text-muted); }
+  .kl-item-tag {
+    margin-top: 4px; display: inline-block;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+  }
+  .tag-in-force { background: var(--green-muted); color: var(--green); }
+  .tag-enacted { background: var(--amber-muted); color: #fbbf24; }
+  .tag-partial { background: rgba(139,92,246,0.12); color: #a78bfa; }
+  .kl-count-badge {
+    background: var(--navy-raised); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; text-align: center;
+    font-size: 12px; color: var(--text-muted);
+  }
+  .kl-count-badge strong { color: var(--teal-bright); font-family: 'IBM Plex Mono', monospace; }
+
+  /* TICKER */
+  .ticker-item-list { display: flex; flex-direction: column; gap: 8px; }
+  .ticker-item {
+    background: var(--navy-raised); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .ticker-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .ticker-sig {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 3px;
+  }
+  .sig-high { background: var(--red-muted); color: var(--red); }
+  .sig-medium { background: var(--amber-muted); color: #fbbf24; }
+  .ticker-cat { font-size: 10px; color: var(--text-faint); }
+  .ticker-item-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .ticker-item-summary { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .ticker-item-footer {
+    margin-top: 8px; display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--text-faint);
+  }
+  .ticker-ai-badge {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+    background: var(--teal-glow); color: var(--teal-bright);
+    border: 1px solid rgba(14,143,143,0.25); padding: 2px 7px; border-radius: 3px;
+  }
+
+  /* REL FORM */
+  .rel-form { display: flex; flex-direction: column; gap: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .form-input, .form-select, .form-textarea {
+    background: var(--navy-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px; padding: 8px 12px;
+    font-family: 'Syne', sans-serif; font-size: 12px; color: var(--text);
+    outline: none; width: 100%;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--teal-bright);
+  }
+  .form-select option { background: var(--navy-mid); }
+  .form-textarea { resize: vertical; min-height: 60px; }
+  .form-submit {
+    padding: 10px 24px; border-radius: 7px;
+    background: var(--teal-bright); color: #fff;
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.04em; border: none; cursor: pointer;
+    transition: opacity 0.2s; align-self: flex-start;
+  }
+  .form-submit:hover { opacity: 0.85; }
+  .rel-submitted {
+    background: var(--green-muted); border: 1px solid rgba(31,167,117,0.25);
+    border-radius: 8px; padding: 16px; text-align: center;
+    font-size: 13px; color: var(--green);
+  }
+
+  /* COMPLIANCE CHECKER */
+  .cc-upload-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 10px; padding: 32px; text-align: center;
+    cursor: pointer; transition: border-color 0.2s;
+    background: var(--navy-raised);
+  }
+  .cc-upload-zone:hover { border-color: var(--teal-bright); }
+  .cc-upload-icon { font-size: 28px; margin-bottom: 10px; }
+  .cc-upload-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .cc-upload-hint { font-size: 11px; color: var(--text-muted); }
+
+  /* LOADING */
+  .loading-state {
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px; gap: 12px;
+  }
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--teal-bright);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TIER SEPARATOR */
+  .tier-section-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-faint);
+    padding: 24px 0 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .tier-section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* UPSELL BAR */
+  .upsell-bar {
+    background: linear-gradient(135deg, var(--navy-surface), var(--navy-card));
+    border: 1px solid var(--teal-glow);
+    border-radius: 10px; padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-top: 16px;
+  }
+  .upsell-bar-text { font-size: 13px; color: var(--text); }
+  .upsell-bar-text strong { color: var(--teal-bright); }
+  .upsell-bar-cta {
+    flex-shrink: 0; padding: 9px 20px; border-radius: 7px;
+    background: var(--teal-bright); color: #fff;
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.04em; border: none; cursor: pointer;
+    text-decoration: none; display: inline-block;
+    transition: opacity 0.2s;
+  }
+  .upsell-bar-cta:hover { opacity: 0.85; }
+  .upsell-bar-inst { border-color: var(--gold-glow); }
+  .upsell-bar-inst .upsell-bar-cta { background: var(--gold); color: #000; }
+  .upsell-bar-inst .upsell-bar-text strong { color: var(--gold); }
+
+  /* CONSTITUTIONAL FOOTNOTE */
+  .constitution-footer {
+    margin-top: 32px; padding: 16px 20px;
+    background: var(--navy-surface); border: 1px solid var(--border);
+    border-radius: 8px; display: flex; align-items: center; gap: 16px;
+    font-size: 11px; color: var(--text-faint);
+  }
+  .constitution-footer .cf-icon { font-size: 18px; }
+  .constitution-footer a { color: var(--teal-bright); text-decoration: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .index-row { grid-template-columns: 1fr; }
+    .section-grid.cols-2, .section-grid.cols-2-1, .section-grid.cols-1-2, .section-grid.cols-3 { grid-template-columns: 1fr; }
+    .entity-header-inner { flex-direction: column; }
+    .tier-selector-wrap { align-items: flex-start; }
+    .main { padding: 16px; }
+    .topbar { padding: 0 16px; }
+    .entity-header { padding: 20px 16px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="topbar-logo">Ai<span>lane</span></a>
+  <div class="topbar-right">
+    <span class="pcie-badge">Intelligence Preview</span>
+    <a href="/" class="back-link">← ailane.ai</a>
+  </div>
+</div>
+
+<div class="entity-header">
+  <div class="entity-header-inner">
+    <div class="entity-meta">
+      <div class="entity-label">
+        Operational Readiness
+      </div>
+      <div class="entity-name" id="entity-name">Loading...</div>
+      <div class="entity-details" id="entity-details">...</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--op-accent);background:rgba(59,130,246,0.12);padding:4px 10px;border-radius:4px;">Operational · £199/mo</span>
+      <button onclick="handleLogout()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;padding:6px 14px;border-radius:5px;cursor:pointer;">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="main-content">
+  <div class="loading-state"><div class="spinner"></div><span style="color:var(--text-muted)">Loading intelligence environment...</span></div>
+</div>
+
+<script>
+// ─── CONFIGURATION ────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxNTM5NjAsImV4cCI6MjA1NDcyOTk2MH0.1TYFiSdOeMHLH_dPBR-YB2JlAgrLH3F7G9k7WlDVZ5g';
+
+// ─── AUTH CHECK — verify session and tier ─────────────────────────────────────
+const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+(async function() {
+  try {
+    var gs = await _sb.auth.getSession();
+    if (!gs.data || !gs.data.session) { window.location.replace('/login/'); return; }
+    var session = gs.data.session;
+    var payload = JSON.parse(atob(session.access_token.split('.')[1]));
+    var userId = payload.sub;
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' } }
+    );
+    if (resp.ok) {
+      var rows = await resp.json();
+      var tier = (rows && rows.length > 0) ? rows[0].subscription_tier : null;
+      if (tier !== 'operational' && tier !== 'operational_readiness') {
+        window.location.replace('/login/'); return;
+      }
+    }
+  } catch(e) { window.location.replace('/login/'); }
+})();
+
+// ─── LOGOUT ───────────────────────────────────────────────────────────────────
+async function handleLogout() {
+  try { await _sb.auth.signOut(); } catch(e) {}
+  window.location.replace('/login/');
+}
+
+const STRIPE_OP_LINK = 'https://ailane.ai/#pricing';
+const STRIPE_GOV_LINK = 'https://ailane.ai/#pricing';
+
+// ─── NORTHERLY HILL ACEI 12-CATEGORY MODEL ────────────────────────────────────
+// Constitutionally computed from FM sector profile. DI = 66 (Elevated).
+// ACEI v1.0 · SM=1.15 FM sector · JM varies by category exposure
+const NH_ACEI_CATEGORIES = [
+  { name: 'Working Time', short: 'WTR', wcs: 15.2, l: 3, i: 4, band: 'elevated', sm: 1.15, note: 'Shift operations, travel time claims, rest break compliance' },
+  { name: 'Health & Safety', short: 'H&S', wcs: 15.8, l: 3, i: 4, band: 'elevated', sm: 1.20, note: 'Chemicals, lone working, COSHH obligations' },
+  { name: 'TUPE & Business Transfers', short: 'TUPE', wcs: 15.2, l: 3, i: 4, band: 'elevated', sm: 1.15, note: 'Site transfer contracts endemic to FM sector' },
+  { name: 'Discrimination & Harassment', short: 'EqA', wcs: 8.0, l: 2, i: 4, band: 'moderate', sm: 1.00, note: 'Workforce diversity; gender pay gap reporting' },
+  { name: 'Employment Status', short: 'AWR', wcs: 6.6, l: 2, i: 3, band: 'moderate', sm: 1.10, note: 'Seasonal labour AWR qualifying periods' },
+  { name: 'Unfair Dismissal', short: 'UD', wcs: 6.3, l: 2, i: 3, band: 'moderate', sm: 1.05, note: 'Field operative turnover, multi-site disciplinary' },
+  { name: 'Redundancy', short: 'Red', wcs: 6.0, l: 2, i: 3, band: 'moderate', sm: 1.00, note: 'Contract loss triggering site-level redundancies' },
+  { name: 'Data Protection', short: 'GDPR', wcs: 6.0, l: 2, i: 3, band: 'moderate', sm: 1.00, note: 'Employee monitoring, SAR compliance' },
+  { name: 'Parental & Family Rights', short: 'PFR', wcs: 3.0, l: 1, i: 3, band: 'standard', sm: 1.00, note: 'Flexible working requests post-ERRA 2023' },
+  { name: 'Trade Union & Collective', short: 'TU', wcs: 3.0, l: 1, i: 3, band: 'standard', sm: 1.00, note: 'No recognition agreement; low current exposure' },
+  { name: 'Whistleblowing', short: 'WB', wcs: 3.0, l: 1, i: 3, band: 'standard', sm: 1.00, note: 'No current enforcement pattern' },
+  { name: 'Breach of Contract', short: 'BoC', wcs: 3.0, l: 1, i: 3, band: 'standard', sm: 1.00, note: 'Notice disputes, garden leave enforcement' },
+];
+const NH_ACEI_DRT = NH_ACEI_CATEGORIES.reduce((s, c) => s + c.wcs, 0);
+const NH_ACEI_DMR = 138.5; // 95th percentile
+
+// ─── STATIC TICKER DATA (live data from ticker_briefings) ─────────────────────
+const STATIC_TICKER = [
+  { title: 'Employment Rights Act 2025 — Commencement Order consultation opens', category: 'Cat 1 · Unfair Dismissal', significance: 'high', summary: 'DBET consultation on phased commencement of day-one unfair dismissal rights. Expected in-force Q4 2025. FM sector: high operational impact on probationary period management.', date: '5 Mar 2026' },
+  { title: 'WTR working time average — EAT guidance on multi-site calculation', category: 'Cat 3 · Working Time', significance: 'high', summary: 'Employment Appeal Tribunal clarifies 17-week average reference period calculation for workers with variable site assignments. Direct relevance to Northerly Hill shift pattern compliance.', date: '3 Mar 2026' },
+  { title: 'COSHH refresher obligation — HSE enforcement notice pattern Q1 2026', category: 'Cat 10 · Health & Safety', significance: 'medium', summary: 'HSE issued 23 improvement notices to FM contractors for failure to evidence COSHH refresher training. Enforcement concentrated in South Wales and Midlands.', date: '28 Feb 2026' },
+  { title: 'Holiday pay calculation — Supreme Court leave confirmed: Bear Scotland', category: 'Cat 3 · Working Time', significance: 'medium', summary: 'Supreme Court confirms Bear Scotland overtime holiday pay obligation for workers with regular but non-guaranteed overtime. Tribunal claims pattern expected to resume.', date: '25 Feb 2026' },
+];
+
+// ─── KNOWLEDGE LIBRARY SAMPLE ──────────────────────────────────────────────────
+const KL_INSTRUMENTS = [
+  { name: 'Employment Rights Act 2025', ref: 'ERA 2025', status: 'enacted', category: 'Unfair Dismissal', desc: 'Day-one unfair dismissal rights. Commencement pending.' },
+  { name: 'Working Time Regulations 1998 (as amended)', ref: 'SI 1998/1833', status: 'in_force', category: 'Working Time', desc: 'WTR 48-hour opt-out, rest periods, holiday entitlement.' },
+  { name: 'Transfer of Undertakings (Protection of Employment) Regulations 2006', ref: 'SI 2006/246', status: 'in_force', category: 'TUPE', desc: 'Employee transfer obligations on business/service transfers.' },
+  { name: 'Equality Act 2010', ref: 'EA 2010', status: 'in_force', category: 'Discrimination', desc: 'Protected characteristics, direct/indirect discrimination, harassment.' },
+  { name: 'Health and Safety at Work etc. Act 1974', ref: 'HSWA 1974', status: 'in_force', category: 'Health & Safety', desc: 'Employer duty of care, risk assessments, enforcement powers.' },
+  { name: 'Employment Relations (Flexible Working) Act 2023', ref: 'ERFW 2023', status: 'in_force', category: 'Flexible Working', desc: 'Day-one flexible working rights, mandatory employer response timelines.' },
+  { name: 'Agency Workers Regulations 2010', ref: 'SI 2010/93', status: 'in_force', category: 'Employment Status', desc: '12-week qualifying period, equal treatment obligations.' },
+  { name: 'Data Protection Act 2018 / UK GDPR', ref: 'DPA 2018', status: 'in_force', category: 'Data Protection', desc: 'UK GDPR implementation, employee data processing obligations.' },
+  { name: 'National Minimum Wage Act 1998 (as amended)', ref: 'NMWA 1998', status: 'in_force', category: 'Wages', desc: 'Minimum wage rates, enforcement powers, travel time obligations.' },
+  { name: 'Trade Union and Labour Relations (Consolidation) Act 1992', ref: 'TULRCA 1992', status: 'in_force', category: 'Trade Union', desc: 'Recognition obligations, collective bargaining, industrial action.' },
+  { name: 'Whistleblowing — Enterprise and Regulatory Reform Act 2013', ref: 'ERRA 2013', status: 'in_force', category: 'Whistleblowing', desc: 'Protected disclosure amendments, public interest requirement.' },
+  { name: 'Employment Act 2002', ref: 'EA 2002', status: 'in_force', category: 'Parental Rights', desc: 'Statutory paternity pay, additional maternity leave provisions.' },
+];
+
+// ─── ERIC VILLAGE CACHED RESULT ───────────────────────────────────────────────
+const ERIC_VILLAGE_CACHED_RESULT = {
+  meta: {
+    report_ref: 'NHF-CC-2026-0047',
+    analysis_date: '9 March 2026',
+    entity: 'Northerly Hill Facilities Management Ltd',
+    employee: 'Eric Village',
+    role: 'Site Operations Manager',
+    contract_date: '12 February 2024',
+    engine_version: 'v19',
+    cached: true,
+  },
+  scores: {
+    wcc_score: 41,
+    band: 'Initiated',
+    band_range: '30–64%',
+    rri_pillar_score: 2,
+    rri_pillar_label: 'Initiated',
+    post_remediation_projection: 84,
+  },
+  summary: { critical: 3, major: 2, minor: 2, compliant: 22, total: 29 },
+  findings: [
+    {
+      id: 'CC-001', severity: 'critical',
+      title: 'Rolled-up holiday pay prohibited',
+      clause: 'Clause 9.4',
+      statutory_basis: 'Working Time Regulations 1998, Reg 16; Brazel v Harpur Trust [2022] UKSC 27',
+      finding: 'Clause 9.4 purports to incorporate holiday pay at 12.07% into the base salary. This practice was definitively prohibited by the Supreme Court in Brazel. Holiday pay must be calculated and paid at the time of leave, not rolled up into regular wages.',
+      remediation: 'Remove Clause 9.4 in its entirety. Implement a compliant holiday pay calculation and payment procedure under WTR 1998 Reg 16, calculated on the basis of a week\'s pay under ERA 1996 ss.221–224.',
+    },
+    {
+      id: 'CC-002', severity: 'critical',
+      title: 'Unlawful blanket wage deduction authority',
+      clause: 'Clause 11',
+      statutory_basis: 'Employment Rights Act 1996, ss.13–14',
+      finding: 'Clause 11 grants a pre-signed blanket authority for deductions covering losses, damage, equipment, shortfalls and similar. ERA 1996 ss.13–14 require that deduction consent must be specific and obtained before the event giving rise to the deduction. A general contractual pre-consent is insufficient.',
+      remediation: 'Redraft Clause 11 to identify only specific, defined deduction categories with precise monetary limits. Obtain fresh written consent for each deduction category at the time of the relevant event.',
+    },
+    {
+      id: 'CC-003', severity: 'critical',
+      title: 'Non-compete clause void — unreasonable restraint of trade',
+      clause: 'Clause 21.1',
+      statutory_basis: 'Restraint of Trade doctrine; Tillman v Egon Zehnder Ltd [2019] UKSC 32',
+      finding: 'Clause 21.1 imposes an 18-month post-termination non-compete across all FM, cleaning, grounds maintenance, building services, security and property activities UK-wide, with no geographic limitation. This is void as an unreasonable restraint of trade under Tillman. The scope is grossly disproportionate to Northerly Hill\'s operational territory.',
+      remediation: 'Redraft to a proportionate restriction: 6–9 months maximum duration; restrict to direct competitors in the specific FM/cleaning sector; limit geography to regions where Eric Village actually operated. Take specialist employment law advice before finalising.',
+    },
+    {
+      id: 'CC-004', severity: 'major',
+      title: 'SSP waiting days — unlawful post ERA 2025',
+      clause: 'Clause 10.3',
+      statutory_basis: 'Employment Rights Act 2025, s.9 (amending SSP Act 1982)',
+      finding: 'Clause 10.3 retains the three waiting-day rule under the pre-2025 SSP regime. ERA 2025 s.9 removes waiting days entirely — SSP is now payable from day one of sickness absence.',
+      remediation: 'Delete the waiting-days provision from Clause 10.3. Update to state that SSP is payable from the first qualifying day of sickness absence in accordance with ERA 2025 s.9.',
+    },
+    {
+      id: 'CC-005', severity: 'major',
+      title: 'Unilateral variation and deemed acceptance — incompatible with ERA 2025',
+      clause: 'Clauses 18.1–18.2',
+      statutory_basis: 'Employment Rights Act 2025 — fire-and-rehire provisions',
+      finding: 'Clauses 18.1–18.2 permit unilateral variation with continued attendance treated as acceptance. ERA 2025 fire-and-rehire provisions restrict this mechanism — continued employment can no longer be treated as implied consent to material changes.',
+      remediation: 'Remove the deemed-acceptance mechanism. Replace with a genuine consultation and agreement process. Obtain express written consent before implementing material changes.',
+    },
+    {
+      id: 'CC-006', severity: 'minor',
+      title: 'Probationary dismissal without process — ERA 2025 day-one rights',
+      clause: 'Clause 19.2',
+      statutory_basis: 'Employment Rights Act 2025 — day-one unfair dismissal rights',
+      finding: 'Clause 19.2 states dismissal during probation requires no process and that unfair dismissal rights do not apply until the qualifying period. ERA 2025 introduces day-one unfair dismissal rights subject to a modified initial period procedure.',
+      remediation: 'Redraft Clause 19.2 to reflect ERA 2025. A modified proportionate process is still required during the initial period. Remove any statement that unfair dismissal rights do not apply.',
+    },
+    {
+      id: 'CC-007', severity: 'minor',
+      title: 'Per-establishment collective redundancy threshold — superseded',
+      clause: 'Clause 20.2',
+      statutory_basis: 'TULRCA 1992, s.188 as amended by Employment Rights Act 2025',
+      finding: 'Clause 20.2 defines collective redundancy thresholds on a per-establishment basis. ERA 2025 amends TULRCA 1992 s.188 so the 20-employee threshold is calculated across the total workforce. Northerly Hill operates across Cardiff, Swansea, Bristol and Birmingham — this has material implications.',
+      remediation: 'Update Clause 20.2 to reflect the workforce-wide threshold calculation under TULRCA 1992 s.188 as amended. Review redundancy policies accordingly.',
+    },
+  ],
+};
+
+// ─── STATE ─────────────────────────────────────────────────────────────────────
+let currentTier = 'operational';
+let tierHistory = [];
+let entityData = null;
+let rriData = null;
+let cciData = null;
+let vaultData = null;
+let relSubmitted = false;
+let demoAnalysisState = 'idle'; // idle | analysing | complete
+
+// ─── FETCH ──────────────────────────────────────────────────────────────────────
+async function sbFetch(path) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON }
+  });
+  return r.json();
+}
+
+async function loadData() {
+  try {
+    const [entities, rri, cci, vault] = await Promise.all([
+      sbFetch('pcie_demonstration_entities?is_active=eq.true&limit=1'),
+      sbFetch('rri_scores?is_demonstration=eq.true&order=created_at.desc&limit=1'),
+      sbFetch('cci_scores?is_demonstration=eq.true&order=created_at.desc&limit=1'),
+      sbFetch('vault_contract_records?is_demonstration=eq.true&order=tier_weight.desc'),
+    ]);
+    entityData = entities[0];
+    rriData = rri[0];
+    cciData = cci[0];
+    vaultData = vault;
+    renderHeader();
+    renderDashboard();
+  } catch(e) {
+    document.getElementById('main-content').innerHTML = '<div class="loading-state"><span style="color:var(--text-muted)">Error loading intelligence data. Please refresh.</span></div>';
+  }
+}
+
+// ─── HEADER ─────────────────────────────────────────────────────────────────────
+function renderHeader() {
+  if (!entityData) return;
+  document.getElementById('entity-name').textContent = entityData.display_name;
+  document.getElementById('entity-details').innerHTML =
+    `<span>${entityData.fictional_company_number}</span><span class="sep">·</span>` +
+    `<span>Facilities Management</span><span class="sep">·</span>` +
+    `<span><span>${entityData.headcount}</span> employees</span><span class="sep">·</span>` +
+    `<span>Cardiff HQ · Multi-site UK</span><span class="sep">·</span>` +
+    `<span>Incorporated 2014</span>`;
+}
+
+// ─── TIER SWITCHER ──────────────────────────────────────────────────────────────
+function setTier(tier) {
+  if (tier !== currentTier) tierHistory.push(currentTier);
+  currentTier = tier;
+  document.querySelectorAll('.tier-btn').forEach(b => {
+    b.className = 'tier-btn';
+    if (b.dataset.tier === tier) {
+      b.classList.add(tier === 'operational' ? 'active-op' : tier === 'governance' ? 'active-gov' : 'active-inst');
+    }
+  });
+  // Show/hide back button
+  const backBtn = document.getElementById('tier-back-btn');
+  if (backBtn) {
+    backBtn.style.display = tierHistory.length > 0 ? 'flex' : 'none';
+    const prev = tierHistory[tierHistory.length - 1];
+    if (prev) backBtn.title = `Back to ${prev.charAt(0).toUpperCase() + prev.slice(1)} view`;
+  }
+  renderDashboard();
+}
+
+function tierBack() {
+  if (tierHistory.length === 0) return;
+  const prev = tierHistory.pop();
+  currentTier = prev;
+  document.querySelectorAll('.tier-btn').forEach(b => {
+    b.className = 'tier-btn';
+    if (b.dataset.tier === prev) {
+      b.classList.add(prev === 'operational' ? 'active-op' : prev === 'governance' ? 'active-gov' : 'active-inst');
+    }
+  });
+  const backBtn = document.getElementById('tier-back-btn');
+  if (backBtn) backBtn.style.display = tierHistory.length > 0 ? 'flex' : 'none';
+  renderDashboard();
+}
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────────
+function bandLabel(band) {
+  if (band === 'elevated') return '<span class="score-band band-elevated">⬤ Elevated</span>';
+  if (band === 'high') return '<span class="score-band band-high">⬤ High</span>';
+  return '<span class="score-band band-moderate">⬤ Moderate</span>';
+}
+
+function aceiScoreBand(di) {
+  if (di >= 61) return '<span class="score-band band-elevated">⬤ Elevated Exposure</span>';
+  if (di >= 41) return '<span class="score-band band-moderate">⬤ Standard Exposure</span>';
+  return '<span class="score-band band-high">⬤ High Exposure</span>';
+}
+
+function rriScoreBand(wdrs) {
+  if (wdrs >= 60) return '<span class="score-band band-moderate">⬤ Developed</span>';
+  if (wdrs >= 40) return '<span class="score-band band-elevated">⬤ Initiated–Developing</span>';
+  return '<span class="score-band band-high">⬤ Inadequate</span>';
+}
+
+function cciScoreBand(cci) {
+  if (cci >= 70) return '<span class="score-band band-moderate">⬤ Above Sector Median</span>';
+  if (cci >= 50) return '<span class="score-band band-elevated">⬤ Below Sector Median</span>';
+  return '<span class="score-band band-high">⬤ High Conduct Risk</span>';
+}
+
+function lockedPanel(bodyHtml, lockTier, lockLabel) {
+  const isGov = lockTier === 'governance';
+  const btnClass = isGov ? 'lock-cta-gov' : 'lock-cta-inst';
+  const iconClass = isGov ? 'lock-icon-gov' : 'lock-icon-inst';
+  const ctaText = isGov ? 'See Governance View →' : 'See Institutional View →';
+  const ctaAction = isGov ? "setTier('governance')" : "setTier('institutional')";
+  return `
+    <div class="panel-locked">
+      <div class="panel-body">${bodyHtml}</div>
+      <div class="lock-overlay">
+        <div class="lock-icon ${iconClass}">🔒</div>
+        <div class="lock-label">${lockLabel}</div>
+        <button onclick="${ctaAction}" class="lock-cta ${btnClass}">${ctaText}</button>
+      </div>
+    </div>
+  `;
+}
+    </div>`;
+}
+
+function contractScoreClass(s) {
+  if (s >= 80) return 'score-good';
+  if (s >= 60) return 'score-ok';
+  return 'score-poor';
+}
+
+function pillarDots(score) {
+  let html = '<div class="rri-dot-track">';
+  for (let i = 1; i <= 5; i++) {
+    const cls = i <= score ? (score >= 3 ? 'filled-3' : 'filled-2') : 'filled-empty';
+    html += `<div class="rri-dot ${cls}"></div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function pillarLabel(score) {
+  if (score >= 4) return 'Advanced';
+  if (score >= 3) return 'Developed';
+  if (score >= 2) return 'Initiated';
+  return 'Absent';
+}
+
+function pillarColor(score) {
+  if (score >= 3) return 'var(--teal-bright)';
+  if (score >= 2) return '#fbbf24';
+  return 'var(--red)';
+}
+
+// ─── DEMO ANALYSIS ───────────────────────────────────────────────────────────
+function setDemoAnalysisState(state) {
+  demoAnalysisState = state;
+  renderDashboard();
+}
+
+async function runDemoAnalysis() {
+  setDemoAnalysisState('analysing');
+  await new Promise(resolve => setTimeout(resolve, 4000));
+  setDemoAnalysisState('complete');
+}
+
+function renderDemoResults(result) {
+  const m = result.meta;
+  const s = result.scores;
+  const sum = result.summary;
+  const severityColors = { critical: 'var(--red)', major: '#fbbf24', minor: '#60a5fa', compliant: 'var(--green)' };
+  const severityBg = { critical: 'var(--red-muted)', major: 'var(--amber-muted)', minor: 'rgba(96,165,250,0.12)', compliant: 'var(--green-muted)' };
+
+  let html = '';
+
+  // Score summary
+  html += `<div style="background:var(--navy-raised);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">
+      <div style="width:72px;height:72px;border-radius:50%;border:3px solid ${s.wcc_score < 50 ? 'var(--red)' : '#fbbf24'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--text)">${s.wcc_score}</span>
+        <span style="font-size:9px;color:var(--text-muted)">/100</span>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">${m.report_ref}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">${m.entity} — ${m.employee}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${m.role} · Contract dated ${m.contract_date} · Analysed ${m.analysis_date}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      ${['critical','major','minor','compliant'].map(sev => `
+        <div style="background:${severityBg[sev]};border-radius:6px;padding:10px;text-align:center">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:${severityColors[sev]}">${sum[sev]}</div>
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${severityColors[sev]}">${sev}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+
+  // Legislative change notice
+  html += `<div style="border-left:4px solid #0EA5E9;background:rgba(14,165,233,0.08);border-radius:0 6px 6px 0;padding:14px 18px;margin-bottom:24px;font-size:13px;color:rgba(255,255,255,0.80);line-height:1.6">
+    <strong style="color:#0EA5E9">Demo contract — Northerly Hill FM · Eric Village</strong><br>
+    This analysis reflects the contract as at 9 March 2026 against legislation in force at that date. If UK employment law changes materially after this date, the findings shown here may not reflect the updated position. To refresh the analysis against current legislation, the contract can be re-uploaded through the Ailane Intelligence environment by the platform administrator.
+  </div>`;
+
+  // Findings list
+  result.findings.forEach(f => {
+    const sevColor = severityColors[f.severity] || 'var(--text-muted)';
+    const sevBg = severityBg[f.severity] || 'rgba(255,255,255,0.06)';
+    html += `<div style="background:var(--navy-raised);border:1px solid ${f.severity==='critical'?'rgba(224,82,82,0.25)':'var(--border)'};border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <span style="font-size:9px;font-weight:700;background:${sevBg};color:${sevColor};padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:0.08em">${f.severity}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint)">${f.id} · ${f.clause}</span>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">${f.title}</div>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:6px">${f.finding}</div>
+      <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px"><strong>Statutory basis:</strong> ${f.statutory_basis}</div>
+      <div style="font-size:11px;color:var(--teal-bright);line-height:1.5"><strong>Remediation:</strong> ${f.remediation}</div>
+    </div>`;
+  });
+
+  // Report download buttons — visible after demo results render
+  html += `<div style="display:flex;gap:12px;margin:28px 0 8px 0;flex-wrap:wrap">
+    <a href="/intelligence/demo-assets/NHF-CC-2026-0047-ComplianceReport.pdf" download="NHF-CC-2026-0047-ComplianceReport.pdf" style="display:inline-flex;align-items:center;gap:8px;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.35);color:#7DD3FC;padding:10px 18px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer">↓ Download Report (PDF)</a>
+    <a href="/intelligence/demo-assets/NHF-CC-2026-0047-ComplianceReport.docx" download="NHF-CC-2026-0047-ComplianceReport.docx" style="display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.30);color:#FCD34D;padding:10px 18px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer">↓ Download Report (Word)</a>
+  </div>
+  <p style="font-size:12px;color:rgba(255,255,255,0.40);margin:0 0 24px 0;font-style:italic">Report NHF-CC-2026-0047 · Northerly Hill FM · Eric Village · Generated 9 March 2026 · AI Lane Limited</p>`;
+
+  return html;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  if (!entityData) return;
+  const di = entityData.acei_di;
+  const wdrs = parseFloat(entityData.rri_wdrs);
+  const cci = parseFloat(entityData.cci_score);
+  const wcc = parseFloat(entityData.wcc_aggregate) || 70.79;
+
+  const pillars = rriData ? [
+    { code: 'PA', name: 'Policy Alignment', score: parseFloat(rriData.pa_score), gap: 'Flexible working policy pre-dates 2023 ERRA amendments' },
+    { code: 'CC', name: 'Contractual Conformity', score: parseFloat(rriData.cc_score), gap: 'Field operative contracts missing WTR opt-out clarity' },
+    { code: 'TD', name: 'Training Deployment', score: parseFloat(rriData.td_score), gap: 'No documented COSHH or manual handling refresher records' },
+    { code: 'SPA', name: 'Systems & Process Adaptation', score: parseFloat(rriData.spa_score), gap: 'No formal process for monitoring WTR hours across sites' },
+    { code: 'GO', name: 'Governance Oversight', score: parseFloat(rriData.go_score), gap: 'No formal HR compliance audit schedule; no compliance committee' },
+  ] : [];
+
+  const cciComponents = cciData ? cciData.components : [];
+
+  let html = '';
+
+  // ─── INDEX SCORE CARDS (all tiers) ─────────────────────────────────────────
+  html += `<div class="index-row">
+    <div class="score-card acei">
+      <div class="score-card-label">ACEI · Adverse Claim Exposure Index</div>
+      <div class="score-card-name">External Regulatory Environment</div>
+      <div class="score-number">${di}</div>
+      ${aceiScoreBand(di)}
+      <div class="score-desc">
+        ${currentTier === 'operational'
+          ? 'Your regulatory exposure score across 12 employment law categories. FM sector average: 58.'
+          : `Domain Index driven primarily by Working Time (WCS 15.2), Health &amp; Safety (WCS 15.8), and TUPE exposure (WCS 15.2). DRT ${NH_ACEI_DRT.toFixed(1)} ÷ DMR ${NH_ACEI_DMR} × 100.`
+        }
+      </div>
+      <div class="constitution-ref">ACEI v1.0</div>
+    </div>
+    ${currentTier === 'operational' ? `
+    <div class="score-card rri" style="position:relative;overflow:hidden">
+      <div class="score-card-label">RRI · Regulatory Readiness Index</div>
+      <div class="score-card-name">Forward-Looking Preparedness</div>
+      <div style="filter:blur(6px);pointer-events:none;opacity:0.25">
+        <div class="score-number" style="color:var(--teal-bright)">54</div>
+        <span class="score-band band-elevated">⬤ Initiated–Developing</span>
+        <div class="score-desc">Five-pillar readiness assessment across policy, contracts, training, systems, and governance.</div>
+      </div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.82);backdrop-filter:blur(3px);gap:10px;padding:20px;text-align:center">
+        <div class="lock-icon lock-icon-gov" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🔒</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5">RRI Regulatory Readiness Score — five-pillar preparedness breakdown. <strong style="color:var(--teal-bright)">Governance tier.</strong></div>
+        <button onclick="setTier('governance')" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border:none;cursor:pointer">See Governance View →</button>
+      </div>
+      <div class="constitution-ref">RRI v1.0</div>
+    </div>
+    <div class="score-card cci" style="position:relative;overflow:hidden">
+      <div class="score-card-label">CCI · Compliance Conduct Index</div>
+      <div class="score-card-name">Historical Conduct Posture</div>
+      <div style="filter:blur(6px);pointer-events:none;opacity:0.25">
+        <div class="score-number" style="color:#c084fc">62</div>
+        <span class="score-band band-elevated">⬤ Below Sector Median</span>
+        <div class="score-desc">Bayesian credibility-weighted conduct posture across 36-month observation window.</div>
+      </div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,15,28,0.82);backdrop-filter:blur(3px);gap:10px;padding:20px;text-align:center">
+        <div class="lock-icon lock-icon-gov" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">🔒</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.5">CCI Compliance Conduct Score — historical conduct posture with Bayesian weighting. <strong style="color:var(--teal-bright)">Governance tier.</strong></div>
+        <button onclick="setTier('governance')" style="padding:7px 16px;border-radius:6px;background:var(--teal-bright);color:#fff;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border:none;cursor:pointer">See Governance View →</button>
+      </div>
+      <div class="constitution-ref">CCI v1.0</div>
+    </div>` : `
+    <div class="score-card rri">
+      <div class="score-card-label">RRI · Regulatory Readiness Index</div>
+      <div class="score-card-name">Forward-Looking Preparedness</div>
+      <div class="score-number">${wdrs}</div>
+      ${rriScoreBand(wdrs)}
+      <div class="score-desc">
+        WDRS = Σ(PillarScore × PWV) × 20. Weakest pillars: Contractual Conformity (${rriData?.cc_score}/5) and Training Deployment (${rriData?.td_score}/5).
+      </div>
+      <div class="constitution-ref">RRI v1.0</div>
+    </div>
+    <div class="score-card cci">
+      <div class="score-card-label">CCI · Compliance Conduct Index</div>
+      <div class="score-card-name">Historical Conduct Posture</div>
+      <div class="score-number">${cci.toFixed(0)}</div>
+      ${cciScoreBand(cci)}
+      <div class="score-desc">
+        Bayesian-weighted across ${cciComponents.length} conduct events. Primary negative: WTR claim 2023 (£3,800 award). Improvement signal: clean conduct 2014–2019.
+      </div>
+      <div class="constitution-ref">CCI v1.0</div>
+    </div>`}
+  </div>`;
+
+  // ─── OPERATIONAL TIER ─────────────────────────────────────────────────────────
+  if (currentTier === 'operational') {
+    html += renderOperationalView(di, wdrs, cci, wcc);
+  }
+
+  // ─── GOVERNANCE TIER ──────────────────────────────────────────────────────────
+  if (currentTier === 'governance') {
+    html += renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents);
+  }
+
+  // ─── INSTITUTIONAL TIER ───────────────────────────────────────────────────────
+  if (currentTier === 'institutional') {
+    html += renderInstitutionalView(di, wdrs, cci, wcc, pillars, cciComponents);
+  }
+
+  // Constitutional footer
+  html += `<div class="constitution-footer">
+    <span class="cf-icon">⚖️</span>
+    <div>All scores computed under <strong>ACEI v1.0 · RRI v1.0 · CCI v1.0</strong> — Ailane Founding Constitutions, adopted 26 February 2026. Strict separation doctrine maintained. Index computations are independent. ACEI data does not enter RRI calculations. Demonstration entity: <strong>Northerly Hill Facilities Management Ltd</strong> — fictional entity constructed for PCIE. Not a registered UK company. Simulated data clearly labelled. <a href="/terms/" target="_blank">Terms of Service</a> · <a href="/privacy/" target="_blank">Privacy Policy</a> · ICO Reg: 00013389720.
+    </div>
+  </div>`;
+
+  document.getElementById('main-content').innerHTML = html;
+}
+
+// ─── OPERATIONAL VIEW ─────────────────────────────────────────────────────────
+function renderOperationalView(di, wdrs, cci, wcc) {
+  let html = '';
+  html += `<div class="tier-section-title">Intelligence & Monitoring</div>`;
+
+  // Ticker + KL row
+  html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
+
+  // Ticker (enabled, medium+ significance)
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📡 Regulatory Intelligence Ticker</div>
+      <span class="panel-badge badge-op">All UK · Medium+ Significance</span>
+    </div>
+    <div class="panel-body">
+      <div class="ticker-item-list">
+        ${STATIC_TICKER.slice(0,3).map(t => `
+          <div class="ticker-item">
+            <div class="ticker-item-top">
+              <span class="ticker-sig sig-${t.significance}">${t.significance.toUpperCase()}</span>
+              <span class="ticker-cat">${t.category}</span>
+            </div>
+            <div class="ticker-item-title">${t.title}</div>
+            <div class="ticker-item-summary">${t.summary.substring(0,120)}...</div>
+            <div class="ticker-item-footer">
+              <span>${t.date}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // KL - 5 instruments
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📚 Knowledge Library</div>
+      <span class="panel-badge badge-op">5 of 47 Instruments</span>
+    </div>
+    <div class="panel-body">
+      <div class="kl-item-list">
+        ${KL_INSTRUMENTS.slice(0,5).map(k => `
+          <div class="kl-item">
+            <div class="kl-item-icon">⚖</div>
+            <div>
+              <div class="kl-item-name">${k.name}</div>
+              <div class="kl-item-meta">${k.ref} · ${k.category}</div>
+              <span class="kl-item-tag ${k.status === 'in_force' ? 'tag-in-force' : k.status === 'enacted' ? 'tag-enacted' : 'tag-partial'}">${k.status === 'in_force' ? 'In Force' : k.status === 'enacted' ? 'Enacted' : 'Partial'}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  html += '</div>'; // end cols-2
+
+  // Compliance Checker + REL row
+  html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
+
+  // CC - demo with cached Eric Village result
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📋 Compliance Checker</div>
+      <span class="panel-badge badge-op">Demo · Eric Village</span>
+    </div>
+    <div class="panel-body" id="cc-demo-body-op">`;
+
+  if (demoAnalysisState === 'idle') {
+    html += `<div class="cc-upload-zone" onclick="runDemoAnalysis()">
+        <div class="cc-upload-icon">📄</div>
+        <div class="cc-upload-label">Run demo analysis — Eric Village contract</div>
+        <div class="cc-upload-hint">Cached result · No live AI call · Northerly Hill FM demo</div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-muted)">
+        Returns an overall compliance score (0–100). Clause-level findings and remediation guidance available on Governance tier.
+      </div>`;
+  } else if (demoAnalysisState === 'analysing') {
+    html += `<!-- LEGAL DISCLAIMER — do not remove or reposition -->
+      <div style="border:2px solid #f59e0b;box-shadow:0 0 0 1px rgba(245,158,11,0.2),0 4px 16px rgba(245,158,11,0.08);border-radius:8px;background:rgba(255,251,235,0.07);padding:20px 24px;margin:0 auto 28px auto;max-width:640px;">
+        <p style="color:#f59e0b;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px 0;">Important Notice — Legal Disclaimer</p>
+        <p style="color:rgba(255,255,255,0.75);font-size:13px;font-style:italic;line-height:1.65;margin:0 0 10px 0;">The analysis produced by Ailane is generated by automated regulatory intelligence software and is provided for informational purposes only. It does not constitute legal advice. Ailane findings identify potential areas of concern based on current UK statutory requirements and should be treated as a starting point for review, not a definitive legal opinion.</p>
+        <p style="color:rgba(255,255,255,0.90);font-size:13px;font-style:italic;font-weight:600;line-height:1.65;margin:0 0 10px 0;">Always seek advice from a solicitor or barrister qualified to practice in England and Wales before making decisions based on this analysis or amending employment documentation.</p>
+        <p style="color:rgba(255,255,255,0.50);font-size:12px;font-style:italic;margin:0;">AI Lane Limited accepts no liability for reliance on automated analysis outputs.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0">
+        <div class="spinner" style="width:40px;height:40px;margin-bottom:14px"></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Analysing contract…</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Checking against 47 legislative instruments</div>
+      </div>`;
+  } else {
+    html += renderDemoResults(ERIC_VILLAGE_CACHED_RESULT);
+  }
+
+  html += `</div>
+  </div>`;
+
+  // REL input form
+  html += renderRELForm('all');
+  html += '</div>'; // end cols-2
+
+  // Locked panels row
+  html += `<div class="tier-section-title">Governance Tier Features</div>`;
+  html += `<div class="section-grid cols-3" style="margin-bottom:16px">`;
+
+  // Locked: Index Trends
+  html += `<div class="panel">
+    <div class="panel-header"><div class="panel-title">📈 Index Trend Lines</div></div>
+    ${lockedPanel(
+      `<div style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Chart preview</div>`,
+      'governance',
+      'Track how your regulatory exposure has moved over the last 90 days. Governance tier.'
+    )}
+  </div>`;
+
+  // Locked: Vault
+  html += `<div class="panel">
+    <div class="panel-header"><div class="panel-title">🗂 Document Intelligence Vault</div></div>
+    ${lockedPanel(
+      `<div style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Vault preview</div>`,
+      'governance',
+      'House every employment contract. Analyse your entire workforce in one operation. Governance tier.'
+    )}
+  </div>`;
+
+  // Locked: Sub-regional alerts
+  html += `<div class="panel">
+    <div class="panel-header"><div class="panel-title">📍 Sub-Regional Alerts</div></div>
+    ${lockedPanel(
+      `<div style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Alert map preview</div>`,
+      'governance',
+      'See enforcement activity in your sub-region before your competitors do. Governance tier.'
+    )}
+  </div>`;
+
+  html += '</div>';
+
+  html += `<div class="upsell-bar">
+    <div class="upsell-bar-text">Ready to see your own company's exposure profile? <strong>Governance tier</strong> unlocks full 12-category ACEI breakdown, clause-level compliance analysis, and sub-regional enforcement alerts.</div>
+    <a href="${STRIPE_GOV_LINK}" class="upsell-bar-cta" style="white-space:nowrap">Start Governance — £799/mo</a>
+  </div>`;
+
+  return html;
+}
+
+// ─── GOVERNANCE VIEW ──────────────────────────────────────────────────────────
+function renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents) {
+  let html = '';
+
+  // ACEI 12-cat + RRI pillars
+  html += `<div class="tier-section-title">Full Index Analysis</div>`;
+  html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
+
+  // ACEI 12-category
+  const maxWcs = Math.max(...NH_ACEI_CATEGORIES.map(c => c.wcs));
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📊 ACEI — 12 Category Breakdown</div>
+      <span class="panel-badge badge-gov">Domain Index: ${di}</span>
+    </div>
+    <div class="panel-body">
+      <div class="cat-bar-list">
+        ${NH_ACEI_CATEGORIES.map(c => {
+          const pct = Math.round((c.wcs / maxWcs) * 100);
+          const fillClass = c.band === 'elevated' ? 'fill-elevated' : c.band === 'high' ? 'fill-high' : c.band === 'moderate' ? 'fill-moderate' : 'fill-standard';
+          return `<div class="cat-bar-item">
+            <div class="cat-bar-meta">
+              <span class="cat-bar-name">${c.name}</span>
+              <span class="cat-bar-value">L${c.l}·I${c.i} WCS:${c.wcs.toFixed(1)}</span>
+            </div>
+            <div class="cat-bar-track"><div class="cat-bar-fill ${fillClass}" style="width:${pct}%"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:14px;font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace">
+        DRT: ${NH_ACEI_DRT.toFixed(1)} · DMR: ${NH_ACEI_DMR} · DI = (${NH_ACEI_DRT.toFixed(1)}/${NH_ACEI_DMR})×100 = ${di} · ACEI v1.0 §3.7
+      </div>
+    </div>
+  </div>`;
+
+  // RRI 5 pillars
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">🔎 RRI — Five Pillar Breakdown</div>
+      <span class="panel-badge badge-gov">WDRS: ${wdrs}</span>
+    </div>
+    <div class="panel-body">
+      <div class="rri-pillar-list">
+        ${pillars.map(p => `
+          <div class="rri-pillar">
+            <div class="rri-pillar-header">
+              <span class="rri-pillar-name">${p.name} (${p.code})</span>
+              <div class="rri-pillar-score-wrap">
+                <span class="rri-pillar-score" style="color:${pillarColor(p.score)}">${p.score}/5</span>
+                <span class="rri-pillar-label">${pillarLabel(p.score)}</span>
+              </div>
+            </div>
+            ${pillarDots(p.score)}
+            <div class="rri-pillar-gap">Gap: ${p.gap}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:14px;font-size:10px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace">
+        WDRS = Σ(Ps × Pv) × 20 · RRI v1.0 §6.5 · WCC feeding CC pillar: ${wcc}%
+      </div>
+    </div>
+  </div>`;
+
+  html += '</div>'; // end cols-2
+
+  // CCI + Vault row
+  html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
+
+  // CCI component breakdown
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">⚖️ CCI — Component Breakdown</div>
+      <span class="panel-badge badge-gov">Bayesian Weighting</span>
+    </div>
+    <div class="panel-body">
+      <div class="cci-event-list">
+        ${cciComponents.map(ev => `
+          <div class="cci-event">
+            <div>
+              <div class="cci-event-label">${ev.label}</div>
+              <div class="cci-event-outcome">${ev.outcome}</div>
+            </div>
+            <div>
+              <div class="cci-event-score" style="color:${ev.ci >= 70 ? 'var(--green)' : ev.ci >= 55 ? '#fbbf24' : 'var(--red)'}">${ev.ci}</div>
+              <div class="cci-event-weight">Zᵢ: ${ev.zi}</div>
+            </div>
+          </div>
+        `).join('')}
+        <div class="cci-total-row">
+          <span class="cci-total-label">CCI = Σ(Cᵢ·Zᵢ) ÷ Σ(Zᵢ)</span>
+          <span class="cci-total-value">${cci.toFixed(1)}</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // Document Vault
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">🗂 Document Intelligence Vault</div>
+      <span class="panel-badge badge-gov">8 contracts · WCC active</span>
+    </div>
+    <div class="panel-body">
+      <div class="vault-wcc-bar">
+        <div style="flex:1">
+          <div class="vault-wcc-label">Weighted Contractual Conformity (WCC)</div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:2px">Feeds RRI Contractual Conformity pillar · Track B evidence</div>
+        </div>
+        <div>
+          <div class="vault-wcc-score">${wcc}%</div>
+          <div class="vault-wcc-desc">Initiated–Developing<br>CC pillar score: 2/5</div>
+        </div>
+      </div>
+      <div class="vault-contract-list">
+        ${(vaultData || []).map(c => `
+          <div class="vault-contract">
+            <div>
+              <div class="vault-contract-name">${c.role_title}</div>
+              <div class="vault-contract-role">${c.employee_ref}</div>
+            </div>
+            <div class="vault-contract-score ${contractScoreClass(parseFloat(c.compliance_score))}">${parseFloat(c.compliance_score).toFixed(0)}%</div>
+            <div>
+              ${parseInt(c.critical_gaps) > 0 ? `<div class="vault-contract-gaps">${c.critical_gaps} critical</div>` : '<div style="font-size:10px;color:var(--green)">✓ Clean</div>'}
+            </div>
+            <div class="vault-contract-finding">${c.key_finding}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  html += '</div>'; // end cols-2
+
+  // Ticker (sector filter + AI briefings enabled) + KL full
+  html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
+
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📡 Regulatory Intelligence Ticker</div>
+      <span class="panel-badge badge-gov">FM Sector Filter · AI Analysis</span>
+    </div>
+    <div class="panel-body">
+      <div style="margin-bottom:12px;padding:8px 12px;background:var(--teal-glow);border:1px solid rgba(14,143,143,0.25);border-radius:6px;font-size:11px;color:var(--teal-bright)">
+        ⚡ Filtered to: <strong>Facilities Management</strong> sector · SIC 8121, 8122, 8130
+      </div>
+      <div class="ticker-item-list">
+        ${STATIC_TICKER.map(t => `
+          <div class="ticker-item">
+            <div class="ticker-item-top">
+              <span class="ticker-sig sig-${t.significance}">${t.significance.toUpperCase()}</span>
+              <span class="ticker-cat">${t.category}</span>
+            </div>
+            <div class="ticker-item-title">${t.title}</div>
+            <div class="ticker-item-summary">${t.summary}</div>
+            <div class="ticker-item-footer">
+              <span>${t.date}</span>
+              <span class="ticker-ai-badge">⚡ AI Constitutional Analysis</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // KL full
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📚 Knowledge Library</div>
+      <span class="panel-badge badge-gov">47 Instruments · Full Access</span>
+    </div>
+    <div class="panel-body">
+      <div class="kl-item-list">
+        ${KL_INSTRUMENTS.slice(0,8).map(k => `
+          <div class="kl-item">
+            <div class="kl-item-icon">⚖</div>
+            <div>
+              <div class="kl-item-name">${k.name}</div>
+              <div class="kl-item-meta">${k.ref} · ${k.category}</div>
+              <span class="kl-item-tag ${k.status === 'in_force' ? 'tag-in-force' : k.status === 'enacted' ? 'tag-enacted' : 'tag-partial'}">${k.status === 'in_force' ? 'In Force' : k.status === 'enacted' ? 'Enacted' : 'Partial'}</span>
+            </div>
+          </div>
+        `).join('')}
+        <div class="kl-count-badge">+ <strong>39</strong> more instruments in full library</div>
+      </div>
+    </div>
+  </div>`;
+
+  html += '</div>'; // end cols-2
+
+  // CC clause-level + REL with sub-regional
+  html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
+
+  // CC clause-level findings — demo with cached Eric Village result
+  html += `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📋 Compliance Checker</div>
+      <span class="panel-badge badge-gov">Demo · Clause-Level · Remediation</span>
+    </div>
+    <div class="panel-body" id="cc-demo-body-gov">`;
+
+  if (demoAnalysisState === 'idle') {
+    html += `<div class="cc-upload-zone" onclick="runDemoAnalysis()">
+        <div class="cc-upload-icon">📄</div>
+        <div class="cc-upload-label">Run demo analysis — Eric Village contract</div>
+        <div class="cc-upload-hint">Cached result · No live AI call · Full clause-level findings</div>
+      </div>`;
+  } else if (demoAnalysisState === 'analysing') {
+    html += `<!-- LEGAL DISCLAIMER — do not remove or reposition -->
+      <div style="border:2px solid #f59e0b;box-shadow:0 0 0 1px rgba(245,158,11,0.2),0 4px 16px rgba(245,158,11,0.08);border-radius:8px;background:rgba(255,251,235,0.07);padding:20px 24px;margin:0 auto 28px auto;max-width:640px;">
+        <p style="color:#f59e0b;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px 0;">Important Notice — Legal Disclaimer</p>
+        <p style="color:rgba(255,255,255,0.75);font-size:13px;font-style:italic;line-height:1.65;margin:0 0 10px 0;">The analysis produced by Ailane is generated by automated regulatory intelligence software and is provided for informational purposes only. It does not constitute legal advice. Ailane findings identify potential areas of concern based on current UK statutory requirements and should be treated as a starting point for review, not a definitive legal opinion.</p>
+        <p style="color:rgba(255,255,255,0.90);font-size:13px;font-style:italic;font-weight:600;line-height:1.65;margin:0 0 10px 0;">Always seek advice from a solicitor or barrister qualified to practice in England and Wales before making decisions based on this analysis or amending employment documentation.</p>
+        <p style="color:rgba(255,255,255,0.50);font-size:12px;font-style:italic;margin:0;">AI Lane Limited accepts no liability for reliance on automated analysis outputs.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0">
+        <div class="spinner" style="width:40px;height:40px;margin-bottom:14px"></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Analysing contract…</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Checking against 47 legislative instruments</div>
+      </div>`;
+  } else {
+    html += renderDemoResults(ERIC_VILLAGE_CACHED_RESULT);
+  }
+
+  html += `</div>
+  </div>`;
+
+  // REL
+  html += renderRELForm('governance');
+  html += '</div>'; // end cols-2
+
+  // Locked: Intelligence Lab, Proximity Alert, Audit Pack
+  html += `<div class="tier-section-title">Institutional Tier Features</div>`;
+  html += `<div class="section-grid cols-3" style="margin-bottom:16px">`;
+
+  html += `<div class="panel">
+    <div class="panel-header"><div class="panel-title">🔬 Intelligence Lab</div></div>
+    ${lockedPanel(
+      `<div style="height:120px;background:var(--navy-raised);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Trend Engine preview</div>`,
+      'institutional',
+      'Explore 130,000+ tribunal decisions. Benchmark against 240 sector peers. Institutional tier.'
+    )}
+  </div>`;
+
+  html += `<div class="panel">
+    <div class="panel-header"><div class="panel-title">📍 Proximity Alert</div></div>
+    ${lockedPanel(
+      `<div style="height:120px;background:var(--navy-raised);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Map preview</div>`,
+      'institutional',
+      'Know when HSE, ICO or EHRC enforcement activity is formally recorded in your sub-region. Institutional tier.'
+    )}
+  </div>`;
+
+  html += `<div class="panel">
+    <div class="panel-header"><div class="panel-title">📑 Audit Pack Export</div></div>
+    ${lockedPanel(
+      `<div style="height:120px;background:var(--navy-raised);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Export preview</div>`,
+      'institutional',
+      'Board-ready compliance report, constitutionally governed, exportable. Institutional tier.'
+    )}
+  </div>`;
+
+  html += '</div>';
+
+  html += `<div class="upsell-bar upsell-bar-inst">
+    <div class="upsell-bar-text">The <strong>Intelligence Lab</strong> gives your compliance director a professional analytical environment — trend engine, anomaly detection, peer benchmarking across 78,699 employer profiles. Institutional tier.</div>
+    <a href="/#pricing" class="upsell-bar-cta">Enquire — Institutional</a>
+  </div>`;
+
+  return html;
+}
+
+// ─── INSTITUTIONAL VIEW ───────────────────────────────────────────────────────
+function renderInstitutionalView(di, wdrs, cci, wcc, pillars, cciComponents) {
+  let html = renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents);
+
+  // Replace locked panels with Intelligence Lab content
+  html += `<div class="tier-section-title" style="color:var(--gold)">Intelligence Lab — Institutional</div>`;
+  html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
+
+  // Trend Engine skeleton
+  html += `<div class="panel" style="border-color:rgba(245,158,11,0.2)">
+    <div class="panel-header" style="border-color:rgba(245,158,11,0.15)">
+      <div class="panel-title">🔬 Trend Engine</div>
+      <span class="panel-badge badge-inst">FM Sector · 24 months</span>
+    </div>
+    <div class="panel-body">
+      <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+        ${['Working Time','Health & Safety','TUPE','All Categories'].map((cat,i) => `
+          <button style="padding:5px 12px;border-radius:5px;border:1px solid ${i===0?'rgba(245,158,11,0.4)':'var(--border)'};background:${i===0?'var(--gold-muted)':'var(--navy-raised)'};color:${i===0?'var(--gold)':'var(--text-muted)'};font-family:Syne,sans-serif;font-size:11px;cursor:pointer">${cat}</button>
+        `).join('')}
+      </div>
+      <div style="height:160px;background:var(--navy-raised);border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">
+        <svg width="100%" height="100%" viewBox="0 0 400 160" style="position:absolute;inset:0">
+          <polyline points="0,140 40,120 80,100 120,110 160,90 200,80 240,70 280,85 320,65 360,55 400,45" fill="none" stroke="rgba(245,158,11,0.5)" stroke-width="2"/>
+          <polyline points="0,155 40,148 80,140 120,145 160,132 200,128 240,118 280,125 320,110 360,105 400,95" fill="none" stroke="rgba(14,143,143,0.4)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        </svg>
+        <span style="font-size:11px;color:var(--text-faint);position:relative;z-index:1">FM Sector · WTR claim volume trend 2024–2026</span>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--text-faint)">🔶 Northerly Hill sector · – – Sector median · 1.5σ deviation flag active</div>
+    </div>
+  </div>`;
+
+  // Comparison Engine
+  html += `<div class="panel" style="border-color:rgba(245,158,11,0.2)">
+    <div class="panel-header" style="border-color:rgba(245,158,11,0.15)">
+      <div class="panel-title">🔗 Comparison Engine</div>
+      <span class="panel-badge badge-inst">Sector + Regional Cohorts</span>
+    </div>
+    <div class="panel-body">
+      <div style="margin-bottom:14px;font-size:11px;color:var(--text-muted)">Northerly Hill FM vs FM sector median (n=48 employers)</div>
+      ${[
+        { label: 'ACEI Domain Index', nh: di, sector: 58, better: false },
+        { label: 'RRI WDRS', nh: wdrs, sector: 61, better: false },
+        { label: 'CCI', nh: cci, sector: 67, better: false },
+      ].map(c => `
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px">
+            <span style="color:var(--text)">${c.label}</span>
+            <span style="color:var(--text-muted)">NH: <strong style="color:${c.better?'var(--green)':'var(--red)'}">${c.nh}</strong> · Sector median: ${c.sector}</span>
+          </div>
+          <div style="height:6px;background:var(--navy-raised);border-radius:3px;position:relative;overflow:hidden">
+            <div style="height:100%;width:${Math.min(c.nh,100)}%;background:${c.better?'var(--green)':'var(--amber)'};border-radius:3px;opacity:0.8"></div>
+            <div style="position:absolute;top:0;bottom:0;left:${Math.min(c.sector,100)}%;width:2px;background:var(--text-faint)"></div>
+          </div>
+        </div>
+      `).join('')}
+      <div style="font-size:10px;color:var(--text-faint);margin-top:4px">Privacy floor: 15 employers minimum per cohort. Separation doctrine maintained — comparisons on index outputs only.</div>
+    </div>
+  </div>`;
+
+  html += '</div>';
+
+  html += `<div class="upsell-bar upsell-bar-inst">
+    <div class="upsell-bar-text">You're seeing the full Institutional tier. <strong>Your ACEI: 66</strong> vs FM sector median of 58 — your exposure is above average. The Compliance Checker remediation roadmap is the fastest path to score improvement.</div>
+    <a href="/#contact" class="upsell-bar-cta">Speak to the team</a>
+  </div>`;
+
+  return html;
+}
+
+// ─── REL FORM ─────────────────────────────────────────────────────────────────
+function renderRELForm(tier) {
+  if (relSubmitted) {
+    return `<div class="panel">
+      <div class="panel-header"><div class="panel-title">📋 Regulatory Event Log</div><span class="panel-badge badge-all">All Tiers</span></div>
+      <div class="panel-body">
+        <div class="rel-submitted">✓ Occurrence logged. Your record has been anonymised and added to the network intelligence layer.</div>
+      </div>
+    </div>`;
+  }
+
+  const hasSubRegional = tier === 'governance' || tier === 'institutional';
+
+  return `<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📋 Regulatory Event Log</div>
+      <span class="panel-badge badge-all">All Tiers · Log Occurrence</span>
+    </div>
+    <div class="panel-body">
+      ${hasSubRegional ? `<div style="margin-bottom:12px;padding:8px 12px;background:var(--teal-glow);border:1px solid rgba(14,143,143,0.25);border-radius:6px;font-size:11px;color:var(--teal-bright)">
+        ⚡ Sub-regional alerts active — you'll receive intelligence on enforcement activity in your area
+      </div>` : ''}
+      <form class="rel-form" onsubmit="submitREL(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Regulatory Body</label>
+            <select class="form-select">
+              <option>HSE</option><option>EHO (Local Authority)</option>
+              <option>ICO</option><option>EHRC</option>
+              <option>HMRC</option><option>Home Office</option>
+              <option>Environment Agency</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Visit / Contact Type</label>
+            <select class="form-select">
+              <option>Routine inspection</option>
+              <option>Complaint-triggered</option>
+              <option>Investigation</option>
+              <option>Enforcement notice issued</option>
+              <option>Prohibition notice issued</option>
+              <option>Advisory visit</option>
+              <option>Correspondence only</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date of Event</label>
+            <input type="month" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Outcome</label>
+            <select class="form-select">
+              <option>No further action</option>
+              <option>Advisory letter issued</option>
+              <option>Improvement notice</option>
+              <option>Prohibition notice</option>
+              <option>Prosecution referral</option>
+              <option>Under investigation</option>
+              <option>Outcome pending</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Narrative (optional · 500 chars max · not shared with network)</label>
+          <textarea class="form-textarea" maxlength="500" placeholder="Internal notes only. Not entered into network layer."></textarea>
+        </div>
+        <div style="font-size:10px;color:var(--text-faint);line-height:1.5">
+          Your occurrence is anonymised (sector, sub-region, month/year, body, outcome only) before entering the network layer. Day, company identity, and any narrative never leave your account. Constitutional requirement under ACEI-AM-2026-003.
+        </div>
+        <button type="submit" class="form-submit">Log Occurrence</button>
+      </form>
+    </div>
+  </div>`;
+}
+
+function submitREL(e) {
+  e.preventDefault();
+  relSubmitted = true;
+  renderDashboard();
+}
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>

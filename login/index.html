@@ -328,7 +328,46 @@
     btn.innerHTML = loading ? '<span class="spinner"></span>' : defaultText;
   }
 
-  // ── LOGIN ─────────────────────────────────────────────────────────────────
+  // ── ROUTING MATRIX (AUTH-002 §3) ─────────────────────────────────────────
+  function routeByTier(tier) {
+    if (tier === 'operational' || tier === 'operational_readiness') return '/operational/';
+    if (tier === 'governance') return '/governance/';
+    if (tier === 'institutional') return '/institutional/';
+    if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free' || tier === 'guest') return '/knowledge-library/';
+    return '/login/';
+  }
+
+  async function queryTierAndRoute(session) {
+    var payload = JSON.parse(atob(session.access_token.split('.')[1]));
+    var userId = payload.sub;
+    var tier = null;
+    try {
+      var resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+        {
+          headers: {
+            'apikey':        SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + session.access_token,
+            'Accept':        'application/json'
+          }
+        }
+      );
+      if (resp.ok) {
+        var rows = await resp.json();
+        if (rows && rows.length > 0) tier = rows[0].subscription_tier;
+      }
+    } catch(e) {}
+
+    try {
+      if (window.gtag) {
+        gtag('event', 'login', { method: 'email', subscription_tier: tier || 'none' });
+      }
+    } catch(e) {}
+
+    window.location.replace(routeByTier(tier));
+  }
+
+  // ── LOGIN — direct routing (no callback redirect) ──────────────────────
   async function handleLogin() {
     clearStatus();
     var email = document.getElementById('login-email').value.trim();
@@ -338,8 +377,14 @@
     try {
       var result = await sb.auth.signInWithPassword({ email: email, password: password });
       if (result.error) throw result.error;
-      // Redirect to the central auth router — NEVER directly to a product page
-      window.location.replace('/auth/callback/');
+
+      var session = result.data.session;
+      if (!session) {
+        showStatus('Sign-in succeeded but no session returned. Please try again.', 'error');
+        return;
+      }
+
+      await queryTierAndRoute(session);
     } catch (err) {
       showStatus(err.message || 'Sign-in failed. Please check your credentials.', 'error');
     } finally {
@@ -366,19 +411,16 @@
     }
   }
 
-  // ── ONAUTH LISTENER — redirect to router on any auth event ───────────────
-  sb.auth.onAuthStateChange(async function(event, session) {
-    if (event === 'SIGNED_IN') {
-      window.location.replace('/auth/callback/');
-    }
-  });
+  // onAuthStateChange removed — password sign-in routes directly from handleLogin()
 
   // ── BOOT: redirect if already authenticated ──────────────────────────────
   (async function() {
-    var result = await sb.auth.getSession();
-    if (result.data && result.data.session) {
-      window.location.replace('/auth/callback/');
-    }
+    try {
+      var result = await sb.auth.getSession();
+      if (result.data && result.data.session) {
+        await queryTierAndRoute(result.data.session);
+      }
+    } catch(e) {}
   })();
 </script>
 

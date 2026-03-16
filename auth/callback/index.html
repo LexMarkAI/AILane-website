@@ -93,7 +93,7 @@
 
       // ── Scenario 3: No session found — redirect cleanly ────────────────
       if (!session) {
-        window.location.replace('/account/?error=no_session');
+        window.location.replace('/login/?error=no_session');
         return;
       }
 
@@ -105,7 +105,7 @@
         var created = session.user ? new Date(session.user.created_at) : null;
         isNewUser = created ? (new Date() - created < 15000) : false;
       } catch(e) {
-        window.location.replace('/account/?error=jwt_decode_failed');
+        window.location.replace('/login/?error=jwt_decode_failed');
         return;
       }
 
@@ -128,14 +128,16 @@
         }
       } catch(e) {}
 
-      // ── Routing matrix ─────────────────────────────────────────────────
-      var destination = '/account/';
+      // ── Routing matrix (AUTH-002 §3) ──────────────────────────────────
+      var destination = '/login/';
       if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free' || tier === 'guest') {
-        destination = '/account/dashboard/';
+        destination = '/knowledge-library/';
       } else if (tier === 'operational' || tier === 'operational_readiness') {
-        destination = '/intelligence/';
-      } else if (tier === 'governance' || tier === 'institutional') {
-        destination = '/governance-dashboard/';
+        destination = '/operational/';
+      } else if (tier === 'governance') {
+        destination = '/governance/';
+      } else if (tier === 'institutional') {
+        destination = '/institutional/';
       }
 
       // ── GA4 conversion event ───────────────────────────────────────────
@@ -162,7 +164,7 @@
       }
 
     } catch(err) {
-      window.location.replace('/account/?error=router_error');
+      window.location.replace('/login/?error=router_error');
     }
   })();
   </script>
