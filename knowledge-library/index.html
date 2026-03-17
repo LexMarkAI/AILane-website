@@ -417,8 +417,21 @@ body {
 }
 .leg-card { animation: fadeUp 0.4s ease both; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
-<body>
+<body style="visibility:hidden">
+<script>
+(async function() {
+  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  try {
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    var gs = await sb.auth.getSession();
+    if (!gs.data || !gs.data.session) { window.location.replace('/login/'); return; }
+    document.body.style.visibility = 'visible';
+  } catch(e) { window.location.replace('/login/'); }
+})();
+</script>
 <div class="ambient-bg"></div>
 
 <!-- ===== TOP NAVIGATION ===== -->

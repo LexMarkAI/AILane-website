@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ailane Governance — Northerly Hill FM</title>
+<title>Ailane Governance — Your Organisation</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -426,8 +426,42 @@ textarea.form-input{resize:vertical;min-height:60px;}
 .flex-sb{display:flex;align-items:center;justify-content:space-between;}
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
-<body>
+<body style="visibility:hidden">
+<script>
+(async function() {
+  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  try {
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    var gs = await sb.auth.getSession();
+    if (!gs.data || !gs.data.session) { window.location.replace('/login/'); return; }
+    var session = gs.data.session;
+    var token = session.access_token;
+    var payload = JSON.parse(atob(token.split('.')[1]));
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + payload.sub + '&select=subscription_tier',
+      { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' } }
+    );
+    var profileData = await resp.json();
+    var tier = profileData && profileData[0] ? profileData[0].subscription_tier : null;
+    if (tier !== 'governance' && tier !== 'institutional') {
+      window.location.replace('/login/');
+      return;
+    }
+    document.body.style.visibility = 'visible';
+  } catch(e) { window.location.replace('/login/'); }
+})();
+async function handleLogout() {
+  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  await sb.auth.signOut();
+  localStorage.clear();
+  window.location.href = '/login/';
+}
+</script>
 <div class="shell">
 
 <!-- ═══ HEADER ═══ -->
@@ -437,7 +471,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
   <div class="tier-badge">Governance</div>
   <div class="hdr-sep"></div>
   <div class="hdr-entity">
-    <div class="hdr-entity-name">Northerly Hill Facilities Management Ltd</div>
+    <div class="hdr-entity-name">Your Organisation</div>
     <div class="hdr-entity-sub">NH-2014-0347 · Cardiff & 3 Depots · 238 employees</div>
   </div>
   <div class="hdr-spacer"></div>
@@ -504,6 +538,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/><line x1="8" y1="1" x2="8" y2="4" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="12" x2="8" y2="15" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="8" x2="4" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>
       AI Assistant
     </button>
+    <button class="hbtn" onclick="handleLogout()" style="color:var(--red);">Logout</button>
   </div>
 </div>
 
@@ -627,7 +662,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
   <div class="pg-hdr">
     <div>
       <div class="pg-title">Intelligence Overview</div>
-      <div class="pg-sub">Northerly Hill FM · Week ending 11 March 2026 · All three indices computed</div>
+      <div class="pg-sub">Your Organisation · Week ending 11 March 2026 · All three indices computed</div>
     </div>
     <div class="flex-c">
       <span class="ai-updated">AI · UPDATED 06:00</span>
@@ -760,7 +795,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
   <div class="lab-preview mt16">
     <div class="lab-content">
       <div style="font-family:'Space Mono',monospace;font-size:9px;font-weight:700;color:var(--violet-lit);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px;">Intelligence Lab Preview · Sector Benchmarking</div>
-      <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--text-mute);margin-bottom:4px;">Northerly Hill FM · ACEI vs FM Sector Peers</div></div>
+      <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--text-mute);margin-bottom:4px;">Your Organisation · ACEI vs FM Sector Peers</div></div>
       <div style="display:flex;flex-direction:column;gap:5px;">
         <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:10px;color:var(--violet-lit);width:80px;">Your Position</div><div class="lab-chart-bar" style="width:64%;"></div><span class="mono" style="font-size:10px;color:var(--violet-lit);">64</span></div>
         <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:10px;color:var(--text-mute);width:80px;">Employer A</div><div class="lab-chart-bar" style="width:52%;opacity:.4;"></div><span class="mono" style="font-size:10px;color:var(--text-mute);">52</span></div>
