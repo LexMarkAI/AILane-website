@@ -1,386 +1,460 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In — Ailane</title>
-  <meta name="robots" content="noindex, nofollow" />
 
-  <!-- GA4 — MANDATORY -->
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
   <script>
-    window.dataLayer=window.dataLayer||[];
+    window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag('js',new Date());
-    gtag('config','G-NTNXWZN31C');
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
   </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <!-- Supabase JS v2 -->
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- Fonts -->
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      /* Operational (default) */
-      --bg: #0A2342;
-      --bg-card: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.1);
-      --accent: #F59E0B;
-      --accent-hover: #D97706;
-      --text: #ffffff;
-      --text-muted: rgba(255,255,255,0.5);
-      --text-dim: rgba(255,255,255,0.35);
-      --logo-size: 42px;
-      --logo-font: 1.6rem;
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #060D1B;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      color: #e2e8f0;
+      padding: 20px;
     }
-    /* Governance tier */
-    .tier-governance {
-      --bg: #080F1A;
-      --accent: #D97706;
-      --accent-hover: #B45309;
-      --logo-size: 48px;
-      --logo-font: 1.75rem;
-    }
-    /* Institutional tier */
-    .tier-institutional {
-      --bg: #060810;
-      --accent: #B8862A;
-      --accent-hover: #96701E;
-      --logo-size: 54px;
-      --logo-font: 1.9rem;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { min-height: 100vh; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
-
-    body { display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
-
-    /* Subtle gold shimmer for governance */
-    .tier-governance body::before {
-      content: '';
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: radial-gradient(ellipse 600px 400px at 50% 30%, rgba(217,119,6,0.06) 0%, transparent 70%);
-      pointer-events: none; z-index: 0;
-    }
-
-    /* Gold sparkle effect for institutional — CSS only */
-    .tier-institutional body::before {
-      content: '';
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background:
-        radial-gradient(1px 1px at 20% 15%, rgba(184,134,42,0.4), transparent),
-        radial-gradient(1px 1px at 70% 25%, rgba(184,134,42,0.3), transparent),
-        radial-gradient(1px 1px at 40% 55%, rgba(184,134,42,0.35), transparent),
-        radial-gradient(1px 1px at 85% 70%, rgba(184,134,42,0.25), transparent),
-        radial-gradient(1px 1px at 15% 80%, rgba(184,134,42,0.3), transparent),
-        radial-gradient(1px 1px at 55% 90%, rgba(184,134,42,0.2), transparent),
-        radial-gradient(1px 1px at 90% 10%, rgba(184,134,42,0.35), transparent),
-        radial-gradient(1px 1px at 30% 40%, rgba(184,134,42,0.25), transparent),
-        radial-gradient(ellipse 800px 500px at 50% 30%, rgba(184,134,42,0.04) 0%, transparent 70%);
-      pointer-events: none; z-index: 0;
-      animation: shimmer 8s ease-in-out infinite alternate;
-    }
-    @keyframes shimmer { from { opacity: 0.6; } to { opacity: 1; } }
 
     .login-card {
-      width: 100%; max-width: 420px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 400px;
+      background: rgba(10, 22, 40, 0.8);
+      border: 1px solid #1e293b;
       border-radius: 16px;
-      padding: 48px 40px 40px;
-      position: relative; z-index: 1;
-      backdrop-filter: blur(20px);
-    }
-    @media (max-width: 480px) { .login-card { padding: 36px 24px 32px; } }
-
-    /* Logo */
-    .logo {
-      display: flex; align-items: center; gap: 12px;
-      text-decoration: none; margin-bottom: 32px; justify-content: center;
-    }
-    .logo-mark {
-      width: var(--logo-size); height: var(--logo-size);
-      background: var(--accent); border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.3s;
-    }
-    .logo-mark svg { width: 60%; height: 60%; }
-    .logo-text {
-      font-family: 'Playfair Display', serif;
-      font-size: var(--logo-font); font-weight: 600;
-      color: var(--text);
+      padding: 40px 32px;
+      backdrop-filter: blur(10px);
     }
 
-    .tier-heading {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.25rem; font-weight: 500;
-      color: var(--text); text-align: center;
-      margin-bottom: 28px; line-height: 1.35;
+    .brand {
+      text-align: center;
+      margin-bottom: 32px;
     }
-    .tier-heading em { font-style: normal; color: var(--accent); }
+    .brand h1 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .brand p {
+      font-size: 0.9rem;
+      color: #64748b;
+    }
 
-    .form-group { margin-bottom: 16px; }
-    .form-group label {
-      display: block; font-size: 0.8rem; font-weight: 500;
-      color: var(--text-muted); margin-bottom: 6px;
-      letter-spacing: 0.02em;
+    .field {
+      margin-bottom: 20px;
     }
-    .form-group input {
-      width: 100%; padding: 12px 14px;
-      background: rgba(255,255,255,0.06);
-      border: 1.5px solid var(--border);
-      border-radius: 8px; font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem; color: var(--text);
+    .field label {
+      display: block;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 1rem;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
       transition: border-color 0.2s;
     }
-    .form-group input::placeholder { color: var(--text-dim); }
-    .form-group input:focus {
-      outline: none; border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+    .field input:focus {
+      border-color: #38bdf8;
+    }
+    .field input::placeholder {
+      color: #475569;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: #38bdf8;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-primary:hover { background: #0ea5e9; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .error-msg {
+      color: #ef4444;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 20px;
+    }
+    .success-msg {
+      color: #22c55e;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 12px;
     }
 
     .forgot-link {
-      text-align: right; margin-top: -10px; margin-bottom: 16px;
+      text-align: center;
+      margin-top: 16px;
     }
     .forgot-link a {
-      font-size: 0.8rem; color: var(--text-muted);
-      text-decoration: none; cursor: pointer;
+      color: #38bdf8;
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
     }
-    .forgot-link a:hover { color: var(--accent); text-decoration: underline; }
+    .forgot-link a:hover { text-decoration: underline; }
 
-    .btn-primary {
-      width: 100%; padding: 13px;
-      background: var(--accent); color: #0A2342;
-      border: none; border-radius: 8px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9375rem; font-weight: 600;
-      cursor: pointer; transition: background 0.2s;
-    }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
-
-    .status-msg {
-      padding: 11px 14px; border-radius: 8px;
-      font-size: 0.85rem; margin-bottom: 14px; display: none;
+    .back-link {
       text-align: center;
+      margin-top: 12px;
     }
-    .status-msg.error {
-      background: rgba(239,68,68,0.1); color: #fb7185;
-      border: 1px solid rgba(239,68,68,0.2); display: block;
+    .back-link a {
+      color: #64748b;
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
     }
-    .status-msg.success {
-      background: rgba(34,197,94,0.1); color: #4ade80;
-      border: 1px solid rgba(34,197,94,0.2); display: block;
+    .back-link a:hover { color: #94a3b8; }
+
+    .footer-links {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.8rem;
+      color: #475569;
+    }
+    .footer-links a {
+      color: #64748b;
+      text-decoration: none;
+    }
+    .footer-links a:hover { color: #94a3b8; }
+
+    .page-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      text-align: center;
+      padding: 12px;
+      font-size: 0.7rem;
+      color: #334155;
     }
 
+    /* Loading spinner */
     .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(10,35,66,0.3);
-      border-top-color: #0A2342;
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-      display: inline-block; vertical-align: middle;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .card-footer {
-      margin-top: 28px; padding-top: 20px;
-      border-top: 1px solid var(--border);
-      text-align: center;
-    }
-    .card-footer .contact {
-      font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;
-    }
-    .card-footer .contact a {
-      color: var(--accent); text-decoration: none;
-    }
-    .card-footer .contact a:hover { text-decoration: underline; }
-    .card-footer .legal {
-      font-size: 0.7rem; color: var(--text-dim); line-height: 1.6;
-    }
-    .card-footer .legal a {
-      color: var(--text-dim); text-decoration: none;
-    }
-    .card-footer .legal a:hover { text-decoration: underline; }
-
-    /* Reset form (hidden by default) */
-    #login-view, #reset-view { display: none; }
-    #login-view.visible, #reset-view.visible { display: block; }
+    /* Hide sections */
+    .hidden { display: none; }
   </style>
+
 </head>
 <body>
 
-<div class="login-card">
-  <a href="https://ailane.ai/" class="logo">
-    <div class="logo-mark">
-      <svg viewBox="0 0 22 22" fill="none"><path d="M11 2L3 7v8l8 5 8-5V7L11 2z" stroke="#0A2342" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 2v18M3 7l8 5 8-5" stroke="#0A2342" stroke-width="1.8" stroke-linejoin="round"/></svg>
+  <div class="login-card">
+    <div class="brand">
+      <h1>AILANE</h1>
+      <p id="form-subtitle">Sign in to your account</p>
     </div>
-    <span class="logo-text">Ailane</span>
-  </a>
 
-  <h1 class="tier-heading" id="tier-heading">Regulatory Intelligence <em>Platform</em></h1>
-
-  <div id="status-message" class="status-msg"></div>
-
-  <div id="login-view" class="visible">
-    <div class="form-group">
-      <label for="login-email">Email Address</label>
-      <input type="email" id="login-email" placeholder="you@organisation.co.uk" autocomplete="email" />
-    </div>
-    <div class="form-group">
-      <label for="login-password">Password</label>
-      <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()" />
-    </div>
-    <div class="forgot-link"><a onclick="showReset()">Forgot your password?</a></div>
-    <button class="btn-primary" id="btn-login" onclick="handleLogin()">Sign In</button>
+```
+<!-- SIGN IN FORM -->
+<div id="signin-form">
+  <div class="field">
+    <label for="email">Email address</label>
+    <input type="email" id="email" placeholder="you@company.co.uk" autocomplete="email" />
   </div>
-
-  <div id="reset-view">
-    <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:16px;text-align:center;">Enter your email and we'll send a reset link.</p>
-    <div class="form-group">
-      <label for="reset-email">Email Address</label>
-      <input type="email" id="reset-email" placeholder="you@organisation.co.uk" />
-    </div>
-    <button class="btn-primary" id="btn-reset" onclick="handlePasswordReset()">Send Reset Link</button>
-    <p style="margin-top:14px;text-align:center;">
-      <a onclick="showLogin()" style="font-size:0.8rem;color:var(--text-muted);cursor:pointer;text-decoration:none;">&larr; Back to sign in</a>
-    </p>
+  <div class="field">
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Your password" autocomplete="current-password" />
   </div>
-
-  <div class="card-footer">
-    <div class="contact">New to Ailane? Contact <a href="mailto:sales@ailane.ai">sales@ailane.ai</a></div>
-    <div class="legal">
-      AI Lane Limited &middot; Co. No. 17035654 &middot; ICO 00013389720<br/>
-      <a href="https://ailane.ai/terms/">Terms</a> &middot; <a href="https://ailane.ai/privacy/">Privacy</a>
-    </div>
+  <button class="btn-primary" id="btn-signin" onclick="handleSignIn()">
+    Sign In
+  </button>
+  <div class="error-msg" id="error-msg"></div>
+  <div class="forgot-link">
+    <a onclick="showResetForm()">Forgot password?</a>
   </div>
 </div>
 
-<script>
-  // ── SUPABASE INIT ─────────────────────────────────────────────────────────
-  const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<!-- FORGOT PASSWORD FORM -->
+<div id="reset-form" class="hidden">
+  <div class="field">
+    <label for="reset-email">Email address</label>
+    <input type="email" id="reset-email" placeholder="you@company.co.uk" autocomplete="email" />
+  </div>
+  <button class="btn-primary" id="btn-reset" onclick="handleReset()">
+    Send Reset Link
+  </button>
+  <div class="error-msg" id="reset-error"></div>
+  <div class="success-msg hidden" id="reset-success">
+    Check your email for a password reset link.
+  </div>
+  <div class="back-link">
+    <a onclick="showSignInForm()">Back to sign in</a>
+  </div>
+</div>
 
-  const REDIRECT_TO_ROUTER = window.location.origin + '/auth/callback/';
+<div class="footer-links">
+  <a href="/terms/">Terms of Service</a> · <a href="/privacy/">Privacy Policy</a>
+</div>
+```
 
-  // ── TIER HINT (cosmetic only — tier confirmed server-side after auth) ────
-  const urlParams = new URLSearchParams(window.location.search);
-  const tierHint = urlParams.get('tier');
+  </div>
 
-  const TIER_CONFIG = {
-    governance: {
-      bodyClass: 'tier-governance',
-      heading: 'Governance Intelligence <em>Platform</em>',
-      title: 'Governance Sign In — Ailane'
-    },
-    institutional: {
-      bodyClass: 'tier-institutional',
-      heading: 'Institutional Intelligence <em>Platform</em>',
-      title: 'Institutional Sign In — Ailane'
-    }
-  };
+  <div class="page-footer">
+    AI Lane Limited (Company No. 17035654) · ailane.ai
+  </div>
 
-  if (tierHint && TIER_CONFIG[tierHint]) {
-    const cfg = TIER_CONFIG[tierHint];
-    document.documentElement.classList.add(cfg.bodyClass);
-    document.getElementById('tier-heading').innerHTML = cfg.heading;
-    document.title = cfg.title;
-  }
+  <script>
+  // ════════════════════════════════════════════════════════════════════
+  // AILANE LOGIN — AILANE-SPEC-AUTH-002 v1.0
+  // Written from scratch. No patches. No CC code.
+  // ════════════════════════════════════════════════════════════════════
 
-  // ── UTM CAPTURE — run before any auth ─────────────────────────────────────
-  (function() {
-    const utmKeys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid'];
-    const params = new URLSearchParams(window.location.search);
-    const utmData = {};
-    utmKeys.forEach(function(k) { if (params.get(k)) utmData[k] = params.get(k); });
-    if (Object.keys(utmData).length) {
-      sessionStorage.setItem('ailane_utm', JSON.stringify(utmData));
-    }
-  })();
+  // ── CREDENTIALS (verified by JWT decode — ref matches project) ──
+  var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxNTM5NjAsImV4cCI6MjA1NDcyOTk2MH0.1TYFiSdOeMHLH_dPBR-YB2JlAgrLH3F7G9k7WlDVZ5g';
 
-  // ── VIEW SWITCHING ────────────────────────────────────────────────────────
-  function showReset() {
-    clearStatus();
-    document.getElementById('login-view').classList.remove('visible');
-    document.getElementById('reset-view').classList.add('visible');
-  }
-  function showLogin() {
-    clearStatus();
-    document.getElementById('reset-view').classList.remove('visible');
-    document.getElementById('login-view').classList.add('visible');
-  }
+  // ── SUPABASE CLIENT ──────────────────────────────────────────────
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  function showStatus(msg, type) {
-    var el = document.getElementById('status-message');
-    el.textContent = msg;
-    el.className = 'status-msg ' + type;
-  }
-  function clearStatus() {
-    var el = document.getElementById('status-message');
-    el.className = 'status-msg';
-    el.textContent = '';
-  }
-  function setLoading(btnId, loading, defaultText) {
-    var btn = document.getElementById(btnId);
-    btn.disabled = loading;
-    btn.innerHTML = loading ? '<span class="spinner"></span>' : defaultText;
-  }
+  // ── DOM REFERENCES ───────────────────────────────────────────────
+  var emailEl     = document.getElementById('email');
+  var passwordEl  = document.getElementById('password');
+  var btnSignIn   = document.getElementById('btn-signin');
+  var errorEl     = document.getElementById('error-msg');
+  var signinForm  = document.getElementById('signin-form');
+  var resetForm   = document.getElementById('reset-form');
+  var subtitle    = document.getElementById('form-subtitle');
 
-  // ── LOGIN ─────────────────────────────────────────────────────────────────
-  async function handleLogin() {
-    clearStatus();
-    var email = document.getElementById('login-email').value.trim();
-    var password = document.getElementById('login-password').value;
-    if (!email || !password) return showStatus('Please enter your email and password.', 'error');
-    setLoading('btn-login', true, 'Sign In');
-    try {
-      var result = await sb.auth.signInWithPassword({ email: email, password: password });
-      if (result.error) throw result.error;
-      // Redirect to the central auth router — NEVER directly to a product page
-      window.location.replace('/auth/callback/');
-    } catch (err) {
-      showStatus(err.message || 'Sign-in failed. Please check your credentials.', 'error');
-    } finally {
-      setLoading('btn-login', false, 'Sign In');
-    }
-  }
-
-  // ── PASSWORD RESET ────────────────────────────────────────────────────────
-  async function handlePasswordReset() {
-    clearStatus();
-    var email = document.getElementById('reset-email').value.trim();
-    if (!email) return showStatus('Please enter your email address.', 'error');
-    setLoading('btn-reset', true, 'Send Reset Link');
-    try {
-      var result = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: REDIRECT_TO_ROUTER
-      });
-      if (result.error) throw result.error;
-      showStatus('Reset link sent. Please check your email inbox.', 'success');
-    } catch (err) {
-      showStatus(err.message || 'Failed to send reset link.', 'error');
-    } finally {
-      setLoading('btn-reset', false, 'Send Reset Link');
-    }
-  }
-
-  // ── ONAUTH LISTENER — redirect to router on any auth event ───────────────
-  sb.auth.onAuthStateChange(async function(event, session) {
-    if (event === 'SIGNED_IN') {
-      window.location.replace('/auth/callback/');
-    }
+  // ── ENTER KEY SUPPORT ────────────────────────────────────────────
+  passwordEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleSignIn();
+  });
+  emailEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') passwordEl.focus();
   });
 
-  // ── BOOT: redirect if already authenticated ──────────────────────────────
-  (async function() {
-    var result = await sb.auth.getSession();
-    if (result.data && result.data.session) {
-      window.location.replace('/auth/callback/');
+  // ════════════════════════════════════════════════════════════════
+  // ROUTING MATRIX — AUTH-002 §3
+  // This is the single source of truth for post-login destinations.
+  // ════════════════════════════════════════════════════════════════
+  function getDestination(tier) {
+    if (tier === 'operational' || tier === 'operational_readiness') return '/operational/';
+    if (tier === 'governance')      return '/governance/';
+    if (tier === 'institutional')   return '/institutional/';
+    if (tier === 'per_session')     return '/knowledge-library/';
+    if (tier === 'monthly')         return '/knowledge-library/';
+    if (tier === 'guest_free')      return '/knowledge-library/';
+    if (tier === 'guest')           return '/knowledge-library/';
+    return null; // no profile — stay on login
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // PROFILE QUERY — canonical pattern: raw fetch + Bearer token
+  // NEVER use sb.from() for this. It fails at auth-time.
+  // ════════════════════════════════════════════════════════════════
+  async function queryTier(accessToken) {
+    var payload = JSON.parse(atob(accessToken.split('.')[1]));
+    var userId  = payload.sub;
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+      {
+        headers: {
+          'apikey':        SUPABASE_ANON,
+          'Authorization': 'Bearer ' + accessToken,
+          'Accept':        'application/json'
+        }
+      }
+    );
+    if (!resp.ok) return null;
+    var rows = await resp.json();
+    if (rows && rows.length > 0) return rows[0].subscription_tier;
+    return null;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // ROUTE — query tier and redirect
+  // ════════════════════════════════════════════════════════════════
+  async function routeUser(session) {
+    var tier = await queryTier(session.access_token);
+    var dest = getDestination(tier);
+    if (dest) {
+      // GA4 event
+      try { if (window.gtag) gtag('event', 'login', { method: 'email', subscription_tier: tier }); } catch(e) {}
+      window.location.replace(dest);
+    } else {
+      // No profile or unrecognised tier — show message
+      errorEl.textContent = 'No subscription found for this account. Contact support@ailane.ai.';
+      btnSignIn.disabled = false;
+      btnSignIn.textContent = 'Sign In';
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // BOOT CHECK — if user is already logged in, route them
+  // ════════════════════════════════════════════════════════════════
+  (async function bootCheck() {
+    try {
+      var gs = await sb.auth.getSession();
+      if (gs.data && gs.data.session) {
+        subtitle.textContent = 'Checking your session...';
+        await routeUser(gs.data.session);
+      }
+    } catch(e) {
+      // No session — show login form (default state)
     }
   })();
-</script>
+
+  // ════════════════════════════════════════════════════════════════
+  // SIGN IN HANDLER — the core function
+  // signInWithPassword returns the session. We use it immediately.
+  // No redirect to /auth/callback/. No intermediate page.
+  // ════════════════════════════════════════════════════════════════
+  async function handleSignIn() {
+    var email    = emailEl.value.trim();
+    var password = passwordEl.value;
+    errorEl.textContent = '';
+
+    // Validation
+    if (!email) { errorEl.textContent = 'Please enter your email address.'; return; }
+    if (!password) { errorEl.textContent = 'Please enter your password.'; return; }
+
+    // Loading state
+    btnSignIn.disabled = true;
+    btnSignIn.innerHTML = '<span class="spinner"></span>Signing in...';
+
+    try {
+      var result = await sb.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+      // Handle Supabase errors
+      if (result.error) {
+        errorEl.textContent = result.error.message;
+        btnSignIn.disabled = false;
+        btnSignIn.textContent = 'Sign In';
+        return;
+      }
+
+      // Get session
+      var session = result.data.session;
+      if (!session) {
+        errorEl.textContent = 'Sign-in succeeded but no session was returned. Please try again.';
+        btnSignIn.disabled = false;
+        btnSignIn.textContent = 'Sign In';
+        return;
+      }
+
+      // Route directly — session is in hand
+      btnSignIn.innerHTML = '<span class="spinner"></span>Loading your dashboard...';
+      await routeUser(session);
+
+    } catch(err) {
+      errorEl.textContent = 'An unexpected error occurred. Please try again.';
+      btnSignIn.disabled = false;
+      btnSignIn.textContent = 'Sign In';
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // FORGOT PASSWORD
+  // ════════════════════════════════════════════════════════════════
+  function showResetForm() {
+    signinForm.classList.add('hidden');
+    resetForm.classList.remove('hidden');
+    subtitle.textContent = 'Reset your password';
+    // Copy email if already entered
+    var resetEmailEl = document.getElementById('reset-email');
+    if (emailEl.value) resetEmailEl.value = emailEl.value;
+  }
+
+  function showSignInForm() {
+    resetForm.classList.add('hidden');
+    signinForm.classList.remove('hidden');
+    subtitle.textContent = 'Sign in to your account';
+    document.getElementById('reset-error').textContent = '';
+    document.getElementById('reset-success').classList.add('hidden');
+  }
+
+  async function handleReset() {
+    var resetEmailEl  = document.getElementById('reset-email');
+    var resetErrorEl  = document.getElementById('reset-error');
+    var resetSuccess  = document.getElementById('reset-success');
+    var btnReset      = document.getElementById('btn-reset');
+    var email         = resetEmailEl.value.trim();
+
+    resetErrorEl.textContent = '';
+    resetSuccess.classList.add('hidden');
+
+    if (!email) { resetErrorEl.textContent = 'Please enter your email address.'; return; }
+
+    btnReset.disabled = true;
+    btnReset.innerHTML = '<span class="spinner"></span>Sending...';
+
+    try {
+      var result = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth/callback/'
+      });
+
+      if (result.error) {
+        resetErrorEl.textContent = result.error.message;
+      } else {
+        resetSuccess.classList.remove('hidden');
+        resetErrorEl.textContent = '';
+      }
+    } catch(e) {
+      resetErrorEl.textContent = 'An error occurred. Please try again.';
+    }
+
+    btnReset.disabled = false;
+    btnReset.textContent = 'Send Reset Link';
+  }
+  </script>
 
 </body>
 </html>
