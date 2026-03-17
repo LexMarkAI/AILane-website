@@ -31,7 +31,7 @@
     .link{text-align:center;margin-top:16px}
     .link a{color:#38bdf8;font-size:0.85rem;text-decoration:none;cursor:pointer}
     .link a:hover{text-decoration:underline}
-    .back a{color:#64748b;font-size:0.85rem;text-decoration:none;cursor:pointer}
+    .back a{color:#64748b}
     .ft{text-align:center;margin-top:24px;font-size:0.8rem;color:#475569}
     .ft a{color:#64748b;text-decoration:none}
     .pf{position:fixed;bottom:0;left:0;right:0;text-align:center;padding:12px;font-size:0.7rem;color:#334155}
@@ -42,46 +42,30 @@
 </head>
 <body>
   <div class="card">
-    <div class="brand">
-      <h1>AILANE</h1>
-      <p id="sub">Sign in to your account</p>
-    </div>
+    <div class="brand"><h1>AILANE</h1><p id="sub">Sign in to your account</p></div>
     <div id="sf">
-      <div class="field">
-        <label for="em">Email address</label>
-        <input type="email" id="em" placeholder="you@company.co.uk" autocomplete="email">
-      </div>
-      <div class="field">
-        <label for="pw">Password</label>
-        <input type="password" id="pw" placeholder="Your password" autocomplete="current-password">
-      </div>
+      <div class="field"><label for="em">Email address</label><input type="email" id="em" placeholder="you@company.co.uk" autocomplete="email"></div>
+      <div class="field"><label for="pw">Password</label><input type="password" id="pw" placeholder="Your password" autocomplete="current-password"></div>
       <button class="btn" id="go" onclick="doLogin()">Sign In</button>
       <div class="err" id="err"></div>
       <div class="link"><a onclick="showReset()">Forgot password?</a></div>
     </div>
     <div id="rf" class="hide">
-      <div class="field">
-        <label for="re">Email address</label>
-        <input type="email" id="re" placeholder="you@company.co.uk" autocomplete="email">
-      </div>
+      <div class="field"><label for="re">Email address</label><input type="email" id="re" placeholder="you@company.co.uk" autocomplete="email"></div>
       <button class="btn" id="rb" onclick="doReset()">Send Reset Link</button>
       <div class="err" id="rerr"></div>
       <div class="ok hide" id="rok">Check your email for a password reset link.</div>
       <div class="link back"><a onclick="showLogin()">Back to sign in</a></div>
     </div>
-    <div class="ft">
-      <a href="/terms/">Terms of Service</a> · <a href="/privacy/">Privacy Policy</a>
-    </div>
+    <div class="ft"><a href="/terms/">Terms of Service</a> · <a href="/privacy/">Privacy Policy</a></div>
   </div>
   <div class="pf">AI Lane Limited (Company No. 17035654) · ailane.ai</div>
   <script>
   var SB_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxNTM5NjAsImV4cCI6MjA1NDcyOTk2MH0.1TYFiSdOeMHLH_dPBR-YB2JlAgrLH3F7G9k7WlDVZ5g';
+  var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   var sb=window.supabase.createClient(SB_URL,SB_KEY);
-
   document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
   document.getElementById('em').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('pw').focus()});
-
   function dest(t){
     if(t==='operational'||t==='operational_readiness')return'/operational/';
     if(t==='governance')return'/governance/';
@@ -89,7 +73,6 @@
     if(t==='per_session'||t==='monthly'||t==='guest_free'||t==='guest')return'/knowledge-library/';
     return null;
   }
-
   async function getTier(token){
     var p=JSON.parse(atob(token.split('.')[1]));
     var r=await fetch(SB_URL+'/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.'+p.sub+'&limit=1',{
@@ -99,32 +82,15 @@
     var rows=await r.json();
     return(rows&&rows.length>0)?rows[0].subscription_tier:null;
   }
-
   async function route(session){
     var tier=await getTier(session.access_token);
     var d=dest(tier);
-    if(d){
-      try{if(window.gtag)gtag('event','login',{method:'email',subscription_tier:tier})}catch(e){}
-      window.location.replace(d);
-    }else{
-      document.getElementById('err').textContent='No subscription found. Contact support@ailane.ai.';
-      document.getElementById('go').disabled=false;
-      document.getElementById('go').textContent='Sign In';
-    }
+    if(d){try{if(window.gtag)gtag('event','login',{method:'email',subscription_tier:tier})}catch(e){}window.location.replace(d)}
+    else{document.getElementById('err').textContent='No subscription found. Contact support@ailane.ai.';document.getElementById('go').disabled=false;document.getElementById('go').textContent='Sign In'}
   }
-
-  (async function(){
-    try{
-      var g=await sb.auth.getSession();
-      if(g.data&&g.data.session){document.getElementById('sub').textContent='Checking session...';await route(g.data.session)}
-    }catch(e){}
-  })();
-
+  (async function(){try{var g=await sb.auth.getSession();if(g.data&&g.data.session){document.getElementById('sub').textContent='Checking session...';await route(g.data.session)}}catch(e){}})();
   async function doLogin(){
-    var email=document.getElementById('em').value.trim();
-    var pass=document.getElementById('pw').value;
-    var err=document.getElementById('err');
-    var btn=document.getElementById('go');
+    var email=document.getElementById('em').value.trim(),pass=document.getElementById('pw').value,err=document.getElementById('err'),btn=document.getElementById('go');
     err.textContent='';
     if(!email){err.textContent='Please enter your email.';return}
     if(!pass){err.textContent='Please enter your password.';return}
@@ -132,39 +98,19 @@
     try{
       var res=await sb.auth.signInWithPassword({email:email,password:pass});
       if(res.error){err.textContent=res.error.message;btn.disabled=false;btn.textContent='Sign In';return}
-      var session=res.data.session;
-      if(!session){err.textContent='No session returned. Try again.';btn.disabled=false;btn.textContent='Sign In';return}
+      if(!res.data.session){err.textContent='No session returned. Try again.';btn.disabled=false;btn.textContent='Sign In';return}
       btn.innerHTML='<span class="sp"></span>Loading dashboard...';
-      await route(session);
+      await route(res.data.session);
     }catch(e){err.textContent='An error occurred. Please try again.';btn.disabled=false;btn.textContent='Sign In'}
   }
-
-  function showReset(){
-    document.getElementById('sf').classList.add('hide');
-    document.getElementById('rf').classList.remove('hide');
-    document.getElementById('sub').textContent='Reset your password';
-    var v=document.getElementById('em').value;if(v)document.getElementById('re').value=v;
-  }
-  function showLogin(){
-    document.getElementById('rf').classList.add('hide');
-    document.getElementById('sf').classList.remove('hide');
-    document.getElementById('sub').textContent='Sign in to your account';
-    document.getElementById('rerr').textContent='';
-    document.getElementById('rok').classList.add('hide');
-  }
+  function showReset(){document.getElementById('sf').classList.add('hide');document.getElementById('rf').classList.remove('hide');document.getElementById('sub').textContent='Reset your password';var v=document.getElementById('em').value;if(v)document.getElementById('re').value=v}
+  function showLogin(){document.getElementById('rf').classList.add('hide');document.getElementById('sf').classList.remove('hide');document.getElementById('sub').textContent='Sign in to your account';document.getElementById('rerr').textContent='';document.getElementById('rok').classList.add('hide')}
   async function doReset(){
-    var email=document.getElementById('re').value.trim();
-    var err=document.getElementById('rerr');
-    var ok=document.getElementById('rok');
-    var btn=document.getElementById('rb');
+    var email=document.getElementById('re').value.trim(),err=document.getElementById('rerr'),ok=document.getElementById('rok'),btn=document.getElementById('rb');
     err.textContent='';ok.classList.add('hide');
     if(!email){err.textContent='Please enter your email.';return}
     btn.disabled=true;btn.innerHTML='<span class="sp"></span>Sending...';
-    try{
-      var res=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/auth/callback/'});
-      if(res.error)err.textContent=res.error.message;
-      else{ok.classList.remove('hide');err.textContent=''}
-    }catch(e){err.textContent='An error occurred.'}
+    try{var res=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/auth/callback/'});if(res.error)err.textContent=res.error.message;else{ok.classList.remove('hide');err.textContent=''}}catch(e){err.textContent='An error occurred.'}
     btn.disabled=false;btn.textContent='Send Reset Link';
   }
   </script>
