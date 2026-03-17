@@ -1,29 +1,37 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Signing you in — Ailane</title>
-  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'G-NTNXWZN31C');
   </script>
+
+  <!-- Supabase JS v2 -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #060d1a;
+      background: #060D1B;
       display: flex; align-items: center; justify-content: center;
       min-height: 100vh;
       font-family: 'DM Sans', system-ui, sans-serif;
     }
     .wrap { text-align: center; color: #fff; }
     .brand { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.15em; margin-bottom: 12px; }
-    .status { font-size: 0.95rem; color: rgba(255,255,255,0.6); }
+    .status { font-size: 0.95rem; color: rgba(255,255,255,0.5); }
     .spinner {
       width: 36px; height: 36px;
       border: 3px solid rgba(56,189,248,0.15);
@@ -34,37 +42,72 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
+
 </head>
 <body>
   <div class="wrap">
     <div class="spinner"></div>
     <div class="brand">AILANE</div>
-    <div class="status" id="status-msg">Signing you in...</div>
+    <div class="status" id="status">Signing you in...</div>
   </div>
 
   <script>
+  // ════════════════════════════════════════════════════════════════════
+  // AUTH CALLBACK — handles OAuth, magic links, password reset tokens
+  // Does NOT handle password sign-in (that routes directly from /login/)
+  // AILANE-SPEC-AUTH-002 v1.0
+  // ════════════════════════════════════════════════════════════════════
+
+  var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxNTM5NjAsImV4cCI6MjA1NDcyOTk2MH0.1TYFiSdOeMHLH_dPBR-YB2JlAgrLH3F7G9k7WlDVZ5g';
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  function setStatus(msg) {
+    var el = document.getElementById('status');
+    if (el) el.textContent = msg;
+  }
+
+  function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+  // ── ROUTING MATRIX — AUTH-002 §3 ──────────────────────────────
+  function getDestination(tier) {
+    if (tier === 'operational' || tier === 'operational_readiness') return '/operational/';
+    if (tier === 'governance')    return '/governance/';
+    if (tier === 'institutional') return '/institutional/';
+    if (tier === 'per_session')   return '/knowledge-library/';
+    if (tier === 'monthly')       return '/knowledge-library/';
+    if (tier === 'guest_free')    return '/knowledge-library/';
+    if (tier === 'guest')         return '/knowledge-library/';
+    return '/login/'; // no profile
+  }
+
+  // ── PROFILE QUERY — canonical pattern ─────────────────────────
+  async function queryTier(accessToken) {
+    var payload = JSON.parse(atob(accessToken.split('.')[1]));
+    var userId  = payload.sub;
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+      {
+        headers: {
+          'apikey':        SUPABASE_ANON,
+          'Authorization': 'Bearer ' + accessToken,
+          'Accept':        'application/json'
+        }
+      }
+    );
+    if (!resp.ok) return null;
+    var rows = await resp.json();
+    if (rows && rows.length > 0) return rows[0].subscription_tier;
+    return null;
+  }
+
+  // ── MAIN ──────────────────────────────────────────────────────
   (async function() {
-    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxNTM5NjAsImV4cCI6MjA1NDcyOTk2MH0.1TYFiSdOeMHLH_dPBR-YB2JlAgrLH3F7G9k7WlDVZ5g';
-
-    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-    function setStatus(msg) {
-      var el = document.getElementById('status-msg');
-      if (el) el.textContent = msg;
-    }
-
-    function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
-
-    // ── UTM retrieval ────────────────────────────────────────────────────
-    var storedUtm = sessionStorage.getItem('ailane_utm');
-    var utmData = {};
-    try { if (storedUtm) utmData = JSON.parse(storedUtm); } catch(e) {}
-
     try {
       var session = null;
 
-      // ── Scenario 1: OAuth / magic link code in URL ─────────────────────
+      // Scenario 1: OAuth or magic link code in URL
       var params = new URLSearchParams(window.location.search);
       if (params.has('code')) {
         setStatus('Completing sign-in...');
@@ -73,98 +116,39 @@
           if (codeResult.data && codeResult.data.session) {
             session = codeResult.data.session;
           }
-        } catch(e) {
-          // Code may be expired or already consumed — fall through
-        }
+        } catch(e) { /* code expired or consumed — fall through */ }
       }
 
-      // ── Scenario 2: Existing session in localStorage ───────────────────
-      //    Retry up to 8 times over 4 seconds (covers propagation delay)
+      // Scenario 2: Existing session — retry up to 8 times (4 seconds)
       if (!session) {
-        for (var attempt = 0; attempt < 8; attempt++) {
+        for (var i = 0; i < 8; i++) {
           var gs = await sb.auth.getSession();
-          if (gs.data && gs.data.session) {
-            session = gs.data.session;
-            break;
-          }
-          if (attempt < 7) await sleep(500);
+          if (gs.data && gs.data.session) { session = gs.data.session; break; }
+          if (i < 7) await sleep(500);
         }
       }
 
-      // ── Scenario 3: No session found — redirect cleanly ────────────────
+      // Scenario 3: No session — go to login
       if (!session) {
-        window.location.replace('/account/?error=no_session');
+        window.location.replace('/login/');
         return;
       }
 
-      // ── Decode JWT ─────────────────────────────────────────────────────
-      var userId, isNewUser;
-      try {
-        var payload = JSON.parse(atob(session.access_token.split('.')[1]));
-        userId = payload.sub;
-        var created = session.user ? new Date(session.user.created_at) : null;
-        isNewUser = created ? (new Date() - created < 15000) : false;
-      } catch(e) {
-        window.location.replace('/account/?error=jwt_decode_failed');
-        return;
-      }
+      // Query tier and route
+      setStatus('Loading your dashboard...');
+      var tier = await queryTier(session.access_token);
+      var dest = getDestination(tier);
 
-      // ── Profile query — raw fetch with Bearer token ────────────────────
-      var tier = null;
-      try {
-        var resp = await fetch(
-          SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
-          {
-            headers: {
-              'apikey':        SUPABASE_ANON,
-              'Authorization': 'Bearer ' + session.access_token,
-              'Accept':        'application/json'
-            }
-          }
-        );
-        if (resp.ok) {
-          var rows = await resp.json();
-          if (rows && rows.length > 0) tier = rows[0].subscription_tier;
-        }
-      } catch(e) {}
+      // GA4
+      try { if (window.gtag) gtag('event', 'login', { method: 'callback', subscription_tier: tier || 'none' }); } catch(e) {}
 
-      // ── Routing matrix ─────────────────────────────────────────────────
-      var destination = '/account/';
-      if (tier === 'per_session' || tier === 'monthly' || tier === 'guest_free' || tier === 'guest') {
-        destination = '/account/dashboard/';
-      } else if (tier === 'operational' || tier === 'operational_readiness') {
-        destination = '/intelligence/';
-      } else if (tier === 'governance' || tier === 'institutional') {
-        destination = '/governance-dashboard/';
-      }
-
-      // ── GA4 conversion event ───────────────────────────────────────────
-      try {
-        if (window.gtag) {
-          gtag('event', isNewUser ? 'sign_up' : 'login', {
-            method:            utmData.utm_source || 'direct',
-            campaign:          utmData.utm_campaign || 'none',
-            subscription_tier: tier || 'none'
-          });
-        }
-      } catch(e) {}
-
-      // ── Redirect with UTMs ─────────────────────────────────────────────
-      try {
-        var destUrl = new URL(destination, window.location.origin);
-        Object.entries(utmData).forEach(function(kv) {
-          destUrl.searchParams.set(kv[0], kv[1]);
-        });
-        sessionStorage.removeItem('ailane_utm');
-        window.location.replace(destUrl.toString());
-      } catch(e) {
-        window.location.replace(destination);
-      }
+      window.location.replace(dest);
 
     } catch(err) {
-      window.location.replace('/account/?error=router_error');
+      window.location.replace('/login/?error=callback_failed');
     }
   })();
   </script>
+
 </body>
 </html>
