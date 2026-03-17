@@ -63,7 +63,7 @@
   <div class="pf">AI Lane Limited (Company No. 17035654) · ailane.ai</div>
   <script>
   var SB_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  var SB_KEY='sb_publishable_PyTQgCsEV3yeR_N9KOiXqA_ZRMpCRih';
+  var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   var sb=window.supabase.createClient(SB_URL,SB_KEY);
   document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
   document.getElementById('em').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('pw').focus()});
@@ -71,8 +71,7 @@
     if(t==='operational'||t==='operational_readiness')return'/operational/';
     if(t==='governance')return'/governance/';
     if(t==='institutional')return'/institutional/';
-    if(t==='per_session'||t==='monthly'||t==='guest_free'||t==='guest')return'/knowledge-library/';
-    return null;
+    return'/knowledge-library/';
   }
   async function getTier(token){
     var p=JSON.parse(atob(token.split('.')[1]));
@@ -86,8 +85,8 @@
   async function route(session){
     var tier=await getTier(session.access_token);
     var d=dest(tier);
-    if(d){try{if(window.gtag)gtag('event','login',{method:'email',subscription_tier:tier})}catch(e){}window.location.replace(d)}
-    else{document.getElementById('err').textContent='No subscription found. Contact support@ailane.ai.';document.getElementById('go').disabled=false;document.getElementById('go').textContent='Sign In'}
+    try{if(window.gtag)gtag('event','login',{method:'email',subscription_tier:tier})}catch(e){}
+    window.location.replace(d);
   }
   (async function(){try{var g=await sb.auth.getSession();if(g.data&&g.data.session){document.getElementById('sub').textContent='Checking session...';await route(g.data.session)}}catch(e){}})();
   async function doLogin(){

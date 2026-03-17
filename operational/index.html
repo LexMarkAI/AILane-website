@@ -61,10 +61,14 @@
         var rows = await resp.json();
         if (rows.length > 0) {
           var tier = rows[0].subscription_tier;
-          if (tier === 'operational' || tier === 'operational_readiness') {
+          if (tier === 'operational' || tier === 'operational_readiness' || tier === 'governance' || tier === 'institutional') {
             document.getElementById('auth-gate').style.display = 'none';
             document.getElementById('root').style.display = 'block';
             return; // Auth passed — React will render
+          }
+          // Authenticated but wrong tier — send to knowledge library
+          if (tier === 'guest' || tier === 'guest_free' || tier === 'per_session' || tier === 'monthly') {
+            window.location.replace('/knowledge-library/'); return;
           }
         }
       }
@@ -205,7 +209,7 @@
   // ORGANISATION & DATA
   // ══════════════════════════════════════════════════════════════════
   const ORG = {
-    name: "Northerly Hill Facilities Management Ltd",
+    name: "Your Organisation",
     sector: "Facilities Management",
     hq: "Cardiff",
     depots: "Swansea, Bristol, Birmingham",
@@ -661,7 +665,7 @@
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#0f172a", padding: "6px 12px", borderRadius: 6 }}>
               <span style={{ fontSize: 12, color: "#94a3b8" }}>{ORG.name}</span>
             </div>
-            <button onClick={() => { window.location.replace('/login/'); }} style={{ background: "none", border: "1px solid #334155", color: "#94a3b8", padding: "6px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Logout</button>
+            <button onClick={async () => { try { const sb = window.supabase.createClient('https://cnbsxwtvazfvzmltkuvx.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g'); await sb.auth.signOut(); } catch(e){} localStorage.clear(); window.location.href='/login/'; }} style={{ background: "none", border: "1px solid #334155", color: "#94a3b8", padding: "6px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Logout</button>
           </div>
         </header>
         {lang === "cy" && (
