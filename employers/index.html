@@ -1,0 +1,1163 @@
+# CC Brief — P0 Employer Landing Page
+# AILANE-SPEC-LMIA-001 §4.1 | CEO-RAT-LMIA-001
+
+## Objective
+Build the employer-facing landing page at `ailane.ai/employers/`.
+This is the destination for the E-1 Google Ads campaign.
+Current routing (contract-scan/) is a commercial constraint — this page replaces it.
+
+## File
+- **Repo:** LexMarkAI/AILane-website
+- **File path:** `employers/index.html`
+- **Branch:** `claude/employers-landing-session_001`
+
+## Constraints (DO NOT MODIFY)
+| Component | Rule |
+|---|---|
+| GA4 | G-NTNXWZN31C — mandatory in `<head>` |
+| Terms slug | `ailane.ai/terms/` — locked |
+| Privacy slug | `ailane.ai/privacy/` — locked |
+| Registered address | NEVER appears anywhere on page |
+| Personal identity | NEVER appears anywhere on page |
+| Gold `#F59E0B` | Reserved for Institutional tier only — not used here |
+| Banned copy | "guaranteed", "fully compliant", "know exactly", "ensures compliance", "free" (as product descriptor), "scan" (as noun) |
+| Advisory disclaimer | Must appear before footer |
+| Company No. | 17035654 |
+| ICO Reg. No. | 00013389720 |
+
+## Payment Links (from stripe_products table — live)
+| Product | Price | Link |
+|---|---|---|
+| Single Contract Check | £19 | https://buy.stripe.com/fZuaEY5ni97Y1hh9xBfMA04 |
+| Three-Document Bundle | £39 | https://buy.stripe.com/7sY6oI2b6doe6BBfVZfMA05 |
+| Operational subscription | £199/mo | /account/?plan=operational_readiness |
+| Governance subscription | £799/mo | /account/?plan=governance |
+
+## UTM Capture
+On page load, read URL params and store in sessionStorage:
+utm_source, utm_medium, utm_campaign, utm_content, utm_term
+Append to all outbound Stripe/auth links as query params.
+
+## Post-Deployment Action (CEO — Google Ads UI)
+Update E-1 campaign Final URL from:
+  `https://ailane.ai/contract-scan/`
+to:
+  `https://ailane.ai/employers/`
+
+---
+
+## Complete File — employers/index.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employment Law Compliance Intelligence for Employers | Ailane</title>
+  <meta name="description" content="Ailane analyses your employment contracts against 130,854+ classified UK tribunal decisions. Identify risk areas before they become claims. Operational from £199/mo." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- GA4 Analytics — REQUIRED, NO EXCEPTIONS -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:      #1B2A4A;
+      --navy-deep: #0F1A30;
+      --blue:      #2563EB;
+      --blue-mid:  #1D4ED8;
+      --cyan:      #06B6D4;
+      --green:     #16A34A;
+      --slate:     #475569;
+      --slate-lt:  #94A3B8;
+      --bg:        #F8FAFF;
+      --bg-dark:   #EEF2FF;
+      --white:     #FFFFFF;
+      --text:      #1E293B;
+      --text-lt:   #334155;
+      --border:    #CBD5E1;
+      --op-grad:   linear-gradient(135deg, #06B6D4, #16A34A);
+      --gov-grad:  linear-gradient(135deg, #06B6D4, #7C3AED);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Utility ───────────────────────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    /* ── Navigation ────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .nav-logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: -0.03em;
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--blue); }
+
+    .nav-actions { display: flex; gap: 12px; align-items: center; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+    }
+    .btn-primary:hover { background: var(--blue-mid); transform: translateY(-1px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--navy);
+      border: 1.5px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
+
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 1rem;
+      border-radius: 10px;
+    }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.12);
+      color: var(--white);
+      border: 1.5px solid rgba(255,255,255,0.25);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.2); }
+
+    /* ── Hero ──────────────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 60%, #1E3A6E 100%);
+      padding: 80px 0 72px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 80% 20%, rgba(37,99,235,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 10% 80%, rgba(6,182,212,0.10) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(37,99,235,0.2);
+      border: 1px solid rgba(37,99,235,0.4);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #93C5FD;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .hero-badge-dot {
+      width: 7px; height: 7px;
+      background: #60A5FA;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      max-width: 780px;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: #60A5FA;
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: #CBD5E1;
+      max-width: 600px;
+      margin-bottom: 40px;
+      line-height: 1.65;
+    }
+
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 56px; }
+
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+      padding-top: 40px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hero-stat {}
+    .hero-stat-num {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .hero-stat-label {
+      font-size: 0.8rem;
+      color: var(--slate-lt);
+      margin-top: 4px;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── Section base ──────────────────────────────────────────────────── */
+    section { padding: 72px 0; }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+      font-weight: 800;
+      color: var(--navy);
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+    }
+    .section-lead {
+      font-size: 1.05rem;
+      color: var(--slate);
+      max-width: 580px;
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    /* ── Problem section ───────────────────────────────────────────────── */
+    .problem { background: var(--bg); }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .problem-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 32px;
+    }
+
+    .problem-card-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 16px;
+    }
+
+    .problem-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 10px;
+    }
+
+    .problem-card p {
+      font-size: 0.9rem;
+      color: var(--slate);
+      line-height: 1.65;
+    }
+
+    .problem-highlight {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #EFF6FF, #F0FDF4);
+      border: 1px solid #BFDBFE;
+      border-left: 4px solid var(--blue);
+    }
+
+    .problem-highlight p {
+      font-size: 1rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── Platform / Tiers ──────────────────────────────────────────────── */
+    .platform { background: var(--white); }
+
+    .tier-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .tier-card {
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--white);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .tier-card:hover {
+      box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+      transform: translateY(-2px);
+    }
+
+    .tier-card.featured {
+      border-color: transparent;
+      box-shadow: 0 0 0 2px var(--blue), 0 12px 40px rgba(37,99,235,0.15);
+    }
+
+    .tier-header {
+      padding: 24px 24px 20px;
+    }
+
+    .tier-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 14px;
+    }
+
+    .tier-badge-check { background: #EFF6FF; color: var(--blue); }
+    .tier-badge-op    { background: linear-gradient(90deg,#CFFAFE,#DCFCE7); color: #065F46; }
+    .tier-badge-gov   { background: linear-gradient(90deg,#CFFAFE,#EDE9FE); color: #4C1D95; }
+
+    .tier-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+
+    .tier-price {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .tier-price span {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--slate);
+      letter-spacing: 0;
+    }
+
+    .tier-price-sub {
+      font-size: 0.82rem;
+      color: var(--slate-lt);
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+
+    .tier-divider {
+      height: 3px;
+      margin: 0 24px 0 0;
+    }
+
+    .tier-divider-check { background: var(--blue); border-radius: 0 3px 3px 0; }
+    .tier-divider-op    { background: var(--op-grad); border-radius: 0 3px 3px 0; }
+    .tier-divider-gov   { background: var(--gov-grad); border-radius: 0 3px 3px 0; }
+
+    .tier-body { padding: 20px 24px 24px; }
+
+    .tier-desc {
+      font-size: 0.88rem;
+      color: var(--slate);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .tier-features { list-style: none; margin-bottom: 24px; }
+    .tier-features li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 0.85rem;
+      color: var(--text-lt);
+      padding: 5px 0;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .tier-features li:last-child { border-bottom: none; }
+
+    .feat-check {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      margin-top: 2px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 800;
+    }
+    .feat-check-blue  { background: #DBEAFE; color: var(--blue); }
+    .feat-check-green { background: #DCFCE7; color: var(--green); }
+    .feat-check-purp  { background: #EDE9FE; color: #7C3AED; }
+
+    .tier-cta {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .tier-cta-blue  { background: var(--blue); color: var(--white); }
+    .tier-cta-blue:hover { background: var(--blue-mid); }
+    .tier-cta-op    { background: var(--op-grad); color: var(--white); }
+    .tier-cta-op:hover { filter: brightness(1.08); }
+    .tier-cta-gov   { background: var(--gov-grad); color: var(--white); }
+    .tier-cta-gov:hover { filter: brightness(1.08); }
+
+    .tier-cta-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--slate-lt);
+      margin-top: 8px;
+    }
+
+    /* ── Data authority ────────────────────────────────────────────────── */
+    .data-authority { background: var(--navy); }
+
+    .data-authority h2 { color: var(--white); }
+    .data-authority .section-label { color: #60A5FA; }
+    .data-authority .section-lead { color: #CBD5E1; }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 40px;
+    }
+
+    .data-stat {
+      background: rgba(255,255,255,0.04);
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .data-stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .data-stat-num em {
+      font-style: normal;
+      color: #60A5FA;
+    }
+
+    .data-stat-label {
+      font-size: 0.82rem;
+      color: #94A3B8;
+      line-height: 1.4;
+    }
+
+    .data-categories {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .data-cat {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      color: #CBD5E1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .data-cat::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: #60A5FA;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── How it works ──────────────────────────────────────────────────── */
+    .how { background: var(--bg); }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: calc(16.67% + 28px);
+      right: calc(16.67% + 28px);
+      height: 2px;
+      background: linear-gradient(90deg, var(--border), var(--blue), var(--border));
+    }
+
+    .step { padding: 0 24px; text-align: center; }
+
+    .step-num {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--white);
+      border: 2px solid var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--blue);
+      margin: 0 auto 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 0.88rem;
+      color: var(--slate);
+      line-height: 1.6;
+    }
+
+    /* ── ERA 2025 urgency ──────────────────────────────────────────────── */
+    .era-banner {
+      background: linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%);
+      border: 1px solid #BFDBFE;
+      border-radius: 14px;
+      padding: 36px 40px;
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+    }
+
+    .era-icon {
+      flex-shrink: 0;
+      width: 52px; height: 52px;
+      background: var(--blue);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .era-content h3 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .era-content p {
+      font-size: 0.92rem;
+      color: var(--slate);
+      line-height: 1.65;
+      max-width: 620px;
+    }
+
+    /* ── Final CTA ─────────────────────────────────────────────────────── */
+    .final-cta {
+      background: linear-gradient(160deg, var(--navy-deep), var(--navy));
+      text-align: center;
+      padding: 80px 24px;
+    }
+
+    .final-cta h2 { color: var(--white); margin-bottom: 16px; }
+    .final-cta p  { color: #CBD5E1; margin-bottom: 36px; font-size: 1.05rem; }
+    .final-cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    /* ── Advisory disclaimer ───────────────────────────────────────────── */
+    .advisory {
+      background: #F8FAFF;
+      border-top: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .advisory p {
+      font-size: 0.78rem;
+      color: var(--slate-lt);
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── Footer ────────────────────────────────────────────────────────── */
+    footer {
+      background: var(--navy-deep);
+      padding: 40px 0;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .footer-brand .footer-logo {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--white);
+      text-decoration: none;
+      letter-spacing: -0.03em;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .footer-brand .footer-logo span { color: var(--blue); }
+    .footer-brand p {
+      font-size: 0.78rem;
+      color: #64748B;
+      line-height: 1.6;
+      max-width: 260px;
+    }
+
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer-links a {
+      font-size: 0.82rem;
+      color: #64748B;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .footer-links a:hover { color: #94A3B8; }
+
+    .footer-legal {
+      width: 100%;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-legal p {
+      font-size: 0.75rem;
+      color: #475569;
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .tier-grid       { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
+      .data-grid       { grid-template-columns: repeat(2, 1fr); }
+      .data-categories { grid-template-columns: repeat(2, 1fr); }
+      .problem-grid    { grid-template-columns: 1fr; }
+      .steps           { grid-template-columns: 1fr; gap: 32px; }
+      .steps::before   { display: none; }
+      .step            { padding: 0; text-align: left; display: flex; gap: 20px; align-items: flex-start; }
+      .step-num        { flex-shrink: 0; margin: 0; }
+    }
+
+    @media (max-width: 640px) {
+      .hero            { padding: 56px 0 48px; }
+      section          { padding: 52px 0; }
+      .data-grid       { grid-template-columns: 1fr 1fr; }
+      .nav-actions .btn-outline { display: none; }
+      .era-banner      { flex-direction: column; padding: 24px; gap: 16px; }
+      .hero-stats      { gap: 24px; }
+      .hero-stat-num   { font-size: 1.4rem; }
+      .footer-inner    { flex-direction: column; gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ──────────────────────────────────────────────────────── -->
+  <nav aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="Ailane home">ai<span>lane</span></a>
+      <div class="nav-actions">
+        <a href="/account/" class="btn btn-outline" id="nav-login">Sign in</a>
+        <a href="#check-contracts" class="btn btn-primary" id="nav-cta">Check your contracts</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────────────────────────── -->
+  <header class="hero" role="banner">
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <span class="hero-badge-dot" aria-hidden="true"></span>
+        Employment compliance intelligence
+      </div>
+
+      <h1>
+        Your employment contracts carry <em>tribunal exposure</em> you have not measured yet
+      </h1>
+
+      <p class="hero-sub">
+        Ailane analyses your employment documents against 130,854+ classified UK tribunal decisions.
+        Identify your risk areas before they become claims.
+        Operational from £199&nbsp;per month.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#check-contracts" class="btn btn-primary btn-lg" id="hero-cta-check">
+          Check your contracts — from £19
+        </a>
+        <a href="#platform" class="btn btn-ghost btn-lg" id="hero-cta-plans">
+          View subscription plans
+        </a>
+      </div>
+
+      <div class="hero-stats" aria-label="Platform statistics">
+        <div class="hero-stat">
+          <div class="hero-stat-num">130,854+</div>
+          <div class="hero-stat-label">Classified tribunal decisions</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">78,699+</div>
+          <div class="hero-stat-label">UK employer profiles</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">47+</div>
+          <div class="hero-stat-label">Legislative instruments</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">12</div>
+          <div class="hero-stat-label">ACEI risk categories</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Problem ─────────────────────────────────────────────────────────── -->
+  <section class="problem" aria-labelledby="problem-heading">
+    <div class="container">
+      <div class="section-label">The compliance gap</div>
+      <h2 id="problem-heading">Most employment tribunal claims begin in contracts that were never reviewed</h2>
+      <p class="section-lead">
+        The Employment Rights Act 2025 has changed employer obligations across every sector.
+        Contracts drafted before 2025 may already carry statutory gaps.
+      </p>
+
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-card-icon" style="background:#EFF6FF;" aria-hidden="true">📋</div>
+          <h3>Contracts drafted before ERA 2025</h3>
+          <p>The Employment Rights Act 2025 extended day-one rights, changed fire and rehire provisions, and introduced new dismissal protections. Employment contracts drafted under the previous framework require review against current statute.</p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-card-icon" style="background:#FEF3C7;" aria-hidden="true">⚖️</div>
+          <h3>Exposure builds quietly</h3>
+          <p>Employment tribunal risk accumulates through clause gaps, missing provisions, and provisions that no longer reflect statutory minimums. It becomes visible only when a claim is filed — at which point the analysis cost is the least of your concerns.</p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-card-icon" style="background:#F0FDF4;" aria-hidden="true">🔍</div>
+          <h3>Ailane identifies risk areas before claims arise</h3>
+          <p>Constitutional-grade analysis against current statute. Clause-level findings referenced to the legislative instruments that govern them. Based on the same statutory framework used by the Employment Tribunal — not a template.</p>
+        </div>
+
+        <div class="problem-card problem-highlight">
+          <p>
+            Ailane's findings inform your risk management. They do not constitute legal advice, and the platform does not promise legal compliance. What Ailane provides is the intelligence to make informed decisions — and the evidence to support them.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Platform ─────────────────────────────────────────────────────────── -->
+  <section class="platform" id="platform" aria-labelledby="platform-heading">
+    <div class="container">
+      <div class="section-label">Choose your level</div>
+      <h2 id="platform-heading">From a single contract check to continuous compliance monitoring</h2>
+      <p class="section-lead">
+        Start with one document. Scale to full regulatory exposure intelligence across your entire workforce.
+      </p>
+
+      <div class="tier-grid">
+
+        <!-- Contract Compliance Check -->
+        <div class="tier-card" id="check-contracts">
+          <div class="tier-header">
+            <div class="tier-badge tier-badge-check">One-time</div>
+            <div class="tier-name">Contract Compliance Check</div>
+            <div class="tier-price">£19 <span>/ single contract</span></div>
+            <div class="tier-price-sub">or £39 for a three-document bundle</div>
+          </div>
+          <div class="tier-divider tier-divider-check"></div>
+          <div class="tier-body">
+            <p class="tier-desc">Upload your employment contract and receive a clause-level compliance analysis against current UK employment law. No account required.</p>
+            <ul class="tier-features" aria-label="Contract check features">
+              <li><span class="feat-check feat-check-blue" aria-hidden="true">✓</span>Single employment contract analysis</li>
+              <li><span class="feat-check feat-check-blue" aria-hidden="true">✓</span>Clause-level findings with statutory references</li>
+              <li><span class="feat-check feat-check-blue" aria-hidden="true">✓</span>Risk areas identified against current statute</li>
+              <li><span class="feat-check feat-check-blue" aria-hidden="true">✓</span>ERA 2025 provisions checked</li>
+              <li><span class="feat-check feat-check-blue" aria-hidden="true">✓</span>Results within 24 hours</li>
+            </ul>
+            <a href="https://buy.stripe.com/fZuaEY5ni97Y1hh9xBfMA04" class="tier-cta tier-cta-blue" id="cta-check-single" aria-label="Check one employment contract for £19">
+              Check one contract — £19
+            </a>
+            <p class="tier-cta-note">
+              or <a href="https://buy.stripe.com/7sY6oI2b6doe6BBfVZfMA05" id="cta-check-bundle" style="color:var(--blue);text-decoration:none;" aria-label="Check three documents for £39">three documents for £39</a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Operational -->
+        <div class="tier-card featured" aria-label="Most popular plan">
+          <div class="tier-header">
+            <div class="tier-badge tier-badge-op">Operational · Most popular</div>
+            <div class="tier-name">Ailane Operational</div>
+            <div class="tier-price">£199 <span>/ month</span></div>
+            <div class="tier-price-sub">Continuous exposure monitoring · ACEI intelligence</div>
+          </div>
+          <div class="tier-divider tier-divider-op"></div>
+          <div class="tier-body">
+            <p class="tier-desc">Real-time regulatory exposure intelligence for employers. Your employment documents monitored continuously against live legislative changes.</p>
+            <ul class="tier-features" aria-label="Operational tier features">
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>12-category ACEI Exposure Index</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>5 documents stored, monitored &amp; auto-rescanned</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>Full clause analysis on all stored documents</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>Knowledge Library — full instrument access</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>Regulatory Intelligence Ticker</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>Legislative change alerts on your documents</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>Employment Tribunal Digest</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>Weekly intelligence alerts</li>
+              <li><span class="feat-check feat-check-green" aria-hidden="true">✓</span>Monthly compliance PDF report</li>
+            </ul>
+            <a href="/account/?plan=operational_readiness" class="tier-cta tier-cta-op" id="cta-operational" aria-label="Start Operational plan at £199 per month">
+              Start Operational — £199/mo
+            </a>
+            <p class="tier-cta-note">Cancel any time · No setup fee</p>
+          </div>
+        </div>
+
+        <!-- Governance -->
+        <div class="tier-card">
+          <div class="tier-header">
+            <div class="tier-badge tier-badge-gov">Governance</div>
+            <div class="tier-name">Ailane Governance</div>
+            <div class="tier-price">£799 <span>/ month</span></div>
+            <div class="tier-price-sub">Full Index Triad · Board-level intelligence</div>
+          </div>
+          <div class="tier-divider tier-divider-gov"></div>
+          <div class="tier-body">
+            <p class="tier-desc">Constitutional-grade employment exposure intelligence across all three Ailane indices. For organisations with a formal HR or compliance function.</p>
+            <ul class="tier-features" aria-label="Governance tier features">
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>Full Triad: ACEI + RRI + CCI indices</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>25 user licences</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>Unlimited Document Vault</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>Workforce Contractual Conformity scoring</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>Knowledge Library with AI assistance</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>Remediation frameworks</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>AI regulatory ticker with constitutional briefings</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>Sub-regional enforcement alerts</li>
+              <li><span class="feat-check feat-check-purp" aria-hidden="true">✓</span>Board-format PDF reports</li>
+            </ul>
+            <a href="/account/?plan=governance" class="tier-cta tier-cta-gov" id="cta-governance" aria-label="Start Governance plan at £799 per month">
+              Start Governance — £799/mo
+            </a>
+            <p class="tier-cta-note">Cancel any time · No setup fee</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Data Authority ──────────────────────────────────────────────────── -->
+  <section class="data-authority" aria-labelledby="data-heading">
+    <div class="container">
+      <div class="section-label">The intelligence estate</div>
+      <h2 id="data-heading">Analysis grounded in the UK's most detailed employment tribunal dataset</h2>
+      <p class="section-lead">
+        Ailane does not use generic templates. Every finding is referenced to the legislative instruments
+        and tribunal patterns that govern your sector and geography.
+      </p>
+
+      <div class="data-grid" role="list" aria-label="Data estate statistics">
+        <div class="data-stat" role="listitem">
+          <div class="data-stat-num">130,854<em>+</em></div>
+          <div class="data-stat-label">Classified UK tribunal decisions</div>
+        </div>
+        <div class="data-stat" role="listitem">
+          <div class="data-stat-num">78,699<em>+</em></div>
+          <div class="data-stat-label">Employer profiles with exposure data</div>
+        </div>
+        <div class="data-stat" role="listitem">
+          <div class="data-stat-num">47<em>+</em></div>
+          <div class="data-stat-label">Legislative instruments indexed</div>
+        </div>
+        <div class="data-stat" role="listitem">
+          <div class="data-stat-num">12</div>
+          <div class="data-stat-label">ACEI risk categories across all sectors</div>
+        </div>
+      </div>
+
+      <div class="data-categories" aria-label="ACEI risk categories">
+        <div class="data-cat">Unfair Dismissal</div>
+        <div class="data-cat">Wrongful Dismissal</div>
+        <div class="data-cat">Discrimination</div>
+        <div class="data-cat">Redundancy &amp; TUPE</div>
+        <div class="data-cat">Working Time</div>
+        <div class="data-cat">Pay &amp; Benefits</div>
+        <div class="data-cat">Whistleblowing</div>
+        <div class="data-cat">Contractual Breach</div>
+        <div class="data-cat">Statutory Rights</div>
+        <div class="data-cat">Harassment &amp; Bullying</div>
+        <div class="data-cat">Notice &amp; Termination</div>
+        <div class="data-cat">Zero-Hours &amp; Agency</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How It Works ────────────────────────────────────────────────────── -->
+  <section class="how" aria-labelledby="how-heading">
+    <div class="container">
+      <div class="section-label">How it works</div>
+      <h2 id="how-heading">Three steps from upload to findings</h2>
+      <p class="section-lead">No lengthy onboarding. No configuration. Upload your documents and Eileen, Ailane's intelligence engine, handles the analysis.</p>
+
+      <div class="steps" role="list">
+        <div class="step" role="listitem">
+          <div class="step-num" aria-label="Step 1">1</div>
+          <div>
+            <h3>Upload your documents</h3>
+            <p>Employment contracts, staff handbooks, HR policies. The Contract Compliance Check requires no account. Operational and Governance tiers store documents securely in your Document Vault.</p>
+          </div>
+        </div>
+        <div class="step" role="listitem">
+          <div class="step-num" aria-label="Step 2">2</div>
+          <div>
+            <h3>Eileen analyses against current statute</h3>
+            <p>Every clause is assessed against the legislative instruments that govern it — including ERA 2025 provisions — and cross-referenced with tribunal decision patterns in your sector and geography.</p>
+          </div>
+        </div>
+        <div class="step" role="listitem">
+          <div class="step-num" aria-label="Step 3">3</div>
+          <div>
+            <h3>Receive your findings</h3>
+            <p>Clause-level analysis with statutory references. Risk areas identified and categorised. For subscription tiers, findings update automatically when relevant legislation changes — your documents remain continuously monitored.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ERA 2025 Signal ─────────────────────────────────────────────────── -->
+  <section aria-labelledby="era-heading" style="background:var(--white);padding:48px 0;">
+    <div class="container">
+      <div class="era-banner">
+        <div class="era-icon" aria-hidden="true">📌</div>
+        <div class="era-content">
+          <h3 id="era-heading">Employment Rights Act 2025 — your existing contracts may already require review</h3>
+          <p>
+            ERA 2025 extended day-one rights across dismissal protections, collective consultation, and flexible working entitlements. Contracts drafted under the previous framework may contain provisions that no longer reflect the statutory position. Ailane identifies precisely where your documents stand against current law — section by section, clause by clause.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Final CTA ───────────────────────────────────────────────────────── -->
+  <section class="final-cta" aria-labelledby="cta-heading">
+    <h2 id="cta-heading">Understand your employment risk areas today</h2>
+    <p>Start with a single contract check, or move straight to continuous monitoring.</p>
+    <div class="final-cta-actions">
+      <a href="https://buy.stripe.com/fZuaEY5ni97Y1hh9xBfMA04" class="btn btn-primary btn-lg" id="final-cta-check">
+        Check a contract — £19
+      </a>
+      <a href="/account/?plan=operational_readiness" class="btn btn-ghost btn-lg" id="final-cta-operational">
+        Start Operational — £199/mo
+      </a>
+    </div>
+  </section>
+
+  <!-- ── Advisory Disclaimer ────────────────────────────────────────────── -->
+  <div class="advisory" role="note" aria-label="Advisory disclaimer">
+    <div class="container">
+      <p>
+        Ailane provides advisory intelligence outputs. Findings do not constitute legal advice.
+        AI Lane Limited is not a regulated legal services provider. Analysis is based on publicly available
+        legislative instruments and Employment Tribunal decisions. Always seek qualified legal advice
+        for specific employment law matters.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="footer-logo" aria-label="Ailane home">ai<span>lane</span></a>
+        <p>Constitutional-grade employment law compliance and regulatory intelligence for UK employers.</p>
+      </div>
+
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="/contract-check-worker/">For workers</a>
+        <a href="/knowledge-library-preview/">Knowledge Library</a>
+        <a href="/intelligence/">Intelligence Platform</a>
+        <a href="/account/">Sign in</a>
+        <a href="/terms/">Terms of Service</a>
+        <a href="/privacy/">Privacy Policy</a>
+      </nav>
+
+      <div class="footer-legal">
+        <p>© 2026 AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720 · Trading as Ailane · ailane.ai</p>
+        <p>Advisory output only. Does not constitute legal advice.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── UTM Capture & Link Attribution ──────────────────────────────────── -->
+  <script>
+    (function () {
+      // Capture UTM params from inbound campaign URLs → sessionStorage
+      var params = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+      var search = new URLSearchParams(window.location.search);
+      var captured = {};
+
+      params.forEach(function(p) {
+        var val = search.get(p);
+        if (val) {
+          sessionStorage.setItem(p, val);
+          captured[p] = val;
+        } else {
+          var stored = sessionStorage.getItem(p);
+          if (stored) captured[p] = stored;
+        }
+      });
+
+      // Append UTM params to all outbound conversion links
+      function buildUtmString(base) {
+        var utmParts = [];
+        params.forEach(function(p) {
+          if (captured[p]) utmParts.push(p + '=' + encodeURIComponent(captured[p]));
+        });
+        if (!utmParts.length) return base;
+        var sep = base.indexOf('?') === -1 ? '?' : '&';
+        return base + sep + utmParts.join('&');
+      }
+
+      // All CTA IDs that should carry UTM attribution
+      var ctaIds = [
+        'nav-cta','hero-cta-check','hero-cta-plans',
+        'cta-check-single','cta-check-bundle',
+        'cta-operational','cta-governance',
+        'final-cta-check','final-cta-operational'
+      ];
+
+      ctaIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && el.href) {
+          el.href = buildUtmString(el.href);
+        }
+      });
+
+      // GA4 CTA click events
+      ctaIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', function() {
+          if (typeof gtag === 'function') {
+            gtag('event', 'cta_click', {
+              cta_id: id,
+              page_location: window.location.href
+            });
+          }
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>
