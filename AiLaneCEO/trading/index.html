@@ -33,6 +33,8 @@
       --accent-red-dim: rgba(248, 113, 113, 0.08);
       --accent-amber: #fbbf24;
       --accent-amber-dim: rgba(251, 191, 36, 0.08);
+      --accent-violet: #a78bfa;
+      --accent-violet-dim: rgba(167, 139, 250, 0.08);
       --font-display: 'Outfit', sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -102,8 +104,20 @@
       color: var(--text-secondary);
       text-transform: uppercase;
     }
+    .mode-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      padding: 3px 10px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .mode-paper { background: var(--accent-amber-dim); color: var(--accent-amber); border: 1px solid rgba(251,191,36,0.3); }
+    .mode-live { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.3); }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; position: relative; z-index: 1; }
+    .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
     .metrics {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -197,6 +211,8 @@
     .tag-buy { background: var(--accent-green-dim); color: var(--accent-green); }
     .tag-sell { background: var(--accent-red-dim); color: var(--accent-red); }
     .tag-warn { background: var(--accent-amber-dim); color: var(--accent-amber); }
+    .tag-info { background: var(--accent-cyan-dim); color: var(--accent-cyan); }
+    .tag-paper { background: var(--accent-violet-dim); color: var(--accent-violet); }
     .kill-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -238,6 +254,21 @@
       background: var(--accent-red); color: #000; font-weight: 700;
       animation: pulse-bg 1.5s infinite;
     }
+    .action-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      border: 1px solid;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+    }
+    .action-btn:hover { opacity: 0.8; }
+    .action-btn-cyan { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .action-btn-cyan:hover { background: var(--accent-cyan); color: #000; }
     @keyframes pulse-bg { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     .alert {
       padding: 14px 18px;
@@ -313,12 +344,18 @@
     <span class="topbar-title">Trading Terminal</span>
   </div>
   <div class="topbar-status">
+    <span class="mode-badge mode-paper" id="modeBadge">PAPER</span>
     <div class="status-dot" id="statusDot"></div>
     <span class="status-label" id="statusLabel">Connecting...</span>
   </div>
 </div>
 <div class="main">
   <div id="alertsContainer"></div>
+  <div class="action-bar">
+    <button onclick="runScan()" class="action-btn action-btn-cyan">&#9889; Run Signal Scan</button>
+    <button onclick="closeAllPositions()" class="action-btn" style="border-color: var(--accent-red); color: var(--accent-red);">Close All Positions</button>
+    <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);" id="lastUpdate">&mdash;</span>
+  </div>
   <div class="metrics" id="metricsGrid">
     <div class="metric">
       <div class="metric-label">Equity</div>
@@ -353,11 +390,26 @@
   </div>
   <div class="section">
     <div class="section-header">
-      <span class="section-title">Open Positions — IG Trading</span>
-      <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);" id="lastUpdate">&mdash;</span>
+      <span class="section-title">Open Positions &#8212; IG Trading</span>
     </div>
     <div id="positionsContainer">
       <div class="loading"><div class="spinner"></div>Loading positions...</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Paper Trades</span>
+    </div>
+    <div id="paperTradesContainer">
+      <div class="loading">No paper trades yet</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Recent Signals</span>
+    </div>
+    <div id="signalsContainer">
+      <div class="loading">No signals yet &#8212; run a scan</div>
     </div>
   </div>
   <div class="section">
@@ -419,39 +471,16 @@
   </div>
 </div>
 <script>
-const CONFIG = {
-  edgeFunctionUrl: 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-proxy',
+var CONFIG = {
+  edgeFunctionUrl: 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-engine',
   refreshInterval: 30000,
   mockMode: false,
 };
-let systemHalted = false;
-let brokerHalts = {};
-let lastData = null;
-const MOCK_DATA = {
-  account: { balance: 1150.59, profitLoss: -108.78, available: 907.00, deposit: 243.59 },
-  positions: [
-    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.09, level: 8696.8, bid: 7527.0, pnl: -105.28, flags: ['CONCENTRATION'] },
-    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 8455.0, bid: 7527.0, pnl: -18.56, flags: ['CONCENTRATION'] },
-    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 8442.0, bid: 7527.0, pnl: -18.30, flags: ['CONCENTRATION'] },
-    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 8096.9, bid: 7527.0, pnl: -11.40, flags: [] },
-    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 7993.1, bid: 7527.0, pnl: -9.32, flags: [] },
-    { epic: 'OP.D.VIX1.2500C.IP', name: 'VIX 25.0 CALL', direction: 'BUY', size: 15, level: 2.84, bid: 3.6, pnl: 11.55, flags: [] },
-    { epic: 'OP.D.VIX1.2900C.IP', name: 'VIX 29.0 CALL', direction: 'BUY', size: 10, level: 1.9, bid: 2.8, pnl: 9.20, flags: [] },
-  ],
-};
-async function fetchData() {
-  if (CONFIG.mockMode || !CONFIG.edgeFunctionUrl) return MOCK_DATA;
-  try {
-    const resp = await fetch(CONFIG.edgeFunctionUrl + '/positions', {
-      headers: { 'Authorization': 'Bearer ' + getSessionToken() }
-    });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    return await resp.json();
-  } catch (err) {
-    addLog('error', 'Fetch failed: ' + err.message);
-    return null;
-  }
-}
+var systemHalted = false;
+var brokerHalts = {};
+var lastData = null;
+var currentMode = 'paper';
+
 function getSessionToken() {
   try {
     var stored = localStorage.getItem('sb-cnbsxwtvazfvzmltkuvx-auth-token');
@@ -462,28 +491,90 @@ function getSessionToken() {
   } catch (e) {}
   return '';
 }
+
+function authHeaders() {
+  return { 'Authorization': 'Bearer ' + getSessionToken(), 'Content-Type': 'application/json' };
+}
+
+async function fetchData() {
+  if (CONFIG.mockMode || !CONFIG.edgeFunctionUrl) return null;
+  try {
+    var resp = await fetch(CONFIG.edgeFunctionUrl + '/positions', {
+      headers: authHeaders()
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch (err) {
+    addLog('error', 'Fetch failed: ' + err.message);
+    return null;
+  }
+}
+
+async function runScan() {
+  addLog('info', 'Running signal scan...');
+  try {
+    var resp = await fetch(CONFIG.edgeFunctionUrl + '/scan', {
+      headers: authHeaders()
+    });
+    var data = await resp.json();
+    if (data.error) {
+      addLog('error', 'Scan error: ' + data.error);
+      return;
+    }
+    addLog('trade', 'Scan complete: ' + data.signalsGenerated + ' signals from ' + data.instrumentsScanned + ' instruments');
+    if (data.newTrades && data.newTrades.length > 0) {
+      data.newTrades.forEach(function(t) {
+        addLog('trade', 'NEW ' + t.mode.toUpperCase() + ' TRADE: ' + t.direction + ' ' + t.instrument + ' stake \u00A3' + t.stake);
+      });
+    }
+    refresh();
+  } catch (err) {
+    addLog('error', 'Scan failed: ' + err.message);
+  }
+}
+
+async function closeAllPositions() {
+  if (!confirm('CLOSE ALL OPEN POSITIONS?\n\nThis will close your silver, VIX, and any other open trades at market price.\n\nThis cannot be undone.')) return;
+  if (!confirm('SECOND CONFIRMATION: Are you absolutely sure?')) return;
+  addLog('kill', 'Closing all positions...');
+  try {
+    var resp = await fetch(CONFIG.edgeFunctionUrl + '/close-all', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ confirm: true })
+    });
+    var data = await resp.json();
+    addLog('kill', 'Close all result: ' + data.closed + ' positions closed');
+    refresh();
+  } catch (err) {
+    addLog('error', 'Close all failed: ' + err.message);
+  }
+}
+
 function renderMetrics(data) {
   if (!data) return;
-  const a = data.account;
-  const totalPnl = data.positions.reduce(function(s, p) { return s + p.pnl; }, 0);
-  const equity = a.balance + totalPnl;
-  const drawdown = totalPnl < 0 ? Math.abs(totalPnl) / a.balance : 0;
+  var a = data.account;
+  var totalPnl = data.positions.reduce(function(s, p) { return s + p.pnl; }, 0);
+  var equity = a.balance + totalPnl;
+  var drawdown = totalPnl < 0 ? Math.abs(totalPnl) / (a.balance || 1) : 0;
   setMetric('mEquity', '\u00A3' + equity.toFixed(0), equity >= a.balance ? '' : 'negative');
   setMetric('mPnl', '\u00A3' + (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2), totalPnl >= 0 ? 'positive' : 'negative');
-  document.getElementById('mPnlSub').textContent = ((totalPnl / a.balance) * 100).toFixed(1) + '%';
+  document.getElementById('mPnlSub').textContent = a.balance ? ((totalPnl / a.balance) * 100).toFixed(1) + '%' : '';
   setMetric('mCash', '\u00A3' + a.available.toFixed(0));
   setMetric('mMargin', '\u00A3' + a.deposit.toFixed(0));
-  document.getElementById('mMarginSub').textContent = ((a.deposit / equity) * 100).toFixed(0) + '% utilisation';
+  document.getElementById('mMarginSub').textContent = equity > 0 ? ((a.deposit / equity) * 100).toFixed(0) + '% utilisation' : '';
   setMetric('mPositions', data.positions.length);
   setMetric('mDrawdown', (drawdown * 100).toFixed(1) + '%', drawdown > 0.08 ? 'negative' : '');
   document.getElementById('mDrawdownSub').textContent = drawdown > 0.08 ? 'WARNING' : 'Within limits';
   document.getElementById('mEquitySub').textContent = 'Cash: \u00A3' + a.balance.toFixed(2);
 }
+
 function setMetric(id, value, cls) {
   var el = document.getElementById(id);
   el.textContent = value;
   el.className = 'metric-value' + (cls ? ' ' + cls : '');
 }
+
 function renderPositions(data) {
   if (!data) return;
   var container = document.getElementById('positionsContainer');
@@ -494,64 +585,131 @@ function renderPositions(data) {
   var html = '<table class="positions-table"><thead><tr><th>Instrument</th><th>Dir</th><th>Stake</th><th>Entry</th><th>Current</th><th>PnL</th><th>Flags</th></tr></thead><tbody>';
   data.positions.forEach(function(p) {
     var pnlClass = p.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+    var dirClass = p.direction === 'SELL' ? 'tag-sell' : 'tag-buy';
     var flags = p.flags.map(function(f) { return '<span class="tag tag-warn">' + f + '</span>'; }).join(' ');
-    html += '<tr><td>' + p.epic + '<div class="instrument-name">' + p.name + '</div></td><td><span class="tag tag-buy">' + p.direction + '</span></td><td>\u00A3' + p.size + '</td><td>' + p.level.toFixed(1) + '</td><td>' + p.bid.toFixed(1) + '</td><td class="' + pnlClass + '">\u00A3' + (p.pnl >= 0 ? '+' : '') + p.pnl.toFixed(2) + '</td><td>' + flags + '</td></tr>';
+    html += '<tr><td>' + p.epic + '<div class="instrument-name">' + p.name + '</div></td><td><span class="tag ' + dirClass + '">' + p.direction + '</span></td><td>\u00A3' + p.size + '</td><td>' + p.level.toFixed(1) + '</td><td>' + p.bid.toFixed(1) + '</td><td class="' + pnlClass + '">\u00A3' + (p.pnl >= 0 ? '+' : '') + p.pnl.toFixed(2) + '</td><td>' + flags + '</td></tr>';
   });
   html += '</tbody></table>';
   container.innerHTML = html;
 }
+
+function renderPaperTrades(data) {
+  var container = document.getElementById('paperTradesContainer');
+  var trades = data && data.paperTrades ? data.paperTrades : [];
+  if (trades.length === 0) {
+    container.innerHTML = '<div class="loading">No paper trades yet</div>';
+    return;
+  }
+  var html = '<table class="positions-table"><thead><tr><th>Instrument</th><th>Dir</th><th>Stake</th><th>Entry</th><th>SL</th><th>TP</th><th>PnL</th><th>Status</th></tr></thead><tbody>';
+  trades.forEach(function(t) {
+    var pnlClass = t.pnl !== null ? (t.pnl >= 0 ? 'pnl-positive' : 'pnl-negative') : '';
+    var pnlText = t.pnl !== null ? '\u00A3' + (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2) : '\u2014';
+    var dirClass = t.direction === 'SELL' ? 'tag-sell' : 'tag-buy';
+    var statusClass = t.status === 'OPEN' ? 'tag-info' : (t.status === 'TP_HIT' ? 'tag-buy' : 'tag-sell');
+    html += '<tr><td>' + t.instrument_id + '<div class="instrument-name">' + t.epic + '</div></td><td><span class="tag ' + dirClass + '">' + t.direction + '</span></td><td>\u00A3' + t.stake + '</td><td>' + Number(t.entry_price).toFixed(1) + '</td><td>' + Number(t.stop_loss).toFixed(1) + '</td><td>' + Number(t.take_profit).toFixed(1) + '</td><td class="' + pnlClass + '">' + pnlText + '</td><td><span class="tag ' + statusClass + '">' + t.status + '</span></td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderSignals(data) {
+  var container = document.getElementById('signalsContainer');
+  var signals = data && data.recentSignals ? data.recentSignals : [];
+  if (signals.length === 0) {
+    container.innerHTML = '<div class="loading">No signals yet \u2014 run a scan</div>';
+    return;
+  }
+  var html = '<table class="positions-table"><thead><tr><th>Instrument</th><th>Dir</th><th>Strength</th><th>RSI</th><th>Price</th><th>Reasoning</th><th>Acted</th></tr></thead><tbody>';
+  signals.slice(0, 15).forEach(function(s) {
+    var dirClass = s.direction === 'SELL' ? 'tag-sell' : 'tag-buy';
+    var str = (s.strength * 100).toFixed(0) + '%';
+    var acted = s.acted_on ? '<span class="tag tag-buy">YES</span>' : '<span class="tag tag-paper">NO</span>';
+    html += '<tr><td>' + s.instrument_id + '</td><td><span class="tag ' + dirClass + '">' + s.direction + '</span></td><td>' + str + '</td><td>' + Number(s.rsi_value).toFixed(1) + '</td><td>' + Number(s.price_at_signal).toFixed(1) + '</td><td style="font-size:10px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (s.reasoning || '') + '</td><td>' + acted + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
 function renderAlerts(data) {
   if (!data) return;
   var container = document.getElementById('alertsContainer');
   var alerts = [];
-  var silverCount = data.positions.filter(function(p) { return p.epic === 'CS.D.USCSI.TODAY.IP'; }).length;
-  var silverPnl = data.positions.filter(function(p) { return p.epic === 'CS.D.USCSI.TODAY.IP'; }).reduce(function(s, p) { return s + p.pnl; }, 0);
-  if (silverCount > 2) {
-    alerts.push({ level: 'high', icon: '\uD83D\uDD34', text: '<strong>Concentration:</strong> ' + silverCount + ' silver positions (max 2). Combined PnL: \u00A3' + silverPnl.toFixed(2) + '. QSYS would have blocked entries 3\u20135.' });
+
+  if (data.mode) {
+    currentMode = data.mode;
+    var badge = document.getElementById('modeBadge');
+    badge.textContent = data.mode.toUpperCase();
+    badge.className = 'mode-badge mode-' + data.mode;
   }
+
+  if (data.systemHalted) {
+    systemHalted = true;
+    alerts.push({ level: 'high', icon: '\uD83D\uDED1', text: '<strong>SYSTEM HALTED:</strong> All automated trading is suspended. Use Resume to reactivate.' });
+  }
+
+  var silverCount = data.positions.filter(function(p) { return p.epic === 'CS.D.USCSI.TODAY.IP'; }).length;
+  if (silverCount > 2) {
+    var silverPnl = data.positions.filter(function(p) { return p.epic === 'CS.D.USCSI.TODAY.IP'; }).reduce(function(s, p) { return s + p.pnl; }, 0);
+    alerts.push({ level: 'high', icon: '\uD83D\uDD34', text: '<strong>Concentration:</strong> ' + silverCount + ' silver positions (max 2). Combined PnL: \u00A3' + silverPnl.toFixed(2) });
+  }
+
   var totalPnl = data.positions.reduce(function(s, p) { return s + p.pnl; }, 0);
-  var dd = Math.abs(totalPnl) / data.account.balance;
+  var dd = data.account.balance > 0 ? Math.abs(totalPnl) / data.account.balance : 0;
   if (dd > 0.08) {
     alerts.push({ level: dd > 0.12 ? 'high' : 'medium', icon: dd > 0.12 ? '\uD83D\uDD34' : '\uD83D\uDFE1', text: '<strong>Drawdown ' + (dd * 100).toFixed(1) + '%:</strong> ' + (dd > 0.12 ? 'Kill switch would trigger at 12%.' : 'Approaching 12% halt threshold.') });
   }
-  if (systemHalted) {
-    alerts.push({ level: 'high', icon: '\uD83D\uDED1', text: '<strong>SYSTEM HALTED:</strong> All automated trading is suspended. Use Resume to reactivate.' });
-  }
-  if (CONFIG.mockMode) {
-    alerts.push({ level: 'info', icon: '\u2139\uFE0F', text: '<strong>Mock data:</strong> Showing data from last connection test. Deploy Edge Function for live updates.' });
-  }
+
   container.innerHTML = alerts.map(function(a) {
     return '<div class="alert alert-' + a.level + '"><span class="alert-icon">' + a.icon + '</span><span class="alert-text">' + a.text + '</span></div>';
   }).join('');
 }
-function killSystem() {
-  if (!confirm('HALT ALL TRADING across all platforms?\n\nThis stops all automated execution immediately.')) return;
+
+async function killSystem() {
+  if (!confirm('HALT ALL TRADING?')) return;
+  try {
+    await fetch(CONFIG.edgeFunctionUrl + '/kill', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ level: 'system', reason: 'Manual kill from dashboard' })
+    });
+  } catch (e) {}
   systemHalted = true;
   brokerHalts = { ig: true, polymarket: true };
   updateKillUI();
-  addLog('kill', 'SYSTEM KILL \u2014 All trading halted by operator');
-  renderAlerts(lastData);
+  addLog('kill', 'SYSTEM KILL sent to server');
+  refresh();
 }
+
 function killBroker(id) {
   var name = id === 'ig' ? 'IG Trading' : 'Polymarket';
-  if (!confirm('Halt ' + name + '?\n\nNo new trades will be placed on ' + name + '.')) return;
+  if (!confirm('Halt ' + name + '?')) return;
+  fetch(CONFIG.edgeFunctionUrl + '/kill', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ level: id, reason: 'Manual ' + name + ' halt' })
+  }).catch(function() {});
   brokerHalts[id] = true;
   updateKillUI();
   addLog('kill', 'BROKER KILL \u2014 ' + name + ' halted by operator');
 }
-function resumeAll() {
-  var code = prompt('Enter confirmation code to resume trading:\n\nType: CONFIRM_RESUME');
-  if (code === 'CONFIRM_RESUME') {
-    systemHalted = false;
-    brokerHalts = {};
-    updateKillUI();
-    addLog('info', 'System RESUMED \u2014 trading reactivated');
-    renderAlerts(lastData);
-  } else if (code !== null) {
-    alert('Wrong confirmation code. Trading remains halted.');
-    addLog('info', 'Resume rejected \u2014 wrong confirmation code');
-  }
+
+async function resumeAll() {
+  var code = prompt('Type CONFIRM_RESUME to resume:');
+  if (code !== 'CONFIRM_RESUME') { if (code !== null) alert('Wrong code.'); return; }
+  try {
+    await fetch(CONFIG.edgeFunctionUrl + '/resume', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ confirmation: 'CONFIRM_RESUME' })
+    });
+  } catch (e) {}
+  systemHalted = false;
+  brokerHalts = {};
+  updateKillUI();
+  addLog('info', 'System RESUMED');
+  refresh();
 }
+
 function updateKillUI() {
   var dot = document.getElementById('statusDot');
   var label = document.getElementById('statusLabel');
@@ -564,7 +722,7 @@ function updateKillUI() {
     document.getElementById('btnKillSystem').textContent = '\u26A0 SYSTEM HALTED';
   } else {
     dot.className = 'status-dot';
-    label.textContent = CONFIG.mockMode ? 'Mock Data' : 'Connected';
+    label.textContent = 'Connected';
     document.getElementById('sysKillStatus').className = 'tag tag-buy';
     document.getElementById('sysKillStatus').textContent = 'ARMED';
     document.getElementById('btnKillSystem').className = 'kill-btn kill-btn-danger';
@@ -577,6 +735,7 @@ function updateKillUI() {
   document.getElementById('polyKillStatus').className = polyH ? 'tag tag-warn' : 'tag tag-buy';
   document.getElementById('polyKillStatus').textContent = polyH ? 'HALTED' : 'ACTIVE';
 }
+
 function addLog(type, message) {
   var container = document.getElementById('logContainer');
   var time = new Date().toLocaleTimeString('en-GB');
@@ -587,28 +746,31 @@ function addLog(type, message) {
   container.insertBefore(entry, container.firstChild);
   while (container.children.length > 50) container.removeChild(container.lastChild);
 }
+
 async function refresh() {
   var data = await fetchData();
   if (data) {
     lastData = data;
     renderMetrics(data);
     renderPositions(data);
+    renderPaperTrades(data);
+    renderSignals(data);
     renderAlerts(data);
     document.getElementById('lastUpdate').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB');
   }
   updateKillUI();
 }
-// Check auth — redirect to login if no session
+
+// Check auth
 if (!getSessionToken()) {
   document.getElementById('alertsContainer').innerHTML =
     '<div class="alert alert-medium">' +
     '<span class="alert-icon">\uD83D\uDD12</span>' +
     '<span class="alert-text"><strong>Not authenticated.</strong> ' +
-    '<a href="/account/" style="color: var(--accent-cyan);">Log in</a> to your Ailane account to load live trading data. ' +
-    'Showing mock data until authenticated.</span></div>';
+    '<a href="/account/" style="color: var(--accent-cyan);">Log in</a> to your Ailane account to load live trading data.</span></div>';
 }
 refresh();
-addLog('info', 'Dashboard loaded \u2014 ' + (CONFIG.mockMode ? 'mock data' : 'live connection'));
+addLog('info', 'Dashboard loaded \u2014 live connection');
 setInterval(refresh, CONFIG.refreshInterval);
 </script>
 </body>
