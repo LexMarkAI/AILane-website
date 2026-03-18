@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QSYS Trading — AiLane CEO</title>
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #05070a;
+      --bg-surface: #0b0e14;
+      --bg-card: #0f1319;
+      --bg-card-hover: #141820;
+      --border: #1a1f2e;
+      --border-active: #2a3348;
+      --text-primary: #e2e5ec;
+      --text-secondary: #6b7394;
+      --text-muted: #3d4460;
+      --accent-cyan: #22d3ee;
+      --accent-cyan-dim: rgba(34, 211, 238, 0.1);
+      --accent-green: #34d399;
+      --accent-green-dim: rgba(52, 211, 153, 0.08);
+      --accent-red: #f87171;
+      --accent-red-dim: rgba(248, 113, 113, 0.08);
+      --accent-amber: #fbbf24;
+      --accent-amber-dim: rgba(251, 191, 36, 0.08);
+      --font-display: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: -30%; left: -10%;
+      width: 60%; height: 60%;
+      background: radial-gradient(ellipse, rgba(34, 211, 238, 0.03) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .topbar-logo {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+    }
+    .topbar-divider { width: 1px; height: 20px; background: var(--border); }
+    .topbar-title { font-size: 13px; color: var(--text-secondary); font-weight: 400; }
+    .topbar-back {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .topbar-back:hover { color: var(--accent-cyan); }
+    .topbar-status { display: flex; align-items: center; gap: 8px; }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+      animation: pulse 2s infinite;
+    }
+    .status-dot.offline { background: var(--accent-red); box-shadow: 0 0 8px rgba(248,113,113,0.5); animation: none; }
+    .status-dot.halted { background: var(--accent-amber); box-shadow: 0 0 8px rgba(251,191,36,0.5); animation: none; }
+    .status-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; position: relative; z-index: 1; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .metric {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 16px;
+      transition: border-color 0.2s;
+    }
+    .metric:hover { border-color: var(--border-active); }
+    .metric-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .metric-value.positive { color: var(--accent-green); }
+    .metric-value.negative { color: var(--accent-red); }
+    .metric-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .section { margin-bottom: 28px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .positions-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .positions-table th {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+    .positions-table td {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--text-primary);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .positions-table tr:last-child td { border-bottom: none; }
+    .positions-table tr:hover td { background: var(--bg-card-hover); }
+    .instrument-name {
+      font-family: var(--font-display);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .pnl-positive { color: var(--accent-green); }
+    .pnl-negative { color: var(--accent-red); }
+    .tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+    .tag-buy { background: var(--accent-green-dim); color: var(--accent-green); }
+    .tag-sell { background: var(--accent-red-dim); color: var(--accent-red); }
+    .tag-warn { background: var(--accent-amber-dim); color: var(--accent-amber); }
+    .kill-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .kill-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      transition: all 0.2s;
+    }
+    .kill-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .kill-card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .kill-card-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px; }
+    .kill-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      border: 1px solid;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+      width: 100%;
+    }
+    .kill-btn-danger { border-color: var(--accent-red); color: var(--accent-red); }
+    .kill-btn-danger:hover { background: var(--accent-red); color: #000; }
+    .kill-btn-resume { border-color: var(--accent-green); color: var(--accent-green); }
+    .kill-btn-resume:hover { background: var(--accent-green); color: #000; }
+    .kill-btn-active {
+      background: var(--accent-red); color: #000; font-weight: 700;
+      animation: pulse-bg 1.5s infinite;
+    }
+    @keyframes pulse-bg { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .alert {
+      padding: 14px 18px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .alert-high { background: var(--accent-red-dim); border-left: 3px solid var(--accent-red); }
+    .alert-medium { background: var(--accent-amber-dim); border-left: 3px solid var(--accent-amber); }
+    .alert-info { background: var(--accent-cyan-dim); border-left: 3px solid var(--accent-cyan); }
+    .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .alert-text { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
+    .alert-text strong { color: var(--text-primary); }
+    .log-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+    .log-entry {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(26, 31, 46, 0.5);
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time { color: var(--text-muted); }
+    .log-kill { color: var(--accent-red); }
+    .log-trade { color: var(--accent-cyan); }
+    .log-info { color: var(--text-secondary); }
+    .footer {
+      margin-top: 40px;
+      padding: 20px 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-text { font-size: 10px; color: var(--text-muted); line-height: 1.6; }
+    .footer a { color: var(--text-secondary); text-decoration: none; }
+    .footer a:hover { color: var(--accent-cyan); }
+    .loading {
+      display: flex; align-items: center; gap: 10px; padding: 40px;
+      justify-content: center; color: var(--text-muted);
+      font-family: var(--font-mono); font-size: 11px;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 768px) {
+      .main { padding: 16px 12px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .kill-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="/AiLaneCEO/" class="topbar-back">&#8592; CEO Dashboard</a>
+    <div class="topbar-divider"></div>
+    <span class="topbar-logo">QSYS</span>
+    <span class="topbar-title">Trading Terminal</span>
+  </div>
+  <div class="topbar-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-label" id="statusLabel">Connecting...</span>
+  </div>
+</div>
+<div class="main">
+  <div id="alertsContainer"></div>
+  <div class="metrics" id="metricsGrid">
+    <div class="metric">
+      <div class="metric-label">Equity</div>
+      <div class="metric-value" id="mEquity">&mdash;</div>
+      <div class="metric-sub" id="mEquitySub">Loading...</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Running PnL</div>
+      <div class="metric-value" id="mPnl">&mdash;</div>
+      <div class="metric-sub" id="mPnlSub"></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Cash Available</div>
+      <div class="metric-value" id="mCash">&mdash;</div>
+      <div class="metric-sub" id="mCashSub"></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Margin Used</div>
+      <div class="metric-value" id="mMargin">&mdash;</div>
+      <div class="metric-sub" id="mMarginSub"></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Positions</div>
+      <div class="metric-value" id="mPositions">&mdash;</div>
+      <div class="metric-sub">Open</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Drawdown</div>
+      <div class="metric-value" id="mDrawdown">&mdash;</div>
+      <div class="metric-sub" id="mDrawdownSub"></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Open Positions — IG Trading</span>
+      <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);" id="lastUpdate">&mdash;</span>
+    </div>
+    <div id="positionsContainer">
+      <div class="loading"><div class="spinner"></div>Loading positions...</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Kill Switches</span>
+    </div>
+    <div class="kill-grid">
+      <div class="kill-card">
+        <div class="kill-card-header">
+          <span class="kill-card-title">&#x1F6D1; System Kill</span>
+          <span class="tag tag-buy" id="sysKillStatus">ARMED</span>
+        </div>
+        <div class="kill-card-desc">Halt ALL trading across IG and Polymarket. Nuclear option.</div>
+        <button class="kill-btn kill-btn-danger" id="btnKillSystem" onclick="killSystem()">Kill All Trading</button>
+      </div>
+      <div class="kill-card">
+        <div class="kill-card-header">
+          <span class="kill-card-title">&#x1F4CA; IG Trading</span>
+          <span class="tag tag-buy" id="igKillStatus">ACTIVE</span>
+        </div>
+        <div class="kill-card-desc">Halt IG spread bet execution. Positions stay open but no new trades.</div>
+        <button class="kill-btn kill-btn-danger" id="btnKillIG" onclick="killBroker('ig')">Halt IG</button>
+      </div>
+      <div class="kill-card">
+        <div class="kill-card-header">
+          <span class="kill-card-title">&#x1F52E; Polymarket</span>
+          <span class="tag tag-buy" id="polyKillStatus">ACTIVE</span>
+        </div>
+        <div class="kill-card-desc">Halt Polymarket prediction contract execution.</div>
+        <button class="kill-btn kill-btn-danger" id="btnKillPoly" onclick="killBroker('polymarket')">Halt Polymarket</button>
+      </div>
+      <div class="kill-card">
+        <div class="kill-card-header">
+          <span class="kill-card-title">&#x1F504; Resume All</span>
+        </div>
+        <div class="kill-card-desc">Resume trading after a halt. Requires confirmation.</div>
+        <button class="kill-btn kill-btn-resume" id="btnResume" onclick="resumeAll()">Resume Trading</button>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Activity Log</span>
+    </div>
+    <div class="log-container" id="logContainer">
+      <div class="log-entry"><span class="log-time">--:--:--</span> <span class="log-info">System initialising...</span></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer-text">
+      QSYS Trading Terminal — Not financial advice<br>
+      Spread bets are leveraged. 67% of retail accounts lose money with IG.<br>
+      <a href="/terms/">Terms</a> &middot; <a href="/privacy/">Privacy</a>
+    </div>
+    <div class="footer-text" style="text-align: right;">
+      Account LYTOL &middot; Spread betting &middot; GBP<br>
+      IG Index Ltd &middot; FCA Register 114059
+    </div>
+  </div>
+</div>
+<script>
+const CONFIG = {
+  edgeFunctionUrl: 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-proxy',
+  refreshInterval: 30000,
+  mockMode: true,
+};
+let systemHalted = false;
+let brokerHalts = {};
+let lastData = null;
+const MOCK_DATA = {
+  account: { balance: 1150.59, profitLoss: -108.78, available: 907.00, deposit: 243.59 },
+  positions: [
+    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.09, level: 8696.8, bid: 7527.0, pnl: -105.28, flags: ['CONCENTRATION'] },
+    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 8455.0, bid: 7527.0, pnl: -18.56, flags: ['CONCENTRATION'] },
+    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 8442.0, bid: 7527.0, pnl: -18.30, flags: ['CONCENTRATION'] },
+    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 8096.9, bid: 7527.0, pnl: -11.40, flags: [] },
+    { epic: 'CS.D.USCSI.TODAY.IP', name: 'Spot Silver', direction: 'BUY', size: 0.02, level: 7993.1, bid: 7527.0, pnl: -9.32, flags: [] },
+    { epic: 'OP.D.VIX1.2500C.IP', name: 'VIX 25.0 CALL', direction: 'BUY', size: 15, level: 2.84, bid: 3.6, pnl: 11.55, flags: [] },
+    { epic: 'OP.D.VIX1.2900C.IP', name: 'VIX 29.0 CALL', direction: 'BUY', size: 10, level: 1.9, bid: 2.8, pnl: 9.20, flags: [] },
+  ],
+};
+async function fetchData() {
+  if (CONFIG.mockMode || !CONFIG.edgeFunctionUrl) return MOCK_DATA;
+  try {
+    const resp = await fetch(CONFIG.edgeFunctionUrl + '/positions', {
+      headers: { 'Authorization': 'Bearer ' + getSessionToken() }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch (err) {
+    addLog('error', 'Fetch failed: ' + err.message);
+    return null;
+  }
+}
+function getSessionToken() { return ''; }
+function renderMetrics(data) {
+  if (!data) return;
+  const a = data.account;
+  const totalPnl = data.positions.reduce(function(s, p) { return s + p.pnl; }, 0);
+  const equity = a.balance + totalPnl;
+  const drawdown = totalPnl < 0 ? Math.abs(totalPnl) / a.balance : 0;
+  setMetric('mEquity', '\u00A3' + equity.toFixed(0), equity >= a.balance ? '' : 'negative');
+  setMetric('mPnl', '\u00A3' + (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2), totalPnl >= 0 ? 'positive' : 'negative');
+  document.getElementById('mPnlSub').textContent = ((totalPnl / a.balance) * 100).toFixed(1) + '%';
+  setMetric('mCash', '\u00A3' + a.available.toFixed(0));
+  setMetric('mMargin', '\u00A3' + a.deposit.toFixed(0));
+  document.getElementById('mMarginSub').textContent = ((a.deposit / equity) * 100).toFixed(0) + '% utilisation';
+  setMetric('mPositions', data.positions.length);
+  setMetric('mDrawdown', (drawdown * 100).toFixed(1) + '%', drawdown > 0.08 ? 'negative' : '');
+  document.getElementById('mDrawdownSub').textContent = drawdown > 0.08 ? 'WARNING' : 'Within limits';
+  document.getElementById('mEquitySub').textContent = 'Cash: \u00A3' + a.balance.toFixed(2);
+}
+function setMetric(id, value, cls) {
+  var el = document.getElementById(id);
+  el.textContent = value;
+  el.className = 'metric-value' + (cls ? ' ' + cls : '');
+}
+function renderPositions(data) {
+  if (!data) return;
+  var container = document.getElementById('positionsContainer');
+  if (data.positions.length === 0) {
+    container.innerHTML = '<div class="loading">No open positions</div>';
+    return;
+  }
+  var html = '<table class="positions-table"><thead><tr><th>Instrument</th><th>Dir</th><th>Stake</th><th>Entry</th><th>Current</th><th>PnL</th><th>Flags</th></tr></thead><tbody>';
+  data.positions.forEach(function(p) {
+    var pnlClass = p.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+    var flags = p.flags.map(function(f) { return '<span class="tag tag-warn">' + f + '</span>'; }).join(' ');
+    html += '<tr><td>' + p.epic + '<div class="instrument-name">' + p.name + '</div></td><td><span class="tag tag-buy">' + p.direction + '</span></td><td>\u00A3' + p.size + '</td><td>' + p.level.toFixed(1) + '</td><td>' + p.bid.toFixed(1) + '</td><td class="' + pnlClass + '">\u00A3' + (p.pnl >= 0 ? '+' : '') + p.pnl.toFixed(2) + '</td><td>' + flags + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+function renderAlerts(data) {
+  if (!data) return;
+  var container = document.getElementById('alertsContainer');
+  var alerts = [];
+  var silverCount = data.positions.filter(function(p) { return p.epic === 'CS.D.USCSI.TODAY.IP'; }).length;
+  var silverPnl = data.positions.filter(function(p) { return p.epic === 'CS.D.USCSI.TODAY.IP'; }).reduce(function(s, p) { return s + p.pnl; }, 0);
+  if (silverCount > 2) {
+    alerts.push({ level: 'high', icon: '\uD83D\uDD34', text: '<strong>Concentration:</strong> ' + silverCount + ' silver positions (max 2). Combined PnL: \u00A3' + silverPnl.toFixed(2) + '. QSYS would have blocked entries 3\u20135.' });
+  }
+  var totalPnl = data.positions.reduce(function(s, p) { return s + p.pnl; }, 0);
+  var dd = Math.abs(totalPnl) / data.account.balance;
+  if (dd > 0.08) {
+    alerts.push({ level: dd > 0.12 ? 'high' : 'medium', icon: dd > 0.12 ? '\uD83D\uDD34' : '\uD83D\uDFE1', text: '<strong>Drawdown ' + (dd * 100).toFixed(1) + '%:</strong> ' + (dd > 0.12 ? 'Kill switch would trigger at 12%.' : 'Approaching 12% halt threshold.') });
+  }
+  if (systemHalted) {
+    alerts.push({ level: 'high', icon: '\uD83D\uDED1', text: '<strong>SYSTEM HALTED:</strong> All automated trading is suspended. Use Resume to reactivate.' });
+  }
+  if (CONFIG.mockMode) {
+    alerts.push({ level: 'info', icon: '\u2139\uFE0F', text: '<strong>Mock data:</strong> Showing data from last connection test. Deploy Edge Function for live updates.' });
+  }
+  container.innerHTML = alerts.map(function(a) {
+    return '<div class="alert alert-' + a.level + '"><span class="alert-icon">' + a.icon + '</span><span class="alert-text">' + a.text + '</span></div>';
+  }).join('');
+}
+function killSystem() {
+  if (!confirm('HALT ALL TRADING across all platforms?\n\nThis stops all automated execution immediately.')) return;
+  systemHalted = true;
+  brokerHalts = { ig: true, polymarket: true };
+  updateKillUI();
+  addLog('kill', 'SYSTEM KILL \u2014 All trading halted by operator');
+  renderAlerts(lastData);
+}
+function killBroker(id) {
+  var name = id === 'ig' ? 'IG Trading' : 'Polymarket';
+  if (!confirm('Halt ' + name + '?\n\nNo new trades will be placed on ' + name + '.')) return;
+  brokerHalts[id] = true;
+  updateKillUI();
+  addLog('kill', 'BROKER KILL \u2014 ' + name + ' halted by operator');
+}
+function resumeAll() {
+  var code = prompt('Enter confirmation code to resume trading:\n\nType: CONFIRM_RESUME');
+  if (code === 'CONFIRM_RESUME') {
+    systemHalted = false;
+    brokerHalts = {};
+    updateKillUI();
+    addLog('info', 'System RESUMED \u2014 trading reactivated');
+    renderAlerts(lastData);
+  } else if (code !== null) {
+    alert('Wrong confirmation code. Trading remains halted.');
+    addLog('info', 'Resume rejected \u2014 wrong confirmation code');
+  }
+}
+function updateKillUI() {
+  var dot = document.getElementById('statusDot');
+  var label = document.getElementById('statusLabel');
+  if (systemHalted) {
+    dot.className = 'status-dot halted';
+    label.textContent = 'HALTED';
+    document.getElementById('sysKillStatus').className = 'tag tag-warn';
+    document.getElementById('sysKillStatus').textContent = 'HALTED';
+    document.getElementById('btnKillSystem').className = 'kill-btn kill-btn-active';
+    document.getElementById('btnKillSystem').textContent = '\u26A0 SYSTEM HALTED';
+  } else {
+    dot.className = 'status-dot';
+    label.textContent = CONFIG.mockMode ? 'Mock Data' : 'Connected';
+    document.getElementById('sysKillStatus').className = 'tag tag-buy';
+    document.getElementById('sysKillStatus').textContent = 'ARMED';
+    document.getElementById('btnKillSystem').className = 'kill-btn kill-btn-danger';
+    document.getElementById('btnKillSystem').textContent = 'Kill All Trading';
+  }
+  var igH = brokerHalts.ig || systemHalted;
+  document.getElementById('igKillStatus').className = igH ? 'tag tag-warn' : 'tag tag-buy';
+  document.getElementById('igKillStatus').textContent = igH ? 'HALTED' : 'ACTIVE';
+  var polyH = brokerHalts.polymarket || systemHalted;
+  document.getElementById('polyKillStatus').className = polyH ? 'tag tag-warn' : 'tag tag-buy';
+  document.getElementById('polyKillStatus').textContent = polyH ? 'HALTED' : 'ACTIVE';
+}
+function addLog(type, message) {
+  var container = document.getElementById('logContainer');
+  var time = new Date().toLocaleTimeString('en-GB');
+  var cls = type === 'kill' ? 'log-kill' : type === 'trade' ? 'log-trade' : 'log-info';
+  var entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = '<span class="log-time">' + time + '</span> <span class="' + cls + '">' + message + '</span>';
+  container.insertBefore(entry, container.firstChild);
+  while (container.children.length > 50) container.removeChild(container.lastChild);
+}
+async function refresh() {
+  var data = await fetchData();
+  if (data) {
+    lastData = data;
+    renderMetrics(data);
+    renderPositions(data);
+    renderAlerts(data);
+    document.getElementById('lastUpdate').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB');
+  }
+  updateKillUI();
+}
+refresh();
+addLog('info', 'Dashboard loaded \u2014 ' + (CONFIG.mockMode ? 'mock data' : 'live connection'));
+setInterval(refresh, CONFIG.refreshInterval);
+</script>
+</body>
+</html>
