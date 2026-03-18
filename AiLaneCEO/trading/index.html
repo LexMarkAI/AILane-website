@@ -422,7 +422,7 @@
 const CONFIG = {
   edgeFunctionUrl: 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-proxy',
   refreshInterval: 30000,
-  mockMode: true,
+  mockMode: false,
 };
 let systemHalted = false;
 let brokerHalts = {};
@@ -452,7 +452,16 @@ async function fetchData() {
     return null;
   }
 }
-function getSessionToken() { return ''; }
+function getSessionToken() {
+  try {
+    var stored = localStorage.getItem('sb-cnbsxwtvazfvzmltkuvx-auth-token');
+    if (stored) {
+      var parsed = JSON.parse(stored);
+      return parsed.access_token || '';
+    }
+  } catch (e) {}
+  return '';
+}
 function renderMetrics(data) {
   if (!data) return;
   const a = data.account;
@@ -588,6 +597,15 @@ async function refresh() {
     document.getElementById('lastUpdate').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB');
   }
   updateKillUI();
+}
+// Check auth — redirect to login if no session
+if (!getSessionToken()) {
+  document.getElementById('alertsContainer').innerHTML =
+    '<div class="alert alert-medium">' +
+    '<span class="alert-icon">\uD83D\uDD12</span>' +
+    '<span class="alert-text"><strong>Not authenticated.</strong> ' +
+    '<a href="/account/" style="color: var(--accent-cyan);">Log in</a> to your Ailane account to load live trading data. ' +
+    'Showing mock data until authenticated.</span></div>';
 }
 refresh();
 addLog('info', 'Dashboard loaded \u2014 ' + (CONFIG.mockMode ? 'mock data' : 'live connection'));
