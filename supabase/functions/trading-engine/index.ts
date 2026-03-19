@@ -318,8 +318,11 @@ serve(async (req: Request) => {
           const { data: openPaperTrades } = await sb.from("trading_paper_trades").select("*").eq("status", "OPEN");
 
           const signals: any[] = [];
-          const scanLimit = Math.min(instruments.length, 30);
-          const toScan = instruments.slice(0, scanLimit);
+          const BATCH_SIZE = 30;
+          let scanOffset = parseInt(state.scan_offset ?? "0", 10);
+          if (scanOffset >= instruments.length) scanOffset = 0;
+          const toScan = instruments.slice(scanOffset, scanOffset + BATCH_SIZE);
+          const nextOffset = (scanOffset + BATCH_SIZE >= instruments.length) ? 0 : scanOffset + BATCH_SIZE;
 
           for (const inst of toScan) {
             const priceData = await igFetchPrices(session, inst.epic);
@@ -356,6 +359,9 @@ serve(async (req: Request) => {
 
             await new Promise(r => setTimeout(r, 1500));
           }
+
+          // Persist next scan offset for rotation
+          await sb.from("trading_system_state").upsert({ key: "scan_offset", value: String(nextOffset), updated_at: new Date().toISOString() }, { onConflict: "key" });
 
           const openPaperCount = (openPaperTrades ?? []).filter((t: any) => t.status === "OPEN").length;
           const canTrade = !systemHalted && openPaperCount < RISK.maxConcurrentPositions;
@@ -418,7 +424,8 @@ serve(async (req: Request) => {
           });
 
           result = { mode, systemHalted, equity, runningPnl: totalPnl,
-            instrumentsScanned: scanLimit, signalsGenerated: signals.length, newTrades,
+            instrumentsScanned: toScan.length, instrumentsTotal: instruments.length, scanOffset: scanOffset,
+            signalsGenerated: signals.length, newTrades,
             openPositionsIG: currentPositions.length, openPaperTrades: openPaperCount,
             timestamp: new Date().toISOString() };
         }
