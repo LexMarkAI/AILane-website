@@ -115,6 +115,8 @@
     }
     .mode-paper { background: var(--accent-amber-dim); color: var(--accent-amber); border: 1px solid rgba(251,191,36,0.3); }
     .mode-live { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.3); }
+    .mode-badge { cursor: pointer; transition: opacity 0.15s; }
+    .mode-badge:hover { opacity: 0.75; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; position: relative; z-index: 1; }
     .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
@@ -344,7 +346,7 @@
     <span class="topbar-title">Trading Terminal</span>
   </div>
   <div class="topbar-status">
-    <span class="mode-badge mode-paper" id="modeBadge">PAPER</span>
+    <span class="mode-badge mode-paper" id="modeBadge" onclick="toggleMode()" title="Click to switch trading mode">PAPER</span>
     <div class="status-dot" id="statusDot"></div>
     <span class="status-label" id="statusLabel">Connecting...</span>
   </div>
@@ -708,6 +710,33 @@ async function resumeAll() {
   updateKillUI();
   addLog('info', 'System RESUMED');
   refresh();
+}
+
+async function toggleMode() {
+  var newMode = currentMode === 'paper' ? 'live' : 'paper';
+  var confirmText = newMode === 'live' ? 'GO_LIVE' : 'GO_PAPER';
+  var code = prompt('Switch to ' + newMode.toUpperCase() + ' mode?\n\nType ' + confirmText + ' to confirm:');
+  if (code !== confirmText) { if (code !== null) addLog('info', 'Mode switch cancelled'); return; }
+  try {
+    var resp = await fetch(CONFIG.edgeFunctionUrl + '/set-mode', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ mode: newMode })
+    });
+    var data = await resp.json();
+    if (data.mode) {
+      currentMode = data.mode;
+      var badge = document.getElementById('modeBadge');
+      badge.textContent = data.mode.toUpperCase();
+      badge.className = 'mode-badge mode-' + data.mode;
+      addLog('trade', 'Mode switched to ' + data.mode.toUpperCase());
+      refresh();
+    } else {
+      addLog('error', 'Mode switch failed: ' + JSON.stringify(data));
+    }
+  } catch (err) {
+    addLog('error', 'Mode switch error: ' + err.message);
+  }
 }
 
 function updateKillUI() {
