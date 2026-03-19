@@ -378,10 +378,13 @@ serve(async (req: Request) => {
           // 3. Check paper trades that need closing
           const { data: openPaperTrades } = await sb.from("trading_paper_trades").select("*").eq("status", "OPEN");
 
-          // 4. Scan instruments (rate limited — max 30 per cycle)
+          // 4. Scan instruments (rate limited — rotating batch of 30 per cycle)
           const signals: any[] = [];
-          const scanLimit = Math.min(instruments.length, 30);
-          const toScan = instruments.slice(0, scanLimit);
+          const BATCH_SIZE = 30;
+          let scanOffset = parseInt(state.scan_offset ?? "0", 10);
+          if (scanOffset >= instruments.length) scanOffset = 0;
+          const toScan = instruments.slice(scanOffset, scanOffset + BATCH_SIZE);
+          const nextOffset = scanOffset + BATCH_SIZE >= instruments.length ? 0 : scanOffset + BATCH_SIZE;
 
           for (const inst of toScan) {
             const priceData = await igFetchPrices(session, inst.epic);
@@ -438,6 +441,9 @@ serve(async (req: Request) => {
             // Rate limit: 1.5s between IG requests
             await new Promise(r => setTimeout(r, 1500));
           }
+
+          // Persist next scan offset for rotation
+          await sb.from("trading_system_state").upsert({ key: "scan_offset", value: String(nextOffset), updated_at: new Date().toISOString() }, { onConflict: "key" });
 
           // 5. Risk checks before new trades
           const openPaperCount = (openPaperTrades ?? []).filter((t: any) => t.status === "OPEN").length;
@@ -528,7 +534,9 @@ serve(async (req: Request) => {
             systemHalted,
             equity,
             runningPnl: totalPnl,
-            instrumentsScanned: scanLimit,
+            instrumentsScanned: toScan.length,
+            instrumentsTotal: instruments.length,
+            scanOffset: scanOffset,
             signalsGenerated: signals.length,
             newTrades,
             openPositionsIG: currentPositions.length,
