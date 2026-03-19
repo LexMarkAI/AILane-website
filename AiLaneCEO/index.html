@@ -22,7 +22,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- React + Supabase -->
 
@@ -1705,28 +1705,33 @@ function App() {
 
         {/* Row 5: QSYS Trading */}
         <div className="grid-row full">
-          <a href="/AiLaneCEO/trading/" style={{textDecoration:'none',display:'block'}}>
-            <div className="card" style={{'--card-accent':'var(--accent-cyan)',borderLeft:'3px solid #22d3ee'}}>
-              <div className="card-body" style={{padding:'18px 22px'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
-                    <div className="card-icon cyan" style={{width:'36px',height:'36px',fontSize:'16px',fontWeight:'700'}}>Q</div>
-                    <div>
-                      <div style={{fontSize:'14px',fontWeight:'600',color:'var(--text-primary)',marginBottom:'2px'}}>QSYS Trading Terminal</div>
-                      <div style={{fontSize:'12px',color:'var(--text-secondary)'}}>Live positions · Kill switches · PnL tracking</div>
-                    </div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                      <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#34d399',boxShadow:'0 0 8px rgba(52,211,153,0.5)',animation:'qsysPulse 2s infinite'}} />
-                      <span style={{fontFamily:'var(--font-mono)',fontSize:'10px',letterSpacing:'1px',textTransform:'uppercase',color:'var(--text-muted)'}}>Connected</span>
-                    </div>
-                    <span className="card-arrow"><Icons.arrow /></span>
-                  </div>
+          <div className="card" style={{borderLeft:'3px solid #22d3ee'}}>
+            <div className="card-body" style={{padding:'18px 22px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+                <h3 style={{margin:0,fontSize:'14px',letterSpacing:'1px'}}>QSYS TRADING</h3>
+                <span id="qsysStatus" style={{fontSize:'9px',letterSpacing:'1px',color:'#22d3ee'}}>● LIVE</span>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'12px'}}>
+                <div>
+                  <div style={{fontSize:'9px',color:'#6b7394',letterSpacing:'1px'}}>EQUITY</div>
+                  <div id="qsysEquity" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'16px'}}>—</div>
+                </div>
+                <div>
+                  <div style={{fontSize:'9px',color:'#6b7394',letterSpacing:'1px'}}>RUNNING PnL</div>
+                  <div id="qsysPnl" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'16px'}}>—</div>
+                </div>
+                <div>
+                  <div style={{fontSize:'9px',color:'#6b7394',letterSpacing:'1px'}}>POSITIONS</div>
+                  <div id="qsysPositions" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'16px'}}>—</div>
+                </div>
+                <div>
+                  <div style={{fontSize:'9px',color:'#6b7394',letterSpacing:'1px'}}>MODE</div>
+                  <div id="qsysMode" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'16px'}}>—</div>
                 </div>
               </div>
+              <a href="/AiLaneCEO/trading/" style={{display:'block',textAlign:'center',padding:'8px',background:'#22d3ee15',border:'1px solid #22d3ee30',borderRadius:'6px',color:'#22d3ee',textDecoration:'none',fontSize:'10px',letterSpacing:'1.5px'}}>OPEN TERMINAL →</a>
             </div>
-          </a>
+          </div>
         </div>
 
       </div>
@@ -1934,5 +1939,33 @@ function EileenPanel({token, onClose}) {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 
+<script>
+(function(){
+  async function loadQSYS(){
+    try{
+      const r=await fetch('https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-engine/positions');
+      if(!r.ok)throw new Error(r.status);
+      const d=await r.json();
+      const eq=d.account?.balance||0;
+      const pnl=d.account?.profitLoss||0;
+      const pos=d.positions?.length||0;
+      const mode=d.mode||'paper';
+      document.getElementById('qsysEquity').textContent='\u00A3'+eq.toLocaleString();
+      const pnlEl=document.getElementById('qsysPnl');
+      pnlEl.textContent=(pnl>=0?'\u00A3+':'\u00A3')+pnl.toFixed(2);
+      pnlEl.style.color=pnl>=0?'#34d399':'#f87171';
+      document.getElementById('qsysPositions').textContent=pos;
+      document.getElementById('qsysMode').textContent=mode.toUpperCase();
+      document.getElementById('qsysStatus').textContent='\u25CF CONNECTED';
+      document.getElementById('qsysStatus').style.color='#34d399';
+    }catch(e){
+      document.getElementById('qsysStatus').textContent='\u25CF OFFLINE';
+      document.getElementById('qsysStatus').style.color='#f87171';
+    }
+  }
+  loadQSYS();
+  setInterval(loadQSYS,60000);
+})();
+</script>
 </body>
 </html>
