@@ -22,7 +22,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- React + Supabase -->
 
@@ -1350,6 +1350,44 @@ function CalendarCard() {
   );
 }
 
+// ─── Card 8: QSYS Trading Terminal ───
+function QSYSCard() {
+  return (
+    <div className="card" style={{borderLeft: '3px solid #22d3ee', '--card-accent': '#22d3ee'}} onClick={() => window.location.href='/AiLaneCEO/trading/'}>
+      <div className="card-header">
+        <div className="card-title-group">
+          <div className="card-icon cyan" style={{fontFamily:'var(--font-mono)',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.08em'}}>Q</div>
+          <div className="card-title">QSYS Trading</div>
+        </div>
+        <span id="qsysStatus" style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',letterSpacing:'0.06em',color:'#22d3ee'}}>● LIVE</span>
+      </div>
+      <div className="card-body">
+        <div className="kpi-row">
+          <div className="kpi">
+            <div className="kpi-label">Equity</div>
+            <div className="kpi-value" id="qsysEquity" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">Running PnL</div>
+            <div className="kpi-value" id="qsysPnl" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
+          </div>
+        </div>
+        <div className="kpi-row">
+          <div className="kpi">
+            <div className="kpi-label">Positions</div>
+            <div className="kpi-value" id="qsysPositions" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">Mode</div>
+            <div className="kpi-value" id="qsysMode" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
+          </div>
+        </div>
+        <a href="/AiLaneCEO/trading/" onClick={e => e.stopPropagation()} style={{display:'block',textAlign:'center',padding:'8px',background:'rgba(34,211,238,0.08)',border:'1px solid rgba(34,211,238,0.19)',borderRadius:'6px',color:'#22d3ee',textDecoration:'none',fontFamily:'var(--font-mono)',fontSize:'0.65rem',letterSpacing:'0.1em'}}>OPEN TERMINAL →</a>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 // TOAST SYSTEM
 // ═══════════════════════════════════════════════
@@ -1699,6 +1737,11 @@ function App() {
           <CalendarCard />
         </div>
 
+        {/* Row 5: QSYS Trading */}
+        <div className="grid-row two-col">
+          <QSYSCard />
+        </div>
+
       </div>
 
       {/* ═══ EILEEN INTELLIGENCE ENTITY ═══ */}
@@ -1902,6 +1945,35 @@ function EileenPanel({token, onClose}) {
 // MOUNT
 // ═══════════════════════════════════════════════
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<script>
+(function(){
+  async function loadQSYS(){
+    try{
+      const r=await fetch('https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-engine/positions');
+      if(!r.ok)throw new Error(r.status);
+      const d=await r.json();
+      const eq=d.account?.balance||0;
+      const pnl=d.account?.profitLoss||0;
+      const pos=d.positions?.length||0;
+      const mode=d.mode||'paper';
+      document.getElementById('qsysEquity').textContent='£'+eq.toLocaleString();
+      const pnlEl=document.getElementById('qsysPnl');
+      pnlEl.textContent=(pnl>=0?'£+':'£')+pnl.toFixed(2);
+      pnlEl.style.color=pnl>=0?'#34d399':'#f87171';
+      document.getElementById('qsysPositions').textContent=pos;
+      document.getElementById('qsysMode').textContent=mode.toUpperCase();
+      document.getElementById('qsysStatus').textContent='● CONNECTED';
+      document.getElementById('qsysStatus').style.color='#34d399';
+    }catch(e){
+      document.getElementById('qsysStatus').textContent='● OFFLINE';
+      document.getElementById('qsysStatus').style.color='#f87171';
+    }
+  }
+  loadQSYS();
+  setInterval(loadQSYS,60000);
+})();
 </script>
 
 </body>

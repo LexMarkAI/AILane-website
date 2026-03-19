@@ -17,16 +17,16 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-deep: #04060a;
-      --bg-surface: #080b11;
-      --bg-panel: #0c1017;
-      --bg-panel-alt: #0e1219;
+      --bg-deep: #05070a;
+      --bg-surface: #0a0d12;
+      --bg-panel: #0e1117;
+      --bg-panel-hover: #12161d;
       --bg-row-hover: rgba(34,211,238,0.03);
-      --border: #131a25;
-      --border-active: #1c2538;
-      --text-primary: #dfe3ec;
-      --text-secondary: #5e6b8a;
-      --text-muted: #333d55;
+      --border: #151a24;
+      --border-active: #1e2536;
+      --text-primary: #e2e5ec;
+      --text-secondary: #6b7394;
+      --text-muted: #3d4460;
       --cyan: #22d3ee;
       --cyan-dim: rgba(34,211,238,0.08);
       --green: #34d399;
@@ -45,8 +45,7 @@
     body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-d); min-height:100vh; display:flex; flex-direction:column; overflow-x:hidden; }
     body::before { content:''; position:fixed; top:-40%; left:-20%; width:70%; height:70%; background:radial-gradient(ellipse,rgba(34,211,238,0.02) 0%,transparent 70%); pointer-events:none; z-index:0; }
 
-```
-/* ═══ COMMAND BAR ═══ */
+    /* ═══ COMMAND BAR ═══ */
 .cmd { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; z-index:200; }
 .cmd-l { display:flex; align-items:center; gap:12px; }
 .cmd-back { color:var(--text-muted); text-decoration:none; font-size:11px; font-family:var(--font-m); transition:color .2s; }
@@ -174,7 +173,7 @@
 .alert-info { background:var(--cyan-dim); border-left:3px solid var(--cyan); color:var(--text-secondary); }
 
 /* ═══ STATUS BAR ═══ */
-.sbar-bottom { position:fixed; bottom:0; left:0; right:0; height:24px; background:var(--bg-surface); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-family:var(--font-m); font-size:8px; color:var(--text-muted); z-index:200; letter-spacing:1px; }
+.sbar-bottom { position:fixed; bottom:0; left:0; right:0; height:28px; background:var(--bg-surface); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-family:var(--font-m); font-size:8px; color:var(--text-muted); z-index:200; letter-spacing:1px; }
 
 /* ═══ LEGAL ═══ */
 .legal { padding:20px 0; border-top:1px solid var(--border); margin-top:20px; display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted); line-height:1.7; }
@@ -194,8 +193,7 @@
   .kill-grid { grid-template-columns:1fr; }
   .stats { grid-template-columns:repeat(2,1fr); }
   .legal { flex-direction:column; gap:8px; }
-}
-```
+    }
 
   </style>
 </head>
@@ -348,48 +346,46 @@
       <div class="stat"><div class="stat-label">Drawdown Halt</div><div class="stat-val">12%</div></div>
     </div>
 
-```
-<div class="sec">
-  <div class="sec-hdr"><span class="sec-title">Controls</span></div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-    <button class="kbtn kbtn-cyan" style="width:auto;padding:7px 20px;" onclick="doScan()">Run Signal Scan</button>
-    <button class="kbtn kbtn-red" style="width:auto;padding:7px 20px;" onclick="doCloseAll()">Close All Positions</button>
-  </div>
-</div>
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Controls</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+        <button class="kbtn kbtn-cyan" style="width:auto;padding:7px 20px;" onclick="doScan()">Run Signal Scan</button>
+        <button class="kbtn kbtn-red" style="width:auto;padding:7px 20px;" onclick="doCloseAll()">Close All Positions</button>
+      </div>
+    </div>
 
-<div class="sec">
-  <div class="sec-hdr"><span class="sec-title">Kill Switches</span></div>
-  <div class="kill-grid">
-    <div class="kill-card">
-      <div class="kill-card-hdr"><span class="kill-card-title">&#x1F6D1; System Kill</span><span class="tag tag-buy" id="ksStatus">ARMED</span></div>
-      <div class="kill-card-desc">Halt ALL trading across IG and Polymarket.</div>
-      <button class="kbtn kbtn-red" id="bKillSys" onclick="doKill('system')">Kill All Trading</button>
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Kill Switches</span></div>
+      <div class="kill-grid">
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F6D1; System Kill</span><span class="tag tag-buy" id="ksStatus">ARMED</span></div>
+          <div class="kill-card-desc">Halt ALL trading across IG and Polymarket.</div>
+          <button class="kbtn kbtn-red" id="bKillSys" onclick="doKill('system')">Kill All Trading</button>
+        </div>
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F4CA; IG Trading</span><span class="tag tag-buy" id="kiStatus">ACTIVE</span></div>
+          <div class="kill-card-desc">Halt IG spread bet execution. Positions stay open.</div>
+          <button class="kbtn kbtn-red" onclick="doKill('ig')">Halt IG</button>
+        </div>
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F52E; Polymarket</span><span class="tag tag-buy" id="kpStatus">ACTIVE</span></div>
+          <div class="kill-card-desc">Halt Polymarket prediction contract execution.</div>
+          <button class="kbtn kbtn-red" onclick="doKill('polymarket')">Halt Polymarket</button>
+        </div>
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F504; Resume All</span></div>
+          <div class="kill-card-desc">Resume trading after a halt. Requires confirmation code.</div>
+          <button class="kbtn kbtn-green" onclick="doResume()">Resume Trading</button>
+        </div>
+      </div>
     </div>
-    <div class="kill-card">
-      <div class="kill-card-hdr"><span class="kill-card-title">&#x1F4CA; IG Trading</span><span class="tag tag-buy" id="kiStatus">ACTIVE</span></div>
-      <div class="kill-card-desc">Halt IG spread bet execution. Positions stay open.</div>
-      <button class="kbtn kbtn-red" onclick="doKill('ig')">Halt IG</button>
-    </div>
-    <div class="kill-card">
-      <div class="kill-card-hdr"><span class="kill-card-title">&#x1F52E; Polymarket</span><span class="tag tag-buy" id="kpStatus">ACTIVE</span></div>
-      <div class="kill-card-desc">Halt Polymarket prediction contract execution.</div>
-      <button class="kbtn kbtn-red" onclick="doKill('polymarket')">Halt Polymarket</button>
-    </div>
-    <div class="kill-card">
-      <div class="kill-card-hdr"><span class="kill-card-title">&#x1F504; Resume All</span></div>
-      <div class="kill-card-desc">Resume trading after a halt. Requires confirmation code.</div>
-      <button class="kbtn kbtn-green" onclick="doResume()">Resume Trading</button>
-    </div>
-  </div>
-</div>
 
-<div class="sec">
-  <div class="sec-hdr"><span class="sec-title">Activity Log</span></div>
-  <div class="log-wrap" id="logBox">
-    <div class="log-e"><span class="log-t">--:--:--</span> System initialising...</div>
-  </div>
-</div>
-```
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Activity Log</span></div>
+      <div class="log-wrap" id="logBox">
+        <div class="log-e"><span class="log-t">--:--:--</span> System initialising...</div>
+      </div>
+    </div>
 
   </div>
 
