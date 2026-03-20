@@ -619,6 +619,99 @@ footer {
   .portal-card { padding: 24px 20px; }
   .score-top { flex-direction: column; align-items: flex-start; }
 }
+
+/* ── SAMPLE REPORT OVERLAY ── */
+.sr-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75);
+  align-items: flex-start; justify-content: center;
+  padding: 5vh 16px;
+  overflow-y: auto;
+}
+.sr-panel {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; max-width: 720px; width: 100%;
+  padding: 36px 32px; position: relative;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.25);
+  margin: 0 auto;
+}
+.sr-close {
+  position: absolute; top: 16px; right: 18px;
+  background: none; border: none; font-size: 22px;
+  color: var(--text-muted); cursor: pointer; line-height: 1;
+}
+.sr-close:hover { color: var(--text-dark); }
+.sr-badge {
+  display: inline-block;
+  font-size: 9px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--teal-deep);
+  background: rgba(10,92,82,0.1); border: 1px solid rgba(10,92,82,0.25);
+  padding: 4px 10px; border-radius: 3px; margin-bottom: 14px;
+}
+.sr-title {
+  font-family: var(--font-serif); font-size: 24px;
+  font-weight: 400; color: var(--text-dark); margin-bottom: 4px;
+}
+.sr-subtitle { font-size: 13px; color: var(--text-soft); margin-bottom: 24px; }
+.sr-disclaimer {
+  background: #FEF3C7; border: 1px solid #F59E0B;
+  border-left: 4px solid var(--amber);
+  border-radius: 6px; padding: 16px 18px; margin-bottom: 28px;
+}
+.sr-disclaimer p { font-size: 12px; color: #78350F; line-height: 1.7; }
+.sr-score-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.sr-dist-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 28px;
+}
+.sr-dist-cell {
+  text-align: center; background: #F9FAFB;
+  border: 1px solid var(--border); border-radius: 7px; padding: 12px 8px;
+}
+.sr-dist-count { font-size: 22px; font-weight: 900; }
+.sr-dist-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+.sr-findings { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+.sr-finding {
+  background: #F9FAFB; border: 1px solid var(--border);
+  border-radius: 7px; padding: 16px 18px;
+}
+.sr-finding-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.sr-finding h4 { font-size: 14px; font-weight: 600; color: var(--text-dark); }
+.sr-finding .finding-body { font-size: 12.5px; color: var(--text-soft); line-height: 1.65; margin-bottom: 8px; }
+.sr-finding .finding-ref { font-size: 11px; color: var(--text-muted); font-style: italic; }
+.sr-finding .finding-remediation {
+  font-size: 12px; color: var(--teal-deep); line-height: 1.6;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+}
+.sr-footer-note {
+  font-size: 11px; color: var(--text-muted); text-align: center;
+  padding-top: 20px; border-top: 1px solid var(--teal-light);
+  margin-bottom: 24px; font-style: italic;
+}
+.sr-cta-area { text-align: center; }
+.sr-cta-area .btn-primary { font-size: 15px; padding: 15px 36px; }
+.sr-cta-sub { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+.btn-sample-link {
+  display: inline-block; font-size: 13px; color: var(--teal-deep);
+  font-weight: 500; margin-top: 10px; cursor: pointer;
+  background: none; border: none; font-family: var(--font-sans);
+  transition: color .2s;
+}
+.btn-sample-link:hover { color: var(--teal-mid); text-decoration: underline; }
+.btn-sample-outline {
+  display: inline-block; margin-top: 16px;
+  background: transparent; color: var(--teal-deep);
+  font-size: 14px; font-weight: 600;
+  padding: 12px 24px; border-radius: 5px;
+  border: 1.5px solid var(--teal-deep);
+  cursor: pointer; transition: background .2s, color .2s;
+  font-family: var(--font-sans);
+}
+.btn-sample-outline:hover { background: rgba(10,92,82,0.06); }
+@media (max-width: 768px) {
+  .sr-panel { padding: 24px 16px; }
+  .sr-dist-grid { grid-template-columns: repeat(2, 1fr); }
+}
 ```
 
   </style>
@@ -673,6 +766,7 @@ footer {
         <a href="#pricing" class="btn-primary">Check My Contract</a>
         <a href="#how-it-works" class="btn-secondary">See how it works</a>
       </div>
+      <button class="btn-sample-link" onclick="gtag('event','click_cta',{product:'sample_report',location:'hero'});openSampleReport();">See a sample report first</button>
     </div>
   </section>
 
@@ -790,11 +884,166 @@ footer {
       </div>
     </div>
     <p class="sim-note">This is a demonstration based on a fictional scenario ("Jamie"). Your actual report analyses your specific contract.</p>
+    <div style="text-align:center;">
+      <button class="btn-sample-outline" onclick="gtag('event','click_cta',{product:'sample_report',location:'example_section'});openSampleReport();">View the Full Sample Report →</button>
+    </div>
   </div>
 </div>
 ```
 
   </section>
+
+  <!-- SAMPLE REPORT OVERLAY -->
+  <div id="sample-report-overlay" class="sr-overlay" onclick="if(event.target===this)closeSampleReport();">
+    <div class="sr-panel">
+      <button class="sr-close" onclick="closeSampleReport();" aria-label="Close sample report">✕</button>
+      <div class="sr-badge">SAMPLE REPORT</div>
+      <div class="sr-title">Your Employment Contract</div>
+      <div class="sr-subtitle">Zero-hours contract — Facilities Management · Example Scenario · Jamie</div>
+
+      <div class="sr-disclaimer">
+        <p><strong>IMPORTANT:</strong> This compliance assessment has been generated by the Ailane Compliance Checker using AI-assisted analysis of the document you uploaded. It assesses your contract's alignment with defined statutory requirements based on its text and content. It does not constitute legal advice. It does not establish a professional relationship between you and AI Lane Limited. It does not determine whether you have legal rights against your employer, nor does it predict how any dispute or claim would be decided. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720) is not a law firm and does not provide regulated legal services. The findings in this report are designed to help you understand your contractual position and identify areas for review. Before acting on any finding — including taking any steps with your employer or considering a claim — you should consult a qualified employment solicitor.</p>
+      </div>
+
+      <div class="sr-score-row">
+        <div class="sim-score-circle">
+          <div class="sim-score-inner">
+            <div class="sim-score-num">41</div>
+            <div class="sim-score-label">/ 100</div>
+          </div>
+        </div>
+        <div>
+          <div class="sim-risk-label">⚠ ELEVATED CONCERNS</div>
+          <div class="sim-company">10 clauses reviewed · 6 issues identified · 4 compliant</div>
+        </div>
+      </div>
+
+      <div class="sr-dist-grid">
+        <div class="sr-dist-cell">
+          <div class="sr-dist-count" style="color:#F87171;">2</div>
+          <div class="sr-dist-label" style="color:#F87171;">Critical</div>
+        </div>
+        <div class="sr-dist-cell">
+          <div class="sr-dist-count" style="color:#FBBF24;">3</div>
+          <div class="sr-dist-label" style="color:#FBBF24;">Major</div>
+        </div>
+        <div class="sr-dist-cell">
+          <div class="sr-dist-count" style="color:#60A5FA;">1</div>
+          <div class="sr-dist-label" style="color:#60A5FA;">Minor</div>
+        </div>
+        <div class="sr-dist-cell">
+          <div class="sr-dist-count" style="color:#34D399;">4</div>
+          <div class="sr-dist-label" style="color:#34D399;">Compliant</div>
+        </div>
+      </div>
+
+      <div class="sr-findings">
+        <!-- CRITICAL 1 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-critical">CRITICAL</span>
+            <h4>Holiday pay accrual may not reflect your statutory entitlement</h4>
+          </div>
+          <p class="finding-body">Clause 7.1 calculates holiday pay at basic rate only. Workers on variable hours are entitled to holiday pay based on average earnings over 52 weeks under Working Time Regulations 1998, Reg.16, as confirmed in <em>Brazel v Harpur Trust</em> [2022] UKSC 27. This clause may not meet that requirement — worth discussing with a solicitor.</p>
+          <p class="finding-ref">Statutory ref: Working Time Regulations 1998, Reg.16</p>
+          <p class="finding-remediation"><strong>Remediation:</strong> Review holiday pay calculation method. Consider applying the 52-week reference period averaging method required under WTR 1998 Reg.16 for workers with variable hours.</p>
+        </div>
+        <!-- CRITICAL 2 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-critical">CRITICAL</span>
+            <h4>Notice provision may be below your statutory minimum</h4>
+          </div>
+          <p class="finding-body">Clause 11.3 specifies one week's notice regardless of length of service. Under ERA 1996 s.86, after two years of continuous service you are entitled to one week per year of service. If you have been employed for more than two years, this clause may be below the statutory minimum.</p>
+          <p class="finding-ref">Statutory ref: Employment Rights Act 1996 s.86</p>
+          <p class="finding-remediation"><strong>Remediation:</strong> Review notice clause against your actual length of service. If you have 2+ years continuous service, the statutory minimum exceeds the contractual provision.</p>
+        </div>
+        <!-- MAJOR 1 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-major">MAJOR</span>
+            <h4>Written statement of particulars — minimum wage escalation</h4>
+          </div>
+          <p class="finding-body">Clause 4.2 does not include a provision linking pay to annual National Living Wage increases. While not strictly required, its absence means your employer is not contractually obliged to notify you of minimum wage rate changes — a risk for ongoing compliance.</p>
+          <p class="finding-ref">Statutory ref: National Minimum Wage Act 1998</p>
+          <p class="finding-remediation"><strong>Remediation:</strong> Consider requesting that your contract includes a reference to the employer's obligation to pay at least the prevailing NMW/NLW rate.</p>
+        </div>
+        <!-- MAJOR 2 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-major">MAJOR</span>
+            <h4>No disciplinary or grievance procedure reference</h4>
+          </div>
+          <p class="finding-body">The contract does not reference a disciplinary or grievance procedure, nor does it direct the employee to a staff handbook or separate document where these procedures can be found. ERA 1996 s.1(4)(k) requires this information in the written statement of particulars from day one.</p>
+          <p class="finding-ref">Statutory ref: ERA 1996 s.1(4)(k); ACAS Code of Practice</p>
+          <p class="finding-remediation"><strong>Remediation:</strong> Your employer should provide a written reference to the applicable disciplinary and grievance procedures. Consider raising this with your employer or HR department.</p>
+        </div>
+        <!-- MAJOR 3 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-major">MAJOR</span>
+            <h4>Absence of pension auto-enrolment reference</h4>
+          </div>
+          <p class="finding-body">The contract makes no reference to workplace pension arrangements or auto-enrolment obligations under the Pensions Act 2008. If you are an eligible jobholder, your employer must auto-enrol you and this should be reflected in your employment terms.</p>
+          <p class="finding-ref">Statutory ref: Pensions Act 2008 (auto-enrolment)</p>
+          <p class="finding-remediation"><strong>Remediation:</strong> Request written confirmation of your pension arrangements from your employer. If you are an eligible jobholder, auto-enrolment is a legal requirement.</p>
+        </div>
+        <!-- MINOR 1 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-minor">MINOR</span>
+            <h4>Flexible working reference is out of date</h4>
+          </div>
+          <p class="finding-body">Clause 9.1 references a 26-week qualifying period for flexible working requests. The qualifying period was abolished from 6 April 2024 under the Employment Relations (Flexible Working) Act 2023 — you now have the right to request flexible working from day one.</p>
+          <p class="finding-ref">Statutory ref: Employment Relations (Flexible Working) Act 2023; ERA 1996 s.80F</p>
+          <p class="finding-remediation"><strong>Remediation:</strong> This clause is outdated but not harmful. You have the statutory right to request flexible working from day one regardless of what the contract states.</p>
+        </div>
+        <!-- COMPLIANT 1 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-compliant">COMPLIANT</span>
+            <h4>Employer and employee names clearly stated</h4>
+          </div>
+          <p class="finding-body">The contract correctly identifies both parties.</p>
+          <p class="finding-ref">Statutory ref: ERA 1996 s.1(3)</p>
+        </div>
+        <!-- COMPLIANT 2 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-compliant">COMPLIANT</span>
+            <h4>Job title and place of work specified</h4>
+          </div>
+          <p class="finding-body">Job title, duties description, and place of work are clearly stated.</p>
+          <p class="finding-ref">Statutory ref: ERA 1996 s.1(4)(f)-(h)</p>
+        </div>
+        <!-- COMPLIANT 3 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-compliant">COMPLIANT</span>
+            <h4>Pay rate and intervals specified</h4>
+          </div>
+          <p class="finding-body">Hourly rate and weekly pay interval are stated and appear to meet NMW requirements at the current rate.</p>
+          <p class="finding-ref">Statutory ref: ERA 1996 s.1(4)(a)-(b)</p>
+        </div>
+        <!-- COMPLIANT 4 -->
+        <div class="sr-finding">
+          <div class="sr-finding-header">
+            <span class="finding-badge badge-compliant">COMPLIANT</span>
+            <h4>Sick pay notification procedure included</h4>
+          </div>
+          <p class="finding-body">The contract includes notification requirements and references to SSP. Adequate for statutory purposes.</p>
+          <p class="finding-ref">Statutory ref: ERA 1996 s.1(4)(d)(ii)</p>
+        </div>
+      </div>
+
+      <div class="sr-footer-note">This is a sample report based on a fictional scenario. Your report analyses your specific contract against current UK employment law requirements.</div>
+
+      <div class="sr-cta-area">
+        <a href="#pricing" class="btn-primary" onclick="gtag('event','click_cta',{product:'check_from_sample',location:'sample_report_panel'});closeSampleReport();setTimeout(function(){document.getElementById('pricing').scrollIntoView({behavior:'smooth'});},100);">Check Your Contract — £19</a>
+        <p class="sr-cta-sub">No account required. Results delivered in under 2 minutes.</p>
+      </div>
+    </div>
+  </div>
 
   <!-- PRICING -->
 
@@ -1355,6 +1604,21 @@ function renderResults(score, findingCounts, email) {
     }
   }
 }
+
+// ── SAMPLE REPORT OVERLAY ────────────────────────────────────────────────────
+function openSampleReport() {
+  document.getElementById('sample-report-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeSampleReport() {
+  document.getElementById('sample-report-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('sample-report-overlay').style.display === 'flex') {
+    closeSampleReport();
+  }
+});
 
 // ── FINDING FEEDBACK ────────────────────────────────────────────────────────
 async function submitFindingFeedback(btn) {
