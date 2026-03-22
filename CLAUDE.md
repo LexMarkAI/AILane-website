@@ -1,140 +1,185 @@
-# AILANE — CLAUDE CODE CONSTITUTIONAL FRAMEWORK
+# AILANE — Claude Code Project Instructions
 
-## OPERATOR GROUND RULES
+Repository: LexMarkAI/AILane-website
+Serves: ailane.ai via GitHub Pages
+Product: UK employment law compliance and regulatory intelligence SaaS
+Owner: AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)
 
-1. **Anonymity is absolute.** No personal names, no identifying information in code, commits, comments, logs, or outputs. All authorship attributed to "Ailane" or "AI Lane Limited" or the system itself. No exceptions.
-2. **Maximalist business approach.** Customer satisfaction, retention, profits, long-term brand. No laws broken. Ever.
-3. **The three Founding Constitutions are binding.** All technical implementation must conform to constitutional specifications. If code contradicts a constitution, the constitution wins.
+## CRITICAL RULES — READ BEFORE ANY ACTION
 
-## CORPORATE ENTITY
+### Auth Pattern (MANDATORY)
+- JWT decode + raw fetch is the ONLY auth callback pattern:
+  `JSON.parse(atob(token.split('.')[1]))` then `fetch()` with `Authorization: Bearer` header.
+- NEVER use `sb.from()` at callback time — Supabase JS client auth state is not initialised.
+- Auth callback router: `auth/callback/index.html` is the ONLY post-auth redirect point.
 
-- Legal entity: AI Lane Limited (Company No. 17035654), England and Wales
-- Trading name: Ailane
-- Governance body: Ailane Index Committee (AIC) — governs all three indices
+### Landing Page Protection (INCIDENT RULE)
+- `index.html` (root) MUST contain ZERO auth logic, ZERO redirects, ZERO Supabase CDN.
+- It is a passive marketing page only. This was violated previously — never again.
+- Before modifying `index.html`: check for and remove any auth logic FIRST.
 
-## THE AILANE INDEX TRIAD
+### AiLaneCEO/ Protection
+- The `AiLaneCEO/` folder is PERMANENTLY PROTECTED.
+- Never modify without explicit CEO approval.
+- Never add to the auth callback routing matrix.
+- Never delete any file (including legacy HTML files).
 
-Three independent indices, each 0–100, strict separation doctrine:
+### compliance-check v23
+- This is the production analysis engine. DO NOT REPLACE.
+- Rate limiting goes on `portal-upload` (entry point), not `compliance-check`.
 
-| Index | Measures | Key Concept |
-|-------|----------|-------------|
-| ACEI | External regulatory environment exposure | "The weather" |
-| RRI | Forward-looking organisational preparedness | "The umbrella" |
-| CCI | Historical legal & regulatory conduct posture | "The track record" |
+## EVERY HTML PAGE MUST INCLUDE
 
-### Critical Constitutional Rules
-
-- No index modifies any computational input of another index
-- No composite ACEI+RRI+CCI score is permitted under v1.0
-- Combined reporting (side-by-side disclosure) is permitted
-- The AIC governs all three; each has its own amendment procedures
-- ACEI Categories 1–12 serve as default RRI Readiness Domains
-
-## ACEI 12 CATEGORIES
-
-1. Unfair Dismissal
-2. Discrimination & Equal Treatment
-3. Wages, Deductions & Holiday Pay
-4. Whistleblowing & Protected Disclosures
-5. Redundancy & TUPE Transfers
-6. Working Time & Rest Breaks
-7. Parental & Family Rights
-8. Trade Union & Collective Rights
-9. Breach of Contract & Notice Disputes
-10. Health & Safety Protections
-11. Data Protection & Employee Privacy
-12. Business Transfers & Insolvency
-
-## ACEI SCORING FORMULA
-
-```
-L = 0.4 × EVI + 0.3 × EII + 0.3 × SCI
+### GA4 (no exceptions)
+```html
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
 ```
 
-- **EVI** (Event Volume Index) — from tribunal decision volumes
-- **EII** (Enforcement Intensity Index) — four components: RAS, TAS, GPS, MVS
-- **SCI** (Structural Change Index) — statutory, case law, institutional, market practice shifts
+### CSP Meta Tag (SEC-001 §3.2)
+```html
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+```
 
-## RRI KEY COMPONENTS
+## EDGE FUNCTION RULES
 
-### 5 Pillars
-1. Policy & Procedure
-2. Contractual Compliance
-3. Training & Awareness
-4. Systems & Process
-5. Governance & Oversight
+### Security Controls (SEC-001, ratified 22 Mar 2026)
+- **Rate limiting:** All public Edge Functions must include `checkRateLimit()` pattern.
+  portal-upload: 10/15min, KL AI functions: 20/min, health-check: 30/min, CEO dash: 60/min.
+  Payment webhooks: no limit (signature verification is the gate).
+- **CORS:** Client-facing functions return `Access-Control-Allow-Origin: https://ailane.ai`.
+  Webhook receivers have no CORS restriction.
+- **Secret validation:** Every function validates required secrets at handler entry.
+  Missing secret → HTTP 500 with structured error, log secret name (not value).
 
-### Evidence Tiers
-- Tier I: Self-declared (lowest weight)
-- Tier II: Documented (mid weight)
-- Tier III: Independently verified (highest weight)
+### Deployment
+- Edge Functions managed via Supabase Dashboard ONLY. CLI not installed.
+- NEVER deploy a replacement without reading production source first.
+- Download zip → inspect → surgical modification → deploy.
 
-### Core Formulas
-- DIW — Domain Importance Weighting
-- PWV — Pillar Weight Vector
-- WDRS — Weighted Domain Readiness Score
-- URS — Unweighted Readiness Score
-- PCS — Preparedness Composite Score (headline 0–100)
-- DR_PCS — Deadline Risk per active RCE
-- RSI — Readiness Stability Index
-- RM30 — 30-day Rolling Movement
-- TPF — Time Pressure Factor
-- RTE — Regulatory Transition Events
-- OCE — Organisational Change Events
-- ADE — Automatic Domain Expansion
+### verify_jwt Settings
+- `true`: all user-facing functions
+- `false`: webhooks (Stripe, Monzo), pipelines, cron jobs, health-check
 
-### Interaction Protocol (ACEI ↔ RRI)
-- ACEI Forward Exposure entries trigger mandatory RCE Registration in RRI
-- RRI Tier II/III evidence MAY support ACEI Mitigation claims (independently assessed)
-- ACEI Structural Regime Shift triggers automatic RTE review
-- No circular dependencies
+## DATABASE RULES
 
-## DESIGN SYSTEM
+- ALL DDL via `apply_migration` — never raw SQL for schema changes.
+- `execute_sql` for DML and queries only.
+- Non-public schemas: `.schema('name').from('table')` — dot notation silently fails.
+- PostgREST schema exposure needs BOTH SQL grants AND Dashboard checkbox.
+- Always introspect `information_schema.columns` before writing queries.
+- `get_my_org_id()` queries `app_users` (not `organisations`).
 
-- Background: `#06080d`
-- Card background: `#0c1019`
-- Border: `rgba(255,255,255,0.06)`
-- Text primary: `#e8ecf4`
-- Text secondary: `#8894aa`
-- Text muted: `#5a6478`
-- Accent cyan: `#38bdf8`
-- Accent emerald: `#34d399`
-- Accent amber: `#fbbf24`
-- Accent rose: `#fb7185`
-- Accent violet: `#a78bfa`
-- Fonts: DM Sans (body), Space Mono (monospace/labels), Fraunces (headings)
-- Exposure bands: Low 0–20 (`#34d399`), Controlled 21–40 (`#38bdf8`), Elevated 41–60 (`#fbbf24`), High 61–80 (`#f97316`), Severe 81–100 (`#ef4444`)
+### Tier Strings (exact, case-sensitive)
+- `operational_readiness` (NOT `operational`)
+- `governance`
+- `institutional`
 
-## SUPABASE
+## FRONTEND RULES
 
-- URL: `https://cnbsxwtvazfvzmltkuvx.supabase.co`
-- Anon key: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g`
+### JSX Compilation
+- Client-facing React pages: pre-compiled JSX via esbuild (92KB bundle pattern).
+- Babel Standalone acceptable ONLY for AiLaneCEO/ internal pages.
+- Known Babel failures: silent JSX parse errors, missing PropTypes crashes Recharts.
 
-## GITHUB
+### CDN Sources (verified)
+- Recharts: `unpkg.com/recharts@2.12.7/umd/Recharts.js` (cdnjs does NOT host it)
+- PropTypes: `unpkg.com/prop-types@15/prop-types.min.js` (required for Recharts)
+- React 18: `unpkg.com/react@18/umd/react.production.min.js`
+- Supabase JS: `cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js`
 
-- Organisation: LexMarkAI
-- Backend repo: LexMarkAI/ailane-backend
-- Website repo: LexMarkAI/AILane-website
-- Website: ailane.co.uk (GitHub Pages)
-- Dashboard: ailane.ai/dashboard-app/
+### Auth Guard Pattern (protected pages only)
+1. `<body style="visibility:hidden">`
+2. Supabase CDN FIRST in `<head>`
+3. Guard script: `getSession()` → fallback `onAuthStateChange` with 6s timeout
+4. Decode JWT, check tier/email
+5. Success: `document.body.style.visibility = 'visible'`
+6. Failure: `window.location.replace('/login/')` — NEVER show error UI
 
-## TECH STACK
+### Supabase CDN Placement
+- Protected pages (dashboards, intelligence): YES — first in `<head>`
+- Public pages (terms, privacy, ticker, landing): NO
+- index.html (landing page): NEVER
 
-| Component | Technology |
-|-----------|------------|
-| Backend DB | Supabase (PostgreSQL) |
-| Auth | Supabase Auth |
-| Edge Functions | Supabase Edge Functions (Deno) |
-| Calculation Engines | Python |
-| Scraper | Python (real_gov_uk_scraper.py) |
-| Frontend Dashboard | React + Recharts |
-| Hosting (website) | GitHub Pages |
-| Hosting (dashboard) | GitHub Pages |
-| CI/CD target | GitHub Actions |
+## LEGAL SLUGS (locked)
+- Terms: `ailane.ai/terms/`
+- Privacy: `ailane.ai/privacy/`
 
-## CONSTRAINTS
+## PRIVATE ADDRESS — NEVER OUTPUT PUBLICLY
+`4 Min-Y-Mor, Barry, Wales, CF62 6QG` — internal filings only.
 
-- Target market: UK businesses with 75–200 employees
-- All indices, categories, and legal references are UK employment law
-- Separation doctrine is inviolable: no index feeds computational inputs into another
-- No composite score aggregating all three indices into one number (constitutionally prohibited under v1.0)
+## PRODUCT LANGUAGE (banned terms)
+- "Flash Check" → "Contract Compliance Check"
+- "Full Check" → "Three-Document Bundle"
+- "scan" (as product noun) → "check" or "analysis"
+- "guaranteed" → "designed to help identify"
+- "fully compliant" → "positioned to demonstrate compliance"
+- "ensures compliance" → "informs your risk management"
+
+## DEMO ENTITY
+Northerly Hill Facilities Management Ltd. Ref: NH-2014-0347.
+Sector: FM. Cardiff HQ. 238 employees. Never use Northgate or Meridian.
+
+## BRANCH & PR RULES
+
+- Create branches: `claude/[description]`
+- CANNOT create Pull Requests. Do not attempt. No GitHub API access.
+- After pushing, report branch name and provide merge URL:
+  `https://github.com/LexMarkAI/AILane-website/compare/main...[branch-name]`
+- Stop after reporting branch push. Do not attempt PR creation.
+
+## MANDATORY FIRST STEP — EVERY SESSION
+
+Before writing any code:
+1. Read every file you will modify, IN FULL.
+2. Report exactly what you found (structure, IDs, function names).
+3. Wait for confirmation before proceeding.
+4. Include explicit scope exclusion list: what you will NOT modify.
+
+## FILE & FOLDER DELETION
+
+- Never recommend deletion based on folder names alone.
+- Inspect contents first. Report findings. Obtain CEO approval.
+- Protected folders (NEVER delete): AiLaneCEO/, i18n/, scraper/, supabase/, .claude/
+
+## CREDENTIALS
+
+If API keys or secrets appear in conversation:
+1. Flag immediately.
+2. Instruct revocation before any other action.
+3. Do not log, store, or use them.
+
+## SITE STRUCTURE
+
+| Page | Path | Auth |
+|---|---|---|
+| Landing page | `index.html` | NONE — passive |
+| Auth callback | `auth/callback/index.html` | Central router |
+| KL login | `account/index.html` | → /auth/callback/ |
+| Subscription login | `login/index.html` | → /auth/callback/ |
+| KL dashboard | `account/dashboard/index.html` | Any authenticated |
+| Governance dashboard | `governance-dashboard/index.html` | governance, institutional |
+| Operational demo | `operational-demo/index.html` | operational_readiness |
+| CEO Command Centre | `AiLaneCEO/index.html` | mark@ailane.ai only |
+| PCIE | `intelligence/index.html` | operational + demo token |
+| Ticker | `ticker/index.html` | Public |
+| KL preview | `knowledge-library-preview/index.html` | Public |
+| Terms | `terms/index.html` | Public |
+| Privacy | `privacy/index.html` | Public |
+| Employer CC | `contract-scan/index.html` | Stripe session |
+| Worker CC | `contract-check-worker/index.html` | Stripe session |
+| Employers landing | `employers/index.html` | Public |
+
+## GOVERNING DOCUMENTS
+
+- ACEI Constitution v1.0, RRI Constitution v1.0, CCI Constitution v1.0
+- AILANE-AMD-REG-001 (master amendment register, current: AMD-025)
+- AILANE-SPEC-SEC-001 v1.0 (security architecture, ratified 22 Mar 2026)
+- AILANE-SPEC-AUTH-001 v2.1 (authentication architecture)
+- AILANE-SPEC-CCPL-001 (compliance checker portal lifecycle)
+
+## CROSS-PRODUCT ISOLATION
+
+This repository is for Ailane (employment law compliance) ONLY.
+QTAiLane (quantitative trading) lives in a separate repository with separate infrastructure.
+Do NOT create, modify, or reference any QTAiLane files, tables, or functions from this repo.
