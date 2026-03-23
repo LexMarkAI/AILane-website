@@ -179,7 +179,7 @@ class AilaneVaultPanel {
         var monitored = document.createElement('div');
         monitored.className = 'ws-vault-monitored';
         monitored.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>';
-        monitored.title = 'Monitored — auto-rescanned';
+        monitored.title = 'Monitored — auto-rechecked';
         item.appendChild(monitored);
       }
 

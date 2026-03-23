@@ -270,7 +270,7 @@ class PanelRail {
       }
 
       // Sprint gate: show coming soon for future panels
-      if (panel.sprint > 1) {
+      if (panel.sprint > 2) {
         this.drawer.showComingSoon(panel.name);
         return;
       }
@@ -430,6 +430,21 @@ class PanelDrawer {
         this._panels.notes = new window.AilaneNotesPanel(this.contentEl, this.bus);
       }
       this._panels.notes.mount(this.contentEl);
+    } else if (panelId === 'documents' && window.__PanelDocuments) {
+      if (!this._panels.documents) {
+        this._panels.documents = new window.__PanelDocuments(this.contentEl, this.bus);
+      }
+      this._panels.documents.mount(this.contentEl);
+    } else if (panelId === 'clipboard' && window.__PanelClipboard) {
+      if (!this._panels.clipboard) {
+        this._panels.clipboard = new window.__PanelClipboard(this.contentEl, this.bus);
+      }
+      this._panels.clipboard.mount(this.contentEl);
+    } else if (panelId === 'calendar' && window.__PanelCalendar) {
+      if (!this._panels.calendar) {
+        this._panels.calendar = new window.__PanelCalendar(this.contentEl, this.bus);
+      }
+      this._panels.calendar.mount(this.contentEl);
     } else {
       // Placeholder for future panels
       this.contentEl.innerHTML =
@@ -575,6 +590,45 @@ function initWorkspace() {
   // Close handler syncs rail
   bus.on('panel:closed', function() { rail.clearActive(); });
   bus.on('panel:opened', function(data) { rail._updateActiveState(data.panelId); });
+
+  // Sprint 2: Cross-panel wiring
+  // clipboard:to-notes — append clip content to active note
+  var _pendingClipToNotes = null;
+  bus.on('clipboard:to-notes', function(data) {
+    if (drawer._panels.notes && drawer.activePanel === 'notes') {
+      var notesPanel = drawer._panels.notes;
+      if (notesPanel.editorEl) {
+        var attribution = '\n\n--- Clipped from ' + (data.source || 'clipboard') + ' ---\n';
+        var p = document.createElement('p');
+        p.innerHTML = '<br>';
+        var blockquote = document.createElement('blockquote');
+        blockquote.textContent = data.text;
+        notesPanel.editorEl.appendChild(blockquote);
+        notesPanel.editorEl.appendChild(p);
+        notesPanel._scheduleAutoSave();
+      }
+    } else {
+      _pendingClipToNotes = data;
+    }
+  });
+
+  bus.on('panel:opened', function(data) {
+    if (data.panelId === 'notes' && _pendingClipToNotes) {
+      setTimeout(function() {
+        var notesPanel = drawer._panels.notes;
+        if (notesPanel && notesPanel.editorEl) {
+          var blockquote = document.createElement('blockquote');
+          blockquote.textContent = _pendingClipToNotes.text;
+          var p = document.createElement('p');
+          p.innerHTML = '<br>';
+          notesPanel.editorEl.appendChild(blockquote);
+          notesPanel.editorEl.appendChild(p);
+          notesPanel._scheduleAutoSave();
+        }
+        _pendingClipToNotes = null;
+      }, 200);
+    }
+  });
 
   // Expose for panel modules
   window.__ailaneWorkspace = { bus: bus, prefs: prefs, drawer: drawer, rail: rail };
