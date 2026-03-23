@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- Google Analytics GA4 -->
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+<!-- Google Analytics GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -417,6 +419,8 @@ body {
 }
 .leg-card { animation: fadeUp 0.4s ease both; }
 </style>
+<!-- Knowledge Library Workspace — Persistent Panel System -->
+<link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body style="visibility:hidden">
@@ -428,10 +432,42 @@ body {
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
     var gs = await sb.auth.getSession();
     if (!gs.data || !gs.data.session) { window.location.replace('/login/'); return; }
+    // Workspace globals (KLUI-001 Sprint 1 — Discrepancy 3)
+    // Vars: SUPABASE_ANON (line 426), gs.data.session
+    var _wsSession = gs.data.session;
+    var _wsToken = _wsSession.access_token;
+    var _wsPayload = JSON.parse(atob(_wsToken.split('.')[1]));
+    try {
+      var _wsProfileRes = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + _wsPayload.sub + '&select=subscription_tier',
+        { headers: { 'Authorization': 'Bearer ' + _wsToken, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' } }
+      );
+      var _wsProfileData = await _wsProfileRes.json();
+      var _wsTier = (_wsProfileData && _wsProfileData[0]) ? _wsProfileData[0].subscription_tier : null;
+      if (_wsTier && ['operational', 'governance', 'institutional'].includes(_wsTier)) {
+        window.__SUPABASE_ANON_KEY = SUPABASE_ANON;
+        window.__ailaneUser = {
+          id: _wsPayload.sub,
+          email: _wsPayload.email,
+          token: _wsToken,
+          tier: _wsTier,
+          orgId: null
+        };
+        try {
+          var _wsOrgRes = await fetch(
+            SUPABASE_URL + '/rest/v1/app_users?id=eq.' + _wsPayload.sub + '&select=org_id',
+            { headers: { 'Authorization': 'Bearer ' + _wsToken, 'apikey': SUPABASE_ANON } }
+          );
+          var _wsOrgData = await _wsOrgRes.json();
+          if (_wsOrgData && _wsOrgData[0]) window.__ailaneUser.orgId = _wsOrgData[0].org_id;
+        } catch(e) { /* org features degrade gracefully */ }
+      }
+    } catch(e) { /* workspace not available this session */ }
     document.body.style.visibility = 'visible';
   } catch(e) { window.location.replace('/login/'); }
 })();
 </script>
+<script src="/workspace/dist/workspace-bundle.js" defer></script>
 <div class="ambient-bg"></div>
 
 <!-- ===== TOP NAVIGATION ===== -->
