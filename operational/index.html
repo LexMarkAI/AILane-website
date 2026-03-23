@@ -2,6 +2,7 @@
 
 <html lang="en">
 <head>
+  <!-- TODO: CSP deployment blocked — page loads scripts from unpkg.com which is not in the standard whitelist. Requires CSP definition update before deployment. -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Operational Readiness — Ailane</title>
@@ -17,6 +18,8 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Knowledge Library Workspace — Persistent Panel System -->
+  <link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -62,6 +65,24 @@
         if (rows.length > 0) {
           var tier = rows[0].subscription_tier;
           if (tier === 'operational' || tier === 'operational_readiness' || tier === 'governance' || tier === 'institutional') {
+            // Workspace globals (KLUI-001 Sprint 1)
+            // Reuses existing vars: SUPABASE_ANON, session, payload, userId, tier
+            window.__SUPABASE_ANON_KEY = SUPABASE_ANON;
+            window.__ailaneUser = {
+              id: userId,
+              email: payload.email,
+              token: session.access_token,
+              tier: tier,
+              orgId: null
+            };
+            try {
+              var _wsOrgRes = await fetch(
+                SUPABASE_URL + '/rest/v1/app_users?id=eq.' + userId + '&select=org_id',
+                { headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': SUPABASE_ANON } }
+              );
+              var _wsOrgData = await _wsOrgRes.json();
+              if (_wsOrgData && _wsOrgData[0]) window.__ailaneUser.orgId = _wsOrgData[0].org_id;
+            } catch(e) { /* org features degrade gracefully */ }
             document.getElementById('auth-gate').style.display = 'none';
             document.getElementById('root').style.display = 'block';
             return; // Auth passed — React will render
@@ -76,6 +97,7 @@
     }
   })();
   </script>
+  <script src="/workspace/dist/workspace-bundle.js" defer></script>
 
   <!-- V8 OPERATIONAL READINESS DASHBOARD — AILANE-SPEC-EILEEN-001/002 -->
 
