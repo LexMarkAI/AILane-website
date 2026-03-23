@@ -14,7 +14,7 @@
 
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag(){ dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-NTNXWZN31C');
   </script>
@@ -23,194 +23,1162 @@
 
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 
+  <!-- Fonts: Playfair Display (headings) + DM Sans (body) — Ailane brand standard -->
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
   <style>
+    /* ================================================================
+       AILANE TRAINING RESOURCES — INSTITUTIONAL STYLESHEET
+       Governing: AILANE-SPEC-KLTR-001 v1.0 (AMD-026)
+       Colour system: Ailane dark editorial palette
+       ================================================================ */
+
     :root {
+      /* Backgrounds */
       --bg-deep: #060D1B;
       --bg-panel: #0A1628;
       --bg-card: #0D1B2E;
+      /* Accent colours — Operational tier (cyan + green) */
       --cyan: #22D3EE;
-      --cyan-glow: rgba(34,211,238,0.12);
+      --cyan-glow: rgba(34, 211, 238, 0.12);
       --green: #22C55E;
+      /* Text hierarchy */
       --text-primary: #E2E8F0;
       --text-secondary: #94A3B8;
       --text-muted: #64748B;
       --text-dim: #475569;
-      --border: rgba(56,189,248,0.08);
-      --border-hover: rgba(56,189,248,0.25);
+      /* Borders */
+      --border: rgba(56, 189, 248, 0.08);
+      --border-hover: rgba(56, 189, 248, 0.25);
+      /* Spacing and shape */
       --radius: 12px;
+      /* Typography */
       --font-display: 'Playfair Display', Georgia, serif;
       --font-body: 'DM Sans', -apple-system, sans-serif;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: var(--font-body); background: var(--bg-deep); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
-    a { color: var(--cyan); text-decoration: none; transition: color 0.2s; }
-    a:hover { color: #67E8F9; }
 
-    /* === HEADER === */
-    .header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; background: rgba(6,13,27,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    .logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
-    .logo span { color: var(--cyan); }
-    .nav-links { display: flex; gap: 1.75rem; font-size: 0.88rem; font-weight: 500; }
-    .nav-links a { color: var(--text-secondary); position: relative; padding-bottom: 2px; }
-    .nav-links a:hover { color: var(--text-primary); text-decoration: none; }
-    .nav-links a.active { color: var(--cyan); }
-    .nav-links a.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--cyan); border-radius: 1px; }
-    .hamburger { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; padding: 0.25rem; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    /* === MOBILE NAV === */
-    .mobile-nav { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(6,13,27,0.97); z-index: 60; flex-direction: column; align-items: center; justify-content: center; gap: 2rem; }
-    .mobile-nav.open { display: flex; }
-    .mobile-nav a { font-family: var(--font-display); font-size: 1.5rem; color: var(--text-secondary); }
-    .mobile-nav a:hover { color: var(--cyan); text-decoration: none; }
-    .mobile-nav-close { position: absolute; top: 1.25rem; right: 2rem; background: none; border: none; color: var(--text-primary); font-size: 2rem; cursor: pointer; }
+    html {
+      scroll-behavior: smooth;
+    }
 
-    /* === HERO === */
-    .hero { padding: 4rem 2rem 2rem; max-width: 900px; opacity: 0; animation: fadeUp 0.7s ease forwards; }
-    .hero-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cyan); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .hero-label .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: pulse 2s ease infinite; }
-    .hero h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1.25rem; line-height: 1.1; letter-spacing: -0.02em; }
-    .hero h1 em { font-style: normal; color: var(--cyan); }
-    .hero p { color: var(--text-secondary); font-size: 1.1rem; line-height: 1.75; max-width: 680px; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-    /* === STATS BAR === */
-    .stats-bar { display: flex; gap: 0.5rem; padding: 1.25rem 2rem; flex-wrap: wrap; opacity: 0; animation: fadeUp 0.7s ease 0.15s forwards; }
-    .stat-chip { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; font-size: 0.82rem; color: var(--text-muted); }
-    .stat-chip strong { color: var(--cyan); font-weight: 700; font-size: 1rem; }
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
 
-    /* === FILTERS === */
-    .filters { display: flex; gap: 0.5rem; padding: 0.75rem 2rem 1rem; flex-wrap: wrap; align-items: center; opacity: 0; animation: fadeUp 0.7s ease 0.25s forwards; }
-    .filter-pill { padding: 0.45rem 1.1rem; border-radius: 24px; border: 1px solid rgba(56,189,248,0.15); background: transparent; color: var(--text-secondary); font-size: 0.78rem; font-family: var(--font-body); font-weight: 500; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; }
-    .filter-pill:hover { border-color: var(--border-hover); color: var(--text-primary); background: rgba(34,211,238,0.04); }
-    .filter-pill.active { background: var(--cyan-glow); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 12px rgba(34,211,238,0.08); }
-    .filter-sep { width: 1px; height: 20px; background: rgba(56,189,248,0.12); margin: 0 0.15rem; }
+    a:hover {
+      color: #67E8F9;
+    }
 
-    /* === GRID === */
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(355px, 1fr)); gap: 1.25rem; padding: 1rem 2rem 4rem; }
+    /* ================================================================
+       HEADER — Sticky with backdrop blur
+       ================================================================ */
 
-    /* === CARD === */
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem; transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; position: relative; overflow: hidden; opacity: 0; animation: fadeUp 0.5s ease forwards; }
-    .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity: 0; transition: opacity 0.35s ease; }
-    .card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 30px rgba(34,211,238,0.04); }
-    .card:hover::before { opacity: 1; }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(6, 13, 27, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
 
-    .card-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
-    .badge { padding: 0.2rem 0.65rem; border-radius: 10px; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.025em; }
-    .badge-src { background: rgba(34,211,238,0.1); color: var(--cyan); }
-    .badge-src.ogl { background: rgba(100,116,139,0.12); color: var(--text-secondary); }
-    .badge-type { background: rgba(100,116,139,0.08); color: var(--text-muted); }
+    .logo {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
 
-    .card h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.6rem; line-height: 1.35; }
-    .card-meta { display: flex; gap: 1rem; font-size: 0.73rem; color: var(--text-muted); margin-bottom: 0.85rem; flex-wrap: wrap; align-items: center; }
-    .fresh { display: inline-flex; align-items: center; gap: 0.3rem; }
-    .fresh-dot { width: 6px; height: 6px; border-radius: 50%; }
-    .fresh-dot.current { background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.4); }
-    .fresh-dot.review_due { background: #F59E0B; }
-    .fresh-dot.stale { background: #EF4444; }
+    .logo span {
+      color: var(--cyan);
+    }
 
-    .card-desc { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.65; margin-bottom: 1.25rem; flex: 1; }
+    .nav-links {
+      display: flex;
+      gap: 1.75rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
 
-    .card-cta { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem; border-radius: 8px; font-size: 0.84rem; font-weight: 600; transition: all 0.25s ease; border: none; cursor: pointer; font-family: var(--font-body); width: fit-content; }
-    .cta-read { background: linear-gradient(135deg, rgba(34,211,238,0.12), rgba(34,197,94,0.08)); color: var(--cyan); border: 1px solid rgba(34,211,238,0.2); }
-    .cta-read:hover { background: linear-gradient(135deg, rgba(34,211,238,0.2), rgba(34,197,94,0.14)); box-shadow: 0 0 16px rgba(34,211,238,0.1); text-decoration: none; color: var(--cyan); }
-    .cta-lock { background: transparent; color: var(--text-muted); border: 1px solid rgba(100,116,139,0.2); }
-    .cta-lock:hover { border-color: rgba(34,211,238,0.3); color: var(--text-secondary); text-decoration: none; }
+    .nav-links a {
+      color: var(--text-secondary);
+      padding-bottom: 2px;
+      position: relative;
+    }
 
-    /* === SKELETON CARDS === */
-    .skeleton-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem; }
-    .skel { background: linear-gradient(90deg, rgba(56,189,248,0.04) 25%, rgba(56,189,248,0.08) 50%, rgba(56,189,248,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s ease infinite; border-radius: 6px; }
+    .nav-links a:hover {
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-links a.active {
+      color: var(--cyan);
+    }
+
+    .nav-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--cyan);
+      border-radius: 1px;
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* ================================================================
+       MOBILE NAVIGATION — Full-screen overlay
+       ================================================================ */
+
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 13, 27, 0.97);
+      z-index: 60;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+    }
+
+    .mobile-nav.open {
+      display: flex;
+    }
+
+    .mobile-nav a {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    .mobile-nav a:hover {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    .mobile-nav-close {
+      position: absolute;
+      top: 1.25rem;
+      right: 2rem;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-size: 2rem;
+      cursor: pointer;
+    }
+
+    /* ================================================================
+       HERO SECTION — Animated entrance
+       ================================================================ */
+
+    .hero {
+      padding: 4rem 2rem 2rem;
+      max-width: 900px;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards;
+    }
+
+    .hero-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      animation: pulse 2s ease infinite;
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 1.25rem;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--cyan);
+    }
+
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.75;
+      max-width: 680px;
+    }
+
+    /* ================================================================
+       STATISTICS BAR
+       ================================================================ */
+
+    .stats-bar {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1.25rem 2rem;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 0.15s forwards;
+    }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .stat-chip strong {
+      color: var(--cyan);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    /* ================================================================
+       FILTER BAR
+       ================================================================ */
+
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.75rem 2rem 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+      opacity: 0;
+      animation: fadeUp 0.7s ease 0.25s forwards;
+    }
+
+    .filter-pill {
+      padding: 0.45rem 1.1rem;
+      border-radius: 24px;
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-family: var(--font-body);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .filter-pill:hover {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+      background: rgba(34, 211, 238, 0.04);
+    }
+
+    .filter-pill.active {
+      background: var(--cyan-glow);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.08);
+    }
+
+    .filter-separator {
+      width: 1px;
+      height: 20px;
+      background: rgba(56, 189, 248, 0.12);
+      margin: 0 0.15rem;
+    }
+
+    /* ================================================================
+       RESOURCE GRID
+       ================================================================ */
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(355px, 1fr));
+      gap: 1.25rem;
+      padding: 1rem 2rem 4rem;
+    }
+
+    /* ================================================================
+       RESOURCE CARDS — Hover effects with top gradient reveal
+       ================================================================ */
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(34, 211, 238, 0.04);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.85rem;
+    }
+
+    .badge {
+      padding: 0.2rem 0.65rem;
+      border-radius: 10px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+    }
+
+    .badge-source {
+      background: rgba(34, 211, 238, 0.1);
+      color: var(--cyan);
+    }
+
+    .badge-source.ogl {
+      background: rgba(100, 116, 139, 0.12);
+      color: var(--text-secondary);
+    }
+
+    .badge-type {
+      background: rgba(100, 116, 139, 0.08);
+      color: var(--text-muted);
+    }
+
+    .card h3 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.6rem;
+      line-height: 1.35;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .freshness {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .freshness-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .freshness-dot.current {
+      background: #10B981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+    }
+
+    .freshness-dot.review_due {
+      background: #F59E0B;
+    }
+
+    .freshness-dot.stale {
+      background: #EF4444;
+    }
+
+    .card-description {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.65;
+      margin-bottom: 1.25rem;
+      flex: 1;
+    }
+
+    .card-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-body);
+      width: fit-content;
+    }
+
+    .cta-read {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(34, 197, 94, 0.08));
+      color: var(--cyan);
+      border: 1px solid rgba(34, 211, 238, 0.2);
+    }
+
+    .cta-read:hover {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(34, 197, 94, 0.14));
+      box-shadow: 0 0 16px rgba(34, 211, 238, 0.1);
+      text-decoration: none;
+      color: var(--cyan);
+    }
+
+    .cta-locked {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid rgba(100, 116, 139, 0.2);
+    }
+
+    .cta-locked:hover {
+      border-color: rgba(34, 211, 238, 0.3);
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    /* ================================================================
+       SKELETON LOADING CARDS — Shimmer animation
+       ================================================================ */
+
+    .skeleton-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+    }
+
+    .skeleton-line {
+      background: linear-gradient(90deg,
+        rgba(56, 189, 248, 0.04) 25%,
+        rgba(56, 189, 248, 0.08) 50%,
+        rgba(56, 189, 248, 0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease infinite;
+      border-radius: 6px;
+    }
+
     .skel-badge { height: 20px; width: 90px; margin-bottom: 0.85rem; }
     .skel-title { height: 22px; width: 85%; margin-bottom: 0.6rem; }
-    .skel-meta { height: 14px; width: 60%; margin-bottom: 0.85rem; }
+    .skel-meta  { height: 14px; width: 60%; margin-bottom: 0.85rem; }
     .skel-desc1 { height: 14px; width: 100%; margin-bottom: 0.4rem; }
     .skel-desc2 { height: 14px; width: 75%; margin-bottom: 1.25rem; }
-    .skel-btn { height: 38px; width: 140px; border-radius: 8px; }
+    .skel-btn   { height: 38px; width: 140px; border-radius: 8px; }
 
-    /* === READER OVERLAY === */
-    .reader { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(6,13,27,0.97); z-index: 80; overflow-y: auto; }
-    .reader.open { display: block; animation: fadeIn 0.3s ease; }
-    .reader-inner { max-width: 780px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
-    .reader-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--cyan); font-size: 0.88rem; font-weight: 500; cursor: pointer; background: none; border: none; font-family: var(--font-body); margin-bottom: 2rem; transition: opacity 0.2s; }
-    .reader-back:hover { opacity: 0.8; }
-    .reader-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .reader-body { line-height: 1.85; color: #CBD5E1; }
-    .reader-body h1 { font-family: var(--font-display); font-size: 2.25rem; color: var(--text-primary); margin: 0 0 1.75rem; line-height: 1.15; font-weight: 700; }
-    .reader-body h2 { font-family: var(--font-display); font-size: 1.4rem; color: var(--text-primary); margin: 2.5rem 0 0.85rem; font-weight: 600; }
-    .reader-body p { margin-bottom: 1.1rem; }
-    .reader-body ul, .reader-body ol { margin: 0.75rem 0 1.25rem 1.5rem; }
-    .reader-body li { margin-bottom: 0.6rem; }
-    .reader-body strong { color: var(--text-primary); font-weight: 600; }
-    .reader-body em { color: var(--cyan); }
-    .reader-foot { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
+    /* ================================================================
+       READER OVERLAY — Full-screen with sidebar TOC
+       ================================================================ */
 
-    /* === EILEEN NEXUS === */
-    .eileen-orb { position: fixed; bottom: 2rem; right: 2rem; z-index: 90; cursor: pointer; transition: transform 0.3s ease; }
-    .eileen-orb:hover { transform: scale(1.08); }
-    .eileen-orb canvas { display: block; }
-    .eileen-label { position: absolute; bottom: -1.5rem; left: 50%; transform: translateX(-50%); font-size: 0.65rem; font-weight: 600; color: var(--cyan); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; opacity: 0.7; }
+    .reader-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      overflow: hidden;
+    }
 
-    .eileen-panel { display: none; position: fixed; bottom: 6.5rem; right: 2rem; width: 380px; max-height: 520px; background: var(--bg-panel); border: 1px solid var(--border-hover); border-radius: 16px; z-index: 91; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(34,211,238,0.06); }
-    .eileen-panel.open { display: flex; animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reader-overlay.open {
+      display: flex;
+      animation: fadeIn 0.3s ease;
+    }
 
-    .eileen-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
-    .eileen-header canvas { flex-shrink: 0; }
-    .eileen-header-text h4 { font-family: var(--font-display); font-size: 1rem; color: var(--text-primary); font-weight: 600; }
-    .eileen-header-text p { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
-    .eileen-close { margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer; padding: 0.25rem; }
-    .eileen-close:hover { color: var(--text-primary); }
+    /* Sidebar Table of Contents */
+    .reader-sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
 
-    .eileen-messages { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; }
-    .msg { max-width: 92%; padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.84rem; line-height: 1.6; animation: fadeIn 0.3s ease; }
-    .msg-eileen { background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.1); color: var(--text-secondary); align-self: flex-start; border-bottom-left-radius: 4px; }
-    .msg-eileen strong { color: var(--cyan); font-weight: 600; }
-    .msg-user { background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.15); color: var(--text-primary); align-self: flex-end; border-bottom-right-radius: 4px; }
+    .reader-sidebar-header {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
 
-    .eileen-suggestions { display: flex; gap: 0.4rem; flex-wrap: wrap; padding: 0 1.25rem 0.75rem; }
-    .suggest-btn { padding: 0.35rem 0.85rem; border-radius: 16px; border: 1px solid rgba(34,211,238,0.15); background: transparent; color: var(--text-secondary); font-size: 0.73rem; font-family: var(--font-body); cursor: pointer; transition: all 0.2s; }
-    .suggest-btn:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(34,211,238,0.04); }
+    .reader-sidebar-header h4 {
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      line-height: 1.3;
+    }
 
-    .eileen-input { display: flex; gap: 0.5rem; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border); }
-    .eileen-input input { flex: 1; background: rgba(6,13,27,0.5); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.85rem; color: var(--text-primary); font-size: 0.84rem; font-family: var(--font-body); outline: none; transition: border-color 0.2s; }
-    .eileen-input input:focus { border-color: rgba(34,211,238,0.3); }
-    .eileen-input input::placeholder { color: var(--text-dim); }
-    .eileen-send { width: 36px; height: 36px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--cyan), var(--green)); color: var(--bg-deep); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: opacity 0.2s; flex-shrink: 0; }
-    .eileen-send:hover { opacity: 0.85; }
+    .reader-sidebar-header p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
 
-    /* === FOOTER === */
-    .site-footer { border-top: 1px solid var(--border); padding: 2.5rem 2rem; text-align: center; }
-    .foot-links { display: flex; justify-content: center; gap: 1.75rem; margin-bottom: 0.85rem; }
-    .foot-links a { color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; }
-    .foot-links a:hover { color: var(--cyan); text-decoration: none; }
-    .foot-legal { color: var(--text-dim); font-size: 0.8rem; margin-bottom: 0.5rem; }
-    .foot-disclaimer { color: var(--text-muted); font-size: 0.74rem; font-style: italic; }
+    .toc-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem 0;
+    }
 
-    /* === ANIMATIONS === */
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .toc-item {
+      display: block;
+      padding: 0.55rem 1.25rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 2px solid transparent;
+      line-height: 1.4;
+    }
 
-    /* === RESPONSIVE === */
+    .toc-item:hover {
+      color: var(--text-primary);
+      background: rgba(34, 211, 238, 0.03);
+      border-left-color: rgba(34, 211, 238, 0.3);
+      text-decoration: none;
+    }
+
+    .toc-item.active {
+      color: var(--cyan);
+      background: rgba(34, 211, 238, 0.06);
+      border-left-color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .reader-sidebar-footer {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .reader-sidebar-footer button {
+      width: 100%;
+      padding: 0.6rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .reader-sidebar-footer button:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* Reader main content area */
+    .reader-main {
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+      z-index: 1;
+      background: var(--bg-deep);
+    }
+
+    .reader-inner {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 3rem 2.5rem 5rem;
+    }
+
+    .reader-badges {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Reader body — styled rendering of guide HTML content */
+    .reader-body {
+      line-height: 1.85;
+      color: #CBD5E1;
+    }
+
+    .reader-body h1 {
+      font-family: var(--font-display);
+      font-size: 2.25rem;
+      color: var(--text-primary);
+      margin: 0 0 1.75rem;
+      line-height: 1.15;
+      font-weight: 700;
+    }
+
+    .reader-body h2 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      color: var(--text-primary);
+      margin: 2.5rem 0 0.85rem;
+      font-weight: 600;
+      padding-top: 0.5rem;
+      scroll-margin-top: 2rem;
+    }
+
+    .reader-body p {
+      margin-bottom: 1.1rem;
+      font-size: 0.95rem;
+    }
+
+    .reader-body ul,
+    .reader-body ol {
+      margin: 0.75rem 0 1.25rem 1.5rem;
+    }
+
+    .reader-body li {
+      margin-bottom: 0.6rem;
+      font-size: 0.95rem;
+      line-height: 1.75;
+    }
+
+    .reader-body strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .reader-body em {
+      color: var(--cyan);
+    }
+
+    /* Guide-specific content class styling */
+    .reader-body .guide-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .reader-body .guide-intro {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.85;
+      margin-bottom: 1.5rem;
+    }
+
+    .reader-body .guide-disclaimer {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 1.25rem;
+      background: rgba(100, 116, 139, 0.06);
+      border-radius: 8px;
+      border-left: 3px solid var(--text-muted);
+      margin-top: 2rem;
+    }
+
+    .reader-body .guide-attribution {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 1rem;
+    }
+
+    .reader-body header {
+      margin-bottom: 1.5rem;
+    }
+
+    .reader-body section {
+      margin-bottom: 0.5rem;
+    }
+
+    .reader-body footer {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .reader-foot {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Back to top floating button — appears on scroll */
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 6rem;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.2s ease;
+      z-index: 85;
+    }
+
+    .back-to-top.visible {
+      display: flex;
+    }
+
+    .back-to-top:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* Mobile sidebar toggle button */
+    .mobile-toc-button {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 82;
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-family: var(--font-body);
+      cursor: pointer;
+    }
+
+    .mobile-toc-button:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* ================================================================
+       EILEEN — Intelligence Entity (EILEEN-001 / EILEEN-002)
+       Nexus visual identity: HTML5 Canvas, cyan + green (Operational)
+       Constitutional boundary: navigational assistance only
+       ================================================================ */
+
+    .eileen-orb {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 90;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .eileen-orb:hover {
+      transform: scale(1.08);
+    }
+
+    .eileen-orb canvas {
+      display: block;
+    }
+
+    .eileen-label {
+      position: absolute;
+      bottom: -1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--cyan);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      opacity: 0.7;
+    }
+
+    .eileen-panel {
+      display: none;
+      position: fixed;
+      bottom: 6.5rem;
+      right: 2rem;
+      width: 380px;
+      max-height: 520px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hover);
+      border-radius: 16px;
+      z-index: 91;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(34, 211, 238, 0.06);
+    }
+
+    .eileen-panel.open {
+      display: flex;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .eileen-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .eileen-header canvas {
+      flex-shrink: 0;
+    }
+
+    .eileen-header-text h4 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .eileen-header-text p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .eileen-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+
+    .eileen-close:hover {
+      color: var(--text-primary);
+    }
+
+    .eileen-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .eileen-msg {
+      max-width: 92%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.84rem;
+      line-height: 1.6;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .eileen-msg-ai {
+      background: rgba(34, 211, 238, 0.06);
+      border: 1px solid rgba(34, 211, 238, 0.1);
+      color: var(--text-secondary);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .eileen-msg-ai strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .eileen-msg-user {
+      background: rgba(100, 116, 139, 0.1);
+      border: 1px solid rgba(100, 116, 139, 0.15);
+      color: var(--text-primary);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .eileen-suggestions {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      padding: 0 1.25rem 0.75rem;
+    }
+
+    .eileen-suggest-btn {
+      padding: 0.35rem 0.85rem;
+      border-radius: 16px;
+      border: 1px solid rgba(34, 211, 238, 0.15);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.73rem;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .eileen-suggest-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(34, 211, 238, 0.04);
+    }
+
+    .eileen-input-bar {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.85rem 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .eileen-input-bar input {
+      flex: 1;
+      background: rgba(6, 13, 27, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      color: var(--text-primary);
+      font-size: 0.84rem;
+      font-family: var(--font-body);
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .eileen-input-bar input:focus {
+      border-color: rgba(34, 211, 238, 0.3);
+    }
+
+    .eileen-input-bar input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .eileen-send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      color: var(--bg-deep);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      transition: opacity 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .eileen-send-btn:hover {
+      opacity: 0.85;
+    }
+
+    /* ================================================================
+       FOOTER
+       ================================================================ */
+
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.75rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .footer-links a:hover {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    .footer-legal {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-disclaimer {
+      color: var(--text-muted);
+      font-size: 0.74rem;
+      font-style: italic;
+    }
+
+    /* ================================================================
+       ANIMATIONS
+       ================================================================ */
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.4; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ================================================================
+       RESPONSIVE — Mobile breakpoint at 768px
+       ================================================================ */
+
     @media (max-width: 768px) {
-      .hero { padding: 2.5rem 1.25rem 1.5rem; }
-      .hero h1 { font-size: 2rem; }
-      .grid { grid-template-columns: 1fr; padding: 1rem 1.25rem 3rem; }
-      .nav-links { display: none; }
-      .hamburger { display: block; }
-      .header { padding: 1rem 1.25rem; }
-      .stats-bar, .filters { padding-left: 1.25rem; padding-right: 1.25rem; }
-      .eileen-panel { width: calc(100vw - 2rem); right: 1rem; bottom: 5.5rem; max-height: 60vh; }
-      .eileen-orb { bottom: 1.25rem; right: 1.25rem; }
+      .hero {
+        padding: 2.5rem 1.25rem 1.5rem;
+      }
+
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+        padding: 1rem 1.25rem 3rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hamburger {
+        display: block;
+      }
+
+      .header {
+        padding: 1rem 1.25rem;
+      }
+
+      .stats-bar,
+      .filters {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+      }
+
+      .eileen-panel {
+        width: calc(100vw - 2rem);
+        right: 1rem;
+        bottom: 5.5rem;
+        max-height: 60vh;
+      }
+
+      .eileen-orb {
+        bottom: 1.25rem;
+        right: 1.25rem;
+      }
+
+      /* On mobile, hide sidebar by default — show via toggle */
+      .reader-sidebar {
+        display: none;
+      }
+
+      .mobile-toc-button {
+        display: block;
+      }
+
+      .reader-sidebar.mobile-open {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 83;
+        width: 100%;
+      }
+
+      .reader-inner {
+        padding: 2rem 1.25rem 4rem;
+      }
+
+      .back-to-top {
+        right: 1.25rem;
+      }
     }
   </style>
 
 </head>
 <body>
+
+  <!-- ================================================================
+       HEADER
+       ================================================================ -->
 
   <header class="header">
     <a href="/" class="logo"><span>ai</span>lane</a>
@@ -219,10 +1187,12 @@
       <a href="/training/" class="active">Training</a>
       <a href="/knowledge-library-preview/">Knowledge Library</a>
       <a href="/contract-scan/">Contract Check</a>
-      <a href="/account/" id="navAuth">Sign In</a>
+      <a href="/account/" id="navAuthDesktop">Sign In</a>
     </nav>
     <button class="hamburger" onclick="toggleMobileNav()" aria-label="Open navigation">&#9776;</button>
   </header>
+
+  <!-- Mobile navigation overlay -->
 
   <div class="mobile-nav" id="mobileNav">
     <button class="mobile-nav-close" onclick="toggleMobileNav()" aria-label="Close navigation">&times;</button>
@@ -233,34 +1203,77 @@
     <a href="/account/" id="navAuthMobile" onclick="toggleMobileNav()">Sign In</a>
   </div>
 
+  <!-- ================================================================
+       HERO SECTION
+       ================================================================ -->
+
   <section class="hero">
-    <div class="hero-label"><span class="pulse-dot"></span> Knowledge Library</div>
+    <div class="hero-label">
+      <span class="pulse-dot"></span>
+      Knowledge Library
+    </div>
     <h1>Employment Law <em>Training Resources</em></h1>
     <p>Institutional-grade guides across all 12 ACEI compliance categories. Built on 130,000+ classified tribunal decisions, current legislation, and regulatory intelligence. Reviewed quarterly. Automatically updated when the law changes.</p>
   </section>
 
+  <!-- ================================================================
+       STATS BAR + FILTER BAR
+       ================================================================ -->
+
   <div class="stats-bar" id="statsBar"></div>
+
   <div class="filters" id="filterBar">
-    <button class="filter-pill active" onclick="applyFilter('all',this)">All</button>
-    <div class="filter-sep"></div>
-    <button class="filter-pill" onclick="applyFilter('source-3',this)">Ailane Guides</button>
-    <button class="filter-pill" onclick="applyFilter('source-1',this)">OGL Resources</button>
+    <button class="filter-pill active" onclick="applyFilter('all', this)">All</button>
+    <div class="filter-separator"></div>
+    <button class="filter-pill" onclick="applyFilter('source-3', this)">Ailane Guides</button>
+    <button class="filter-pill" onclick="applyFilter('source-1', this)">OGL Resources</button>
   </div>
+
+  <!-- ================================================================
+       RESOURCE GRID — Populated dynamically from Supabase
+       ================================================================ -->
 
   <div id="resourceGrid" class="grid"></div>
 
-  <!-- READER OVERLAY -->
+  <!-- ================================================================
+       READER OVERLAY — Full-screen with sidebar TOC navigation
+       ================================================================ -->
 
-  <div class="reader" id="reader">
-    <div class="reader-inner">
-      <button class="reader-back" onclick="closeReader()">&#8592; Back to Training Resources</button>
-      <div class="reader-badges" id="readerBadges"></div>
-      <div class="reader-body" id="readerBody"></div>
-      <div class="reader-foot" id="readerFoot"></div>
-    </div>
+  <div class="reader-overlay" id="readerOverlay">
+    <button class="mobile-toc-button" id="mobileTocBtn" onclick="toggleMobileSidebar()">&#9776; Sections</button>
+
+```
+<aside class="reader-sidebar" id="readerSidebar">
+  <div class="reader-sidebar-header">
+    <h4 id="tocTitle">Guide Sections</h4>
+    <p id="tocMeta"></p>
+  </div>
+  <nav class="toc-list" id="tocList"></nav>
+  <div class="reader-sidebar-footer">
+    <button onclick="closeReader()">&#8592; Back to Training Resources</button>
+  </div>
+</aside>
+
+<main class="reader-main" id="readerMain">
+  <div class="reader-inner">
+    <div class="reader-badges" id="readerBadges"></div>
+    <div class="reader-body" id="readerBody"></div>
+    <div class="reader-foot" id="readerFoot"></div>
+  </div>
+</main>
+
+<button class="back-to-top" id="backToTop" onclick="scrollReaderToTop()" aria-label="Back to top">&#8593;</button>
+```
+
   </div>
 
-  <!-- EILEEN — Intelligence Entity (EILEEN-001/002) -->
+  <!-- ================================================================
+       EILEEN — Intelligence Entity
+       EILEEN-001: Entity architecture
+       EILEEN-002: Operational tier intelligence
+       Constitutional boundary: navigational assistance only —
+       never score-linked recommendations
+       ================================================================ -->
 
   <div class="eileen-orb" id="eileenOrb" onclick="toggleEileen()" title="Ask Eileen">
     <canvas id="nexusOrb" width="56" height="56"></canvas>
@@ -278,395 +1291,742 @@
     </div>
     <div class="eileen-messages" id="eileenMessages"></div>
     <div class="eileen-suggestions" id="eileenSuggestions"></div>
-    <div class="eileen-input">
-      <input type="text" id="eileenInput" placeholder="Ask about employment law training..." onkeydown="if(event.key==='Enter')sendToEileen()">
-      <button class="eileen-send" onclick="sendToEileen()" aria-label="Send message">&#10148;</button>
+    <div class="eileen-input-bar">
+      <input type="text" id="eileenInput" placeholder="Ask about employment law training..." onkeydown="if(event.key==='Enter') sendToEileen()">
+      <button class="eileen-send-btn" onclick="sendToEileen()" aria-label="Send message">&#10148;</button>
     </div>
   </div>
 
+  <!-- ================================================================
+       FOOTER
+       ================================================================ -->
+
   <footer class="site-footer">
-    <div class="foot-links">
+    <div class="footer-links">
       <a href="/terms/">Terms</a>
       <a href="/privacy/">Privacy</a>
       <a href="/attributions/">Attributions</a>
     </div>
-    <div class="foot-legal">AI Lane Limited &middot; Company No. 17035654</div>
-    <div class="foot-disclaimer">Training content is educational and does not constitute legal advice.</div>
+    <div class="footer-legal">AI Lane Limited &middot; Company No. 17035654</div>
+    <div class="footer-disclaimer">Training content is educational and does not constitute legal advice.</div>
   </footer>
 
-<script>
-(function(){
-  'use strict';
+  <!-- ================================================================
+       JAVASCRIPT — All application logic
+       ================================================================ -->
 
-  var SB_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  <script>
+  (function() {
+    'use strict';
 
-  var ACEI = {
-    'unfair_dismissal':['Unfair Dismissal','#EF4444'],
-    'discrimination_harassment':['Discrimination & Harassment','#FBBF24'],
-    'wages_working_time':['Wages & Working Time','#3B82F6'],
-    'health_safety':['Health & Safety','#10B981'],
-    'whistleblowing':['Whistleblowing','#8B5CF6'],
-    'data_protection_privacy':['Data Protection','#06B6D4'],
-    'parental_family_rights':['Parental & Family Rights','#EC4899'],
-    'trade_union_collective':['Trade Union & Collective','#F97316'],
-    'breach_of_contract':['Breach of Contract','#6366F1'],
-    'business_transfers_insolvency':['Business Transfers','#14B8A6'],
-    'redundancy_org_change':['Redundancy','#A855F7'],
-    'employment_status':['Employment Status','#64748B']
-  };
+    /* ================================================================
+       CONSTANTS
+       ================================================================ */
+    var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
 
-  var resources = [];
-  var authenticated = false;
-  var filter = 'all';
+    /* ACEI category labels and colours — all 12 categories */
+    var ACEI_CATEGORIES = {
+      'unfair_dismissal':            ['Unfair Dismissal',            '#EF4444'],
+      'discrimination_harassment':   ['Discrimination & Harassment', '#FBBF24'],
+      'wages_working_time':          ['Wages & Working Time',        '#3B82F6'],
+      'health_safety':               ['Health & Safety',             '#10B981'],
+      'whistleblowing':              ['Whistleblowing',              '#8B5CF6'],
+      'data_protection_privacy':     ['Data Protection',             '#06B6D4'],
+      'parental_family_rights':      ['Parental & Family Rights',    '#EC4899'],
+      'trade_union_collective':      ['Trade Union & Collective',    '#F97316'],
+      'breach_of_contract':          ['Breach of Contract',          '#6366F1'],
+      'business_transfers_insolvency': ['Business Transfers',        '#14B8A6'],
+      'redundancy_org_change':       ['Redundancy',                  '#A855F7'],
+      'employment_status':           ['Employment Status',           '#64748B']
+    };
 
-  // === UTILITY ===
-  function strip(h){ var d=document.createElement('div'); d.innerHTML=h; return d.textContent||''; }
-  function trunc(t,n){ if(!t||t.length<=n) return t||''; return t.substring(0,n).replace(/\s+\S*$/,'')+'...'; }
-  function aceiLabel(c){ return ACEI[c]?ACEI[c][0]:c; }
-  function aceiColour(c){ return ACEI[c]?ACEI[c][1]:'#64748B'; }
-  function fmtDate(d){ if(!d) return ''; try{ return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
+    /* ================================================================
+       STATE
+       ================================================================ */
+    var allResources = [];
+    var isAuthenticated = false;
+    var currentFilter = 'all';
+    var eileenIsOpen = false;
 
-  // === MOBILE NAV ===
-  window.toggleMobileNav = function(){ document.getElementById('mobileNav').classList.toggle('open'); };
-
-  // === NEXUS CANVAS ===
-  function drawNexus(canvas, size, glow) {
-    var ctx = canvas.getContext('2d');
-    var cx = size/2, cy = size/2, r = size*0.32;
-    var nodes = [], edges = [];
-    var count = glow ? 8 : 5;
-    for (var i=0; i<count; i++) {
-      var a = (Math.PI*2/count)*i - Math.PI/2;
-      nodes.push({ x: cx+Math.cos(a)*r, y: cy+Math.sin(a)*r, phase: Math.random()*Math.PI*2 });
+    /* ================================================================
+       UTILITY FUNCTIONS
+       ================================================================ */
+    function getCategoryLabel(category) {
+      return ACEI_CATEGORIES[category] ? ACEI_CATEGORIES[category][0] : category;
     }
-    for (var i=0; i<nodes.length; i++) {
-      for (var j=i+1; j<nodes.length; j++) {
-        if (Math.random()>0.4) edges.push([i,j]);
+
+    function getCategoryColour(category) {
+      return ACEI_CATEGORIES[category] ? ACEI_CATEGORIES[category][1] : '#64748B';
+    }
+
+    function stripHtmlTags(html) {
+      var container = document.createElement('div');
+      container.innerHTML = html;
+      return container.textContent || container.innerText || '';
+    }
+
+    function truncateText(text, maxLength) {
+      if (!text || text.length <= maxLength) return text || '';
+      return text.substring(0, maxLength).replace(/\s+\S*$/, '') + '...';
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      try {
+        return new Date(dateString).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+      } catch (error) {
+        return '';
       }
     }
-    function render(t) {
-      ctx.clearRect(0,0,size,size);
-      // Glow
-      if (glow) {
-        var g = ctx.createRadialGradient(cx,cy,0,cx,cy,size*0.48);
-        g.addColorStop(0,'rgba(34,211,238,0.08)');
-        g.addColorStop(1,'rgba(34,211,238,0)');
-        ctx.fillStyle=g; ctx.fillRect(0,0,size,size);
+
+    /* ================================================================
+       MOBILE NAVIGATION
+       ================================================================ */
+    window.toggleMobileNav = function() {
+      document.getElementById('mobileNav').classList.toggle('open');
+    };
+
+    /* ================================================================
+       NEXUS CANVAS — Eileen visual identity
+       Animated neural constellation: cyan nodes + green halos
+       Per EILEEN-001: Operational tier = cyan (#38bdf8) + green (#22c55e)
+       ================================================================ */
+    function drawNexus(canvas, size, showGlow) {
+      var ctx = canvas.getContext('2d');
+      var centerX = size / 2;
+      var centerY = size / 2;
+      var radius = size * 0.32;
+      var nodes = [];
+      var edges = [];
+      var nodeCount = showGlow ? 8 : 5;
+
+      /* Generate node positions in a circle */
+      for (var i = 0; i < nodeCount; i++) {
+        var angle = (Math.PI * 2 / nodeCount) * i - Math.PI / 2;
+        nodes.push({
+          x: centerX + Math.cos(angle) * radius,
+          y: centerY + Math.sin(angle) * radius,
+          phase: Math.random() * Math.PI * 2
+        });
       }
-      // Edges
-      edges.forEach(function(e){
-        var n1=nodes[e[0]], n2=nodes[e[1]];
-        var osc = 0.3+0.3*Math.sin(t*0.001+n1.phase);
-        ctx.strokeStyle='rgba(34,211,238,'+osc+')';
-        ctx.lineWidth=0.8;
-        ctx.beginPath(); ctx.moveTo(n1.x+Math.sin(t*0.002+n1.phase)*2, n1.y+Math.cos(t*0.0015+n1.phase)*2);
-        ctx.lineTo(n2.x+Math.sin(t*0.002+n2.phase)*2, n2.y+Math.cos(t*0.0015+n2.phase)*2);
-        ctx.stroke();
-      });
-      // Nodes
-      nodes.forEach(function(n){
-        var nx=n.x+Math.sin(t*0.002+n.phase)*2.5, ny=n.y+Math.cos(t*0.0015+n.phase)*2.5;
-        var bright=0.6+0.4*Math.sin(t*0.003+n.phase);
-        // Green halo
-        ctx.beginPath(); ctx.arc(nx,ny,3,0,Math.PI*2);
-        ctx.fillStyle='rgba(34,197,94,'+bright*0.3+')'; ctx.fill();
-        // Core
-        ctx.beginPath(); ctx.arc(nx,ny,1.8,0,Math.PI*2);
-        ctx.fillStyle='rgba(34,211,238,'+bright+')'; ctx.fill();
-      });
-      requestAnimationFrame(render);
-    }
-    requestAnimationFrame(render);
-  }
 
-  // === SKELETON LOADING ===
-  function showSkeletons(){
-    var g=document.getElementById('resourceGrid'), h='';
-    for(var i=0;i<6;i++){
-      h+='<div class="skeleton-card"><div class="skel skel-badge"></div><div class="skel skel-title"></div><div class="skel skel-meta"></div><div class="skel skel-desc1"></div><div class="skel skel-desc2"></div><div class="skel skel-btn"></div></div>';
-    }
-    g.innerHTML=h;
-  }
-
-  // === FILTERS ===
-  window.applyFilter = function(f, btn){
-    filter=f;
-    document.querySelectorAll('.filter-pill').forEach(function(p){ p.classList.remove('active'); });
-    if(btn) btn.classList.add('active');
-    renderGrid();
-    window.scrollTo({top: document.getElementById('filterBar').offsetTop - 80, behavior:'smooth'});
-  };
-
-  // === RENDER GRID ===
-  function renderGrid(){
-    var g=document.getElementById('resourceGrid');
-    var list=resources;
-    if(filter==='source-3') list=resources.filter(function(r){return r.source_phase===3;});
-    else if(filter==='source-1') list=resources.filter(function(r){return r.source_phase===1;});
-    else if(filter.indexOf('cat-')===0){ var cat=filter.replace('cat-',''); list=resources.filter(function(r){return r.primary_acei_category===cat;}); }
-
-    if(!list.length){ g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted)">No resources match this filter.</div>'; return; }
-
-    var h='';
-    list.forEach(function(r,i){
-      var cl=aceiLabel(r.primary_acei_category), cc=aceiColour(r.primary_acei_category);
-      var sl=r.source_phase===3?'Ailane Original':'OGL Curated', sc=r.source_phase===3?'badge-src':'badge-src ogl';
-      var tl=r.content_type==='written_guide'?'Guide':r.content_type==='code_of_practice'?'Code of Practice':'Factsheet';
-      var pv=trunc(strip(r.content_html||''),160);
-      var fl=r.freshness_status==='current'?'Current':r.freshness_status==='review_due'?'Under Review':'Stale';
-      var fc=r.freshness_status||'current';
-      var wc=r.word_count?r.word_count.toLocaleString():'—';
-      var rt=r.estimated_read_minutes?r.estimated_read_minutes+' min':'';
-      var cta=authenticated
-        ?'<button class="card-cta cta-read" onclick="openReader(\''+r.slug+'\')">Read Full Guide &#8594;</button>'
-        :'<a class="card-cta cta-lock" href="/account/?return=/training/">&#128274; Sign In to Read</a>';
-      var delay=(i*0.06)+'s';
-
-      h+='<div class="card" style="animation-delay:'+delay+'">'
-        +'<div class="card-badges">'
-        +'<span class="badge" style="background:'+cc+'18;color:'+cc+'">'+cl+'</span>'
-        +'<span class="badge '+sc+'">'+sl+'</span>'
-        +'<span class="badge badge-type">'+tl+'</span>'
-        +'</div>'
-        +'<h3>'+r.title+'</h3>'
-        +'<div class="card-meta">'
-        +'<span>'+wc+' words</span>'
-        +(rt?'<span>'+rt+'</span>':'')
-        +'<span class="fresh"><span class="fresh-dot '+fc+'"></span> '+fl+'</span>'
-        +'</div>'
-        +'<p class="card-desc">'+pv+'</p>'
-        +cta+'</div>';
-    });
-    g.innerHTML=h;
-  }
-
-  // === CATEGORY FILTERS ===
-  function buildCatFilters(){
-    var cats={};
-    resources.forEach(function(r){ if(r.primary_acei_category) cats[r.primary_acei_category]=true; });
-    var bar=document.getElementById('filterBar');
-    var sep=document.createElement('div'); sep.className='filter-sep'; bar.appendChild(sep);
-    Object.keys(cats).sort().forEach(function(c){
-      var b=document.createElement('button'); b.className='filter-pill'; b.textContent=aceiLabel(c);
-      b.onclick=function(){ applyFilter('cat-'+c,b); };
-      bar.appendChild(b);
-    });
-  }
-
-  // === STATS BAR ===
-  function renderStats(){
-    var total=resources.length;
-    var guides=resources.filter(function(r){return r.content_type==='written_guide';}).length;
-    var cs={}; resources.forEach(function(r){if(r.primary_acei_category) cs[r.primary_acei_category]=1;}); var cc=Object.keys(cs).length;
-    var totalWords=0; resources.forEach(function(r){if(r.word_count) totalWords+=r.word_count;});
-    document.getElementById('statsBar').innerHTML=
-      '<div class="stat-chip"><strong>'+total+'</strong> Resources</div>'
-      +'<div class="stat-chip"><strong>'+guides+'</strong> Guides</div>'
-      +'<div class="stat-chip"><strong>'+cc+'</strong> Categories</div>'
-      +'<div class="stat-chip"><strong>'+totalWords.toLocaleString()+'</strong> Words</div>'
-      +'<div class="stat-chip"><strong>Quarterly</strong> Reviewed</div>';
-  }
-
-  // === READER ===
-  window.openReader = function(slug){
-    var r=resources.find(function(x){return x.slug===slug;});
-    if(!r) return;
-    var cc=aceiColour(r.primary_acei_category), cl=aceiLabel(r.primary_acei_category);
-    var sl=r.source_phase===3?'Ailane Original':'OGL Curated';
-    var rt=r.estimated_read_minutes?r.estimated_read_minutes+' min read':'';
-    var rv=fmtDate(r.last_reviewed_at);
-    document.getElementById('readerBadges').innerHTML=
-      '<span class="badge" style="background:'+cc+'18;color:'+cc+'">'+cl+'</span>'
-      +'<span class="badge badge-src">'+(r.source_phase===3?'Ailane Original':'OGL Curated')+'</span>'
-      +(rt?'<span class="badge badge-type">'+rt+'</span>':'')
-      +(rv?'<span class="badge badge-type">Reviewed: '+rv+'</span>':'');
-    document.getElementById('readerBody').innerHTML=r.content_html||'<p>Content not available.</p>';
-    document.getElementById('readerFoot').innerHTML='Published by Ailane &middot; ailane.ai &middot; AI Lane Limited, Company No. 17035654<br>Training content is educational and does not constitute legal advice.';
-    document.getElementById('reader').classList.add('open');
-    document.getElementById('reader').scrollTop=0;
-    document.body.style.overflow='hidden';
-    gtag('event','read_guide',{guide_slug:slug,guide_category:r.primary_acei_category});
-  };
-  window.closeReader = function(){
-    document.getElementById('reader').classList.remove('open');
-    document.body.style.overflow='';
-  };
-
-  // === EILEEN INTELLIGENCE ENTITY ===
-  // EILEEN-001/002: Acknowledge → Contextualise → Educate → Connect → Invite
-  // Constitutional boundary: navigational assistance only — never score-linked
-  var eileenOpen=false, eileenHistory=[];
-
-  var EILEEN_KNOWLEDGE = {
-    greeting: "Hello! I'm Eileen, your guide to Ailane's employment law training resources. I can help you find the right guide for your situation, explain what each topic covers, or point you to the most relevant starting point. What area of employment law are you looking into?",
-    topics: {
-      'unfair dismissal': "Our Unfair Dismissal guide covers the complete ERA 1996 Part X framework — qualifying service, the five fair reasons, procedural fairness, the ACAS Code, and the tribunal exposure patterns we see most frequently. It's one of our most comprehensive guides at over 1,900 words. Shall I open it for you?",
-      'discrimination': "The Discrimination guide covers the full Equality Act 2010 framework across all nine protected characteristics, direct and indirect discrimination, harassment, victimisation, and the employer's duty to make reasonable adjustments. At 2,180 words, it's the most detailed guide in the library.",
-      'wages': "We have two guides covering wages. The Wages and Deductions guide covers ERA 1996 Part II (unlawful deductions), the NMW Act 1998, holiday pay calculation, and the three lawful deduction gateways. The Working Time Regulations guide covers the 48-hour week, rest periods, annual leave, and night work. Together they give you the full picture.",
-      'health safety': "The Health & Safety guide covers HSWA 1974 employer obligations, the Management Regulations 1999, RIDDOR reporting, HSE enforcement powers, and the dual-track exposure pattern — both regulatory prosecution and civil liability. Particularly relevant for facilities management, construction, and manufacturing.",
-      'whistleblowing': "Our Whistleblowing guide covers ERA 1996 Part IVA in full — the six categories of qualifying disclosure, the hierarchy of protected disclosure channels, the prescribed persons regime, and the detriment and automatic unfair dismissal protections. Key point: no qualifying service period and uncapped damages.",
-      'data protection': "The Data Protection guide covers UK GDPR and DPA 2018 in the employment context — lawful bases, special category data, employee monitoring, subject access requests, DPIAs, international transfers, and the ICO enforcement framework. Essential reading given the rise of workplace surveillance and AI tools.",
-      'parental': "The Parental Rights guide covers all seven statutory entitlements: maternity, paternity, adoption, shared parental, parental bereavement, unpaid parental leave, and flexible working. It includes the 2023 and 2024 legislative changes. Common exposure: redundancy during or shortly after maternity leave.",
-      'trade union': "The Trade Union guide covers TULRCA 1992 comprehensively — individual membership rights, statutory recognition procedure, time off for duties and activities, collective redundancy consultation, and industrial action ballot requirements. Includes the 2016 ballot threshold changes.",
-      'tupe': "The TUPE guide covers the 2006 Regulations in full — business transfers, service provision changes, protection against dismissal, variation restrictions, and the information and consultation obligations with the 28-day EID requirement. Critical for any outsourcing, merger, or contract retender.",
-      'equal pay': "The Equal Pay guide covers EA 2010 Chapter 3 — the equality clause, three types of equal work, comparator rules, material factor defence, and gender pay gap reporting. Back-pay liability can reach six years per claimant. Birmingham City Council settled 11,000 claims for over £1 billion.",
-      'contract': "The Contractual Disputes guide covers the full range — sources of terms, the implied duty of mutual trust and confidence, variation routes, breach of contract claims, restrictive covenants, and the fire-and-rehire ACAS Code 2024. Essential foundational reading for any employer.",
-      'redundancy': "We have OGL-curated factsheets covering redundancy procedures and obligations from ACAS. The TUPE guide also covers redundancy in the transfer context. A dedicated Ailane Original redundancy guide is on the roadmap."
-    },
-    fallback: "That's an interesting question. While I can guide you through our training resources and help you find the right starting point, I'd recommend exploring the specific guides for detailed statutory coverage. Is there a particular area of employment law you'd like to start with?",
-    howMany: "We currently have 22 training resources — 12 comprehensive Ailane Original guides covering over 25,000 words of statutory analysis, plus 10 OGL-curated documents from ACAS, HSE, EHRC, and ICO. Every resource is reviewed quarterly and automatically flagged when legislation changes.",
-    whatIs: "Ailane is a UK employment law compliance intelligence platform. We quantify regulatory exposure through the ACEI — the Adverse Claim Exposure Index — which analyses 12 categories of employment law risk. These training resources are part of the Knowledge Library, designed to help you understand the statutory frameworks that the ACEI measures."
-  };
-
-  function eileenRespond(userMsg){
-    var msg = userMsg.toLowerCase().trim();
-    // Topic matching
-    if(msg.match(/unfair\s*dismiss/)) return EILEEN_KNOWLEDGE.topics['unfair dismissal'];
-    if(msg.match(/discriminat|equality\s*act|protected\s*char/)) return EILEEN_KNOWLEDGE.topics['discrimination'];
-    if(msg.match(/wage|deduction|pay\s*(slip|statement)|minimum\s*wage|nmw/)) return EILEEN_KNOWLEDGE.topics['wages'];
-    if(msg.match(/health.*safe|h\s*&\s*s|hswa|hse|riddor/)) return EILEEN_KNOWLEDGE.topics['health safety'];
-    if(msg.match(/whistleblow|protected\s*disclos|pida/)) return EILEEN_KNOWLEDGE.topics['whistleblowing'];
-    if(msg.match(/data\s*protect|gdpr|dpa|ico|subject\s*access|sar\b|privacy/)) return EILEEN_KNOWLEDGE.topics['data protection'];
-    if(msg.match(/parent|matern|patern|adoption|flexible\s*work|shared\s*parent|bereavement/)) return EILEEN_KNOWLEDGE.topics['parental'];
-    if(msg.match(/trade\s*union|tulrca|collective|recognition|industrial\s*action|strike/)) return EILEEN_KNOWLEDGE.topics['trade union'];
-    if(msg.match(/tupe|transfer.*undertaking|outsourc|insourc/)) return EILEEN_KNOWLEDGE.topics['tupe'];
-    if(msg.match(/equal\s*pay|gender\s*pay|pay\s*gap/)) return EILEEN_KNOWLEDGE.topics['equal pay'];
-    if(msg.match(/contract|breach|variation|restrictive\s*covenant|notice\s*period|fire.*rehire|garden\s*leave/)) return EILEEN_KNOWLEDGE.topics['contract'];
-    if(msg.match(/redundan/)) return EILEEN_KNOWLEDGE.topics['redundancy'];
-    if(msg.match(/how\s*many|how\s*much|what.*available|what.*cover/)) return EILEEN_KNOWLEDGE.howMany;
-    if(msg.match(/what.*ailane|what.*acei|what.*platform|who\s*are\s*you|what\s*do\s*you/)) return EILEEN_KNOWLEDGE.whatIs;
-    if(msg.match(/working\s*time|48.*hour|rest\s*break|annual\s*leave|holiday/)) return EILEEN_KNOWLEDGE.topics['wages'];
-    if(msg.match(/hello|hi\b|hey|good\s*(morning|afternoon|evening)/)) return EILEEN_KNOWLEDGE.greeting;
-    if(msg.match(/thank/)) return "You're welcome. If you need guidance on any other area, I'm here. The training resources are designed to build understanding progressively — each guide stands alone, but together they give you the full employment law compliance picture.";
-    return EILEEN_KNOWLEDGE.fallback;
-  }
-
-  function addEileenMsg(text, isUser){
-    var msgs = document.getElementById('eileenMessages');
-    var div = document.createElement('div');
-    div.className = 'msg ' + (isUser ? 'msg-user' : 'msg-eileen');
-    div.innerHTML = text;
-    msgs.appendChild(div);
-    msgs.scrollTop = msgs.scrollHeight;
-  }
-
-  function showSuggestions(suggestions){
-    var container = document.getElementById('eileenSuggestions');
-    container.innerHTML = '';
-    suggestions.forEach(function(s){
-      var btn = document.createElement('button');
-      btn.className = 'suggest-btn';
-      btn.textContent = s;
-      btn.onclick = function(){
-        addEileenMsg(s, true);
-        container.innerHTML = '';
-        setTimeout(function(){ addEileenMsg(eileenRespond(s), false); showFollowUpSuggestions(); }, 400);
-      };
-      container.appendChild(btn);
-    });
-  }
-
-  function showFollowUpSuggestions(){
-    showSuggestions(['Unfair Dismissal','Discrimination','TUPE','Whistleblowing']);
-  }
-
-  window.sendToEileen = function(){
-    var input = document.getElementById('eileenInput');
-    var msg = input.value.trim();
-    if(!msg) return;
-    addEileenMsg(msg, true);
-    input.value = '';
-    document.getElementById('eileenSuggestions').innerHTML = '';
-    setTimeout(function(){
-      addEileenMsg(eileenRespond(msg), false);
-      showFollowUpSuggestions();
-    }, 500);
-  };
-
-  window.toggleEileen = function(){
-    eileenOpen = !eileenOpen;
-    var panel = document.getElementById('eileenPanel');
-    if(eileenOpen){
-      panel.classList.add('open');
-      if(!document.getElementById('eileenMessages').children.length){
-        addEileenMsg(EILEEN_KNOWLEDGE.greeting, false);
-        showSuggestions(['What topics do you cover?','Health & Safety','Data Protection','What is Ailane?']);
-      }
-      document.getElementById('eileenInput').focus();
-    } else {
-      panel.classList.remove('open');
-    }
-    gtag('event','eileen_toggle',{state:eileenOpen?'open':'close'});
-  };
-
-  // === KEYBOARD ACCESSIBILITY ===
-  document.addEventListener('keydown', function(e){
-    if(e.key==='Escape'){
-      if(document.getElementById('reader').classList.contains('open')) closeReader();
-      else if(eileenOpen) toggleEileen();
-      else if(document.getElementById('mobileNav').classList.contains('open')) toggleMobileNav();
-    }
-  });
-
-  // === INIT ===
-  async function init(){
-    showSkeletons();
-
-    // Nexus animations
-    drawNexus(document.getElementById('nexusOrb'), 56, true);
-    drawNexus(document.getElementById('nexusHeader'), 32, false);
-
-    // Optional auth detection (non-blocking)
-    try {
-      var sbScript = document.createElement('script');
-      sbScript.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-      sbScript.onload = async function(){
-        try {
-          var sb = window.supabase.createClient(SB_URL, SB_KEY);
-          var sess = await sb.auth.getSession();
-          if(sess && sess.data && sess.data.session && sess.data.session.access_token){
-            authenticated = true;
-            document.getElementById('navAuth').textContent = 'Dashboard';
-            document.getElementById('navAuth').href = '/account/dashboard/';
-            document.getElementById('navAuthMobile').textContent = 'Dashboard';
-            document.getElementById('navAuthMobile').href = '/account/dashboard/';
-            if(resources.length > 0) renderGrid();
+      /* Generate random edges between nodes */
+      for (var i = 0; i < nodes.length; i++) {
+        for (var j = i + 1; j < nodes.length; j++) {
+          if (Math.random() > 0.4) {
+            edges.push([i, j]);
           }
-        } catch(e){}
-      };
-      document.head.appendChild(sbScript);
-    } catch(e){}
+        }
+      }
 
-    // Fetch resources — critical path
-    try {
-      var url = SB_URL + '/rest/v1/kl_training_resources'
-        + '?is_published=eq.true&order=sort_order.asc'
-        + '&select=id,title,slug,description,content_html,content_type,source_phase,primary_acei_category,acei_categories,source_licence,publisher_body,word_count,estimated_read_minutes,freshness_status,last_reviewed_at';
-      var resp = await fetch(url, {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }
-      });
-      if(!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + (await resp.text()));
-      var data = await resp.json();
-      if(!Array.isArray(data) || data.length === 0) throw new Error('Empty response');
-      resources = data;
-      renderStats();
-      buildCatFilters();
-      renderGrid();
-    } catch(err) {
-      console.error('Fetch failed:', err);
-      document.getElementById('resourceGrid').innerHTML =
-        '<div style="grid-column:1/-1;text-align:center;padding:4rem 2rem;">'
-        +'<div style="font-size:1.1rem;color:var(--text-secondary);margin-bottom:0.75rem;">Unable to load training resources</div>'
-        +'<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Error: '+err.message+'</div>'
-        +'<button onclick="location.reload()" style="padding:0.6rem 1.5rem;border-radius:8px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);cursor:pointer;font-family:var(--font-body);font-size:0.85rem;">Retry</button>'
-        +'</div>';
+      /* Animation loop */
+      function renderFrame(timestamp) {
+        ctx.clearRect(0, 0, size, size);
+
+        /* Background glow for the main orb */
+        if (showGlow) {
+          var gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 0.48);
+          gradient.addColorStop(0, 'rgba(34, 211, 238, 0.08)');
+          gradient.addColorStop(1, 'rgba(34, 211, 238, 0)');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, size, size);
+        }
+
+        /* Draw edges with oscillating opacity */
+        edges.forEach(function(edge) {
+          var nodeA = nodes[edge[0]];
+          var nodeB = nodes[edge[1]];
+          var oscillation = 0.3 + 0.3 * Math.sin(timestamp * 0.001 + nodeA.phase);
+          ctx.strokeStyle = 'rgba(34, 211, 238, ' + oscillation + ')';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(
+            nodeA.x + Math.sin(timestamp * 0.002 + nodeA.phase) * 2,
+            nodeA.y + Math.cos(timestamp * 0.0015 + nodeA.phase) * 2
+          );
+          ctx.lineTo(
+            nodeB.x + Math.sin(timestamp * 0.002 + nodeB.phase) * 2,
+            nodeB.y + Math.cos(timestamp * 0.0015 + nodeB.phase) * 2
+          );
+          ctx.stroke();
+        });
+
+        /* Draw nodes with green halo + cyan core */
+        nodes.forEach(function(node) {
+          var nodeX = node.x + Math.sin(timestamp * 0.002 + node.phase) * 2.5;
+          var nodeY = node.y + Math.cos(timestamp * 0.0015 + node.phase) * 2.5;
+          var brightness = 0.6 + 0.4 * Math.sin(timestamp * 0.003 + node.phase);
+
+          /* Green halo */
+          ctx.beginPath();
+          ctx.arc(nodeX, nodeY, 3, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(34, 197, 94, ' + (brightness * 0.3) + ')';
+          ctx.fill();
+
+          /* Cyan core */
+          ctx.beginPath();
+          ctx.arc(nodeX, nodeY, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(34, 211, 238, ' + brightness + ')';
+          ctx.fill();
+        });
+
+        requestAnimationFrame(renderFrame);
+      }
+
+      requestAnimationFrame(renderFrame);
     }
-  }
 
-  init();
-})();
-</script>
+    /* ================================================================
+       SKELETON LOADING STATE
+       ================================================================ */
+    function showSkeletonCards() {
+      var grid = document.getElementById('resourceGrid');
+      var html = '';
+      for (var i = 0; i < 6; i++) {
+        html += '<div class="skeleton-card">'
+          + '<div class="skeleton-line skel-badge"></div>'
+          + '<div class="skeleton-line skel-title"></div>'
+          + '<div class="skeleton-line skel-meta"></div>'
+          + '<div class="skeleton-line skel-desc1"></div>'
+          + '<div class="skeleton-line skel-desc2"></div>'
+          + '<div class="skeleton-line skel-btn"></div>'
+          + '</div>';
+      }
+      grid.innerHTML = html;
+    }
+
+    /* ================================================================
+       FILTER SYSTEM
+       ================================================================ */
+    window.applyFilter = function(filterValue, buttonElement) {
+      currentFilter = filterValue;
+
+      /* Update active state on all filter pills */
+      document.querySelectorAll('.filter-pill').forEach(function(pill) {
+        pill.classList.remove('active');
+      });
+      if (buttonElement) {
+        buttonElement.classList.add('active');
+      }
+
+      renderResourceGrid();
+
+      /* Scroll to filter bar for context */
+      window.scrollTo({
+        top: document.getElementById('filterBar').offsetTop - 80,
+        behavior: 'smooth'
+      });
+    };
+
+    /* ================================================================
+       RESOURCE GRID RENDERING
+       ================================================================ */
+    function renderResourceGrid() {
+      var grid = document.getElementById('resourceGrid');
+      var filteredResources = allResources;
+
+      /* Apply active filter */
+      if (currentFilter === 'source-3') {
+        filteredResources = allResources.filter(function(resource) {
+          return resource.source_phase === 3;
+        });
+      } else if (currentFilter === 'source-1') {
+        filteredResources = allResources.filter(function(resource) {
+          return resource.source_phase === 1;
+        });
+      } else if (currentFilter.indexOf('category-') === 0) {
+        var targetCategory = currentFilter.replace('category-', '');
+        filteredResources = allResources.filter(function(resource) {
+          return resource.primary_acei_category === targetCategory;
+        });
+      }
+
+      /* Empty state */
+      if (!filteredResources.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted);">No resources match this filter.</div>';
+        return;
+      }
+
+      /* Build cards */
+      var html = '';
+      filteredResources.forEach(function(resource, index) {
+        var categoryLabel = getCategoryLabel(resource.primary_acei_category);
+        var categoryColour = getCategoryColour(resource.primary_acei_category);
+        var sourceLabel = resource.source_phase === 3 ? 'Ailane Original' : 'OGL Curated';
+        var sourceClass = resource.source_phase === 3 ? 'badge-source' : 'badge-source ogl';
+        var typeLabel = resource.content_type === 'written_guide' ? 'Guide'
+          : resource.content_type === 'code_of_practice' ? 'Code of Practice' : 'Factsheet';
+        var previewText = truncateText(stripHtmlTags(resource.content_html || ''), 160);
+        var freshnessLabel = resource.freshness_status === 'current' ? 'Current'
+          : resource.freshness_status === 'review_due' ? 'Under Review' : 'Stale';
+        var freshnessClass = resource.freshness_status || 'current';
+        var wordCount = resource.word_count ? resource.word_count.toLocaleString() : '—';
+        var readTime = resource.estimated_read_minutes ? resource.estimated_read_minutes + ' min' : '';
+        var animationDelay = (index * 0.06) + 's';
+
+        /* CTA depends on authentication state */
+        var ctaHtml;
+        if (isAuthenticated) {
+          ctaHtml = '<button class="card-cta cta-read" onclick="openReader(\'' + resource.slug + '\')">Read Full Guide &#8594;</button>';
+        } else {
+          ctaHtml = '<a class="card-cta cta-locked" href="/account/?return=/training/">&#128274; Sign In to Read</a>';
+        }
+
+        html += '<div class="card" style="animation-delay:' + animationDelay + '">'
+          + '<div class="card-badges">'
+          + '<span class="badge" style="background:' + categoryColour + '18; color:' + categoryColour + '">' + categoryLabel + '</span>'
+          + '<span class="badge ' + sourceClass + '">' + sourceLabel + '</span>'
+          + '<span class="badge badge-type">' + typeLabel + '</span>'
+          + '</div>'
+          + '<h3>' + resource.title + '</h3>'
+          + '<div class="card-meta">'
+          + '<span>' + wordCount + ' words</span>'
+          + (readTime ? '<span>' + readTime + '</span>' : '')
+          + '<span class="freshness"><span class="freshness-dot ' + freshnessClass + '"></span> ' + freshnessLabel + '</span>'
+          + '</div>'
+          + '<p class="card-description">' + previewText + '</p>'
+          + ctaHtml
+          + '</div>';
+      });
+
+      grid.innerHTML = html;
+    }
+
+    /* ================================================================
+       DYNAMIC CATEGORY FILTER PILLS
+       Built from actual data — only shows categories with content
+       ================================================================ */
+    function buildCategoryFilters() {
+      var categoriesPresent = {};
+      allResources.forEach(function(resource) {
+        if (resource.primary_acei_category) {
+          categoriesPresent[resource.primary_acei_category] = true;
+        }
+      });
+
+      var filterBar = document.getElementById('filterBar');
+
+      /* Add separator before category pills */
+      var separator = document.createElement('div');
+      separator.className = 'filter-separator';
+      filterBar.appendChild(separator);
+
+      /* Add a pill for each category */
+      Object.keys(categoriesPresent).sort().forEach(function(category) {
+        var button = document.createElement('button');
+        button.className = 'filter-pill';
+        button.textContent = getCategoryLabel(category);
+        button.onclick = function() {
+          applyFilter('category-' + category, button);
+        };
+        filterBar.appendChild(button);
+      });
+    }
+
+    /* ================================================================
+       STATISTICS BAR
+       ================================================================ */
+    function renderStatistics() {
+      var totalResources = allResources.length;
+      var guideCount = allResources.filter(function(resource) {
+        return resource.content_type === 'written_guide';
+      }).length;
+
+      var categorySet = {};
+      allResources.forEach(function(resource) {
+        if (resource.primary_acei_category) {
+          categorySet[resource.primary_acei_category] = true;
+        }
+      });
+      var categoryCount = Object.keys(categorySet).length;
+
+      var totalWords = 0;
+      allResources.forEach(function(resource) {
+        if (resource.word_count) totalWords += resource.word_count;
+      });
+
+      document.getElementById('statsBar').innerHTML =
+        '<div class="stat-chip"><strong>' + totalResources + '</strong> Resources</div>'
+        + '<div class="stat-chip"><strong>' + guideCount + '</strong> Guides</div>'
+        + '<div class="stat-chip"><strong>' + categoryCount + '</strong> Categories</div>'
+        + '<div class="stat-chip"><strong>' + totalWords.toLocaleString() + '</strong> Words</div>'
+        + '<div class="stat-chip"><strong>Quarterly</strong> Reviewed</div>';
+    }
+
+    /* ================================================================
+       READER — Full-screen overlay with sidebar TOC
+       ================================================================ */
+    window.openReader = function(slug) {
+      var resource = allResources.find(function(item) {
+        return item.slug === slug;
+      });
+      if (!resource) return;
+
+      var categoryColour = getCategoryColour(resource.primary_acei_category);
+      var categoryLabel = getCategoryLabel(resource.primary_acei_category);
+      var sourceLabel = resource.source_phase === 3 ? 'Ailane Original' : 'OGL Curated';
+      var readTime = resource.estimated_read_minutes ? resource.estimated_read_minutes + ' min read' : '';
+      var reviewedDate = formatDate(resource.last_reviewed_at);
+
+      /* Set badges */
+      document.getElementById('readerBadges').innerHTML =
+        '<span class="badge" style="background:' + categoryColour + '18; color:' + categoryColour + '">' + categoryLabel + '</span>'
+        + '<span class="badge badge-source">' + sourceLabel + '</span>'
+        + (readTime ? '<span class="badge badge-type">' + readTime + '</span>' : '')
+        + (reviewedDate ? '<span class="badge badge-type">Reviewed: ' + reviewedDate + '</span>' : '');
+
+      /* Set content */
+      document.getElementById('readerBody').innerHTML = resource.content_html || '<p>Content not available.</p>';
+      document.getElementById('readerFoot').innerHTML =
+        'Published by Ailane &middot; ailane.ai &middot; AI Lane Limited, Company No. 17035654'
+        + '<br>Training content is educational and does not constitute legal advice.';
+
+      /* Build sidebar Table of Contents from h2 headings */
+      var readerBody = document.getElementById('readerBody');
+      var headings = readerBody.querySelectorAll('h2');
+      var tocList = document.getElementById('tocList');
+      tocList.innerHTML = '';
+
+      /* Set sidebar header */
+      document.getElementById('tocTitle').textContent = resource.title;
+      document.getElementById('tocMeta').textContent = categoryLabel + (readTime ? ' · ' + readTime : '');
+
+      /* Create TOC items for each section heading */
+      headings.forEach(function(heading, index) {
+        var sectionId = 'section-' + index;
+        heading.id = sectionId;
+
+        var tocItem = document.createElement('a');
+        tocItem.className = 'toc-item';
+        tocItem.textContent = heading.textContent;
+        tocItem.href = '#' + sectionId;
+        tocItem.onclick = function(event) {
+          event.preventDefault();
+          var readerMain = document.getElementById('readerMain');
+          var targetElement = document.getElementById(sectionId);
+          readerMain.scrollTo({
+            top: targetElement.offsetTop - 20,
+            behavior: 'smooth'
+          });
+          /* Close mobile sidebar if open */
+          document.getElementById('readerSidebar').classList.remove('mobile-open');
+        };
+        tocList.appendChild(tocItem);
+      });
+
+      /* Show reader overlay */
+      document.getElementById('readerOverlay').classList.add('open');
+      document.getElementById('readerMain').scrollTop = 0;
+      document.body.style.overflow = 'hidden';
+
+      /* Scroll tracking — active TOC highlight + back-to-top button */
+      var readerMain = document.getElementById('readerMain');
+      readerMain.onscroll = function() {
+        /* Back to top button visibility */
+        var backToTopBtn = document.getElementById('backToTop');
+        if (readerMain.scrollTop > 400) {
+          backToTopBtn.classList.add('visible');
+        } else {
+          backToTopBtn.classList.remove('visible');
+        }
+
+        /* Update active TOC item based on scroll position */
+        var tocItems = tocList.querySelectorAll('.toc-item');
+        var activeIndex = 0;
+        headings.forEach(function(heading, index) {
+          if (heading.offsetTop - 40 <= readerMain.scrollTop) {
+            activeIndex = index;
+          }
+        });
+        tocItems.forEach(function(item, index) {
+          if (index === activeIndex) {
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active');
+          }
+        });
+      };
+
+      /* Track in GA4 */
+      gtag('event', 'read_guide', {
+        guide_slug: slug,
+        guide_category: resource.primary_acei_category
+      });
+    };
+
+    window.closeReader = function() {
+      document.getElementById('readerOverlay').classList.remove('open');
+      document.getElementById('readerSidebar').classList.remove('mobile-open');
+      document.getElementById('backToTop').classList.remove('visible');
+      document.body.style.overflow = '';
+    };
+
+    window.scrollReaderToTop = function() {
+      document.getElementById('readerMain').scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    };
+
+    window.toggleMobileSidebar = function() {
+      document.getElementById('readerSidebar').classList.toggle('mobile-open');
+    };
+
+    /* ================================================================
+       EILEEN — Intelligence Entity Knowledge Base
+       Pattern: Acknowledge → Contextualise → Educate → Connect → Invite
+       Constitutional boundary: navigational assistance only —
+       NEVER score-linked remediation recommendations
+       ================================================================ */
+    var EILEEN_KNOWLEDGE = {
+      greeting: "Hello! I'm Eileen, your guide to Ailane's employment law training resources. I can help you find the right guide for your situation, explain what each topic covers, or point you to the most relevant starting point. What area of employment law are you looking into?",
+
+      topics: {
+        'unfair dismissal': "Our Unfair Dismissal guide covers the complete ERA 1996 Part X framework — qualifying service, the five fair reasons, procedural fairness, the ACAS Code, and the tribunal exposure patterns we see most frequently in published decisions. It's one of our most comprehensive guides at over 1,900 words. Would you like me to point you to it?",
+
+        'discrimination': "The Discrimination guide covers the full Equality Act 2010 framework across all nine protected characteristics, direct and indirect discrimination, harassment, victimisation, and the employer's duty to make reasonable adjustments. At 2,180 words, it's the most detailed guide in the library. It also covers the shifting burden of proof — a procedural point that catches many employers off guard.",
+
+        'wages': "We have two guides covering wages. The Wages and Deductions guide covers ERA 1996 Part II (unlawful deductions), the NMW Act 1998, holiday pay calculation following the Harpur Trust Supreme Court decision, and the three lawful deduction gateways. The Working Time Regulations guide covers the 48-hour week, rest periods, annual leave accrual, and night work. Together they give you the full picture of one of the highest-volume tribunal claim categories.",
+
+        'health safety': "The Health & Safety guide covers HSWA 1974 employer obligations, the Management Regulations 1999, RIDDOR reporting, HSE enforcement powers, and the dual-track exposure pattern — both regulatory prosecution and civil liability arising from the same incident. Particularly relevant for facilities management, construction, manufacturing, and any sector with physical workplace risks.",
+
+        'whistleblowing': "Our Whistleblowing guide covers ERA 1996 Part IVA in full — the six categories of qualifying disclosure, the hierarchy of protected disclosure channels from internal through to wider disclosure, the prescribed persons regime (over 60 bodies), and the detriment and automatic unfair dismissal protections. Key point that employers need to understand: no qualifying service period and uncapped damages make this one of the highest-risk claim types.",
+
+        'data protection': "The Data Protection guide covers UK GDPR and DPA 2018 in the employment context — lawful bases for processing employee data, special category data handling, employee monitoring (including the DPIA requirement), subject access requests and the tactical use of SARs in litigation, international transfers, and the ICO enforcement framework. Essential reading given the rise of AI-driven HR tools and workplace surveillance.",
+
+        'parental': "The Parental Rights guide covers all seven statutory entitlements: maternity, paternity, adoption, shared parental, parental bereavement, unpaid parental leave, and the right to request flexible working. It includes the 2023 and 2024 legislative changes — the expanded flexible working right (two requests per year, two-month response deadline) and the new preferential redundancy redeployment for pregnant employees. Common exposure pattern: redundancy during or shortly after maternity leave.",
+
+        'trade union': "The Trade Union guide covers TULRCA 1992 comprehensively — individual membership rights, the statutory recognition procedure through the CAC, time off for duties versus activities (a distinction with real financial consequences), collective redundancy consultation obligations with the 13-week protective award, information disclosure, and industrial action ballot requirements including the 2016 turnout thresholds.",
+
+        'tupe': "The TUPE guide covers the 2006 Regulations in full — both business transfers and service provision changes, automatic transfer of terms and liabilities, protection against dismissal and the narrow ETO defence, the absolute prohibition on transfer-connected variations, and the information and consultation obligations with the 28-day EID requirement and 13-week compensation exposure. Critical for any employer involved in outsourcing, insourcing, mergers, or contract retendering.",
+
+        'equal pay': "The Equal Pay guide covers EA 2010 Chapter 3 — the automatic equality clause, three types of equal work (like work, work rated as equivalent, work of equal value), comparator selection rules, the material factor defence with its five common justification routes, and gender pay gap reporting obligations. Back-pay liability can reach six years per claimant. To put it in perspective: Birmingham City Council settled approximately 11,000 equal pay claims at a reported cost exceeding one billion pounds.",
+
+        'contract': "The Contractual Disputes guide covers the complete landscape — sources of contractual terms (express, implied, incorporated, collective), the implied duty of mutual trust and confidence as the foundation of constructive dismissal claims, the four lawful variation routes, breach of contract claims in both tribunal and civil court, restrictive covenant enforceability, and fire-and-rehire under the 2024 ACAS Code of Practice. Essential foundational reading for any employer.",
+
+        'redundancy': "We have OGL-curated factsheets covering redundancy procedures and obligations from ACAS. The TUPE guide also covers redundancy in the transfer context, including the ETO defence requirements. A dedicated Ailane Original redundancy guide covering the full ERA 1996 Part XI framework is on the development roadmap."
+      },
+
+      fallback: "That's an interesting question. While I can guide you through our training resources and help you find the right starting point, I'd recommend exploring the specific guides for detailed statutory coverage. Is there a particular area of employment law you'd like to start with? I can walk you through what we cover.",
+
+      howMany: "We currently have 22 training resources in the library — 12 comprehensive Ailane Original guides covering over 25,000 words of statutory analysis across all 12 ACEI compliance categories, plus 10 OGL-curated documents from authoritative public bodies including ACAS, HSE, EHRC, and ICO. Every resource is reviewed quarterly and automatically flagged for update when relevant legislation changes. The freshness system runs daily.",
+
+      whatIsAilane: "Ailane is a UK employment law compliance intelligence platform. We quantify regulatory exposure through the ACEI — the Adverse Claim Exposure Index — which analyses 12 categories of employment law risk based on 130,000+ classified tribunal decisions. These training resources are part of the Knowledge Library, designed to help employers and workers understand the statutory frameworks that the ACEI measures. The training content is educational — it helps you understand the law, while the ACEI measures your exposure to it."
+    };
+
+    /* Eileen response matching — pattern-based topic detection */
+    function getEileenResponse(userMessage) {
+      var query = userMessage.toLowerCase().trim();
+
+      if (query.match(/unfair\s*dismiss/))                            return EILEEN_KNOWLEDGE.topics['unfair dismissal'];
+      if (query.match(/discriminat|equality\s*act|protected\s*char/))  return EILEEN_KNOWLEDGE.topics['discrimination'];
+      if (query.match(/wage|deduction|pay\s*(slip|statement)|minimum\s*wage|nmw/)) return EILEEN_KNOWLEDGE.topics['wages'];
+      if (query.match(/health.*safe|h\s*&\s*s|hswa|hse|riddor/))      return EILEEN_KNOWLEDGE.topics['health safety'];
+      if (query.match(/whistleblow|protected\s*disclos|pida/))         return EILEEN_KNOWLEDGE.topics['whistleblowing'];
+      if (query.match(/data\s*protect|gdpr|dpa|ico|subject\s*access|sar\b|privacy/)) return EILEEN_KNOWLEDGE.topics['data protection'];
+      if (query.match(/parent|matern|patern|adoption|flexible\s*work|shared\s*parent|bereavement/)) return EILEEN_KNOWLEDGE.topics['parental'];
+      if (query.match(/trade\s*union|tulrca|collective|recognition|industrial\s*action|strike/)) return EILEEN_KNOWLEDGE.topics['trade union'];
+      if (query.match(/tupe|transfer.*undertaking|outsourc|insourc/))  return EILEEN_KNOWLEDGE.topics['tupe'];
+      if (query.match(/equal\s*pay|gender\s*pay|pay\s*gap/))          return EILEEN_KNOWLEDGE.topics['equal pay'];
+      if (query.match(/contract|breach|variation|restrictive\s*covenant|notice\s*period|fire.*rehire|garden\s*leave/)) return EILEEN_KNOWLEDGE.topics['contract'];
+      if (query.match(/redundan/))                                     return EILEEN_KNOWLEDGE.topics['redundancy'];
+      if (query.match(/working\s*time|48.*hour|rest\s*break|annual\s*leave|holiday/)) return EILEEN_KNOWLEDGE.topics['wages'];
+      if (query.match(/how\s*many|what.*available|what.*cover/))       return EILEEN_KNOWLEDGE.howMany;
+      if (query.match(/what.*ailane|what.*acei|what.*platform|who\s*are\s*you|what\s*do\s*you/)) return EILEEN_KNOWLEDGE.whatIsAilane;
+      if (query.match(/hello|hi\b|hey|good\s*(morning|afternoon|evening)/)) return EILEEN_KNOWLEDGE.greeting;
+      if (query.match(/thank/)) return "You're welcome. If you need guidance on any other area, I'm here. The training resources are designed to build understanding progressively — each guide stands alone, but together they give you the full employment law compliance picture.";
+
+      return EILEEN_KNOWLEDGE.fallback;
+    }
+
+    /* Eileen message rendering */
+    function addEileenMessage(text, isUser) {
+      var messagesContainer = document.getElementById('eileenMessages');
+      var messageDiv = document.createElement('div');
+      messageDiv.className = 'eileen-msg ' + (isUser ? 'eileen-msg-user' : 'eileen-msg-ai');
+      messageDiv.innerHTML = text;
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    /* Eileen suggestion pills */
+    function showEileenSuggestions(suggestions) {
+      var container = document.getElementById('eileenSuggestions');
+      container.innerHTML = '';
+      suggestions.forEach(function(suggestion) {
+        var button = document.createElement('button');
+        button.className = 'eileen-suggest-btn';
+        button.textContent = suggestion;
+        button.onclick = function() {
+          addEileenMessage(suggestion, true);
+          container.innerHTML = '';
+          setTimeout(function() {
+            addEileenMessage(getEileenResponse(suggestion), false);
+            showFollowUpSuggestions();
+          }, 400);
+        };
+        container.appendChild(button);
+      });
+    }
+
+    function showFollowUpSuggestions() {
+      showEileenSuggestions([
+        'Unfair Dismissal',
+        'Discrimination',
+        'TUPE',
+        'Whistleblowing'
+      ]);
+    }
+
+    /* Eileen send handler */
+    window.sendToEileen = function() {
+      var input = document.getElementById('eileenInput');
+      var message = input.value.trim();
+      if (!message) return;
+
+      addEileenMessage(message, true);
+      input.value = '';
+      document.getElementById('eileenSuggestions').innerHTML = '';
+
+      setTimeout(function() {
+        addEileenMessage(getEileenResponse(message), false);
+        showFollowUpSuggestions();
+      }, 500);
+    };
+
+    /* Eileen panel toggle */
+    window.toggleEileen = function() {
+      eileenIsOpen = !eileenIsOpen;
+      var panel = document.getElementById('eileenPanel');
+
+      if (eileenIsOpen) {
+        panel.classList.add('open');
+        /* Show greeting on first open */
+        if (!document.getElementById('eileenMessages').children.length) {
+          addEileenMessage(EILEEN_KNOWLEDGE.greeting, false);
+          showEileenSuggestions([
+            'What topics do you cover?',
+            'Health & Safety',
+            'Data Protection',
+            'What is Ailane?'
+          ]);
+        }
+        document.getElementById('eileenInput').focus();
+      } else {
+        panel.classList.remove('open');
+      }
+
+      gtag('event', 'eileen_toggle', { state: eileenIsOpen ? 'open' : 'close' });
+    };
+
+    /* ================================================================
+       KEYBOARD ACCESSIBILITY
+       Escape closes: reader → Eileen → mobile nav (priority order)
+       ================================================================ */
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        if (document.getElementById('readerOverlay').classList.contains('open')) {
+          closeReader();
+        } else if (eileenIsOpen) {
+          toggleEileen();
+        } else if (document.getElementById('mobileNav').classList.contains('open')) {
+          toggleMobileNav();
+        }
+      }
+    });
+
+    /* ================================================================
+       INITIALISATION
+       ================================================================ */
+    async function initialise() {
+      /* Show skeleton loading state immediately */
+      showSkeletonCards();
+
+      /* Start Nexus canvas animations */
+      drawNexus(document.getElementById('nexusOrb'), 56, true);
+      drawNexus(document.getElementById('nexusHeader'), 32, false);
+
+      /* Optional auth detection — non-blocking, page works without it */
+      try {
+        var supabaseScript = document.createElement('script');
+        supabaseScript.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+        supabaseScript.onload = async function() {
+          try {
+            var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            var sessionResult = await supabase.auth.getSession();
+            if (sessionResult && sessionResult.data && sessionResult.data.session && sessionResult.data.session.access_token) {
+              isAuthenticated = true;
+              /* Update nav links to show Dashboard instead of Sign In */
+              document.getElementById('navAuthDesktop').textContent = 'Dashboard';
+              document.getElementById('navAuthDesktop').href = '/account/dashboard/';
+              document.getElementById('navAuthMobile').textContent = 'Dashboard';
+              document.getElementById('navAuthMobile').href = '/account/dashboard/';
+              /* Re-render grid if data already loaded */
+              if (allResources.length > 0) {
+                renderResourceGrid();
+              }
+            }
+          } catch (authError) {
+            /* Auth check failed silently — page remains in public mode */
+          }
+        };
+        document.head.appendChild(supabaseScript);
+      } catch (cdnError) {
+        /* Supabase CDN failed — continue in public mode */
+      }
+
+      /* Fetch training resources from Supabase REST API — CRITICAL PATH */
+      try {
+        var fetchUrl = SUPABASE_URL + '/rest/v1/kl_training_resources'
+          + '?is_published=eq.true'
+          + '&order=sort_order.asc'
+          + '&select=id,title,slug,description,content_html,content_type,source_phase,primary_acei_category,acei_categories,source_licence,publisher_body,word_count,estimated_read_minutes,freshness_status,last_reviewed_at';
+
+        var response = await fetch(fetchUrl, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status + ': ' + (await response.text()));
+        }
+
+        var data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('No published training resources found');
+        }
+
+        /* Store data and render */
+        allResources = data;
+        renderStatistics();
+        buildCategoryFilters();
+        renderResourceGrid();
+
+      } catch (fetchError) {
+        console.error('Training resources fetch failed:', fetchError);
+        document.getElementById('resourceGrid').innerHTML =
+          '<div style="grid-column:1/-1; text-align:center; padding:4rem 2rem;">'
+          + '<div style="font-size:1.1rem; color:var(--text-secondary); margin-bottom:0.75rem;">Unable to load training resources</div>'
+          + '<div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">Error: ' + fetchError.message + '</div>'
+          + '<button onclick="location.reload()" style="padding:0.6rem 1.5rem; border-radius:8px; border:1px solid var(--cyan); background:transparent; color:var(--cyan); cursor:pointer; font-family:var(--font-body); font-size:0.85rem;">Retry</button>'
+          + '</div>';
+      }
+    }
+
+    /* Launch */
+    initialise();
+
+  })();
+  </script>
 
 </body>
 </html>
