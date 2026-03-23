@@ -765,6 +765,187 @@
       line-height: 1.6;
     }
 
+    /* ================================================================
+       LEGISLATIVE HORIZON — Proactive Change Intelligence Panel
+       Renders at the top of affected guides in the reader.
+       Colour: #D97706 (amber) — distinct from Institutional gold.
+       Constitutional compliance: preparatory awareness, not legal advice.
+       ================================================================ */
+
+    .horizon-panel {
+      background: rgba(217, 119, 6, 0.04);
+      border: 1px solid rgba(217, 119, 6, 0.2);
+      border-left: 4px solid #D97706;
+      border-radius: 10px;
+      margin-bottom: 2rem;
+      overflow: hidden;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .horizon-header {
+      padding: 1.25rem 1.5rem;
+      cursor: default;
+    }
+
+    .horizon-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #D97706;
+      margin-bottom: 0.6rem;
+    }
+
+    .horizon-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #D97706;
+      animation: pulse 2s ease infinite;
+    }
+
+    .horizon-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+      line-height: 1.35;
+    }
+
+    .horizon-stage {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.85rem;
+    }
+
+    .horizon-summary {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 1rem;
+    }
+
+    .horizon-changes-list {
+      padding: 0;
+      margin: 0 0 1rem;
+      list-style: none;
+    }
+
+    .horizon-change-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.45rem 0;
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .horizon-severity {
+      flex-shrink: 0;
+      padding: 0.12rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.15rem;
+    }
+
+    .severity-critical {
+      background: rgba(239, 68, 68, 0.12);
+      color: #EF4444;
+    }
+
+    .severity-high {
+      background: rgba(217, 119, 6, 0.12);
+      color: #D97706;
+    }
+
+    .severity-medium {
+      background: rgba(100, 116, 139, 0.1);
+      color: var(--text-muted);
+    }
+
+    /* Expand/collapse sections for Impact and Preparatory Steps */
+    .horizon-expand-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      background: rgba(217, 119, 6, 0.04);
+      border: none;
+      border-top: 1px solid rgba(217, 119, 6, 0.1);
+      color: #D97706;
+      font-size: 0.84rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-align: left;
+    }
+
+    .horizon-expand-btn:hover {
+      background: rgba(217, 119, 6, 0.08);
+    }
+
+    .horizon-expand-btn .arrow {
+      transition: transform 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .horizon-expand-btn.expanded .arrow {
+      transform: rotate(180deg);
+    }
+
+    .horizon-expand-content {
+      display: none;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid rgba(217, 119, 6, 0.08);
+    }
+
+    .horizon-expand-content.open {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .horizon-expand-content p {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 0.85rem;
+    }
+
+    .horizon-expand-content strong {
+      color: var(--text-primary);
+    }
+
+    .horizon-source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(217, 119, 6, 0.2);
+      color: #D97706;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .horizon-source-link:hover {
+      background: rgba(217, 119, 6, 0.06);
+      border-color: rgba(217, 119, 6, 0.35);
+      text-decoration: none;
+      color: #D97706;
+    }
+
     .back-to-top {
       position: fixed;
       bottom: 2rem;
@@ -1356,6 +1537,7 @@
 <main class="reader-main" id="readerMain">
   <div class="reader-inner">
     <div class="reader-badges" id="readerBadges"></div>
+    <div id="readerHorizon"></div>
     <div class="reader-body" id="readerBody"></div>
     <div class="reader-foot" id="readerFoot"></div>
   </div>
@@ -1801,6 +1983,16 @@
         'Published by Ailane &middot; ailane.ai &middot; AI Lane Limited, Company No. 17035654'
         + '<br>Training content is educational and does not constitute legal advice.';
 
+      /* Fetch and render Legislative Horizon panels for this guide's category.
+         This is async and non-blocking — the guide content renders immediately,
+         then the horizon panel appears above it when the data arrives. */
+      document.getElementById('readerHorizon').innerHTML = '';
+      if (resource.primary_acei_category) {
+        fetchLegislativeHorizon(resource.primary_acei_category).then(function(horizonEntries) {
+          renderHorizonPanels(horizonEntries, resource.primary_acei_category);
+        });
+      }
+
       /* Build sidebar TOC from h2 headings */
       var readerBody = document.getElementById('readerBody');
       var headings = readerBody.querySelectorAll('h2');
@@ -1872,6 +2064,9 @@
       activeGuideCategory = null;
       activeGuideTitle = null;
 
+      /* Clear Legislative Horizon panel */
+      document.getElementById('readerHorizon').innerHTML = '';
+
       document.body.style.overflow = '';
     };
 
@@ -1881,6 +2076,178 @@
 
     window.toggleMobileSidebar = function() {
       document.getElementById('readerSidebar').classList.toggle('mobile-open');
+    };
+
+    /* ================================================================
+       LEGISLATIVE HORIZON — Proactive Change Intelligence
+       Fetches pending legislation that affects the currently open guide
+       and renders a prominent panel above the guide content.
+       
+       Architecture:
+       - Data stored in kl_legislative_horizon table
+       - Fetched via Supabase REST API (anon read, published only)
+       - Rendered in the #readerHorizon container
+       - Expand/collapse for impact analysis and preparatory steps
+       - Legal disclaimer is mandatory and non-negotiable
+       ================================================================ */
+
+    /* Fetch Legislative Horizon entries for a given ACEI category */
+    async function fetchLegislativeHorizon(category) {
+      try {
+        var fetchUrl = SUPABASE_URL + '/rest/v1/kl_legislative_horizon'
+          + '?is_published=eq.true'
+          + '&status=neq.withdrawn'
+          + '&affected_categories=cs.{' + category + '}'
+          + '&order=display_order.asc'
+          + '&select=id,legislation_title,legislation_short_name,parliament_stage,expected_enactment,bill_status_summary,source_url,affected_categories,headline_summary,key_changes,business_impact_html,preparatory_steps_html,disclaimer_text,priority,status';
+
+        var response = await fetch(fetchUrl, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) return [];
+
+        var data = await response.json();
+        return Array.isArray(data) ? data : [];
+
+      } catch (error) {
+        console.error('Legislative Horizon fetch failed:', error);
+        return [];
+      }
+    }
+
+    /* Render Legislative Horizon panels in the reader */
+    function renderHorizonPanels(horizonEntries, guideCategory) {
+      var container = document.getElementById('readerHorizon');
+      if (!horizonEntries || horizonEntries.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      var html = '';
+
+      horizonEntries.forEach(function(entry, entryIndex) {
+        /* Filter key_changes to those relevant to the current guide's category */
+        var relevantChanges = [];
+        var otherChanges = [];
+
+        if (Array.isArray(entry.key_changes)) {
+          entry.key_changes.forEach(function(change) {
+            if (change.category === guideCategory) {
+              relevantChanges.push(change);
+            } else {
+              otherChanges.push(change);
+            }
+          });
+        }
+
+        /* Build the key changes list — relevant changes first, then others */
+        var changesHtml = '';
+        var allChangesToShow = relevantChanges.concat(otherChanges.slice(0, 3));
+
+        allChangesToShow.forEach(function(change) {
+          var severityClass = 'severity-' + (change.severity || 'medium');
+          var severityLabel = (change.severity || 'medium').charAt(0).toUpperCase() + (change.severity || 'medium').slice(1);
+          changesHtml += '<li class="horizon-change-item">'
+            + '<span class="horizon-severity ' + severityClass + '">' + severityLabel + '</span>'
+            + '<span>' + change.change + '</span>'
+            + '</li>';
+        });
+
+        if (otherChanges.length > 3) {
+          changesHtml += '<li class="horizon-change-item">'
+            + '<span class="horizon-severity severity-medium">+' + (otherChanges.length - 3) + '</span>'
+            + '<span>Additional changes affecting other compliance categories</span>'
+            + '</li>';
+        }
+
+        /* Priority badge */
+        var priorityBadge = entry.priority === 'critical'
+          ? '<span style="background:rgba(239,68,68,0.12); color:#EF4444; padding:0.15rem 0.6rem; border-radius:6px; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-left:0.5rem;">Critical Impact</span>'
+          : entry.priority === 'high'
+          ? '<span style="background:rgba(217,119,6,0.12); color:#D97706; padding:0.15rem 0.6rem; border-radius:6px; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-left:0.5rem;">High Impact</span>'
+          : '';
+
+        /* Unique IDs for expand/collapse */
+        var impactBtnId = 'horizon-impact-btn-' + entryIndex;
+        var impactContentId = 'horizon-impact-content-' + entryIndex;
+        var prepBtnId = 'horizon-prep-btn-' + entryIndex;
+        var prepContentId = 'horizon-prep-content-' + entryIndex;
+
+        html += '<div class="horizon-panel">'
+          + '<div class="horizon-header">'
+          + '<div class="horizon-label">'
+          + '<span class="horizon-pulse"></span>'
+          + 'Legislative Horizon — Pending Changes'
+          + priorityBadge
+          + '</div>'
+          + '<div class="horizon-title">' + entry.legislation_title + '</div>'
+          + '<div class="horizon-stage">'
+          + (entry.parliament_stage || '') + ' · Expected: ' + (entry.expected_enactment || 'TBC')
+          + '</div>'
+          + '<p class="horizon-summary">' + entry.headline_summary + '</p>'
+          + '<ul class="horizon-changes-list">' + changesHtml + '</ul>'
+          + (entry.source_url
+            ? '<a class="horizon-source-link" href="' + entry.source_url + '" target="_blank" rel="noopener noreferrer">Track this Bill on Parliament.uk &#8599;</a>'
+            : '')
+          + '</div>'
+
+          /* Business Impact — expandable section */
+          + '<button class="horizon-expand-btn" id="' + impactBtnId + '" onclick="toggleHorizonSection(\'' + impactBtnId + '\', \'' + impactContentId + '\')">'
+          + '<span>What this means for your business</span>'
+          + '<span class="arrow">&#9660;</span>'
+          + '</button>'
+          + '<div class="horizon-expand-content" id="' + impactContentId + '">'
+          + (entry.business_impact_html || '')
+          + '</div>'
+
+          /* Recommended Preparatory Steps — expandable section with mandatory disclaimer */
+          + '<button class="horizon-expand-btn" id="' + prepBtnId + '" onclick="toggleHorizonSection(\'' + prepBtnId + '\', \'' + prepContentId + '\')">'
+          + '<span>Recommended Preparatory Steps</span>'
+          + '<span class="arrow">&#9660;</span>'
+          + '</button>'
+          + '<div class="horizon-expand-content" id="' + prepContentId + '">'
+          + (entry.preparatory_steps_html || '')
+          + '</div>'
+
+          + '</div>';
+      });
+
+      container.innerHTML = html;
+
+      /* GA4 tracking — Legislative Horizon viewed */
+      horizonEntries.forEach(function(entry) {
+        gtag('event', 'legislative_horizon_view', {
+          legislation: entry.legislation_short_name,
+          guide_category: guideCategory,
+          priority: entry.priority
+        });
+      });
+    }
+
+    /* Expand/collapse handler for horizon sections */
+    window.toggleHorizonSection = function(buttonId, contentId) {
+      var button = document.getElementById(buttonId);
+      var content = document.getElementById(contentId);
+
+      if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        button.classList.remove('expanded');
+      } else {
+        content.classList.add('open');
+        button.classList.add('expanded');
+
+        /* GA4 tracking — section expanded */
+        var sectionType = buttonId.indexOf('impact') > -1 ? 'business_impact' : 'preparatory_steps';
+        gtag('event', 'legislative_horizon_expand', {
+          section: sectionType,
+          button_id: buttonId
+        });
+      }
     };
 
     /* ================================================================
