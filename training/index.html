@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Resources — UK Employment Law Guides | Ailane</title>
+  <meta name="description" content="Comprehensive UK employment law training guides covering all 12 ACEI compliance categories. Written by Ailane, built on 130,000+ classified tribunal decisions.">
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <script async src="<https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C>"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' <https://cdn.jsdelivr.net> <https://js.stripe.com> <https://www.googletagmanager.com> <https://cdnjs.cloudflare.com> 'unsafe-inline'; style-src 'self' <https://fonts.googleapis.com> <https://cdn.jsdelivr.net> 'unsafe-inline'; font-src 'self' <https://fonts.gstatic.com>; img-src 'self' data: <https://*.stripe.com> <https://www.google-analytics.com>; connect-src 'self' <https://cnbsxwtvazfvzmltkuvx.supabase.co> <https://cnbsxwtvazfvzmltkuvx.functions.supabase.co> <https://api.stripe.com> <https://www.google-analytics.com> <https://region1.google-analytics.com>; frame-src <https://js.stripe.com> <https://hooks.stripe.com>; object-src 'none'; base-uri 'self'">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="<https://fonts.googleapis.com>">
+  <link rel="preconnect" href="<https://fonts.gstatic.com>" crossorigin>
+  <link href="<https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap>" rel="stylesheet">
+
+  <!-- Supabase CDN — loaded for optional auth check, NOT as an auth guard -->
+  <script src="<https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js>"></script>
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: #060D1B;
+  color: #E2E8F0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== AMBIENT BACKGROUND ===== */
+.ambient-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(34,211,238,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 90%, rgba(59,130,246,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(99,102,241,0.03) 0%, transparent 50%);
+}
+
+/* ===== HEADER ===== */
+.site-header {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center;
+  padding: 14px 32px;
+  background: rgba(6,13,27,0.88);
+  backdrop-filter: blur(20px) saturate(1.3);
+  border-bottom: 1px solid rgba(56,189,248,0.08);
+}
+.header-logo {
+  font-family: 'Playfair Display', serif; font-weight: 700; font-size: 22px;
+  color: #22D3EE; letter-spacing: -0.5px; text-decoration: none;
+}
+.header-sep { width: 1px; height: 24px; background: rgba(56,189,248,0.15); margin: 0 16px; }
+.header-nav { display: flex; gap: 2px; }
+.header-nav a {
+  padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  color: #64748B; text-decoration: none; transition: all 0.2s ease;
+}
+.header-nav a:hover { color: #94A3B8; background: rgba(255,255,255,0.04); }
+.header-nav a.active {
+  color: #22D3EE; background: rgba(34,211,238,0.1);
+  box-shadow: inset 0 -2px 0 #22D3EE;
+}
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.header-signin {
+  padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  color: #22D3EE; text-decoration: none; border: 1px solid rgba(34,211,238,0.3);
+  transition: all 0.2s ease;
+}
+.header-signin:hover { background: rgba(34,211,238,0.1); }
+.header-dashboard {
+  padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  color: #060D1B; background: #22D3EE; text-decoration: none;
+  transition: all 0.2s ease;
+}
+.header-dashboard:hover { background: #06B6D4; }
+
+/* Mobile hamburger */
+.hamburger { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+.hamburger span { display: block; width: 22px; height: 2px; background: #94A3B8; margin: 5px 0; transition: all 0.3s ease; }
+.mobile-nav {
+  display: none; position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+  background: rgba(6,13,27,0.96); backdrop-filter: blur(20px);
+  flex-direction: column; padding: 24px; z-index: 99;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav a {
+  padding: 14px 0; font-size: 16px; font-weight: 500; color: #94A3B8;
+  text-decoration: none; border-bottom: 1px solid rgba(56,189,248,0.08);
+}
+.mobile-nav a.active { color: #22D3EE; }
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+  padding: 48px 32px 0; position: relative; z-index: 1; max-width: 900px;
+}
+.page-header h1 {
+  font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700;
+  background: linear-gradient(135deg, #E2E8F0 0%, #22D3EE 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 10px;
+}
+.page-header p { color: #94A3B8; font-size: 15px; line-height: 1.6; max-width: 680px; }
+
+/* ===== STATS BAR ===== */
+.stats-bar {
+  display: flex; gap: 14px; padding: 28px 32px 8px;
+  position: relative; z-index: 1; flex-wrap: wrap;
+}
+.stat-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px; border-radius: 10px;
+  background: #0A1628; border: 1px solid rgba(56,189,248,0.08);
+}
+.stat-num {
+  font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 700;
+}
+.stat-label {
+  font-size: 11px; color: #64748B; text-transform: uppercase;
+  letter-spacing: 0.5px; line-height: 1.3;
+}
+
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  display: flex; gap: 8px; padding: 20px 32px 8px;
+  position: relative; z-index: 1; flex-wrap: wrap; align-items: center;
+}
+.filter-pill {
+  padding: 7px 14px; border-radius: 99px; font-size: 12px; font-weight: 600;
+  background: transparent; border: 1px solid rgba(56,189,248,0.1);
+  color: #64748B; cursor: pointer; transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.filter-pill:hover { border-color: rgba(56,189,248,0.2); color: #94A3B8; }
+.filter-pill.active {
+  background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.3); color: #22D3EE;
+}
+.filter-divider { width: 1px; height: 24px; background: rgba(56,189,248,0.1); margin: 0 6px; }
+
+/* ===== ACEI CATEGORY PILLS ===== */
+.cat-bar {
+  display: flex; gap: 6px; padding: 12px 32px 24px;
+  overflow-x: auto; position: relative; z-index: 1;
+  scrollbar-width: none;
+}
+.cat-bar::-webkit-scrollbar { display: none; }
+.cat-pill {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 99px;
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  border: 1px solid rgba(56,189,248,0.08); background: transparent;
+  color: #64748B; transition: all 0.2s ease;
+  white-space: nowrap; display: flex; align-items: center; gap: 6px;
+}
+.cat-pill:hover { border-color: rgba(56,189,248,0.15); color: #94A3B8; }
+.cat-pill.active { color: #fff; }
+.cat-dot { width: 7px; height: 7px; border-radius: 99px; flex-shrink: 0; }
+.cat-count {
+  font-family: 'DM Sans', sans-serif; font-size: 10px; opacity: 0.7;
+}
+
+/* ===== RESOURCE GRID ===== */
+.resource-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px; padding: 0 32px 40px;
+  position: relative; z-index: 1;
+}
+
+/* ===== RESOURCE CARD ===== */
+.resource-card {
+  background: #0A1628; border: 1px solid rgba(56,189,248,0.1);
+  border-radius: 12px; padding: 24px; transition: all 0.3s ease;
+  display: flex; flex-direction: column; animation: fadeUp 0.4s ease both;
+}
+.resource-card:hover { border-color: rgba(56,189,248,0.15); transform: translateY(-2px); }
+.card-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.badge {
+  padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.badge-acei { color: #fff; }
+.badge-type {
+  background: rgba(226,232,240,0.08); color: #94A3B8;
+  border: 1px solid rgba(226,232,240,0.06);
+}
+.badge-source-original {
+  background: rgba(34,211,238,0.1); color: #22D3EE;
+  border: 1px solid rgba(34,211,238,0.2);
+}
+.badge-source-ogl {
+  background: rgba(100,116,139,0.15); color: #94A3B8;
+  border: 1px solid rgba(100,116,139,0.2);
+}
+.card-title {
+  font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 600;
+  color: #E2E8F0; margin-bottom: 10px; line-height: 1.35;
+}
+.card-meta {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 12px; font-size: 12px; color: #64748B;
+}
+.card-meta-item { display: flex; align-items: center; gap: 4px; }
+.freshness-dot {
+  width: 7px; height: 7px; border-radius: 99px; display: inline-block;
+}
+.freshness-current { background: #10B981; }
+.freshness-review { background: #F59E0B; }
+.card-description {
+  font-size: 13px; color: #94A3B8; line-height: 1.55;
+  margin-bottom: 18px; flex: 1;
+}
+.card-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  text-decoration: none; transition: all 0.2s ease; cursor: pointer;
+  border: none; width: 100%;
+}
+.cta-auth {
+  background: rgba(34,211,238,0.1); color: #22D3EE;
+  border: 1px solid rgba(34,211,238,0.25);
+}
+.cta-auth:hover { background: rgba(34,211,238,0.18); }
+.cta-public {
+  background: rgba(226,232,240,0.06); color: #94A3B8;
+  border: 1px solid rgba(226,232,240,0.1);
+}
+.cta-public:hover { background: rgba(226,232,240,0.1); color: #E2E8F0; }
+
+/* ===== LOADING STATE ===== */
+.loading-state {
+  grid-column: 1 / -1; text-align: center; padding: 60px 20px;
+}
+.loading-spinner {
+  width: 32px; height: 32px; border: 3px solid rgba(34,211,238,0.15);
+  border-top-color: #22D3EE; border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: #64748B; font-size: 14px; }
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  grid-column: 1 / -1; text-align: center; padding: 60px 20px;
+}
+.empty-state p { color: #64748B; font-size: 14px; }
+
+/* ===== READER PANEL ===== */
+.reader-panel {
+  display: none; position: relative; z-index: 1;
+  max-width: 820px; margin: 0 auto; padding: 0 32px 60px;
+}
+.reader-panel.open { display: block; }
+.reader-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: #22D3EE; font-size: 13px; font-weight: 500;
+  text-decoration: none; cursor: pointer; margin-bottom: 24px;
+  background: none; border: none; transition: opacity 0.2s;
+}
+.reader-back:hover { opacity: 0.8; }
+.reader-meta-bar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 24px;
+}
+.reader-title {
+  font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700;
+  color: #E2E8F0; margin-bottom: 16px; line-height: 1.3;
+}
+.reader-content {
+  color: #CBD5E1; font-size: 15px; line-height: 1.75;
+}
+.reader-content h1, .reader-content h2, .reader-content h3,
+.reader-content h4, .reader-content h5, .reader-content h6 {
+  font-family: 'Playfair Display', serif; color: #E2E8F0;
+  margin: 1.5em 0 0.6em; line-height: 1.3;
+}
+.reader-content h1 { font-size: 26px; }
+.reader-content h2 { font-size: 22px; }
+.reader-content h3 { font-size: 18px; }
+.reader-content p { margin-bottom: 1em; }
+.reader-content ul, .reader-content ol { margin: 0.8em 0 1em 1.5em; }
+.reader-content li { margin-bottom: 0.4em; }
+.reader-content a { color: #22D3EE; }
+.reader-content blockquote {
+  border-left: 3px solid rgba(34,211,238,0.3); padding: 12px 20px;
+  margin: 1em 0; background: rgba(34,211,238,0.04); border-radius: 0 8px 8px 0;
+  color: #94A3B8; font-style: italic;
+}
+.reader-content table {
+  width: 100%; border-collapse: collapse; margin: 1em 0;
+}
+.reader-content th, .reader-content td {
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid rgba(56,189,248,0.08);
+}
+.reader-content th {
+  font-weight: 600; color: #E2E8F0; font-size: 13px; text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.reader-footer {
+  margin-top: 40px; padding-top: 20px;
+  border-top: 1px solid rgba(56,189,248,0.08);
+  font-size: 12px; color: #64748B; line-height: 1.6;
+}
+
+/* ===== SITE FOOTER ===== */
+.site-footer {
+  position: relative; z-index: 1;
+  padding: 32px; border-top: 1px solid rgba(56,189,248,0.08);
+  text-align: center; font-size: 12px; color: #64748B; line-height: 1.8;
+}
+.site-footer a { color: #94A3B8; text-decoration: none; }
+.site-footer a:hover { color: #E2E8F0; }
+.footer-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 8px; }
+.footer-disclaimer { font-style: italic; margin-top: 6px; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .site-header { padding: 12px 16px; }
+  .header-nav, .header-sep { display: none; }
+  .hamburger { display: block; margin-left: auto; }
+  .header-right { display: none; }
+  .page-header { padding: 32px 16px 0; }
+  .page-header h1 { font-size: 28px; }
+  .stats-bar { padding: 20px 16px 8px; gap: 8px; }
+  .stat-chip { padding: 8px 12px; }
+  .stat-num { font-size: 18px; }
+  .filter-bar { padding: 16px 16px 8px; }
+  .cat-bar { padding: 12px 16px 20px; }
+  .resource-grid { grid-template-columns: 1fr; padding: 0 16px 32px; }
+  .reader-panel { padding: 0 16px 40px; }
+  .reader-title { font-size: 24px; }
+  .site-footer { padding: 24px 16px; }
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+<div class="ambient-bg"></div>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header">
+  <a href="/" class="header-logo">ailane</a>
+  <div class="header-sep"></div>
+  <nav class="header-nav">
+    <a href="/">Home</a>
+    <a href="/training/" class="active">Training</a>
+    <a href="/knowledge-library/">Knowledge Library</a>
+    <a href="/contract-scan/">Contract Check</a>
+  </nav>
+  <div class="header-right" id="headerRight">
+    <a href="/account/" class="header-signin" id="headerAuthLink">Sign In</a>
+  </div>
+  <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- Mobile nav -->
+<nav class="mobile-nav" id="mobileNav">
+  <a href="/">Home</a>
+  <a href="/training/" class="active">Training</a>
+  <a href="/knowledge-library/">Knowledge Library</a>
+  <a href="/contract-scan/">Contract Check</a>
+  <a href="/account/" id="mobileAuthLink">Sign In</a>
+</nav>
+
+<!-- ===== PAGE HEADER ===== -->
+<div class="page-header">
+  <h1>Training Resources</h1>
+  <p>Comprehensive UK employment law training guides covering all 12 ACEI compliance categories. Built on 130,000+ classified tribunal decisions and current regulatory intelligence.</p>
+</div>
+
+<!-- ===== STATS BAR ===== -->
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- ===== FILTER BAR ===== -->
+<div class="filter-bar" id="filterBar">
+  <div class="filter-pill active" data-source="all">All</div>
+  <div class="filter-pill" data-source="3">Ailane Guides</div>
+  <div class="filter-pill" data-source="1">OGL Resources</div>
+</div>
+
+<!-- ===== ACEI CATEGORY PILLS ===== -->
+<div class="cat-bar" id="catBar"></div>
+
+<!-- ===== RESOURCE GRID ===== -->
+<div class="resource-grid" id="resourceGrid">
+  <div class="loading-state">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading training resources...</div>
+  </div>
+</div>
+
+<!-- ===== READER PANEL ===== -->
+<div class="reader-panel" id="readerPanel"></div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="/terms/">Terms</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/attributions/">Attributions</a>
+  </div>
+  <div>AI Lane Limited &middot; Company No. 17035654</div>
+  <div class="footer-disclaimer">Training content is educational and does not constitute legal advice.</div>
+</footer>
+
+<script>
+// ===== CONSTANTS =====
+const SUPABASE_URL = '<https://cnbsxwtvazfvzmltkuvx.supabase.co>';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
+const ACEI_LABELS = {
+  'unfair_dismissal': 'Unfair Dismissal',
+  'discrimination_harassment': 'Discrimination & Harassment',
+  'wages_working_time': 'Wages & Working Time',
+  'health_safety': 'Health & Safety',
+  'whistleblowing': 'Whistleblowing',
+  'data_protection_privacy': 'Data Protection',
+  'parental_family_rights': 'Parental & Family Rights',
+  'trade_union_collective': 'Trade Union & Collective',
+  'breach_of_contract': 'Breach of Contract',
+  'business_transfers_insolvency': 'Business Transfers',
+  'redundancy_org_change': 'Redundancy',
+  'employment_status': 'Employment Status'
+};
+
+const ACEI_COLOURS = {
+  'unfair_dismissal': '#EF4444',
+  'discrimination_harassment': '#F59E0B',
+  'wages_working_time': '#3B82F6',
+  'health_safety': '#10B981',
+  'whistleblowing': '#8B5CF6',
+  'data_protection_privacy': '#06B6D4',
+  'parental_family_rights': '#EC4899',
+  'trade_union_collective': '#F97316',
+  'breach_of_contract': '#6366F1',
+  'business_transfers_insolvency': '#14B8A6',
+  'redundancy_org_change': '#A855F7',
+  'employment_status': '#64748B'
+};
+
+const CONTENT_TYPE_LABELS = {
+  'written_guide': 'Ailane Guide',
+  'code_of_practice': 'ACAS Code of Practice',
+  'factsheet': 'Regulatory Factsheet'
+};
+
+// ===== STATE =====
+let allResources = [];
+let isAuthenticated = false;
+let userTier = null;
+let activeCategory = null;
+let activeSource = 'all';
+
+// ===== AUTH DETECTION (optional — NOT a guard) =====
+async function detectAuth() {
+  try {
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    var result = await sb.auth.getSession();
+    if (result.data && result.data.session && result.data.session.access_token) {
+      isAuthenticated = true;
+      var token = result.data.session.access_token;
+      var payload = JSON.parse(atob(token.split('.')[1]));
+      var profileRes = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + payload.sub + '&select=subscription_tier',
+        {
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'apikey': SUPABASE_ANON,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      var profiles = await profileRes.json();
+      if (profiles && profiles.length > 0) {
+        userTier = profiles[0].subscription_tier;
+      }
+      updateAuthUI();
+    }
+  } catch (e) {
+    console.log('Auth check skipped — public mode');
+  }
+}
+
+function updateAuthUI() {
+  var headerLink = document.getElementById('headerAuthLink');
+  var mobileLink = document.getElementById('mobileAuthLink');
+  if (isAuthenticated) {
+    headerLink.textContent = 'Dashboard';
+    headerLink.href = '/account/dashboard/';
+    headerLink.className = 'header-dashboard';
+    mobileLink.textContent = 'Dashboard';
+    mobileLink.href = '/account/dashboard/';
+  }
+}
+
+// ===== DATA FETCH =====
+async function loadResources() {
+  try {
+    var res = await fetch(
+      SUPABASE_URL + '/rest/v1/kl_training_resources?is_published=eq.true&order=sort_order.asc&select=id,title,slug,description,content_html,content_type,source_phase,primary_acei_category,acei_categories,source_licence,publisher_body,word_count,estimated_read_minutes,freshness_status,last_reviewed_at',
+      { headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' } }
+    );
+    allResources = await res.json();
+    if (!Array.isArray(allResources)) { allResources = []; }
+    renderStats();
+    renderCategoryPills();
+    renderGrid();
+    checkHashRoute();
+  } catch (e) {
+    document.getElementById('resourceGrid').innerHTML =
+      '<div class="empty-state"><p>Unable to load training resources. Please try again later.</p></div>';
+  }
+}
+
+// ===== STATS BAR =====
+function renderStats() {
+  var total = allResources.length;
+  var guides = allResources.filter(function(r) { return r.content_type === 'written_guide'; }).length;
+  var cats = {};
+  allResources.forEach(function(r) { if (r.primary_acei_category) cats[r.primary_acei_category] = true; });
+  var catCount = Object.keys(cats).length;
+  var latestDate = 'March 2026';
+  var dates = allResources.map(function(r) { return r.last_reviewed_at; }).filter(Boolean).sort();
+  if (dates.length > 0) {
+    var d = new Date(dates[dates.length - 1]);
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    latestDate = months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  document.getElementById('statsBar').innerHTML =
+    '<div class="stat-chip"><div class="stat-num" style="color:#22D3EE">' + total + '</div><div class="stat-label">Training<br>Resources</div></div>' +
+    '<div class="stat-chip"><div class="stat-num" style="color:#3B82F6">' + guides + '</div><div class="stat-label">Comprehensive<br>Guides</div></div>' +
+    '<div class="stat-chip"><div class="stat-num" style="color:#8B5CF6">' + catCount + '</div><div class="stat-label">ACEI Categories<br>Covered</div></div>' +
+    '<div class="stat-chip"><div class="stat-num" style="color:#10B981">' + latestDate + '</div><div class="stat-label">Last<br>Updated</div></div>';
+}
+
+// ===== CATEGORY PILLS =====
+function renderCategoryPills() {
+  var counts = {};
+  allResources.forEach(function(r) {
+    var cat = r.primary_acei_category;
+    if (cat) counts[cat] = (counts[cat] || 0) + 1;
+  });
+  var html = '<div class="cat-pill active" data-cat="all" onclick="filterCategory(\'all\', this)">All <span class="cat-count">' + allResources.length + '</span></div>';
+  Object.keys(ACEI_LABELS).forEach(function(key) {
+    if (counts[key]) {
+      html += '<div class="cat-pill" data-cat="' + key + '" onclick="filterCategory(\'' + key + '\', this)">' +
+        '<span class="cat-dot" style="background:' + ACEI_COLOURS[key] + '"></span>' +
+        ACEI_LABELS[key] +
+        ' <span class="cat-count">' + counts[key] + '</span></div>';
+    }
+  });
+  document.getElementById('catBar').innerHTML = html;
+}
+
+// ===== RENDER GRID =====
+function renderGrid() {
+  var grid = document.getElementById('resourceGrid');
+  if (allResources.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><p>No training resources available at this time.</p></div>';
+    return;
+  }
+
+  var html = '';
+  allResources.forEach(function(r, i) {
+    var catKey = r.primary_acei_category || '';
+    var catLabel = ACEI_LABELS[catKey] || catKey;
+    var catColour = ACEI_COLOURS[catKey] || '#64748B';
+    var typeLabel = CONTENT_TYPE_LABELS[r.content_type] || r.content_type;
+    var isOriginal = r.source_phase === 3;
+    var sourceLabel = isOriginal ? 'Ailane Original' : 'OGL Curated';
+    var sourceBadgeClass = isOriginal ? 'badge-source-original' : 'badge-source-ogl';
+    var wordCount = r.word_count ? r.word_count.toLocaleString() : '—';
+    var readTime = r.estimated_read_minutes || Math.ceil((r.word_count || 0) / 250);
+    var freshClass = r.freshness_status === 'current' ? 'freshness-current' : 'freshness-review';
+    var freshLabel = r.freshness_status === 'current' ? 'Current' : 'Review due';
+    var desc = r.description || '';
+    if (desc.length > 150) desc = desc.substring(0, 150) + '...';
+
+    var ctaHtml = '';
+    if (isAuthenticated) {
+      ctaHtml = '<button class="card-cta cta-auth" onclick="openGuide(\'' + r.slug + '\')">Read Full Guide</button>';
+    } else {
+      ctaHtml = '<a class="card-cta cta-public" href="/account/?return=/training/#guide-' + r.slug + '">Sign In to Read</a>';
+    }
+
+    html += '<div class="resource-card" data-cat="' + catKey + '" data-source="' + r.source_phase + '" data-slug="' + r.slug + '" style="animation-delay:' + (i * 0.05) + 's">' +
+      '<div class="card-badges">' +
+        '<span class="badge badge-acei" style="background:' + catColour + '">' + catLabel + '</span>' +
+        '<span class="badge badge-type">' + typeLabel + '</span>' +
+        '<span class="badge ' + sourceBadgeClass + '">' + sourceLabel + '</span>' +
+      '</div>' +
+      '<div class="card-title">' + escapeHtml(r.title) + '</div>' +
+      '<div class="card-meta">' +
+        '<span class="card-meta-item"><span class="freshness-dot ' + freshClass + '"></span> ' + freshLabel + '</span>' +
+        '<span class="card-meta-item">' + readTime + ' min read</span>' +
+        '<span class="card-meta-item">' + wordCount + ' words</span>' +
+      '</div>' +
+      '<div class="card-description">' + escapeHtml(desc) + '</div>' +
+      ctaHtml +
+    '</div>';
+  });
+
+  grid.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ===== FILTERS =====
+function filterCategory(cat, el) {
+  activeCategory = cat === 'all' ? null : cat;
+  var pills = document.querySelectorAll('.cat-pill');
+  pills.forEach(function(p) { p.classList.remove('active'); });
+  if (el) {
+    el.classList.add('active');
+    if (cat !== 'all') {
+      var colour = ACEI_COLOURS[cat];
+      el.style.background = colour + '20';
+      el.style.borderColor = colour + '50';
+      el.style.color = '#fff';
+    }
+  }
+  // Reset non-active pill styles
+  pills.forEach(function(p) {
+    if (!p.classList.contains('active')) {
+      p.style.background = '';
+      p.style.borderColor = '';
+      p.style.color = '';
+    }
+  });
+  applyFilters();
+}
+
+// Source filter click handlers
+document.getElementById('filterBar').addEventListener('click', function(e) {
+  var pill = e.target.closest('.filter-pill');
+  if (!pill) return;
+  activeSource = pill.getAttribute('data-source');
+  document.querySelectorAll('#filterBar .filter-pill').forEach(function(p) {
+    p.classList.remove('active');
+  });
+  pill.classList.add('active');
+  applyFilters();
+});
+
+function applyFilters() {
+  var cards = document.querySelectorAll('.resource-card');
+  var visibleCount = 0;
+  cards.forEach(function(card) {
+    var catMatch = !activeCategory || card.getAttribute('data-cat') === activeCategory;
+    var sourceMatch = activeSource === 'all' || card.getAttribute('data-source') === activeSource;
+    if (catMatch && sourceMatch) {
+      card.style.display = '';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+  // Show empty state if no results
+  var grid = document.getElementById('resourceGrid');
+  var emptyEl = grid.querySelector('.empty-state');
+  if (visibleCount === 0 && !emptyEl) {
+    var div = document.createElement('div');
+    div.className = 'empty-state';
+    div.innerHTML = '<p>No resources match the selected filters.</p>';
+    grid.appendChild(div);
+  } else if (visibleCount > 0 && emptyEl) {
+    emptyEl.remove();
+  }
+}
+
+// ===== GUIDE READER =====
+function openGuide(slug) {
+  if (!isAuthenticated) {
+    window.location.href = '/account/?return=/training/#guide-' + slug;
+    return;
+  }
+  var resource = allResources.find(function(r) { return r.slug === slug; });
+  if (!resource) return;
+
+  var catKey = resource.primary_acei_category || '';
+  var catLabel = ACEI_LABELS[catKey] || catKey;
+  var catColour = ACEI_COLOURS[catKey] || '#64748B';
+  var typeLabel = CONTENT_TYPE_LABELS[resource.content_type] || resource.content_type;
+  var readTime = resource.estimated_read_minutes || Math.ceil((resource.word_count || 0) / 250);
+  var freshClass = resource.freshness_status === 'current' ? 'freshness-current' : 'freshness-review';
+  var freshLabel = resource.freshness_status === 'current' ? 'Current' : 'Review due';
+  var reviewedDate = '';
+  if (resource.last_reviewed_at) {
+    var d = new Date(resource.last_reviewed_at);
+    reviewedDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  var panel = document.getElementById('readerPanel');
+  panel.innerHTML =
+    '<button class="reader-back" onclick="closeReader()">&larr; Back to resources</button>' +
+    '<div class="reader-title">' + escapeHtml(resource.title) + '</div>' +
+    '<div class="reader-meta-bar">' +
+      '<span class="badge badge-acei" style="background:' + catColour + '">' + catLabel + '</span>' +
+      '<span class="badge badge-type">' + typeLabel + '</span>' +
+      '<span class="card-meta-item" style="font-size:12px;color:#64748B"><span class="freshness-dot ' + freshClass + '"></span> ' + freshLabel + '</span>' +
+      '<span class="card-meta-item" style="font-size:12px;color:#64748B">' + readTime + ' min read</span>' +
+    '</div>' +
+    '<article class="reader-content">' + (resource.content_html || '<p>Content not available.</p>') + '</article>' +
+    '<div class="reader-footer">' +
+      (reviewedDate ? '<div>Last reviewed: ' + reviewedDate + '</div>' : '') +
+      '<div>Published by Ailane &middot; <ailane.ai> &middot; AI Lane Limited, Company No. 17035654</div>' +
+    '</div>';
+
+  panel.classList.add('open');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  history.replaceState(null, '', '#guide-' + slug);
+}
+
+function closeReader() {
+  var panel = document.getElementById('readerPanel');
+  panel.classList.remove('open');
+  panel.innerHTML = '';
+  history.replaceState(null, '', window.location.pathname);
+  document.getElementById('resourceGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ===== HASH ROUTING =====
+function checkHashRoute() {
+  var hash = window.location.hash;
+  if (hash && hash.startsWith('#guide-') && isAuthenticated) {
+    var slug = hash.replace('#guide-', '');
+    setTimeout(function() { openGuide(slug); }, 300);
+  }
+}
+
+// ===== MOBILE MENU =====
+document.getElementById('hamburgerBtn').addEventListener('click', function() {
+  document.getElementById('mobileNav').classList.toggle('open');
+});
+
+// ===== INIT =====
+(async function() {
+  await detectAuth();
+  await loadResources();
+})();
+</script>
+</body>
+</html>
