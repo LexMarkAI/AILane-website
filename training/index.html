@@ -347,7 +347,7 @@
     }
 
     /* ================================================================
-       RESOURCE CARDS — Hover effects with top gradient reveal
+       RESOURCE CARDS
        ================================================================ */
 
     .card {
@@ -509,7 +509,7 @@
     }
 
     /* ================================================================
-       SKELETON LOADING CARDS — Shimmer animation
+       SKELETON LOADING CARDS
        ================================================================ */
 
     .skeleton-card {
@@ -553,7 +553,6 @@
       animation: fadeIn 0.3s ease;
     }
 
-    /* Sidebar Table of Contents */
     .reader-sidebar {
       width: 280px;
       flex-shrink: 0;
@@ -641,7 +640,6 @@
       color: var(--cyan);
     }
 
-    /* Reader main content area */
     .reader-main {
       flex: 1;
       overflow-y: auto;
@@ -663,7 +661,6 @@
       margin-bottom: 1.5rem;
     }
 
-    /* Reader body — styled rendering of guide HTML content */
     .reader-body {
       line-height: 1.85;
       color: #CBD5E1;
@@ -713,7 +710,6 @@
       color: var(--cyan);
     }
 
-    /* Guide-specific content class styling */
     .reader-body .guide-meta {
       font-size: 0.85rem;
       color: var(--text-muted);
@@ -769,7 +765,6 @@
       line-height: 1.6;
     }
 
-    /* Back to top floating button — appears on scroll */
     .back-to-top {
       position: fixed;
       bottom: 2rem;
@@ -798,7 +793,6 @@
       color: var(--cyan);
     }
 
-    /* Mobile sidebar toggle button */
     .mobile-toc-button {
       display: none;
       position: fixed;
@@ -862,8 +856,8 @@
       position: fixed;
       bottom: 6.5rem;
       right: 2rem;
-      width: 380px;
-      max-height: 520px;
+      width: 420px;
+      max-height: 580px;
       background: var(--bg-panel);
       border: 1px solid var(--border-hover);
       border-radius: 16px;
@@ -931,7 +925,7 @@
       padding: 0.75rem 1rem;
       border-radius: 12px;
       font-size: 0.84rem;
-      line-height: 1.6;
+      line-height: 1.65;
       animation: fadeIn 0.3s ease;
     }
 
@@ -948,12 +942,110 @@
       font-weight: 600;
     }
 
+    .eileen-msg-ai em {
+      color: var(--cyan);
+      font-style: italic;
+    }
+
     .eileen-msg-user {
       background: rgba(100, 116, 139, 0.1);
       border: 1px solid rgba(100, 116, 139, 0.15);
       color: var(--text-primary);
       align-self: flex-end;
       border-bottom-right-radius: 4px;
+    }
+
+    /* Eileen typing indicator — three pulsing dots */
+    .eileen-typing {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0.75rem 1rem;
+      max-width: 80px;
+      background: rgba(34, 211, 238, 0.06);
+      border: 1px solid rgba(34, 211, 238, 0.1);
+      border-radius: 12px;
+      border-bottom-left-radius: 4px;
+      align-self: flex-start;
+    }
+
+    .eileen-typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      animation: typingPulse 1.4s ease infinite;
+    }
+
+    .eileen-typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .eileen-typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    /* Eileen feedback buttons — thumbs up/down on AI responses */
+    .eileen-feedback {
+      display: flex;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      padding-top: 0.4rem;
+      border-top: 1px solid rgba(34, 211, 238, 0.06);
+    }
+
+    .eileen-feedback-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      cursor: pointer;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .eileen-feedback-btn:hover {
+      color: var(--text-secondary);
+      border-color: var(--border);
+    }
+
+    .eileen-feedback-btn.selected {
+      color: var(--cyan);
+      border-color: rgba(34, 211, 238, 0.2);
+      background: rgba(34, 211, 238, 0.04);
+    }
+
+    /* Eileen knowledge level indicator */
+    .eileen-level-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-top: 0.4rem;
+    }
+
+    .level-beginner {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22C55E;
+    }
+
+    .level-intermediate {
+      background: rgba(34, 211, 238, 0.1);
+      color: var(--cyan);
+    }
+
+    .level-advanced {
+      background: rgba(139, 92, 246, 0.1);
+      color: #8B5CF6;
     }
 
     .eileen-suggestions {
@@ -1029,6 +1121,11 @@
       opacity: 0.85;
     }
 
+    .eileen-send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     /* ================================================================
        FOOTER
        ================================================================ */
@@ -1098,8 +1195,13 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    @keyframes typingPulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.85); }
+      50%      { opacity: 1; transform: scale(1); }
+    }
+
     /* ================================================================
-       RESPONSIVE — Mobile breakpoint at 768px
+       RESPONSIVE
        ================================================================ */
 
     @media (max-width: 768px) {
@@ -1146,7 +1248,6 @@
         right: 1.25rem;
       }
 
-      /* On mobile, hide sidebar by default — show via toggle */
       .reader-sidebar {
         display: none;
       }
@@ -1192,8 +1293,6 @@
     <button class="hamburger" onclick="toggleMobileNav()" aria-label="Open navigation">&#9776;</button>
   </header>
 
-  <!-- Mobile navigation overlay -->
-
   <div class="mobile-nav" id="mobileNav">
     <button class="mobile-nav-close" onclick="toggleMobileNav()" aria-label="Close navigation">&times;</button>
     <a href="/" onclick="toggleMobileNav()">Home</a>
@@ -1204,7 +1303,7 @@
   </div>
 
   <!-- ================================================================
-       HERO SECTION
+       HERO
        ================================================================ -->
 
   <section class="hero">
@@ -1230,13 +1329,13 @@
   </div>
 
   <!-- ================================================================
-       RESOURCE GRID — Populated dynamically from Supabase
+       RESOURCE GRID
        ================================================================ -->
 
   <div id="resourceGrid" class="grid"></div>
 
   <!-- ================================================================
-       READER OVERLAY — Full-screen with sidebar TOC navigation
+       READER OVERLAY
        ================================================================ -->
 
   <div class="reader-overlay" id="readerOverlay">
@@ -1269,10 +1368,6 @@
 
   <!-- ================================================================
        EILEEN — Intelligence Entity
-       EILEEN-001: Entity architecture
-       EILEEN-002: Operational tier intelligence
-       Constitutional boundary: navigational assistance only —
-       never score-linked recommendations
        ================================================================ -->
 
   <div class="eileen-orb" id="eileenOrb" onclick="toggleEileen()" title="Ask Eileen">
@@ -1285,15 +1380,15 @@
       <canvas id="nexusHeader" width="32" height="32"></canvas>
       <div class="eileen-header-text">
         <h4>Eileen</h4>
-        <p>Training Resources Guide</p>
+        <p>Training Resources Intelligence</p>
       </div>
       <button class="eileen-close" onclick="toggleEileen()" aria-label="Close Eileen">&times;</button>
     </div>
     <div class="eileen-messages" id="eileenMessages"></div>
     <div class="eileen-suggestions" id="eileenSuggestions"></div>
     <div class="eileen-input-bar">
-      <input type="text" id="eileenInput" placeholder="Ask about employment law training..." onkeydown="if(event.key==='Enter') sendToEileen()">
-      <button class="eileen-send-btn" onclick="sendToEileen()" aria-label="Send message">&#10148;</button>
+      <input type="text" id="eileenInput" placeholder="Ask about employment law..." onkeydown="if(event.key==='Enter' && !event.shiftKey) sendToEileen()">
+      <button class="eileen-send-btn" id="eileenSendBtn" onclick="sendToEileen()" aria-label="Send message">&#10148;</button>
     </div>
   </div>
 
@@ -1312,7 +1407,7 @@
   </footer>
 
   <!-- ================================================================
-       JAVASCRIPT — All application logic
+       JAVASCRIPT
        ================================================================ -->
 
   <script>
@@ -1324,21 +1419,22 @@
        ================================================================ */
     var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    var EILEEN_FUNCTION_URL = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co') + '/eileen-training-assistant';
 
     /* ACEI category labels and colours — all 12 categories */
     var ACEI_CATEGORIES = {
-      'unfair_dismissal':            ['Unfair Dismissal',            '#EF4444'],
-      'discrimination_harassment':   ['Discrimination & Harassment', '#FBBF24'],
-      'wages_working_time':          ['Wages & Working Time',        '#3B82F6'],
-      'health_safety':               ['Health & Safety',             '#10B981'],
-      'whistleblowing':              ['Whistleblowing',              '#8B5CF6'],
-      'data_protection_privacy':     ['Data Protection',             '#06B6D4'],
-      'parental_family_rights':      ['Parental & Family Rights',    '#EC4899'],
-      'trade_union_collective':      ['Trade Union & Collective',    '#F97316'],
-      'breach_of_contract':          ['Breach of Contract',          '#6366F1'],
-      'business_transfers_insolvency': ['Business Transfers',        '#14B8A6'],
-      'redundancy_org_change':       ['Redundancy',                  '#A855F7'],
-      'employment_status':           ['Employment Status',           '#64748B']
+      'unfair_dismissal':              ['Unfair Dismissal',            '#EF4444'],
+      'discrimination_harassment':     ['Discrimination & Harassment', '#FBBF24'],
+      'wages_working_time':            ['Wages & Working Time',        '#3B82F6'],
+      'health_safety':                 ['Health & Safety',             '#10B981'],
+      'whistleblowing':                ['Whistleblowing',              '#8B5CF6'],
+      'data_protection_privacy':       ['Data Protection',             '#06B6D4'],
+      'parental_family_rights':        ['Parental & Family Rights',    '#EC4899'],
+      'trade_union_collective':        ['Trade Union & Collective',    '#F97316'],
+      'breach_of_contract':            ['Breach of Contract',          '#6366F1'],
+      'business_transfers_insolvency': ['Business Transfers',          '#14B8A6'],
+      'redundancy_org_change':         ['Redundancy',                  '#A855F7'],
+      'employment_status':             ['Employment Status',           '#64748B']
     };
 
     /* ================================================================
@@ -1346,8 +1442,15 @@
        ================================================================ */
     var allResources = [];
     var isAuthenticated = false;
+    var userAccessToken = null;
     var currentFilter = 'all';
     var eileenIsOpen = false;
+    var eileenIsBusy = false;
+
+    /* Eileen session state — conversation memory and learning */
+    var eileenSessionId = 'eileen-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    var eileenConversationHistory = [];
+    var eileenLastConversationId = null;
 
     /* ================================================================
        UTILITY FUNCTIONS
@@ -1384,6 +1487,24 @@
       }
     }
 
+    /* Simple markdown-to-HTML for Eileen responses */
+    function formatEileenResponse(text) {
+      return text
+        /* Bold: **text** */
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        /* Italic: *text* */
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        /* Double newline to paragraph break */
+        .replace(/\n\n/g, '</p><p>')
+        /* Single newline to line break */
+        .replace(/\n/g, '<br>')
+        /* Wrap in paragraph tags */
+        .replace(/^/, '<p>')
+        .replace(/$/, '</p>')
+        /* Clean up empty paragraphs */
+        .replace(/<p><\/p>/g, '');
+    }
+
     /* ================================================================
        MOBILE NAVIGATION
        ================================================================ */
@@ -1393,8 +1514,6 @@
 
     /* ================================================================
        NEXUS CANVAS — Eileen visual identity
-       Animated neural constellation: cyan nodes + green halos
-       Per EILEEN-001: Operational tier = cyan (#38bdf8) + green (#22c55e)
        ================================================================ */
     function drawNexus(canvas, size, showGlow) {
       var ctx = canvas.getContext('2d');
@@ -1405,7 +1524,6 @@
       var edges = [];
       var nodeCount = showGlow ? 8 : 5;
 
-      /* Generate node positions in a circle */
       for (var i = 0; i < nodeCount; i++) {
         var angle = (Math.PI * 2 / nodeCount) * i - Math.PI / 2;
         nodes.push({
@@ -1415,7 +1533,6 @@
         });
       }
 
-      /* Generate random edges between nodes */
       for (var i = 0; i < nodes.length; i++) {
         for (var j = i + 1; j < nodes.length; j++) {
           if (Math.random() > 0.4) {
@@ -1424,11 +1541,9 @@
         }
       }
 
-      /* Animation loop */
       function renderFrame(timestamp) {
         ctx.clearRect(0, 0, size, size);
 
-        /* Background glow for the main orb */
         if (showGlow) {
           var gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 0.48);
           gradient.addColorStop(0, 'rgba(34, 211, 238, 0.08)');
@@ -1437,7 +1552,6 @@
           ctx.fillRect(0, 0, size, size);
         }
 
-        /* Draw edges with oscillating opacity */
         edges.forEach(function(edge) {
           var nodeA = nodes[edge[0]];
           var nodeB = nodes[edge[1]];
@@ -1456,19 +1570,16 @@
           ctx.stroke();
         });
 
-        /* Draw nodes with green halo + cyan core */
         nodes.forEach(function(node) {
           var nodeX = node.x + Math.sin(timestamp * 0.002 + node.phase) * 2.5;
           var nodeY = node.y + Math.cos(timestamp * 0.0015 + node.phase) * 2.5;
           var brightness = 0.6 + 0.4 * Math.sin(timestamp * 0.003 + node.phase);
 
-          /* Green halo */
           ctx.beginPath();
           ctx.arc(nodeX, nodeY, 3, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(34, 197, 94, ' + (brightness * 0.3) + ')';
           ctx.fill();
 
-          /* Cyan core */
           ctx.beginPath();
           ctx.arc(nodeX, nodeY, 1.8, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(34, 211, 238, ' + brightness + ')';
@@ -1505,18 +1616,13 @@
        ================================================================ */
     window.applyFilter = function(filterValue, buttonElement) {
       currentFilter = filterValue;
-
-      /* Update active state on all filter pills */
       document.querySelectorAll('.filter-pill').forEach(function(pill) {
         pill.classList.remove('active');
       });
       if (buttonElement) {
         buttonElement.classList.add('active');
       }
-
       renderResourceGrid();
-
-      /* Scroll to filter bar for context */
       window.scrollTo({
         top: document.getElementById('filterBar').offsetTop - 80,
         behavior: 'smooth'
@@ -1530,7 +1636,6 @@
       var grid = document.getElementById('resourceGrid');
       var filteredResources = allResources;
 
-      /* Apply active filter */
       if (currentFilter === 'source-3') {
         filteredResources = allResources.filter(function(resource) {
           return resource.source_phase === 3;
@@ -1546,13 +1651,11 @@
         });
       }
 
-      /* Empty state */
       if (!filteredResources.length) {
         grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted);">No resources match this filter.</div>';
         return;
       }
 
-      /* Build cards */
       var html = '';
       filteredResources.forEach(function(resource, index) {
         var categoryLabel = getCategoryLabel(resource.primary_acei_category);
@@ -1565,11 +1668,10 @@
         var freshnessLabel = resource.freshness_status === 'current' ? 'Current'
           : resource.freshness_status === 'review_due' ? 'Under Review' : 'Stale';
         var freshnessClass = resource.freshness_status || 'current';
-        var wordCount = resource.word_count ? resource.word_count.toLocaleString() : '—';
+        var wordCount = resource.word_count ? resource.word_count.toLocaleString() : '\u2014';
         var readTime = resource.estimated_read_minutes ? resource.estimated_read_minutes + ' min' : '';
         var animationDelay = (index * 0.06) + 's';
 
-        /* CTA depends on authentication state */
         var ctaHtml;
         if (isAuthenticated) {
           ctaHtml = '<button class="card-cta cta-read" onclick="openReader(\'' + resource.slug + '\')">Read Full Guide &#8594;</button>';
@@ -1599,7 +1701,6 @@
 
     /* ================================================================
        DYNAMIC CATEGORY FILTER PILLS
-       Built from actual data — only shows categories with content
        ================================================================ */
     function buildCategoryFilters() {
       var categoriesPresent = {};
@@ -1610,13 +1711,10 @@
       });
 
       var filterBar = document.getElementById('filterBar');
-
-      /* Add separator before category pills */
       var separator = document.createElement('div');
       separator.className = 'filter-separator';
       filterBar.appendChild(separator);
 
-      /* Add a pill for each category */
       Object.keys(categoriesPresent).sort().forEach(function(category) {
         var button = document.createElement('button');
         button.className = 'filter-pill';
@@ -1659,12 +1757,10 @@
     }
 
     /* ================================================================
-       READER — Full-screen overlay with sidebar TOC
+       READER
        ================================================================ */
     window.openReader = function(slug) {
-      var resource = allResources.find(function(item) {
-        return item.slug === slug;
-      });
+      var resource = allResources.find(function(item) { return item.slug === slug; });
       if (!resource) return;
 
       var categoryColour = getCategoryColour(resource.primary_acei_category);
@@ -1673,34 +1769,29 @@
       var readTime = resource.estimated_read_minutes ? resource.estimated_read_minutes + ' min read' : '';
       var reviewedDate = formatDate(resource.last_reviewed_at);
 
-      /* Set badges */
       document.getElementById('readerBadges').innerHTML =
         '<span class="badge" style="background:' + categoryColour + '18; color:' + categoryColour + '">' + categoryLabel + '</span>'
         + '<span class="badge badge-source">' + sourceLabel + '</span>'
         + (readTime ? '<span class="badge badge-type">' + readTime + '</span>' : '')
         + (reviewedDate ? '<span class="badge badge-type">Reviewed: ' + reviewedDate + '</span>' : '');
 
-      /* Set content */
       document.getElementById('readerBody').innerHTML = resource.content_html || '<p>Content not available.</p>';
       document.getElementById('readerFoot').innerHTML =
         'Published by Ailane &middot; ailane.ai &middot; AI Lane Limited, Company No. 17035654'
         + '<br>Training content is educational and does not constitute legal advice.';
 
-      /* Build sidebar Table of Contents from h2 headings */
+      /* Build sidebar TOC from h2 headings */
       var readerBody = document.getElementById('readerBody');
       var headings = readerBody.querySelectorAll('h2');
       var tocList = document.getElementById('tocList');
       tocList.innerHTML = '';
 
-      /* Set sidebar header */
       document.getElementById('tocTitle').textContent = resource.title;
-      document.getElementById('tocMeta').textContent = categoryLabel + (readTime ? ' · ' + readTime : '');
+      document.getElementById('tocMeta').textContent = categoryLabel + (readTime ? ' \u00b7 ' + readTime : '');
 
-      /* Create TOC items for each section heading */
       headings.forEach(function(heading, index) {
         var sectionId = 'section-' + index;
         heading.id = sectionId;
-
         var tocItem = document.createElement('a');
         tocItem.className = 'toc-item';
         tocItem.textContent = heading.textContent;
@@ -1709,25 +1800,18 @@
           event.preventDefault();
           var readerMain = document.getElementById('readerMain');
           var targetElement = document.getElementById(sectionId);
-          readerMain.scrollTo({
-            top: targetElement.offsetTop - 20,
-            behavior: 'smooth'
-          });
-          /* Close mobile sidebar if open */
+          readerMain.scrollTo({ top: targetElement.offsetTop - 20, behavior: 'smooth' });
           document.getElementById('readerSidebar').classList.remove('mobile-open');
         };
         tocList.appendChild(tocItem);
       });
 
-      /* Show reader overlay */
       document.getElementById('readerOverlay').classList.add('open');
       document.getElementById('readerMain').scrollTop = 0;
       document.body.style.overflow = 'hidden';
 
-      /* Scroll tracking — active TOC highlight + back-to-top button */
       var readerMain = document.getElementById('readerMain');
       readerMain.onscroll = function() {
-        /* Back to top button visibility */
         var backToTopBtn = document.getElementById('backToTop');
         if (readerMain.scrollTop > 400) {
           backToTopBtn.classList.add('visible');
@@ -1735,7 +1819,6 @@
           backToTopBtn.classList.remove('visible');
         }
 
-        /* Update active TOC item based on scroll position */
         var tocItems = tocList.querySelectorAll('.toc-item');
         var activeIndex = 0;
         headings.forEach(function(heading, index) {
@@ -1744,19 +1827,11 @@
           }
         });
         tocItems.forEach(function(item, index) {
-          if (index === activeIndex) {
-            item.classList.add('active');
-          } else {
-            item.classList.remove('active');
-          }
+          item.classList.toggle('active', index === activeIndex);
         });
       };
 
-      /* Track in GA4 */
-      gtag('event', 'read_guide', {
-        guide_slug: slug,
-        guide_category: resource.primary_acei_category
-      });
+      gtag('event', 'read_guide', { guide_slug: slug, guide_category: resource.primary_acei_category });
     };
 
     window.closeReader = function() {
@@ -1767,10 +1842,7 @@
     };
 
     window.scrollReaderToTop = function() {
-      document.getElementById('readerMain').scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
+      document.getElementById('readerMain').scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     window.toggleMobileSidebar = function() {
@@ -1778,80 +1850,60 @@
     };
 
     /* ================================================================
-       EILEEN — Intelligence Entity Knowledge Base
-       Pattern: Acknowledge → Contextualise → Educate → Connect → Invite
-       Constitutional boundary: navigational assistance only —
-       NEVER score-linked remediation recommendations
+       EILEEN — Live Intelligence Entity
+       Powered by Claude API via eileen-training-assistant Edge Function
+       Pattern: Acknowledge > Contextualise > Educate > Connect > Invite
+       Constitutional boundary: educational guidance ONLY
        ================================================================ */
-    var EILEEN_KNOWLEDGE = {
-      greeting: "Hello! I'm Eileen, your guide to Ailane's employment law training resources. I can help you find the right guide for your situation, explain what each topic covers, or point you to the most relevant starting point. What area of employment law are you looking into?",
 
-      topics: {
-        'unfair dismissal': "Our Unfair Dismissal guide covers the complete ERA 1996 Part X framework — qualifying service, the five fair reasons, procedural fairness, the ACAS Code, and the tribunal exposure patterns we see most frequently in published decisions. It's one of our most comprehensive guides at over 1,900 words. Would you like me to point you to it?",
-
-        'discrimination': "The Discrimination guide covers the full Equality Act 2010 framework across all nine protected characteristics, direct and indirect discrimination, harassment, victimisation, and the employer's duty to make reasonable adjustments. At 2,180 words, it's the most detailed guide in the library. It also covers the shifting burden of proof — a procedural point that catches many employers off guard.",
-
-        'wages': "We have two guides covering wages. The Wages and Deductions guide covers ERA 1996 Part II (unlawful deductions), the NMW Act 1998, holiday pay calculation following the Harpur Trust Supreme Court decision, and the three lawful deduction gateways. The Working Time Regulations guide covers the 48-hour week, rest periods, annual leave accrual, and night work. Together they give you the full picture of one of the highest-volume tribunal claim categories.",
-
-        'health safety': "The Health & Safety guide covers HSWA 1974 employer obligations, the Management Regulations 1999, RIDDOR reporting, HSE enforcement powers, and the dual-track exposure pattern — both regulatory prosecution and civil liability arising from the same incident. Particularly relevant for facilities management, construction, manufacturing, and any sector with physical workplace risks.",
-
-        'whistleblowing': "Our Whistleblowing guide covers ERA 1996 Part IVA in full — the six categories of qualifying disclosure, the hierarchy of protected disclosure channels from internal through to wider disclosure, the prescribed persons regime (over 60 bodies), and the detriment and automatic unfair dismissal protections. Key point that employers need to understand: no qualifying service period and uncapped damages make this one of the highest-risk claim types.",
-
-        'data protection': "The Data Protection guide covers UK GDPR and DPA 2018 in the employment context — lawful bases for processing employee data, special category data handling, employee monitoring (including the DPIA requirement), subject access requests and the tactical use of SARs in litigation, international transfers, and the ICO enforcement framework. Essential reading given the rise of AI-driven HR tools and workplace surveillance.",
-
-        'parental': "The Parental Rights guide covers all seven statutory entitlements: maternity, paternity, adoption, shared parental, parental bereavement, unpaid parental leave, and the right to request flexible working. It includes the 2023 and 2024 legislative changes — the expanded flexible working right (two requests per year, two-month response deadline) and the new preferential redundancy redeployment for pregnant employees. Common exposure pattern: redundancy during or shortly after maternity leave.",
-
-        'trade union': "The Trade Union guide covers TULRCA 1992 comprehensively — individual membership rights, the statutory recognition procedure through the CAC, time off for duties versus activities (a distinction with real financial consequences), collective redundancy consultation obligations with the 13-week protective award, information disclosure, and industrial action ballot requirements including the 2016 turnout thresholds.",
-
-        'tupe': "The TUPE guide covers the 2006 Regulations in full — both business transfers and service provision changes, automatic transfer of terms and liabilities, protection against dismissal and the narrow ETO defence, the absolute prohibition on transfer-connected variations, and the information and consultation obligations with the 28-day EID requirement and 13-week compensation exposure. Critical for any employer involved in outsourcing, insourcing, mergers, or contract retendering.",
-
-        'equal pay': "The Equal Pay guide covers EA 2010 Chapter 3 — the automatic equality clause, three types of equal work (like work, work rated as equivalent, work of equal value), comparator selection rules, the material factor defence with its five common justification routes, and gender pay gap reporting obligations. Back-pay liability can reach six years per claimant. To put it in perspective: Birmingham City Council settled approximately 11,000 equal pay claims at a reported cost exceeding one billion pounds.",
-
-        'contract': "The Contractual Disputes guide covers the complete landscape — sources of contractual terms (express, implied, incorporated, collective), the implied duty of mutual trust and confidence as the foundation of constructive dismissal claims, the four lawful variation routes, breach of contract claims in both tribunal and civil court, restrictive covenant enforceability, and fire-and-rehire under the 2024 ACAS Code of Practice. Essential foundational reading for any employer.",
-
-        'redundancy': "We have OGL-curated factsheets covering redundancy procedures and obligations from ACAS. The TUPE guide also covers redundancy in the transfer context, including the ETO defence requirements. A dedicated Ailane Original redundancy guide covering the full ERA 1996 Part XI framework is on the development roadmap."
-      },
-
-      fallback: "That's an interesting question. While I can guide you through our training resources and help you find the right starting point, I'd recommend exploring the specific guides for detailed statutory coverage. Is there a particular area of employment law you'd like to start with? I can walk you through what we cover.",
-
-      howMany: "We currently have 22 training resources in the library — 12 comprehensive Ailane Original guides covering over 25,000 words of statutory analysis across all 12 ACEI compliance categories, plus 10 OGL-curated documents from authoritative public bodies including ACAS, HSE, EHRC, and ICO. Every resource is reviewed quarterly and automatically flagged for update when relevant legislation changes. The freshness system runs daily.",
-
-      whatIsAilane: "Ailane is a UK employment law compliance intelligence platform. We quantify regulatory exposure through the ACEI — the Adverse Claim Exposure Index — which analyses 12 categories of employment law risk based on 130,000+ classified tribunal decisions. These training resources are part of the Knowledge Library, designed to help employers and workers understand the statutory frameworks that the ACEI measures. The training content is educational — it helps you understand the law, while the ACEI measures your exposure to it."
-    };
-
-    /* Eileen response matching — pattern-based topic detection */
-    function getEileenResponse(userMessage) {
-      var query = userMessage.toLowerCase().trim();
-
-      if (query.match(/unfair\s*dismiss/))                            return EILEEN_KNOWLEDGE.topics['unfair dismissal'];
-      if (query.match(/discriminat|equality\s*act|protected\s*char/))  return EILEEN_KNOWLEDGE.topics['discrimination'];
-      if (query.match(/wage|deduction|pay\s*(slip|statement)|minimum\s*wage|nmw/)) return EILEEN_KNOWLEDGE.topics['wages'];
-      if (query.match(/health.*safe|h\s*&\s*s|hswa|hse|riddor/))      return EILEEN_KNOWLEDGE.topics['health safety'];
-      if (query.match(/whistleblow|protected\s*disclos|pida/))         return EILEEN_KNOWLEDGE.topics['whistleblowing'];
-      if (query.match(/data\s*protect|gdpr|dpa|ico|subject\s*access|sar\b|privacy/)) return EILEEN_KNOWLEDGE.topics['data protection'];
-      if (query.match(/parent|matern|patern|adoption|flexible\s*work|shared\s*parent|bereavement/)) return EILEEN_KNOWLEDGE.topics['parental'];
-      if (query.match(/trade\s*union|tulrca|collective|recognition|industrial\s*action|strike/)) return EILEEN_KNOWLEDGE.topics['trade union'];
-      if (query.match(/tupe|transfer.*undertaking|outsourc|insourc/))  return EILEEN_KNOWLEDGE.topics['tupe'];
-      if (query.match(/equal\s*pay|gender\s*pay|pay\s*gap/))          return EILEEN_KNOWLEDGE.topics['equal pay'];
-      if (query.match(/contract|breach|variation|restrictive\s*covenant|notice\s*period|fire.*rehire|garden\s*leave/)) return EILEEN_KNOWLEDGE.topics['contract'];
-      if (query.match(/redundan/))                                     return EILEEN_KNOWLEDGE.topics['redundancy'];
-      if (query.match(/working\s*time|48.*hour|rest\s*break|annual\s*leave|holiday/)) return EILEEN_KNOWLEDGE.topics['wages'];
-      if (query.match(/how\s*many|what.*available|what.*cover/))       return EILEEN_KNOWLEDGE.howMany;
-      if (query.match(/what.*ailane|what.*acei|what.*platform|who\s*are\s*you|what\s*do\s*you/)) return EILEEN_KNOWLEDGE.whatIsAilane;
-      if (query.match(/hello|hi\b|hey|good\s*(morning|afternoon|evening)/)) return EILEEN_KNOWLEDGE.greeting;
-      if (query.match(/thank/)) return "You're welcome. If you need guidance on any other area, I'm here. The training resources are designed to build understanding progressively — each guide stands alone, but together they give you the full employment law compliance picture.";
-
-      return EILEEN_KNOWLEDGE.fallback;
-    }
-
-    /* Eileen message rendering */
-    function addEileenMessage(text, isUser) {
+    /* Add a message to the Eileen chat panel */
+    function addEileenMessage(html, isUser, options) {
+      options = options || {};
       var messagesContainer = document.getElementById('eileenMessages');
       var messageDiv = document.createElement('div');
       messageDiv.className = 'eileen-msg ' + (isUser ? 'eileen-msg-user' : 'eileen-msg-ai');
-      messageDiv.innerHTML = text;
+      messageDiv.innerHTML = html;
+
+      /* Add feedback buttons to AI messages (not the greeting, not errors) */
+      if (!isUser && !options.noFeedback && !options.isGreeting) {
+        var feedbackDiv = document.createElement('div');
+        feedbackDiv.className = 'eileen-feedback';
+        feedbackDiv.innerHTML =
+          '<button class="eileen-feedback-btn" onclick="sendEileenFeedback(this, 1)" title="Helpful">&#128077; Helpful</button>'
+          + '<button class="eileen-feedback-btn" onclick="sendEileenFeedback(this, -1)" title="Not helpful">&#128078; Not helpful</button>';
+        messageDiv.appendChild(feedbackDiv);
+      }
+
+      /* Add knowledge level badge if provided */
+      if (!isUser && options.knowledgeLevel && options.knowledgeLevel !== 'beginner') {
+        var levelBadge = document.createElement('div');
+        levelBadge.className = 'eileen-level-badge level-' + options.knowledgeLevel;
+        levelBadge.textContent = options.knowledgeLevel === 'advanced' ? 'Advanced mode' : 'Intermediate mode';
+        messageDiv.appendChild(levelBadge);
+      }
+
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      return messageDiv;
+    }
+
+    /* Show typing indicator while Eileen thinks */
+    function showTypingIndicator() {
+      var messagesContainer = document.getElementById('eileenMessages');
+      var typingDiv = document.createElement('div');
+      typingDiv.className = 'eileen-typing';
+      typingDiv.id = 'eileenTyping';
+      typingDiv.innerHTML =
+        '<div class="eileen-typing-dot"></div>'
+        + '<div class="eileen-typing-dot"></div>'
+        + '<div class="eileen-typing-dot"></div>';
+      messagesContainer.appendChild(typingDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      var typingDiv = document.getElementById('eileenTyping');
+      if (typingDiv) typingDiv.remove();
     }
 
     /* Eileen suggestion pills */
@@ -1863,41 +1915,159 @@
         button.className = 'eileen-suggest-btn';
         button.textContent = suggestion;
         button.onclick = function() {
-          addEileenMessage(suggestion, true);
-          container.innerHTML = '';
-          setTimeout(function() {
-            addEileenMessage(getEileenResponse(suggestion), false);
-            showFollowUpSuggestions();
-          }, 400);
+          document.getElementById('eileenInput').value = suggestion;
+          sendToEileen();
         };
         container.appendChild(button);
       });
     }
 
-    function showFollowUpSuggestions() {
-      showEileenSuggestions([
-        'Unfair Dismissal',
-        'Discrimination',
-        'TUPE',
-        'Whistleblowing'
-      ]);
-    }
+    /* Send feedback rating for an Eileen response */
+    window.sendEileenFeedback = function(buttonElement, rating) {
+      /* Visual feedback — highlight the selected button */
+      var feedbackContainer = buttonElement.parentElement;
+      feedbackContainer.querySelectorAll('.eileen-feedback-btn').forEach(function(btn) {
+        btn.classList.remove('selected');
+      });
+      buttonElement.classList.add('selected');
 
-    /* Eileen send handler */
-    window.sendToEileen = function() {
+      /* GA4 tracking */
+      gtag('event', 'eileen_feedback', {
+        rating: rating,
+        session_id: eileenSessionId
+      });
+
+      /* Note: feedback is recorded client-side via GA4 for now.
+         Future: POST to Edge Function to update kl_eileen_conversations.feedback_rating */
+    };
+
+    /* ================================================================
+       EILEEN CORE — Send question to Edge Function, receive response
+       ================================================================ */
+    window.sendToEileen = async function() {
+      if (eileenIsBusy) return;
+
       var input = document.getElementById('eileenInput');
       var message = input.value.trim();
       if (!message) return;
 
-      addEileenMessage(message, true);
+      /* Disable input while processing */
+      eileenIsBusy = true;
       input.value = '';
+      document.getElementById('eileenSendBtn').disabled = true;
       document.getElementById('eileenSuggestions').innerHTML = '';
 
-      setTimeout(function() {
-        addEileenMessage(getEileenResponse(message), false);
-        showFollowUpSuggestions();
-      }, 500);
+      /* Show user message */
+      addEileenMessage(message, true);
+
+      /* Show typing indicator */
+      showTypingIndicator();
+
+      try {
+        /* Build request headers */
+        var requestHeaders = {
+          'Content-Type': 'application/json'
+        };
+
+        /* If authenticated, include Bearer token for session tracking */
+        if (isAuthenticated && userAccessToken) {
+          requestHeaders['Authorization'] = 'Bearer ' + userAccessToken;
+        }
+
+        /* Call the eileen-training-assistant Edge Function */
+        var response = await fetch(EILEEN_FUNCTION_URL, {
+          method: 'POST',
+          headers: requestHeaders,
+          body: JSON.stringify({
+            message: message,
+            session_id: eileenSessionId,
+            conversation_history: eileenConversationHistory.slice(-6),
+            user_agent: navigator.userAgent
+          })
+        });
+
+        removeTypingIndicator();
+
+        if (!response.ok) {
+          var errorData = await response.json().catch(function() { return {}; });
+          var errorMessage = errorData.error || 'I apologise \u2014 I encountered an issue. Please try again in a moment.';
+          addEileenMessage('<p>' + errorMessage + '</p>', false, { noFeedback: true });
+        } else {
+          var data = await response.json();
+
+          /* Format and display Eileen's response */
+          var formattedResponse = formatEileenResponse(data.response);
+          addEileenMessage(formattedResponse, false, {
+            knowledgeLevel: data.knowledge_level
+          });
+
+          /* Update conversation history for session memory */
+          eileenConversationHistory.push({
+            user: message,
+            eileen: data.response.substring(0, 500)
+          });
+
+          /* Show contextual follow-up suggestions based on categories matched */
+          var followUpSuggestions = generateFollowUpSuggestions(data.categories_matched, data.is_knowledge_gap);
+          if (followUpSuggestions.length > 0) {
+            showEileenSuggestions(followUpSuggestions);
+          }
+        }
+
+      } catch (networkError) {
+        removeTypingIndicator();
+        addEileenMessage(
+          '<p>I apologise \u2014 I\'m unable to connect to my knowledge base right now. Please try again in a moment, or browse the training guides directly \u2014 they cover all 12 ACEI compliance categories in comprehensive detail.</p>',
+          false,
+          { noFeedback: true }
+        );
+      }
+
+      /* Re-enable input */
+      eileenIsBusy = false;
+      document.getElementById('eileenSendBtn').disabled = false;
+      document.getElementById('eileenInput').focus();
+
+      /* GA4 tracking */
+      gtag('event', 'eileen_question', {
+        session_id: eileenSessionId,
+        question_length: message.length
+      });
     };
+
+    /* Generate contextual follow-up suggestions based on the conversation */
+    function generateFollowUpSuggestions(categoriesMatched, isKnowledgeGap) {
+      if (isKnowledgeGap) {
+        return [
+          'What topics do you cover?',
+          'Unfair Dismissal risks',
+          'Data Protection obligations',
+          'What is Ailane?'
+        ];
+      }
+
+      /* If categories were matched, suggest related but different areas */
+      var allCategoryKeys = Object.keys(ACEI_CATEGORIES);
+      var unmatchedCategories = allCategoryKeys.filter(function(key) {
+        return !categoriesMatched || categoriesMatched.indexOf(key) === -1;
+      });
+
+      /* Pick up to 3 random unmatched categories + 1 deepening question */
+      var suggestions = [];
+
+      if (categoriesMatched && categoriesMatched.length > 0) {
+        var matchedLabel = getCategoryLabel(categoriesMatched[0]);
+        suggestions.push('Tell me more about ' + matchedLabel);
+      }
+
+      /* Shuffle and pick from unmatched */
+      var shuffled = unmatchedCategories.sort(function() { return 0.5 - Math.random(); });
+      for (var i = 0; i < Math.min(3, shuffled.length); i++) {
+        suggestions.push(getCategoryLabel(shuffled[i]));
+      }
+
+      return suggestions.slice(0, 4);
+    }
 
     /* Eileen panel toggle */
     window.toggleEileen = function() {
@@ -1908,12 +2078,18 @@
         panel.classList.add('open');
         /* Show greeting on first open */
         if (!document.getElementById('eileenMessages').children.length) {
-          addEileenMessage(EILEEN_KNOWLEDGE.greeting, false);
+          addEileenMessage(
+            '<p>Hello! I\'m <strong>Eileen</strong>, your guide to Ailane\'s employment law training resources.</p>'
+            + '<p>I can answer specific questions about UK employment law, help you understand statutory frameworks, identify which guides are most relevant to your situation, and explain how different areas of employment law interact.</p>'
+            + '<p>What would you like to know?</p>',
+            false,
+            { isGreeting: true, noFeedback: true }
+          );
           showEileenSuggestions([
-            'What topics do you cover?',
-            'Health & Safety',
-            'Data Protection',
-            'What is Ailane?'
+            'Contract written in 2016 \u2014 what has changed?',
+            'Dismissal procedures',
+            'Data protection obligations',
+            'What does Ailane cover?'
           ]);
         }
         document.getElementById('eileenInput').focus();
@@ -1926,7 +2102,7 @@
 
     /* ================================================================
        KEYBOARD ACCESSIBILITY
-       Escape closes: reader → Eileen → mobile nav (priority order)
+       Escape closes: reader > Eileen > mobile nav (priority order)
        ================================================================ */
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
@@ -1944,14 +2120,13 @@
        INITIALISATION
        ================================================================ */
     async function initialise() {
-      /* Show skeleton loading state immediately */
       showSkeletonCards();
 
       /* Start Nexus canvas animations */
       drawNexus(document.getElementById('nexusOrb'), 56, true);
       drawNexus(document.getElementById('nexusHeader'), 32, false);
 
-      /* Optional auth detection — non-blocking, page works without it */
+      /* Optional auth detection — non-blocking */
       try {
         var supabaseScript = document.createElement('script');
         supabaseScript.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
@@ -1961,18 +2136,17 @@
             var sessionResult = await supabase.auth.getSession();
             if (sessionResult && sessionResult.data && sessionResult.data.session && sessionResult.data.session.access_token) {
               isAuthenticated = true;
-              /* Update nav links to show Dashboard instead of Sign In */
+              userAccessToken = sessionResult.data.session.access_token;
               document.getElementById('navAuthDesktop').textContent = 'Dashboard';
               document.getElementById('navAuthDesktop').href = '/account/dashboard/';
               document.getElementById('navAuthMobile').textContent = 'Dashboard';
               document.getElementById('navAuthMobile').href = '/account/dashboard/';
-              /* Re-render grid if data already loaded */
               if (allResources.length > 0) {
                 renderResourceGrid();
               }
             }
           } catch (authError) {
-            /* Auth check failed silently — page remains in public mode */
+            /* Auth check failed silently */
           }
         };
         document.head.appendChild(supabaseScript);
@@ -1980,7 +2154,7 @@
         /* Supabase CDN failed — continue in public mode */
       }
 
-      /* Fetch training resources from Supabase REST API — CRITICAL PATH */
+      /* Fetch training resources — CRITICAL PATH */
       try {
         var fetchUrl = SUPABASE_URL + '/rest/v1/kl_training_resources'
           + '?is_published=eq.true'
@@ -2005,7 +2179,6 @@
           throw new Error('No published training resources found');
         }
 
-        /* Store data and render */
         allResources = data;
         renderStatistics();
         buildCategoryFilters();
