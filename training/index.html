@@ -1452,6 +1452,14 @@
     var eileenConversationHistory = [];
     var eileenLastConversationId = null;
 
+    /* Active guide context — tracks which guide is open in the reader.
+       When a user asks Eileen a question while reading a specific guide,
+       this context is sent to the Edge Function so Eileen can prioritise
+       answering within the topic the user is currently studying. */
+    var activeGuideSlug = null;
+    var activeGuideCategory = null;
+    var activeGuideTitle = null;
+
     /* ================================================================
        UTILITY FUNCTIONS
        ================================================================ */
@@ -1488,21 +1496,34 @@
     }
 
     /* Simple markdown-to-HTML for Eileen responses */
+    /* Format Eileen's response for innerHTML rendering.
+       The Edge Function system prompt instructs Claude to respond in HTML,
+       but this safety net catches any residual markdown that may slip through.
+       Handles: headers (##), bold (**), italic (*), bullet lists (- *),
+       newlines, and ensures clean paragraph structure. */
     function formatEileenResponse(text) {
-      return text
-        /* Bold: **text** */
+      var formatted = text
+        /* Markdown H3 headers → styled strong tags */
+        .replace(/^###\s+(.+)$/gm, '<br><strong style="color:#22D3EE;">$1</strong><br>')
+        /* Markdown H2 headers → styled strong tags (slightly larger) */
+        .replace(/^##\s+(.+)$/gm, '<br><strong style="color:#22D3EE;font-size:1.05em;">$1</strong><br>')
+        /* Markdown H1 headers → styled strong tags */
+        .replace(/^#\s+(.+)$/gm, '<br><strong style="color:#22D3EE;font-size:1.1em;">$1</strong><br>')
+        /* Bold: **text** → <strong> */
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        /* Italic: *text* */
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        /* Italic: *text* → <em> (but not inside HTML tags) */
+        .replace(/(?<![<\/])\*([^*\n]+)\*(?!>)/g, '<em>$1</em>')
+        /* Markdown bullet lists → em dash lists */
+        .replace(/^[-*]\s+/gm, '\u2014 ')
+        /* Numbered lists: 1. → keep as-is but clean formatting */
+        .replace(/^(\d+)\.\s+/gm, '<strong>$1.</strong> ')
         /* Double newline to paragraph break */
-        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n\n/g, '<br><br>')
         /* Single newline to line break */
         .replace(/\n/g, '<br>')
-        /* Wrap in paragraph tags */
-        .replace(/^/, '<p>')
-        .replace(/$/, '</p>')
-        /* Clean up empty paragraphs */
-        .replace(/<p><\/p>/g, '');
+        /* Clean up excessive breaks */
+        .replace(/(<br>){3,}/g, '<br><br>');
+      return formatted;
     }
 
     /* ================================================================
@@ -1810,6 +1831,13 @@
       document.getElementById('readerMain').scrollTop = 0;
       document.body.style.overflow = 'hidden';
 
+      /* Set active guide context for Eileen — she will prioritise
+         this guide's content when answering questions while the
+         user is reading it. Cleared when the reader closes. */
+      activeGuideSlug = resource.slug;
+      activeGuideCategory = resource.primary_acei_category;
+      activeGuideTitle = resource.title;
+
       var readerMain = document.getElementById('readerMain');
       readerMain.onscroll = function() {
         var backToTopBtn = document.getElementById('backToTop');
@@ -1838,6 +1866,12 @@
       document.getElementById('readerOverlay').classList.remove('open');
       document.getElementById('readerSidebar').classList.remove('mobile-open');
       document.getElementById('backToTop').classList.remove('visible');
+
+      /* Clear active guide context — Eileen returns to general mode */
+      activeGuideSlug = null;
+      activeGuideCategory = null;
+      activeGuideTitle = null;
+
       document.body.style.overflow = '';
     };
 
@@ -1974,7 +2008,9 @@
           requestHeaders['Authorization'] = 'Bearer ' + userAccessToken;
         }
 
-        /* Call the eileen-training-assistant Edge Function */
+        /* Call the eileen-training-assistant Edge Function.
+           If the user has a guide open in the reader, the active guide
+           context is included so Eileen prioritises that topic. */
         var response = await fetch(EILEEN_FUNCTION_URL, {
           method: 'POST',
           headers: requestHeaders,
@@ -1982,7 +2018,10 @@
             message: message,
             session_id: eileenSessionId,
             conversation_history: eileenConversationHistory.slice(-6),
-            user_agent: navigator.userAgent
+            user_agent: navigator.userAgent,
+            active_guide_slug: activeGuideSlug,
+            active_guide_category: activeGuideCategory,
+            active_guide_title: activeGuideTitle
           })
         });
 
