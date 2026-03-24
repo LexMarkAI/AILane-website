@@ -184,6 +184,32 @@ var PANEL_ICONS = {
 };
 
 // ============================================================================
+// SPLIT VIEW RATIOS (KLUI-001 §4.2)
+// ============================================================================
+var SPLIT_RATIOS = {
+  'vault+notes': 55,
+  'vault+planner': 50,
+  'vault+documents': 50,
+  'vault+calendar': 60,
+  'vault+clipboard': 70,
+  'notes+documents': 50,
+  'notes+clipboard': 70,
+  'notes+calendar': 50,
+  'documents+calendar': 60,
+  'planner+calendar': 60,
+  'planner+notes': 55,
+  'planner+clipboard': 65
+};
+
+function getSplitRatio(leftKey, rightKey) {
+  var key = leftKey + '+' + rightKey;
+  if (SPLIT_RATIOS[key] !== undefined) return SPLIT_RATIOS[key];
+  var revKey = rightKey + '+' + leftKey;
+  if (SPLIT_RATIOS[revKey] !== undefined) return 100 - SPLIT_RATIOS[revKey];
+  return 50;
+}
+
+// ============================================================================
 // PANEL RAIL (KLUI-001 §2.1)
 // ============================================================================
 class PanelRail {
@@ -275,21 +301,32 @@ class PanelRail {
         return;
       }
 
-      this.drawer.toggle(panel.id);
-      this._updateActiveState(panel.id);
+      this.drawer.handlePanelClick(panel.id);
+      this._updateActiveState();
     });
 
     return btn;
   }
 
-  _updateActiveState(panelId) {
-    this.el.querySelectorAll('.ws-rail-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-panel') === panelId && this.drawer.isOpen);
+  _updateActiveState() {
+    var drawer = this.drawer;
+    this.el.querySelectorAll('.ws-rail-btn').forEach(function(btn) {
+      var panelKey = btn.getAttribute('data-panel');
+      if (!panelKey) { btn.classList.remove('active'); return; }
+      var isActive = false;
+      if (drawer.isOpen) {
+        if (drawer._splitMode) {
+          isActive = (drawer._splitPanels[0] === panelKey || drawer._splitPanels[1] === panelKey);
+        } else {
+          isActive = drawer.activePanel === panelKey;
+        }
+      }
+      btn.classList.toggle('active', isActive);
     });
   }
 
   clearActive() {
-    this.el.querySelectorAll('.ws-rail-btn').forEach(btn => btn.classList.remove('active'));
+    this.el.querySelectorAll('.ws-rail-btn').forEach(function(btn) { btn.classList.remove('active'); });
   }
 }
 
@@ -309,6 +346,13 @@ class PanelDrawer {
     this.mode = prefs.get('push_overlay_mode') || 'push';
     this._panels = {};
     this._resizing = false;
+    // Split View state (KLUI-001 §4.1)
+    this._splitMode = false;
+    this._splitPanels = [null, null];
+    this._splitRatio = 50;
+    this._splitDrawerWidth = prefs.get('splitDrawerWidth') || 720;
+    this._splitDivider = null;
+    this._srAnnounce = null;
   }
 
   render() {
@@ -369,8 +413,15 @@ class PanelDrawer {
     this.backdrop.className = 'ws-overlay-backdrop';
     this.backdrop.addEventListener('click', () => this.close());
 
+    // Screen reader announcement region
+    this._srAnnounce = document.createElement('div');
+    this._srAnnounce.className = 'ws-sr-announcement';
+    this._srAnnounce.setAttribute('aria-live', 'polite');
+    this._srAnnounce.setAttribute('role', 'status');
+
     document.body.appendChild(this.el);
     document.body.appendChild(this.backdrop);
+    document.body.appendChild(this._srAnnounce);
 
     // Escape key to close
     document.addEventListener('keydown', (e) => {
@@ -380,41 +431,325 @@ class PanelDrawer {
     this._applyMode();
   }
 
-  toggle(panelId) {
-    if (this.isOpen && this.activePanel === panelId) {
-      this.close();
+  // Sprint 3b: Central panel click dispatcher (KLUI-001 §4.1)
+  handlePanelClick(panelKey) {
+    if (!this.isOpen) {
+      // Drawer closed → open single panel
+      this.open(panelKey);
+    } else if (!this._splitMode) {
+      // Single mode
+      if (panelKey === this.activePanel) {
+        this.close();
+      } else if (window.innerWidth >= 1024) {
+        // Enter split view
+        this.enterSplitView(this.activePanel, panelKey);
+      } else {
+        // Tablet/mobile — replace
+        this.open(panelKey);
+      }
     } else {
-      this.open(panelId);
+      // Split mode
+      if (panelKey === this._splitPanels[0]) {
+        this.exitSplitView(this._splitPanels[1]);
+      } else if (panelKey === this._splitPanels[1]) {
+        this.exitSplitView(this._splitPanels[0]);
+      } else {
+        // Replace right panel
+        this._replaceSplitPanel(1, panelKey);
+      }
     }
   }
 
+  toggle(panelId) {
+    this.handlePanelClick(panelId);
+  }
+
   open(panelId) {
+    // Exit split if active
+    if (this._splitMode) {
+      this._teardownSplit();
+    }
+
     this.activePanel = panelId;
     this.isOpen = true;
     this.el.classList.add('open');
+    this.el.classList.remove('ws-drawer--split');
+    this.el.style.width = this.width + 'px';
 
     var panelDef = PANEL_TYPES.find(p => p.id === panelId);
     this.titleEl.textContent = panelDef ? panelDef.name : panelId;
 
-    // Lazy-load panel content
+    // Lazy-load panel content into contentEl
     this._loadPanel(panelId);
 
     this._applyMode();
     this.prefs.set('active_panel', panelId);
     this.prefs.set('drawer_open', true);
+    this.prefs.set('splitMode', false);
     this.bus.emit('panel:opened', { panelId: panelId });
   }
 
   close() {
+    if (this._splitMode) {
+      this._teardownSplit();
+    }
     this.isOpen = false;
     this.el.classList.remove('open');
+    this.el.classList.remove('ws-drawer--split');
+    this.el.style.width = this.width + 'px';
     document.body.classList.remove('ws-push-mode');
     document.body.classList.remove('ws-overlay-mode');
     document.body.style.removeProperty('--ws-drawer-width');
     this.activePanel = null;
     this.prefs.set('drawer_open', false);
     this.prefs.set('active_panel', null);
+    this.prefs.set('splitMode', false);
     this.bus.emit('panel:closed', {});
+  }
+
+  // ---- Split View methods (KLUI-001 §2.2, §4.1) ----
+
+  enterSplitView(leftKey, rightKey) {
+    this._splitMode = true;
+    this._splitPanels = [leftKey, rightKey];
+    this._splitRatio = getSplitRatio(leftKey, rightKey);
+    this.isOpen = true;
+    this.activePanel = leftKey;
+
+    // Set drawer to split width
+    var splitWidth = this._splitDrawerWidth;
+    this.el.style.width = splitWidth + 'px';
+    this.el.classList.add('open', 'ws-drawer--split');
+
+    // Update title
+    var leftDef = PANEL_TYPES.find(function(p) { return p.id === leftKey; });
+    var rightDef = PANEL_TYPES.find(function(p) { return p.id === rightKey; });
+    this.titleEl.textContent = (leftDef ? leftDef.name : leftKey) + ' | ' + (rightDef ? rightDef.name : rightKey);
+
+    // Replace contentEl contents with split container
+    this.contentEl.innerHTML = '';
+    var splitContainer = document.createElement('div');
+    splitContainer.className = 'ws-split-container';
+    splitContainer.setAttribute('role', 'region');
+    splitContainer.setAttribute('aria-label', 'Split workspace panels');
+
+    var leftPane = document.createElement('div');
+    leftPane.className = 'ws-split-left';
+    leftPane.id = 'ws-split-left';
+
+    var divider = this._createSplitDivider();
+
+    var rightPane = document.createElement('div');
+    rightPane.className = 'ws-split-right';
+    rightPane.id = 'ws-split-right';
+
+    splitContainer.appendChild(leftPane);
+    splitContainer.appendChild(divider);
+    splitContainer.appendChild(rightPane);
+    this.contentEl.appendChild(splitContainer);
+
+    // Apply initial ratio
+    this._applySplitRatio(this._splitRatio);
+
+    // Load panels into split panes
+    this._loadPanelInto(leftKey, leftPane);
+    this._loadPanelInto(rightKey, rightPane);
+
+    // Apply push/overlay mode with split width
+    if (this.mode === 'push') {
+      document.body.classList.add('ws-push-mode');
+      document.body.classList.remove('ws-overlay-mode');
+      document.body.style.setProperty('--ws-drawer-width', splitWidth + 'px');
+    } else {
+      document.body.classList.add('ws-overlay-mode');
+      document.body.classList.remove('ws-push-mode');
+    }
+
+    // Persist
+    this.prefs.set('splitMode', true);
+    this.prefs.set('splitPanels', [leftKey, rightKey]);
+    this.prefs.set('splitRatio', this._splitRatio);
+    this.prefs.set('splitDrawerWidth', splitWidth);
+    this.prefs.set('drawer_open', true);
+
+    // Focus right panel (newly opened)
+    rightPane.focus();
+
+    // SR announcement
+    if (this._srAnnounce) {
+      this._srAnnounce.textContent = 'Split view opened. ' +
+        (leftDef ? leftDef.name : leftKey) + ' on left, ' +
+        (rightDef ? rightDef.name : rightKey) + ' on right.';
+    }
+
+    this.bus.emit('panel:opened', { panelId: rightKey, splitMode: true });
+  }
+
+  exitSplitView(keepKey) {
+    this._teardownSplit();
+    this.open(keepKey);
+
+    // SR announcement
+    var keepDef = PANEL_TYPES.find(function(p) { return p.id === keepKey; });
+    if (this._srAnnounce) {
+      this._srAnnounce.textContent = 'Split view closed. ' + (keepDef ? keepDef.name : keepKey) + ' panel active.';
+    }
+  }
+
+  _replaceSplitPanel(index, newKey) {
+    if (!this._splitMode) return;
+    this._splitPanels[index] = newKey;
+
+    var pane = index === 0
+      ? this.contentEl.querySelector('.ws-split-left')
+      : this.contentEl.querySelector('.ws-split-right');
+    if (pane) {
+      pane.innerHTML = '';
+      this._loadPanelInto(newKey, pane);
+    }
+
+    // Update title
+    var leftDef = PANEL_TYPES.find(function(p) { return p.id === this._splitPanels[0]; }.bind(this));
+    var rightDef = PANEL_TYPES.find(function(p) { return p.id === this._splitPanels[1]; }.bind(this));
+    this.titleEl.textContent = (leftDef ? leftDef.name : this._splitPanels[0]) + ' | ' + (rightDef ? rightDef.name : this._splitPanels[1]);
+
+    // Update ratio for new combination
+    this._splitRatio = getSplitRatio(this._splitPanels[0], this._splitPanels[1]);
+    this._applySplitRatio(this._splitRatio);
+
+    this.prefs.set('splitPanels', this._splitPanels.slice());
+    this.prefs.set('splitRatio', this._splitRatio);
+    this.bus.emit('panel:opened', { panelId: newKey, splitMode: true });
+  }
+
+  _teardownSplit() {
+    this._splitMode = false;
+    this._splitPanels = [null, null];
+    this._splitDivider = null;
+    this.contentEl.innerHTML = '';
+  }
+
+  _createSplitDivider() {
+    var self = this;
+    var divider = document.createElement('div');
+    divider.className = 'ws-split-divider';
+    divider.setAttribute('role', 'separator');
+    divider.setAttribute('aria-label', 'Resize panels');
+    divider.setAttribute('aria-valuenow', String(this._splitRatio));
+    divider.setAttribute('aria-valuemin', '28');
+    divider.setAttribute('aria-valuemax', '72');
+    divider.setAttribute('tabindex', '0');
+    this._splitDivider = divider;
+
+    // Mouse drag
+    var startX, startLeftBasis;
+    var onMouseMove = function(e) {
+      var container = self.contentEl.querySelector('.ws-split-container');
+      if (!container) return;
+      var totalWidth = container.offsetWidth - 4; // minus divider
+      var diff = e.clientX - startX;
+      var newLeftPx = startLeftBasis + diff;
+      var newLeftPct = (newLeftPx / totalWidth) * 100;
+      newLeftPct = Math.max(28, Math.min(72, newLeftPct));
+      self._applySplitRatio(newLeftPct);
+    };
+    var onMouseUp = function() {
+      divider.classList.remove('ws-split-divider--active');
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      self.prefs.set('splitRatio', self._splitRatio);
+    };
+    divider.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      divider.classList.add('ws-split-divider--active');
+      startX = e.clientX;
+      var leftPane = self.contentEl.querySelector('.ws-split-left');
+      startLeftBasis = leftPane ? leftPane.offsetWidth : 0;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    // Touch drag
+    var touchStartX, touchStartBasis;
+    divider.addEventListener('touchstart', function(e) {
+      divider.classList.add('ws-split-divider--active');
+      touchStartX = e.touches[0].clientX;
+      var leftPane = self.contentEl.querySelector('.ws-split-left');
+      touchStartBasis = leftPane ? leftPane.offsetWidth : 0;
+    }, { passive: true });
+    divider.addEventListener('touchmove', function(e) {
+      var container = self.contentEl.querySelector('.ws-split-container');
+      if (!container) return;
+      var totalWidth = container.offsetWidth - 4;
+      var diff = e.touches[0].clientX - touchStartX;
+      var newLeftPx = touchStartBasis + diff;
+      var newLeftPct = (newLeftPx / totalWidth) * 100;
+      newLeftPct = Math.max(28, Math.min(72, newLeftPct));
+      self._applySplitRatio(newLeftPct);
+    }, { passive: true });
+    divider.addEventListener('touchend', function() {
+      divider.classList.remove('ws-split-divider--active');
+      self.prefs.set('splitRatio', self._splitRatio);
+    });
+
+    // Keyboard: arrows adjust by 5%, Home resets
+    divider.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        self._applySplitRatio(Math.max(28, self._splitRatio - 5));
+        self.prefs.set('splitRatio', self._splitRatio);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        self._applySplitRatio(Math.min(72, self._splitRatio + 5));
+        self.prefs.set('splitRatio', self._splitRatio);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        var defaultRatio = getSplitRatio(self._splitPanels[0], self._splitPanels[1]);
+        self._applySplitRatio(defaultRatio);
+        self.prefs.set('splitRatio', self._splitRatio);
+      }
+    });
+
+    return divider;
+  }
+
+  _applySplitRatio(leftPercent) {
+    this._splitRatio = leftPercent;
+    var leftPane = this.contentEl.querySelector('.ws-split-left');
+    var rightPane = this.contentEl.querySelector('.ws-split-right');
+    if (leftPane) leftPane.style.flexBasis = leftPercent + '%';
+    if (rightPane) rightPane.style.flexBasis = (100 - leftPercent) + '%';
+    if (this._splitDivider) {
+      this._splitDivider.setAttribute('aria-valuenow', String(Math.round(leftPercent)));
+    }
+  }
+
+  _loadPanelInto(panelId, container) {
+    container.innerHTML = '';
+    if (panelId === 'vault' && window.AilaneVaultPanel) {
+      this._panels['vault_split'] = new window.AilaneVaultPanel(container, this.bus);
+      this._panels['vault_split'].mount(container);
+    } else if (panelId === 'notes' && window.AilaneNotesPanel) {
+      this._panels['notes_split'] = new window.AilaneNotesPanel(container, this.bus);
+      this._panels['notes_split'].mount(container);
+    } else if (panelId === 'documents' && window.__PanelDocuments) {
+      this._panels['documents_split'] = new window.__PanelDocuments(container, this.bus);
+      this._panels['documents_split'].mount(container);
+    } else if (panelId === 'clipboard' && window.__PanelClipboard) {
+      this._panels['clipboard_split'] = new window.__PanelClipboard(container, this.bus);
+      this._panels['clipboard_split'].mount(container);
+    } else if (panelId === 'calendar' && window.__PanelCalendar) {
+      this._panels['calendar_split'] = new window.__PanelCalendar(container, this.bus);
+      this._panels['calendar_split'].mount(container);
+    } else if (panelId === 'planner' && window.__PanelPlanner) {
+      this._panels['planner_split'] = window.__PanelPlanner(container);
+    } else {
+      container.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px;text-align:center;">' +
+          '<p style="font-size:14px;font-weight:600;color:#0A2342;margin:0 0 8px;">Coming Soon</p>' +
+          '<p style="font-size:12px;color:#6B7280;margin:0;">This panel is under development.</p>' +
+        '</div>';
+    }
   }
 
   _loadPanel(panelId) {
@@ -491,8 +826,14 @@ class PanelDrawer {
 
     var onMouseMove = function(e) {
       var diff = startX - e.clientX;
-      var newWidth = Math.max(320, Math.min(600, startWidth + diff));
-      self.width = newWidth;
+      var minW = self._splitMode ? 560 : 320;
+      var maxW = self._splitMode ? 1000 : 600;
+      var newWidth = Math.max(minW, Math.min(maxW, startWidth + diff));
+      if (self._splitMode) {
+        self._splitDrawerWidth = newWidth;
+      } else {
+        self.width = newWidth;
+      }
       self.el.style.width = newWidth + 'px';
       if (self.mode === 'push') {
         document.body.style.setProperty('--ws-drawer-width', newWidth + 'px');
@@ -504,13 +845,17 @@ class PanelDrawer {
       handle.classList.remove('dragging');
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
-      self.prefs.set('drawer_width', self.width);
+      if (self._splitMode) {
+        self.prefs.set('splitDrawerWidth', self._splitDrawerWidth);
+      } else {
+        self.prefs.set('drawer_width', self.width);
+      }
     };
 
     handle.addEventListener('mousedown', function(e) {
       self._resizing = true;
       startX = e.clientX;
-      startWidth = self.width;
+      startWidth = self._splitMode ? self._splitDrawerWidth : self.width;
       handle.classList.add('dragging');
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
@@ -580,25 +925,84 @@ function initWorkspace() {
 
   // Load preferences from Supabase
   prefs.loadFromSupabase().then(function() {
-    // Restore previous state
-    var wasOpen = prefs.get('drawer_open');
-    var lastPanel = prefs.get('active_panel');
-    if (wasOpen && lastPanel) {
-      drawer.open(lastPanel);
-      rail._updateActiveState(lastPanel);
+    // Restore previous state — check split mode first
+    var wasSplit = prefs.get('splitMode');
+    var splitPanels = prefs.get('splitPanels');
+    if (wasSplit && splitPanels && splitPanels.length === 2 && window.innerWidth >= 1024) {
+      // Validate both panels are available (sprint gate + tier gate)
+      var leftOk = PANEL_TYPES.some(function(p) {
+        if (p.id !== splitPanels[0] || p.sprint > 3) return false;
+        if (p.tierGate) {
+          var t = window.__ailaneUser ? window.__ailaneUser.tier : null;
+          return p.tierGate.indexOf(t) !== -1;
+        }
+        return true;
+      });
+      var rightOk = PANEL_TYPES.some(function(p) {
+        if (p.id !== splitPanels[1] || p.sprint > 3) return false;
+        if (p.tierGate) {
+          var t = window.__ailaneUser ? window.__ailaneUser.tier : null;
+          return p.tierGate.indexOf(t) !== -1;
+        }
+        return true;
+      });
+      if (leftOk && rightOk) {
+        var savedRatio = prefs.get('splitRatio');
+        if (savedRatio) drawer._splitRatio = savedRatio;
+        drawer.enterSplitView(splitPanels[0], splitPanels[1]);
+        rail._updateActiveState();
+      } else {
+        // Fall back to single panel
+        var wasOpen = prefs.get('drawer_open');
+        var lastPanel = prefs.get('active_panel');
+        if (wasOpen && lastPanel) {
+          drawer.open(lastPanel);
+          rail._updateActiveState();
+        }
+      }
+    } else {
+      var wasOpen = prefs.get('drawer_open');
+      var lastPanel = prefs.get('active_panel');
+      if (wasOpen && lastPanel) {
+        drawer.open(lastPanel);
+        rail._updateActiveState();
+      }
+    }
+  });
+
+  // Responsive: exit split view below 1024px, re-enter above
+  var _savedSplitState = null;
+  window.addEventListener('resize', function() {
+    if (drawer._splitMode && window.innerWidth < 1024) {
+      // Save state for potential re-entry
+      _savedSplitState = {
+        panels: drawer._splitPanels.slice(),
+        ratio: drawer._splitRatio
+      };
+      drawer.exitSplitView(drawer._splitPanels[0]);
+      rail._updateActiveState();
+    } else if (!drawer._splitMode && _savedSplitState && window.innerWidth >= 1024 && drawer.isOpen) {
+      var panels = _savedSplitState.panels;
+      drawer._splitRatio = _savedSplitState.ratio;
+      _savedSplitState = null;
+      drawer.enterSplitView(panels[0], panels[1]);
+      rail._updateActiveState();
     }
   });
 
   // Close handler syncs rail
   bus.on('panel:closed', function() { rail.clearActive(); });
-  bus.on('panel:opened', function(data) { rail._updateActiveState(data.panelId); });
+  bus.on('panel:opened', function() { rail._updateActiveState(); });
 
   // Sprint 2: Cross-panel wiring
   // clipboard:to-notes — append clip content to active note
   var _pendingClipToNotes = null;
   bus.on('clipboard:to-notes', function(data) {
-    if (drawer._panels.notes && drawer.activePanel === 'notes') {
-      var notesPanel = drawer._panels.notes;
+    var notesActive = drawer.activePanel === 'notes' ||
+      (drawer._splitMode && (drawer._splitPanels[0] === 'notes' || drawer._splitPanels[1] === 'notes'));
+    var notesPanelRef = drawer._panels.notes || drawer._panels['notes_split'];
+    if (notesPanelRef && notesActive) {
+      var notesPanel = notesPanelRef;
       if (notesPanel.editorEl) {
         var attribution = '\n\n--- Clipped from ' + (data.source || 'clipboard') + ' ---\n';
         var p = document.createElement('p');

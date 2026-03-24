@@ -1278,3 +1278,132 @@ body.ws-overlay-mode .ws-drawer.open ~ .ws-overlay-backdrop {
     align-items: flex-start;
   }
 }
+
+/* ============================================================
+   SPLIT VIEW — Sprint 3b
+   Spec: KLUI-001 §2.2, §4.1
+   ============================================================ */
+
+/* Split mode drawer width override */
+.ws-drawer--split {
+  width: 720px;
+}
+
+/* Split container — holds both panels + divider */
+.ws-split-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Left and right panel mounts */
+.ws-split-left,
+.ws-split-right {
+  flex: 1 1 50%;
+  min-width: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+/* Central divider */
+.ws-split-divider {
+  width: 4px;
+  flex-shrink: 0;
+  background: #D1D5DB;
+  cursor: col-resize;
+  position: relative;
+  z-index: 1;
+  transition: background 0.15s;
+}
+.ws-split-divider:hover,
+.ws-split-divider--active {
+  background: var(--ws-teal);
+}
+
+/* Divider grab area — wider invisible hit target */
+.ws-split-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  right: -6px;
+  cursor: col-resize;
+}
+
+/* Divider visual indicator — three dots */
+.ws-split-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 24px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #9CA3AF 0px, #9CA3AF 2px,
+    transparent 2px, transparent 6px
+  );
+}
+.ws-split-divider:hover::after,
+.ws-split-divider--active::after {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--ws-teal) 0px, var(--ws-teal) 2px,
+    transparent 2px, transparent 6px
+  );
+}
+
+/* Vault highlight for cross-panel wiring */
+.ws-vault-item--highlighted {
+  background: rgba(10, 92, 82, 0.08);
+  border-left: 3px solid var(--ws-teal);
+}
+
+/* Screen reader announcement region */
+.ws-sr-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* WCAG 2.1 AA Focus — Split divider */
+.ws-split-divider:focus-visible {
+  outline: 2px solid var(--ws-teal);
+  outline-offset: 2px;
+}
+
+/* Reduced motion — Split View */
+@media (prefers-reduced-motion: reduce) {
+  .ws-split-left,
+  .ws-split-right,
+  .ws-split-divider,
+  .ws-drawer--split {
+    transition: none !important;
+  }
+}
+
+/* Responsive — disable Split View below 1024px */
+@media (max-width: 1024px) {
+  .ws-drawer--split {
+    width: var(--ws-drawer-default) !important;
+  }
+  .ws-split-container {
+    flex-direction: column;
+  }
+  .ws-split-right {
+    display: none !important;
+  }
+  .ws-split-divider {
+    display: none !important;
+  }
+}
