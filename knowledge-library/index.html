@@ -1,1021 +1,2527 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
-<!-- Google Analytics GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-NTNXWZN31C');
-</script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Knowledge Library — Ailane</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg-primary: #0a0e17;
-  --bg-secondary: #111827;
-  --bg-card: #161f33;
-  --bg-card-hover: #1c2740;
-  --bg-elevated: #1e293b;
-  --border: #1e3a5f;
-  --border-subtle: #1a2744;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent-blue: #3b82f6;
-  --accent-cyan: #06b6d4;
-  --accent-emerald: #10b981;
-  --accent-amber: #f59e0b;
-  --accent-rose: #f43f5e;
-  --accent-violet: #8b5cf6;
-  --accent-indigo: #6366f1;
-  --cat-1: #ef4444; --cat-2: #f97316; --cat-3: #eab308;
-  --cat-4: #22c55e; --cat-5: #14b8a6; --cat-6: #06b6d4;
-  --cat-7: #3b82f6; --cat-8: #6366f1; --cat-9: #8b5cf6;
-  --cat-10: #a855f7; --cat-11: #ec4899; --cat-12: #f43f5e;
-  --radius: 10px;
-  --radius-lg: 14px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.3);
-  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Library — Ailane</title>
+  <meta name="robots" content="noindex, nofollow">
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+  <!-- Supabase CDN — MUST BE FIRST on protected pages (Auth Guard Rule) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-body {
-  font-family: 'DM Sans', -apple-system, sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
 
-/* ===== AMBIENT BACKGROUND ===== */
-.ambient-bg {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(59,130,246,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 80% 90%, rgba(6,182,212,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(99,102,241,0.03) 0%, transparent 50%);
-}
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 
-/* ===== TOP NAV ===== */
-.topnav {
-  position: sticky; top: 0; z-index: 100;
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 32px;
-  background: rgba(10,14,23,0.85);
-  backdrop-filter: blur(20px) saturate(1.3);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.topnav-logo {
-  font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px;
-  color: var(--accent-cyan); letter-spacing: -0.5px;
-}
-.topnav-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
-.topnav-tabs { display: flex; gap: 2px; }
-.topnav-tab {
-  padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
-  color: var(--text-muted); cursor: pointer; transition: var(--transition);
-  text-decoration: none; display: flex; align-items: center; gap: 6px;
-}
-.topnav-tab:hover { color: var(--text-secondary); background: rgba(255,255,255,0.04); }
-.topnav-tab.active {
-  color: var(--accent-cyan); background: rgba(6,182,212,0.1);
-  box-shadow: inset 0 -2px 0 var(--accent-cyan);
-}
-.topnav-tab svg { width: 15px; height: 15px; }
-.topnav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-.topnav-badge {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
-  padding: 3px 10px; border-radius: 99px;
-  background: rgba(16,185,129,0.12); color: var(--accent-emerald);
-  border: 1px solid rgba(16,185,129,0.2);
-}
-.topnav-user {
-  font-size: 12px; color: var(--text-muted);
-  display: flex; align-items: center; gap: 6px;
-}
-.topnav-avatar {
-  width: 28px; height: 28px; border-radius: 99px;
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: white;
-}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-/* ===== PAGE HEADER ===== */
-.page-header {
-  padding: 40px 32px 0;
-  position: relative; z-index: 1;
-}
-.page-header h1 {
-  font-family: 'Fraunces', serif; font-size: 32px; font-weight: 700;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-cyan) 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  margin-bottom: 6px;
-}
-.page-header p { color: var(--text-muted); font-size: 14px; max-width: 600px; line-height: 1.5; }
+  <style>
+    /* ── TOKENS ──────────────────────────────────────────────────── */
+    :root {
+      --navy:         #0A2342;
+      --navy-l:       #112B4E;
+      --navy-m:       #163659;
+      --navy-d:       #071A30;
+      --border:       #1E3A5F;
+      --border-l:     #243F66;
+      --cyan:         #06B6D4;
+      --cyan-l:       #22D3EE;
+      --cyan-dim:     rgba(6,182,212,.10);
+      --cyan-glow:    rgba(6,182,212,.20);
+      --text-1:       #F8FAFC;
+      --text-2:       #94A3B8;
+      --text-3:       #64748B;
+      --text-4:       #475569;
+      --success:      #22C55E;
+      --success-dim:  rgba(34,197,94,.10);
+      --error:        #EF4444;
+      --error-dim:    rgba(239,68,68,.10);
+      --amber:        #F59E0B;
+      --amber-dim:    rgba(245,158,11,.10);
+      --amber-border: rgba(245,158,11,.25);
+      --purple:       #8B5CF6;
+      --purple-dim:   rgba(139,92,246,.10);
+      --teal:         #0D9488;
+      --teal-dim:     rgba(13,148,136,.10);
 
-/* ===== STATS BAR ===== */
-.stats-bar {
-  display: flex; gap: 16px; padding: 24px 32px;
-  position: relative; z-index: 1; flex-wrap: wrap;
-}
-.stat-chip {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 18px; border-radius: var(--radius);
-  background: var(--bg-card); border: 1px solid var(--border-subtle);
-}
-.stat-chip-num {
-  font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700;
-}
-.stat-chip-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; }
+      /* Layout */
+      --top-h:        60px;
+      --nav-w:        240px;
+      --rail-w:       52px;
+      --drawer-w:     440px;
+      --drawer-split: 780px;
 
-/* ===== FILTERS ===== */
-.filters-bar {
-  display: flex; gap: 10px; padding: 0 32px 20px; flex-wrap: wrap;
-  position: relative; z-index: 1; align-items: center;
-}
-.search-box {
-  flex: 1; min-width: 260px; max-width: 400px;
-  position: relative;
-}
-.search-box input {
-  width: 100%; padding: 10px 14px 10px 38px; border-radius: var(--radius);
-  background: var(--bg-card); border: 1px solid var(--border-subtle);
-  color: var(--text-primary); font-size: 13px; font-family: 'DM Sans', sans-serif;
-  outline: none; transition: var(--transition);
-}
-.search-box input::placeholder { color: var(--text-muted); }
-.search-box input:focus { border-color: var(--accent-cyan); box-shadow: 0 0 0 3px rgba(6,182,212,0.1); }
-.search-box svg {
-  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  width: 16px; height: 16px; color: var(--text-muted);
-}
-.filter-btn {
-  padding: 9px 16px; border-radius: var(--radius); font-size: 12px; font-weight: 500;
-  background: var(--bg-card); border: 1px solid var(--border-subtle);
-  color: var(--text-secondary); cursor: pointer; transition: var(--transition);
-  display: flex; align-items: center; gap: 5px; white-space: nowrap;
-}
-.filter-btn:hover { border-color: var(--border); background: var(--bg-card-hover); }
-.filter-btn.active { border-color: var(--accent-cyan); color: var(--accent-cyan); background: rgba(6,182,212,0.08); }
-.filter-btn svg { width: 14px; height: 14px; }
-.filter-group { display: flex; gap: 4px; }
-.filter-pill {
-  padding: 6px 12px; border-radius: 99px; font-size: 11px; font-weight: 600;
-  background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle);
-  color: var(--text-muted); cursor: pointer; transition: var(--transition);
-  text-transform: uppercase; letter-spacing: 0.3px;
-}
-.filter-pill:hover { border-color: var(--border); color: var(--text-secondary); }
-.filter-pill.active { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.3); color: var(--accent-cyan); }
+      /* Tier colours */
+      --tier-guest:        var(--text-3);
+      --tier-per-session:  var(--cyan);
+      --tier-operational:  var(--cyan);
+      --tier-governance:   var(--purple);
+    }
 
-/* ===== CATEGORY SELECTOR ===== */
-.cat-selector {
-  display: flex; gap: 6px; padding: 0 32px 24px;
-  overflow-x: auto; position: relative; z-index: 1;
-  scrollbar-width: none;
-}
-.cat-selector::-webkit-scrollbar { display: none; }
-.cat-chip {
-  flex-shrink: 0; padding: 6px 14px; border-radius: 99px;
-  font-size: 11px; font-weight: 600; cursor: pointer;
-  border: 1px solid var(--border-subtle); background: transparent;
-  color: var(--text-muted); transition: var(--transition);
-  white-space: nowrap; display: flex; align-items: center; gap: 5px;
-}
-.cat-chip:hover { border-color: var(--border); color: var(--text-secondary); }
-.cat-chip.active { color: white; }
-.cat-chip .cat-dot { width: 7px; height: 7px; border-radius: 99px; }
-.cat-chip .cat-count { opacity: 0.7; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--navy-d);
+      color: var(--text-1);
+      height: 100%;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
 
-/* ===== LEGISLATION GRID ===== */
-.leg-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 14px; padding: 0 32px 40px;
-  position: relative; z-index: 1;
-}
-.leg-card {
-  background: var(--bg-card); border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg); padding: 0;
-  cursor: pointer; transition: var(--transition);
-  overflow: hidden; position: relative;
-}
-.leg-card:hover {
-  border-color: var(--border);
-  background: var(--bg-card-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-}
-.leg-card-accent {
-  height: 3px; width: 100%;
-}
-.leg-card-body { padding: 18px 20px 16px; }
-.leg-card-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
-.leg-card-icon {
-  flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700; color: white;
-}
-.leg-card-title-wrap { flex: 1; min-width: 0; }
-.leg-card-title {
-  font-size: 14px; font-weight: 600; line-height: 1.35;
-  color: var(--text-primary); margin-bottom: 3px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.leg-card-ref {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
-  color: var(--text-muted); letter-spacing: 0.3px;
-}
-.leg-card-summary {
-  font-size: 12px; color: var(--text-secondary); line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-  margin-bottom: 14px;
-}
-.leg-card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.leg-tag {
-  padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.3px;
-}
-.leg-tag-type { background: rgba(99,102,241,0.12); color: var(--accent-indigo); }
-.leg-tag-stage { background: rgba(16,185,129,0.12); color: var(--accent-emerald); }
-.leg-tag-bill { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
-.leg-tag-significance { background: rgba(6,182,212,0.1); color: var(--accent-cyan); }
-.leg-tag-uncapped { background: rgba(244,63,94,0.15); color: var(--accent-rose); font-weight: 700; }
-.leg-card-meta {
-  display: flex; align-items: center; gap: 12px;
-  padding-top: 12px; border-top: 1px solid var(--border-subtle);
-}
-.leg-card-meta-item {
-  font-size: 11px; color: var(--text-muted);
-  display: flex; align-items: center; gap: 4px;
-}
-.leg-card-meta-item svg { width: 12px; height: 12px; }
-.leg-card-cats { display: flex; gap: 3px; margin-left: auto; }
-.leg-card-cat-dot {
-  width: 8px; height: 8px; border-radius: 99px;
-  border: 1.5px solid rgba(255,255,255,0.15);
-}
+    /* ── APP SHELL ───────────────────────────────────────────────── */
+    .app {
+      display: grid;
+      grid-template-rows: var(--top-h) 1fr;
+      grid-template-columns: var(--nav-w) 1fr var(--rail-w);
+      height: 100vh;
+      overflow: hidden;
+    }
 
-/* ===== DETAIL PANEL (Slide-over) ===== */
-.panel-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-}
-.panel-overlay.open { opacity: 1; pointer-events: all; }
-.detail-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 201;
-  width: 620px; max-width: 95vw;
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
-  transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex; flex-direction: column;
-  box-shadow: -8px 0 40px rgba(0,0,0,0.4);
-}
-.detail-panel.open { transform: translateX(0); }
-.panel-header {
-  padding: 24px 28px 20px; border-bottom: 1px solid var(--border-subtle);
-  position: relative; flex-shrink: 0;
-}
-.panel-close {
-  position: absolute; top: 20px; right: 20px;
-  width: 32px; height: 32px; border-radius: 8px;
-  background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle);
-  color: var(--text-muted); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: var(--transition); font-size: 18px;
-}
-.panel-close:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
-.panel-accent-bar { height: 4px; border-radius: 2px; width: 60px; margin-bottom: 16px; }
-.panel-title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; padding-right: 40px; }
-.panel-ref { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
-.panel-tags { display: flex; gap: 6px; flex-wrap: wrap; }
-.panel-scroll { flex: 1; overflow-y: auto; padding: 0; }
-.panel-scroll::-webkit-scrollbar { width: 4px; }
-.panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    /* ── TOP BAR ─────────────────────────────────────────────────── */
+    .top-bar {
+      grid-column: 1 / -1;
+      background: var(--navy);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px 0 0;
+      gap: 0;
+      z-index: 200;
+    }
+    .top-logo {
+      width: var(--nav-w);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      border-right: 1px solid var(--border);
+      height: 100%;
+      text-decoration: none;
+      color: var(--text-1);
+    }
+    .logo-mark {
+      width: 30px; height: 30px; background: var(--cyan);
+      border-radius: 7px; display: flex; align-items: center;
+      justify-content: center; font-weight: 800; font-size: 12px;
+      color: var(--navy); flex-shrink: 0;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; letter-spacing: -.3px; }
+    .logo-sub  { font-size: 10px; color: var(--text-3); letter-spacing: .3px; text-transform: uppercase; }
 
-/* Panel sections */
-.panel-section { padding: 20px 28px; border-bottom: 1px solid var(--border-subtle); }
-.panel-section:last-child { border-bottom: none; }
-.panel-section-title {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-  color: var(--text-muted); margin-bottom: 12px;
-  display: flex; align-items: center; gap: 8px;
-}
-.panel-section-title svg { width: 14px; height: 14px; color: var(--accent-cyan); }
-.panel-text { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+    .top-search {
+      flex: 1;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .search-wrap {
+      flex: 1;
+      max-width: 560px;
+      position: relative;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text-1);
+      font-family: inherit;
+      font-size: 13px;
+      padding: 8px 36px 8px 36px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .search-input::placeholder { color: var(--text-3); }
+    .search-input:focus { border-color: var(--cyan); }
+    .search-icon {
+      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+      color: var(--text-3); pointer-events: none;
+    }
+    .search-kbd {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-3); background: var(--navy-m);
+      border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px;
+      font-family: 'JetBrains Mono', monospace;
+    }
 
-/* Obligation checklist */
-.obligation-list { list-style: none; }
-.obligation-item {
-  display: flex; gap: 10px; padding: 8px 0;
-  font-size: 13px; color: var(--text-secondary); line-height: 1.4;
-}
-.obligation-check {
-  flex-shrink: 0; width: 18px; height: 18px; border-radius: 4px; margin-top: 1px;
-  border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center;
-  color: transparent; font-size: 11px; cursor: pointer; transition: var(--transition);
-}
-.obligation-check:hover { border-color: var(--accent-emerald); }
-.obligation-check.checked {
-  background: var(--accent-emerald); border-color: var(--accent-emerald); color: white;
-}
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px 0 0;
+    }
+    .session-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .session-dot {
+      width: 7px; height: 7px;
+      background: var(--success);
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px var(--success);
+    }
+    .session-tier { font-weight: 700; color: var(--cyan); }
+    .session-timer { color: var(--amber); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .session-timer.urgent { color: var(--error); }
 
-/* ACEI impact bars */
-.acei-impact { display: flex; flex-direction: column; gap: 8px; }
-.acei-bar-row { display: flex; align-items: center; gap: 10px; }
-.acei-bar-label { font-size: 11px; color: var(--text-muted); width: 160px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.acei-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
-.acei-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
-.acei-bar-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); width: 20px; text-align: right; }
+    .top-icon-btn {
+      width: 34px; height: 34px; border: 1px solid var(--border);
+      background: var(--navy-l); border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-2); transition: all .15s; flex-shrink: 0;
+    }
+    .top-icon-btn:hover { border-color: var(--cyan); color: var(--cyan); }
 
-/* RRI Pillars */
-.pillar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.pillar-chip {
-  padding: 10px 14px; border-radius: 8px;
-  background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15);
-  font-size: 12px; color: var(--accent-indigo); font-weight: 500;
-  display: flex; align-items: center; gap: 6px;
-}
-.pillar-chip svg { width: 14px; height: 14px; flex-shrink: 0; }
+    /* ── LEFT NAV ────────────────────────────────────────────────── */
+    .left-nav {
+      background: var(--navy);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .nav-section-hd {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-3);
+      padding: 14px 16px 6px;
+      flex-shrink: 0;
+    }
+    .nav-items { overflow-y: auto; flex: 1; padding-bottom: 12px; }
+    .nav-items::-webkit-scrollbar { width: 3px; }
+    .nav-items::-webkit-scrollbar-track { background: transparent; }
+    .nav-items::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* Enforcement */
-.enforcement-card {
-  padding: 14px 16px; border-radius: var(--radius);
-  background: rgba(244,63,94,0.06); border: 1px solid rgba(244,63,94,0.15);
-}
-.enforcement-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--accent-rose); letter-spacing: 0.5px; margin-bottom: 6px; }
-.enforcement-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .nav-cat {
+      border-radius: 0;
+      overflow: hidden;
+    }
+    .nav-cat-btn {
+      width: 100%; display: flex; align-items: center; gap: 9px;
+      padding: 9px 16px; border: none; background: transparent;
+      cursor: pointer; color: var(--text-2); font-family: inherit;
+      font-size: 13px; font-weight: 500; transition: all .15s;
+      text-align: left;
+    }
+    .nav-cat-btn:hover { background: var(--navy-l); color: var(--text-1); }
+    .nav-cat-btn.active { background: var(--cyan-dim); color: var(--cyan); }
+    .nav-cat-icon { font-size: 15px; flex-shrink: 0; width: 20px; text-align: center; }
+    .nav-cat-label { flex: 1; }
+    .nav-cat-count {
+      font-size: 10px; background: var(--border); color: var(--text-3);
+      padding: 2px 6px; border-radius: 10px; font-weight: 600;
+    }
+    .nav-cat-btn.active .nav-cat-count { background: var(--cyan-glow); color: var(--cyan); }
+    .nav-cat-chevron {
+      transition: transform .2s; font-size: 11px;
+      color: var(--text-3); flex-shrink: 0;
+    }
+    .nav-cat-btn.open .nav-cat-chevron { transform: rotate(90deg); }
 
-/* External link button */
-.panel-actions { padding: 16px 28px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; display: flex; gap: 10px; }
-.panel-btn {
-  flex: 1; padding: 11px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 600;
-  border: none; cursor: pointer; transition: var(--transition);
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  text-decoration: none;
-}
-.panel-btn-primary { background: var(--accent-cyan); color: var(--bg-primary); }
-.panel-btn-primary:hover { background: #22d3ee; }
-.panel-btn-secondary { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-secondary); }
-.panel-btn-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
-.panel-btn svg { width: 15px; height: 15px; }
+    .nav-sub-items { display: none; }
+    .nav-sub-items.open { display: block; }
+    .nav-sub-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 16px 7px 42px; cursor: pointer;
+      color: var(--text-3); font-size: 12px; transition: all .15s;
+      border-left: 2px solid transparent; border-left-color: transparent;
+    }
+    .nav-sub-item:hover { color: var(--text-2); background: rgba(255,255,255,.02); }
+    .nav-sub-item.active { color: var(--cyan-l); border-left-color: var(--cyan); background: var(--cyan-dim); }
+    .nav-sub-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; opacity: .5; }
+    .nav-sub-item.active .nav-sub-dot { opacity: 1; }
 
-/* Forward Exposure badge */
-.forward-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border-radius: 8px;
-  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25);
-  font-size: 12px; font-weight: 600; color: var(--accent-amber);
-}
-.forward-badge svg { width: 16px; height: 16px; }
+    .nav-era-badge {
+      font-size: 9px; font-weight: 700; background: var(--amber-dim);
+      color: var(--amber); border: 1px solid var(--amber-border);
+      padding: 1px 5px; border-radius: 3px; letter-spacing: .3px;
+      text-transform: uppercase;
+    }
 
-/* Constitutional ref */
-.const-ref {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 10px; border-radius: 4px; margin: 2px;
-  background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.15);
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent-violet);
-}
+    .nav-bottom {
+      border-top: 1px solid var(--border);
+      padding: 12px 14px;
+      flex-shrink: 0;
+    }
+    .nav-upgrade-btn {
+      width: 100%; background: linear-gradient(135deg, var(--cyan-dim), var(--purple-dim));
+      border: 1px solid var(--border-l); border-radius: 9px;
+      padding: 10px 12px; cursor: pointer; color: var(--text-1);
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      text-align: left; display: flex; align-items: center; gap: 8px;
+      transition: all .2s;
+    }
+    .nav-upgrade-btn:hover { border-color: var(--cyan); }
+    .nav-upgrade-icon { font-size: 16px; }
+    .nav-upgrade-sub { font-size: 10px; color: var(--text-3); font-weight: 400; margin-top: 1px; }
 
-/* Loading */
-.loading-state {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 80px 32px; gap: 16px;
-}
-.loading-spinner {
-  width: 32px; height: 32px; border: 3px solid var(--border-subtle);
-  border-top-color: var(--accent-cyan); border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 13px; color: var(--text-muted); }
+    /* ── MAIN CONTENT ────────────────────────────────────────────── */
+    .main-content {
+      background: var(--navy-d);
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .main-content::-webkit-scrollbar { width: 4px; }
+    .main-content::-webkit-scrollbar-track { background: transparent; }
+    .main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* Empty state */
-.empty-state { text-align: center; padding: 60px 32px; }
-.empty-state p { color: var(--text-muted); font-size: 14px; }
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 24px 0;
+      font-size: 12px; color: var(--text-3);
+      flex-shrink: 0;
+    }
+    .bc-sep { opacity: .4; }
+    .bc-item { cursor: pointer; transition: color .15s; }
+    .bc-item:hover { color: var(--cyan); }
+    .bc-item.current { color: var(--text-2); cursor: default; }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  .topnav { padding: 12px 16px; }
-  .page-header, .stats-bar, .filters-bar, .cat-selector, .leg-grid { padding-left: 16px; padding-right: 16px; }
-  .leg-grid { grid-template-columns: 1fr; }
-  .detail-panel { width: 100%; }
-  .stats-bar { gap: 8px; }
-  .stat-chip { padding: 8px 12px; }
-  .stat-chip-num { font-size: 16px; }
-}
+    /* Category Overview */
+    .cat-overview { padding: 20px 24px; }
+    .cat-title { font-size: 22px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 6px; }
+    .cat-desc  { font-size: 13px; color: var(--text-2); margin-bottom: 20px; max-width: 620px; line-height: 1.6; }
+    .cat-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 14px; }
 
-/* ===== ANIMATIONS ===== */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.leg-card { animation: fadeUp 0.4s ease both; }
-</style>
-<!-- Knowledge Library Workspace — Persistent Panel System -->
-<link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    .instrument-card {
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .instrument-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--border); transition: background .2s;
+    }
+    .instrument-card:hover { border-color: var(--border-l); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,.3); }
+    .instrument-card:hover::before { background: var(--cyan); }
+    .instrument-card.era { background: linear-gradient(135deg, var(--navy-l), rgba(245,158,11,.04)); }
+    .instrument-card.era::before { background: var(--amber); }
+
+    .inst-type {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--text-3); margin-bottom: 7px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .inst-era-tag {
+      background: var(--amber-dim); color: var(--amber);
+      border: 1px solid var(--amber-border);
+      font-size: 9px; padding: 1px 6px; border-radius: 3px;
+    }
+    .inst-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; letter-spacing: -.2px; }
+    .inst-short { font-size: 11px; font-weight: 600; color: var(--cyan); margin-bottom: 8px; }
+    .inst-desc  { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 12px; }
+    .inst-meta  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .inst-tag {
+      font-size: 10px; background: var(--navy-m); color: var(--text-3);
+      border: 1px solid var(--border); padding: 2px 7px; border-radius: 10px;
+    }
+    .inst-tag.acei { background: var(--cyan-dim); color: var(--cyan); border-color: var(--cyan-glow); }
+
+    /* Statute Viewer */
+    .statute-viewer { padding: 20px 24px; }
+    .statute-header {
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 20px;
+    }
+    .statute-type-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .statute-type-badge {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+      background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan-glow);
+      padding: 3px 9px; border-radius: 20px;
+    }
+    .statute-type-badge.si { background: var(--teal-dim); color: var(--teal); border-color: rgba(13,148,136,.25); }
+    .statute-type-badge.era { background: var(--amber-dim); color: var(--amber); border-color: var(--amber-border); }
+    .statute-jurisdiction {
+      font-size: 11px; color: var(--text-3);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .statute-title  { font-size: 20px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 6px; }
+    .statute-short  { font-size: 13px; font-weight: 600; color: var(--cyan); margin-bottom: 10px; }
+    .statute-desc   { font-size: 13px; color: var(--text-2); line-height: 1.6; margin-bottom: 14px; }
+    .statute-meta-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .statute-meta-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--text-3);
+    }
+    .statute-meta-val { font-weight: 600; color: var(--text-2); }
+    .statute-actions {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+    }
+    .act-btn {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600;
+      background: var(--navy-m); border: 1px solid var(--border);
+      color: var(--text-2); padding: 6px 12px; border-radius: 7px;
+      cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .act-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .act-btn.primary { background: var(--cyan); color: var(--navy); border-color: var(--cyan); font-weight: 700; }
+    .act-btn.primary:hover { background: var(--cyan-l); }
+
+    /* Part / Section accordion */
+    .statute-parts { display: flex; flex-direction: column; gap: 10px; }
+    .statute-part {
+      background: var(--navy-l);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .part-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; cursor: pointer;
+      transition: background .15s;
+    }
+    .part-header:hover { background: rgba(255,255,255,.03); }
+    .part-header.open { border-bottom: 1px solid var(--border); }
+    .part-num {
+      font-size: 11px; font-weight: 700; color: var(--text-3);
+      background: var(--navy-m); border: 1px solid var(--border);
+      padding: 3px 8px; border-radius: 5px; flex-shrink: 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .part-title { flex: 1; font-size: 14px; font-weight: 700; }
+    .part-section-count { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+    .part-chevron {
+      color: var(--text-3); transition: transform .2s; flex-shrink: 0;
+      font-size: 12px;
+    }
+    .part-header.open .part-chevron { transform: rotate(90deg); color: var(--cyan); }
+
+    .part-body { display: none; padding: 4px 0; }
+    .part-body.open { display: block; }
+
+    .section-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 18px; cursor: pointer;
+      border-bottom: 1px solid rgba(30,58,95,.4);
+      transition: background .15s;
+    }
+    .section-item:last-child { border-bottom: none; }
+    .section-item:hover { background: rgba(6,182,212,.04); }
+    .section-item.open { background: rgba(6,182,212,.06); }
+    .sec-num {
+      font-size: 12px; font-weight: 700; color: var(--text-3);
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0; width: 40px; margin-top: 1px;
+    }
+    .section-item.open .sec-num { color: var(--cyan); }
+    .sec-content { flex: 1; }
+    .sec-title  { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+    .sec-summary { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+
+    .sec-full-text {
+      display: none;
+      background: var(--navy-d);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 10px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-1);
+    }
+    .sec-full-text.open { display: block; }
+    .sec-sub { margin-left: 18px; margin-top: 6px; padding-left: 14px; border-left: 2px solid var(--border); }
+    .sec-sub-num { font-weight: 600; color: var(--cyan); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .stat-ref {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: var(--cyan-dim); color: var(--cyan);
+      border: 1px solid var(--cyan-glow); font-size: 11px; font-weight: 600;
+      padding: 1px 6px; border-radius: 4px; cursor: pointer;
+      transition: background .15s;
+    }
+    .stat-ref:hover { background: var(--cyan-glow); }
+    .era-marker {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--amber-dim); color: var(--amber);
+      border: 1px solid var(--amber-border); font-size: 11px; font-weight: 600;
+      padding: 2px 7px; border-radius: 4px; margin-left: 8px;
+    }
+    .sec-actions {
+      display: flex; align-items: center; gap: 7px;
+      margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+    }
+    .sec-action-btn {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--text-3); cursor: pointer;
+      background: var(--navy-l); border: 1px solid var(--border);
+      padding: 4px 9px; border-radius: 5px; transition: all .15s;
+      font-family: inherit;
+    }
+    .sec-action-btn:hover { color: var(--cyan); border-color: var(--cyan); }
+
+    /* Welcome state */
+    .welcome-state { padding: 40px 24px; }
+    .welcome-hero { margin-bottom: 32px; }
+    .welcome-hero h2 { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 8px; }
+    .welcome-hero h2 span { color: var(--cyan); }
+    .welcome-hero p { font-size: 14px; color: var(--text-2); line-height: 1.6; max-width: 560px; }
+    .quick-cats {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px;
+      margin-bottom: 28px;
+    }
+    .quick-cat-btn {
+      background: var(--navy-l); border: 1px solid var(--border);
+      border-radius: 11px; padding: 14px 16px; cursor: pointer;
+      transition: all .2s; text-align: left; display: flex;
+      align-items: flex-start; gap: 12px; font-family: inherit;
+    }
+    .quick-cat-btn:hover { border-color: var(--cyan); transform: translateY(-1px); }
+    .qc-icon { font-size: 22px; flex-shrink: 0; }
+    .qc-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; color: var(--text-1); }
+    .qc-count { font-size: 11px; color: var(--text-3); }
+
+    .welcome-prompt {
+      background: linear-gradient(135deg, var(--navy-l), rgba(6,182,212,.04));
+      border: 1px solid var(--border-l);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .prompt-eileen {
+      width: 44px; height: 44px; background: var(--cyan-dim);
+      border: 1px solid var(--cyan-glow); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .prompt-text { flex: 1; }
+    .prompt-text strong { font-size: 13px; color: var(--text-1); display: block; margin-bottom: 3px; }
+    .prompt-text span { font-size: 12px; color: var(--text-2); }
+    .prompt-btn {
+      background: var(--cyan); color: var(--navy); border: none;
+      border-radius: 8px; font-family: inherit; font-size: 12px;
+      font-weight: 700; padding: 8px 14px; cursor: pointer; flex-shrink: 0;
+      transition: background .15s;
+    }
+    .prompt-btn:hover { background: var(--cyan-l); }
+
+    /* Search results overlay */
+    .search-results {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      background: var(--navy);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px 20px;
+      z-index: 50;
+    }
+    .search-results.active { display: block; }
+    .sr-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .sr-title { font-size: 13px; font-weight: 600; }
+    .sr-close { cursor: pointer; color: var(--text-3); font-size: 18px; }
+    .sr-group-hd { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-3); margin-bottom: 8px; margin-top: 14px; }
+    .sr-items { display: flex; flex-direction: column; gap: 3px; }
+    .sr-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 11px; border-radius: 8px; cursor: pointer;
+      transition: background .15s;
+    }
+    .sr-item:hover { background: var(--navy-l); }
+    .sr-item-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .sr-item-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .sr-item-sub   { font-size: 11px; color: var(--text-3); }
+    mark { background: var(--amber-dim); color: var(--amber); border-radius: 2px; padding: 0 2px; }
+
+    /* ── RIGHT RAIL ──────────────────────────────────────────────── */
+    .right-rail {
+      background: var(--navy);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 4px;
+      z-index: 150;
+    }
+    .rail-icon-btn {
+      width: 38px; height: 38px;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 9px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-3); font-size: 17px;
+      transition: all .15s;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .rail-icon-btn:hover { background: var(--navy-l); color: var(--text-2); border-color: var(--border); }
+    .rail-icon-btn.active { background: var(--cyan-dim); color: var(--cyan); border-color: var(--cyan-glow); box-shadow: -2px 0 0 var(--cyan) inset; }
+    .rail-badge {
+      position: absolute; top: 3px; right: 3px;
+      width: 8px; height: 8px; border-radius: 50%;
+      border: 1.5px solid var(--navy);
+    }
+    .rail-badge.amber  { background: var(--amber); }
+    .rail-badge.cyan   { background: var(--cyan); }
+    .rail-badge.red    { background: var(--error); }
+    .rail-badge.green  { background: var(--success); }
+    .rail-divider { width: 24px; height: 1px; background: var(--border); margin: 5px 0; }
+    .rail-tooltip {
+      position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+      background: var(--navy-l); border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 10px; font-size: 12px; font-weight: 600; white-space: nowrap;
+      pointer-events: none; opacity: 0; transition: opacity .15s;
+      z-index: 999;
+    }
+    .rail-icon-btn:hover .rail-tooltip { opacity: 1; }
+
+    /* ── PANEL DRAWER ────────────────────────────────────────────── */
+    .panel-drawer {
+      position: fixed;
+      top: var(--top-h);
+      right: var(--rail-w);
+      bottom: 0;
+      width: var(--drawer-w);
+      background: var(--navy);
+      border-left: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform .25s ease-out;
+    }
+    .panel-drawer.open { transform: translateX(0); }
+    .panel-drawer.split { width: var(--drawer-split); }
+
+    .drawer-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 16px;
+      height: 50px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .drawer-panel-icon { font-size: 18px; }
+    .drawer-panel-name { font-size: 14px; font-weight: 700; flex: 1; }
+    .drawer-mode-btn {
+      background: var(--navy-l); border: 1px solid var(--border);
+      color: var(--text-3); font-size: 11px; font-weight: 600;
+      padding: 4px 9px; border-radius: 6px; cursor: pointer;
+      font-family: inherit; transition: all .15s;
+    }
+    .drawer-mode-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .drawer-close {
+      width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-3); background: transparent; border: none;
+      font-size: 16px; transition: all .15s;
+    }
+    .drawer-close:hover { background: var(--navy-l); color: var(--text-1); }
+
+    .drawer-body {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      display: flex;
+    }
+    .drawer-body::-webkit-scrollbar { width: 3px; }
+    .drawer-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .panel-pane {
+      flex: 1; display: flex; flex-direction: column;
+      min-width: 0; overflow: hidden;
+    }
+    .panel-pane + .panel-pane {
+      border-left: 1px solid var(--border);
+    }
+    .panel-pane-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+      color: var(--text-2);
+    }
+    .panel-pane-body { flex: 1; overflow-y: auto; padding: 14px; }
+    .panel-pane-body::-webkit-scrollbar { width: 3px; }
+    .panel-pane-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Panel: Notes */
+    .notes-toolbar {
+      display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+      padding: 8px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .notes-tool {
+      width: 28px; height: 28px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; border-radius: 5px;
+      color: var(--text-3); font-size: 13px; font-weight: 700;
+      border: none; background: transparent; font-family: inherit;
+      transition: all .15s;
+    }
+    .notes-tool:hover  { background: var(--navy-l); color: var(--text-1); }
+    .notes-tool.active { background: var(--cyan-dim); color: var(--cyan); }
+    .notes-sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
+    .notes-editor {
+      flex: 1; padding: 14px; outline: none;
+      font-size: 13px; line-height: 1.7; color: var(--text-1);
+      min-height: 200px;
+      caret-color: var(--cyan);
+    }
+    .notes-editor[contenteditable]:empty::before {
+      content: attr(data-placeholder); color: var(--text-3); pointer-events: none;
+    }
+    .notes-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--text-3); flex-shrink: 0;
+    }
+    .notes-save-state { display: flex; align-items: center; gap: 5px; }
+    .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .save-dot.unsaved { background: var(--amber); }
+
+    /* Panel: Eileen */
+    .eileen-panel { display: flex; flex-direction: column; height: 100%; }
+    .eileen-header-inner {
+      text-align: center; padding: 16px 14px 12px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .eileen-nexus {
+      width: 48px; height: 48px; background: var(--cyan-dim);
+      border: 1.5px solid var(--cyan-glow); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; margin: 0 auto 8px;
+    }
+    .eileen-name { font-size: 15px; font-weight: 700; }
+    .eileen-mode { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .eileen-advisory {
+      background: var(--amber-dim); border: 1px solid var(--amber-border);
+      border-radius: 7px; padding: 7px 10px; margin: 10px 14px 0;
+      font-size: 11px; color: var(--amber); line-height: 1.5;
+      flex-shrink: 0;
+    }
+    .eileen-messages {
+      flex: 1; overflow-y: auto; padding: 14px 14px 8px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .eileen-messages::-webkit-scrollbar { width: 3px; }
+    .eileen-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .msg { max-width: 88%; }
+    .msg.user { align-self: flex-end; }
+    .msg.eileen { align-self: flex-start; }
+    .msg-bubble {
+      padding: 10px 13px; border-radius: 10px;
+      font-size: 13px; line-height: 1.6;
+    }
+    .msg.user   .msg-bubble { background: var(--cyan); color: var(--navy); font-weight: 500; border-radius: 10px 10px 2px 10px; }
+    .msg.eileen .msg-bubble { background: var(--navy-l); color: var(--text-1); border: 1px solid var(--border); border-radius: 10px 10px 10px 2px; }
+    .msg-save {
+      font-size: 10px; color: var(--text-3); cursor: pointer; margin-top: 4px;
+      display: flex; align-items: center; gap: 4px; transition: color .15s;
+    }
+    .msg-save:hover { color: var(--cyan); }
+    .eileen-quick-actions {
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 0 14px 10px; flex-shrink: 0;
+    }
+    .quick-action-btn {
+      background: var(--navy-l); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; cursor: pointer;
+      color: var(--text-2); font-family: inherit; font-size: 12px;
+      text-align: left; transition: all .15s;
+    }
+    .quick-action-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .eileen-input-area {
+      padding: 10px 14px 14px; border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .eileen-input-wrap { display: flex; gap: 8px; align-items: flex-end; }
+    .eileen-input {
+      flex: 1; background: var(--navy-d); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text-1); font-family: inherit;
+      font-size: 13px; padding: 9px 12px; resize: none;
+      outline: none; transition: border-color .2s; line-height: 1.5;
+      max-height: 100px; overflow-y: auto;
+    }
+    .eileen-input::placeholder { color: var(--text-3); }
+    .eileen-input:focus { border-color: var(--cyan); }
+    .eileen-send {
+      width: 36px; height: 36px; background: var(--cyan); border: none;
+      border-radius: 8px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background .15s; color: var(--navy);
+    }
+    .eileen-send:hover { background: var(--cyan-l); }
+    .eileen-send:disabled { opacity: .4; cursor: not-allowed; }
+    .eileen-upsell {
+      margin: 10px 14px 14px;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--purple-dim));
+      border: 1px solid var(--border-l); border-radius: 10px;
+      padding: 14px 16px; text-align: center;
+    }
+    .eileen-upsell strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .eileen-upsell p { font-size: 11px; color: var(--text-2); margin-bottom: 10px; line-height: 1.5; }
+    .eileen-upsell-btn {
+      background: var(--cyan); color: var(--navy); border: none;
+      border-radius: 7px; font-family: inherit; font-size: 12px;
+      font-weight: 700; padding: 8px 16px; cursor: pointer;
+    }
+
+    /* Panel: Document Vault */
+    .vault-upload-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 10px; padding: 18px;
+      text-align: center; cursor: pointer;
+      transition: all .2s; margin-bottom: 14px;
+    }
+    .vault-upload-zone:hover, .vault-upload-zone.drag { border-color: var(--cyan); background: var(--cyan-dim); }
+    .vault-upload-icon { font-size: 24px; margin-bottom: 6px; }
+    .vault-upload-text { font-size: 12px; color: var(--text-2); }
+    .vault-upload-sub  { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+    .vault-doc-list { display: flex; flex-direction: column; gap: 8px; }
+    .vault-doc-item {
+      background: var(--navy-d); border: 1px solid var(--border);
+      border-radius: 9px; padding: 11px 13px; cursor: pointer; transition: all .15s;
+    }
+    .vault-doc-item:hover { border-color: var(--border-l); }
+    .vault-doc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .vault-doc-icon { font-size: 16px; flex-shrink: 0; }
+    .vault-doc-name { font-size: 13px; font-weight: 600; flex: 1; }
+    .vault-score {
+      font-size: 12px; font-weight: 700; padding: 2px 8px;
+      border-radius: 5px; flex-shrink: 0;
+    }
+    .vault-score.red    { background: var(--error-dim); color: var(--error); }
+    .vault-score.amber  { background: var(--amber-dim); color: var(--amber); }
+    .vault-score.green  { background: var(--success-dim); color: var(--success); }
+    .vault-score.none   { background: var(--navy-l); color: var(--text-3); font-weight: 400; font-size: 11px; }
+    .vault-doc-meta { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--text-3); }
+
+    /* Panel: Clipboard */
+    .clip-items { display: flex; flex-direction: column; gap: 8px; }
+    .clip-item {
+      background: var(--navy-d); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .clip-source { font-size: 10px; color: var(--cyan); font-weight: 600; margin-bottom: 5px; }
+    .clip-text   { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 8px; }
+    .clip-actions { display: flex; gap: 6px; }
+    .clip-btn {
+      font-size: 11px; background: var(--navy-l); border: 1px solid var(--border);
+      color: var(--text-3); padding: 3px 8px; border-radius: 5px;
+      cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .clip-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* Panel: Calendar */
+    .cal-section-hd { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-3); margin-bottom: 10px; margin-top: 4px; }
+    .cal-events { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+    .cal-event {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--navy-d); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all .15s;
+    }
+    .cal-event:hover { border-color: var(--border-l); }
+    .cal-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .cal-dot.amber { background: var(--amber); }
+    .cal-dot.teal  { background: var(--teal); }
+    .cal-dot.red   { background: var(--error); }
+    .cal-event-date { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+    .cal-event-name { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+    .cal-event-src  { font-size: 11px; color: var(--text-3); }
+
+    /* Panel: Contract Planner (locked for non-governance) */
+    .planner-locked {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; padding: 30px 20px; gap: 14px;
+    }
+    .planner-lock-icon { font-size: 40px; opacity: .5; }
+    .planner-lock-title { font-size: 16px; font-weight: 700; }
+    .planner-lock-desc  { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+    .planner-upgrade-btn {
+      background: var(--purple-dim); border: 1px solid rgba(139,92,246,.3);
+      color: var(--purple); border-radius: 9px; font-family: inherit;
+      font-size: 13px; font-weight: 700; padding: 10px 20px; cursor: pointer;
+    }
+
+    /* ── UPLOAD MODAL ────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(7,26,48,.85); z-index: 500;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--navy-l); border: 1px solid var(--border);
+      border-radius: 16px; width: 480px; max-width: 95vw; overflow: hidden;
+    }
+    .modal-header {
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close { cursor: pointer; color: var(--text-3); font-size: 20px; background: none; border: none; }
+    .modal-body { padding: 20px; }
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 32px; text-align: center; cursor: pointer;
+      transition: all .2s; margin-bottom: 16px;
+    }
+    .drop-zone:hover, .drop-zone.drag { border-color: var(--cyan); background: var(--cyan-dim); }
+    .drop-icon  { font-size: 36px; margin-bottom: 10px; }
+    .drop-text  { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+    .drop-sub   { font-size: 12px; color: var(--text-3); }
+    .modal-footer {
+      padding: 14px 20px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+    .modal-btn {
+      padding: 9px 18px; border-radius: 8px; font-family: inherit;
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+    }
+    .modal-btn.cancel { background: var(--navy); color: var(--text-2); }
+    .modal-btn.primary { background: var(--cyan); color: var(--navy); }
+
+    /* ── LOADING ─────────────────────────────────────────────────── */
+    .loading-screen {
+      position: fixed; inset: 0; background: var(--navy-d);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 14px; z-index: 9999;
+    }
+    .loading-screen.hidden { display: none; }
+    .ls-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--cyan); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ls-text { font-size: 14px; color: var(--text-2); }
+
+    /* ── TOAST ───────────────────────────────────────────────────── */
+    .toast-stack {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      z-index: 9000; pointer-events: none;
+    }
+    .toast {
+      background: var(--navy-l); border: 1px solid var(--border);
+      border-radius: 9px; padding: 10px 16px; font-size: 13px;
+      font-weight: 500; display: flex; align-items: center; gap: 8px;
+      animation: toastIn .2s ease-out; pointer-events: all;
+    }
+    @keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .toast.success { border-color: rgba(34,197,94,.3); color: var(--success); }
+    .toast.info    { border-color: rgba(6,182,212,.3);  color: var(--cyan); }
+
+    /* ── SCROLLBAR GLOBAL ────────────────────────────────────────── */
+    * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      :root { --nav-w: 200px; }
+    }
+    @media (max-width: 768px) {
+      .left-nav { display: none; }
+      :root { --nav-w: 0px; }
+      .app { grid-template-columns: 1fr var(--rail-w); }
+      .top-logo { display: none; }
+    }
+  </style>
 </head>
+
+<!-- Auth guard: body hidden until session validated -->
 <body style="visibility:hidden">
+
+  <!-- Loading screen -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="ls-spinner"></div>
+    <div class="ls-text">Verifying your session…</div>
+  </div>
+
+  <!-- App shell -->
+  <div class="app" id="app">
+
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <a href="/" class="top-logo">
+        <div class="logo-mark">AI</div>
+        <div>
+          <div class="logo-text">Ailane</div>
+          <div class="logo-sub">Knowledge Library</div>
+        </div>
+      </a>
+
+      <div class="top-search">
+        <div class="search-wrap">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" class="search-input" id="search-input" placeholder="Search legislation, guidance, ACAS codes…" autocomplete="off">
+          <span class="search-kbd">⌘K</span>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <div class="session-badge" id="session-badge">
+          <div class="session-dot"></div>
+          <span class="session-tier" id="session-tier-label">Guest</span>
+          <span class="session-timer hidden" id="session-timer"></span>
+        </div>
+        <button class="top-icon-btn" title="Upload document" onclick="openUploadModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button class="top-icon-btn" title="Help" onclick="openPanel('eileen')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- LEFT NAVIGATION -->
+    <nav class="left-nav">
+      <div class="nav-items" id="nav-items">
+        <!-- Populated by JS -->
+      </div>
+      <div class="nav-bottom" id="nav-bottom">
+        <!-- Populated by JS based on tier -->
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="main-content">
+      <!-- Search results overlay -->
+      <div class="search-results" id="search-results">
+        <div class="sr-header">
+          <span class="sr-title" id="sr-title">Searching…</span>
+          <span class="sr-close" onclick="closeSearch()">✕</span>
+        </div>
+        <div id="sr-body"></div>
+      </div>
+
+      <!-- Content populated by JS -->
+      <div id="content-area"></div>
+    </main>
+
+    <!-- RIGHT RAIL -->
+    <aside class="right-rail" id="right-rail">
+      <!-- Panel buttons populated by JS -->
+    </aside>
+
+  </div><!-- /app -->
+
+  <!-- PANEL DRAWER -->
+  <div class="panel-drawer" id="panel-drawer">
+    <div class="drawer-header" id="drawer-header">
+      <span class="drawer-panel-icon" id="drawer-icon">📝</span>
+      <span class="drawer-panel-name" id="drawer-name">Notes</span>
+      <button class="drawer-mode-btn" id="drawer-split-btn" onclick="toggleSplit()">Split View</button>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <!-- Panel content populated by JS -->
+    </div>
+  </div>
+
+  <!-- UPLOAD MODAL -->
+  <div class="modal-overlay" id="upload-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Upload Document</span>
+        <button class="modal-close" onclick="closeUploadModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="drop-zone" id="drop-zone">
+          <div class="drop-icon">📄</div>
+          <div class="drop-text">Drop your file here</div>
+          <div class="drop-sub">PDF or DOCX · Max 10MB · Employment contracts, policies, handbooks</div>
+          <input type="file" id="file-input" accept=".pdf,.docx" style="display:none" onchange="handleFileSelect(this)">
+        </div>
+        <div id="upload-status" style="display:none; font-size:13px; color:var(--text-2); text-align:center; padding:10px 0;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick="closeUploadModal()">Cancel</button>
+        <button class="modal-btn primary" id="upload-confirm-btn" onclick="confirmUpload()" disabled style="opacity:.4">Add to Vault</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST STACK -->
+  <div class="toast-stack" id="toast-stack"></div>
 <script>
-(async function() {
-  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-  try {
-    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    var gs = await sb.auth.getSession();
-    if (!gs.data || !gs.data.session) { window.location.replace('/login/'); return; }
-    // Workspace globals (KLUI-001 Sprint 1 — Discrepancy 3)
-    // Vars: SUPABASE_ANON (line 426), gs.data.session
-    var _wsSession = gs.data.session;
-    var _wsToken = _wsSession.access_token;
-    var _wsPayload = JSON.parse(atob(_wsToken.split('.')[1]));
+  // ══════════════════════════════════════════════════════════════════
+  // AILANE KNOWLEDGE LIBRARY — JavaScript Engine
+  // Supabase: cnbsxwtvazfvzmltkuvx · eu-central-1
+  // Auth: Dual path — Guest (kl_sessions) + Pro (Supabase JWT)
+  // ══════════════════════════════════════════════════════════════════
+
+  const SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  const KL_AI_FN      = `${SUPABASE_URL}/functions/v1/kl_ai_assistant`;
+
+  // ── SESSION STATE ─────────────────────────────────────────────────
+  const SESSION = {
+    tier: null,           // guest | per_session | operational_readiness | governance | institutional
+    userId: null,
+    email: null,
+    productType: null,
+    expiresAt: null,
+    paymentIntentId: null,
+    isAuthenticated: false,
+    hasEileen: false,     // full Eileen AI
+    hasVault: false,      // document vault
+    hasPlanner: false,    // contract planner (governance+)
+    isPass: false,        // KL Pass session (time-limited)
+  };
+
+  // ── AUTH GUARD ────────────────────────────────────────────────────
+  (async function authGuard() {
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const params = new URLSearchParams(location.search);
+    const klp = params.get('klp');
+    const pi  = params.get('pi');
+    const type = params.get('type');
+
     try {
-      var _wsProfileRes = await fetch(
-        SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + _wsPayload.sub + '&select=subscription_tier',
-        { headers: { 'Authorization': 'Bearer ' + _wsToken, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' } }
-      );
-      var _wsProfileData = await _wsProfileRes.json();
-      var _wsTier = (_wsProfileData && _wsProfileData[0]) ? _wsProfileData[0].subscription_tier : null;
-      if (_wsTier && ['operational', 'governance', 'institutional'].includes(_wsTier)) {
-        window.__SUPABASE_ANON_KEY = SUPABASE_ANON;
-        window.__ailaneUser = {
-          id: _wsPayload.sub,
-          email: _wsPayload.email,
-          token: _wsToken,
-          tier: _wsTier,
-          orgId: null
-        };
-        try {
-          var _wsOrgRes = await fetch(
-            SUPABASE_URL + '/rest/v1/app_users?id=eq.' + _wsPayload.sub + '&select=org_id',
-            { headers: { 'Authorization': 'Bearer ' + _wsToken, 'apikey': SUPABASE_ANON } }
-          );
-          var _wsOrgData = await _wsOrgRes.json();
-          if (_wsOrgData && _wsOrgData[0]) window.__ailaneUser.orgId = _wsOrgData[0].org_id;
-        } catch(e) { /* org features degrade gracefully */ }
+      // PATH A: Guest pass — URL params + sessionStorage
+      if (klp === '1' || pi) {
+        const token = sessionStorage.getItem('kl_session_token');
+        if (!pi && !token) { bounce(); return; }
+
+        // Validate session exists and is active
+        const query = pi
+          ? sb.from('kl_sessions').select('*').eq('stripe_payment_id', pi).eq('status','active').single()
+          : Promise.resolve({ data: null, error: null });
+
+        const { data: sess, error: sessErr } = await query;
+
+        if (sessErr && pi) { bounce(); return; }
+
+        if (sess) {
+          const now = new Date();
+          const exp = new Date(sess.expires_at);
+          if (now > exp) { showExpired(); return; }
+
+          SESSION.tier         = sess.tier;
+          SESSION.productType  = sess.product_type;
+          SESSION.expiresAt    = exp;
+          SESSION.isPass       = true;
+          SESSION.isAuthenticated = true;
+          SESSION.hasEileen    = (sess.tier === 'per_session');
+          SESSION.hasVault     = true;
+          SESSION.hasPlanner   = false;
+          sessionStorage.setItem('kl_pi', pi || '');
+        } else {
+          // Fallback: token in sessionStorage — trust and grant guest access
+          SESSION.tier = type?.startsWith('kl_pro') ? 'per_session' : 'guest';
+          SESSION.productType = type;
+          SESSION.isAuthenticated = true;
+          SESSION.isPass = true;
+          SESSION.hasEileen = SESSION.tier === 'per_session';
+          SESSION.hasVault = true;
+          SESSION.hasPlanner = false;
+          // Estimate expiry from product type
+          const hrs = { kl_guest_discovery:2, kl_guest_day:24, kl_guest_week:168, kl_pro_mini:2, kl_pro_day:24, kl_pro_week:168 };
+          const h = hrs[type] || 24;
+          SESSION.expiresAt = new Date(Date.now() + h * 3600000);
+        }
+
+        boot();
+        return;
       }
-    } catch(e) { /* workspace not available this session */ }
-    document.body.style.visibility = 'visible';
-  } catch(e) { window.location.replace('/login/'); }
-})();
-</script>
-<script src="/workspace/dist/workspace-bundle.js" defer></script>
-<div class="ambient-bg"></div>
 
-<!-- ===== TOP NAVIGATION ===== -->
-<nav class="topnav">
-  <div class="topnav-logo">ailane</div>
-  <div class="topnav-sep"></div>
-  <div class="topnav-tabs">
-    <a class="topnav-tab" href="/dashboard/" title="Dashboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Dashboard
-    </a>
-    <a class="topnav-tab" href="/command-centre/" title="Command Centre">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Command Centre
-    </a>
-    <a class="topnav-tab active" href="/knowledge-library/" title="Knowledge Library">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-      Knowledge Library
-    </a>
-    <a class="topnav-tab" href="/ticker/" title="Regulatory Ticker">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Ticker
-    </a>
-  </div>
-  <div class="topnav-right">
-    <div class="topnav-badge">LIVE</div>
-    <div class="topnav-user">
-      <div class="topnav-avatar">M</div>
-      mark@ailane.ai
-    </div>
-  </div>
-</nav>
+      // PATH B: Supabase auth — subscription tiers
+      const { data: { session }, error } = await sb.auth.getSession();
 
-<!-- ===== PAGE HEADER ===== -->
-<div class="page-header">
-  <h1>Knowledge Library</h1>
-  <p>Complete UK employment legislation framework — Acts of Parliament, Statutory Instruments, and Binding Codes mapped to the ACEI 12-category taxonomy with constitutional governance references.</p>
-</div>
+      if (!session && !error) {
+        // Try onAuthStateChange with 6s timeout
+        let resolved = false;
+        const timeout = setTimeout(() => { if (!resolved) bounce(); }, 6000);
+        sb.auth.onAuthStateChange(async (event, s) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeout);
+          if (!s) { bounce(); return; }
+          await setSessionFromAuth(s);
+          boot();
+        });
+        return;
+      }
 
-<!-- ===== STATS BAR ===== -->
-<div class="stats-bar" id="statsBar">
-  <div class="stat-chip">
-    <div class="stat-chip-num" style="color:var(--accent-cyan)" id="statTotal">—</div>
-    <div class="stat-chip-label">Total<br>Instruments</div>
-  </div>
-  <div class="stat-chip">
-    <div class="stat-chip-num" style="color:var(--accent-blue)" id="statActs">—</div>
-    <div class="stat-chip-label">Acts of<br>Parliament</div>
-  </div>
-  <div class="stat-chip">
-    <div class="stat-chip-num" style="color:var(--accent-indigo)" id="statSIs">—</div>
-    <div class="stat-chip-label">Statutory<br>Instruments</div>
-  </div>
-  <div class="stat-chip">
-    <div class="stat-chip-num" style="color:var(--accent-violet)" id="statCodes">—</div>
-    <div class="stat-chip-label">Binding<br>Codes</div>
-  </div>
-  <div class="stat-chip">
-    <div class="stat-chip-num" style="color:var(--accent-amber)" id="statBills">—</div>
-    <div class="stat-chip-label">Pending<br>Bills</div>
-  </div>
-  <div class="stat-chip">
-    <div class="stat-chip-num" style="color:var(--accent-emerald)">12</div>
-    <div class="stat-chip-label">ACEI Categories<br>Covered</div>
-  </div>
-</div>
+      if (error || !session) { bounce(); return; }
 
-<!-- ===== FILTERS ===== -->
-<div class="filters-bar">
-  <div class="search-box">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="searchInput" placeholder="Search legislation, keywords, provisions...">
-  </div>
-  <div class="filter-group">
-    <div class="filter-pill active" data-type="all" onclick="setTypeFilter('all')">All</div>
-    <div class="filter-pill" data-type="primary" onclick="setTypeFilter('primary')">Acts</div>
-    <div class="filter-pill" data-type="statutory_instrument" onclick="setTypeFilter('statutory_instrument')">SIs</div>
-    <div class="filter-pill" data-type="binding_code" onclick="setTypeFilter('binding_code')">Codes</div>
-  </div>
-  <div class="filter-group">
-    <div class="filter-pill active" data-stage="all" onclick="setStageFilter('all')">All Stages</div>
-    <div class="filter-pill" data-stage="in_force" onclick="setStageFilter('in_force')">In Force</div>
-    <div class="filter-pill" data-stage="bill" onclick="setStageFilter('bill')">Bills</div>
-    <div class="filter-pill" data-stage="partially_commenced" onclick="setStageFilter('partially_commenced')">Partial</div>
-  </div>
-  <button class="filter-btn" id="sortBtn" onclick="toggleSort()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="16" y2="6"/><line x1="4" y1="12" x2="12" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/></svg>
-    <span id="sortLabel">Significance</span>
-  </button>
-</div>
+      await setSessionFromAuth(session);
+      boot();
 
-<!-- ===== ACEI CATEGORY SELECTOR ===== -->
-<div class="cat-selector" id="catSelector"></div>
-
-<!-- ===== LEGISLATION GRID ===== -->
-<div class="leg-grid" id="legGrid">
-  <div class="loading-state">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">Loading legislation library...</div>
-  </div>
-</div>
-
-<!-- ===== DETAIL PANEL OVERLAY ===== -->
-<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
-
-<!-- ===== DETAIL PANEL ===== -->
-<div class="detail-panel" id="detailPanel">
-  <div class="panel-header">
-    <button class="panel-close" onclick="closePanel()">&times;</button>
-    <div class="panel-accent-bar" id="panelAccent"></div>
-    <div class="panel-title" id="panelTitle"></div>
-    <div class="panel-ref" id="panelRef"></div>
-    <div class="panel-tags" id="panelTags"></div>
-  </div>
-  <div class="panel-scroll" id="panelScroll"></div>
-  <div class="panel-actions" id="panelActions"></div>
-</div>
-
-<script>
-// ===== CONFIGURATION =====
-const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-
-const ACEI_CATEGORIES = {
-  1: { name: 'Unfair Dismissal', short: 'UD', color: '#ef4444' },
-  2: { name: 'Discrimination & Harassment', short: 'DH', color: '#f97316' },
-  3: { name: 'Wages, Working Time & Holiday Pay', short: 'WW', color: '#eab308' },
-  4: { name: 'Whistleblowing', short: 'WB', color: '#22c55e' },
-  5: { name: 'Health & Safety', short: 'HS', color: '#14b8a6' },
-  6: { name: 'Redundancy & Org Change', short: 'RO', color: '#06b6d4' },
-  7: { name: 'Parental & Family Rights', short: 'PF', color: '#3b82f6' },
-  8: { name: 'Trade Union & Collective', short: 'TU', color: '#6366f1' },
-  9: { name: 'Breach of Contract', short: 'BC', color: '#8b5cf6' },
-  10: { name: 'Immigration & Right to Work', short: 'IR', color: '#a855f7' },
-  11: { name: 'Data Protection & Privacy', short: 'DP', color: '#ec4899' },
-  12: { name: 'Business Transfers & Insolvency', short: 'BT', color: '#f43f5e' },
-};
-
-const TYPE_LABELS = {
-  primary: 'Act of Parliament',
-  statutory_instrument: 'Statutory Instrument',
-  binding_code: 'Binding Code',
-  regulator_guidance: 'Regulator Guidance',
-  court_precedent: 'Court Precedent',
-  devolved: 'Devolved Legislation',
-  contractual: 'Contractual',
-};
-
-const RCE_TYPES = { 1: 'Type 1: Primary Legislation', 2: 'Type 2: Statutory Instrument', 3: 'Type 3: Binding Regulator Instrument', 4: 'Type 4: Court Precedent', 5: 'Type 5: Devolved Divergence', 6: 'Type 6: Contractual' };
-
-const SIG_LABELS = { 1: 'Low', 2: 'Moderate', 3: 'Significant', 4: 'High', 5: 'Critical' };
-
-const PILLAR_ICONS = {
-  'Policy Alignment': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-  'Contractual Conformity': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
-  'Training Deployment': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
-  'Systems & Process Adaptation': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
-  'Governance Oversight': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
-};
-
-// ===== STATE =====
-let allLegislation = [];
-let typeFilter = 'all';
-let stageFilter = 'all';
-let catFilter = null;
-let sortMode = 'significance'; // 'significance' | 'date' | 'alpha'
-const sortModes = ['significance', 'date', 'alpha'];
-
-// ===== FETCH DATA =====
-async function fetchLegislation() {
-  try {
-    const resp = await fetch(
-      `${SUPABASE_URL}/rest/v1/legislation_library?select=*&order=sci_significance.desc`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-    );
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    allLegislation = await resp.json();
-    updateStats();
-    buildCategorySelector();
-    renderGrid();
-  } catch (err) {
-    document.getElementById('legGrid').innerHTML = `<div class="empty-state"><p>Error loading legislation: ${err.message}</p></div>`;
-  }
-}
-
-// ===== STATS =====
-function updateStats() {
-  document.getElementById('statTotal').textContent = allLegislation.length;
-  document.getElementById('statActs').textContent = allLegislation.filter(l => l.legislation_type === 'primary').length;
-  document.getElementById('statSIs').textContent = allLegislation.filter(l => l.legislation_type === 'statutory_instrument').length;
-  document.getElementById('statCodes').textContent = allLegislation.filter(l => l.legislation_type === 'binding_code').length;
-  document.getElementById('statBills').textContent = allLegislation.filter(l => l.lifecycle_stage === 'bill').length;
-}
-
-// ===== CATEGORY SELECTOR =====
-function buildCategorySelector() {
-  const counts = {};
-  allLegislation.forEach(l => {
-    const cat = l.primary_acei_category;
-    if (cat) counts[cat] = (counts[cat] || 0) + 1;
-  });
-
-  let html = `<div class="cat-chip active" onclick="setCatFilter(null)" style="border-color:var(--accent-cyan);color:var(--accent-cyan)"><span>All Categories</span><span class="cat-count">${allLegislation.length}</span></div>`;
-  for (let i = 1; i <= 12; i++) {
-    const c = ACEI_CATEGORIES[i];
-    const count = counts[i] || 0;
-    html += `<div class="cat-chip" data-cat="${i}" onclick="setCatFilter(${i})"><span class="cat-dot" style="background:${c.color}"></span><span>${c.short} ${c.name}</span><span class="cat-count">${count}</span></div>`;
-  }
-  document.getElementById('catSelector').innerHTML = html;
-}
-
-// ===== FILTERS =====
-function setTypeFilter(type) {
-  typeFilter = type;
-  document.querySelectorAll('.filter-pill[data-type]').forEach(el => el.classList.toggle('active', el.dataset.type === type));
-  renderGrid();
-}
-function setStageFilter(stage) {
-  stageFilter = stage;
-  document.querySelectorAll('.filter-pill[data-stage]').forEach(el => el.classList.toggle('active', el.dataset.stage === stage));
-  renderGrid();
-}
-function setCatFilter(cat) {
-  catFilter = cat;
-  document.querySelectorAll('.cat-chip').forEach(el => {
-    const elCat = el.dataset.cat ? parseInt(el.dataset.cat) : null;
-    const isActive = elCat === cat || (cat === null && !el.dataset.cat);
-    el.classList.toggle('active', isActive);
-    if (isActive && elCat) {
-      el.style.borderColor = ACEI_CATEGORIES[elCat].color;
-      el.style.color = ACEI_CATEGORIES[elCat].color;
-      el.style.background = ACEI_CATEGORIES[elCat].color + '15';
-    } else if (!isActive) {
-      el.style.borderColor = ''; el.style.color = ''; el.style.background = '';
+    } catch (e) {
+      console.error('[KL] Auth error:', e);
+      bounce();
     }
-  });
-  renderGrid();
-}
-function toggleSort() {
-  const idx = sortModes.indexOf(sortMode);
-  sortMode = sortModes[(idx + 1) % sortModes.length];
-  document.getElementById('sortLabel').textContent = sortMode === 'significance' ? 'Significance' : sortMode === 'date' ? 'Date' : 'A–Z';
-  renderGrid();
-}
+  })();
 
-// Search debounce
-let searchTimeout;
-document.getElementById('searchInput').addEventListener('input', e => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => renderGrid(), 200);
-});
+  async function setSessionFromAuth(session) {
+    const token = session.access_token;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    SESSION.userId = payload.sub;
+    SESSION.email  = payload.email;
+    SESSION.isAuthenticated = true;
+    SESSION.isPass = false;
 
-// ===== RENDER GRID =====
-function renderGrid() {
-  const query = document.getElementById('searchInput').value.toLowerCase().trim();
-  let filtered = allLegislation.filter(l => {
-    if (typeFilter !== 'all' && l.legislation_type !== typeFilter) return false;
-    if (stageFilter !== 'all' && l.lifecycle_stage !== stageFilter) return false;
-    if (catFilter !== null && l.primary_acei_category !== catFilter) return false;
-    if (query) {
-      const searchable = `${l.short_title} ${l.summary || ''} ${l.legislation_ref} ${(l.tags || []).join(' ')} ${l.obligations_summary || ''}`.toLowerCase();
-      return searchable.includes(query);
+    // Get tier from kl_account_profiles (for KL Pro pass auth accounts)
+    // or from organisations table (for subscription accounts)
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const { data: profile } = await sb
+      .schema('public').from('kl_account_profiles')
+      .select('subscription_tier, monthly_active')
+      .eq('user_id', SESSION.userId)
+      .single();
+
+    if (profile) {
+      SESSION.tier = profile.subscription_tier;
+    } else {
+      // Check organisations table for subscription tier
+      const { data: org } = await fetch(
+        `${SUPABASE_URL}/rest/v1/app_users?id=eq.${SESSION.userId}&select=org_id`,
+        { headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON } }
+      ).then(r => r.json()).then(d => ({ data: d[0] })).catch(() => ({ data: null }));
+
+      if (org?.org_id) {
+        const orgData = await fetch(
+          `${SUPABASE_URL}/rest/v1/organisations?id=eq.${org.org_id}&select=tier,status`,
+          { headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON } }
+        ).then(r => r.json()).then(d => d[0]).catch(() => null);
+        SESSION.tier = orgData?.tier || 'per_session';
+      } else {
+        SESSION.tier = 'per_session';
+      }
     }
-    return true;
-  });
 
-  // Sort
-  if (sortMode === 'significance') filtered.sort((a, b) => (b.sci_significance || 0) - (a.sci_significance || 0));
-  else if (sortMode === 'date') filtered.sort((a, b) => (b.commencement_date || '0').localeCompare(a.commencement_date || '0'));
-  else if (sortMode === 'alpha') filtered.sort((a, b) => a.short_title.localeCompare(b.short_title));
-
-  const grid = document.getElementById('legGrid');
-  if (filtered.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><p>No legislation matches your filters.</p></div>';
-    return;
+    const t = SESSION.tier;
+    SESSION.hasEileen  = ['per_session','operational_readiness','governance','institutional'].includes(t);
+    SESSION.hasVault   = ['per_session','operational_readiness','governance','institutional'].includes(t);
+    SESSION.hasPlanner = ['governance','institutional'].includes(t);
   }
 
-  grid.innerHTML = filtered.map((l, i) => {
-    const cat = ACEI_CATEGORIES[l.primary_acei_category] || { color: '#64748b', short: '?' };
-    const typeLabel = TYPE_LABELS[l.legislation_type] || l.legislation_type;
-    const isBill = l.lifecycle_stage === 'bill';
-    const isUncapped = [2, 4].includes(l.primary_acei_category);
-
-    // Category dots for multi-category legislation
-    const catDots = (l.acei_categories || []).map(c => {
-      const cc = ACEI_CATEGORIES[c];
-      return cc ? `<div class="leg-card-cat-dot" style="background:${cc.color}" title="Cat ${c}: ${cc.name}"></div>` : '';
-    }).join('');
-
-    return `
-    <div class="leg-card" onclick="openPanel(${i})" style="animation-delay:${i * 0.04}s">
-      <div class="leg-card-accent" style="background:linear-gradient(90deg, ${cat.color}, ${cat.color}88)"></div>
-      <div class="leg-card-body">
-        <div class="leg-card-header">
-          <div class="leg-card-icon" style="background:${cat.color}22; color:${cat.color}; border:1px solid ${cat.color}33">${cat.short}</div>
-          <div class="leg-card-title-wrap">
-            <div class="leg-card-title">${l.short_title}</div>
-            <div class="leg-card-ref">${l.legislation_ref}</div>
-          </div>
-        </div>
-        <div class="leg-card-summary">${l.summary || ''}</div>
-        <div class="leg-card-tags">
-          <span class="leg-tag leg-tag-type">${typeLabel}</span>
-          <span class="leg-tag ${isBill ? 'leg-tag-bill' : 'leg-tag-stage'}">${isBill ? '⏳ BILL' : l.lifecycle_stage.replace('_', ' ')}</span>
-          <span class="leg-tag leg-tag-significance">SCI ${l.sci_significance}/5</span>
-          ${isUncapped ? '<span class="leg-tag leg-tag-uncapped">UNCAPPED</span>' : ''}
-        </div>
-        <div class="leg-card-meta">
-          <div class="leg-card-meta-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            ${l.commencement_date || 'Pending'}
-          </div>
-          <div class="leg-card-meta-item">RCE ${RCE_TYPES[l.rce_type]?.split(':')[0].replace('Type ','') || '?'}</div>
-          <div class="leg-card-cats">${catDots}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Store filtered for panel access
-  window._filtered = filtered;
-}
-
-// ===== DETAIL PANEL =====
-function openPanel(idx) {
-  const l = window._filtered[idx];
-  if (!l) return;
-
-  const cat = ACEI_CATEGORIES[l.primary_acei_category] || { color: '#64748b', name: 'Unknown' };
-  const isBill = l.lifecycle_stage === 'bill';
-
-  // Header
-  document.getElementById('panelAccent').style.background = `linear-gradient(90deg, ${cat.color}, ${cat.color}66)`;
-  document.getElementById('panelTitle').textContent = l.short_title;
-  document.getElementById('panelRef').textContent = `${l.legislation_ref}  •  ${TYPE_LABELS[l.legislation_type] || l.legislation_type}  •  RCE ${RCE_TYPES[l.rce_type] || ''}`;
-
-  // Tags
-  let tagsHtml = `<span class="leg-tag leg-tag-significance">SCI Significance: ${SIG_LABELS[l.sci_significance] || l.sci_significance}/5</span>`;
-  if (isBill) tagsHtml += '<span class="leg-tag leg-tag-bill">⏳ PENDING BILL</span>';
-  else tagsHtml += `<span class="leg-tag leg-tag-stage">${(l.lifecycle_stage||'').replace('_',' ').toUpperCase()}</span>`;
-  if ([2, 4].includes(l.primary_acei_category)) tagsHtml += '<span class="leg-tag leg-tag-uncapped">UNCAPPED COMPENSATION</span>';
-  document.getElementById('panelTags').innerHTML = tagsHtml;
-
-  // Build sections
-  let sections = '';
-
-  // 1. Summary
-  if (l.summary) {
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Summary
-      </div>
-      <div class="panel-text">${l.summary}</div>
-    </div>`;
-  }
-
-  // 2. Key Provisions
-  if (l.key_provisions) {
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Key Provisions
-      </div>
-      <div class="panel-text">${l.key_provisions}</div>
-    </div>`;
-  }
-
-  // 3. Employer Obligations (interactive checklist)
-  if (l.obligations_summary) {
-    const items = l.obligations_summary.split('. ').filter(s => s.trim().length > 3);
-    const listHtml = items.map((item, i) => `
-      <li class="obligation-item">
-        <div class="obligation-check" onclick="event.stopPropagation();this.classList.toggle('checked')" title="Mark as addressed">✓</div>
-        <span>${item.trim().replace(/\.$/, '')}.</span>
-      </li>`).join('');
-
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Employer Obligations Checklist
-      </div>
-      <ul class="obligation-list">${listHtml}</ul>
-    </div>`;
-  }
-
-  // 4. ACEI Category Impact
-  const affectedCats = l.acei_categories || [];
-  if (affectedCats.length > 0) {
-    const barsHtml = affectedCats.map(c => {
-      const cc = ACEI_CATEGORIES[c] || { name: '?', color: '#666' };
-      const isPrimary = c === l.primary_acei_category;
-      const width = isPrimary ? 100 : 60;
-      return `
-      <div class="acei-bar-row">
-        <div class="acei-bar-label">${isPrimary ? '★ ' : ''}Cat ${c}: ${cc.name}</div>
-        <div class="acei-bar-track"><div class="acei-bar-fill" style="width:${width}%;background:${cc.color}"></div></div>
-        <div class="acei-bar-val" style="color:${cc.color}">${isPrimary ? 'Primary' : 'Linked'}</div>
+  function bounce()   { window.location.replace('/knowledge-library-pass/'); }
+  function showExpired() {
+    document.getElementById('loading-screen').innerHTML = `
+      <div style="text-align:center;padding:40px 24px;max-width:400px">
+        <div style="font-size:40px;margin-bottom:16px">⏱</div>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:10px">Session expired</h2>
+        <p style="font-size:14px;color:var(--text-2);margin-bottom:20px;line-height:1.6">Your Knowledge Library pass has expired. Purchase a new pass to continue your research.</p>
+        <a href="/knowledge-library-pass/" style="background:var(--cyan);color:var(--navy);border-radius:9px;font-weight:700;padding:12px 24px;text-decoration:none;font-size:14px">Get a New Pass</a>
       </div>`;
+    document.body.style.visibility = 'visible';
+  }
+
+  // ── BOOT ──────────────────────────────────────────────────────────
+  function boot() {
+    document.getElementById('loading-screen').classList.add('hidden');
+    document.body.style.visibility = 'visible';
+    renderNav();
+    renderRail();
+    renderSessionBadge();
+    showWelcome();
+    if (SESSION.isPass && SESSION.expiresAt) startTimer();
+    initSearch();
+    initUpload();
+    try { gtag('event', 'kl_session_start', { tier: SESSION.tier, is_pass: SESSION.isPass }); } catch(e){}
+  }
+
+  // ── TIER LABELS ───────────────────────────────────────────────────
+  const TIER_LABELS = {
+    guest: 'Guest Pass',
+    per_session: 'Pro Pass',
+    operational_readiness: 'Operational',
+    governance: 'Governance',
+    institutional: 'Institutional'
+  };
+
+  // ── NAVIGATION DATA ───────────────────────────────────────────────
+  const NAV_CATEGORIES = [
+    {
+      id: 'legislation', label: 'Legislation', icon: '📚', count: 14,
+      items: [
+        { id: 'era1996',  label: 'Employment Rights Act 1996',     short: 'ERA 1996'  },
+        { id: 'era2025',  label: 'Employment Rights Act 2025',     short: 'ERA 2025', era: true },
+        { id: 'eqa2010',  label: 'Equality Act 2010',             short: 'EqA 2010'  },
+        { id: 'wtr1998',  label: 'Working Time Regulations 1998', short: 'WTR 1998'  },
+        { id: 'nmwa1998', label: 'National Minimum Wage Act 1998', short: 'NMWA 1998' },
+        { id: 'tupe2006', label: 'TUPE Regulations 2006',         short: 'TUPE 2006' },
+        { id: 'pida1998', label: 'Public Interest Disclosure Act 1998', short: 'PIDA 1998' },
+        { id: 'mwa1996',  label: 'Maternity & Parental Leave Regs 1999', short: 'MPL 1999' },
+      ]
+    },
+    {
+      id: 'acas', label: 'ACAS Guidance', icon: '📋', count: 8,
+      items: [
+        { id: 'acas-dg',  label: 'Disciplinary & Grievance Procedures' },
+        { id: 'acas-fw',  label: 'Flexible Working Requests'           },
+        { id: 'acas-sa',  label: 'Settlement Agreements'               },
+        { id: 'acas-re',  label: 'Redundancy'                          },
+        { id: 'acas-bm',  label: 'Bullying & Harassment at Work'       },
+        { id: 'acas-ap',  label: 'Attendance & Absence Management'     },
+      ]
+    },
+    {
+      id: 'hse', label: 'HSE Guidance', icon: '🏭', count: 6,
+      items: [
+        { id: 'hse-employers', label: 'Employer Health & Safety Duties'  },
+        { id: 'hse-risk',      label: 'Risk Assessment Guidance'         },
+        { id: 'hse-stress',    label: 'Work-Related Stress'              },
+        { id: 'hse-dse',       label: 'Display Screen Equipment'         },
+      ]
+    },
+    {
+      id: 'ico', label: 'ICO Guidance', icon: '🔒', count: 4,
+      items: [
+        { id: 'ico-emp',  label: 'Employment Practices & Data Protection' },
+        { id: 'ico-mon',  label: 'Monitoring at Work'                     },
+        { id: 'ico-rec',  label: 'Recruitment & Retention Records'        },
+      ]
+    },
+    {
+      id: 'horizon', label: 'Legislative Horizon', icon: '📡', count: 5, era: true,
+      items: [
+        { id: 'era2025-bills',  label: 'ERA 2025 — Commencement Tracker', era: true },
+        { id: 'bills-current',  label: 'Bills in Parliament'              },
+        { id: 'si-monitor',     label: 'Statutory Instruments Monitor'    },
+      ]
+    },
+    {
+      id: 'training', label: 'Training Resources', icon: '🎓', count: 12,
+      items: [
+        { id: 'tr-unfair',  label: 'Unfair Dismissal — Employer Guide'    },
+        { id: 'tr-disc',    label: 'Discrimination Law Fundamentals'      },
+        { id: 'tr-hs',      label: 'Health & Safety Obligations'          },
+        { id: 'tr-wp',      label: 'Whistleblowing & Protected Disclosure'},
+      ]
+    },
+    {
+      id: 'caselaw', label: 'Case Law Patterns', icon: '⚖️', count: 9,
+      items: [
+        { id: 'cl-unfair',  label: 'Unfair Dismissal — ACEI Patterns'    },
+        { id: 'cl-disc',    label: 'Discrimination Claims — Key Cases'   },
+        { id: 'cl-wt',      label: 'Working Time — Enforcement Trends'   },
+      ]
+    },
+  ];
+
+  // ── STATUTE CONTENT ───────────────────────────────────────────────
+  const STATUTES = {
+    era1996: {
+      title: 'Employment Rights Act 1996', short: 'ERA 1996',
+      type: 'Primary Legislation', jurisdiction: 'England, Wales, Scotland',
+      currentAsOf: 'March 2026', chapters: '246 sections + Schedules',
+      desc: 'The principal UK statute governing individual employment rights. Covers employment particulars, protection of wages, working hours, maternity rights, unfair dismissal, redundancy, and whistle-blowing.',
+      acei: ['Unfair Dismissal','Redundancy','Contracts','Maternity','Whistleblowing'],
+      parts: [
+        {
+          id: 'p1', num: 'Part I', title: 'Employment Particulars', sectionRange: 'ss.1–12',
+          sections: [
+            {
+              num: 's.1', title: 'Statement of initial employment particulars',
+              summary: 'Employer must give written statement of particulars to employees on or before first day of employment.',
+              text: `(1) Where an employee begins employment with an employer, the employer shall give to the employee a written statement of particulars of employment not later than the beginning of the employment.\n\n(2) The statement shall contain particulars of—\n(a) the names of the employer and employee,\n(b) the date when the employment began,\n(c) the date on which the employee's period of continuous employment began (taking into account any employment with a previous employer which counts towards that period).`,
+              subs: [
+                { num: '(4)', text: 'The statement shall also contain particulars, as at a specified date not more than seven days before the statement is given, of the following matters—(a) the scale or rate of remuneration or the method of calculating remuneration; (b) the intervals at which remuneration is paid; (c) any terms and conditions relating to hours of work; (d) any terms and conditions relating to holidays.' }
+              ],
+              refs: ['s.4 ERA 1996', 'ACAS Employment Particulars']
+            },
+            {
+              num: 's.2', title: 'Written statement: supplementary provisions',
+              summary: 'Provisions supplementing the written statement requirement.',
+              text: `(1) If, in the case of a statement under section 1, there are no particulars to be entered under any of the heads of a description of particulars, that fact shall be stated.`,
+              refs: ['s.1 ERA 1996']
+            },
+            {
+              num: 's.11', title: 'References to industrial tribunals',
+              summary: 'Employee may refer to employment tribunal if employer fails to provide statement.',
+              text: `(1) Where an employer does not give an employee a statement as required by section 1, 4 or 8, within the time required by the section in question, the employee may require a reference to be made to an employment tribunal to determine what particulars ought to have been included in a statement.`,
+              refs: ['Employment Tribunals Act 1996']
+            }
+          ]
+        },
+        {
+          id: 'p2', num: 'Part II', title: 'Protection of Wages', sectionRange: 'ss.13–27',
+          sections: [
+            {
+              num: 's.13', title: 'Right not to suffer unauthorised deductions',
+              summary: 'Employer must not make deductions from wages unless authorised by statute, contract, or employee written consent.',
+              text: `(1) An employer shall not make a deduction from wages of a worker employed by him unless—\n(a) the deduction is required or authorised to be made by virtue of a statutory provision or a relevant provision of the worker's contract, or\n(b) the worker has previously signified in writing his agreement or consent to the making of such a deduction.\n\n(2) In this section "relevant provision", in relation to a worker's contract, means a provision of the contract comprised—\n(a) in one or more written terms of the contract of which the employer has given the worker a copy on an occasion prior to the employer making the deduction in question.`,
+              subs: [],
+              refs: ['National Minimum Wage Act 1998', 's.23 ERA 1996']
+            }
+          ]
+        },
+        {
+          id: 'p5', num: 'Part V', title: 'Protection from Detriment', sectionRange: 'ss.43A–49A',
+          sections: [
+            {
+              num: 's.43A', title: 'Meaning of "protected disclosure"',
+              summary: 'A qualifying disclosure is protected where made to certain recipients in good faith.',
+              text: `In this Act "protected disclosure" means a qualifying disclosure (as defined by section 43B) which is made by a worker in accordance with any of sections 43C to 43H.`,
+              refs: ['s.43B ERA 1996 (Qualifying Disclosure)', 'PIDA 1998']
+            },
+            {
+              num: 's.43B', title: 'Disclosures qualifying for protection',
+              summary: 'Six categories of wrongdoing that attract whistle-blower protection.',
+              text: `(1) In this Part a "qualifying disclosure" means any disclosure of information which, in the reasonable belief of the worker making the disclosure, tends to show one or more of the following—\n(a) that a criminal offence has been committed, is being committed or is likely to be committed,\n(b) that a person has failed, is failing or is likely to fail to comply with any legal obligation to which he is subject,\n(c) that a miscarriage of justice has occurred, is occurring or is likely to occur,\n(d) that the health or safety of any individual has been, is being or is likely to be endangered,\n(e) that the environment has been, is being or is likely to be damaged, or\n(f) that information tending to show any matter falling within any one of the preceding paragraphs has been, or is likely to be, deliberately concealed.`,
+              refs: ['PIDA 1998', 's.103A ERA 1996 (Automatic Unfair Dismissal)', 'ACAS Whistleblowing Guidance']
+            }
+          ]
+        },
+        {
+          id: 'p10', num: 'Part X', title: 'Unfair Dismissal', sectionRange: 'ss.94–134A',
+          sections: [
+            {
+              num: 's.94', title: 'The right',
+              summary: 'Every employee has the right not to be unfairly dismissed.',
+              text: `(1) An employee has the right not to be unfairly dismissed by his employer.\n\n(2) Subsection (1) has effect subject to the following provisions of this Part (in particular sections 108 to 110) and to the provisions of the Trade Union and Labour Relations (Consolidation) Act 1992 (in particular sections 237 to 239).`,
+              refs: ['s.108 ERA 1996 (Qualifying Period)', 's.98 ERA 1996 (Reason for Dismissal)', 'Employment Rights Act 2025 s.1 (Qualifying Period Reform)']
+            },
+            {
+              num: 's.98', title: 'General',
+              summary: 'Sets out the potentially fair reasons for dismissal and the reasonableness test.',
+              text: `(1) In determining for the purposes of this Part whether the dismissal of an employee is fair or unfair, it is for the employer to show—\n(a) the reason (or, if more than one, the principal reason) for the dismissal, and\n(b) that it is either a reason falling within subsection (2) or some other substantial reason of a kind such as to justify the dismissal of an employee holding the position which the employee held.\n\n(2) A reason falls within this subsection if it—\n(a) relates to the capability or qualifications of the employee for performing work of the kind which he was employed by the employer to do,\n(b) relates to the conduct of the employee,\n(c) is that the employee was redundant, or\n(d) is that the employee could not continue to work in the position which he held without contravention (either on his part or on that of his employer) of a duty or restriction imposed by or under an enactment.\n\n(4) In any other case where the employer has fulfilled the requirements of subsection (1), the determination of the question whether the dismissal is fair or unfair (having regard to the reason shown by the employer)—\n(a) depends on whether in the circumstances (including the size and administrative resources of the employer's undertaking) the employer acted reasonably or unreasonably in treating it as a sufficient reason for dismissing the employee, and\n(b) shall be determined in accordance with equity and the substantial merits of the case.`,
+              refs: ['British Home Stores v Burchell [1980]', 'Iceland Frozen Foods v Jones [1983]', 'ACAS Code on Disciplinary Procedures']
+            },
+            {
+              num: 's.108', title: 'Qualifying period of employment',
+              summary: 'Employee must have 2 years continuous employment to claim unfair dismissal (subject to exceptions). ERA 2025 will reduce this.',
+              text: `(1) Section 94 does not apply to the dismissal of an employee unless he has been continuously employed for a period of not less than two years ending with the effective date of termination.\n\n(3) Subsection (1) does not apply if—\n(a) subsection (3) of section 99 (read with subsection (2) of that section) would apply if the reason (or principal reason) for dismissal were the reason mentioned in that subsection,\n(b) the reason (or principal reason) for the dismissal is one of those specified in section 100(1)(a) and (b), 101A(d), 102(1) or 103,\n(c) subsection (1) of section 103A would apply if the reason (or principal reason) for the dismissal were the reason mentioned in that subsection.`,
+              eraNote: 'ERA 2025 s.1 will replace the 2-year qualifying period. New employees will have Day 1 unfair dismissal rights from the date of commencement (TBC by secondary legislation). Statutory dismissal procedure will apply during probationary period.',
+              refs: ['ERA 2025 s.1 (Qualifying Period Reform — Not Yet In Force)', 's.94 ERA 1996', 's.212 ERA 1996 (Continuous Employment)']
+            }
+          ]
+        },
+        {
+          id: 'p11', num: 'Part XI', title: 'Redundancy Payments', sectionRange: 'ss.135–181',
+          sections: [
+            {
+              num: 's.135', title: 'The right',
+              summary: 'Employee dismissed by reason of redundancy and with 2 years service is entitled to a redundancy payment.',
+              text: `(1) An employer shall pay a redundancy payment to any employee of his if the employee—\n(a) is dismissed by the employer by reason of redundancy, or\n(b) is eligible for a redundancy payment by reason of being laid off or kept on short-time.`,
+              refs: ['s.139 ERA 1996 (Definition of Redundancy)', 's.162 ERA 1996 (Amount of Redundancy Payment)']
+            }
+          ]
+        }
+      ]
+    },
+    era2025: {
+      title: 'Employment Rights Act 2025', short: 'ERA 2025',
+      type: 'Primary Legislation — Forward Intelligence', jurisdiction: 'England, Wales, Scotland',
+      currentAsOf: 'March 2026', chapters: '151 sections',
+      desc: 'The most significant reform of UK employment rights in a generation. Royal Assent 18 December 2025. Most provisions are not yet in force — commencement dates to be set by secondary legislation.',
+      acei: ['Unfair Dismissal','Zero Hours','Flexible Working','Trade Union','SSP'],
+      isERA: true,
+      parts: [
+        {
+          id: 'era25-p1', num: 'Part 1', title: 'Unfair Dismissal & Qualifying Period', sectionRange: 'ss.1–4',
+          sections: [
+            {
+              num: 's.1', title: 'Removal of qualifying period for unfair dismissal',
+              summary: 'Removes the 2-year qualifying period. Day 1 unfair dismissal rights for all employees.',
+              notInForce: true,
+              text: `Amends section 108 of the Employment Rights Act 1996 to remove the requirement for two years' continuous employment before an employee can bring an unfair dismissal claim.\n\nUpon commencement, all employees will have the right not to be unfairly dismissed from their first day of employment.\n\nThe Secretary of State may by regulations make provision about the procedure to be followed in relation to dismissals during an initial period of employment (the "statutory probationary period").`,
+              eraNote: 'Commencement date: To be set by regulations. Government consultation on probationary period procedures ongoing as of March 2026. Expected commencement: late 2026 or 2027.',
+              refs: ['s.108 ERA 1996 (Current Qualifying Period)', 'ERA 2025 Commencement Regulations (pending)']
+            }
+          ]
+        },
+        {
+          id: 'era25-p2', num: 'Part 2', title: 'Zero Hours Contracts & Predictable Working', sectionRange: 'ss.7–18',
+          sections: [
+            {
+              num: 's.7', title: 'Right to guaranteed hours',
+              summary: 'Workers on zero hours or low guaranteed hours contracts may be entitled to a contract reflecting their average hours.',
+              notInForce: true,
+              text: `A qualifying worker who performs work for their employer during a reference period is entitled to a contract that reflects the hours they regularly work.\n\nThe reference period and qualifying criteria are to be set by secondary legislation.\n\nThe employer must offer a guaranteed hours contract within a specified period after the end of the reference period.`,
+              eraNote: 'Commencement: To be set by regulations. Secondary legislation required. Expected commencement: 2026–2027. Draft guidance under consultation.',
+              refs: ['Workers (Predictable Terms and Conditions) Act 2023', 'ACAS Zero Hours Guidance']
+            }
+          ]
+        },
+        {
+          id: 'era25-p3', num: 'Part 3', title: 'SSP Reform', sectionRange: 'ss.21–25',
+          sections: [
+            {
+              num: 's.21', title: 'Statutory Sick Pay — removal of waiting days',
+              summary: 'Removes the 3-day SSP waiting period. SSP payable from day 1 of illness.',
+              notInForce: true,
+              text: `Amends the Social Security Contributions and Benefits Act 1992 to remove the 3 waiting days before Statutory Sick Pay (SSP) becomes payable.\n\nEmployees will be entitled to SSP from the first day of incapacity for work.`,
+              eraNote: 'Commencement: Expected October 2026. One of the earlier provisions anticipated to commence. Employer cost implications: increased SSP liability from day 1.',
+              refs: ['SSCBA 1992 s.155 (SSP Waiting Days — to be amended)', 'DWP SSP Employer Guidance']
+            }
+          ]
+        }
+      ]
+    },
+    eqa2010: {
+      title: 'Equality Act 2010', short: 'EqA 2010',
+      type: 'Primary Legislation', jurisdiction: 'England, Wales, Scotland',
+      currentAsOf: 'March 2026', chapters: '218 sections + 28 Schedules',
+      desc: 'Consolidates previous anti-discrimination legislation. Defines nine protected characteristics and prohibits direct discrimination, indirect discrimination, harassment, and victimisation.',
+      acei: ['Discrimination','Equal Pay','Protected Characteristics'],
+      parts: [
+        {
+          id: 'eqa-p2', num: 'Part 2', title: 'Equality: Key Concepts', sectionRange: 'ss.4–27',
+          sections: [
+            {
+              num: 's.4', title: 'The protected characteristics',
+              summary: 'Defines the nine protected characteristics.',
+              text: `The following characteristics are protected characteristics—\nage; disability; gender reassignment; marriage and civil partnership; pregnancy and maternity; race; religion or belief; sex; sexual orientation.`,
+              refs: ['ss.5–12 EqA 2010 (individual characteristic definitions)', 'EHRC Employment Code of Practice']
+            },
+            {
+              num: 's.13', title: 'Direct discrimination',
+              summary: 'A person (A) discriminates against another (B) if A treats B less favourably than A treats or would treat others because of a protected characteristic.',
+              text: `(1) A person (A) discriminates against another (B) if, because of a protected characteristic, A treats B less favourably than A treats or would treat others.\n\n(2) If the protected characteristic is age, A does not discriminate against B if A can show A's treatment of B to be a proportionate means of achieving a legitimate aim.\n\n(4) If the protected characteristic is marriage and civil partnership, this section applies to a contravention of Part 5 (work) only if the treatment is because it is B who has the characteristic.`,
+              refs: ['s.14 EqA 2010 (Combined Discrimination)', 's.19 EqA 2010 (Indirect Discrimination)', 'Naeem v SoS for Justice [2017]']
+            },
+            {
+              num: 's.19', title: 'Indirect discrimination',
+              summary: 'Applying a provision, criterion or practice that disadvantages persons sharing a protected characteristic unless it is a proportionate means of achieving a legitimate aim.',
+              text: `(1) A person (A) discriminates against another (B) if A applies to B a provision, criterion or practice which is discriminatory in relation to a relevant protected characteristic of B's.\n\n(2) For the purposes of subsection (1), a provision, criterion or practice is discriminatory in relation to a relevant protected characteristic of B's if—\n(a) A applies, or would apply, it to persons with whom B does not share the characteristic,\n(b) it puts, or would put, persons with whom B shares the characteristic at a particular disadvantage when compared with persons with whom B does not share it,\n(c) it puts, or would put, B at that disadvantage, and\n(d) A cannot show it to be a proportionate means of achieving a legitimate aim.`,
+              refs: ['s.13 EqA 2010 (Direct Discrimination)', 'Homer v Chief Constable [2012]']
+            }
+          ]
+        }
+      ]
+    },
+    wtr1998: {
+      title: 'Working Time Regulations 1998', short: 'WTR 1998',
+      type: 'Statutory Instrument (SI 1998/1833)', jurisdiction: 'England, Wales, Scotland',
+      currentAsOf: 'March 2026', chapters: '32 Regulations',
+      desc: 'Implements the EU Working Time Directive. Sets limits on weekly working hours, provides for rest breaks, rest periods, and minimum annual leave entitlement.',
+      acei: ['Working Time','Annual Leave','Rest Breaks','Opt-Out'],
+      parts: [
+        {
+          id: 'wtr-p1', num: 'Part II', title: 'Rights and Obligations Concerning Working Time', sectionRange: 'Regs 4–16',
+          sections: [
+            {
+              num: 'Reg.4', title: '48-hour average weekly working time limit',
+              summary: 'Workers must not be required to work more than an average of 48 hours per week (calculated over a 17-week reference period).',
+              text: `(1) Unless his employer has first obtained the worker's agreement in writing to perform such work, a worker's working time, including overtime, in any reference period applicable in his case shall not exceed an average of 48 hours for each 7 days of the period.`,
+              refs: ['Reg.5 WTR 1998 (Individual Opt-Out)', 'Reg.20 WTR 1998 (Unmeasured Working Time)']
+            },
+            {
+              num: 'Reg.12', title: 'Rest breaks — in-work',
+              summary: 'Workers entitled to a 20-minute break when daily working time exceeds 6 hours.',
+              text: `(1) Where a worker's daily working time is more than six hours, he is entitled to a rest break.\n\n(2) The characteristics of the rest break to which a worker is entitled under this regulation are that—\n(a) it is an uninterrupted period of not less than 20 minutes;\n(b) the worker is entitled to spend it away from his workstation if he has one.`,
+              refs: ['Reg.10 WTR 1998 (Daily Rest Period)', 'Reg.11 WTR 1998 (Weekly Rest Period)']
+            },
+            {
+              num: 'Reg.16', title: 'Entitlement to annual leave',
+              summary: 'Workers entitled to 5.6 weeks\' paid annual leave per year (28 days for a 5-day week worker).',
+              text: `(1) A worker is entitled to 5.6 weeks' leave in each leave year.\n\n(3) The leave to which a worker is entitled under this regulation may be taken in instalments, but—\n(a) it may only be taken in the leave year in respect of which it is due, and\n(b) it may not be replaced by a payment in lieu except where the worker's employment is terminated.`,
+              refs: ['Reg.15 WTR 1998 (Dates of Leave)', 'Reg.16A WTR 1998 (Rolled-Up Holiday Pay Amendment 2023)', 'Harper Trust v Brazel [2022]']
+            }
+          ]
+        }
+      ]
+    }
+  };
+
+  // ACAS content
+  const ACAS_CONTENT = {
+    'acas-dg': {
+      title: 'Disciplinary and Grievance Procedures',
+      type: 'ACAS Code of Practice', year: 2015,
+      desc: 'Statutory Code of Practice under TULRCA 1992. Failure to follow may result in employment tribunal uplifting compensation by up to 25%.',
+      sections: [
+        { num: '1', title: 'Disciplinary Situations', summary: 'Employers should establish clear rules and procedures for handling disciplinary situations. Rules should be in writing and communicated to all employees.', text: 'When a disciplinary issue arises, employers should carry out any necessary investigations to establish the facts of the case. The employer should inform the employee of the basis of the problem and give them an opportunity to put their case in response before any decisions are made.' },
+        { num: '2', title: 'The Right to be Accompanied', summary: 'Workers have a statutory right to be accompanied by a colleague or trade union representative at formal disciplinary and grievance hearings.', text: 'The right to be accompanied applies to formal disciplinary hearings. Workers must make a reasonable request to be accompanied. The companion may address the hearing but not answer questions on the worker\'s behalf.' },
+        { num: '3', title: 'Grievance Procedures', summary: 'Employees should raise grievances in writing. Employers must hold a meeting and allow appeal.', text: 'If an employee raises a grievance, the employer should hold a meeting to discuss the grievance as soon as reasonably practicable. The employee has the right to appeal if the grievance is not resolved.' }
+      ]
+    }
+  };
+
+  // ── RENDER NAVIGATION ─────────────────────────────────────────────
+  function renderNav() {
+    const nav = document.getElementById('nav-items');
+    nav.innerHTML = NAV_CATEGORIES.map(cat => `
+      <div class="nav-cat">
+        <button class="nav-cat-btn" id="navcat-${cat.id}" onclick="toggleNavCat('${cat.id}')">
+          <span class="nav-cat-icon">${cat.icon}</span>
+          <span class="nav-cat-label">${cat.label}</span>
+          ${cat.era ? '<span class="nav-era-badge">ERA 2025</span>' : ''}
+          <span class="nav-cat-count">${cat.count}</span>
+          <span class="nav-cat-chevron">›</span>
+        </button>
+        <div class="nav-sub-items" id="navsub-${cat.id}">
+          ${cat.items.map(item => `
+            <div class="nav-sub-item" id="navitem-${item.id}" onclick="loadContent('${cat.id}','${item.id}')">
+              <span class="nav-sub-dot"></span>
+              <span>${item.short || item.label}</span>
+              ${item.era ? '<span class="nav-era-badge" style="margin-left:auto">NEW</span>' : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    // Bottom nav based on tier
+    const bottom = document.getElementById('nav-bottom');
+    if (!SESSION.hasPlanner) {
+      bottom.innerHTML = `
+        <button class="nav-upgrade-btn" onclick="openPanel('eileen')">
+          <span class="nav-upgrade-icon">✨</span>
+          <div>
+            <div>Ask Eileen</div>
+            <div class="nav-upgrade-sub">${SESSION.hasEileen ? 'Full AI assistant active' : 'Basic help available'}</div>
+          </div>
+        </button>`;
+    }
+  }
+
+  function toggleNavCat(catId) {
+    const btn = document.getElementById(`navcat-${catId}`);
+    const sub = document.getElementById(`navsub-${catId}`);
+    const isOpen = sub.classList.contains('open');
+    // Close all first
+    document.querySelectorAll('.nav-sub-items.open').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.nav-cat-btn.open').forEach(el => el.classList.remove('open'));
+    if (!isOpen) { btn.classList.add('open'); sub.classList.add('open'); }
+  }
+
+  // ── RENDER PANEL RAIL ─────────────────────────────────────────────
+  const PANELS = [
+    { id:'vault',    icon:'🗂',  label:'Document Vault',    badge:null },
+    { id:'notes',    icon:'📝',  label:'Notes',             badge:'amber' },
+    { id:'docs',     icon:'📄',  label:'Documents',         badge:null },
+    { id:'eileen',   icon:'✨',  label:'Eileen',            badge:'cyan' },
+    null, // divider
+    { id:'research', icon:'🔬',  label:'Research',          badge:null },
+    { id:'planner',  icon:'📋',  label:'Contract Planner',  badge:null },
+    { id:'clipboard',icon:'📌',  label:'Clipboard',         badge:null },
+    { id:'calendar', icon:'📅',  label:'Calendar',          badge:'amber' },
+  ];
+
+  function renderRail() {
+    const rail = document.getElementById('right-rail');
+    rail.innerHTML = PANELS.map(p => {
+      if (!p) return '<div class="rail-divider"></div>';
+      return `
+        <button class="rail-icon-btn" id="rail-${p.id}" onclick="openPanel('${p.id}')" title="${p.label}">
+          ${p.icon}
+          ${p.badge ? `<span class="rail-badge ${p.badge}"></span>` : ''}
+          <span class="rail-tooltip">${p.label}</span>
+        </button>`;
     }).join('');
-
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        ACEI Category Impact
-      </div>
-      <div class="acei-impact">${barsHtml}</div>
-    </div>`;
   }
 
-  // 5. Enforcement & Penalties
-  if (l.enforcement_mechanism || l.penalty_summary) {
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Enforcement & Penalties
-      </div>
-      ${l.enforcement_mechanism ? `<div class="panel-text" style="margin-bottom:12px"><strong style="color:var(--text-primary)">Enforcement:</strong> ${l.enforcement_mechanism}</div>` : ''}
-      ${l.penalty_summary ? `<div class="enforcement-card"><div class="enforcement-label">Penalty Framework</div><div class="enforcement-text">${l.penalty_summary}</div></div>` : ''}
-    </div>`;
+  // ── SESSION BADGE ─────────────────────────────────────────────────
+  function renderSessionBadge() {
+    document.getElementById('session-tier-label').textContent = TIER_LABELS[SESSION.tier] || SESSION.tier;
   }
 
-  // 6. RRI Pillar Impact
-  if (l.rri_pillars_affected && l.rri_pillars_affected.length > 0) {
-    const pillarsHtml = l.rri_pillars_affected.map(p => {
-      const icon = PILLAR_ICONS[p] || '';
-      return `<div class="pillar-chip">${icon}${p}</div>`;
-    }).join('');
-
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-        RRI Pillars Affected
-      </div>
-      <div class="pillar-grid">${pillarsHtml}</div>
-    </div>`;
+  // ── SESSION TIMER (pass holders) ─────────────────────────────────
+  function startTimer() {
+    const timerEl = document.getElementById('session-timer');
+    timerEl.classList.remove('hidden');
+    function tick() {
+      const now = new Date();
+      const diff = SESSION.expiresAt - now;
+      if (diff <= 0) { timerEl.textContent = 'Expired'; timerEl.classList.add('urgent'); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      timerEl.textContent = h > 0 ? `${h}h ${m}m` : `${m}:${String(s).padStart(2,'0')}`;
+      if (diff < 1800000) timerEl.classList.add('urgent');
+    }
+    tick();
+    setInterval(tick, 1000);
   }
 
-  // 7. Forward Exposure (for bills)
-  if (isBill) {
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Forward Exposure Register — ACEI Art. VII
-      </div>
-      <div class="forward-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Pending — Domain Index projection will activate upon Royal Assent
-      </div>
-      <div class="panel-text" style="margin-top:12px">
-        Per ACEI Article VII §7.1, this instrument qualifies for Forward Exposure Registration upon Royal Assent. Projected Domain Index impact will be computed at that time and disclosed separately from the Core Index. Score integration will occur immediately on commencement (§7.5.2 — gradual phase-in prohibited).
-      </div>
-    </div>`;
+  // ── WELCOME STATE ─────────────────────────────────────────────────
+  function showWelcome() {
+    setBreadcrumb(['Knowledge Library']);
+    document.getElementById('content-area').innerHTML = `
+      <div class="welcome-state">
+        <div class="welcome-hero">
+          <h2>Welcome to the <span>Knowledge Library</span></h2>
+          <p>47+ legislative instruments, authoritative employer guidance, and forward intelligence on ERA 2025. Select a category to begin, or use search above.</p>
+        </div>
+        <div class="quick-cats">
+          ${NAV_CATEGORIES.map(cat => `
+            <button class="quick-cat-btn" onclick="loadCategory('${cat.id}')">
+              <span class="qc-icon">${cat.icon}</span>
+              <div>
+                <div class="qc-name">${cat.label}</div>
+                <div class="qc-count">${cat.count} resources</div>
+              </div>
+            </button>`).join('')}
+        </div>
+        <div class="welcome-prompt">
+          <div class="prompt-eileen">✨</div>
+          <div class="prompt-text">
+            <strong>Ask Eileen</strong>
+            <span>${SESSION.hasEileen ? 'Your full AI employment law assistant is ready. Ask about any statute, obligation, or legal concept.' : 'Basic research help is available. Upgrade to Pro for full Eileen AI.'}</span>
+          </div>
+          <button class="prompt-btn" onclick="openPanel('eileen')">Open Eileen</button>
+        </div>
+      </div>`;
   }
 
-  // 8. Key Dates
-  sections += `
-  <div class="panel-section">
-    <div class="panel-section-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Key Dates & Lifecycle
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      ${l.royal_assent_date ? `<div class="panel-text"><strong style="color:var(--text-primary)">Royal Assent:</strong> ${l.royal_assent_date}</div>` : ''}
-      ${l.commencement_date ? `<div class="panel-text"><strong style="color:var(--text-primary)">Commencement:</strong> ${l.commencement_date}</div>` : ''}
-      ${l.amendment_date ? `<div class="panel-text"><strong style="color:var(--text-primary)">Last Amended:</strong> ${l.amendment_date}</div>` : ''}
-      <div class="panel-text"><strong style="color:var(--text-primary)">Lifecycle:</strong> ${(l.lifecycle_stage||'').replace('_',' ')}</div>
-    </div>
-  </div>`;
+  // ── LOAD CATEGORY ─────────────────────────────────────────────────
+  function loadCategory(catId) {
+    const cat = NAV_CATEGORIES.find(c => c.id === catId);
+    if (!cat) return;
 
-  // 9. Constitutional References
-  const constRefs = [];
-  if (l.legislation_type === 'primary') constRefs.push('ACEI Art. V (SCI)', 'RRI Art. II §2.3 (RCE Type 1)');
-  if (l.legislation_type === 'statutory_instrument') constRefs.push('ACEI Art. V (SCI)', 'RRI Art. II §2.3 (RCE Type 2)');
-  if (l.legislation_type === 'binding_code') constRefs.push('ACEI Art. IV (EII)', 'RRI Art. II §2.3 (RCE Type 3)');
-  if (isBill) constRefs.push('ACEI Art. VII (Forward Exposure)');
-  constRefs.push('ACEI Art. III (EVI)', 'Feature Matrix §3 (Legislative Lifecycle Tracker)');
+    // Expand nav
+    const btn = document.getElementById(`navcat-${catId}`);
+    const sub = document.getElementById(`navsub-${catId}`);
+    if (btn && !btn.classList.contains('open')) {
+      document.querySelectorAll('.nav-sub-items.open').forEach(el => el.classList.remove('open'));
+      document.querySelectorAll('.nav-cat-btn.open').forEach(el => el.classList.remove('open'));
+      btn.classList.add('open'); sub.classList.add('open');
+    }
 
-  sections += `
-  <div class="panel-section">
-    <div class="panel-section-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      Constitutional Governance References
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px">${constRefs.map(r => `<span class="const-ref">${r}</span>`).join('')}</div>
-  </div>`;
+    setBreadcrumb(['Knowledge Library', cat.label]);
 
-  // 10. Tags
-  if (l.tags && l.tags.length > 0) {
-    sections += `
-    <div class="panel-section">
-      <div class="panel-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-        Search Tags
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px">${l.tags.map(t => `<span style="padding:3px 10px;border-radius:4px;font-size:11px;background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);color:var(--text-muted)">${t}</span>`).join('')}</div>
-    </div>`;
+    const instruments = catId === 'legislation'
+      ? Object.entries(STATUTES).map(([id, s]) => ({
+          id, title: s.title, short: s.short, type: s.type,
+          desc: s.desc.substring(0,120)+'…', acei: s.acei, isERA: s.isERA
+        }))
+      : cat.items.map(item => ({
+          id: item.id, title: item.label, short: item.short || '',
+          type: catId === 'acas' ? 'ACAS Code / Guidance' : catId === 'hse' ? 'HSE Guidance' : catId === 'ico' ? 'ICO Guidance' : 'Resource',
+          desc: '', acei: [], isERA: item.era
+        }));
+
+    document.getElementById('content-area').innerHTML = `
+      <div class="cat-overview">
+        <div class="cat-title">${cat.icon} ${cat.label}</div>
+        <div class="cat-desc">${getCatDesc(catId)}</div>
+        <div class="cat-grid">
+          ${instruments.map(inst => `
+            <div class="instrument-card ${inst.isERA ? 'era' : ''}" onclick="loadContent('${catId}','${inst.id}')">
+              <div class="inst-type">
+                ${inst.type}
+                ${inst.isERA ? '<span class="inst-era-tag">ERA 2025</span>' : ''}
+              </div>
+              <div class="inst-title">${inst.title}</div>
+              ${inst.short ? `<div class="inst-short">${inst.short}</div>` : ''}
+              ${inst.desc ? `<div class="inst-desc">${inst.desc}</div>` : ''}
+              <div class="inst-meta">
+                ${inst.acei.slice(0,3).map(a => `<span class="inst-tag acei">${a}</span>`).join('')}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
   }
 
-  document.getElementById('panelScroll').innerHTML = sections;
-
-  // Actions
-  let actionsHtml = '';
-  if (l.legislation_gov_url) {
-    actionsHtml += `<a class="panel-btn panel-btn-primary" href="${l.legislation_gov_url}" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      View on legislation.gov.uk
-    </a>`;
+  function getCatDesc(catId) {
+    const descs = {
+      legislation: 'Primary and secondary legislation governing UK employment. Sections expand to full statutory text.',
+      acas: 'Authoritative guidance and statutory codes from ACAS. Non-compliance with ACAS Codes may result in a tribunal uplift of up to 25%.',
+      hse: 'Health and safety employer obligations and guidance from the Health and Safety Executive.',
+      ico: 'ICO guidance on data protection obligations in the employment context.',
+      horizon: 'Bills before Parliament and legislative horizon tracking. ERA 2025 commencement status.',
+      training: 'Educational resources on key employment law topics.',
+      caselaw: 'Tribunal case law patterns linked to ACEI risk categories.',
+    };
+    return descs[catId] || '';
   }
-  actionsHtml += `<button class="panel-btn panel-btn-secondary" onclick="copyRef('${l.legislation_ref}')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-    Copy Reference
-  </button>`;
-  document.getElementById('panelActions').innerHTML = actionsHtml;
 
-  // Open
-  document.getElementById('panelOverlay').classList.add('open');
-  document.getElementById('detailPanel').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
+  // ── LOAD CONTENT ──────────────────────────────────────────────────
+  function loadContent(catId, itemId) {
+    // Set active nav item
+    document.querySelectorAll('.nav-sub-item').forEach(el => el.classList.remove('active'));
+    const navItem = document.getElementById(`navitem-${itemId}`);
+    if (navItem) navItem.classList.add('active');
 
-function closePanel() {
-  document.getElementById('panelOverlay').classList.remove('open');
-  document.getElementById('detailPanel').classList.remove('open');
-  document.body.style.overflow = '';
-}
+    if (catId === 'legislation' && STATUTES[itemId]) {
+      renderStatute(itemId);
+    } else if (catId === 'acas' && ACAS_CONTENT[itemId]) {
+      renderAcas(itemId);
+    } else {
+      renderComingSoon(itemId);
+    }
+  }
 
-function copyRef(ref) {
-  navigator.clipboard.writeText(ref).then(() => {
-    const btn = event.currentTarget;
-    const orig = btn.innerHTML;
-    btn.innerHTML = '✓ Copied';
-    setTimeout(() => btn.innerHTML = orig, 1500);
+  // ── RENDER STATUTE ────────────────────────────────────────────────
+  function renderStatute(statId) {
+    const s = STATUTES[statId];
+    const cat = NAV_CATEGORIES.find(c => c.id === 'legislation');
+    setBreadcrumb(['Knowledge Library', 'Legislation', s.short]);
+
+    const html = `
+      <div class="statute-viewer">
+        <div class="statute-header">
+          <div class="statute-type-row">
+            <span class="statute-type-badge ${s.isERA ? 'era' : ''}">${s.type}</span>
+            <span class="statute-jurisdiction">🏴󠁧󠁢󠁥󠁮󠁧󠁿 ${s.jurisdiction}</span>
+          </div>
+          <div class="statute-title">${s.title}</div>
+          <div class="statute-short">${s.short}</div>
+          <div class="statute-desc">${s.desc}</div>
+          <div class="statute-meta-row">
+            <div class="statute-meta-item">📅 <span class="statute-meta-val">Current as of ${s.currentAsOf}</span></div>
+            <div class="statute-meta-item">📑 <span class="statute-meta-val">${s.chapters}</span></div>
+            ${s.acei.map(a => `<span class="inst-tag acei">${a}</span>`).join('')}
+          </div>
+          <div class="statute-actions">
+            <button class="act-btn primary" onclick="addToClipboard('${s.title}','${s.short}')">📌 Save to Clipboard</button>
+            <button class="act-btn" onclick="addToNotes('${s.title}')">📝 Add to Notes</button>
+            <button class="act-btn" onclick="openPanel('eileen')">✨ Ask Eileen</button>
+          </div>
+        </div>
+        <div class="statute-parts" id="statute-parts-${statId}">
+          ${s.parts.map(part => renderPart(statId, part)).join('')}
+        </div>
+      </div>`;
+
+    document.getElementById('content-area').innerHTML = html;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  function renderPart(statId, part) {
+    return `
+      <div class="statute-part">
+        <div class="part-header" id="ph-${part.id}" onclick="togglePart('${part.id}')">
+          <span class="part-num">${part.num}</span>
+          <span class="part-title">${part.title}</span>
+          <span class="part-section-count">${part.sectionRange}</span>
+          <span class="part-chevron">›</span>
+        </div>
+        <div class="part-body" id="pb-${part.id}">
+          ${part.sections.map(sec => renderSection(part.id, sec)).join('')}
+        </div>
+      </div>`;
+  }
+
+  function renderSection(partId, sec) {
+    const refs = (sec.refs || []).map(r => `<span class="stat-ref" onclick="handleRef('${r.replace(/'/g,"\\'")}')">⟶ ${r}</span>`).join(' ');
+    const eraBadge = (sec.notInForce || sec.eraNote) ? `<span class="era-marker">⚑ ERA 2025 — Not Yet In Force</span>` : '';
+    return `
+      <div class="section-item" id="si-${partId}-${sec.num.replace(/[^a-z0-9]/gi,'')}" onclick="toggleSection('${partId}','${sec.num.replace(/[^a-z0-9]/gi,'')}')">
+        <span class="sec-num">${sec.num}</span>
+        <div class="sec-content">
+          <div class="sec-title">${sec.title} ${eraBadge}</div>
+          <div class="sec-summary">${sec.summary}</div>
+          <div class="sec-full-text" id="sft-${partId}-${sec.num.replace(/[^a-z0-9]/gi,'')}">
+            <div style="white-space:pre-line;line-height:1.9;font-size:13px">${sec.text}</div>
+            ${sec.eraNote ? `<div style="margin-top:12px;padding:11px 13px;background:var(--amber-dim);border:1px solid var(--amber-border);border-radius:8px;font-size:12px;color:var(--amber);line-height:1.6">⚑ <strong>ERA 2025 Impact:</strong> ${sec.eraNote}</div>` : ''}
+            ${sec.subs ? sec.subs.map(sub => `<div class="sec-sub"><span class="sec-sub-num">${sub.num}</span> ${sub.text}</div>`).join('') : ''}
+            <div class="sec-actions">
+              ${refs}
+              <button class="sec-action-btn" onclick="addToClipboardText('${sec.num} ${sec.title}','${sec.summary.replace(/'/g,"\\'")}')" style="margin-left:auto">📌 Clip</button>
+              <button class="sec-action-btn" onclick="addToNotes('${sec.num} ${sec.title}')">📝 Note</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function togglePart(partId) {
+    const h = document.getElementById(`ph-${partId}`);
+    const b = document.getElementById(`pb-${partId}`);
+    const open = b.classList.contains('open');
+    b.classList.toggle('open', !open);
+    h.classList.toggle('open', !open);
+  }
+
+  function toggleSection(partId, secId) {
+    const si  = document.getElementById(`si-${partId}-${secId}`);
+    const sft = document.getElementById(`sft-${partId}-${secId}`);
+    if (!sft) return;
+    const open = sft.classList.contains('open');
+    sft.classList.toggle('open', !open);
+    si.classList.toggle('open', !open);
+  }
+
+  // ── RENDER ACAS ───────────────────────────────────────────────────
+  function renderAcas(itemId) {
+    const a = ACAS_CONTENT[itemId];
+    setBreadcrumb(['Knowledge Library', 'ACAS Guidance', a.title]);
+    document.getElementById('content-area').innerHTML = `
+      <div class="statute-viewer">
+        <div class="statute-header">
+          <div class="statute-type-row">
+            <span class="statute-type-badge si">ACAS Code of Practice</span>
+          </div>
+          <div class="statute-title">${a.title}</div>
+          <div class="statute-short">ACAS (${a.year})</div>
+          <div class="statute-desc">${a.desc}</div>
+          <div class="statute-actions">
+            <button class="act-btn primary" onclick="addToClipboard('${a.title}','ACAS')">📌 Clip</button>
+            <button class="act-btn" onclick="openPanel('eileen')">✨ Ask Eileen</button>
+          </div>
+        </div>
+        <div class="statute-parts">
+          ${a.sections.map(sec => `
+            <div class="statute-part">
+              <div class="part-header" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+                <span class="part-num">${sec.num}</span>
+                <span class="part-title">${sec.title}</span>
+                <span class="part-chevron">›</span>
+              </div>
+              <div class="part-body">
+                <div class="section-item" style="cursor:default">
+                  <div class="sec-content">
+                    <div class="sec-summary" style="font-size:13px;line-height:1.7;color:var(--text-1)">${sec.text}</div>
+                  </div>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  function renderComingSoon(itemId) {
+    document.getElementById('content-area').innerHTML = `
+      <div style="padding:60px 24px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">📚</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Content Loading</div>
+        <div style="font-size:14px;color:var(--text-2)">This resource will be available shortly. Use search or Eileen to find related content.</div>
+      </div>`;
+  }
+
+  // ── BREADCRUMB ────────────────────────────────────────────────────
+  function setBreadcrumb(parts) {
+    const bc = document.getElementById('main-content').querySelector('.breadcrumb') || createBreadcrumb();
+    bc.innerHTML = parts.map((p, i) => `
+      <span class="bc-item ${i === parts.length-1 ? 'current' : ''}" onclick="${i < parts.length-1 ? (i===0?'showWelcome()':'') : ''}">${p}</span>
+      ${i < parts.length-1 ? '<span class="bc-sep">›</span>' : ''}
+    `).join('');
+  }
+
+  function createBreadcrumb() {
+    const bc = document.createElement('div');
+    bc.className = 'breadcrumb';
+    bc.id = 'main-breadcrumb';
+    document.getElementById('content-area').prepend(bc);
+    return bc;
+  }
+
+  // ── PANEL SYSTEM ─────────────────────────────────────────────────
+  let activePanel = null;
+  let splitPanel  = null;
+  let clipboardItems = [];
+  let notesContent = '';
+  let eileenMessages = [];
+  let eileenMessageCount = 0;
+  const EILEEN_FREE_LIMIT = 3;
+
+  function openPanel(panelId) {
+    activePanel = panelId;
+    const drawer = document.getElementById('panel-drawer');
+    drawer.classList.add('open');
+    drawer.classList.remove('split');
+    splitPanel = null;
+
+    // Update rail
+    document.querySelectorAll('.rail-icon-btn').forEach(b => b.classList.remove('active'));
+    const railBtn = document.getElementById(`rail-${panelId}`);
+    if (railBtn) railBtn.classList.add('active');
+
+    const p = PANELS.find(p => p && p.id === panelId);
+    if (p) {
+      document.getElementById('drawer-icon').textContent = p.icon;
+      document.getElementById('drawer-name').textContent = p.label;
+    }
+
+    renderPanelContent(panelId, document.getElementById('drawer-body'), false);
+  }
+
+  function closeDrawer() {
+    document.getElementById('panel-drawer').classList.remove('open');
+    document.querySelectorAll('.rail-icon-btn').forEach(b => b.classList.remove('active'));
+    activePanel = null;
+  }
+
+  function toggleSplit() {
+    if (!activePanel) return;
+    const drawer = document.getElementById('panel-drawer');
+    if (drawer.classList.contains('split')) {
+      drawer.classList.remove('split');
+      splitPanel = null;
+      renderPanelContent(activePanel, document.getElementById('drawer-body'), false);
+    } else {
+      // Suggest second panel
+      const next = activePanel === 'eileen' ? 'notes' : 'eileen';
+      splitPanel = next;
+      drawer.classList.add('split');
+      renderSplitContent();
+    }
+  }
+
+  function renderSplitContent() {
+    const body = document.getElementById('drawer-body');
+    body.innerHTML = '';
+    [activePanel, splitPanel].forEach(panelId => {
+      const pane = document.createElement('div');
+      pane.className = 'panel-pane';
+      const p = PANELS.find(p => p && p.id === panelId);
+      if (p) {
+        pane.innerHTML = `<div class="panel-pane-header">${p.icon} ${p.label}</div><div class="panel-pane-body" id="pane-body-${panelId}"></div>`;
+        body.appendChild(pane);
+        renderPanelContent(panelId, pane.querySelector(`#pane-body-${panelId}`), true);
+      }
+    });
+  }
+
+  function renderPanelContent(panelId, container, isPaneMode) {
+    switch(panelId) {
+      case 'eileen':   renderEileenPanel(container, isPaneMode); break;
+      case 'notes':    renderNotesPanel(container); break;
+      case 'vault':    renderVaultPanel(container); break;
+      case 'clipboard':renderClipboardPanel(container); break;
+      case 'calendar': renderCalendarPanel(container); break;
+      case 'planner':  renderPlannerPanel(container); break;
+      case 'research': renderResearchPanel(container); break;
+      case 'docs':     renderDocsPanel(container); break;
+      default:         container.innerHTML = `<div style="padding:20px;color:var(--text-3);font-size:13px">Panel content loading…</div>`;
+    }
+  }
+
+  // ── EILEEN PANEL ──────────────────────────────────────────────────
+  function renderEileenPanel(container, isPaneMode) {
+    const canAsk = SESSION.hasEileen;
+    const over = !canAsk && eileenMessageCount >= EILEEN_FREE_LIMIT;
+
+    container.innerHTML = `
+      <div class="eileen-panel">
+        ${!isPaneMode ? `
+        <div class="eileen-header-inner">
+          <div class="eileen-nexus">✨</div>
+          <div class="eileen-name">Eileen</div>
+          <div class="eileen-mode">${canAsk ? 'Full AI · ' + TIER_LABELS[SESSION.tier] : 'Basic Help · ' + TIER_LABELS[SESSION.tier]}</div>
+        </div>` : ''}
+        <div class="eileen-advisory">
+          Eileen provides regulatory intelligence. She does not provide legal advice. Consult a qualified employment solicitor for legal advice.
+        </div>
+        <div class="eileen-messages" id="eileen-msgs">
+          ${eileenMessages.map(m => `
+            <div class="msg ${m.role}">
+              <div class="msg-bubble">${m.text}</div>
+              ${m.role === 'eileen' ? `<div class="msg-save" onclick="addToNotesText('${m.text.replace(/'/g,"\\'")}')">📝 Save to Notes</div>` : ''}
+            </div>`).join('')}
+          ${eileenMessages.length === 0 ? `
+            <div class="eileen-quick-actions">
+              <button class="quick-action-btn" onclick="eileenQuick('What is the Employment Rights Act 1996?')">What is the Employment Rights Act 1996?</button>
+              <button class="quick-action-btn" onclick="eileenQuick('Explain the right not to be unfairly dismissed')">Explain unfair dismissal rights</button>
+              <button class="quick-action-btn" onclick="eileenQuick('What does ERA 2025 change?')">What does ERA 2025 change?</button>
+              <button class="quick-action-btn" onclick="eileenQuick('Explain the Equality Act 2010 protected characteristics')">Equality Act protected characteristics</button>
+            </div>` : ''}
+        </div>
+        ${over ? `
+        <div class="eileen-upsell" id="eileen-upsell">
+          <strong>Upgrade for full Eileen AI</strong>
+          <p>You've used your free questions. Upgrade to a Pro Pass for unlimited AI-powered employment law research.</p>
+          <button class="eileen-upsell-btn" onclick="window.location.href='/knowledge-library-pass/?tier=pro'">Upgrade to Pro</button>
+        </div>` : `
+        <div class="eileen-input-area">
+          <div class="eileen-input-wrap">
+            <textarea class="eileen-input" id="eileen-input" placeholder="${canAsk ? 'Ask Eileen anything about UK employment law…' : 'Ask a question…'}" rows="1" onkeydown="eileenKeydown(event)"></textarea>
+            <button class="eileen-send" id="eileen-send" onclick="sendEilleen()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          ${!canAsk ? `<div style="font-size:10px;color:var(--text-3);text-align:center;margin-top:6px">${EILEEN_FREE_LIMIT - eileenMessageCount} questions remaining · <a href="/knowledge-library-pass/?tier=pro" style="color:var(--cyan)">Upgrade to Pro</a></div>` : ''}
+        </div>`}
+      </div>`;
+  }
+
+  function eileenKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendEilleen(); }
+  }
+
+  function eileenQuick(q) {
+    const inp = document.getElementById('eileen-input');
+    if (inp) { inp.value = q; sendEilleen(); }
+    else { addEileenUserMsg(q); callEilleen(q); }
+  }
+
+  async function sendEilleen() {
+    const inp = document.getElementById('eileen-input');
+    if (!inp) return;
+    const text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    addEileenUserMsg(text);
+    await callEilleen(text);
+  }
+
+  function addEileenUserMsg(text) {
+    eileenMessages.push({ role:'user', text });
+    eileenMessageCount++;
+    refreshEileenMessages();
+  }
+
+  async function callEilleen(query) {
+    const canAsk = SESSION.hasEileen;
+    const sendBtn = document.getElementById('eileen-send');
+    if (sendBtn) sendBtn.disabled = true;
+
+    // Add typing indicator
+    eileenMessages.push({ role:'eileen', text:'…', typing: true });
+    refreshEileenMessages();
+
+    try {
+      let responseText;
+
+      if (canAsk) {
+        // Full Eileen via kl_ai_assistant Edge Function
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const { data: { session } } = await sb.auth.getSession().catch(() => ({ data: { session: null } }));
+        const token = session?.access_token;
+
+        const resp = await fetch(KL_AI_FN, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token || SUPABASE_ANON}`,
+            'apikey': SUPABASE_ANON
+          },
+          body: JSON.stringify({
+            messages: eileenMessages.filter(m => !m.typing).map(m => ({ role: m.role === 'eileen' ? 'assistant' : 'user', content: m.text })),
+            tier: SESSION.tier
+          })
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          responseText = data.response || data.message || 'I encountered an issue responding. Please try again.';
+        } else {
+          responseText = 'I\'m having trouble connecting right now. Please try again in a moment.';
+        }
+      } else {
+        // Basic mode — helpful but limited
+        responseText = getBasicEileenResponse(query);
+      }
+
+      // Remove typing indicator
+      eileenMessages = eileenMessages.filter(m => !m.typing);
+      eileenMessages.push({ role:'eileen', text: responseText });
+
+    } catch (e) {
+      eileenMessages = eileenMessages.filter(m => !m.typing);
+      eileenMessages.push({ role:'eileen', text:'I\'m having trouble connecting. Please check your connection and try again.' });
+    }
+
+    refreshEileenMessages();
+    if (sendBtn) sendBtn.disabled = false;
+  }
+
+  function getBasicEileenResponse(query) {
+    const q = query.toLowerCase();
+    if (q.includes('unfair dismissal') || q.includes('dismiss'))
+      return 'Unfair dismissal rights are governed by Part X of the Employment Rights Act 1996 (ERA 1996). Currently employees need 2 years\' service before they can claim unfair dismissal — though ERA 2025 will change this to Day 1 rights once commenced. You can find the full statutory text in the Legislation section. For a full analysis, upgrade to a Pro Pass to access my complete AI capabilities.';
+    if (q.includes('equality') || q.includes('discrimination') || q.includes('protected'))
+      return 'The Equality Act 2010 sets out nine protected characteristics: age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex, and sexual orientation. You can explore the full Act in the Legislation section. For detailed analysis and case law guidance, upgrade to a Pro Pass.';
+    if (q.includes('era 2025') || q.includes('employment rights act 2025'))
+      return 'ERA 2025 received Royal Assent on 18 December 2025. Key changes include: removing the 2-year qualifying period for unfair dismissal, new rights for zero hours workers, SSP from day 1, and stronger trade union rights. Most provisions are not yet in force — commencement dates are set by secondary legislation. Open ERA 2025 in the Legislation section for the full detail. Upgrade to Pro for Eileen\'s complete ERA 2025 analysis.';
+    if (q.includes('working time') || q.includes('annual leave') || q.includes('holiday'))
+      return 'Working time rights are governed by the Working Time Regulations 1998. Key entitlements: 5.6 weeks\' annual leave, max 48-hour average working week (with opt-out), 20-minute rest break for shifts over 6 hours. You can find WTR 1998 in the Legislation section.';
+    return `That\'s a great question about UK employment law. As a basic session, I can direct you to the relevant legislation and guidance in this library. You\'ll find the answer in the ${q.includes('acas') ? 'ACAS Guidance' : 'Legislation'} section. Upgrade to a Pro Pass to access my full AI capabilities for detailed analysis.`;
+  }
+
+  function refreshEileenMessages() {
+    const container = document.querySelector('.eileen-panel');
+    if (container) {
+      const canAsk = SESSION.hasEileen;
+      const over = !canAsk && eileenMessageCount >= EILEEN_FREE_LIMIT;
+      const msgsEl = document.getElementById('eileen-msgs');
+      if (msgsEl) {
+        msgsEl.innerHTML = eileenMessages.map(m => `
+          <div class="msg ${m.role}">
+            <div class="msg-bubble">${m.typing ? '<span style="letter-spacing:2px">●●●</span>' : m.text}</div>
+            ${m.role === 'eileen' && !m.typing ? `<div class="msg-save" onclick="addToNotesText(\`${m.text.replace(/`/g,'\\`')}\`)">📝 Save to Notes</div>` : ''}
+          </div>`).join('');
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+      }
+    }
+  }
+
+  // ── NOTES PANEL ───────────────────────────────────────────────────
+  function renderNotesPanel(container) {
+    container.innerHTML = `
+      <div style="display:flex;flex-direction:column;height:100%">
+        <div class="notes-toolbar">
+          <button class="notes-tool" onclick="execCmd('bold')" title="Bold"><strong>B</strong></button>
+          <button class="notes-tool" onclick="execCmd('italic')" title="Italic"><em>I</em></button>
+          <button class="notes-tool" onclick="execCmd('underline')" title="Underline"><u>U</u></button>
+          <div class="notes-sep"></div>
+          <button class="notes-tool" onclick="execCmd('insertUnorderedList')" title="Bullet list">≡</button>
+          <button class="notes-tool" onclick="execCmd('insertOrderedList')" title="Numbered list">1.</button>
+          <div class="notes-sep"></div>
+          <button class="notes-tool" onclick="execCmd('formatBlock','h3')" title="Heading">H</button>
+          <button class="notes-tool" onclick="execCmd('removeFormat')" title="Clear">✕</button>
+        </div>
+        <div class="notes-editor" id="notes-editor" contenteditable="true"
+          data-placeholder="Start taking notes… Text you save from statutes, ACAS guidance, and Eileen responses will appear here."
+          oninput="onNotesInput()">${notesContent}</div>
+        <div class="notes-footer">
+          <div class="notes-save-state">
+            <div class="save-dot" id="notes-save-dot"></div>
+            <span id="notes-save-label">Saved</span>
+          </div>
+          <button class="sec-action-btn" onclick="copyNotesToClipboard()">Copy all</button>
+        </div>
+      </div>`;
+  }
+
+  function execCmd(cmd, val) {
+    document.execCommand(cmd, false, val || null);
+    document.getElementById('notes-editor')?.focus();
+  }
+
+  let notesSaveTimer;
+  function onNotesInput() {
+    const dot = document.getElementById('notes-save-dot');
+    const lbl = document.getElementById('notes-save-label');
+    if (dot) { dot.classList.add('unsaved'); lbl.textContent = 'Unsaved…'; }
+    clearTimeout(notesSaveTimer);
+    notesSaveTimer = setTimeout(() => {
+      notesContent = document.getElementById('notes-editor')?.innerHTML || '';
+      if (dot) { dot.classList.remove('unsaved'); lbl.textContent = 'Saved'; }
+    }, 1500);
+  }
+
+  function copyNotesToClipboard() {
+    const text = document.getElementById('notes-editor')?.innerText || '';
+    navigator.clipboard.writeText(text).then(() => showToast('Notes copied to clipboard', 'success'));
+  }
+
+  // ── VAULT PANEL ───────────────────────────────────────────────────
+  function renderVaultPanel(container) {
+    container.innerHTML = `
+      <div>
+        <div class="vault-upload-zone" onclick="openUploadModal()" id="vault-drop">
+          <div class="vault-upload-icon">📤</div>
+          <div class="vault-upload-text">Upload a contract, policy, or handbook</div>
+          <div class="vault-upload-sub">PDF or DOCX · Max 10MB · Click or drag &amp; drop</div>
+        </div>
+        <div class="vault-doc-list" id="vault-list">
+          <div style="font-size:12px;color:var(--text-3);text-align:center;padding:16px 0">
+            No documents uploaded yet. Upload a contract or policy to check it against current law.
+          </div>
+        </div>
+      </div>`;
+
+    // Drag and drop on vault drop zone
+    const zone = document.getElementById('vault-drop');
+    if (zone) {
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+      zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleDroppedFile(e.dataTransfer.files[0]); });
+    }
+  }
+
+  // ── CLIPBOARD PANEL ───────────────────────────────────────────────
+  function renderClipboardPanel(container) {
+    container.innerHTML = clipboardItems.length === 0 ? `
+      <div style="text-align:center;padding:30px 16px;color:var(--text-3);font-size:13px">
+        <div style="font-size:32px;margin-bottom:10px">📌</div>
+        No clips yet. Use the 📌 button on any section to save it here.
+      </div>` : `
+      <div class="clip-items">
+        ${clipboardItems.map((c, i) => `
+          <div class="clip-item">
+            <div class="clip-source">${c.source}</div>
+            <div class="clip-text">${c.text.substring(0,140)}${c.text.length > 140 ? '…' : ''}</div>
+            <div class="clip-actions">
+              <button class="clip-btn" onclick="copyClip(${i})">Copy</button>
+              <button class="clip-btn" onclick="sendClipToNotes(${i})">→ Notes</button>
+              <button class="clip-btn" onclick="removeClip(${i})">✕</button>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  function copyClip(i) { navigator.clipboard.writeText(clipboardItems[i].text).then(() => showToast('Copied', 'success')); }
+  function removeClip(i) { clipboardItems.splice(i,1); if (activePanel === 'clipboard') openPanel('clipboard'); }
+  function sendClipToNotes(i) {
+    const c = clipboardItems[i];
+    notesContent += `<p><em>[${c.source}]</em></p><p>${c.text}</p>`;
+    showToast('Added to Notes', 'success');
+  }
+
+  // ── CALENDAR PANEL ────────────────────────────────────────────────
+  function renderCalendarPanel(container) {
+    container.innerHTML = `
+      <div>
+        <div class="cal-section-hd">ERA 2025 — Upcoming Commencements</div>
+        <div class="cal-events">
+          <div class="cal-event">
+            <div class="cal-dot amber"></div>
+            <div style="flex:1">
+              <div class="cal-event-date">Expected Q3 2026</div>
+              <div class="cal-event-name">Day 1 Unfair Dismissal Rights</div>
+              <div class="cal-event-src">ERA 2025 s.1 · Commencement date TBC by regulations</div>
+            </div>
+          </div>
+          <div class="cal-event">
+            <div class="cal-dot amber"></div>
+            <div style="flex:1">
+              <div class="cal-event-date">Expected October 2026</div>
+              <div class="cal-event-name">SSP — Removal of 3-Day Waiting Period</div>
+              <div class="cal-event-src">ERA 2025 s.21 · SSP payable from day 1 of illness</div>
+            </div>
+          </div>
+          <div class="cal-event">
+            <div class="cal-dot amber"></div>
+            <div style="flex:1">
+              <div class="cal-event-date">Expected 2026–2027</div>
+              <div class="cal-event-name">Zero Hours — Guaranteed Hours Rights</div>
+              <div class="cal-event-src">ERA 2025 s.7 · Secondary legislation required</div>
+            </div>
+          </div>
+        </div>
+        <div class="cal-section-hd">Regulatory Updates</div>
+        <div class="cal-events">
+          <div class="cal-event">
+            <div class="cal-dot teal"></div>
+            <div style="flex:1">
+              <div class="cal-event-date">April 2026</div>
+              <div class="cal-event-name">National Minimum Wage — Annual Rate Review</div>
+              <div class="cal-event-src">NMWA 1998 · Annual uprating order</div>
+            </div>
+          </div>
+          <div class="cal-event">
+            <div class="cal-dot teal"></div>
+            <div style="flex:1">
+              <div class="cal-event-date">April 2026</div>
+              <div class="cal-event-name">SSP Weekly Rate — Annual Uprating</div>
+              <div class="cal-event-src">SSCBA 1992 · Annual uprating</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── CONTRACT PLANNER PANEL ────────────────────────────────────────
+  function renderPlannerPanel(container) {
+    if (!SESSION.hasPlanner) {
+      container.innerHTML = `
+        <div class="planner-locked">
+          <div class="planner-lock-icon">📋</div>
+          <div class="planner-lock-title">Contract Planner</div>
+          <div class="planner-lock-desc">The Contract Planner is available at Governance tier and above. It assembles statute-aware requirement checklists for employment contract construction — guided by Eileen, governed by the three founding constitutions.</div>
+          <button class="planner-upgrade-btn" onclick="window.location.href='/account/#upgrade'">Upgrade to Governance</button>
+        </div>`;
+    } else {
+      container.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text-2)">Contract Planner — Full build coming soon in this session.</div>`;
+    }
+  }
+
+  // ── RESEARCH PANEL ────────────────────────────────────────────────
+  function renderResearchPanel(container) {
+    container.innerHTML = `
+      <div>
+        <div style="margin-bottom:12px">
+          <input type="text" class="f-input" placeholder="Search legislation and guidance…" id="research-search" oninput="filterResearch(this.value)" style="background:var(--navy-d);border:1px solid var(--border);border-radius:8px;padding:9px 12px;width:100%;color:var(--text-1);font-family:inherit;font-size:13px;outline:none">
+        </div>
+        <div id="research-list">
+          ${NAV_CATEGORIES.slice(0,2).map(cat => `
+            <div style="margin-bottom:14px">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:8px">${cat.label}</div>
+              ${cat.items.map(item => `
+                <div onclick="loadContent('${cat.id}','${item.id}');closeDrawer()" style="padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--text-2);transition:all .15s" onmouseover="this.style.background='var(--navy-l)'" onmouseout="this.style.background='transparent'">
+                  ${item.short || item.label}
+                </div>`).join('')}
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── DOCS PANEL ────────────────────────────────────────────────────
+  function renderDocsPanel(container) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:24px 16px">
+        <div style="font-size:32px;margin-bottom:10px">📄</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">Document Creation</div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Create structured employment documents: contract outlines, policy drafts, procedure documents. All exports carry advisory watermarks.</div>
+        <button onclick="showToast('Document creation available in full platform release','info')" style="background:var(--cyan);color:var(--navy);border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer">New Document</button>
+      </div>`;
+  }
+
+  // ── SEARCH ────────────────────────────────────────────────────────
+  function initSearch() {
+    const inp = document.getElementById('search-input');
+    inp.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
+    inp.addEventListener('input', e => {
+      const q = e.target.value.trim();
+      if (q.length < 2) { closeSearch(); return; }
+      doSearch(q);
+    });
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); inp.focus(); }
+    });
+  }
+
+  function doSearch(query) {
+    const q = query.toLowerCase();
+    const results = [];
+
+    // Search statutes
+    Object.entries(STATUTES).forEach(([id, s]) => {
+      if (s.title.toLowerCase().includes(q) || s.short.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)) {
+        results.push({ type:'legislation', id, title: s.title, sub: s.short, catId:'legislation' });
+      }
+      s.parts.forEach(part => {
+        part.sections.forEach(sec => {
+          if (sec.title.toLowerCase().includes(q) || sec.summary.toLowerCase().includes(q)) {
+            results.push({ type:'section', id, secNum: sec.num, title: `${sec.num} — ${sec.title}`, sub: s.short, catId:'legislation' });
+          }
+        });
+      });
+    });
+
+    // Search nav categories
+    NAV_CATEGORIES.forEach(cat => {
+      cat.items.forEach(item => {
+        if (item.label.toLowerCase().includes(q)) {
+          results.push({ type:'guidance', id: item.id, title: item.label, sub: cat.label, catId: cat.id });
+        }
+      });
+    });
+
+    const sr = document.getElementById('search-results');
+    const body = document.getElementById('sr-body');
+    document.getElementById('sr-title').textContent = `${results.length} result${results.length !== 1 ? 's' : ''} for "${query}"`;
+
+    const groups = {};
+    results.forEach(r => { if (!groups[r.type]) groups[r.type] = []; groups[r.type].push(r); });
+
+    const typeLabels = { legislation:'Legislation', section:'Sections', guidance:'Guidance' };
+    body.innerHTML = Object.entries(groups).map(([type, items]) => `
+      <div class="sr-group-hd">${typeLabels[type] || type}</div>
+      <div class="sr-items">
+        ${items.slice(0,5).map(item => `
+          <div class="sr-item" onclick="loadContent('${item.catId}','${item.id}');closeSearch()">
+            <div class="sr-item-icon">${type === 'legislation' || type === 'section' ? '📚' : '📋'}</div>
+            <div>
+              <div class="sr-item-title">${item.title.replace(new RegExp(query,'gi'), m => `<mark>${m}</mark>`)}</div>
+              <div class="sr-item-sub">${item.sub}</div>
+            </div>
+          </div>`).join('')}
+      </div>`).join('');
+
+    sr.classList.add('active');
+  }
+
+  function closeSearch() {
+    document.getElementById('search-results').classList.remove('active');
+    document.getElementById('search-input').value = '';
+  }
+
+  // ── UPLOAD ────────────────────────────────────────────────────────
+  function initUpload() {
+    const zone = document.getElementById('drop-zone');
+    if (!zone) return;
+    zone.addEventListener('click', () => document.getElementById('file-input').click());
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleFileSelect({ files: e.dataTransfer.files }); });
+  }
+
+  let pendingFile = null;
+  function openUploadModal() { document.getElementById('upload-modal').classList.add('open'); }
+  function closeUploadModal() { document.getElementById('upload-modal').classList.remove('open'); pendingFile = null; }
+
+  function handleFileSelect(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
+      showToast('Please upload a PDF or DOCX file', 'info'); return;
+    }
+    if (file.size > 10 * 1024 * 1024) { showToast('File must be under 10MB', 'info'); return; }
+    pendingFile = file;
+    const status = document.getElementById('upload-status');
+    status.style.display = 'block';
+    status.textContent = `Selected: ${file.name} (${(file.size/1024).toFixed(0)}KB)`;
+    const btn = document.getElementById('upload-confirm-btn');
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+
+  function handleDroppedFile(file) { handleFileSelect({ files: [file] }); openUploadModal(); }
+
+  function confirmUpload() {
+    if (!pendingFile) return;
+    showToast(`${pendingFile.name} added to Document Vault`, 'success');
+    closeUploadModal();
+    // If vault panel is open, re-render it
+    if (activePanel === 'vault') openPanel('vault');
+  }
+
+  // ── CLIPBOARD HELPERS ─────────────────────────────────────────────
+  function addToClipboard(title, source) {
+    clipboardItems.unshift({ source: `${source} — ${title}`, text: title });
+    if (clipboardItems.length > 50) clipboardItems.pop();
+    showToast('Saved to Clipboard', 'success');
+    // Update badge
+    const badge = document.querySelector('#rail-clipboard .rail-badge');
+    if (badge) badge.classList.add('cyan');
+  }
+
+  function addToClipboardText(title, text) {
+    clipboardItems.unshift({ source: title, text });
+    if (clipboardItems.length > 50) clipboardItems.pop();
+    showToast('Saved to Clipboard', 'success');
+  }
+
+  function addToNotes(title) {
+    notesContent += `<p><strong>${title}</strong></p><p><br></p>`;
+    showToast('Added to Notes', 'success');
+    if (activePanel === 'notes') openPanel('notes');
+  }
+
+  function addToNotesText(text) {
+    notesContent += `<p>${text}</p><p><br></p>`;
+    showToast('Saved to Notes', 'success');
+    if (activePanel === 'notes') openPanel('notes');
+  }
+
+  function handleRef(ref) {
+    showToast(`Opening: ${ref}`, 'info');
+    // Future: navigate to cross-referenced statute section
+  }
+
+  function filterResearch(q) {
+    // Simple filter on research panel
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────────────
+  function showToast(msg, type = 'info') {
+    const stack = document.getElementById('toast-stack');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    stack.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  // ── KEYBOARD SHORTCUTS ────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('panel-drawer').classList.contains('open')) closeDrawer();
+    if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '8') {
+      e.preventDefault();
+      const idx = parseInt(e.key) - 1;
+      const panel = PANELS.filter(p => p)[idx];
+      if (panel) openPanel(panel.id);
+    }
   });
-}
 
-// Close on Escape
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
-
-// ===== INIT =====
-fetchLegislation();
-</script>
+  </script>
 </body>
 </html>
