@@ -296,7 +296,7 @@ class PanelRail {
       }
 
       // Sprint gate: show coming soon for future panels
-      if (panel.sprint > 3) {
+      if (panel.sprint > 5) {
         this.drawer.showComingSoon(panel.name);
         return;
       }
@@ -743,6 +743,12 @@ class PanelDrawer {
       this._panels['calendar_split'].mount(container);
     } else if (panelId === 'planner' && window.__PanelPlanner) {
       this._panels['planner_split'] = window.__PanelPlanner(container);
+    } else if (panelId === 'eileen' && window.__PanelEileen) {
+      this._panels['eileen_split'] = new window.__PanelEileen(container, this.bus);
+      this._panels['eileen_split'].mount(container);
+    } else if (panelId === 'research' && window.__PanelResearch) {
+      this._panels['research_split'] = new window.__PanelResearch(container, this.bus);
+      this._panels['research_split'].mount(container);
     } else {
       container.innerHTML =
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px;text-align:center;">' +
@@ -782,6 +788,16 @@ class PanelDrawer {
       this._panels.calendar.mount(this.contentEl);
     } else if (panelId === 'planner' && window.__PanelPlanner) {
       this._panels.planner = window.__PanelPlanner(this.contentEl);
+    } else if (panelId === 'eileen' && window.__PanelEileen) {
+      if (!this._panels.eileen) {
+        this._panels.eileen = new window.__PanelEileen(this.contentEl, this.bus);
+      }
+      this._panels.eileen.mount(this.contentEl);
+    } else if (panelId === 'research' && window.__PanelResearch) {
+      if (!this._panels.research) {
+        this._panels.research = new window.__PanelResearch(this.contentEl, this.bus);
+      }
+      this._panels.research.mount(this.contentEl);
     } else {
       // Placeholder for future panels
       this.contentEl.innerHTML =
@@ -931,7 +947,7 @@ function initWorkspace() {
     if (wasSplit && splitPanels && splitPanels.length === 2 && window.innerWidth >= 1024) {
       // Validate both panels are available (sprint gate + tier gate)
       var leftOk = PANEL_TYPES.some(function(p) {
-        if (p.id !== splitPanels[0] || p.sprint > 3) return false;
+        if (p.id !== splitPanels[0] || p.sprint > 5) return false;
         if (p.tierGate) {
           var t = window.__ailaneUser ? window.__ailaneUser.tier : null;
           return p.tierGate.indexOf(t) !== -1;
@@ -939,7 +955,7 @@ function initWorkspace() {
         return true;
       });
       var rightOk = PANEL_TYPES.some(function(p) {
-        if (p.id !== splitPanels[1] || p.sprint > 3) return false;
+        if (p.id !== splitPanels[1] || p.sprint > 5) return false;
         if (p.tierGate) {
           var t = window.__ailaneUser ? window.__ailaneUser.tier : null;
           return p.tierGate.indexOf(t) !== -1;
@@ -1046,6 +1062,29 @@ function initWorkspace() {
   bus.on('calendar:event:created', function() {});
   bus.on('calendar:event:updated', function() {});
   bus.on('calendar:event:deleted', function() {});
+
+  // Sprint 5: Eileen + Research signals
+  bus.on('eileen:ready', function() {});
+  bus.on('eileen:response', function(data) {
+    // Badge logic: cyan badge when Eileen panel is not active
+    if (drawer.activePanel !== 'eileen' &&
+        !(drawer._splitMode && (drawer._splitPanels[0] === 'eileen' || drawer._splitPanels[1] === 'eileen'))) {
+      if (window.__setRailBadge) window.__setRailBadge('eileen', 'cyan');
+    }
+  });
+  bus.on('statute:viewed', function() {});
+  bus.on('note:active', function() {});
+  bus.on('document:active', function() {});
+  bus.on('requirement:focused', function() {});
+  bus.on('content:copy', function() {});
+  bus.on('clip:added', function() {});
+
+  // Clear Eileen badge when panel is opened
+  bus.on('panel:opened', function(data) {
+    if (data.panelId === 'eileen') {
+      if (window.__clearRailBadge) window.__clearRailBadge('eileen');
+    }
+  });
 
   // Expose context bus globally for panel modules
   window.__contextBus = bus;

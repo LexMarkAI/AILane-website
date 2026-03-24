@@ -4,4 +4,6 @@ import './panel-documents.js';
 import './panel-clipboard.js';
 import './panel-calendar.js';
 import './panel-planner.js';
+import './panel-eileen.js';
+import './panel-research.js';
 import './panel-system.js';
