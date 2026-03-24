@@ -1041,8 +1041,31 @@ function initWorkspace() {
   bus.on('planner:gap:loaded', function() {});
   bus.on('planner:export:requested', function() {});
 
+  // Sprint 4b: Calendar signals
+  bus.on('calendar:view:changed', function() {});
+  bus.on('calendar:event:created', function() {});
+  bus.on('calendar:event:updated', function() {});
+  bus.on('calendar:event:deleted', function() {});
+
   // Expose context bus globally for panel modules
   window.__contextBus = bus;
+
+  // Rail badge API (KLUI-001 §2.1)
+  window.__setRailBadge = function(panelKey, colour) {
+    var btn = rail.el ? rail.el.querySelector('[data-panel="' + panelKey + '"]') : null;
+    if (!btn) return;
+    var existing = btn.querySelector('.ws-badge');
+    if (existing) existing.remove();
+    var badge = document.createElement('span');
+    badge.className = 'ws-badge ws-badge--' + colour;
+    btn.appendChild(badge);
+  };
+  window.__clearRailBadge = function(panelKey) {
+    var btn = rail.el ? rail.el.querySelector('[data-panel="' + panelKey + '"]') : null;
+    if (!btn) return;
+    var existing = btn.querySelector('.ws-badge');
+    if (existing) existing.remove();
+  };
 
   // Expose for panel modules
   window.__ailaneWorkspace = { bus: bus, prefs: prefs, drawer: drawer, rail: rail };
