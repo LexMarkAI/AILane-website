@@ -1,6 +1,310 @@
 <!DOCTYPE html>
-<html><head>
-<meta http-equiv="refresh" content="0;url=/knowledge-library/">
-<script>window.location.replace('/knowledge-library/');</script>
-<title>Redirecting...</title>
-</head><body><p>Redirecting to <a href="/knowledge-library/">knowledge library</a>...</p></body></html>
+<html lang="en">
+<head>
+  <!-- Supabase CDN FIRST (protected page — KLUI-001 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 Analytics (mandatory — G-NTNXWZN31C) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Ailane Knowledge Library</title>
+  <meta name="description" content="Your Ailane account dashboard. View compliance activity, manage documents, and access your Knowledge Library workspace.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Workspace styles (dashboard widgets) -->
+  <link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0A2342;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+    }
+
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .dash-header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .dash-wordmark {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #fff;
+      text-decoration: none;
+    }
+    .dash-wordmark:hover { color: #38bdf8; }
+
+    .dash-header-divider {
+      width: 1px;
+      height: 20px;
+      background: #334155;
+    }
+
+    .dash-header-title {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    .dash-tier-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border: 1px solid #0A5C52;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #14b8a6;
+      letter-spacing: 0.5px;
+      margin-left: 8px;
+    }
+
+    .dash-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dash-user-email {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .dash-signout-btn {
+      background: transparent;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .dash-signout-btn:hover {
+      border-color: #64748b;
+      color: #e2e8f0;
+    }
+
+    .dash-welcome {
+      padding: 32px 32px 0;
+    }
+
+    .dash-welcome h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+
+    .dash-welcome p {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .dash-content {
+      padding: 24px 32px;
+    }
+
+    .dash-footer {
+      padding: 24px 32px;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .dash-footer-legal {
+      display: flex;
+      gap: 16px;
+    }
+
+    .dash-footer-link {
+      font-size: 12px;
+      color: #64748b;
+      text-decoration: none;
+    }
+    .dash-footer-link:hover { color: #94a3b8; text-decoration: underline; }
+
+    .dash-footer-company {
+      font-size: 11px;
+      color: #475569;
+    }
+
+    /* Loading state */
+    .dash-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .dash-loading-text { color: #64748b; font-size: 14px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .dash-header { padding: 16px; flex-direction: column; gap: 12px; }
+      .dash-welcome { padding: 20px 16px 0; }
+      .dash-content { padding: 16px; }
+      .dash-footer { padding: 16px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body style="visibility:hidden">
+
+  <div id="dash-app">
+    <div class="dash-loading" id="dash-loading">
+      <div class="dash-loading-text">Loading dashboard...</div>
+    </div>
+
+    <div id="dash-main" style="display:none">
+      <!-- Header -->
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <a href="/" class="dash-wordmark">AILANE</a>
+          <div class="dash-header-divider"></div>
+          <span class="dash-header-title">Dashboard</span>
+          <span class="dash-tier-badge" id="dash-tier-badge"></span>
+        </div>
+        <div class="dash-header-right">
+          <span class="dash-user-email" id="dash-user-email"></span>
+          <a href="/account/workspace/" class="ws-dashboard-workspace-btn" aria-label="Open full workspace">
+            Open Workspace &rarr;
+          </a>
+          <button class="dash-signout-btn" id="dash-signout-btn">Sign Out</button>
+        </div>
+      </header>
+
+      <!-- Welcome section -->
+      <div class="dash-welcome">
+        <h1 id="dash-welcome-heading">Welcome back</h1>
+        <p>Your employment law compliance activity at a glance. Use the widgets below to navigate your workspace.</p>
+      </div>
+
+      <!-- Dashboard widgets container (populated by dashboard-widgets.js) -->
+      <div class="dash-content">
+        <div id="ws-dashboard-widgets"></div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="dash-footer">
+        <div class="dash-footer-legal">
+          <a href="/terms/" class="dash-footer-link">Terms of Service</a>
+          <a href="/privacy/" class="dash-footer-link">Privacy Policy</a>
+        </div>
+        <span class="dash-footer-company">&copy; 2026 AI Lane Limited. Company No. 17035654. ICO Reg. 00013389720.</span>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Workspace bundle (dashboard widgets + panel-system for signal handlers) -->
+  <script src="/workspace/dist/workspace-bundle.js"></script>
+
+  <script>
+    (function() {
+      var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1NDQ5MDIsImV4cCI6MjA1NzEyMDkwMn0.LMfOjHp97P9MKaOeaK3GI2JCQ7kj5Kxpuq6llLD-1H0';
+      var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'institutional'];
+      var TIER_LABELS = { operational_readiness: 'Operational', operational: 'Operational', governance: 'Governance', institutional: 'Institutional' };
+
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      async function guard() {
+        try {
+          var result = await sb.auth.getSession();
+          var session = result.data ? result.data.session : null;
+          if (session) return checkTier(session);
+
+          // Wait for auth state with 6s timeout
+          return new Promise(function(resolve) {
+            var timeout = setTimeout(function() { window.location.replace('/login/'); }, 6000);
+            sb.auth.onAuthStateChange(function(event, s) {
+              if (s) { clearTimeout(timeout); checkTier(s); resolve(); }
+            });
+          });
+        } catch (e) { window.location.replace('/login/'); }
+      }
+
+      async function checkTier(session) {
+        var token = session.access_token;
+        var payload = JSON.parse(atob(token.split('.')[1]));
+        var userId = payload.sub;
+
+        var res = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=subscription_tier',
+          { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        var profiles = await res.json();
+        var tier = (profiles && profiles[0]) ? profiles[0].subscription_tier : null;
+
+        if (!tier || ALLOWED_TIERS.indexOf(tier) === -1) {
+          window.location.replace('/login/');
+          return;
+        }
+
+        // Set global user object for workspace bundle
+        window.__ailaneUser = {
+          id: userId,
+          email: payload.email,
+          tier: tier,
+          tierLabel: TIER_LABELS[tier] || tier,
+          orgId: null,
+          token: token
+        };
+
+        // Store anon key for REST calls
+        window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
+        // Populate header elements
+        document.getElementById('dash-tier-badge').textContent = TIER_LABELS[tier] || tier;
+        document.getElementById('dash-user-email').textContent = payload.email || '';
+
+        // Welcome heading with first name if available
+        var emailName = (payload.email || '').split('@')[0];
+        if (emailName) {
+          var capitalised = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+          document.getElementById('dash-welcome-heading').textContent = 'Welcome back, ' + capitalised;
+        }
+
+        // Sign out handler
+        document.getElementById('dash-signout-btn').addEventListener('click', async function() {
+          await sb.auth.signOut();
+          window.location.replace('/login/');
+        });
+
+        // Hide loading, show dashboard
+        document.getElementById('dash-loading').style.display = 'none';
+        document.getElementById('dash-main').style.display = 'block';
+        document.body.style.visibility = 'visible';
+
+        // Initialise workspace bundle — panel-system.js detects /account/dashboard/ and renders widgets
+        if (window.AilaneWorkspace && window.AilaneWorkspace.init) {
+          window.AilaneWorkspace.init();
+        }
+      }
+
+      guard();
+    })();
+  </script>
+</body>
+</html>
