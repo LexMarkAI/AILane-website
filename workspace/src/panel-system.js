@@ -891,7 +891,7 @@ function initWorkspace() {
   }
 
   // Tier guard: only render for workspace-enabled tiers
-  var wsEnabledTiers = ['operational', 'governance', 'institutional'];
+  var wsEnabledTiers = ['operational', 'operational_readiness', 'governance', 'institutional'];
   if (!wsEnabledTiers.includes(window.__ailaneUser.tier)) {
     return;
   }
@@ -907,7 +907,6 @@ function initWorkspace() {
     '/auth/callback/',
     '/login/',
     '/account/',
-    '/account/dashboard/',
     '/governance-dashboard/',
     '/terms/',
     '/privacy/',
@@ -929,8 +928,41 @@ function initWorkspace() {
 
   var bus = new ContextBus();
   var prefs = new PreferenceManager();
+  var user = window.__ailaneUser;
+
+  // Expose workspace internals early for workspace-mode.js and dashboard-widgets.js
+  window.__contextBus = bus;
+  window.__ailaneWorkspace = { bus: bus, prefs: prefs, drawer: null, rail: null };
+
+  // Sprint 6a: Workspace mode detection (KLUI-001 §2.3)
+  var isWorkspaceMode = window.location.pathname.startsWith('/account/workspace');
+  if (isWorkspaceMode) {
+    // Don't render the rail/drawer — workspace-mode.js handles everything
+    var wsGrid = document.getElementById('ws-grid');
+    if (wsGrid && window.__WorkspaceMode) {
+      // Load preferences first, then init workspace mode
+      prefs.loadFromSupabase().then(function() {
+        window.__WorkspaceMode.init(wsGrid, bus, user);
+      });
+    }
+    return;
+  }
+
+  // Sprint 6a: Dashboard widget auto-init (KLUI-001 §11.2)
+  var isDashboard = window.location.pathname.startsWith('/account/dashboard');
+  if (isDashboard) {
+    var widgetContainer = document.getElementById('ws-dashboard-widgets');
+    if (widgetContainer && window.__DashboardWidgets) {
+      window.__DashboardWidgets.renderAll(widgetContainer, user);
+    }
+    // Dashboard does not render rail/drawer — widgets only
+    return;
+  }
+
   var drawer = new PanelDrawer(prefs, bus);
   var rail = new PanelRail(drawer, prefs);
+  window.__ailaneWorkspace.drawer = drawer;
+  window.__ailaneWorkspace.rail = rail;
 
   // NOTE: CSS loaded statically via <link> in page <head> (Discrepancy 8)
   // No dynamic CSS loading here.
@@ -1086,9 +1118,6 @@ function initWorkspace() {
     }
   });
 
-  // Expose context bus globally for panel modules
-  window.__contextBus = bus;
-
   // Rail badge API (KLUI-001 §2.1)
   window.__setRailBadge = function(panelKey, colour) {
     var btn = rail.el ? rail.el.querySelector('[data-panel="' + panelKey + '"]') : null;
@@ -1106,8 +1135,18 @@ function initWorkspace() {
     if (existing) existing.remove();
   };
 
-  // Expose for panel modules
-  window.__ailaneWorkspace = { bus: bus, prefs: prefs, drawer: drawer, rail: rail };
+  // Sprint 6a: Panel open signal handlers for Quick Actions (KLUI-001 §11.2)
+  var panelKeys = ['vault', 'notes', 'documents', 'eileen', 'research', 'planner', 'clipboard', 'calendar'];
+  panelKeys.forEach(function(key) {
+    bus.on('panel:open:' + key, function() {
+      drawer.handlePanelClick(key);
+      rail._updateActiveState();
+    });
+  });
+
+  // Update workspace global with drawer/rail references
+  window.__ailaneWorkspace.drawer = drawer;
+  window.__ailaneWorkspace.rail = rail;
 }
 
 // Auto-init on DOM ready

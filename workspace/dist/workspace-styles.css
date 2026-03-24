@@ -2604,3 +2604,484 @@ body.ws-overlay-mode .ws-drawer.open ~ .ws-overlay-backdrop {
 .ws-badge--cyan {
   background: #38bdf8;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   WORKSPACE MODE — Full Workspace Layout (KLUI-001 §2.3)
+   Sprint 6a
+   ══════════════════════════════════════════════════════════════ */
+
+.ws-workspace-topbar {
+  height: 48px;
+  background: #0A2342;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.ws-workspace-wordmark {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #fff;
+  text-decoration: none;
+}
+.ws-workspace-wordmark:hover { color: #38bdf8; }
+
+.ws-workspace-centre {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ws-workspace-label {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.ws-workspace-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid #0A5C52;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #14b8a6;
+  letter-spacing: 0.5px;
+}
+
+.ws-workspace-exit-btn {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ws-workspace-exit-btn:hover {
+  border-color: #64748b;
+  color: #fff;
+}
+
+.ws-workspace-panel-bar {
+  height: 40px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.ws-workspace-panel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  position: relative;
+}
+.ws-workspace-panel-btn:hover { color: #e2e8f0; }
+.ws-workspace-panel-btn--active {
+  color: #e2e8f0;
+  border-bottom-color: #0A5C52;
+}
+
+.ws-workspace-grid {
+  flex: 1;
+  display: grid;
+  gap: 1px;
+  background: #1e293b;
+  overflow: hidden;
+}
+.ws-workspace-grid--0 { grid-template-columns: 1fr; }
+.ws-workspace-grid--1 { grid-template-columns: 1fr; }
+.ws-workspace-grid--2 { grid-template-columns: 1fr 1fr; }
+.ws-workspace-grid--3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.ws-workspace-grid--3 > :nth-child(3) { grid-column: 1 / -1; }
+.ws-workspace-grid--4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+.ws-workspace-cell {
+  background: #0A2342;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+}
+
+.ws-workspace-resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  background: #1e293b;
+  transition: background 0.15s;
+}
+.ws-workspace-resize-handle:hover { background: #38bdf8; }
+
+.ws-workspace-max-notice {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #fbbf24;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 1000;
+  animation: ws-notice-fade 3s ease-in-out forwards;
+}
+@keyframes ws-notice-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD WIDGETS (KLUI-001 §11.2)
+   Sprint 6a
+   ══════════════════════════════════════════════════════════════ */
+
+.ws-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 0 24px 0;
+}
+
+.ws-dashboard-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+  transition: border-color 0.2s;
+}
+.ws-dashboard-card:hover { border-color: #334155; }
+
+.ws-dashboard-card--full {
+  grid-column: 1 / -1;
+}
+
+.ws-dashboard-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ws-dashboard-card-link {
+  font-size: 12px;
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ws-dashboard-card-link:hover { text-decoration: underline; }
+
+.ws-dashboard-stat-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.ws-dashboard-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ws-dashboard-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1;
+}
+.ws-dashboard-stat-label {
+  font-size: 12px;
+  color: #64748b;
+}
+.ws-dashboard-stat-value--red { color: #ef4444; }
+.ws-dashboard-stat-value--amber { color: #D97706; }
+.ws-dashboard-stat-value--green { color: #22c55e; }
+.ws-dashboard-stat-value--teal { color: #14b8a6; }
+
+.ws-dashboard-timeline {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ws-dashboard-timeline-event {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: rgba(15,23,42,0.5);
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  min-width: 160px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.ws-dashboard-timeline-event:hover { border-color: #334155; }
+
+.ws-dashboard-timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ws-dashboard-timeline-dot--amber { background: #D97706; }
+.ws-dashboard-timeline-dot--teal { background: #0A5C52; }
+.ws-dashboard-timeline-dot--navy { background: #0A2342; border: 1px solid #334155; }
+
+.ws-dashboard-timeline-date {
+  font-size: 11px;
+  color: #64748b;
+}
+.ws-dashboard-timeline-title {
+  font-size: 13px;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.ws-dashboard-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #0f172a;
+  cursor: pointer;
+}
+.ws-dashboard-list-item:last-child { border-bottom: none; }
+.ws-dashboard-list-item:hover { background: rgba(15,23,42,0.3); border-radius: 6px; padding: 10px 8px; margin: 0 -8px; }
+
+.ws-dashboard-list-title {
+  font-size: 14px;
+  color: #e2e8f0;
+  font-weight: 500;
+  flex: 1;
+}
+.ws-dashboard-list-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+.ws-dashboard-list-preview {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.ws-dashboard-step-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(10,92,82,0.15);
+  color: #14b8a6;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ws-dashboard-msg-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: rgba(56,189,248,0.15);
+  color: #38bdf8;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ws-dashboard-quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ws-dashboard-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.ws-dashboard-quick-btn:hover {
+  border-color: #38bdf8;
+  background: rgba(56,189,248,0.05);
+}
+.ws-dashboard-quick-btn--primary {
+  background: #0A5C52;
+  border-color: #0A5C52;
+  color: #fff;
+}
+.ws-dashboard-quick-btn--primary:hover {
+  background: #0d7a6e;
+  border-color: #0d7a6e;
+}
+
+.ws-dashboard-empty {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ws-dashboard-empty-cta {
+  display: inline-block;
+  margin-top: 10px;
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+}
+.ws-dashboard-empty-cta:hover { text-decoration: underline; }
+
+.ws-dashboard-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: ws-skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+@keyframes ws-skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.ws-dashboard-locked {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+}
+.ws-dashboard-locked-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,35,66,0.8);
+  border-radius: 12px;
+  z-index: 1;
+}
+.ws-dashboard-locked-text {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+.ws-dashboard-upgrade-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 16px;
+  background: #0A5C52;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.ws-dashboard-workspace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #0A5C52;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.ws-dashboard-workspace-btn:hover { background: #0d7a6e; }
+
+/* ══════════════════════════════════════════════════════════════
+   FOCUS INDICATORS — Workspace Mode + Dashboard (Sprint 6a)
+   ══════════════════════════════════════════════════════════════ */
+
+.ws-workspace-panel-btn:focus-visible,
+.ws-workspace-exit-btn:focus-visible,
+.ws-workspace-wordmark:focus-visible,
+.ws-workspace-cell:focus-visible,
+.ws-dashboard-quick-btn:focus-visible,
+.ws-dashboard-list-item:focus-visible,
+.ws-dashboard-timeline-event:focus-visible,
+.ws-dashboard-card-link:focus-visible,
+.ws-dashboard-empty-cta:focus-visible,
+.ws-dashboard-upgrade-btn:focus-visible,
+.ws-dashboard-workspace-btn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REDUCED MOTION — Sprint 6a
+   ══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-dashboard-skeleton,
+  .ws-workspace-max-notice,
+  .ws-dashboard-card,
+  .ws-dashboard-timeline-event,
+  .ws-dashboard-list-item,
+  .ws-workspace-panel-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Dashboard widgets stack on mobile (Sprint 6a)
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .ws-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .ws-dashboard-stat-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .ws-dashboard-quick-actions {
+    flex-direction: column;
+  }
+}
