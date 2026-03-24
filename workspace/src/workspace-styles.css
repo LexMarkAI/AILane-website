@@ -1769,3 +1769,334 @@ body.ws-overlay-mode .ws-drawer.open ~ .ws-overlay-backdrop {
     border-bottom: 1px solid #F3F4F6;
   }
 }
+
+/* ============================================================
+   CALENDAR MONTH, TIMELINE, CRUD & iCAL — Sprint 4b
+   Spec: KLUI-001 §3.8, §7.1, §10
+   ============================================================ */
+
+/* View Mode Switcher */
+.ws-cal-view-switcher {
+  display: flex;
+  gap: 0;
+  padding: 0 16px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #E5E7EB;
+}
+.ws-cal-view-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ws-grey);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ws-cal-view-btn:hover {
+  color: #1F2937;
+}
+.ws-cal-view-btn--active {
+  color: var(--ws-teal);
+  border-bottom-color: var(--ws-teal);
+}
+
+/* Calendar Action Bar */
+.ws-cal-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+.ws-cal-action-btn {
+  padding: 6px 14px;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  background: var(--ws-white);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #374151;
+  transition: border-color 0.15s;
+}
+.ws-cal-action-btn:hover {
+  border-color: var(--ws-teal);
+}
+.ws-cal-action-btn--primary {
+  background: var(--ws-teal);
+  color: var(--ws-white);
+  border-color: var(--ws-teal);
+}
+.ws-cal-action-btn--primary:hover {
+  background: #094A43;
+}
+
+/* Month View Grid */
+.ws-cal-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+}
+.ws-cal-month-nav-btn {
+  background: none;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #374151;
+}
+.ws-cal-month-nav-btn:hover {
+  border-color: var(--ws-teal);
+}
+.ws-cal-month-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2937;
+}
+.ws-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  padding: 0 16px;
+}
+.ws-cal-grid-header {
+  margin-bottom: 4px;
+}
+.ws-cal-day-header {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ws-grey);
+  padding: 4px 0;
+}
+.ws-cal-day {
+  min-height: 48px;
+  border: 1px solid #F3F4F6;
+  padding: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.1s;
+}
+.ws-cal-day:hover {
+  background: var(--ws-offwhite);
+}
+.ws-cal-day--today {
+  background: #F0FDFA;
+  border-color: var(--ws-teal);
+}
+.ws-cal-day--pad {
+  background: #FAFAFA;
+  cursor: default;
+}
+.ws-cal-day-num {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+.ws-cal-day--today .ws-cal-day-num {
+  color: var(--ws-teal);
+  font-weight: 700;
+}
+.ws-cal-day-dots {
+  display: flex;
+  gap: 3px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.ws-cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ws-cal-dot-more {
+  font-size: 9px;
+  color: var(--ws-grey);
+}
+.ws-cal-day-detail {
+  padding: 0 16px;
+  margin-top: 8px;
+}
+.ws-cal-day-detail-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F2937;
+  padding: 8px 0;
+  border-bottom: 1px solid #E5E7EB;
+}
+.ws-cal-day-detail-empty {
+  font-size: 13px;
+  color: var(--ws-grey);
+  padding: 12px 0;
+  text-align: center;
+}
+
+/* Screen reader only */
+.ws-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Timeline View */
+.ws-cal-timeline-wrapper {
+  position: relative;
+  overflow-x: auto;
+  padding: 0 16px;
+}
+.ws-cal-timeline-header {
+  display: flex;
+  border-bottom: 2px solid #E5E7EB;
+  position: sticky;
+  top: 0;
+  background: var(--ws-white);
+  z-index: 1;
+}
+.ws-cal-timeline-label-col {
+  width: 120px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  padding: 8px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ws-cal-timeline-month-col {
+  flex: 1;
+  min-width: 70px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ws-grey);
+  padding: 8px 2px;
+  border-left: 1px solid #F3F4F6;
+}
+.ws-cal-timeline-row {
+  display: flex;
+  border-bottom: 1px solid #F3F4F6;
+  min-height: 36px;
+}
+.ws-cal-timeline-track {
+  flex: 1;
+  position: relative;
+  min-height: 36px;
+}
+.ws-cal-timeline-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1;
+  transition: transform 0.15s;
+}
+.ws-cal-timeline-marker:hover {
+  transform: translate(-50%, -50%) scale(1.5);
+  z-index: 2;
+}
+.ws-cal-timeline-type-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ws-cal-timeline-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ws-red);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* CRUD Form */
+.ws-cal-crud-form {
+  padding: 16px;
+}
+.ws-cal-crud-form h4 {
+  font-size: 16px;
+  color: #1F2937;
+  margin-bottom: 16px;
+}
+.ws-cal-crud-delete-btn {
+  background: #FEF2F2;
+  color: var(--ws-red);
+  border: 1px solid var(--ws-red);
+}
+.ws-cal-crud-delete-btn:hover {
+  background: var(--ws-red);
+  color: var(--ws-white);
+}
+
+/* Event type badges (extending Sprint 2 styles) */
+.ws-cal-badge--organisation {
+  background: var(--ws-navy);
+  color: var(--ws-white);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Event title in month day detail */
+.ws-cal-event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F2937;
+}
+.ws-cal-event-meta {
+  margin-top: 2px;
+}
+
+/* WCAG Focus — Calendar Sprint 4b */
+.ws-cal-view-btn:focus-visible,
+.ws-cal-action-btn:focus-visible,
+.ws-cal-month-nav-btn:focus-visible,
+.ws-cal-day:focus-visible,
+.ws-cal-timeline-marker:focus-visible,
+.ws-cal-crud-delete-btn:focus-visible {
+  outline: 2px solid var(--ws-teal);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion — Calendar Sprint 4b */
+@media (prefers-reduced-motion: reduce) {
+  .ws-cal-day,
+  .ws-cal-view-btn,
+  .ws-cal-action-btn,
+  .ws-cal-timeline-marker {
+    transition: none !important;
+  }
+}
+
+/* Responsive — Calendar Sprint 4b */
+@media (max-width: 768px) {
+  /* Mobile: List view only per KLUI-001 §7.1 */
+  .ws-cal-view-switcher {
+    display: none;
+  }
+  .ws-cal-grid {
+    display: none;
+  }
+  .ws-cal-timeline-wrapper {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .ws-cal-actions {
+    flex-direction: column;
+  }
+}
