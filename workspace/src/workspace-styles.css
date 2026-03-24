@@ -788,3 +788,493 @@ body.ws-overlay-mode .ws-drawer.open ~ .ws-overlay-backdrop {
   padding: 40px 16px;
   text-align: center;
 }
+
+/* ============================================================
+   CONTRACT PLANNER PANEL — Sprint 3a
+   Spec: KLUI-001 §3.6, KLWS-001 §4, §5
+   ============================================================ */
+
+/* Disclaimer Gate */
+.ws-planner-disclaimer {
+  padding: 24px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.ws-planner-disclaimer-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ws-amber);
+  margin-bottom: 16px;
+}
+.ws-planner-disclaimer-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+  margin-bottom: 20px;
+}
+.ws-planner-disclaimer-text p {
+  margin-bottom: 12px;
+}
+.ws-planner-disclaimer-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #1F2937;
+}
+.ws-planner-disclaimer-checkbox input[type="checkbox"] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.ws-planner-disclaimer-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--ws-teal);
+  color: var(--ws-white);
+  transition: background 0.2s;
+}
+.ws-planner-disclaimer-btn:hover:not(.ws-planner-disclaimer-btn--disabled) {
+  background: #094A43;
+}
+.ws-planner-disclaimer-btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Step Progress Bar */
+.ws-planner-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 16px 12px;
+  flex-wrap: nowrap;
+}
+.ws-planner-step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  border: 2px solid var(--ws-grey);
+  color: var(--ws-grey);
+  background: transparent;
+}
+.ws-planner-step--complete {
+  background: var(--ws-teal);
+  border-color: var(--ws-teal);
+  color: var(--ws-white);
+}
+.ws-planner-step--clickable {
+  cursor: pointer;
+}
+.ws-planner-step--clickable:hover {
+  opacity: 0.85;
+}
+.ws-planner-step--current {
+  background: var(--ws-teal);
+  border-color: var(--ws-teal);
+  color: var(--ws-white);
+  animation: ws-step-pulse 2s ease-in-out infinite;
+}
+.ws-planner-step--future {
+  border-color: #D1D5DB;
+  color: #D1D5DB;
+}
+.ws-planner-step-connector {
+  width: 20px;
+  height: 2px;
+  background: #D1D5DB;
+  flex-shrink: 0;
+}
+.ws-planner-step-connector--done {
+  background: var(--ws-teal);
+}
+.ws-planner-step-label {
+  font-size: 10px;
+  color: var(--ws-grey);
+  text-align: center;
+  width: 32px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+@keyframes ws-step-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(10, 92, 82, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(10, 92, 82, 0); }
+}
+
+/* Step Form (Step 1) */
+.ws-planner-form {
+  padding: 16px;
+}
+.ws-planner-field {
+  margin-bottom: 16px;
+}
+.ws-planner-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+.ws-planner-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1F2937;
+  background: var(--ws-white);
+  box-sizing: border-box;
+}
+.ws-planner-input:focus {
+  border-color: var(--ws-teal);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(10, 92, 82, 0.15);
+}
+.ws-planner-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1F2937;
+  background: var(--ws-white);
+  box-sizing: border-box;
+}
+.ws-planner-select:focus {
+  border-color: var(--ws-teal);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(10, 92, 82, 0.15);
+}
+.ws-planner-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ws-planner-checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+}
+.ws-planner-error {
+  color: var(--ws-red);
+  font-size: 13px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #FEF2F2;
+  border-radius: 4px;
+}
+
+/* Buttons */
+.ws-planner-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ws-planner-btn--primary {
+  background: var(--ws-teal);
+  color: var(--ws-white);
+}
+.ws-planner-btn--primary:hover {
+  background: #094A43;
+}
+.ws-planner-btn--secondary {
+  background: var(--ws-offwhite);
+  color: #374151;
+  border: 1px solid #D1D5DB;
+}
+.ws-planner-btn--secondary:hover {
+  background: #E5E7EB;
+}
+.ws-planner-btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: #D1D5DB;
+  color: #9CA3AF;
+}
+.ws-planner-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 0 16px;
+}
+
+/* Contract Type Cards (Step 2) */
+.ws-planner-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+}
+.ws-planner-card {
+  border: 2px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.ws-planner-card:hover {
+  border-color: #A7F3D0;
+  background: #F0FDFA;
+}
+.ws-planner-card--selected {
+  border-color: var(--ws-teal);
+  background: #F0FDFA;
+}
+.ws-planner-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 4px;
+}
+.ws-planner-card-desc {
+  font-size: 13px;
+  color: var(--ws-grey);
+  line-height: 1.4;
+}
+.ws-planner-card-note {
+  font-size: 12px;
+  color: var(--ws-amber);
+  font-style: italic;
+  margin-top: 8px;
+}
+
+/* Requirement Table (Step 3) */
+.ws-planner-req-notice {
+  font-size: 13px;
+  color: var(--ws-grey);
+  background: var(--ws-offwhite);
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin: 12px 16px;
+  line-height: 1.5;
+}
+.ws-planner-req-summary {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2937;
+  padding: 8px 16px;
+}
+.ws-planner-req-table {
+  padding: 0 16px;
+}
+.ws-planner-req-row {
+  border-bottom: 1px solid #F3F4F6;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.ws-planner-req-row--forward {
+  border-left: 3px solid var(--ws-amber);
+  padding-left: 12px;
+}
+.ws-planner-req-row--expanded {
+  background: var(--ws-offwhite);
+}
+.ws-planner-req-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ws-planner-req-status {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+.ws-planner-req-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1F2937;
+  flex: 1;
+  min-width: 120px;
+}
+.ws-planner-req-source {
+  font-size: 12px;
+  color: var(--ws-grey);
+  flex-shrink: 0;
+}
+.ws-planner-req-cat {
+  font-size: 11px;
+  color: var(--ws-teal);
+  background: #F0FDFA;
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.ws-planner-req-mandatory {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.ws-planner-req-detail {
+  padding: 12px 0 8px 24px;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
+}
+.ws-planner-req-detail div {
+  margin-bottom: 6px;
+}
+.ws-planner-forward-divider {
+  height: 2px;
+  background: var(--ws-amber);
+  margin: 20px 16px;
+  opacity: 0.4;
+}
+.ws-planner-forward-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ws-amber);
+  padding: 0 16px 8px;
+}
+
+/* Locked State */
+.ws-planner-locked {
+  text-align: center;
+  padding: 48px 24px;
+}
+.ws-planner-locked-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.ws-planner-locked h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #1F2937;
+}
+.ws-planner-locked p {
+  font-size: 14px;
+  color: var(--ws-grey);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.ws-planner-locked-cta {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--ws-teal);
+  font-weight: 600;
+  text-decoration: none;
+}
+.ws-planner-locked-cta:hover {
+  text-decoration: underline;
+}
+
+/* Plan List */
+.ws-planner-plan-list {
+  margin-top: 16px;
+}
+.ws-planner-plan-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F3F4F6;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ws-planner-plan-item:hover {
+  background: var(--ws-offwhite);
+}
+.ws-planner-plan-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2937;
+}
+.ws-planner-plan-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+.ws-planner-plan-type {
+  font-size: 12px;
+  color: var(--ws-teal);
+}
+.ws-planner-plan-status {
+  font-size: 12px;
+  color: var(--ws-grey);
+}
+.ws-planner-plan-date {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin-top: 2px;
+}
+.ws-planner-empty {
+  font-size: 14px;
+  color: var(--ws-grey);
+  padding: 24px 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Loading */
+.ws-loading {
+  text-align: center;
+  padding: 32px;
+  color: var(--ws-grey);
+  font-size: 14px;
+}
+.ws-error {
+  text-align: center;
+  padding: 24px;
+  color: var(--ws-red);
+  font-size: 14px;
+}
+.ws-planner-step-content {
+  padding-bottom: 20px;
+}
+
+/* WCAG 2.1 AA Focus Indicators — Planner */
+.ws-planner-card:focus-visible,
+.ws-planner-req-row:focus-visible,
+.ws-planner-plan-item:focus-visible,
+.ws-planner-disclaimer-checkbox:focus-visible,
+.ws-planner-disclaimer-btn:focus-visible,
+.ws-planner-step--clickable:focus-visible {
+  outline: 2px solid var(--ws-teal);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion — Planner */
+@media (prefers-reduced-motion: reduce) {
+  .ws-planner-step--current {
+    animation: none !important;
+  }
+  .ws-planner-card,
+  .ws-planner-req-row,
+  .ws-planner-plan-item,
+  .ws-planner-disclaimer-btn {
+    transition: none !important;
+  }
+}
+
+/* Responsive — Planner */
+@media (max-width: 480px) {
+  .ws-planner-cards {
+    grid-template-columns: 1fr;
+  }
+  .ws-planner-req-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -270,7 +270,7 @@ class PanelRail {
       }
 
       // Sprint gate: show coming soon for future panels
-      if (panel.sprint > 2) {
+      if (panel.sprint > 3) {
         this.drawer.showComingSoon(panel.name);
         return;
       }
@@ -445,6 +445,8 @@ class PanelDrawer {
         this._panels.calendar = new window.__PanelCalendar(this.contentEl, this.bus);
       }
       this._panels.calendar.mount(this.contentEl);
+    } else if (panelId === 'planner' && window.__PanelPlanner) {
+      this._panels.planner = window.__PanelPlanner(this.contentEl);
     } else {
       // Placeholder for future panels
       this.contentEl.innerHTML =
@@ -629,6 +631,9 @@ function initWorkspace() {
       }, 200);
     }
   });
+
+  // Expose context bus globally for panel modules
+  window.__contextBus = bus;
 
   // Expose for panel modules
   window.__ailaneWorkspace = { bus: bus, prefs: prefs, drawer: drawer, rail: rail };
