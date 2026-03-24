@@ -1,1511 +1,722 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- Google Analytics GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-NTNXWZN31C');
-</script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Knowledge Library — Ailane Regulatory Intelligence</title>
-<meta name="description" content="Preview the Ailane Knowledge Library — 47 legislative instruments across 12 employment law categories, tracked from parliamentary passage through commencement.">
-<meta name="robots" content="noindex">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg:          #0a0f1a;
-  --bg-sec:      #0d1321;
-  --bg-card:     #111827;
-  --bg-elev:     #1a2332;
-  --border:      rgba(56,189,248,0.08);
-  --border-h:    rgba(56,189,248,0.18);
-  --cyan:        #38bdf8;
-  --cyan-dim:    rgba(56,189,248,0.12);
-  --gold:        #f59e0b;
-  --gold-dim:    rgba(245,158,11,0.10);
-  --green:       #34d399;
-  --amber:       #fbbf24;
-  --red:         #f87171;
-  --t1:          #f1f5f9;
-  --t2:          #94a3b8;
-  --t3:          #64748b;
-  --t4:          #475569;
-  --mono:        'Space Mono', 'JetBrains Mono', monospace;
-  --body:        'DM Sans', -apple-system, sans-serif;
-  --ease:        cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-body { font-family: var(--body); background: var(--bg); color: var(--t1); line-height: 1.7; overflow-x: hidden; }
-::selection { background: var(--cyan-dim); color: var(--cyan); }
+<head>
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
 
-@keyframes fadeInDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
-@keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-@keyframes pulse { 0%,100%{opacity:0.5;transform:scale(0.85);} 50%{opacity:1;transform:scale(1.2);} }
-@keyframes shimmer { 0%{background-position:-400px 0;} 100%{background-position:400px 0;} }
-@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 
-.fade-in { opacity:0; transform:translateY(16px); transition: all 0.55s var(--ease); }
-.fade-in.visible { opacity:1; transform:translateY(0); }
-.fade-in:nth-child(2){transition-delay:0.07s;}
-.fade-in:nth-child(3){transition-delay:0.14s;}
-.fade-in:nth-child(4){transition-delay:0.21s;}
-.fade-in:nth-child(5){transition-delay:0.28s;}
-.fade-in:nth-child(6){transition-delay:0.35s;}
-.fade-in:nth-child(7){transition-delay:0.42s;}
-.fade-in:nth-child(8){transition-delay:0.49s;}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Library — Ailane Employment Law Workspace</title>
+  <meta name="description" content="Your employment law compliance workspace. Research, plan, and build your compliance documentation — guided by Eileen. 8 integrated panels for UK employers.">
+  <meta name="robots" content="index, follow">
 
-/* ── NAV (minimal, standalone) ── */
-nav {
-  position: fixed; top:0; left:0; right:0; z-index:100;
-  background: rgba(10,15,26,0.9); backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-}
-.nav-inner { max-width:1100px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; }
-.logo { font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:4px; color:var(--t1); text-decoration:none; }
-.logo-sub { color:var(--cyan); font-size:9px; letter-spacing:1.5px; font-weight:400; margin-left:8px; }
-.nav-right { display:flex; align-items:center; gap:16px; }
-.nav-pill { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:var(--t3); background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:100px; padding:5px 14px; }
-.nav-cta { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--bg); background:var(--cyan); border-radius:6px; padding:8px 18px; text-decoration:none; font-weight:700; transition:all 0.2s; white-space:nowrap; }
-.nav-cta:hover { background:#5cc9f5; }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-/* ── HERO ── */
-.hero { padding:140px 24px 64px; text-align:center; position:relative; overflow:hidden; }
-.hero-bg { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; }
-.hero-bg::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse 70% 50% at 50% -10%, rgba(56,189,248,0.07), transparent); }
-.hero-bg::after { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background-image:radial-gradient(rgba(56,189,248,0.12) 1px, transparent 1px); background-size:36px 36px; opacity:0.25; mask-image:radial-gradient(ellipse 60% 70% at 50% 30%, black 10%, transparent 65%); -webkit-mask-image:radial-gradient(ellipse 60% 70% at 50% 30%, black 10%, transparent 65%); }
+  <style>
+    /* === Custom Properties === */
+    :root {
+      --navy: #0A2342;
+      --navy-deep: #060e1a;
+      --navy-card: #0f172a;
+      --navy-border: #1e293b;
+      --navy-hover: #334155;
+      --teal: #0A5C52;
+      --teal-light: #14b8a6;
+      --teal-glow: rgba(10, 92, 82, 0.3);
+      --amber: #D97706;
+      --amber-bg: rgba(217, 119, 6, 0.08);
+      --red: #ef4444;
+      --green: #22c55e;
+      --cyan: #38bdf8;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --text-body: #cbd5e1;
+    }
 
-.hero-eyebrow { display:inline-flex; align-items:center; gap:10px; font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:100px; padding:7px 18px; margin-bottom:28px; animation:fadeInDown 0.6s ease; }
-.hero-dot { width:5px; height:5px; border-radius:50%; background:var(--cyan); animation:pulse 2s ease-in-out infinite; }
-.hero h1 { font-size:clamp(1.8rem,4vw,3rem); font-weight:700; line-height:1.15; max-width:700px; margin:0 auto 18px; letter-spacing:-0.3px; animation:fadeInUp 0.65s ease 0.1s both; }
-.hero h1 em { font-style:italic; color:var(--cyan); }
-.hero-sub { font-size:16px; color:var(--t2); max-width:560px; margin:0 auto 40px; line-height:1.8; animation:fadeInUp 0.65s ease 0.2s both; }
+    /* === Reset + Base === */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--navy);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
 
-/* Stats row */
-.hero-stats { display:inline-flex; gap:1px; background:var(--border); border:1px solid var(--border); border-radius:10px; overflow:hidden; animation:fadeInUp 0.65s ease 0.3s both; }
-.h-stat { background:var(--bg-card); padding:18px 28px; text-align:center; }
-.h-stat-val { font-family:var(--mono); font-size:22px; font-weight:700; color:var(--cyan); margin-bottom:3px; }
-.h-stat-lab { font-size:11px; color:var(--t3); letter-spacing:0.3px; }
-@media(max-width:600px){ .hero-stats{flex-direction:column;} .h-stat{padding:14px 24px;} }
+    /* === Typography === */
+    h1 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 52px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    h2 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 38px;
+      font-weight: 600;
+    }
+    h3 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+    }
 
-/* ── ACCESS GATE BANNER ── */
-.gate-banner { background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(56,189,248,0.05)); border-top:1px solid rgba(245,158,11,0.15); border-bottom:1px solid rgba(56,189,248,0.08); padding:18px 24px; }
-.gate-inner { max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
-.gate-msg { display:flex; align-items:center; gap:12px; }
-.gate-icon { font-size:18px; }
-.gate-text { font-size:14px; color:var(--t2); }
-.gate-text strong { color:var(--t1); }
-.gate-tiers { display:flex; gap:8px; flex-wrap:wrap; }
-.gate-tier { font-family:var(--mono); font-size:10px; letter-spacing:1px; padding:4px 10px; border-radius:4px; }
-.gate-tier.op { color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.15); }
-.gate-tier.gov { color:var(--cyan); background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); }
-.gate-tier.inst { color:var(--gold); background:var(--gold-dim); border:1px solid rgba(245,158,11,0.2); }
-.gate-cta { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--bg); background:var(--cyan); border-radius:6px; padding:9px 20px; text-decoration:none; font-weight:700; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
-.gate-cta:hover { background:#5cc9f5; }
+    /* === Layout === */
+    .section-inner {
+      max-width: 1200px;
+      margin: auto;
+      padding: 120px 32px;
+    }
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--teal-light), transparent);
+      margin: 0 auto;
+      max-width: 600px;
+    }
 
-/* ── MAIN CONTENT ── */
-.main { max-width:1100px; margin:0 auto; padding:48px 24px 80px; }
+    /* === Nav === */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: transparent;
+      transition: background 0.3s, border-bottom 0.3s;
+    }
+    .nav-scrolled {
+      background: rgba(10, 35, 66, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--navy-border);
+    }
+    .nav-wordmark {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: white;
+      text-decoration: none;
+    }
+    .nav-signin {
+      color: var(--teal-light);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .nav-signin:hover { text-decoration: underline; }
 
-/* Category tabs */
-.cat-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:28px; }
-.cat-tab { font-family:var(--mono); font-size:10px; letter-spacing:1px; padding:6px 14px; border-radius:6px; cursor:pointer; border:1px solid var(--border); color:var(--t3); background:var(--bg-card); transition:all 0.2s; }
-.cat-tab:hover,.cat-tab.active { border-color:rgba(56,189,248,0.25); color:var(--cyan); background:var(--cyan-dim); }
+    /* === Hero === */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding-top: 80px;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(10, 92, 82, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(56, 189, 248, 0.04) 0%, transparent 40%),
+        var(--navy);
+    }
+    .hero-sub {
+      max-width: 640px;
+      font-size: 20px;
+      color: var(--text-body);
+      margin: 24px auto 40px;
+    }
+    .cta-row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+    .cta-primary {
+      background: var(--teal);
+      color: white;
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .cta-primary:hover { background: #0d7a6e; }
+    .cta-secondary {
+      background: transparent;
+      border: 1px solid var(--teal-light);
+      color: var(--teal-light);
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .cta-secondary:hover { background: rgba(10, 92, 82, 0.1); }
 
-/* Instrument grid */
-.instruments-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:32px; }
+    /* === Mockup Containers === */
+    .mockup-container {
+      margin-top: 60px;
+      perspective: 1200px;
+    }
+    .mockup-frame {
+      transform: rotateY(-2deg) rotateX(1deg);
+      border-radius: 12px;
+      border: 1px solid var(--navy-border);
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(10, 92, 82, 0.2), 0 0 120px rgba(10, 92, 82, 0.05);
+    }
+    .mockup-split { display: flex; }
+    .mockup-panel {
+      flex: 1;
+      padding: 20px;
+      background: var(--navy-card);
+      border-right: 1px solid var(--navy-border);
+    }
+    .mockup-panel:last-child { border-right: none; }
+    .mockup-panel-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--navy-border);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-/* Sample instrument card (fully visible) */
-.instrument-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:24px; transition:all 0.3s var(--ease); position:relative; overflow:hidden; }
-.instrument-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); opacity:0; transition:opacity 0.3s; }
-.instrument-card:hover::before { opacity:1; }
-.instrument-card:hover { border-color:var(--border-h); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.3); }
-.inst-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
-.inst-title { font-size:14px; font-weight:700; line-height:1.3; flex:1; }
-.inst-status { font-family:var(--mono); font-size:9px; letter-spacing:1px; padding:3px 8px; border-radius:4px; white-space:nowrap; flex-shrink:0; }
-.status-force { color:var(--green); background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2); }
-.status-commencing { color:var(--amber); background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.2); }
-.status-enacted { color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.2); }
-.inst-meta { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
-.inst-meta-item { font-family:var(--mono); font-size:10px; color:var(--t4); letter-spacing:0.5px; }
-.inst-meta-item span { color:var(--t2); }
-.inst-cats { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
-.inst-cat { font-family:var(--mono); font-size:9px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:3px; padding:2px 7px; }
-.inst-summary { font-size:12px; color:var(--t2); line-height:1.6; margin-bottom:12px; }
-.inst-sci { display:flex; align-items:center; gap:8px; }
-.inst-sci-label { font-family:var(--mono); font-size:10px; color:var(--t4); }
-.inst-sci-dots { display:flex; gap:3px; }
-.sci-dot { width:10px; height:10px; border-radius:2px; }
-.sci-dot.filled { background:var(--cyan); }
-.sci-dot.empty { background:var(--bg-elev); }
-.sci-dot.filled.high { background:var(--red); }
-.inst-sci-val { font-family:var(--mono); font-size:10px; color:var(--t3); }
+    /* === Mockup Content Elements === */
+    .mock-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+    }
+    .mock-score {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .mock-score--green { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+    .mock-score--amber { background: rgba(217, 119, 6, 0.15); color: var(--amber); }
+    .mock-score--red { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+    .mock-name { font-size: 13px; color: var(--text-primary); }
+    .mock-meta { font-size: 11px; color: var(--text-muted); }
+    .mock-finding {
+      padding: 8px 12px;
+      background: rgba(239, 68, 68, 0.05);
+      border-left: 3px solid var(--red);
+      border-radius: 0 6px 6px 0;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-body);
+    }
+    .mock-eileen-msg {
+      background: var(--navy);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      border-left: 3px solid var(--cyan);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 8px 0;
+      font-size: 13px;
+      color: var(--text-body);
+      line-height: 1.5;
+    }
+    .mock-quick-pill {
+      display: inline-block;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    .mock-banner {
+      background: var(--amber-bg);
+      border-left: 3px solid var(--amber);
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--amber);
+      margin-bottom: 12px;
+      border-radius: 0 4px 4px 0;
+    }
+    .mock-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .mock-nexus-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+    }
 
-/* Gated instrument card */
-.instrument-card.gated { position:relative; cursor:default; }
-.instrument-card.gated:hover { transform:none; box-shadow:none; border-color:var(--border); }
-.instrument-card.gated::before { display:none; }
-.gated-overlay { position:absolute; inset:0; border-radius:12px; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); background:rgba(10,15,26,0.7); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; z-index:2; }
-.gated-badge { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.2); border-radius:6px; padding:6px 16px; }
-.gated-tier { font-size:12px; color:var(--t3); }
-.gated-cta { font-family:var(--mono); font-size:11px; font-weight:700; color:var(--bg); background:var(--cyan); border-radius:6px; padding:8px 20px; text-decoration:none; transition:all 0.2s; }
-.gated-cta:hover { background:#5cc9f5; }
-/* blurred content beneath overlay */
-.gated-content { filter:blur(3px); pointer-events:none; user-select:none; }
+    /* === Scroll Reveal === */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
 
-/* Load more / count row */
-.count-row { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; margin-bottom:40px; }
-.count-row-left { font-family:var(--mono); font-size:12px; color:var(--t3); }
-.count-row-left strong { color:var(--t1); }
-.count-row-right { font-family:var(--mono); font-size:11px; color:var(--cyan); text-decoration:none; background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.12); border-radius:6px; padding:6px 14px; cursor:pointer; transition:all 0.2s; }
-.count-row-right:hover { background:rgba(56,189,248,0.2); }
+    /* === Focus Indicators === */
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
 
-/* ── TIER SECTION ── */
-.tier-section { margin-top:60px; }
-.tier-section-label { font-family:var(--mono); font-size:10px; letter-spacing:3px; color:var(--cyan); text-transform:uppercase; margin-bottom:20px; }
-.tier-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-.tier-card { padding:28px 24px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; transition:all 0.3s var(--ease); }
-.tier-card:hover { border-color:var(--border-h); transform:translateY(-2px); }
-.tier-card.gold-card { border-color:rgba(245,158,11,0.18); }
-.tier-card.gold-card:hover { border-color:rgba(245,158,11,0.35); box-shadow:0 8px 32px rgba(0,0,0,0.25),0 0 20px rgba(245,158,11,0.04); }
-.tier-name { font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--cyan); margin-bottom:8px; }
-.tier-name.gold { color:var(--gold); }
-.tier-card h3 { font-size:16px; font-weight:700; margin-bottom:8px; }
-.tier-access { font-size:13px; color:var(--t2); line-height:1.6; margin-bottom:16px; }
-.tier-features { list-style:none; display:flex; flex-direction:column; gap:7px; }
-.tier-features li { font-size:12px; color:var(--t3); padding-left:16px; position:relative; }
-.tier-features li::before { content:'\2192'; position:absolute; left:0; color:var(--cyan); font-family:var(--mono); }
-.tier-cta { display:block; text-align:center; margin-top:20px; padding:10px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; transition:all 0.2s; font-family:var(--mono); letter-spacing:0.5px; }
-.tier-cta.cyan { background:var(--cyan-dim); color:var(--cyan); border:1px solid rgba(56,189,248,0.15); }
-.tier-cta.cyan:hover { background:rgba(56,189,248,0.2); }
-.tier-cta.primary { background:var(--cyan); color:var(--bg); }
-.tier-cta.primary:hover { background:#5cc9f5; }
-.tier-cta.gold { background:var(--gold-dim); color:var(--gold); border:1px solid rgba(245,158,11,0.2); }
-.tier-cta.gold:hover { background:rgba(245,158,11,0.18); }
-@media(max-width:768px) { .tier-grid{grid-template-columns:1fr;} }
+    /* === Panel Showcase (Part B) === */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .panel-card {
+      background: var(--navy-card);
+      border: 1px solid var(--navy-border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .panel-card:hover {
+      border-color: var(--teal);
+      transform: translateY(-2px);
+    }
+    .panel-card h3 { margin: 12px 0 8px; color: var(--text-primary); }
+    .panel-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.4; }
+    .panel-card svg { color: var(--teal-light); }
 
-/* ── CTA STRIP ── */
-.cta-strip { margin-top:60px; background:linear-gradient(135deg,rgba(56,189,248,0.06),rgba(56,189,248,0.02)); border:1px solid rgba(56,189,248,0.1); border-radius:14px; padding:40px; text-align:center; }
-.cta-strip h2 { font-size:1.6rem; font-weight:700; margin-bottom:12px; }
-.cta-strip p { font-size:14px; color:var(--t2); max-width:480px; margin:0 auto 28px; line-height:1.8; }
-.cta-strip-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-.cta-btn-primary { background:var(--cyan); color:var(--bg); padding:13px 28px; border-radius:8px; font-size:14px; font-weight:700; text-decoration:none; transition:all 0.2s; }
-.cta-btn-primary:hover { background:#5cc9f5; transform:translateY(-1px); }
-.cta-btn-sec { background:transparent; color:var(--t2); padding:13px 28px; border-radius:8px; font-size:14px; font-weight:500; text-decoration:none; border:1px solid var(--border); transition:all 0.2s; }
-.cta-btn-sec:hover { color:var(--t1); border-color:var(--border-h); }
+    /* === Feature Section (Parts B & C) === */
+    .feature-detail { font-size: 14px; color: var(--text-muted); margin-top: 16px; }
 
-/* ── FOOTER (minimal) ── */
-.preview-footer { border-top:1px solid var(--border); padding:24px; text-align:center; }
-.preview-footer-text { font-family:var(--mono); font-size:10px; color:var(--t4); letter-spacing:0.5px; }
-.preview-footer-text a { color:var(--t3); text-decoration:none; transition:color 0.2s; }
-.preview-footer-text a:hover { color:var(--cyan); }
+    /* === Vault/Planner/Calendar Mockup (Parts B & C) === */
+    .feature-mockup {
+      background: var(--navy-card);
+      border: 1px solid var(--navy-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 32px;
+    }
+    .feature-mockup-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--navy-border);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .feature-mockup-body { padding: 16px 20px; }
+    .req-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.3);
+      font-size: 13px;
+    }
+    .req-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .req-check--met { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+    .req-check--gap { background: rgba(217, 119, 6, 0.15); color: var(--amber); }
+    .req-name { flex: 1; color: var(--text-primary); }
+    .req-source { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+    .event-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.3);
+    }
+    .event-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .event-dot--amber { background: var(--amber); }
+    .event-dot--teal { background: var(--teal); }
+    .event-content { flex: 1; }
+    .event-title { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+    .event-source { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .event-date { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+    .event-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+    .event-badge--amber { background: var(--amber-bg); color: var(--amber); }
+    .event-badge--teal { background: rgba(10, 92, 82, 0.15); color: var(--teal-light); }
+    .feature-summary {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(10, 92, 82, 0.05);
+      border: 1px solid rgba(10, 92, 82, 0.2);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
 
-/* ── WTR 1998 GOLD CARD ── */
-.instrument-card.wtr-gold {
-  border:2px solid #f59e0b;
-  box-shadow:0 0 0 2px rgba(245,158,11,0.3), 0 4px 20px rgba(245,158,11,0.12);
-  cursor:pointer;
-}
-.instrument-card.wtr-gold:hover { transform:translateY(-2px); box-shadow:0 0 0 2px rgba(245,158,11,0.4), 0 8px 32px rgba(245,158,11,0.18); border-color:#f59e0b; }
-.instrument-card.wtr-gold::before { background:linear-gradient(90deg,transparent,#f59e0b,transparent); }
-.wtr-gold-badge {
-  display:inline-flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:9px; letter-spacing:1.5px; font-weight:700;
-  color:#f59e0b; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25);
-  border-radius:4px; padding:3px 9px; margin-top:8px;
-}
+    /* === Training Cards (Part C) === */
+    .training-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 32px;
+    }
+    .training-card {
+      background: var(--navy-card);
+      border: 1px solid var(--navy-border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .training-card:hover { border-color: var(--teal); }
+    .training-source {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .training-source--acas { background: rgba(10, 92, 82, 0.15); color: var(--teal-light); }
+    .training-source--ailane { background: var(--navy); border: 1px solid var(--teal); color: var(--teal-light); }
+    .training-source--ico { background: rgba(10, 92, 82, 0.15); color: var(--teal-light); }
+    .training-card h3 { font-size: 15px; color: var(--text-primary); margin-bottom: 8px; line-height: 1.3; }
+    .training-card-meta { font-size: 12px; color: var(--text-muted); }
+    .training-badge {
+      display: inline-block;
+      font-size: 10px;
+      color: var(--text-muted);
+      border: 1px solid var(--navy-border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-top: 8px;
+    }
+    .ogl-notice {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 24px;
+      line-height: 1.4;
+    }
 
-/* ── WTR EXPANDED PANEL ── */
-.wtr-expand-overlay {
-  display:none; position:fixed; inset:0; z-index:200;
-  background:rgba(6,8,13,0.85); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  overflow-y:auto; padding:40px 24px;
-}
-.wtr-expand-overlay.active { display:flex; justify-content:center; align-items:flex-start; animation:fadeInUp 0.25s var(--ease); }
-.wtr-expand-panel {
-  width:100%; max-width:760px; background:var(--bg-card); border:1px solid rgba(245,158,11,0.2);
-  border-radius:14px; padding:0; overflow:hidden; position:relative;
-  box-shadow:0 0 0 2px rgba(245,158,11,0.15), 0 24px 80px rgba(0,0,0,0.6);
-}
-.wtr-panel-header {
-  padding:24px 28px 20px; border-bottom:1px solid rgba(255,255,255,0.06);
-  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
-}
-.wtr-panel-header h2 { font-size:20px; font-weight:700; color:var(--t1); line-height:1.3; }
-.wtr-panel-close {
-  font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--t3);
-  background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px;
-  padding:6px 14px; cursor:pointer; transition:all 0.2s; flex-shrink:0;
-}
-.wtr-panel-close:hover { color:var(--t1); border-color:var(--border-h); }
-.wtr-panel-body { padding:20px 28px 28px; }
-.wtr-section { margin-bottom:20px; }
-.wtr-section-label {
-  font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--t4);
-  text-transform:uppercase; margin-bottom:8px;
-}
-.wtr-section p, .wtr-section div.wtr-text { font-size:14px; line-height:1.7; color:var(--t2); }
-.wtr-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; }
-.wtr-meta-item { display:flex; flex-direction:column; gap:2px; }
-.wtr-meta-key { font-family:var(--mono); font-size:9px; letter-spacing:1px; color:var(--t4); text-transform:uppercase; }
-.wtr-meta-val { font-size:13px; color:var(--t2); }
-.wtr-provisions-list { list-style:none; display:flex; flex-direction:column; gap:10px; }
-.wtr-provisions-list li { font-size:13px; color:var(--t2); line-height:1.65; padding-left:18px; position:relative; }
-.wtr-provisions-list li::before { content:'\2192'; position:absolute; left:0; color:var(--gold); font-family:var(--mono); font-size:12px; }
-.wtr-provisions-list li strong { color:var(--t1); font-weight:600; }
-.wtr-source-link {
-  display:inline-flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:11px; letter-spacing:0.5px;
-  color:var(--cyan); text-decoration:none; margin-top:4px;
-}
-.wtr-source-link:hover { color:#5cc9f5; }
+    /* === Pricing (Part C) === */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .pricing-col {
+      background: var(--navy-card);
+      border: 1px solid var(--navy-border);
+      border-radius: 12px;
+      padding: 32px 24px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .pricing-col--recommended {
+      border-color: var(--teal);
+      border-top-width: 3px;
+    }
+    .pricing-rec-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--teal);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .pricing-tier {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .pricing-price {
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 12px 0 4px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .pricing-price span {
+      font-size: 18px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .pricing-detail {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .pricing-divider {
+      height: 1px;
+      background: var(--navy-border);
+      margin: 0 0 20px;
+    }
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 24px;
+      flex: 1;
+    }
+    .pricing-features li {
+      padding: 6px 0;
+      font-size: 14px;
+      color: var(--text-body);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .pricing-features li::before {
+      content: '✓';
+      color: var(--teal-light);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .pricing-cta {
+      display: block;
+      text-align: center;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .pricing-cta--ghost {
+      background: transparent;
+      border: 1px solid var(--teal-light);
+      color: var(--teal-light);
+    }
+    .pricing-cta--ghost:hover { background: rgba(10, 92, 82, 0.1); }
+    .pricing-cta--primary {
+      background: var(--teal);
+      color: white;
+      border: 1px solid var(--teal);
+    }
+    .pricing-cta--primary:hover { background: #0d7a6e; }
+    .pricing-gov-badge {
+      display: inline-block;
+      background: rgba(10, 92, 82, 0.15);
+      color: var(--teal-light);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      margin-top: 12px;
+      text-align: center;
+    }
+    .pricing-enterprise {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .pricing-enterprise a { color: var(--teal-light); text-decoration: none; }
+    .pricing-enterprise a:hover { text-decoration: underline; }
 
-/* Report generation button */
-.wtr-generate-report {
-  display:inline-flex; align-items:center; gap:8px;
-  font-family:var(--mono); font-size:12px; letter-spacing:0.5px; font-weight:700;
-  color:var(--bg); background:linear-gradient(135deg,#f59e0b,#d97706);
-  border:none; border-radius:8px; padding:12px 24px; cursor:pointer;
-  transition:all 0.2s; margin-top:8px;
-}
-.wtr-generate-report:hover { background:linear-gradient(135deg,#fbbf24,#f59e0b); transform:translateY(-1px); box-shadow:0 4px 16px rgba(245,158,11,0.25); }
-.wtr-generate-report:disabled { opacity:0.6; cursor:wait; transform:none; box-shadow:none; }
-.wtr-report-output {
-  margin-top:16px; padding:20px; background:rgba(245,158,11,0.04);
-  border:1px solid rgba(245,158,11,0.12); border-radius:10px;
-  font-size:13px; color:var(--t2); line-height:1.7; display:none;
-}
-.wtr-report-output.visible { display:block; animation:fadeInUp 0.3s var(--ease); }
-.wtr-report-output h4 { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; color:var(--gold); margin-bottom:12px; }
-.wtr-report-section { margin-bottom:14px; }
-.wtr-report-section strong { color:var(--t1); font-size:12px; }
-.wtr-report-section p { font-size:12px; color:var(--t2); line-height:1.65; margin-top:4px; }
+    /* === Trust + Footer (Part C) === */
+    .trust-section { background: var(--navy-deep); }
+    .stats-row {
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+    .stat-item { text-align: center; }
+    .stat-value {
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--teal-light);
+      font-family: 'DM Sans', sans-serif;
+      line-height: 1;
+    }
+    .stat-label { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
+    .ico-line { text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
+    .advisory-box {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--amber-bg);
+      border-left: 3px solid var(--amber);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      color: var(--amber);
+      line-height: 1.5;
+    }
+    footer {
+      padding: 40px 32px;
+      text-align: center;
+      border-top: 1px solid var(--navy-border);
+    }
+    .footer-legal { font-size: 13px; color: var(--text-muted); line-height: 1.8; }
+    .footer-legal a { color: var(--text-muted); text-decoration: none; }
+    .footer-legal a:hover { color: var(--teal-light); text-decoration: underline; }
 
-/* ── SEARCH BAR ── */
-.search-container { margin-bottom:20px; position:relative; }
-.search-input {
-  width:100%; padding:14px 20px 14px 48px; font-family:var(--body); font-size:14px;
-  background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
-  color:var(--t1); outline:none; transition:all 0.2s;
-}
-.search-input::placeholder { color:var(--t4); }
-.search-input:focus { border-color:var(--border-h); box-shadow:0 0 0 3px rgba(56,189,248,0.08); }
-.search-icon { position:absolute; left:18px; top:50%; transform:translateY(-50%); font-size:16px; color:var(--t4); pointer-events:none; }
-.search-count { font-family:var(--mono); font-size:10px; color:var(--t4); margin-top:8px; letter-spacing:0.5px; }
-
-/* ── EXPANDABLE CARDS (ERA 2025 & EA 2010) ── */
-.instrument-card.expandable { cursor:pointer; }
-.instrument-card.expandable:hover { border-color:var(--border-h); }
-.expand-badge {
-  display:inline-flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:9px; letter-spacing:1.5px; font-weight:700;
-  color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.15);
-  border-radius:4px; padding:3px 9px; margin-top:8px;
-}
-
-/* ── GENERIC EXPAND OVERLAY (reused for ERA & EA) ── */
-.expand-overlay {
-  display:none; position:fixed; inset:0; z-index:200;
-  background:rgba(6,8,13,0.85); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  overflow-y:auto; padding:40px 24px;
-}
-.expand-overlay.active { display:flex; justify-content:center; align-items:flex-start; animation:fadeInUp 0.25s var(--ease); }
-.expand-panel {
-  width:100%; max-width:760px; background:var(--bg-card); border:1px solid rgba(56,189,248,0.15);
-  border-radius:14px; padding:0; overflow:hidden; position:relative;
-  box-shadow:0 0 0 2px rgba(56,189,248,0.08), 0 24px 80px rgba(0,0,0,0.6);
-}
-.expand-panel.era-panel { border-color:rgba(251,191,36,0.2); box-shadow:0 0 0 2px rgba(251,191,36,0.1), 0 24px 80px rgba(0,0,0,0.6); }
-.panel-header {
-  padding:24px 28px 20px; border-bottom:1px solid rgba(255,255,255,0.06);
-  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
-}
-.panel-header h2 { font-size:20px; font-weight:700; color:var(--t1); line-height:1.3; }
-.panel-close {
-  font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--t3);
-  background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px;
-  padding:6px 14px; cursor:pointer; transition:all 0.2s; flex-shrink:0;
-}
-.panel-close:hover { color:var(--t1); border-color:var(--border-h); }
-.panel-body { padding:20px 28px 28px; }
-.panel-section { margin-bottom:20px; }
-.panel-section-label {
-  font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--t4);
-  text-transform:uppercase; margin-bottom:8px;
-}
-.panel-section p { font-size:14px; line-height:1.7; color:var(--t2); }
-.panel-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; }
-.panel-meta-item { display:flex; flex-direction:column; gap:2px; }
-.panel-meta-key { font-family:var(--mono); font-size:9px; letter-spacing:1px; color:var(--t4); text-transform:uppercase; }
-.panel-meta-val { font-size:13px; color:var(--t2); }
-.panel-provisions-list { list-style:none; display:flex; flex-direction:column; gap:10px; }
-.panel-provisions-list li { font-size:13px; color:var(--t2); line-height:1.65; padding-left:18px; position:relative; }
-.panel-provisions-list li::before { content:'\2192'; position:absolute; left:0; color:var(--cyan); font-family:var(--mono); font-size:12px; }
-.panel-provisions-list li strong { color:var(--t1); font-weight:600; }
-.panel-provisions-list.amber li::before { color:var(--amber); }
-.panel-source-link {
-  display:inline-flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:11px; letter-spacing:0.5px;
-  color:var(--cyan); text-decoration:none; margin-top:4px;
-}
-.panel-source-link:hover { color:#5cc9f5; }
-
-/* Report generation button (generic) */
-.generate-report-btn {
-  display:inline-flex; align-items:center; gap:8px;
-  font-family:var(--mono); font-size:12px; letter-spacing:0.5px; font-weight:700;
-  color:var(--bg); background:linear-gradient(135deg,var(--cyan),#0284c7);
-  border:none; border-radius:8px; padding:12px 24px; cursor:pointer;
-  transition:all 0.2s; margin-top:8px;
-}
-.generate-report-btn:hover { background:linear-gradient(135deg,#5cc9f5,var(--cyan)); transform:translateY(-1px); box-shadow:0 4px 16px rgba(56,189,248,0.25); }
-.generate-report-btn:disabled { opacity:0.6; cursor:wait; transform:none; box-shadow:none; }
-.generate-report-btn.amber-btn { background:linear-gradient(135deg,#f59e0b,#d97706); }
-.generate-report-btn.amber-btn:hover { background:linear-gradient(135deg,#fbbf24,#f59e0b); box-shadow:0 4px 16px rgba(245,158,11,0.25); }
-.report-output {
-  margin-top:16px; padding:20px; background:rgba(56,189,248,0.04);
-  border:1px solid rgba(56,189,248,0.12); border-radius:10px;
-  font-size:13px; color:var(--t2); line-height:1.7; display:none;
-}
-.report-output.amber-report { background:rgba(245,158,11,0.04); border-color:rgba(245,158,11,0.12); }
-.report-output.visible { display:block; animation:fadeInUp 0.3s var(--ease); }
-.report-output h4 { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; color:var(--cyan); margin-bottom:12px; }
-.report-output.amber-report h4 { color:var(--gold); }
-.report-section { margin-bottom:14px; }
-.report-section strong { color:var(--t1); font-size:12px; }
-.report-section p { font-size:12px; color:var(--t2); line-height:1.65; margin-top:4px; }
-
-/* ── TIMELINE SECTION ── */
-.timeline-section { margin-top:60px; margin-bottom:60px; }
-.timeline-section-label { font-family:var(--mono); font-size:10px; letter-spacing:3px; color:var(--cyan); text-transform:uppercase; margin-bottom:24px; }
-.timeline { position:relative; padding-left:32px; }
-.timeline::before { content:''; position:absolute; left:8px; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--cyan), var(--gold), var(--green)); border-radius:1px; }
-.timeline-item { position:relative; margin-bottom:20px; padding:16px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; transition:all 0.3s var(--ease); }
-.timeline-item:hover { border-color:var(--border-h); transform:translateX(4px); }
-.timeline-dot { position:absolute; left:-28px; top:20px; width:12px; height:12px; border-radius:50%; border:2px solid var(--cyan); background:var(--bg); }
-.timeline-dot.active { background:var(--cyan); box-shadow:0 0 8px rgba(56,189,248,0.4); }
-.timeline-dot.amber { border-color:var(--amber); }
-.timeline-dot.amber.active { background:var(--amber); box-shadow:0 0 8px rgba(251,191,36,0.4); }
-.timeline-year { font-family:var(--mono); font-size:11px; font-weight:700; color:var(--cyan); margin-bottom:4px; }
-.timeline-year.amber { color:var(--amber); }
-.timeline-title { font-size:14px; font-weight:600; color:var(--t1); margin-bottom:2px; }
-.timeline-desc { font-size:12px; color:var(--t3); }
-
-/* ── CROSS-REFERENCE SECTION ── */
-.xref-section { margin-top:60px; }
-.xref-section-label { font-family:var(--mono); font-size:10px; letter-spacing:3px; color:var(--cyan); text-transform:uppercase; margin-bottom:20px; }
-.xref-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-.xref-card { padding:18px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; transition:all 0.3s var(--ease); }
-.xref-card:hover { border-color:var(--border-h); }
-.xref-from { font-family:var(--mono); font-size:10px; color:var(--cyan); letter-spacing:0.5px; margin-bottom:6px; }
-.xref-arrow { font-family:var(--mono); font-size:10px; color:var(--t4); margin-bottom:6px; }
-.xref-to { font-size:13px; font-weight:600; color:var(--t1); margin-bottom:4px; }
-.xref-desc { font-size:11px; color:var(--t3); line-height:1.5; }
-.xref-cats { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; }
-.xref-cat { font-family:var(--mono); font-size:8px; color:var(--cyan); background:var(--cyan-dim); border:1px solid rgba(56,189,248,0.1); border-radius:3px; padding:1px 6px; }
-
-/* ── BACK LINK ── */
-.nav-back { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--t3); text-decoration:none; transition:all 0.2s; letter-spacing:0.5px; }
-.nav-back:hover { color:var(--cyan); }
-.nav-back-arrow { font-size:14px; transition:transform 0.2s; }
-.nav-back:hover .nav-back-arrow { transform:translateX(-3px); }
-
-/* ── ERA 2025 GOLD-AMBER CARD ── */
-.instrument-card.era-highlight {
-  border:2px solid rgba(251,191,36,0.3);
-  box-shadow:0 0 0 2px rgba(251,191,36,0.12), 0 4px 16px rgba(251,191,36,0.06);
-  cursor:pointer;
-}
-.instrument-card.era-highlight:hover { transform:translateY(-2px); box-shadow:0 0 0 2px rgba(251,191,36,0.25), 0 8px 32px rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.4); }
-.instrument-card.era-highlight::before { background:linear-gradient(90deg,transparent,var(--amber),transparent); }
-
-/* ── EA 2010 EMERALD CARD ── */
-.instrument-card.ea-highlight {
-  border:2px solid rgba(52,211,153,0.25);
-  box-shadow:0 0 0 2px rgba(52,211,153,0.1), 0 4px 16px rgba(52,211,153,0.05);
-  cursor:pointer;
-}
-.instrument-card.ea-highlight:hover { transform:translateY(-2px); box-shadow:0 0 0 2px rgba(52,211,153,0.2), 0 8px 32px rgba(52,211,153,0.1); border-color:rgba(52,211,153,0.4); }
-.instrument-card.ea-highlight::before { background:linear-gradient(90deg,transparent,var(--green),transparent); }
-.ea-badge {
-  display:inline-flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:9px; letter-spacing:1.5px; font-weight:700;
-  color:var(--green); background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2);
-  border-radius:4px; padding:3px 9px; margin-top:8px;
-}
-
-/* ── NO RESULTS MESSAGE ── */
-.no-results { display:none; text-align:center; padding:48px 24px; }
-.no-results-icon { font-size:32px; margin-bottom:12px; }
-.no-results-text { font-family:var(--mono); font-size:12px; color:var(--t3); letter-spacing:0.5px; }
-
-@media(max-width:768px){ .instruments-grid{grid-template-columns:1fr;} .wtr-meta-grid{grid-template-columns:1fr;} .panel-meta-grid{grid-template-columns:1fr;} .xref-grid{grid-template-columns:1fr;} .timeline{padding-left:28px;} }
-</style>
+    /* === Responsive === */
+    @media (max-width: 1024px) {
+      h1 { font-size: 40px; }
+      h2 { font-size: 30px; }
+      .section-inner { padding: 80px 24px; }
+      .hero { min-height: auto; padding: 120px 24px 60px; }
+      .mockup-split { flex-direction: column; }
+      .mockup-container { perspective: none; }
+      .mockup-frame { transform: none; }
+      .panel-grid { grid-template-columns: 1fr 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; gap: 24px; }
+      .training-cards { grid-template-columns: 1fr 1fr; }
+      .stats-row { flex-wrap: wrap; }
+      .stats-row > div { width: 45%; text-align: center; }
+    }
+    @media (max-width: 768px) {
+      h1 { font-size: 32px; }
+      h2 { font-size: 26px; }
+      .section-inner { padding: 60px 16px; }
+      .hero { padding: 100px 16px 40px; }
+      .cta-row { flex-direction: column; align-items: stretch; }
+      .cta-primary, .cta-secondary { text-align: center; }
+      .panel-grid { grid-template-columns: 1fr; }
+      .training-cards { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .pricing-col--recommended { order: -1; }
+      .stats-row > div { width: 100%; }
+      nav { padding: 12px 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      * { animation-duration: 0s !important; transition-duration: 0s !important; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <div class="nav-inner">
-    <a href="https://ailane.ai" class="nav-back"><span class="nav-back-arrow">&#8592;</span> Back to Ailane</a>
-    <a href="https://ailane.ai" class="logo">AILANE<span class="logo-sub">KNOWLEDGE LIBRARY</span></a>
-    <div class="nav-right">
-      <span class="nav-pill">PREVIEW MODE</span>
-      <a href="https://ailane.ai/#early-access" class="nav-cta">Request Full Access</a>
-    </div>
-  </div>
+<nav id="main-nav" aria-label="Main navigation">
+  <a href="/" class="nav-wordmark" aria-label="Ailane homepage">AILANE</a>
+  <a href="/account/" class="nav-signin">Sign In</a>
 </nav>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-eyebrow"><span class="hero-dot"></span> KNOWLEDGE LIBRARY · PREVIEW MODE</div>
-  <h1>The legislation behind <em>every score</em></h1>
-  <p class="hero-sub">47 legislative instruments tracked from parliamentary passage through commencement and enforcement. Every instrument that moves your ACEI score lives here — mapped to the 12 constitutional categories.</p>
-  <div class="hero-stats">
-    <div class="h-stat"><div class="h-stat-val">47</div><div class="h-stat-lab">Instruments tracked</div></div>
-    <div class="h-stat"><div class="h-stat-val">12</div><div class="h-stat-lab">ACEI categories</div></div>
-    <div class="h-stat"><div class="h-stat-val">53</div><div class="h-stat-lab">Jurisdictions</div></div>
-    <div class="h-stat"><div class="h-stat-val">6</div><div class="h-stat-lab">Authoritative sources</div></div>
-  </div>
-</section>
-
-<!-- ACCESS GATE BANNER -->
-<div class="gate-banner">
-  <div class="gate-inner">
-    <div class="gate-msg">
-      <span class="gate-icon">&#128274;</span>
-      <div class="gate-text"><strong>Preview mode.</strong> Sample instruments are shown in full. Full library access is available from Operational Readiness tier.</div>
-    </div>
-    <div class="gate-tiers">
-      <span class="gate-tier op">OPERATIONAL · UK</span>
-      <span class="gate-tier gov">GOVERNANCE · MULTI-JX</span>
-      <span class="gate-tier inst">INSTITUTIONAL · GLOBAL</span>
-    </div>
-    <a href="https://ailane.ai/#early-access" class="gate-cta">Unlock Full Library &#8594;</a>
-  </div>
-</div>
-
-<!-- MAIN CONTENT -->
-<main class="main">
-
-  <!-- Search bar -->
-  <div class="search-container fade-in">
-    <span class="search-icon">&#128269;</span>
-    <input type="text" class="search-input" id="search-input" placeholder="Search instruments by name, citation, or keyword...">
-    <div class="search-count" id="search-count"></div>
-  </div>
-
-  <!-- Category filter tabs — all 12 ACEI categories -->
-  <div class="cat-tabs" id="cat-tabs">
-    <div class="cat-tab active" data-cat="all">ALL CATEGORIES</div>
-    <div class="cat-tab" data-cat="01">CAT 01 · Unfair Dismissal</div>
-    <div class="cat-tab" data-cat="02">CAT 02 · Discrimination</div>
-    <div class="cat-tab" data-cat="03">CAT 03 · Wages &amp; Pay</div>
-    <div class="cat-tab" data-cat="04">CAT 04 · Whistleblowing</div>
-    <div class="cat-tab" data-cat="05">CAT 05 · Redundancy &amp; TUPE</div>
-    <div class="cat-tab" data-cat="06">CAT 06 · Working Time</div>
-    <div class="cat-tab" data-cat="07">CAT 07 · Parental Rights</div>
-    <div class="cat-tab" data-cat="08">CAT 08 · Trade Union</div>
-    <div class="cat-tab" data-cat="09">CAT 09 · Contract &amp; Notice</div>
-    <div class="cat-tab" data-cat="10">CAT 10 · Health &amp; Safety</div>
-    <div class="cat-tab" data-cat="11">CAT 11 · Data Protection</div>
-    <div class="cat-tab" data-cat="12">CAT 12 · Transfers &amp; Insolvency</div>
-  </div>
-
-  <!-- Instrument cards — 3 sample, rest gated -->
-  <div class="instruments-grid" id="instruments-grid">
-
-    <!-- SAMPLE 1: ERA 2025 (full access, expandable) -->
-    <div class="instrument-card era-highlight fade-in" data-cats="01,07,06,08,09,03,02,10" onclick="document.getElementById('era-overlay').classList.add('active')">
-      <div class="inst-header">
-        <div class="inst-title">Employment Rights Act 2025</div>
-        <span class="inst-status status-commencing">COMMENCING</span>
+<main>
+  <section id="hero" class="hero">
+    <div class="section-inner" style="display:flex;flex-direction:column;align-items:center">
+      <h1>Your employment law workspace.</h1>
+      <p class="hero-sub">Research, plan, and build your compliance documentation — guided by Eileen. Your contracts, your calendar, your research — all in one place.</p>
+      <div class="cta-row">
+        <a href="/account/" class="cta-primary">Start Your Research</a>
+        <a href="#demo" class="cta-secondary">See How It Works ↓</a>
       </div>
-      <div class="inst-meta">
-        <div class="inst-meta-item">Royal Assent <span>18 Dec 2025</span></div>
-        <div class="inst-meta-item">Citation <span>ERA 2025 c.36</span></div>
-        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
-      </div>
-      <div class="inst-cats">
-        <span class="inst-cat">CAT 01</span><span class="inst-cat">CAT 02</span>
-        <span class="inst-cat">CAT 03</span><span class="inst-cat">CAT 06</span>
-        <span class="inst-cat">CAT 07</span><span class="inst-cat">CAT 08</span>
-        <span class="inst-cat">CAT 09</span><span class="inst-cat">CAT 10</span>
-      </div>
-      <div class="inst-summary">The most significant overhaul of UK employment law in a generation. Removes the two-year qualifying period for unfair dismissal claims, establishes flexible working as a day-one right, introduces guaranteed hours obligations for zero-hours workers, and strengthens trade union access rights. Commencement dates are rolling by provision.</div>
-      <div class="inst-sci">
-        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-        <div class="inst-sci-dots">
-          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
-          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
-          <div class="sci-dot filled high"></div>
-        </div>
-        <span class="inst-sci-val">5 / 5 · STRUCTURAL</span>
-      </div>
-      <div class="expand-badge">&#9733; VIEW INSTRUMENT &#8594;</div>
-    </div>
-
-    <!-- SAMPLE 2: Equality Act 2010 (full access, expandable) -->
-    <div class="instrument-card ea-highlight fade-in" data-cats="02" onclick="document.getElementById('ea-overlay').classList.add('active')">
-      <div class="inst-header">
-        <div class="inst-title">Equality Act 2010</div>
-        <span class="inst-status status-force">IN FORCE</span>
-      </div>
-      <div class="inst-meta">
-        <div class="inst-meta-item">Commenced <span>1 Oct 2010</span></div>
-        <div class="inst-meta-item">Citation <span>EA 2010 c.15</span></div>
-        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
-      </div>
-      <div class="inst-cats">
-        <span class="inst-cat">CAT 02</span>
-      </div>
-      <div class="inst-summary">Consolidated and replaced previous anti-discrimination legislation. Defines nine protected characteristics and prohibits direct discrimination, indirect discrimination, harassment, and victimisation in employment. Provides for uncapped compensation. Basis for the highest-value employment tribunal claims.</div>
-      <div class="inst-sci">
-        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-        <div class="inst-sci-dots">
-          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
-          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
-          <div class="sci-dot filled high"></div>
-        </div>
-        <span class="inst-sci-val">5 / 5 · FOUNDATIONAL</span>
-      </div>
-      <div class="ea-badge">&#9733; VIEW INSTRUMENT &#8594;</div>
-    </div>
-
-    <!-- SAMPLE 3: Working Time Regulations 1998 — GOLD CARD -->
-    <div class="instrument-card wtr-gold fade-in" data-cats="03" id="wtr-card" onclick="document.getElementById('wtr-overlay').classList.add('active')">
-      <div class="inst-header">
-        <div class="inst-title">Working Time Regulations 1998</div>
-        <span class="inst-status status-force">IN FORCE</span>
-      </div>
-      <div class="inst-meta">
-        <div class="inst-meta-item">Commenced <span>1 Oct 1998</span></div>
-        <div class="inst-meta-item">Citation <span>SI 1998/1833</span></div>
-        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
-      </div>
-      <div class="inst-cats">
-        <span class="inst-cat">CAT 06</span>
-      </div>
-      <div class="inst-summary">Implements the EU Working Time Directive. Governs maximum weekly working hours (48h average), rest break entitlements, night work restrictions, and statutory annual leave (28 days inclusive). Holiday pay calculation remains a primary driver of wages tribunal claims.</div>
-      <div class="inst-sci">
-        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-        <div class="inst-sci-dots">
-          <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-          <div class="sci-dot filled"></div><div class="sci-dot empty"></div>
-          <div class="sci-dot empty"></div>
-        </div>
-        <span class="inst-sci-val">3 / 5 · ELEVATED</span>
-      </div>
-      <div class="wtr-gold-badge">&#9733; VIEW INSTRUMENT &#8594;</div>
-    </div>
-
-    <!-- SAMPLE 4: Employment Rights Act 1996 -->
-    <div class="instrument-card fade-in" data-cats="01,03,09">
-      <div class="inst-header">
-        <div class="inst-title">Employment Rights Act 1996</div>
-        <span class="inst-status status-force">IN FORCE</span>
-      </div>
-      <div class="inst-meta">
-        <div class="inst-meta-item">Commenced <span>22 Aug 1996</span></div>
-        <div class="inst-meta-item">Citation <span>ERA 1996 c.18</span></div>
-        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
-      </div>
-      <div class="inst-cats">
-        <span class="inst-cat">CAT 01</span><span class="inst-cat">CAT 03</span>
-        <span class="inst-cat">CAT 09</span>
-      </div>
-      <div class="inst-summary">The principal statute governing individual employment rights. Establishes the right not to be unfairly dismissed (Part X), the right to a written statement of employment particulars, the right to statutory redundancy pay, protection from unauthorised deductions from wages, and the framework for unfair dismissal claims including qualifying periods and compensation limits. Substantially amended by the Employment Rights Act 2025.</div>
-      <div class="inst-sci">
-        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-        <div class="inst-sci-dots">
-          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
-          <div class="sci-dot filled high"></div><div class="sci-dot filled high"></div>
-          <div class="sci-dot filled high"></div>
-        </div>
-        <span class="inst-sci-val">5 / 5 · FOUNDATIONAL</span>
-      </div>
-    </div>
-
-    <!-- SAMPLE 5: Public Interest Disclosure Act 1998 -->
-    <div class="instrument-card fade-in" data-cats="04">
-      <div class="inst-header">
-        <div class="inst-title">Public Interest Disclosure Act 1998</div>
-        <span class="inst-status status-force">IN FORCE</span>
-      </div>
-      <div class="inst-meta">
-        <div class="inst-meta-item">Commenced <span>2 Jul 1999</span></div>
-        <div class="inst-meta-item">Citation <span>PIDA 1998 c.23</span></div>
-        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
-      </div>
-      <div class="inst-cats">
-        <span class="inst-cat">CAT 04</span>
-      </div>
-      <div class="inst-summary">Inserts whistleblower protections into the Employment Rights Act 1996 (Part IVA). Workers making qualifying disclosures about criminal offences, breach of legal obligation, miscarriages of justice, health and safety dangers, environmental damage, or cover-ups are protected from detriment and dismissal. Compensation for dismissal is uncapped.</div>
-      <div class="inst-sci">
-        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-        <div class="inst-sci-dots">
-          <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-          <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-          <div class="sci-dot empty"></div>
-        </div>
-        <span class="inst-sci-val">4 / 5 · HIGH</span>
-      </div>
-    </div>
-
-    <!-- SAMPLE 6: TUPE Regulations 2006 -->
-    <div class="instrument-card fade-in" data-cats="05,12">
-      <div class="inst-header">
-        <div class="inst-title">Transfer of Undertakings (Protection of Employment) Regulations 2006</div>
-        <span class="inst-status status-force">IN FORCE</span>
-      </div>
-      <div class="inst-meta">
-        <div class="inst-meta-item">Commenced <span>6 Apr 2006</span></div>
-        <div class="inst-meta-item">Citation <span>SI 2006/246</span></div>
-        <div class="inst-meta-item">Source <span>legislation.gov.uk</span></div>
-      </div>
-      <div class="inst-cats">
-        <span class="inst-cat">CAT 05</span><span class="inst-cat">CAT 12</span>
-      </div>
-      <div class="inst-summary">Implements the EU Acquired Rights Directive. Provides that when a business or undertaking (or part of one) transfers to a new employer, affected employees automatically transfer on their existing terms and conditions. Dismissals connected to the transfer are automatically unfair unless an economic, technical, or organisational reason exists. Requires information and consultation with employee representatives.</div>
-      <div class="inst-sci">
-        <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-        <div class="inst-sci-dots">
-          <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-          <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-          <div class="sci-dot empty"></div>
-        </div>
-        <span class="inst-sci-val">4 / 5 · HIGH</span>
-      </div>
-    </div>
-
-    <!-- GATED: Health & Safety at Work Act 1974 -->
-    <div class="instrument-card gated fade-in" data-cats="10">
-      <div class="gated-overlay">
-        <div class="gated-badge">&#128274; FULL ACCESS REQUIRED</div>
-        <div class="gated-tier">Available from Operational Readiness tier</div>
-        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
-      </div>
-      <div class="gated-content">
-        <div class="inst-header">
-          <div class="inst-title">Health and Safety at Work etc. Act 1974</div>
-          <span class="inst-status status-force">IN FORCE</span>
-        </div>
-        <div class="inst-meta">
-          <div class="inst-meta-item">Commenced <span>1 Jan 1975</span></div>
-          <div class="inst-meta-item">Citation <span>HSWA 1974 c.37</span></div>
-        </div>
-        <div class="inst-cats"><span class="inst-cat">CAT 10</span></div>
-        <div class="inst-summary">Primary framework legislation for health and safety in Great Britain. Establishes general duties on employers, employees, and self-employed persons. HSE enforcement powers and criminal sanctions governed here.</div>
-        <div class="inst-sci">
-          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-          <div class="inst-sci-dots">
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot empty"></div>
-          </div>
-          <span class="inst-sci-val">4 / 5 · HIGH</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- GATED: Trade Union and Labour Relations Act -->
-    <div class="instrument-card gated fade-in" data-cats="08">
-      <div class="gated-overlay">
-        <div class="gated-badge">&#128274; FULL ACCESS REQUIRED</div>
-        <div class="gated-tier">Available from Operational Readiness tier</div>
-        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
-      </div>
-      <div class="gated-content">
-        <div class="inst-header">
-          <div class="inst-title">Trade Union and Labour Relations (Consolidation) Act 1992</div>
-          <span class="inst-status status-force">IN FORCE</span>
-        </div>
-        <div class="inst-meta">
-          <div class="inst-meta-item">Commenced <span>16 Oct 1992</span></div>
-          <div class="inst-meta-item">Citation <span>TULRCA 1992 c.52</span></div>
-        </div>
-        <div class="inst-cats"><span class="inst-cat">CAT 08</span></div>
-        <div class="inst-summary">Primary legislation governing collective employment law in Great Britain. Trade union recognition, collective bargaining obligations, industrial action protections, and detriment for union activities. Amended significantly by ERA 2025.</div>
-        <div class="inst-sci">
-          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-          <div class="inst-sci-dots">
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot filled"></div><div class="sci-dot empty"></div>
-            <div class="sci-dot empty"></div>
-          </div>
-          <span class="inst-sci-val">3 / 5 · ELEVATED</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- GATED: UK GDPR -->
-    <div class="instrument-card gated fade-in" data-cats="11">
-      <div class="gated-overlay">
-        <div class="gated-badge">&#128274; GOVERNANCE TIER</div>
-        <div class="gated-tier">Multi-jurisdiction instruments from Governance tier</div>
-        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
-      </div>
-      <div class="gated-content">
-        <div class="inst-header">
-          <div class="inst-title">UK General Data Protection Regulation</div>
-          <span class="inst-status status-force">IN FORCE</span>
-        </div>
-        <div class="inst-meta">
-          <div class="inst-meta-item">Commenced <span>1 Jan 2021</span></div>
-          <div class="inst-meta-item">Citation <span>UK GDPR 2021</span></div>
-        </div>
-        <div class="inst-cats"><span class="inst-cat">CAT 11</span></div>
-        <div class="inst-summary">Retained EU law governing data protection in the UK post-Brexit. Applies to employee data, monitoring, subject access requests, and data sharing with third parties. ICO enforcement powers flow from this instrument.</div>
-        <div class="inst-sci">
-          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-          <div class="inst-sci-dots">
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot empty"></div>
-          </div>
-          <span class="inst-sci-val">4 / 5 · HIGH</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- GATED: Maternity and Parental Leave Regulations 1999 -->
-    <div class="instrument-card gated fade-in" data-cats="07">
-      <div class="gated-overlay">
-        <div class="gated-badge">&#128274; FULL ACCESS REQUIRED</div>
-        <div class="gated-tier">Available from Operational Readiness tier</div>
-        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
-      </div>
-      <div class="gated-content">
-        <div class="inst-header">
-          <div class="inst-title">Maternity and Parental Leave etc. Regulations 1999</div>
-          <span class="inst-status status-force">IN FORCE</span>
-        </div>
-        <div class="inst-meta">
-          <div class="inst-meta-item">Commenced <span>15 Dec 1999</span></div>
-          <div class="inst-meta-item">Citation <span>SI 1999/3312</span></div>
-        </div>
-        <div class="inst-cats"><span class="inst-cat">CAT 07</span></div>
-        <div class="inst-summary">Governs the right to maternity leave, parental leave, and paternity leave. Provides protection from detriment and unfair dismissal for exercising leave entitlements. Amended by subsequent regulations including shared parental leave provisions.</div>
-        <div class="inst-sci">
-          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-          <div class="inst-sci-dots">
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot filled"></div><div class="sci-dot empty"></div>
-            <div class="sci-dot empty"></div>
-          </div>
-          <span class="inst-sci-val">3 / 5 · ELEVATED</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- GATED: National Minimum Wage Act 1998 -->
-    <div class="instrument-card gated fade-in" data-cats="03">
-      <div class="gated-overlay">
-        <div class="gated-badge">&#128274; FULL ACCESS REQUIRED</div>
-        <div class="gated-tier">Available from Operational Readiness tier</div>
-        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
-      </div>
-      <div class="gated-content">
-        <div class="inst-header">
-          <div class="inst-title">National Minimum Wage Act 1998</div>
-          <span class="inst-status status-force">IN FORCE</span>
-        </div>
-        <div class="inst-meta">
-          <div class="inst-meta-item">Commenced <span>1 Apr 1999</span></div>
-          <div class="inst-meta-item">Citation <span>NMW 1998 c.39</span></div>
-        </div>
-        <div class="inst-cats"><span class="inst-cat">CAT 03</span></div>
-        <div class="inst-summary">Establishes the statutory minimum wage framework. HMRC enforcement powers for underpayment. Criminal sanctions for wilful non-compliance. Rates set annually by the Low Pay Commission recommendation to the Secretary of State.</div>
-        <div class="inst-sci">
-          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-          <div class="inst-sci-dots">
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot empty"></div>
-          </div>
-          <span class="inst-sci-val">4 / 5 · HIGH</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- GATED: Insolvency Act 1986 -->
-    <div class="instrument-card gated fade-in" data-cats="12">
-      <div class="gated-overlay">
-        <div class="gated-badge">&#128274; GOVERNANCE TIER</div>
-        <div class="gated-tier">Multi-jurisdiction instruments from Governance tier</div>
-        <a href="https://ailane.ai/#early-access" class="gated-cta">Request Access &#8594;</a>
-      </div>
-      <div class="gated-content">
-        <div class="inst-header">
-          <div class="inst-title">Insolvency Act 1986</div>
-          <span class="inst-status status-force">IN FORCE</span>
-        </div>
-        <div class="inst-meta">
-          <div class="inst-meta-item">Commenced <span>29 Dec 1986</span></div>
-          <div class="inst-meta-item">Citation <span>IA 1986 c.45</span></div>
-        </div>
-        <div class="inst-cats"><span class="inst-cat">CAT 12</span></div>
-        <div class="inst-summary">Governs employer insolvency and employee protections. Preferential debts for employee claims (wages, holiday pay). National Insurance Fund payments for employees of insolvent employers under Part XII. Interaction with TUPE on pre-pack administrations.</div>
-        <div class="inst-sci">
-          <span class="inst-sci-label">SCI SIGNIFICANCE</span>
-          <div class="inst-sci-dots">
-            <div class="sci-dot filled"></div><div class="sci-dot filled"></div>
-            <div class="sci-dot filled"></div><div class="sci-dot empty"></div>
-            <div class="sci-dot empty"></div>
-          </div>
-          <span class="inst-sci-val">3 / 5 · ELEVATED</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- No results message -->
-  <div class="no-results" id="no-results">
-    <div class="no-results-icon">&#128269;</div>
-    <div class="no-results-text">No instruments match your search. Try different keywords.</div>
-  </div>
-
-  <!-- Count row -->
-  <div class="count-row">
-    <div class="count-row-left">Showing <strong>6 of 47</strong> instruments in preview. <strong>41</strong> instruments require subscription access.</div>
-    <a href="https://ailane.ai/#early-access" class="count-row-right">Unlock all 47 instruments &#8594;</a>
-  </div>
-
-  <!-- Legislation Timeline -->
-  <div class="timeline-section fade-in">
-    <div class="timeline-section-label">Legislative Timeline</div>
-    <div class="timeline">
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">1974</div>
-        <div class="timeline-title">Health and Safety at Work etc. Act</div>
-        <div class="timeline-desc">Framework legislation for workplace health and safety. HSE enforcement powers established.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">1986</div>
-        <div class="timeline-title">Insolvency Act</div>
-        <div class="timeline-desc">Employee protections in employer insolvency. Preferential debt status for wage claims.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">1992</div>
-        <div class="timeline-title">Trade Union and Labour Relations (Consolidation) Act</div>
-        <div class="timeline-desc">Consolidated collective employment law. Recognition, bargaining, and industrial action framework.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">1996</div>
-        <div class="timeline-title">Employment Rights Act</div>
-        <div class="timeline-desc">Principal individual employment rights statute. Unfair dismissal, redundancy pay, written particulars.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">1998</div>
-        <div class="timeline-title">Working Time Regulations / Public Interest Disclosure Act / NMW Act</div>
-        <div class="timeline-desc">Three major instruments in one year. Working time limits, whistleblower protections, and the national minimum wage.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">2006</div>
-        <div class="timeline-title">TUPE Regulations</div>
-        <div class="timeline-desc">Transfer protections modernised. Service provision changes brought within scope.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">2010</div>
-        <div class="timeline-title">Equality Act</div>
-        <div class="timeline-desc">Consolidated nine equality strands into a single framework. Protected characteristics codified.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot"></div>
-        <div class="timeline-year">2021</div>
-        <div class="timeline-title">UK GDPR</div>
-        <div class="timeline-desc">Post-Brexit retained EU data protection law. Employee privacy and monitoring obligations.</div>
-      </div>
-      <div class="timeline-item fade-in">
-        <div class="timeline-dot amber active"></div>
-        <div class="timeline-year amber">2025</div>
-        <div class="timeline-title">Employment Rights Act 2025</div>
-        <div class="timeline-desc">Generational reform. Day-one rights, guaranteed hours, strengthened union access. Rolling commencement through 2026.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Cross-Reference Section -->
-  <div class="xref-section fade-in">
-    <div class="xref-section-label">Instrument Cross-References</div>
-    <div class="xref-grid">
-      <div class="xref-card fade-in">
-        <div class="xref-from">ERA 2025 c.36</div>
-        <div class="xref-arrow">amends &#8594;</div>
-        <div class="xref-to">Employment Rights Act 1996</div>
-        <div class="xref-desc">Removes the 2-year qualifying period for unfair dismissal (Part X). Inserts new Part 8A on guaranteed hours. Amends s.98 on fair reasons for dismissal.</div>
-        <div class="xref-cats"><span class="xref-cat">CAT 01</span><span class="xref-cat">CAT 03</span><span class="xref-cat">CAT 09</span></div>
-      </div>
-      <div class="xref-card fade-in">
-        <div class="xref-from">ERA 2025 c.36</div>
-        <div class="xref-arrow">amends &#8594;</div>
-        <div class="xref-to">Trade Union and Labour Relations (Consolidation) Act 1992</div>
-        <div class="xref-desc">Strengthens union access rights. New obligations on employers to notify workers of their right to join a union. Simplified recognition procedures.</div>
-        <div class="xref-cats"><span class="xref-cat">CAT 08</span></div>
-      </div>
-      <div class="xref-card fade-in">
-        <div class="xref-from">PIDA 1998 c.23</div>
-        <div class="xref-arrow">inserts into &#8594;</div>
-        <div class="xref-to">Employment Rights Act 1996 (Part IVA)</div>
-        <div class="xref-desc">Whistleblower protections inserted as Part IVA of ERA 1996. Qualifying disclosures, protected disclosures, and remedies for detriment all sit within the ERA framework.</div>
-        <div class="xref-cats"><span class="xref-cat">CAT 04</span><span class="xref-cat">CAT 01</span></div>
-      </div>
-      <div class="xref-card fade-in">
-        <div class="xref-from">TUPE 2006 SI 2006/246</div>
-        <div class="xref-arrow">interacts with &#8594;</div>
-        <div class="xref-to">Insolvency Act 1986</div>
-        <div class="xref-desc">Pre-pack administration transfers engage both TUPE protections and insolvency proceedings. Reg 8 modifies TUPE obligations where the transferor is subject to insolvency proceedings.</div>
-        <div class="xref-cats"><span class="xref-cat">CAT 05</span><span class="xref-cat">CAT 12</span></div>
-      </div>
-      <div class="xref-card fade-in">
-        <div class="xref-from">WTR 1998 SI 1998/1833</div>
-        <div class="xref-arrow">interacts with &#8594;</div>
-        <div class="xref-to">Employment Rights Act 2025 (Guaranteed Hours)</div>
-        <div class="xref-desc">ERA 2025 guaranteed hours provisions interact with WTR holiday pay calculations. Variable-hours workers now entitled to guaranteed hours, which changes the basis for calculating annual leave entitlement.</div>
-        <div class="xref-cats"><span class="xref-cat">CAT 06</span><span class="xref-cat">CAT 03</span></div>
-      </div>
-      <div class="xref-card fade-in">
-        <div class="xref-from">EA 2010 c.15</div>
-        <div class="xref-arrow">interacts with &#8594;</div>
-        <div class="xref-to">Employment Rights Act 1996 (Unfair Dismissal)</div>
-        <div class="xref-desc">Discriminatory dismissals may be challenged under both EA 2010 and ERA 1996. EA 2010 claims have no compensation cap; ERA 1996 unfair dismissal claims are capped. Strategic claim framing crosses both instruments.</div>
-        <div class="xref-cats"><span class="xref-cat">CAT 02</span><span class="xref-cat">CAT 01</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tier comparison -->
-  <div class="tier-section">
-    <div class="tier-section-label">Knowledge Library access by tier</div>
-    <div class="tier-grid">
-      <div class="tier-card fade-in">
-        <div class="tier-name">OPERATIONAL READINESS</div>
-        <h3>UK Full Coverage</h3>
-        <div class="tier-access">All 47 instruments across 12 ACEI categories. Updated weekly. Commencement alerts. Includes ERA 2025 live tracking.</div>
-        <ul class="tier-features">
-          <li>All 47 UK instruments, full detail</li>
-          <li>12 ACEI category mapping</li>
-          <li>SCI significance ratings</li>
-          <li>Commencement timeline tracking</li>
-          <li>Legislative change alerts</li>
-          <li>Employer obligation summaries</li>
-        </ul>
-        <a href="https://ailane.ai/#early-access" class="tier-cta cyan">&#163;199/mo · Request Access</a>
-      </div>
-      <div class="tier-card fade-in">
-        <div class="tier-name">GOVERNANCE</div>
-        <h3>Multi-Jurisdiction</h3>
-        <div class="tier-access">UK instruments plus sector-filtered coverage across additional jurisdictions. ACEI Domain Index computed per jurisdiction.</div>
-        <ul class="tier-features">
-          <li>Everything in Operational</li>
-          <li>Sector-filtered multi-jurisdiction feed</li>
-          <li>ACEI DI per jurisdiction</li>
-          <li>Cross-border instrument mapping</li>
-          <li>Territorial reach analysis</li>
-          <li>Devolved jurisdiction divergence</li>
-        </ul>
-        <a href="https://ailane.ai/#early-access" class="tier-cta primary">&#163;799/mo · Request Access</a>
-      </div>
-      <div class="tier-card gold-card fade-in">
-        <div class="tier-name gold">INSTITUTIONAL</div>
-        <h3>Growing Global Library</h3>
-        <div class="tier-access">53-jurisdiction architecture expanding continuously. Full instrument library with territorial reach mapping as coverage develops.</div>
-        <ul class="tier-features">
-          <li>Everything in Governance</li>
-          <li>53-jurisdiction architecture</li>
-          <li>Expanding global instrument set</li>
-          <li>Workforce-weighted multi-jurisdiction DI</li>
-          <li>Custom jurisdiction blending</li>
-          <li>API access for internal systems</li>
-        </ul>
-        <a href="https://ailane.ai/#early-access" class="tier-cta gold">Custom · Contact Sales</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- CTA strip -->
-  <div class="cta-strip fade-in">
-    <h2>Ready to see the full library?</h2>
-    <p>Join the early access programme and get constitutionally-governed regulatory intelligence from your first session. 47 instruments. 12 categories. Updated weekly.</p>
-    <div class="cta-strip-actions">
-      <a href="https://ailane.ai/#early-access" class="cta-btn-primary">Request Early Access</a>
-      <a href="https://ailane.ai/#governance" class="cta-btn-sec">How the scoring works</a>
-    </div>
-  </div>
-
-</main>
-
-<!-- FOOTER (minimal) -->
-<footer class="preview-footer">
-  <div class="preview-footer-text">
-    &copy; 2026 AI Lane Limited (Company No. 17035654) trading as Ailane &nbsp;&#183;&nbsp;
-    <a href="https://ailane.ai">ailane.ai</a> &nbsp;&#183;&nbsp;
-    ACEI v1.0 · RRI v1.0 · CCI v1.0 &nbsp;&#183;&nbsp;
-    UK Trademark UK00004347220
-  </div>
-</footer>
-
-<!-- WTR 1998 EXPANDED PANEL OVERLAY -->
-<div class="wtr-expand-overlay" id="wtr-overlay" onclick="if(event.target===this)this.classList.remove('active')">
-  <div class="wtr-expand-panel">
-    <div class="wtr-panel-header">
-      <div>
-        <h2>Working Time Regulations 1998</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-          <span class="inst-status status-force">IN FORCE</span>
-          <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:4px;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(245,158,11,0.2);">GOVERNANCE TIER</span>
-        </div>
-      </div>
-      <button class="wtr-panel-close" onclick="event.stopPropagation();document.getElementById('wtr-overlay').classList.remove('active')">&#10005; CLOSE</button>
-    </div>
-    <div class="wtr-panel-body">
-
-      <!-- Meta grid -->
-      <div class="wtr-section">
-        <div class="wtr-meta-grid">
-          <div class="wtr-meta-item"><span class="wtr-meta-key">Reference</span><span class="wtr-meta-val">SI 1998/1833</span></div>
-          <div class="wtr-meta-item"><span class="wtr-meta-key">Category</span><span class="wtr-meta-val">Working Time &amp; Leave (ACEI Category 6)</span></div>
-          <div class="wtr-meta-item"><span class="wtr-meta-key">Lifecycle Stage</span><span class="wtr-meta-val">In Force</span></div>
-          <div class="wtr-meta-item"><span class="wtr-meta-key">Jurisdiction</span><span class="wtr-meta-val">England, Wales, Scotland (GB &mdash; excludes Northern Ireland on certain provisions)</span></div>
-          <div class="wtr-meta-item"><span class="wtr-meta-key">Effective Date</span><span class="wtr-meta-val">1 October 1998</span></div>
-          <div class="wtr-meta-item"><span class="wtr-meta-key">Last Amended</span><span class="wtr-meta-val">1 January 2024 (SI 2023/1181)</span></div>
-        </div>
-      </div>
-
-      <!-- Summary -->
-      <div class="wtr-section">
-        <div class="wtr-section-label">Summary</div>
-        <p>Implements the EU Working Time Directive (93/104/EC) into UK law. Establishes the 48-hour average weekly working time limit (with opt-out), minimum daily and weekly rest periods, rest breaks, annual leave entitlement (5.6 weeks / 28 days for full-time workers), night work restrictions, and protections for young workers. Enforcement is through employment tribunals and the relevant enforcing authority.</p>
-      </div>
-
-      <!-- Key Provisions -->
-      <div class="wtr-section">
-        <div class="wtr-section-label">Key Provisions</div>
-        <ul class="wtr-provisions-list">
-          <li><strong>Regulation 4:</strong> Maximum average 48-hour working week (reference period 17 weeks); individual opt-out available under Reg 5</li>
-          <li><strong>Regulation 10:</strong> Daily rest &mdash; 11 consecutive hours per 24-hour period</li>
-          <li><strong>Regulation 11:</strong> Weekly rest &mdash; 24 uninterrupted hours per 7-day period (or 48 hours per 14-day period)</li>
-          <li><strong>Regulation 12:</strong> Rest breaks &mdash; 20-minute uninterrupted break where working day exceeds 6 hours</li>
-          <li><strong>Regulations 13 &amp; 13A:</strong> Annual leave &mdash; 4 weeks (Reg 13) + 1.6 weeks (Reg 13A) = 5.6 weeks statutory minimum</li>
-          <li><strong>Regulation 14:</strong> Payment in lieu of annual leave on termination only</li>
-          <li><strong>Regulation 27A:</strong> Rolled-up holiday pay &mdash; prohibited following Tribunal and EAT case law</li>
-          <li><strong>Regulations 36&ndash;43:</strong> Young workers &mdash; stricter limits; no night work; 30-minute break after 4.5 hours</li>
-        </ul>
-      </div>
-
-      <!-- Constitutional Mapping -->
-      <div class="wtr-section">
-        <div class="wtr-section-label">Constitutional Mapping</div>
-        <div class="wtr-text" style="font-size:13px;color:var(--t2);line-height:1.7;">
-          <span style="color:var(--cyan);">ACEI Category 6</span> &mdash; Working Time &amp; Leave<br>
-          <span style="color:var(--cyan);">RRI Pillar 3</span> &mdash; Policy &amp; Procedure Conformity<br>
-          <span style="color:var(--cyan);">CCI Component 4</span> &mdash; Regulatory Cooperation
-        </div>
-      </div>
-
-      <!-- Enforcement Note -->
-      <div class="wtr-section">
-        <div class="wtr-section-label">Enforcement</div>
-        <p>Enforced by employment tribunals (annual leave, rest breaks). HSE responsible for working time limits and night work. Claims under Reg 30 for denial of rights.</p>
-      </div>
-
-      <!-- Source -->
-      <div class="wtr-section" style="margin-bottom:24px;">
-        <div class="wtr-section-label">Source</div>
-        <a href="https://www.legislation.gov.uk/uksi/1998/1833/contents" target="_blank" rel="noreferrer" class="wtr-source-link">&#8599; legislation.gov.uk &middot; OGL v3</a>
-      </div>
-
-      <!-- Divider -->
-      <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:24px;"></div>
-
-      <!-- Generate Report Section -->
-      <div class="wtr-section" style="margin-bottom:0;">
-        <div class="wtr-section-label">Governance Analysis</div>
-        <p style="font-size:12px;color:var(--t3);margin-bottom:12px;">Generate an in-depth compliance analysis report for this instrument, mapped to your organisation's ACEI, RRI, and CCI obligations.</p>
-        <button class="wtr-generate-report" id="wtr-gen-btn" onclick="event.stopPropagation();generateWtrReport()">
-          <span id="wtr-gen-icon">&#9881;</span> Generate In-Depth Report
-        </button>
-        <div class="wtr-report-output" id="wtr-report-output">
-          <h4>&#9881; IN-DEPTH ANALYSIS &middot; WORKING TIME REGULATIONS 1998</h4>
-          <div class="wtr-report-section">
-            <strong>1. ACEI Exposure Assessment (Category 6)</strong>
-            <p>The Working Time Regulations 1998 remain a persistent source of employment tribunal claims, particularly concerning holiday pay calculation (following the <em>Bear Scotland</em> and <em>Harpur Trust v Brazel</em> line of authority). Organisations with variable-hours workers, shift patterns, or overtime structures face elevated exposure under EVI. Enforcement intensity is moderate: HSE interventions on working time limits remain low-frequency but high-impact, while tribunal claims on annual leave denial are high-volume. SCI significance is elevated at 3/5 due to ongoing case law development on rolled-up holiday pay and the interaction with the Employment Rights Act 2025 provisions on guaranteed hours.</p>
-          </div>
-          <div class="wtr-report-section">
-            <strong>2. RRI Readiness Gaps (Pillar 3)</strong>
-            <p>Key readiness obligations: (a) Written working time policy covering opt-out procedures, rest break entitlements, and annual leave accrual methodology; (b) Documented night worker health assessment process per Reg 7; (c) Training records demonstrating line manager awareness of rest break obligations and opt-out withdrawal rights; (d) Systems capability to track 17-week reference period calculations and flag breaches; (e) Governance sign-off on holiday pay calculation methodology (particularly for workers with variable pay components).</p>
-          </div>
-          <div class="wtr-report-section">
-            <strong>3. CCI Conduct Posture</strong>
-            <p>Historical compliance indicators to monitor: tribunal claim history under Reg 30 (denial of rights); HSE improvement or prohibition notices related to working time; any EAT or higher court decisions naming the organisation; pattern of holiday pay underpayment corrections. Organisations with clean CCI records on Category 6 should maintain documented evidence of proactive compliance reviews conducted at least annually.</p>
-          </div>
-          <div class="wtr-report-section">
-            <strong>4. Recommended Actions</strong>
-            <p>&#8594; Audit current holiday pay calculation methodology against <em>Harpur Trust v Brazel</em> [2022] UKSC 21<br>
-            &#8594; Review all opt-out agreements for Reg 5 validity (voluntary, written, 7-day withdrawal notice)<br>
-            &#8594; Verify night worker health assessment records are current (Reg 7)<br>
-            &#8594; Confirm rest break policies are communicated and enforced (Reg 12)<br>
-            &#8594; Map interaction with ERA 2025 guaranteed hours provisions for zero-hours and variable-hours workers</p>
-          </div>
-          <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(245,158,11,0.1);">
-            <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--t4);">GENERATED BY AILANE CONSTITUTIONAL INTELLIGENCE &middot; GOVERNANCE TIER &middot; FOR ILLUSTRATIVE PURPOSES</span>
+      <div class="mockup-container" aria-label="Workspace preview showing Document Vault and Notes panels side by side">
+        <div class="mockup-frame">
+          <div class="mockup-split">
+            <div class="mockup-panel" style="flex:0.55">
+              <div class="mockup-panel-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                Document Vault
+              </div>
+              <div class="mock-row"><span class="mock-name">Site Manager — Cardiff HQ</span><span class="mock-score mock-score--green">91%</span></div>
+              <div class="mock-row"><span class="mock-name">FM Operative — Bristol</span><span class="mock-score mock-score--amber">58%</span></div>
+              <div class="mock-row"><span class="mock-name">Cleaning Operative ZH — Swansea</span><span class="mock-score mock-score--red">41%</span></div>
+              <div class="mock-meta" style="margin-top:10px">5 monitored · Auto-rechecked on law change</div>
+            </div>
+            <div class="mockup-panel" style="flex:0.45">
+              <div class="mockup-panel-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Notes
+              </div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px">ERA 2025 Preparation</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Management Meeting Notes</div>
+              <div style="font-size:13px;color:var(--text-body);line-height:1.5">Key changes to prepare for:<br>• SSP waiting period removal<br>• Unfair dismissal qualifying period<br>• Zero-hours contract reforms</div>
+            </div>
           </div>
         </div>
       </div>
-
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- ERA 2025 EXPANDED PANEL OVERLAY -->
-<div class="expand-overlay" id="era-overlay" onclick="if(event.target===this)this.classList.remove('active')">
-  <div class="expand-panel era-panel">
-    <div class="panel-header">
-      <div>
-        <h2>Employment Rights Act 2025</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-          <span class="inst-status status-commencing">COMMENCING</span>
-          <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:4px;color:var(--amber);background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);">STRUCTURAL · 5/5</span>
+  <div class="section-divider"></div>
+
+  <section id="demo" class="reveal">
+    <div class="section-inner">
+      <h2>Side-by-side intelligence.</h2>
+      <p style="max-width:680px;color:var(--text-body);font-size:18px;margin-top:16px">Open your contracts alongside your research. Review compliance findings while Eileen explains the statutory basis. Plan your next contract version while your calendar tracks upcoming regulatory changes. The workspace adapts to how you work.</p>
+      <div style="margin-top:40px;border-radius:12px;border:1px solid var(--navy-border);overflow:hidden">
+        <div class="mockup-split">
+          <div class="mockup-panel" style="flex:0.5">
+            <div class="mockup-panel-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              Document Vault
+            </div>
+            <div class="mock-row" style="border-bottom:none"><span class="mock-name" style="font-weight:500">FM Operative — Bristol</span><span class="mock-score mock-score--amber">58%</span></div>
+            <div class="mock-finding"><span class="mock-dot" style="background:var(--red)"></span> Holiday pay accrual may not reflect statutory entitlement <span style="color:var(--red);font-size:11px;font-weight:600;margin-left:6px">Critical</span></div>
+            <div class="mock-meta" style="margin-top:10px">3 findings · Checked 14 Mar 2026</div>
+          </div>
+          <div class="mockup-panel" style="flex:0.5">
+            <div class="mockup-panel-header">
+              <span class="mock-nexus-dot"></span>
+              Eileen
+            </div>
+            <div class="mock-banner">Eileen provides regulatory intelligence, not legal advice.</div>
+            <div class="mock-eileen-msg">The Working Time Regulations 1998, Reg.16, requires that holiday pay reflects normal remuneration — including regular overtime and commission. The 52-week reference period established in The Employment Rights (Increase of Limits) Order applies.</div>
+            <div class="mock-quick-pill">What does the law require here?</div>
+          </div>
         </div>
       </div>
-      <button class="panel-close" onclick="event.stopPropagation();document.getElementById('era-overlay').classList.remove('active')">&#10005; CLOSE</button>
     </div>
-    <div class="panel-body">
+  </section>
 
-      <!-- Meta grid -->
-      <div class="panel-section">
-        <div class="panel-meta-grid">
-          <div class="panel-meta-item"><span class="panel-meta-key">Reference</span><span class="panel-meta-val">ERA 2025 c.36</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Categories</span><span class="panel-meta-val">CAT 01, 02, 03, 06, 07, 08, 09, 10</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Lifecycle Stage</span><span class="panel-meta-val">Commencing (rolling by provision)</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Jurisdiction</span><span class="panel-meta-val">England, Wales, Scotland (certain provisions extend to NI)</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Royal Assent</span><span class="panel-meta-val">18 December 2025</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">First Commencement</span><span class="panel-meta-val">Expected Q2 2026</span></div>
-        </div>
-      </div>
+    <!-- PARTS-BC-START -->
+    <!-- Sections 3-9 + Footer + Script inserted by Parts B and C -->
+    <!-- PARTS-BC-END -->
 
-      <!-- Summary -->
-      <div class="panel-section">
-        <div class="panel-section-label">Summary</div>
-        <p>The most significant reform of UK employment law in a generation. The Act fundamentally restructures the relationship between employers and workers by removing the two-year qualifying period for unfair dismissal claims, establishing flexible working as a day-one right, introducing guaranteed hours obligations for zero-hours and low-hours workers, banning exploitative fire-and-rehire practices, strengthening trade union access rights, and enhancing protections for pregnant workers and new parents. Commencement is phased by provision, with secondary legislation and codes of practice required before key sections take effect.</p>
-      </div>
-
-      <!-- Key Provisions -->
-      <div class="panel-section">
-        <div class="panel-section-label">Key Provisions</div>
-        <ul class="panel-provisions-list amber">
-          <li><strong>Part 1 &mdash; Unfair Dismissal Reform:</strong> Removes the 2-year qualifying period under s.108 ERA 1996. Unfair dismissal becomes a day-one right. Introduces a statutory probationary period (expected 9 months) with a lighter-touch dismissal process during the initial period.</li>
-          <li><strong>Part 2 &mdash; Guaranteed Hours:</strong> Zero-hours and low-hours workers entitled to a guaranteed hours contract reflecting actual hours worked. Employers must offer guaranteed hours after a qualifying reference period.</li>
-          <li><strong>Part 3 &mdash; Fire and Rehire:</strong> Dismissal to re-engage on less favourable terms is automatically unfair unless the employer can demonstrate financial exigency amounting to a threat of business viability.</li>
-          <li><strong>Part 4 &mdash; Flexible Working:</strong> Default right to flexible working from day one. Employer must state grounds for refusal and demonstrate that none of the statutory grounds can reasonably be accommodated.</li>
-          <li><strong>Part 5 &mdash; Trade Union Access:</strong> Simplified union recognition process. Employers must notify workers of their right to join a trade union. Access agreements for union representatives to communicate with workers.</li>
-          <li><strong>Part 6 &mdash; Family Rights Enhancement:</strong> Day-one paternity and parental leave. Enhanced protections from dismissal during pregnancy and for 6 months after return from maternity/adoption leave.</li>
-          <li><strong>Part 7 &mdash; Fair Work Agency:</strong> Establishes a single enforcement body consolidating powers of HMRC NMW enforcement, the Gangmasters and Labour Abuse Authority, and the Employment Agency Standards Inspectorate.</li>
-        </ul>
-      </div>
-
-      <!-- Constitutional Mapping -->
-      <div class="panel-section">
-        <div class="panel-section-label">Constitutional Mapping</div>
-        <div style="font-size:13px;color:var(--t2);line-height:1.7;">
-          <span style="color:var(--amber);">ACEI Categories 1, 2, 3, 6, 7, 8, 9, 10</span> &mdash; Multi-category impact across 8 of 12 constitutional domains<br>
-          <span style="color:var(--amber);">RRI All 5 Pillars</span> &mdash; Policy, Contractual, Training, Systems, and Governance all require review<br>
-          <span style="color:var(--amber);">CCI Forward Impact</span> &mdash; Baseline reset for historical conduct scoring from commencement date
-        </div>
-      </div>
-
-      <!-- Enforcement -->
-      <div class="panel-section">
-        <div class="panel-section-label">Enforcement</div>
-        <p>Employment Tribunals for individual claims. Fair Work Agency for proactive enforcement of guaranteed hours, minimum wage, and agency worker obligations. HSE retains health and safety enforcement. ACAS early conciliation remains mandatory pre-condition for ET claims.</p>
-      </div>
-
-      <!-- Source -->
-      <div class="panel-section" style="margin-bottom:24px;">
-        <div class="panel-section-label">Source</div>
-        <a href="https://www.legislation.gov.uk/ukpga/2025/36/contents" target="_blank" rel="noreferrer" class="panel-source-link">&#8599; legislation.gov.uk &middot; OGL v3</a>
-      </div>
-
-      <!-- Divider -->
-      <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:24px;"></div>
-
-      <!-- Generate Report -->
-      <div class="panel-section" style="margin-bottom:0;">
-        <div class="panel-section-label">Governance Analysis</div>
-        <p style="font-size:12px;color:var(--t3);margin-bottom:12px;">Generate an in-depth compliance analysis report for this instrument, mapped to your organisation's ACEI, RRI, and CCI obligations.</p>
-        <button class="generate-report-btn amber-btn" id="era-gen-btn" onclick="event.stopPropagation();generateReport('era')">
-          <span id="era-gen-icon">&#9881;</span> Generate In-Depth Report
-        </button>
-        <div class="report-output amber-report" id="era-report-output">
-          <h4>&#9881; IN-DEPTH ANALYSIS &middot; EMPLOYMENT RIGHTS ACT 2025</h4>
-          <div class="report-section">
-            <strong>1. ACEI Exposure Assessment (Multi-Category)</strong>
-            <p>The ERA 2025 creates the most significant ACEI exposure event since the Equality Act 2010. Organisations face simultaneous exposure increases across 8 of 12 categories. The removal of the 2-year qualifying period for unfair dismissal (Category 1) alone will substantially increase tribunal claim volumes: employers can expect a material uplift in EVI scores for Category 1 as employees gain day-one protection. The guaranteed hours provisions (Category 3) will drive enforcement activity through the new Fair Work Agency, increasing EII across wage-related categories. SCI significance is rated 5/5 STRUCTURAL &mdash; this represents a regime-level shift requiring complete recalibration of baseline scores.</p>
-          </div>
-          <div class="report-section">
-            <strong>2. RRI Readiness Gaps (All 5 Pillars)</strong>
-            <p>Key readiness obligations: (a) <strong>Policy &amp; Procedure</strong>: Complete rewrite of dismissal procedures, new probationary period policy, guaranteed hours offer process, updated flexible working request procedure; (b) <strong>Contractual Compliance</strong>: Audit all zero-hours and low-hours contracts, review fire-and-rehire clauses, update written particulars for day-one unfair dismissal; (c) <strong>Training &amp; Awareness</strong>: Line manager training on statutory probationary period, guaranteed hours obligations, union access rights; (d) <strong>Systems &amp; Process</strong>: Payroll/HR system updates to track reference periods for guaranteed hours, automated flexible working request workflows; (e) <strong>Governance &amp; Oversight</strong>: Board-level ERA 2025 implementation plan, budget allocation for compliance programme.</p>
-          </div>
-          <div class="report-section">
-            <strong>3. CCI Conduct Posture</strong>
-            <p>CCI baseline will reset from the commencement date of each provision. Organisations should document their pre-commencement compliance posture. Any ongoing tribunal claims or settlements related to qualifying periods, zero-hours exploitation, or fire-and-rehire practices will be scored against the new legislative baseline once commenced. Proactive compliance evidence (Tier II/III) gathered before commencement will strengthen the CCI score from day one.</p>
-          </div>
-          <div class="report-section">
-            <strong>4. Recommended Actions</strong>
-            <p>&#8594; Establish an ERA 2025 implementation working group with HR, Legal, and Operations representation<br>
-            &#8594; Conduct a workforce audit identifying all zero-hours, low-hours, and variable-hours workers<br>
-            &#8594; Review and update all template contracts of employment for day-one unfair dismissal rights<br>
-            &#8594; Design a statutory probationary period process compliant with the forthcoming Code of Practice<br>
-            &#8594; Prepare union access policy and designate points of contact for union representative requests<br>
-            &#8594; Budget for HR system upgrades to support guaranteed hours reference period tracking<br>
-            &#8594; Schedule line manager training programme timed to provision commencement dates</p>
-          </div>
-          <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(245,158,11,0.1);">
-            <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--t4);">GENERATED BY AILANE CONSTITUTIONAL INTELLIGENCE &middot; GOVERNANCE TIER &middot; FOR ILLUSTRATIVE PURPOSES</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- EQUALITY ACT 2010 EXPANDED PANEL OVERLAY -->
-<div class="expand-overlay" id="ea-overlay" onclick="if(event.target===this)this.classList.remove('active')">
-  <div class="expand-panel">
-    <div class="panel-header">
-      <div>
-        <h2>Equality Act 2010</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-          <span class="inst-status status-force">IN FORCE</span>
-          <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:4px;color:var(--green);background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);">FOUNDATIONAL · 5/5</span>
-        </div>
-      </div>
-      <button class="panel-close" onclick="event.stopPropagation();document.getElementById('ea-overlay').classList.remove('active')">&#10005; CLOSE</button>
-    </div>
-    <div class="panel-body">
-
-      <!-- Meta grid -->
-      <div class="panel-section">
-        <div class="panel-meta-grid">
-          <div class="panel-meta-item"><span class="panel-meta-key">Reference</span><span class="panel-meta-val">EA 2010 c.15</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Category</span><span class="panel-meta-val">Discrimination &amp; Equal Treatment (ACEI Category 2)</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Lifecycle Stage</span><span class="panel-meta-val">In Force (consolidated)</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Jurisdiction</span><span class="panel-meta-val">England, Wales, Scotland (separate provisions for NI under legacy legislation)</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Commenced</span><span class="panel-meta-val">1 October 2010</span></div>
-          <div class="panel-meta-item"><span class="panel-meta-key">Last Amended</span><span class="panel-meta-val">Employment Rights Act 2025 (additional protections)</span></div>
-        </div>
-      </div>
-
-      <!-- Summary -->
-      <div class="panel-section">
-        <div class="panel-section-label">Summary</div>
-        <p>The Equality Act 2010 consolidated and replaced the previous patchwork of anti-discrimination legislation (including the Sex Discrimination Act 1975, Race Relations Act 1976, Disability Discrimination Act 1995, and regulations implementing EU equality directives). It defines nine protected characteristics: age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex, and sexual orientation. The Act prohibits direct discrimination, indirect discrimination, harassment, and victimisation in employment and other fields. Compensation for discrimination claims in employment tribunals is uncapped.</p>
-      </div>
-
-      <!-- Key Provisions -->
-      <div class="panel-section">
-        <div class="panel-section-label">Key Provisions</div>
-        <ul class="panel-provisions-list">
-          <li><strong>Part 2, Chapter 1 &mdash; Protected Characteristics:</strong> Defines the nine protected characteristics (ss.4&ndash;12). Each characteristic has specific definitional elements and case law interpretation.</li>
-          <li><strong>s.13 &mdash; Direct Discrimination:</strong> Treating a person less favourably because of a protected characteristic. Comparator must be in the same or not materially different circumstances.</li>
-          <li><strong>s.19 &mdash; Indirect Discrimination:</strong> Application of a provision, criterion, or practice (PCP) that puts persons sharing a protected characteristic at a particular disadvantage. Justifiable if a proportionate means of achieving a legitimate aim.</li>
-          <li><strong>s.26 &mdash; Harassment:</strong> Unwanted conduct related to a protected characteristic that has the purpose or effect of violating dignity or creating an intimidating, hostile, degrading, humiliating, or offensive environment.</li>
-          <li><strong>s.27 &mdash; Victimisation:</strong> Subjecting a person to a detriment because they have done or may do a protected act (bringing a claim, giving evidence, etc.).</li>
-          <li><strong>s.39 &mdash; Employment Provisions:</strong> Unlawful to discriminate in arrangements for recruitment, terms of employment, access to opportunities, dismissal, or subjecting to any other detriment.</li>
-          <li><strong>s.124 &mdash; Remedies:</strong> Tribunal may make a declaration, order compensation (uncapped), or make a recommendation. Injury to feelings awarded using Vento bands (currently: lower &pound;1,200&ndash;&pound;11,200; middle &pound;11,200&ndash;&pound;33,700; upper &pound;33,700&ndash;&pound;56,200).</li>
-          <li><strong>s.149 &mdash; Public Sector Equality Duty:</strong> Public authorities must have due regard to eliminating discrimination, advancing equality of opportunity, and fostering good relations.</li>
-        </ul>
-      </div>
-
-      <!-- Constitutional Mapping -->
-      <div class="panel-section">
-        <div class="panel-section-label">Constitutional Mapping</div>
-        <div style="font-size:13px;color:var(--t2);line-height:1.7;">
-          <span style="color:var(--green);">ACEI Category 2</span> &mdash; Discrimination &amp; Equal Treatment (primary driver of highest-value ET claims)<br>
-          <span style="color:var(--green);">RRI Pillars 1, 2, 3</span> &mdash; Policy (equality &amp; diversity), Contractual (non-discrimination clauses), Training (unconscious bias, harassment awareness)<br>
-          <span style="color:var(--green);">CCI Component 2</span> &mdash; Discrimination claim history and settlement patterns
-        </div>
-      </div>
-
-      <!-- Enforcement -->
-      <div class="panel-section">
-        <div class="panel-section-label">Enforcement</div>
-        <p>Employment Tribunals for individual claims. Equality and Human Rights Commission (EHRC) for systemic enforcement, formal investigations, and unlawful act notices. ACAS early conciliation is a mandatory pre-condition. No qualifying period requirement &mdash; claims may be brought from day one of employment. Time limit: 3 months less one day from the act complained of (with continuing act provisions under s.123).</p>
-      </div>
-
-      <!-- Source -->
-      <div class="panel-section" style="margin-bottom:24px;">
-        <div class="panel-section-label">Source</div>
-        <a href="https://www.legislation.gov.uk/ukpga/2010/15/contents" target="_blank" rel="noreferrer" class="panel-source-link">&#8599; legislation.gov.uk &middot; OGL v3</a>
-      </div>
-
-      <!-- Divider -->
-      <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:24px;"></div>
-
-      <!-- Generate Report -->
-      <div class="panel-section" style="margin-bottom:0;">
-        <div class="panel-section-label">Governance Analysis</div>
-        <p style="font-size:12px;color:var(--t3);margin-bottom:12px;">Generate an in-depth compliance analysis report for this instrument, mapped to your organisation's ACEI, RRI, and CCI obligations.</p>
-        <button class="generate-report-btn" id="ea-gen-btn" onclick="event.stopPropagation();generateReport('ea')">
-          <span id="ea-gen-icon">&#9881;</span> Generate In-Depth Report
-        </button>
-        <div class="report-output" id="ea-report-output">
-          <h4>&#9881; IN-DEPTH ANALYSIS &middot; EQUALITY ACT 2010</h4>
-          <div class="report-section">
-            <strong>1. ACEI Exposure Assessment (Category 2)</strong>
-            <p>The Equality Act 2010 consistently drives the highest-value employment tribunal claims. Discrimination claims are uncapped and include injury to feelings awards (Vento bands). Category 2 typically shows elevated EVI due to the breadth of protected characteristics and the volume of claims across age, disability, race, and sex discrimination. Indirect discrimination claims (s.19) have grown significantly as the concept of provision, criterion, or practice is expansively interpreted. The interaction with ERA 2025 day-one unfair dismissal rights may increase the volume of dual-jurisdictional claims (discrimination plus unfair dismissal), compounding Category 2 exposure.</p>
-          </div>
-          <div class="report-section">
-            <strong>2. RRI Readiness Gaps (Pillars 1, 2, 3)</strong>
-            <p>Key readiness obligations: (a) <strong>Policy &amp; Procedure</strong>: Written equality and diversity policy covering all nine protected characteristics; anti-harassment and bullying policy; reasonable adjustments procedure for disabled employees; grievance procedure with discrimination-specific pathway; (b) <strong>Contractual Compliance</strong>: Non-discrimination clauses in all employment contracts; equal pay audit against s.66 equality clause obligations; review of job descriptions and person specifications for indirect discrimination risk; (c) <strong>Training &amp; Awareness</strong>: Regular equality and diversity training for all employees; line manager training on handling grievances and discrimination complaints; unconscious bias training for recruitment panels.</p>
-          </div>
-          <div class="report-section">
-            <strong>3. CCI Conduct Posture</strong>
-            <p>Historical compliance indicators: tribunal claim history (particularly awards exceeding upper Vento band); EHRC investigations or compliance notices; pattern of discrimination-related settlements; equal pay audit results and any identified gender pay gaps; diversity monitoring data trends. Organisations with strong CCI on Category 2 typically demonstrate proactive equal pay auditing, structured diversity reporting, and documented reasonable adjustment processes with Tier III evidence.</p>
-          </div>
-          <div class="report-section">
-            <strong>4. Recommended Actions</strong>
-            <p>&#8594; Conduct a comprehensive equal pay audit under s.66 equality clause provisions<br>
-            &#8594; Review all recruitment processes for indirect discrimination risk in PCPs<br>
-            &#8594; Audit reasonable adjustment processes and response times for disabled employees<br>
-            &#8594; Update harassment policy to reflect <em>Pemberton v Inwood</em> [2018] EWCA Civ 564 guidance on third-party harassment<br>
-            &#8594; Implement diversity monitoring across all nine protected characteristics<br>
-            &#8594; Train HR and line managers on Vento band implications for settlement strategy</p>
-          </div>
-          <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(56,189,248,0.1);">
-            <span style="font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--t4);">GENERATED BY AILANE CONSTITUTIONAL INTELLIGENCE &middot; GOVERNANCE TIER &middot; FOR ILLUSTRATIVE PURPOSES</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<script>
-// WTR Report generation
-function generateWtrReport() {
-  var btn = document.getElementById('wtr-gen-btn');
-  var output = document.getElementById('wtr-report-output');
-  var icon = document.getElementById('wtr-gen-icon');
-  btn.disabled = true;
-  icon.textContent = '⟳';
-  btn.innerHTML = '<span>&#8987;</span> Generating analysis\u2026';
-  setTimeout(function() {
-    output.classList.add('visible');
-    btn.innerHTML = '<span>&#10003;</span> Report generated';
-    btn.style.background = 'linear-gradient(135deg,#34d399,#059669)';
-    setTimeout(function() { output.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 100);
-  }, 1800);
-}
-
-// Generic report generation
-function generateReport(id) {
-  var btn = document.getElementById(id + '-gen-btn');
-  var output = document.getElementById(id + '-report-output');
-  btn.disabled = true;
-  btn.innerHTML = '<span>&#8987;</span> Generating analysis\u2026';
-  setTimeout(function() {
-    output.classList.add('visible');
-    btn.innerHTML = '<span>&#10003;</span> Report generated';
-    btn.style.background = 'linear-gradient(135deg,#34d399,#059669)';
-    setTimeout(function() { output.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 100);
-  }, 1800);
-}
-
-// Close all overlays on Escape
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.expand-overlay, .wtr-expand-overlay').forEach(function(el) {
-      el.classList.remove('active');
-    });
-  }
-});
-</script>
-
-<script>
-// Search functionality
-(function() {
-  var searchInput = document.getElementById('search-input');
-  var searchCount = document.getElementById('search-count');
-  var noResults = document.getElementById('no-results');
-  var grid = document.getElementById('instruments-grid');
-
-  searchInput.addEventListener('input', function() {
-    var query = this.value.toLowerCase().trim();
-    var cards = document.querySelectorAll('.instrument-card');
-    var visibleCount = 0;
-    var totalVisible = 0;
-
-    // Reset category tabs to ALL when searching
-    if (query) {
-      document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
-      document.querySelector('.cat-tab[data-cat="all"]').classList.add('active');
-    }
-
-    cards.forEach(function(card) {
-      var text = card.textContent.toLowerCase();
-      var show = !query || text.indexOf(query) !== -1;
-      card.style.display = show ? '' : 'none';
-      if (show) visibleCount++;
-      totalVisible++;
-    });
-
-    if (query) {
-      searchCount.textContent = visibleCount + ' of ' + totalVisible + ' instruments match "' + this.value + '"';
-      noResults.style.display = visibleCount === 0 ? 'block' : 'none';
-      grid.style.display = visibleCount === 0 ? 'none' : '';
-    } else {
-      searchCount.textContent = '';
-      noResults.style.display = 'none';
-      grid.style.display = '';
-    }
-  });
-})();
-
-// Category tab filtering
-document.querySelectorAll('.cat-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    // Clear search when clicking a tab
-    var searchInput = document.getElementById('search-input');
-    var searchCount = document.getElementById('search-count');
-    var noResults = document.getElementById('no-results');
-    var grid = document.getElementById('instruments-grid');
-    searchInput.value = '';
-    searchCount.textContent = '';
-    noResults.style.display = 'none';
-    grid.style.display = '';
-
-    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    const cat = tab.dataset.cat;
-    document.querySelectorAll('.instrument-card').forEach(card => {
-      const cats = card.dataset.cats || '';
-      const show = cat === 'all' || cats.split(',').some(c => c.trim() === cat);
-      card.style.display = show ? '' : 'none';
-    });
-  });
-});
-
-// Fade-in observer
-const obs = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
-document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
-</script>
+  </main>
 </body>
 </html>
