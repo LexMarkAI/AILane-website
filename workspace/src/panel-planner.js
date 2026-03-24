@@ -5,6 +5,9 @@
 import { renderDisclaimerGate, isDisclaimerAcknowledged } from './planner/planner-disclaimer.js';
 import { renderStep1, renderStep2, CONTRACT_TYPES } from './planner/planner-steps.js';
 import { renderStep3 } from './planner/planner-requirements.js';
+import { renderStep4 } from './planner/planner-structure.js';
+import { renderStep5 } from './planner/planner-gap-analysis.js';
+import { renderStep6 } from './planner/planner-export.js';
 
 var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
 var TIER_GATE = ['governance', 'institutional'];
@@ -24,6 +27,8 @@ function PlannerPanel(container) {
   this._user = window.__ailaneUser;
   this._draftPlan = {};
   this._currentPlanId = null;
+  this._planData = {};
+  window.__plannerInstance = this;
 
   // Defence-in-depth tier check
   if (!this._user || TIER_GATE.indexOf(this._user.tier) === -1) {
@@ -133,8 +138,12 @@ PlannerPanel.prototype._renderPlanList = async function() {
             workforce: plan.employer_profile ? (plan.employer_profile.workforce || []) : [],
             contract_type: plan.contract_type
           };
-          // Cap at step 3 for Sprint 3a
-          self._renderStep(Math.min(plan.current_step || 1, 3));
+          self._planData = {
+            requirement_snapshot: plan.requirement_snapshot,
+            structure_selections: plan.structure_selections,
+            gap_analysis_upload_id: plan.gap_analysis_upload_id
+          };
+          self._renderStep(plan.current_step || 1);
         });
         list.appendChild(item);
       });
@@ -188,13 +197,51 @@ PlannerPanel.prototype._renderStep = function(step) {
         content,
         { contract_type: this._draftPlan.contract_type, id: this._currentPlanId },
         this._user,
-        null, // onNext disabled in Sprint 3
+        function(snapshotData) {
+          self._planData.requirement_snapshot = snapshotData;
+          self._renderStep(4);
+        },
         function() { self._renderStep(2); },
         function(reqData) {
           if (window.__contextBus) {
             window.__contextBus.emit('planner:requirement:selected', reqData);
           }
         }
+      );
+      break;
+
+    case 4:
+      if (!this._currentPlanId) { this._renderStep(3); return; }
+      renderStep4(
+        content,
+        { id: this._currentPlanId, requirement_snapshot: this._planData.requirement_snapshot, structure_selections: this._planData.structure_selections },
+        this._user,
+        function(data) { Object.assign(self._planData, data); self._renderStep(5); },
+        function() { self._renderStep(3); },
+        function(secData) { if (window.__contextBus) window.__contextBus.emit('planner:structure:selected', secData); }
+      );
+      break;
+
+    case 5:
+      if (!this._currentPlanId) { this._renderStep(4); return; }
+      renderStep5(
+        content,
+        { id: this._currentPlanId, requirement_snapshot: this._planData.requirement_snapshot, structure_selections: this._planData.structure_selections, gap_analysis_upload_id: this._planData.gap_analysis_upload_id },
+        this._user,
+        function(data) { Object.assign(self._planData, data); self._renderStep(6); },
+        function() { self._renderStep(4); },
+        function(gapData) { if (window.__contextBus) window.__contextBus.emit('planner:gap:loaded', gapData); }
+      );
+      break;
+
+    case 6:
+      if (!this._currentPlanId) { this._renderStep(5); return; }
+      renderStep6(
+        content,
+        { id: this._currentPlanId, plan_name: this._draftPlan.plan_name, contract_type: this._draftPlan.contract_type, employer_profile: this._draftPlan, jurisdiction: this._draftPlan.jurisdiction, gap_analysis_upload_id: this._planData ? this._planData.gap_analysis_upload_id : null },
+        this._user,
+        function() { self._renderStep(5); },
+        function(expData) { if (window.__contextBus) window.__contextBus.emit('planner:export:requested', expData); }
       );
       break;
   }

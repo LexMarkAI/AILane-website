@@ -133,31 +133,21 @@ export async function renderStep3(container, plan, user, onNext, onBack, onRequi
     backBtn.addEventListener('click', function() { onBack(); });
     nav.appendChild(backBtn);
 
-    // Next DISABLED in Sprint 3 — Steps 4-6 are Sprint 4
     var nextBtn = document.createElement('button');
-    nextBtn.className = 'ws-planner-btn ws-planner-btn--disabled';
+    nextBtn.className = 'ws-planner-btn ws-planner-btn--primary';
     nextBtn.textContent = 'Next \u2192 Structure Guide';
-    nextBtn.disabled = true;
-    nextBtn.setAttribute('aria-disabled', 'true');
-    nav.appendChild(nextBtn);
-
-    container.appendChild(nav);
-
-    // Sprint 4 notice
-    var s4notice = document.createElement('div');
-    s4notice.className = 'ws-planner-req-notice';
-    s4notice.style.marginTop = '12px';
-    s4notice.textContent = 'Steps 4\u20136 (Structure Guide, Gap Analysis, Export) \u2014 available in a future update.';
-    container.appendChild(s4notice);
-
-    // Save Progress button
-    var saveBtn = document.createElement('button');
-    saveBtn.className = 'ws-planner-btn ws-planner-btn--secondary';
-    saveBtn.textContent = 'Save Progress';
-    saveBtn.style.marginTop = '12px';
-    saveBtn.addEventListener('click', async function() {
+    nextBtn.addEventListener('click', async function() {
       var snapshot = filtered.map(function(r) {
-        return { id: r.id, requirement_name: r.requirement_name, statutory_basis: r.statutory_basis, category: r.category, mandatory: r.mandatory, is_forward_requirement: r.is_forward_requirement, addressed: !!addressedState[r.id] };
+        return {
+          id: r.id,
+          requirement_name: r.requirement_name,
+          statutory_basis: r.statutory_basis,
+          category: r.category,
+          mandatory: r.mandatory,
+          is_forward_requirement: r.is_forward_requirement,
+          pillar_mapping: r.pillar_mapping,
+          addressed: !!addressedState[r.id]
+        };
       });
       try {
         await fetch(SUPABASE_URL + '/rest/v1/kl_contract_plans?id=eq.' + plan.id, {
@@ -168,16 +158,14 @@ export async function renderStep3(container, plan, user, onNext, onBack, onRequi
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },
-          body: JSON.stringify({ requirement_snapshot: snapshot, current_step: 3, status: 'in_progress' })
+          body: JSON.stringify({ requirement_snapshot: snapshot, current_step: 4, status: 'in_progress' })
         });
-        saveBtn.textContent = '\u2713 Saved';
-        setTimeout(function() { saveBtn.textContent = 'Save Progress'; }, 2000);
-      } catch (e) {
-        saveBtn.textContent = '\u2717 Save failed';
-        setTimeout(function() { saveBtn.textContent = 'Save Progress'; }, 3000);
-      }
+      } catch(e) { console.error('Snapshot save failed:', e); }
+      if (onNext) onNext(snapshot);
     });
-    container.appendChild(saveBtn);
+    nav.appendChild(nextBtn);
+
+    container.appendChild(nav);
 
   } catch (err) {
     container.innerHTML = '<div class="ws-error">Unable to load requirements. Please try again.</div>';

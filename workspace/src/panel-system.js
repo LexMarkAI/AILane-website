@@ -1036,6 +1036,11 @@ function initWorkspace() {
     }
   });
 
+  // Sprint 4a: Structure, Gap Analysis, Export signals
+  bus.on('planner:structure:selected', function() {});
+  bus.on('planner:gap:loaded', function() {});
+  bus.on('planner:export:requested', function() {});
+
   // Expose context bus globally for panel modules
   window.__contextBus = bus;
 
