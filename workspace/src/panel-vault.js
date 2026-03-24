@@ -13,6 +13,21 @@ class AilaneVaultPanel {
     this.documents = [];
     this.activeDocId = null;
     this.el = null;
+    this._isRendered = false;
+    this._findingsSummary = {}; // uploadId → [statutory_ref strings]
+    this._container = container;
+
+    // Cross-panel wiring: planner requirement selection → vault highlighting
+    var self = this;
+    if (window.__contextBus) {
+      window.__contextBus.on('planner:requirement:selected', function(data) {
+        if (!self._isRendered) return;
+        self._clearHighlights();
+        if (data && data.statutoryBasis) {
+          self._highlightByStatutoryBasis(data.statutoryBasis);
+        }
+      });
+    }
   }
 
   async mount(container) {
@@ -92,10 +107,68 @@ class AilaneVaultPanel {
         });
       }
     });
+
+    // Vault data export for cross-panel integration
+    // Consumers: Contract Planner (Step 5 gap analysis pre-population)
+    // Shape: [{ id, filename, overallScore, uploadId, lastChecked, isMonitored, findingsCount, fromUploads }]
+    this._exportVaultData();
+
+    // Batch findings summary for cross-panel highlighting (Approach A)
+    await this._loadFindingsSummary(uploads);
+  }
+
+  _exportVaultData() {
+    window.__vaultData = this.documents.map(function(doc) {
+      return {
+        id: doc.id,
+        filename: doc.filename,
+        overallScore: doc.score || null,
+        uploadId: doc.uploadId || null,
+        lastChecked: doc.checkedAt || null,
+        isMonitored: doc.isMonitored || false,
+        findingsCount: doc.findingsCount || 0,
+        fromUploads: doc.fromUploads || false
+      };
+    });
+  }
+
+  async _loadFindingsSummary(uploads) {
+    var user = window.__ailaneUser;
+    if (!user || !uploads || uploads.length === 0) return;
+
+    var uploadIds = [];
+    for (var i = 0; i < uploads.length; i++) {
+      if (uploads[i].id) uploadIds.push(uploads[i].id);
+    }
+    if (uploadIds.length === 0) return;
+
+    try {
+      var res = await fetch(
+        'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1/compliance_findings?upload_id=in.(' + uploadIds.join(',') + ')&select=upload_id,statutory_ref',
+        {
+          headers: {
+            'Authorization': 'Bearer ' + user.token,
+            'apikey': window.__SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      var findings = await res.json();
+      var self = this;
+      self._findingsSummary = {};
+      (findings || []).forEach(function(f) {
+        if (!f.upload_id || !f.statutory_ref) return;
+        if (!self._findingsSummary[f.upload_id]) self._findingsSummary[f.upload_id] = [];
+        self._findingsSummary[f.upload_id].push(f.statutory_ref);
+      });
+    } catch(e) {
+      console.error('[Vault] Findings summary load error:', e);
+    }
   }
 
   _render() {
     var self = this;
+    this._isRendered = true;
     this.el.innerHTML = '';
 
     // Header bar with count and upload button
@@ -307,6 +380,50 @@ class AilaneVaultPanel {
 
     } catch(e) {
       console.error('[Vault] Findings load error:', e);
+    }
+  }
+
+  _clearHighlights() {
+    if (!this.el) return;
+    var items = this.el.querySelectorAll('.ws-vault-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.remove('ws-vault-item--highlighted');
+    }
+  }
+
+  _highlightByStatutoryBasis(statutoryBasis) {
+    if (!this.el || !statutoryBasis) return;
+    var self = this;
+    var basisLower = statutoryBasis.toLowerCase();
+
+    // Find which uploadIds have findings matching the statutory basis
+    var matchingUploadIds = {};
+    Object.keys(this._findingsSummary).forEach(function(uploadId) {
+      var refs = self._findingsSummary[uploadId];
+      for (var i = 0; i < refs.length; i++) {
+        if (refs[i].toLowerCase().indexOf(basisLower) !== -1) {
+          matchingUploadIds[uploadId] = true;
+          break;
+        }
+      }
+    });
+
+    // Map uploadIds to document indices
+    var matchingDocIds = {};
+    this.documents.forEach(function(doc) {
+      if (doc.uploadId && matchingUploadIds[doc.uploadId]) {
+        matchingDocIds[doc.id] = true;
+      }
+    });
+
+    // Apply highlight class to matching vault items
+    var items = this.el.querySelectorAll('.ws-vault-item');
+    var docIndex = 0;
+    for (var j = 0; j < items.length; j++) {
+      if (docIndex < self.documents.length && matchingDocIds[self.documents[docIndex].id]) {
+        items[j].classList.add('ws-vault-item--highlighted');
+      }
+      docIndex++;
     }
   }
 
