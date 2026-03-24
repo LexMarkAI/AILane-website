@@ -3085,3 +3085,181 @@ body.ws-overlay-mode .ws-drawer.open ~ .ws-overlay-backdrop {
     flex-direction: column;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   WCAG 2.1 AA — Screen Reader Utilities (KLUI-001 §8)
+   ══════════════════════════════════════════════════════════════ */
+
+.ws-live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — TABLET (768–1024px) — KLUI-001 §7
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) and (min-width: 768px) {
+  .ws-rail {
+    transform: translateX(100%);
+    transition: transform 0.25s ease-out;
+    z-index: 1001;
+  }
+  .ws-rail.ws-rail--visible {
+    transform: translateX(0);
+  }
+
+  .ws-drawer {
+    position: fixed !important;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: 85vw !important;
+    max-width: 85vw !important;
+    min-width: auto !important;
+    z-index: 1002;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+  }
+
+  .ws-split-toggle { display: none !important; }
+  .ws-split-active { display: none !important; }
+}
+
+.ws-rail-toggle-tablet {
+  display: none;
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background: #0A2342;
+  border: 1px solid #1e293b;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  padding: 0;
+}
+.ws-rail-toggle-tablet:hover { color: #e2e8f0; }
+.ws-rail-toggle-tablet:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (<768px) — KLUI-001 §7
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767px) {
+  .ws-rail { display: none !important; }
+  .ws-rail-toggle-tablet { display: none !important; }
+
+  .ws-drawer {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto !important;
+    height: 90vh;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: auto !important;
+    border-radius: 16px 16px 0 0;
+    z-index: 1002;
+    transform: translateY(100%);
+    transition: transform 0.3s ease-out;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+  }
+  .ws-drawer.ws-drawer--open {
+    transform: translateY(0);
+  }
+
+  .ws-drawer-handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: #334155;
+    border-radius: 2px;
+    margin: 8px auto;
+  }
+
+  .ws-split-toggle { display: none !important; }
+
+  .ws-rail-btn,
+  .ws-workspace-panel-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .ws-eileen-quick-row {
+    flex-wrap: nowrap;
+    padding-bottom: 12px;
+  }
+
+  .ws-cal-view-btn[data-view="month"],
+  .ws-cal-view-btn[data-view="timeline"] { display: none; }
+}
+
+.ws-fab {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: #0A5C52;
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(10,92,82,0.4);
+  z-index: 1000;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.ws-fab:active { transform: scale(0.95); }
+.ws-fab:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+.ws-fab .ws-badge { top: 0; right: 0; }
+
+.ws-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.2);
+  z-index: 1001;
+}
+
+.ws-drawer-handle {
+  display: none;
+}
+
+/* Desktop: hide responsive elements */
+@media (min-width: 1025px) {
+  .ws-fab { display: none !important; }
+  .ws-rail-toggle-tablet { display: none !important; }
+  .ws-drawer-backdrop { display: none !important; }
+  .ws-drawer-handle { display: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REDUCED MOTION — All responsive animations
+   ══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-rail,
+  .ws-drawer,
+  .ws-fab {
+    transition: none !important;
+  }
+}
