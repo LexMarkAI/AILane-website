@@ -19,7 +19,7 @@
   </script>
 
   <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com; object-src 'none'; base-uri 'self'">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2523,5 +2523,433 @@
   });
 
   </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LOAD CONTENT ENGINE UPDATE — JSON FETCH ARCHITECTURE
+       Paste immediately before </body> in knowledge-library/index.html
+       This block REPLACES the inline STATUTES object approach.
+       Remove any existing Stage 2A/2B/2C blocks if already pasted.
+       AILANE Knowledge Library · Governed by AILANE-AMD-REG-001
+  ═══════════════════════════════════════════════════════════════ -->
+  <script>
+  // ── CONTENT ARCHITECTURE — JSON FETCH LAYER ───────────────────────
+  // All statute, guidance, training and video content is served as
+  // individual JSON files from /knowledge-library/content/[id].json
+  // Content is fetched on demand and cached in CONTENT_CACHE.
+  // index.html is permanently stable — content never lives inside it.
+  // ──────────────────────────────────────────────────────────────────
+
+  const CONTENT_BASE = '/knowledge-library/content/';
+  const CONTENT_CACHE = {};
+
+  // Content registry — lightweight metadata only (no text content)
+  // Drives navigation, search index, and category cards
+  const CONTENT_REGISTRY = {
+    era1996:      { title:'Employment Rights Act 1996',                  short:'ERA 1996',   type:'Primary Legislation',        cat:'legislation', acei:['Contracts','Wages','Unfair Dismissal','Redundancy','Maternity','Whistleblowing'] },
+    era2025:      { title:'Employment Rights Act 2025',                  short:'ERA 2025',   type:'Primary Legislation',        cat:'legislation', acei:['Unfair Dismissal','Zero Hours','SSP','Flexible Working'],       isERA:true },
+    eqa2010:      { title:'Equality Act 2010',                           short:'EqA 2010',   type:'Primary Legislation',        cat:'legislation', acei:['Discrimination','Equal Pay','Protected Characteristics'] },
+    wtr1998:      { title:'Working Time Regulations 1998',               short:'WTR 1998',   type:'Statutory Instrument',       cat:'legislation', acei:['Working Time','Annual Leave','Rest Breaks','Holiday Pay'] },
+    nmwa1998:     { title:'National Minimum Wage Act 1998',              short:'NMWA 1998',  type:'Primary Legislation',        cat:'legislation', acei:['Minimum Wage','Pay'] },
+    tupe2006:     { title:'Transfer of Undertakings (Protection of Employment) Regulations 2006', short:'TUPE 2006', type:'Statutory Instrument', cat:'legislation', acei:['TUPE','Business Transfer'] },
+    pida1998:     { title:'Public Interest Disclosure Act 1998',         short:'PIDA 1998',  type:'Primary Legislation',        cat:'legislation', acei:['Whistleblowing','Protected Disclosure'] },
+    mpl1999:      { title:'Maternity and Parental Leave Regulations 1999', short:'MPL 1999', type:'Statutory Instrument',       cat:'legislation', acei:['Maternity','Parental Leave','Redundancy'] },
+    'acas-dg':    { title:'Disciplinary and Grievance Procedures',       short:'ACAS Code',  type:'ACAS Code of Practice',      cat:'acas' },
+    'acas-fw':    { title:'Flexible Working Requests',                   short:'ACAS Guide', type:'ACAS Guidance',              cat:'acas' },
+    'acas-sa':    { title:'Settlement Agreements',                       short:'ACAS Guide', type:'ACAS Guidance',              cat:'acas' },
+    'acas-re':    { title:'Redundancy',                                  short:'ACAS Guide', type:'ACAS Guidance',              cat:'acas' },
+    'acas-bm':    { title:'Bullying and Harassment at Work',             short:'ACAS Guide', type:'ACAS Guidance',              cat:'acas' },
+    'acas-ap':    { title:'Attendance and Absence Management',           short:'ACAS Guide', type:'ACAS Guidance',              cat:'acas' },
+    'acas-wp':    { title:'Whistleblowing at Work',                      short:'ACAS Guide', type:'ACAS Guidance',              cat:'acas' },
+    'acas-re2':   { title:'Redundancy — Collective Redundancy',          short:'ACAS Guide', type:'ACAS Guidance',              cat:'acas' },
+    'hse-employers':{ title:'Employer Health and Safety Duties',         short:'HSE',        type:'HSE Guidance',               cat:'hse' },
+    'hse-risk':   { title:'Risk Assessment',                             short:'HSE',        type:'HSE Guidance',               cat:'hse' },
+    'hse-stress': { title:'Work-Related Stress',                         short:'HSE',        type:'HSE Guidance',               cat:'hse' },
+    'hse-dse':    { title:'Display Screen Equipment',                    short:'HSE',        type:'HSE Guidance',               cat:'hse' },
+    'ico-emp':    { title:'Employment Practices and Data Protection',    short:'ICO',        type:'ICO Guidance',               cat:'ico' },
+    'ico-mon':    { title:'Monitoring at Work',                          short:'ICO',        type:'ICO Guidance',               cat:'ico' },
+    'ico-rec':    { title:'Recruitment and Retention Records',           short:'ICO',        type:'ICO Guidance',               cat:'ico' },
+    'era2025-bills':{ title:'ERA 2025 Commencement Tracker',            short:'Horizon',    type:'Forward Intelligence',       cat:'horizon', isERA:true },
+    'bills-current':{ title:'Bills in Parliament',                      short:'Horizon',    type:'Legislative Horizon',        cat:'horizon' },
+    'si-monitor': { title:'Statutory Instruments Monitor',               short:'Horizon',    type:'Legislative Horizon',        cat:'horizon' },
+    'tr-unfair':  { title:'Unfair Dismissal — Employer Guide',          short:'Training',   type:'Training Resource',          cat:'training' },
+    'tr-disc':    { title:'Discrimination Law Fundamentals',             short:'Training',   type:'Training Resource',          cat:'training' },
+    'tr-hs':      { title:'Health and Safety Obligations',               short:'Training',   type:'Training Resource',          cat:'training' },
+    'tr-wp':      { title:'Whistleblowing and Protected Disclosure',     short:'Training',   type:'Training Resource',          cat:'training' },
+    'cl-unfair':  { title:'Unfair Dismissal — ACEI Patterns',           short:'Case Law',   type:'Case Law Intelligence',      cat:'caselaw' },
+    'cl-disc':    { title:'Discrimination Claims — Key Cases',           short:'Case Law',   type:'Case Law Intelligence',      cat:'caselaw' },
+    'cl-wt':      { title:'Working Time — Enforcement Trends',          short:'Case Law',   type:'Case Law Intelligence',      cat:'caselaw' },
+  };
+
+  // ── FETCH CONTENT ─────────────────────────────────────────────────
+  // Fetches /knowledge-library/content/[id].json
+  // Returns parsed content object or null on failure.
+  // Caches result — subsequent calls are instant.
+  async function fetchContent(itemId) {
+    if (CONTENT_CACHE[itemId]) return CONTENT_CACHE[itemId];
+    try {
+      const resp = await fetch(`${CONTENT_BASE}${itemId}.json`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      CONTENT_CACHE[itemId] = data;
+      try { gtag('event', 'kl_content_load', { item_id: itemId, tier: SESSION.tier }); } catch(e){}
+      return data;
+    } catch(e) {
+      console.error(`[KL] Failed to load content: ${itemId}`, e);
+      return null;
+    }
+  }
+
+  // ── LOAD CONTENT — REPLACES INLINE STATUTES LOOKUP ───────────────
+  // Now async. Shows skeleton while fetching. Renders on resolve.
+  async function loadContent(catId, itemId) {
+    // Set active nav item immediately
+    document.querySelectorAll('.nav-sub-item').forEach(el => el.classList.remove('active'));
+    const navItem = document.getElementById(`navitem-${itemId}`);
+    if (navItem) navItem.classList.add('active');
+
+    // Show loading skeleton instantly
+    showContentSkeleton(itemId);
+
+    // Fetch content
+    const content = await fetchContent(itemId);
+
+    if (!content) {
+      renderContentError(itemId);
+      return;
+    }
+
+    // Render by type
+    const cat = content.cat || catId;
+    if (cat === 'legislation') {
+      renderStatute(content);
+    } else if (cat === 'acas') {
+      renderGuidance(content);
+    } else if (cat === 'hse' || cat === 'ico') {
+      renderGuidance(content);
+    } else if (cat === 'training') {
+      renderTraining(content);
+    } else if (cat === 'caselaw') {
+      renderCaseLaw(content);
+    } else if (cat === 'horizon') {
+      renderHorizon(content);
+    } else {
+      renderGuidance(content);
+    }
+  }
+
+  // ── CONTENT SKELETON ──────────────────────────────────────────────
+  function showContentSkeleton(itemId) {
+    const meta = CONTENT_REGISTRY[itemId] || {};
+    setBreadcrumb(['Knowledge Library', getCatLabel(meta.cat || ''), meta.short || 'Loading…']);
+    document.getElementById('content-area').innerHTML = `
+      <div class="statute-viewer">
+        <div class="statute-header" style="animation:pulse 1.5s ease-in-out infinite">
+          <div style="height:14px;width:120px;background:var(--border);border-radius:4px;margin-bottom:12px"></div>
+          <div style="height:24px;width:80%;background:var(--border-l);border-radius:6px;margin-bottom:10px"></div>
+          <div style="height:14px;width:60%;background:var(--border);border-radius:4px;margin-bottom:16px"></div>
+          <div style="height:60px;background:var(--border);border-radius:8px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+          ${[1,2,3].map(() => `
+            <div style="background:var(--navy-l);border:1px solid var(--border);border-radius:12px;padding:16px;animation:pulse 1.5s ease-in-out infinite">
+              <div style="height:14px;width:30%;background:var(--border);border-radius:4px;margin-bottom:10px"></div>
+              <div style="height:12px;width:90%;background:var(--border);border-radius:4px"></div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}</style>`;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  function renderContentError(itemId) {
+    const meta = CONTENT_REGISTRY[itemId] || {};
+    document.getElementById('content-area').innerHTML = `
+      <div style="padding:60px 24px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px">📄</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Content unavailable</div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:20px">${meta.title || itemId} could not be loaded. Please check your connection and try again.</div>
+        <button onclick="loadContent('${meta.cat || ''}','${itemId}')" style="background:var(--cyan);color:var(--navy);border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer">Retry</button>
+      </div>`;
+  }
+
+  function getCatLabel(catId) {
+    const labels = { legislation:'Legislation', acas:'ACAS Guidance', hse:'HSE Guidance', ico:'ICO Guidance', horizon:'Legislative Horizon', training:'Training Resources', caselaw:'Case Law Patterns' };
+    return labels[catId] || 'Knowledge Library';
+  }
+
+  // ── RENDER STATUTE — from JSON data object ────────────────────────
+  function renderStatute(s) {
+    const cat = CONTENT_REGISTRY[s.id] || {};
+    setBreadcrumb(['Knowledge Library', 'Legislation', s.short]);
+    const html = `
+      <div class="statute-viewer">
+        <div class="statute-header">
+          <div class="statute-type-row">
+            <span class="statute-type-badge ${s.isERA ? 'era' : ''}">${s.type}</span>
+            <span class="statute-jurisdiction">&#127757; ${s.jurisdiction}</span>
+          </div>
+          <div class="statute-title">${s.title}</div>
+          <div class="statute-short">${s.short}</div>
+          <div class="statute-desc">${s.desc}</div>
+          <div class="statute-meta-row">
+            <div class="statute-meta-item">&#128197; <span class="statute-meta-val">Current as of ${s.currentAsOf}</span></div>
+            <div class="statute-meta-item">&#128209; <span class="statute-meta-val">${s.chapters}</span></div>
+            ${(s.acei||[]).map(a => `<span class="inst-tag acei">${a}</span>`).join('')}
+          </div>
+          <div class="statute-actions">
+            <button class="act-btn primary" onclick="addToClipboard('${s.title.replace(/'/g,"\\'")}','${s.short}')">&#128204; Save to Clipboard</button>
+            <button class="act-btn" onclick="addToNotes('${s.title.replace(/'/g,"\\'")}')">&#128221; Add to Notes</button>
+            <button class="act-btn" onclick="openPanel('eileen')">&#10024; Ask Eileen</button>
+          </div>
+        </div>
+        <div class="statute-parts" id="statute-parts-${s.id}">
+          ${(s.parts||[]).map(part => renderPart(s.id, part)).join('')}
+        </div>
+      </div>`;
+    document.getElementById('content-area').innerHTML = html;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  // ── RENDER GUIDANCE — ACAS / HSE / ICO ───────────────────────────
+  function renderGuidance(g) {
+    setBreadcrumb(['Knowledge Library', getCatLabel(g.cat), g.title]);
+    document.getElementById('content-area').innerHTML = `
+      <div class="statute-viewer">
+        <div class="statute-header">
+          <div class="statute-type-row">
+            <span class="statute-type-badge si">${g.type || 'Guidance'}</span>
+            ${g.year ? `<span class="statute-jurisdiction">${g.year}</span>` : ''}
+          </div>
+          <div class="statute-title">${g.title}</div>
+          ${g.short ? `<div class="statute-short">${g.short}</div>` : ''}
+          <div class="statute-desc">${g.desc || ''}</div>
+          ${g.aceiImpact ? `<div style="background:var(--amber-dim);border:1px solid var(--amber-border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-top:10px">&#9889; ACEI Impact: ${g.aceiImpact}</div>` : ''}
+          <div class="statute-actions">
+            <button class="act-btn primary" onclick="addToClipboard('${g.title.replace(/'/g,"\\'")}','${g.short||g.type}')">&#128204; Clip</button>
+            <button class="act-btn" onclick="openPanel('eileen')">&#10024; Ask Eileen</button>
+          </div>
+        </div>
+        <div class="statute-parts">
+          ${(g.sections||[]).map((sec,i) => `
+            <div class="statute-part">
+              <div class="part-header" id="gh-${i}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+                <span class="part-num">${sec.num || (i+1)}</span>
+                <span class="part-title">${sec.title}</span>
+                <span class="part-chevron">&#8250;</span>
+              </div>
+              <div class="part-body">
+                <div class="section-item" style="cursor:default">
+                  <div class="sec-content">
+                    ${sec.summary ? `<div class="sec-summary" style="margin-bottom:10px">${sec.summary}</div>` : ''}
+                    <div style="font-size:13px;line-height:1.8;color:var(--text-1);white-space:pre-line">${sec.text || ''}</div>
+                    ${(sec.refs||[]).length ? `<div class="sec-actions" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">${sec.refs.map(r=>`<span class="stat-ref">&#10230; ${r}</span>`).join(' ')}</div>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  // ── RENDER TRAINING ───────────────────────────────────────────────
+  function renderTraining(t) {
+    setBreadcrumb(['Knowledge Library', 'Training Resources', t.title]);
+    document.getElementById('content-area').innerHTML = `
+      <div class="statute-viewer">
+        <div class="statute-header">
+          <div class="statute-type-row">
+            <span class="statute-type-badge" style="background:var(--teal-dim);color:var(--teal);border-color:rgba(13,148,136,.25)">Training Resource</span>
+          </div>
+          <div class="statute-title">${t.title}</div>
+          <div class="statute-desc">${t.desc || ''}</div>
+          ${t.videoId ? `
+            <div style="margin-top:16px;border-radius:10px;overflow:hidden;aspect-ratio:16/9;background:#000;position:relative">
+              <iframe src="https://www.youtube.com/embed/${t.videoId}" title="${t.title}" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen style="width:100%;height:100%;position:absolute;inset:0"></iframe>
+            </div>` : ''}
+          <div class="statute-actions" style="margin-top:${t.videoId?'14px':'0'}">
+            <button class="act-btn" onclick="openPanel('eileen')">&#10024; Ask Eileen about this topic</button>
+            <button class="act-btn" onclick="addToNotes('${t.title.replace(/'/g,"\\'")}')">&#128221; Add to Notes</button>
+          </div>
+        </div>
+        <div class="statute-parts">
+          ${(t.modules||t.sections||[]).map((m,i) => `
+            <div class="statute-part">
+              <div class="part-header" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+                <span class="part-num">${m.num || (i+1)}</span>
+                <span class="part-title">${m.title}</span>
+                <span class="part-chevron">&#8250;</span>
+              </div>
+              <div class="part-body">
+                <div class="section-item" style="cursor:default">
+                  <div class="sec-content">
+                    ${m.videoId ? `<div style="margin-bottom:12px;border-radius:8px;overflow:hidden;aspect-ratio:16/9;background:#000;position:relative"><iframe src="https://www.youtube.com/embed/${m.videoId}" frameborder="0" allowfullscreen style="width:100%;height:100%;position:absolute;inset:0"></iframe></div>` : ''}
+                    <div style="font-size:13px;line-height:1.8;color:var(--text-1);white-space:pre-line">${m.text||m.content||''}</div>
+                    ${(m.keyPoints||[]).length ? `<ul style="margin-top:10px;padding-left:20px;font-size:13px;color:var(--text-2);line-height:1.8">${m.keyPoints.map(p=>`<li>${p}</li>`).join('')}</ul>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  // ── RENDER CASE LAW ───────────────────────────────────────────────
+  function renderCaseLaw(cl) {
+    setBreadcrumb(['Knowledge Library', 'Case Law Patterns', cl.title]);
+    document.getElementById('content-area').innerHTML = `
+      <div class="statute-viewer">
+        <div class="statute-header">
+          <div class="statute-type-row">
+            <span class="statute-type-badge" style="background:var(--purple-dim);color:var(--purple);border-color:rgba(139,92,246,.25)">Case Law Intelligence</span>
+          </div>
+          <div class="statute-title">${cl.title}</div>
+          <div class="statute-desc">${cl.desc || ''}</div>
+          <div class="statute-actions">
+            <button class="act-btn" onclick="openPanel('eileen')">&#10024; Ask Eileen</button>
+          </div>
+        </div>
+        <div class="statute-parts">
+          ${(cl.cases||[]).map((c,i) => `
+            <div class="statute-part">
+              <div class="part-header" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+                <span class="part-num" style="font-size:10px;width:auto;padding:3px 8px">${c.year||''}</span>
+                <span class="part-title">${c.name}</span>
+                <span class="part-section-count">${c.court||''}</span>
+                <span class="part-chevron">&#8250;</span>
+              </div>
+              <div class="part-body">
+                <div class="section-item" style="cursor:default">
+                  <div class="sec-content">
+                    ${c.principle ? `<div class="sec-summary" style="margin-bottom:8px;font-weight:600;color:var(--cyan)">${c.principle}</div>` : ''}
+                    <div style="font-size:13px;line-height:1.8;color:var(--text-1)">${c.facts||''}</div>
+                    ${c.held ? `<div style="margin-top:10px;padding:10px 12px;background:var(--success-dim);border:1px solid rgba(34,197,94,.2);border-radius:7px;font-size:12px;color:var(--success)"><strong>Held:</strong> ${c.held}</div>` : ''}
+                    ${c.aceiRelevance ? `<div style="margin-top:8px;padding:10px 12px;background:var(--cyan-dim);border:1px solid var(--cyan-glow);border-radius:7px;font-size:12px;color:var(--cyan)"><strong>ACEI Relevance:</strong> ${c.aceiRelevance}</div>` : ''}
+                    ${(c.refs||[]).length ? `<div class="sec-actions" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">${c.refs.map(r=>`<span class="stat-ref">&#10230; ${r}</span>`).join(' ')}</div>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  // ── RENDER HORIZON ────────────────────────────────────────────────
+  function renderHorizon(h) {
+    setBreadcrumb(['Knowledge Library', 'Legislative Horizon', h.title]);
+    document.getElementById('content-area').innerHTML = `
+      <div class="statute-viewer">
+        <div class="statute-header">
+          <div class="statute-type-row">
+            <span class="statute-type-badge era">Forward Intelligence</span>
+            <span class="statute-jurisdiction">Live tracker · March 2026</span>
+          </div>
+          <div class="statute-title">${h.title}</div>
+          <div class="statute-desc">${h.desc||''}</div>
+          <div class="statute-actions">
+            <button class="act-btn" onclick="openPanel('calendar')">&#128197; Open Calendar</button>
+            <button class="act-btn" onclick="openPanel('eileen')">&#10024; Ask Eileen</button>
+          </div>
+        </div>
+        <div class="statute-parts">
+          ${(h.items||[]).map((item,i) => `
+            <div class="statute-part">
+              <div class="part-header" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+                <span class="part-num" style="background:${item.status==='Not In Force'?'var(--amber-dim)':item.status==='In Force'?'var(--success-dim)':'var(--border)'};color:${item.status==='Not In Force'?'var(--amber)':item.status==='In Force'?'var(--success)':'var(--text-3)'};border-color:transparent;font-size:10px;width:auto;padding:3px 8px">${item.status||'Pending'}</span>
+                <span class="part-title">${item.title}</span>
+                <span class="part-section-count" style="color:var(--amber)">${item.expectedDate||''}</span>
+                <span class="part-chevron">&#8250;</span>
+              </div>
+              <div class="part-body">
+                <div class="section-item" style="cursor:default">
+                  <div class="sec-content">
+                    <div style="font-size:13px;line-height:1.8;color:var(--text-1)">${item.detail||''}</div>
+                    ${item.aceiImpact ? `<div style="margin-top:10px;padding:10px 12px;background:var(--amber-dim);border:1px solid var(--amber-border);border-radius:7px;font-size:12px;color:var(--amber)"><strong>ACEI Impact:</strong> ${item.aceiImpact}</div>` : ''}
+                    ${(item.refs||[]).length ? `<div class="sec-actions" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">${item.refs.map(r=>`<span class="stat-ref">&#10230; ${r}</span>`).join(' ')}</div>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    document.getElementById('main-content').scrollTop = 0;
+  }
+
+  // ── LOAD CATEGORY — updated to use registry ───────────────────────
+  function loadCategory(catId) {
+    const cat = NAV_CATEGORIES.find(c => c.id === catId);
+    if (!cat) return;
+    const btn  = document.getElementById(`navcat-${catId}`);
+    const sub  = document.getElementById(`navsub-${catId}`);
+    if (btn && !btn.classList.contains('open')) {
+      document.querySelectorAll('.nav-sub-items.open').forEach(el => el.classList.remove('open'));
+      document.querySelectorAll('.nav-cat-btn.open').forEach(el => el.classList.remove('open'));
+      btn.classList.add('open'); sub.classList.add('open');
+    }
+    setBreadcrumb(['Knowledge Library', cat.label]);
+    const instruments = cat.items.map(item => {
+      const reg = CONTENT_REGISTRY[item.id] || {};
+      return { id: item.id, title: reg.title || item.label, short: reg.short || item.short || '', type: reg.type || '', acei: reg.acei || [], isERA: reg.isERA || item.era || false };
+    });
+    document.getElementById('content-area').innerHTML = `
+      <div class="cat-overview">
+        <div class="cat-title">${cat.icon} ${cat.label}</div>
+        <div class="cat-desc">${getCatDesc(catId)}</div>
+        <div class="cat-grid">
+          ${instruments.map(inst => `
+            <div class="instrument-card ${inst.isERA ? 'era' : ''}" onclick="loadContent('${catId}','${inst.id}')">
+              <div class="inst-type">${inst.type}${inst.isERA ? '<span class="inst-era-tag" style="margin-left:8px">ERA 2025</span>' : ''}</div>
+              <div class="inst-title">${inst.title}</div>
+              ${inst.short ? `<div class="inst-short">${inst.short}</div>` : ''}
+              <div class="inst-meta">${inst.acei.slice(0,3).map(a=>`<span class="inst-tag acei">${a}</span>`).join('')}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── SEARCH — updated to use registry for metadata ─────────────────
+  function doSearch(query) {
+    const q = query.toLowerCase();
+    const results = [];
+    Object.entries(CONTENT_REGISTRY).forEach(([id, meta]) => {
+      if (meta.title.toLowerCase().includes(q) || (meta.short||'').toLowerCase().includes(q) || (meta.acei||[]).some(a=>a.toLowerCase().includes(q))) {
+        results.push({ type: meta.cat, id, title: meta.title, sub: meta.short||meta.type, catId: meta.cat });
+      }
+    });
+    NAV_CATEGORIES.forEach(cat => {
+      cat.items.forEach(item => {
+        if (!results.find(r=>r.id===item.id) && item.label.toLowerCase().includes(q)) {
+          results.push({ type: cat.id, id: item.id, title: item.label, sub: cat.label, catId: cat.id });
+        }
+      });
+    });
+    const sr   = document.getElementById('search-results');
+    const body = document.getElementById('sr-body');
+    document.getElementById('sr-title').textContent = `${results.length} result${results.length!==1?'s':''} for "${query}"`;
+    const groups = {};
+    results.forEach(r => { if (!groups[r.catId]) groups[r.catId]=[]; groups[r.catId].push(r); });
+    const catIcons = { legislation:'&#128218;', acas:'&#128203;', hse:'&#127981;', ico:'&#128274;', horizon:'&#128225;', training:'&#127891;', caselaw:'&#9878;' };
+    body.innerHTML = Object.entries(groups).map(([catId, items]) => `
+      <div class="sr-group-hd">${getCatLabel(catId)}</div>
+      <div class="sr-items">
+        ${items.slice(0,5).map(item => `
+          <div class="sr-item" onclick="loadContent('${item.catId}','${item.id}');closeSearch()">
+            <div class="sr-item-icon">${catIcons[item.catId]||'&#128209;'}</div>
+            <div>
+              <div class="sr-item-title">${item.title.replace(new RegExp(query,'gi'),m=>`<mark>${m}</mark>`)}</div>
+              <div class="sr-item-sub">${item.sub}</div>
+            </div>
+          </div>`).join('')}
+      </div>`).join('');
+    sr.classList.add('active');
+  }
+
+  console.log('[KL] JSON fetch architecture active. Content served from /knowledge-library/content/');
+  </script>
+
 </body>
 </html>
