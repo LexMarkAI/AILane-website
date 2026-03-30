@@ -42,22 +42,41 @@
         window.location.replace('/login/');
       }
 
-      function succeed(session) {
+      async function succeed(session) {
         try {
           var token = session.access_token;
           var payload = JSON.parse(atob(token.split('.')[1]));
           var email = payload.email || '';
-          var tier = (payload.user_metadata && payload.user_metadata.tier)
-            || (payload.app_metadata && payload.app_metadata.tier)
-            || '';
+          var userId = payload.sub;
 
-          if (ALLOWED_TIERS.indexOf(tier) === -1) {
+          // Query kl_account_profiles for subscription tier (not JWT metadata)
+          var tier = null;
+          try {
+            var tierRes = await fetch(
+              SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=subscription_tier',
+              {
+                headers: {
+                  'Authorization': 'Bearer ' + token,
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            if (tierRes.ok) {
+              var tierData = await tierRes.json();
+              tier = tierData && tierData[0] ? tierData[0].subscription_tier : null;
+            }
+          } catch (e) {
+            console.error('Tier lookup failed:', e);
+          }
+
+          if (!tier || ALLOWED_TIERS.indexOf(tier) === -1) {
             fail();
             return;
           }
 
           window.__ailaneUser = {
-            id: payload.sub,
+            id: userId,
             email: email,
             token: token,
             tier: tier
