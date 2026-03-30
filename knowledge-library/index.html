@@ -58,6 +58,13 @@
 
           document.body.style.visibility = 'visible';
 
+          // Boot React AFTER auth is confirmed
+          if (window.KLApp) {
+            ReactDOM.createRoot(document.getElementById('kl-root')).render(
+              React.createElement(window.KLApp)
+            );
+          }
+
           // Fetch tier AFTER page is visible (non-blocking)
           fetch(
             SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=subscription_tier',
@@ -110,13 +117,6 @@
 
   <!-- Pre-compiled React bundle (esbuild output) -->
   <script src="kl-app.js"></script>
-
-  <!-- Boot -->
-  <script>
-    ReactDOM.createRoot(document.getElementById('kl-root')).render(
-      React.createElement(window.KLApp)
-    );
-  </script>
 
   <style>
     /* ── CSS Variables ── */
