@@ -481,8 +481,15 @@ function KLApp() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [tier, setTier] = useState(window.__ailaneUser?.tier || 'loading');
   const sessionIdRef = useRef(crypto.randomUUID());
   const user = window.__ailaneUser || {};
+
+  useEffect(() => {
+    function onTier(e) { setTier(e.detail.tier); }
+    window.addEventListener('ailane-tier-loaded', onTier);
+    return () => window.removeEventListener('ailane-tier-loaded', onTier);
+  }, []);
 
   const sendToEileen = useCallback(async (message) => {
     const userMsg = { role: 'user', text: message };
@@ -554,7 +561,7 @@ function KLApp() {
 
   return (
     <div className="kl-app">
-      <Header tier={user.tier} pageState={pageState} onNewChat={handleNewChat} />
+      <Header tier={tier} pageState={pageState} onNewChat={handleNewChat} />
       <main className="kl-main">
         {pageState === 'welcome' ? (
           <WelcomeState

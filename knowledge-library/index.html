@@ -34,7 +34,6 @@
     (function() {
       var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
       var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-      var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'institutional'];
 
       var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -42,47 +41,45 @@
         window.location.replace('/login/');
       }
 
-      async function succeed(session) {
+      function succeed(session) {
         try {
           var token = session.access_token;
           var payload = JSON.parse(atob(token.split('.')[1]));
-          var email = payload.email || '';
           var userId = payload.sub;
+          var email = payload.email || '';
 
-          // Query kl_account_profiles for subscription tier (not JWT metadata)
-          var tier = null;
-          try {
-            var tierRes = await fetch(
-              SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=subscription_tier',
-              {
-                headers: {
-                  'Authorization': 'Bearer ' + token,
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
-            if (tierRes.ok) {
-              var tierData = await tierRes.json();
-              tier = tierData && tierData[0] ? tierData[0].subscription_tier : null;
-            }
-          } catch (e) {
-            console.error('Tier lookup failed:', e);
-          }
-
-          if (!tier || ALLOWED_TIERS.indexOf(tier) === -1) {
-            fail();
-            return;
-          }
-
+          // Set user object immediately — page reveals NOW
           window.__ailaneUser = {
             id: userId,
             email: email,
             token: token,
-            tier: tier
+            tier: 'loading'
           };
 
           document.body.style.visibility = 'visible';
+
+          // Fetch tier AFTER page is visible (non-blocking)
+          fetch(
+            SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=subscription_tier',
+            {
+              headers: {
+                'Authorization': 'Bearer ' + token,
+                'apikey': SUPABASE_ANON_KEY
+              }
+            }
+          )
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data[0] && data[0].subscription_tier) {
+              window.__ailaneUser.tier = data[0].subscription_tier;
+              // Dispatch event so React can update tier badge
+              window.dispatchEvent(new CustomEvent('ailane-tier-loaded', { detail: { tier: data[0].subscription_tier } }));
+            }
+          })
+          .catch(function(e) {
+            console.warn('Tier fetch failed (non-blocking):', e);
+          });
+
         } catch (e) {
           fail();
         }
