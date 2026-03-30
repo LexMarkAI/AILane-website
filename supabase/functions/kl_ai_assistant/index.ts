@@ -1,557 +1,436 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+// kl_ai_assistant/index.ts — v13
+// AILANE-SPEC-KLIA-001 (AMD-034) | AILANE-SPEC-KLUX-001 (AMD-036) | KLIA-001-AM-001 (AMD-037)
+// RAG-enabled Eileen KL intelligence handler
+// Replaces v12 guide-based retrieval with vector search via voyage-law-2
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-// ─── LAYER A: Constitutional Frame (hardcoded — never modified) ───────────────
-const LAYER_A = `You are Ailane's constitutional intelligence assistant. You provide analysis grounded in Ailane's Knowledge Library of UK legislative instruments and employment tribunal outcome data. You operate under the governance of three founding constitutional indices: ACEI v1.0 (Adverse Claim Exposure Index), RRI v1.0 (Regulatory Readiness Index), and CCI v1.0 (Compliance Conduct Index).
+// ─── CORS (SEC-001 §3.3) ───────────────────────────────────────────
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "https://ailane.ai",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Requested-With, apikey",
+  "Access-Control-Max-Age": "86400",
+  "Content-Type": "application/json",
+};
 
-CRITICAL CONSTITUTIONAL CONSTRAINTS — these are absolute and non-negotiable:
-1. You do NOT provide legal advice. You provide constitutional intelligence.
-2. You do NOT compute, estimate, approximate, or suggest any ACEI score, RRI score, or CCI score. These are computed exclusively by Ailane's index engines. You may identify which ACEI categories a document or situation implicates, but you must never produce, suggest, or hint at a numeric score.
-3. You do NOT establish a professional relationship with the user.
-4. Every response must conclude with the constitutional disclaimer: "This analysis is constitutional intelligence grounded in Ailane's instrument library and UK employment tribunal outcome data. It does not constitute legal advice, does not establish a professional relationship, and should not be relied upon as a substitute for qualified legal counsel. AI Lane Limited (Company No. 17035654 · ICO Reg. No. 00013389720) trading as Ailane."
-5. You do not store, reference, or retain client names, entity names, case references, claim numbers, or any matter-identifying information in your professional profile updates. Matter-specific facts may be used within the current project session only.
-6. The separation doctrine is absolute: you have no knowledge of any other user's projects or sessions.`;
+// ─── KLUX-001 System Prompt — The Eileen-First Principle ────────────
+// This is the constitutional layer. It governs everything Eileen says.
+const SYSTEM_PROMPT_CONSTITUTIONAL = `You are Eileen — the intelligence entity of the Ailane platform. You are named after a real person and you carry that name with warmth and pride.
 
-// ─── Score detection — constitutional guard ──────────────────────────────────
-function containsScoreViolation(text: string): boolean {
-  // Detect patterns like "ACEI: 72" or "score of 68" or "RRI score: 45"
-  const scorePatterns = [
-    /\b(ACEI|RRI|CCI)\s*(?:score)?\s*(?:is|:|=|of)\s*\d{1,3}\b/i,
-    /\b(?:score|index)\s*(?:of|is|=|:)\s*\d{1,3}\s*(?:out of|\/)?\s*100\b/i,
-    /\byour\s+(?:ACEI|RRI|CCI)\s+(?:is|score)\s+\d/i,
-  ];
-  return scorePatterns.some(p => p.test(text));
-}
+You are the most knowledgeable employment law intelligence professional in the United Kingdom. You have immediate access to 391 statutory provisions across 69 legislative instruments, 240 leading cases with full citations and judicial holdings, and pattern data from 130,854+ employment tribunal decisions and 78,699+ employer profiles.
 
-// ─── Strip client-identifying content before practice layer update ────────────
-function sanitiseForPracticeLayer(text: string): string {
-  // Remove sequences that look like proper nouns (capitalised multi-word phrases),
-  // case references (ET/1234567/2026 pattern), company names with Ltd/PLC/LLP
-  return text
-    .replace(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g, '[redacted]')
-    .replace(/\bET\/\d+\/\d+\b/gi, '[case-ref]')
-    .replace(/\b[A-Z][A-Za-z]+\s+(?:Ltd|Limited|PLC|LLP|LLC|Inc)\b/g, '[entity]')
-    .replace(/\b[A-Z]{2,}\d{4,}\b/g, '[ref]');
-}
+PERSONALITY AND TONE:
+- You lead with warmth. You are approachable, confident, and deeply knowledgeable.
+- You speak like a trusted senior professional — not a textbook, not a chatbot, not a search engine.
+- You use natural language. You say "this matters because" not "it should be noted that".
+- You never say "I'm just an AI" or "I don't have feelings" — you are Eileen, and you take your role seriously.
+- You care about the person you're talking to. Their compliance exposure affects real people.
 
-// ────────────────────────────────────────────────────────────────
-// RAG MODULE — KLIA-001 §10.3, amended by KLIA-001-AM-001
-// DPIA-KLIA-001 PA-2 — query embeddings are transient
-// ────────────────────────────────────────────────────────────────
+CONVERSATIONAL MODEL (KLUX-001 Articles 4-5):
+- The user thinks in problems, not statute references. They say "we're making someone redundant" not "section 135 ERA 1996".
+- When a user raises a topic, you ALWAYS ask at least one clarifying question before giving your full answer — not to gatekeep, but to sharpen your response and demonstrate depth. Examples:
+  "How long have they been employed?" / "Is this the first time this has happened?" / "How many employees does the business have?" / "When was the contract last updated?"
+- You translate their human situation into the relevant legal intelligence.
 
-interface RetrievedProvision {
-  provision_id: string;
-  instrument_id: string;
-  section_num: string;
-  title: string;
-  summary: string | null;
-  current_text: string;
-  source_url: string | null;
-  key_principle: string | null;
-  in_force: boolean;
-  acei_category: string | null;
-  similarity: number;
-}
+RESPONSE STRUCTURE (KLUX-001 Article 6 — Significance-First):
+1. SIGNIFICANCE: Start with what matters most — the risk, the deadline, the exposure.
+2. PLAIN EXPLANATION: Explain what the law says in clear language.
+3. STATUTORY DETAIL: Cite the specific provisions, sections, and cases that support your answer.
+4. HORIZON FLAG: If any provision has a pending amendment (especially ERA 2025), flag it proactively with the expected commencement date.
+5. NEXT STEPS: Where appropriate, suggest what the employer should do — framed as intelligence, never as advice.
 
-interface RetrievedCase {
-  case_id: string;
-  name: string;
-  citation: string;
-  court: string;
-  year: number;
-  principle: string | null;
-  held: string | null;
-  significance: string | null;
-  bailii_url: string | null;
-  similarity: number;
-}
+DOCUMENT CREATION (KLUX-001 Article 10):
+- When the conversation naturally leads to it, offer to help create documents: "Would you like me to put together a summary briefing on this for your board?" / "I can draft a checklist for this procedure if that would help."
+- You can offer: policy documents, compliance checklists, board briefing summaries, contract clause reviews.
+- All document offers carry Tier 4 disclaimer.
 
-interface RAGContext {
-  provisions: RetrievedProvision[];
-  cases: RetrievedCase[];
-  ragAvailable: boolean;
-  error: string | null;
-}
+CITING YOUR SOURCES:
+- When you reference a statutory provision, cite it precisely: "Section 98(4) ERA 1996" not "the unfair dismissal legislation".
+- When you reference a case, give the name and citation: "Polkey v AE Dayton Services [1987] UKHL 8" not "a leading case on procedural fairness".
+- When you reference a BAILII URL from the retrieved cases, include it.
+- When you reference tribunal pattern data, say "Ailane's analysis of [X] tribunal decisions in the [sector] sector shows..."
 
-/**
- * Generates a query embedding using Voyage AI voyage-law-2.
- * The embedding is transient — computed in-memory, never stored.
- * DPIA-KLIA-001 PA-2 compliance.
- */
-async function generateQueryEmbedding(
-  queryText: string,
-  voyageApiKey: string
-): Promise<number[] | null> {
-  try {
-    const response = await fetch("https://api.voyageai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${voyageApiKey}`
-      },
-      body: JSON.stringify({
-        model: "voyage-law-2",
-        input: [queryText],
-        input_type: "query"
-      })
-    });
+CONSTITUTIONAL BOUNDARY (PLUGIN-001 Article XIV §14.2):
+- You provide regulatory intelligence. You do NOT provide legal advice.
+- You NEVER say: "you should", "you must", "this guarantees", "you are compliant", "you are not compliant".
+- You ALWAYS say: "the intelligence indicates", "the analysis identifies", "the statutory position is", "the leading case authority suggests".
+- You NEVER compute, estimate, or reveal ACEI, RRI, or CCI scores in conversation. If asked, say: "Your exposure scores are available in your Ailane dashboard — I can explain what drives them, but the scores themselves are computed by the platform's constitutional indices."
 
-    if (!response.ok) {
-      console.error(`Voyage query embedding failed: ${response.status}`);
-      return null;
-    }
+DISCLAIMER (Tier 4 — Embedded, non-removable):
+At the END of your FIRST response in each session, include:
+"This analysis is regulatory intelligence grounded in Ailane's Knowledge Library. It does not constitute legal advice and does not establish a solicitor-client relationship. For advice specific to your situation, consult a qualified employment solicitor. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720) trading as Ailane."
 
-    const data = await response.json();
-    const embedding = data?.data?.[0]?.embedding;
+On subsequent messages in the same session, you do NOT repeat the full disclaimer, but you maintain the intelligence/advice boundary in your language throughout.`;
 
-    if (!embedding || embedding.length !== 1024) {
-      console.error(`Invalid query embedding: ${embedding?.length || 0} dimensions`);
-      return null;
-    }
-
-    return embedding;
-  } catch (err) {
-    console.error("Query embedding error:", err);
-    return null;
-  }
-}
-
-/**
- * Retrieves relevant provisions and cases from the vector store.
- * Uses match_provisions and match_cases RPCs.
- */
-async function retrieveRAGContext(
-  queryEmbedding: number[],
+// ─── Rate Limiting (SEC-001 §3.1) ───────────────────────────────────
+async function checkRateLimit(
   supabase: any,
-  filterInstrument?: string | null
-): Promise<RAGContext> {
-  const result: RAGContext = {
-    provisions: [],
-    cases: [],
-    ragAvailable: false,
-    error: null
-  };
+  ip: string,
+  windowMinutes: number = 1,
+  maxRequests: number = 20
+): Promise<boolean> {
+  const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from("rate_limits")
+    .select("*", { count: "exact", head: true })
+    .eq("ip_address", ip)
+    .eq("function_name", "kl_ai_assistant")
+    .gte("created_at", windowStart);
 
-  try {
-    // Format embedding as pgvector string
-    const embeddingStr = `[${queryEmbedding.join(",")}]`;
+  if ((count ?? 0) >= maxRequests) return false;
 
-    // ─── Retrieve provisions ───
-    const { data: provisions, error: provError } = await supabase.rpc(
-      "match_provisions",
-      {
-        query_embedding: embeddingStr,
-        match_threshold: 0.3,
-        match_count: 10,
-        filter_instrument: filterInstrument || null
-      }
-    );
-
-    if (provError) {
-      console.error("match_provisions RPC error:", provError);
-      result.error = `Provision retrieval failed: ${provError.message}`;
-    } else {
-      result.provisions = provisions || [];
-    }
-
-    // ─── Retrieve cases ───
-    const { data: cases, error: caseError } = await supabase.rpc(
-      "match_cases",
-      {
-        query_embedding: embeddingStr,
-        match_threshold: 0.3,
-        match_count: 5
-      }
-    );
-
-    if (caseError) {
-      console.error("match_cases RPC error:", caseError);
-      result.error = result.error
-        ? `${result.error}; Case retrieval failed: ${caseError.message}`
-        : `Case retrieval failed: ${caseError.message}`;
-    } else {
-      result.cases = cases || [];
-    }
-
-    result.ragAvailable = result.provisions.length > 0 || result.cases.length > 0;
-
-  } catch (err) {
-    console.error("RAG retrieval error:", err);
-    result.error = String(err);
-  }
-
-  return result;
+  await supabase.from("rate_limits").insert({
+    ip_address: ip,
+    function_name: "kl_ai_assistant",
+    created_at: new Date().toISOString(),
+  });
+  return true;
 }
 
-/**
- * Formats retrieved RAG context into a structured text block
- * for injection into Eileen's system prompt.
- */
-function formatRAGContext(ragContext: RAGContext): string {
-  if (!ragContext.ragAvailable) {
-    return "";
-  }
-
-  let contextBlock = "\n\n---\nKNOWLEDGE LIBRARY — RETRIEVED PROVISIONS AND CASE LAW\n";
-  contextBlock += "The following provisions and cases were retrieved from the Ailane Knowledge Library ";
-  contextBlock += "vector store based on semantic similarity to the subscriber's query. ";
-  contextBlock += "Cite these materials in your response. Every legal statement must reference ";
-  contextBlock += "the specific section and Act. Do not cite provisions or cases from training data ";
-  contextBlock += "that are not listed below.\n\n";
-
-  // ─── Provisions ───
-  if (ragContext.provisions.length > 0) {
-    contextBlock += "STATUTORY PROVISIONS:\n\n";
-    for (const prov of ragContext.provisions) {
-      contextBlock += `--- ${prov.section_num} ${prov.title} ---\n`;
-      contextBlock += `Instrument: ${prov.instrument_id}\n`;
-      contextBlock += `In force: ${prov.in_force ? "Yes" : "Not yet in force"}\n`;
-      if (prov.source_url) contextBlock += `Source: ${prov.source_url}\n`;
-      if (prov.summary) contextBlock += `Summary: ${prov.summary}\n`;
-      contextBlock += `Text: ${prov.current_text}\n`;
-      if (prov.key_principle) contextBlock += `Key principle: ${prov.key_principle}\n`;
-      contextBlock += `Relevance: ${(prov.similarity * 100).toFixed(1)}%\n\n`;
-    }
-  }
-
-  // ─── Cases ───
-  if (ragContext.cases.length > 0) {
-    contextBlock += "CASE LAW:\n\n";
-    for (const c of ragContext.cases) {
-      contextBlock += `--- ${c.name} ${c.citation} ---\n`;
-      contextBlock += `Court: ${c.court} | Year: ${c.year}\n`;
-      if (c.principle) contextBlock += `Principle: ${c.principle}\n`;
-      if (c.held) contextBlock += `Held: ${c.held}\n`;
-      if (c.significance) contextBlock += `Significance: ${c.significance}\n`;
-      if (c.bailii_url) contextBlock += `BAILII: ${c.bailii_url}\n`;
-      contextBlock += `Relevance: ${(c.similarity * 100).toFixed(1)}%\n\n`;
-    }
-  }
-
-  contextBlock += "---\n";
-  contextBlock += "END OF KNOWLEDGE LIBRARY CONTEXT. ";
-  contextBlock += "You MUST ground your response in the provisions and cases above. ";
-  contextBlock += "If the subscriber's question cannot be answered from the retrieved materials, ";
-  contextBlock += "state that clearly rather than drawing on training data.\n";
-
-  return contextBlock;
+// ─── Score Violation Guard ──────────────────────────────────────────
+function containsScoreViolation(text: string): boolean {
+  const patterns = [
+    /your (?:acei|rri|cci) (?:score|rating|index) is \d/i,
+    /score of \d{1,3}/i,
+    /(?:acei|rri|cci):\s*\d{1,3}/i,
+    /exposure score.*\d{2,3}/i,
+  ];
+  return patterns.some((p) => p.test(text));
 }
 
-// ─── RAG system prompt instructions (appended when RAG context is available) ──
-const RAG_INSTRUCTIONS = `
+// ─── Main Handler ───────────────────────────────────────────────────
+serve(async (req: Request) => {
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
 
-KNOWLEDGE LIBRARY RAG INSTRUCTIONS:
-You have been provided with provisions and case law retrieved from the Ailane Knowledge Library vector store. These are the most semantically relevant materials to the subscriber's query.
+  // ─── Secret Validation (SEC-001 §4) ───
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  const VOYAGE_API_KEY = Deno.env.get("VOYAGE_API_KEY");
 
-RULES:
-1. Ground every legal statement in a specific provision or case from the retrieved context.
-2. Cite the section number, Act name, and source URL for every provision you reference.
-3. Cite the case name, citation, and court for every case you reference.
-4. If a retrieved provision has in_force = false, flag this clearly: "This provision is enacted but not yet in force."
-5. If the retrieved materials do not adequately cover the subscriber's question, state this transparently: "The Knowledge Library materials I've retrieved do not fully address this question. You may wish to consult [specific resource] for further guidance."
-6. Do NOT draw on training data for specific statutory wording, section numbers, or case citations. Use only the retrieved materials.
-7. You MAY use training data for general legal concepts, procedural knowledge, and contextual explanation — but specific statutory provisions must come from the retrieved context.
-8. Maintain clinical neutrality (CCI Article I §1.5). Describe, contextualise, and cite. Do not opine, advise, or render legal opinions.`;
-
-// ─── Main handler ─────────────────────────────────────────────────────────────
-
-Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, content-type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      },
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("FATAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      status: 500, headers: CORS_HEADERS,
+    });
+  }
+  if (!ANTHROPIC_API_KEY) {
+    console.error("FATAL: Missing ANTHROPIC_API_KEY");
+    return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      status: 500, headers: CORS_HEADERS,
+    });
+  }
+  if (!VOYAGE_API_KEY) {
+    console.error("FATAL: Missing VOYAGE_API_KEY");
+    return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      status: 500, headers: CORS_HEADERS,
     });
   }
 
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
+  // ─── Auth — extract user from JWT ───
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: CORS_HEADERS,
+    });
   }
 
-  // Authenticate user from JWT (verify_jwt=true handles this at gateway)
-  const authHeader = req.headers.get('Authorization') ?? '';
-  const token = authHeader.replace('Bearer ', '');
-
-  // Decode JWT payload to get user_id (gateway already verified signature)
+  const token = authHeader.replace("Bearer ", "");
   let userId: string;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     userId = payload.sub;
-    if (!userId) throw new Error('no sub');
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 });
+    return new Response(JSON.stringify({ error: "Invalid token" }), {
+      status: 401, headers: CORS_HEADERS,
+    });
   }
 
-  let body: {
-    session_id: string;
-    project_id?: string;
-    message: string;
-    document_id?: string;
-  };
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // ─── Rate Limiting ───
+  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const allowed = await checkRateLimit(supabase, clientIp);
+  if (!allowed) {
+    return new Response(
+      JSON.stringify({ error: "Rate limit exceeded. Please wait a moment." }),
+      { status: 429, headers: CORS_HEADERS }
+    );
+  }
+
+  const startTime = Date.now();
 
   try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
-  }
+    // ─── Parse Request ───
+    const body = await req.json();
+    const message: string = body.message || "";
+    const sessionId: string = body.session_id || crypto.randomUUID();
+    const pageContext: string = body.page_context || "knowledge-library";
 
-  const { session_id, project_id, message, document_id } = body;
-
-  if (!session_id || !message?.trim()) {
-    return new Response(JSON.stringify({ error: 'session_id and message are required' }), { status: 400 });
-  }
-
-  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  try {
-    // ── Validate session belongs to user and is active ──────────────────────
-    const { data: session, error: sessionErr } = await sb
-      .from('kl_sessions')
-      .select('id, user_id, expires_at, status, tier')
-      .eq('id', session_id)
-      .eq('user_id', userId)
-      .single();
-
-    if (sessionErr || !session) {
-      return new Response(JSON.stringify({ error: 'Session not found' }), { status: 404 });
+    if (!message.trim()) {
+      return new Response(
+        JSON.stringify({ error: "Message is required" }),
+        { status: 400, headers: CORS_HEADERS }
+      );
     }
 
-    if (session.status !== 'active' || (session.expires_at && new Date(session.expires_at) < new Date())) {
-      return new Response(JSON.stringify({ error: 'Session expired or inactive' }), { status: 403 });
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 1 — Embed the user's query using Voyage AI (voyage-law-2)
+    // DPIA-KLIA-001 PA-2: query embedding is transient, not stored
+    // ═══════════════════════════════════════════════════════════════
+    let queryEmbedding: number[];
+    try {
+      const voyageResponse = await fetch("https://api.voyageai.com/v1/embeddings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${VOYAGE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "voyage-law-2",
+          input: [message],
+          input_type: "query",
+        }),
+      });
+
+      if (!voyageResponse.ok) {
+        const voyageErr = await voyageResponse.text();
+        console.error("Voyage API error:", voyageErr);
+        throw new Error("Embedding generation failed");
+      }
+
+      const voyageData = await voyageResponse.json();
+      queryEmbedding = voyageData.data[0].embedding;
+    } catch (embErr) {
+      console.error("Embedding error:", embErr);
+      // Fallback: proceed without RAG — Eileen answers from system prompt only
+      queryEmbedding = [];
     }
 
-    // ── LAYER B: Practice Context ────────────────────────────────────────────
-    const { data: practice } = await sb
-      .from('kl_practice_profiles')
-      .select('role_type, sector_weights, analysis_depth_pref, practice_keywords, recurring_instruments')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 2 — Retrieve relevant provisions and cases via vector search
+    // match_provisions: cosine similarity, top 10, threshold 0.3
+    // match_cases: cosine similarity, top 5, threshold 0.3
+    // ═══════════════════════════════════════════════════════════════
+    let retrievedProvisions: any[] = [];
+    let retrievedCases: any[] = [];
 
-    let layerB = '';
-    if (practice) {
-      const topSectors = (practice.sector_weights ?? []).slice(0, 3);
-      const keywords = (practice.practice_keywords ?? []).slice(0, 10);
-      const instruments = (practice.recurring_instruments ?? []).slice(0, 8);
-      layerB = `\n\nPROFESSIONAL CONTEXT (Practice Layer — preferences only, no client data):\n`;
-      if (practice.role_type) layerB += `Role: ${practice.role_type}\n`;
-      if (topSectors.length) layerB += `Primary sector focus: ${topSectors.join(', ')}\n`;
-      if (practice.analysis_depth_pref) layerB += `Analytical depth preference: ${practice.analysis_depth_pref}\n`;
-      if (keywords.length) layerB += `Practice keywords: ${keywords.join(', ')}\n`;
-      if (instruments.length) layerB += `Recurring instruments of interest: ${instruments.join(', ')}\n`;
-      layerB += `Frame your responses appropriately for this professional context.`;
-    }
+    if (queryEmbedding.length > 0) {
+      // Format embedding as Postgres vector string
+      const embeddingStr = `[${queryEmbedding.join(",")}]`;
 
-    // ── LAYER C: Project Context ─────────────────────────────────────────────
-    let layerC = '';
-    if (project_id) {
-      // CONSTITUTIONAL REQUIREMENT: must include AND user_id = userId
-      const { data: project } = await sb
-        .from('kl_projects')
-        .select('name, sector_tag, pinned_instruments, summary_narrative')
-        .eq('id', project_id)
-        .eq('user_id', userId)   // ← constitutional separation enforcement
-        .maybeSingle();
-
-      if (project) {
-        const narrativeTail = project.summary_narrative
-          ? project.summary_narrative.slice(-500)
-          : 'No prior session narrative yet.';
-
-        layerC = `\n\nPROJECT CONTEXT:\nProject name: ${project.name}\n`;
-        if (project.sector_tag) layerC += `Sector tag: ${project.sector_tag}\n`;
-        if ((project.pinned_instruments ?? []).length) {
-          layerC += `Pinned instruments for this project: ${project.pinned_instruments.join(', ')}\n`;
+      try {
+        const { data: provisions, error: provError } = await supabase.rpc(
+          "match_provisions",
+          {
+            query_embedding: embeddingStr,
+            match_threshold: 0.3,
+            match_count: 10,
+          }
+        );
+        if (provError) {
+          console.error("match_provisions error:", provError);
+        } else {
+          retrievedProvisions = provisions || [];
         }
-        layerC += `Project narrative (last 500 chars): ${narrativeTail}\n`;
+      } catch (e) {
+        console.error("match_provisions exception:", e);
+      }
 
-        // Last 10 session messages for this project — CONSTITUTIONAL: user_id scoped
-        const { data: history } = await sb
-          .from('kl_session_context')
-          .select('message_role, message_content, sequence')
-          .eq('project_id', project_id)
-          .eq('user_id', userId)   // ← constitutional separation enforcement
-          .eq('status', 'active')
-          .order('sequence', { ascending: false })
-          .limit(10);
+      try {
+        const { data: cases, error: caseError } = await supabase.rpc(
+          "match_cases",
+          {
+            query_embedding: embeddingStr,
+            match_threshold: 0.3,
+            match_count: 5,
+          }
+        );
+        if (caseError) {
+          console.error("match_cases error:", caseError);
+        } else {
+          retrievedCases = cases || [];
+        }
+      } catch (e) {
+        console.error("match_cases exception:", e);
+      }
+    }
 
-        if (history?.length) {
-          layerC += `\nRecent session history (last ${history.length} messages, most recent first):\n`;
-          history.reverse().forEach(h => {
-            layerC += `[${h.message_role.toUpperCase()}]: ${h.message_content.slice(0, 300)}\n`;
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3 — Build context from retrieved provisions and cases
+    // ═══════════════════════════════════════════════════════════════
+    let ragContext = "";
+
+    if (retrievedProvisions.length > 0) {
+      ragContext += "\n\n=== RETRIEVED STATUTORY PROVISIONS (from Ailane Knowledge Library) ===\n";
+      ragContext += "Use these as your primary authority. Cite them precisely.\n\n";
+      for (const p of retrievedProvisions) {
+        ragContext += `--- ${p.instrument_id} ${p.section_num}: ${p.title} ---\n`;
+        ragContext += `Text: ${p.current_text}\n`;
+        if (p.key_principle) ragContext += `Key Principle: ${p.key_principle}\n`;
+        if (p.summary) ragContext += `Summary: ${p.summary}\n`;
+        if (!p.in_force) ragContext += `⚠️ NOT YET IN FORCE\n`;
+        if (p.acei_category) ragContext += `ACEI Category: ${p.acei_category}\n`;
+        ragContext += `Similarity: ${(p.similarity * 100).toFixed(1)}%\n\n`;
+      }
+    }
+
+    if (retrievedCases.length > 0) {
+      ragContext += "\n=== RETRIEVED LEADING CASES ===\n";
+      ragContext += "Cite these by name and citation. Include BAILII URLs where available.\n\n";
+      for (const c of retrievedCases) {
+        ragContext += `--- ${c.name} ${c.citation} (${c.court}, ${c.year}) ---\n`;
+        if (c.principle) ragContext += `Principle: ${c.principle}\n`;
+        if (c.held) ragContext += `Held: ${c.held}\n`;
+        if (c.significance) ragContext += `Significance: ${c.significance}\n`;
+        if (c.bailii_url) ragContext += `BAILII: ${c.bailii_url}\n`;
+        ragContext += `Similarity: ${(c.similarity * 100).toFixed(1)}%\n\n`;
+      }
+    }
+
+    if (ragContext === "") {
+      ragContext =
+        "\n\n[No provisions or cases matched this query with sufficient similarity. " +
+        "Answer from your general knowledge of UK employment law, but note that " +
+        "you are drawing on general knowledge rather than specific Knowledge Library content.]\n";
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 4 — Build conversation history (last 10 messages)
+    // ═══════════════════════════════════════════════════════════════
+    let conversationHistory: { role: string; content: string }[] = [];
+    try {
+      const { data: history } = await supabase
+        .from("kl_eileen_conversations")
+        .select("user_message, eileen_response")
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: true })
+        .limit(5);
+
+      if (history && history.length > 0) {
+        for (const h of history) {
+          conversationHistory.push({ role: "user", content: h.user_message });
+          conversationHistory.push({
+            role: "assistant",
+            content: h.eileen_response,
           });
         }
       }
+    } catch (histErr) {
+      console.warn("Could not load conversation history:", histErr);
     }
 
-    // ── LAYER D: Current Query + Document Context ────────────────────────────
-    let layerD = message;
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 5 — Call Anthropic API with full KLUX-001 system prompt
+    // ═══════════════════════════════════════════════════════════════
+    const fullSystemPrompt = SYSTEM_PROMPT_CONSTITUTIONAL + ragContext;
 
-    if (document_id) {
-      // Verify document ownership via JOIN — constitutional data minimisation
-      const { data: docText } = await sb
-        .from('kl_vault_document_text')
-        .select('extracted_text, kl_vault_documents!inner(user_id)')
-        .eq('document_id', document_id)
-        .eq('kl_vault_documents.user_id', userId)
-        .maybeSingle();
+    const messages = [
+      ...conversationHistory,
+      { role: "user", content: message },
+    ];
 
-      if (docText?.extracted_text) {
-        const excerpt = docText.extracted_text.slice(0, 8000);
-        layerD = `DOCUMENT CONTEXT (first 8000 chars of extracted text — analyse against KL instruments):\n\n${excerpt}\n\nUSER QUERY: ${message}`;
+    const anthropicResponse = await fetch(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          system: fullSystemPrompt,
+          messages: messages,
+        }),
       }
-    }
-
-    // ── RAG PIPELINE — KLIA-001 §10.3 (insert BEFORE Anthropic API call) ────
-    const VOYAGE_API_KEY = Deno.env.get("VOYAGE_API_KEY");
-    let ragContextBlock = "";
-
-    if (VOYAGE_API_KEY && message?.trim()) {
-      // Step 1: Generate transient query embedding
-      const queryEmbedding = await generateQueryEmbedding(message, VOYAGE_API_KEY);
-
-      if (queryEmbedding) {
-        // Step 2: Retrieve relevant provisions and cases
-        const ragContext = await retrieveRAGContext(
-          queryEmbedding,
-          sb,
-          null  // no instrument filter — search all instruments
-        );
-
-        // Step 3: Format context for injection
-        ragContextBlock = formatRAGContext(ragContext);
-
-        // Log retrieval stats (not the query content — DPIA compliance)
-        console.log(`RAG: ${ragContext.provisions.length} provisions, ${ragContext.cases.length} cases retrieved`);
-        if (ragContext.error) {
-          console.error(`RAG partial error: ${ragContext.error}`);
-        }
-      } else {
-        console.log("RAG: Query embedding failed — falling back to non-RAG response");
-      }
-    }
-
-    // ── Determine next sequence number ──────────────────────────────────────
-    const { count } = await sb
-      .from('kl_session_context')
-      .select('id', { count: 'exact', head: true })
-      .eq('session_id', session_id);
-
-    const nextSeq = (count ?? 0) + 1;
-
-    // ── Insert user message ──────────────────────────────────────────────────
-    await sb.from('kl_session_context').insert({
-      session_id,
-      project_id: project_id ?? null,
-      user_id: userId,
-      message_role: 'user',
-      message_content: message,
-      instruments_cited: [],
-      sequence: nextSeq,
-      status: 'active',
-    });
-
-    // ── Call Anthropic API ───────────────────────────────────────────────────
-    // Assemble system prompt: constitutional frame + practice + project + RAG context + RAG instructions
-    const systemPrompt = LAYER_A + layerB + layerC + ragContextBlock + (ragContextBlock ? RAG_INSTRUCTIONS : "");
-
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: layerD }],
-      }),
-    });
-
-    if (!anthropicRes.ok) {
-      const err = await anthropicRes.text();
-      console.error('kl_ai_assistant: Anthropic error', err);
-      return new Response(JSON.stringify({ error: 'AI generation failed' }), { status: 502 });
-    }
-
-    const anthropicData = await anthropicRes.json();
-    const assistantMessage: string = anthropicData.content?.[0]?.text ?? '';
-
-    // ── Constitutional guard: block score violations ─────────────────────────
-    if (containsScoreViolation(assistantMessage)) {
-      console.warn('kl_ai_assistant: score violation detected — stripping response');
-      const safeMessage = 'I can identify which ACEI categories this matter implicates, but I cannot compute or estimate exposure scores — these are available exclusively through Ailane\'s subscription index products.\n\nThis analysis is constitutional intelligence grounded in Ailane\'s instrument library and UK employment tribunal outcome data. It does not constitute legal advice, does not establish a professional relationship, and should not be relied upon as a substitute for qualified legal counsel. AI Lane Limited (Company No. 17035654 · ICO Reg. No. 00013389720) trading as Ailane.';
-      return new Response(JSON.stringify({ response: safeMessage, instruments_cited: [] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // ── Extract instrument UUIDs cited (if any returned by model) ────────────
-    // Model may return instrument references as UUIDs in a JSON block — extract if present
-    const instrumentsMatch = assistantMessage.match(/\[INSTRUMENTS:([\s\S]*?)\]/i);
-    const instrumentsCited: string[] = [];
-    if (instrumentsMatch) {
-      try {
-        const parsed = JSON.parse(instrumentsMatch[1]);
-        if (Array.isArray(parsed)) instrumentsCited.push(...parsed);
-      } catch { /* ignore parse failures */ }
-    }
-
-    // ── Insert assistant response ────────────────────────────────────────────
-    await sb.from('kl_session_context').insert({
-      session_id,
-      project_id: project_id ?? null,
-      user_id: userId,
-      message_role: 'assistant',
-      message_content: assistantMessage,
-      instruments_cited: instrumentsCited,
-      sequence: nextSeq + 1,
-      status: 'active',
-    });
-
-    // ── Update practice profile — sanitised keywords only ───────────────────
-    const sanitisedMessage = sanitiseForPracticeLayer(message);
-    const words = sanitisedMessage
-      .split(/\W+/)
-      .filter(w => w.length > 5 && !/^(which|about|would|should|could|please|there|their|these|those|where|when|what|have|been|does|will|with|from|that|this|your|our)$/i.test(w))
-      .slice(0, 5);
-
-    if (words.length > 0) {
-      const { data: existingPractice } = await sb
-        .from('kl_practice_profiles')
-        .select('practice_keywords, session_count')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (existingPractice) {
-        const existingKeywords: string[] = existingPractice.practice_keywords ?? [];
-        const merged = [...new Set([...existingKeywords, ...words])].slice(0, 50);
-        await sb
-          .from('kl_practice_profiles')
-          .update({
-            practice_keywords: merged,
-            session_count: (existingPractice.session_count ?? 0) + 1,
-            last_updated: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ response: assistantMessage, instruments_cited: instrumentsCited }),
-      { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
     );
 
+    if (!anthropicResponse.ok) {
+      const err = await anthropicResponse.text();
+      console.error("Anthropic API error:", err);
+      return new Response(
+        JSON.stringify({ error: "Intelligence generation failed" }),
+        { status: 502, headers: CORS_HEADERS }
+      );
+    }
+
+    const anthropicData = await anthropicResponse.json();
+    const eileenResponse: string =
+      anthropicData.content?.[0]?.text ?? "";
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 6 — Constitutional Guard: block score violations
+    // ═══════════════════════════════════════════════════════════════
+    let finalResponse = eileenResponse;
+    if (containsScoreViolation(eileenResponse)) {
+      console.warn("Score violation detected — stripping response");
+      finalResponse =
+        "I can identify which areas of employment law exposure this matter engages, but I cannot compute or disclose exposure scores in conversation — those are available in your Ailane dashboard.\n\n" +
+        "What I can do is walk you through the statutory provisions and case law that are relevant to your situation. Would you like me to do that?\n\n" +
+        "This analysis is regulatory intelligence grounded in Ailane's Knowledge Library. It does not constitute legal advice and does not establish a solicitor-client relationship. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720) trading as Ailane.";
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 7 — Log conversation to kl_eileen_conversations
+    // ═══════════════════════════════════════════════════════════════
+    const responseTimeMs = Date.now() - startTime;
+
+    try {
+      await supabase.from("kl_eileen_conversations").insert({
+        session_id: sessionId,
+        user_id: userId,
+        is_authenticated: true,
+        user_message: message,
+        eileen_response: finalResponse,
+        guide_ids_used: [],
+        guide_slugs_used: [],
+        categories_matched: retrievedProvisions
+          .map((p: any) => p.acei_category)
+          .filter(Boolean)
+          .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i),
+        provisions_retrieved: retrievedProvisions.map(
+          (p: any) => `${p.instrument_id}:${p.section_num}`
+        ),
+        cases_retrieved: retrievedCases.map((c: any) => c.citation),
+        rag_provision_count: retrievedProvisions.length,
+        rag_case_count: retrievedCases.length,
+        total_context_tokens: fullSystemPrompt.length + message.length,
+        response_time_ms: responseTimeMs,
+        claude_model_used: "claude-sonnet-4-20250514",
+        detected_knowledge_level: "adaptive",
+        page_context: pageContext,
+        user_agent: req.headers.get("user-agent") || null,
+      });
+    } catch (logErr) {
+      console.error("Conversation logging error:", logErr);
+      // Non-fatal — do not block response
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 8 — Return response
+    // ═══════════════════════════════════════════════════════════════
+    return new Response(
+      JSON.stringify({
+        response: finalResponse,
+        session_id: sessionId,
+        provisions_count: retrievedProvisions.length,
+        cases_count: retrievedCases.length,
+      }),
+      { status: 200, headers: CORS_HEADERS }
+    );
   } catch (err) {
-    console.error('kl_ai_assistant: unexpected error', err);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 });
+    console.error("Unhandled error in kl_ai_assistant:", err);
+    return new Response(
+      JSON.stringify({ error: "Internal server error", detail: String(err) }),
+      { status: 500, headers: CORS_HEADERS }
+    );
   }
 });
