@@ -92,7 +92,7 @@ def fetch_with_retry(url, max_retries=3):
 def sb_upsert(table, data):
     """Upsert a record to Supabase."""
     r = requests.post(
-        f'{SUPABASE_URL}/rest/v1/{table}',
+        f'{SUPABASE_URL}/rest/v1/{table}?on_conflict=source_identifier',
         headers=SB_HEADERS,
         json=data
     )
@@ -274,6 +274,31 @@ def parse_date(date_str):
     return None
 
 
+def make_source_identifier(report, source_url='', report_date=None):
+    """Generate a unique source identifier for a PFD report."""
+    # Primary: use the Ref field if extracted (e.g. "2026-0088") — globally unique
+    ref = report.get('ref', '')
+    if ref and ref.strip():
+        return f"PFD-{ref.strip()}"
+
+    # Secondary: use the URL slug which is always unique per report
+    # e.g. "jardine-williams-2-prevention-of-future-deaths-report" -> unique
+    url = source_url or report.get('source_url', '')
+    if url:
+        slug = url.rstrip('/').split('/')[-1]
+        # Remove the common suffix to keep it shorter
+        slug = slug.replace('-prevention-of-future-deaths-report', '')
+        slug = slug.replace('-prevention-of-future-death-report', '')
+        if slug:
+            return f"PFD-{slug}"
+
+    # Last resort: date + name (NOT unique for multi-report cases — avoid)
+    date_str = report_date or report.get('report_date', 'unknown')
+    deceased = report.get('deceased_name', 'unknown')
+    slug = re.sub(r'[^a-z0-9]+', '-', deceased.lower().strip())[:50]
+    return f"PFD-{date_str}-{slug}"
+
+
 # --- Main scraping logic ---
 
 def build_listing_url(page, since_date=None):
@@ -354,9 +379,7 @@ def scrape_listing(limit=None, since_date=None, scrape_all=False):
                 continue
 
             # Build source identifier
-            deceased = detail.get('deceased_name') or 'unknown'
-            date_part = report_date or 'unknown'
-            source_id = f"PFD-{date_part}-{slugify(deceased)}"
+            source_id = make_source_identifier(detail, report_url, report_date)
 
             # Parse categories from the category string
             cat_str = detail.get('category_str') or ''
@@ -383,8 +406,9 @@ def scrape_listing(limit=None, since_date=None, scrape_all=False):
             }
 
             reports.append(report)
+            deceased = detail.get('deceased_name') or 'unknown'
             log.info(f"  [OK] [{len(reports)}] {deceased[:50]} | "
-                     f"date={report_date} | emp={report.get('employment_related')}")
+                     f"id={source_id} | date={report_date} | emp={report.get('employment_related')}")
 
         if limit and len(reports) >= limit:
             break
