@@ -128,19 +128,32 @@ def parse_report_page(html, url):
     data = {}
 
     # --- Extract paragraph-based metadata fields ---
-    # Each field appears as a <p> tag containing the label text
+    # Each field appears as a <p> tag containing the label text.
+    # Some reports use <br> within paragraphs to separate fields.
     PARA_FIELDS = {
         'ref': ['Ref:'],
-        'deceased_name': ['Deceased name:', 'Name of deceased:'],
+        'deceased_name': ['Deceased name:', 'Name of deceased:', "Deceased's name:"],
         'coroner_name': ["Coroner's name:", "Coroner name:", "Coroners name:"],
         'coroner_area': ["Coroner's Area:", "Coroner Area:", "Coroners Area:"],
-        'report_date_str': ['Date of report:'],
+        'report_date_str': ['Date of report:', 'Date of reports:'],
         'addressee': ['This report is being sent to:', 'Sent to:'],
         'category_str': ['Category:'],
     }
 
     for field_name, keywords in PARA_FIELDS.items():
         data[field_name] = extract_paragraph_field(soup, keywords)
+
+    # --- Fallback: date from <time> element in article header ---
+    if not data.get('report_date_str'):
+        time_el = soup.select_one('article header time, time.entry-date')
+        if time_el:
+            data['report_date_str'] = time_el.get('datetime', '') or time_el.get_text(strip=True)
+
+    # --- Fallback: categories from pill tags (GOV.UK Design System) ---
+    if not data.get('category_str'):
+        cat_links = soup.select('.pill--single a, a[rel="tag"]')
+        if cat_links:
+            data['category_str'] = ' | '.join(a.get_text(strip=True) for a in cat_links)
 
     # --- Extract section-based content (strong-headed blocks) ---
     data['circumstances_summary'] = extract_section_text(soup, [
@@ -157,12 +170,18 @@ def parse_report_page(html, url):
     ])
 
     # --- PDF links ---
-    # Try govuk-button class first (modern template), then any .pdf links
+    # Try related-content links first (GOV.UK template), then govuk-button, then any .pdf
     pdf_links = []
-    for a in soup.find_all('a', class_='govuk-button'):
+    for a in soup.select('a.related-content__link'):
         href = a.get('href', '')
         if href:
             pdf_links.append(href)
+
+    if not pdf_links:
+        for a in soup.find_all('a', class_='govuk-button'):
+            href = a.get('href', '')
+            if href:
+                pdf_links.append(href)
 
     if not pdf_links:
         for a in soup.find_all('a', href=True):
