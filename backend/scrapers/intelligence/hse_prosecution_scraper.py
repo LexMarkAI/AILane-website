@@ -49,7 +49,25 @@ HTTP_HEADERS = {
 }
 
 RECENT_URL = 'https://resources.hse.gov.uk/convictions/case/case_list.asp'
-HISTORICAL_URL = 'https://resources.hse.gov.uk/convictions/'
+HISTORICAL_BASE = 'https://resources.hse.gov.uk/convictions-history/'
+HISTORICAL_LIST_URL = 'https://resources.hse.gov.uk/convictions-history/case/case_list.asp'
+HISTORICAL_DETAIL_URL = 'https://resources.hse.gov.uk/convictions-history/case/case_detail.asp'
+
+# Sort-control text that ASP pages inject — these are NOT defendants
+SORT_CONTROL_PATTERNS = [
+    r'\(ascending',
+    r'\(descending',
+    r'a to z\)',
+    r'z to a\)',
+    r'sort by',
+    r'order by',
+]
+
+COMPANY_SUFFIXES = [
+    'ltd', 'limited', 'plc', 'llp', 'inc', 'group', 'holdings',
+    'services', 'solutions', 'trust', 'council', 'authority', 'nhs',
+    'corporation', 'organisation', 'company', 'co.', 'partnership',
+]
 
 FATALITY_KEYWORDS = [
     'death', 'fatal', 'fatality', 'killed', 'died', 'deceased',
@@ -237,14 +255,25 @@ def map_detail_field(data, label, value):
 
 
 def classify_defendant_type(text):
-    """Classify defendant as company or individual/director."""
+    """Classify defendant as company or individual."""
     text_lower = text.lower()
     for kw in DIRECTOR_KEYWORDS:
         if kw in text_lower:
             return 'individual'
-    if any(w in text_lower for w in ['company', 'ltd', 'limited', 'plc', 'llp', 'corporation', 'organisation']):
+    if any(w in text_lower for w in COMPANY_SUFFIXES):
         return 'company'
-    return text[:50]
+    return 'individual'
+
+
+def is_sort_control_text(text):
+    """Check if text is an ASP sort control string, not a real defendant name."""
+    if not text:
+        return True
+    text_lower = text.strip().lower()
+    for pattern in SORT_CONTROL_PATTERNS:
+        if re.search(pattern, text_lower):
+            return True
+    return False
 
 
 def check_fatality(text):
@@ -290,6 +319,170 @@ def slugify(text):
     return text[:80]
 
 
+# --- Historical register parsing (Classic ASP at /convictions-history/) ---
+
+def parse_historical_case_list(html):
+    """Parse case_list.asp from the HSE historical convictions register."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+    cases = []
+
+    # Historical register uses HTML tables for results
+    # Find the main data table (skip nav/layout tables)
+    tables = soup.select('table')
+    data_table = None
+    for table in tables:
+        rows = table.select('tr')
+        # Data table has rows with links to case_detail.asp
+        for row in rows:
+            links = row.select('a[href*="case_detail"]')
+            if links:
+                data_table = table
+                break
+        if data_table:
+            break
+
+    if not data_table:
+        # Fallback: search all rows in the page
+        data_table = soup
+
+    rows = data_table.select('tr') if data_table else []
+
+    # Identify header row
+    header_cells = []
+    for row in rows:
+        ths = row.select('th')
+        if ths:
+            header_cells = [th.get_text(strip=True).lower() for th in ths]
+            continue
+
+        cells = row.select('td')
+        if not cells or len(cells) < 2:
+            continue
+
+        case = {}
+        detail_link = None
+
+        # Look for case detail link in any cell
+        for cell in cells:
+            link = cell.select_one('a[href*="case_detail"]')
+            if link:
+                href = link.get('href', '')
+                detail_link = urljoin(HISTORICAL_LIST_URL, href)
+                # Extract case ID from URL
+                id_match = re.search(r'ID=(\d+)', href, re.IGNORECASE)
+                if id_match:
+                    case['case_id'] = id_match.group(1)
+                break
+
+        if not detail_link:
+            continue
+
+        case['detail_url'] = detail_link
+
+        # Map cells to columns based on headers or position
+        for i, cell in enumerate(cells):
+            text = cell.get_text(strip=True)
+            if not text:
+                continue
+
+            col_name = header_cells[i] if i < len(header_cells) else f'col_{i}'
+
+            if 'defendant' in col_name or i == 0:
+                if not is_sort_control_text(text):
+                    case['defendant_name'] = text
+            elif 'court' in col_name:
+                case['court_name'] = text
+            elif 'date' in col_name:
+                case['date_str'] = text
+
+        # Only keep cases with a valid defendant name
+        if case.get('defendant_name') and not is_sort_control_text(case['defendant_name']):
+            cases.append(case)
+
+    # Find next page link — ASP paging uses "Next" text or PN= parameter
+    next_link = None
+    for a in soup.select('a'):
+        href = a.get('href', '')
+        text = a.get_text(strip=True).lower()
+        if ('next' in text or '>>' in text or '>' == text.strip()) and 'case_list' in href:
+            next_link = urljoin(HISTORICAL_LIST_URL, href)
+            break
+
+    # Also check for numbered page links (PN= parameter)
+    if not next_link:
+        page_links = []
+        for a in soup.select('a[href*="PN="]'):
+            href = a.get('href', '')
+            pn_match = re.search(r'PN=(\d+)', href, re.IGNORECASE)
+            if pn_match:
+                page_links.append((int(pn_match.group(1)), urljoin(HISTORICAL_LIST_URL, href)))
+        # If we have page links, the next page is the one after current
+        # Current page number is determined by checking for non-linked page number
+        if page_links:
+            page_links.sort(key=lambda x: x[0])
+            # The highest page number link that we haven't visited yet
+            # We'll handle this in the caller by tracking current page
+
+    return cases, next_link
+
+
+def parse_historical_case_detail(html, url, case_id):
+    """Parse case_detail.asp from the HSE historical convictions register."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+    data = {}
+
+    # Historical detail pages use label/value table rows
+    for row in soup.select('tr'):
+        cells = row.select('td, th')
+        if len(cells) >= 2:
+            label = cells[0].get_text(strip=True).lower()
+            value = cells[1].get_text(strip=True)
+            if value and not is_sort_control_text(value):
+                map_detail_field(data, label, value)
+
+    # Also try definition lists
+    for dt in soup.select('dt'):
+        dd = dt.find_next_sibling('dd')
+        if dd:
+            label = dt.get_text(strip=True).lower()
+            value = dd.get_text(strip=True)
+            if value and not is_sort_control_text(value):
+                map_detail_field(data, label, value)
+
+    # Try parsing from strong/b labels followed by text
+    for strong in soup.select('strong, b'):
+        label = strong.get_text(strip=True).lower().rstrip(':')
+        next_text = strong.next_sibling
+        if next_text and isinstance(next_text, str):
+            value = next_text.strip().lstrip(':').strip()
+            if value and not is_sort_control_text(value):
+                map_detail_field(data, label, value)
+
+    # Fallback regex extraction from full page text
+    full_text = soup.get_text(separator='\n', strip=True)
+
+    if not data.get('defendant_name'):
+        m = re.search(r'defendant[:\s]+(.+)', full_text, re.IGNORECASE)
+        if m:
+            name = m.group(1).strip()[:200]
+            if not is_sort_control_text(name):
+                data['defendant_name'] = name
+
+    # Filter out sort control text from defendant_name one more time
+    if data.get('defendant_name') and is_sort_control_text(data['defendant_name']):
+        data.pop('defendant_name')
+
+    # Ensure defendant_type is properly classified
+    if data.get('defendant_name') and not data.get('defendant_type'):
+        data['defendant_type'] = classify_defendant_type(data['defendant_name'])
+
+    data['content_hash'] = hashlib.sha256(full_text.encode()).hexdigest()
+
+    return data
+
+
 # --- Main scraping logic ---
 
 def build_search_params(historical=False):
@@ -303,13 +496,175 @@ def build_search_params(historical=False):
     return params
 
 
-def scrape_convictions(historical=False, limit=None, since_date=None):
-    """Scrape HSE conviction records."""
+def scrape_historical_convictions(limit=None, since_date=None):
+    """Scrape the HSE historical convictions register (1-10 years old)."""
     records = []
-    base_url = HISTORICAL_URL if historical else RECENT_URL
-    params = build_search_params(historical)
 
-    log.info(f"Fetching HSE convictions from: {base_url}")
+    # Entry point: all cases sorted by date of offence descending
+    entry_url = (
+        f"{HISTORICAL_LIST_URL}?ST=C&CO=,+AND&SN=F"
+        f"&SF=ODS,+|&EO=<&SV=31/12/2100,+|&SO=DODS"
+    )
+
+    log.info(f"Fetching HSE HISTORICAL convictions from: {entry_url}")
+
+    try:
+        resp = fetch_with_retry(entry_url)
+    except Exception as e:
+        log.error(f"[FAIL] Could not fetch HSE historical search: {e}")
+        return records
+
+    page_num = 0
+    page_url = None  # First page already fetched
+
+    while True:
+        page_num += 1
+
+        if page_url:
+            time.sleep(2)  # Rate limit: 2s between list pages
+            try:
+                resp = fetch_with_retry(page_url)
+            except Exception as e:
+                log.error(f"[FAIL] Could not fetch page {page_num}: {e}")
+                break
+
+        cases, next_link = parse_historical_case_list(resp.text)
+        log.info(f"  Page {page_num}: found {len(cases)} cases")
+
+        if not cases:
+            # If first page returned nothing, try alternate pagination
+            if page_num == 1:
+                log.warning("No cases found on first page — check URL/HTML structure")
+            break
+
+        stop_paging = False
+        for case in cases:
+            if limit and len(records) >= limit:
+                stop_paging = True
+                break
+
+            case_id = case.get('case_id', '')
+            detail_url = case.get('detail_url')
+
+            # Fetch detail page
+            detail = {}
+            if detail_url:
+                time.sleep(1.5)  # Rate limit: 1.5s between detail pages
+                try:
+                    detail_resp = fetch_with_retry(detail_url)
+                    detail = parse_historical_case_detail(detail_resp.text, detail_url, case_id)
+                except requests.exceptions.HTTPError as e:
+                    status = e.response.status_code if e.response else None
+                    if status in (404, 410):
+                        log.warning(f"  [SKIP] Case detail page gone ({status}): ID={case_id}")
+                    else:
+                        log.warning(f"  [FAIL] HTTP {status} on case detail ID={case_id}")
+                    continue
+                except Exception as e:
+                    log.warning(f"  [FAIL] Error fetching case detail ID={case_id}: {e}")
+                    continue
+
+            # Merge listing + detail data
+            defendant_name = detail.get('defendant_name') or case.get('defendant_name', 'Unknown')
+
+            # Skip sort control artefacts
+            if is_sort_control_text(defendant_name):
+                log.debug(f"  [SKIP] Sort control text: {defendant_name[:40]}")
+                continue
+
+            conv_date = detail.get('date_of_conviction') or parse_date(case.get('date_str', ''))
+            offence_date = detail.get('date_of_offence')
+
+            # Check since_date filter
+            if since_date and conv_date:
+                if conv_date < since_date:
+                    stop_paging = True
+                    break
+
+            case_ref = detail.get('case_reference', '')
+            offence_desc = detail.get('offence_description', '')
+
+            # Build source identifier with HSE-HIST- prefix
+            if case_id:
+                source_id = f"HSE-HIST-{case_id}"
+            elif case_ref:
+                source_id = f"HSE-HIST-{case_ref}"
+            else:
+                source_id = f"HSE-HIST-{slugify(defendant_name)}-{conv_date or offence_date or 'unknown'}"
+
+            # Classify defendant type
+            defendant_type = detail.get('defendant_type')
+            if not defendant_type:
+                defendant_type = classify_defendant_type(defendant_name)
+
+            # Check fatality
+            fatality = check_fatality(offence_desc)
+
+            record = {
+                'source_identifier': source_id,
+                'case_reference': case_ref or None,
+                'defendant_name': defendant_name,
+                'defendant_type': defendant_type,
+                'date_of_offence': offence_date,
+                'date_of_conviction': conv_date,
+                'court_name': detail.get('court_name') or case.get('court_name'),
+                'legislation_breached': detail.get('legislation_breached'),
+                'offence_description': offence_desc or None,
+                'outcome': detail.get('outcome'),
+                'fine_amount': detail.get('fine_amount'),
+                'costs_amount': detail.get('costs_amount'),
+                'custodial_sentence': detail.get('custodial_sentence'),
+                'custodial_suspended': detail.get('custodial_suspended'),
+                'fatality_involved': fatality,
+                'sic_code': detail.get('sic_code'),
+                'sector': detail.get('sector'),
+                'local_authority': detail.get('local_authority'),
+                'source_url': detail_url or entry_url,
+                'content_hash': detail.get('content_hash'),
+                'scraped_at': datetime.now(timezone.utc).isoformat(),
+                'metadata': {
+                    'scrape_source': 'historical',
+                    'case_id': case_id,
+                    'page_number': page_num,
+                }
+            }
+
+            records.append(record)
+            log.info(f"  [OK] [{len(records)}] {defendant_name[:40]} | "
+                     f"fine={record.get('fine_amount') or '?'} | "
+                     f"fatal={fatality} | type={defendant_type}")
+
+        if stop_paging:
+            break
+
+        if next_link:
+            page_url = next_link
+        else:
+            # Try incrementing PN= parameter manually
+            # ASP pagination often uses PN=2, PN=3, etc.
+            current_url = page_url or entry_url
+            pn_match = re.search(r'PN=(\d+)', current_url, re.IGNORECASE)
+            if pn_match:
+                current_pn = int(pn_match.group(1))
+                next_pn = current_pn + 1
+                page_url = re.sub(r'PN=\d+', f'PN={next_pn}', current_url, flags=re.IGNORECASE)
+            elif cases:
+                # First page had results but no next link — try adding PN=2
+                separator = '&' if '?' in entry_url else '?'
+                page_url = f"{entry_url}{separator}PN=2"
+            else:
+                break
+
+    return records
+
+
+def scrape_recent_convictions(limit=None, since_date=None):
+    """Scrape HSE recent conviction records (last 12 months)."""
+    records = []
+    base_url = RECENT_URL
+    params = build_search_params(historical=False)
+
+    log.info(f"Fetching HSE RECENT convictions from: {base_url}")
 
     try:
         resp = fetch_with_retry(base_url, params=params)
@@ -372,6 +727,11 @@ def scrape_convictions(historical=False, limit=None, since_date=None):
 
             # Merge listing + detail data
             defendant_name = detail.get('defendant_name') or case.get('defendant_name', 'Unknown')
+
+            # Skip sort control artefacts
+            if is_sort_control_text(defendant_name):
+                continue
+
             case_ref = detail.get('case_reference', '')
             offence_desc = detail.get('offence_description') or case.get('offence_description', '')
 
@@ -412,7 +772,7 @@ def scrape_convictions(historical=False, limit=None, since_date=None):
                 'content_hash': detail.get('content_hash'),
                 'scraped_at': datetime.now(timezone.utc).isoformat(),
                 'metadata': {
-                    'scrape_source': 'historical' if historical else 'recent',
+                    'scrape_source': 'recent',
                     'page_number': page_num,
                 }
             }
@@ -498,11 +858,16 @@ def main():
     start_time = datetime.now(timezone.utc)
 
     try:
-        records = scrape_convictions(
-            historical=args.historical,
-            limit=args.limit,
-            since_date=args.since
-        )
+        if args.historical:
+            records = scrape_historical_convictions(
+                limit=args.limit,
+                since_date=args.since
+            )
+        else:
+            records = scrape_recent_convictions(
+                limit=args.limit,
+                since_date=args.since
+            )
 
         log.info(f"Scraped {len(records)} records. Saving to database...")
         inserted, failed = save_records(records)
