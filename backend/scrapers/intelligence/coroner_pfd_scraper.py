@@ -48,7 +48,16 @@ HTTP_HEADERS = {
     'User-Agent': 'Ailane-PFDScraper/1.0 (regulatory-intelligence; contact@ailane.ai)'
 }
 
-BASE_URL = 'https://www.judiciary.uk/prevention-of-future-death-reports/'
+# judiciary.uk uses a WordPress search/filter interface for PFD reports.
+# The listing URL uses query parameters for pagination, date filters, and category.
+# Reports are rendered as <a class="card__link"> elements on the listing page.
+# Individual report pages contain metadata in <p> tags with field labels.
+LISTING_URL_TEMPLATE = (
+    "https://www.judiciary.uk/page/{page}/"
+    "?s&pfd_report_type&post_type=pfd&order=relevance"
+    "&after-day={after_day}&after-month={after_month}&after-year={after_year}"
+    "&before-day={before_day}&before-month={before_month}&before-year={before_year}"
+)
 
 EMPLOYMENT_KEYWORDS = [
     'employer', 'employee', 'workplace', 'work-related', 'occupational',
@@ -92,129 +101,129 @@ def sb_upsert(table, data):
 
 # --- Parsing ---
 
-def parse_listing_page(html):
-    """Parse a PFD listing page and return report entries."""
+def get_report_links_from_page(html):
+    """Extract report URLs from a listing page.
+
+    judiciary.uk renders PFD search results with <a class="card__link"> elements.
+    Each links to an individual report page.
+
+    Returns a list of absolute URLs found on the page.
+    """
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html, 'html.parser')
-    entries = []
-
-    # PFD reports are listed as article/post entries
-    for article in soup.select('article, .entry-summary, .post'):
-        entry = {}
-        # Title and link
-        title_el = article.select_one('h2 a, h3 a, .entry-title a')
-        if not title_el:
-            continue
-        entry['title'] = title_el.get_text(strip=True)
-        entry['url'] = title_el.get('href', '')
-
-        # Date
-        date_el = article.select_one('time, .entry-date, .posted-on time')
-        if date_el:
-            date_str = date_el.get('datetime', '') or date_el.get_text(strip=True)
-            entry['date_str'] = date_str
-        else:
-            entry['date_str'] = ''
-
-        # Categories/tags
-        cats = []
-        for cat_el in article.select('.entry-categories a, .tag-links a, a[rel="tag"]'):
-            cats.append(cat_el.get_text(strip=True))
-        entry['categories'] = cats
-
-        entries.append(entry)
-
-    # Find next page link
-    next_link = None
-    next_el = soup.select_one('a.next, .nav-previous a, .pagination .next a, a.facetwp-page-next')
-    if not next_el:
-        # Try WP standard pagination
-        for a in soup.select('.pagination a, .nav-links a'):
-            if 'next' in a.get_text(strip=True).lower() or 'next' in a.get('class', []):
-                next_el = a
-                break
-    if next_el:
-        next_link = next_el.get('href')
-
-    return entries, next_link
+    links = soup.find_all('a', class_='card__link')
+    return [link.get('href') for link in links if link.get('href')]
 
 
 def parse_report_page(html, url):
-    """Parse an individual PFD report page for detailed metadata."""
+    """Parse an individual PFD report page for metadata.
+
+    judiciary.uk report pages structure metadata in <p> tags containing
+    field labels like "Date of report:", "Ref:", "Deceased name:", etc.
+    Section content (circumstances, concerns) lives in <strong>-headed blocks.
+    PDF links use <a class="govuk-button"> or plain <a> pointing to .pdf files.
+    """
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html, 'html.parser')
     data = {}
 
-    content = soup.select_one('.entry-content, .post-content, article')
-    if not content:
-        content = soup
+    # --- Extract paragraph-based metadata fields ---
+    # Each field appears as a <p> tag containing the label text
+    PARA_FIELDS = {
+        'ref': ['Ref:'],
+        'deceased_name': ['Deceased name:', 'Name of deceased:'],
+        'coroner_name': ["Coroner's name:", "Coroner name:", "Coroners name:"],
+        'coroner_area': ["Coroner's Area:", "Coroner Area:", "Coroners Area:"],
+        'report_date_str': ['Date of report:'],
+        'addressee': ['This report is being sent to:', 'Sent to:'],
+        'category_str': ['Category:'],
+    }
 
-    full_text = content.get_text(separator=' ', strip=True).lower()
+    for field_name, keywords in PARA_FIELDS.items():
+        data[field_name] = extract_paragraph_field(soup, keywords)
 
-    # Extract structured fields from the content
-    text_block = content.get_text(separator='\n', strip=True)
-
-    # Deceased name - often in title or first lines
-    data['deceased_name'] = extract_field(text_block, [
-        r'(?:name of )?deceased[:\s]+([^\n]+)',
-        r'in(?:to)? the death of[:\s]+([^\n]+)',
+    # --- Extract section-based content (strong-headed blocks) ---
+    data['circumstances_summary'] = extract_section_text(soup, [
+        'CIRCUMSTANCES OF THE DEATH',
+        'CIRCUMSTANCES OF DEATH',
+        'CIRCUMSTANCES OF',
     ])
 
-    # Coroner name
-    data['coroner_name'] = extract_field(text_block, [
-        r'coroner(?:\'s)? name[:\s]+([^\n]+)',
-        r'(?:senior )?coroner[:\s]+([^\n]+)',
+    data['recommendations'] = extract_section_text(soup, [
+        "CORONER'S CONCERNS",
+        "CORONERS CONCERNS",
+        "CORONER CONCERNS",
+        "MATTERS OF CONCERN",
     ])
 
-    # Coroner area
-    data['coroner_area'] = extract_field(text_block, [
-        r'coroner(?:\'s)? area[:\s]+([^\n]+)',
-        r'area[:\s]+([^\n]+)',
-    ])
-
-    # Addressee
-    data['addressee'] = extract_field(text_block, [
-        r'addressed to[:\s]+([^\n]+)',
-        r'sent to[:\s]+([^\n]+)',
-        r'addressee[:\s]+([^\n]+)',
-    ])
-
-    # PDF links
+    # --- PDF links ---
+    # Try govuk-button class first (modern template), then any .pdf links
     pdf_links = []
-    for a in content.select('a[href]'):
+    for a in soup.find_all('a', class_='govuk-button'):
         href = a.get('href', '')
-        if href.endswith('.pdf') or '/uploads/' in href:
+        if href:
             pdf_links.append(href)
+
+    if not pdf_links:
+        for a in soup.find_all('a', href=True):
+            href = a['href']
+            if href.lower().endswith('.pdf'):
+                pdf_links.append(href)
 
     data['report_pdf_url'] = pdf_links[0] if pdf_links else None
     data['response_pdf_url'] = pdf_links[1] if len(pdf_links) > 1 else None
 
-    # Check employment relevance
+    # --- Employment relevance ---
+    full_text = soup.get_text(separator=' ', strip=True).lower()
     data['employment_related'] = any(kw in full_text for kw in EMPLOYMENT_KEYWORDS)
 
-    # Recommendations
-    data['recommendations'] = extract_field(text_block, [
-        r'recommendation[s]?[:\s]+([^\n](?:.*\n)*?(?=\n\n|\Z))',
-        r'matters of concern[:\s]+([^\n](?:.*\n)*?(?=\n\n|\Z))',
-    ])
-
-    # Circumstances
-    data['circumstances_summary'] = extract_field(text_block, [
-        r'circumstances[:\s]+([^\n](?:.*\n)*?(?=\n\n|\Z))',
-        r'brief summary[:\s]+([^\n](?:.*\n)*?(?=\n\n|\Z))',
-    ])
-
-    data['content_hash'] = hashlib.sha256(text_block.encode()).hexdigest()
+    # --- Content hash ---
+    data['content_hash'] = hashlib.sha256(full_text.encode()).hexdigest()
 
     return data
 
 
-def extract_field(text, patterns):
-    """Try multiple regex patterns, return first match or None."""
-    for pat in patterns:
-        m = re.search(pat, text, re.IGNORECASE)
-        if m:
-            return m.group(1).strip()[:500]
+def extract_paragraph_field(soup, keywords):
+    """Find a <p> tag containing any of the keywords, return the text after the keyword.
+
+    This matches the judiciary.uk pattern where metadata appears as:
+      <p>Coroner name: HHJ Jane Smith</p>
+    """
+    for keyword in keywords:
+        el = soup.find(lambda tag: tag.name == 'p' and keyword in tag.get_text(), recursive=True)
+        if el:
+            text = el.get_text(strip=True)
+            # Remove the keyword prefix to get just the value
+            for kw in keywords:
+                if kw in text:
+                    text = text.split(kw, 1)[-1].strip()
+                    break
+            if text:
+                return text[:500]
+    return None
+
+
+def extract_section_text(soup, header_keywords):
+    """Find a <strong> tag matching header keywords and collect subsequent content.
+
+    judiciary.uk structures report sections with <strong> headers followed by
+    sibling text content.
+    """
+    for strong_tag in soup.find_all('strong'):
+        header_text = strong_tag.get_text(strip=True)
+        if any(kw.lower() in header_text.lower() for kw in header_keywords):
+            parts = []
+            for sibling in strong_tag.next_siblings:
+                if isinstance(sibling, str):
+                    text = sibling.strip()
+                    if text:
+                        parts.append(text)
+                else:
+                    text = sibling.get_text(separator=' ', strip=True)
+                    if text:
+                        parts.append(text)
+            if parts:
+                return ' '.join(parts)[:2000]
     return None
 
 
@@ -230,112 +239,142 @@ def parse_date(date_str):
     """Parse various date formats, return ISO date string or None."""
     if not date_str:
         return None
-    # Try ISO format first
-    for fmt in ['%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%d', '%d/%m/%Y', '%d %B %Y', '%B %d, %Y', '%d %b %Y']:
+    date_str = date_str.strip()
+    for fmt in ['%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%d', '%d/%m/%Y', '%d %B %Y',
+                '%B %d, %Y', '%d %b %Y', '%d-%m-%Y']:
         try:
-            return datetime.strptime(date_str.strip()[:30], fmt).strftime('%Y-%m-%d')
+            return datetime.strptime(date_str[:30], fmt).strftime('%Y-%m-%d')
         except ValueError:
             continue
-    # Try extracting date from string
     m = re.search(r'(\d{4}-\d{2}-\d{2})', date_str)
     if m:
         return m.group(1)
+    m = re.search(r'(\d{1,2})/(\d{1,2})/(\d{4})', date_str)
+    if m:
+        return f"{m.group(3)}-{m.group(2).zfill(2)}-{m.group(1).zfill(2)}"
     return None
 
 
 # --- Main scraping logic ---
 
-def scrape_listing(url, limit=None, since_date=None, scrape_all=False):
-    """Scrape PFD listing pages and individual reports."""
+def build_listing_url(page, since_date=None):
+    """Build the judiciary.uk PFD search URL for a given page number."""
+    if since_date:
+        try:
+            dt = datetime.strptime(since_date, '%Y-%m-%d')
+            after_day, after_month, after_year = dt.day, dt.month, dt.year
+        except ValueError:
+            after_day, after_month, after_year = 1, 1, 2013
+    else:
+        # Default: from inception (July 2013)
+        after_day, after_month, after_year = 1, 7, 2013
+
+    now = datetime.now()
+    return LISTING_URL_TEMPLATE.format(
+        page=page,
+        after_day=after_day, after_month=after_month, after_year=after_year,
+        before_day=now.day, before_month=now.month, before_year=now.year
+    )
+
+
+def scrape_listing(limit=None, since_date=None, scrape_all=False):
+    """Scrape PFD report links from listing pages, then fetch each report."""
     reports = []
-    page_url = url
     page_num = 0
 
-    while page_url:
+    while True:
         page_num += 1
-        log.info(f"Fetching listing page {page_num}: {page_url}")
+        page_url = build_listing_url(page_num, since_date=since_date)
+        log.info(f"Fetching listing page {page_num}: {page_url[:100]}...")
 
         try:
             resp = fetch_with_retry(page_url)
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response else None
+            if status == 404:
+                log.info(f"  Page {page_num} returned 404 - end of results")
+                break
+            log.error(f"[FAIL] Could not fetch listing page {page_num}: HTTP {status}")
+            break
         except Exception as e:
             log.error(f"[FAIL] Could not fetch listing page {page_num}: {e}")
             break
 
-        entries, next_link = parse_listing_page(resp.text)
-        log.info(f"  Found {len(entries)} entries on page {page_num}")
+        report_urls = get_report_links_from_page(resp.text)
+        log.info(f"  Found {len(report_urls)} report links on page {page_num}")
 
-        if not entries:
+        if not report_urls:
+            log.info(f"  No more reports found - end of results")
             break
 
-        stop_paging = False
-        for entry in entries:
+        for report_url in report_urls:
             if limit and len(reports) >= limit:
-                stop_paging = True
                 break
 
-            report_date = parse_date(entry.get('date_str', ''))
+            time.sleep(1)  # Rate limit: 1s between requests to judiciary.uk
 
-            # Check since_date filter
-            if since_date and report_date:
-                if report_date < since_date:
-                    stop_paging = True
-                    break
+            try:
+                detail_resp = fetch_with_retry(report_url)
+                detail = parse_report_page(detail_resp.text, report_url)
+            except requests.exceptions.HTTPError as e:
+                status = e.response.status_code if e.response else None
+                if status in (404, 410):
+                    log.warning(f"  [SKIP] Report page gone ({status}): {report_url}")
+                    continue
+                log.warning(f"  [FAIL] HTTP {status} fetching report: {report_url}")
+                continue
+            except Exception as e:
+                log.warning(f"  [FAIL] Error fetching report detail: {e}")
+                continue
+
+            # Parse the report date
+            report_date = parse_date(detail.get('report_date_str'))
+
+            # Check since_date filter on individual report date
+            if since_date and report_date and report_date < since_date:
+                continue
 
             # Build source identifier
-            deceased = entry.get('title', 'unknown')
+            deceased = detail.get('deceased_name') or 'unknown'
             date_part = report_date or 'unknown'
             source_id = f"PFD-{date_part}-{slugify(deceased)}"
+
+            # Parse categories from the category string
+            cat_str = detail.get('category_str') or ''
+            categories = [c.strip() for c in cat_str.split('|') if c.strip()] if cat_str else []
+            if not categories and cat_str:
+                categories = [c.strip() for c in cat_str.split(',') if c.strip()]
 
             report = {
                 'source_identifier': source_id,
                 'report_date': report_date,
-                'deceased_name': entry.get('title'),
-                'categories': entry.get('categories', []),
-                'source_url': entry.get('url', ''),
+                'deceased_name': detail.get('deceased_name'),
+                'coroner_name': detail.get('coroner_name'),
+                'coroner_area': detail.get('coroner_area'),
+                'categories': categories if categories else None,
+                'addressee': detail.get('addressee'),
+                'circumstances_summary': detail.get('circumstances_summary'),
+                'recommendations': detail.get('recommendations'),
+                'report_pdf_url': detail.get('report_pdf_url'),
+                'response_pdf_url': detail.get('response_pdf_url'),
+                'employment_related': detail.get('employment_related', False),
+                'source_url': report_url,
+                'content_hash': detail.get('content_hash'),
                 'scraped_at': datetime.now(timezone.utc).isoformat(),
             }
 
-            # Fetch individual report page for detail
-            detail_url = entry.get('url')
-            if detail_url:
-                time.sleep(1)  # Rate limit: 1s between requests
-                try:
-                    detail_resp = fetch_with_retry(detail_url)
-                    detail = parse_report_page(detail_resp.text, detail_url)
-                    # Merge detail fields (don't overwrite non-None listing fields)
-                    for k, v in detail.items():
-                        if v is not None:
-                            report[k] = v
-                    # Use detail deceased_name if found
-                    if detail.get('deceased_name'):
-                        report['deceased_name'] = detail['deceased_name']
-                        # Rebuild source_id with better name
-                        report['source_identifier'] = f"PFD-{date_part}-{slugify(detail['deceased_name'])}"
-                except requests.exceptions.HTTPError as e:
-                    status = e.response.status_code if e.response else None
-                    if status in (404, 410):
-                        log.warning(f"  [SKIP] Report page gone ({status}): {detail_url}")
-                        continue
-                    log.warning(f"  [FAIL] HTTP {status} fetching report: {detail_url}")
-                except Exception as e:
-                    log.warning(f"  [FAIL] Error fetching report detail: {e}")
-
             reports.append(report)
-            log.info(f"  [OK] [{len(reports)}] {report.get('deceased_name', '?')[:50]} | emp={report.get('employment_related', False)}")
+            log.info(f"  [OK] [{len(reports)}] {deceased[:50]} | "
+                     f"date={report_date} | emp={report.get('employment_related')}")
 
-        if stop_paging:
+        if limit and len(reports) >= limit:
             break
 
-        # Continue pagination
-        if not scrape_all and page_num >= 1 and not since_date:
-            # Default mode: only first page
+        # In default mode (not --all and no --since), only scrape first page
+        if not scrape_all and not since_date:
             break
 
-        if next_link:
-            page_url = urljoin(url, next_link)
-            time.sleep(1)  # Rate limit between pages
-        else:
-            break
+        time.sleep(1)  # Rate limit between listing pages
 
     return reports
 
@@ -393,13 +432,11 @@ def main():
     p.add_argument('--limit', type=int, default=None, help='Max reports to process')
     args = p.parse_args()
 
-    since_date = args.since  # Already a string in YYYY-MM-DD format
-
     log.info("=" * 60)
     log.info("AILANE CORONER PFD SCRAPER")
     log.info(f"  Mode: {'all pages' if args.all else 'latest page'}")
-    if since_date:
-        log.info(f"  Since: {since_date}")
+    if args.since:
+        log.info(f"  Since: {args.since}")
     if args.limit:
         log.info(f"  Limit: {args.limit}")
     log.info("=" * 60)
@@ -408,9 +445,8 @@ def main():
 
     try:
         reports = scrape_listing(
-            BASE_URL,
             limit=args.limit,
-            since_date=since_date,
+            since_date=args.since,
             scrape_all=args.all
         )
 
