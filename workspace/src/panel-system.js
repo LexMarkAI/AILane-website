@@ -274,6 +274,9 @@ class PanelRail {
     btn.setAttribute('data-panel', panel.id);
     btn.setAttribute('data-tooltip', panel.name);
     btn.setAttribute('aria-label', 'Open ' + panel.name + ' panel');
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', 'false');
+    btn.setAttribute('tabindex', '-1');
     btn.innerHTML = PANEL_ICONS[panel.icon];
 
     // Tier gate check
@@ -322,11 +325,20 @@ class PanelRail {
         }
       }
       btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      btn.setAttribute('tabindex', isActive ? '0' : '-1');
     });
   }
 
   clearActive() {
-    this.el.querySelectorAll('.ws-rail-btn').forEach(function(btn) { btn.classList.remove('active'); });
+    this.el.querySelectorAll('.ws-rail-btn').forEach(function(btn) {
+      btn.classList.remove('active');
+      btn.setAttribute('aria-selected', 'false');
+      btn.setAttribute('tabindex', '-1');
+    });
+    // Restore roving tabindex start
+    var firstTab = this.el.querySelector('[role="tab"]');
+    if (firstTab) firstTab.setAttribute('tabindex', '0');
   }
 }
 
@@ -486,6 +498,18 @@ class PanelDrawer {
     this.prefs.set('active_panel', panelId);
     this.prefs.set('drawer_open', true);
     this.prefs.set('splitMode', false);
+
+    // WCAG: tabpanel role + focus management (KLUI-001 §8)
+    this.contentEl.setAttribute('role', 'tabpanel');
+    this.contentEl.setAttribute('aria-label', (panelDef ? panelDef.name : panelId) + ' panel content');
+    this.contentEl.setAttribute('tabindex', '-1');
+    this.contentEl.focus();
+
+    // Screen reader announcement
+    if (window.__announceToScreenReader) {
+      window.__announceToScreenReader((panelDef ? panelDef.name : panelId) + ' panel opened.');
+    }
+
     this.bus.emit('panel:opened', { panelId: panelId });
   }
 
@@ -500,6 +524,12 @@ class PanelDrawer {
     document.body.classList.remove('ws-push-mode');
     document.body.classList.remove('ws-overlay-mode');
     document.body.style.removeProperty('--ws-drawer-width');
+    // Screen reader announcement (KLUI-001 §8)
+    if (window.__announceToScreenReader && this.activePanel) {
+      var _closingDef = PANEL_TYPES.find(function(p) { return p.id === this.activePanel; }.bind(this));
+      window.__announceToScreenReader((_closingDef ? _closingDef.name : 'Panel') + ' panel closed.');
+    }
+
     this.activePanel = null;
     this.prefs.set('drawer_open', false);
     this.prefs.set('active_panel', null);
@@ -971,6 +1001,180 @@ function initWorkspace() {
   rail.render();
   drawer.render();
 
+  // ═══════════════════════════════════════════════════════════
+  // WCAG 2.1 AA — ARIA LANDMARK UPDATES (KLUI-001 §8)
+  // ═══════════════════════════════════════════════════════════
+  rail.el.setAttribute('aria-label', 'Workspace panel navigation');
+  drawer.el.setAttribute('aria-label', 'Panel content area');
+
+  // Set first rail tab button to tabindex 0 (roving tabindex start)
+  var _firstTab = rail.el.querySelector('[role="tab"]');
+  if (_firstTab) _firstTab.setAttribute('tabindex', '0');
+
+  // ═══════════════════════════════════════════════════════════
+  // SCREEN READER LIVE REGION (KLUI-001 §8)
+  // ═══════════════════════════════════════════════════════════
+  var _liveRegion = document.createElement('div');
+  _liveRegion.className = 'ws-sr-only ws-live-region';
+  _liveRegion.setAttribute('role', 'status');
+  _liveRegion.setAttribute('aria-live', 'polite');
+  _liveRegion.setAttribute('aria-atomic', 'true');
+  document.body.appendChild(_liveRegion);
+
+  window.__announceToScreenReader = function(message) {
+    _liveRegion.textContent = '';
+    requestAnimationFrame(function() { _liveRegion.textContent = message; });
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // KEYBOARD NAVIGATION — ARROW KEYS ON RAIL (KLUI-001 §8)
+  // ═══════════════════════════════════════════════════════════
+  rail.el.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      var buttons = Array.from(rail.el.querySelectorAll('[role="tab"]'));
+      var current = buttons.indexOf(document.activeElement);
+      if (current === -1) return;
+      var next = e.key === 'ArrowDown'
+        ? (current + 1) % buttons.length
+        : (current - 1 + buttons.length) % buttons.length;
+      buttons.forEach(function(b) { b.setAttribute('tabindex', '-1'); });
+      buttons[next].setAttribute('tabindex', '0');
+      buttons[next].focus();
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      document.activeElement.click();
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // FOCUS RETURN ON PANEL CLOSE (KLUI-001 §8)
+  // ═══════════════════════════════════════════════════════════
+  var _lastActivePanelKey = null;
+  bus.on('panel:opened', function(data) { _lastActivePanelKey = data.panelId; });
+  bus.on('panel:closed', function() {
+    if (_lastActivePanelKey) {
+      var railBtn = rail.el.querySelector('[data-panel="' + _lastActivePanelKey + '"]');
+      if (railBtn) railBtn.focus();
+    }
+    // Close mobile drawer if open
+    if (typeof _currentBP !== 'undefined' && _currentBP === 'mobile') _closeMobileDrawer();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // RESPONSIVE BREAKPOINT DETECTION — KLUI-001 §7
+  // ═══════════════════════════════════════════════════════════
+  function _getBreakpoint() {
+    var w = window.innerWidth;
+    if (w >= 1025) return 'desktop';
+    if (w >= 768) return 'tablet';
+    return 'mobile';
+  }
+
+  var _currentBP = _getBreakpoint();
+  var _fabEl = null;
+  var _tabletToggle = null;
+  var _drawerBackdrop = null;
+
+  window.addEventListener('resize', function() {
+    var bp = _getBreakpoint();
+    if (bp !== _currentBP) {
+      _currentBP = bp;
+      _handleBreakpointChange(bp);
+    }
+  });
+
+  function _handleBreakpointChange(bp) {
+    if (bp === 'mobile') {
+      if (rail.el) rail.el.style.display = 'none';
+      if (_tabletToggle) _tabletToggle.style.display = 'none';
+      if (!_fabEl) _fabEl = _createFAB();
+      _fabEl.style.display = 'flex';
+      if (window.__announceToScreenReader) {
+        window.__announceToScreenReader('Mobile layout active. Use the menu button to open panels.');
+      }
+    } else if (bp === 'tablet') {
+      if (rail.el) {
+        rail.el.style.display = 'flex';
+        rail.el.classList.remove('ws-rail--visible');
+      }
+      if (!_tabletToggle) _tabletToggle = _createTabletToggle();
+      _tabletToggle.style.display = 'flex';
+      if (_fabEl) _fabEl.style.display = 'none';
+      if (_drawerBackdrop) _drawerBackdrop.style.display = 'none';
+    } else {
+      if (rail.el) {
+        rail.el.style.display = 'flex';
+        rail.el.classList.add('ws-rail--visible');
+      }
+      if (_fabEl) _fabEl.style.display = 'none';
+      if (_tabletToggle) _tabletToggle.style.display = 'none';
+      if (_drawerBackdrop) _drawerBackdrop.style.display = 'none';
+    }
+  }
+
+  function _createFAB() {
+    var fab = document.createElement('button');
+    fab.className = 'ws-fab';
+    fab.setAttribute('aria-label', 'Open workspace panels');
+    fab.setAttribute('title', 'Open workspace panels');
+    fab.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+    fab.addEventListener('click', function() {
+      _openMobileDrawer();
+    });
+    document.body.appendChild(fab);
+    return fab;
+  }
+
+  function _openMobileDrawer() {
+    if (!drawer.el) return;
+    drawer.el.classList.add('ws-drawer--open');
+    if (!_drawerBackdrop) {
+      _drawerBackdrop = document.createElement('div');
+      _drawerBackdrop.className = 'ws-drawer-backdrop';
+      _drawerBackdrop.addEventListener('click', _closeMobileDrawer);
+      document.body.appendChild(_drawerBackdrop);
+    }
+    _drawerBackdrop.style.display = 'block';
+    var handle = drawer.el.querySelector('.ws-drawer-handle');
+    if (!handle) {
+      handle = document.createElement('div');
+      handle.className = 'ws-drawer-handle';
+      drawer.el.insertBefore(handle, drawer.el.firstChild);
+    }
+    if (window.__announceToScreenReader) {
+      window.__announceToScreenReader('Panel drawer opened.');
+    }
+  }
+
+  function _closeMobileDrawer() {
+    if (drawer.el) drawer.el.classList.remove('ws-drawer--open');
+    if (_drawerBackdrop) _drawerBackdrop.style.display = 'none';
+    if (window.__announceToScreenReader) {
+      window.__announceToScreenReader('Panel drawer closed.');
+    }
+  }
+
+  function _createTabletToggle() {
+    var toggle = document.createElement('button');
+    toggle.className = 'ws-rail-toggle-tablet';
+    toggle.setAttribute('aria-label', 'Toggle workspace panel rail');
+    toggle.setAttribute('title', 'Toggle panel rail');
+    toggle.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15 18l-6-6 6-6"/></svg>';
+    toggle.addEventListener('click', function() {
+      if (rail.el) {
+        rail.el.classList.toggle('ws-rail--visible');
+        var isVisible = rail.el.classList.contains('ws-rail--visible');
+        toggle.innerHTML = isVisible
+          ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M9 18l6-6-6-6"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15 18l-6-6 6-6"/></svg>';
+      }
+    });
+    document.body.appendChild(toggle);
+    return toggle;
+  }
+
   // Load preferences from Supabase
   prefs.loadFromSupabase().then(function() {
     // Restore previous state — check split mode first
@@ -1127,6 +1331,11 @@ function initWorkspace() {
     var badge = document.createElement('span');
     badge.className = 'ws-badge ws-badge--' + colour;
     btn.appendChild(badge);
+    // Screen reader announcement for badge (KLUI-001 §8)
+    var _badgeDef = PANEL_TYPES.find(function(p) { return p.id === panelKey; });
+    if (window.__announceToScreenReader && _badgeDef) {
+      window.__announceToScreenReader(_badgeDef.name + ' has a notification.');
+    }
   };
   window.__clearRailBadge = function(panelKey) {
     var btn = rail.el ? rail.el.querySelector('[data-panel="' + panelKey + '"]') : null;
@@ -1147,6 +1356,9 @@ function initWorkspace() {
   // Update workspace global with drawer/rail references
   window.__ailaneWorkspace.drawer = drawer;
   window.__ailaneWorkspace.rail = rail;
+
+  // Apply initial breakpoint layout (KLUI-001 §7)
+  _handleBreakpointChange(_currentBP);
 }
 
 // Auto-init on DOM ready
