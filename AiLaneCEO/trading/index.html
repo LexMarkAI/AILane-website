@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QSYS Trading Terminal — AiLane CEO</title>
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #05070a;
+      --bg-surface: #0a0d12;
+      --bg-panel: #0e1117;
+      --bg-panel-hover: #12161d;
+      --bg-row-hover: rgba(34,211,238,0.03);
+      --border: #151a24;
+      --border-active: #1e2536;
+      --text-primary: #e2e5ec;
+      --text-secondary: #6b7394;
+      --text-muted: #3d4460;
+      --cyan: #22d3ee;
+      --cyan-dim: rgba(34,211,238,0.08);
+      --green: #34d399;
+      --green-dim: rgba(52,211,153,0.08);
+      --red: #f87171;
+      --red-dim: rgba(248,113,113,0.08);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251,191,36,0.08);
+      --purple: #a78bfa;
+      --blue: #60a5fa;
+      --font-d: 'Outfit', sans-serif;
+      --font-m: 'JetBrains Mono', monospace;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { height:100%; }
+    body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-d); min-height:100vh; display:flex; flex-direction:column; overflow-x:hidden; }
+    body::before { content:''; position:fixed; top:-40%; left:-20%; width:70%; height:70%; background:radial-gradient(ellipse,rgba(34,211,238,0.02) 0%,transparent 70%); pointer-events:none; z-index:0; }
+
+    /* ═══ COMMAND BAR ═══ */
+.cmd { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; z-index:200; }
+.cmd-l { display:flex; align-items:center; gap:12px; }
+.cmd-back { color:var(--text-muted); text-decoration:none; font-size:11px; font-family:var(--font-m); transition:color .2s; }
+.cmd-back:hover { color:var(--cyan); }
+.cmd-div { width:1px; height:16px; background:var(--border); }
+.cmd-logo { font-family:var(--font-m); font-size:11px; font-weight:700; letter-spacing:4px; color:var(--cyan); }
+.cmd-title { font-size:11px; color:var(--text-secondary); }
+.cmd-c { display:flex; align-items:center; gap:8px; }
+.mode-badge { font-family:var(--font-m); font-size:9px; letter-spacing:2px; padding:3px 12px; border-radius:3px; border:1px solid var(--cyan); color:var(--cyan); }
+.mode-badge.live { border-color:var(--red); color:var(--red); animation:modePulse 2s infinite; }
+@keyframes modePulse { 0%,100%{opacity:1;} 50%{opacity:.6;} }
+.cmd-r { display:flex; align-items:center; gap:14px; }
+.status-g { display:flex; align-items:center; gap:6px; }
+.sdot { width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px rgba(52,211,153,.5); animation:dotP 2s infinite; }
+.sdot.off { background:var(--red); box-shadow:0 0 6px rgba(248,113,113,.5); animation:none; }
+.sdot.halt { background:var(--amber); animation:none; }
+@keyframes dotP { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+.slbl { font-family:var(--font-m); font-size:9px; letter-spacing:1.5px; color:var(--text-muted); text-transform:uppercase; }
+.cmd-time { font-family:var(--font-m); font-size:9px; color:var(--text-muted); }
+
+/* ═══ ACCOUNT STRIP ═══ */
+.astrip { display:flex; flex-wrap:wrap; gap:0; border-bottom:1px solid var(--border); background:var(--bg-surface); padding:0 4px; }
+.acell { flex:1; min-width:100px; padding:8px 16px; border-right:1px solid var(--border); }
+.acell:last-child { border-right:none; }
+.acell-label { font-family:var(--font-m); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px; }
+.acell-val { font-family:var(--font-m); font-size:14px; font-weight:600; color:var(--text-primary); }
+.acell-val.pos { color:var(--green); }
+.acell-val.neg { color:var(--red); }
+.acell-val.warn { color:var(--amber); }
+
+/* ═══ TAB BAR ═══ */
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--bg-surface); padding:0 20px; overflow-x:auto; }
+.tab { font-family:var(--font-m); font-size:9.5px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); background:none; border:none; padding:11px 18px; cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; white-space:nowrap; }
+.tab:hover { color:var(--text-secondary); }
+.tab.on { color:var(--cyan); border-bottom-color:var(--cyan); }
+
+/* ═══ MAIN ═══ */
+.main { flex:1; max-width:1400px; width:100%; margin:0 auto; padding:16px 20px 60px; position:relative; z-index:1; }
+.panel { display:none; }
+.panel.show { display:block; }
+
+/* ═══ SECTION ═══ */
+.sec { margin-bottom:20px; }
+.sec-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.sec-title { font-family:var(--font-m); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-secondary); }
+.sec-badge { font-family:var(--font-m); font-size:8px; letter-spacing:1px; padding:2px 8px; border-radius:2px; text-transform:uppercase; }
+
+/* ═══ DATA TABLE ═══ */
+.dtbl-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:6px; background:var(--bg-panel); }
+.dtbl { width:100%; border-collapse:collapse; font-family:var(--font-m); font-size:11px; }
+.dtbl th { font-size:8.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--bg-surface); position:sticky; top:0; white-space:nowrap; }
+.dtbl td { padding:7px 10px; border-bottom:1px solid var(--border); color:var(--text-primary); white-space:nowrap; }
+.dtbl tr:last-child td { border-bottom:none; }
+.dtbl tr:hover td { background:var(--bg-row-hover); }
+.pp { color:var(--green); }
+.pn { color:var(--red); }
+.tag { display:inline-block; font-family:var(--font-m); font-size:8px; letter-spacing:1px; padding:2px 7px; border-radius:2px; text-transform:uppercase; }
+.tag-buy { background:var(--green-dim); color:var(--green); }
+.tag-sell { background:var(--red-dim); color:var(--red); }
+.tag-warn { background:var(--amber-dim); color:var(--amber); }
+.tag-info { background:var(--cyan-dim); color:var(--cyan); }
+.tag-muted { background:rgba(51,61,85,.3); color:var(--text-muted); }
+
+/* ═══ STRENGTH BAR ═══ */
+.sbar { display:inline-flex; align-items:center; gap:6px; }
+.sbar-track { width:50px; height:3px; background:var(--border); border-radius:2px; }
+.sbar-fill { height:100%; border-radius:2px; }
+.sbar-val { font-size:9px; color:var(--text-muted); }
+
+/* ═══ SIGNAL CARDS ═══ */
+.sig-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
+.sig-card { background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; padding:14px; transition:border-color .2s; }
+.sig-card:hover { border-color:var(--border-active); }
+.sig-card-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.sig-card-inst { font-family:var(--font-m); font-size:11px; font-weight:600; }
+.sig-card-body { font-size:10px; color:var(--text-secondary); line-height:1.6; }
+.sig-card-meta { display:flex; gap:12px; margin-top:8px; font-family:var(--font-m); font-size:9px; color:var(--text-muted); }
+
+/* ═══ STATS ROW ═══ */
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-bottom:16px; }
+.stat { background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; padding:12px; }
+.stat-label { font-family:var(--font-m); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; }
+.stat-val { font-family:var(--font-m); font-size:18px; font-weight:600; }
+
+/* ═══ EQUITY CURVE ═══ */
+.chart-wrap { background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; padding:16px; margin-bottom:16px; }
+.chart-title { font-family:var(--font-m); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; }
+.chart-svg { width:100%; height:180px; }
+.chart-line { fill:none; stroke:var(--cyan); stroke-width:1.5; }
+.chart-area { fill:url(#areaGrad); }
+.chart-grid { stroke:var(--border); stroke-width:0.5; }
+
+/* ═══ KILL SWITCHES ═══ */
+.kill-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+.kill-card { background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; padding:14px; }
+.kill-card-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.kill-card-title { font-size:12px; font-weight:600; }
+.kill-card-desc { font-size:10px; color:var(--text-secondary); margin-bottom:12px; line-height:1.5; }
+.kbtn { font-family:var(--font-m); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; padding:7px 14px; border:1px solid; border-radius:3px; cursor:pointer; background:transparent; width:100%; transition:all .15s; }
+.kbtn-red { border-color:var(--red); color:var(--red); }
+.kbtn-red:hover { background:var(--red); color:#000; }
+.kbtn-green { border-color:var(--green); color:var(--green); }
+.kbtn-green:hover { background:var(--green); color:#000; }
+.kbtn-cyan { border-color:var(--cyan); color:var(--cyan); }
+.kbtn-cyan:hover { background:var(--cyan); color:#000; }
+.kbtn-active { background:var(--red); color:#000; font-weight:700; }
+
+/* ═══ ACTIVITY LOG ═══ */
+.log-wrap { background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; max-height:180px; overflow-y:auto; padding:10px 14px; }
+.log-e { font-family:var(--font-m); font-size:10px; color:var(--text-secondary); padding:3px 0; border-bottom:1px solid rgba(19,26,37,.5); }
+.log-e:last-child { border-bottom:none; }
+.log-t { color:var(--text-muted); }
+.log-k { color:var(--red); }
+.log-tr { color:var(--cyan); }
+
+/* ═══ EMPTY STATE ═══ */
+.empty { text-align:center; padding:40px 20px; color:var(--text-muted); }
+.empty-icon { font-size:24px; margin-bottom:8px; opacity:.4; }
+.empty-text { font-family:var(--font-m); font-size:11px; margin-bottom:4px; }
+.empty-sub { font-size:10px; color:var(--text-muted); }
+
+/* ═══ ALERT ═══ */
+.alert { padding:10px 14px; border-radius:4px; margin-bottom:8px; display:flex; align-items:center; gap:10px; font-size:11px; }
+.alert-high { background:var(--red-dim); border-left:3px solid var(--red); color:var(--text-secondary); }
+.alert-info { background:var(--cyan-dim); border-left:3px solid var(--cyan); color:var(--text-secondary); }
+
+/* ═══ STATUS BAR ═══ */
+.sbar-bottom { position:fixed; bottom:0; left:0; right:0; height:28px; background:var(--bg-surface); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-family:var(--font-m); font-size:8px; color:var(--text-muted); z-index:200; letter-spacing:1px; }
+
+/* ═══ LEGAL ═══ */
+.legal { padding:20px 0; border-top:1px solid var(--border); margin-top:20px; display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted); line-height:1.7; }
+.legal a { color:var(--text-secondary); text-decoration:none; }
+.legal a:hover { color:var(--cyan); }
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px) {
+  .main { padding:12px 10px 60px; }
+  .cmd { padding:8px 12px; }
+  .astrip { flex-wrap:wrap; }
+  .acell { min-width:80px; padding:6px 10px; }
+  .acell-val { font-size:12px; }
+  .tabs { padding:0 10px; }
+  .tab { padding:10px 12px; font-size:8.5px; }
+  .sig-grid { grid-template-columns:1fr; }
+  .kill-grid { grid-template-columns:1fr; }
+  .stats { grid-template-columns:repeat(2,1fr); }
+  .legal { flex-direction:column; gap:8px; }
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- ═══ COMMAND BAR ═══ -->
+
+<div class="cmd">
+  <div class="cmd-l">
+    <a href="/AiLaneCEO/" class="cmd-back">&#8592; CEO</a>
+    <div class="cmd-div"></div>
+    <span class="cmd-logo">QSYS</span>
+    <span class="cmd-title">Trading Terminal</span>
+  </div>
+  <div class="cmd-c">
+    <div class="mode-badge" id="modeBadge">PAPER</div>
+  </div>
+  <div class="cmd-r">
+    <div class="status-g">
+      <div class="sdot" id="sDot"></div>
+      <span class="slbl" id="sLbl">Connecting...</span>
+    </div>
+    <span class="cmd-time" id="cTime">--:--:--</span>
+  </div>
+</div>
+
+<!-- ═══ ACCOUNT STRIP ═══ -->
+
+<div class="astrip" id="accountStrip">
+  <div class="acell"><div class="acell-label">Equity</div><div class="acell-val" id="aEquity">&mdash;</div></div>
+  <div class="acell"><div class="acell-label">PnL</div><div class="acell-val" id="aPnl">&mdash;</div></div>
+  <div class="acell"><div class="acell-label">Cash</div><div class="acell-val" id="aCash">&mdash;</div></div>
+  <div class="acell"><div class="acell-label">Margin</div><div class="acell-val" id="aMargin">&mdash;</div></div>
+  <div class="acell"><div class="acell-label">Positions</div><div class="acell-val" id="aPos">&mdash;</div></div>
+  <div class="acell"><div class="acell-label">Drawdown</div><div class="acell-val" id="aDraw">&mdash;</div></div>
+  <div class="acell"><div class="acell-label">Last Scan</div><div class="acell-val" id="aLast">&mdash;</div></div>
+</div>
+
+<!-- ═══ TAB BAR ═══ -->
+
+<div class="tabs">
+  <button class="tab on" data-tab="positions" onclick="switchTab('positions')">Positions</button>
+  <button class="tab" data-tab="signals" onclick="switchTab('signals')">Signals</button>
+  <button class="tab" data-tab="trades" onclick="switchTab('trades')">Trades</button>
+  <button class="tab" data-tab="performance" onclick="switchTab('performance')">Performance</button>
+  <button class="tab" data-tab="engine" onclick="switchTab('engine')">Engine</button>
+</div>
+
+<!-- ═══ ALERTS ═══ -->
+
+<div style="max-width:1400px;margin:0 auto;padding:8px 20px 0;" id="alertBox"></div>
+
+<!-- ═══ MAIN CONTENT ═══ -->
+
+<div class="main">
+
+  <!-- ─── POSITIONS PANEL ─── -->
+
+  <div class="panel show" id="p-positions">
+    <div class="sec">
+      <div class="sec-hdr">
+        <span class="sec-title">IG Trading Positions</span>
+        <span class="sec-badge tag-info" id="igTime">&mdash;</span>
+      </div>
+      <div class="dtbl-wrap" id="igPositions">
+        <div class="empty"><div class="empty-icon">&#9671;</div><div class="empty-text">Loading positions...</div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Polymarket Positions</span><span class="sec-badge tag-muted">Coming Soon</span></div>
+      <div class="dtbl-wrap">
+        <div class="empty"><div class="empty-icon">&#9670;</div><div class="empty-text">Polymarket integration pending</div><div class="empty-sub">Wallet connected · awaiting CLOB API integration</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SIGNALS PANEL ─── -->
+
+  <div class="panel" id="p-signals">
+    <div class="sec">
+      <div class="sec-hdr">
+        <span class="sec-title">Active Signals</span>
+        <button class="kbtn kbtn-cyan" style="width:auto;padding:5px 14px;" onclick="doScan()">Run Scan</button>
+      </div>
+      <div class="sig-grid" id="sigCards">
+        <div class="empty" style="grid-column:1/-1;"><div class="empty-icon">&#9672;</div><div class="empty-text">No signals generated yet</div><div class="empty-sub">Run a scan to analyse 40 instruments</div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Instrument Scanner</span><span style="font-family:var(--font-m);font-size:9px;color:var(--text-muted);" id="scanCount">40 instruments</span></div>
+      <div class="dtbl-wrap" style="max-height:400px;overflow-y:auto;" id="instrumentTable">
+        <div class="empty"><div class="empty-text">Run a scan to populate instrument data</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TRADES PANEL ─── -->
+
+  <div class="panel" id="p-trades">
+    <div class="stats" id="tradeStats">
+      <div class="stat"><div class="stat-label">Total Trades</div><div class="stat-val" id="tTotal">0</div></div>
+      <div class="stat"><div class="stat-label">Win Rate</div><div class="stat-val" id="tWin">&mdash;</div></div>
+      <div class="stat"><div class="stat-label">Avg PnL</div><div class="stat-val" id="tAvg">&mdash;</div></div>
+      <div class="stat"><div class="stat-label">Best Trade</div><div class="stat-val pp" id="tBest">&mdash;</div></div>
+      <div class="stat"><div class="stat-label">Worst Trade</div><div class="stat-val pn" id="tWorst">&mdash;</div></div>
+      <div class="stat"><div class="stat-label">Expectancy</div><div class="stat-val" id="tExp">&mdash;</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Paper Trades</span></div>
+      <div class="dtbl-wrap" style="max-height:400px;overflow-y:auto;" id="paperTradesTable">
+        <div class="empty"><div class="empty-icon">&#9671;</div><div class="empty-text">No paper trades yet</div><div class="empty-sub">System will generate trades when signals meet threshold</div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Live Trades</span></div>
+      <div class="dtbl-wrap" id="liveTradesTable">
+        <div class="empty"><div class="empty-text">System is in paper mode</div><div class="empty-sub">Switch to live mode from the Engine tab to begin live trading</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PERFORMANCE PANEL ─── -->
+
+  <div class="panel" id="p-performance">
+    <div class="stats" id="perfStats">
+      <div class="stat"><div class="stat-label">Peak Equity</div><div class="stat-val" id="pPeak">&mdash;</div></div>
+      <div class="stat"><div class="stat-label">Max Drawdown</div><div class="stat-val pn" id="pMaxDD">&mdash;</div></div>
+      <div class="stat"><div class="stat-label">Win/Loss</div><div class="stat-val" id="pWL">&mdash;</div></div>
+      <div class="stat"><div class="stat-label">Profit Factor</div><div class="stat-val" id="pPF">&mdash;</div></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Equity Curve</div>
+      <div id="equityChart"><div class="empty"><div class="empty-text">Collecting equity data...</div><div class="empty-sub">Chart populates as the engine runs scans</div></div></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Drawdown</div>
+      <div id="ddChart"><div class="empty"><div class="empty-text">Collecting drawdown data...</div></div></div>
+    </div>
+  </div>
+
+  <!-- ─── ENGINE PANEL ─── -->
+
+  <div class="panel" id="p-engine">
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Mode</div><div class="stat-val" id="eMode">PAPER</div></div>
+      <div class="stat"><div class="stat-label">System Status</div><div class="stat-val" id="eStatus">Active</div></div>
+      <div class="stat"><div class="stat-label">Instruments</div><div class="stat-val" id="eInst">40</div></div>
+      <div class="stat"><div class="stat-label">Max Risk/Trade</div><div class="stat-val">2%</div></div>
+      <div class="stat"><div class="stat-label">Max Positions</div><div class="stat-val">6</div></div>
+      <div class="stat"><div class="stat-label">Drawdown Halt</div><div class="stat-val">12%</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Controls</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+        <button class="kbtn kbtn-cyan" style="width:auto;padding:7px 20px;" onclick="doScan()">Run Signal Scan</button>
+        <button class="kbtn kbtn-red" style="width:auto;padding:7px 20px;" onclick="doCloseAll()">Close All Positions</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Kill Switches</span></div>
+      <div class="kill-grid">
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F6D1; System Kill</span><span class="tag tag-buy" id="ksStatus">ARMED</span></div>
+          <div class="kill-card-desc">Halt ALL trading across IG and Polymarket.</div>
+          <button class="kbtn kbtn-red" id="bKillSys" onclick="doKill('system')">Kill All Trading</button>
+        </div>
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F4CA; IG Trading</span><span class="tag tag-buy" id="kiStatus">ACTIVE</span></div>
+          <div class="kill-card-desc">Halt IG spread bet execution. Positions stay open.</div>
+          <button class="kbtn kbtn-red" onclick="doKill('ig')">Halt IG</button>
+        </div>
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F52E; Polymarket</span><span class="tag tag-buy" id="kpStatus">ACTIVE</span></div>
+          <div class="kill-card-desc">Halt Polymarket prediction contract execution.</div>
+          <button class="kbtn kbtn-red" onclick="doKill('polymarket')">Halt Polymarket</button>
+        </div>
+        <div class="kill-card">
+          <div class="kill-card-hdr"><span class="kill-card-title">&#x1F504; Resume All</span></div>
+          <div class="kill-card-desc">Resume trading after a halt. Requires confirmation code.</div>
+          <button class="kbtn kbtn-green" onclick="doResume()">Resume Trading</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hdr"><span class="sec-title">Activity Log</span></div>
+      <div class="log-wrap" id="logBox">
+        <div class="log-e"><span class="log-t">--:--:--</span> System initialising...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ LEGAL FOOTER ═══ -->
+
+  <div class="legal">
+    <div>QSYS Trading Terminal — Not financial advice<br>Spread bets are leveraged. 67% of retail accounts lose money with IG.<br><a href="/terms/">Terms</a> &middot; <a href="/privacy/">Privacy</a></div>
+    <div style="text-align:right;">Account LYTOL &middot; Spread betting &middot; GBP<br>IG Index Ltd &middot; FCA Register 114059</div>
+  </div>
+</div>
+
+<!-- ═══ STATUS BAR ═══ -->
+
+<div class="sbar-bottom">
+  <span>QSYS v4.0 &middot; Engine Active &middot; 40 Instruments</span>
+  <span id="sbRight">ailane.ai</span>
+</div>
+
+<script>
+var CONFIG = {
+  url: 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-engine',
+  interval: 30000
+};
+
+var D = null;
+var halted = false;
+
+// ═══ TABS ═══
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('on'); });
+  document.querySelector('[data-tab="'+t+'"]').classList.add('on');
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('show'); });
+  document.getElementById('p-'+t).classList.add('show');
+  try { localStorage.setItem('qsys-tab', t); } catch(e){}
+}
+
+// ═══ CLOCK ═══
+setInterval(function(){ document.getElementById('cTime').textContent = new Date().toLocaleTimeString('en-GB'); }, 1000);
+
+// ═══ FETCH ═══
+async function fetchData() {
+  try {
+    var r = await fetch(CONFIG.url + '/positions');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    D = await r.json();
+    render(D);
+    setStatus('on', 'Connected');
+    addLog('info', 'Data refreshed — ' + (D.positions ? D.positions.length : 0) + ' positions');
+  } catch(e) {
+    setStatus('off', 'Error');
+    addLog('error', 'Fetch failed: ' + e.message);
+  }
+}
+
+async function doScan() {
+  addLog('trade', 'Running signal scan...');
+  try {
+    var r = await fetch(CONFIG.url + '/scan');
+    var d = await r.json();
+    addLog('trade', 'Scan complete: ' + (d.signalsGenerated||0) + ' signals from ' + (d.instrumentsScanned||0) + ' instruments');
+    if (d.newTrades && d.newTrades.length > 0) {
+      d.newTrades.forEach(function(t) { addLog('trade', 'NEW ' + (t.mode||'').toUpperCase() + ': ' + t.direction + ' ' + t.instrument + ' £' + t.stake); });
+    }
+    fetchData();
+  } catch(e) { addLog('error', 'Scan failed: ' + e.message); }
+}
+
+async function doKill(level) {
+  if (!confirm('HALT ' + level.toUpperCase() + '?')) return;
+  try { await fetch(CONFIG.url + '/kill', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({level:level, reason:'Manual kill from terminal'}) }); } catch(e){}
+  halted = true;
+  addLog('kill', level.toUpperCase() + ' KILL — trading halted');
+  fetchData();
+}
+
+async function doResume() {
+  var code = prompt('Type CONFIRM_RESUME to resume:');
+  if (code !== 'CONFIRM_RESUME') { alert('Wrong code.'); return; }
+  try { await fetch(CONFIG.url + '/resume', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({confirmation:'CONFIRM_RESUME'}) }); } catch(e){}
+  halted = false;
+  addLog('info', 'System RESUMED');
+  fetchData();
+}
+
+async function doCloseAll() {
+  if (!confirm('CLOSE ALL OPEN POSITIONS?\n\nThis will close your trades at market price.\nThis cannot be undone.')) return;
+  if (!confirm('SECOND CONFIRMATION: Are you absolutely sure?')) return;
+  addLog('kill', 'Closing all positions...');
+  try {
+    var r = await fetch(CONFIG.url + '/close-all', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({confirm:true}) });
+    var d = await r.json();
+    addLog('kill', 'Closed ' + (d.closed||0) + ' positions');
+    fetchData();
+  } catch(e) { addLog('error', 'Close all failed: ' + e.message); }
+}
+
+// ═══ RENDER ═══
+function render(d) {
+  if (!d) return;
+  renderAccount(d);
+  renderPositions(d);
+  renderSignals(d);
+  renderTrades(d);
+  renderMode(d);
+  renderAlerts(d);
+}
+
+function renderAccount(d) {
+  var a = d.account || {};
+  var eq = a.balance || 0;
+  var pnl = a.profitLoss || 0;
+  var cash = a.available || 0;
+  var margin = a.deposit || 0;
+  var npos = d.positions ? d.positions.length : 0;
+  var dd = eq > 0 && pnl < 0 ? (Math.abs(pnl)/eq*100).toFixed(1) + '%' : '0.0%';
+  var ddVal = eq > 0 && pnl < 0 ? Math.abs(pnl)/eq*100 : 0;
+
+  setText('aEquity', '£' + eq.toFixed(0));
+  var pnlEl = document.getElementById('aPnl');
+  pnlEl.textContent = '£' + (pnl>=0?'+':'') + pnl.toFixed(2);
+  pnlEl.className = 'acell-val ' + (pnl >= 0 ? 'pos' : 'neg');
+  setText('aCash', '£' + cash.toFixed(0));
+  setText('aMargin', '£' + margin.toFixed(0));
+  setText('aPos', npos);
+  var ddEl = document.getElementById('aDraw');
+  ddEl.textContent = dd;
+  ddEl.className = 'acell-val ' + (ddVal > 8 ? 'neg' : ddVal > 5 ? 'warn' : '');
+  setText('aLast', d.timestamp ? new Date(d.timestamp).toLocaleTimeString('en-GB') : '--:--');
+}
+
+function renderPositions(d) {
+  var c = document.getElementById('igPositions');
+  if (!d.positions || d.positions.length === 0) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">&#9671;</div><div class="empty-text">No open positions</div></div>';
+    return;
+  }
+  var h = '<table class="dtbl"><thead><tr><th>Instrument</th><th>Name</th><th>Dir</th><th>Stake</th><th>Entry</th><th>Current</th><th>PnL</th><th>Flags</th></tr></thead><tbody>';
+  d.positions.forEach(function(p) {
+    var pc = p.pnl >= 0 ? 'pp' : 'pn';
+    var flags = (p.flags||[]).map(function(f){ return '<span class="tag tag-warn">'+f+'</span>'; }).join(' ');
+    var dirTag = p.direction === 'BUY' ? '<span class="tag tag-buy">BUY</span>' : '<span class="tag tag-sell">SELL</span>';
+    h += '<tr><td style="font-size:10px;">'+p.epic+'</td><td style="font-size:10px;color:var(--text-secondary);">'+p.name+'</td><td>'+dirTag+'</td><td>£'+p.size+'</td><td>'+p.level.toFixed(1)+'</td><td>'+p.bid.toFixed(1)+'</td><td class="'+pc+'">£'+(p.pnl>=0?'+':'')+p.pnl.toFixed(2)+'</td><td>'+flags+'</td></tr>';
+  });
+  h += '</tbody></table>';
+  c.innerHTML = h;
+  setText('igTime', 'Updated ' + new Date().toLocaleTimeString('en-GB'));
+}
+
+function renderSignals(d) {
+  var sigs = d.recentSignals || [];
+  var cards = document.getElementById('sigCards');
+  if (sigs.length === 0) {
+    cards.innerHTML = '<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">&#9672;</div><div class="empty-text">No signals yet</div><div class="empty-sub">Run a scan from the Engine tab</div></div>';
+    return;
+  }
+  var h = '';
+  sigs.slice(0, 12).forEach(function(s) {
+    var dirCls = s.direction === 'BUY' ? 'tag-buy' : s.direction === 'SELL' ? 'tag-sell' : 'tag-muted';
+    var str = (s.strength * 100).toFixed(0);
+    var barColor = s.direction === 'BUY' ? 'var(--green)' : s.direction === 'SELL' ? 'var(--red)' : 'var(--text-muted)';
+    h += '<div class="sig-card"><div class="sig-card-hdr"><span class="sig-card-inst">'+s.instrument_id+'</span><span class="tag '+dirCls+'">'+s.direction+'</span></div>';
+    h += '<div class="sig-card-body">'+s.reasoning+'</div>';
+    h += '<div class="sig-card-meta"><span>RSI: '+(s.rsi_value||0).toFixed(1)+'</span><span>STR: <span class="sbar"><span class="sbar-track"><span class="sbar-fill" style="width:'+str+'%;background:'+barColor+';"></span></span><span class="sbar-val">'+str+'%</span></span></span><span>£'+(s.price_at_signal||0).toFixed(1)+'</span></div></div>';
+  });
+  cards.innerHTML = h;
+
+  // Instrument table from signals
+  var byInst = {};
+  sigs.forEach(function(s) {
+    if (!byInst[s.instrument_id] || new Date(s.created_at) > new Date(byInst[s.instrument_id].created_at)) {
+      byInst[s.instrument_id] = s;
+    }
+  });
+  var sorted = Object.values(byInst).sort(function(a,b){ return (b.strength||0) - (a.strength||0); });
+  var it = document.getElementById('instrumentTable');
+  if (sorted.length === 0) return;
+  var th = '<table class="dtbl"><thead><tr><th>Instrument</th><th>EPIC</th><th>Price</th><th>RSI(14)</th><th>EMA9</th><th>EMA21</th><th>ATR</th><th>Signal</th><th>Strength</th></tr></thead><tbody>';
+  sorted.forEach(function(s) {
+    var rsiCls = s.rsi_value < 30 ? 'pp' : s.rsi_value > 70 ? 'pn' : '';
+    var dirCls = s.direction === 'BUY' ? 'pp' : s.direction === 'SELL' ? 'pn' : '';
+    var str = ((s.strength||0)*100).toFixed(0);
+    var barC = s.direction === 'BUY' ? 'var(--green)' : s.direction === 'SELL' ? 'var(--red)' : 'var(--text-muted)';
+    th += '<tr><td>'+s.instrument_id+'</td><td style="font-size:9px;color:var(--text-muted);">'+s.epic+'</td><td>'+(s.price_at_signal||0).toFixed(2)+'</td><td class="'+rsiCls+'">'+(s.rsi_value||0).toFixed(1)+'</td><td>'+(s.ema_fast||0).toFixed(2)+'</td><td>'+(s.ema_slow||0).toFixed(2)+'</td><td>'+(s.atr_value||0).toFixed(2)+'</td><td class="'+dirCls+'">'+s.direction+'</td><td><span class="sbar"><span class="sbar-track"><span class="sbar-fill" style="width:'+str+'%;background:'+barC+';"></span></span><span class="sbar-val">'+str+'%</span></span></td></tr>';
+  });
+  th += '</tbody></table>';
+  it.innerHTML = th;
+  setText('scanCount', sorted.length + ' instruments scanned');
+}
+
+function renderTrades(d) {
+  var trades = d.paperTrades || [];
+  var c = document.getElementById('paperTradesTable');
+  if (trades.length === 0) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">&#9671;</div><div class="empty-text">No paper trades yet</div></div>';
+  } else {
+    var h = '<table class="dtbl"><thead><tr><th>ID</th><th>Instrument</th><th>Dir</th><th>Stake</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>PnL</th><th>Status</th><th>Opened</th><th>Reasoning</th></tr></thead><tbody>';
+    trades.forEach(function(t) {
+      var pc = (t.pnl||0) >= 0 ? 'pp' : 'pn';
+      var statusCls = t.status === 'OPEN' ? 'tag-buy' : t.status === 'TP_HIT' ? 'tag-buy' : 'tag-sell';
+      var dir = t.direction === 'BUY' ? '<span class="tag tag-buy">BUY</span>' : '<span class="tag tag-sell">SELL</span>';
+      h += '<tr><td>#'+t.id+'</td><td style="font-size:9px;">'+t.instrument_id+'</td><td>'+dir+'</td><td>£'+t.stake+'</td><td>'+(t.entry_price||0).toFixed(2)+'</td><td>'+(t.exit_price ? t.exit_price.toFixed(2) : '—')+'</td><td>'+(t.stop_loss||0).toFixed(1)+'</td><td>'+(t.take_profit||0).toFixed(1)+'</td><td class="'+pc+'">£'+(t.pnl ? (t.pnl>=0?'+':'') + t.pnl.toFixed(2) : '—')+'</td><td><span class="tag '+statusCls+'">'+t.status+'</span></td><td style="font-size:9px;color:var(--text-muted);">'+fmtTime(t.opened_at)+'</td><td style="font-size:9px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="'+(t.reasoning||'')+'">'+(t.reasoning||'')+'</td></tr>';
+    });
+    h += '</tbody></table>';
+    c.innerHTML = h;
+
+    // Trade stats
+    var closed = trades.filter(function(t){ return t.status !== 'OPEN'; });
+    var wins = closed.filter(function(t){ return (t.pnl||0) > 0; });
+    var totalPnl = closed.reduce(function(s,t){ return s + (t.pnl||0); }, 0);
+    var best = closed.reduce(function(m,t){ return Math.max(m, t.pnl||0); }, 0);
+    var worst = closed.reduce(function(m,t){ return Math.min(m, t.pnl||0); }, 0);
+    setText('tTotal', trades.length);
+    setText('tWin', closed.length > 0 ? (wins.length/closed.length*100).toFixed(0)+'%' : '—');
+    setText('tAvg', closed.length > 0 ? '£'+(totalPnl/closed.length).toFixed(2) : '—');
+    setText('tBest', best > 0 ? '£+'+best.toFixed(2) : '—');
+    setText('tWorst', worst < 0 ? '£'+worst.toFixed(2) : '—');
+    setText('tExp', closed.length > 0 ? '£'+(totalPnl/closed.length).toFixed(2) : '—');
+  }
+}
+
+function renderMode(d) {
+  var mode = d.mode || 'paper';
+  var badge = document.getElementById('modeBadge');
+  badge.textContent = mode.toUpperCase();
+  badge.className = 'mode-badge' + (mode === 'live' ? ' live' : '');
+  setText('eMode', mode.toUpperCase());
+  setText('eStatus', d.systemHalted ? 'HALTED' : 'Active');
+  document.getElementById('eStatus').className = 'stat-val' + (d.systemHalted ? ' pn' : ' pp');
+
+  var ks = document.getElementById('ksStatus');
+  if (d.systemHalted) { ks.textContent = 'HALTED'; ks.className = 'tag tag-warn'; }
+  else { ks.textContent = 'ARMED'; ks.className = 'tag tag-buy'; }
+}
+
+function renderAlerts(d) {
+  var box = document.getElementById('alertBox');
+  var alerts = [];
+  if (d.systemHalted) alerts.push({c:'alert-high', t:'&#x1F6D1; <strong>SYSTEM HALTED</strong> — All trading suspended. Resume from Engine tab.'});
+  var dd = d.account && d.account.balance > 0 && d.account.profitLoss < 0 ? Math.abs(d.account.profitLoss)/d.account.balance*100 : 0;
+  if (dd > 12) alerts.push({c:'alert-high', t:'&#x1F534; <strong>Drawdown '+dd.toFixed(1)+'%</strong> — Kill switch threshold reached (12%).'});
+  else if (dd > 8) alerts.push({c:'alert-high', t:'&#x1F7E1; <strong>Drawdown '+dd.toFixed(1)+'%</strong> — Approaching 12% halt threshold.'});
+  box.innerHTML = alerts.map(function(a){ return '<div class="alert '+a.c+'">'+a.t+'</div>'; }).join('');
+}
+
+// ═══ HELPERS ═══
+function setText(id, v) { var e = document.getElementById(id); if(e) e.textContent = v; }
+function setStatus(s, l) {
+  var dot = document.getElementById('sDot');
+  dot.className = 'sdot' + (s === 'off' ? ' off' : s === 'halt' ? ' halt' : '');
+  setText('sLbl', l);
+}
+function fmtTime(ts) { if(!ts) return '—'; try{ return new Date(ts).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){return '—';} }
+function addLog(type, msg) {
+  var box = document.getElementById('logBox');
+  var t = new Date().toLocaleTimeString('en-GB');
+  var cls = type==='kill'?'log-k':type==='trade'?'log-tr':'';
+  var e = document.createElement('div');
+  e.className = 'log-e';
+  e.innerHTML = '<span class="log-t">'+t+'</span> <span class="'+cls+'">'+msg+'</span>';
+  box.insertBefore(e, box.firstChild);
+  while(box.children.length > 100) box.removeChild(box.lastChild);
+}
+
+// ═══ INIT ═══
+(function(){
+  try { var t = localStorage.getItem('qsys-tab'); if(t) switchTab(t); } catch(e){}
+  fetchData();
+  addLog('info', 'Terminal loaded — live connection');
+  setInterval(fetchData, CONFIG.interval);
+})();
+</script>
+
+</body>
+</html>

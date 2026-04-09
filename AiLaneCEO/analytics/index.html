@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Analytics & Campaigns</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#7A8BA8;--text-muted:#4A5568;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:15px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}.top-bar-left{display:flex;align-items:center;gap:12px;}.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-purple);}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}.kpi-card .label{font-size:0.58rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}.kpi-card .value{font-family:var(--font-mono);font-size:1.3rem;font-weight:600;line-height:1.2;}.kpi-card .sub{font-size:0.58rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;color:var(--text-primary);}.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}.card-body{padding:12px 18px 16px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:8px 0 2px;}
+.bar-row{display:flex;align-items:center;gap:8px;padding:3px 0;}.bar-name{font-size:0.68rem;color:var(--text-primary);min-width:130px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.bar-wrap{flex:1;height:14px;background:var(--bg-base);border-radius:2px;overflow:hidden;}.bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease;}.bar-count{font-family:var(--font-mono);font-size:0.62rem;min-width:40px;text-align:right;color:var(--text-muted);}
+.heatmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px;}.heat-cell{padding:8px 10px;border-radius:var(--radius-sm);font-size:0.62rem;line-height:1.3;border:1px solid var(--border-subtle);transition:all 0.2s;cursor:default;}.heat-cell:hover{border-color:var(--border-strong);}.heat-cell .heat-name{color:var(--text-primary);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.heat-cell .heat-val{font-family:var(--font-mono);font-weight:600;margin-top:2px;}
+.pipeline-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:0.72rem;}.pipeline-row:last-child{border-bottom:none;}.pipeline-status{font-family:var(--font-mono);font-size:0.6rem;padding:2px 7px;border-radius:100px;}.pipeline-status.success{background:var(--accent-green-dim);color:var(--accent-green);}.pipeline-status.failed{background:var(--accent-red-dim);color:var(--accent-red);}.pipeline-status.completed{background:var(--accent-cyan-dim);color:var(--accent-cyan);}
+.score-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}.score-dot.good{background:var(--accent-green);}.score-dot.moderate{background:var(--accent-cyan);}.score-dot.concern{background:var(--accent-amber);}.score-dot.critical{background:var(--accent-red);}
+.insight-card{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 16px;}.insight-card .insight-title{font-size:0.72rem;font-weight:600;color:var(--accent-cyan);margin-bottom:6px;}.insight-card .insight-text{font-size:0.68rem;color:var(--text-secondary);line-height:1.5;}
+.skeleton{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--bg-hover) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm);}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.three-col{grid-template-columns:1fr;}}@media(max-width:700px){.kpi-strip{grid-template-columns:1fr 1fr;}.two-col{grid-template-columns:1fr;}}
+
+/* ═══════ EILEEN INTELLIGENCE ENTITY ═══════ */
+.eileen-orb{position:fixed;bottom:28px;right:28px;z-index:500;width:64px;height:64px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(212,160,23,0.15),rgba(14,165,233,0.05));border:1px solid rgba(212,160,23,0.25);transition:all 0.3s ease;box-shadow:0 0 30px rgba(212,160,23,0.12),0 0 60px rgba(14,165,233,0.06);}
+.eileen-orb:hover{transform:scale(1.08);border-color:rgba(212,160,23,0.45);box-shadow:0 0 40px rgba(212,160,23,0.2),0 0 80px rgba(14,165,233,0.1);}
+.eileen-panel{position:fixed;bottom:28px;right:28px;z-index:501;width:420px;max-width:calc(100vw - 56px);height:560px;max-height:calc(100vh - 100px);background:var(--bg-surface);border:1px solid rgba(212,160,23,0.2);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;animation:eileenUp 0.3s ease-out;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(212,160,23,0.08);}
+@keyframes eileenUp{from{opacity:0;transform:translateY(20px) scale(0.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+.eileen-header{display:flex;align-items:center;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(212,160,23,0.1);background:linear-gradient(135deg,rgba(212,160,23,0.04),rgba(139,92,246,0.02));}
+.eileen-header-name{font-family:var(--font-display);font-size:0.88rem;font-weight:700;color:#D4A017;}
+.eileen-header-status{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);}
+.eileen-close{width:28px;height:28px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-muted);font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.eileen-close:hover{border-color:rgba(212,160,23,0.3);color:#D4A017;}
+.eileen-messages{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+.eileen-msg{max-width:88%;padding:10px 14px;border-radius:14px;font-size:0.76rem;line-height:1.6;}
+.eileen-msg.user{align-self:flex-end;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.15);color:var(--text-primary);}
+.eileen-msg.eileen{align-self:flex-start;background:rgba(212,160,23,0.06);border:1px solid rgba(212,160,23,0.1);color:var(--text-secondary);}
+.eileen-input-bar{display:flex;gap:8px;padding:12px 18px 16px;border-top:1px solid var(--border-subtle);}
+.eileen-input{flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-primary);font-size:0.78rem;font-family:var(--font-body);outline:none;transition:border-color 0.2s;}
+.eileen-input:focus{border-color:rgba(212,160,23,0.4);}
+.eileen-input::placeholder{color:var(--text-muted);}
+.eileen-send{padding:10px 16px;border-radius:12px;border:1px solid rgba(212,160,23,0.25);background:rgba(212,160,23,0.1);color:#D4A017;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.2s;}
+.eileen-send:hover{background:rgba(212,160,23,0.18);border-color:rgba(212,160,23,0.4);}
+.eileen-typing{display:flex;gap:4px;padding:10px 14px;align-self:flex-start;}
+.eileen-typing-dot{width:6px;height:6px;border-radius:50%;background:#D4A017;animation:eBounce 1.4s ease-in-out infinite;}
+.eileen-typing-dot:nth-child(2){animation-delay:0.2s;}
+.eileen-typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes eBounce{0%,80%,100%{opacity:0.3;transform:translateY(0);}40%{opacity:1;transform:translateY(-4px);}}
+
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const{useState,useEffect}=React;
+const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL='mark@ailane.ai';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+function formatNum(n){if(!n)return'0';const v=Number(n);if(v>=1000)return(v/1000).toFixed(1)+'K';return v.toLocaleString();}
+function timeAgo(d){if(!d)return'';const m=Math.floor((Date.now()-new Date(d))/60000);if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+
+// STATIC: Top sector-region combinations for targeting heatmap
+const SECTOR_REGIONS=[
+  {sector:'Retail & Hospitality',region:'South East',count:1267},{sector:'Retail & Hospitality',region:'London',count:977},
+  {sector:'Retail & Hospitality',region:'North West',count:843},{sector:'Construction',region:'South East',count:526},
+  {sector:'Manufacturing',region:'South East',count:486},{sector:'Professional Services',region:'London',count:474},
+  {sector:'Healthcare',region:'South East',count:442},{sector:'Retail & Hospitality',region:'Scotland',count:433},
+  {sector:'Professional Services',region:'South East',count:428},{sector:'Manufacturing',region:'North West',count:398},
+  {sector:'Technology',region:'London',count:291},{sector:'Financial Services',region:'London',count:238},
+  {sector:'Facilities Management',region:'South East',count:148},{sector:'Real Estate',region:'London',count:153},
+  {sector:'Education',region:'South East',count:130},
+];
+const RISK_SIGNALS={total:78699,accounts_overdue:29,confirmation_overdue:30,has_insolvency:46,has_charges:17,enterprise:212};
+const SCORE_DIST=[{band:'Critical (<40)',count:8,avg:'26.9',color:'var(--accent-red)'},{band:'Concern (40-59)',count:15,avg:'47.1',color:'var(--accent-amber)'},{band:'Moderate (60-79)',count:7,avg:'69.0',color:'var(--accent-cyan)'},{band:'Good (80-100)',count:2,avg:'86.0',color:'var(--accent-green)'}];
+
+function App(){
+  const[auth,setAuth]=useState('checking');const[token,setToken]=useState(null);const[data,setData]=useState(null);const[loading,setLoading]=useState(true);
+  const[eileenOpen,setEileenOpen]=useState(false);
+  useEffect(()=>{(async()=>{const{data:{session}}=await sb.auth.getSession();if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}const t=setTimeout(()=>{window.location.href='/AiLaneCEO/';},3000);sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/AiLaneCEO/';}});})();},[]);
+  useEffect(()=>{if(auth!=='ok'||!token)return;(async()=>{setLoading(true);try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dashboard-data?section=analytics_detail`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});if(r.ok){const j=await r.json();setData(j.sections?.analytics_detail||null);}}catch(e){console.error(e);}setLoading(false);})();},[auth,token]);
+  if(auth==='checking')return<div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Loading intelligence...</div></div>;
+
+  const d=data||{};const c=d.counts||{};const scrapers=d.scraper_runs||[];const pipelines=d.pipeline_runs||[];const scores=d.compliance_scores||[];
+  const heatMax=Math.max(...SECTOR_REGIONS.map(s=>s.count),1);
+  function heatColor(count){const pct=count/heatMax;if(pct>0.6)return'rgba(14,165,233,0.25)';if(pct>0.3)return'rgba(14,165,233,0.12)';return'rgba(14,165,233,0.05)';}
+
+  return(
+    <div>
+      <div className="top-bar"><div className="top-bar-left"><a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a><div className="page-title">Analytics & <span>Campaigns</span></div></div><div className="top-bar-right"><div className="status-pill live"><div className="dot"/>LIVE</div><div className="ts">Intelligence Hub</div></div></div>
+      <div className="main">
+        {loading?<div style={{display:'flex',flexDirection:'column',gap:16}}><div className="kpi-strip">{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}</div><div className="skeleton" style={{height:300}}/></div>:(
+        <>
+        {/* KPI STRIP — Data Estate Vitals */}
+        <div className="kpi-strip">
+          <div className="kpi-card"><div className="label">Employers Indexed</div><div className="value" style={{color:'var(--accent-cyan)'}}>{formatNum(c.employers)}</div><div className="sub">Prospect pool</div></div>
+          <div className="kpi-card"><div className="label">Tribunal Decisions</div><div className="value" style={{color:'var(--accent-green)'}}>{formatNum(c.tribunal)}</div><div className="sub">ACEI classified</div></div>
+          <div className="kpi-card"><div className="label">Compliance Checks</div><div className="value" style={{color:'var(--accent-amber)'}}>{c.uploads||0}</div><div className="sub">Documents analysed</div></div>
+          <div className="kpi-card"><div className="label">Total Findings</div><div className="value" style={{color:'var(--accent-red)'}}>{c.findings||0}</div><div className="sub">Clause-level</div></div>
+          <div className="kpi-card"><div className="label">Legislation</div><div className="value" style={{color:'var(--accent-purple)'}}>{c.legislation||0}</div><div className="sub">Instruments tracked</div></div>
+          <div className="kpi-card"><div className="label">Reg Requirements</div><div className="value" style={{color:'var(--text-secondary)'}}>{c.regulatory||0}</div><div className="sub">Compliance rules</div></div>
+        </div>
+
+        {/* PROSPECT TARGETING HEATMAP */}
+        <div className="card">
+          <div className="card-head"><div className="card-head-title">Prospect Targeting Intelligence — Sector × Region Heatmap</div><div className="card-head-badge">Top 15 corridors</div></div>
+          <div className="card-body">
+            <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginBottom:12,lineHeight:1.5}}>
+              Employer density by ACEI sector and UK region. Higher density = larger addressable market. Use to prioritise Google Ads geo-targeting, LinkedIn outreach sectors, and conference attendance.
+            </div>
+            <div className="heatmap">
+              {SECTOR_REGIONS.map((s,i)=>(
+                <div className="heat-cell" key={i} style={{background:heatColor(s.count)}}>
+                  <div className="heat-name">{s.sector}</div>
+                  <div style={{fontSize:'0.55rem',color:'var(--text-muted)'}}>{s.region}</div>
+                  <div className="heat-val" style={{color:'var(--accent-cyan)'}}>{formatNum(s.count)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* EMPLOYER RISK SIGNALS + COMPLIANCE CONVERSION FUNNEL */}
+        <div className="two-col">
+          <div className="card">
+            <div className="card-head"><div className="card-head-title">Employer Risk Signal Intelligence</div><div className="card-head-badge">Sales triggers</div></div>
+            <div className="card-body">
+              <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginBottom:12,lineHeight:1.5}}>
+                Employers showing compliance risk signals are higher-conversion prospects. These signals feed the AI targeting model for campaign prioritisation.
+              </div>
+              {[
+                {label:'Enterprise (500+ employees)',value:RISK_SIGNALS.enterprise,color:'var(--accent-cyan)',note:'High-value Governance tier prospects'},
+                {label:'Accounts Overdue (Companies House)',value:RISK_SIGNALS.accounts_overdue,color:'var(--accent-amber)',note:'Governance failure signal'},
+                {label:'Confirmation Statement Overdue',value:RISK_SIGNALS.confirmation_overdue,color:'var(--accent-amber)',note:'Administrative neglect indicator'},
+                {label:'Insolvency History',value:RISK_SIGNALS.has_insolvency,color:'var(--accent-red)',note:'Employment risk amplifier'},
+                {label:'Outstanding Charges',value:RISK_SIGNALS.has_charges,color:'var(--accent-red)',note:'Financial stress indicator'},
+              ].map((s,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:i<4?'1px solid var(--border-subtle)':'none'}}>
+                  <div><div style={{fontSize:'0.74rem',color:'var(--text-primary)',fontWeight:500}}>{s.label}</div><div style={{fontSize:'0.58rem',color:'var(--text-muted)'}}>{s.note}</div></div>
+                  <div style={{fontFamily:'var(--font-mono)',fontSize:'1rem',fontWeight:700,color:s.color}}>{s.value}</div>
+                </div>
+              ))}
+              <div className="insight-card" style={{marginTop:12}}>
+                <div className="insight-title">AI Targeting Insight</div>
+                <div className="insight-text">212 enterprise-scale employers in the prospect pool represent the Governance (£799/mo) and Institutional (custom) tier opportunity. Cross-referencing with tribunal history and compliance risk signals enables AI-driven lead scoring — employers with both high headcount AND recent tribunal activity are highest-propensity prospects.</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-head"><div className="card-head-title">Compliance Score Distribution</div><div className="card-head-badge">Conversion insight</div></div>
+            <div className="card-body">
+              <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginBottom:12,lineHeight:1.5}}>
+                Score distribution across all analysed documents. Most documents score in the "Concern" band — this validates the market thesis: employers are non-compliant and Ailane surfaces the risk.
+              </div>
+              {SCORE_DIST.map((s,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:i<3?'1px solid var(--border-subtle)':'none'}}>
+                  <div style={{width:48,height:48,borderRadius:'50%',background:s.color.replace(')',',0.15)'),display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font-mono)',fontSize:'1rem',fontWeight:700,color:s.color,flexShrink:0}}>{s.count}</div>
+                  <div style={{flex:1}}><div style={{fontSize:'0.76rem',fontWeight:600,color:'var(--text-primary)'}}>{s.band}</div><div style={{fontSize:'0.6rem',color:'var(--text-muted)'}}>Avg score: {s.avg}%</div></div>
+                </div>
+              ))}
+              <div className="insight-card" style={{marginTop:12}}>
+                <div className="insight-title">Market Validation</div>
+                <div className="insight-text">73% of analysed documents score below 60% — in the "Concern" or "Critical" bands. This proves the core value proposition: employers are unknowingly non-compliant, and Ailane surfaces actionable intelligence they cannot get elsewhere.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CAMPAIGN STATUS + GOOGLE ADS */}
+        <div className="card">
+          <div className="card-head"><div className="card-head-title">Campaign Intelligence</div><div className="card-head-badge">CAMINT-001</div></div>
+          <div className="card-body">
+            <div className="two-col" style={{gap:20}}>
+              <div>
+                <div className="section-label">Google Ads — Live Since 14 March 2026</div>
+                {[
+                  {name:'Employer Campaign',budget:'£15/day',status:'Learning',target:'UK employers searching compliance, HR, contracts'},
+                  {name:'Worker Campaign',budget:'£15/day',status:'Learning',target:'UK workers searching contract rights, employment law'},
+                ].map((c,i)=>(
+                  <div key={i} style={{background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:8}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{fontSize:'0.78rem',fontWeight:600,color:'var(--text-primary)'}}>{c.name}</div><span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',padding:'2px 8px',borderRadius:100,background:'var(--accent-amber-dim)',color:'var(--accent-amber)',border:'1px solid rgba(245,158,11,0.15)'}}>{c.status}</span></div>
+                    <div style={{display:'flex',gap:16,marginTop:6}}>
+                      <div style={{fontSize:'0.65rem',color:'var(--text-muted)'}}>Budget: <span style={{color:'var(--accent-cyan)',fontFamily:'var(--font-mono)'}}>{c.budget}</span></div>
+                    </div>
+                    <div style={{fontSize:'0.62rem',color:'var(--text-muted)',marginTop:4}}>{c.target}</div>
+                  </div>
+                ))}
+                <div style={{fontSize:'0.65rem',color:'var(--text-muted)',lineHeight:1.5,marginTop:8}}>
+                  Google Ads Customer ID: 156-660-7341. Developer Token pending (Manager Account 469-529-5743). Learning phase until ~Mon 16 Mar. GA4: G-NTNXWZN31C linked. CAMINT closed-loop tracking not yet active — requires Developer Token for API access.
+                </div>
+              </div>
+              <div>
+                <div className="section-label">Channel Strategy</div>
+                {[
+                  {channel:'Google Ads (Search)',audience:'Employer + Worker',status:'Live',priority:'P0'},
+                  {channel:'LinkedIn (Organic + Ads)',audience:'HR Directors, Legal',status:'Planned',priority:'P1'},
+                  {channel:'Reddit / Forums',audience:'Workers, employees',status:'Planned',priority:'P2'},
+                  {channel:'Email Outreach',audience:'Governance prospects',status:'Planned',priority:'P2'},
+                  {channel:'Conference / Events',audience:'HR Tech, Legal Tech',status:'Research',priority:'P3'},
+                ].map((ch,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:i<4?'1px solid var(--border-subtle)':'none'}}>
+                    <div><div style={{fontSize:'0.74rem',color:'var(--text-primary)',fontWeight:500}}>{ch.channel}</div><div style={{fontSize:'0.58rem',color:'var(--text-muted)'}}>{ch.audience}</div></div>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <span style={{fontFamily:'var(--font-mono)',fontSize:'0.55rem',color:ch.status==='Live'?'var(--accent-green)':'var(--text-muted)'}}>{ch.status}</span>
+                      <span style={{fontFamily:'var(--font-mono)',fontSize:'0.55rem',padding:'1px 6px',borderRadius:100,background:'var(--bg-hover)',color:'var(--text-muted)',border:'1px solid var(--border-subtle)'}}>{ch.priority}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* DATA PIPELINE HEALTH + SCRAPER STATUS */}
+        <div className="two-col">
+          <div className="card">
+            <div className="card-head"><div className="card-head-title">Data Pipeline Health</div><div className="card-head-badge">Daily runs</div></div>
+            <div className="card-body">
+              {pipelines.map((p,i)=>(
+                <div className="pipeline-row" key={i}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span className={`pipeline-status ${p.status}`}>{p.status}</span>
+                    <span style={{color:'var(--text-primary)',fontWeight:500}}>{p.pipeline_code.replace(/_/g,' ')}</span>
+                  </div>
+                  <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                    <span className="ts">{p.records_found||0} found / {p.records_new||0} new</span>
+                    <span className="ts">{timeAgo(p.started_at)}</span>
+                  </div>
+                </div>
+              ))}
+              {pipelines.length===0&&<div className="ts">No pipeline data</div>}
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-head"><div className="card-head-title">Scraper Health</div><div className="card-head-badge">International sources</div></div>
+            <div className="card-body">
+              {scrapers.map((s,i)=>(
+                <div className="pipeline-row" key={i}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span className={`pipeline-status ${s.status}`}>{s.status}</span>
+                    <span style={{color:'var(--text-primary)',fontWeight:500}}>{s.scraper_name}</span>
+                  </div>
+                  <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                    <span className="ts">{s.decisions_found||0} found / {s.decisions_new||0} new</span>
+                    <span className="ts">{timeAgo(s.started_at)}</span>
+                  </div>
+                </div>
+              ))}
+              {scrapers.length===0&&<div className="ts">No scraper data</div>}
+              <div className="insight-card" style={{marginTop:12}}>
+                <div className="insight-title">Data Acquisition Velocity</div>
+                <div className="insight-text">Scraper currency is critical — tribunal data freshness underpins the entire ACEI value proposition. International scrapers (AU, NZ, IE, SG, CA) are infrastructure for future territory expansion. Prioritise UK GOV.UK scraper run frequency before scaling client acquisition.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AI DEEP LEARNING VISION */}
+        <div className="card">
+          <div className="card-head"><div className="card-head-title">AI Intelligence Roadmap</div><div className="card-head-badge">Future State</div></div>
+          <div className="card-body">
+            <div className="three-col">
+              {[
+                {title:'AI Lead Scoring',desc:'Cross-reference employer risk signals (accounts overdue, insolvency, tribunal history, headcount) to produce a propensity-to-buy score for every employer in the 78.7K pool. Prioritise outreach by expected LTV.',phase:'Phase 2'},
+                {title:'Predictive Compliance Risk',desc:'Train models on 437+ findings to predict which clause categories will fail for a given sector × region × headcount combination — before the document is even uploaded. Surface as "Your sector typically fails on..."',phase:'Phase 2'},
+                {title:'Campaign Attribution Loop',desc:'CAMINT closed-loop: Google Ads click → compliance check → conversion → Stripe revenue. Requires Developer Token (pending). Enables cost-per-acquisition by channel, keyword-level ROI, and automated bid adjustment.',phase:'Phase 1 (blocked)'},
+                {title:'Tribunal Trend Detection',desc:'Time-series analysis on 130.9K decisions to detect rising claim categories by sector and region. Alert employers to emerging risks before they materialise. Powers the Ticker intelligence feed.',phase:'Phase 3'},
+                {title:'Competitor Intelligence',desc:'Continuous monitoring of competitor tribunal exposure (BrightHR, Peninsula, Croner already in index). Map competitor weaknesses to Ailane strengths for positioning.',phase:'Active'},
+                {title:'Territory Expansion Intelligence',desc:'Scraper infrastructure already covers AU, NZ, IE, SG, CA. Build jurisdiction-specific compliance models as tribunal data accumulates. Enter markets with data-first advantage.',phase:'Phase 4'},
+              ].map((r,i)=>(
+                <div className="insight-card" key={i}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                    <div className="insight-title" style={{marginBottom:0}}>{r.title}</div>
+                    <span style={{fontFamily:'var(--font-mono)',fontSize:'0.55rem',padding:'2px 7px',borderRadius:100,background:r.phase==='Active'?'var(--accent-green-dim)':'var(--bg-hover)',color:r.phase==='Active'?'var(--accent-green)':'var(--text-muted)',border:'1px solid var(--border-subtle)'}}>{r.phase}</span>
+                  </div>
+                  <div className="insight-text">{r.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        </>)}
+      </div>
+      {/* EILEEN */}
+      {!eileenOpen&&<div className="eileen-orb" onClick={()=>setEileenOpen(true)}><EileenNexus active={false} size={44}/></div>}
+      {eileenOpen&&<EileenChat token={token} onClose={()=>setEileenOpen(false)}/>}
+    </div>
+  );
+}
+
+// ═══════ EILEEN INTELLIGENCE ENTITY ═══════
+function EileenNexus({active,size}){
+  const canvasRef=React.useRef(null);const frameRef=React.useRef(0);const timeRef=React.useRef(0);
+  React.useEffect(()=>{
+    const canvas=canvasRef.current;if(!canvas)return;const ctx=canvas.getContext('2d');
+    const w=size*2,h=size*2;canvas.width=w;canvas.height=h;const cx=w/2,cy=h/2;
+    const nodes=[];const nc=active?18:12;
+    for(let i=0;i<nc;i++){const ring=i<5?0.2:i<11?0.55:0.82;const angle=(i/nc)*Math.PI*2+Math.random()*0.5;const r=ring*(w*0.38);
+      nodes.push({x:cx+Math.cos(angle)*r,y:cy+Math.sin(angle)*r,bx:cx+Math.cos(angle)*r,by:cy+Math.sin(angle)*r,r:2+Math.random()*3,sp:0.3+Math.random()*0.7,ph:Math.random()*Math.PI*2});}
+    function draw(){
+      timeRef.current+=active?0.025:0.012;const t=timeRef.current;ctx.clearRect(0,0,w,h);
+      const cs=active?28:18;const grd=ctx.createRadialGradient(cx,cy,0,cx,cy,cs*3);
+      grd.addColorStop(0,active?'rgba(212,160,23,0.5)':'rgba(212,160,23,0.25)');
+      grd.addColorStop(0.4,active?'rgba(139,92,246,0.15)':'rgba(14,165,233,0.08)');grd.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(cx,cy,cs*3,0,Math.PI*2);ctx.fill();
+      const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,cs);cg.addColorStop(0,'rgba(255,255,255,0.95)');
+      cg.addColorStop(0.25,'#D4A017');cg.addColorStop(0.6,active?'#8B5CF6':'rgba(212,160,23,0.5)');
+      cg.addColorStop(1,'rgba(212,160,23,0)');ctx.fillStyle=cg;
+      ctx.beginPath();ctx.arc(cx,cy,cs*(1+Math.sin(t*1.5)*0.1),0,Math.PI*2);ctx.fill();
+      nodes.forEach(n=>{const dr=active?8:3;n.x=n.bx+Math.sin(t*n.sp+n.ph)*dr;n.y=n.by+Math.cos(t*n.sp*0.7+n.ph)*dr;});
+      nodes.forEach((a,i)=>{nodes.forEach((b,j)=>{if(j<=i)return;const dx=a.x-b.x,dy=a.y-b.y;const dist=Math.sqrt(dx*dx+dy*dy);const mx=active?w*0.45:w*0.35;
+        if(dist<mx){const al=(1-dist/mx)*(active?0.35:0.15);const pu=0.5+Math.sin(t*2+i*0.3)*0.5;
+          ctx.strokeStyle='rgba(212,160,23,'+(al*pu)+')';ctx.lineWidth=active?1.2:0.6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}});});
+      nodes.forEach(n=>{const pu=0.7+Math.sin(t*2+n.ph)*0.3;const na=active?0.9:0.5;
+        ctx.fillStyle='rgba(212,160,23,'+(na*pu)+')';ctx.beginPath();ctx.arc(n.x,n.y,n.r*pu,0,Math.PI*2);ctx.fill();});
+      frameRef.current=requestAnimationFrame(draw);}
+    draw();return()=>cancelAnimationFrame(frameRef.current);
+  },[active,size]);
+  return React.createElement('canvas',{ref:canvasRef,style:{width:size,height:size}});
+}
+
+function EileenChat({token,onClose}){
+  const[msgs,setMsgs]=useState([{role:'eileen',text:'Good evening. I have full Gold Clearance access to the intelligence network. What would you like to know?'}]);
+  const[input,setInput]=useState('');const[thinking,setThinking]=useState(false);const endRef=React.useRef(null);
+  useEffect(()=>{if(endRef.current)endRef.current.scrollIntoView({behavior:'smooth'});},[msgs,thinking]);
+  async function send(){if(!input.trim()||thinking)return;const q=input.trim();setInput('');setMsgs(m=>[...m,{role:'user',text:q}]);setThinking(true);
+    try{const r=await fetch(SUPABASE_URL+'/functions/v1/ceo-assistant',{method:'POST',headers:{'Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({message:q})});
+      if(r.ok){const d=await r.json();setMsgs(m=>[...m,{role:'eileen',text:d.response||d.content||'Response received.'}]);}
+      else{setMsgs(m=>[...m,{role:'eileen',text:'I encountered a '+r.status+' response. Try again.'}]);}}
+    catch(e){setMsgs(m=>[...m,{role:'eileen',text:'Connection interrupted. Please try again.'}]);}setThinking(false);}
+  return React.createElement('div',{className:'eileen-panel'},
+    React.createElement('div',{className:'eileen-header'},
+      React.createElement(EileenNexus,{active:thinking,size:40}),
+      React.createElement('div',{style:{flex:1}},
+        React.createElement('div',{className:'eileen-header-name'},'Eileen'),
+        React.createElement('div',{className:'eileen-header-status'},thinking?'Processing intelligence...':'CEO Command \u00B7 Gold Clearance')),
+      React.createElement('button',{className:'eileen-close',onClick:onClose},'\u00D7')),
+    React.createElement('div',{className:'eileen-messages'},
+      msgs.map((m,i)=>React.createElement('div',{key:i,className:'eileen-msg '+m.role},m.text)),
+      thinking&&React.createElement('div',{className:'eileen-typing'},
+        React.createElement('div',{className:'eileen-typing-dot'}),React.createElement('div',{className:'eileen-typing-dot'}),React.createElement('div',{className:'eileen-typing-dot'})),
+      React.createElement('div',{ref:endRef})),
+    React.createElement('div',{className:'eileen-input-bar'},
+      React.createElement('input',{className:'eileen-input',value:input,onChange:e=>setInput(e.target.value),onKeyDown:e=>e.key==='Enter'&&send(),placeholder:'Ask Eileen anything...'}),
+      React.createElement('button',{className:'eileen-send',onClick:send},'Send')));
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>

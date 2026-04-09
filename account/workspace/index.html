@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Supabase CDN FIRST (protected page — KLUI-001 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 Analytics (mandatory — G-NTNXWZN31C) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workspace — Ailane Knowledge Library</title>
+  <meta name="description" content="Your employment law compliance workspace. Research, plan, and build your compliance documentation — guided by Eileen.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Workspace styles -->
+  <link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
+
+  <style>
+    /* Workspace mode page-level styles */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0A2342;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden; /* Full workspace — no page scroll */
+      height: 100vh;
+    }
+    #ws-app { display: flex; flex-direction: column; height: 100vh; }
+    #ws-grid { flex: 1; overflow: hidden; }
+
+    /* Loading state */
+    .ws-page-loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; flex-direction: column; gap: 16px;
+    }
+    .ws-page-loading-text { color: #64748b; font-size: 14px; }
+  </style>
+</head>
+<body style="visibility:hidden">
+
+  <div id="ws-app">
+    <div class="ws-page-loading" id="ws-loading">
+      <div class="ws-page-loading-text">Loading workspace...</div>
+    </div>
+    <div id="ws-grid" style="display:none"></div>
+  </div>
+
+  <!-- Workspace bundle -->
+  <script src="/workspace/dist/workspace-bundle.js"></script>
+
+  <script>
+    (function() {
+      var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1NDQ5MDIsImV4cCI6MjA1NzEyMDkwMn0.LMfOjHp97P9MKaOeaK3GI2JCQ7kj5Kxpuq6llLD-1H0';
+      var ALLOWED_TIERS = ['per_session', 'monthly', 'operational', 'operational_readiness', 'governance', 'institutional'];
+      var TIER_LABELS = { per_session: 'Session', monthly: 'Monthly', operational_readiness: 'Operational', operational: 'Operational', governance: 'Governance', institutional: 'Institutional' };
+
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      async function guard() {
+        try {
+          var result = await sb.auth.getSession();
+          var session = result.data ? result.data.session : null;
+          if (session) return checkTier(session);
+
+          // Wait for auth state
+          return new Promise(function(resolve) {
+            var timeout = setTimeout(function() { sessionStorage.setItem('ailane_returnTo', '/account/workspace/'); window.location.replace('/login/'); }, 6000);
+            sb.auth.onAuthStateChange(function(event, s) {
+              if (s) { clearTimeout(timeout); checkTier(s); resolve(); }
+            });
+          });
+        } catch (e) { sessionStorage.setItem('ailane_returnTo', '/account/workspace/'); window.location.replace('/login/'); }
+      }
+
+      async function checkTier(session) {
+        var token = session.access_token;
+        var payload = JSON.parse(atob(token.split('.')[1]));
+        var userId = payload.sub;
+
+        var res = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=subscription_tier',
+          { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        var profiles = await res.json();
+        var tier = (profiles && profiles[0]) ? profiles[0].subscription_tier : null;
+
+        if (!tier || ALLOWED_TIERS.indexOf(tier) === -1) {
+          sessionStorage.setItem('ailane_returnTo', '/account/workspace/');
+          window.location.replace('/login/');
+          return;
+        }
+
+        // Set global user object for workspace bundle
+        window.__ailaneUser = {
+          id: userId,
+          email: payload.email,
+          tier: tier,
+          tierLabel: TIER_LABELS[tier] || tier,
+          orgId: null,
+          token: token
+        };
+
+        // Also store the anon key for REST calls
+        window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
+        // Hide loading, show grid
+        document.getElementById('ws-loading').style.display = 'none';
+        document.getElementById('ws-grid').style.display = 'flex';
+        document.body.style.visibility = 'visible';
+
+        // Initialise workspace bundle — panel-system.js detects /account/workspace/ and enters workspace mode
+        if (window.AilaneWorkspace && window.AilaneWorkspace.init) {
+          window.AilaneWorkspace.init();
+        }
+      }
+
+      guard();
+    })();
+  </script>
+</body>
+</html>

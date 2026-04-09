@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample Compliance Report — Ailane</title>
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', -apple-system, Helvetica, Arial, sans-serif;
+      background: #FFFFFF;
+      color: #1a1a1a;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Screen-only elements */
+    .screen-only {
+      background: #0A5C52;
+      color: #FFFFFF;
+      padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+      font-size: 13px;
+    }
+    .screen-only a {
+      color: #14BDAD; text-decoration: none; font-weight: 600;
+    }
+    .screen-only a:hover { color: #FFFFFF; }
+    .print-btn {
+      background: #14BDAD; color: #0A5C52;
+      border: none; padding: 7px 16px; border-radius: 4px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      font-family: inherit;
+    }
+    .print-btn:hover { background: #FFFFFF; }
+
+    /* Report layout */
+    .report {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 32px 64px;
+    }
+
+    /* Header */
+    .report-header {
+      border-bottom: 3px solid #0A5C52;
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .brand { font-weight: 900; font-size: 22px; letter-spacing: 3px; color: #0A5C52; }
+    .brand-sub { font-size: 13px; color: #6B7280; margin-top: 2px; }
+    .sample-badge {
+      display: inline-block;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: #0A5C52;
+      background: rgba(10,92,82,0.1); border: 1px solid rgba(10,92,82,0.25);
+      padding: 4px 12px; border-radius: 3px; margin-top: 12px;
+    }
+
+    /* Metadata */
+    .meta-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px 24px; margin-bottom: 32px;
+      font-size: 13px;
+    }
+    .meta-label { color: #6B7280; }
+    .meta-value { font-weight: 600; color: #1a1a1a; }
+
+    /* Score */
+    .score-section {
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    .score-big {
+      font-size: 48px; font-weight: 900;
+      color: #D97706;
+    }
+    .score-big span { font-size: 20px; font-weight: 400; color: #9CA3AF; }
+    .score-rating {
+      font-size: 14px; font-weight: 700;
+      color: #D97706; margin-top: 4px;
+    }
+    .dist-row {
+      display: flex; justify-content: center; gap: 24px;
+      margin-top: 16px; font-size: 13px;
+    }
+    .dist-item { text-align: center; }
+    .dist-count { font-size: 20px; font-weight: 900; }
+    .dist-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .c-critical { color: #DC2626; }
+    .c-major { color: #D97706; }
+    .c-minor { color: #2563EB; }
+    .c-compliant { color: #059669; }
+
+    /* Findings */
+    .findings-heading {
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    .finding {
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      page-break-inside: avoid;
+    }
+    .finding-severity {
+      display: inline-block;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      padding: 3px 8px; border-radius: 3px;
+      margin-bottom: 8px;
+    }
+    .sev-critical { background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; }
+    .sev-major { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+    .sev-minor { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .sev-compliant { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+    .finding h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #1a1a1a; }
+    .finding p { font-size: 13px; color: #374151; margin-bottom: 6px; line-height: 1.65; }
+    .finding .f-ref { font-size: 11px; color: #6B7280; font-style: italic; }
+    .finding .f-remediation {
+      font-size: 12px; color: #0A5C52; line-height: 1.6;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB;
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      background: #FEF3C7;
+      border: 1px solid #F59E0B;
+      border-left: 4px solid #D4860A;
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin: 32px 0;
+      font-size: 12px;
+      color: #78350F;
+      line-height: 1.75;
+    }
+
+    /* Footer */
+    .report-footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #0A5C52;
+      font-size: 11px;
+      color: #9CA3AF;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    /* Print styles */
+    @media print {
+      .screen-only { display: none !important; }
+      body { font-size: 11pt; }
+      .report { padding: 0; max-width: 100%; }
+      .score-section { background: #F9FAFB !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .finding-severity { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .disclaimer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .finding { break-inside: avoid; }
+    }
+
+    @media (max-width: 640px) {
+      .report { padding: 32px 16px 48px; }
+      .meta-grid { grid-template-columns: 1fr; }
+      .dist-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="screen-only">
+  <a href="javascript:history.back();">&larr; Back to sample report</a>
+  <button class="print-btn" onclick="window.print();">Print this page / Save as PDF</button>
+</div>
+
+<div class="report">
+
+  <div class="report-header">
+    <div class="brand">AILANE</div>
+    <div class="brand-sub">Contract Compliance Check</div>
+    <div class="sample-badge">SAMPLE REPORT</div>
+  </div>
+
+  <div class="meta-grid">
+    <div><span class="meta-label">Document:</span></div>
+    <div><span class="meta-value">Zero-Hours Employment Contract</span></div>
+    <div><span class="meta-label">Sector:</span></div>
+    <div><span class="meta-value">Facilities Management</span></div>
+    <div><span class="meta-label">Employer:</span></div>
+    <div><span class="meta-value">Northerly Hill Facilities Management Ltd</span></div>
+    <div><span class="meta-label">Employee:</span></div>
+    <div><span class="meta-value">Jamie Morrison (Sample Scenario)</span></div>
+    <div><span class="meta-label">Analysis date:</span></div>
+    <div><span class="meta-value">March 2026</span></div>
+    <div><span class="meta-label">Engine:</span></div>
+    <div><span class="meta-value">Ailane Compliance Engine v23</span></div>
+    <div><span class="meta-label">Requirements assessed:</span></div>
+    <div><span class="meta-value">10</span></div>
+  </div>
+
+  <div class="score-section">
+    <div class="score-big">41 <span>/ 100</span></div>
+    <div class="score-rating">ELEVATED CONCERNS</div>
+    <div class="dist-row">
+      <div class="dist-item">
+        <div class="dist-count c-critical">2</div>
+        <div class="dist-label c-critical">Critical</div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-count c-major">3</div>
+        <div class="dist-label c-major">Major</div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-count c-minor">1</div>
+        <div class="dist-label c-minor">Minor</div>
+      </div>
+      <div class="dist-item">
+        <div class="dist-count c-compliant">4</div>
+        <div class="dist-label c-compliant">Compliant</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="findings-heading">Findings</div>
+
+  <!-- CRITICAL 1 -->
+  <div class="finding">
+    <div class="finding-severity sev-critical">CRITICAL</div>
+    <h3>Holiday pay accrual may not reflect your statutory entitlement</h3>
+    <p><strong>Clause reference:</strong> Clause 7.1</p>
+    <p>Clause 7.1 calculates holiday pay at basic rate only. Workers on variable hours are entitled to holiday pay based on average earnings over 52 weeks under Working Time Regulations 1998, Reg.16, as confirmed in Brazel v Harpur Trust [2022] UKSC 27. This clause may not meet that requirement — worth discussing with a solicitor.</p>
+    <p class="f-ref">Statutory ref: Working Time Regulations 1998, Reg.16</p>
+    <p class="f-remediation"><strong>Remediation:</strong> Review holiday pay calculation method. Consider applying the 52-week reference period averaging method required under WTR 1998 Reg.16 for workers with variable hours.</p>
+  </div>
+
+  <!-- CRITICAL 2 -->
+  <div class="finding">
+    <div class="finding-severity sev-critical">CRITICAL</div>
+    <h3>Notice provision may be below your statutory minimum</h3>
+    <p><strong>Clause reference:</strong> Clause 11.3</p>
+    <p>Clause 11.3 specifies one week's notice regardless of length of service. Under ERA 1996 s.86, after two years of continuous service you are entitled to one week per year of service. If you have been employed for more than two years, this clause may be below the statutory minimum.</p>
+    <p class="f-ref">Statutory ref: Employment Rights Act 1996 s.86</p>
+    <p class="f-remediation"><strong>Remediation:</strong> Review notice clause against your actual length of service. If you have 2+ years continuous service, the statutory minimum exceeds the contractual provision.</p>
+  </div>
+
+  <!-- MAJOR 1 -->
+  <div class="finding">
+    <div class="finding-severity sev-major">MAJOR</div>
+    <h3>Written statement of particulars — minimum wage escalation</h3>
+    <p><strong>Clause reference:</strong> Clause 4.2</p>
+    <p>Clause 4.2 does not include a provision linking pay to annual National Living Wage increases. While not strictly required, its absence means your employer is not contractually obliged to notify you of minimum wage rate changes — a risk for ongoing compliance.</p>
+    <p class="f-ref">Statutory ref: National Minimum Wage Act 1998</p>
+    <p class="f-remediation"><strong>Remediation:</strong> Consider requesting that your contract includes a reference to the employer's obligation to pay at least the prevailing NMW/NLW rate.</p>
+  </div>
+
+  <!-- MAJOR 2 -->
+  <div class="finding">
+    <div class="finding-severity sev-major">MAJOR</div>
+    <h3>No disciplinary or grievance procedure reference</h3>
+    <p><strong>Clause reference:</strong> Not present in contract</p>
+    <p>The contract does not reference a disciplinary or grievance procedure, nor does it direct the employee to a staff handbook or separate document where these procedures can be found. ERA 1996 s.1(4)(k) requires this information in the written statement of particulars from day one.</p>
+    <p class="f-ref">Statutory ref: ERA 1996 s.1(4)(k); ACAS Code of Practice</p>
+    <p class="f-remediation"><strong>Remediation:</strong> Your employer should provide a written reference to the applicable disciplinary and grievance procedures. Consider raising this with your employer or HR department.</p>
+  </div>
+
+  <!-- MAJOR 3 -->
+  <div class="finding">
+    <div class="finding-severity sev-major">MAJOR</div>
+    <h3>Absence of pension auto-enrolment reference</h3>
+    <p><strong>Clause reference:</strong> Clause 8 (absent)</p>
+    <p>The contract makes no reference to workplace pension arrangements or auto-enrolment obligations under the Pensions Act 2008. If you are an eligible jobholder, your employer must auto-enrol you and this should be reflected in your employment terms.</p>
+    <p class="f-ref">Statutory ref: Pensions Act 2008 (auto-enrolment)</p>
+    <p class="f-remediation"><strong>Remediation:</strong> Request written confirmation of your pension arrangements from your employer. If you are an eligible jobholder, auto-enrolment is a legal requirement.</p>
+  </div>
+
+  <!-- MINOR 1 -->
+  <div class="finding">
+    <div class="finding-severity sev-minor">MINOR</div>
+    <h3>Flexible working reference is out of date</h3>
+    <p><strong>Clause reference:</strong> Clause 9.1</p>
+    <p>Clause 9.1 references a 26-week qualifying period for flexible working requests. The qualifying period was abolished from 6 April 2024 under the Employment Relations (Flexible Working) Act 2023 — you now have the right to request flexible working from day one.</p>
+    <p class="f-ref">Statutory ref: Employment Relations (Flexible Working) Act 2023; ERA 1996 s.80F</p>
+    <p class="f-remediation"><strong>Remediation:</strong> This clause is outdated but not harmful. You have the statutory right to request flexible working from day one regardless of what the contract states.</p>
+  </div>
+
+  <!-- COMPLIANT 1 -->
+  <div class="finding">
+    <div class="finding-severity sev-compliant">COMPLIANT</div>
+    <h3>Employer and employee names clearly stated</h3>
+    <p>The contract correctly identifies both parties.</p>
+    <p class="f-ref">Statutory ref: ERA 1996 s.1(3)</p>
+  </div>
+
+  <!-- COMPLIANT 2 -->
+  <div class="finding">
+    <div class="finding-severity sev-compliant">COMPLIANT</div>
+    <h3>Job title and place of work specified</h3>
+    <p>Job title, duties description, and place of work are clearly stated.</p>
+    <p class="f-ref">Statutory ref: ERA 1996 s.1(4)(f)-(h)</p>
+  </div>
+
+  <!-- COMPLIANT 3 -->
+  <div class="finding">
+    <div class="finding-severity sev-compliant">COMPLIANT</div>
+    <h3>Pay rate and intervals specified</h3>
+    <p>Hourly rate and weekly pay interval are stated and appear to meet NMW requirements at the current rate.</p>
+    <p class="f-ref">Statutory ref: ERA 1996 s.1(4)(a)-(b)</p>
+  </div>
+
+  <!-- COMPLIANT 4 -->
+  <div class="finding">
+    <div class="finding-severity sev-compliant">COMPLIANT</div>
+    <h3>Sick pay notification procedure included</h3>
+    <p>The contract includes notification requirements and references to SSP. Adequate for statutory purposes.</p>
+    <p class="f-ref">Statutory ref: ERA 1996 s.1(4)(d)(ii)</p>
+  </div>
+
+  <div class="disclaimer">
+    <strong>IMPORTANT:</strong> This compliance assessment has been generated by the Ailane Compliance Checker using AI-assisted analysis of the document you uploaded. It assesses your contract's alignment with defined statutory requirements based on its text and content. It does not constitute legal advice. It does not establish a professional relationship between you and AI Lane Limited. It does not determine whether you have legal rights against your employer, nor does it predict how any dispute or claim would be decided. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720) is not a law firm and does not provide regulated legal services. The findings in this report are designed to help you understand your contractual position and identify areas for review. Before acting on any finding — including taking any steps with your employer or considering a claim — you should consult a qualified employment solicitor.
+  </div>
+
+  <div class="report-footer">
+    This is a sample report based on a fictional scenario.<br>
+    AI Lane Limited | Company No. 17035654 | ICO Reg. 00013389720<br>
+    ailane.ai
+  </div>
+
+</div>
+
+</body>
+</html>

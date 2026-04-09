@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <!-- TODO: CSP deployment blocked — page loads scripts from unpkg.com which is not in the standard whitelist. Requires CSP definition update before deployment. -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operational Readiness — Ailane</title>
+  <!-- GA4 — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Knowledge Library Workspace — Persistent Panel System -->
+  <link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #060D1B; color: #e2e8f0; font-family: 'DM Sans', sans-serif; overflow: hidden; }
+    #root { width: 100vw; height: 100vh; }
+    #auth-gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #060D1B; color: #fff; font-family: 'DM Sans', sans-serif; }
+    .auth-spinner { width: 36px; height: 36px; border: 3px solid rgba(56,189,248,0.15); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 18px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0A1628; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="auth-gate">
+    <div style="text-align:center">
+      <div class="auth-spinner"></div>
+      <div style="font-size:1.4rem;font-weight:700;letter-spacing:0.15em;margin-bottom:8px">AILANE</div>
+      <div style="font-size:0.9rem;color:rgba(255,255,255,0.5)">Loading Operational Readiness...</div>
+    </div>
+  </div>
+  <div id="root" style="display:none"></div>
+
+  <!-- AUTH GUARD — runs before React -->
+
+  <script>
+  (async function() {
+    var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    try {
+      var gs = await sb.auth.getSession();
+      if (!gs.data || !gs.data.session) { window.location.replace('/login/'); return; }
+      var session = gs.data.session;
+      var payload = JSON.parse(atob(session.access_token.split('.')[1]));
+      var userId = payload.sub;
+      var resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' } }
+      );
+      if (resp.ok) {
+        var rows = await resp.json();
+        if (rows.length > 0) {
+          var tier = rows[0].subscription_tier;
+          if (tier === 'operational' || tier === 'operational_readiness' || tier === 'governance' || tier === 'institutional') {
+            // Workspace globals (KLUI-001 Sprint 1)
+            // Reuses existing vars: SUPABASE_ANON, session, payload, userId, tier
+            window.__SUPABASE_ANON_KEY = SUPABASE_ANON;
+            window.__ailaneUser = {
+              id: userId,
+              email: payload.email,
+              token: session.access_token,
+              tier: tier,
+              orgId: null
+            };
+            try {
+              var _wsOrgRes = await fetch(
+                SUPABASE_URL + '/rest/v1/app_users?id=eq.' + userId + '&select=org_id',
+                { headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': SUPABASE_ANON } }
+              );
+              var _wsOrgData = await _wsOrgRes.json();
+              if (_wsOrgData && _wsOrgData[0]) window.__ailaneUser.orgId = _wsOrgData[0].org_id;
+            } catch(e) { /* org features degrade gracefully */ }
+            document.getElementById('auth-gate').style.display = 'none';
+            document.getElementById('root').style.display = 'block';
+            return; // Auth passed — React will render
+          }
+          // Wrong tier — redirect to login (login handles routing)
+          window.location.replace('/login/'); return;
+        }
+      }
+      window.location.replace('/login/');
+    } catch(e) {
+      window.location.replace('/login/');
+    }
+  })();
+  </script>
+  <script src="/workspace/dist/workspace-bundle.js" defer></script>
+
+  <!-- V8 OPERATIONAL READINESS DASHBOARD — AILANE-SPEC-EILEEN-001/002 -->
+
+  <script type="text/babel">
+  const { useState, useEffect, useRef, useCallback } = React;
+
+  // ══════════════════════════════════════════════════════════════════
+  // THE NEXUS — Eileen Visual Identity (AILANE-SPEC-EILEEN-001 §3)
+  // Operational tier: cyan #38bdf8 + green #22c55e, 12-14 nodes, 2 rings
+  // ══════════════════════════════════════════════════════════════════
+  function NexusAvatar({ size = 40, active = false, processing = false }) {
+    const canvasRef = useRef(null);
+    const frameRef = useRef(0);
+    const timeRef = useRef(0);
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const w = size * dpr;
+      const h = size * dpr;
+      canvas.width = w;
+      canvas.height = h;
+      const cx = w / 2;
+      const cy = h / 2;
+      const nodeCount = processing ? 14 : active ? 13 : 10;
+      const nodes = [];
+      for (let i = 0; i < nodeCount; i++) {
+        const ring = i < 5 ? 0.25 : 0.62;
+        const angle = (i / (i < 5 ? 5 : nodeCount - 5)) * Math.PI * 2 + (i * 0.4);
+        const r = ring * (w * 0.4);
+        nodes.push({
+          bx: cx + Math.cos(angle) * r,
+          by: cy + Math.sin(angle) * r,
+          r: (1.2 + Math.random() * 1.8) * dpr,
+          speed: 0.4 + Math.random() * 0.6,
+          phase: Math.random() * Math.PI * 2,
+          ring,
+        });
+      }
+      function draw() {
+        timeRef.current += processing ? 0.035 : active ? 0.02 : 0.01;
+        const t = timeRef.current;
+        ctx.clearRect(0, 0, w, h);
+        const breathe = 1 + Math.sin(t * 0.8) * (processing ? 0.15 : 0.08);
+        const coreR = (processing ? 6 : active ? 5 : 3.5) * dpr;
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 4 * breathe);
+        glow.addColorStop(0, processing ? "rgba(56,189,248,0.6)" : active ? "rgba(56,189,248,0.4)" : "rgba(56,189,248,0.2)");
+        glow.addColorStop(0.4, processing ? "rgba(34,197,94,0.25)" : active ? "rgba(34,197,94,0.15)" : "rgba(34,197,94,0.05)");
+        glow.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreR * 4 * breathe, 0, Math.PI * 2);
+        ctx.fill();
+        const coreGrd = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * breathe);
+        coreGrd.addColorStop(0, "rgba(255,255,255,0.9)");
+        coreGrd.addColorStop(0.3, "rgba(56,189,248,0.8)");
+        coreGrd.addColorStop(0.7, "rgba(34,197,94,0.4)");
+        coreGrd.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = coreGrd;
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreR * breathe, 0, Math.PI * 2);
+        ctx.fill();
+        const nodePositions = nodes.map((n) => {
+          const drift = Math.sin(t * n.speed + n.phase) * 3 * dpr;
+          const drift2 = Math.cos(t * n.speed * 0.7 + n.phase) * 2 * dpr;
+          return { x: n.bx + drift, y: n.by + drift2, r: n.r, ring: n.ring };
+        });
+        for (let i = 0; i < nodePositions.length; i++) {
+          for (let j = i + 1; j < nodePositions.length; j++) {
+            const a = nodePositions[i];
+            const b = nodePositions[j];
+            const dist = Math.hypot(a.x - b.x, a.y - b.y);
+            const maxDist = w * 0.45;
+            if (dist < maxDist) {
+              const alpha = (1 - dist / maxDist) * (processing ? 0.35 : active ? 0.2 : 0.1);
+              const pulse = processing ? (Math.sin(t * 3 + i + j) + 1) * 0.5 : 0;
+              ctx.strokeStyle = pulse > 0.7
+                ? `rgba(34,197,94,${alpha + pulse * 0.2})`
+                : `rgba(56,189,248,${alpha})`;
+              ctx.lineWidth = (0.5 + pulse * 0.5) * dpr;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
+          const n = nodePositions[i];
+          const coreDist = Math.hypot(n.x - cx, n.y - cy);
+          const coreAlpha = (1 - coreDist / (w * 0.45)) * (active ? 0.15 : 0.06);
+          ctx.strokeStyle = `rgba(56,189,248,${coreAlpha})`;
+          ctx.lineWidth = 0.5 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(n.x, n.y);
+          ctx.stroke();
+        }
+        nodePositions.forEach((n, i) => {
+          const pulse = Math.sin(t * 2 + i) * 0.3 + 0.7;
+          const nodeGlow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 3);
+          const isCyan = n.ring < 0.4;
+          nodeGlow.addColorStop(0, isCyan
+            ? `rgba(56,189,248,${pulse * (active ? 0.9 : 0.6)})`
+            : `rgba(34,197,94,${pulse * (active ? 0.8 : 0.5)})`);
+          nodeGlow.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = nodeGlow;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = isCyan ? `rgba(56,189,248,${pulse})` : `rgba(34,197,94,${pulse})`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r * (active ? 1 : 0.8), 0, Math.PI * 2);
+          ctx.fill();
+        });
+        frameRef.current = requestAnimationFrame(draw);
+      }
+      draw();
+      return () => cancelAnimationFrame(frameRef.current);
+    }, [size, active, processing]);
+    return (
+      <canvas
+        ref={canvasRef}
+        style={{ width: size, height: size, borderRadius: "50%" }}
+      />
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // ORGANISATION & DATA
+  // ══════════════════════════════════════════════════════════════════
+  const ORG = {
+    name: "Your Organisation",
+    sector: "Facilities Management",
+    hq: "Cardiff",
+    depots: "Swansea, Bristol, Birmingham",
+    emp: 238,
+    sic: "81210/81220/81300",
+    ch: "NH-2014-0347",
+  };
+  const ACEI_D = {
+    domain: 64, band: "Elevated", velocity: "rising", delta: "+3",
+    refresh: "14 March 2026",
+    est: { tri: "130,854", emp: "78,699", leg: "47" },
+  };
+  const CATS = [
+    { id: 1, n: "Unfair Dismissal & Termination", s: 71, t: "rising", c: 2847, i: "Day-one protections under ERA 2025 increase exposure. Review all dismissal procedures." },
+    { id: 2, n: "Discrimination & Equal Treatment", s: 58, t: "stable", c: 1923, i: "Stable. Review reasonable adjustments processes and equality impact assessments." },
+    { id: 3, n: "Wages & Financial Obligations", s: 68, t: "rising", c: 2104, i: "Travel time and holiday pay calculations remain contentious. Check NMW compliance." },
+    { id: 4, n: "Whistleblowing & Protected Disclosures", s: 42, t: "stable", c: 412, i: "Low volume but high-value claims. Your whistleblowing procedure needs updating." },
+    { id: 5, n: "Working Time & Leave", s: 73, t: "rising", c: 1856, i: "Highest category score. Holiday pay, shift patterns, and flexible working all active." },
+    { id: 6, n: "Redundancy & Restructuring", s: 55, t: "declining", c: 987, i: "Declining \u2014 TUPE provisions and collective consultation requirements stable." },
+    { id: 7, n: "Parental & Family Rights", s: 61, t: "rising", c: 1134, i: "Neonatal care leave commencing April 2025. Update all parental leave policies." },
+    { id: 8, n: "Trade Union & Collective Rights", s: 38, t: "stable", c: 389, i: "Low at your scale. Monitor ERA 2025 collective rights provisions." },
+    { id: 9, n: "Breach of Contract & Notice", s: 66, t: "stable", c: 1567, i: "Notice disputes and wrongful dismissal claims. Check contract notice clauses." },
+    { id: 10, n: "Health & Safety Protections", s: 70, t: "rising", c: 567, i: "COSHH, lone working, and multi-site H&S obligations. HSE enforcement increasing." },
+    { id: 11, n: "Data Protection & Privacy", s: 45, t: "rising", c: 234, i: "Employee monitoring, DSAR handling, and AI in HR all emerging areas." },
+    { id: 12, n: "Business Transfers & Insolvency", s: 52, t: "stable", c: 678, i: "TUPE is endemic in FM sector. Your contracts must address transfer obligations." },
+  ];
+  const DOCS = [
+    { id: 1, name: "Standard FT Contract (Operative)", type: "contract", score: 62, gaps: 4, crit: 1, uploaded: "2 Mar 2026", status: "flagged" },
+    { id: 2, name: "Fixed-Term Contract (Supervisor)", type: "contract", score: 78, gaps: 2, crit: 0, uploaded: "2 Mar 2026", status: "ok" },
+    { id: 3, name: "Employee Handbook v4.1", type: "handbook", score: 54, gaps: 7, crit: 2, uploaded: "3 Mar 2026", status: "flagged" },
+    { id: null, type: "empty" },
+    { id: null, type: "empty" },
+  ];
+  const TICKER_D = [
+    { id: 1, date: "14 Mar 2026", cat: "Working Time & Leave", sig: 72, title: "HMRC enforcement action: \u00A32.1m in unpaid holiday pay penalties across FM sector employers", type: "enforcement" },
+    { id: 2, date: "13 Mar 2026", cat: "Unfair Dismissal & Termination", sig: 85, title: "ERA 2025 commencement schedule confirmed \u2014 day-one rights from October 2026", type: "legislative" },
+    { id: 3, date: "12 Mar 2026", cat: "Health & Safety", sig: 68, title: "HSE prosecution: lone worker fatality in facilities management \u2014 \u00A3890k fine", type: "enforcement" },
+    { id: 4, date: "11 Mar 2026", cat: "Discrimination", sig: 55, title: "EHRC guidance: reasonable adjustments in multi-site operations published", type: "legislative" },
+    { id: 5, date: "10 Mar 2026", cat: "Parental & Family Rights", sig: 61, title: "Neonatal care leave regulations laid before Parliament \u2014 April 2025 commencement confirmed", type: "legislative" },
+  ];
+  const LEGIS_D = [
+    { name: "Employment Rights Act 2025", stage: "Commencement Pending", cats: [1, 5, 7], cd: "Oct 2026", sig: "Critical" },
+    { name: "Neonatal Care Act 2023", stage: "Partially Commenced", cats: [7], cd: "Apr 2025", sig: "High" },
+    { name: "Worker Protection Act 2023", stage: "In Force", cats: [2], cd: "In force", sig: "Medium" },
+    { name: "Retained EU Law Act 2023", stage: "In Force", cats: [5, 3], cd: "In force", sig: "Medium" },
+  ];
+  const TRIB_D = [
+    { cat: "Unfair Dismissal", claims: 2847, avg: "\u00A314,670", t: "rising" },
+    { cat: "Discrimination", claims: 1923, avg: "\u00A322,340", t: "stable" },
+    { cat: "Wages", claims: 2104, avg: "\u00A34,890", t: "rising" },
+    { cat: "Working Time", claims: 1856, avg: "\u00A33,210", t: "rising" },
+    { cat: "Redundancy", claims: 987, avg: "\u00A311,450", t: "declining" },
+  ];
+  const ALERTS_D = [
+    { id: 1, date: "14 Mar", type: "Document", msg: "Handbook v4.1 \u2014 2 critical findings require review", sev: "critical" },
+    { id: 2, date: "13 Mar", type: "Legislative", msg: "ERA 2025 affects 3 of your stored documents", sev: "high" },
+    { id: 3, date: "12 Mar", type: "Ticker", msg: "HSE enforcement action \u2014 your sector and region", sev: "high" },
+  ];
+  const KL_I = [
+    "Employment Rights Act 1996", "Employment Rights Act 2025", "Equality Act 2010",
+    "Working Time Regulations 1998", "TUPE Regulations 2006", "Health & Safety at Work Act 1974",
+    "National Minimum Wage Act 1998", "Data Protection Act 2018", "ACAS Code: Disciplinary & Grievance",
+    "ACAS Code: Flexible Working", "Public Interest Disclosure Act 1998", "Trade Union & Labour Relations Act 1992",
+  ];
+
+  // ══════════════════════════════════════════════════════════════════
+  // COMPREHENSIVE KNOWLEDGE BASE (EILEEN-002 \u00A72.1 + Annex A)
+  // ══════════════════════════════════════════════════════════════════
+  const STAT_MAP = {
+    "hra": { name: "Human Rights Act 1998", inKL: true, cats: [2], text: "The Human Rights Act 1998 incorporates the European Convention on Human Rights into UK domestic law. In employment, it\u2019s most relevant to Article 8 (privacy), Article 9 (religion), Article 10 (expression), and Article 11 (assembly). It applies directly to public sector employers and indirectly to private employers through the Equality Act 2010." },
+    "era 1996": { name: "Employment Rights Act 1996", inKL: true, cats: [1, 3, 5, 7], alias: "era" },
+    "era": { name: "Employment Rights Act 1996", inKL: true, cats: [1, 3, 5, 7], text: "The Employment Rights Act 1996 is the backbone of individual employment rights in the UK. It covers unfair dismissal (Part X), redundancy payments (Part XI), protection of wages (Part II), time off rights, flexible working, written particulars of employment, and whistleblowing protections (Part IVA). ERA 2025 significantly amends it." },
+    "era 2025": { name: "Employment Rights Act 2025", inKL: true, cats: [1, 5, 7], text: "ERA 2025 is the most significant reform in a generation. Key changes: day-one unfair dismissal rights (removing the two-year qualifying period), strengthened flexible working rights, enhanced trade union access, fire-and-rehire restrictions, and new enforcement mechanisms. Commencement is phased, with critical provisions expected October 2026." },
+    "wtr": { name: "Working Time Regulations 1998", inKL: true, cats: [5], text: "The Working Time Regulations implement the EU Working Time Directive. They govern the 48-hour weekly limit, rest breaks, annual leave (5.6 weeks minimum), and night work limits. Holiday pay calculation \u2014 particularly for workers with variable hours \u2014 remains one of the most litigated areas in employment law." },
+    "tupe": { name: "TUPE Regulations 2006", inKL: true, cats: [12, 6], text: "TUPE protects employees when a business or service is transferred to a new employer. It preserves terms and conditions, requires consultation, and restricts dismissals connected to a transfer. In the FM sector, TUPE applies to almost every contract change \u2014 it is endemic to your business model." },
+    "eqa": { name: "Equality Act 2010", inKL: true, cats: [2], text: "The Equality Act 2010 consolidates anti-discrimination law. It protects nine characteristics: age, disability, gender reassignment, marriage/civil partnership, pregnancy/maternity, race, religion/belief, sex, and sexual orientation. It covers direct and indirect discrimination, harassment, victimisation, and the duty to make reasonable adjustments." },
+    "nmw": { name: "National Minimum Wage Act 1998", inKL: true, cats: [3], text: "The National Minimum Wage Act establishes the legal right to a minimum wage. Current rates are set annually. HMRC enforces compliance and can issue penalties of up to 200% of underpayments. Common compliance issues include travel time, sleep-in shifts, uniform costs, and deductions that reduce effective pay below the minimum." },
+    "hswa": { name: "Health and Safety at Work Act 1974", inKL: true, cats: [10], text: "Section 2 places a general duty on employers to ensure, so far as reasonably practicable, the health, safety, and welfare of employees. For FM operations across multiple sites, this includes risk assessments, safe systems of work, COSHH compliance, lone worker protections, and adequate training." },
+    "dpa": { name: "Data Protection Act 2018", inKL: true, cats: [11], text: "The Data Protection Act 2018 supplements UK GDPR. In employment, it governs employee monitoring, DSAR (Subject Access Request) handling, data retention, references, and the use of AI in HR decisions. The ICO has specific guidance on workplace monitoring and employee data." },
+    "gdpr": { name: "UK GDPR", inKL: true, cats: [11], text: "UK GDPR applies to all employee personal data processing. Key obligations: lawful basis for processing, data minimisation, accuracy, storage limitation, and individual rights (access, rectification, erasure, portability). Employee consent is rarely a valid lawful basis due to the power imbalance \u2014 legitimate interests or contractual necessity are more appropriate." },
+    "acas": { name: "ACAS Code of Practice", inKL: true, cats: [1, 9], text: "The ACAS Codes of Practice on Disciplinary and Grievance Procedures and on Flexible Working are statutory codes. Tribunals must take them into account and can adjust awards by up to 25% for unreasonable failure to follow the codes. They set the minimum procedural standards for fair process." },
+    "pida": { name: "Public Interest Disclosure Act 1998", inKL: true, cats: [4], text: "PIDA inserted Part IVA into ERA 1996 to protect whistleblowers. It covers six categories of qualifying disclosure: criminal offences, failure to comply with legal obligations, miscarriages of justice, health and safety dangers, environmental damage, and deliberate concealment. Protection is unlimited in value \u2014 no cap on compensation." },
+    "flexible working": { name: "Employment Relations (Flexible Working) Act 2023", inKL: true, cats: [5], text: "This Act amends ERA 1996 s.80F-80I. Key changes from April 2024: day-one right to request (removing 26-week qualifying period), two requests per year (up from one), employer must consult before refusing, decision within two months." },
+    "tulrca": { name: "Trade Union and Labour Relations (Consolidation) Act 1992", inKL: true, cats: [8], text: "TULRCA governs trade union recognition, collective bargaining, industrial action, and the rights of union members. ERA 2025 strengthens union access rights and simplifies recognition procedures." },
+    "sar": { name: "Subject Access Request (DPA 2018 / UK GDPR Art. 15)", inKL: true, cats: [11], text: "A DSAR gives individuals the right to obtain a copy of their personal data. You have one month to respond (extendable by two months for complex requests). Common in employment: pre-litigation discovery, grievance processes, and exit situations. Failure to respond is an ICO enforcement risk." },
+    "et1": { name: "Employment Tribunal Claim Form (ET1)", inKL: false, cats: [], text: "The ET1 is filed by the employee to start tribunal proceedings. It must be filed within strict time limits \u2014 usually 3 months less one day from the act complained of, extended by the ACAS early conciliation period. Late claims are only accepted in exceptional circumstances." },
+    "ehrc": { name: "Equality and Human Rights Commission", inKL: false, cats: [2], text: "The EHRC is the statutory body responsible for enforcing the Equality Act. It can conduct investigations, issue compliance notices, and intervene in tribunal cases. Its guidance, while not legally binding, is highly persuasive and routinely cited in tribunal decisions." },
+    "hse": { name: "Health and Safety Executive", inKL: false, cats: [10], text: "The HSE is the regulator for workplace health and safety. It can inspect premises, issue improvement and prohibition notices, and prosecute. For FM companies, HSE focus areas include lone working, COSHH, manual handling, and work at height." },
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // FINDING SOURCE CHAINS (EILEEN-002 \u00A72.2 + Annex B)
+  // ══════════════════════════════════════════════════════════════════
+  const FIND_SRC = {
+    ft: {
+      finding: "Qualifying period reference",
+      clause: "Clause 3.1",
+      statute: "ERA 1996 s.108 (amended by ERA 2025)",
+      explanation: "Your standard operative contract references a two-year qualifying period for unfair dismissal protection. ERA 2025 removes this, making unfair dismissal a day-one right. Once commenced, this clause will be actively misleading to employees and exposes you to claims based on incorrect stated terms.",
+      caseLaw: null,
+      tribunalData: "2,847 unfair dismissal decisions in the last 12 months. Average award: \u00A314,670. Trend: rising.",
+      klInstrument: "Employment Rights Act 1996",
+      klSection: "Part X \u2014 Unfair Dismissal, specifically s.108 (qualifying period)",
+    },
+    flex: {
+      finding: "Flexible working pre-dates 2023 Act",
+      clause: "Section 7",
+      statute: "Employment Relations (Flexible Working) Act 2023; ERA 1996 s.80F\u201380I as amended",
+      explanation: "Your handbook\u2019s flexible working section still references the old 26-week qualifying period and allows only one request per year. Since April 2024, it\u2019s a day-one right with two requests per year. Your procedure also doesn\u2019t require consultation before refusal, which is now mandatory.",
+      caseLaw: null,
+      tribunalData: "1,856 working time and leave decisions in the last 12 months. Flexible working refusal claims increasing.",
+      klInstrument: "Employment Relations (Flexible Working) Act 2023",
+      klSection: "Full Act \u2014 amends ERA 1996 s.80F\u201380I",
+    },
+    whistle: {
+      finding: "Whistleblowing below ACAS Code",
+      clause: "Section 12",
+      statute: "ERA 1996 Part IVA; Public Interest Disclosure Act 1998",
+      explanation: "Your whistleblowing procedure doesn\u2019t cover all six categories of qualifying disclosure and lacks a clear escalation path. This is a compliance gap rather than a contractual error, but it matters because tribunal awards for whistleblowing detriment are uncapped.",
+      caseLaw: "Chesterton Global Ltd v Nurmohamed [2017] EWCA Civ 979 \u2014 established that \u2018public interest\u2019 can include matters affecting a section of the public, not just the public at large.",
+      tribunalData: "412 whistleblowing decisions in the last 12 months. Low volume, but average compensation: \u00A330,000+. Uncapped.",
+      klInstrument: "Public Interest Disclosure Act 1998",
+      klSection: "Amends ERA 1996 Part IVA \u2014 protected disclosures and qualifying categories",
+    },
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // LEGAL PROCESS KNOWLEDGE
+  // ══════════════════════════════════════════════════════════════════
+  const PARLIAMENT_PROCESS = `Here\u2019s how legislation moves through Parliament \u2014 it\u2019s worth understanding because it directly affects when your compliance obligations change.\n\nA Bill starts with a First Reading \u2014 essentially a formal introduction, no debate. Then Second Reading, where the principle of the Bill is debated. Committee Stage follows, where it\u2019s examined line by line. Report Stage brings amendments to the full House, and Third Reading is the final vote.\n\nAfter one House passes it, the process repeats in the other House. If they make changes, it goes back and forth (\u2018ping pong\u2019) until both Houses agree.\n\nBut here\u2019s the part that matters most for your compliance planning: many provisions don\u2019t come into force when they receive Royal Assent. They require commencement orders \u2014 separate statutory instruments that bring specific sections into force on specific dates. That\u2019s why ERA 2025 exists as law but many of its provisions aren\u2019t yet live. Your Legislative Tracker monitors these commencement dates.`;
+
+  const TRIBUNAL_PROCESS = `The employment tribunal process has several stages, and understanding them helps you prepare properly.\n\nFirst, ACAS Early Conciliation \u2014 mandatory before any claim. The employee contacts ACAS, you\u2019re notified, and there\u2019s a period (usually one month, extendable to six weeks) to try to resolve it. About 60% of cases settle at this stage.\n\nIf conciliation doesn\u2019t work, the employee files an ET1 claim form. You respond with an ET3 \u2014 usually within 28 days. Missing this deadline can mean a default judgment.\n\nThen there\u2019s typically a Preliminary Hearing to sort out case management \u2014 what the issues are, what evidence is needed, and the timetable.\n\nThe Full Hearing is where evidence is heard. You\u2019ll need witness statements, a bundle of documents, and potentially expert evidence. Hearings can last from a day to several weeks.\n\nRemedies if the employee succeeds: reinstatement (rare), re-engagement (also rare), or compensation. Basic award (calculated like redundancy pay) plus compensatory award (capped at the lower of one year\u2019s pay or the statutory cap, currently around \u00A3115,000 \u2014 but uncapped for discrimination and whistleblowing).\n\nThe reason this matters for your documents is that tribunals scrutinise your procedures closely. If your handbook doesn\u2019t reflect current law, that\u2019s evidence of non-compliance.`;
+
+  const GRIEVANCE_PROCESS = `When an employee raises a grievance, the process needs to follow the ACAS Code of Practice. Here\u2019s the structure.\n\nThe employee should put their grievance in writing. Then you hold a meeting without unreasonable delay. The employee has the right to be accompanied by a colleague or trade union representative.\n\nAfter the meeting, you investigate and communicate your decision in writing. The investigation needs to be proportionate to the grievance \u2014 a complaint about car parking doesn\u2019t need a six-week investigation, but an allegation of bullying does.\n\nThe employee must have a right of appeal to a more senior manager where possible. The appeal should be a genuine review, not a rubber stamp.\n\nWhat matters in practice: document everything. The investigation needs to be thorough and fair. If it reaches a tribunal, they\u2019ll look at whether you followed a fair process \u2014 not just whether the outcome was right.\n\nIf you\u2019re dealing with a specific grievance right now, this is one of those areas where speaking to a qualified professional early is valuable. It\u2019s much cheaper to get the process right at the start than to defend a claim later.`;
+
+  const DISCIPLINARY_PROCESS = `The disciplinary process needs to follow the ACAS Code of Practice \u2014 here\u2019s the framework.\n\nFirst, investigate. Gather facts before taking any action. The investigation should be proportionate \u2014 establish whether there\u2019s a case to answer.\n\nIf there is, write to the employee setting out the allegations and the evidence. Give them reasonable time to prepare.\n\nThe disciplinary meeting: the employee has the right to be accompanied. Present the evidence, hear their response, and adjourn to consider.\n\nPossible outcomes: no action, first written warning, final written warning, or dismissal. The sanction must be proportionate. What constitutes gross misconduct should be defined in your handbook.\n\nRight of appeal \u2014 this is essential. The appeal should be heard by someone more senior who wasn\u2019t involved in the original decision.\n\nYour handbook covers the basic structure, but the detail on what constitutes gross misconduct needs reviewing against current case law.\n\nFor any live disciplinary situation, professional advice at the outset is valuable \u2014 particularly if dismissal is a possible outcome.`;
+
+  const DOC_TYPES = `Good question \u2014 they serve different legal purposes and carry different compliance obligations.\n\nYour employment contract is the binding legal agreement between you and each employee. It must include the written particulars required by ERA 1996 s.1: job title, pay, hours, holiday, notice period, pension, and more. Changes require agreement or a fair process.\n\nYour employee handbook contains the policies and procedures that govern the employment relationship day-to-day: disciplinary, grievance, absence, flexible working, data protection, whistleblowing. These are typically non-contractual \u2014 but if incorporated into the contract (by reference or by practice), they become binding.\n\nThe critical difference: changing a contract term requires employee consent or a fair process (potentially with fire-and-rehire risks). Changing a handbook policy requires consultation but not individual consent \u2014 unless it\u2019s been incorporated into the contract.\n\nFor your documents, the contract findings relate primarily to statutory compliance \u2014 the qualifying period issue. The handbook findings are procedural \u2014 your processes don\u2019t match current law.`;
+
+  const EU_BREXIT = `Since Brexit, EU employment law doesn\u2019t directly apply to UK employers anymore. But the practical impact is smaller than you might expect.\n\nMost EU-derived employment protections were transposed into UK law before exit and are preserved by the Retained EU Law Act 2023. The Working Time Regulations, TUPE, anti-discrimination principles \u2014 all still in force.\n\nWhere it gets interesting is in interpretation. Pre-exit EU case law from the Court of Justice remains persuasive but not binding. UK courts can now depart from it. This creates a slow divergence that your compliance planning needs to account for.\n\nFor your compliance planning, the practical position is: the core protections are still in place, but the direction of travel is toward UK-specific interpretation. ERA 2025 represents the first major legislative divergence.`;
+
+  const INTERNATIONAL = `Ailane covers UK employment law \u2014 that\u2019s our core. The ACEI, compliance checker, and Knowledge Library are all built around UK statutes, regulations, and tribunal decisions.\n\nIf you have employees working internationally, the jurisdictional questions get complex quickly. Which country\u2019s employment law applies depends on where the work is performed, the terms of the contract, and sometimes the nationality of the employer.\n\nAt Institutional tier, we extend into EU regulatory monitoring and some international statute tracking. But for your current operations across Cardiff, Swansea, Bristol, and Birmingham \u2014 you\u2019re fully within UK jurisdiction and the platform covers everything you need.`;
+
+  const WELSH_LANG = `Good question, and particularly relevant given your Cardiff headquarters.\n\nFour Acts have official Welsh texts with equal legal standing: the Welsh Language Act 1993, the Government of Wales Act 2006, the Welsh Language (Wales) Measure 2011, and the Legislation (Wales) Act 2019.\n\nFor employment purposes, the Welsh Language Standards can require bilingual policies, communications, and service delivery for organisations dealing with the public in Wales. Whether they apply to you depends on your client contracts and public-facing operations.\n\nThe Knowledge Library includes instruments with Welsh language relevance. Something worth checking given your Cardiff and Swansea operations.`;
+
+  const DEVOL_GEN = `Employment law is mostly reserved to Westminster \u2014 the same core legislation applies across England, Scotland, and Wales. But there are important devolved intersections.\n\nHealth and safety enforcement can operate differently across devolved jurisdictions. Public sector equality duties have devolved elements. And the interplay between reserved employment law and devolved areas like education, health, and local government creates complexity.\n\nNorthern Ireland is the significant exception \u2014 employment law is substantially devolved there with separate but parallel legislation.\n\nFor a company operating across Cardiff, Swansea, Bristol, and Birmingham, you\u2019re primarily in a unified legal framework with Welsh language considerations for your Welsh sites.`;
+
+  const DEVOL_SCOT = `Employment law is reserved to Westminster under the Scotland Act 1998 Schedule 5. Scottish Parliament cannot legislate on core employment rights, industrial relations, or the national minimum wage.\n\nWhere Scotland diverges: the tribunal system has some administrative differences, health and safety enforcement operates under Scottish regulations in some areas, and the interplay between reserved employment law and devolved areas creates unique compliance considerations.\n\nIf you expand into Scottish operations, the substantive employment law obligations are the same as England and Wales. The differences are primarily administrative and procedural.`;
+
+  const DEVOL_WALES = `Employment law isn\u2019t devolved to the Senedd \u2014 core obligations are the same as England. But Wales has its own equality and human rights framework through the Government of Wales Act 2006.\n\nWhere Wales differs is in the devolved areas that intersect with employment: the Welsh Language Standards, public sector equality duties, and some health and safety regulations. The Well-being of Future Generations Act also creates obligations for public bodies that can affect employment practices.\n\nGiven that you operate across both Welsh and English sites, the practical impact is mainly around Welsh language obligations and any public sector contract requirements.`;
+
+  const DEVOL_NI = `Northern Ireland is genuinely different. Employment law is substantially devolved under the Northern Ireland Act 1998. It has its own parallel legislation.\n\nThe Employment Rights (Northern Ireland) Order 1996 rather than the ERA 1996. Separate equality legislation. Different tribunal rules and procedures. Some provisions are ahead of GB law, others behind.\n\nIf you have Northern Ireland operations or are considering expansion there, the legal framework is structurally similar but legislatively distinct. You would need NI-specific compliance assessment.`;
+
+  // ══════════════════════════════════════════════════════════════════
+  // V8 EILEEN RESPONSE BANKS
+  // ══════════════════════════════════════════════════════════════════
+  const NON_EMP = [
+    "That sits outside our current scope \u2014 Ailane is built around employment law intelligence, so I\u2019m strongest there. Anything about your compliance position, documents, or regulatory exposure \u2014 that\u2019s where I can really help.",
+    "I wouldn\u2019t want to give you incomplete information on that \u2014 it\u2019s not my area. What I can tell you about is how your employment law exposure stands and what your documents need.",
+    "That crosses into territory where you\u2019d really benefit from a specialist. My strength is employment law compliance \u2014 your ACEI score, document findings, regulatory events. Want to explore any of those?",
+    "Not my territory today, and I\u2019d rather be honest about that than give you something half-baked. On employment law though \u2014 your score, your documents, what\u2019s happening in your sector \u2014 I\u2019m here.",
+  ];
+  const BOUNDS = [
+    "That\u2019s one where professional advice would serve you better than anything I can offer. What I can do is show you exactly where your exposure sits and what your documents say \u2014 which gives a solicitor a head start.",
+    "I need to be straight with you \u2014 that\u2019s outside what I can responsibly cover. But here\u2019s what I can do: walk you through your findings, your score, and the regulatory landscape. That\u2019s solid ground for whatever comes next.",
+    "That calls for qualified professional advice, and I wouldn\u2019t want to steer you wrong by stepping outside my lane. On your compliance position though \u2014 ask me anything.",
+    "For your specific situation there, a solicitor would give you much better guidance than I can. What I can do is make sure you understand your exposure position clearly before you speak to one.",
+  ];
+  const OFFTOPIC = [
+    "Ha \u2014 bit outside my lane there. But if there\u2019s anything about your compliance position, documents, or regulatory exposure, I\u2019m all yours.",
+    "Not quite my department! But your compliance findings, regulatory events, legal processes \u2014 those are all fair game.",
+    "I\u2019ll leave that one to someone better qualified. Employment law intelligence though \u2014 your score, your documents, what\u2019s happening in your sector \u2014 fire away.",
+    "I appreciate the question, but I\u2019m most useful when we\u2019re talking about employment regulation and your compliance position. What can I help you with there?",
+  ];
+
+  // ══════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════════════════════
+  const bc = (s) => s >= 80 ? "#ef4444" : s >= 60 ? "#f59e0b" : s >= 40 ? "#eab308" : s >= 20 ? "#22c55e" : "#38bdf8";
+  const ti = (t) => t === "rising" ? "\u2191" : t === "declining" ? "\u2193" : "\u2192";
+  const tc2 = (t) => t === "rising" ? "#ef4444" : t === "declining" ? "#22c55e" : "#94a3b8";
+  const tpc = (t) => t === "enforcement" ? "#ef4444" : t === "legislative" ? "#38bdf8" : "#22c55e";
+  const tpb = (t) => t === "enforcement" ? "rgba(239,68,68,0.1)" : t === "legislative" ? "rgba(56,189,248,0.06)" : "rgba(34,197,94,0.06)";
+  const sc = (s) => s === "critical" ? "#ef4444" : s === "high" ? "#f59e0b" : "#38bdf8";
+  const isOT = (q) => {
+    const ql = q.toLowerCase();
+    const on = ["contract", "clause", "finding", "flagged", "score", "acei", "rri", "cci", "document", "handbook", "policy", "compliance", "exposure", "risk", "category", "ticker", "legislation", "legislative", "tribunal", "alert", "notification", "report", "calendar", "workspace", "note", "governance", "upgrade", "tier", "product", "pricing", "knowledge library", "kl", "instrument", "statute", "act", "regulation", "dismissal", "redundancy", "discrimination", "whistleblow", "parental", "health safety", "data protection", "tupe", "transfer", "wages", "holiday", "notice", "breach", "working time", "leave", "trade union", "collective", "flexible working", "walkthrough", "tour", "eileen",
+      "hra", "era", "wtr", "wtd", "eqa", "nmw", "hswa", "hasawa", "dpa", "gdpr", "acas", "pioa", "pida", "tupe", "tulrca", "sar", "dsar", "et1", "et3", "ehrc", "hse", "hmrc", "coshh",
+      "employer", "employee", "worker", "hr ", "human resources", "employment law", "law", "legal", "solicitor", "lawyer", "partner", "devolution", "wales", "welsh", "scotland", "scottish", "northern ireland", "eu ", "brexit", "parliament", "bill", "commencement", "statutory instrument", "grievance", "disciplinary", "misconduct", "probation", "qualifying period", "unfair", "wrongful", "constructive", "remedy", "compensation", "award", "settlement", "conciliation", "mediation", "obligation", "required by law", "duty", "protection", "right",
+    ];
+    return !on.some((w) => ql.includes(w)) && ql.length > 3;
+  };
+  const isNonEmp = (q) => {
+    const ql = q.toLowerCase();
+    return ["tax law", "company law", "companies act", "criminal law", "immigration", "planning law", "family law", "divorce", "property law", "intellectual property", "patent", "copyright"].some((w) => ql.includes(w));
+  };
+  const findStat = (q) => {
+    const ql = q.toLowerCase();
+    for (const [k, v] of Object.entries(STAT_MAP)) {
+      if (ql.includes(k)) {
+        if (v.alias) { const canonical = STAT_MAP[v.alias]; return canonical || v; }
+        return v;
+      }
+    }
+    return null;
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // MAIN DASHBOARD COMPONENT
+  // ══════════════════════════════════════════════════════════════════
+  function Dashboard() {
+    const [sec, setSec] = useState("overview");
+    const [sb, setSb] = useState(true);
+    const [eO, setEO] = useState(false);
+    const [eM, setEM] = useState(false);
+    const [msgs, setMsgs] = useState([]);
+    const [inp, setInp] = useState("");
+    const [wt, setWt] = useState(-1);
+    const [wtD, setWtD] = useState(false);
+    const [xC, setXC] = useState(null);
+    const [notes, setNotes] = useState([{ id: 1, text: "Check travel time classification with payroll", source: "Manual", date: "14 Mar", isDoc: false }]);
+    const [nI, setNI] = useState("");
+    const [sNW, setSNW] = useState(false);
+    const [nwS, setNwS] = useState("");
+    const [evts, setEvts] = useState([
+      { id: 1, date: "2026-03-21", title: "ACEI refresh", type: "system", note: "Automated monthly score recalculation" },
+      { id: 2, date: "2026-04-06", title: "ERA 2025 commencement check", type: "legislative", note: "Monitor commencement orders" },
+    ]);
+    const [nE, setNE] = useState({ date: "", title: "", note: "" });
+    const [wsT, setWsT] = useState("notes");
+    const [cT, setCT] = useState("upcoming");
+    const [ups, setUps] = useState(new Set());
+    const [sSC, setSSC] = useState(false);
+    const [lang, setLang] = useState("en");
+    const [eileenThinking, setEileenThinking] = useState(false);
+    const [userProfile, setUserProfile] = useState({ knowledgeLevel: "unknown", topicsDiscussed: [], questionsAsked: 0, productTopicsMentioned: new Set(), lastTopic: null });
+    const [voiceOn, setVoiceOn] = useState(false);
+    const [voicePlaying, setVoicePlaying] = useState(false);
+    const synthRef = useRef(null);
+    const idxRef = useRef({ bounds: 0, offtopic: 0, nonEmp: 0 });
+    const cr = useRef(null);
+    useEffect(() => { if (cr.current) cr.current.scrollTop = cr.current.scrollHeight; }, [msgs]);
+
+    // Voice
+    const [availableVoices, setAvailableVoices] = useState([]);
+    const selectedVoiceRef = useRef(null);
+    useEffect(() => {
+      if (!window.speechSynthesis) return;
+      const loadVoices = () => { const v = window.speechSynthesis.getVoices(); if (v.length > 0) { setAvailableVoices(v); selectedVoiceRef.current = pickBestVoice(v); } };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      setTimeout(loadVoices, 100); setTimeout(loadVoices, 500); setTimeout(loadVoices, 1500);
+    }, []);
+    const pickBestVoice = (voices) => {
+      if (!voices.length) return null;
+      const fiona = voices.find((v) => /fiona/i.test(v.name)); if (fiona) return fiona;
+      const ukFemaleNames = ["Google UK English Female", "Microsoft Hazel", "Hazel", "Microsoft Libby", "Libby"];
+      for (const name of ukFemaleNames) { const m = voices.find((v) => v.name.includes(name)); if (m) return m; }
+      const maleNames = ["Daniel", "James", "George", "Oliver", "Thomas", "Google UK English Male"];
+      const gbNotMale = voices.find((v) => v.lang === "en-GB" && !maleNames.some((m) => v.name.includes(m)));
+      if (gbNotMale) return gbNotMale;
+      return voices.find((v) => v.lang === "en-GB") || voices.find((v) => v.lang.startsWith("en")) || null;
+    };
+    const speak = useCallback((text) => {
+      if (!voiceOn || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const clean = text.replace(/\*\*/g, "").replace(/\n/g, ". ").replace(/[\u2022\u00B7]/g, "").replace(/\s+/g, " ").trim();
+      const utt = new SpeechSynthesisUtterance(clean);
+      if (!selectedVoiceRef.current) selectedVoiceRef.current = pickBestVoice(window.speechSynthesis.getVoices());
+      if (selectedVoiceRef.current) utt.voice = selectedVoiceRef.current;
+      utt.rate = 0.92; utt.pitch = 1.15; utt.volume = 0.9;
+      utt.onstart = () => setVoicePlaying(true);
+      utt.onend = () => setVoicePlaying(false);
+      utt.onerror = () => setVoicePlaying(false);
+      window.speechSynthesis.speak(utt);
+    }, [voiceOn]);
+    const stopVoice = () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); setVoicePlaying(false); };
+
+    // Adaptive learning
+    const detectKnowledge = (q) => {
+      const ql = q.toLowerCase();
+      if (["section ", "s.", "part iv", "schedule ", "regulation ", "commencement order"].some((w) => ql.includes(w))) return "advanced";
+      if (["what does", "what is", "what's a", "what are", "explain", "how does", "tell me about", "help me understand"].some((w) => ql.includes(w))) return "beginner";
+      if (["statute", "tribunal", "unfair dismissal", "protected characteristic", "qualifying period"].some((w) => ql.includes(w))) return "intermediate";
+      return null;
+    };
+    const updateProfile = (q, topic) => {
+      setUserProfile((prev) => {
+        const detected = detectKnowledge(q);
+        const newTopics = topic && !prev.topicsDiscussed.includes(topic) ? [...prev.topicsDiscussed, topic] : prev.topicsDiscussed;
+        return { ...prev, knowledgeLevel: detected || prev.knowledgeLevel, topicsDiscussed: newTopics, questionsAsked: prev.questionsAsked + 1, lastTopic: topic || prev.lastTopic };
+      });
+    };
+    const addContext = (base, topic) => {
+      const prev = userProfile.topicsDiscussed;
+      let prefix = "";
+      if (prev.includes(topic)) prefix = "Coming back to this \u2014 ";
+      return prefix + base;
+    };
+
+    // Walkthrough
+    const WT = [
+      { target: "welcome", e: `Hello \u2014 I'm Eileen. I keep track of what's happening in UK employment law and how it affects your business. I can walk you through your exposure score, your documents, the regulatory ticker, and your workspace. Everything here is grounded in ${ACEI_D.est.tri}+ tribunal decisions, ${ACEI_D.est.emp}+ employer profiles, and ${ACEI_D.est.leg} legislative instruments.`, acts: ["Walk me through it", "I'll explore \u2014 thanks"] },
+      { target: "overview", e: `Your ACEI score is ${ACEI_D.domain} out of 100 \u2014 that puts you in the Elevated band. It's calculated across 12 categories of employment law exposure, weighted for your sector (Facilities Management), your size (${ORG.emp} employees), and your geographic spread. The score is rising \u2014 mainly driven by Working Time & Leave (73) and Unfair Dismissal (71).`, acts: ["Show me the documents", "Tell me about the ticker first"] },
+      { target: "documents", e: `You have three documents uploaded out of your five slots. Two are flagged.\n\nThe operative contract has a qualifying period clause that will be wrong when ERA 2025 commences. The handbook has two critical findings \u2014 the flexible working section predates the 2023 Act, and the whistleblowing procedure doesn't cover all qualifying disclosure categories.\n\nI can trace any finding back to the specific statute, clause, and tribunal data that supports it.`, acts: ["Trace the flexible working finding", "Show me the ticker"] },
+      { target: "ticker", e: `Your ticker shows UK regulatory events filtered to your sector. The most significant right now is ERA 2025 \u2014 commencement schedule confirmed, day-one rights from October 2026. There's also a \u00A32.1m HMRC enforcement action for unpaid holiday pay across FM employers, and an HSE prosecution for a lone worker fatality in facilities management.`, acts: ["Show me the workspace", "Tell me about that HMRC action"] },
+      { target: "workspace", e: `The workspace is where you keep notes, save our conversations, and manage your compliance calendar. You've got a note about travel time classification \u2014 good instinct, that's an active area.\n\nYour calendar tracks your next ACEI refresh (21 March) and the ERA 2025 commencement check (6 April).`, acts: ["What else can the platform do?", "Thanks \u2014 I'll explore"] },
+      { target: "complete", e: `You're getting solid value from what you have \u2014 your exposure score, five monitored documents, the regulatory ticker, and the Knowledge Library. The main upgrade from here is Governance, which adds the RRI and CCI scores, unlimited documents, team access for up to 25 users, and the full AI-powered Knowledge Library.`, acts: ["Tell me about Governance", "I'm good for now, thanks"] },
+    ];
+    const startWt = () => { setWt(0); setEO(true); setEM(false); const first = WT[0].e; setMsgs([{ role: "eileen", text: first }]); if (voiceOn) setTimeout(() => speak(first), 300); };
+    const wtAct = (ai) => {
+      const s = WT[wt];
+      setMsgs((p) => [...p, { role: "user", text: s.acts[ai] }]);
+      if (wt === 0 && ai === 1) { const r = "Of course \u2014 I'm here when you need me. Click any section in the sidebar, or open the chat anytime."; setTimeout(() => { setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); }, 600); setTimeout(() => { setWt(-1); setWtD(true); }, 1500); return; }
+      if (wt === 5 && ai === 0) { const r = `Governance is where the platform starts doing the heavy lifting for you.\n\nRight now you see your ACEI score \u2014 that's your exposure position. Governance adds the RRI (Regulatory Readiness Index) and CCI (Compliance Conduct Index), giving you the full picture: exposure, readiness, and conduct.\n\nYou also get unlimited document monitoring, team access for up to 25 users, the full AI Knowledge Library, and quarterly board-ready PDF reports.\n\nWorth exploring when your compliance needs grow beyond what one person can track.`; setTimeout(() => { setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); }, 600); return; }
+      if (wt === 5 && ai === 1) { const r = "You're welcome. Always here \u2014 your score, documents, and regulatory feed are live. Come back anytime."; setTimeout(() => { setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); }, 600); setTimeout(() => { setWt(-1); setWtD(true); }, 1500); return; }
+      if (wt === 1 && ai === 0) { setTimeout(() => advWt(), 400); return; }
+      if (wt === 2 && ai === 0) { const f = FIND_SRC["flex"]; const r = `Here's the trace on the flexible working finding.\n\nDocument: Employee Handbook v4.1\nFinding: ${f.finding}\nClause: ${f.clause}\nStatute: ${f.statute}\n\n${f.explanation}\n\nTribunal data: ${f.tribunalData}\n\nKL instrument: ${f.klInstrument} \u2014 ${f.klSection}`; setTimeout(() => { setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); }, 600); }
+      if (wt === 3 && ai === 0) { const r = `The HMRC enforcement action is significant for your sector. \u00A32.1 million in penalties across FM employers for unpaid holiday pay \u2014 specifically around travel time and variable hours calculations.\n\nThis connects to your Category 3 (Wages & Financial Obligations) score of 68. If you have employees travelling between sites, the question of whether travel time counts as working time \u2014 and therefore affects holiday pay \u2014 is exactly what HMRC is targeting.\n\nYour workspace note about travel time classification is well-timed.`; setTimeout(() => { setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); }, 600); }
+      setTimeout(() => advWt(), 400);
+    };
+    const advWt = () => {
+      const n = wt + 1;
+      if (n < WT.length) { setWt(n); const t = WT[n].target; if (t !== "welcome" && t !== "complete") setSec(t); setTimeout(() => { const text = WT[n].e; setMsgs((p) => [...p, { role: "eileen", text }]); if (voiceOn) speak(text); }, 800); }
+      else { setWt(-1); setWtD(true); }
+    };
+    const saveChat = (d) => {
+      const txt = d ? `Summary \u2014 15 Mar\n${msgs.filter((m) => m.role === "eileen").slice(-3).map((m) => "\u2022 " + m.text.slice(0, 120)).join("\n")}` : msgs.map((m) => `${m.role === "eileen" ? "Eileen" : "You"}: ${m.text}`).join("\n\n");
+      setNotes((p) => [{ id: Date.now(), text: txt, source: "Eileen", date: "15 Mar", isDoc: d }, ...p]);
+      setSSC(false);
+      const r = d ? "Summary saved to your workspace." : "Conversation saved to your workspace.";
+      setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r);
+    };
+
+    // Main send handler
+    const send = () => {
+      if (!inp.trim()) return;
+      const q = inp.trim(); setInp(""); setMsgs((p) => [...p, { role: "user", text: q }]); setEileenThinking(true);
+      setTimeout(() => {
+        setEileenThinking(false);
+        const ql = q.toLowerCase(); let r = ""; let topic = null;
+        if (isOT(q)) { r = OFFTOPIC[idxRef.current.offtopic % OFFTOPIC.length]; idxRef.current.offtopic++; setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); return; }
+        if (isNonEmp(q)) { r = NON_EMP[idxRef.current.nonEmp % NON_EMP.length]; idxRef.current.nonEmp++; setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); return; }
+        if (ql.includes("save") && (ql.includes("conversation") || ql.includes("chat"))) { setSSC(true); r = "Would you like to save the full conversation or just a summary of the key points?"; setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r); return; }
+        if (ql.includes("parliament") && (ql.includes("pass") || ql.includes("legislation") || ql.includes("work"))) { r = PARLIAMENT_PROCESS; topic = "parliament"; }
+        else if (ql.includes("bill") && (ql.includes("become") || ql.includes("act") || ql.includes("law"))) { r = PARLIAMENT_PROCESS; topic = "parliament"; }
+        else if (ql.includes("statutory instrument") || (ql.includes("how") && ql.includes("regulation"))) { r = "Statutory Instruments are the mechanism that brings most employment law provisions into force. They're laid before Parliament and can be subject to negative or affirmative procedure. Your Legislative Tracker monitors all relevant SIs and their commencement dates."; topic = "statutory-instruments"; }
+        else if ((ql.includes("tribunal") && (ql.includes("process") || ql.includes("work") || ql.includes("claim"))) || ql.includes("et1")) { r = TRIBUNAL_PROCESS; topic = "tribunal-process"; }
+        else if (ql.includes("grievance") || (ql.includes("employee") && ql.includes("complaint"))) { r = GRIEVANCE_PROCESS; topic = "grievance"; }
+        else if (ql.includes("disciplinary") || (ql.includes("misconduct") && ql.includes("process"))) { r = DISCIPLINARY_PROCESS; topic = "disciplinary"; }
+        else if (findStat(q) && !ql.includes("why") && !ql.includes("flagged")) {
+          const stat = findStat(q); r = stat.text;
+          const relCats = (stat.cats || []).map((id) => CATS.find((c) => c.id === id)).filter(Boolean);
+          if (relCats.length > 0) r += `\n\nFor your business specifically, this connects to your ${relCats[0].n} category, currently scoring ${relCats[0].s} and ${relCats[0].t}.`;
+          if (stat.inKL) r += `\n\nThe ${stat.name} is in your Knowledge Library \u2014 would you like me to open the relevant section?`;
+          else r += `\n\nThat instrument isn\u2019t in the Ailane Knowledge Library as a standalone entry, but its provisions are reflected in your ACEI scoring and compliance findings.`;
+          topic = "statute-" + stat.name;
+        }
+        else if ((ql.includes("difference") && (ql.includes("contract") && ql.includes("handbook"))) || (ql.includes("what") && ql.includes("type") && ql.includes("document"))) { r = DOC_TYPES; topic = "doc-types"; }
+        else if ((ql.includes("eu") && (ql.includes("law") || ql.includes("affect"))) || ql.includes("brexit")) { r = EU_BREXIT; topic = "eu-brexit"; }
+        else if (ql.includes("international") || (ql.includes("global") && ql.includes("law"))) { r = INTERNATIONAL; topic = "international"; }
+        else if (ql.includes("welsh language") || ql.includes("cymraeg") || ql.includes("cymru")) { r = WELSH_LANG; topic = "welsh-language"; }
+        else if (ql.includes("devol")) { r = DEVOL_GEN; topic = "devolution"; }
+        else if (ql.includes("scotland") || ql.includes("scottish")) { r = DEVOL_SCOT; topic = "devolution-scot"; }
+        else if ((ql.includes("wales") || ql.includes("welsh")) && !ql.includes("language")) { r = DEVOL_WALES; topic = "devolution-wales"; }
+        else if (ql.includes("northern ireland")) { r = DEVOL_NI; topic = "devolution-ni"; }
+        else if ((ql.includes("why") && (ql.includes("flagged") || ql.includes("finding"))) || ql.includes("trace") || ql.includes("source chain")) {
+          if (ql.includes("handbook") || ql.includes("flexible")) { const f = FIND_SRC["flex"]; r = `Let me trace that for you.\n\nDocument: Employee Handbook v4.1\nFinding: ${f.finding}\nClause: ${f.clause}\nStatute: ${f.statute}\n\n${f.explanation}\n\nTribunal data: ${f.tribunalData}\n\nKL: ${f.klInstrument} \u2014 ${f.klSection}`; topic = "finding-flex"; }
+          else if (ql.includes("whistleblow") || ql.includes("disclosure")) { const f = FIND_SRC["whistle"]; r = `Here\u2019s the full source chain for the whistleblowing finding.\n\nDocument: Employee Handbook v4.1\nFinding: ${f.finding}\nClause: ${f.clause}\nStatute: ${f.statute}\n\n${f.explanation}\n\nCase law: ${f.caseLaw}\n\nTribunal data: ${f.tribunalData}\n\nKL: ${f.klInstrument} \u2014 ${f.klSection}`; topic = "finding-whistle"; }
+          else if (ql.includes("contract") || ql.includes("qualifying") || ql.includes("probation")) { const f = FIND_SRC["ft"]; r = `Here\u2019s the full source chain for the qualifying period finding.\n\nDocument: Standard FT Contract (Operative)\nFinding: ${f.finding}\nClause: ${f.clause}\nStatute: ${f.statute}\n\n${f.explanation}\n\nTribunal data: ${f.tribunalData}\n\nKL: ${f.klInstrument} \u2014 ${f.klSection}`; topic = "finding-ft"; }
+          else { r = "I can trace any of the findings back to the specific statute, the case law, and the tribunal data. Which finding would you like me to trace \u2014 the qualifying period in the contract, the flexible working in the handbook, or the whistleblowing procedure?"; topic = "findings-general"; }
+        }
+        else if (ql.includes("products") || ql.includes("pricing") || ql.includes("what else") || ql.includes("what can")) {
+          if (!ups.has("product-ask")) { r = `You\u2019re getting solid value from what you have \u2014 your exposure score, five monitored documents, the regulatory ticker, and the Knowledge Library. The main upgrade paths are Governance (\u00A3799/mo) for the full Index Triad, unlimited documents, and team access, or the Knowledge Library AI for deeper research capability.\n\nWant to know more about either?`; setUps((p) => new Set([...p, "product-ask"])); }
+          else r = "Since we talked about this earlier \u2014 the main upgrade paths from where you are: Governance for full triad scoring and team access, or KL AI for deeper research. Happy to elaborate on either.";
+          topic = "products";
+        }
+        else if (ql.includes("governance") || ql.includes("upgrade")) {
+          if (!ups.has("governance")) { r = `Governance is where the platform starts doing the heavy lifting for you.\n\nRight now you see your ACEI score. Governance adds RRI (Regulatory Readiness) and CCI (Compliance Conduct), giving you the full picture.\n\nYou also get unlimited documents, team access for 25 users, AI-powered Knowledge Library, quarterly board reports, and priority support.\n\n\u00A3799/month. Worth exploring when compliance becomes a team responsibility.`; setUps((p) => new Set([...p, "governance"])); }
+          else r = "We covered Governance earlier \u2014 the key differences are unlimited documents, 25-user team access, full Index Triad, and board-ready reporting. \u00A3799/month.";
+          topic = "governance";
+        }
+        else if (ql.includes("rewrite") || ql.includes("replacement") || ql.includes("fix the contract") || ql.includes("fix my")) {
+          r = `I understand the instinct \u2014 you\u2019ve seen the finding, you want to fix it. But this is where I need to be careful.\n\nAilane identifies compliance gaps and traces them to specific statutes. We don\u2019t draft replacement clauses or rewrite contracts \u2014 that\u2019s legal advice, and it needs to come from a qualified employment solicitor who understands your specific circumstances.\n\nWhat I can do is make sure you understand exactly what the finding means, why it matters, and what the statutory position is. That gives your solicitor a clear brief.\n\nAt Governance tier, you also get remediation guidance \u2014 specific recommendations for addressing each finding, designed to brief your legal team.`;
+          topic = "rewrite-guardrail";
+        }
+        else if (ql.includes("knowledge library") || ql.includes("kl")) {
+          if (!ups.has("kl-ai")) { r = `The Knowledge Library gives you access to all 47 UK employment law instruments \u2014 Acts, Regulations, Codes of Practice. At Operational tier, you have full read-only access.\n\nAt Governance tier, the KL gains AI-powered search and analysis \u2014 ask questions about any instrument and get contextualised answers grounded in the statutory text.\n\nAsk me about any piece of legislation and I\u2019ll tell you what\u2019s in the library.`; setUps((p) => new Set([...p, "kl-ai"])); }
+          else r = "Your Knowledge Library has all 47 instruments ready. Ask me about any piece of legislation and I\u2019ll tell you what it covers and how it connects to your compliance position.";
+          topic = "knowledge-library";
+        }
+        else if (ql.includes("biggest risk") || ql.includes("highest risk")) { r = `For an FM company with ${ORG.emp} employees across multiple sites, I\u2019d highlight three areas.\n\nFirst, Working Time & Leave at 73 \u2014 your highest category. Holiday pay calculations for variable hours workers and travel time between sites. HMRC is actively enforcing.\n\nSecond, Unfair Dismissal at 71 \u2014 ERA 2025 removes the qualifying period. Every dismissal becomes challengeable from day one.\n\nThird, Health & Safety at 70 \u2014 lone working in FM is a known HSE focus. The recent prosecution with an \u00A3890k fine is in your sector and region.\n\nYour documents compound this \u2014 two are flagged with findings that directly relate to these categories.`; topic = "biggest-risk"; }
+        else if (ql.includes("document") && !ql.includes("why")) { r = `You have three documents uploaded in your five slots \u2014 two contracts and your employee handbook.\n\nThe standard operative contract scores 62 with one critical finding (qualifying period clause). The supervisor contract scores 78 \u2014 your strongest.\n\nThe handbook scores 54 with two critical findings: flexible working predates the 2023 Act, and whistleblowing doesn\u2019t cover all qualifying categories.\n\nWant me to trace any specific finding?`; topic = "documents"; }
+        else if (ql.includes("hello") || ql.includes("hi ") || q.toLowerCase() === "hi" || ql.includes("good morning") || ql.includes("good afternoon")) { r = `Hello \u2014 good to have you here. Your ACEI score is sitting at ${ACEI_D.domain}, band: ${ACEI_D.band}. Two documents are flagged. The ticker has five regulatory events in the last week. What would you like to look at?`; topic = "greeting"; }
+        else if (ql.includes("thank")) { r = "You\u2019re welcome. I\u2019m always here \u2014 your score, documents, and regulatory feed are live. Come back anytime."; }
+        else if (ql.includes("calendar") || ql.includes("reminder")) { r = "Your calendar is in the sidebar \u2014 it tracks compliance deadlines and system events. Next up: ACEI refresh on 21 March and ERA 2025 commencement check on 6 April."; topic = "calendar"; }
+        else if (ql.includes("note") || ql.includes("workspace")) { r = "Your workspace is in the sidebar \u2014 notes, saved conversations, and drafts. You can also save our conversations directly."; topic = "workspace"; }
+        else if (ql.includes("partner") || ql.includes("solicitor") || ql.includes("lawyer")) { r = "Our professional partners directory is coming soon. When it\u2019s live, I\u2019ll be able to connect you with regulated employment solicitors who can act on findings. All referrals will be disclosed and constitutionally separated from our intelligence."; topic = "solicitor"; }
+        else if (ql.includes("walkthrough") || ql.includes("tour")) { r = "Let me take you through everything."; startWt(); return; }
+        else if (ql.includes("obligation") || ql.includes("what must") || ql.includes("required by law")) { r = `That\u2019s a broad question \u2014 and an important one. Your obligations as an employer span across all 12 ACEI categories. The three most immediately actionable based on your current scores and findings are: updating the qualifying period clause before ERA 2025 commences, bringing your flexible working procedure in line with the 2023 Act (it\u2019s already behind), and reviewing your whistleblowing procedure against all six qualifying disclosure categories.\n\nWant me to walk through any of these in detail?`; topic = "obligations"; }
+        else { r = BOUNDS[idxRef.current.bounds % BOUNDS.length]; idxRef.current.bounds++; }
+        updateProfile(q, topic); r = addContext(r, topic);
+        setMsgs((p) => [...p, { role: "eileen", text: r }]); if (voiceOn) speak(r);
+      }, 800);
+    };
+
+    // Workspace
+    const addNote = () => { if (!nI.trim()) return; setNotes((p) => [{ id: Date.now(), text: nI.trim(), source: "Manual", date: "15 Mar", isDoc: false }, ...p]); setNI(""); };
+    const addEvt = () => { if (!nE.date || !nE.title) return; setEvts((p) => [...p, { id: Date.now(), ...nE, type: "custom", note: nE.note }]); setNE({ date: "", title: "", note: "" }); };
+
+    // Navigation
+    const NAV = [
+      { id: "overview", l: "ACEI Overview", i: "\u25C8" },
+      { id: "documents", l: "Documents", i: "\u2B21", b: "3/5" },
+      { id: "library", l: "Knowledge Library", i: "\u229E" },
+      { id: "ticker", l: "Regulatory Ticker", i: "\u25C9" },
+      { id: "legislation", l: "Legislative Tracker", i: "\u22A1" },
+      { id: "tribunal", l: "Tribunal Digest", i: "\u2298" },
+      { id: "alerts", l: "Alerts", i: "\u26A1", b: "3" },
+      { id: "rel", l: "Regulatory Event Log", i: "\u25CE" },
+      { id: "reports", l: "Reports", i: "\u229E" },
+    ];
+    const SH = ({ t, s, id }) => (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Playfair Display',serif", margin: 0 }}>{t}</h2>
+          <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>{s}</p>
+        </div>
+      </div>
+    );
+
+    // ══════════════════════════════════════════════════════════════
+    // RENDER
+    // ══════════════════════════════════════════════════════════════
+    return (
+      <div style={{ background: "#060D1B", minHeight: "100vh", fontFamily: "'DM Sans',sans-serif", display: "flex", flexDirection: "column" }}>
+        {/* HEADER */}
+        <header style={{ background: "#0A1628", borderBottom: "1px solid #1e293b", padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <button onClick={() => setSb(!sb)} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer" }}>{sb ? "\u2630" : "\u2630"}</button>
+            <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 20 }}>Ai<span style={{ color: "#38bdf8" }}>lane</span></span>
+            <div style={{ height: 24, width: 1, background: "#1e293b" }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b", background: "rgba(245,158,11,0.1)", padding: "4px 10px", borderRadius: 4 }}>OPERATIONAL READINESS</span>
+            <button onClick={() => setLang(lang === "en" ? "cy" : "en")} style={{ background: "none", border: "1px solid #1e293b", color: "#64748b", padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer" }}>
+              {lang === "en" ? "CY" : "EN"}
+            </button>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
+              <span style={{ fontSize: 11, color: "#94a3b8" }}>Live</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#0f172a", padding: "6px 12px", borderRadius: 6 }}>
+              <span style={{ fontSize: 12, color: "#94a3b8" }}>{ORG.name}</span>
+            </div>
+            <button onClick={async () => { try { const sb = window.supabase.createClient('https://cnbsxwtvazfvzmltkuvx.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g'); await sb.auth.signOut(); } catch(e){} localStorage.clear(); window.location.href='/login/'; }} style={{ background: "none", border: "1px solid #334155", color: "#94a3b8", padding: "6px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Logout</button>
+          </div>
+        </header>
+        {lang === "cy" && (
+          <div style={{ background: "rgba(34,197,94,0.06)", borderBottom: "1px solid rgba(34,197,94,0.15)", padding: "6px 24px", fontSize: 11, color: "#22c55e" }}>
+            Rhyngwyneb Cymraeg \u2014 cymorth hygyrchedd. Nid cyfieithiad swyddogol oni nodir.
+          </div>
+        )}
+        <div style={{ display: "flex", flex: 1 }}>
+          {/* SIDEBAR */}
+          {sb && (
+            <nav style={{ width: 220, background: "#0A1628", borderRight: "1px solid #1e293b", overflowY: "auto", flexShrink: 0 }}>
+              <div style={{ padding: "0 16px 10px", fontSize: 9, color: "#64748b", letterSpacing: "0.1em", marginTop: 16 }}>INTELLIGENCE</div>
+              {NAV.map((n) => (
+                <button key={n.id} onClick={() => setSec(n.id)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", background: sec === n.id ? "rgba(56,189,248,0.08)" : "transparent", border: "none", borderLeft: sec === n.id ? "2px solid #38bdf8" : "2px solid transparent", color: sec === n.id ? "#e2e8f0" : "#94a3b8", cursor: "pointer", fontSize: 13, textAlign: "left" }}>
+                  <span>{n.i} {n.l}</span>
+                  {n.b && <span style={{ fontSize: 10, background: "#1e293b", padding: "2px 6px", borderRadius: 8 }}>{n.b}</span>}
+                </button>
+              ))}
+              <div style={{ padding: "12px 16px 6px", borderTop: "1px solid #1e293b", marginTop: 8, fontSize: 9, color: "#64748b", letterSpacing: "0.1em" }}>WORKSPACE</div>
+              {[{ id: "workspace", l: "Notes & Docs", i: "\u270E" }, { id: "calendar", l: "Calendar", i: "\u25A3" }].map((n) => (
+                <button key={n.id} onClick={() => setSec(n.id)} style={{ width: "100%", display: "flex", padding: "10px 16px", background: sec === n.id ? "rgba(56,189,248,0.08)" : "transparent", border: "none", borderLeft: sec === n.id ? "2px solid #38bdf8" : "2px solid transparent", color: sec === n.id ? "#e2e8f0" : "#94a3b8", cursor: "pointer", fontSize: 13, textAlign: "left" }}>
+                  {n.i} {n.l}
+                </button>
+              ))}
+              <div style={{ padding: "12px 16px 6px", borderTop: "1px solid #1e293b", marginTop: 8 }}>
+                <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+                  <NexusAvatar size={20} active={eO} processing={false} />
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>Online \u2014 Operational</span>
+                </div>
+              </div>
+              <div style={{ padding: "12px 16px 6px", borderTop: "1px solid #1e293b", marginTop: 8 }}>
+                {[{ l: "RRI Readiness", c: "#a855f7", t: "Governance" }, { l: "CCI Conduct", c: "#22d3ee", t: "Governance" }].map((item, i) => (
+                  <div key={i} style={{ padding: "6px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: "#475569" }}>\uD83D\uDD12 {item.l}</span>
+                    <span style={{ fontSize: 9, color: item.c, background: `${item.c}15`, padding: "2px 8px", borderRadius: 8 }}>{item.t}</span>
+                  </div>
+                ))}
+              </div>
+              {wtD && (
+                <div style={{ padding: "10px 16px", borderTop: "1px solid #1e293b", marginTop: 8 }}>
+                  <button onClick={startWt} style={{ width: "100%", padding: "8px 12px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.15)", borderRadius: 6, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>
+                    \u21BB Replay Walkthrough
+                  </button>
+                </div>
+              )}
+            </nav>
+          )}
+          {/* MAIN CONTENT */}
+          <main style={{ flex: 1, padding: "24px 32px", overflowY: "auto", maxHeight: "calc(100vh - 56px)" }}>
+            {!wtD && wt < 0 && (
+              <div style={{ background: "linear-gradient(135deg, rgba(56,189,248,0.06), rgba(34,197,94,0.04))", border: "1px solid rgba(56,189,248,0.15)", borderRadius: 12, padding: 32, marginBottom: 24, textAlign: "center" }}>
+                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, margin: "0 0 8px" }}>Welcome to Operational Readiness</h2>
+                <p style={{ color: "#94a3b8", margin: "0 0 20px", fontSize: 14 }}>Eileen is ready to walk you through your compliance position.</p>
+                <button onClick={startWt} style={{ background: "linear-gradient(135deg, #38bdf8, #22c55e)", border: "none", color: "#fff", padding: "12px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                  Start Guided Tour
+                </button>
+              </div>
+            )}
+            {/* OVERVIEW */}
+            {sec === "overview" && (
+              <div>
+                <SH t="ACEI Domain Index" s={`${ACEI_D.est.tri}+ decisions \u00B7 ${ACEI_D.est.emp}+ employer profiles \u00B7 ${ACEI_D.est.leg} instruments`} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+                  <div style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 10, padding: 20 }}>
+                    <div style={{ fontSize: 48, fontWeight: 700, color: bc(ACEI_D.domain), fontFamily: "'Space Mono',monospace" }}>{ACEI_D.domain}</div>
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Domain Score (0-100)</div>
+                    <div style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", background: `${bc(ACEI_D.domain)}15`, borderRadius: 12, color: bc(ACEI_D.domain), fontSize: 12, fontWeight: 600 }}>{ACEI_D.band}</div>
+                  </div>
+                  <div style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 10, padding: 20 }}>
+                    <div style={{ fontSize: 48, fontWeight: 700, color: tc2(ACEI_D.velocity), fontFamily: "'Space Mono',monospace" }}>{ti(ACEI_D.velocity)}</div>
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Velocity: {ACEI_D.velocity}</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>Delta: {ACEI_D.delta} since last refresh</div>
+                  </div>
+                  <div style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 10, padding: 20 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>Last Refresh</div>
+                    <div style={{ fontSize: 18, fontWeight: 600 }}>{ACEI_D.refresh}</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>Next: 21 March 2026</div>
+                  </div>
+                </div>
+                <h3 style={{ fontSize: 14, fontWeight: 600, margin: "24px 0 12px", color: "#94a3b8" }}>12 ACEI Categories</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {CATS.map((c) => (
+                    <div key={c.id} onClick={() => setXC(xC === c.id ? null : c.id)} style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 13 }}>{c.n}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ color: tc2(c.t), fontSize: 12 }}>{ti(c.t)}</span>
+                          <span style={{ fontWeight: 700, color: bc(c.s), fontFamily: "'Space Mono',monospace", fontSize: 16 }}>{c.s}</span>
+                        </div>
+                      </div>
+                      {xC === c.id && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #1e293b", fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
+                          <div>{c.i}</div>
+                          <div style={{ marginTop: 6, color: "#64748b" }}>{c.c.toLocaleString()} tribunal decisions in the last 12 months</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* DOCUMENTS */}
+            {sec === "documents" && (
+              <div>
+                <SH t="Compliance Documents" s="5 slots \u00B7 Full analysis \u00B7 Auto-rescanned on legislative change" />
+                <div style={{ display: "grid", gap: 12 }}>
+                  {DOCS.map((d, i) => (
+                    <div key={i} style={{ background: "#0A1628", border: `1px solid ${d.type === "empty" ? "#1e293b" : d.status === "flagged" ? "#f59e0b30" : "#1e293b"}`, borderRadius: 10, padding: 16 }}>
+                      {d.type === "empty" ? (
+                        <div style={{ textAlign: "center", color: "#475569", fontSize: 13 }}>Empty slot \u2014 upload a contract, handbook, or policy</div>
+                      ) : (
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: 14 }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Uploaded {d.uploaded}</div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontSize: 28, fontWeight: 700, color: bc(d.score), fontFamily: "'Space Mono',monospace" }}>{d.score}%</div>
+                              <div style={{ fontSize: 10, color: "#64748b" }}>{d.gaps} gaps \u00B7 {d.crit} critical</div>
+                            </div>
+                          </div>
+                          {d.status === "flagged" && (
+                            <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(245,158,11,0.08)", borderRadius: 6, fontSize: 12, color: "#f59e0b" }}>
+                              \u26A0 {d.crit} critical finding{d.crit > 1 ? "s" : ""} \u2014 ask Eileen "why is this flagged?"
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* KNOWLEDGE LIBRARY */}
+            {sec === "library" && (
+              <div>
+                <SH t="UK Knowledge Library" s="47 instruments \u00B7 Full read-only access" />
+                <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>Browse all UK employment law instruments. Ask Eileen about any statute.</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {KL_I.map((item, i) => (
+                    <div key={i} style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 6, padding: "10px 14px", fontSize: 13 }}>{item}</div>
+                  ))}
+                  <div style={{ background: "#0A1628", border: "1px dashed #334155", borderRadius: 6, padding: "10px 14px", fontSize: 13, color: "#475569" }}>+ 35 more instruments available</div>
+                </div>
+                <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(168,85,247,0.06)", borderRadius: 8, fontSize: 12, color: "#a855f7" }}>\uD83D\uDD12 AI-powered search & analysis available at Governance tier</div>
+              </div>
+            )}
+            {/* TICKER */}
+            {sec === "ticker" && (
+              <div>
+                <SH t="Regulatory Ticker" s="UK events \u00B7 Significance filtered \u00B7 Your sector" />
+                <div style={{ display: "grid", gap: 10 }}>
+                  {TICKER_D.map((t) => (
+                    <div key={t.id} style={{ background: tpb(t.type), border: `1px solid ${tpc(t.type)}30`, borderRadius: 8, padding: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: tpc(t.type), fontWeight: 600, textTransform: "uppercase" }}>{t.type}</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>{t.date}</span>
+                      </div>
+                      <div style={{ fontSize: 13, lineHeight: 1.4 }}>{t.title}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Significance:</span>
+                        <div style={{ width: 60, height: 4, background: "#1e293b", borderRadius: 2 }}>
+                          <div style={{ width: `${t.sig}%`, height: "100%", background: tpc(t.type), borderRadius: 2 }} />
+                        </div>
+                        <span style={{ fontSize: 11, color: "#94a3b8" }}>{t.sig}/100</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* LEGISLATION */}
+            {sec === "legislation" && (
+              <div>
+                <SH t="Legislative Tracker" s="Commencement tracking" />
+                <div style={{ display: "grid", gap: 10 }}>
+                  {LEGIS_D.map((l, i) => (
+                    <div key={i} style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 8, padding: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{l.name}</span>
+                        <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 12, background: l.stage === "In Force" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)", color: l.stage === "In Force" ? "#22c55e" : "#f59e0b" }}>{l.stage}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>Commencement: {l.cd} \u00B7 Significance: {l.sig} \u00B7 Affects categories: {l.cats.join(", ")}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* TRIBUNAL */}
+            {sec === "tribunal" && (
+              <div>
+                <SH t="Tribunal Digest" s="Claims \u00B7 Compensation \u00B7 Trends" />
+                <div style={{ display: "grid", gap: 10 }}>
+                  {TRIB_D.map((t, i) => (
+                    <div key={i} style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 8, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{t.cat}</div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{t.claims.toLocaleString()} claims \u00B7 Avg: {t.avg}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ color: tc2(t.t), fontSize: 14 }}>{ti(t.t)}</span>
+                        <span style={{ fontSize: 11, color: tc2(t.t) }}>{t.t}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* ALERTS */}
+            {sec === "alerts" && (
+              <div>
+                <SH t="Alerts" s="Weekly digest" />
+                {ALERTS_D.map((a) => (
+                  <div key={a.id} style={{ background: "#0A1628", border: `1px solid ${sc(a.sev)}30`, borderRadius: 8, padding: 14, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: sc(a.sev) }} />
+                        <span style={{ fontSize: 13 }}>{a.msg}</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>{a.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* REL */}
+            {sec === "rel" && (
+              <div>
+                <SH t="Regulatory Event Log" s="CREE intelligence" />
+                <div style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 10, padding: 20 }}>
+                  <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>Regulatory Event Log collects client-reported enforcement events (CREE) under ACEI-AM-2026-003. Available at all tiers.</p>
+                  <p style={{ color: "#475569", fontSize: 12, marginTop: 8 }}>Minimum threshold: \u22655 events from \u22653 clients before data appears.</p>
+                </div>
+              </div>
+            )}
+            {/* REPORTS */}
+            {sec === "reports" && (
+              <div>
+                <SH t="Reports" s="Monthly ACEI PDF" />
+                <div style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 10, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>Monthly ACEI Report</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Domain score, 12-category breakdown, document summary</div>
+                    </div>
+                    <span style={{ fontSize: 11, color: "#38bdf8", background: "rgba(56,189,248,0.08)", padding: "6px 12px", borderRadius: 6 }}>Generate PDF</span>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, padding: "12px 16px", background: "rgba(168,85,247,0.06)", borderRadius: 8, fontSize: 12, color: "#a855f7" }}>\uD83D\uDD12 Board-ready PDF with executive summary available at Governance tier</div>
+              </div>
+            )}
+            {/* WORKSPACE */}
+            {sec === "workspace" && (
+              <div>
+                <SH t="Workspace" s="Notes, drafts \u00B7 100MB" />
+                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                  {["notes", "drafts"].map((tab) => (
+                    <button key={tab} onClick={() => setWsT(tab)} style={{ padding: "6px 16px", background: wsT === tab ? "rgba(56,189,248,0.08)" : "transparent", border: `1px solid ${wsT === tab ? "#38bdf8" : "#1e293b"}`, borderRadius: 6, color: wsT === tab ? "#38bdf8" : "#64748b", cursor: "pointer", fontSize: 12 }}>{tab}</button>
+                  ))}
+                </div>
+                {wsT === "notes" && (
+                  <div>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                      <input value={nI} onChange={(e) => setNI(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} placeholder="Add a note..." style={{ flex: 1, padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
+                      <button onClick={addNote} style={{ padding: "8px 16px", background: "#38bdf8", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", fontSize: 13 }}>Add</button>
+                    </div>
+                    {notes.map((n) => (
+                      <div key={n.id} style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 8, padding: 14, marginBottom: 8 }}>
+                        <div style={{ fontSize: 13, lineHeight: 1.4, whiteSpace: "pre-wrap" }}>{n.text}</div>
+                        <div style={{ fontSize: 10, color: "#64748b", marginTop: 6 }}>{n.source} \u00B7 {n.date}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {wsT === "drafts" && (
+                  <div style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 10, padding: 20 }}>
+                    <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>Save Eileen conversations as drafts from the chat panel.</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* CALENDAR */}
+            {sec === "calendar" && (
+              <div>
+                <SH t="Calendar" s="Reminders \u00B7 Deadlines" />
+                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                  {["upcoming", "add"].map((tab) => (
+                    <button key={tab} onClick={() => setCT(tab)} style={{ padding: "6px 16px", background: cT === tab ? "rgba(56,189,248,0.08)" : "transparent", border: `1px solid ${cT === tab ? "#38bdf8" : "#1e293b"}`, borderRadius: 6, color: cT === tab ? "#38bdf8" : "#64748b", cursor: "pointer", fontSize: 12 }}>{tab}</button>
+                  ))}
+                </div>
+                {cT === "upcoming" && (
+                  <div>
+                    {evts.sort((a, b) => new Date(a.date) - new Date(b.date)).map((e) => (
+                      <div key={e.id} style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 8, padding: 14, marginBottom: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>{e.title}</span>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>{e.date}</span>
+                        </div>
+                        {e.note && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{e.note}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {cT === "add" && (
+                  <div style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 10, padding: 20 }}>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <input value={nE.title} onChange={(e) => setNE({ ...nE, title: e.target.value })} placeholder="Event title" style={{ padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
+                      <input type="date" value={nE.date} onChange={(e) => setNE({ ...nE, date: e.target.value })} style={{ padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
+                      <input value={nE.note} onChange={(e) => setNE({ ...nE, note: e.target.value })} placeholder="Notes (optional)" style={{ padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
+                      <button onClick={addEvt} style={{ padding: "10px", background: "#38bdf8", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", fontSize: 13 }}>Add Event</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
+        {/* EILEEN PANEL */}
+        {eO && !eM && (
+          <div style={{ position: "fixed", bottom: 20, right: 20, width: 420, maxHeight: "75vh", background: "#0A1628", border: "1px solid #1e293b", borderRadius: 16, display: "flex", flexDirection: "column", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", zIndex: 100 }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #1e293b", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <NexusAvatar size={32} active={eO} processing={eileenThinking || voicePlaying} />
+                <span style={{ fontWeight: 600, fontSize: 14 }}>Eileen</span>
+                <span style={{ fontSize: 10, color: "#64748b" }}>Operational</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button onClick={() => { if (voicePlaying) stopVoice(); else setVoiceOn(!voiceOn); }} style={{ background: voiceOn ? "rgba(56,189,248,0.15)" : "none", border: `1px solid ${voiceOn ? "#38bdf8" : "#1e293b"}`, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 14, color: voiceOn ? "#38bdf8" : "#64748b" }} title={voiceOn ? "Voice enabled" : "Enable voice"}>
+                  {voicePlaying ? "\uD83D\uDD0A" : "\uD83D\uDD08"}
+                </button>
+                <button onClick={() => setEM(true)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 16 }}>\u2014</button>
+                <button onClick={() => setEO(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 16 }}>\u00D7</button>
+              </div>
+            </div>
+            <div ref={cr} style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {msgs.map((m, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+                  <div style={{ maxWidth: "85%", padding: "10px 14px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.role === "user" ? "rgba(56,189,248,0.12)" : "#0f172a", fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {wt >= 0 && wt < WT.length && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                  {WT[wt].acts.map((a, i) => (
+                    <button key={i} onClick={() => wtAct(i)} style={{ padding: "8px 14px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 8, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>{a}</button>
+                  ))}
+                </div>
+              )}
+              {sSC && (
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <button onClick={() => saveChat(true)} style={{ padding: "8px 14px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 8, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>Summary</button>
+                  <button onClick={() => saveChat(false)} style={{ padding: "8px 14px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 8, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>Full conversation</button>
+                </div>
+              )}
+            </div>
+            <div style={{ padding: "10px 16px", borderTop: "1px solid #1e293b", display: "flex", gap: 10, alignItems: "center" }}>
+              <input
+                value={inp} onChange={(e) => setInp(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder="Ask Eileen about employment law, your findings, processes..."
+                style={{ flex: 1, padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, color: "#e2e8f0", fontSize: 13, outline: "none" }}
+              />
+              <button onClick={send} style={{ width: 44, height: 44, borderRadius: "50%", background: inp.trim() ? "rgba(56,189,248,0.08)" : "transparent", border: inp.trim() ? "1px solid rgba(56,189,248,0.25)" : "1px solid #1e293b", cursor: inp.trim() ? "pointer" : "default", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }} title="Send to Eileen">
+                <NexusAvatar size={38} active={!!inp.trim()} processing={eileenThinking} />
+              </button>
+            </div>
+            {voiceOn && (
+              <div style={{ padding: "4px 16px 6px", fontSize: 10, color: "#38bdf8", display: "flex", justifyContent: "space-between" }}>
+                <span>\uD83C\uDFA4</span>
+                <span>{voicePlaying ? "Speaking..." : `Voice: ${selectedVoiceRef.current?.name || "loading..."}`}</span>
+                {voicePlaying && (<button onClick={stopVoice} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 10 }}>Stop</button>)}
+              </div>
+            )}
+            <div style={{ height: 3, background: "linear-gradient(90deg, #38bdf8, #22c55e)", borderRadius: "0 0 16px 16px" }} />
+          </div>
+        )}
+        {(eM || !eO) && (
+          <button onClick={() => { setEO(true); setEM(false); }} style={{ position: "fixed", bottom: 20, right: 20, width: 60, height: 60, borderRadius: "50%", background: "#0A1628", border: "1px solid #1e293b", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.3)", zIndex: 100 }}>
+            <NexusAvatar size={52} active={false} processing={false} />
+          </button>
+        )}
+        <footer style={{ background: "#0A1628", borderTop: "1px solid #1e293b", padding: "8px 24px", display: "flex", justifyContent: "space-between", fontSize: 10, color: "#475569", flexShrink: 0 }}>
+          <span>AI Lane Limited (Company No. 17035654) \u00B7 ailane.ai \u00B7 Governed by AILANE-AMD-REG-001</span>
+          <span>ACEI v1.0 \u00B7 RRI v1.0 \u00B7 CCI v1.0</span>
+        </footer>
+      </div>
+    );
+  }
+
+  // Render
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<Dashboard />);
+  </script>
+
+</body>
+</html>
