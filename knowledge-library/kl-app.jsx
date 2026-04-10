@@ -14,16 +14,60 @@ const TOPIC_CARDS = [
   { label: 'Data & Monitoring', icon: 'lock', message: "What are the rules around monitoring employees' emails and devices?" },
 ];
 
+/*
+ * Crown Jewels — authoritative 7 instruments per KLUX-001 §14.1.
+ * Each chip is clickable and seeds an Eileen conversation focused on that instrument.
+ */
 const CROWN_JEWELS = [
-  'ERA 1996', 'EqA 2010', 'HSWA 1974', 'TULRCA 1992', 'WTR 1998', 'DPA 2018', 'TUPE 2006'
+  { abbr: 'ERA 1996',    full: 'Employment Rights Act 1996',                                 prompt: 'Tell me about the Employment Rights Act 1996 — its scope and the key protections employers need to be aware of.' },
+  { abbr: 'EqA 2010',    full: 'Equality Act 2010',                                          prompt: 'Tell me about the Equality Act 2010 — protected characteristics and the core employer duties.' },
+  { abbr: 'HSWA 1974',   full: 'Health and Safety at Work etc. Act 1974',                    prompt: 'Tell me about the Health and Safety at Work Act 1974 — the core employer duties and current enforcement expectations.' },
+  { abbr: 'NMWA 1998',   full: 'National Minimum Wage Act 1998',                             prompt: 'Tell me about the National Minimum Wage Act 1998 — current rate obligations and record-keeping duties.' },
+  { abbr: 'TULRCA 1992', full: 'Trade Union and Labour Relations (Consolidation) Act 1992',  prompt: 'Tell me about TULRCA 1992 — trade union rights and the collective consultation duties it creates.' },
+  { abbr: 'ERA 2025',    full: 'Employment Rights Act 2025',                                 prompt: 'What does the Employment Rights Act 2025 change, and when do its main provisions take effect?' },
+  { abbr: 'PIDA 1998',   full: 'Public Interest Disclosure Act 1998',                        prompt: 'Tell me about PIDA 1998 — whistleblowing protections and what counts as a qualifying disclosure.' },
 ];
 
 const TIER_LABELS = {
+  per_session: 'Session',
   operational: 'Operational',
   operational_readiness: 'Operational',
   governance: 'Governance',
   institutional: 'Institutional',
 };
+
+const KL_PRODUCT_LABELS = {
+  kl_quick_session: 'Quick Session',
+  kl_day_pass: 'Day Pass',
+  kl_research_week: 'Research Week',
+};
+
+// Format the time remaining at minute precision (no seconds — confirmed Q4).
+// Returns null if the session has already expired.
+function formatTimeRemaining(expiresAt) {
+  const now = Date.now();
+  const end = new Date(expiresAt).getTime();
+  const deltaMs = end - now;
+  if (deltaMs <= 0) return null;
+  const totalMins = Math.floor(deltaMs / 60000);
+  if (totalMins < 60) {
+    return totalMins <= 0
+      ? 'less than a minute remaining'
+      : `${totalMins} minute${totalMins !== 1 ? 's' : ''} remaining`;
+  }
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  if (hours < 24) {
+    return mins > 0
+      ? `${hours} hour${hours !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''} remaining`
+      : `${hours} hour${hours !== 1 ? 's' : ''} remaining`;
+  }
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return remHours > 0
+    ? `${days} day${days !== 1 ? 's' : ''} ${remHours} hour${remHours !== 1 ? 's' : ''} remaining`
+    : `${days} day${days !== 1 ? 's' : ''} remaining`;
+}
 
 /* ── SVG Icons ── */
 function CardIcon({ type }) {
@@ -205,11 +249,94 @@ function NexusCanvas({ size = 200, active = false, processing = false }) {
 
 /* ── Tier Badge ── */
 function TierBadge({ tier }) {
+  if (tier === 'loading') return null;
   const label = TIER_LABELS[tier] || 'Operational';
-  const badgeClass = tier === 'governance' ? 'kl-badge-governance'
+  const badgeClass = tier === 'per_session' ? 'kl-badge-per-session'
+    : tier === 'governance' ? 'kl-badge-governance'
     : tier === 'institutional' ? 'kl-badge-institutional'
     : 'kl-badge-operational';
   return <span className={`kl-tier-badge ${badgeClass}`}>{label}</span>;
+}
+
+/* ── Session Status Bar (per-session users only) ── */
+function SessionStatus({ session, tier, onExpired }) {
+  const [, setTick] = useState(0);
+
+  // Minute-precision tick (Q4 confirmed: 60s re-render, no per-second updates).
+  useEffect(() => {
+    if (!session || !session.expires_at) return;
+    const id = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(id);
+  }, [session]);
+
+  // Detect expiry transition and notify parent (fires once).
+  useEffect(() => {
+    if (!session || !session.expires_at) return;
+    const end = new Date(session.expires_at).getTime();
+    const deltaMs = end - Date.now();
+    if (deltaMs <= 0) {
+      if (onExpired) onExpired();
+      return;
+    }
+    const timer = setTimeout(() => { if (onExpired) onExpired(); }, deltaMs);
+    return () => clearTimeout(timer);
+  }, [session, onExpired]);
+
+  if (tier !== 'per_session' || !session || !session.expires_at) return null;
+
+  const remaining = formatTimeRemaining(session.expires_at);
+  if (!remaining) return null;  // expiry modal will take over
+
+  const deltaMs = new Date(session.expires_at).getTime() - Date.now();
+  const isUrgent = deltaMs < 15 * 60 * 1000;  // <15 min → red (Q4 confirmed)
+  const productLabel = KL_PRODUCT_LABELS[session.product_type] || 'Session';
+
+  return (
+    <div
+      className={`kl-session-status${isUrgent ? ' kl-session-status-urgent' : ''}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="kl-session-product">{productLabel}</span>
+      <span className="kl-session-separator">&middot;</span>
+      <span className="kl-session-remaining">{remaining}</span>
+    </div>
+  );
+}
+
+/* ── Session Expired Modal ── */
+function ExpiredModal() {
+  return (
+    <div className="kl-expired-modal" role="dialog" aria-modal="true" aria-labelledby="kl-expired-title">
+      <div className="kl-expired-backdrop" />
+      <div className="kl-expired-content">
+        <h2 id="kl-expired-title">Your session has ended</h2>
+        <p>
+          Thank you for using the Knowledge Library. Purchase another session
+          to continue your research with Eileen.
+        </p>
+        <a className="kl-expired-btn" href="/knowledge-library-preview/#pricing">
+          Purchase another session
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ── Upsell Card (per-session users after 3 Eileen turns) ── */
+function UpsellCard() {
+  return (
+    <div className="kl-upsell-card" role="complementary">
+      <div className="kl-upsell-title">Continuous access to Eileen</div>
+      <div className="kl-upsell-body">
+        You&rsquo;re getting great use from Eileen. Operational subscribers (&pound;199/mo)
+        get continuous access, document monitoring, and weekly intelligence digests.
+      </div>
+      <a className="kl-upsell-link" href="/knowledge-library-preview/#pricing">
+        Compare plans &rarr;
+      </a>
+    </div>
+  );
 }
 
 /* ── Advisory Banner ── */
@@ -346,12 +473,24 @@ function TypingIndicator() {
 }
 
 /* ── Crown Jewels ── */
-function CrownJewels() {
+function CrownJewels({ onSelect, disabled }) {
   return (
     <div className="kl-crown">
       <div className="kl-crown-title">Crown Jewels</div>
       <div className="kl-crown-chips">
-        {CROWN_JEWELS.map(s => <span key={s} className="kl-chip">{s}</span>)}
+        {CROWN_JEWELS.map(s => (
+          <button
+            key={s.abbr}
+            type="button"
+            className="kl-chip"
+            title={s.full}
+            aria-label={`Ask Eileen about ${s.full}`}
+            disabled={disabled}
+            onClick={() => onSelect(s.prompt)}
+          >
+            {s.abbr}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -433,21 +572,21 @@ function WelcomeState({ inputValue, onInputChange, onSubmit, onTopicClick }) {
           <TopicCard key={card.label} card={card} onClick={onTopicClick} />
         ))}
       </div>
-      <CrownJewels />
+      <CrownJewels onSelect={onTopicClick} disabled={false} />
       <HorizonAlert />
     </div>
   );
 }
 
 /* ── Conversation State ── */
-function ConversationState({ messages, isLoading, inputValue, onInputChange, onSubmit }) {
+function ConversationState({ messages, isLoading, inputValue, onInputChange, onSubmit, showUpsell }) {
   const listRef = useRef(null);
 
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, showUpsell]);
 
   return (
     <div className="kl-conversation">
@@ -461,6 +600,7 @@ function ConversationState({ messages, isLoading, inputValue, onInputChange, onS
           )
         )}
         {isLoading && <TypingIndicator />}
+        {showUpsell && !isLoading && <UpsellCard />}
       </div>
       <div className="kl-conversation-input">
         <ChatInput
@@ -482,13 +622,36 @@ function KLApp() {
   const [isLoading, setIsLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [tier, setTier] = useState(window.__ailaneUser?.tier || 'loading');
+  const [session, setSession] = useState(window.__ailaneSession || null);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const sessionIdRef = useRef(crypto.randomUUID());
   const user = window.__ailaneUser || {};
 
   useEffect(() => {
     function onTier(e) { setTier(e.detail.tier); }
+    function onSession(e) { setSession(e.detail); }
     window.addEventListener('ailane-tier-loaded', onTier);
-    return () => window.removeEventListener('ailane-tier-loaded', onTier);
+    window.addEventListener('ailane-session-loaded', onSession);
+    return () => {
+      window.removeEventListener('ailane-tier-loaded', onTier);
+      window.removeEventListener('ailane-session-loaded', onSession);
+    };
+  }, []);
+
+  // Phase-B forward hook: announce KL page ready so the workspace bundle (or
+  // future panel consumers) can pull user + session context without racing
+  // auth. No consumer exists today; Q5 confirmed this is intentional.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
+      detail: {
+        user: window.__ailaneUser || null,
+        session: window.__ailaneSession || null,
+      },
+    }));
+  }, []);
+
+  const handleExpired = useCallback(() => {
+    setSessionExpired(true);
   }, []);
 
   const sendToEileen = useCallback(async (message) => {
@@ -559,9 +722,15 @@ function KLApp() {
     setInputValue('');
   }, []);
 
+  // Show upsell card for per-session users after 3+ Eileen turns in the
+  // current conversation. Subscription users never see this.
+  const eileenTurnsCount = messages.filter(m => m.role === 'eileen').length;
+  const showUpsell = tier === 'per_session' && eileenTurnsCount >= 3;
+
   return (
     <div className="kl-app">
       <Header tier={tier} pageState={pageState} onNewChat={handleNewChat} />
+      <SessionStatus session={session} tier={tier} onExpired={handleExpired} />
       <main className="kl-main">
         {pageState === 'welcome' ? (
           <WelcomeState
@@ -577,10 +746,12 @@ function KLApp() {
             inputValue={inputValue}
             onInputChange={setInputValue}
             onSubmit={handleSubmit}
+            showUpsell={showUpsell}
           />
         )}
       </main>
       <Footer />
+      {sessionExpired && <ExpiredModal />}
     </div>
   );
 }
