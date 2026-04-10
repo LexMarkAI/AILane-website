@@ -663,7 +663,7 @@ function KLApp() {
 
     try {
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/kl_ai_assistant`,
+        `${SUPABASE_URL}/functions/v1/eileen-intelligence`,
         {
           method: 'POST',
           headers: {
