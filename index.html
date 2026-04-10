@@ -90,7 +90,6 @@ section { padding: 88px 24px; }
 @keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1);} 25%{transform:translate(30px,-40px) scale(1.05);} 50%{transform:translate(-20px,20px) scale(0.95);} 75%{transform:translate(40px,30px) scale(1.02);} }
 @keyframes tickerScroll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
 @keyframes pulse { 0%,100%{opacity:0.5;transform:scale(0.8);} 50%{opacity:1;transform:scale(1.3);} }
-@keyframes gaugeReveal { to { stroke-dashoffset: 138; } }
 @keyframes severityPulse { 0%,100%{opacity:0.5;transform:scale(0.8);} 50%{opacity:1;transform:scale(1.3);} }
 
 /* ====================================================== */
@@ -145,14 +144,6 @@ nav {
 .btn-secondary { display:inline-flex; align-items:center; gap:8px; background:transparent; color:var(--text-secondary); padding:14px 32px; border-radius:8px; border:1px solid var(--border-subtle); font-family:var(--font-body); font-size:14px; font-weight:500; cursor:pointer; text-decoration:none; transition:all 0.25s; }
 .btn-secondary:hover { color:var(--text-primary); border-color:var(--border-hover); background:rgba(255,255,255,0.02); }
 
-.gauge-container { margin:60px auto 0; max-width:440px; animation:fadeInUp 0.8s ease 0.4s both; }
-.gauge-svg { width:100%; height:auto; }
-.gauge-track { fill:none; stroke:var(--bg-card); stroke-width:6; stroke-linecap:round; }
-.gauge-fill { fill:none; stroke:url(#gaugeGrad); stroke-width:6; stroke-linecap:round; stroke-dasharray:251.2; stroke-dashoffset:251.2; animation:gaugeReveal 2s ease 0.8s forwards; filter:drop-shadow(0 0 8px rgba(56,189,248,0.3)); }
-.gauge-score { font-family:var(--font-mono); font-size:42px; font-weight:700; fill:var(--text-primary); text-anchor:middle; opacity:0; animation:fadeIn 0.5s ease 1.5s forwards; }
-.gauge-label { font-family:var(--font-body); font-size:11px; fill:var(--text-muted); text-anchor:middle; letter-spacing:1.5px; }
-.gauge-sublabel { font-family:var(--font-mono); font-size:10px; fill:var(--accent-cyan); text-anchor:middle; letter-spacing:1px; opacity:0.7; }
-.gauge-caption { font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:1px; text-align:center; margin-top:8px; text-transform:uppercase; }
 
 .hero-ticker { margin-top:28px; overflow:hidden; position:relative; height:30px; max-width:580px; margin-left:auto; margin-right:auto; animation:fadeInUp 0.8s ease 1.8s both; }
 .hero-ticker::before,.hero-ticker::after { content:''; position:absolute; top:0; bottom:0; width:60px; z-index:2; pointer-events:none; }
@@ -181,19 +172,6 @@ nav {
 /* ====================================================== */
 /* HOW IT WORKS                                           */
 /* ====================================================== */
-.how-section { background:var(--bg-secondary); }
-.how-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; }
-.how-card { padding:36px 28px; position:relative; }
-.how-number { font-family:var(--font-mono); font-size:48px; font-weight:700; color:rgba(56,189,248,0.07); position:absolute; top:16px; right:20px; line-height:1; }
-.how-icon { width:44px; height:44px; border-radius:10px; background:var(--accent-cyan-dim); display:flex; align-items:center; justify-content:center; margin-bottom:20px; font-size:20px; transition:transform 0.3s,box-shadow 0.3s; }
-.how-card:hover .how-icon { transform:scale(1.1); box-shadow:0 0 20px rgba(56,189,248,0.2); }
-.how-card h3 { font-size:16px; font-weight:600; margin-bottom:10px; }
-.how-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; }
-.formula-block { text-align:center; margin-top:44px; opacity:0; transform:translateY(10px); transition:all 0.6s ease; }
-.formula-block.visible { opacity:1; transform:translateY(0); }
-.formula-text { font-family:var(--font-mono); font-size:14px; color:var(--text-muted); letter-spacing:1px; display:inline-block; padding:12px 24px; background:rgba(56,189,248,0.04); border:1px solid var(--border-subtle); border-radius:8px; }
-.formula-ref { font-size:12px; color:var(--text-dim); margin-top:8px; }
-@media (max-width:768px) { .how-grid { grid-template-columns:1fr; } }
 
 /* ====================================================== */
 /* PRICING                                                */
@@ -233,23 +211,6 @@ nav {
 .kl-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; }
 .kl-stat { font-family:var(--font-mono); font-size:11px; color:var(--accent-cyan); margin-top:14px; letter-spacing:0.5px; }
 .kl-lifecycle { display:flex; flex-direction:column; margin-top:52px; max-width:700px; margin-left:auto; margin-right:auto; }
-.kl-stage { display:flex; gap:20px; padding-bottom:24px; }
-.kl-stage:last-child { padding-bottom:0; }
-.kl-stage-track { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
-.kl-stage-dot { width:30px; height:30px; border-radius:50%; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--accent-cyan); flex-shrink:0; }
-.kl-stage-dot.scored { background:rgba(52,211,153,0.1); border-color:rgba(52,211,153,0.25); color:var(--accent-green); }
-.kl-stage-line { width:1px; flex:1; min-height:16px; background:linear-gradient(180deg,rgba(56,189,248,0.25),rgba(56,189,248,0.04)); margin-top:4px; }
-.kl-stage-body { padding-top:4px; }
-.kl-stage-title { font-size:14px; font-weight:600; margin-bottom:3px; }
-.kl-stage-desc { font-size:13px; color:var(--text-secondary); line-height:1.6; }
-.kl-tier-strip { display:flex; flex-direction:column; gap:8px; margin-top:52px; max-width:700px; margin-left:auto; margin-right:auto; }
-.kl-tier-row { display:flex; align-items:center; gap:14px; padding:12px 18px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:8px; transition:all 0.2s; }
-.kl-tier-row:hover { border-color:var(--border-hover); }
-.kl-tier-row.gold-tier { border-color:rgba(245,158,11,0.15); }
-.kl-tier-row.gold-tier:hover { border-color:rgba(245,158,11,0.3); }
-.kl-tier-badge { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; color:var(--accent-cyan); background:var(--accent-cyan-dim); border-radius:4px; padding:3px 10px; flex-shrink:0; white-space:nowrap; }
-.kl-tier-badge.gold { color:var(--accent-gold); background:var(--accent-gold-dim); }
-.kl-tier-desc { font-size:12px; color:var(--text-secondary); }
 .kl-cta-row { text-align:center; margin-top:36px; }
 .kl-link { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--accent-cyan); text-decoration:none; border:1px solid rgba(56,189,248,0.18); background:var(--accent-cyan-dim); border-radius:8px; padding:11px 22px; transition:all 0.2s; }
 .kl-link:hover { background:rgba(56,189,248,0.2); border-color:rgba(56,189,248,0.3); transform:translateY(-1px); }
@@ -278,57 +239,6 @@ nav {
 @media (max-width:768px) { .cc-grid { grid-template-columns:1fr; } }
 
 /* ====================================================== */
-/* INTELLIGENCE LOOP                                      */
-/* ====================================================== */
-.loop-section { background:var(--bg-secondary); border-top:1px solid rgba(56,189,248,0.06); }
-.loop-row { display:flex; align-items:center; justify-content:center; margin-top:52px; flex-wrap:nowrap; }
-.loop-node { padding:32px 20px; width:196px; text-align:center; flex-shrink:0; }
-.loop-node-icon { font-size:24px; margin-bottom:12px; }
-.loop-node-label { font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:6px; }
-.loop-node-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
-.loop-connector { display:flex; flex-direction:column; align-items:center; padding:0 2px; flex-shrink:0; margin-bottom:18px; }
-.loop-connector-line { width:32px; height:1px; background:linear-gradient(90deg,rgba(56,189,248,0.4),rgba(56,189,248,0.1)); }
-.loop-connector-arrow { font-size:12px; color:rgba(56,189,248,0.35); margin-left:22px; margin-top:-7px; }
-.loop-connector-label { font-family:var(--font-mono); font-size:9px; letter-spacing:0.5px; color:var(--text-dim); margin-top:4px; white-space:nowrap; }
-.loop-caption { max-width:640px; margin:40px auto 0; text-align:center; font-size:15px; color:var(--text-secondary); line-height:1.8; }
-.loop-caption strong { color:var(--text-primary); }
-@media (max-width:860px) {
-  .loop-row { flex-direction:column; }
-  .loop-connector { flex-direction:row; padding:4px 0; }
-  .loop-connector-line { width:1px; height:28px; background:linear-gradient(180deg,rgba(56,189,248,0.4),rgba(56,189,248,0.1)); }
-  .loop-connector-arrow { transform:rotate(90deg); margin-left:0; margin-top:0; }
-}
-
-/* ====================================================== */
-/* ERA 2025 URGENCY                                       */
-/* ====================================================== */
-.era-section { padding:72px 24px; background:linear-gradient(135deg,rgba(251,191,36,0.03) 0%,rgba(10,15,26,0) 60%); border-top:1px solid rgba(251,191,36,0.12); border-bottom:1px solid rgba(251,191,36,0.06); position:relative; overflow:hidden; }
-.era-section::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,rgba(251,191,36,0.5) 30%,rgba(248,113,113,0.3) 60%,transparent); }
-.era-alert-bar { display:inline-flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:var(--accent-amber); background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); border-radius:100px; padding:6px 16px; margin-bottom:24px; }
-.era-alert-dot { width:6px; height:6px; border-radius:50%; background:var(--accent-amber); animation:pulse 1.5s ease-in-out infinite; box-shadow:0 0 8px rgba(251,191,36,0.6); }
-.era-layout { display:grid; grid-template-columns:1fr 400px; gap:60px; align-items:center; }
-.era-title { font-size:clamp(1.5rem,3vw,2.1rem); font-weight:700; line-height:1.2; letter-spacing:-0.3px; margin-bottom:16px; }
-.era-title span { color:var(--accent-amber); }
-.era-desc { font-size:15px; color:var(--text-secondary); line-height:1.8; margin-bottom:24px; max-width:520px; }
-.era-meta { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:28px; }
-.era-meta-item { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
-.era-meta-item span { color:var(--text-primary); font-weight:700; }
-.era-cats { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:32px; }
-.era-cat-tag { font-family:var(--font-mono); font-size:10px; color:var(--accent-amber); background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15); border-radius:4px; padding:3px 9px; }
-.era-card { background:var(--bg-card); border:1px solid rgba(251,191,36,0.15); border-radius:14px; padding:28px; position:relative; overflow:hidden; }
-.era-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--accent-amber),var(--accent-red)); }
-.era-card-label { font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--accent-amber); text-transform:uppercase; margin-bottom:18px; }
-.era-provision { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-subtle); }
-.era-provision:last-child { border-bottom:none; padding-bottom:0; }
-.era-prov-icon { width:26px; height:26px; border-radius:6px; background:rgba(251,191,36,0.1); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
-.era-prov-title { font-size:13px; font-weight:600; margin-bottom:1px; }
-.era-prov-sub { font-size:11px; color:var(--text-muted); line-height:1.4; }
-.era-acei-flag { margin-top:16px; padding:10px 14px; border-radius:8px; background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.14); display:flex; align-items:center; gap:10px; }
-.era-acei-flag-label { font-family:var(--font-mono); font-size:10px; letter-spacing:1px; color:var(--accent-red); }
-.era-acei-flag-value { font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--text-primary); margin-left:auto; }
-@media (max-width:900px) { .era-layout { grid-template-columns:1fr; gap:40px; } }
-
-/* ====================================================== */
 /* TICKER BAND                                            */
 /* ====================================================== */
 .ticker-section { background:var(--bg-secondary); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); }
@@ -355,9 +265,6 @@ nav {
 .const-badge { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:14px; }
 .const-card h3 { font-size:18px; font-weight:700; margin-bottom:10px; }
 .const-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; }
-.const-features { list-style:none; margin-top:16px; display:flex; flex-direction:column; gap:8px; }
-.const-features li { font-size:12px; color:var(--text-muted); padding-left:16px; position:relative; }
-.const-features li::before { content:'\2192'; position:absolute; left:0; color:var(--accent-cyan); font-family:var(--font-mono); }
 @media (max-width:768px) { .const-grid { grid-template-columns:1fr; } }
 
 /* ====================================================== */
@@ -384,12 +291,6 @@ nav {
 .cat-id { font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:8px; }
 .cat-name { font-size:13px; font-weight:600; margin-bottom:6px; line-height:1.3; }
 .cat-desc { font-size:11px; color:var(--text-muted); line-height:1.5; }
-.cat-severity { display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.5px; padding:3px 8px; border-radius:4px; }
-.cat-severity::before { content:''; width:5px; height:5px; border-radius:50%; animation:severityPulse 2.5s ease-in-out infinite; }
-.severity-high { background:rgba(248,113,113,0.1); color:var(--accent-red); }
-.severity-high::before { background:var(--accent-red); box-shadow:0 0 6px var(--accent-red); }
-.severity-elevated { background:rgba(251,191,36,0.1); color:var(--accent-amber); }
-.severity-elevated::before { background:var(--accent-amber); box-shadow:0 0 6px var(--accent-amber); }
 @media (max-width:900px) { .cat-grid { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:480px) { .cat-grid { grid-template-columns:1fr; } }
 
@@ -903,33 +804,6 @@ footer { border-top:1px solid var(--border-subtle); padding:48px 24px; }
 /* ====================================================== */
 /* CONTRACT CHECK CTA STRIP                               */
 /* ====================================================== */
-.cta-strip { background:linear-gradient(90deg,rgba(56,189,248,0.06),rgba(52,211,153,0.04),rgba(56,189,248,0.06)); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); padding:20px 24px; }
-.cta-strip-inner { max-width:1140px; margin:0 auto; display:flex; align-items:center; justify-content:center; gap:24px; flex-wrap:wrap; }
-.cta-strip-text { font-size:15px; color:var(--text-secondary); }
-.cta-strip-text strong { color:var(--text-primary); font-weight:600; }
-.cta-strip-price { font-family:var(--font-mono); font-size:14px; color:var(--accent-cyan); letter-spacing:0.5px; }
-.cta-strip-btn { display:inline-flex; align-items:center; gap:8px; background:var(--accent-cyan); color:var(--bg-primary); padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:14px; font-weight:600; text-decoration:none; transition:all 0.25s; white-space:nowrap; }
-.cta-strip-btn:hover { background:#5cc9f5; transform:translateY(-1px); box-shadow:0 6px 20px rgba(56,189,248,0.25); }
-@media (max-width:640px) { .cta-strip-inner { flex-direction:column; text-align:center; gap:12px; } }
-
-/* ====================================================== */
-/* EILEEN SECTION                                         */
-/* ====================================================== */
-.eileen-section { background:var(--bg-primary); border-top:1px solid var(--border-subtle); position:relative; overflow:hidden; }
-.eileen-layout { display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; margin-top:48px; }
-.eileen-canvas-wrap { position:relative; width:100%; aspect-ratio:1/1; max-width:420px; margin:0 auto; }
-#eileen-canvas { width:100%; height:100%; display:block; }
-.eileen-entity-label { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); font-family:var(--font-mono); font-size:10px; letter-spacing:3px; color:var(--accent-cyan); opacity:0.7; text-align:center; }
-.eileen-text h3 { font-size:clamp(1.3rem,2.5vw,1.8rem); font-weight:700; line-height:1.3; margin-bottom:16px; }
-.eileen-text h3 em { color:var(--accent-cyan); font-style:normal; }
-.eileen-text p { font-size:15px; color:var(--text-secondary); line-height:1.8; margin-bottom:16px; }
-.eileen-features { display:flex; flex-direction:column; gap:12px; margin-top:24px; }
-.eileen-feat { display:flex; align-items:flex-start; gap:12px; }
-.eileen-feat-icon { width:32px; height:32px; border-radius:8px; background:var(--accent-cyan-dim); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; border:1px solid rgba(56,189,248,0.12); }
-.eileen-feat-text { font-size:13px; color:var(--text-secondary); line-height:1.6; }
-.eileen-feat-text strong { color:var(--text-primary); }
-.eileen-note { font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-top:20px; letter-spacing:0.3px; }
-@media (max-width:860px) { .eileen-layout { grid-template-columns:1fr; gap:40px; } .eileen-canvas-wrap { max-width:300px; } }
 
 /* ====================================================== */
 /* LEGISLATIVE HORIZON SECTION                            */
@@ -1204,6 +1078,52 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ====================================================== */
+/* HERO — EILEEN TYPING ANIMATION (AMD-042)               */
+/* ====================================================== */
+.nexus-hero-wrap { position:relative; margin:0 auto 28px; width:180px; height:180px; }
+.nexus-hero-wrap canvas { width:180px; height:180px; display:block; }
+.eileen-live { max-width:640px; margin:32px auto 0; text-align:center; position:relative; min-height:120px; animation:fadeInUp 0.7s ease 0.4s both; }
+.eileen-live .eileen-name { font-family:var(--font-mono); font-size:11px; font-weight:700; color:#D4A017; letter-spacing:3px; margin-bottom:14px; text-transform:uppercase; }
+.eileen-live .eileen-speaks { font-size:clamp(1rem,2.2vw,1.25rem); color:var(--text-primary); line-height:1.6; font-weight:400; min-height:3.5em; display:flex; align-items:center; justify-content:center; padding:0 16px; }
+.eileen-live .eileen-speaks .cursor { display:inline-block; width:2px; height:1.1em; background:#D4A017; margin-left:3px; vertical-align:text-bottom; animation:eileenBlink 0.8s step-end infinite; }
+@keyframes eileenBlink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* ====================================================== */
+/* WHAT AILANE DOES — SECTION 2 (AMD-042)                 */
+/* ====================================================== */
+.what-section { background:var(--bg-secondary); border-top:1px solid var(--border-subtle); }
+.what-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; }
+.what-card { padding:36px 32px; position:relative; overflow:hidden; }
+.what-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--accent-cyan),transparent); opacity:0; transition:opacity 0.3s; }
+.what-card:hover::before { opacity:1; }
+.what-card-icon { font-size:28px; margin-bottom:18px; display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:12px; background:var(--accent-cyan-dim); border:1px solid rgba(56,189,248,0.18); }
+.what-card h3 { font-size:18px; font-weight:700; margin-bottom:10px; }
+.what-card p { font-size:14px; color:var(--text-secondary); line-height:1.7; margin-bottom:20px; }
+.what-card-cta { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--accent-cyan); text-decoration:none; padding:10px 18px; border:1px solid rgba(56,189,248,0.22); background:var(--accent-cyan-dim); border-radius:8px; transition:all 0.2s; }
+.what-card-cta:hover { background:rgba(56,189,248,0.2); border-color:rgba(56,189,248,0.35); transform:translateY(-1px); }
+.what-card-cta.gold-cta { color:#D4A017; border-color:rgba(212,160,23,0.3); background:rgba(212,160,23,0.08); }
+.what-card-cta.gold-cta:hover { background:rgba(212,160,23,0.15); border-color:rgba(212,160,23,0.5); }
+@media (max-width:768px) { .what-grid { grid-template-columns:1fr; } }
+
+/* ====================================================== */
+/* PRICING — AM-005 TWO-ROW LAYOUT                        */
+/* ====================================================== */
+.pricing-row-label { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:var(--text-muted); text-transform:uppercase; margin:36px 0 18px; text-align:center; }
+.pricing-session-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; max-width:820px; margin:0 auto; }
+.session-card { padding:26px 22px; text-align:center; border-color:rgba(212,160,23,0.22); background:linear-gradient(180deg,rgba(212,160,23,0.04),var(--bg-card)); }
+.session-card:hover { border-color:rgba(212,160,23,0.4); }
+.session-tier { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; color:#D4A017; margin-bottom:8px; }
+.session-price { font-family:var(--font-mono); font-size:30px; font-weight:700; color:var(--text-primary); margin-bottom:6px; }
+.session-price span { font-size:12px; color:var(--text-muted); font-weight:400; }
+.session-desc { font-size:12px; color:var(--text-secondary); line-height:1.6; margin-bottom:18px; }
+.session-cta { display:block; padding:10px 16px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; background:rgba(212,160,23,0.12); color:#D4A017; border:1px solid rgba(212,160,23,0.3); transition:all 0.2s; }
+.session-cta:hover { background:rgba(212,160,23,0.2); border-color:rgba(212,160,23,0.5); }
+.pricing-contract-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; max-width:560px; margin:0 auto; }
+.pricing-eileen-hint { text-align:center; margin:40px auto 0; font-size:13px; color:var(--text-muted); max-width:560px; line-height:1.7; }
+.pricing-eileen-hint strong { color:#D4A017; }
+@media (max-width:768px) { .pricing-session-grid { grid-template-columns:1fr; } .pricing-contract-grid { grid-template-columns:1fr; } }
+
   </style>
 </head>
 <body>
@@ -1217,11 +1137,11 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
       <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
     </button>
     <ul class="nav-links">
-      <li><a href="#compliance-checker" data-i18n="nav.complianceChecker">Compliance Checker</a></li>
-      <li><a href="#how" data-i18n="nav.platform">How It Works</a></li>
+      <li><a href="#what-ailane-does" data-i18n="nav.what">What Ailane Does</a></li>
       <li><a href="#knowledge-library" data-i18n="nav.knowledgeLibrary">Knowledge Library</a></li>
+      <li><a href="#compliance-checker" data-i18n="nav.complianceChecker">Compliance Checker</a></li>
+      <li><a href="#era2025" data-i18n="nav.era">ERA 2025</a></li>
       <li><a href="#pricing" data-i18n="nav.pricing">Pricing</a></li>
-      <li><a href="#governance" data-i18n="nav.governance">Governance</a></li>
       <li><a href="/account/" class="nav-signin" data-i18n="nav.signIn">Sign In &#8594;</a></li>
       <li>
         <div class="lang-switcher" role="group" aria-label="Language / Iaith">
@@ -1229,75 +1149,94 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
           <button class="lang-flag-btn" data-lang-toggle="cy" onclick="window.ailaneI18n&&window.ailaneI18n.setLang('cy')" title="Cymraeg"><svg width="22" height="15" viewBox="0 0 22 15" xmlns="http://www.w3.org/2000/svg" style="border-radius:2px;display:block"><rect width="22" height="7.5" fill="#fff"/><rect y="7.5" width="22" height="7.5" fill="#00AB39"/><ellipse cx="11" cy="7.5" rx="4" ry="5.5" fill="#CF142B"/></svg></button>
         </div>
       </li>
-      <li><a href="#early-access" class="nav-cta" data-i18n="nav.earlyAccess">Early Access</a></li>
+      <li><a href="/knowledge-library-pass/" class="nav-cta" data-i18n="nav.askEileen">Ask Eileen</a></li>
     </ul>
   </div>
 </nav>
 
-<!-- HERO -->
+<!-- HERO — Eileen greets you -->
 <section class="hero">
   <div class="hero-mesh"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
   <div class="hero-dots"></div>
   <div class="container">
-    <div class="hero-badge">ACEI v1.0 <span class="hero-badge-sep">&middot;</span> RRI v1.0 <span class="hero-badge-sep">&middot;</span> CCI v1.0</div>
-    <h1 data-i18n="hero.h1">Quantify regulatory exposure <em>before it lands</em></h1>
-    <p class="hero-sub"><span data-i18n="hero.sub">The Ailane constitutional index suite monitors UK employment tribunal activity, enforcement actions, and legislative change across 12 categories &#8212; quantifying your compliance risk on a constitutionally-governed 0&#8211;100 scale. Now with forward-looking intelligence: every contract assessed against current law <em>and</em> forthcoming ERA 2025 provisions. Updated weekly. Deterministic. Litigation-proof.</span></p>
-    <div class="hero-cta">
-      <a href="#early-access" class="btn-primary" data-i18n="hero.ctaPrimary">Request Early Access</a>
-      <a href="#how" class="btn-secondary" data-i18n="hero.ctaSecondary">See How It Works</a>
+    <div class="nexus-hero-wrap">
+      <canvas id="eileen-canvas" width="420" height="420"></canvas>
     </div>
-    <div class="gauge-container">
-      <svg viewBox="0 0 200 130" class="gauge-svg">
-        <defs>
-          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#34d399"/><stop offset="40%" stop-color="#38bdf8"/>
-            <stop offset="70%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f87171"/>
-          </linearGradient>
-        </defs>
-        <path d="M 20 110 A 80 80 0 0 1 180 110" class="gauge-track"/>
-        <path d="M 20 110 A 80 80 0 0 1 180 110" class="gauge-fill"/>
-        <text x="100" y="92" class="gauge-score">45</text>
-        <text x="100" y="108" class="gauge-label" data-i18n="gauge.elevated">ELEVATED EXPOSURE</text>
-        <text x="100" y="122" class="gauge-sublabel" data-i18n="gauge.domainIndex">ACEI DOMAIN INDEX</text>
-      </svg>
-      <div class="gauge-caption" data-i18n="hero.gaugeCaption">Illustrative domain score. Updated weekly.</div>
+    <h1>Employment law changed on 6 April 2026.<br><em>Do you know where you stand?</em></h1>
+    <p class="hero-sub"><span>Nine new employer obligations are now in force. More are coming. Eileen tracks every provision, every case, every change &#8212; so you can make informed decisions before they become tribunal claims.</span></p>
+    <div class="eileen-live">
+      <div class="eileen-name">Eileen &middot; Your Intelligence Entity</div>
+      <div class="eileen-speaks"><span id="eileen-hero-text"></span><span class="cursor"></span></div>
+    </div>
+    <div class="hero-cta" style="margin-top:36px;">
+      <a href="/knowledge-library-pass/" class="btn-primary">Research with Eileen &#8212; from &#163;29</a>
+      <a href="/contract-scan/" class="btn-secondary">Check a Contract &#8212; from &#163;19</a>
     </div>
     <div class="hero-ticker" aria-hidden="true">
       <div class="ticker-track" id="hero-ticker-track"></div>
     </div>
     <div class="stats-bar">
-      <div class="stat-item"><div class="stat-value" data-target="131600">131,600+</div><div class="stat-label" data-i18n="hero.stat1Label">Tribunal decisions tracked</div></div>
-      <div class="stat-item"><div class="stat-value" data-target="78699">78,699+</div><div class="stat-label" data-i18n="hero.stat2Label">Employers profiled</div></div>
-      <div class="stat-item"><div class="stat-value"><span class="accent">12</span></div><div class="stat-label" data-i18n="hero.stat3Label">Exposure categories</div></div>
-      <div class="stat-item"><div class="stat-value" data-i18n="hero.stat4Value">Weekly</div><div class="stat-label" data-i18n="hero.stat4Label">Score computation</div></div>
+      <div class="stat-item"><div class="stat-value" data-target="131600">131,600+</div><div class="stat-label">Tribunal decisions tracked</div></div>
+      <div class="stat-item"><div class="stat-value" data-target="78699">78,699+</div><div class="stat-label">Employers profiled</div></div>
+      <div class="stat-item"><div class="stat-value"><span class="accent">69</span></div><div class="stat-label">Legislative instruments</div></div>
+      <div class="stat-item"><div class="stat-value"><span class="accent">391</span></div><div class="stat-label">Provisions mapped</div></div>
     </div>
   </div>
 </section>
 
-<!-- KNOWLEDGE LIBRARY -->
+<!-- ====== SECTION 2: WHAT AILANE DOES ====== -->
+<section class="what-section" id="what-ailane-does">
+  <div class="container">
+    <div class="section-eyebrow" style="text-align:center;">What Ailane Does</div>
+    <div class="section-title" style="text-align:center;">Three ways to work with Eileen.</div>
+    <p class="section-subtitle centered">Eileen reads the legislation so you don't have to. Choose the depth of relationship that matches how you work.</p>
+    <div class="what-grid">
+      <div class="what-card card fade-in">
+        <div class="what-card-icon">&#128218;</div>
+        <h3>Knowledge Library</h3>
+        <p>Research UK employment law with Eileen. Ask her about any provision, any case, any change &#8212; she cites the statute every time. Per-session access. No account required.</p>
+        <a href="/knowledge-library-pass/" class="what-card-cta gold-cta">Access the Library &#8212; from &#163;29 &#8594;</a>
+      </div>
+      <div class="what-card card fade-in">
+        <div class="what-card-icon">&#128196;</div>
+        <h3>Contract Compliance Check</h3>
+        <p>Upload an employment contract. Eileen reads it against 71 regulatory requirements and returns a clause-level compliance report in minutes. Every finding traced to a statutory source.</p>
+        <a href="/contract-scan/" class="what-card-cta">Check a Contract &#8212; from &#163;19 &#8594;</a>
+      </div>
+      <div class="what-card card fade-in">
+        <div class="what-card-icon">&#128202;</div>
+        <h3>Continuous Monitoring</h3>
+        <p>Subscribe and Eileen monitors your contracts against the law &#8212; continuously. When legislation changes, she tells you what it means for your documents.</p>
+        <a href="#pricing" class="what-card-cta">See Subscription Plans &#8594;</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- KNOWLEDGE LIBRARY — Primary product showcase -->
 <section class="kl-section" id="knowledge-library">
   <div class="container">
-    <div class="section-eyebrow"><span data-i18n="kl.eyebrow">Knowledge Library</span></div>
-    <div class="section-title"><span data-i18n="kl.title">The intelligence engine behind every score.</span></div>
-    <div class="section-subtitle"><span data-i18n="kl.subtitle">Every legislative instrument that moves the ACEI lives here &#8212; tracked from parliamentary passage through royal assent, commencement, and ongoing enforcement. When law changes, the library updates first.</span></div>
+    <div class="section-eyebrow"><span data-i18n="kl.eyebrow">Knowledge Library &middot; Research with Eileen</span></div>
+    <div class="section-title"><span data-i18n="kl.title">Eileen reads the legislation so you don't have to.</span></div>
+    <div class="section-subtitle"><span data-i18n="kl.subtitle">69 instruments. 391 provisions. 12 categories. Every piece of UK employment law that matters &#8212; tracked, mapped, and explained by Eileen. Ask her anything.</span></div>
     <div class="kl-grid">
       <div class="kl-card card fade-in">
         <div class="kl-card-icon">&#128218;</div>
-        <h3 data-i18n="kl.card1title">69 Instruments &middot; 391 Provisions &middot; 12 Categories</h3>
-        <p data-i18n="kl.card1body">Every piece of legislation affecting employment law exposure is catalogued &mdash; 391 individual provisions across 69 instruments, each embedded with legal-domain AI vectors for semantic search. Impact-scored and mapped to the ACEI constitutional category it affects. Updated continuously from six authoritative sources per jurisdiction.</p>
+        <h3 data-i18n="kl.card1title">69 Instruments &middot; 391 Provisions</h3>
+        <p data-i18n="kl.card1body">Every piece of legislation affecting UK employment law is catalogued and mapped. Eileen cites the specific statute, section, and subsection on every answer.</p>
         <div class="kl-stat">legislation.gov.uk &middot; HSE &middot; ICO &middot; EHRC &middot; ACAS &middot; HMRC</div>
       </div>
       <div class="kl-card card fade-in">
-        <div class="kl-card-icon">&#127758;</div>
-        <h3 data-i18n="kl.card2title">53-Jurisdiction Architecture</h3>
-        <p data-i18n="kl.card2body">Built global from day one. UK instruments feed the Operational tier. Governance clients access sector-filtered multi-jurisdiction coverage. Institutional clients receive the complete global library with territorial reach mapping.</p>
-        <div class="kl-stat"><span data-i18n="kl.card2stat">6 continents &middot; 70+ regulatory categories</span></div>
+        <div class="kl-card-icon">&#9889;</div>
+        <h3 data-i18n="kl.card3title">Tracked from Bill to Enforcement</h3>
+        <p data-i18n="kl.card3body">Eileen watches legislation through parliamentary passage, royal assent, and commencement. The Employment Rights Act 2025 is actively commencing now &#8212; she can tell you exactly what is in force today.</p>
+        <div class="kl-stat"><span data-i18n="kl.card3stat">ERA 2025 &middot; 9 provisions now in force</span></div>
       </div>
       <div class="kl-card card fade-in">
-        <div class="kl-card-icon">&#9889;</div>
-        <h3 data-i18n="kl.card3title">Live Lifecycle Tracking</h3>
-        <p data-i18n="kl.card3body">Each instrument tracked through four stages: parliamentary passage, royal assent, commencement, and post-commencement monitoring. The Employment Rights Act 2025 is actively tracked through commencement now.</p>
-        <div class="kl-stat"><span data-i18n="kl.card3stat">ERA 2025 &middot; actively commencing &middot; 8 categories affected</span></div>
+        <div class="kl-card-icon">&#128172;</div>
+        <h3 data-i18n="kl.card2title">Ask Eileen Anything</h3>
+        <p data-i18n="kl.card2body">Eileen doesn't give legal advice &#8212; she gives you the intelligence to make informed decisions. No question limits. No feature gates. Unlimited Eileen at every access level.</p>
+        <div class="kl-stat"><span data-i18n="kl.card2stat">Eileen Universal Access Doctrine &middot; ratified 10 Apr 2026</span></div>
       </div>
     </div>
 
@@ -1460,70 +1399,16 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
       <p style="font-size:0.75rem; color:#64748B; margin-top:0.75rem;">Quick Session &#163;29 &middot; Day Pass &#163;49 &middot; Research Week &#163;99 &middot; Subscriptions from &#163;199/mo</p>
     </div>
 
-    <div style="margin-top:52px;">
-      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text-dim);text-align:center;margin-bottom:28px;text-transform:uppercase;">Legislative lifecycle &#8212; how Ailane tracks it</div>
-      <div class="kl-lifecycle">
-        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot">01</div><div class="kl-stage-line"></div></div><div class="kl-stage-body"><div class="kl-stage-title"><span data-i18n="kl.stage1title">Parliamentary Passage &#8212; SCI forward exposure flag raised</span></div><div class="kl-stage-desc" data-i18n="kl.stage1desc">Bill enters the library. Significance rating assigned across affected ACEI categories. Forward Exposure Register updated. Clients notified at their tier before the bill becomes law.</div></div></div>
-        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot">02</div><div class="kl-stage-line"></div></div><div class="kl-stage-body"><div class="kl-stage-title"><span data-i18n="kl.stage2title">Royal Assent &#8212; obligations mapped, SCI weight assigned</span></div><div class="kl-stage-desc" data-i18n="kl.stage2desc">Act confirmed. Employer obligations extracted and structured. SCI significance score calculated. Commencement timeline tracked instrument by instrument.</div></div></div>
-        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot">03</div><div class="kl-stage-line"></div></div><div class="kl-stage-body"><div class="kl-stage-title"><span data-i18n="kl.stage3title">Commencement &#8212; ACEI recomputed, Compliance Checker updated</span></div><div class="kl-stage-desc" data-i18n="kl.stage3desc">Law enters force. Full ACEI SCI recalculation triggered. Compliance Checker requirement set updated &#8212; contracts assessed against the new obligation immediately. RRI readiness scoring activated.</div></div></div>
-        <div class="kl-stage"><div class="kl-stage-track"><div class="kl-stage-dot scored">04</div></div><div class="kl-stage-body"><div class="kl-stage-title"><span data-i18n="kl.stage4title">Post-Commencement &#8212; tribunal signals feed EVI and EII</span></div><div class="kl-stage-desc" data-i18n="kl.stage4desc">Tribunal decisions under the new law tracked weekly. First-wave enforcement signals feed back into Event Volume and Enforcement Intensity sub-indices. Score reflects real enforcement patterns, not just legislative text.</div></div></div>
-      </div>
-    </div>
-
-    <div class="kl-tier-strip">
-      <div class="kl-tier-row"><span class="kl-tier-badge">OPERATIONAL READINESS</span><span class="kl-tier-desc"><span data-i18n="kl.tier1desc">UK instruments only &middot; all 12 ACEI categories &middot; weekly updates</span></span></div>
-      <div class="kl-tier-row"><span class="kl-tier-badge">GOVERNANCE</span><span class="kl-tier-desc"><span data-i18n="kl.tier2desc">UK + sector-filtered multi-jurisdiction &middot; ACEI Domain Index per jurisdiction</span></span></div>
-      <div class="kl-tier-row gold-tier"><span class="kl-tier-badge gold">INSTITUTIONAL</span><span class="kl-tier-desc"><span data-i18n="kl.tier3desc">Growing global library &middot; 53-jurisdiction architecture &middot; expanding territorial coverage</span></span></div>
-    </div>
     <div class="kl-cta-row"><a href="/knowledge-library-preview/" class="kl-link" data-i18n="kl.ctaLink">Preview the Knowledge Library &#8599;</a></div>
   </div>
 </section>
 
-<!-- KNOWLEDGE LIBRARY CTA STRIP -->
-<div class="cta-strip">
-  <div class="cta-strip-inner">
-    <span class="cta-strip-text"><strong>Knowledge Library</strong> &#8212; research with Eileen, your AI employment law guide. Per-session access.</span>
-    <span class="cta-strip-price">From &#163;29</span>
-    <a href="https://ailane.ai/knowledge-library-pass/" class="cta-strip-btn">Access the Library &#8594;</a>
-  </div>
-</div>
-
-<!-- CONTRACT COMPLIANCE CHECK CTA STRIP -->
-<div class="cta-strip">
-  <div class="cta-strip-inner">
-    <span class="cta-strip-text"><strong>Contract Compliance Check</strong> &#8212; instant clause-level analysis against 60 live requirements + 11 forward provisions</span>
-    <span class="cta-strip-price">From &#163;19</span>
-    <a href="/contract-scan/" class="cta-strip-btn">Check Your Contract &#8594;</a>
-  </div>
-</div>
-
 <!-- COMPLIANCE CHECKER -->
 <section class="cc-section" id="compliance-checker">
   <div class="container">
-    <div class="section-eyebrow"><span data-i18n="cc.eyebrow">Compliance Checker</span></div>
-    <div class="section-title"><span data-i18n="cc.title">Upload a contract. See where you stand.</span></div>
-    <div class="section-subtitle"><span data-i18n="cc.subtitle">Try it now &#8212; drag in your employment contract, handbook, or HR policy. Your clause-level compliance report is generated in minutes and available to download immediately. Advisory output only.</span></div>
-
-    <div class="cc-grid">
-      <div class="cc-card card fade-in">
-        <div class="cc-card-icon">&#128196;</div>
-        <h3 data-i18n="cc.card1title">Clause-Level Analysis</h3>
-        <p data-i18n="cc.card1body">Every clause assessed against the Knowledge Library's live requirement set. Critical gaps, warnings, and compliant provisions each identified with severity ratings and the specific statutory provision that applies.</p>
-        <div class="cc-stat"><span data-i18n="cc.card1stat">Assessed against live law &#8212; updated with every Knowledge Library change</span></div>
-      </div>
-      <div class="cc-card card fade-in">
-        <div class="cc-card-icon">&#127919;</div>
-        <h3 data-i18n="cc.card2title">RRI Pillar Integration</h3>
-        <p data-i18n="cc.card2body">Findings translate into evidence inputs for your RRI Regulatory Readiness score &#8212; specifically Contractual Conformity and Policy Alignment pillars. Fix a clause, re-upload, score improves immediately.</p>
-        <div class="cc-stat"><span data-i18n="cc.card2stat">Governed by RRI v1.0 Art. V &#8212; constitutional evidence tier framework</span></div>
-      </div>
-      <div class="cc-card card fade-in">
-        <div class="cc-card-icon">&#128221;</div>
-        <h3 data-i18n="cc.card3title">Remediation Guidance</h3>
-        <p data-i18n="cc.card3body">Every critical and warning finding includes specific remediation steps referenced to the relevant statutory provision &#8212; what is wrong, what the obligation requires, how to bring the clause into conformity.</p>
-        <div class="cc-stat"><span data-i18n="cc.card3stat">ERA 2025 pre-loaded &#8212; day-one rights, flexible working, zero hours reform</span></div>
-      </div>
-    </div>
+    <div class="section-eyebrow"><span data-i18n="cc.eyebrow">Contract Compliance Check</span></div>
+    <div class="section-title"><span data-i18n="cc.title">Upload your contract. Eileen reads every clause.</span></div>
+    <div class="section-subtitle"><span data-i18n="cc.subtitle">Eileen powers every compliance check. She reads your contract against 71 regulatory requirements &#8212; 60 current law obligations and 11 ERA 2025 provisions &#8212; and returns a clause-level report in minutes. Every finding traced to its statutory source. Advisory output only.</span></div>
 
     <!-- ══════════════════════════════════════════════════════════
          COMPLIANCE CHECKER — LIVE ANIMATION
@@ -1705,150 +1590,63 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how-section" id="how">
-  <div class="container">
-    <div class="section-eyebrow"><span data-i18n="how.eyebrow">How It Works</span></div>
-    <div class="section-title"><span data-i18n="how.title">Three inputs. One constitutionally-governed score.</span></div>
-    <div class="section-subtitle"><span data-i18n="how.subtitle">The ACEI calculates employer exposure using a deterministic formula defined in Article III of its founding constitution. Identical inputs always produce identical outputs.</span></div>
-    <div class="how-grid">
-      <div class="how-card card fade-in"><div class="how-number">01</div><div class="how-icon">&#128202;</div><h3 data-i18n="how.card1title">Event Volume Index (EVI)</h3><p data-i18n="how.card1body">Tracks weekly tribunal decision volumes per category against 52-week empirical baselines. A surge in discrimination claims in your sector triggers an immediate EVI spike &#8212; before it becomes a headline.</p></div>
-      <div class="how-card card fade-in"><div class="how-number">02</div><div class="how-icon">&#9889;</div><h3 data-i18n="how.card2title">Enforcement Intensity Index (EII)</h3><p data-i18n="how.card2body">Monitors real-time enforcement actions from the EHRC, HSE, and ICO using 90-day rolling windows. When a regulator ramps up activity in your category, your EII responds within the week.</p></div>
-      <div class="how-card card fade-in"><div class="how-number">03</div><div class="how-icon">&#128220;</div><h3 data-i18n="how.card3title">Structural Change Index (SCI)</h3><p data-i18n="how.card3body">Maps legislative changes and regulatory updates to your exposure categories with impact-level scoring. The Employment Rights Act 2025, data protection amendments, working time reforms &#8212; all captured and weighted.</p></div>
-    </div>
-    <div class="formula-block fade-in">
-      <div class="formula-text">L<sub>raw</sub> = (0.4 &times; EVI) + (0.3 &times; EII) + (0.3 &times; SCI)</div>
-      <div class="formula-ref" data-i18n="how.formulaRef">Article III &sect;3.2.1 &#8212; Likelihood Derivation Formula</div>
-    </div>
-  </div>
-</section>
 
-<!-- INTRODUCING EILEEN -->
-<section class="eileen-section" id="eileen">
+<!-- ====== SECTION 3: ERA 2025 — WHAT JUST CHANGED ====== -->
+<section class="horizon-section" id="era2025">
   <div class="container">
-    <div class="section-eyebrow">Intelligence Entity</div>
-    <div class="section-title">Meet Eileen.</div>
-    <div class="section-subtitle">Ailane's intelligence entity. She reads every legislative instrument, tracks every commencement date, and analyses every clause in your documents &#8212; so you understand your position before the law changes.</div>
-
-    <div class="eileen-layout">
-      <div class="eileen-canvas-wrap fade-in">
-        <canvas id="eileen-canvas" width="420" height="420"></canvas>
-        <div class="eileen-entity-label">THE NEXUS &middot; EILEEN</div>
-      </div>
-      <div class="eileen-text fade-in">
-        <h3>She doesn't just check your contract.<br>She <em>understands the law behind it</em>.</h3>
-        <p>Eileen is the AI intelligence that powers every Ailane analysis. She assesses your employment documents against 60 current requirements and 11 forward-looking provisions from the Employment Rights Act 2025 &#8212; identifying what's compliant today and what will need attention when new provisions commence.</p>
-        <div class="eileen-features">
-          <div class="eileen-feat">
-            <div class="eileen-feat-icon">&#128220;</div>
-            <div class="eileen-feat-text"><strong>Three-way parallel analysis.</strong> Current law, current law (deep pass), and forward exposure &#8212; assessed simultaneously. No additional wait time.</div>
-          </div>
-          <div class="eileen-feat">
-            <div class="eileen-feat-icon">&#9878;&#65039;</div>
-            <div class="eileen-feat-text"><strong>71 regulatory requirements.</strong> 60 current law obligations and 11 enacted-but-uncommenced provisions from ERA 2025 &#8212; with commencement dates tracked.</div>
-          </div>
-          <div class="eileen-feat">
-            <div class="eileen-feat-icon">&#128202;</div>
-            <div class="eileen-feat-text"><strong>Forward findings never affect your current score.</strong> Structural separation at database, engine, and report level. Your compliance score reflects current law only.</div>
-          </div>
-          <div class="eileen-feat">
-            <div class="eileen-feat-icon">&#128218;</div>
-            <div class="eileen-feat-text"><strong>Knowledge Library powered.</strong> Every requirement traces to a verified statutory provision on legislation.gov.uk. Open Government Licence compliant.</div>
-          </div>
-        </div>
-        <div class="eileen-note">AILANE-SPEC-EILEEN-001 v1.0 &middot; AILANE-SPEC-FWD-001 v1.0 &middot; Constitutionally governed</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ERA 2025 URGENCY -->
-<section class="era-section" id="era2025">
-  <div class="container">
-    <div class="era-alert-bar"><span class="era-alert-dot"></span> <span data-i18n="era.alert">LEGISLATIVE ALERT &middot; ACTIVE</span></div>
-    <div class="era-layout">
-      <div>
-        <div class="era-title" data-i18n="era.title">The <span>Employment Rights Act 2025</span> is now law.<br>Is your exposure scored?</div>
-        <p class="era-desc"><span data-i18n="era.desc">Royal Assent: 18 December 2025. The most significant overhaul of UK employment law in a generation &#8212; with commencement dates already rolling. Most employers are running on annual compliance cycles. Ailane scores it weekly.</span></p>
-        <div class="era-meta">
-          <div class="era-meta-item">&#9679;&nbsp; Royal Assent <span>18 Dec 2025</span></div>
-          <div class="era-meta-item">&#9679;&nbsp; Status <span>Active &amp; Commencing</span></div>
-          <div class="era-meta-item">&#9679;&nbsp; ACEI Impact <span>8 of 12 categories</span></div>
-        </div>
-        <div class="era-cats">
-          <span class="era-cat-tag" data-i18n="era.cat01">CAT 01 &middot; Unfair Dismissal</span><span class="era-cat-tag" data-i18n="era.cat07">CAT 07 &middot; Parental Rights</span>
-          <span class="era-cat-tag" data-i18n="era.cat06">CAT 06 &middot; Redundancy</span><span class="era-cat-tag" data-i18n="era.cat08">CAT 08 &middot; Trade Union</span>
-          <span class="era-cat-tag" data-i18n="era.cat09">CAT 09 &middot; Employment Status</span><span class="era-cat-tag" data-i18n="era.cat03">CAT 03 &middot; Wages</span>
-          <span class="era-cat-tag" data-i18n="era.cat02">CAT 02 &middot; Discrimination</span><span class="era-cat-tag" data-i18n="era.cat10">CAT 10 &middot; Health &amp; Safety</span>
-        </div>
-        <a href="#early-access" class="btn-primary" style="display:inline-flex;" data-i18n="era.cta">Get Your Exposure Score &#8594;</a>
-      </div>
-      <div class="era-card fade-in">
-        <div class="era-card-label" data-i18n="era.cardLabel">ERA 2025 &middot; Key Provisions &#8212; Scored</div>
-        <div class="era-provision"><div class="era-prov-icon">&#128221;</div><div><div class="era-prov-title" data-i18n="era.prov1title">Day-One Unfair Dismissal Rights</div><div class="era-prov-sub" data-i18n="era.prov1sub">Two-year qualifying period removed. Affects every employer immediately.</div></div></div>
-        <div class="era-provision"><div class="era-prov-icon">&#127919;</div><div><div class="era-prov-title" data-i18n="era.prov2title">Strengthened Flexible Working</div><div class="era-prov-sub" data-i18n="era.prov2sub">Default right from day one. Burden of refusal shifts to employer.</div></div></div>
-        <div class="era-provision"><div class="era-prov-icon">&#128101;</div><div><div class="era-prov-title" data-i18n="era.prov3title">Zero Hours Contract Reform</div><div class="era-prov-sub" data-i18n="era.prov3sub">Guaranteed hours obligations for regular workers. Sector-wide implications.</div></div></div>
-        <div class="era-provision"><div class="era-prov-icon">&#127968;</div><div><div class="era-prov-title" data-i18n="era.prov4title">Enhanced Family Leave</div><div class="era-prov-sub" data-i18n="era.prov4sub">Expanded parental protections. Bereavement leave statutory entitlement.</div></div></div>
-        <div class="era-provision"><div class="era-prov-icon">&#129309;</div><div><div class="era-prov-title" data-i18n="era.prov5title">Trade Union Access Rights</div><div class="era-prov-sub" data-i18n="era.prov5sub">Simplified recognition. Strengthened industrial action protections.</div></div></div>
-        <div class="era-acei-flag"><div class="era-acei-flag-label" data-i18n="era.aceiLabel">ACEI SCI IMPACT</div><div class="era-acei-flag-value" data-i18n="era.aceiValue">&#8679; STRUCTURAL</div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- LEGISLATIVE HORIZON INTELLIGENCE -->
-<section class="horizon-section" id="legislative-horizon">
-  <div class="container">
-    <div class="horizon-badge"><span class="horizon-badge-dot"></span> FORWARD INTELLIGENCE &middot; LIVE</div>
-    <div class="horizon-title">Your contracts assessed against <span>tomorrow's law</span>, today.</div>
-    <p class="horizon-desc">Ailane doesn't just check against current requirements. Every analysis now includes a forward-looking assessment against enacted-but-uncommenced provisions of the Employment Rights Act 2025 &#8212; with phased commencement dates tracked in real time.</p>
+    <div class="horizon-badge"><span class="horizon-badge-dot"></span> LEGISLATIVE ALERT &middot; 6 APRIL 2026</div>
+    <div class="horizon-title">The <span>Employment Rights Act 2025</span> is now in force.</div>
+    <p class="horizon-desc">Royal Assent 18 December 2025. Nine employer obligations already commenced. More coming in 2026 and 2027. Eileen can walk you through exactly what each provision means for your contracts.</p>
 
     <div class="horizon-status-strip" style="margin-bottom:32px;">
-      <span class="horizon-status-tag horizon-commenced">9 PROVISIONS COMMENCED</span>
-      <span class="horizon-status-tag horizon-pending">4 PENDING COMMENCEMENT</span>
-      <span class="horizon-status-tag horizon-consultation">4 PENDING CONSULTATION</span>
+      <span class="horizon-status-tag horizon-commenced">9 IN FORCE NOW</span>
+      <span class="horizon-status-tag horizon-pending">4 COMMENCING 2026&#8211;2027</span>
+      <span class="horizon-status-tag horizon-consultation">4 UNDER CONSULTATION</span>
     </div>
 
     <div class="horizon-timeline">
-      <div class="horizon-phase card fade-in">
-        <div class="horizon-phase-date">ALREADY IN FORCE</div>
-        <div class="horizon-phase-title">Commenced Provisions</div>
+      <div class="horizon-phase card fade-in" style="border-color:rgba(212,160,23,0.35);">
+        <div class="horizon-phase-date" style="color:#D4A017;">ALREADY IN FORCE</div>
+        <div class="horizon-phase-title">What changed on 6 April 2026</div>
         <ul class="horizon-phase-items">
-          <li>Day-one paternity leave (6 Apr 2026)</li>
-          <li>Day-one ordinary parental leave (6 Apr 2026)</li>
-          <li>Day-one SSP &#8212; waiting days removed (6 Apr 2026)</li>
-          <li>Whistleblowing expanded to sexual harassment (6 Apr 2026)</li>
-          <li>Collective redundancy protective award doubled (6 Apr 2026)</li>
-          <li>Trade union recognition simplified (6 Apr 2026)</li>
-          <li>Fair Work Agency operational (7 Apr 2026)</li>
-          <li>Industrial action &#8212; 12-week limit removed (18 Feb 2026)</li>
-          <li>Trade union ballot &#8212; 40% threshold removed (18 Feb 2026)</li>
+          <li>Paternity leave from day one &#8212; no more 26-week service rule</li>
+          <li>Parental leave from day one &#8212; unpaid time off for family</li>
+          <li>SSP from day one &#8212; waiting days removed, LEL abolished</li>
+          <li>Whistleblowing now covers sexual harassment disclosures</li>
+          <li>Redundancy protective award doubled to 180 days' pay</li>
+          <li>Trade union recognition simplified</li>
+          <li>Fair Work Agency is operational and inspecting</li>
+          <li>Strike rules eased &#8212; 12-week action limit removed</li>
+          <li>Union ballot threshold dropped from 40% to simple majority</li>
         </ul>
       </div>
       <div class="horizon-phase card fade-in">
         <div class="horizon-phase-date">COMMENCING 2026&#8211;2027</div>
-        <div class="horizon-phase-title">Pending Provisions</div>
+        <div class="horizon-phase-title">What's coming next</div>
         <ul class="horizon-phase-items">
-          <li>Sexual harassment &#8212; reasonable steps duty (Oct 2026)</li>
-          <li>Unfair dismissal &#8212; 6-month qualifying period (Jan 2027)</li>
-          <li>Fire and rehire &#8212; automatically unfair (Jan 2027)</li>
-          <li>Tribunal time limits &#8212; extended to 6 months (Jan 2027)</li>
+          <li>Sexual harassment &#8212; mandatory "reasonable steps" duty (Oct 2026)</li>
+          <li>Unfair dismissal qualifying period cut to 6 months (Jan 2027)</li>
+          <li>Fire and rehire becomes automatically unfair (Jan 2027)</li>
+          <li>Tribunal time limits extended from 3 to 6 months (Jan 2027)</li>
         </ul>
       </div>
       <div class="horizon-phase card fade-in">
-        <div class="horizon-phase-date">SUBJECT TO CONSULTATION</div>
-        <div class="horizon-phase-title">Forward Planning</div>
+        <div class="horizon-phase-date">UNDER CONSULTATION</div>
+        <div class="horizon-phase-title">On the horizon</div>
         <ul class="horizon-phase-items">
-          <li>Zero-hours &#8212; guaranteed hours obligation (Jul 2027)</li>
-          <li>Shift notice and cancellation compensation (Jul 2027)</li>
-          <li>Bereavement leave including pregnancy loss (Apr 2027)</li>
-          <li>Flexible working &#8212; employer must explain refusal (Apr 2027)</li>
+          <li>Zero-hours workers gain right to guaranteed hours (Jul 2027)</li>
+          <li>Shift cancellation compensation for workers (Jul 2027)</li>
+          <li>Bereavement leave extended to pregnancy loss (Apr 2027)</li>
+          <li>Flexible working refusals must be explained (Apr 2027)</li>
         </ul>
       </div>
     </div>
 
     <div class="horizon-footer-note fade-in">
-      <strong>Forward findings are structurally separated.</strong> They appear in a distinct &#8220;Legislative Horizon&#8221; section of your report and <em>never affect your current compliance score</em>. This is a constitutional obligation &#8212; not a product configuration.
+      <strong>Not sure what any of this means for your contracts?</strong> <em>Ask Eileen.</em> She can walk you through each provision in plain English &#8212; and cite the exact section of ERA 2025 that applies.
+      <div style="margin-top:16px;">
+        <a href="/knowledge-library-pass/" class="btn-primary" style="display:inline-flex;">Start a Research Session &#8212; from &#163;29 &#8594;</a>
+      </div>
     </div>
   </div>
 </section>
@@ -1883,89 +1681,127 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
   </div>
 </section>
 
-<!-- INTELLIGENCE LOOP -->
-<section class="loop-section" id="intelligence-loop">
-  <div class="container">
-    <div class="section-eyebrow" style="text-align:center;"><span data-i18n="loop.eyebrow">The Intelligence Loop</span></div>
-    <div class="section-title" style="text-align:center;"><span data-i18n="loop.title">One connected system.</span></div>
-    <p class="section-subtitle centered"><span data-i18n="loop.subtitle">The Knowledge Library, ACEI score, Compliance Checker, and RRI are not four separate products. They are one constitutionally-governed loop &#8212; running continuously.</span></p>
-    <div class="loop-row">
-      <div class="loop-node card fade-in"><div class="loop-node-icon">&#128218;</div><div class="loop-node-label" data-i18n="loop.node1label">KNOWLEDGE LIBRARY</div><div class="loop-node-desc" data-i18n="loop.node1desc">Tracks legislation from bill to commencement. Updates requirement set as law changes.</div></div>
-      <div class="loop-connector"><div style="display:flex;align-items:center;"><div class="loop-connector-line"></div><div class="loop-connector-arrow">&#8250;</div></div><div class="loop-connector-label" data-i18n="loop.conn1">SCI FEED</div></div>
-      <div class="loop-node card fade-in"><div class="loop-node-icon">&#128202;</div><div class="loop-node-label" data-i18n="loop.node2label">ACEI SCORE</div><div class="loop-node-desc" data-i18n="loop.node2desc">SCI sub-index updated. Domain Index recomputed. Your exposure reflects live law.</div></div>
-      <div class="loop-connector"><div style="display:flex;align-items:center;"><div class="loop-connector-line"></div><div class="loop-connector-arrow">&#8250;</div></div><div class="loop-connector-label" data-i18n="loop.conn2">REQUIREMENTS</div></div>
-      <div class="loop-node card fade-in"><div class="loop-node-icon">&#128196;</div><div class="loop-node-label" data-i18n="loop.node3label">COMPLIANCE CHECKER</div><div class="loop-node-desc" data-i18n="loop.node3desc">Analyses your contracts against the current requirement set. Clause-level findings produced.</div></div>
-      <div class="loop-connector"><div style="display:flex;align-items:center;"><div class="loop-connector-line"></div><div class="loop-connector-arrow">&#8250;</div></div><div class="loop-connector-label" data-i18n="loop.conn3">RRI PILLARS</div></div>
-      <div class="loop-node card fade-in"><div class="loop-node-icon">&#127919;</div><div class="loop-node-label" data-i18n="loop.node4label">RRI READINESS</div><div class="loop-node-desc" data-i18n="loop.node4desc">Preparedness score updated from your document evidence. Measures how well governance mitigates ACEI exposure.</div></div>
-    </div>
-    <p class="loop-caption" data-i18n="loop.caption">When legislation changes, <strong>the Knowledge Library captures it first</strong>. The ACEI scores the new exposure. The Compliance Checker flags what your contracts must update. Your <strong>RRI score reflects both the gap and the remediation</strong>. One constitutional framework. Updated weekly.</p>
-  </div>
-</section>
 
-<!-- PRICING -->
+<!-- PRICING — AM-005 (10 Apr 2026) -->
 <section class="pricing-section" id="pricing">
   <div class="container">
     <div class="section-eyebrow" style="text-align:center;"><span data-i18n="pricing.eyebrow">Pricing</span></div>
-    <div class="section-title" style="text-align:center;"><span data-i18n="pricing.title">Transparent pricing. No hidden fees.</span></div>
-    <p class="section-subtitle centered"><span data-i18n="pricing.subtitle">Three tiers designed around distinct decision-makers. Each delivers genuine intelligence at its price point, with natural depth as your organisation grows.</span></p>
-    <div class="pricing-grid">
-      <div class="pricing-card card fade-in">
-        <div class="pricing-tier" data-i18n="pricing.tier1eyebrow">OPERATIONAL READINESS</div>
-        <h3>Operational Readiness</h3>
-        <p class="pricing-target" data-i18n="pricing.tier1target">HR managers &amp; compliance leads &middot; 25&#8211;100 employees</p>
-        <div class="pricing-price">&#163;199<span>/mo</span></div>
-        <div class="pricing-period" data-i18n="pricing.tier1period">Billed monthly &middot; Cancel anytime</div>
-        <ul class="pricing-features">
-          <li data-i18n="pricing.tier1f1">ACEI Domain Index score</li>
-          <li data-i18n="pricing.tier1f2">12-category exposure breakdown</li>
-          <li data-i18n="pricing.tier1f3">Weekly score updates</li>
-          <li data-i18n="pricing.tier1f4">Legislative change alerts</li>
-          <li data-i18n="pricing.tier1f5">Knowledge Library &middot; UK instruments</li>
-          <li data-i18n="pricing.tier1f6">Compliance Checker &middot; employment contracts</li>
-          <li data-i18n="pricing.tier1f7">ERA 2025 impact assessment</li>
-          <li data-i18n="pricing.tier1f8">Email support</li>
-        </ul>
-        <a href="#early-access" class="pricing-cta pricing-cta-secondary" data-i18n="pricing.tier1cta">Request Access</a>
+    <div class="section-title" style="text-align:center;"><span data-i18n="pricing.title">Work with Eileen at the depth that suits you.</span></div>
+    <p class="section-subtitle centered"><span data-i18n="pricing.subtitle">Per-session access for research. One-off checks for specific contracts. Subscriptions for continuous monitoring. Eileen is included at every level.</span></p>
+
+    <!-- Row 1: Per-Session Access (Knowledge Library) -->
+    <div class="pricing-row-label">Per-Session Access &middot; Research with Eileen</div>
+    <div class="pricing-session-grid">
+      <div class="session-card card fade-in">
+        <div class="session-tier">QUICK SESSION</div>
+        <div class="session-price">&#163;29<span> / 2 hours</span></div>
+        <div class="session-desc">Targeted research. Ask Eileen a specific question, get the full legislative answer with citations.</div>
+        <a href="/knowledge-library-pass/" class="session-cta">Start a Quick Session &#8594;</a>
       </div>
-      <div class="pricing-card card featured fade-in">
-        <div class="pricing-tier" data-i18n="pricing.tier2eyebrow">GOVERNANCE</div>
-        <h3>Governance</h3>
-        <p class="pricing-target" data-i18n="pricing.tier2target">HR directors &amp; board reporting &middot; 75&#8211;500 employees</p>
-        <div class="pricing-price">&#163;799<span>/mo</span></div>
-        <div class="pricing-period" data-i18n="pricing.tier2period">Billed monthly &middot; Cancel anytime</div>
-        <ul class="pricing-features">
-          <li data-i18n="pricing.tier2f1">Everything in Operational Readiness</li>
-          <li data-i18n="pricing.tier2f2">Full Index Triad &#8212; ACEI + RRI + CCI</li>
-          <li data-i18n="pricing.tier2f3">Full sub-index transparency (EVI, EII, SCI)</li>
-          <li data-i18n="pricing.tier2f4">RRI Readiness assessment (5 pillars)</li>
-          <li data-i18n="pricing.tier2f5">CCI Conduct Score per employer</li>
-          <li data-i18n="pricing.tier2f6">Knowledge Library &middot; multi-jurisdiction</li>
-          <li data-i18n="pricing.tier2f7">Sector benchmarking</li>
-          <li data-i18n="pricing.tier2f8">Board-ready reporting &amp; PDF exports</li>
-          <li data-i18n="pricing.tier2f9">Quarterly review call &middot; priority support</li>
-        </ul>
-        <a href="#early-access" class="pricing-cta pricing-cta-primary" data-i18n="pricing.tier2cta">Request Access</a>
+      <div class="session-card card fade-in">
+        <div class="session-tier">DAY PASS</div>
+        <div class="session-price">&#163;49<span> / 24 hours</span></div>
+        <div class="session-desc">A full day with Eileen. Explore the legislative estate without a clock ticking over every minute.</div>
+        <a href="/knowledge-library-pass/" class="session-cta">Buy a Day Pass &#8594;</a>
       </div>
-      <div class="pricing-card card card-gold fade-in">
-        <div class="pricing-tier pricing-tier-gold" data-i18n="pricing.tier3eyebrow">INSTITUTIONAL</div>
-        <h3>Institutional</h3>
-        <p class="pricing-target" data-i18n="pricing.tier3target">Enterprises, insurers &amp; legal firms &middot; 500+ employees</p>
-        <div class="pricing-price">Custom</div>
-        <div class="pricing-period" data-i18n="pricing.tier3period">Tailored engagement &middot; SLA-backed</div>
-        <ul class="pricing-features">
-          <li data-i18n="pricing.tier3f1">Everything in Governance</li>
-          <li data-i18n="pricing.tier3f2">Growing global Knowledge Library &middot; 53-jurisdiction architecture</li>
-          <li data-i18n="pricing.tier3f3">Multi-entity &amp; group scoring</li>
-          <li data-i18n="pricing.tier3f4">API access for internal systems</li>
-          <li data-i18n="pricing.tier3f5">EPLI insurance integration feeds</li>
-          <li data-i18n="pricing.tier3f6">Custom category weighting</li>
-          <li data-i18n="pricing.tier3f7">Dedicated account manager</li>
-          <li data-i18n="pricing.tier3f8">White-label reporting</li>
-          <li data-i18n="pricing.tier3f9">Bespoke board briefing packs</li>
-        </ul>
-        <a href="#early-access" class="pricing-cta pricing-cta-gold" data-i18n="pricing.tier3cta">Contact Sales</a>
+      <div class="session-card card fade-in">
+        <div class="session-tier">RESEARCH WEEK</div>
+        <div class="session-price">&#163;99<span> / 7 days</span></div>
+        <div class="session-desc">Deep project work. Seven days of unlimited Eileen for complex research, audits, or policy reviews.</div>
+        <a href="/knowledge-library-pass/" class="session-cta">Buy a Research Week &#8594;</a>
       </div>
     </div>
+
+    <!-- Row 2: Contract Check (one-off) -->
+    <div class="pricing-row-label">One-Off &middot; Contract Compliance Check</div>
+    <div class="pricing-contract-grid">
+      <div class="pricing-card card fade-in">
+        <div class="pricing-tier">SINGLE CONTRACT</div>
+        <h3>Contract Compliance Check</h3>
+        <p class="pricing-target">One employment contract &middot; Clause-level report</p>
+        <div class="pricing-price">&#163;19<span> one-time</span></div>
+        <ul class="pricing-features">
+          <li>Clause-level findings against 71 requirements</li>
+          <li>Critical gaps flagged with statutory references</li>
+          <li>PDF &amp; DOCX report by email in minutes</li>
+          <li>ERA 2025 forward provisions included</li>
+        </ul>
+        <a href="/contract-scan/" class="pricing-cta pricing-cta-secondary">Check a Contract</a>
+      </div>
+      <div class="pricing-card card featured fade-in">
+        <div class="pricing-tier">THREE-DOCUMENT BUNDLE</div>
+        <h3>Contract Analysis</h3>
+        <p class="pricing-target">Contract + handbook + HR policy &middot; Full remediation</p>
+        <div class="pricing-price">&#163;39<span> one-time</span></div>
+        <ul class="pricing-features">
+          <li>Everything in the single contract check</li>
+          <li>Three documents analysed together</li>
+          <li>Cross-document consistency findings</li>
+          <li>RRI readiness score</li>
+          <li>Remediation guidance per finding</li>
+        </ul>
+        <a href="/contract-scan/" class="pricing-cta pricing-cta-primary">Check My Documents</a>
+      </div>
+    </div>
+
+    <!-- Row 3: Subscriptions -->
+    <div class="pricing-row-label">Subscriptions &middot; Continuous Monitoring</div>
+    <div class="pricing-grid">
+      <div class="pricing-card card fade-in">
+        <div class="pricing-tier">OPERATIONAL READINESS</div>
+        <h3>Operational Readiness</h3>
+        <p class="pricing-target">HR managers &amp; compliance leads &middot; 25&#8211;100 employees</p>
+        <div class="pricing-price">&#163;199<span>/mo</span></div>
+        <div class="pricing-period">Billed monthly &middot; Cancel anytime</div>
+        <ul class="pricing-features">
+          <li>Continuous contract monitoring against UK law</li>
+          <li>12-category exposure breakdown</li>
+          <li>Weekly Eileen briefings on what changed</li>
+          <li>Legislative change alerts</li>
+          <li>Knowledge Library &middot; UK instruments</li>
+          <li>Unlimited Eileen within your subscription</li>
+          <li>Email support</li>
+        </ul>
+        <a href="/account/" class="pricing-cta pricing-cta-secondary">Subscribe</a>
+      </div>
+      <div class="pricing-card card featured fade-in">
+        <div class="pricing-tier">GOVERNANCE</div>
+        <h3>Governance</h3>
+        <p class="pricing-target">HR directors &amp; board reporting &middot; 75&#8211;500 employees</p>
+        <div class="pricing-price">&#163;799<span>/mo</span></div>
+        <div class="pricing-period">Billed monthly &middot; Cancel anytime</div>
+        <ul class="pricing-features">
+          <li>Everything in Operational Readiness</li>
+          <li>Full Index Triad &#8212; ACEI + RRI + CCI</li>
+          <li>Readiness assessment across 5 pillars</li>
+          <li>Per-employer conduct ratings</li>
+          <li>Sector benchmarking</li>
+          <li>Board-ready reporting &amp; PDF exports</li>
+          <li>Quarterly review call &middot; priority support</li>
+        </ul>
+        <a href="/account/" class="pricing-cta pricing-cta-primary">Subscribe</a>
+      </div>
+      <div class="pricing-card card card-gold fade-in">
+        <div class="pricing-tier pricing-tier-gold">INSTITUTIONAL</div>
+        <h3>Institutional</h3>
+        <p class="pricing-target">Enterprises, insurers &amp; legal firms &middot; 500+ employees</p>
+        <div class="pricing-price">Custom</div>
+        <div class="pricing-period">Tailored engagement &middot; SLA-backed</div>
+        <ul class="pricing-features">
+          <li>Everything in Governance</li>
+          <li>Multi-entity &amp; group scoring</li>
+          <li>API access for internal systems</li>
+          <li>EPLI insurance integration feeds</li>
+          <li>Custom category weighting</li>
+          <li>Dedicated account manager</li>
+          <li>White-label reporting</li>
+          <li>Bespoke board briefing packs</li>
+        </ul>
+        <a href="mailto:sales@ailane.ai" class="pricing-cta pricing-cta-gold">Contact Sales</a>
+      </div>
+    </div>
+
+    <p class="pricing-eileen-hint">Not sure which tier is right for you? <strong>Ask Eileen.</strong> Start a Quick Session for &#163;29 and she can help you understand which level of intelligence your organisation needs.</p>
   </div>
 </section>
 
@@ -1973,13 +1809,13 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
 <section class="const-section" id="governance">
   <div class="container">
     <div class="section-eyebrow"><span data-i18n="gov.eyebrow">Constitutional Governance</span></div>
-    <div class="section-title"><span data-i18n="gov.title">Three founding constitutions. Institutional-grade rigour.</span></div>
-    <div class="section-subtitle"><span data-i18n="gov.subtitle">Every score produced by Ailane is governed by binding constitutional documents. Methodology is deterministic, auditable, and version-controlled.</span></div>
+    <div class="section-title"><span>Three indices. One framework. Built to be audited.</span></div>
+    <div class="section-subtitle"><span>Every number Ailane publishes is governed by binding constitutional documents &#8212; deterministic, version-controlled, and defensible.</span></div>
     <p class="const-declaration" data-i18n="gov.declaration">The UK&#8217;s first constitutionally-governed regulatory measurement framework.</p>
     <div class="const-grid">
-      <div class="const-card card fade-in"><div class="const-badge" data-i18n="gov.card1badge">ACEI v1.0</div><h3 data-i18n="gov.card1title">Core Exposure Index</h3><p data-i18n="gov.card1body">Quantifies regulatory exposure across 12 employment law categories using a three-component formula combining tribunal volumes, enforcement intensity, and structural legislative change.</p><ul class="const-features"><li data-i18n="gov.card1f1">0&#8211;100 domain index scale</li><li data-i18n="gov.card1f2">Deterministic computation (Art I &sect;1.3)</li><li data-i18n="gov.card1f3">Weekly calculation cycle</li><li data-i18n="gov.card1f4">Full sub-index transparency</li><li data-i18n="gov.card1f5">Model risk disclosure compliant</li></ul></div>
-      <div class="const-card card fade-in"><div class="const-badge" data-i18n="gov.card2badge">RRI v1.0</div><h3 data-i18n="gov.card2title">Regulatory Readiness Index</h3><p data-i18n="gov.card2body">Assesses organisational preparedness through 5 pillars and a 9-attribute Evidence Impact Profile. Measures how well your governance, policies, and culture mitigate raw exposure identified by the ACEI.</p><ul class="const-features"><li data-i18n="gov.card2f1">5 readiness pillars</li><li data-i18n="gov.card2f2">9-attribute evidence framework</li><li data-i18n="gov.card2f3">Strict separation from ACEI</li><li data-i18n="gov.card2f4">Self-assessment with verification</li><li data-i18n="gov.card2f5">Mitigation offset computation</li></ul></div>
-      <div class="const-card card fade-in"><div class="const-badge" data-i18n="gov.card3badge">CCI v1.0</div><h3 data-i18n="gov.card3title">Compliance Conduct Index</h3><p data-i18n="gov.card3body">Evaluates employer conduct using 6 weighted components with Bayesian credibility weighting. Tribunal claim frequency, adverse outcomes, payout severity, enforcement events, and repeat allegation patterns.</p><ul class="const-features"><li data-i18n="gov.card3f1">6 weighted components</li><li data-i18n="gov.card3f2">Bayesian credibility scoring</li><li data-i18n="gov.card3f3">Per-employer conduct rating</li><li data-i18n="gov.card3f4">Independent verification layer</li><li data-i18n="gov.card3f5">Insurance-grade underwriting input</li></ul></div>
+      <div class="const-card card fade-in"><div class="const-badge" data-i18n="gov.card1badge">ACEI v1.0</div><h3 data-i18n="gov.card1title">Core Exposure Index</h3><p>Measures your exposure across 12 employment law categories. Updated weekly.</p></div>
+      <div class="const-card card fade-in"><div class="const-badge" data-i18n="gov.card2badge">RRI v1.0</div><h3 data-i18n="gov.card2title">Regulatory Readiness Index</h3><p>Assesses how well your governance mitigates the risks ACEI identifies.</p></div>
+      <div class="const-card card fade-in"><div class="const-badge" data-i18n="gov.card3badge">CCI v1.0</div><h3 data-i18n="gov.card3title">Compliance Conduct Index</h3><p>Rates employer conduct using tribunal outcomes and enforcement data.</p></div>
     </div>
   </div>
 </section>
@@ -2058,18 +1894,18 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
     <div class="section-title"><span data-i18n="cat.title">12 constitutional categories. Complete coverage.</span></div>
     <div class="section-subtitle"><span data-i18n="cat.subtitle">Every employment law risk maps to one of 12 categories defined in Article II of the ACEI constitution. No gaps, no overlaps, no ambiguity.</span></div>
     <div class="cat-grid">
-      <div class="cat-card fade-in"><div class="cat-id">CAT 01</div><div class="cat-name" data-i18n="cat.01name">Unfair Dismissal</div><div class="cat-desc" data-i18n="cat.01desc">Ordinary and automatic unfair dismissal claims, constructive dismissal, interim relief.</div><span class="cat-severity severity-elevated">I = 3 &middot; ELEVATED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 02</div><div class="cat-name" data-i18n="cat.02name">Discrimination &amp; Harassment</div><div class="cat-desc" data-i18n="cat.02desc">All protected characteristics under Equality Act 2010, victimisation, failure to make reasonable adjustments.</div><span class="cat-severity severity-high">I = 5 &middot; UNCAPPED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 03</div><div class="cat-name" data-i18n="cat.03name">Wages &amp; Working Time</div><div class="cat-desc" data-i18n="cat.03desc">Unlawful deductions, minimum wage, holiday pay, working time regulations, equal pay.</div><span class="cat-severity severity-elevated">I = 3 &middot; ELEVATED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 04</div><div class="cat-name" data-i18n="cat.04name">Whistleblowing</div><div class="cat-desc" data-i18n="cat.04desc">Protected disclosure detriment and dismissal. Qualifying disclosures to prescribed persons.</div><span class="cat-severity severity-high">I = 5 &middot; UNCAPPED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 05</div><div class="cat-name" data-i18n="cat.05name">Breach of Contract</div><div class="cat-desc" data-i18n="cat.05desc">Notice pay, restrictive covenants, contractual entitlements, wrongful dismissal.</div><span class="cat-severity severity-elevated">I = 3 &middot; ELEVATED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 06</div><div class="cat-name" data-i18n="cat.06name">Redundancy &amp; Org Change</div><div class="cat-desc" data-i18n="cat.06desc">Unfair selection, collective consultation failures, protective awards, suitable alternative employment.</div><span class="cat-severity severity-high">I = 4 &middot; HIGH</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 07</div><div class="cat-name" data-i18n="cat.07name">Parental &amp; Family Rights</div><div class="cat-desc" data-i18n="cat.07desc">Maternity, paternity, shared parental, adoption leave. Flexible working refusals. Pregnancy discrimination.</div><span class="cat-severity severity-elevated">I = 3 &middot; ELEVATED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 08</div><div class="cat-name" data-i18n="cat.08name">Trade Union &amp; Collective</div><div class="cat-desc" data-i18n="cat.08desc">Detriment for union activities, recognition disputes, collective bargaining, industrial action protections.</div><span class="cat-severity severity-elevated">I = 3 &middot; ELEVATED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 09</div><div class="cat-name" data-i18n="cat.09name">Employment Status</div><div class="cat-desc" data-i18n="cat.09desc">Worker vs employee vs self-employed. IR35 implications. Agency worker rights. Gig economy classification.</div><span class="cat-severity severity-elevated">I = 3 &middot; ELEVATED</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 10</div><div class="cat-name" data-i18n="cat.10name">Health &amp; Safety</div><div class="cat-desc" data-i18n="cat.10desc">Detriment for raising H&amp;S concerns, unsafe working conditions, HSE enforcement, workplace stress claims.</div><span class="cat-severity severity-high">I = 4 &middot; HIGH</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 11</div><div class="cat-name" data-i18n="cat.11name">Data Protection</div><div class="cat-desc" data-i18n="cat.11desc">UK GDPR workplace obligations, employee monitoring, subject access requests, ICO enforcement actions.</div><span class="cat-severity severity-high">I = 4 &middot; HIGH</span></div>
-      <div class="cat-card fade-in"><div class="cat-id">CAT 12</div><div class="cat-name" data-i18n="cat.12name">Business Transfers</div><div class="cat-desc" data-i18n="cat.12desc">TUPE protections, service provision changes, information and consultation obligations, ETO reasons.</div><span class="cat-severity severity-high">I = 4 &middot; HIGH</span></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 01</div><div class="cat-name" data-i18n="cat.01name">Unfair Dismissal</div><div class="cat-desc" data-i18n="cat.01desc">Ordinary and automatic unfair dismissal claims, constructive dismissal, interim relief.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 02</div><div class="cat-name" data-i18n="cat.02name">Discrimination &amp; Harassment</div><div class="cat-desc" data-i18n="cat.02desc">All protected characteristics under Equality Act 2010, victimisation, failure to make reasonable adjustments.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 03</div><div class="cat-name" data-i18n="cat.03name">Wages &amp; Working Time</div><div class="cat-desc" data-i18n="cat.03desc">Unlawful deductions, minimum wage, holiday pay, working time regulations, equal pay.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 04</div><div class="cat-name" data-i18n="cat.04name">Whistleblowing</div><div class="cat-desc" data-i18n="cat.04desc">Protected disclosure detriment and dismissal. Qualifying disclosures to prescribed persons.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 05</div><div class="cat-name" data-i18n="cat.05name">Breach of Contract</div><div class="cat-desc" data-i18n="cat.05desc">Notice pay, restrictive covenants, contractual entitlements, wrongful dismissal.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 06</div><div class="cat-name" data-i18n="cat.06name">Redundancy &amp; Org Change</div><div class="cat-desc" data-i18n="cat.06desc">Unfair selection, collective consultation failures, protective awards, suitable alternative employment.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 07</div><div class="cat-name" data-i18n="cat.07name">Parental &amp; Family Rights</div><div class="cat-desc" data-i18n="cat.07desc">Maternity, paternity, shared parental, adoption leave. Flexible working refusals. Pregnancy discrimination.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 08</div><div class="cat-name" data-i18n="cat.08name">Trade Union &amp; Collective</div><div class="cat-desc" data-i18n="cat.08desc">Detriment for union activities, recognition disputes, collective bargaining, industrial action protections.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 09</div><div class="cat-name" data-i18n="cat.09name">Employment Status</div><div class="cat-desc" data-i18n="cat.09desc">Worker vs employee vs self-employed. IR35 implications. Agency worker rights. Gig economy classification.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 10</div><div class="cat-name" data-i18n="cat.10name">Health &amp; Safety</div><div class="cat-desc" data-i18n="cat.10desc">Detriment for raising H&amp;S concerns, unsafe working conditions, HSE enforcement, workplace stress claims.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 11</div><div class="cat-name" data-i18n="cat.11name">Data Protection</div><div class="cat-desc" data-i18n="cat.11desc">UK GDPR workplace obligations, employee monitoring, subject access requests, ICO enforcement actions.</div></div>
+      <div class="cat-card fade-in"><div class="cat-id">CAT 12</div><div class="cat-name" data-i18n="cat.12name">Business Transfers</div><div class="cat-desc" data-i18n="cat.12desc">TUPE protections, service provision changes, information and consultation obligations, ETO reasons.</div></div>
     </div>
   </div>
 </section>
@@ -2088,18 +1924,33 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
   </div>
 </section>
 
-<!-- EARLY ACCESS -->
-<section class="cta-section" id="early-access">
+<!-- FINAL CTA -->
+<section class="cta-section" id="get-started">
   <div class="container">
-    <div class="section-eyebrow" style="text-align:center;"><span data-i18n="ea.eyebrow">Early Access</span></div>
-    <div class="section-title" style="text-align:center;"><span data-i18n="ea.title">See your exposure score first.</span></div>
-    <p class="section-subtitle centered"><span data-i18n="ea.subtitle">Join the early access programme and be among the first UK organisations to receive constitutionally-governed regulatory exposure intelligence.</span></p>
-    <form class="cta-form" id="signup-form" onsubmit="handleSignup(event)">
-      <input type="email" class="cta-input" id="signup-email" placeholder="Enter your work email" data-i18n-placeholder="ea.emailPlaceholder" required>
-      <button type="submit" class="cta-submit" id="signup-btn" data-i18n="ea.btnLabel">Request Access</button>
-    </form>
-    <div class="cta-msg" id="signup-msg"></div>
-    <div class="cta-legal" data-i18n="ea.legal">No spam. No obligations. We&#8217;ll send a secure sign-in link to your email.</div>
+    <div class="section-eyebrow" style="text-align:center;"><span data-i18n="final.eyebrow">Start Here</span></div>
+    <div class="section-title" style="text-align:center;"><span data-i18n="final.title">Three ways to put Eileen to work.</span></div>
+    <p class="section-subtitle centered"><span data-i18n="final.subtitle">No demo requests. No sales calls. Pick the product that fits what you need today &#8212; you can be reading real intelligence in under a minute.</span></p>
+    <div class="what-grid" style="margin-top:48px;">
+      <div class="what-card fade-in">
+        <div class="what-card-icon">&#128218;</div>
+        <h3>Research with Eileen</h3>
+        <p>Ask Eileen about any part of UK employment law. ERA 2025, tribunal patterns, your own policy language &#8212; she reads, cites, and explains.</p>
+        <a href="/knowledge-library-pass/" class="what-card-cta gold-cta">From &pound;29 &#8594;</a>
+      </div>
+      <div class="what-card fade-in">
+        <div class="what-card-icon">&#128196;</div>
+        <h3>Check a Contract</h3>
+        <p>Upload an employment contract and Eileen checks it against 71 regulatory requirements &#8212; 60 current law, 11 ERA 2025. Clause-level findings in minutes.</p>
+        <a href="/contract-scan/" class="what-card-cta">From &pound;19 &#8594;</a>
+      </div>
+      <div class="what-card fade-in">
+        <div class="what-card-icon">&#128202;</div>
+        <h3>Subscribe for Monitoring</h3>
+        <p>Continuous exposure scoring, weekly ACEI updates, governance-tier dashboards and institutional licensing for insurers and advisors.</p>
+        <a href="#pricing" class="what-card-cta">From &pound;199/mo &#8594;</a>
+      </div>
+    </div>
+    <div class="cta-legal" style="margin-top:32px; text-align:center;"><span data-i18n="final.legal">No demo calls. No sales pressure. Just Eileen, reading the law for you.</span></div>
   </div>
 </section>
 
@@ -2112,17 +1963,17 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
     </div>
     <div class="footer-links-group">
       <h4 data-i18n="footer.platformH4">Platform</h4>
-      <a href="#how" data-i18n="footer.howItWorks">How It Works</a>
-      <a href="#knowledge-library" data-i18n="footer.knowledgeLib">Knowledge Library</a>
+      <a href="/knowledge-library-pass/" data-i18n="footer.knowledgeLib">Knowledge Library</a>
       <a href="#compliance-checker" data-i18n="footer.compChecker">Compliance Checker</a>
+      <a href="#era2025" data-i18n="footer.era">ERA 2025</a>
       <a href="#governance" data-i18n="footer.governance">Governance</a>
       <a href="#pricing" data-i18n="footer.pricing">Pricing</a>
     </div>
     <div class="footer-links-group">
       <h4 data-i18n="footer.companyH4">Company</h4>
       <a href="mailto:support@ailane.ai" data-i18n="footer.contactLink">Contact</a>
-      <a href="#early-access" data-i18n="footer.eaLink">Early Access</a>
-      <a href="/account/dashboard/" data-i18n="footer.dashLink">Client Dashboard</a>
+      <a href="mailto:sales@ailane.ai" data-i18n="footer.salesLink">Sales</a>
+      <a href="/account/" data-i18n="footer.loginLink">Sign In</a>
     </div>
     <div class="footer-links-group">
       <h4>Products</h4>
@@ -2180,47 +2031,60 @@ function initTicker(trackId){
 initTicker('hero-ticker-track');
 initTicker('ticker-band-track');
 
-// \f2\u9472?\u9472?\f0  Supabase config \f2\u9472?\u9472?\f0
-const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
-const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-
-// \f2\u9472?\u9472?\f0  CHANGE 1: Magic link OTP signup \f2\u9472?\u9472?\f0
-async function handleSignup(e){
-  e.preventDefault();
-  const email=document.getElementById('signup-email').value.trim();
-  const btn=document.getElementById('signup-btn'),msg=document.getElementById('signup-msg');
-  if(!email)return;
-  btn.disabled=true;btn.textContent='Sending...';msg.textContent='';msg.className='cta-msg';
-  // Fire-and-forget record to early_access_signups
-  fetch(`${SUPABASE_URL}/rest/v1/early_access_signups`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':`Bearer ${SUPABASE_ANON}`,'Prefer':'return=minimal'},body:JSON.stringify({email,source:'ailane.ai'})}).catch(()=>{});
-  try{
-    const res=await fetch(`${SUPABASE_URL}/auth/v1/otp`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON},body:JSON.stringify({email,options:{emailRedirectTo:'https://ailane.ai/welcome/'}})});
-    if(res.ok||res.status===200){
-      msg.textContent='✓ Check your email \\u2014 we\\u2019ve sent a secure link to get you started.';
-      msg.className='cta-msg success';
-      document.getElementById('signup-email').value='';
-    }else if(res.status===429){
-      msg.textContent='Too many requests \\u2014 please wait a moment and try again.';
-      msg.className='cta-msg error';
-    }else{
-      msg.textContent='Something went wrong. Please try again or contact support@ailane.ai';
-      msg.className='cta-msg error';
+// ──  Hero: Eileen typing animation  ──
+// AILANE-SPEC-EILEEN-001 — Eileen speaks throughout the page. The hero's first
+// words set the tone. Statements drawn from AMD-042 §3 (Hero Script).
+(function heroEileenTyping(){
+  var el = document.getElementById('eileen-hero-text');
+  if (!el) return;
+  var statements = [
+    "Good morning. I'm Eileen — your regulatory intelligence entity.",
+    "ERA 2025 is now in force. That's 11 new employer obligations, all live since 6 April.",
+    "I've read 131,600 tribunal decisions so you don't have to.",
+    "Paternity leave from day one. Day-one protection from unfair dismissal. The rules changed — have your contracts?",
+    "Ask me about any provision, any case, any employer. I cite the statute every time.",
+    "The Fair Work Agency is operational. Zero-hours, fire and rehire, NMW, holiday pay — all under active enforcement.",
+    "I don't guess. I don't speculate. I read the law and I show you where you stand.",
+    "Research with me from £29. Check a contract from £19. Or ask me anything — I'm right here."
+  ];
+  var idx = 0, charIdx = 0, typing = true, current = '';
+  var typeSpeed = 32, eraseSpeed = 14, holdMs = 3200, betweenMs = 520;
+  function tick(){
+    var s = statements[idx];
+    if (typing) {
+      charIdx++;
+      current = s.slice(0, charIdx);
+      el.textContent = current;
+      if (charIdx >= s.length) {
+        typing = false;
+        setTimeout(tick, holdMs);
+        return;
+      }
+      setTimeout(tick, typeSpeed);
+    } else {
+      charIdx--;
+      current = s.slice(0, charIdx);
+      el.textContent = current;
+      if (charIdx <= 0) {
+        typing = true;
+        idx = (idx + 1) % statements.length;
+        setTimeout(tick, betweenMs);
+        return;
+      }
+      setTimeout(tick, eraseSpeed);
     }
-  }catch{
-    msg.textContent='Connection error. Please try again or contact support@ailane.ai';
-    msg.className='cta-msg error';
   }
-  btn.disabled=false;btn.textContent='Request Access';
-}
+  setTimeout(tick, 900);
+})();
 
-// \f2\u9472?\u9472?\f0  Scroll animations \f2\u9472?\u9472?\f0
+// ──  Scroll animations  ──
 const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.fade-in,.formula-block').forEach(el=>obs.observe(el));
 
-// \f2\u9472?\u9472?\f0  Nav shadow \f2\u9472?\u9472?\f0
+// ──  Nav shadow  ──
 window.addEventListener('scroll',()=>{document.querySelector('nav').style.boxShadow=window.scrollY>50?'0 4px 24px rgba(0,0,0,0.3)':'none';});
 
-// \f2\u9472?\u9472?\f0  Smooth scroll \f2\u9472?\u9472?\f0
+// ──  Smooth scroll  ──
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
     const href=a.getAttribute('href');if(href==='#')return;
@@ -2230,12 +2094,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
   });
 });
 
-// \f2\u9472?\u9472?\f0  Gauge counter \f2\u9472?\u9472?\f0
-let gc=false;
-const go=new IntersectionObserver(e=>{if(e[0].isIntersecting&&!gc){gc=true;const s=document.querySelector('.gauge-score');let c=0;const iv=setInterval(()=>{c++;s.textContent=c;if(c>=45)clearInterval(iv);},30);}},{threshold:0.5});
-const ge=document.querySelector('.gauge-container');if(ge)go.observe(ge);
-
-// \f2\u9472?\u9472?\f0  Disclaimer checkbox gate \f2\u9472?\u9472?\f0
+// ──  Disclaimer checkbox gate  ──
 function toggleDisclaimerBox(){
   var cb=document.getElementById('cci-disclaimer-check');
   var box=document.getElementById('cci-disclaimer-box');
