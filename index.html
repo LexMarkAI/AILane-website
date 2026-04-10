@@ -2241,5 +2241,50 @@ function ailaneNavToggle(){
 })();
 </script>
 
+<!-- GA4 Phase 2A Event Tracking — AILANE-SPEC-LPEX-001 Art. 16 -->
+<script>
+(function() {
+  'use strict';
+  if (typeof gtag !== 'function') return;
+
+  // Track section visibility with IntersectionObserver
+  var tracked = {};
+  var sections = [
+    { id: 'live-ticker', event: 'ticker_impression' },
+    { id: 'knowledge-library', event: 'kl_section_view' },
+    { id: 'data', event: 'data_sources_view' }
+  ];
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting && !tracked[entry.target.id]) {
+        tracked[entry.target.id] = true;
+        var section = sections.find(function(s) { return s.id === entry.target.id; });
+        if (section) {
+          gtag('event', section.event, { 'event_category': 'engagement', 'event_label': section.id });
+        }
+      }
+    });
+  }, { threshold: 0.3 });
+
+  sections.forEach(function(s) {
+    var el = document.getElementById(s.id);
+    if (el) observer.observe(el);
+  });
+
+  // Track ticker hover (pause = interest)
+  var tickerContainer = document.getElementById('ticker-container');
+  if (tickerContainer) {
+    var hoverFired = false;
+    tickerContainer.addEventListener('mouseenter', function() {
+      if (!hoverFired) {
+        hoverFired = true;
+        gtag('event', 'ticker_hover', { 'event_category': 'engagement' });
+      }
+    });
+  }
+})();
+</script>
+
 </body>
 </html>
