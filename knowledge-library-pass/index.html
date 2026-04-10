@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Purchase a Knowledge Library Pass for per-session access to Ailane's UK employment law intelligence platform.">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Knowledge Library Pass — Ailane</title>
+  <title>Access the Knowledge Library — Ailane</title>
+  <meta name="description" content="UK employment law intelligence with Eileen AI. Research provisions, explore case law, and build your compliance position — from £29. Per-session and subscription access.">
 
   <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
@@ -19,592 +18,288 @@
   <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 
-  <!-- Stripe.js — must load before body for PCI compliance -->
-  <script src="https://js.stripe.com/v3/"></script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --navy:        #0A2342;
-      --navy-l:      #112B4E;
-      --navy-m:      #163659;
-      --border:      #1E3A5F;
-      --cyan:        #06B6D4;
-      --cyan-l:      #22D3EE;
-      --cyan-dim:    rgba(6,182,212,.12);
-      --text-1:      #F8FAFC;
-      --text-2:      #94A3B8;
-      --text-3:      #64748B;
-      --success:     #22C55E;
-      --success-dim: rgba(34,197,94,.12);
-      --error:       #EF4444;
-      --error-dim:   rgba(239,68,68,.12);
-      --amber:       #F59E0B;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0A1628;--bg-card:#0F1D32;--border:#1E3A5F;--cyan:#0EA5E9;--cyan-dim:rgba(14,165,233,0.15);
+      --green:#10B981;--purple:#8B5CF6;--gold:#D4A017;--gold-dim:rgba(212,160,23,0.15);
+      --text:#E2E8F0;--text-dim:#94A3B8;--text-bright:#F8FAFC;--danger:#EF4444;
+      --font:'DM Sans',system-ui,-apple-system,sans-serif;--mono:'DM Mono','Fira Code',monospace;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--navy); color: var(--text-1); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    html{scroll-behavior:smooth}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
 
-    /* HEADER */
-    .hdr { position: sticky; top: 0; z-index: 100; background: var(--navy); border-bottom: 1px solid var(--border); }
-    .hdr-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; }
-    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-1); }
-    .logo-mark { width: 32px; height: 32px; background: var(--cyan); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: var(--navy); }
-    .logo-name { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
-    .hdr-badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--cyan); background: var(--cyan-dim); border: 1px solid rgba(6,182,212,.3); padding: 4px 11px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
-    .hdr-badge::before { content: ''; width: 6px; height: 6px; background: var(--cyan); border-radius: 50%; }
+    .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,22,40,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{font-size:1.25rem;font-weight:700;color:var(--text-bright);text-decoration:none;letter-spacing:-0.02em}
+    .nav-logo span{color:var(--cyan)}
+    .nav-links{display:flex;gap:1.5rem;align-items:center}
+    .nav-links a{color:var(--text-dim);text-decoration:none;font-size:0.875rem;font-weight:500;transition:color 0.2s}
+    .nav-links a:hover{color:var(--text-bright)}
+    .nav-links .btn-signin{background:var(--cyan);color:var(--bg);padding:0.5rem 1.25rem;border-radius:6px;font-weight:600}
+    .nav-links .btn-signin:hover{background:#38BDF8;color:var(--bg)}
 
-    /* MAIN */
-    .main { max-width: 1100px; margin: 0 auto; padding: 44px 24px 80px; }
-    .page-hero { text-align: center; margin-bottom: 48px; }
-    .page-hero h1 { font-size: 34px; font-weight: 800; letter-spacing: -.8px; line-height: 1.2; margin-bottom: 10px; }
-    .page-hero h1 span { color: var(--cyan); }
-    .page-hero p { font-size: 15px; color: var(--text-2); max-width: 520px; margin: 0 auto; }
-    .grid { display: grid; grid-template-columns: 1fr 380px; gap: 28px; align-items: start; }
+    .container{max-width:1200px;margin:0 auto;padding:0 2rem}
 
-    /* PANEL */
-    .panel { background: var(--navy-l); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-    .panel-hd { padding: 22px 24px 0; }
-    .panel-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--cyan); margin-bottom: 4px; }
-    .panel-heading { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    /* HERO */
+    .hero{padding:10rem 0 5rem;text-align:center;position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,var(--cyan-dim) 0%,transparent 70%);pointer-events:none}
+    .hero h1{font-size:clamp(2rem,5vw,3.25rem);font-weight:700;letter-spacing:-0.03em;color:var(--text-bright);margin-bottom:1rem;position:relative}
+    .hero h1 span{color:var(--cyan)}
+    .hero p{font-size:1.125rem;color:var(--text-dim);max-width:640px;margin:0 auto 1.5rem;position:relative}
 
-    /* TIER TOGGLE */
-    .tier-toggle { display: flex; background: var(--navy); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin: 18px 24px 0; }
-    .tier-btn { flex: 1; padding: 10px 14px; border: none; background: transparent; color: var(--text-3); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 9px; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
-    .tier-btn:hover { color: var(--text-2); }
-    .tier-btn.active { background: var(--cyan); color: var(--navy); }
-    .t-badge { font-size: 10px; font-weight: 700; background: rgba(10,35,66,.25); padding: 2px 6px; border-radius: 4px; }
+    .nexus-dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan),0 0 24px var(--cyan-dim);display:inline-block;margin-right:0.5rem;vertical-align:middle;animation:pulse 3s ease-in-out infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 12px var(--cyan),0 0 24px var(--cyan-dim)}50%{box-shadow:0 0 20px var(--cyan),0 0 40px var(--cyan-dim)}}
 
-    /* DURATION CARDS */
-    .dur-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; padding: 18px 24px; }
-    .dur-card { position: relative; background: var(--navy); border: 1.5px solid var(--border); border-radius: 12px; padding: 18px 14px; cursor: pointer; transition: all .2s; }
-    .dur-card:hover { border-color: rgba(6,182,212,.45); }
-    .dur-card.active { border-color: var(--cyan); background: var(--cyan-dim); }
-    .best-badge { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--navy); background: var(--cyan); padding: 2px 8px; border-radius: 20px; margin-bottom: 10px; }
-    .dur-icon { width: 34px; height: 34px; background: var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 10px; }
-    .dur-card.active .dur-icon { background: rgba(6,182,212,.2); }
-    .dur-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
-    .dur-window { font-size: 11px; color: var(--text-3); margin-bottom: 10px; }
-    .dur-price { font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
-    .dur-card.active .dur-price { color: var(--cyan-l); }
-    .dur-price sup { font-size: 13px; font-weight: 500; vertical-align: super; }
-    .dur-feats { margin-top: 11px; display: flex; flex-direction: column; gap: 5px; }
-    .dur-feat { font-size: 11px; color: var(--text-2); display: flex; align-items: flex-start; gap: 6px; line-height: 1.4; }
-    .dur-feat::before { content: '—'; color: var(--text-3); flex-shrink: 0; }
-    .dur-card.active .dur-feat { color: var(--text-1); }
+    .eileen-banner{background:linear-gradient(135deg,rgba(14,165,233,0.1) 0%,rgba(139,92,246,0.06) 100%);border:1px solid rgba(14,165,233,0.25);border-radius:12px;padding:1.25rem 1.75rem;max-width:640px;margin:0 auto 2.5rem;position:relative;text-align:left;display:flex;align-items:flex-start;gap:1rem}
+    .eileen-banner .nexus-dot{flex-shrink:0;margin-top:0.35rem}
+    .eileen-banner p{font-size:0.9375rem;color:var(--text);margin:0}
+    .eileen-banner strong{color:var(--cyan)}
 
-    /* COMPARISON */
-    .compare { border-top: 1px solid var(--border); padding: 18px 24px; }
-    .compare-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-3); margin-bottom: 13px; }
-    .compare-grid { display: grid; grid-template-columns: 1fr 72px 72px; }
-    .ch { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; padding-bottom: 9px; border-bottom: 1px solid var(--border); text-align: center; }
-    .ch.feat { text-align: left; color: var(--text-3); }
-    .ch.guest { color: var(--text-3); }
-    .ch.pro { color: var(--cyan); }
-    .cf { font-size: 12px; color: var(--text-2); padding: 8px 0; border-bottom: 1px solid rgba(30,58,95,.5); }
-    .cc { font-size: 13px; text-align: center; padding: 8px 0; border-bottom: 1px solid rgba(30,58,95,.5); }
-    .ci { color: var(--cyan); }
-    .cp { color: var(--amber); font-size: 11px; }
-    .cx { color: var(--text-3); }
+    .hero-stats{display:flex;gap:3rem;justify-content:center;flex-wrap:wrap;position:relative}
+    .hero-stat{text-align:center}
+    .hero-stat .num{font-family:var(--mono);font-size:1.5rem;font-weight:500;color:var(--cyan)}
+    .hero-stat .label{font-size:0.75rem;color:var(--text-dim);margin-top:0.25rem}
 
-    /* UPSELL */
-    .upsell { margin: 0 24px 22px; background: linear-gradient(135deg,var(--navy-m),var(--navy-l)); border: 1px solid var(--border); border-radius: 12px; padding: 15px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-    .upsell-lbl { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--cyan); margin-bottom: 2px; }
-    .upsell-name { font-size: 13px; font-weight: 700; }
-    .upsell-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
-    .upsell-price { font-size: 20px; font-weight: 800; color: var(--cyan-l); white-space: nowrap; }
-    .upsell-price small { font-size: 12px; font-weight: 400; color: var(--text-3); }
+    .section{padding:5rem 0}
+    .section-label{font-family:var(--mono);font-size:0.75rem;font-weight:500;color:var(--cyan);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem}
+    .section-title{font-size:clamp(1.5rem,3vw,2rem);font-weight:700;letter-spacing:-0.02em;color:var(--text-bright);margin-bottom:0.75rem}
+    .section-sub{font-size:1rem;color:var(--text-dim);max-width:600px;margin-bottom:3rem}
 
-    /* ORDER PANEL */
-    .order-panel { background: var(--navy-l); border: 1px solid var(--border); border-radius: 16px; position: sticky; top: 78px; }
-    .order-body { padding: 24px; }
-    .order-hd { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3); margin-bottom: 18px; }
-    .order-prod { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-    .tier-pill { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; padding: 3px 9px; border-radius: 20px; margin-bottom: 5px; }
-    .tier-pill.guest { background: rgba(100,116,139,.12); color: var(--text-2); border: 1px solid rgba(100,116,139,.25); }
-    .tier-pill.pro { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(6,182,212,.3); }
-    .order-name { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
-    .order-dur { font-size: 12px; color: var(--text-2); margin-top: 2px; }
-    .order-price-wrap { text-align: right; flex-shrink: 0; }
-    .order-price-val { font-size: 30px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
-    .order-price-val sup { font-size: 15px; font-weight: 500; vertical-align: super; }
-    .order-price-note { font-size: 11px; color: var(--text-3); margin-top: 3px; }
-    .includes-box { background: var(--navy); border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; margin-bottom: 16px; }
-    .includes-hd { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--text-3); margin-bottom: 9px; }
-    .inc-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-2); margin-bottom: 6px; line-height: 1.4; }
-    .inc-row:last-child { margin-bottom: 0; }
-    .inc-check { color: var(--success); flex-shrink: 0; font-size: 13px; }
+    .tier-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
+    @media(max-width:768px){.tier-row{grid-template-columns:1fr}}
 
-    /* LEGAL ADVISORY BOX */
-    .legal-box { background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.25); border-radius: 10px; padding: 13px 15px; margin-bottom: 16px; }
-    .legal-box-hd { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--amber); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-    .legal-box-hd::before { content: '⚠'; font-size: 11px; }
-    .legal-box-text { font-size: 11px; color: var(--text-2); line-height: 1.65; }
-    .legal-box-text strong { color: var(--text-1); font-weight: 600; }
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;display:flex;flex-direction:column;transition:border-color 0.3s,transform 0.2s;position:relative}
+    .card:hover{border-color:var(--cyan);transform:translateY(-2px)}
+    .card.featured{border-color:var(--cyan);box-shadow:0 0 30px var(--cyan-dim)}
+    .card.featured::before{content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--cyan);color:var(--bg);font-size:0.625rem;font-weight:700;letter-spacing:0.1em;padding:0.25rem 1rem;border-radius:100px}
+    .card.gold-card{border-color:var(--gold);box-shadow:0 0 30px var(--gold-dim)}
 
-    .divider { height: 1px; background: var(--border); margin-bottom: 16px; }
+    .card-eileen{font-family:var(--mono);font-size:0.6875rem;color:var(--cyan);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem}
+    .card-eileen .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
 
-    /* FORM */
-    .form-group { margin-bottom: 13px; }
-    .f-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
-    .f-input { width: 100%; background: var(--navy); border: 1.5px solid var(--border); border-radius: 9px; color: var(--text-1); font-family: inherit; font-size: 14px; padding: 11px 13px; outline: none; transition: border-color .2s; }
-    .f-input::placeholder { color: var(--text-3); }
-    .f-input:focus { border-color: var(--cyan); }
-    .f-input.err { border-color: var(--error); }
-    .f-err { font-size: 11px; color: var(--error); margin-top: 4px; display: none; }
-    .f-err.on { display: block; }
+    .card-name{font-size:1.25rem;font-weight:600;color:var(--text-bright);margin-bottom:0.25rem}
+    .card-duration{font-size:0.875rem;color:var(--text-dim);margin-bottom:1.25rem}
+    .card-price{font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--text-bright);margin-bottom:0.25rem}
+    .card-price .cur{font-size:1.25rem;vertical-align:top;margin-right:2px}
+    .card-price .per{font-size:0.875rem;font-weight:400;color:var(--text-dim)}
+    .card-billing{font-size:0.75rem;color:var(--text-dim);margin-bottom:1.5rem}
 
-    /* STRIPE ELEMENT */
-    .stripe-el-box { background: var(--navy); border: 1.5px solid var(--border); border-radius: 9px; padding: 13px; margin-bottom: 4px; transition: border-color .2s; }
-    .stripe-el-box.focused { border-color: var(--cyan); }
-    #card-element { min-height: 24px; }
-    .stripe-loading { font-size: 12px; color: var(--text-3); text-align: center; padding: 6px 0; }
+    .card-features{list-style:none;margin-bottom:2rem;flex:1}
+    .card-features li{font-size:0.875rem;color:var(--text);padding:0.375rem 0 0.375rem 1.5rem;position:relative}
+    .card-features li::before{content:'✓';position:absolute;left:0;color:var(--cyan);font-weight:600}
+    .card.gold-card .card-features li::before{color:var(--gold)}
 
-    /* TERMS */
-    .terms-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
-    .terms-cb { width: 17px; height: 17px; flex-shrink: 0; margin-top: 2px; accent-color: var(--cyan); cursor: pointer; }
-    .terms-txt { font-size: 11.5px; color: var(--text-2); line-height: 1.55; }
-    .terms-txt a { color: var(--cyan); text-decoration: none; }
-    .terms-txt a:hover { text-decoration: underline; }
+    .card-cta{display:block;text-align:center;text-decoration:none;padding:0.875rem 1.5rem;border-radius:8px;font-size:0.9375rem;font-weight:600;transition:all 0.2s;cursor:pointer;border:none;width:100%}
+    .cta-primary{background:var(--cyan);color:var(--bg)}
+    .cta-primary:hover{background:#38BDF8}
+    .cta-outline{background:transparent;color:var(--cyan);border:1px solid var(--cyan)}
+    .cta-outline:hover{background:var(--cyan-dim)}
+    .cta-gold{background:var(--gold);color:var(--bg)}
+    .cta-gold:hover{background:#E5B422}
 
-    /* PAY BUTTON */
-    .btn-pay { width: 100%; background: var(--cyan); color: var(--navy); border: none; border-radius: 10px; font-family: inherit; font-size: 15px; font-weight: 700; padding: 15px; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-pay:hover { background: var(--cyan-l); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(6,182,212,.28); }
-    .btn-pay:active { transform: none; }
-    .btn-pay:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
-    .pay-err { background: var(--error-dim); border: 1px solid rgba(239,68,68,.35); border-radius: 8px; padding: 10px 13px; font-size: 12px; color: #FCA5A5; margin-bottom: 13px; display: none; }
-    .pay-err.on { display: block; }
-    .secure { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--text-3); margin-top: 11px; }
+    .badge-op{background:rgba(14,165,233,0.1);color:var(--cyan);border:1px solid rgba(14,165,233,0.3);font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
+    .badge-gov{background:rgba(139,92,246,0.1);color:var(--purple);border:1px solid rgba(139,92,246,0.3);font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
+    .badge-inst{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,160,23,0.3);font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
 
-    /* POST-PAY LEGAL */
-    .post-legal { font-size: 10.5px; color: var(--text-3); line-height: 1.65; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--border); }
+    .sep{text-align:center;padding:3rem 0 1rem;position:relative}
+    .sep::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border)}
+    .sep span{position:relative;background:var(--bg);padding:0 1.5rem;font-family:var(--mono);font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em}
 
-    /* OVERLAYS */
-    .overlay { display: none; position: fixed; inset: 0; z-index: 999; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 24px; text-align: center; }
-    .overlay.on { display: flex; }
-    .ov-proc  { background: rgba(10,35,66,.93); }
-    .ov-guest { background: var(--navy); }
-    .ov-pro   { background: var(--navy); }
-    .spinner { width: 46px; height: 46px; border: 3px solid var(--border); border-top-color: var(--cyan); border-radius: 50%; animation: spin .75s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .proc-txt { font-size: 16px; font-weight: 600; }
-    .proc-sub { font-size: 13px; color: var(--text-2); }
-    .suc-icon { width: 68px; height: 68px; background: var(--success-dim); border: 2px solid var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; }
-    .suc-icon.email { background: var(--cyan-dim); border-color: var(--cyan); }
-    .suc-h { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
-    .suc-p { font-size: 15px; color: var(--text-2); max-width: 420px; }
-    .suc-box { background: var(--navy-l); border: 1px solid var(--border); border-radius: 12px; padding: 16px 24px; }
-    .suc-name { font-size: 14px; font-weight: 700; color: var(--cyan); }
-    .suc-det  { font-size: 13px; color: var(--text-2); margin-top: 3px; }
-    .suc-btn  { background: var(--cyan); color: var(--navy); border: none; border-radius: 10px; font-family: inherit; font-size: 15px; font-weight: 700; padding: 14px 40px; cursor: pointer; }
-    .suc-btn:hover { background: var(--cyan-l); }
-    .suc-note { font-size: 12px; color: var(--text-3); }
-    .suc-email-block { background: var(--navy-l); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; max-width: 380px; text-align: left; }
-    .suc-email-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-3); margin-bottom: 5px; }
-    .suc-email-addr { font-size: 15px; font-weight: 700; color: var(--cyan); word-break: break-all; }
-    .suc-email-note { font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.5; }
+    .disclaimer{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:1.25rem 1.5rem;font-size:0.8125rem;color:var(--text-dim);line-height:1.6;margin:3rem 0}
+    .disclaimer strong{color:var(--danger)}
 
-    /* FOOTER */
-    .foot { border-top: 1px solid var(--border); padding: 28px 24px; }
-    .foot-inner { max-width: 860px; margin: 0 auto; }
-    .foot-disclaimer { background: var(--navy-l); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
-    .foot-disclaimer-hd { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-2); margin-bottom: 12px; }
-    .foot-disclaimer-body { font-size: 11.5px; color: var(--text-3); line-height: 1.75; }
-    .foot-disclaimer-body p { margin-bottom: 8px; }
-    .foot-disclaimer-body p:last-child { margin-bottom: 0; }
-    .foot-disclaimer-body strong { color: var(--text-2); font-weight: 600; }
-    .foot-reg { font-size: 11px; color: var(--text-3); text-align: center; margin-bottom: 14px; }
-    .foot-links { display: flex; justify-content: center; gap: 20px; }
-    .foot-links a { font-size: 12px; color: var(--text-2); text-decoration: none; }
-    .foot-links a:hover { color: var(--cyan); }
-
-    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .order-panel { position: static; } }
-    @media (max-width: 600px) { .main { padding: 22px 16px 56px; } .page-hero h1 { font-size: 26px; } .dur-grid { grid-template-columns: 1fr; gap: 10px; } .upsell { flex-direction: column; align-items: flex-start; } }
+    .footer{border-top:1px solid var(--border);padding:2.5rem 0;text-align:center}
+    .footer p{font-size:0.8125rem;color:var(--text-dim);margin-bottom:0.5rem}
+    .footer a{color:var(--cyan);text-decoration:none}
+    .footer a:hover{text-decoration:underline}
   </style>
 </head>
 <body>
 
-  <header class="hdr">
-    <div class="hdr-inner">
-      <a href="/" class="logo"><div class="logo-mark">AI</div><span class="logo-name">Ailane</span></a>
-      <span class="hdr-badge">Knowledge Library</span>
+  <nav class="nav">
+    <a href="https://ailane.ai/" class="nav-logo">A<span>I</span>LANE</a>
+    <div class="nav-links">
+      <a href="https://ailane.ai/knowledge-library-preview/">Preview</a>
+      <a href="https://ailane.ai/contract-scan/">Contract Check</a>
+      <a href="https://ailane.ai/account/" class="btn-signin">Sign In</a>
     </div>
-  </header>
+  </nav>
 
-  <main class="main">
-    <div class="page-hero">
-      <h1>Knowledge Library <span>Pass</span></h1>
-      <p>Per-session access to 47+ legislative instruments, ACAS &amp; HSE guidance, and Eileen — Ailane's UK employment law intelligence entity.</p>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <h1>Research with <span>Eileen</span></h1>
+      <p>391 provisions. 69 instruments. 240 leading cases. 131,600+ tribunal decisions. And Eileen — your AI employment law guide — at every tier.</p>
+
+      <div class="eileen-banner">
+        <span class="nexus-dot"></span>
+        <p><strong>Eileen is included at every level.</strong> No limits on questions. No feature restrictions. Your access window is your only constraint — within it, Eileen is fully yours.</p>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="num">391</div><div class="label">Provisions mapped</div></div>
+        <div class="hero-stat"><div class="num">69</div><div class="label">Instruments tracked</div></div>
+        <div class="hero-stat"><div class="num">240</div><div class="label">Leading cases</div></div>
+        <div class="hero-stat"><div class="num">131,600+</div><div class="label">Tribunal decisions</div></div>
+      </div>
     </div>
+  </section>
 
-    <div class="grid">
+  <!-- PER-SESSION ACCESS -->
+  <section class="section" id="sessions">
+    <div class="container">
+      <div class="section-label">Per-Session Access — Pay Once, Research Immediately</div>
+      <div class="section-title">Choose your research window</div>
+      <div class="section-sub">No account required. No subscription. Pay once and start researching with Eileen immediately. Every session includes full Eileen access, the complete legislative estate, and forward intelligence.</div>
 
-      <!-- LEFT -->
-      <div class="panel">
-        <div class="panel-hd">
-          <div class="panel-label">Step 1 — Choose your pass</div>
-          <h2 class="panel-heading">Select access tier and session window</h2>
+      <div class="tier-row">
+        <!-- Quick Session -->
+        <div class="card">
+          <div class="card-eileen"><span class="dot"></span> Eileen included</div>
+          <div class="card-name">Quick Session</div>
+          <div class="card-duration">2-hour focused research window</div>
+          <div class="card-price"><span class="cur">£</span>29</div>
+          <div class="card-billing">One-time payment · No account required</div>
+          <ul class="card-features">
+            <li>Full Knowledge Library access</li>
+            <li>Eileen AI — unlimited questions</li>
+            <li>UK legislation and SI viewer</li>
+            <li>ACAS, HSE, and ICO guidance</li>
+            <li>ERA 2025 intelligence</li>
+          </ul>
+          <a href="https://buy.stripe.com/eVq8wQ9Dyesi3pp9xBfMA0h" class="card-cta cta-outline" onclick="gtag('event','kl_access_click',{product:'quick_session',price:29})">Start Research — £29</a>
         </div>
 
-        <div class="tier-toggle">
-          <button class="tier-btn active" id="btn-guest" onclick="setTier('guest')">Guest <span class="t-badge">READ ACCESS</span></button>
-          <button class="tier-btn" id="btn-pro" onclick="setTier('pro')">Pro <span class="t-badge">EILEEN INCLUDED</span></button>
+        <!-- Day Pass -->
+        <div class="card featured">
+          <div class="card-eileen"><span class="dot"></span> Eileen included</div>
+          <div class="card-name">Day Pass</div>
+          <div class="card-duration">Full day — 24 hours with Eileen</div>
+          <div class="card-price"><span class="cur">£</span>49</div>
+          <div class="card-billing">One-time payment · No account required</div>
+          <ul class="card-features">
+            <li>Full Knowledge Library access</li>
+            <li>Eileen AI — unlimited questions</li>
+            <li>Legislative horizon tracker</li>
+            <li>Full forward intelligence layer</li>
+            <li>Research notes and session history</li>
+            <li>24 hours of uninterrupted access</li>
+          </ul>
+          <a href="https://buy.stripe.com/8x2fZi8zu83UcZZaBFfMA0i" class="card-cta cta-primary" onclick="gtag('event','kl_access_click',{product:'day_pass',price:49})">Get Day Pass — £49</a>
         </div>
 
-        <div class="dur-grid">
-          <div class="dur-card" id="card-s" onclick="setDuration('s')">
-            <div class="dur-icon">⚡</div>
-            <div class="dur-name" id="dur-name-s">Guest Discovery</div>
-            <div class="dur-window" id="dur-win-s">Focused session · 2 hrs</div>
-            <div class="dur-price"><sup>£</sup><span id="dur-price-s">19</span></div>
-            <div class="dur-feats" id="dur-feats-s"></div>
-          </div>
-          <div class="dur-card active" id="card-d" onclick="setDuration('d')">
-            <div class="best-badge">Best Value</div>
-            <div class="dur-icon">📅</div>
-            <div class="dur-name" id="dur-name-d">Guest Day Pass</div>
-            <div class="dur-window" id="dur-win-d">Full day · 24 hrs</div>
-            <div class="dur-price"><sup>£</sup><span id="dur-price-d">39</span></div>
-            <div class="dur-feats" id="dur-feats-d"></div>
-          </div>
-          <div class="dur-card" id="card-w" onclick="setDuration('w')">
-            <div class="dur-icon">📖</div>
-            <div class="dur-name" id="dur-name-w">Guest Research Week</div>
-            <div class="dur-window" id="dur-win-w">7-day access</div>
-            <div class="dur-price"><sup>£</sup><span id="dur-price-w">79</span></div>
-            <div class="dur-feats" id="dur-feats-w"></div>
-          </div>
-        </div>
-
-        <div class="compare">
-          <div class="compare-lbl">What's included</div>
-          <div class="compare-grid">
-            <div class="ch feat"></div><div class="ch guest">Guest</div><div class="ch pro">Pro</div>
-            <div class="cf">Knowledge Library access</div><div class="cc"><span class="ci">✓</span></div><div class="cc"><span class="ci">✓</span></div>
-            <div class="cf">Legislation &amp; SI viewer</div><div class="cc"><span class="ci">✓</span></div><div class="cc"><span class="ci">✓</span></div>
-            <div class="cf">ACAS, HSE &amp; ICO guidance</div><div class="cc"><span class="ci">✓</span></div><div class="cc"><span class="ci">✓</span></div>
-            <div class="cf">Eileen AI assistant</div><div class="cc"><span class="cx">—</span></div><div class="cc"><span class="ci">✓</span></div>
-            <div class="cf">Research notes</div><div class="cc"><span class="cx">—</span></div><div class="cc"><span class="ci">✓</span></div>
-            <div class="cf">Session history</div><div class="cc"><span class="cx">—</span></div><div class="cc"><span class="ci">✓</span></div>
-            <div class="cf">Legislative horizon tracker</div><div class="cc"><span class="cp">Read</span></div><div class="cc"><span class="ci">Full</span></div>
-            <div class="cf">ERA 2025 forward intelligence</div><div class="cc"><span class="cp">Summary</span></div><div class="cc"><span class="ci">Full</span></div>
-          </div>
-        </div>
-
-        <div class="upsell">
-          <div>
-            <div class="upsell-lbl">Unlimited access</div>
-            <div class="upsell-name">KL Professional Monthly</div>
-            <div class="upsell-sub">Full Pro access · Eileen · No session limits</div>
-          </div>
-          <div class="upsell-price">£249<small>/mo</small></div>
-        </div>
-      </div>
-
-      <!-- RIGHT -->
-      <div class="order-panel">
-        <div class="order-body">
-
-          <div class="order-hd">Your Order</div>
-
-          <div class="order-prod">
-            <div>
-              <div class="tier-pill guest" id="order-pill">GUEST</div>
-              <div class="order-name" id="order-name">Guest Day Pass</div>
-              <div class="order-dur"  id="order-dur">Full day · 24 hrs</div>
-            </div>
-            <div class="order-price-wrap">
-              <div class="order-price-val"><sup>£</sup><span id="order-price">39</span></div>
-              <div class="order-price-note">One-time · GBP</div>
-            </div>
-          </div>
-
-          <div class="includes-box" id="includes-box"><div class="includes-hd">Included</div></div>
-
-          <div class="legal-box">
-            <div class="legal-box-hd">Regulatory intelligence only</div>
-            <div class="legal-box-text">
-              This pass provides access to <strong>regulatory intelligence, educational resources, and legislative reference materials</strong>. It does not constitute legal advice, compliance certification, or professional legal assessment of any kind. <strong>AI Lane Limited is not a law firm</strong> and does not provide regulated legal services within the meaning of the Legal Services Act 2007. Nothing accessed through this pass creates a solicitor-client or advisory relationship. For advice on specific legal matters, consult a qualified employment solicitor.
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="form-group">
-            <label class="f-label" for="email-in">Email address</label>
-            <input type="email" id="email-in" class="f-input" placeholder="you@company.com" autocomplete="email">
-            <div class="f-err" id="email-err">Please enter a valid email address.</div>
-          </div>
-
-          <div class="form-group">
-            <label class="f-label">Card details</label>
-            <div class="stripe-el-box" id="el-box">
-              <div id="card-element"><div class="stripe-loading">Loading secure payment form…</div></div>
-            </div>
-            <div class="f-err" id="card-err"></div>
-          </div>
-
-          <div class="terms-row">
-            <input type="checkbox" id="terms-cb" class="terms-cb">
-            <label for="terms-cb" class="terms-txt">
-              I have read and accept Ailane's <a href="/terms/" target="_blank">Terms of Service</a> and <a href="/privacy/" target="_blank">Privacy Policy</a>. I understand this pass provides access to regulatory intelligence only. It does not constitute legal advice or compliance certification. AI Lane Limited is not a law firm. I confirm I am purchasing on behalf of a business or in a professional capacity.
-            </label>
-          </div>
-
-          <div class="pay-err" id="pay-err"></div>
-
-          <button class="btn-pay" id="pay-btn" onclick="handlePay()">
-            <span id="pay-lbl">Pay £39.00</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </button>
-
-          <div class="secure">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            Secured by Stripe · TLS 1.3 encrypted · PCI DSS compliant
-          </div>
-
-          <div class="post-legal">
-            Payment is processed by Stripe Technology Europe Limited on behalf of AI Lane Limited (Company No. 17035654). Your card details are never transmitted to or stored by Ailane — handled exclusively by Stripe's PCI DSS Level 1 certified infrastructure. This is a one-time, non-recurring charge. No subscription is created. Session access activates immediately upon payment confirmation and expires at the end of the selected session window.
-          </div>
-
+        <!-- Research Week -->
+        <div class="card">
+          <div class="card-eileen"><span class="dot"></span> Eileen included</div>
+          <div class="card-name">Research Week</div>
+          <div class="card-duration">7 calendar days with Eileen</div>
+          <div class="card-price"><span class="cur">£</span>99</div>
+          <div class="card-billing">One-time payment · No account required</div>
+          <ul class="card-features">
+            <li>Full Knowledge Library access</li>
+            <li>Eileen AI — unlimited questions</li>
+            <li>Full forward intelligence layer</li>
+            <li>Legislative horizon tracker</li>
+            <li>Research notes and session history</li>
+            <li>7 days of sustained research</li>
+          </ul>
+          <a href="https://buy.stripe.com/8x27sM5nibg64ttdNRfMA0j" class="card-cta cta-outline" onclick="gtag('event','kl_access_click',{product:'research_week',price:99})">Get Research Week — £99</a>
         </div>
       </div>
-
     </div>
-  </main>
+  </section>
 
-  <footer class="foot">
-    <div class="foot-inner">
-      <div class="foot-disclaimer">
-        <div class="foot-disclaimer-hd">Important — Please Read Before Purchasing</div>
-        <div class="foot-disclaimer-body">
-          <p><strong>Not legal advice.</strong> The Ailane Knowledge Library provides access to regulatory intelligence, legislative reference materials, educational resources, and AI-assisted research tools. Nothing within this platform constitutes legal advice, legal opinion, compliance certification, or professional legal assessment of any kind.</p>
-          <p><strong>No solicitor-client relationship.</strong> Use of this platform does not create a solicitor-client relationship, advisory relationship, or any other professional relationship between you and AI Lane Limited. AI Lane Limited is not a law firm and is not authorised to carry out reserved legal activities within the meaning of the Legal Services Act 2007.</p>
-          <p><strong>Employment law changes.</strong> UK employment law changes frequently. Legislative instruments, guidance documents, and case law summaries are provided for reference only. You should verify the current status of any provision before relying on it. ERA 2025 provisions marked as not yet in force do not represent current law.</p>
-          <p><strong>Eileen (AI intelligence entity).</strong> Eileen provides regulatory intelligence and educational context. Her responses are generated by artificial intelligence and may not reflect the most recent legislative developments. Eileen does not provide legal advice. Responses should not be relied upon as a substitute for qualified legal advice from a regulated employment solicitor.</p>
-          <p><strong>Session scope.</strong> A Knowledge Library Pass grants time-limited, per-session access only. Access expires at the end of the session window purchased. Notes and research saved during a session are subject to the data retention terms in the Privacy Policy.</p>
-          <p><strong>Refund policy.</strong> As this is a digital access product that activates immediately upon purchase, refunds are not available once access has been granted, except where required by applicable consumer protection legislation.</p>
+  <!-- SEPARATOR -->
+  <div class="sep container"><span>Continuous Compliance Monitoring</span></div>
+
+  <!-- SUBSCRIPTIONS -->
+  <section class="section" id="subscriptions">
+    <div class="container">
+      <div class="section-label">Subscription Tiers — Ongoing Intelligence</div>
+      <div class="section-title">From research tool to compliance infrastructure</div>
+      <div class="section-sub">Continuous monitoring, document storage, compliance scoring, and board-ready reporting. Your employment law obligations — tracked, scored, and managed.</div>
+
+      <div class="tier-row">
+        <!-- Operational -->
+        <div class="card">
+          <span class="badge-op">Operational</span>
+          <div class="card-name">Operational Readiness</div>
+          <div class="card-duration">ACEI Domain Intelligence</div>
+          <div class="card-price"><span class="cur">£</span>199<span class="per">/month</span></div>
+          <div class="card-billing">Monthly subscription · 1 user · Cancel any time</div>
+          <ul class="card-features">
+            <li>Full Knowledge Library access</li>
+            <li>Eileen AI — unlimited, always on</li>
+            <li>5 documents stored and monitored</li>
+            <li>Compliance Calendar with alerts</li>
+            <li>Legislative change tracking</li>
+            <li>Weekly intelligence digest</li>
+            <li>ACEI exposure scoring</li>
+          </ul>
+          <a href="https://buy.stripe.com/28E3cw2b66ZQ0ddcJNfMA0e" class="card-cta cta-outline" onclick="gtag('event','kl_access_click',{product:'operational',price:199})">Start Operational — £199/mo</a>
+        </div>
+
+        <!-- Governance -->
+        <div class="card featured">
+          <span class="badge-gov">Governance</span>
+          <div class="card-name">Governance</div>
+          <div class="card-duration">Full Triad Intelligence — ACEI + RRI + CCI</div>
+          <div class="card-price"><span class="cur">£</span>799<span class="per">/month</span></div>
+          <div class="card-billing">Monthly subscription · Up to 25 users</div>
+          <ul class="card-features">
+            <li>Everything in Operational</li>
+            <li>Contract Planner (6-step workflow)</li>
+            <li>Unlimited document monitoring</li>
+            <li>Document Vault with auto-recheck</li>
+            <li>Board-ready compliance reports</li>
+            <li>ACEI + RRI + CCI intelligence</li>
+            <li>Dedicated legal referral pathway</li>
+          </ul>
+          <a href="https://buy.stripe.com/5kQaEY9Dyesi8JJ39dfMA0f" class="card-cta cta-primary" onclick="gtag('event','kl_access_click',{product:'governance',price:799})">Start Governance — £799/mo</a>
+        </div>
+
+        <!-- Institutional -->
+        <div class="card gold-card">
+          <span class="badge-inst">Institutional</span>
+          <div class="card-name">Institutional</div>
+          <div class="card-duration">Enterprise-grade · Multi-jurisdiction</div>
+          <div class="card-price" style="font-size:1.5rem">Custom Pricing</div>
+          <div class="card-billing">Tailored to your organisation</div>
+          <ul class="card-features">
+            <li>Everything in Governance</li>
+            <li>Unlimited users</li>
+            <li>API access and data integration</li>
+            <li>White-label deployment option</li>
+            <li>Multi-jurisdiction expansion</li>
+            <li>Dedicated account manager</li>
+            <li>Custom SLA and onboarding</li>
+          </ul>
+          <a href="mailto:sales@ailane.ai?subject=Institutional%20Enquiry" class="card-cta cta-gold" onclick="gtag('event','kl_access_click',{product:'institutional',price:'custom'})">Contact Sales</a>
         </div>
       </div>
-      <div class="foot-reg">AI Lane Limited · Company No. 17035654 · ICO Registration No. 00013389720 · ailane.ai</div>
-      <div class="foot-links">
-        <a href="/terms/">Terms of Service</a>
-        <a href="/privacy/">Privacy Policy</a>
-        <a href="/knowledge-library-preview/">KL Preview</a>
+    </div>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <div class="disclaimer">
+        <strong>Regulatory Intelligence — Not Legal Advice.</strong> Ailane provides regulatory intelligence to inform your compliance decisions. It does not provide legal advice and is not a substitute for qualified legal counsel. For legal advice, consult a qualified employment solicitor. Ailane's compliance analysis is based on current legislation and published guidance and may not reflect the most recent amendments or judicial interpretations. Constitutional governance: ACEI v1.0, RRI v1.0, CCI v1.0.
       </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720</p>
+      <p><a href="https://ailane.ai/terms/">Terms of Service</a> · <a href="https://ailane.ai/privacy/">Privacy Policy</a> · <a href="https://ailane.ai/">ailane.ai</a></p>
+      <p style="margin-top:0.5rem">© 2026 AI Lane Limited. All rights reserved.</p>
     </div>
   </footer>
-
-  <!-- PROCESSING -->
-  <div class="overlay ov-proc" id="ov-proc">
-    <div class="spinner"></div>
-    <div class="proc-txt">Processing payment…</div>
-    <div class="proc-sub">Please do not close this window</div>
-  </div>
-
-  <!-- SUCCESS: GUEST -->
-  <div class="overlay ov-guest" id="ov-guest">
-    <div class="suc-icon">✓</div>
-    <h2 class="suc-h">Pass activated</h2>
-    <p class="suc-p">Your Knowledge Library session is ready. Opening now.</p>
-    <div class="suc-box">
-      <div class="suc-name" id="suc-guest-name">Guest Day Pass</div>
-      <div class="suc-det"  id="suc-guest-det">Full day access</div>
-    </div>
-    <button class="suc-btn" onclick="doRedirect()">Open Knowledge Library</button>
-    <div class="suc-note" id="suc-redirect-note">Redirecting in 4s…</div>
-  </div>
-
-  <!-- SUCCESS: PRO -->
-  <div class="overlay ov-pro" id="ov-pro">
-    <div class="suc-icon email">✉</div>
-    <h2 class="suc-h">Payment confirmed</h2>
-    <p class="suc-p">Your Pro session is ready. We've sent a login link to your email — click it to open the Knowledge Library instantly.</p>
-    <div class="suc-email-block">
-      <div class="suc-email-lbl">Login link sent to</div>
-      <div class="suc-email-addr" id="suc-pro-email">your@email.com</div>
-      <div class="suc-email-note">Check your inbox and spam folder. The link opens your Pro session directly — no password needed.</div>
-    </div>
-    <div class="suc-box">
-      <div class="suc-name" id="suc-pro-name">Pro Day Pass</div>
-      <div class="suc-det"  id="suc-pro-det">Full day Pro access</div>
-    </div>
-    <div class="suc-note">Didn't receive the email? Contact <strong>support@ailane.ai</strong></div>
-  </div>
-
-  <script>
-  const STRIPE_PK     = 'pk_live_51T3mj7IHmra281v7dlY4G6TfzQgfF94AMS3cmSpg3Dq8ZoZOm4nWEB5wV4Vp0QlmKRv9FByw9RjE9bQqtLyDQNVw00t1ZwidEa';
-  const SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-  const INTENT_FN     = `${SUPABASE_URL}/functions/v1/kl-create-intent`;
-  const KL_URL        = '/knowledge-library/';
-
-  const P = {
-    guest: {
-      s: { type:'kl_guest_discovery', prod:'prod_U7jBfSFo4kkTZp', pid:'price_1T9TivIHmra281v72aRStqWX',  price:19,  label:'Guest Discovery',    win:'Focused session · 2 hrs', badge:'GUEST', includes:['Knowledge Library access','UK legislation &amp; SI viewer','ACAS &amp; HSE guidance','ERA 2025 summary view'] },
-      d: { type:'kl_guest_day',       prod:'prod_U7jJhZxQGXGEpQ', pid:'price_1T9Tr6IHmra281v7MeA6hseX', price:39,  label:'Guest Day Pass',      win:'Full day · 24 hrs',       badge:'GUEST', includes:['Knowledge Library access','Legislation &amp; SI viewer','ACAS, HSE &amp; ICO guidance','Legislative horizon tracker (read)','ERA 2025 forward intelligence (summary)'] },
-      w: { type:'kl_guest_week',      prod:'prod_U7jLzgiQyxFJcc', pid:'price_1T9TseIHmra281v7AukN16Ej', price:79,  label:'Guest Research Week', win:'7-day access',            badge:'GUEST', includes:['Knowledge Library access','Legislation &amp; SI viewer','ACAS, HSE &amp; ICO guidance','Legislative horizon tracker (read)','ERA 2025 forward intelligence (summary)','7 days uninterrupted research access'] }
-    },
-    pro: {
-      s: { type:'kl_pro_mini', prod:'prod_U7jMfQ14EPXjCd', pid:'price_1T9TtmIHmra281v7xe1GNJlK',  price:49,  label:'Pro Mini Session',   win:'Focused session · 2 hrs', badge:'PRO', includes:['Everything in Guest Discovery','Eileen AI employment law assistant','Session notes (session-scoped)','Session research history'] },
-      d: { type:'kl_pro_day',  prod:'prod_U7jNvKa1Z8geqa', pid:'price_1T9TuhIHmra281v7LzhUeR32', price:89,  label:'Pro Day Pass',        win:'Full day · 24 hrs',       badge:'PRO', includes:['Everything in Guest Day Pass','Eileen AI employment law assistant','Full ERA 2025 forward intelligence','Research notes &amp; session history','Legislative horizon tracker (full)'] },
-      w: { type:'kl_pro_week', prod:'prod_U7jP7QXknxPMnZ', pid:'price_1T9TwyIHmra281v7KWyxZGFj', price:149, label:'Pro Research Week',    win:'7-day access',            badge:'PRO', includes:['Everything in Guest Research Week','Eileen AI employment law assistant','Full ERA 2025 forward intelligence','Research notes &amp; session history','Legislative horizon tracker (full)','7 days Pro-level research access'] }
-    }
-  };
-
-  const FEATS = {
-    guest: { s:['KL content access','Legislation viewer','ACAS guidance'],    d:['KL content access','Legislation &amp; guidance','Horizon tracker (read)'], w:['KL content access','Full guidance estate','7 days access'] },
-    pro:   { s:['KL content access','Eileen AI included','Session notes'], d:['KL + Eileen AI','Full forward intelligence','Research history'],    w:['KL + Eileen AI','Full forward intelligence','7-day Pro access'] }
-  };
-
-  let S = { tier:'guest', dur:'d', piId:null };
-  let stripe = null, card = null;
-
-  (function() {
-    const p = new URLSearchParams(location.search);
-    const map = { kl_guest_discovery:{t:'guest',d:'s'}, kl_guest_day:{t:'guest',d:'d'}, kl_guest_week:{t:'guest',d:'w'}, kl_pro_mini:{t:'pro',d:'s'}, kl_pro_day:{t:'pro',d:'d'}, kl_pro_week:{t:'pro',d:'w'} };
-    if (p.get('type') && map[p.get('type')]) { S.tier = map[p.get('type')].t; S.dur = map[p.get('type')].d; }
-    if (p.get('tier') === 'pro')   S.tier = 'pro';
-    if (p.get('tier') === 'guest') S.tier = 'guest';
-    if (['s','d','w'].includes(p.get('dur'))) S.dur = p.get('dur');
-  })();
-
-  function render() {
-    const { tier, dur } = S;
-    const prod = P[tier][dur];
-    document.getElementById('btn-guest').classList.toggle('active', tier === 'guest');
-    document.getElementById('btn-pro').classList.toggle('active',   tier === 'pro');
-    ['s','d','w'].forEach(d => {
-      document.getElementById(`card-${d}`).classList.toggle('active', d === dur);
-      document.getElementById(`dur-name-${d}`).textContent  = P[tier][d].label;
-      document.getElementById(`dur-win-${d}`).textContent   = P[tier][d].win;
-      document.getElementById(`dur-price-${d}`).textContent = P[tier][d].price;
-      document.getElementById(`dur-feats-${d}`).innerHTML   = FEATS[tier][d].map(f => `<div class="dur-feat">${f}</div>`).join('');
-    });
-    const pill = document.getElementById('order-pill');
-    pill.textContent = tier.toUpperCase();
-    pill.className   = `tier-pill ${tier}`;
-    document.getElementById('order-name').textContent  = prod.label;
-    document.getElementById('order-dur').textContent   = prod.win;
-    document.getElementById('order-price').textContent = prod.price;
-    document.getElementById('pay-lbl').textContent     = `Pay £${prod.price}.00`;
-    document.getElementById('includes-box').innerHTML  = `<div class="includes-hd">Included</div>${prod.includes.map(i => `<div class="inc-row"><span class="inc-check">✓</span>${i}</div>`).join('')}`;
-  }
-
-  function setTier(t)     { S.tier = t; render(); }
-  function setDuration(d) { S.dur  = d; render(); }
-
-  function initStripe() {
-    stripe = Stripe(STRIPE_PK);
-    const els = stripe.elements({
-      appearance: { theme:'night', variables:{ colorPrimary:'#06B6D4', colorBackground:'#0A2342', colorText:'#F8FAFC', colorTextSecondary:'#94A3B8', colorTextPlaceholder:'#64748B', colorDanger:'#EF4444', fontFamily:'Inter, system-ui, sans-serif', borderRadius:'7px' } }
-    });
-    card = els.create('card', {
-      style: { base:{ color:'#F8FAFC', fontFamily:'Inter, system-ui, sans-serif', fontSize:'14px', fontSmoothing:'antialiased', '::placeholder':{ color:'#64748B' } }, invalid:{ color:'#EF4444' } }
-    });
-    card.mount('#card-element');
-    card.on('focus',  () => document.getElementById('el-box').classList.add('focused'));
-    card.on('blur',   () => document.getElementById('el-box').classList.remove('focused'));
-    card.on('change', e => {
-      const el = document.getElementById('card-err');
-      if (e.error) { el.textContent = e.error.message; el.classList.add('on'); }
-      else          { el.textContent = ''; el.classList.remove('on'); }
-    });
-  }
-
-  function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()); }
-  function showEmailErr(m){ document.getElementById('email-err').textContent = m; document.getElementById('email-err').classList.add('on'); document.getElementById('email-in').classList.add('err'); }
-  function clearEmailErr(){ document.getElementById('email-err').classList.remove('on'); document.getElementById('email-in').classList.remove('err'); }
-  function showPayErr(m)  { const el = document.getElementById('pay-err'); el.textContent = m; el.classList.add('on'); }
-  function clearPayErr()  { document.getElementById('pay-err').classList.remove('on'); }
-
-  async function handlePay() {
-    clearEmailErr(); clearPayErr();
-    const email = document.getElementById('email-in').value.trim();
-    const terms = document.getElementById('terms-cb').checked;
-    if (!validEmail(email)) { showEmailErr('Please enter a valid email address.'); document.getElementById('email-in').focus(); return; }
-    if (!terms)             { showPayErr('Please accept the Terms of Service and advisory disclaimer to continue.'); return; }
-    if (!stripe || !card)   { showPayErr('Payment system not ready. Please refresh and try again.'); return; }
-
-    const payBtn = document.getElementById('pay-btn');
-    payBtn.disabled = true;
-    document.getElementById('pay-lbl').textContent = 'Processing…';
-    const prod = P[S.tier][S.dur];
-
-    try {
-      const resp = await fetch(INTENT_FN, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'apikey': SUPABASE_ANON },
-        body: JSON.stringify({ product_type: prod.type, email })
-      });
-      if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error || `Payment setup failed (${resp.status}). Please try again.`); }
-      const data = await resp.json();
-      if (!data.client_secret) throw new Error('Payment setup failed. Please refresh and try again.');
-
-      document.getElementById('ov-proc').classList.add('on');
-
-      const result = await stripe.confirmCardPayment(data.client_secret, {
-        payment_method: { card, billing_details: { email } }
-      });
-
-      if (result.error) {
-        document.getElementById('ov-proc').classList.remove('on');
-        payBtn.disabled = false;
-        document.getElementById('pay-lbl').textContent = `Pay £${prod.price}.00`;
-        showPayErr(result.error.message || 'Payment declined. Please check your card details and try again.');
-        return;
-      }
-
-      if (result.paymentIntent?.status === 'succeeded') {
-        S.piId = result.paymentIntent.id;
-        try { gtag('event', 'purchase', { transaction_id: S.piId, value: prod.price, currency:'GBP', items:[{ item_id: prod.type, item_name: prod.label, price: prod.price, quantity:1 }] }); } catch(e){}
-        if (S.tier === 'guest') showGuestSuccess(prod);
-        else showProSuccess(prod, email);
-      }
-    } catch(err) {
-      document.getElementById('ov-proc').classList.remove('on');
-      payBtn.disabled = false;
-      document.getElementById('pay-lbl').textContent = `Pay £${prod.price}.00`;
-      showPayErr(err.message || 'An unexpected error occurred. Please contact support@ailane.ai.');
-      console.error('[KLP]', err);
-    }
-  }
-
-  function showGuestSuccess(prod) {
-    document.getElementById('ov-proc').classList.remove('on');
-    document.getElementById('suc-guest-name').textContent = prod.label;
-    document.getElementById('suc-guest-det').textContent  = prod.win;
-    document.getElementById('ov-guest').classList.add('on');
-    let c = 4;
-    const note = document.getElementById('suc-redirect-note');
-    note.textContent = `Redirecting in ${c}s…`;
-    const t = setInterval(() => { c--; if (c <= 0) { clearInterval(t); doRedirect(); } else note.textContent = `Redirecting in ${c}s…`; }, 1000);
-  }
-
-  function showProSuccess(prod, email) {
-    document.getElementById('ov-proc').classList.remove('on');
-    document.getElementById('suc-pro-email').textContent = email;
-    document.getElementById('suc-pro-name').textContent  = prod.label;
-    document.getElementById('suc-pro-det').textContent   = prod.win;
-    document.getElementById('ov-pro').classList.add('on');
-  }
-
-  function doRedirect() {
-    const prod = P[S.tier][S.dur];
-    const params = new URLSearchParams({ klp:'1', type: prod.type });
-    if (S.piId) params.set('pi', S.piId);
-    location.href = `${KL_URL}?${params}`;
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    render();
-    initStripe();
-    try { gtag('event', 'kl_pass_page_view', { tier: S.tier, duration: S.dur }); } catch(e){}
-  });
-  </script>
 
 </body>
 </html>
