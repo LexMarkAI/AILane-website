@@ -24,6 +24,9 @@
   <!-- React 18 — UMD production builds -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Workspace styles (KLUI-001 persistent panel system) -->
+  <link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
 </head>
 <body style="visibility:hidden">
 
@@ -34,6 +37,10 @@
     (function() {
       var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
       var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
+      // Expose anon key globally so the workspace bundle (PreferenceManager)
+      // and dynamically-loaded panels can make authenticated REST calls.
+      window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 
       var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -87,6 +94,35 @@
             console.warn('Tier fetch failed (non-blocking):', e);
           });
 
+          // Fetch active per-session access (non-blocking).
+          // Subscription users will typically have no kl_sessions row — that's fine.
+          // Per-session users get an active row with expires_at > now.
+          fetch(
+            SUPABASE_URL + '/rest/v1/kl_sessions?user_id=eq.' + userId +
+              '&status=eq.active&expires_at=gte.' + encodeURIComponent(new Date().toISOString()) +
+              '&order=expires_at.desc&limit=1&select=id,expires_at,product_type',
+            {
+              headers: {
+                'Authorization': 'Bearer ' + token,
+                'apikey': SUPABASE_ANON_KEY
+              }
+            }
+          )
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data[0]) {
+              window.__ailaneSession = {
+                id: data[0].id,
+                expires_at: data[0].expires_at,
+                product_type: data[0].product_type
+              };
+              window.dispatchEvent(new CustomEvent('ailane-session-loaded', { detail: window.__ailaneSession }));
+            }
+          })
+          .catch(function(e) {
+            console.warn('Session fetch failed (non-blocking):', e);
+          });
+
         } catch (e) {
           fail();
         }
@@ -117,6 +153,17 @@
 
   <!-- Pre-compiled React bundle (esbuild output) -->
   <script src="kl-app.js"></script>
+
+  <!--
+    Workspace bundle (KLUI-001 persistent panel system).
+    Self-initialises on DOMContentLoaded and reads window.__ailaneUser.
+    Per-session users (tier: per_session) exit at the tier gate — they see
+    only the Eileen conversational interface above. Subscription users
+    (operational / operational_readiness / governance / institutional) get
+    the full 8-panel workspace (minus planner for Operational, per bundle
+    tierGate in panel-system.js).
+  -->
+  <script src="/workspace/dist/workspace-bundle.js"></script>
 
   <style>
     /* ── CSS Variables ── */
@@ -216,6 +263,42 @@
       background: rgba(241,245,249,0.08);
       color: var(--kl-text-bright);
       border: 1px solid rgba(241,245,249,0.2);
+    }
+    .kl-badge-per-session {
+      background: rgba(14,165,233,0.08);
+      color: var(--kl-cyan-soft);
+      border: 1px solid rgba(14,165,233,0.2);
+    }
+
+    /* ── Session Status Bar (per-session users only) ── */
+    .kl-session-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      margin: 12px 0 0;
+      background: rgba(14,165,233,0.06);
+      border: 1px solid rgba(14,165,233,0.18);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--kl-text);
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+    .kl-session-status-urgent {
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.35);
+      color: var(--kl-red);
+    }
+    .kl-session-product {
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .kl-session-separator { color: var(--kl-text-muted); }
+    .kl-session-remaining {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
     }
 
     /* ── Logo ── */
@@ -364,6 +447,94 @@
       color: var(--kl-cyan-soft);
       font-family: 'JetBrains Mono', monospace;
     }
+    button.kl-chip {
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+    }
+    button.kl-chip:hover:not(:disabled) {
+      border-color: var(--kl-cyan);
+      background: rgba(14,165,233,0.14);
+      color: var(--kl-text-bright);
+    }
+    button.kl-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Upsell Card (per-session users after 3 turns) ── */
+    .kl-upsell-card {
+      margin: 8px 0 4px;
+      padding: 14px 16px;
+      background: rgba(14,165,233,0.06);
+      border-left: 3px solid var(--kl-cyan);
+      border-radius: 0 10px 10px 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .kl-upsell-title {
+      font-weight: 600;
+      color: var(--kl-text-bright);
+      margin-bottom: 4px;
+    }
+    .kl-upsell-body {
+      color: var(--kl-text);
+      margin-bottom: 8px;
+    }
+    .kl-upsell-link {
+      display: inline-block;
+      color: var(--kl-cyan);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .kl-upsell-link:hover { color: var(--kl-cyan-soft); }
+
+    /* ── Session Expired Modal ── */
+    .kl-expired-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .kl-expired-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(10,22,40,0.85);
+      backdrop-filter: blur(4px);
+    }
+    .kl-expired-content {
+      position: relative;
+      max-width: 440px;
+      width: 100%;
+      padding: 28px 28px 24px;
+      background: var(--kl-surface-raised);
+      border: 1px solid var(--kl-border);
+      border-radius: 14px;
+      text-align: center;
+    }
+    .kl-expired-content h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--kl-text-bright);
+      margin-bottom: 10px;
+    }
+    .kl-expired-content p {
+      font-size: 14px;
+      color: var(--kl-text);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .kl-expired-btn {
+      display: inline-block;
+      padding: 10px 22px;
+      background: var(--kl-cyan);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .kl-expired-btn:hover { opacity: 0.88; }
 
     /* ── Horizon Alert ── */
     .kl-horizon {
