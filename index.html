@@ -769,6 +769,177 @@ div[style*="rgba(15, 23, 42, 0.7)"]:hover {
   border-color: rgba(14, 165, 233, 0.35) !important;
 }
 
+/* ══════════════════════════════════════════════════════════
+   EILEEN INTELLIGENT GUIDE — AILANE-SPEC-LPEX-001 Art. 9–12
+   ══════════════════════════════════════════════════════════ */
+
+/* Eileen container — desktop */
+#eileen-guide {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  transition: opacity 0.3s ease;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Text panel */
+#eileen-panel {
+  position: relative;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  max-width: 320px;
+  min-width: 260px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(14, 165, 233, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#eileen-panel.hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+#eileen-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0EA5E9;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+#eileen-text {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #CBD5E1;
+  transition: opacity 0.15s ease;
+}
+
+#eileen-text .eileen-bold {
+  color: #E2E8F0;
+  font-weight: 600;
+}
+
+#eileen-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #475569;
+  text-transform: uppercase;
+  margin-top: 10px;
+}
+
+/* Close button */
+#eileen-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #475569;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+#eileen-close:hover { color: #94A3B8; }
+
+/* Nexus orb container */
+#eileen-nexus-wrap {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  cursor: grab;
+  position: relative;
+}
+#eileen-nexus-wrap:active { cursor: grabbing; }
+
+#eileen-nexus-canvas {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgba(14, 165, 233, 0.15), 0 0 4px rgba(14, 165, 233, 0.1);
+}
+
+/* Minimised state — nexus only */
+#eileen-guide.minimised #eileen-panel { display: none; }
+#eileen-guide.minimised { cursor: pointer; }
+
+/* Section highlighting */
+.eileen-highlight {
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.12), 0 0 40px rgba(14, 165, 233, 0.04) !important;
+  transition: box-shadow 0.4s ease !important;
+}
+
+/* Dragging state */
+#eileen-guide.dragging {
+  transition: none !important;
+}
+#eileen-guide.dragging #eileen-panel {
+  pointer-events: none;
+}
+
+/* ── Mobile — bottom sheet ── */
+@media (max-width: 768px) {
+  #eileen-guide {
+    bottom: 16px;
+    right: 16px;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  #eileen-panel {
+    display: none;
+  }
+
+  #eileen-guide.mobile-expanded #eileen-panel {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 100%;
+    min-width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 20px 20px 28px;
+    animation: eileenSlideUp 0.3s ease;
+  }
+
+  #eileen-guide.mobile-expanded #eileen-nexus-wrap {
+    display: none;
+  }
+
+  /* Mobile close becomes a drag handle */
+  #eileen-guide.mobile-expanded #eileen-close {
+    top: 10px;
+    right: 50%;
+    transform: translateX(50%);
+    width: 36px;
+    height: 4px;
+    background: #475569;
+    border-radius: 2px;
+    font-size: 0;
+    padding: 0;
+  }
+}
+
+@keyframes eileenSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
   </style>
 </head>
 <body>
@@ -2283,6 +2454,396 @@ function ailaneNavToggle(){
       }
     });
   }
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     EILEEN INTELLIGENT GUIDE — AILANE-SPEC-LPEX-001 Art. 9–12
+     AILANE-SPEC-EILEEN-001 v1.0 — Nexus Visual Identity
+     ══════════════════════════════════════════════════════════ -->
+<div id="eileen-guide" role="complementary" aria-label="Eileen — Ailane intelligence guide">
+  <div id="eileen-panel">
+    <button id="eileen-close" aria-label="Minimise Eileen" title="Minimise">&times;</button>
+    <div id="eileen-name">Eileen</div>
+    <div id="eileen-text">Loading...</div>
+    <div id="eileen-section-label"></div>
+  </div>
+  <div id="eileen-nexus-wrap" title="Eileen — drag to reposition">
+    <canvas id="eileen-nexus-canvas" width="104" height="104"></canvas>
+  </div>
+</div>
+
+<!-- Eileen Intelligent Guide — AILANE-SPEC-LPEX-001 Art. 9–12, 15–16 -->
+<script>
+(function() {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════
+  // 1. COMMENTARY SCRIPT — One entry per landing page section
+  //    All text complies with CCI Clinical Neutrality & PLUGIN-001
+  //    Update the hero message when regulatory landscape changes.
+  //    Keys match ACTUAL section IDs in index.html (verified §0).
+  // ═══════════════════════════════════════════════════════
+  var hour = new Date().getHours();
+  var greeting = hour >= 5 && hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  var COMMENTARY = {
+    'hero': {
+      text: greeting + '. I\u2019m Eileen. Nine ERA 2025 provisions are now in force as of this month \u2014 and the Fair Work Agency went operational on 7 April. If your contracts haven\u2019t been reviewed since April, your exposure position has changed.',
+      label: ''
+    },
+    'compliance-checker': {
+      text: 'This is where every analysis starts. I assess your documents against 69 legislative instruments \u2014 60 current obligations and 11 forward-looking ERA 2025 provisions. The forward findings never affect your current score. That\u2019s a constitutional separation, not a product choice.',
+      label: 'Compliance Checker'
+    },
+    'how': {
+      text: 'The ACEI formula is deterministic. Identical inputs always produce identical outputs. That\u2019s not a feature \u2014 it\u2019s a constitutional obligation. Article III, Section 3.2.1.',
+      label: 'How It Works \u00B7 ACEI'
+    },
+    'eileen': {
+      text: 'I read every legislative instrument, track every commencement date, and analyse every clause in your documents. Three-way parallel analysis \u2014 current law, deep pass, and forward exposure \u2014 assessed simultaneously.',
+      label: 'Meet Eileen'
+    },
+    'era2025': {
+      text: 'This is the one to watch. Day-one SSP is live. Paternity and parental leave are day-one rights. The Fair Work Agency is operational. Unfair dismissal reform is coming in January 2027. I track every commencement date in real time.',
+      label: 'ERA 2025 Legislative Alert'
+    },
+    'legislative-horizon': {
+      text: 'This is what sets Ailane apart. Every analysis includes forward-looking assessment against enacted-but-uncommenced provisions. Your current score reflects current law only. The legislative horizon shows what\u2019s coming \u2014 so you can prepare before it arrives.',
+      label: 'Forward Intelligence'
+    },
+    'live-ticker': {
+      text: 'Live regulatory signals. Tribunal decisions, enforcement actions, legislative changes \u2014 updated as they happen. Full access from Governance tier.',
+      label: 'Regulatory Ticker'
+    },
+    'intelligence-loop': {
+      text: 'One connected system. When legislation changes, the Knowledge Library captures it first. The ACEI scores the new exposure. The Compliance Checker flags what your contracts must update. Your RRI score reflects the remediation.',
+      label: 'Intelligence Loop'
+    },
+    'knowledge-library': {
+      text: '391 provisions across 69 instruments, each one traced to legislation.gov.uk. I don\u2019t summarise the law \u2014 I index it, structure it, and connect it to your exposure position. Every provision embedded with legal-domain AI vectors.',
+      label: 'Knowledge Library'
+    },
+    'pricing': {
+      text: 'Three tiers. Each one delivers genuine intelligence at its price point. The Contract Compliance Check at \u00A319 is where most organisations start \u2014 one document, clause-level findings, statutory references, and remediation guidance in minutes.',
+      label: 'Pricing'
+    },
+    'governance': {
+      text: 'Three founding constitutions govern every score. Methodology is deterministic, auditable, and version-controlled. The UK\u2019s first constitutionally-governed regulatory measurement framework.',
+      label: 'Constitutional Governance'
+    },
+    'categories': {
+      text: 'Twelve categories. Complete coverage. Every employment law risk maps to one of twelve categories defined in Article II of the ACEI constitution. No gaps, no overlaps, no ambiguity.',
+      label: 'Exposure Categories'
+    },
+    'use-cases': {
+      text: 'HR Directors, Risk and Compliance teams, insurance underwriters, employment law firms. Intelligence for the people who carry the risk.',
+      label: 'Who It\u2019s For'
+    },
+    'data': {
+      text: '131,600 tribunal decisions. 78,699 employer profiles. 30,543 HSE enforcement notices. 2,498 HSE prosecution convictions. 1,554 judges identified. This is the largest classified UK employment tribunal intelligence estate in private hands.',
+      label: 'Data Sources'
+    },
+    'early-access': {
+      text: 'Request access and I\u2019ll be ready when you are. No obligations, no spam \u2014 just a secure link to your dashboard.',
+      label: 'Early Access'
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // 2. DOM REFERENCES
+  // ═══════════════════════════════════════════════════════
+  var guide = document.getElementById('eileen-guide');
+  var panel = document.getElementById('eileen-panel');
+  var textEl = document.getElementById('eileen-text');
+  var labelEl = document.getElementById('eileen-section-label');
+  var closeBtn = document.getElementById('eileen-close');
+  var nexusWrap = document.getElementById('eileen-nexus-wrap');
+  var canvas = document.getElementById('eileen-nexus-canvas');
+
+  if (!guide || !canvas) return;
+
+  var ctx = canvas.getContext('2d');
+  var isMobile = window.innerWidth <= 768;
+  var isMinimised = false;
+  var isDragging = false;
+  var currentSection = null;
+  var highlightedEl = null;
+
+  // ═══════════════════════════════════════════════════════
+  // 3. NEXUS CANVAS RENDERER
+  //    AILANE-SPEC-EILEEN-001 §3–4 — Cyan only (pre-subscription)
+  //    52px display, 104px internal (2× Retina)
+  // ═══════════════════════════════════════════════════════
+  var nodes = [];
+  var nodeCount = 8;
+  var angleOffset = 0;
+  var pulsePhase = 0;
+  var radius = 32;
+
+  for (var i = 0; i < nodeCount; i++) {
+    nodes.push({ angle: (Math.PI * 2 / nodeCount) * i, speed: 0.002 + Math.random() * 0.003 });
+  }
+
+  function drawNexus() {
+    ctx.clearRect(0, 0, 104, 104);
+    angleOffset += 0.003;
+    pulsePhase += 0.02;
+    var pulseScale = 0.95 + 0.05 * Math.sin(pulsePhase);
+
+    // Core glow
+    var coreGrad = ctx.createRadialGradient(52, 52, 0, 52, 52, 20 * pulseScale);
+    coreGrad.addColorStop(0, 'rgba(14, 165, 233, 0.35)');
+    coreGrad.addColorStop(0.5, 'rgba(14, 165, 233, 0.08)');
+    coreGrad.addColorStop(1, 'rgba(14, 165, 233, 0)');
+    ctx.beginPath();
+    ctx.arc(52, 52, 20 * pulseScale, 0, Math.PI * 2);
+    ctx.fillStyle = coreGrad;
+    ctx.fill();
+
+    // Core dot
+    ctx.beginPath();
+    ctx.arc(52, 52, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#0EA5E9';
+    ctx.fill();
+
+    // Compute node positions
+    var positions = [];
+    for (var i = 0; i < nodeCount; i++) {
+      var a = nodes[i].angle + angleOffset;
+      nodes[i].angle += nodes[i].speed;
+      var nr = radius + 2 * Math.sin(pulsePhase + i);
+      positions.push({ x: 52 + Math.cos(a) * nr, y: 52 + Math.sin(a) * nr });
+    }
+
+    // Connections (random subset)
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.15)';
+    ctx.lineWidth = 0.8;
+    for (var i = 0; i < nodeCount; i++) {
+      for (var j = i + 2; j < nodeCount; j += 2) {
+        ctx.beginPath();
+        ctx.moveTo(positions[i].x, positions[i].y);
+        ctx.lineTo(positions[j].x, positions[j].y);
+        ctx.stroke();
+      }
+      // Connect to core
+      ctx.beginPath();
+      ctx.moveTo(positions[i].x, positions[i].y);
+      ctx.lineTo(52, 52);
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.08)';
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.15)';
+    }
+
+    // Nodes
+    for (var i = 0; i < nodeCount; i++) {
+      ctx.beginPath();
+      ctx.arc(positions[i].x, positions[i].y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(14, 165, 233, 0.7)';
+      ctx.fill();
+    }
+
+    requestAnimationFrame(drawNexus);
+  }
+  requestAnimationFrame(drawNexus);
+
+  // ═══════════════════════════════════════════════════════
+  // 4. COMMENTARY ENGINE — scroll-aware section detection
+  // ═══════════════════════════════════════════════════════
+  function updateCommentary(sectionId) {
+    if (sectionId === currentSection) return;
+    var entry = COMMENTARY[sectionId];
+    if (!entry) return;
+
+    currentSection = sectionId;
+
+    // Fade out
+    textEl.style.opacity = '0';
+    setTimeout(function() {
+      textEl.textContent = entry.text;
+      labelEl.textContent = entry.label;
+      textEl.style.opacity = '1';
+    }, 150);
+
+    // Section highlighting
+    if (highlightedEl) {
+      highlightedEl.classList.remove('eileen-highlight');
+      highlightedEl = null;
+    }
+    if (sectionId !== 'hero') {
+      var targetEl = document.getElementById(sectionId);
+      if (targetEl) {
+        targetEl.classList.add('eileen-highlight');
+        highlightedEl = targetEl;
+      }
+    }
+
+    // GA4 tracking
+    if (typeof gtag === 'function') {
+      gtag('event', 'eileen_section_view', {
+        'event_category': 'eileen',
+        'event_label': sectionId
+      });
+    }
+  }
+
+  // Set initial commentary
+  updateCommentary('hero');
+
+  // IntersectionObserver for section detection.
+  // Hero section has no id — observe the first <section> element and map it to 'hero' via data attribute.
+  var sectionIds = Object.keys(COMMENTARY);
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
+        var id = entry.target.id || entry.target.getAttribute('data-eileen-section');
+        if (id) updateCommentary(id);
+      }
+    });
+  }, { threshold: [0.3] });
+
+  sectionIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el && id === 'hero') {
+      // Hero has no id — fall back to the first <section> on the page
+      el = document.querySelector('section');
+      if (el) el.setAttribute('data-eileen-section', 'hero');
+    }
+    if (el) observer.observe(el);
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 5. DRAG BEHAVIOUR — mouse + touch
+  // ═══════════════════════════════════════════════════════
+  var dragOffsetX = 0, dragOffsetY = 0;
+  var dragStartX = 0, dragStartY = 0;
+  var dragMoved = false;
+  var customPosition = false;
+
+  function onDragStart(clientX, clientY) {
+    isDragging = true;
+    dragMoved = false;
+    dragStartX = clientX;
+    dragStartY = clientY;
+    guide.classList.add('dragging');
+    var rect = guide.getBoundingClientRect();
+    dragOffsetX = clientX - rect.left;
+    dragOffsetY = clientY - rect.top;
+  }
+
+  function onDragMove(clientX, clientY) {
+    if (!isDragging) return;
+    if (Math.abs(clientX - dragStartX) > 3 || Math.abs(clientY - dragStartY) > 3) {
+      if (!dragMoved && typeof gtag === 'function' && !customPosition) {
+        gtag('event', 'eileen_drag', { 'event_category': 'eileen' });
+      }
+      dragMoved = true;
+      customPosition = true;
+    }
+
+    var newLeft = clientX - dragOffsetX;
+    var newTop = clientY - dragOffsetY;
+
+    // Clamp to viewport
+    var w = guide.offsetWidth;
+    var h = guide.offsetHeight;
+    newLeft = Math.max(0, Math.min(window.innerWidth - w, newLeft));
+    newTop = Math.max(0, Math.min(window.innerHeight - h, newTop));
+
+    guide.style.left = newLeft + 'px';
+    guide.style.top = newTop + 'px';
+    guide.style.right = 'auto';
+    guide.style.bottom = 'auto';
+  }
+
+  function onDragEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    guide.classList.remove('dragging');
+    // Reset drag flag after click handlers run
+    setTimeout(function() { dragMoved = false; }, 0);
+  }
+
+  // Mouse events — on the nexus orb
+  nexusWrap.addEventListener('mousedown', function(e) {
+    if (isMobile) return;
+    e.preventDefault();
+    onDragStart(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (isDragging) { e.preventDefault(); onDragMove(e.clientX, e.clientY); }
+  });
+  document.addEventListener('mouseup', onDragEnd);
+
+  // Touch events
+  nexusWrap.addEventListener('touchstart', function(e) {
+    if (isMobile) return; // Mobile uses tap-to-expand, not drag
+    var t = e.touches[0];
+    onDragStart(t.clientX, t.clientY);
+  }, { passive: false });
+  document.addEventListener('touchmove', function(e) {
+    if (isDragging) { e.preventDefault(); var t = e.touches[0]; onDragMove(t.clientX, t.clientY); }
+  }, { passive: false });
+  document.addEventListener('touchend', onDragEnd);
+
+  // ═══════════════════════════════════════════════════════
+  // 6. MINIMISE / EXPAND
+  // ═══════════════════════════════════════════════════════
+  closeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (isMobile) {
+      // Mobile: close bottom sheet
+      guide.classList.remove('mobile-expanded');
+      return;
+    }
+    isMinimised = true;
+    guide.classList.add('minimised');
+    if (highlightedEl) {
+      highlightedEl.classList.remove('eileen-highlight');
+      highlightedEl = null;
+    }
+    if (typeof gtag === 'function') {
+      gtag('event', 'eileen_minimise', { 'event_category': 'eileen' });
+    }
+  });
+
+  // Click nexus to re-expand (desktop) or open bottom sheet (mobile)
+  nexusWrap.addEventListener('click', function(e) {
+    if (dragMoved) return;
+    if (isMobile) {
+      e.stopPropagation();
+      guide.classList.toggle('mobile-expanded');
+      if (typeof gtag === 'function') {
+        gtag('event', 'eileen_expand', { 'event_category': 'eileen' });
+      }
+      return;
+    }
+    if (isMinimised) {
+      isMinimised = false;
+      guide.classList.remove('minimised');
+      if (typeof gtag === 'function') {
+        gtag('event', 'eileen_expand', { 'event_category': 'eileen' });
+      }
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 7. RESPONSIVE — update isMobile on resize
+  // ═══════════════════════════════════════════════════════
+  window.addEventListener('resize', function() {
+    isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+      guide.classList.remove('mobile-expanded');
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // 8. GA4 IMPRESSION — fires once
+  // ═══════════════════════════════════════════════════════
+  if (typeof gtag === 'function') {
+    gtag('event', 'eileen_impression', { 'event_category': 'eileen' });
+  }
+
 })();
 </script>
 
