@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Access the Knowledge Library — Ailane</title>
-  <meta name="description" content="UK employment law intelligence with Eileen AI. Research provisions, explore case law, and build your compliance position — from £29. Per-session and subscription access.">
+  <meta name="description" content="UK employment law intelligence with Eileen AI. Research provisions, explore case law, and build your compliance position — from £29. Eileen included at every tier.">
 
   <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
@@ -25,93 +25,134 @@
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --bg:#0A1628;--bg-card:#0F1D32;--border:#1E3A5F;--cyan:#0EA5E9;--cyan-dim:rgba(14,165,233,0.15);
-      --green:#10B981;--purple:#8B5CF6;--gold:#D4A017;--gold-dim:rgba(212,160,23,0.15);
-      --text:#E2E8F0;--text-dim:#94A3B8;--text-bright:#F8FAFC;--danger:#EF4444;
+      --bg:#0A1628;--bg-card:#0F1D32;--bg-panel:#0F172A;--border:#1E3A5F;
+      --cyan:#0EA5E9;--cyan-dim:rgba(14,165,233,0.15);--cyan-glow:rgba(14,165,233,0.3);
+      --green:#22C55E;--green-dim:rgba(34,197,94,0.15);
+      --purple:#8B5CF6;--purple-dim:rgba(139,92,246,0.15);
+      --gold:#D4A017;--gold-dim:rgba(212,160,23,0.12);--gold-glow:rgba(212,160,23,0.2);
+      --text:#CBD5E1;--text-dim:#A0AEC0;--text-bright:#F8FAFC;--danger:#EF4444;
       --font:'DM Sans',system-ui,-apple-system,sans-serif;--mono:'DM Mono','Fira Code',monospace;
     }
     html{scroll-behavior:smooth}
     body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
 
+    /* NAV */
     .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,22,40,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between}
     .nav-logo{font-size:1.25rem;font-weight:700;color:var(--text-bright);text-decoration:none;letter-spacing:-0.02em}
     .nav-logo span{color:var(--cyan)}
     .nav-links{display:flex;gap:1.5rem;align-items:center}
     .nav-links a{color:var(--text-dim);text-decoration:none;font-size:0.875rem;font-weight:500;transition:color 0.2s}
     .nav-links a:hover{color:var(--text-bright)}
-    .nav-links .btn-signin{background:var(--cyan);color:var(--bg);padding:0.5rem 1.25rem;border-radius:6px;font-weight:600}
-    .nav-links .btn-signin:hover{background:#38BDF8;color:var(--bg)}
+    .nav-cta{background:var(--cyan)!important;color:var(--bg)!important;padding:0.5rem 1.25rem;border-radius:6px;font-weight:600!important}
+    .nav-cta:hover{background:#38BDF8!important}
 
     .container{max-width:1200px;margin:0 auto;padding:0 2rem}
+    @media(max-width:768px){.container{padding:0 1rem}}
 
-    /* HERO */
-    .hero{padding:10rem 0 5rem;text-align:center;position:relative;overflow:hidden}
-    .hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,var(--cyan-dim) 0%,transparent 70%);pointer-events:none}
+    /* HERO — Eileen-First */
+    .hero{padding:10rem 0 4rem;text-align:center;position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:900px;height:900px;background:radial-gradient(circle,var(--cyan-dim) 0%,transparent 65%);pointer-events:none}
+    .nexus-hero{position:relative;margin:0 auto 2rem;width:120px;height:120px}
+    .nexus-hero canvas{width:120px;height:120px}
+    .hero-label{font-family:var(--mono);font-size:0.8125rem;color:var(--cyan);letter-spacing:0.05em;margin-bottom:0.75rem;position:relative}
     .hero h1{font-size:clamp(2rem,5vw,3.25rem);font-weight:700;letter-spacing:-0.03em;color:var(--text-bright);margin-bottom:1rem;position:relative}
-    .hero h1 span{color:var(--cyan)}
-    .hero p{font-size:1.125rem;color:var(--text-dim);max-width:640px;margin:0 auto 1.5rem;position:relative}
+    .hero h1 em{font-style:normal;color:var(--cyan)}
+    .hero .sub{font-size:1.0625rem;color:var(--text);max-width:600px;margin:0 auto 2.5rem;position:relative;line-height:1.7}
 
-    .nexus-dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan),0 0 24px var(--cyan-dim);display:inline-block;margin-right:0.5rem;vertical-align:middle;animation:pulse 3s ease-in-out infinite}
-    @keyframes pulse{0%,100%{box-shadow:0 0 12px var(--cyan),0 0 24px var(--cyan-dim)}50%{box-shadow:0 0 20px var(--cyan),0 0 40px var(--cyan-dim)}}
+    /* EILEEN CONVERSATION PREVIEW */
+    .eileen-demo{max-width:680px;margin:0 auto 3rem;position:relative}
+    .eileen-conv{background:var(--bg-panel);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),0 0 40px var(--gold-dim)}
+    .eileen-conv-header{display:flex;align-items:center;gap:0.75rem;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+    .eileen-conv-header canvas{width:32px;height:32px;flex-shrink:0}
+    .eileen-conv-header .name{font-size:0.9375rem;font-weight:700;color:var(--gold);letter-spacing:0.02em}
+    .eileen-conv-header .role{font-size:0.6875rem;color:var(--text-dim)}
+    .eileen-conv-header .disclaimer{font-size:0.625rem;color:var(--text-dim);margin-left:auto;max-width:200px;text-align:right;line-height:1.4}
+    .eileen-msg{padding:1.25rem 1.5rem}
+    .eileen-q{background:rgba(14,165,233,0.06);border-radius:12px;padding:0.875rem 1.125rem;margin-bottom:1rem;font-size:0.9375rem;color:var(--text-bright);border-left:3px solid var(--cyan)}
+    .eileen-a{font-size:0.9375rem;color:var(--text);line-height:1.75}
+    .eileen-a strong{color:var(--text-bright);font-weight:600}
+    .eileen-a .ref{font-family:var(--mono);font-size:0.6875rem;color:var(--gold);background:var(--gold-dim);padding:0.15rem 0.5rem;border-radius:3px;margin:0 0.125rem;letter-spacing:0.02em}
+    .eileen-cta-strip{padding:0.875rem 1.5rem;border-top:1px solid var(--border);text-align:center;font-size:0.8125rem;color:var(--text-dim)}
+    .eileen-cta-strip a{color:var(--cyan);text-decoration:none;font-weight:600}
 
-    .eileen-banner{background:linear-gradient(135deg,rgba(14,165,233,0.1) 0%,rgba(139,92,246,0.06) 100%);border:1px solid rgba(14,165,233,0.25);border-radius:12px;padding:1.25rem 1.75rem;max-width:640px;margin:0 auto 2.5rem;position:relative;text-align:left;display:flex;align-items:flex-start;gap:1rem}
-    .eileen-banner .nexus-dot{flex-shrink:0;margin-top:0.35rem}
-    .eileen-banner p{font-size:0.9375rem;color:var(--text);margin:0}
-    .eileen-banner strong{color:var(--cyan)}
+    /* STATS */
+    .stats-row{display:flex;gap:3rem;justify-content:center;flex-wrap:wrap;padding:2rem 0 0;position:relative}
+    .stat{text-align:center}
+    .stat .num{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--gold);text-shadow:0 0 20px var(--gold-dim)}
+    .stat .label{font-size:0.75rem;color:var(--text-dim);margin-top:0.125rem}
 
-    .hero-stats{display:flex;gap:3rem;justify-content:center;flex-wrap:wrap;position:relative}
-    .hero-stat{text-align:center}
-    .hero-stat .num{font-family:var(--mono);font-size:1.5rem;font-weight:500;color:var(--cyan)}
-    .hero-stat .label{font-size:0.75rem;color:var(--text-dim);margin-top:0.25rem}
-
+    /* SECTIONS */
     .section{padding:5rem 0}
     .section-label{font-family:var(--mono);font-size:0.75rem;font-weight:500;color:var(--cyan);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem}
     .section-title{font-size:clamp(1.5rem,3vw,2rem);font-weight:700;letter-spacing:-0.02em;color:var(--text-bright);margin-bottom:0.75rem}
-    .section-sub{font-size:1rem;color:var(--text-dim);max-width:600px;margin-bottom:3rem}
+    .section-sub{font-size:1rem;color:var(--text);max-width:600px;margin-bottom:3rem}
 
+    /* UNIVERSAL ACCESS BANNER */
+    .uad-banner{background:linear-gradient(135deg,rgba(14,165,233,0.08) 0%,rgba(212,160,23,0.04) 100%);border:1px solid rgba(14,165,233,0.2);border-left:3px solid var(--gold);border-radius:12px;padding:1.5rem 2rem;margin-bottom:3rem;display:flex;align-items:flex-start;gap:1rem}
+    .uad-banner canvas{flex-shrink:0;width:40px;height:40px;margin-top:0.25rem}
+    .uad-banner .uad-text{flex:1}
+    .uad-banner h3{font-size:1rem;font-weight:600;color:var(--text-bright);margin-bottom:0.375rem}
+    .uad-banner p{font-size:0.875rem;color:var(--text-dim);line-height:1.6}
+    @media(max-width:600px){.uad-banner{flex-direction:column;align-items:center;text-align:center}}
+
+    /* PRICING CARDS */
     .tier-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
-    @media(max-width:768px){.tier-row{grid-template-columns:1fr}}
+    @media(max-width:900px){.tier-row{grid-template-columns:1fr 1fr}}
+    @media(max-width:600px){.tier-row{grid-template-columns:1fr}}
 
-    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;display:flex;flex-direction:column;transition:border-color 0.3s,transform 0.2s;position:relative}
-    .card:hover{border-color:var(--cyan);transform:translateY(-2px)}
-    .card.featured{border-color:var(--cyan);box-shadow:0 0 30px var(--cyan-dim)}
-    .card.featured::before{content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--cyan);color:var(--bg);font-size:0.625rem;font-weight:700;letter-spacing:0.1em;padding:0.25rem 1rem;border-radius:100px}
-    .card.gold-card{border-color:var(--gold);box-shadow:0 0 30px var(--gold-dim)}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;display:flex;flex-direction:column;transition:border-color 0.3s,transform 0.2s,box-shadow 0.3s;position:relative}
+    .card:hover{border-color:rgba(212,160,23,0.4);transform:translateY(-2px);box-shadow:0 8px 32px var(--gold-dim)}
+    .card.feat{border-color:var(--cyan);box-shadow:0 0 40px var(--cyan-dim)}
+    .card.feat::before{content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--cyan);color:var(--bg);font-size:0.625rem;font-weight:700;letter-spacing:0.1em;padding:0.25rem 1rem;border-radius:100px}
+    .card.gov-feat{border-color:var(--purple);box-shadow:0 0 40px var(--purple-dim)}
+    .card.gov-feat::before{content:'RECOMMENDED';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--purple);color:#fff;font-size:0.625rem;font-weight:700;letter-spacing:0.1em;padding:0.25rem 1rem;border-radius:100px}
+    .card.gold{border-color:var(--gold);box-shadow:0 0 40px var(--gold-dim)}
 
-    .card-eileen{font-family:var(--mono);font-size:0.6875rem;color:var(--cyan);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem}
-    .card-eileen .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+    /* Eileen indicator on cards */
+    .card-eileen{display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem}
+    .card-eileen canvas{width:16px;height:16px;flex-shrink:0}
+    .card-eileen span{font-family:var(--mono);font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.08em}
+    .eileen-cyan span{color:var(--cyan)}
+    .eileen-cg span{color:var(--green)}
+    .eileen-cp span{color:var(--purple)}
+    .eileen-gold span{color:var(--gold)}
 
-    .card-name{font-size:1.25rem;font-weight:600;color:var(--text-bright);margin-bottom:0.25rem}
-    .card-duration{font-size:0.875rem;color:var(--text-dim);margin-bottom:1.25rem}
-    .card-price{font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--text-bright);margin-bottom:0.25rem}
-    .card-price .cur{font-size:1.25rem;vertical-align:top;margin-right:2px}
+    .card-name{font-size:1.375rem;font-weight:700;color:var(--text-bright);margin-bottom:0.25rem;letter-spacing:-0.01em}
+    .card-dur{font-size:0.875rem;color:var(--text-dim);margin-bottom:1.25rem}
+    .card-price{font-family:var(--mono);font-size:2.25rem;font-weight:700;color:var(--text-bright);margin-bottom:0.25rem}
+    .card-price .cur{font-size:1.375rem;vertical-align:top;margin-right:2px;color:var(--gold)}
     .card-price .per{font-size:0.875rem;font-weight:400;color:var(--text-dim)}
     .card-billing{font-size:0.75rem;color:var(--text-dim);margin-bottom:1.5rem}
 
     .card-features{list-style:none;margin-bottom:2rem;flex:1}
     .card-features li{font-size:0.875rem;color:var(--text);padding:0.375rem 0 0.375rem 1.5rem;position:relative}
-    .card-features li::before{content:'✓';position:absolute;left:0;color:var(--cyan);font-weight:600}
-    .card.gold-card .card-features li::before{color:var(--gold)}
+    .card-features li::before{content:'✓';position:absolute;left:0;font-weight:600}
+    .feat-cyan li::before{color:var(--cyan)}
+    .feat-cg li::before{color:var(--green)}
+    .feat-cp li::before{color:var(--purple)}
+    .feat-gold li::before{color:var(--gold)}
 
-    .card-cta{display:block;text-align:center;text-decoration:none;padding:0.875rem 1.5rem;border-radius:8px;font-size:0.9375rem;font-weight:600;transition:all 0.2s;cursor:pointer;border:none;width:100%}
-    .cta-primary{background:var(--cyan);color:var(--bg)}
-    .cta-primary:hover{background:#38BDF8}
-    .cta-outline{background:transparent;color:var(--cyan);border:1px solid var(--cyan)}
-    .cta-outline:hover{background:var(--cyan-dim)}
-    .cta-gold{background:var(--gold);color:var(--bg)}
-    .cta-gold:hover{background:#E5B422}
+    .cta{display:block;text-align:center;text-decoration:none;padding:0.875rem 1.5rem;border-radius:8px;font-size:0.9375rem;font-weight:600;transition:all 0.2s;cursor:pointer;border:none;width:100%}
+    .cta-cyan{background:var(--cyan);color:var(--bg)}.cta-cyan:hover{background:#38BDF8}
+    .cta-cyan-o{background:transparent;color:var(--cyan);border:1px solid var(--cyan)}.cta-cyan-o:hover{background:var(--cyan-dim)}
+    .cta-purple{background:var(--purple);color:#fff}.cta-purple:hover{background:#7C3AED}
+    .cta-gold{background:var(--gold);color:var(--bg)}.cta-gold:hover{background:#E5B422}
 
-    .badge-op{background:rgba(14,165,233,0.1);color:var(--cyan);border:1px solid rgba(14,165,233,0.3);font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
-    .badge-gov{background:rgba(139,92,246,0.1);color:var(--purple);border:1px solid rgba(139,92,246,0.3);font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
-    .badge-inst{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,160,23,0.3);font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
+    .badge{font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
+    .badge-op{background:rgba(14,165,233,0.1);color:var(--cyan);border:1px solid rgba(14,165,233,0.3)}
+    .badge-gov{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(139,92,246,0.3)}
+    .badge-inst{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,160,23,0.3)}
 
+    /* SEPARATOR */
     .sep{text-align:center;padding:3rem 0 1rem;position:relative}
-    .sep::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border)}
+    .sep::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold-glow),var(--gold),var(--gold-glow),transparent)}
     .sep span{position:relative;background:var(--bg);padding:0 1.5rem;font-family:var(--mono);font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em}
 
+    /* DISCLAIMER */
     .disclaimer{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:1.25rem 1.5rem;font-size:0.8125rem;color:var(--text-dim);line-height:1.6;margin:3rem 0}
     .disclaimer strong{color:var(--danger)}
 
+    /* FOOTER */
     .footer{border-top:1px solid var(--border);padding:2.5rem 0;text-align:center}
     .footer p{font-size:0.8125rem;color:var(--text-dim);margin-bottom:0.5rem}
     .footer a{color:var(--cyan);text-decoration:none}
@@ -125,26 +166,45 @@
     <div class="nav-links">
       <a href="https://ailane.ai/knowledge-library-preview/">Preview</a>
       <a href="https://ailane.ai/contract-scan/">Contract Check</a>
-      <a href="https://ailane.ai/account/" class="btn-signin">Sign In</a>
+      <a href="https://ailane.ai/account/" class="nav-cta">Sign In</a>
     </div>
   </nav>
 
-  <!-- HERO -->
+  <!-- HERO — Eileen-First: Nexus leads, then her conversation, then pricing -->
   <section class="hero">
     <div class="container">
-      <h1>Research with <span>Eileen</span></h1>
-      <p>391 provisions. 69 instruments. 240 leading cases. 131,600+ tribunal decisions. And Eileen — your AI employment law guide — at every tier.</p>
+      <div class="nexus-hero"><canvas id="nexus-main" width="240" height="240"></canvas></div>
+      <div class="hero-label" style="color:var(--gold)">Eileen · Your AI Employment Law Guide</div>
+      <h1>Research with <em>Eileen</em></h1>
+      <p class="sub">Ask Eileen about any UK employment law obligation. She retrieves from 391 provisions, 240 leading cases, and 131,600+ tribunal decisions — and assembles the answer you need. Included at every tier. No question limits.</p>
 
-      <div class="eileen-banner">
-        <span class="nexus-dot"></span>
-        <p><strong>Eileen is included at every level.</strong> No limits on questions. No feature restrictions. Your access window is your only constraint — within it, Eileen is fully yours.</p>
+      <!-- EILEEN CONVERSATION PREVIEW -->
+      <div class="eileen-demo">
+        <div class="eileen-conv">
+          <div class="eileen-conv-header">
+            <canvas id="nexus-header" width="64" height="64"></canvas>
+            <div><div class="name">Eileen</div><div class="role">Regulatory Intelligence</div></div>
+            <div class="disclaimer">Eileen provides regulatory intelligence, not legal advice.</div>
+          </div>
+          <div class="eileen-msg">
+            <div class="eileen-q">What changed for employers on 6 April 2026 with the Employment Rights Act 2025?</div>
+            <div class="eileen-a">
+              <p>Nine provisions of the <strong>Employment Rights Act 2025</strong> commenced on 6 April 2026. The most significant for employers are:</p>
+              <p style="margin-top:0.75rem"><strong>SSP from day one</strong> — the three-day waiting period is abolished. Employers must now pay Statutory Sick Pay from the first qualifying day of sickness absence. <span class="ref">ERA 2025 s.1</span></p>
+              <p style="margin-top:0.5rem"><strong>Enhanced protections for zero-hours workers</strong> — new obligations on reasonable notice for shifts and compensation for late cancellations. <span class="ref">ERA 2025 ss.27-28</span></p>
+              <p style="margin-top:0.5rem"><strong>Fair Work Agency</strong> — the new enforcement body is now operational with powers to inspect, investigate, and enforce employment standards. <span class="ref">ERA 2025 Part 5</span></p>
+              <p style="margin-top:0.75rem;font-size:0.8125rem;color:var(--text-dim)">Provisions not yet in force include the day-one unfair dismissal right (expected January 2027) and collective redundancy reforms. I can walk you through each provision and what it means for your contracts.</p>
+            </div>
+          </div>
+          <div class="eileen-cta-strip">This is a real Eileen response. <a href="#sessions" style="color:var(--gold)">Start your session →</a></div>
+        </div>
       </div>
 
-      <div class="hero-stats">
-        <div class="hero-stat"><div class="num">391</div><div class="label">Provisions mapped</div></div>
-        <div class="hero-stat"><div class="num">69</div><div class="label">Instruments tracked</div></div>
-        <div class="hero-stat"><div class="num">240</div><div class="label">Leading cases</div></div>
-        <div class="hero-stat"><div class="num">131,600+</div><div class="label">Tribunal decisions</div></div>
+      <div class="stats-row">
+        <div class="stat"><div class="num">391</div><div class="label">Provisions mapped</div></div>
+        <div class="stat"><div class="num">69</div><div class="label">Instruments tracked</div></div>
+        <div class="stat"><div class="num">240</div><div class="label">Leading cases</div></div>
+        <div class="stat"><div class="num">131,600+</div><div class="label">Tribunal decisions</div></div>
       </div>
     </div>
   </section>
@@ -152,105 +212,114 @@
   <!-- PER-SESSION ACCESS -->
   <section class="section" id="sessions">
     <div class="container">
-      <div class="section-label">Per-Session Access — Pay Once, Research Immediately</div>
+      <div class="section-label">Per-Session Access</div>
       <div class="section-title">Choose your research window</div>
-      <div class="section-sub">No account required. No subscription. Pay once and start researching with Eileen immediately. Every session includes full Eileen access, the complete legislative estate, and forward intelligence.</div>
+      <div class="section-sub">No account required. Pay once, research with Eileen immediately. Every session includes unlimited Eileen access, the full legislative estate, and forward intelligence.</div>
+
+      <!-- Eileen Universal Access Doctrine banner -->
+      <div class="uad-banner">
+        <canvas id="nexus-uad" width="80" height="80"></canvas>
+        <div class="uad-text">
+          <h3>Eileen is included at every level</h3>
+          <p>No question limits. No feature restrictions. Your access window is your only constraint — within it, Eileen is fully yours. This is the Eileen Universal Access Doctrine, ratified 10 April 2026.</p>
+        </div>
+      </div>
 
       <div class="tier-row">
-        <!-- Quick Session -->
+        <!-- Quick Session £29 -->
         <div class="card">
-          <div class="card-eileen"><span class="dot"></span> Eileen included</div>
+          <div class="card-eileen eileen-cyan"><canvas class="nexus-mini" width="32" height="32" data-color="cyan"></canvas><span>Eileen included</span></div>
           <div class="card-name">Quick Session</div>
-          <div class="card-duration">2-hour focused research window</div>
+          <div class="card-dur">2-hour focused research window</div>
           <div class="card-price"><span class="cur">£</span>29</div>
           <div class="card-billing">One-time payment · No account required</div>
-          <ul class="card-features">
+          <ul class="card-features feat-cyan">
             <li>Full Knowledge Library access</li>
             <li>Eileen AI — unlimited questions</li>
             <li>UK legislation and SI viewer</li>
             <li>ACAS, HSE, and ICO guidance</li>
             <li>ERA 2025 intelligence</li>
           </ul>
-          <a href="https://buy.stripe.com/eVq8wQ9Dyesi3pp9xBfMA0h" class="card-cta cta-outline" onclick="gtag('event','kl_access_click',{product:'quick_session',price:29})">Start Research — £29</a>
+          <a href="https://buy.stripe.com/eVq8wQ9Dyesi3pp9xBfMA0h" class="cta cta-cyan-o" onclick="gtag('event','kl_access_click',{product:'quick_session',price:29})">Start Research — £29</a>
         </div>
 
-        <!-- Day Pass -->
-        <div class="card featured">
-          <div class="card-eileen"><span class="dot"></span> Eileen included</div>
+        <!-- Day Pass £49 -->
+        <div class="card feat">
+          <div class="card-eileen eileen-cyan"><canvas class="nexus-mini" width="32" height="32" data-color="cyan"></canvas><span>Eileen included</span></div>
           <div class="card-name">Day Pass</div>
-          <div class="card-duration">Full day — 24 hours with Eileen</div>
+          <div class="card-dur">Full day — 24 hours with Eileen</div>
           <div class="card-price"><span class="cur">£</span>49</div>
           <div class="card-billing">One-time payment · No account required</div>
-          <ul class="card-features">
+          <ul class="card-features feat-cyan">
             <li>Full Knowledge Library access</li>
             <li>Eileen AI — unlimited questions</li>
             <li>Legislative horizon tracker</li>
             <li>Full forward intelligence layer</li>
             <li>Research notes and session history</li>
-            <li>24 hours of uninterrupted access</li>
+            <li>24 hours uninterrupted access</li>
           </ul>
-          <a href="https://buy.stripe.com/8x2fZi8zu83UcZZaBFfMA0i" class="card-cta cta-primary" onclick="gtag('event','kl_access_click',{product:'day_pass',price:49})">Get Day Pass — £49</a>
+          <a href="https://buy.stripe.com/8x2fZi8zu83UcZZaBFfMA0i" class="cta cta-cyan" onclick="gtag('event','kl_access_click',{product:'day_pass',price:49})">Get Day Pass — £49</a>
         </div>
 
-        <!-- Research Week -->
+        <!-- Research Week £99 -->
         <div class="card">
-          <div class="card-eileen"><span class="dot"></span> Eileen included</div>
+          <div class="card-eileen eileen-cyan"><canvas class="nexus-mini" width="32" height="32" data-color="cyan"></canvas><span>Eileen included</span></div>
           <div class="card-name">Research Week</div>
-          <div class="card-duration">7 calendar days with Eileen</div>
+          <div class="card-dur">7 calendar days with Eileen</div>
           <div class="card-price"><span class="cur">£</span>99</div>
           <div class="card-billing">One-time payment · No account required</div>
-          <ul class="card-features">
+          <ul class="card-features feat-cyan">
             <li>Full Knowledge Library access</li>
             <li>Eileen AI — unlimited questions</li>
             <li>Full forward intelligence layer</li>
             <li>Legislative horizon tracker</li>
-            <li>Research notes and session history</li>
             <li>7 days of sustained research</li>
           </ul>
-          <a href="https://buy.stripe.com/8x27sM5nibg64ttdNRfMA0j" class="card-cta cta-outline" onclick="gtag('event','kl_access_click',{product:'research_week',price:99})">Get Research Week — £99</a>
+          <a href="https://buy.stripe.com/8x27sM5nibg64ttdNRfMA0j" class="cta cta-cyan-o" onclick="gtag('event','kl_access_click',{product:'research_week',price:99})">Get Research Week — £99</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- SEPARATOR -->
   <div class="sep container"><span>Continuous Compliance Monitoring</span></div>
 
   <!-- SUBSCRIPTIONS -->
   <section class="section" id="subscriptions">
     <div class="container">
-      <div class="section-label">Subscription Tiers — Ongoing Intelligence</div>
-      <div class="section-title">From research tool to compliance infrastructure</div>
-      <div class="section-sub">Continuous monitoring, document storage, compliance scoring, and board-ready reporting. Your employment law obligations — tracked, scored, and managed.</div>
+      <div class="section-label" style="color:var(--gold)">Subscription Tiers</div>
+      <div class="section-title">From research to compliance infrastructure</div>
+      <div class="section-sub">Continuous monitoring, document storage, compliance scoring, and board-ready reporting.</div>
 
       <div class="tier-row">
-        <!-- Operational -->
+        <!-- Operational — Cyan + Green -->
         <div class="card">
-          <span class="badge-op">Operational</span>
+          <span class="badge badge-op">Operational</span>
+          <div class="card-eileen eileen-cg"><canvas class="nexus-mini" width="32" height="32" data-color="cyan-green"></canvas><span>Eileen + monitoring</span></div>
           <div class="card-name">Operational Readiness</div>
-          <div class="card-duration">ACEI Domain Intelligence</div>
+          <div class="card-dur">ACEI Domain Intelligence</div>
           <div class="card-price"><span class="cur">£</span>199<span class="per">/month</span></div>
-          <div class="card-billing">Monthly subscription · 1 user · Cancel any time</div>
-          <ul class="card-features">
-            <li>Full Knowledge Library access</li>
-            <li>Eileen AI — unlimited, always on</li>
+          <div class="card-billing">1 user · Cancel any time</div>
+          <ul class="card-features feat-cg">
+            <li>Full Knowledge Library + Eileen</li>
             <li>5 documents stored and monitored</li>
             <li>Compliance Calendar with alerts</li>
             <li>Legislative change tracking</li>
             <li>Weekly intelligence digest</li>
             <li>ACEI exposure scoring</li>
+            <li>Monthly compliance report (PDF)</li>
           </ul>
-          <a href="https://buy.stripe.com/28E3cw2b66ZQ0ddcJNfMA0e" class="card-cta cta-outline" onclick="gtag('event','kl_access_click',{product:'operational',price:199})">Start Operational — £199/mo</a>
+          <a href="https://buy.stripe.com/28E3cw2b66ZQ0ddcJNfMA0e" class="cta cta-cyan-o" onclick="gtag('event','kl_access_click',{product:'operational',price:199})">Start Operational — £199/mo</a>
         </div>
 
-        <!-- Governance -->
-        <div class="card featured">
-          <span class="badge-gov">Governance</span>
+        <!-- Governance — Cyan + Purple -->
+        <div class="card gov-feat">
+          <span class="badge badge-gov">Governance</span>
+          <div class="card-eileen eileen-cp"><canvas class="nexus-mini" width="32" height="32" data-color="cyan-purple"></canvas><span>Eileen + Triad intelligence</span></div>
           <div class="card-name">Governance</div>
-          <div class="card-duration">Full Triad Intelligence — ACEI + RRI + CCI</div>
+          <div class="card-dur">Full Triad — ACEI + RRI + CCI</div>
           <div class="card-price"><span class="cur">£</span>799<span class="per">/month</span></div>
-          <div class="card-billing">Monthly subscription · Up to 25 users</div>
-          <ul class="card-features">
+          <div class="card-billing">Up to 25 users</div>
+          <ul class="card-features feat-cp">
             <li>Everything in Operational</li>
             <li>Contract Planner (6-step workflow)</li>
             <li>Unlimited document monitoring</li>
@@ -259,26 +328,26 @@
             <li>ACEI + RRI + CCI intelligence</li>
             <li>Dedicated legal referral pathway</li>
           </ul>
-          <a href="https://buy.stripe.com/5kQaEY9Dyesi8JJ39dfMA0f" class="card-cta cta-primary" onclick="gtag('event','kl_access_click',{product:'governance',price:799})">Start Governance — £799/mo</a>
+          <a href="https://buy.stripe.com/5kQaEY9Dyesi8JJ39dfMA0f" class="cta cta-purple" onclick="gtag('event','kl_access_click',{product:'governance',price:799})">Start Governance — £799/mo</a>
         </div>
 
-        <!-- Institutional -->
-        <div class="card gold-card">
-          <span class="badge-inst">Institutional</span>
+        <!-- Institutional — Gold -->
+        <div class="card gold">
+          <span class="badge badge-inst">Institutional</span>
+          <div class="card-eileen eileen-gold"><canvas class="nexus-mini" width="32" height="32" data-color="gold"></canvas><span>Eileen + full API</span></div>
           <div class="card-name">Institutional</div>
-          <div class="card-duration">Enterprise-grade · Multi-jurisdiction</div>
+          <div class="card-dur">Enterprise-grade · Multi-jurisdiction</div>
           <div class="card-price" style="font-size:1.5rem">Custom Pricing</div>
           <div class="card-billing">Tailored to your organisation</div>
-          <ul class="card-features">
+          <ul class="card-features feat-gold">
             <li>Everything in Governance</li>
             <li>Unlimited users</li>
             <li>API access and data integration</li>
             <li>White-label deployment option</li>
             <li>Multi-jurisdiction expansion</li>
             <li>Dedicated account manager</li>
-            <li>Custom SLA and onboarding</li>
           </ul>
-          <a href="mailto:sales@ailane.ai?subject=Institutional%20Enquiry" class="card-cta cta-gold" onclick="gtag('event','kl_access_click',{product:'institutional',price:'custom'})">Contact Sales</a>
+          <a href="mailto:sales@ailane.ai?subject=Institutional%20Enquiry" class="cta cta-gold" onclick="gtag('event','kl_access_click',{product:'institutional',price:'custom'})">Contact Sales</a>
         </div>
       </div>
     </div>
@@ -288,7 +357,7 @@
   <section class="section" style="padding-top:0">
     <div class="container">
       <div class="disclaimer">
-        <strong>Regulatory Intelligence — Not Legal Advice.</strong> Ailane provides regulatory intelligence to inform your compliance decisions. It does not provide legal advice and is not a substitute for qualified legal counsel. For legal advice, consult a qualified employment solicitor. Ailane's compliance analysis is based on current legislation and published guidance and may not reflect the most recent amendments or judicial interpretations. Constitutional governance: ACEI v1.0, RRI v1.0, CCI v1.0.
+        <strong>Regulatory Intelligence — Not Legal Advice.</strong> Ailane provides regulatory intelligence to inform your compliance decisions. It does not provide legal advice and is not a substitute for qualified legal counsel. For legal advice, consult a qualified employment solicitor. Constitutional governance: ACEI v1.0, RRI v1.0, CCI v1.0.
       </div>
     </div>
   </section>
@@ -300,6 +369,134 @@
       <p style="margin-top:0.5rem">© 2026 AI Lane Limited. All rights reserved.</p>
     </div>
   </footer>
+
+  <!-- NEXUS CANVAS — per EILEEN-001 §3-4, LPEX-001 Art. 15 -->
+  <script>
+  (function(){
+    // Nexus renderer — simplified for static pages per LPEX-001 Art. 15
+    // Cyan only for session/KL pages. Tier colours on subscription cards.
+    const COLORS = {
+      cyan: '#0EA5E9',
+      green: '#22C55E',
+      purple: '#8B5CF6',
+      gold: '#D4A017'
+    };
+
+    function createNexus(canvas, opts) {
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      const cx = w/2, cy = h/2;
+      const nodeCount = opts.nodes || 8;
+      const radius = opts.radius || (Math.min(w,h) * 0.35);
+      const primaryColor = opts.color || COLORS.cyan;
+      const secondaryColor = opts.color2 || null;
+      let angle = 0;
+      let pulsePhase = 0;
+
+      const nodes = [];
+      for (let i = 0; i < nodeCount; i++) {
+        const a = (Math.PI * 2 * i) / nodeCount;
+        nodes.push({
+          baseAngle: a,
+          orbitRadius: radius * (0.85 + Math.random() * 0.3),
+          size: 1.5 + Math.random() * 1.5,
+          speed: 0.2 + Math.random() * 0.3,
+          ring: secondaryColor && i >= Math.floor(nodeCount * 0.45) ? 2 : 1
+        });
+      }
+
+      // Connections — random subset
+      const connections = [];
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i+1; j < nodes.length; j++) {
+          if (Math.random() < 0.3) connections.push([i, j]);
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        angle += 0.003;
+        pulsePhase += 0.02;
+        const pulse = 0.95 + 0.05 * Math.sin(pulsePhase);
+
+        // Core glow
+        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.3 * pulse);
+        coreGrad.addColorStop(0, primaryColor + '40');
+        coreGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.3 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core dot
+        ctx.fillStyle = primaryColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 2 * (w/120), 0, Math.PI * 2);
+        ctx.fill();
+
+        // Node positions
+        const pos = nodes.map(n => {
+          const a = n.baseAngle + angle * n.speed;
+          return {
+            x: cx + Math.cos(a) * n.orbitRadius * pulse,
+            y: cy + Math.sin(a) * n.orbitRadius * pulse,
+            size: n.size * (w/120),
+            ring: n.ring
+          };
+        });
+
+        // Connections
+        ctx.lineWidth = 0.5 * (w/120);
+        connections.forEach(([i,j]) => {
+          const a = pos[i], b = pos[j];
+          ctx.strokeStyle = primaryColor + '30';
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        });
+
+        // Nodes
+        pos.forEach(p => {
+          const col = p.ring === 2 && secondaryColor ? secondaryColor : primaryColor;
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          // Glow
+          ctx.fillStyle = col + '30';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    // Hero Nexus — 120px, 8 nodes, cyan only
+    createNexus(document.getElementById('nexus-main'), { nodes: 10, color: COLORS.cyan });
+
+    // Header Nexus — 32px, 6 nodes
+    createNexus(document.getElementById('nexus-header'), { nodes: 6, color: COLORS.cyan, radius: 12 });
+
+    // UAD banner Nexus — 40px, 8 nodes
+    createNexus(document.getElementById('nexus-uad'), { nodes: 8, color: COLORS.cyan });
+
+    // Card mini Nexus instances — tier-correct colours
+    document.querySelectorAll('.nexus-mini').forEach(canvas => {
+      const colorKey = canvas.getAttribute('data-color');
+      const opts = { nodes: 5, radius: 6 };
+      if (colorKey === 'cyan') { opts.color = COLORS.cyan; }
+      else if (colorKey === 'cyan-green') { opts.color = COLORS.cyan; opts.color2 = COLORS.green; opts.nodes = 7; }
+      else if (colorKey === 'cyan-purple') { opts.color = COLORS.cyan; opts.color2 = COLORS.purple; opts.nodes = 7; }
+      else if (colorKey === 'gold') { opts.color = COLORS.gold; opts.nodes = 6; }
+      createNexus(canvas, opts);
+    });
+  })();
+  </script>
 
 </body>
 </html>
