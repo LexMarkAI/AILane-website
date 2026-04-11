@@ -1745,12 +1745,56 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
 // Only functional panels appear in the rail. PlaceholderPanel and its descriptions
 // are preserved below as a defensive fallback in PanelDrawer but are now unreachable.
 const PANEL_DEFS = [
-  { id: 'vault',     icon: '📄', label: 'Document Vault',   minTier: 'operational_readiness' },
-  { id: 'notes',     icon: '📝', label: 'Notes',            minTier: null },
-  { id: 'clipboard', icon: '📋', label: 'Clipboard',        minTier: null },
-  { id: 'calendar',  icon: '📅', label: 'Calendar',         minTier: 'operational_readiness' },
-  { id: 'research',  icon: '🔍', label: 'Research',         minTier: null },
+  // Primary group
+  { id: 'vault',     label: 'Document Vault',   minTier: 'operational_readiness', group: 'primary' },
+  { id: 'notes',     label: 'Notes',            minTier: null, group: 'primary' },
+  { id: 'research',  label: 'Research',         minTier: null, group: 'primary' },
+  // Secondary group
+  { id: 'calendar',  label: 'Calendar',         minTier: 'operational_readiness', group: 'secondary' },
+  { id: 'clipboard', label: 'Saved Snippets',   minTier: null, group: 'secondary' },
 ];
+
+// SVG icons for panel rail — 20px stroke-based, matching TopBar visual language
+function PanelIcon({ id }) {
+  var iconProps = { width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '1.75', strokeLinecap: 'round', strokeLinejoin: 'round' };
+
+  if (id === 'vault') {
+    return React.createElement('svg', iconProps,
+      React.createElement('path', { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' }),
+      React.createElement('polyline', { points: '14 2 14 8 20 8' }),
+      React.createElement('line', { x1: '16', y1: '13', x2: '8', y2: '13' }),
+      React.createElement('line', { x1: '16', y1: '17', x2: '8', y2: '17' })
+    );
+  }
+  if (id === 'notes') {
+    return React.createElement('svg', iconProps,
+      React.createElement('path', { d: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' }),
+      React.createElement('path', { d: 'M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' })
+    );
+  }
+  if (id === 'research') {
+    return React.createElement('svg', iconProps,
+      React.createElement('circle', { cx: '11', cy: '11', r: '8' }),
+      React.createElement('line', { x1: '21', y1: '21', x2: '16.65', y2: '16.65' })
+    );
+  }
+  if (id === 'calendar') {
+    return React.createElement('svg', iconProps,
+      React.createElement('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }),
+      React.createElement('line', { x1: '16', y1: '2', x2: '16', y2: '6' }),
+      React.createElement('line', { x1: '8', y1: '2', x2: '8', y2: '6' }),
+      React.createElement('line', { x1: '3', y1: '10', x2: '21', y2: '10' })
+    );
+  }
+  if (id === 'clipboard') {
+    return React.createElement('svg', iconProps,
+      React.createElement('path', { d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' }),
+      React.createElement('rect', { x: '8', y: '2', width: '8', height: '4', rx: '1', ry: '1' })
+    );
+  }
+  // Fallback
+  return React.createElement('span', { style: { fontSize: '18px' } }, '?');
+}
 
 const TIER_RANK = {
   per_session: 0,
@@ -1763,60 +1807,80 @@ const TIER_RANK = {
 };
 
 function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
-  const userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : (TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0);
-  return (
-    <div className="kl-panelrail">
-      {PANEL_DEFS.map((p) => {
-        const minRank = p.minTier ? (TIER_RANK[p.minTier] != null ? TIER_RANK[p.minTier] : 99) : 0;
-        const locked = userRank < minRank;
-        const isActive = activePanel === p.id;
-        return (
-          <button
-            key={p.id}
-            type="button"
-            className={'kl-panel-rail-btn' + (isActive ? ' active' : '') + (locked ? ' locked' : '')}
-            title={locked ? p.label + ' (upgrade required)' : p.label}
-            aria-label={p.label}
-            aria-pressed={isActive}
-            disabled={locked}
-            onClick={() => { if (!locked) onSelectPanel(isActive ? null : p.id); }}
-          >
-            <span className="kl-panel-rail-icon" aria-hidden="true">{p.icon}</span>
-          </button>
-        );
-      })}
-    </div>
+  var userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : (TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0);
+  var primaryPanels = PANEL_DEFS.filter(function(p) { return p.group === 'primary'; });
+  var secondaryPanels = PANEL_DEFS.filter(function(p) { return p.group === 'secondary'; });
+
+  function renderButton(p) {
+    var minRank = p.minTier ? (TIER_RANK[p.minTier] != null ? TIER_RANK[p.minTier] : 99) : 0;
+    var locked = userRank < minRank;
+    var isActive = activePanel === p.id;
+    return React.createElement('button', {
+      key: p.id,
+      type: 'button',
+      className: 'kl-panel-rail-btn' + (isActive ? ' active' : '') + (locked ? ' locked' : ''),
+      title: locked ? p.label + ' (upgrade required)' : p.label,
+      'aria-label': p.label,
+      'aria-pressed': isActive,
+      disabled: locked,
+      onClick: function() { if (!locked) onSelectPanel(isActive ? null : p.id); },
+    },
+      React.createElement(PanelIcon, { id: p.id })
+    );
+  }
+
+  return React.createElement('div', { className: 'kl-panelrail' },
+    primaryPanels.map(renderButton),
+    React.createElement('div', {
+      className: 'kl-panel-rail-divider',
+      style: {
+        width: '24px',
+        height: '1px',
+        background: 'rgba(255,255,255,0.08)',
+        margin: '4px 0',
+      },
+      'aria-hidden': 'true',
+    }),
+    secondaryPanels.map(renderButton)
   );
 }
 
-// ─── NotesPanel (reads/writes kl_workspace_notes.content_plain) ───
+// ─── NotesPanel (multi-note list/editor — reads/writes kl_workspace_notes) ───
 
 function NotesPanel() {
-  const [noteId, setNoteId] = useState(null);
-  const [title, setTitle] = useState('Untitled note');
-  const [body, setBody] = useState('');
-  const [status, setStatus] = useState('loading'); // loading | saved | dirty | saving | error
-  const saveTimer = useRef(null);
-  const loadedRef = useRef(false);
+  var _notes = useState([]);
+  var notes = _notes[0];
+  var setNotes = _notes[1];
+  var _active = useState(null);
+  var activeId = _active[0];
+  var setActiveId = _active[1];
+  var _title = useState('Untitled note');
+  var title = _title[0];
+  var setTitle = _title[1];
+  var _body = useState('');
+  var body = _body[0];
+  var setBody = _body[1];
+  var _status = useState('loading');
+  var status = _status[0];
+  var setStatus = _status[1];
+  var _view = useState('list');
+  var view = _view[0];
+  var setView = _view[1];
+  var saveTimer = useRef(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  useEffect(function() {
+    var cancelled = false;
     async function load() {
-      if (!window.__klToken || !window.__klUserId) return;
+      if (!window.__klToken || !window.__klUserId) { setStatus('saved'); setView('list'); return; }
       try {
-        const resp = await fetch(
+        var resp = await fetch(
           SUPABASE_URL + '/rest/v1/kl_workspace_notes?user_id=eq.' + window.__klUserId +
-            '&select=id,title,content_plain&order=updated_at.desc&limit=1',
+            '&select=id,title,content_plain,updated_at&order=updated_at.desc&limit=50',
           { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
         );
-        const data = await resp.json();
+        var data = await resp.json();
         if (cancelled) return;
-        if (Array.isArray(data) && data[0]) {
-          setNoteId(data[0].id);
-          setTitle(data[0].title || 'Untitled note');
-          setBody(data[0].content_plain || '');
-        }
-        loadedRef.current = true;
+        if (Array.isArray(data)) { setNotes(data); }
         setStatus('saved');
       } catch (e) {
         console.error('Notes load failed:', e);
@@ -1824,57 +1888,53 @@ function NotesPanel() {
       }
     }
     load();
-    return () => {
-      cancelled = true;
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
+    return function() { cancelled = true; if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, []);
+
+  function openNote(note) {
+    setActiveId(note.id);
+    setTitle(note.title || 'Untitled note');
+    setBody(note.content_plain || '');
+    setView('editor');
+    setStatus('saved');
+  }
+
+  function newNote() {
+    setActiveId(null);
+    setTitle('Untitled note');
+    setBody('');
+    setView('editor');
+    setStatus('saved');
+  }
 
   async function performSave(nextTitle, nextBody, currentId) {
     if (!window.__klToken || !window.__klUserId) return;
     setStatus('saving');
-    const now = new Date().toISOString();
+    var now = new Date().toISOString();
     try {
       if (currentId) {
-        // PATCH existing note
-        const resp = await fetch(
+        var resp = await fetch(
           SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + currentId,
           {
             method: 'PATCH',
-            headers: {
-              'Authorization': 'Bearer ' + window.__klToken,
-              'apikey': SUPABASE_ANON_KEY,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({
-              title: nextTitle || 'Untitled note',
-              content_plain: nextBody,
-              updated_at: now,
-            }),
+            headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ title: nextTitle || 'Untitled note', content_plain: nextBody, updated_at: now }),
           }
         );
         if (!resp.ok) throw new Error('PATCH ' + resp.status);
+        setNotes(function(prev) { return prev.map(function(n) { return n.id === currentId ? Object.assign({}, n, { title: nextTitle, content_plain: nextBody, updated_at: now }) : n; }); });
       } else {
-        // INSERT new note, store returned id
-        const resp = await fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
+        var resp2 = await fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
           method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + window.__klToken,
-            'apikey': SUPABASE_ANON_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation',
-          },
-          body: JSON.stringify({
-            user_id: window.__klUserId,
-            project_id: null,
-            title: nextTitle || 'Untitled note',
-            content_plain: nextBody,
-          }),
+          headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          body: JSON.stringify({ user_id: window.__klUserId, project_id: null, title: nextTitle || 'Untitled note', content_plain: nextBody }),
         });
-        if (!resp.ok) throw new Error('POST ' + resp.status);
-        const data = await resp.json();
-        if (Array.isArray(data) && data[0] && data[0].id) setNoteId(data[0].id);
+        if (!resp2.ok) throw new Error('POST ' + resp2.status);
+        var data = await resp2.json();
+        if (Array.isArray(data) && data[0] && data[0].id) {
+          setActiveId(data[0].id);
+          setNotes(function(prev) { return [data[0]].concat(prev); });
+        }
       }
       setStatus('saved');
     } catch (e) {
@@ -1884,428 +1944,609 @@ function NotesPanel() {
   }
 
   function scheduleSave(nextTitle, nextBody) {
-    if (!loadedRef.current) return;
     setStatus('dirty');
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => performSave(nextTitle, nextBody, noteId), 1500);
+    saveTimer.current = setTimeout(function() { performSave(nextTitle, nextBody, activeId); }, 1500);
   }
 
-  function onTitleChange(e) {
-    const v = e.target.value;
-    setTitle(v);
-    scheduleSave(v, body);
+  async function deleteNote(noteId) {
+    if (!window.__klToken) return;
+    try {
+      await fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + noteId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY },
+      });
+      setNotes(function(prev) { return prev.filter(function(n) { return n.id !== noteId; }); });
+      if (activeId === noteId) { setView('list'); setActiveId(null); }
+    } catch (e) { console.error('Delete failed:', e); }
   }
 
-  function onBodyChange(e) {
-    const v = e.target.value;
-    setBody(v);
-    scheduleSave(title, v);
+  var statusLabel = status === 'loading' ? 'Loading\u2026' : status === 'dirty' ? 'Unsaved changes' : status === 'saving' ? 'Saving\u2026' : status === 'error' ? 'Save failed' : '\u2713 Saved';
+
+  if (view === 'list') {
+    return React.createElement('div', { className: 'kl-notes-panel' },
+      React.createElement('button', {
+        type: 'button',
+        onClick: newNote,
+        style: {
+          width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(14,165,233,0.08)',
+          border: '1px solid rgba(14,165,233,0.2)', color: '#0EA5E9', fontSize: '13px', fontWeight: 500,
+          cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: '12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        },
+      }, '+ New Note'),
+      notes.length === 0
+        ? React.createElement('div', { style: { color: '#64748B', fontSize: '13px', textAlign: 'center', padding: '24px 0' } }, 'No notes yet. Create one to start.')
+        : notes.map(function(n) {
+            return React.createElement('div', {
+              key: n.id,
+              style: {
+                padding: '10px', marginBottom: '6px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', display: 'flex',
+                justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px',
+              },
+              onClick: function() { openNote(n); },
+            },
+              React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                React.createElement('div', { style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, n.title || 'Untitled note'),
+                React.createElement('div', { style: { color: '#64748B', fontSize: '11px', marginTop: '2px' } },
+                  n.updated_at ? new Date(n.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
+                )
+              ),
+              React.createElement('button', {
+                type: 'button',
+                onClick: function(e) { e.stopPropagation(); deleteNote(n.id); },
+                style: { background: 'none', border: 'none', color: '#64748B', fontSize: '14px', cursor: 'pointer', padding: '0 4px', flexShrink: 0 },
+                title: 'Delete note',
+                'aria-label': 'Delete note',
+              }, '\u2715')
+            );
+          })
+    );
   }
 
-  const statusLabel =
-    status === 'loading' ? 'Loading…' :
-    status === 'dirty'   ? 'Unsaved changes' :
-    status === 'saving'  ? 'Saving…' :
-    status === 'error'   ? 'Save failed' :
-                           '✓ Saved';
-  const statusClass = 'kl-notes-status' + (status === 'saved' ? ' saved' : '') + (status === 'error' ? ' error' : '');
-
-  return (
-    <div className="kl-notes-panel">
-      <input
-        className="kl-notes-title"
-        type="text"
-        value={title}
-        onChange={onTitleChange}
-        placeholder="Untitled note"
-      />
-      <div className={statusClass}>{statusLabel}</div>
-      <textarea
-        className="kl-notes-body"
-        value={body}
-        onChange={onBodyChange}
-        placeholder="Take notes during your research..."
-      />
-    </div>
+  // Editor view
+  return React.createElement('div', { className: 'kl-notes-panel' },
+    React.createElement('button', {
+      type: 'button',
+      onClick: function() { setView('list'); },
+      style: {
+        background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px', cursor: 'pointer',
+        padding: '0 0 8px', fontFamily: "'DM Sans', sans-serif", textAlign: 'left',
+      },
+    }, '\u2190 All notes'),
+    React.createElement('input', {
+      className: 'kl-notes-title',
+      type: 'text',
+      value: title,
+      onChange: function(e) { var v = e.target.value; setTitle(v); scheduleSave(v, body); },
+      placeholder: 'Untitled note',
+    }),
+    React.createElement('div', { className: 'kl-notes-status' + (status === 'saved' ? ' saved' : '') + (status === 'error' ? ' error' : '') }, statusLabel),
+    React.createElement('textarea', {
+      className: 'kl-notes-body',
+      value: body,
+      onChange: function(e) { var v = e.target.value; setBody(v); scheduleSave(title, v); },
+      placeholder: 'Take notes during your research...',
+    })
   );
 }
 
-// ─── ClipboardPanel ───
+// ─── ClipboardPanel (repurposed as Saved Snippets) ───
+// Captures text from Eileen message copy buttons. Session-scoped (in-memory).
 
 function ClipboardPanel() {
-  const [clips, setClips] = useState([]);
+  var _clips = useState([]);
+  var clips = _clips[0];
+  var setClips = _clips[1];
 
-  useEffect(() => {
-    window.__klAddClip = function (text, source) {
-      setClips((prev) => [{ id: Date.now() + Math.random(), text: String(text || ''), source: source || null, copiedAt: new Date() }, ...prev]);
+  useEffect(function() {
+    window.__klAddClip = function(text, source) {
+      setClips(function(prev) {
+        return [{ id: Date.now() + Math.random(), text: String(text || ''), source: source || 'Eileen response', copiedAt: new Date() }].concat(prev);
+      });
     };
-    return () => { delete window.__klAddClip; };
+    return function() { delete window.__klAddClip; };
   }, []);
 
   function removeClip(id) {
-    setClips((prev) => prev.filter((c) => c.id !== id));
+    setClips(function(prev) { return prev.filter(function(c) { return c.id !== id; }); });
   }
 
   function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).catch((e) => console.error('Clipboard copy failed:', e));
+      navigator.clipboard.writeText(text).catch(function(e) { console.error('Clipboard copy failed:', e); });
     }
   }
 
   if (clips.length === 0) {
-    return (
-      <div className="kl-clipboard-panel">
-        <p className="kl-clipboard-empty">No clips yet. Copy text from Eileen's responses to save it here.</p>
-      </div>
+    return React.createElement('div', { className: 'kl-clipboard-panel' },
+      React.createElement('p', { className: 'kl-clipboard-empty' },
+        'Snippets you copy from Eileen\u2019s responses will appear here for quick reference during your session.'
+      )
     );
   }
 
-  return (
-    <div className="kl-clipboard-panel">
-      <button className="kl-clipboard-clear" onClick={() => setClips([])}>Clear all</button>
-      {clips.map((c) => (
-        <div key={c.id} className="kl-clip">
-          <p className="kl-clip-text">{c.text.length > 200 ? c.text.substring(0, 200) + '…' : c.text}</p>
-          <div className="kl-clip-actions">
-            <button className="kl-clip-copy" onClick={() => copyToClipboard(c.text)}>Copy</button>
-            <button className="kl-clip-remove" onClick={() => removeClip(c.id)}>Remove</button>
-          </div>
-        </div>
-      ))}
-    </div>
+  return React.createElement('div', { className: 'kl-clipboard-panel' },
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' } },
+      React.createElement('span', { style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Mono', monospace" } }, clips.length + ' snippet' + (clips.length === 1 ? '' : 's')),
+      React.createElement('button', { className: 'kl-clipboard-clear', onClick: function() { setClips([]); } }, 'Clear all')
+    ),
+    clips.map(function(c) {
+      return React.createElement('div', { key: c.id, className: 'kl-clip' },
+        React.createElement('p', { className: 'kl-clip-text' }, c.text.length > 200 ? c.text.substring(0, 200) + '\u2026' : c.text),
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' } },
+          React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, c.source),
+          React.createElement('div', { className: 'kl-clip-actions' },
+            React.createElement('button', { className: 'kl-clip-copy', onClick: function() { copyToClipboard(c.text); } }, 'Copy'),
+            React.createElement('button', { className: 'kl-clip-remove', onClick: function() { removeClip(c.id); } }, 'Remove')
+          )
+        )
+      );
+    })
   );
 }
 
-// ─── VaultPanel (compliance_uploads, user-scoped) ───
+// ─── VaultPanel (kl_vault_documents + compliance_uploads, user-scoped) ───
 // Raw REST fetch — consistent with NotesPanel and CLAUDE.md JWT-decode + raw-fetch rule.
+// Primary source: kl_vault_documents (KL upload flow).
+// Fallback source: compliance_uploads (legacy portal uploads).
 
 function VaultPanel() {
-  const [docs, setDocs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  var _s = useState([]);
+  var docs = _s[0];
+  var setDocs = _s[1];
+  var _l = useState(true);
+  var loading = _l[0];
+  var setLoading = _l[1];
 
-  useEffect(() => {
-    let cancelled = false;
+  useEffect(function() {
+    var cancelled = false;
     async function load() {
       if (!window.__klToken || !window.__klUserId) {
         setLoading(false);
         return;
       }
+      var headers = { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY };
+      var allDocs = [];
+
+      // Primary: kl_vault_documents (KL upload flow)
       try {
-        const resp = await fetch(
+        var vaultResp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_vault_documents?user_id=eq.' + window.__klUserId +
+            '&select=id,filename,file_size_bytes,extraction_status,analysis_status,created_at' +
+            '&order=created_at.desc&limit=20',
+          { headers: headers }
+        );
+        var vaultData = await vaultResp.json();
+        if (!cancelled && Array.isArray(vaultData)) {
+          vaultData.forEach(function(d) {
+            allDocs.push({
+              id: d.id,
+              name: d.filename,
+              score: null,
+              status: d.analysis_status || d.extraction_status || 'pending',
+              source: 'vault',
+              created: d.created_at,
+            });
+          });
+        }
+      } catch (e) { console.warn('Vault docs fetch failed:', e); }
+
+      // Secondary: compliance_uploads (legacy portal uploads)
+      try {
+        var uploadsResp = await fetch(
           SUPABASE_URL + '/rest/v1/compliance_uploads?user_id=eq.' + window.__klUserId +
             '&select=id,file_name,display_name,overall_score,status,created_at' +
+            '&status=neq.error' +
             '&order=created_at.desc&limit=20',
-          { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+          { headers: headers }
         );
-        const data = await resp.json();
-        if (cancelled) return;
-        if (Array.isArray(data)) setDocs(data);
-      } catch (e) {
-        console.error('Vault load failed:', e);
-      } finally {
-        if (!cancelled) setLoading(false);
+        var uploadsData = await uploadsResp.json();
+        if (!cancelled && Array.isArray(uploadsData)) {
+          uploadsData.forEach(function(d) {
+            allDocs.push({
+              id: d.id,
+              name: d.display_name || d.file_name,
+              score: d.overall_score,
+              status: d.status,
+              source: 'portal',
+              created: d.created_at,
+            });
+          });
+        }
+      } catch (e) { console.warn('Uploads fetch failed:', e); }
+
+      if (!cancelled) {
+        // Sort by created desc, deduplicate by name (vault takes precedence)
+        allDocs.sort(function(a, b) { return new Date(b.created) - new Date(a.created); });
+        setDocs(allDocs);
+        setLoading(false);
       }
     }
     load();
-    return () => { cancelled = true; };
+    return function() { cancelled = true; };
   }, []);
 
   if (loading) {
-    return <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Loading documents…</div>;
+    return React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading documents\u2026');
   }
 
   if (docs.length === 0) {
-    return (
-      <div style={{ padding: '12px' }}>
-        <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '6px' }}>No documents yet.</p>
-        <p style={{ color: '#64748B', fontSize: '13px', lineHeight: 1.5 }}>
-          Upload a contract through Eileen to run a compliance check.
-        </p>
-      </div>
+    return React.createElement('div', { style: { padding: '12px' } },
+      React.createElement('p', { style: { color: '#94A3B8', fontSize: '14px', marginBottom: '6px' } }, 'No documents yet.'),
+      React.createElement('p', { style: { color: '#64748B', fontSize: '13px', lineHeight: 1.5 } },
+        'Upload a contract through Eileen to run a compliance check.'
+      )
     );
   }
 
-  return (
-    <div>
-      {docs.map((doc) => {
-        const score = doc.overall_score;
-        const hasScore = score != null;
-        const scoreColor = !hasScore ? null : score >= 70 ? '#10B981' : score >= 40 ? '#F59E0B' : '#EF4444';
-        const scoreBg = !hasScore ? null : score >= 70 ? 'rgba(16,185,129,0.15)' : score >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
-        return (
-          <div
-            key={doc.id}
-            style={{
-              padding: '12px', marginBottom: '8px', borderRadius: '8px',
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-              <span style={{
-                color: '#E2E8F0', fontSize: '13px', fontWeight: 500,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
-              }}>
-                {doc.display_name || doc.file_name}
-              </span>
-              {hasScore && (
-                <span style={{
-                  fontSize: '12px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
-                  background: scoreBg, color: scoreColor, flexShrink: 0,
-                }}>
-                  {Math.round(score)}%
-                </span>
-              )}
-            </div>
-            <div style={{ color: '#64748B', fontSize: '11px', marginTop: '4px' }}>
-              {new Date(doc.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+  return React.createElement('div', null,
+    docs.map(function(doc) {
+      var hasScore = doc.score != null;
+      var scoreColor = !hasScore ? null : doc.score >= 70 ? '#10B981' : doc.score >= 40 ? '#F59E0B' : '#EF4444';
+      var scoreBg = !hasScore ? null : doc.score >= 70 ? 'rgba(16,185,129,0.15)' : doc.score >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
+
+      var statusBadge = null;
+      if (!hasScore && doc.status) {
+        var statusColors = {
+          pending: { text: '#94A3B8', bg: 'rgba(148,163,184,0.1)' },
+          extracting: { text: '#0EA5E9', bg: 'rgba(14,165,233,0.1)' },
+          processing: { text: '#0EA5E9', bg: 'rgba(14,165,233,0.1)' },
+          completed: { text: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+          ready: { text: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+        };
+        var sc = statusColors[doc.status] || statusColors.pending;
+        statusBadge = React.createElement('span', {
+          style: { fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px', background: sc.bg, color: sc.text, flexShrink: 0, fontFamily: "'DM Mono', monospace" },
+        }, doc.status);
+      }
+
+      return React.createElement('div', {
+        key: doc.source + '-' + doc.id,
+        style: { padding: '12px', marginBottom: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' },
+      },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } },
+          React.createElement('span', {
+            style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
+          }, doc.name),
+          hasScore
+            ? React.createElement('span', {
+                style: { fontSize: '12px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: scoreBg, color: scoreColor, flexShrink: 0 },
+              }, Math.round(doc.score) + '%')
+            : statusBadge
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' } },
+          React.createElement('span', { style: { color: '#64748B', fontSize: '11px' } },
+            new Date(doc.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          ),
+          React.createElement('span', {
+            style: { fontSize: '10px', color: doc.source === 'vault' ? '#0EA5E9' : '#64748B', fontFamily: "'DM Mono', monospace" },
+          }, doc.source === 'vault' ? 'KL Upload' : 'Portal')
+        )
+      );
+    })
   );
 }
 
-// ─── CalendarPanel (regulatory_requirements, not user-scoped) ───
+// ─── CalendarPanel (regulatory_requirements, not user-scoped, expandable detail) ───
 
 function CalendarPanel() {
-  const [reqs, setReqs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  var _reqs = useState([]);
+  var reqs = _reqs[0];
+  var setReqs = _reqs[1];
+  var _loading = useState(true);
+  var loading = _loading[0];
+  var setLoading = _loading[1];
+  var _filter = useState('all');
+  var filter = _filter[0];
+  var setFilter = _filter[1];
+  var _expanded = useState({});
+  var expanded = _expanded[0];
+  var setExpanded = _expanded[1];
 
-  useEffect(() => {
-    let cancelled = false;
+  useEffect(function() {
+    var cancelled = false;
     async function load() {
-      if (!window.__klToken) {
-        setLoading(false);
-        return;
-      }
+      if (!window.__klToken) { setLoading(false); return; }
       try {
-        const resp = await fetch(
+        var resp = await fetch(
           SUPABASE_URL + '/rest/v1/regulatory_requirements' +
             '?select=id,requirement_name,statutory_basis,effective_from,commencement_status,is_forward_requirement,source_act' +
             '&order=effective_from.asc',
           { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
         );
-        const data = await resp.json();
+        var data = await resp.json();
         if (cancelled) return;
         if (Array.isArray(data)) setReqs(data);
-      } catch (e) {
-        console.error('Calendar load failed:', e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      } catch (e) { console.error('Calendar load failed:', e); }
+      finally { if (!cancelled) setLoading(false); }
     }
     load();
-    return () => { cancelled = true; };
+    return function() { cancelled = true; };
   }, []);
 
-  if (loading) {
-    return <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Loading regulatory calendar…</div>;
+  function toggleExpand(id) {
+    setExpanded(function(prev) {
+      var next = {};
+      for (var k in prev) next[k] = prev[k];
+      next[id] = !prev[id];
+      return next;
+    });
   }
 
-  const forwardCount = reqs.filter((r) => r.is_forward_requirement).length;
-  const filtered = reqs.filter((r) => {
+  if (loading) {
+    return React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading regulatory calendar\u2026');
+  }
+
+  var forwardCount = reqs.filter(function(r) { return r.is_forward_requirement; }).length;
+  var filtered = reqs.filter(function(r) {
     if (filter === 'forward') return r.is_forward_requirement;
     if (filter === 'in_force') return r.commencement_status === 'in_force';
     return true;
   });
 
-  const filterButtons = [
+  var filterButtons = [
     { id: 'all', label: 'All (' + reqs.length + ')' },
     { id: 'in_force', label: 'In Force' },
     { id: 'forward', label: 'Forward (' + forwardCount + ')' },
   ];
 
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-        {filterButtons.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilter(f.id)}
-            style={{
-              padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer',
-              fontFamily: 'inherit',
-              border: filter === f.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
-              background: filter === f.id ? 'rgba(14,165,233,0.15)' : 'transparent',
-              color: filter === f.id ? '#0EA5E9' : '#94A3B8',
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-      {filtered.length === 0 ? (
-        <div style={{ color: '#64748B', fontSize: '12px', padding: '8px 4px' }}>No requirements match this filter.</div>
-      ) : (
-        filtered.map((r) => (
-          <div
-            key={r.id}
-            style={{
-              padding: '10px', marginBottom: '6px', borderRadius: '6px',
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' } },
+      filterButtons.map(function(f) {
+        return React.createElement('button', {
+          key: f.id,
+          type: 'button',
+          onClick: function() { setFilter(f.id); },
+          style: {
+            padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer',
+            fontFamily: 'inherit',
+            border: filter === f.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+            background: filter === f.id ? 'rgba(14,165,233,0.15)' : 'transparent',
+            color: filter === f.id ? '#0EA5E9' : '#94A3B8',
+          },
+        }, f.label);
+      })
+    ),
+    filtered.length === 0
+      ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No requirements match this filter.')
+      : filtered.map(function(r) {
+          var isOpen = !!expanded[r.id];
+          return React.createElement('div', {
+            key: r.id,
+            style: {
+              marginBottom: '6px', borderRadius: '6px', overflow: 'hidden',
               background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
               borderLeft: r.is_forward_requirement ? '3px solid #F59E0B' : '3px solid #10B981',
-            }}
-          >
-            <div style={{ color: '#E2E8F0', fontSize: '13px', fontWeight: 500 }}>{r.requirement_name}</div>
-            {r.statutory_basis && (
-              <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '2px' }}>{r.statutory_basis}</div>
-            )}
-            {r.effective_from && (
-              <div style={{ color: '#64748B', fontSize: '11px', marginTop: '4px' }}>
-                {'Effective: ' + new Date(r.effective_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </div>
-            )}
-          </div>
-        ))
-      )}
-    </div>
+            },
+          },
+            React.createElement('div', {
+              onClick: function() { toggleExpand(r.id); },
+              style: { padding: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
+            },
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('div', { style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500 } }, r.requirement_name),
+                r.effective_from && React.createElement('div', { style: { color: '#64748B', fontSize: '11px', marginTop: '2px' } },
+                  'Effective: ' + new Date(r.effective_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                )
+              ),
+              React.createElement('span', {
+                style: { color: '#64748B', fontSize: '10px', flexShrink: 0, transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
+                'aria-hidden': 'true',
+              }, '\u25BC')
+            ),
+            isOpen && React.createElement('div', {
+              style: { padding: '0 10px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' },
+            },
+              r.statutory_basis && React.createElement('div', { style: { marginTop: '8px' } },
+                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Statutory Basis'),
+                React.createElement('div', { style: { color: '#CBD5E1', fontSize: '12px', marginTop: '2px' } }, r.statutory_basis)
+              ),
+              r.source_act && React.createElement('div', { style: { marginTop: '8px' } },
+                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Source Act'),
+                React.createElement('div', { style: { color: '#CBD5E1', fontSize: '12px', marginTop: '2px' } }, r.source_act)
+              ),
+              React.createElement('div', { style: { marginTop: '8px' } },
+                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Status'),
+                React.createElement('div', { style: { marginTop: '2px' } },
+                  React.createElement('span', {
+                    style: {
+                      fontSize: '11px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px',
+                      background: r.commencement_status === 'in_force' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                      color: r.commencement_status === 'in_force' ? '#10B981' : '#F59E0B',
+                    },
+                  }, r.commencement_status === 'in_force' ? 'In Force' : r.commencement_status || 'Pending')
+                )
+              ),
+              r.is_forward_requirement && React.createElement('div', {
+                style: { marginTop: '8px', padding: '6px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.1)', fontSize: '11px', color: '#F59E0B' },
+              }, 'Forward requirement \u2014 not yet in force')
+            )
+          );
+        })
   );
 }
 
-// ─── ResearchPanel (kl_provisions + kl_cases, tabs + search) ───
+// ─── ResearchPanel (kl_provisions grouped by instrument + kl_cases, tabs + search) ───
 
 function ResearchPanel() {
-  const [tab, setTab] = useState('provisions');
-  const [search, setSearch] = useState('');
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  var _tab = useState('provisions');
+  var tab = _tab[0];
+  var setTab = _tab[1];
+  var _search = useState('');
+  var search = _search[0];
+  var setSearch = _search[1];
+  var _data = useState([]);
+  var data = _data[0];
+  var setData = _data[1];
+  var _loading = useState(true);
+  var loading = _loading[0];
+  var setLoading = _loading[1];
+  var _expanded = useState({});
+  var expanded = _expanded[0];
+  var setExpanded = _expanded[1];
 
-  useEffect(() => {
-    let cancelled = false;
+  useEffect(function() {
+    var cancelled = false;
     async function load() {
-      if (!window.__klToken) {
-        setLoading(false);
-        return;
-      }
+      if (!window.__klToken) { setLoading(false); return; }
       setLoading(true);
       try {
-        const path = tab === 'provisions'
-          ? '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id&limit=50'
-          : '/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=50';
-        const resp = await fetch(SUPABASE_URL + path, {
+        var path = tab === 'provisions'
+          ? '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=500'
+          : '/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100';
+        var resp = await fetch(SUPABASE_URL + path, {
           headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY },
         });
-        const d = await resp.json();
+        var d = await resp.json();
         if (cancelled) return;
         setData(Array.isArray(d) ? d : []);
       } catch (e) {
         console.error('Research load failed:', e);
         if (!cancelled) setData([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      } finally { if (!cancelled) setLoading(false); }
     }
     load();
-    return () => { cancelled = true; };
+    return function() { cancelled = true; };
   }, [tab]);
 
-  const filtered = data.filter((item) => {
+  function toggleInstrument(instId) {
+    setExpanded(function(prev) {
+      var next = {};
+      for (var k in prev) next[k] = prev[k];
+      next[instId] = !prev[instId];
+      return next;
+    });
+  }
+
+  var filtered = data.filter(function(item) {
     if (!search) return true;
-    const s = search.toLowerCase();
+    var s = search.toLowerCase();
     if (tab === 'provisions') {
-      return (item.title || '').toLowerCase().includes(s) || (item.instrument_id || '').toLowerCase().includes(s);
+      return (item.title || '').toLowerCase().indexOf(s) !== -1 || (item.instrument_id || '').toLowerCase().indexOf(s) !== -1;
     }
-    return (item.name || '').toLowerCase().includes(s) || (item.citation || '').toLowerCase().includes(s);
+    return (item.name || '').toLowerCase().indexOf(s) !== -1 || (item.citation || '').toLowerCase().indexOf(s) !== -1;
   });
 
-  const tabs = [
-    { id: 'provisions', label: 'Provisions (391)' },
-    { id: 'cases', label: 'Cases (240)' },
+  // Group provisions by instrument
+  var groupedProvisions = {};
+  if (tab === 'provisions') {
+    filtered.forEach(function(item) {
+      var key = item.instrument_id || 'Other';
+      if (!groupedProvisions[key]) { groupedProvisions[key] = []; }
+      groupedProvisions[key].push(item);
+    });
+  }
+  var instrumentKeys = Object.keys(groupedProvisions).sort();
+
+  var tabs = [
+    { id: 'provisions', label: 'Provisions' },
+    { id: 'cases', label: 'Cases' },
   ];
 
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => { setTab(t.id); setSearch(''); }}
-            style={{
-              flex: 1, padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
-              fontFamily: 'inherit',
-              border: tab === t.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
-              background: tab === t.id ? 'rgba(14,165,233,0.1)' : 'transparent',
-              color: tab === t.id ? '#0EA5E9' : '#94A3B8',
-              fontWeight: tab === t.id ? 600 : 400,
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <input
-        type="text"
-        placeholder={'Search ' + tab + '…'}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{
-          width: '100%', padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
-          border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)',
-          color: '#E2E8F0', marginBottom: '10px', outline: 'none', boxSizing: 'border-box',
-          fontFamily: 'inherit',
-        }}
-      />
-      {loading ? (
-        <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Loading…</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ color: '#64748B', fontSize: '12px', padding: '8px 4px' }}>No results.</div>
-      ) : (
-        filtered.slice(0, 30).map((item) => {
-          if (tab === 'provisions') {
-            return (
-              <div
-                key={item.provision_id}
-                style={{
-                  padding: '8px', marginBottom: '4px', borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-                }}
-              >
-                <div style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 500 }}>{item.title}</div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ color: '#0EA5E9', fontSize: '11px' }}>
-                    {(item.instrument_id || '') + (item.section_num ? ' s.' + item.section_num : '')}
-                  </span>
-                  {item.is_era_2025 && (
-                    <span style={{
-                      color: '#F59E0B', fontSize: '10px', padding: '1px 5px', borderRadius: '3px',
-                      background: 'rgba(245,158,11,0.1)',
-                    }}>
-                      ERA 2025
-                    </span>
-                  )}
-                  <span style={{ color: item.in_force ? '#10B981' : '#94A3B8', fontSize: '10px' }}>
-                    {item.in_force ? 'In force' : 'Not yet'}
-                  </span>
-                </div>
-              </div>
-            );
-          }
-          return (
-            <div
-              key={item.case_id}
-              style={{
-                padding: '8px', marginBottom: '4px', borderRadius: '6px',
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-              }}
-            >
-              <div style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 500 }}>{item.name}</div>
-              <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '2px' }}>
-                {[item.citation, item.court, item.year].filter(Boolean).join(' · ')}
-              </div>
-              {item.principle && (
-                <div style={{ color: '#64748B', fontSize: '11px', marginTop: '3px', lineHeight: 1.4 }}>
-                  {item.principle.length > 120 ? item.principle.slice(0, 120) + '…' : item.principle}
-                </div>
-              )}
-            </div>
-          );
-        })
-      )}
-    </div>
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', gap: '8px', marginBottom: '10px' } },
+      tabs.map(function(t) {
+        return React.createElement('button', {
+          key: t.id,
+          type: 'button',
+          onClick: function() { setTab(t.id); setSearch(''); setExpanded({}); },
+          style: {
+            flex: 1, padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
+            border: tab === t.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+            background: tab === t.id ? 'rgba(14,165,233,0.1)' : 'transparent',
+            color: tab === t.id ? '#0EA5E9' : '#94A3B8', fontWeight: tab === t.id ? 600 : 400,
+          },
+        }, t.label);
+      })
+    ),
+    React.createElement('input', {
+      type: 'text',
+      placeholder: 'Search ' + tab + '\u2026',
+      value: search,
+      onChange: function(e) { setSearch(e.target.value); },
+      style: {
+        width: '100%', padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
+        border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)',
+        color: '#E2E8F0', marginBottom: '10px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+      },
+    }),
+    loading
+      ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading\u2026')
+      : tab === 'provisions'
+        ? (instrumentKeys.length === 0
+            ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.')
+            : instrumentKeys.map(function(instId) {
+                var items = groupedProvisions[instId];
+                var isOpen = !!expanded[instId];
+                return React.createElement('div', { key: instId, style: { marginBottom: '6px' } },
+                  React.createElement('button', {
+                    type: 'button',
+                    onClick: function() { toggleInstrument(instId); },
+                    style: {
+                      width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px',
+                      background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)',
+                      cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      color: '#E2E8F0', fontSize: '12px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
+                    },
+                  },
+                    React.createElement('span', null, instId),
+                    React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+                      React.createElement('span', { style: { fontSize: '10px', color: '#0EA5E9', fontFamily: "'DM Mono', monospace" } }, items.length + ' provisions'),
+                      React.createElement('span', { style: { fontSize: '10px', color: '#64748B', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
+                    )
+                  ),
+                  isOpen && React.createElement('div', { style: { paddingLeft: '8px', marginTop: '4px' } },
+                    items.map(function(item) {
+                      return React.createElement('div', {
+                        key: item.provision_id,
+                        style: {
+                          padding: '6px 8px', marginBottom: '2px', borderRadius: '4px',
+                          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
+                          cursor: 'pointer',
+                        },
+                        onClick: function() {
+                          var seedMsg = 'Tell me about ' + item.title + (item.instrument_id ? ' under the ' + item.instrument_id : '');
+                          if (window.__klSendMessage) window.__klSendMessage(seedMsg);
+                        },
+                        title: 'Ask Eileen about this provision',
+                      },
+                        React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.title),
+                        React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '2px', flexWrap: 'wrap', alignItems: 'center' } },
+                          React.createElement('span', { style: { color: '#0EA5E9', fontSize: '11px' } },
+                            (item.instrument_id || '') + (item.section_num ? ' s.' + item.section_num : '')
+                          ),
+                          item.is_era_2025 && React.createElement('span', {
+                            style: { color: '#F59E0B', fontSize: '10px', padding: '1px 5px', borderRadius: '3px', background: 'rgba(245,158,11,0.1)' },
+                          }, 'ERA 2025'),
+                          React.createElement('span', { style: { color: item.in_force ? '#10B981' : '#94A3B8', fontSize: '10px' } },
+                            item.in_force ? 'In force' : 'Not yet'
+                          )
+                        )
+                      );
+                    })
+                  )
+                );
+              })
+          )
+        : (filtered.length === 0
+            ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.')
+            : filtered.slice(0, 50).map(function(item) {
+                return React.createElement('div', {
+                  key: item.case_id,
+                  style: { padding: '8px', marginBottom: '4px', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' },
+                },
+                  React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.name),
+                  React.createElement('div', { style: { color: '#94A3B8', fontSize: '11px', marginTop: '2px' } },
+                    [item.citation, item.court, item.year].filter(Boolean).join(' \u00B7 ')
+                  ),
+                  item.principle && React.createElement('div', { style: { color: '#64748B', fontSize: '11px', marginTop: '3px', lineHeight: 1.4 } },
+                    item.principle.length > 120 ? item.principle.slice(0, 120) + '\u2026' : item.principle
+                  )
+                );
+              })
+          )
   );
 }
 
@@ -2333,7 +2574,7 @@ function PlaceholderPanel({ panelId }) {
 
 const PANEL_LABELS = {
   vault: 'Document Vault', notes: 'Notes', documents: 'Documents',
-  clipboard: 'Clipboard', calendar: 'Calendar', eileen: 'Eileen',
+  clipboard: 'Saved Snippets', calendar: 'Calendar', eileen: 'Eileen',
   research: 'Research', planner: 'Contract Planner',
 };
 
@@ -2761,6 +3002,9 @@ function App() {
       setIsLoading(false);
     }
   }
+
+  // Expose sendMessage for Research Panel provision click → seed Eileen
+  window.__klSendMessage = sendMessage;
 
   function handleUserTypeSelect(type) {
     setUserType(type);
