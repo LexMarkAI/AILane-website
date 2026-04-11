@@ -798,6 +798,94 @@
   function AdvisoryBanner() {
     return /* @__PURE__ */ React.createElement("div", { className: "kl-advisory" }, /* @__PURE__ */ React.createElement("p", null, "This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)"));
   }
+  var UPSELL_CONFIG = {
+    kl_quick_session: {
+      threshold: 20,
+      title: "Need more time?",
+      message: "Your Quick Session ends in less than 20 minutes. Upgrade to a Day Pass for 24 hours of full access \u2014 including 2 compliance checks.",
+      cta: "Upgrade to Day Pass \u2014 \xA349",
+      href: "/kl-access/?product=kl_day_pass"
+    },
+    kl_day_pass: {
+      threshold: 60,
+      title: "Extend your research",
+      message: "Your Day Pass expires in under an hour. A Research Week gives you 7 full days and 3 compliance checks included.",
+      cta: "Upgrade to Research Week \u2014 \xA399",
+      href: "/kl-access/?product=kl_research_week"
+    },
+    kl_research_week: {
+      threshold: 1440,
+      title: "Ready for continuous monitoring?",
+      message: "Your Research Week ends tomorrow. Operational subscribers get 5 monitored contracts with auto-rescan, alerts, and ongoing Eileen access.",
+      cta: "Explore Operational \u2014 \xA3199/mo",
+      href: "/account/"
+    }
+  };
+  function UpsellCard({ productType, minutesRemaining, onDismiss }) {
+    const c = UPSELL_CONFIG[productType];
+    if (!c) return null;
+    if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "complementary",
+        "aria-label": "Session upgrade prompt",
+        style: {
+          position: "fixed",
+          bottom: "80px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          maxWidth: "440px",
+          width: "90%",
+          padding: "16px 20px",
+          borderRadius: "12px",
+          background: "linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(14,165,233,0.04) 100%)",
+          border: "1px solid rgba(14,165,233,0.25)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          zIndex: 1e3,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+          fontFamily: "'DM Sans', sans-serif"
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#0EA5E9", fontSize: "14px", fontWeight: 600, marginBottom: "6px" } }, c.title), /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "13px", lineHeight: 1.5 } }, c.message)), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: onDismiss,
+          "aria-label": "Dismiss upgrade prompt",
+          style: {
+            background: "none",
+            border: "none",
+            color: "#64748B",
+            fontSize: "18px",
+            cursor: "pointer",
+            padding: "0 0 0 12px",
+            lineHeight: 1
+          }
+        },
+        "\xD7"
+      )),
+      /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement(
+        "a",
+        {
+          href: c.href,
+          style: {
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            background: "#0EA5E9",
+            color: "#FFFFFF",
+            textDecoration: "none",
+            cursor: "pointer"
+          }
+        },
+        c.cta
+      ))
+    );
+  }
   function App() {
     const [messages, setMessages] = useState([]);
     const [sessionId, setSessionId] = useState(() => "eileen-" + Date.now() + "-" + Math.random().toString(36).substr(2, 7));
@@ -809,6 +897,8 @@
     const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
     const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
     const [sessionExpired, setSessionExpired] = useState(false);
+    const [minutesRemaining, setMinutesRemaining] = useState(null);
+    const [upsellDismissed, setUpsellDismissed] = useState(false);
     const loadSessionHistory = useCallback(async function() {
       if (!window.__klToken || !window.__klUserId) return;
       try {
@@ -863,6 +953,21 @@
       const el = document.getElementById("kl-root");
       if (el) el.classList.toggle("drawer-open", !!activePanel);
     }, [activePanel]);
+    useEffect(() => {
+      if (!sessionExpiresAt) {
+        setMinutesRemaining(null);
+        return void 0;
+      }
+      const expiresAt = new Date(sessionExpiresAt).getTime();
+      if (isNaN(expiresAt)) return void 0;
+      function update() {
+        const diff = Math.max(0, Math.floor((expiresAt - Date.now()) / 6e4));
+        setMinutesRemaining(diff);
+      }
+      update();
+      const interval = setInterval(update, 6e4);
+      return () => clearInterval(interval);
+    }, [sessionExpiresAt]);
     async function loadSession(sid) {
       if (!window.__klToken) return;
       try {
@@ -976,7 +1081,14 @@
         accessType,
         tier
       }
-    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => setActivePanel(null) }), sessionExpired && /* @__PURE__ */ React.createElement(ExpiredModal, null));
+    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => setActivePanel(null) }), !upsellDismissed && !sessionExpired && /* @__PURE__ */ React.createElement(
+      UpsellCard,
+      {
+        productType: window.__klProductType || tier || "",
+        minutesRemaining,
+        onDismiss: () => setUpsellDismissed(true)
+      }
+    ), sessionExpired && /* @__PURE__ */ React.createElement(ExpiredModal, null));
   }
   window.initKLApp = function() {
     const container = document.getElementById("kl-root");

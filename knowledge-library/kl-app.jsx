@@ -1111,6 +1111,94 @@ function AdvisoryBanner() {
   );
 }
 
+// ─── UpsellCard (KL upsell ladder, AMD-043) ───
+// Fixed-position overlay shown when per-session users approach expiry.
+// NOT registered in PANEL_COMPONENTS — renders directly in the App body.
+// Dismissible once per trigger (App-level state); does not reappear after dismissal.
+
+const UPSELL_CONFIG = {
+  kl_quick_session: {
+    threshold: 20,
+    title: 'Need more time?',
+    message: 'Your Quick Session ends in less than 20 minutes. Upgrade to a Day Pass for 24 hours of full access \u2014 including 2 compliance checks.',
+    cta: 'Upgrade to Day Pass \u2014 \u00a349',
+    href: '/kl-access/?product=kl_day_pass',
+  },
+  kl_day_pass: {
+    threshold: 60,
+    title: 'Extend your research',
+    message: 'Your Day Pass expires in under an hour. A Research Week gives you 7 full days and 3 compliance checks included.',
+    cta: 'Upgrade to Research Week \u2014 \u00a399',
+    href: '/kl-access/?product=kl_research_week',
+  },
+  kl_research_week: {
+    threshold: 1440,
+    title: 'Ready for continuous monitoring?',
+    message: 'Your Research Week ends tomorrow. Operational subscribers get 5 monitored contracts with auto-rescan, alerts, and ongoing Eileen access.',
+    cta: 'Explore Operational \u2014 \u00a3199/mo',
+    href: '/account/',
+  },
+};
+
+function UpsellCard({ productType, minutesRemaining, onDismiss }) {
+  const c = UPSELL_CONFIG[productType];
+  if (!c) return null;
+  if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
+
+  return (
+    <div
+      role="complementary"
+      aria-label="Session upgrade prompt"
+      style={{
+        position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+        maxWidth: '440px', width: '90%', padding: '16px 20px', borderRadius: '12px',
+        background: 'linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(14,165,233,0.04) 100%)',
+        border: '1px solid rgba(14,165,233,0.25)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        zIndex: 1000,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: '#0EA5E9', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
+            {c.title}
+          </div>
+          <div style={{ color: '#CBD5E1', fontSize: '13px', lineHeight: 1.5 }}>
+            {c.message}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss upgrade prompt"
+          style={{
+            background: 'none', border: 'none', color: '#64748B',
+            fontSize: '18px', cursor: 'pointer', padding: '0 0 0 12px', lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ marginTop: '12px' }}>
+        <a
+          href={c.href}
+          style={{
+            display: 'inline-block', padding: '8px 16px', borderRadius: '8px',
+            fontSize: '13px', fontWeight: 600,
+            background: '#0EA5E9', color: '#FFFFFF',
+            textDecoration: 'none', cursor: 'pointer',
+          }}
+        >
+          {c.cta}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── App ───
 
 function App() {
@@ -1124,6 +1212,8 @@ function App() {
   const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [minutesRemaining, setMinutesRemaining] = useState(null);
+  const [upsellDismissed, setUpsellDismissed] = useState(false);
 
   const loadSessionHistory = useCallback(async function () {
     if (!window.__klToken || !window.__klUserId) return;
@@ -1189,6 +1279,26 @@ function App() {
     const el = document.getElementById('kl-root');
     if (el) el.classList.toggle('drawer-open', !!activePanel);
   }, [activePanel]);
+
+  // Upsell ladder: minute-precision countdown used by UpsellCard only.
+  // Runs in parallel with SessionCountdown (which is second-precision for display).
+  // Reads sessionExpiresAt state so it picks up the ailane-kl-ready event.
+  useEffect(() => {
+    if (!sessionExpiresAt) {
+      setMinutesRemaining(null);
+      return undefined;
+    }
+    const expiresAt = new Date(sessionExpiresAt).getTime();
+    if (isNaN(expiresAt)) return undefined;
+
+    function update() {
+      const diff = Math.max(0, Math.floor((expiresAt - Date.now()) / 60000));
+      setMinutesRemaining(diff);
+    }
+    update();
+    const interval = setInterval(update, 60000);
+    return () => clearInterval(interval);
+  }, [sessionExpiresAt]);
 
   async function loadSession(sid) {
     if (!window.__klToken) return;
@@ -1302,6 +1412,13 @@ function App() {
       {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
       {activePanel && (
         <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} />
+      )}
+      {!upsellDismissed && !sessionExpired && (
+        <UpsellCard
+          productType={window.__klProductType || tier || ''}
+          minutesRemaining={minutesRemaining}
+          onDismiss={() => setUpsellDismissed(true)}
+        />
       )}
       {sessionExpired && <ExpiredModal />}
     </React.Fragment>
