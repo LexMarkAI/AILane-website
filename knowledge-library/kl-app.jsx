@@ -24,6 +24,20 @@ const QUICK_STARTS = [
   'How should I handle a flexible working request under current law?',
 ];
 
+// ─── R1-B keyframes (kl-pulse for compliance engine indicator) ───
+// Injected once at module load. index.html is out of scope per R1-B §12.
+// Distinct from the existing klPulse (typing dots) — this one scales 1→1.3
+// rather than 0.8→1 to give the analysis loading a different visual cadence.
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('kl-r1b-keyframes')) return;
+  const style = document.createElement('style');
+  style.id = 'kl-r1b-keyframes';
+  style.textContent =
+    '@keyframes kl-pulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }';
+  document.head.appendChild(style);
+})();
+
 // ─── Upload constants (KL File Upload Widget, Stage A) ───
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -286,9 +300,344 @@ function FileAttachmentBubble({ filename, fileSize, status, charCount }) {
   );
 }
 
+// ─── AnalysisResultMessage (KL R1-B, CCI v1.0 Separation Doctrine) ───
+// Renders kl-compliance-bridge findings inside the conversation as an Eileen
+// response. Eileen routes to the engine and presents findings — she does not
+// compute scores or assess compliance (CCI v1.0 Art. I §1.5). PLUGIN-001
+// Art. XIV §14.2: no "you should", "you must", "you are compliant".
+
+function AnalysisResultMessage({ data }) {
+  const score = data.overall_score;
+  const status = data.status;
+  const findings = data.findings || [];
+  const forwardFindings = data.forward_findings || [];
+  const summary = data.summary || {};
+  const engineVersion = data.engine_version || '';
+  const analysisTimeMs = data.analysis_time_ms || 0;
+  const checksUsed = data.checks_used;
+  const checkLimit = data.check_limit;
+
+  // Track which finding cards are expanded — use a ref + force-update counter
+  // so we can toggle without threading state setters through the render tree.
+  const expandedRef = useRef({});
+  const [, setTick] = useState(0);
+  function toggleFinding(key) {
+    expandedRef.current[key] = !expandedRef.current[key];
+    setTick((c) => c + 1);
+  }
+
+  // Out-of-scope handling — document is not an employment document.
+  if (status === 'out_of_scope') {
+    return (
+      <div
+        style={{
+          padding: '16px',
+          borderRadius: '10px',
+          background: 'rgba(251,191,36,0.08)',
+          border: '1px solid rgba(251,191,36,0.2)',
+        }}
+      >
+        <div style={{ fontSize: '14px', fontWeight: 600, color: '#FBBF24', marginBottom: '8px' }}>
+          {'\u26A0\uFE0F Document Outside Scope'}
+        </div>
+        <div style={{ fontSize: '13px', color: '#CBD5E1', lineHeight: 1.5 }}>
+          This document does not appear to be a UK employment contract, staff handbook, or workplace
+          policy. The compliance engine analyses employment documents only. If this is an employment
+          document, try uploading it in a different format (PDF or DOCX).
+        </div>
+      </div>
+    );
+  }
+
+  const scoreColor = score >= 65 ? '#22C55E' : score >= 30 ? '#FBBF24' : '#EF4444';
+
+  const SEV_COLORS = {
+    critical:  { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#EF4444', label: 'Critical' },
+    major:     { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.3)', text: '#FBBF24', label: 'Major'    },
+    minor:     { bg: 'rgba(234,179,8,0.06)',  border: 'rgba(234,179,8,0.2)',  text: '#EAB308', label: 'Minor'    },
+    compliant: { bg: 'rgba(34,197,94,0.06)',  border: 'rgba(34,197,94,0.2)',  text: '#22C55E', label: 'Compliant'},
+  };
+
+  const severityOrder = { critical: 0, major: 1, minor: 2 };
+  const currentNonCompliant = findings
+    .filter((f) => f.severity !== 'compliant')
+    .slice()
+    .sort((a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3));
+
+  const forwardNonCompliant = forwardFindings.filter((f) => f.severity !== 'compliant');
+
+  const summaryParts = [];
+  if (summary.critical)  summaryParts.push(summary.critical  + ' critical');
+  if (summary.major)     summaryParts.push(summary.major     + ' major');
+  if (summary.minor)     summaryParts.push(summary.minor     + ' minor');
+  if (summary.compliant) summaryParts.push(summary.compliant + ' compliant');
+  const summaryLine = summaryParts.join('  \u00B7  ');
+
+  return (
+    <div style={{ maxWidth: '100%' }}>
+
+      {/* ── Score header ─────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: '16px',
+          padding: '16px', marginBottom: '12px', borderRadius: '10px',
+          background: 'rgba(14,165,233,0.05)',
+          border: '1px solid rgba(14,165,233,0.15)',
+        }}
+      >
+        <div
+          style={{
+            width: '56px', height: '56px', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(10,22,40,0.8)',
+            border: '2px solid ' + scoreColor,
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: '18px', fontWeight: 700, color: scoreColor }}>
+            {Math.round(score) + '%'}
+          </span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: '#E2E8F0', marginBottom: '4px' }}>
+            Contract Compliance Check — Complete
+          </div>
+          {summaryLine && (
+            <div style={{ fontSize: '12px', color: '#94A3B8' }}>{summaryLine}</div>
+          )}
+          {status === 'sparse_report' && (
+            <div style={{ fontSize: '11px', color: '#FBBF24', marginTop: '4px' }}>
+              {'\u26A0\uFE0F Some requirements could not be assessed. Manual review recommended for gaps.'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Current findings (non-compliant, severity-sorted) ───── */}
+      {currentNonCompliant.map((finding, idx) => {
+        const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
+        const key = 'c' + idx;
+        const isExpanded = !!expandedRef.current[key];
+        return (
+          <div
+            key={key}
+            style={{
+              marginBottom: '8px', borderRadius: '8px',
+              background: sev.bg, border: '1px solid ' + sev.border,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              onClick={() => toggleFinding(key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 12px', cursor: 'pointer',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                  padding: '2px 6px', borderRadius: '4px',
+                  background: sev.border, color: sev.text,
+                }}
+              >
+                {sev.label}
+              </span>
+              <span style={{ fontSize: '12px', color: '#CBD5E1', flex: 1, minWidth: 0 }}>
+                {finding.clause_category}
+              </span>
+              {finding.statutory_ref && (
+                <span style={{ fontSize: '11px', color: '#64748B' }}>{finding.statutory_ref}</span>
+              )}
+              <span style={{ fontSize: '12px', color: '#64748B', marginLeft: '4px' }}>
+                {isExpanded ? '\u25B2' : '\u25BC'}
+              </span>
+            </div>
+
+            {isExpanded && (
+              <div style={{ padding: '0 12px 12px 12px' }}>
+                {finding.clause_text && finding.clause_text !== '[Not found in document]' && (
+                  <div
+                    style={{
+                      fontSize: '12px', color: '#94A3B8', fontStyle: 'italic',
+                      padding: '6px 10px', marginBottom: '8px', borderRadius: '4px',
+                      background: 'rgba(0,0,0,0.2)',
+                      borderLeft: '2px solid ' + sev.border,
+                    }}
+                  >
+                    {finding.clause_text.length > 300
+                      ? finding.clause_text.slice(0, 300) + '\u2026'
+                      : finding.clause_text}
+                  </div>
+                )}
+
+                {finding.finding_detail && (
+                  <div
+                    style={{
+                      fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginBottom: '8px',
+                    }}
+                  >
+                    {finding.finding_detail}
+                  </div>
+                )}
+
+                {finding.remediation && (
+                  <div
+                    style={{
+                      fontSize: '12px', color: '#0EA5E9', lineHeight: 1.5,
+                      padding: '8px 10px', borderRadius: '4px',
+                      background: 'rgba(14,165,233,0.06)',
+                      borderLeft: '2px solid rgba(14,165,233,0.3)',
+                    }}
+                  >
+                    <strong style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}>
+                      Remediation
+                    </strong>
+                    {finding.remediation}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* ── Compliant count (collapsed summary line) ─────────────── */}
+      {summary.compliant > 0 && (
+        <div
+          style={{
+            padding: '8px 12px', marginBottom: '8px', borderRadius: '8px',
+            background: 'rgba(34,197,94,0.06)',
+            border: '1px solid rgba(34,197,94,0.15)',
+            fontSize: '12px', color: '#22C55E',
+          }}
+        >
+          {'\u2713 ' + summary.compliant + ' requirement' +
+            (summary.compliant === 1 ? '' : 's') + ' assessed as compliant'}
+        </div>
+      )}
+
+      {/* ── Forward findings (Legislative Horizon) ───────────────── */}
+      {forwardNonCompliant.length > 0 && (
+        <div style={{ marginTop: '16px' }}>
+          <div
+            style={{
+              fontSize: '13px', fontWeight: 600, color: '#A78BFA',
+              marginBottom: '8px',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            {'\uD83D\uDD2E Legislative Horizon \u2014 Forward Exposure'}
+          </div>
+          <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '10px' }}>
+            These findings relate to provisions of the Employment Rights Act 2025 not yet in force.
+            They do not affect the current compliance position.
+          </div>
+
+          {forwardNonCompliant.map((finding, idx) => {
+            const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
+            const key = 'f' + idx;
+            const isExpanded = !!expandedRef.current[key];
+            return (
+              <div
+                key={key}
+                style={{
+                  marginBottom: '8px', borderRadius: '8px',
+                  background: 'rgba(167,139,250,0.04)',
+                  border: '1px solid rgba(167,139,250,0.15)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  onClick={() => toggleFinding(key)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 12px', cursor: 'pointer',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                      padding: '2px 6px', borderRadius: '4px',
+                      background: sev.border, color: sev.text,
+                    }}
+                  >
+                    {sev.label}
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#CBD5E1', flex: 1, minWidth: 0 }}>
+                    {finding.clause_category}
+                  </span>
+                  {finding.forward_effective_date && (
+                    <span style={{ fontSize: '10px', color: '#A78BFA' }}>
+                      {'Expected: ' + finding.forward_effective_date}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '12px', color: '#64748B', marginLeft: '4px' }}>
+                    {isExpanded ? '\u25B2' : '\u25BC'}
+                  </span>
+                </div>
+
+                {isExpanded && (
+                  <div style={{ padding: '0 12px 12px 12px' }}>
+                    {finding.finding_detail && (
+                      <div
+                        style={{
+                          fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginBottom: '8px',
+                        }}
+                      >
+                        {finding.finding_detail}
+                      </div>
+                    )}
+                    {finding.remediation && (
+                      <div
+                        style={{
+                          fontSize: '12px', color: '#A78BFA', lineHeight: 1.5,
+                          padding: '8px 10px', borderRadius: '4px',
+                          background: 'rgba(167,139,250,0.04)',
+                          borderLeft: '2px solid rgba(167,139,250,0.2)',
+                        }}
+                      >
+                        <strong
+                          style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}
+                        >
+                          Action Before Commencement
+                        </strong>
+                        {finding.remediation}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Footer (Tier 4 disclaimer) ───────────────────────────── */}
+      <div
+        style={{
+          marginTop: '12px', paddingTop: '10px',
+          borderTop: '1px solid rgba(148,163,184,0.1)',
+          fontSize: '11px', color: '#64748B', lineHeight: 1.5,
+        }}
+      >
+        {'Engine ' + engineVersion + ' \u00B7 ' + Math.round(analysisTimeMs / 1000) + 's analysis time'}
+        {checksUsed != null && checkLimit != null
+          ? ' \u00B7 Check ' + checksUsed + '/' + checkLimit + ' used'
+          : ''}
+        <div style={{ marginTop: '6px', fontSize: '10px', color: '#475569' }}>
+          This analysis is regulatory intelligence grounded in Ailane's compliance engine. It does
+          not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)
+          trading as Ailane.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MessageBubble ───
 
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onRunAnalysis }) {
   if (msg.type === 'file_upload') {
     return (
       <div className="kl-msg kl-msg-user">
@@ -312,13 +661,92 @@ function MessageBubble({ msg }) {
       </div>
     );
   }
-  const html = renderMarkdown(msg.content || '');
   const hasStats = msg.provisionsCount != null || msg.casesCount != null;
+  const renderAnalysisResult = msg.isAnalysisResult && msg.analysisData;
+  const html = renderAnalysisResult ? '' : renderMarkdown(msg.content || '');
+
+  function handleRunClick() {
+    if (typeof onRunAnalysis === 'function') {
+      onRunAnalysis(msg.documentId, msg.id);
+    }
+  }
+
   return (
     <div className="kl-msg kl-msg-eileen">
       <div className="kl-msg-content">
         <EileenSenderLabel />
-        <div className="kl-msg-body" style={{ marginTop: '8px' }} dangerouslySetInnerHTML={{ __html: html }} />
+
+        {/* Analysis loading indicator — shown above the phased text */}
+        {msg.isAnalysisLoading && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              marginTop: '8px', marginBottom: '4px',
+            }}
+          >
+            <div
+              className="kl-analysis-pulse"
+              style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: '#0EA5E9',
+                animation: 'kl-pulse 1.5s ease-in-out infinite',
+                flexShrink: 0,
+              }}
+              aria-hidden="true"
+            ></div>
+            <span style={{ color: '#94A3B8', fontSize: '11px', fontStyle: 'italic' }}>
+              Compliance engine active
+            </span>
+          </div>
+        )}
+
+        {/* Body: either the structured analysis result, or markdown text */}
+        {renderAnalysisResult ? (
+          <div className="kl-msg-body" style={{ marginTop: '8px' }}>
+            <AnalysisResultMessage data={msg.analysisData} />
+          </div>
+        ) : (
+          <div
+            className="kl-msg-body"
+            style={{ marginTop: '8px' }}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        )}
+
+        {/* Analysis trigger button — only when message is flagged analysisReady */}
+        {msg.analysisReady && msg.documentId && !msg.analysisTriggered && (
+          <button
+            type="button"
+            onClick={handleRunClick}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              marginTop: '12px', padding: '10px 18px',
+              background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+              color: '#FFFFFF', border: 'none', borderRadius: '8px',
+              cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+          >
+            {'\u2713 Run Contract Compliance Check'}
+          </button>
+        )}
+
+        {msg.analysisReady && msg.analysisTriggered && (
+          <div
+            style={{
+              marginTop: '12px', padding: '8px 14px',
+              background: 'rgba(14,165,233,0.08)',
+              borderRadius: '8px', fontSize: '12px', color: '#64748B',
+              display: 'inline-block',
+            }}
+          >
+            {'\u2713 Contract Compliance Check initiated'}
+          </div>
+        )}
+
         {hasStats && (
           <div className="kl-msg-footer">
             <div className="kl-msg-stats">
@@ -433,7 +861,7 @@ function MessageInput({ onSend, disabled, onFileSelect }) {
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -522,7 +950,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect }) {
         >
           {dragOverlay}
           <div className="kl-messages" ref={scrollRef}>
-            {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
+            {messages.map((m, i) => <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />)}
             {isLoading && <TypingIndicator />}
           </div>
           <div className="kl-conversation-input">
@@ -1724,18 +2152,140 @@ function App() {
       return;
     }
 
-    // Step 4.6 — Ready + local Eileen confirmation
+    // Step 4.6 — Ready + local Eileen confirmation with analysis trigger metadata
     updateFileMessage(msgId, { status: 'ready', charCount: extractResult.char_count });
     addMessage({
+      id: 'ready-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
       role: 'assistant',
       content:
-        'Contract uploaded and text extracted \u2014 ' +
+        'I have your contract \u2014 ' +
         extractResult.char_count.toLocaleString() +
-        " characters. I can run this through Aileen's compliance engine for a full clause-by-clause analysis.\n\n" +
-        'This will use 1 of your included Contract Compliance Checks.\n\n' +
-        '**Ready to run the analysis?**',
+        ' characters extracted and ready for analysis.',
       isLocal: true,
+      analysisReady: true,
+      documentId: documentId,
+      analysisTriggered: false,
     });
+  }
+
+  // ─── Compliance bridge flow (KL R1-B, AMD-043) ───
+  // Calls kl-compliance-bridge (deployed v1 ACTIVE on Supabase). Eileen routes
+  // to the engine and presents findings — she does not compute scores.
+  // CCI v1.0 Art. I §1.5 (Separation Doctrine).
+  async function handleRunAnalysis(documentId, msgId) {
+    // 1. Lock the trigger button on the post-extraction message
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? Object.assign({}, m, { analysisTriggered: true }) : m))
+    );
+
+    // 2. Add Eileen loading message with a stable id so we can update/replace it
+    const loadingMsgId = 'analysis-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    addMessage({
+      id: loadingMsgId,
+      role: 'assistant',
+      content: 'Routing your contract through the compliance engine\u2026',
+      isLocal: true,
+      isAnalysisLoading: true,
+    });
+
+    // 3. Phased status updates during the 30-90s analysis window
+    const phases = [
+      { delay: 8000,  text: 'Analysing against UK employment law requirements\u2026' },
+      { delay: 20000, text: 'Checking statutory provisions and forward legislative exposure\u2026' },
+      { delay: 40000, text: 'Compiling findings and scoring compliance position\u2026' },
+    ];
+    const phaseTimers = phases.map((phase) =>
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === loadingMsgId ? Object.assign({}, m, { content: phase.text }) : m))
+        );
+      }, phase.delay)
+    );
+
+    try {
+      const token = window.__klToken;
+      if (!token) throw new Error('Not authenticated');
+
+      const response = await fetch(
+        SUPABASE_URL + '/functions/v1/kl-compliance-bridge',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({
+            document_id: documentId,
+            document_type: 'employment_contract',
+          }),
+        }
+      );
+
+      // Stop the phased text updates regardless of outcome
+      phaseTimers.forEach((t) => clearTimeout(t));
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Check limit reached — explain allowance, re-enable the trigger
+        if (data && data.error === 'check_limit_reached') {
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id === loadingMsgId) {
+                return Object.assign({}, m, {
+                  content:
+                    data.message ||
+                    'You have used all bundled Contract Compliance Checks in this session. Additional checks are available at \u00a315 each.',
+                  isAnalysisLoading: false,
+                  isLocal: true,
+                });
+              }
+              if (m.id === msgId) {
+                return Object.assign({}, m, { analysisTriggered: false });
+              }
+              return m;
+            })
+          );
+          return;
+        }
+        throw new Error((data && (data.error || data.detail)) || 'Analysis failed');
+      }
+
+      // 4. Success — drop the loading message, append the analysis result
+      setMessages((prev) => {
+        const withoutLoading = prev.filter((m) => m.id !== loadingMsgId);
+        return withoutLoading.concat([{
+          id: 'result-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+          role: 'assistant',
+          content: '',
+          isLocal: true,
+          isAnalysisResult: true,
+          analysisData: data,
+        }]);
+      });
+    } catch (err) {
+      phaseTimers.forEach((t) => clearTimeout(t));
+      console.error('handleRunAnalysis error:', err);
+
+      // Generic error — re-enable the trigger so the user can retry
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === loadingMsgId) {
+            return Object.assign({}, m, {
+              content:
+                'I was unable to complete the analysis. ' +
+                ((err && err.message) || 'Please try again.'),
+              isAnalysisLoading: false,
+              isLocal: true,
+            });
+          }
+          if (m.id === msgId) {
+            return Object.assign({}, m, { analysisTriggered: false });
+          }
+          return m;
+        })
+      );
+    }
   }
 
   function handleFileSelect(e) {
@@ -1820,6 +2370,7 @@ function App() {
         accessType={accessType}
         tier={tier}
         onFileSelect={handleFileSelect}
+        onRunAnalysis={handleRunAnalysis}
       />
       <PanelRail
         activePanel={activePanel}
