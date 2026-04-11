@@ -306,6 +306,12 @@
     .checkout-secure{margin-top:1rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;font-family:var(--mono);font-size:0.6875rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em}
     .checkout-close{background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:1.375rem;line-height:1;padding:0.25rem 0.5rem;margin:-0.25rem -0.5rem 0 0;transition:color 0.2s}
     .checkout-close:hover{color:var(--text-bright)}
+
+    /* Tier card highlight states while checkout is active */
+    .card.kl-selected{border-color:var(--cyan)!important;box-shadow:0 0 48px var(--cyan-glow)!important;transform:translateY(-3px)}
+    .card.kl-dimmed{opacity:0.4;filter:saturate(0.55);transition:opacity 0.2s,filter 0.2s}
+    .card.kl-dimmed:hover{transform:none;border-color:var(--border);box-shadow:none}
+    #kl-payment-element.kl-hidden{display:none}
   </style>
 </head>
 <body>
@@ -601,7 +607,7 @@
 
       <div class="tier-row">
         <!-- Quick Session £29 -->
-        <div class="card">
+        <div class="card" data-product="kl_quick_session">
           <div class="card-eileen eileen-cyan"><canvas class="nexus-mini" width="32" height="32" data-color="cyan"></canvas><span>Eileen included</span></div>
           <div class="card-name">Quick Session</div>
           <div class="card-dur">2-hour focused research window</div>
@@ -622,7 +628,7 @@
         </div>
 
         <!-- Day Pass £49 -->
-        <div class="card feat">
+        <div class="card feat" data-product="kl_day_pass">
           <div class="card-eileen eileen-cyan"><canvas class="nexus-mini" width="32" height="32" data-color="cyan"></canvas><span>Eileen included</span></div>
           <div class="card-name">Day Pass</div>
           <div class="card-dur">Full day — 24 hours with Eileen</div>
@@ -644,7 +650,7 @@
         </div>
 
         <!-- Research Week £99 -->
-        <div class="card">
+        <div class="card" data-product="kl_research_week">
           <div class="card-eileen eileen-cyan"><canvas class="nexus-mini" width="32" height="32" data-color="cyan"></canvas><span>Eileen included</span></div>
           <div class="card-name">Research Week</div>
           <div class="card-dur">7 calendar days with Eileen</div>
@@ -1035,6 +1041,7 @@
     var currentProduct = null;
     var clientSecret = null;
     var mountedForProduct = null;
+    var currentStage = 'closed'; // 'closed' | 'email' | 'pay'
 
     var panel   = document.getElementById('kl-checkout');
     var $label  = document.getElementById('kl-ch-product');
@@ -1044,6 +1051,7 @@
     var $status = document.getElementById('kl-status');
     var $form   = document.getElementById('kl-checkout-form');
     var $close  = document.getElementById('kl-ch-close');
+    var $payEl  = document.getElementById('kl-payment-element');
 
     function setStatus(msg, cls){
       if (!$status) return;
@@ -1058,11 +1066,14 @@
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
 
-    function hidePanel(){
-      if (!panel) return;
-      panel.classList.add('hidden');
-      setStatus('Select a product above to begin.', 'info');
-      $submit.disabled = true;
+    function clearCardStates(){
+      document.querySelectorAll('.tier-row .card[data-product]').forEach(function(card){
+        card.classList.remove('kl-selected');
+        card.classList.remove('kl-dimmed');
+      });
+    }
+
+    function resetPaymentState(){
       if (paymentElement) {
         try { paymentElement.unmount(); } catch(e){}
         paymentElement = null;
@@ -1070,31 +1081,80 @@
       elements = null;
       clientSecret = null;
       mountedForProduct = null;
-      currentProduct = null;
+      if ($payEl) {
+        $payEl.innerHTML = '';
+        $payEl.classList.add('kl-hidden');
+      }
     }
 
-    async function selectProduct(productKey){
+    function hidePanel(){
+      if (!panel) return;
+      panel.classList.add('hidden');
+      resetPaymentState();
+      clearCardStates();
+      currentProduct = null;
+      currentStage = 'closed';
+      setStatus('Select a product above to begin.', 'info');
+      if ($submit) {
+        $submit.disabled = true;
+        $submit.textContent = 'Continue to payment';
+      }
+    }
+
+    // selectProduct — VISUAL ONLY.
+    // No fetches. No Stripe calls. Just highlights, dims, shows panel, updates summary.
+    function selectProduct(productKey){
       var product = PRODUCTS[productKey];
       if (!product) return;
+
+      // If switching products mid-flow, tear down any mounted Payment Element.
+      if (currentProduct && currentProduct !== productKey) {
+        resetPaymentState();
+      }
+
       currentProduct = productKey;
+      currentStage = 'email';
+
+      // Update product summary in checkout panel.
       $label.textContent = product.label + ' · ' + product.duration;
       $price.textContent = '£' + product.price;
+
+      // Highlight selected card, dim the others.
+      document.querySelectorAll('.tier-row .card[data-product]').forEach(function(card){
+        if (card.getAttribute('data-product') === productKey) {
+          card.classList.add('kl-selected');
+          card.classList.remove('kl-dimmed');
+        } else {
+          card.classList.remove('kl-selected');
+          card.classList.add('kl-dimmed');
+        }
+      });
+
+      // Reset the form into stage-1 (email) state.
+      if ($email) { $email.readOnly = false; }
+      $submit.disabled = false;
+      $submit.textContent = 'Continue to payment — £' + product.price;
+      setStatus('Enter your email to continue.', 'info');
+
       showPanel();
       gtag('event', 'kl_checkout_open', { product: productKey, price: product.price });
+    }
 
+    // Stage 1 — create the Payment Intent and mount Stripe Elements.
+    // Called from the submit handler AFTER the user has entered their email.
+    async function beginPayment(email){
       if (!STRIPE_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY.indexOf('__') === 0) {
         setStatus('Checkout is being provisioned. Please try again in a moment.', 'error');
-        return;
+        return false;
       }
       if (!stripe) {
         try { stripe = Stripe(STRIPE_PUBLISHABLE_KEY); }
-        catch (e) { setStatus('Unable to load Stripe. Please refresh the page.', 'error'); return; }
+        catch (e) {
+          setStatus('Unable to load Stripe. Please refresh the page.', 'error');
+          return false;
+        }
       }
-      if (mountedForProduct === productKey && elements) {
-        setStatus('Enter your email and card details to continue.', 'info');
-        $submit.disabled = false;
-        return;
-      }
+
       setStatus('Preparing secure checkout…', 'info');
       $submit.disabled = true;
 
@@ -1102,7 +1162,7 @@
         var resp = await fetch(KL_CREATE_INTENT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_type: productKey })
+          body: JSON.stringify({ product_type: currentProduct, email: email })
         });
         if (!resp.ok) {
           var txt = await resp.text();
@@ -1133,22 +1193,34 @@
               '.Input:focus': { borderColor: '#0EA5E9' },
               '.Label': { color: '#A0AEC0', fontFamily: 'DM Mono, monospace', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }
             }
+          },
+          defaultValues: {
+            billingDetails: { email: email }
           }
         });
         paymentElement = elements.create('payment', { layout: 'tabs' });
+        if ($payEl) $payEl.classList.remove('kl-hidden');
         paymentElement.mount('#kl-payment-element');
         paymentElement.on('ready', function(){
           $submit.disabled = false;
-          setStatus('Enter your email and card details to continue.', 'info');
+          var p = PRODUCTS[currentProduct];
+          $submit.textContent = 'Pay £' + (p ? p.price : '');
+          setStatus('Enter your card details to complete payment.', 'info');
         });
-        mountedForProduct = productKey;
+        // Lock the email field once we've committed to this intent.
+        if ($email) { $email.readOnly = true; }
+        mountedForProduct = currentProduct;
+        currentStage = 'pay';
+        return true;
       } catch (err) {
         console.error('[kl-checkout] intent error:', err);
         setStatus('Unable to prepare checkout. Please try again or contact sales@ailane.ai.', 'error');
+        $submit.disabled = false;
+        return false;
       }
     }
 
-    // Wire the per-session CTA buttons
+    // Wire the per-session CTA buttons — VISUAL ONLY via selectProduct.
     document.querySelectorAll('.kl-buy').forEach(function(btn){
       btn.addEventListener('click', function(){
         var productKey = btn.getAttribute('data-product');
@@ -1162,17 +1234,30 @@
 
     if ($close) $close.addEventListener('click', hidePanel);
 
-    // Handle form submit
+    // Two-stage form submit handler.
+    //   Stage 'email': validate email → beginPayment() → mount Payment Element → change button to 'Pay £X'
+    //   Stage 'pay':   stripe.confirmPayment()
     if ($form) {
       $form.addEventListener('submit', async function(e){
         e.preventDefault();
-        if (!stripe || !elements || !clientSecret) return;
+        if (!currentProduct) return;
+
+        // Always read the email at submit time.
         var email = ($email.value || '').trim();
         if (!email || email.indexOf('@') === -1) {
           setStatus('Please enter a valid email address.', 'error');
           $email.focus();
           return;
         }
+
+        // STAGE 1: email captured — create intent and mount Payment Element.
+        if (currentStage === 'email' || !elements || !clientSecret) {
+          await beginPayment(email);
+          return;
+        }
+
+        // STAGE 2: confirm payment.
+        if (!stripe || !elements || !clientSecret) return;
         $submit.disabled = true;
         setStatus('Processing payment…', 'info');
         gtag('event', 'kl_checkout_submit', { product: currentProduct });
