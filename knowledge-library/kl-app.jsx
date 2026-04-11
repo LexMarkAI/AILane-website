@@ -121,7 +121,7 @@ function tierPalette(tier) {
 
 // ─── NexusCanvas ───
 
-function NexusCanvas({ tier }) {
+function NexusCanvas({ tier, size, state }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
 
@@ -129,19 +129,24 @@ function NexusCanvas({ tier }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
-    const size = 280;
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
-    canvas.style.width = size + 'px';
-    canvas.style.height = size + 'px';
+    const canvasSize = size || 280;
+    canvas.width = canvasSize * dpr;
+    canvas.height = canvasSize * dpr;
+    canvas.style.width = canvasSize + 'px';
+    canvas.style.height = canvasSize + 'px';
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
     const [colorA, colorB] = tierPalette(tier);
-    const cx = size / 2;
-    const cy = size / 2;
+    const cx = canvasSize / 2;
+    const cy = canvasSize / 2;
     const nodes = [];
-    const rings = [{ count: 6, radius: 28 }, { count: 8, radius: 68 }, { count: 10, radius: 110 }];
+    const scale = canvasSize / 280;
+    const rings = [
+      { count: 6, radius: 28 * scale },
+      { count: 8, radius: 68 * scale },
+      { count: 10, radius: 110 * scale },
+    ];
     rings.forEach((ring, ri) => {
       for (let i = 0; i < ring.count; i++) {
         const angle = (i / ring.count) * Math.PI * 2 + ri * 0.4;
@@ -157,7 +162,9 @@ function NexusCanvas({ tier }) {
     const start = performance.now();
     function draw(now) {
       const t = (now - start) / 1000;
-      ctx.clearRect(0, 0, size, size);
+      const animState = state || 'ready';
+      const speed = animState === 'processing' ? 3.0 : animState === 'dormant' ? 0.4 : 1.2;
+      ctx.clearRect(0, 0, canvasSize, canvasSize);
 
       // Connections between nearby nodes
       ctx.lineWidth = 1;
@@ -166,8 +173,9 @@ function NexusCanvas({ tier }) {
           const dx = nodes[i].x - nodes[j].x;
           const dy = nodes[i].y - nodes[j].y;
           const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 72) {
-            const alpha = (1 - d / 72) * 0.2;
+          if (d < 72 * scale) {
+            const connAlpha = animState === 'processing' ? 0.45 : 0.2;
+            const alpha = (1 - d / (72 * scale)) * connAlpha;
             ctx.strokeStyle = 'rgba(14,165,233,' + alpha.toFixed(3) + ')';
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
@@ -179,13 +187,15 @@ function NexusCanvas({ tier }) {
 
       // Nodes with pulse animation
       nodes.forEach((n, i) => {
-        const pulse = 0.5 + 0.5 * Math.sin(t * 1.2 + n.phase);
-        const r = 2 + pulse * 2.2;
+        const pulse = 0.5 + 0.5 * Math.sin(t * speed + n.phase);
+        const r = (2 + pulse * 2.2) * scale;
         const color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : (i % 2 ? colorA : colorB));
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.45 + pulse * 0.55;
+        const baseAlpha = animState === 'dormant' ? 0.25 : animState === 'processing' ? 0.6 : 0.45;
+        const pulseRange = animState === 'dormant' ? 0.3 : animState === 'processing' ? 0.4 : 0.55;
+        ctx.globalAlpha = baseAlpha + pulse * pulseRange;
         ctx.fill();
         ctx.globalAlpha = 1;
       });
@@ -194,7 +204,7 @@ function NexusCanvas({ tier }) {
     }
     rafRef.current = requestAnimationFrame(draw);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [tier]);
+  }, [tier, size, state]);
 
   return <canvas ref={canvasRef} className="kl-nexus-canvas" />;
 }
@@ -240,6 +250,144 @@ function TypingIndicator() {
       </div>
     </div>
   );
+}
+
+// ─── FloatingNexus (EILEEN-001 §3–4, KLUX-001 Art. 13 §13.2) ───
+// Persistent Eileen presence during conversation state. 52px Nexus
+// anchored bottom-right of conversation area. Three states driven
+// by isLoading prop. Click to expand mini-panel.
+
+function FloatingNexus({ tier, isLoading, isExpanded, onToggle }) {
+  const nexusState = isLoading ? 'processing' : 'dormant';
+
+  return (
+    <div
+      className="kl-floating-nexus-container"
+      style={{
+        position: 'absolute',
+        bottom: window.innerWidth <= 768 ? '100px' : '80px',
+        right: '24px',
+        zIndex: 30,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: '8px',
+        pointerEvents: 'auto',
+        maxWidth: 'calc(100vw - 48px)',
+      }}
+    >
+      {isExpanded && (
+        <FloatingNexusPanel tier={tier} onClose={onToggle} />
+      )}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={isExpanded ? 'Close Eileen panel' : 'Open Eileen panel'}
+        title="Eileen"
+        style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '50%',
+          background: 'rgba(10, 22, 40, 0.85)',
+          border: '1px solid rgba(14, 165, 233, 0.3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+          boxShadow: isLoading
+            ? '0 0 20px rgba(14, 165, 233, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3)'
+            : '0 4px 16px rgba(0, 0, 0, 0.3)',
+          transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+      >
+        <NexusCanvas tier={tier} size={36} state={nexusState} />
+      </button>
+    </div>
+  );
+}
+
+// ─── FloatingNexusPanel ───
+// Expands above the FloatingNexus button. Quick actions + status.
+
+function FloatingNexusPanel({ tier, onClose }) {
+  const tierLabel = {
+    governance: 'Governance',
+    operational_readiness: 'Operational',
+    institutional: 'Institutional',
+  }[tier] || 'Knowledge Library';
+
+  return (
+    <div
+      className="kl-floating-panel"
+      style={{
+        width: '240px',
+        maxWidth: 'calc(100vw - 48px)',
+        background: 'rgba(15, 29, 50, 0.95)',
+        border: '1px solid rgba(14, 165, 233, 0.2)',
+        borderRadius: '12px',
+        padding: '16px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+        <div
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#0EA5E9',
+            boxShadow: '0 0 6px rgba(14,165,233,0.5)',
+          }}
+        ></div>
+        <span style={{ color: '#0EA5E9', fontSize: '12px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'DM Mono', monospace" }}>
+          Eileen
+        </span>
+        <span style={{ flex: 1 }}></span>
+        <span style={{ color: '#64748B', fontSize: '11px' }}>{tierLabel}</span>
+      </div>
+
+      <div style={{ color: '#CBD5E1', fontSize: '13px', lineHeight: 1.5, marginBottom: '12px' }}>
+        I'm here whenever you need me. Ask a question or upload a contract for analysis.
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <button
+          type="button"
+          onClick={() => { onClose(); window.scrollTo(0, 0); }}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            background: 'rgba(14, 165, 233, 0.08)',
+            border: '1px solid rgba(14, 165, 233, 0.2)',
+            borderRadius: '8px',
+            color: '#0EA5E9',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Ask a question
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── NexusSendButton (EILEEN-002 §7.2) ───
+// 20px micro-Nexus inside the send button. Dormant when input empty,
+// active when text entered, processing when isLoading.
+
+function NexusSendButton({ hasText, isLoading, tier }) {
+  const state = isLoading ? 'processing' : hasText ? 'ready' : 'dormant';
+  return <NexusCanvas tier={tier} size={20} state={state} />;
 }
 
 // ─── FileAttachmentBubble (KL File Upload Widget, Stage A) ───
@@ -975,10 +1123,7 @@ function MessageInput({ onSend, disabled, onFileSelect }) {
         disabled={disabled || !value.trim()}
         aria-label="Send message"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-        </svg>
+        <NexusSendButton hasText={!!value.trim()} isLoading={disabled} tier={window.__klTier || 'per_session'} />
       </button>
     </div>
   );
@@ -986,7 +1131,7 @@ function MessageInput({ onSend, disabled, onFileSelect }) {
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -1074,6 +1219,12 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           onDrop={onDrop}
         >
           {dragOverlay}
+          <FloatingNexus
+            tier={tier}
+            isLoading={isLoading}
+            isExpanded={floatingNexusExpanded}
+            onToggle={onToggleFloatingNexus}
+          />
           <div className="kl-messages" ref={scrollRef}>
             {messages.map((m, i) => <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />)}
             {isLoading && <TypingIndicator />}
@@ -2003,6 +2154,7 @@ function App() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [minutesRemaining, setMinutesRemaining] = useState(null);
   const [upsellDismissed, setUpsellDismissed] = useState(false);
+  const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
 
   const loadSessionHistory = useCallback(async function () {
     if (!window.__klToken || !window.__klUserId) return;
@@ -2598,6 +2750,8 @@ function App() {
         tier={tier}
         onFileSelect={handleFileSelect}
         onRunAnalysis={handleRunAnalysis}
+        floatingNexusExpanded={floatingNexusOpen}
+        onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
       />
       <PanelRail
         activePanel={activePanel}
