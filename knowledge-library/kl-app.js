@@ -1769,7 +1769,7 @@
       try {
         const token = window.__klToken;
         if (!token) throw new Error("Not authenticated");
-        const response = await fetch(
+        const startResponse = await fetch(
           SUPABASE_URL + "/functions/v1/kl-compliance-bridge",
           {
             method: "POST",
@@ -1779,19 +1779,20 @@
             },
             body: JSON.stringify({
               document_id: documentId,
-              document_type: "employment_contract"
+              document_type: "employment_contract",
+              action: "start"
             })
           }
         );
-        phaseTimers.forEach((t) => clearTimeout(t));
-        const data = await response.json();
-        if (!response.ok) {
-          if (data && data.error === "check_limit_reached") {
+        const startData = await startResponse.json();
+        if (!startResponse.ok) {
+          phaseTimers.forEach((t) => clearTimeout(t));
+          if (startData && startData.error === "check_limit_reached") {
             setMessages(
               (prev) => prev.map((m) => {
                 if (m.id === loadingMsgId) {
                   return Object.assign({}, m, {
-                    content: data.message || "You have used all bundled Contract Compliance Checks in this session. Additional checks are available at \xA315 each.",
+                    content: startData.message || "You have used all bundled Contract Compliance Checks in this session. Additional checks are available at \xA315 each.",
                     isAnalysisLoading: false,
                     isLocal: true
                   });
@@ -1804,17 +1805,87 @@
             );
             return;
           }
-          throw new Error(data && (data.error || data.detail) || "Analysis failed");
+          throw new Error(startData && (startData.error || startData.detail) || "Analysis failed");
         }
-        setMessages((prev) => {
-          const withoutLoading = prev.filter((m) => m.id !== loadingMsgId);
+        var uploadId = startData.upload_id;
+        if (!uploadId) throw new Error("No upload_id returned from bridge");
+        setMessages(function(prev) {
+          return prev.map(function(m) {
+            return m.id === loadingMsgId ? Object.assign({}, m, { content: "Analysing your contract against UK employment law requirements. This typically takes 60\u201390 seconds." }) : m;
+          });
+        });
+        var maxPolls = 60;
+        var pollCount = 0;
+        var pollResult = null;
+        while (pollCount < maxPolls) {
+          await new Promise(function(resolve) {
+            setTimeout(resolve, 5e3);
+          });
+          pollCount++;
+          var elapsed = pollCount * 5;
+          if (elapsed === 15) {
+            setMessages(function(prev) {
+              return prev.map(function(m) {
+                return m.id === loadingMsgId ? Object.assign({}, m, { content: "Checking statutory provisions and case law references\u2026" }) : m;
+              });
+            });
+          } else if (elapsed === 35) {
+            setMessages(function(prev) {
+              return prev.map(function(m) {
+                return m.id === loadingMsgId ? Object.assign({}, m, { content: "Assessing forward legislative exposure under ERA 2025\u2026" }) : m;
+              });
+            });
+          } else if (elapsed === 60) {
+            setMessages(function(prev) {
+              return prev.map(function(m) {
+                return m.id === loadingMsgId ? Object.assign({}, m, { content: "Compiling findings and scoring compliance position\u2026" }) : m;
+              });
+            });
+          }
+          try {
+            var pollResponse = await fetch(
+              SUPABASE_URL + "/functions/v1/kl-compliance-bridge",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                  document_id: documentId,
+                  upload_id: uploadId,
+                  action: "poll"
+                })
+              }
+            );
+            var pollData = await pollResponse.json();
+            if (pollData.status === "processing") {
+              continue;
+            }
+            pollResult = pollData;
+            break;
+          } catch (pollErr) {
+            console.warn("Poll error (will retry):", pollErr);
+            continue;
+          }
+        }
+        phaseTimers.forEach(function(t) {
+          clearTimeout(t);
+        });
+        if (!pollResult) {
+          throw new Error("Analysis is taking longer than expected. Your results will appear in the Document Vault when ready.");
+        }
+        setMessages(function(prev) {
+          var withoutLoading = prev.filter(function(m) {
+            return m.id !== loadingMsgId;
+          });
           return withoutLoading.concat([{
             id: "result-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
             role: "assistant",
             content: "",
             isLocal: true,
             isAnalysisResult: true,
-            analysisData: data
+            analysisData: pollResult
           }]);
         });
       } catch (err) {
