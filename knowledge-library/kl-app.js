@@ -18,6 +18,13 @@
     "Summarise the key changes in the Employment Rights Act 2025.",
     "How should I handle a flexible working request under current law?"
   ];
+  var ALLOWED_EXTENSIONS = [".pdf", ".docx", ".doc", ".txt"];
+  var MAX_FILE_SIZE = 10 * 1024 * 1024;
+  function formatFileSize(bytes) {
+    if (bytes == null) return "";
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
   function escapeHtml(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
@@ -150,7 +157,68 @@
   function TypingIndicator() {
     return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-sender" }, "Eileen"), /* @__PURE__ */ React.createElement("div", { className: "kl-typing-dots" }, /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }))));
   }
+  function FileAttachmentBubble({ filename, fileSize, status, charCount }) {
+    const sizeLabel = formatFileSize(fileSize);
+    const statusIcon = {
+      uploading: "\u23F3",
+      // ⏳
+      extracting: "\u2699\uFE0F",
+      // ⚙️
+      ready: "\u2705",
+      // ✅
+      error: "\u274C"
+      // ❌
+    }[status] || "\u23F3";
+    const statusLabel = {
+      uploading: "Uploading...",
+      extracting: "Extracting text...",
+      ready: charCount ? charCount.toLocaleString() + " characters extracted" : "Ready",
+      error: "Upload failed"
+    }[status] || "";
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "10px",
+          padding: "10px 14px",
+          borderRadius: "10px",
+          background: "rgba(14,165,233,0.08)",
+          border: "1px solid rgba(14,165,233,0.2)",
+          maxWidth: "320px"
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: "24px" }, "aria-hidden": "true" }, "\u{1F4C4}"),
+      /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          style: {
+            color: "#E2E8F0",
+            fontSize: "13px",
+            fontWeight: 500,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }
+        },
+        filename
+      ), /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "11px", marginTop: "2px" } }, sizeLabel + " \xB7 " + statusLabel)),
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: "16px" }, "aria-hidden": "true" }, statusIcon)
+    );
+  }
   function MessageBubble({ msg }) {
+    if (msg.type === "file_upload") {
+      return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-user" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(
+        FileAttachmentBubble,
+        {
+          filename: msg.filename,
+          fileSize: msg.fileSize,
+          status: msg.status,
+          charCount: msg.charCount
+        }
+      )));
+    }
     if (msg.role === "user") {
       return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-user" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body" }, msg.content)));
     }
@@ -158,8 +226,9 @@
     const hasStats = msg.provisionsCount != null || msg.casesCount != null;
     return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-sender" }, "Eileen"), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body", dangerouslySetInnerHTML: { __html: html } }), hasStats && /* @__PURE__ */ React.createElement("div", { className: "kl-msg-footer" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-stats" }, "Based on ", msg.provisionsCount || 0, " provision", msg.provisionsCount === 1 ? "" : "s", " and ", msg.casesCount || 0, " case", msg.casesCount === 1 ? "" : "s"))));
   }
-  function MessageInput({ onSend, disabled }) {
+  function MessageInput({ onSend, disabled, onFileSelect }) {
     const [value, setValue] = useState("");
+    const fileInputRef = useRef(null);
     function submit() {
       const text = value.trim();
       if (!text || disabled) return;
@@ -172,7 +241,38 @@
         submit();
       }
     }
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-input-bar" }, /* @__PURE__ */ React.createElement(
+    function onPaperclipClick() {
+      if (fileInputRef.current) fileInputRef.current.click();
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-input-bar" }, onFileSelect && /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "file",
+        ref: fileInputRef,
+        accept: ".pdf,.docx,.doc,.txt",
+        style: { display: "none" },
+        onChange: onFileSelect
+      }
+    ), onFileSelect && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onPaperclipClick,
+        title: "Upload a contract for compliance analysis",
+        "aria-label": "Upload a contract for compliance analysis",
+        style: {
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: "8px",
+          color: "#64748B",
+          fontSize: "18px",
+          display: "flex",
+          alignItems: "center"
+        }
+      },
+      "\u{1F4CE}"
+    ), /* @__PURE__ */ React.createElement(
       "input",
       {
         className: "kl-input",
@@ -194,15 +294,79 @@
       /* @__PURE__ */ React.createElement("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.25", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), /* @__PURE__ */ React.createElement("polygon", { points: "22 2 15 22 11 13 2 9 22 2" }))
     ));
   }
-  function ConversationArea({ messages, isLoading, onSend, tier }) {
+  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect }) {
     const scrollRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
     useEffect(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
     }, [messages, isLoading]);
     const empty = messages.length === 0;
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-main" }, empty ? /* @__PURE__ */ React.createElement("div", { className: "kl-welcome" }, /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-nexus" }, /* @__PURE__ */ React.createElement(NexusCanvas, { tier })), /* @__PURE__ */ React.createElement("h1", { className: "kl-welcome-greeting" }, "How can I help you today?"), /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading })), /* @__PURE__ */ React.createElement("div", { className: "kl-topics-grid" }, QUICK_STARTS.map((q, i) => /* @__PURE__ */ React.createElement("button", { key: i, className: "kl-topic-card", onClick: () => onSend(q), disabled: isLoading }, /* @__PURE__ */ React.createElement("div", { className: "kl-card-label" }, q))))) : /* @__PURE__ */ React.createElement("div", { className: "kl-conversation" }, /* @__PURE__ */ React.createElement("div", { className: "kl-messages", ref: scrollRef }, messages.map((m, i) => /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m })), isLoading && /* @__PURE__ */ React.createElement(TypingIndicator, null)), /* @__PURE__ */ React.createElement("div", { className: "kl-conversation-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading }))));
+    function onDragOver(e) {
+      if (!onFileSelect) return;
+      e.preventDefault();
+      setIsDragging(true);
+    }
+    function onDragLeave(e) {
+      if (!onFileSelect) return;
+      e.preventDefault();
+      setIsDragging(false);
+    }
+    function onDrop(e) {
+      if (!onFileSelect) return;
+      e.preventDefault();
+      setIsDragging(false);
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length > 0) {
+        onFileSelect({ target: { files } });
+      }
+    }
+    const dragOverlay = isDragging && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          inset: 0,
+          zIndex: 50,
+          background: "rgba(14,165,233,0.08)",
+          border: "2px dashed #0EA5E9",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none"
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { color: "#0EA5E9", fontSize: "16px", fontWeight: 500 } }, "Drop your contract here")
+    );
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-main" }, empty ? /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-welcome",
+        style: { position: "relative" },
+        onDragOver,
+        onDragLeave,
+        onDrop
+      },
+      dragOverlay,
+      /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-nexus" }, /* @__PURE__ */ React.createElement(NexusCanvas, { tier })),
+      /* @__PURE__ */ React.createElement("h1", { className: "kl-welcome-greeting" }, "How can I help you today?"),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect })),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-topics-grid" }, QUICK_STARTS.map((q, i) => /* @__PURE__ */ React.createElement("button", { key: i, className: "kl-topic-card", onClick: () => onSend(q), disabled: isLoading }, /* @__PURE__ */ React.createElement("div", { className: "kl-card-label" }, q))))
+    ) : /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-conversation",
+        style: { position: "relative" },
+        onDragOver,
+        onDragLeave,
+        onDrop
+      },
+      dragOverlay,
+      /* @__PURE__ */ React.createElement("div", { className: "kl-messages", ref: scrollRef }, messages.map((m, i) => /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m })), isLoading && /* @__PURE__ */ React.createElement(TypingIndicator, null)),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-conversation-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect }))
+    ));
   }
   function CrownJewels({ onQuery, disabled }) {
     return /* @__PURE__ */ React.createElement("div", { className: "kl-crown" }, /* @__PURE__ */ React.createElement("div", { className: "kl-crown-title" }, "Crown Jewels"), /* @__PURE__ */ React.createElement("div", { className: "kl-crown-chips" }, CROWN_JEWELS.map((name) => /* @__PURE__ */ React.createElement(
@@ -1038,6 +1202,157 @@
         setIsLoading(false);
       }
     }
+    function addMessage(msg) {
+      setMessages((prev) => [...prev, msg]);
+    }
+    function updateFileMessage(msgId, updates) {
+      setMessages((prev) => prev.map((m) => m.id === msgId ? Object.assign({}, m, updates) : m));
+    }
+    async function uploadFile(file, msgId) {
+      const storagePath = window.__klUserId + "/" + Date.now() + "-" + file.name;
+      let uploadOk = false;
+      try {
+        const uploadResp = await fetch(
+          SUPABASE_URL + "/storage/v1/object/kl-document-vault/" + encodeURIComponent(storagePath),
+          {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + window.__klToken,
+              "apikey": SUPABASE_ANON_KEY,
+              "Content-Type": file.type || "application/octet-stream",
+              "x-upsert": "true"
+            },
+            body: file
+          }
+        );
+        uploadOk = uploadResp.ok;
+      } catch (err) {
+        console.error("Storage upload failed:", err);
+      }
+      if (!uploadOk) {
+        updateFileMessage(msgId, { status: "error" });
+        addMessage({
+          role: "assistant",
+          content: "Upload failed. Please try again.",
+          isLocal: true
+        });
+        return;
+      }
+      const isSubscription = window.__klAccessType === "subscription" || window.__klTier === "operational_readiness" || window.__klTier === "governance" || window.__klTier === "institutional";
+      const docRecord = {
+        user_id: window.__klUserId,
+        filename: file.name,
+        storage_path: storagePath,
+        file_size_bytes: file.size,
+        mime_type: file.type,
+        extraction_status: "pending",
+        analysis_status: "pending",
+        session_only: !isSubscription,
+        expires_at: isSubscription ? null : window.__klSessionExpiry || null
+      };
+      let documentId = null;
+      try {
+        const insertResp = await fetch(SUPABASE_URL + "/rest/v1/kl_vault_documents", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + window.__klToken,
+            "apikey": SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+          },
+          body: JSON.stringify(docRecord)
+        });
+        if (insertResp.ok) {
+          const insertedDocs = await insertResp.json();
+          if (Array.isArray(insertedDocs) && insertedDocs[0] && insertedDocs[0].id) {
+            documentId = insertedDocs[0].id;
+          }
+        }
+      } catch (err) {
+        console.error("Vault insert failed:", err);
+      }
+      if (!documentId) {
+        updateFileMessage(msgId, { status: "error" });
+        addMessage({
+          role: "assistant",
+          content: "Upload failed. Please try again.",
+          isLocal: true
+        });
+        return;
+      }
+      updateFileMessage(msgId, { documentId, status: "extracting" });
+      let extractResult = null;
+      try {
+        const extractResp = await fetch(
+          SUPABASE_URL + "/functions/v1/kl_document_extract",
+          {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + window.__klToken,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ document_id: documentId })
+          }
+        );
+        if (extractResp.ok) {
+          extractResult = await extractResp.json();
+        }
+      } catch (err) {
+        console.error("Document extract failed:", err);
+      }
+      if (!extractResult || typeof extractResult.char_count !== "number") {
+        updateFileMessage(msgId, { status: "error" });
+        addMessage({
+          role: "assistant",
+          content: "Text extraction failed. The file may be image-only or password-protected.",
+          isLocal: true
+        });
+        return;
+      }
+      updateFileMessage(msgId, { status: "ready", charCount: extractResult.char_count });
+      addMessage({
+        role: "assistant",
+        content: "Contract uploaded and text extracted \u2014 " + extractResult.char_count.toLocaleString() + " characters. I can run this through Aileen's compliance engine for a full clause-by-clause analysis.\n\nThis will use 1 of your included Contract Compliance Checks.\n\n**Ready to run the analysis?**",
+        isLocal: true
+      });
+    }
+    function handleFileSelect(e) {
+      const file = e && e.target && e.target.files && e.target.files[0];
+      if (!file) return;
+      const parts = file.name.split(".");
+      const ext = parts.length > 1 ? "." + parts[parts.length - 1].toLowerCase() : "";
+      if (ALLOWED_EXTENSIONS.indexOf(ext) === -1) {
+        addMessage({
+          role: "assistant",
+          content: "I can accept PDF, DOCX, or TXT files up to 10MB. The file you selected (" + (ext || "unknown type") + ") is not a supported format.",
+          isLocal: true
+        });
+        if (e.target && "value" in e.target) e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        addMessage({
+          role: "assistant",
+          content: "That file is too large (" + (file.size / (1024 * 1024)).toFixed(1) + "MB). The maximum is 10MB.",
+          isLocal: true
+        });
+        if (e.target && "value" in e.target) e.target.value = "";
+        return;
+      }
+      const msgId = "upload-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+      addMessage({
+        id: msgId,
+        role: "user",
+        type: "file_upload",
+        filename: file.name,
+        fileSize: file.size,
+        status: "uploading",
+        documentId: null,
+        charCount: null
+      });
+      uploadFile(file, msgId);
+      if (e.target && "value" in e.target) e.target.value = "";
+    }
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       TopBar,
       {
@@ -1071,7 +1386,8 @@
         isLoading,
         onSend: sendMessage,
         accessType,
-        tier
+        tier,
+        onFileSelect: handleFileSelect
       }
     ), /* @__PURE__ */ React.createElement(
       PanelRail,

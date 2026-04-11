@@ -24,6 +24,22 @@ const QUICK_STARTS = [
   'How should I handle a flexible working request under current law?',
 ];
 
+// ─── Upload constants (KL File Upload Widget, Stage A) ───
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/plain',
+];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function formatFileSize(bytes) {
+  if (bytes == null) return '';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 // ─── Helpers ───
 
 function escapeHtml(s) {
@@ -186,9 +202,81 @@ function TypingIndicator() {
   );
 }
 
+// ─── FileAttachmentBubble (KL File Upload Widget, Stage A) ───
+// Rendered on the user side for messages with type === 'file_upload'.
+// Shows filename, size, and a status indicator that transitions
+// uploading → extracting → ready (or error).
+
+function FileAttachmentBubble({ filename, fileSize, status, charCount }) {
+  const sizeLabel = formatFileSize(fileSize);
+
+  const statusIcon = {
+    uploading: '\u23F3',        // ⏳
+    extracting: '\u2699\uFE0F', // ⚙️
+    ready: '\u2705',            // ✅
+    error: '\u274C',            // ❌
+  }[status] || '\u23F3';
+
+  const statusLabel = {
+    uploading: 'Uploading...',
+    extracting: 'Extracting text...',
+    ready: charCount ? charCount.toLocaleString() + ' characters extracted' : 'Ready',
+    error: 'Upload failed',
+  }[status] || '';
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '10px 14px',
+        borderRadius: '10px',
+        background: 'rgba(14,165,233,0.08)',
+        border: '1px solid rgba(14,165,233,0.2)',
+        maxWidth: '320px',
+      }}
+    >
+      <span style={{ fontSize: '24px' }} aria-hidden="true">{'\uD83D\uDCC4'}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            color: '#E2E8F0',
+            fontSize: '13px',
+            fontWeight: 500,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {filename}
+        </div>
+        <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '2px' }}>
+          {sizeLabel + ' \u00B7 ' + statusLabel}
+        </div>
+      </div>
+      <span style={{ fontSize: '16px' }} aria-hidden="true">{statusIcon}</span>
+    </div>
+  );
+}
+
 // ─── MessageBubble ───
 
 function MessageBubble({ msg }) {
+  if (msg.type === 'file_upload') {
+    return (
+      <div className="kl-msg kl-msg-user">
+        <div className="kl-msg-content">
+          <FileAttachmentBubble
+            filename={msg.filename}
+            fileSize={msg.fileSize}
+            status={msg.status}
+            charCount={msg.charCount}
+          />
+        </div>
+      </div>
+    );
+  }
   if (msg.role === 'user') {
     return (
       <div className="kl-msg kl-msg-user">
@@ -219,8 +307,9 @@ function MessageBubble({ msg }) {
 
 // ─── MessageInput ───
 
-function MessageInput({ onSend, disabled }) {
+function MessageInput({ onSend, disabled, onFileSelect }) {
   const [value, setValue] = useState('');
+  const fileInputRef = useRef(null);
 
   function submit() {
     const text = value.trim();
@@ -236,8 +325,41 @@ function MessageInput({ onSend, disabled }) {
     }
   }
 
+  function onPaperclipClick() {
+    if (fileInputRef.current) fileInputRef.current.click();
+  }
+
   return (
     <div className="kl-input-bar">
+      {onFileSelect && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".pdf,.docx,.doc,.txt"
+          style={{ display: 'none' }}
+          onChange={onFileSelect}
+        />
+      )}
+      {onFileSelect && (
+        <button
+          type="button"
+          onClick={onPaperclipClick}
+          title="Upload a contract for compliance analysis"
+          aria-label="Upload a contract for compliance analysis"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '8px',
+            color: '#64748B',
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {'\uD83D\uDCCE'}
+        </button>
+      )}
       <input
         className="kl-input"
         type="text"
@@ -264,8 +386,9 @@ function MessageInput({ onSend, disabled }) {
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect }) {
   const scrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -275,16 +398,64 @@ function ConversationArea({ messages, isLoading, onSend, tier }) {
 
   const empty = messages.length === 0;
 
+  function onDragOver(e) {
+    if (!onFileSelect) return;
+    e.preventDefault();
+    setIsDragging(true);
+  }
+  function onDragLeave(e) {
+    if (!onFileSelect) return;
+    e.preventDefault();
+    setIsDragging(false);
+  }
+  function onDrop(e) {
+    if (!onFileSelect) return;
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length > 0) {
+      onFileSelect({ target: { files: files } });
+    }
+  }
+
+  const dragOverlay = isDragging && (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 50,
+        background: 'rgba(14,165,233,0.08)',
+        border: '2px dashed #0EA5E9',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <div style={{ color: '#0EA5E9', fontSize: '16px', fontWeight: 500 }}>
+        Drop your contract here
+      </div>
+    </div>
+  );
+
   return (
     <div className="kl-main">
       {empty ? (
-        <div className="kl-welcome">
+        <div
+          className="kl-welcome"
+          style={{ position: 'relative' }}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
+          {dragOverlay}
           <div className="kl-welcome-nexus">
             <NexusCanvas tier={tier} />
           </div>
           <h1 className="kl-welcome-greeting">How can I help you today?</h1>
           <div className="kl-welcome-input">
-            <MessageInput onSend={onSend} disabled={isLoading} />
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} />
           </div>
           <div className="kl-topics-grid">
             {QUICK_STARTS.map((q, i) => (
@@ -295,13 +466,20 @@ function ConversationArea({ messages, isLoading, onSend, tier }) {
           </div>
         </div>
       ) : (
-        <div className="kl-conversation">
+        <div
+          className="kl-conversation"
+          style={{ position: 'relative' }}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
+          {dragOverlay}
           <div className="kl-messages" ref={scrollRef}>
             {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
             {isLoading && <TypingIndicator />}
           </div>
           <div className="kl-conversation-input">
-            <MessageInput onSend={onSend} disabled={isLoading} />
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} />
           </div>
         </div>
       )}
@@ -1374,6 +1552,199 @@ function App() {
     }
   }
 
+  // ─── File upload flow (KL File Upload Widget, Stage A) ───
+
+  function addMessage(msg) {
+    setMessages((prev) => [...prev, msg]);
+  }
+
+  function updateFileMessage(msgId, updates) {
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? Object.assign({}, m, updates) : m)));
+  }
+
+  async function uploadFile(file, msgId) {
+    // Step 4.3 — Upload to Supabase Storage
+    const storagePath = window.__klUserId + '/' + Date.now() + '-' + file.name;
+    let uploadOk = false;
+    try {
+      const uploadResp = await fetch(
+        SUPABASE_URL + '/storage/v1/object/kl-document-vault/' + encodeURIComponent(storagePath),
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': file.type || 'application/octet-stream',
+            'x-upsert': 'true',
+          },
+          body: file,
+        }
+      );
+      uploadOk = uploadResp.ok;
+    } catch (err) {
+      console.error('Storage upload failed:', err);
+    }
+    if (!uploadOk) {
+      updateFileMessage(msgId, { status: 'error' });
+      addMessage({
+        role: 'assistant',
+        content: 'Upload failed. Please try again.',
+        isLocal: true,
+      });
+      return;
+    }
+
+    // Step 4.4 — Create kl_vault_documents record
+    // Per §11.3: subscription users get session_only=false / expires_at=null;
+    // per-session users get session_only=true / expires_at=session expiry.
+    const isSubscription = (
+      window.__klAccessType === 'subscription' ||
+      window.__klTier === 'operational_readiness' ||
+      window.__klTier === 'governance' ||
+      window.__klTier === 'institutional'
+    );
+    const docRecord = {
+      user_id: window.__klUserId,
+      filename: file.name,
+      storage_path: storagePath,
+      file_size_bytes: file.size,
+      mime_type: file.type,
+      extraction_status: 'pending',
+      analysis_status: 'pending',
+      session_only: !isSubscription,
+      expires_at: isSubscription ? null : (window.__klSessionExpiry || null),
+    };
+
+    let documentId = null;
+    try {
+      const insertResp = await fetch(SUPABASE_URL + '/rest/v1/kl_vault_documents', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(docRecord),
+      });
+      if (insertResp.ok) {
+        const insertedDocs = await insertResp.json();
+        if (Array.isArray(insertedDocs) && insertedDocs[0] && insertedDocs[0].id) {
+          documentId = insertedDocs[0].id;
+        }
+      }
+    } catch (err) {
+      console.error('Vault insert failed:', err);
+    }
+    if (!documentId) {
+      updateFileMessage(msgId, { status: 'error' });
+      addMessage({
+        role: 'assistant',
+        content: 'Upload failed. Please try again.',
+        isLocal: true,
+      });
+      return;
+    }
+    updateFileMessage(msgId, { documentId: documentId, status: 'extracting' });
+
+    // Step 4.5 — Call kl_document_extract
+    let extractResult = null;
+    try {
+      const extractResp = await fetch(
+        SUPABASE_URL + '/functions/v1/kl_document_extract',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ document_id: documentId }),
+        }
+      );
+      if (extractResp.ok) {
+        extractResult = await extractResp.json();
+      }
+    } catch (err) {
+      console.error('Document extract failed:', err);
+    }
+    if (!extractResult || typeof extractResult.char_count !== 'number') {
+      updateFileMessage(msgId, { status: 'error' });
+      addMessage({
+        role: 'assistant',
+        content: 'Text extraction failed. The file may be image-only or password-protected.',
+        isLocal: true,
+      });
+      return;
+    }
+
+    // Step 4.6 — Ready + local Eileen confirmation
+    updateFileMessage(msgId, { status: 'ready', charCount: extractResult.char_count });
+    addMessage({
+      role: 'assistant',
+      content:
+        'Contract uploaded and text extracted \u2014 ' +
+        extractResult.char_count.toLocaleString() +
+        " characters. I can run this through Aileen's compliance engine for a full clause-by-clause analysis.\n\n" +
+        'This will use 1 of your included Contract Compliance Checks.\n\n' +
+        '**Ready to run the analysis?**',
+      isLocal: true,
+    });
+  }
+
+  function handleFileSelect(e) {
+    const file = e && e.target && e.target.files && e.target.files[0];
+    if (!file) return;
+
+    // Validate extension
+    const parts = file.name.split('.');
+    const ext = parts.length > 1 ? '.' + parts[parts.length - 1].toLowerCase() : '';
+    if (ALLOWED_EXTENSIONS.indexOf(ext) === -1) {
+      addMessage({
+        role: 'assistant',
+        content:
+          'I can accept PDF, DOCX, or TXT files up to 10MB. The file you selected (' +
+          (ext || 'unknown type') +
+          ') is not a supported format.',
+        isLocal: true,
+      });
+      if (e.target && 'value' in e.target) e.target.value = '';
+      return;
+    }
+
+    // Validate size
+    if (file.size > MAX_FILE_SIZE) {
+      addMessage({
+        role: 'assistant',
+        content:
+          'That file is too large (' +
+          (file.size / (1024 * 1024)).toFixed(1) +
+          'MB). The maximum is 10MB.',
+        isLocal: true,
+      });
+      if (e.target && 'value' in e.target) e.target.value = '';
+      return;
+    }
+
+    // Add upload preview to conversation
+    const msgId = 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    addMessage({
+      id: msgId,
+      role: 'user',
+      type: 'file_upload',
+      filename: file.name,
+      fileSize: file.size,
+      status: 'uploading',
+      documentId: null,
+      charCount: null,
+    });
+
+    // Kick off async upload flow
+    uploadFile(file, msgId);
+
+    // Reset input so the same file can be re-selected later
+    if (e.target && 'value' in e.target) e.target.value = '';
+  }
+
   // Fragment root: children become direct grid items of the real #kl-root.
   // (Wrapping in another <div id="kl-root"> would duplicate the id and
   // break the #kl-root.sidebar-collapsed CSS rule on the outer grid.)
@@ -1401,6 +1772,7 @@ function App() {
         onSend={sendMessage}
         accessType={accessType}
         tier={tier}
+        onFileSelect={handleFileSelect}
       />
       <PanelRail
         activePanel={activePanel}
