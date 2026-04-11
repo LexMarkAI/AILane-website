@@ -9,19 +9,98 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const EILEEN_ENDPOINT = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co') + '/functions/v1/eileen-intelligence';
 
 const CROWN_JEWELS = [
-  'Employment Rights Act 1996',
-  'Equality Act 2010',
-  'Health and Safety at Work Act 1974',
-  'National Minimum Wage Act 1998',
-  'Trade Union and Labour Relations (Consolidation) Act 1992',
-  'Employment Rights Act 2025',
-  'Public Interest Disclosure Act 1998',
+  {
+    name: 'Employment Rights Act 1996',
+    shortId: 'ERA 1996',
+    provisions: 95,
+    inForce: true,
+    summary: 'Core employment protections including unfair dismissal, redundancy, written statements, and whistleblowing.',
+  },
+  {
+    name: 'Equality Act 2010',
+    shortId: 'EqA 2010',
+    provisions: 62,
+    inForce: true,
+    summary: 'Discrimination, harassment, and victimisation protections across nine protected characteristics.',
+  },
+  {
+    name: 'Health and Safety at Work Act 1974',
+    shortId: 'HSWA 1974',
+    provisions: 18,
+    inForce: true,
+    summary: 'Employer duties for workplace health, safety, and welfare of employees.',
+  },
+  {
+    name: 'National Minimum Wage Act 1998',
+    shortId: 'NMWA 1998',
+    provisions: 12,
+    inForce: true,
+    summary: 'Minimum wage entitlements, enforcement, and employer record-keeping obligations.',
+  },
+  {
+    name: 'Trade Union and Labour Relations (Consolidation) Act 1992',
+    shortId: 'TULRCA 1992',
+    provisions: 48,
+    inForce: true,
+    summary: 'Collective rights, trade union recognition, industrial action, and collective redundancy consultation.',
+  },
+  {
+    name: 'Employment Rights Act 2025',
+    shortId: 'ERA 2025',
+    provisions: 41,
+    inForce: false,
+    summary: 'Major reform: day-one unfair dismissal rights, zero-hours reforms, fire-and-rehire restrictions. Measures commenced 6 April 2026.',
+  },
+  {
+    name: 'Public Interest Disclosure Act 1998',
+    shortId: 'PIDA 1998',
+    provisions: 8,
+    inForce: true,
+    summary: 'Whistleblower protections for workers making qualifying disclosures in the public interest.',
+  },
 ];
 
-const QUICK_STARTS = [
-  'What are the latest tribunal decisions on disability discrimination?',
-  'Summarise the key changes in the Employment Rights Act 2025.',
-  'How should I handle a flexible working request under current law?',
+const TOPIC_DOMAINS = [
+  {
+    label: 'Dismissal and disciplinary',
+    description: 'Unfair dismissal, redundancy, disciplinary procedures, ACAS Code',
+    query: "I need guidance on dismissal and disciplinary procedures — what are the key legal requirements I should be aware of?",
+  },
+  {
+    label: 'Discrimination and harassment',
+    description: 'Protected characteristics, harassment duties, reasonable adjustments',
+    query: "What are my obligations around discrimination and harassment in the workplace under current law?",
+  },
+  {
+    label: 'Contracts and terms',
+    description: 'Written statements, working time, flexible working, zero-hours',
+    query: "What should I know about employment contract requirements and terms under current legislation?",
+  },
+  {
+    label: 'Family leave and pregnancy',
+    description: 'Maternity, paternity, shared parental leave, redundancy protection',
+    query: "What are the current legal requirements for family leave and pregnancy protection in employment?",
+  },
+  {
+    label: 'Business transfers',
+    description: 'TUPE obligations, consultation requirements, employee protections',
+    query: "What do I need to know about TUPE and employee protections during business transfers?",
+  },
+  {
+    label: 'Health and safety',
+    description: 'Employer duties, risk assessment, stress, working conditions',
+    query: "What are the key health and safety obligations for employers under current law?",
+  },
+  {
+    label: 'Whistleblowing',
+    description: 'Protected disclosures, qualifying disclosures, detriment protection',
+    query: "What protections exist for whistleblowers and what are my obligations as an employer?",
+  },
+  {
+    label: 'Data and monitoring',
+    description: 'Employee data, workplace monitoring, UK GDPR, ICO guidance',
+    query: "What are the rules around employee data protection and workplace monitoring under UK GDPR?",
+  },
 ];
 
 // ─── R1-B keyframes (kl-pulse for compliance engine indicator) ───
@@ -1198,14 +1277,16 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           <div className="kl-welcome-nexus">
             <NexusCanvas tier={tier} />
           </div>
-          <h1 className="kl-welcome-greeting">How can I help you today?</h1>
+          <HorizonAlert />
+          <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
           <div className="kl-welcome-input">
             <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} />
           </div>
           <div className="kl-topics-grid">
-            {QUICK_STARTS.map((q, i) => (
-              <button key={i} className="kl-topic-card" onClick={() => onSend(q)} disabled={isLoading}>
-                <div className="kl-card-label">{q}</div>
+            {TOPIC_DOMAINS.map((topic, i) => (
+              <button key={i} className="kl-topic-card" onClick={() => onSend(topic.query)} disabled={isLoading}>
+                <div className="kl-card-label">{topic.label}</div>
+                <div className="kl-card-desc">{topic.description}</div>
               </button>
             ))}
           </div>
@@ -1241,20 +1322,123 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
 // ─── CrownJewels ───
 
 function CrownJewels({ onQuery, disabled }) {
+  const [expanded, setExpanded] = useState({});
+
+  function toggleExpand(name) {
+    setExpanded(function(prev) {
+      var next = {};
+      for (var k in prev) next[k] = prev[k];
+      next[name] = !prev[name];
+      return next;
+    });
+  }
+
   return (
     <div className="kl-crown">
       <div className="kl-crown-title">Crown Jewels</div>
-      <div className="kl-crown-chips">
-        {CROWN_JEWELS.map((name) => (
-          <button
-            key={name}
-            className="kl-chip"
-            disabled={disabled}
-            onClick={() => onQuery('Tell me about the key provisions and current obligations under the ' + name)}
-          >
-            {name}
-          </button>
-        ))}
+      <div className="kl-crown-list">
+        {CROWN_JEWELS.map(function(jewel) {
+          var isOpen = !!expanded[jewel.name];
+          return React.createElement('div', { key: jewel.name, className: 'kl-crown-item' },
+            React.createElement('div', {
+              className: 'kl-crown-item-header',
+              style: {
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '6px',
+                padding: '8px 10px',
+                background: 'rgba(14,165,233,0.05)',
+                border: '1px solid rgba(14,165,233,0.15)',
+                borderRadius: isOpen ? '8px 8px 0 0' : '8px',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              },
+              onClick: function() { toggleExpand(jewel.name); },
+            },
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('button', {
+                  className: 'kl-crown-name-btn',
+                  disabled: disabled,
+                  onClick: function(e) {
+                    e.stopPropagation();
+                    onQuery('Tell me about the key provisions and current obligations under the ' + jewel.name);
+                  },
+                  style: {
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    color: '#CBD5E1',
+                    fontSize: '11px',
+                    fontWeight: 400,
+                    lineHeight: 1.35,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    textAlign: 'left',
+                    fontFamily: "'DM Sans', sans-serif",
+                    opacity: disabled ? 0.5 : 1,
+                  },
+                }, jewel.name),
+                React.createElement('div', {
+                  style: {
+                    display: 'flex',
+                    gap: '6px',
+                    marginTop: '3px',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                  },
+                },
+                  React.createElement('span', {
+                    style: {
+                      fontSize: '10px',
+                      color: '#0EA5E9',
+                      fontFamily: "'DM Mono', monospace",
+                    },
+                  }, jewel.provisions + ' provisions'),
+                  React.createElement('span', {
+                    style: {
+                      fontSize: '10px',
+                      color: jewel.inForce ? '#10B981' : '#F59E0B',
+                      padding: '0 4px',
+                      borderRadius: '3px',
+                      background: jewel.inForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                    },
+                  }, jewel.inForce ? 'In force' : 'Commenced 6 Apr 2026')
+                )
+              ),
+              React.createElement('span', {
+                style: {
+                  color: '#64748B',
+                  fontSize: '10px',
+                  marginTop: '2px',
+                  flexShrink: 0,
+                  transition: 'transform 0.15s',
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
+                },
+                'aria-hidden': 'true',
+              }, '\u25BC')
+            ),
+            isOpen && React.createElement('div', {
+              style: {
+                padding: '8px 10px',
+                background: 'rgba(14,165,233,0.03)',
+                border: '1px solid rgba(14,165,233,0.15)',
+                borderTop: 'none',
+                borderRadius: '0 0 8px 8px',
+                fontSize: '11px',
+                color: '#94A3B8',
+                lineHeight: 1.5,
+              },
+            },
+              React.createElement('div', { style: { marginBottom: '6px' } }, jewel.summary),
+              React.createElement('div', {
+                style: {
+                  fontSize: '10px',
+                  color: '#64748B',
+                  fontFamily: "'DM Mono', monospace",
+                },
+              }, jewel.shortId)
+            )
+          );
+        })}
       </div>
     </div>
   );
@@ -2047,6 +2231,105 @@ function AdvisoryBanner() {
   return (
     <div className="kl-advisory">
       <p>This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)</p>
+    </div>
+  );
+}
+
+// ─── HorizonAlert (KLUX-001 Art. 12 §12.1) ───
+// Shows the next imminent legislative event in the welcome state.
+// Single REST fetch from regulatory_requirements, forward items only.
+
+function HorizonAlert() {
+  const [event, setEvent] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const resp = await fetch(
+          SUPABASE_URL + '/rest/v1/regulatory_requirements' +
+            '?is_forward_requirement=eq.true' +
+            '&effective_from=gte.' + today +
+            '&select=requirement_name,statutory_basis,effective_from' +
+            '&order=effective_from.asc' +
+            '&limit=1',
+          {
+            headers: {
+              'Authorization': 'Bearer ' + (window.__klToken || ''),
+              'apikey': SUPABASE_ANON_KEY,
+            },
+          }
+        );
+        const data = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(data) && data[0]) {
+          setEvent(data[0]);
+        }
+      } catch (e) {
+        console.warn('HorizonAlert fetch failed (non-blocking):', e);
+      }
+    }
+    if (window.__klToken) load();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!event) return null;
+
+  const effectiveDate = new Date(event.effective_from);
+  const now = new Date();
+  const diffDays = Math.max(0, Math.ceil((effectiveDate - now) / (1000 * 60 * 60 * 24)));
+  const dateLabel = effectiveDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const urgencyColor = diffDays <= 30 ? '#F59E0B' : diffDays <= 90 ? '#0EA5E9' : '#64748B';
+
+  return (
+    <div
+      className="kl-horizon-alert"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        background: 'rgba(245, 158, 11, 0.06)',
+        border: '1px solid rgba(245, 158, 11, 0.15)',
+        marginBottom: '20px',
+        maxWidth: '640px',
+        width: '100%',
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: urgencyColor,
+          flexShrink: 0,
+        }}
+      ></div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 500 }}>
+          {event.requirement_name}
+        </span>
+        {event.statutory_basis && (
+          <span style={{ color: '#64748B', fontSize: '11px', marginLeft: '6px' }}>
+            {event.statutory_basis}
+          </span>
+        )}
+      </div>
+      <div
+        style={{
+          color: urgencyColor,
+          fontSize: '11px',
+          fontWeight: 500,
+          fontFamily: "'DM Mono', monospace",
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}
+      >
+        {diffDays === 0 ? 'Today' : diffDays === 1 ? 'Tomorrow' : diffDays + ' days'} — {dateLabel}
+      </div>
     </div>
   );
 }
