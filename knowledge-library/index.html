@@ -3,727 +3,568 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Knowledge Library | Ailane</title>
-  <meta name="robots" content="noindex, nofollow">
+  <title>Knowledge Library — Ailane</title>
 
-  <!-- Supabase CDN — FIRST (protected page, Rule 15) -->
+  <!-- Supabase CDN FIRST (protected page) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <!-- GA4 (Rule 1 — no exceptions) -->
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
 
-  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 
-  <!-- Fonts (non-blocking) -->
+  <!-- DM Sans + DM Mono Typography (KLUX-001 Art. 12) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
-  <!-- React 18 — UMD production builds -->
+  <!-- React 18 -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-  <!-- Workspace styles (KLUI-001 persistent panel system) -->
-  <link rel="stylesheet" href="/workspace/dist/workspace-styles.css">
-</head>
-<body style="visibility:hidden">
-
-  <div id="kl-root"></div>
-
-  <!-- Auth Guard -->
-  <script>
-    (function() {
-      var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-
-      // Expose anon key globally so the workspace bundle (PreferenceManager)
-      // and dynamically-loaded panels can make authenticated REST calls.
-      window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
-
-      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-      function fail() {
-        window.location.replace('/login/');
-      }
-
-      function succeed(session) {
-        try {
-          var token = session.access_token;
-          var payload = JSON.parse(atob(token.split('.')[1]));
-          var userId = payload.sub;
-          var email = payload.email || '';
-
-          // Set user object immediately — page reveals NOW
-          window.__ailaneUser = {
-            id: userId,
-            email: email,
-            token: token,
-            tier: 'loading'
-          };
-
-          document.body.style.visibility = 'visible';
-
-          // Boot React AFTER auth is confirmed
-          if (window.KLApp) {
-            ReactDOM.createRoot(document.getElementById('kl-root')).render(
-              React.createElement(window.KLApp)
-            );
-          }
-
-          // Fetch tier AFTER page is visible (non-blocking)
-          fetch(
-            SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=subscription_tier',
-            {
-              headers: {
-                'Authorization': 'Bearer ' + token,
-                'apikey': SUPABASE_ANON_KEY
-              }
-            }
-          )
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data && data[0] && data[0].subscription_tier) {
-              window.__ailaneUser.tier = data[0].subscription_tier;
-              // Dispatch event so React can update tier badge
-              window.dispatchEvent(new CustomEvent('ailane-tier-loaded', { detail: { tier: data[0].subscription_tier } }));
-            }
-          })
-          .catch(function(e) {
-            console.warn('Tier fetch failed (non-blocking):', e);
-          });
-
-          // Fetch active per-session access (non-blocking).
-          // Subscription users will typically have no kl_sessions row — that's fine.
-          // Per-session users get an active row with expires_at > now.
-          fetch(
-            SUPABASE_URL + '/rest/v1/kl_sessions?user_id=eq.' + userId +
-              '&status=eq.active&expires_at=gte.' + encodeURIComponent(new Date().toISOString()) +
-              '&order=expires_at.desc&limit=1&select=id,expires_at,product_type',
-            {
-              headers: {
-                'Authorization': 'Bearer ' + token,
-                'apikey': SUPABASE_ANON_KEY
-              }
-            }
-          )
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data && data[0]) {
-              window.__ailaneSession = {
-                id: data[0].id,
-                expires_at: data[0].expires_at,
-                product_type: data[0].product_type
-              };
-              window.dispatchEvent(new CustomEvent('ailane-session-loaded', { detail: window.__ailaneSession }));
-            }
-          })
-          .catch(function(e) {
-            console.warn('Session fetch failed (non-blocking):', e);
-          });
-
-        } catch (e) {
-          fail();
-        }
-      }
-
-      sb.auth.getSession().then(function(result) {
-        if (result.data && result.data.session) {
-          succeed(result.data.session);
-        } else {
-          var resolved = false;
-          var timeout = setTimeout(function() {
-            if (!resolved) { resolved = true; fail(); }
-          }, 6000);
-
-          sb.auth.onAuthStateChange(function(event, session) {
-            if (!resolved && session) {
-              resolved = true;
-              clearTimeout(timeout);
-              succeed(session);
-            }
-          });
-        }
-      }).catch(function() {
-        fail();
-      });
-    })();
-  </script>
-
-  <!-- Pre-compiled React bundle (esbuild output) -->
-  <script src="kl-app.js"></script>
-
-  <!--
-    Workspace bundle (KLUI-001 persistent panel system).
-    Self-initialises on DOMContentLoaded and reads window.__ailaneUser.
-    Per-session users (tier: per_session) exit at the tier gate — they see
-    only the Eileen conversational interface above. Subscription users
-    (operational / operational_readiness / governance / institutional) get
-    the full 8-panel workspace (minus planner for Operational, per bundle
-    tierGate in panel-system.js).
-  -->
-  <script src="/workspace/dist/workspace-bundle.js"></script>
-
   <style>
-    /* ── CSS Variables ── */
-    :root {
-      --kl-bg: #0A1628;
-      --kl-surface: #0F172A;
-      --kl-surface-raised: #1E293B;
-      --kl-border: rgba(14,165,233,0.15);
-      --kl-border-hover: #0EA5E9;
-      --kl-text: #E2E8F0;
-      --kl-text-muted: #94A3B8;
-      --kl-text-bright: #F1F5F9;
-      --kl-cyan: #0EA5E9;
-      --kl-cyan-soft: #38BDF8;
-      --kl-cyan-glow: rgba(14,165,233,0.25);
-      --kl-amber: #D97706;
-      --kl-red: #EF4444;
-      --kl-green: #10B981;
-    }
-
-    /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --kl-bg: #0A1628;
+      --kl-surface: #0F1D32;
+      --kl-surface-hover: #162440;
+      --kl-border: #1E3A5F;
+      --kl-cyan: #0EA5E9;
+      --kl-cyan-dim: rgba(14, 165, 233, 0.15);
+      --kl-text: #F1F5F9;
+      --kl-text-muted: #94A3B8;
+      --kl-text-dim: #64748B;
+      --kl-gold: #D4A017;
+      --kl-green: #10B981;
+      --kl-purple: #8B5CF6;
+      --kl-red: #EF4444;
+      --kl-font-sans: 'DM Sans', sans-serif;
+      --kl-font-mono: 'DM Mono', monospace;
+      --kl-sidebar-width: 280px;
+      --kl-topbar-height: 56px;
+      --kl-panel-rail-width: 48px;
+      --kl-advisory-height: 36px;
+    }
+
     body {
+      font-family: var(--kl-font-sans);
       background: var(--kl-bg);
       color: var(--kl-text);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      font-size: 15px;
-      line-height: 1.6;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      height: 100vh;
+      line-height: 1.5;
     }
 
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: var(--kl-bg); }
-    ::-webkit-scrollbar-thumb { background: var(--kl-surface-raised); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
-
-    /* ── Screen Reader Only ── */
-    .sr-only {
-      position: absolute; width: 1px; height: 1px; padding: 0;
-      margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
-      white-space: nowrap; border: 0;
+    #kl-root {
+      width: 100%;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: var(--kl-topbar-height) 1fr var(--kl-advisory-height);
+      grid-template-columns: var(--kl-sidebar-width) 1fr var(--kl-panel-rail-width);
+      grid-template-areas:
+        "topbar topbar topbar"
+        "sidebar main panelrail"
+        "advisory advisory advisory";
     }
 
-    /* ── App Layout ── */
-    .kl-app {
+    /* Sidebar collapsed state */
+    #kl-root.sidebar-collapsed {
+      grid-template-columns: 56px 1fr var(--kl-panel-rail-width);
+    }
+
+    /* Panel drawer open state */
+    #kl-root.drawer-open {
+      grid-template-columns: var(--kl-sidebar-width) 1fr 468px;
+    }
+
+    /* Mobile responsive — sidebar becomes overlay, panel rail hidden */
+    @media (max-width: 768px) {
+      #kl-root {
+        grid-template-columns: 0 1fr 0 !important;
+        grid-template-areas:
+          "topbar topbar topbar"
+          "main main main"
+          "advisory advisory advisory";
+      }
+      .kl-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        max-width: 85vw;
+        z-index: 40;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+      }
+      #kl-root:not(.sidebar-collapsed) .kl-sidebar {
+        transform: translateX(0);
+      }
+      .kl-panelrail { display: none; }
+      .kl-messages { padding: 16px; }
+      .kl-conversation-input { padding: 12px 16px; }
+      .kl-welcome { padding: 32px 16px; }
+      .kl-welcome-greeting { font-size: 22px; margin-bottom: 24px; }
+      .kl-topbar-title { font-size: 14px; }
+    }
+
+    /* Grid containers */
+    .kl-topbar { grid-area: topbar; background: var(--kl-surface); border-bottom: 1px solid var(--kl-border); display: flex; align-items: center; gap: 12px; padding: 0 16px; z-index: 10; }
+    .kl-sidebar { grid-area: sidebar; background: var(--kl-surface); border-right: 1px solid var(--kl-border); overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+    .kl-main { grid-area: main; display: flex; flex-direction: column; overflow: hidden; background: var(--kl-bg); min-width: 0; }
+    .kl-panelrail { grid-area: panelrail; background: var(--kl-surface); border-left: 1px solid var(--kl-border); display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 8px; }
+    .kl-advisory { grid-area: advisory; background: rgba(14, 165, 233, 0.08); border-top: 1px solid var(--kl-cyan); display: flex; align-items: center; justify-content: center; padding: 0 16px; }
+    .kl-advisory p { font-size: 11px; color: var(--kl-text-dim); font-family: var(--kl-font-sans); font-weight: 300; text-align: center; }
+
+    /* ─── TopBar ─── */
+    .kl-topbar-toggle { background: transparent; border: none; color: var(--kl-text-muted); cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.15s; }
+    .kl-topbar-toggle:hover { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-topbar-title { font-family: var(--kl-font-sans); font-size: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--kl-text); flex: 1; }
+    .kl-topbar-right { display: flex; align-items: center; gap: 8px; }
+    .kl-tier-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 500; font-family: var(--kl-font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .kl-badge-operational { background: rgba(14,165,233,0.12); color: var(--kl-cyan); border: 1px solid rgba(14,165,233,0.3); }
+    .kl-badge-governance { background: rgba(139,92,246,0.12); color: #A78BFA; border: 1px solid rgba(139,92,246,0.3); }
+    .kl-badge-institutional { background: rgba(212,160,23,0.12); color: var(--kl-gold); border: 1px solid rgba(212,160,23,0.3); }
+    .kl-badge-per-session { background: rgba(14,165,233,0.08); color: var(--kl-cyan); border: 1px solid rgba(14,165,233,0.2); }
+
+    /* ─── Sidebar ─── */
+    .kl-sidebar-section { padding: 12px; flex-shrink: 0; }
+    .kl-new-chat-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; background: transparent; border: 1px solid var(--kl-cyan); border-radius: 8px; color: var(--kl-cyan); font-family: var(--kl-font-sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .kl-new-chat-btn:hover { background: var(--kl-cyan-dim); }
+    .kl-sidebar-history { flex: 1; overflow-y: auto; padding: 4px 8px; min-height: 0; }
+    .kl-sidebar-empty { padding: 16px 8px; font-size: 12px; color: var(--kl-text-dim); text-align: center; font-family: var(--kl-font-sans); }
+    .kl-history-item { display: block; width: 100%; text-align: left; background: transparent; border: none; border-left: 2px solid transparent; padding: 8px 10px; margin-bottom: 2px; border-radius: 4px; color: var(--kl-text-muted); cursor: pointer; font-family: var(--kl-font-sans); transition: all 0.15s; }
+    .kl-history-item:hover { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-history-item.active { background: var(--kl-cyan-dim); border-left-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-history-title { font-size: 12px; line-height: 1.35; margin-bottom: 2px; }
+    .kl-history-time { font-size: 10px; color: var(--kl-text-dim); font-family: var(--kl-font-mono); }
+    .kl-sidebar-divider { height: 1px; background: var(--kl-border); margin: 8px 12px; flex-shrink: 0; }
+
+    /* ─── Crown Jewels ─── */
+    .kl-crown { padding: 4px 12px 16px; flex-shrink: 0; }
+    .kl-crown-title { font-size: 10px; font-weight: 500; color: var(--kl-text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; font-family: var(--kl-font-mono); }
+    .kl-crown-chips { display: flex; flex-direction: column; gap: 6px; }
+    .kl-chip { display: block; width: 100%; text-align: left; padding: 8px 10px; background: rgba(14,165,233,0.05); border: 1px solid rgba(14,165,233,0.15); border-radius: 8px; color: var(--kl-text-muted); font-family: var(--kl-font-sans); font-size: 11px; font-weight: 400; line-height: 1.35; cursor: pointer; transition: all 0.15s; }
+    .kl-chip:hover:not(:disabled) { background: var(--kl-cyan-dim); border-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ─── Welcome state ─── */
+    .kl-welcome { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; flex: 1; padding: 48px 24px; overflow-y: auto; }
+    .kl-welcome-nexus { margin-bottom: 24px; }
+    .kl-nexus-canvas { display: block; }
+    .kl-welcome-greeting { font-family: var(--kl-font-sans); font-size: 28px; font-weight: 500; color: var(--kl-text); margin-bottom: 32px; text-align: center; letter-spacing: -0.01em; }
+    .kl-welcome-input { width: 100%; max-width: 640px; margin-bottom: 32px; }
+    .kl-topics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 720px; }
+    .kl-topic-card { padding: 16px; background: var(--kl-surface); border: 1px solid var(--kl-border); border-radius: 10px; color: var(--kl-text-muted); font-family: var(--kl-font-sans); font-size: 12px; line-height: 1.4; text-align: left; cursor: pointer; transition: all 0.2s; }
+    .kl-topic-card:hover:not(:disabled) { border-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-topic-card:disabled { opacity: 0.5; cursor: not-allowed; }
+    .kl-card-label { font-size: 12px; }
+    @media (max-width: 900px) { .kl-topics-grid { grid-template-columns: 1fr; } }
+
+    /* ─── Conversation state ─── */
+    .kl-conversation { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .kl-messages { flex: 1; overflow-y: auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; }
+    .kl-conversation-input { padding: 16px 32px; border-top: 1px solid var(--kl-border); background: var(--kl-surface); flex-shrink: 0; }
+
+    /* ─── Messages ─── */
+    .kl-msg { display: flex; max-width: 860px; width: 100%; }
+    .kl-msg-user { justify-content: flex-end; margin-left: auto; }
+    .kl-msg-eileen { justify-content: flex-start; margin-right: auto; }
+    .kl-msg-content { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-family: var(--kl-font-sans); font-size: 14px; line-height: 1.6; }
+    .kl-msg-user .kl-msg-content { background: var(--kl-cyan-dim); border: 1px solid rgba(14,165,233,0.3); color: var(--kl-text); }
+    .kl-msg-eileen .kl-msg-content { background: var(--kl-surface); border: 1px solid var(--kl-border); border-left: 2px solid var(--kl-cyan); color: var(--kl-text); }
+    .kl-msg-sender { font-size: 10px; font-weight: 500; color: var(--kl-cyan); margin-bottom: 6px; font-family: var(--kl-font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .kl-msg-body { white-space: normal; word-wrap: break-word; }
+    .kl-msg-user .kl-msg-body { white-space: pre-wrap; }
+    .kl-msg-body p { margin: 0 0 8px; }
+    .kl-msg-body p:last-child { margin-bottom: 0; }
+    .kl-msg-body strong { color: var(--kl-text); font-weight: 600; }
+    .kl-msg-body code { font-family: var(--kl-font-mono); font-size: 12px; background: rgba(14,165,233,0.1); padding: 1px 5px; border-radius: 3px; }
+    .kl-msg-body ul { margin: 6px 0 8px 18px; padding: 0; }
+    .kl-msg-body li { margin-bottom: 3px; }
+    .kl-msg-body h4, .kl-msg-body h5, .kl-msg-body h6 { color: var(--kl-text); font-weight: 600; margin: 10px 0 6px; font-size: 14px; }
+    .kl-msg-footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--kl-border); }
+    .kl-msg-stats { font-size: 11px; color: var(--kl-text-dim); font-family: var(--kl-font-mono); }
+
+    /* ─── Typing indicator ─── */
+    .kl-typing-dots { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+    .kl-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--kl-cyan); animation: klPulse 1.4s ease-in-out infinite; }
+    .kl-dot:nth-child(2) { animation-delay: 0.2s; }
+    .kl-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes klPulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+    /* ─── Input bar ─── */
+    .kl-input-bar { display: flex; align-items: center; background: var(--kl-bg); border: 1px solid var(--kl-border); border-radius: 12px; padding: 4px; gap: 4px; transition: border-color 0.2s; }
+    .kl-input-bar:focus-within { border-color: var(--kl-cyan); }
+    .kl-input { flex: 1; background: transparent; border: none; outline: none; padding: 10px 12px; color: var(--kl-text); font-family: var(--kl-font-sans); font-size: 14px; }
+    .kl-input::placeholder { color: var(--kl-text-dim); }
+    .kl-send-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--kl-cyan); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.2s; }
+    .kl-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .kl-send-btn:not(:disabled):hover { opacity: 0.85; }
+
+    /* ─── Panel rail (KLUI-001 §2.1) ─── */
+    .kl-panelrail-slot { width: 28px; height: 28px; border-radius: 50%; background: var(--kl-surface-hover); border: 1px solid var(--kl-border); }
+    .kl-panel-rail-btn {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: none;
+      border-left: 2px solid transparent;
+      cursor: pointer;
+      color: var(--kl-text-muted);
+      font-size: 18px;
+      padding: 0;
+      transition: background 0.15s, border-left-color 0.15s, opacity 0.15s;
+    }
+    .kl-panel-rail-btn:hover:not(:disabled) { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-panel-rail-btn.active { background: var(--kl-surface-hover); border-left-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-panel-rail-btn.locked, .kl-panel-rail-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .kl-panel-rail-icon { font-size: 18px; line-height: 1; }
+
+    /* ─── Panel drawer (KLUI-001 §2.2) ─── */
+    .kl-panel-drawer {
+      position: fixed;
+      top: var(--kl-topbar-height);
+      right: var(--kl-panel-rail-width);
+      width: 420px;
+      height: calc(100vh - var(--kl-topbar-height) - var(--kl-advisory-height));
+      background: var(--kl-bg);
+      border-left: 1px solid var(--kl-border);
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 20px;
+      z-index: 20;
+      animation: klSlideIn 0.2s ease-out;
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.25);
     }
-
-    /* ── Header ── */
-    .kl-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 0;
+    @media (max-width: 768px) {
+      .kl-panel-drawer { right: 0; width: 100%; }
+    }
+    @keyframes klSlideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    .kl-panel-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--kl-border);
+      background: var(--kl-surface);
       flex-shrink: 0;
     }
-    .kl-header-left, .kl-header-right { flex: 0 0 auto; }
-    .kl-header-center { flex: 1; text-align: center; }
-    .kl-header-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--kl-text-bright);
-      letter-spacing: 0.02em;
-    }
-
-    /* ── Tier Badge ── */
-    .kl-tier-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-    .kl-badge-operational {
-      background: rgba(14,165,233,0.12);
-      color: var(--kl-cyan);
-      border: 1px solid rgba(14,165,233,0.25);
-    }
-    .kl-badge-governance {
-      background: rgba(139,92,246,0.12);
-      color: #A78BFA;
-      border: 1px solid rgba(139,92,246,0.25);
-    }
-    .kl-badge-institutional {
-      background: rgba(241,245,249,0.08);
-      color: var(--kl-text-bright);
-      border: 1px solid rgba(241,245,249,0.2);
-    }
-    .kl-badge-per-session {
-      background: rgba(14,165,233,0.08);
-      color: var(--kl-cyan-soft);
-      border: 1px solid rgba(14,165,233,0.2);
-    }
-
-    /* ── Session Status Bar (per-session users only) ── */
-    .kl-session-status {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
-      margin: 12px 0 0;
-      background: rgba(14,165,233,0.06);
-      border: 1px solid rgba(14,165,233,0.18);
-      border-radius: 10px;
-      font-size: 13px;
+    .kl-panel-drawer-title {
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      font-weight: 500;
       color: var(--kl-text);
-      line-height: 1.4;
-      flex-shrink: 0;
+      letter-spacing: 0.01em;
     }
-    .kl-session-status-urgent {
-      background: rgba(239,68,68,0.08);
-      border-color: rgba(239,68,68,0.35);
+    .kl-panel-drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--kl-text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .kl-panel-drawer-close:hover { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-panel-drawer-body { flex: 1; overflow: auto; padding: 16px; min-height: 0; }
+
+    /* ─── Notes panel ─── */
+    .kl-notes-panel { display: flex; flex-direction: column; height: 100%; gap: 8px; }
+    .kl-notes-title {
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--kl-text);
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .kl-notes-title:focus { border-color: var(--kl-cyan); }
+    .kl-notes-status { font-size: 11px; color: var(--kl-text-dim); font-family: var(--kl-font-mono); }
+    .kl-notes-status.saved { color: var(--kl-green); }
+    .kl-notes-status.error { color: var(--kl-red); }
+    .kl-notes-body {
+      flex: 1;
+      min-height: 200px;
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 12px;
+      color: var(--kl-text);
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      line-height: 1.7;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .kl-notes-body:focus { border-color: var(--kl-cyan); }
+
+    /* ─── Clipboard panel ─── */
+    .kl-clipboard-panel { display: flex; flex-direction: column; gap: 8px; }
+    .kl-clipboard-empty { color: var(--kl-text-dim); font-size: 13px; font-family: var(--kl-font-sans); line-height: 1.5; }
+    .kl-clipboard-clear {
+      align-self: flex-start;
+      background: transparent;
+      border: none;
       color: var(--kl-red);
-    }
-    .kl-session-product {
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    .kl-session-separator { color: var(--kl-text-muted); }
-    .kl-session-remaining {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--kl-font-sans);
       font-size: 12px;
+      cursor: pointer;
+      padding: 2px 0;
+      margin-bottom: 4px;
     }
+    .kl-clipboard-clear:hover { text-decoration: underline; }
+    .kl-clip {
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+    }
+    .kl-clip-text { color: var(--kl-text); margin: 0 0 6px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .kl-clip-actions { display: flex; gap: 12px; }
+    .kl-clip-copy, .kl-clip-remove {
+      background: transparent;
+      border: none;
+      font-family: var(--kl-font-sans);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .kl-clip-copy { color: var(--kl-cyan); }
+    .kl-clip-remove { color: var(--kl-text-dim); }
+    .kl-clip-copy:hover, .kl-clip-remove:hover { text-decoration: underline; }
 
-    /* ── Logo ── */
-    .kl-logo { height: 28px; opacity: 0.9; }
+    /* ─── Placeholder panel ─── */
+    .kl-placeholder-panel { text-align: center; padding: 48px 16px 16px; }
+    .kl-placeholder-icon { font-size: 36px; color: var(--kl-text-dim); margin-bottom: 12px; line-height: 1; }
+    .kl-placeholder-title { font-family: var(--kl-font-sans); font-size: 16px; font-weight: 500; color: var(--kl-text); margin-bottom: 8px; }
+    .kl-placeholder-body { color: var(--kl-text-dim); font-size: 13px; line-height: 1.5; max-width: 280px; margin: 0 auto; }
 
-    /* ── New Chat Button ── */
-    .kl-new-chat-btn {
+    /* ─── Session countdown (KLAC-001-AM-005) ─── */
+    .kl-session-countdown {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
-      background: transparent;
-      border: 1px solid var(--kl-border);
-      border-radius: 8px;
-      color: var(--kl-text-muted);
-      font-size: 13px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .kl-new-chat-btn:hover {
-      border-color: var(--kl-cyan);
-      color: var(--kl-cyan);
-    }
-
-    /* ── Main ── */
-    .kl-main { flex: 1; display: flex; flex-direction: column; }
-
-    /* ── Welcome State ── */
-    .kl-welcome {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 0 32px;
-      flex: 1;
-    }
-    .kl-welcome-nexus { margin-bottom: 24px; }
-    .kl-welcome-greeting {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--kl-text-bright);
-      margin-bottom: 28px;
-      text-align: center;
-    }
-    .kl-welcome-input { width: 100%; max-width: 640px; margin-bottom: 40px; }
-
-    /* ── Nexus Canvas ── */
-    .kl-nexus-canvas { display: block; }
-
-    /* ── Input Bar ── */
-    .kl-input-bar {
-      display: flex;
-      align-items: center;
-      background: var(--kl-surface);
-      border: 1px solid var(--kl-border);
-      border-radius: 12px;
-      padding: 4px;
-      transition: border-color 0.2s;
-    }
-    .kl-input-bar:focus-within { border-color: var(--kl-cyan); }
-    .kl-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      padding: 12px 16px;
-      color: var(--kl-text);
-      font-family: inherit;
-      font-size: 15px;
-      outline: none;
-    }
-    .kl-input::placeholder { color: var(--kl-text-muted); }
-    .kl-send-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: var(--kl-cyan);
-      border: none;
-      color: #fff;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      flex-shrink: 0;
-    }
-    .kl-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .kl-send-btn:not(:disabled):hover { opacity: 0.85; }
-
-    /* ── Topic Cards Grid ── */
-    .kl-topics-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      width: 100%;
-      max-width: 720px;
-      margin-bottom: 40px;
-    }
-
-    /* ── Topic Card ── */
-    .kl-topic-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 20px 12px;
-      background: var(--kl-surface);
-      border: 1px solid var(--kl-border);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      color: var(--kl-text);
-      text-align: center;
-    }
-    .kl-topic-card:hover {
-      border-color: var(--kl-cyan);
-      transform: scale(1.02);
-    }
-    .kl-card-icon { color: var(--kl-cyan); display: flex; }
-    .kl-card-label { font-size: 13px; font-weight: 500; line-height: 1.3; }
-
-    /* ── Crown Jewels ── */
-    .kl-crown {
-      width: 100%;
-      max-width: 720px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    .kl-crown-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--kl-text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 12px;
-    }
-    .kl-crown-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-    .kl-chip {
-      display: inline-flex;
-      padding: 4px 12px;
-      background: rgba(14,165,233,0.08);
-      border: 1px solid rgba(14,165,233,0.15);
+      padding: 4px 10px;
       border-radius: 20px;
-      font-size: 12px;
+      font-family: var(--kl-font-mono);
+      font-size: 11px;
       font-weight: 500;
-      color: var(--kl-cyan-soft);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    button.kl-chip {
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s, color 0.2s;
-    }
-    button.kl-chip:hover:not(:disabled) {
-      border-color: var(--kl-cyan);
-      background: rgba(14,165,233,0.14);
-      color: var(--kl-text-bright);
-    }
-    button.kl-chip:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* ── Upsell Card (per-session users after 3 turns) ── */
-    .kl-upsell-card {
-      margin: 8px 0 4px;
-      padding: 14px 16px;
-      background: rgba(14,165,233,0.06);
-      border-left: 3px solid var(--kl-cyan);
-      border-radius: 0 10px 10px 0;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .kl-upsell-title {
-      font-weight: 600;
-      color: var(--kl-text-bright);
-      margin-bottom: 4px;
-    }
-    .kl-upsell-body {
-      color: var(--kl-text);
-      margin-bottom: 8px;
-    }
-    .kl-upsell-link {
-      display: inline-block;
+      letter-spacing: 0.04em;
+      background: rgba(14, 165, 233, 0.08);
       color: var(--kl-cyan);
-      text-decoration: none;
-      font-weight: 600;
+      border: 1px solid rgba(14, 165, 233, 0.25);
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
     }
-    .kl-upsell-link:hover { color: var(--kl-cyan-soft); }
+    .kl-session-countdown.urgent {
+      background: rgba(239, 68, 68, 0.12);
+      color: #F87171;
+      border-color: rgba(239, 68, 68, 0.4);
+      animation: klPulseUrgent 1.6s ease-in-out infinite;
+    }
+    .kl-session-countdown-time { font-variant-numeric: tabular-nums; }
+    @keyframes klPulseUrgent {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
 
-    /* ── Session Expired Modal ── */
+    /* ─── Expired modal ─── */
     .kl-expired-modal {
       position: fixed;
       inset: 0;
-      z-index: 9999;
+      z-index: 100;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px;
     }
     .kl-expired-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(10,22,40,0.85);
-      backdrop-filter: blur(4px);
+      background: rgba(10, 14, 22, 0.82);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
     .kl-expired-content {
       position: relative;
-      max-width: 440px;
+      max-width: 420px;
       width: 100%;
-      padding: 28px 28px 24px;
-      background: var(--kl-surface-raised);
+      background: var(--kl-surface);
       border: 1px solid var(--kl-border);
-      border-radius: 14px;
+      border-top: 2px solid var(--kl-cyan);
+      border-radius: 12px;
+      padding: 32px 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
       text-align: center;
     }
-    .kl-expired-content h2 {
+    .kl-expired-title {
+      font-family: var(--kl-font-sans);
       font-size: 20px;
-      font-weight: 600;
-      color: var(--kl-text-bright);
-      margin-bottom: 10px;
+      font-weight: 500;
+      color: var(--kl-text);
+      margin: 0 0 12px;
+      letter-spacing: -0.01em;
     }
-    .kl-expired-content p {
+    .kl-expired-body {
+      font-family: var(--kl-font-sans);
       font-size: 14px;
-      color: var(--kl-text);
-      line-height: 1.6;
-      margin-bottom: 18px;
-    }
-    .kl-expired-btn {
-      display: inline-block;
-      padding: 10px 22px;
-      background: var(--kl-cyan);
-      color: #fff;
-      text-decoration: none;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      transition: opacity 0.2s;
-    }
-    .kl-expired-btn:hover { opacity: 0.88; }
-
-    /* ── Horizon Alert ── */
-    .kl-horizon {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      width: 100%;
-      max-width: 720px;
-      padding: 14px 16px;
-      background: rgba(217,119,6,0.06);
-      border-left: 3px solid var(--kl-amber);
-      border-radius: 0 8px 8px 0;
-      font-size: 14px;
-      color: var(--kl-text);
-      line-height: 1.5;
-    }
-    .kl-horizon-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-
-    /* ── Conversation State ── */
-    .kl-conversation {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-height: 0;
-    }
-
-    /* ── Advisory Banner ── */
-    .kl-advisory {
-      padding: 12px 16px;
-      background: rgba(217,119,6,0.08);
-      border-left: 3px solid var(--kl-amber);
-      border-radius: 0 8px 8px 0;
-      font-size: 13px;
-      color: var(--kl-text);
-      line-height: 1.5;
-      margin: 16px 0;
-      flex-shrink: 0;
-    }
-
-    /* ── Messages ── */
-    .kl-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px 0;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      min-height: 200px;
-      max-height: calc(100vh - 320px);
-    }
-
-    /* ── Message (shared) ── */
-    .kl-msg { display: flex; gap: 12px; animation: klFadeIn 0.3s ease; }
-    .kl-msg-user { justify-content: flex-end; }
-    .kl-msg-avatar { flex-shrink: 0; margin-top: 4px; }
-
-    .kl-msg-eileen .kl-msg-content {
-      background: var(--kl-surface);
-      border-left: 3px solid var(--kl-cyan);
-      border-radius: 0 12px 12px 12px;
-      padding: 14px 18px;
-      max-width: 85%;
-    }
-    .kl-msg-user .kl-msg-content {
-      background: var(--kl-surface-raised);
-      border-radius: 12px 0 12px 12px;
-      padding: 14px 18px;
-      max-width: 75%;
-    }
-    .kl-msg-sender {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--kl-cyan);
-      margin-bottom: 4px;
-    }
-    .kl-msg-body {
-      font-size: 15px;
-      line-height: 1.7;
-      color: var(--kl-text);
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-    .kl-msg-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(14,165,233,0.08);
-    }
-    .kl-msg-stats {
-      font-size: 12px;
+      line-height: 1.55;
       color: var(--kl-text-muted);
-      font-family: 'JetBrains Mono', monospace;
+      margin: 0 0 24px;
     }
-    .kl-save-btn {
+    .kl-expired-cta {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      background: transparent;
-      border: 1px solid var(--kl-border);
-      border-radius: 6px;
-      color: var(--kl-text-muted);
-      font-size: 12px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .kl-save-btn:hover {
-      border-color: var(--kl-cyan);
-      color: var(--kl-cyan);
-    }
-
-    /* ── Typing Indicator ── */
-    .kl-typing-dots {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 8px 4px;
-    }
-    .kl-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--kl-cyan);
-      animation: klPulse 1.4s ease-in-out infinite;
-    }
-    .kl-dot:nth-child(2) { animation-delay: 0.2s; }
-    .kl-dot:nth-child(3) { animation-delay: 0.4s; }
-
-    /* ── Conversation Input ── */
-    .kl-conversation-input {
-      padding: 16px 0;
-      flex-shrink: 0;
-    }
-
-    /* ── Footer ── */
-    .kl-footer {
-      padding: 24px 0;
-      border-top: 1px solid var(--kl-border);
-      text-align: center;
-      flex-shrink: 0;
-    }
-    .kl-footer-legal {
-      font-size: 12px;
-      color: var(--kl-text-muted);
-      margin-bottom: 6px;
-    }
-    .kl-footer-links {
-      display: flex;
-      gap: 8px;
       justify-content: center;
-      font-size: 12px;
-    }
-    .kl-footer-links a {
-      color: var(--kl-text-muted);
+      padding: 12px 24px;
+      background: var(--kl-cyan);
+      color: #fff;
+      border-radius: 10px;
+      font-family: var(--kl-font-sans);
+      font-size: 13px;
+      font-weight: 500;
       text-decoration: none;
-      transition: color 0.2s;
+      letter-spacing: 0.02em;
+      transition: opacity 0.15s;
     }
-    .kl-footer-links a:hover { color: var(--kl-cyan); }
-    .kl-footer-links span { color: var(--kl-text-muted); }
+    .kl-expired-cta:hover { opacity: 0.88; }
 
-    /* ── Animations ── */
-    @keyframes klFadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    /* ─── Mobile sidebar backdrop (rendered by React only when sidebar open) ─── */
+    .kl-sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 14, 22, 0.6);
+      z-index: 35;
     }
-    @keyframes klPulse {
-      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-      40% { opacity: 1; transform: scale(1); }
-    }
-
-    /* ── Responsive: Tablet ── */
-    @media (max-width: 1023px) {
-      .kl-topics-grid { grid-template-columns: repeat(2, 1fr); }
-      .kl-welcome-greeting { font-size: 22px; }
+    @media (max-width: 768px) {
+      .kl-sidebar-backdrop { display: block; }
     }
 
-    /* ── Responsive: Mobile ── */
-    @media (max-width: 767px) {
-      .kl-app { padding: 0 14px; }
-      .kl-topics-grid { grid-template-columns: 1fr; max-width: 400px; }
-      .kl-welcome { padding: 24px 0; }
-      .kl-welcome-greeting { font-size: 20px; margin-bottom: 20px; }
-      .kl-msg-eileen .kl-msg-content, .kl-msg-user .kl-msg-content { max-width: 95%; }
-      .kl-messages { max-height: calc(100vh - 280px); }
-      .kl-header-title { font-size: 14px; }
+    /* ─── Focus-visible polish ─── */
+    .kl-topbar-toggle:focus-visible,
+    .kl-new-chat-btn:focus-visible,
+    .kl-history-item:focus-visible,
+    .kl-chip:focus-visible,
+    .kl-topic-card:focus-visible,
+    .kl-panel-rail-btn:focus-visible,
+    .kl-panel-drawer-close:focus-visible,
+    .kl-expired-cta:focus-visible,
+    .kl-send-btn:focus-visible {
+      outline: 2px solid var(--kl-cyan);
+      outline-offset: 2px;
     }
+    .kl-input:focus-visible { outline: none; }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--kl-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--kl-surface-hover); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--kl-border); }
   </style>
+</head>
+<body style="visibility:hidden">
+  <div id="kl-root">
+    <!-- React renders here. Placeholder structure for no-JS fallback: -->
+    <div class="kl-topbar" id="kl-topbar"></div>
+    <div class="kl-sidebar" id="kl-sidebar"></div>
+    <div class="kl-main" id="kl-main"></div>
+    <div class="kl-panelrail" id="kl-panelrail"></div>
+    <div class="kl-advisory">
+      <p>This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)</p>
+    </div>
+  </div>
+
+  <script>
+    // ─── Auth Constants ───
+    const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0MTk2ODcsImV4cCI6MjA1NTk5NTY4N30.RE_n2oXvPYFqdPnztWRPBRaHRC9i3Mo71PBfGjDOPOA';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ─── Auth Guard (canonical pattern) ───
+    async function initAuth() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) return handleSession(session);
+
+      const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          subscription.unsubscribe();
+          handleSession(session);
+        }
+      });
+
+      setTimeout(() => {
+        subscription.unsubscribe();
+        window.location.replace('/account/');
+      }, 6000);
+    }
+
+    async function handleSession(session) {
+      const token = session.access_token;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userId = payload.sub;
+
+      // Check per-session access (schema: kl_sessions.status text, not is_active bool)
+      const sessResp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_sessions?user_id=eq.' + userId + '&status=eq.active&select=*',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      const sessions = await sessResp.json();
+      const activeSession = Array.isArray(sessions) ? sessions.find(s => new Date(s.expires_at) > new Date()) : null;
+
+      // Check subscription tier
+      const profileResp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=*',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      const profiles = await profileResp.json();
+      const profile = Array.isArray(profiles) ? profiles[0] : null;
+
+      if (activeSession) {
+        window.__klAccessType = 'per_session';
+        window.__klSessionExpiry = activeSession.expires_at;
+        window.__klProductType = activeSession.product_type;
+      } else if (profile && ['operational_readiness', 'governance', 'institutional'].includes(profile.subscription_tier)) {
+        window.__klAccessType = 'subscription';
+        window.__klTier = profile.subscription_tier;
+      } else {
+        window.location.replace('/knowledge-library-preview/');
+        return;
+      }
+
+      window.__klUserId = userId;
+      window.__klToken = token;
+      document.body.style.visibility = 'visible';
+
+      window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
+        detail: { accessType: window.__klAccessType, tier: window.__klTier || window.__klProductType, userId: userId }
+      }));
+
+      // Boot React app if bundle loaded
+      if (typeof window.initKLApp === 'function') window.initKLApp();
+    }
+
+    initAuth();
+  </script>
+
+  <!-- Pre-compiled React bundle (built by esbuild from kl-app.jsx) -->
+  <script src="kl-app.js"></script>
 </body>
 </html>
