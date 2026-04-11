@@ -1,494 +1,329 @@
+// kl-app.jsx — Ailane Knowledge Library v3.0
+// KLUX-001 (AMD-036) | EILEEN-001 (AMD-020) | PLUGIN-001 (AMD-032)
+// Stage 2: Core React components
+
 const { useState, useEffect, useRef, useCallback } = React;
 
 const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0MTk2ODcsImV4cCI6MjA1NTk5NTY4N30.RE_n2oXvPYFqdPnztWRPBRaHRC9i3Mo71PBfGjDOPOA';
+const EILEEN_ENDPOINT = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co') + '/functions/v1/eileen-intelligence';
 
-const TOPIC_CARDS = [
-  { label: 'Dismissal & Disciplinary', icon: 'shield', message: 'I need to understand our obligations around dismissing an employee' },
-  { label: 'Discrimination & Harassment', icon: 'scales', message: "We've had a complaint about discrimination — what should we know?" },
-  { label: 'Contracts & Terms', icon: 'document', message: 'Our employment contracts need reviewing — what are the current requirements?' },
-  { label: 'Family Leave & Pregnancy', icon: 'family', message: "An employee has just told us she's pregnant — what are our obligations?" },
-  { label: 'Business Transfers', icon: 'arrows', message: 'We\'re taking on staff from another company — what does TUPE require?' },
-  { label: 'Health & Safety', icon: 'hardhat', message: 'What are our core health and safety obligations as an employer?' },
-  { label: 'Whistleblowing', icon: 'megaphone', message: 'An employee says they want to raise a concern about practices in the company' },
-  { label: 'Data & Monitoring', icon: 'lock', message: "What are the rules around monitoring employees' emails and devices?" },
-];
-
-/*
- * Crown Jewels — authoritative 7 instruments per KLUX-001 §14.1.
- * Each chip is clickable and seeds an Eileen conversation focused on that instrument.
- */
 const CROWN_JEWELS = [
-  { abbr: 'ERA 1996',    full: 'Employment Rights Act 1996',                                 prompt: 'Tell me about the Employment Rights Act 1996 — its scope and the key protections employers need to be aware of.' },
-  { abbr: 'EqA 2010',    full: 'Equality Act 2010',                                          prompt: 'Tell me about the Equality Act 2010 — protected characteristics and the core employer duties.' },
-  { abbr: 'HSWA 1974',   full: 'Health and Safety at Work etc. Act 1974',                    prompt: 'Tell me about the Health and Safety at Work Act 1974 — the core employer duties and current enforcement expectations.' },
-  { abbr: 'NMWA 1998',   full: 'National Minimum Wage Act 1998',                             prompt: 'Tell me about the National Minimum Wage Act 1998 — current rate obligations and record-keeping duties.' },
-  { abbr: 'TULRCA 1992', full: 'Trade Union and Labour Relations (Consolidation) Act 1992',  prompt: 'Tell me about TULRCA 1992 — trade union rights and the collective consultation duties it creates.' },
-  { abbr: 'ERA 2025',    full: 'Employment Rights Act 2025',                                 prompt: 'What does the Employment Rights Act 2025 change, and when do its main provisions take effect?' },
-  { abbr: 'PIDA 1998',   full: 'Public Interest Disclosure Act 1998',                        prompt: 'Tell me about PIDA 1998 — whistleblowing protections and what counts as a qualifying disclosure.' },
+  'Employment Rights Act 1996',
+  'Equality Act 2010',
+  'Health and Safety at Work Act 1974',
+  'National Minimum Wage Act 1998',
+  'Trade Union and Labour Relations (Consolidation) Act 1992',
+  'Employment Rights Act 2025',
+  'Public Interest Disclosure Act 1998',
 ];
 
-const TIER_LABELS = {
-  per_session: 'Session',
-  operational: 'Operational',
-  operational_readiness: 'Operational',
-  governance: 'Governance',
-  institutional: 'Institutional',
-};
+const QUICK_STARTS = [
+  'What are the latest tribunal decisions on disability discrimination?',
+  'Summarise the key changes in the Employment Rights Act 2025.',
+  'How should I handle a flexible working request under current law?',
+];
 
-const KL_PRODUCT_LABELS = {
-  kl_quick_session: 'Quick Session',
-  kl_day_pass: 'Day Pass',
-  kl_research_week: 'Research Week',
-};
+// ─── Helpers ───
 
-// Format the time remaining at minute precision (no seconds — confirmed Q4).
-// Returns null if the session has already expired.
-function formatTimeRemaining(expiresAt) {
-  const now = Date.now();
-  const end = new Date(expiresAt).getTime();
-  const deltaMs = end - now;
-  if (deltaMs <= 0) return null;
-  const totalMins = Math.floor(deltaMs / 60000);
-  if (totalMins < 60) {
-    return totalMins <= 0
-      ? 'less than a minute remaining'
-      : `${totalMins} minute${totalMins !== 1 ? 's' : ''} remaining`;
-  }
-  const hours = Math.floor(totalMins / 60);
-  const mins = totalMins % 60;
-  if (hours < 24) {
-    return mins > 0
-      ? `${hours} hour${hours !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''} remaining`
-      : `${hours} hour${hours !== 1 ? 's' : ''} remaining`;
-  }
-  const days = Math.floor(hours / 24);
-  const remHours = hours % 24;
-  return remHours > 0
-    ? `${days} day${days !== 1 ? 's' : ''} ${remHours} hour${remHours !== 1 ? 's' : ''} remaining`
-    : `${days} day${days !== 1 ? 's' : ''} remaining`;
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/* ── SVG Icons ── */
-function CardIcon({ type }) {
-  const icons = {
-    shield: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-      </svg>
-    ),
-    scales: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3v18"/><path d="M4 7h16"/><path d="M4 7l3 8h-6l3-8z"/><path d="M20 7l-3 8h6l-3-8z"/>
-      </svg>
-    ),
-    document: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-      </svg>
-    ),
-    family: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-      </svg>
-    ),
-    arrows: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/>
-      </svg>
-    ),
-    hardhat: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 18h20v2H2z"/><path d="M4 18v-4a8 8 0 0116 0v4"/><path d="M12 2v4"/>
-      </svg>
-    ),
-    megaphone: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
-      </svg>
-    ),
-    lock: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-      </svg>
-    ),
-  };
-  return <span className="kl-card-icon">{icons[type]}</span>;
+function renderMarkdown(text) {
+  if (!text) return '';
+  const escaped = escapeHtml(text);
+  const withInline = escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+  const lines = withInline.split('\n');
+  const out = [];
+  let listItems = [];
+  function flushList() {
+    if (listItems.length) { out.push('<ul>' + listItems.join('') + '</ul>'); listItems = []; }
+  }
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    const headerMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
+    const listMatch = trimmed.match(/^[-*]\s+(.*)$/);
+    if (headerMatch) {
+      flushList();
+      const level = Math.min(6, headerMatch[1].length + 3);
+      out.push('<h' + level + '>' + headerMatch[2] + '</h' + level + '>');
+    } else if (listMatch) {
+      listItems.push('<li>' + listMatch[1] + '</li>');
+    } else if (trimmed === '') {
+      flushList();
+    } else {
+      flushList();
+      out.push('<p>' + line + '</p>');
+    }
+  });
+  flushList();
+  return out.join('');
 }
 
-/* ── Nexus Canvas ── */
-function NexusCanvas({ size = 200, active = false, processing = false }) {
+function formatRelativeTime(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Date.now() - then);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.substring(0, n - 1) + '…' : s;
+}
+
+function tierPalette(tier) {
+  if (tier === 'institutional') return ['#D4A017', '#F1C85B'];
+  if (tier === 'governance') return ['#0EA5E9', '#8B5CF6'];
+  if (tier === 'operational_readiness') return ['#0EA5E9', '#10B981'];
+  return ['#0EA5E9', '#38BDF8'];
+}
+
+// ─── NexusCanvas ───
+
+function NexusCanvas({ tier }) {
   const canvasRef = useRef(null);
-  const frameRef = useRef(0);
-  const timeRef = useRef(0);
+  const rafRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const w = size * dpr;
-    const h = size * dpr;
-    canvas.width = w;
-    canvas.height = h;
-    const cx = w / 2;
-    const cy = h / 2;
+    const size = 280;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
 
-    const nodeCount = size > 100 ? 20 : (processing ? 12 : active ? 10 : 8);
+    const [colorA, colorB] = tierPalette(tier);
+    const cx = size / 2;
+    const cy = size / 2;
     const nodes = [];
-    for (let i = 0; i < nodeCount; i++) {
-      const ring = i < Math.floor(nodeCount * 0.4) ? 0.25 : 0.6;
-      const angle = (i / (i < Math.floor(nodeCount * 0.4) ? Math.floor(nodeCount * 0.4) : nodeCount - Math.floor(nodeCount * 0.4))) * Math.PI * 2 + i * 0.3;
-      const radius = ring * (w * 0.4);
-      nodes.push({
-        bx: cx + Math.cos(angle) * radius,
-        by: cy + Math.sin(angle) * radius,
-        r: (1.0 + Math.random() * 1.5) * dpr,
-        speed: 0.3 + Math.random() * 0.5,
-        phase: Math.random() * Math.PI * 2,
-        ring,
-      });
-    }
+    const rings = [{ count: 6, radius: 28 }, { count: 8, radius: 68 }, { count: 10, radius: 110 }];
+    rings.forEach((ring, ri) => {
+      for (let i = 0; i < ring.count; i++) {
+        const angle = (i / ring.count) * Math.PI * 2 + ri * 0.4;
+        nodes.push({
+          x: cx + Math.cos(angle) * ring.radius,
+          y: cy + Math.sin(angle) * ring.radius,
+          phase: Math.random() * Math.PI * 2,
+          ring: ri,
+        });
+      }
+    });
 
-    function draw() {
-      timeRef.current += processing ? 0.035 : active ? 0.02 : 0.01;
-      const t = timeRef.current;
-      ctx.clearRect(0, 0, w, h);
+    const start = performance.now();
+    function draw(now) {
+      const t = (now - start) / 1000;
+      ctx.clearRect(0, 0, size, size);
 
-      // Outer glow
-      const breathe = 1 + Math.sin(t * 0.8) * (processing ? 0.15 : 0.08);
-      const coreR = (processing ? 6 : active ? 5 : 3.5) * dpr;
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 4 * breathe);
-      glow.addColorStop(0, processing ? 'rgba(14,165,233,0.5)' : active ? 'rgba(14,165,233,0.35)' : 'rgba(14,165,233,0.15)');
-      glow.addColorStop(0.5, processing ? 'rgba(56,189,248,0.2)' : active ? 'rgba(56,189,248,0.1)' : 'rgba(56,189,248,0.04)');
-      glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR * 4 * breathe, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Core
-      const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * breathe);
-      core.addColorStop(0, 'rgba(255,255,255,0.85)');
-      core.addColorStop(0.3, 'rgba(14,165,233,0.7)');
-      core.addColorStop(0.7, 'rgba(56,189,248,0.3)');
-      core.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = core;
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR * breathe, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Compute animated positions
-      const positions = nodes.map(n => {
-        const dx = Math.sin(t * n.speed + n.phase) * 3 * dpr;
-        const dy = Math.cos(t * n.speed * 0.7 + n.phase) * 2 * dpr;
-        return { x: n.bx + dx, y: n.by + dy, r: n.r, ring: n.ring };
-      });
-
-      // Draw connections
-      const maxDist = w * 0.45;
-      for (let i = 0; i < positions.length; i++) {
-        for (let j = i + 1; j < positions.length; j++) {
-          const a = positions[i];
-          const b = positions[j];
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < maxDist) {
-            const alpha = (1 - dist / maxDist) * (processing ? 0.3 : active ? 0.2 : 0.1);
-            ctx.strokeStyle = `rgba(14,165,233,${alpha})`;
-            ctx.lineWidth = 0.5 * dpr;
+      // Connections between nearby nodes
+      ctx.lineWidth = 1;
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 72) {
+            const alpha = (1 - d / 72) * 0.2;
+            ctx.strokeStyle = 'rgba(14,165,233,' + alpha.toFixed(3) + ')';
             ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
             ctx.stroke();
           }
         }
-
-        // Radial lines from center
-        const p = positions[i];
-        const distFromCenter = Math.hypot(p.x - cx, p.y - cy);
-        const lineAlpha = (1 - distFromCenter / (w * 0.45)) * (active ? 0.12 : 0.05);
-        if (lineAlpha > 0) {
-          ctx.strokeStyle = `rgba(14,165,233,${lineAlpha})`;
-          ctx.lineWidth = 0.5 * dpr;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(p.x, p.y);
-          ctx.stroke();
-        }
       }
 
-      // Draw nodes
-      positions.forEach((p, i) => {
-        const brightness = Math.sin(t * 2 + i) * 0.3 + 0.7;
-        const isPrimary = p.ring < 0.4;
-        const nodeGlow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
-        nodeGlow.addColorStop(0, `rgba(14,165,233,${brightness * (active ? 0.8 : 0.5)})`);
-        nodeGlow.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = nodeGlow;
+      // Nodes with pulse animation
+      nodes.forEach((n, i) => {
+        const pulse = 0.5 + 0.5 * Math.sin(t * 1.2 + n.phase);
+        const r = 2 + pulse * 2.2;
+        const color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : (i % 2 ? colorA : colorB));
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.45 + pulse * 0.55;
         ctx.fill();
-
-        ctx.fillStyle = isPrimary
-          ? `rgba(14,165,233,${brightness})`
-          : `rgba(56,189,248,${brightness * 0.8})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * (active ? 1 : 0.8), 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = 1;
       });
 
-      frameRef.current = requestAnimationFrame(draw);
+      rafRef.current = requestAnimationFrame(draw);
     }
+    rafRef.current = requestAnimationFrame(draw);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [tier]);
 
-    draw();
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [size, active, processing]);
-
-  return <canvas ref={canvasRef} className="kl-nexus-canvas" style={{ width: size, height: size, borderRadius: '50%' }} />;
+  return <canvas ref={canvasRef} className="kl-nexus-canvas" />;
 }
 
-/* ── Tier Badge ── */
-function TierBadge({ tier }) {
-  if (tier === 'loading') return null;
-  const label = TIER_LABELS[tier] || 'Operational';
-  const badgeClass = tier === 'per_session' ? 'kl-badge-per-session'
-    : tier === 'governance' ? 'kl-badge-governance'
-    : tier === 'institutional' ? 'kl-badge-institutional'
-    : 'kl-badge-operational';
-  return <span className={`kl-tier-badge ${badgeClass}`}>{label}</span>;
-}
+// ─── TypingIndicator ───
 
-/* ── Session Status Bar (per-session users only) ── */
-function SessionStatus({ session, tier, onExpired }) {
-  const [, setTick] = useState(0);
-
-  // Minute-precision tick (Q4 confirmed: 60s re-render, no per-second updates).
-  useEffect(() => {
-    if (!session || !session.expires_at) return;
-    const id = setInterval(() => setTick(t => t + 1), 60000);
-    return () => clearInterval(id);
-  }, [session]);
-
-  // Detect expiry transition and notify parent (fires once).
-  useEffect(() => {
-    if (!session || !session.expires_at) return;
-    const end = new Date(session.expires_at).getTime();
-    const deltaMs = end - Date.now();
-    if (deltaMs <= 0) {
-      if (onExpired) onExpired();
-      return;
-    }
-    const timer = setTimeout(() => { if (onExpired) onExpired(); }, deltaMs);
-    return () => clearTimeout(timer);
-  }, [session, onExpired]);
-
-  if (tier !== 'per_session' || !session || !session.expires_at) return null;
-
-  const remaining = formatTimeRemaining(session.expires_at);
-  if (!remaining) return null;  // expiry modal will take over
-
-  const deltaMs = new Date(session.expires_at).getTime() - Date.now();
-  const isUrgent = deltaMs < 15 * 60 * 1000;  // <15 min → red (Q4 confirmed)
-  const productLabel = KL_PRODUCT_LABELS[session.product_type] || 'Session';
-
+function TypingIndicator() {
   return (
-    <div
-      className={`kl-session-status${isUrgent ? ' kl-session-status-urgent' : ''}`}
-      role="status"
-      aria-live="polite"
-    >
-      <span className="kl-session-product">{productLabel}</span>
-      <span className="kl-session-separator">&middot;</span>
-      <span className="kl-session-remaining">{remaining}</span>
-    </div>
-  );
-}
-
-/* ── Session Expired Modal ── */
-function ExpiredModal() {
-  return (
-    <div className="kl-expired-modal" role="dialog" aria-modal="true" aria-labelledby="kl-expired-title">
-      <div className="kl-expired-backdrop" />
-      <div className="kl-expired-content">
-        <h2 id="kl-expired-title">Your session has ended</h2>
-        <p>
-          Thank you for using the Knowledge Library. Purchase another session
-          to continue your research with Eileen.
-        </p>
-        <a className="kl-expired-btn" href="/knowledge-library-preview/#pricing">
-          Purchase another session
-        </a>
+    <div className="kl-msg kl-msg-eileen">
+      <div className="kl-msg-content">
+        <div className="kl-msg-sender">Eileen</div>
+        <div className="kl-typing-dots">
+          <span className="kl-dot"></span>
+          <span className="kl-dot"></span>
+          <span className="kl-dot"></span>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ── Upsell Card (per-session users after 3 Eileen turns) ── */
-function UpsellCard() {
-  return (
-    <div className="kl-upsell-card" role="complementary">
-      <div className="kl-upsell-title">Continuous access to Eileen</div>
-      <div className="kl-upsell-body">
-        You&rsquo;re getting great use from Eileen. Operational subscribers (&pound;199/mo)
-        get continuous access, document monitoring, and weekly intelligence digests.
+// ─── MessageBubble ───
+
+function MessageBubble({ msg }) {
+  if (msg.role === 'user') {
+    return (
+      <div className="kl-msg kl-msg-user">
+        <div className="kl-msg-content">
+          <div className="kl-msg-body">{msg.content}</div>
+        </div>
       </div>
-      <a className="kl-upsell-link" href="/knowledge-library-preview/#pricing">
-        Compare plans &rarr;
-      </a>
-    </div>
-  );
-}
-
-/* ── Advisory Banner ── */
-function AdvisoryBanner() {
+    );
+  }
+  const html = renderMarkdown(msg.content || '');
+  const hasStats = msg.provisionsCount != null || msg.casesCount != null;
   return (
-    <div className="kl-advisory" role="alert">
-      <strong>Eileen provides regulatory intelligence.</strong> She does not provide legal advice.
-      For legal advice, consult a qualified employment solicitor.
+    <div className="kl-msg kl-msg-eileen">
+      <div className="kl-msg-content">
+        <div className="kl-msg-sender">Eileen</div>
+        <div className="kl-msg-body" dangerouslySetInnerHTML={{ __html: html }} />
+        {hasStats && (
+          <div className="kl-msg-footer">
+            <div className="kl-msg-stats">
+              Based on {msg.provisionsCount || 0} provision{msg.provisionsCount === 1 ? '' : 's'} and {msg.casesCount || 0} case{msg.casesCount === 1 ? '' : 's'}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-/* ── Chat Input ── */
-function ChatInput({ value, onChange, onSubmit, disabled, placeholder }) {
-  const inputRef = useRef(null);
+// ─── MessageInput ───
 
-  const handleKeyDown = (e) => {
+function MessageInput({ onSend, disabled }) {
+  const [value, setValue] = useState('');
+
+  function submit() {
+    const text = value.trim();
+    if (!text || disabled) return;
+    onSend(text);
+    setValue('');
+  }
+
+  function onKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSubmit();
+      submit();
     }
-  };
-
-  useEffect(() => {
-    if (!disabled && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [disabled]);
+  }
 
   return (
     <div className="kl-input-bar">
       <input
-        ref={inputRef}
-        type="text"
         className="kl-input"
+        type="text"
+        placeholder="Ask Eileen anything about UK employment law..."
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder || 'Ask Eileen anything about employment law\u2026'}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={onKey}
         disabled={disabled}
-        aria-label="Message Eileen"
       />
       <button
         className="kl-send-btn"
-        onClick={onSubmit}
+        onClick={submit}
         disabled={disabled || !value.trim()}
         aria-label="Send message"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
         </svg>
       </button>
     </div>
   );
 }
 
-/* ── Topic Card ── */
-function TopicCard({ card, onClick }) {
-  return (
-    <button className="kl-topic-card" onClick={() => onClick(card.message)}>
-      <CardIcon type={card.icon} />
-      <span className="kl-card-label">{card.label}</span>
-    </button>
-  );
-}
+// ─── ConversationArea ───
 
-/* ── Eileen Message ── */
-function EileenMessage({ text, provisionsCount, casesCount }) {
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(text).catch(() => {});
-  };
+function ConversationArea({ messages, isLoading, onSend, tier }) {
+  const scrollRef = useRef(null);
 
-  const renderText = (raw) => {
-    // Basic markdown: **bold**
-    const parts = raw.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i}>{part.slice(2, -2)}</strong>;
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
+  const empty = messages.length === 0;
 
   return (
-    <div className="kl-msg kl-msg-eileen">
-      <div className="kl-msg-avatar">
-        <NexusCanvas size={32} active={false} processing={false} />
-      </div>
-      <div className="kl-msg-content">
-        <div className="kl-msg-sender">Eileen</div>
-        <div className="kl-msg-body">{renderText(text)}</div>
-        <div className="kl-msg-footer">
-          {provisionsCount != null && (
-            <span className="kl-msg-stats">
-              {provisionsCount} provision{provisionsCount !== 1 ? 's' : ''}
-              {casesCount != null && <> &middot; {casesCount} case{casesCount !== 1 ? 's' : ''}</>}
-            </span>
-          )}
-          <button className="kl-save-btn" onClick={copyToClipboard} title="Copy to clipboard">
-            Save <span aria-hidden="true">&#128221;</span>
-          </button>
+    <div className="kl-main">
+      {empty ? (
+        <div className="kl-welcome">
+          <div className="kl-welcome-nexus">
+            <NexusCanvas tier={tier} />
+          </div>
+          <h1 className="kl-welcome-greeting">How can I help you today?</h1>
+          <div className="kl-welcome-input">
+            <MessageInput onSend={onSend} disabled={isLoading} />
+          </div>
+          <div className="kl-topics-grid">
+            {QUICK_STARTS.map((q, i) => (
+              <button key={i} className="kl-topic-card" onClick={() => onSend(q)} disabled={isLoading}>
+                <div className="kl-card-label">{q}</div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── User Message ── */
-function UserMessage({ text }) {
-  return (
-    <div className="kl-msg kl-msg-user">
-      <div className="kl-msg-content">
-        <div className="kl-msg-body">{text}</div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Typing Indicator ── */
-function TypingIndicator() {
-  return (
-    <div className="kl-msg kl-msg-eileen">
-      <div className="kl-msg-avatar">
-        <NexusCanvas size={32} active={true} processing={true} />
-      </div>
-      <div className="kl-msg-content">
-        <div className="kl-typing-dots" role="status" aria-live="polite">
-          <span className="kl-dot" /><span className="kl-dot" /><span className="kl-dot" />
-          <span className="sr-only">Eileen is thinking...</span>
+      ) : (
+        <div className="kl-conversation">
+          <div className="kl-messages" ref={scrollRef}>
+            {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
+            {isLoading && <TypingIndicator />}
+          </div>
+          <div className="kl-conversation-input">
+            <MessageInput onSend={onSend} disabled={isLoading} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-/* ── Crown Jewels ── */
-function CrownJewels({ onSelect, disabled }) {
+// ─── CrownJewels ───
+
+function CrownJewels({ onQuery, disabled }) {
   return (
     <div className="kl-crown">
       <div className="kl-crown-title">Crown Jewels</div>
       <div className="kl-crown-chips">
-        {CROWN_JEWELS.map(s => (
+        {CROWN_JEWELS.map((name) => (
           <button
-            key={s.abbr}
-            type="button"
+            key={name}
             className="kl-chip"
-            title={s.full}
-            aria-label={`Ask Eileen about ${s.full}`}
             disabled={disabled}
-            onClick={() => onSelect(s.prompt)}
+            onClick={() => onQuery('Tell me about the key provisions and current obligations under the ' + name)}
           >
-            {s.abbr}
+            {name}
           </button>
         ))}
       </div>
@@ -496,265 +331,266 @@ function CrownJewels({ onSelect, disabled }) {
   );
 }
 
-/* ── Horizon Alert ── */
-function HorizonAlert() {
-  return (
-    <div className="kl-horizon">
-      <span className="kl-horizon-icon" aria-hidden="true">&#9889;</span>
-      <span>
-        <strong>ERA 2025:</strong> Unfair dismissal qualifying period reduces to 6 months from 1 January 2027
-      </span>
-    </div>
-  );
-}
+// ─── Sidebar ───
 
-/* ── Footer ── */
-function Footer() {
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery }) {
   return (
-    <footer className="kl-footer">
-      <div className="kl-footer-legal">
-        AI Lane Limited &middot; Company No. 17035654 &middot; ICO Reg. 00013389720
+    <div className={'kl-sidebar' + (open ? '' : ' collapsed')}>
+      <div className="kl-sidebar-section">
+        <button className="kl-new-chat-btn" onClick={onNewChat}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Conversation</span>
+        </button>
       </div>
-      <div className="kl-footer-links">
-        <a href="/terms/">Terms</a>
-        <span>&middot;</span>
-        <a href="/privacy/">Privacy</a>
-      </div>
-    </footer>
-  );
-}
-
-/* ── Header ── */
-function Header({ tier, pageState, onNewChat }) {
-  return (
-    <header className="kl-header">
-      <div className="kl-header-left">
-        <TierBadge tier={tier} />
-      </div>
-      <div className="kl-header-center">
-        {pageState === 'conversation' && <span className="kl-header-title">Knowledge Library</span>}
-      </div>
-      <div className="kl-header-right">
-        {pageState === 'conversation' ? (
-          <button className="kl-new-chat-btn" onClick={onNewChat} aria-label="New conversation">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            New chat
-          </button>
+      <div className="kl-sidebar-history">
+        {sessionHistory.length === 0 ? (
+          <div className="kl-sidebar-empty">No prior conversations</div>
         ) : (
-          <img src="/assets/ailane-logo.svg" alt="Ailane" className="kl-logo" onError={(e) => { e.target.style.display = 'none'; }} />
+          sessionHistory.map((s) => (
+            <button
+              key={s.sessionId}
+              className={'kl-history-item' + (s.sessionId === activeSessionId ? ' active' : '')}
+              onClick={() => onSelectSession(s.sessionId)}
+            >
+              <div className="kl-history-title">{truncate(s.title, 40)}</div>
+              <div className="kl-history-time">{formatRelativeTime(s.lastActivity)}</div>
+            </button>
+          ))
         )}
       </div>
-    </header>
-  );
-}
-
-/* ── Welcome State ── */
-function WelcomeState({ inputValue, onInputChange, onSubmit, onTopicClick }) {
-  return (
-    <div className="kl-welcome">
-      <div className="kl-welcome-nexus">
-        <NexusCanvas size={200} active={false} processing={false} />
-      </div>
-      <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
-      <div className="kl-welcome-input">
-        <ChatInput
-          value={inputValue}
-          onChange={onInputChange}
-          onSubmit={onSubmit}
-          disabled={false}
-          placeholder="Ask Eileen anything about employment law\u2026"
-        />
-      </div>
-      <div className="kl-topics-grid">
-        {TOPIC_CARDS.map(card => (
-          <TopicCard key={card.label} card={card} onClick={onTopicClick} />
-        ))}
-      </div>
-      <CrownJewels onSelect={onTopicClick} disabled={false} />
-      <HorizonAlert />
+      <div className="kl-sidebar-divider"></div>
+      <CrownJewels onQuery={onCrownQuery} />
     </div>
   );
 }
 
-/* ── Conversation State ── */
-function ConversationState({ messages, isLoading, inputValue, onInputChange, onSubmit, showUpsell }) {
-  const listRef = useRef(null);
+// ─── TopBar ───
 
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [messages, isLoading, showUpsell]);
-
+function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier }) {
+  let badgeLabel = 'KNOWLEDGE LIBRARY';
+  let badgeClass = 'kl-badge-per-session';
+  if (accessType === 'subscription') {
+    if (tier === 'operational_readiness') { badgeLabel = 'OPERATIONAL'; badgeClass = 'kl-badge-operational'; }
+    else if (tier === 'governance') { badgeLabel = 'GOVERNANCE'; badgeClass = 'kl-badge-governance'; }
+    else if (tier === 'institutional') { badgeLabel = 'INSTITUTIONAL'; badgeClass = 'kl-badge-institutional'; }
+  } else if (accessType === 'per_session') {
+    badgeLabel = 'PER-SESSION';
+  }
   return (
-    <div className="kl-conversation">
-      <AdvisoryBanner />
-      <div className="kl-messages" ref={listRef}>
-        {messages.map((msg, i) =>
-          msg.role === 'eileen' ? (
-            <EileenMessage key={i} text={msg.text} provisionsCount={msg.provisions_count} casesCount={msg.cases_count} />
-          ) : (
-            <UserMessage key={i} text={msg.text} />
-          )
-        )}
-        {isLoading && <TypingIndicator />}
-        {showUpsell && !isLoading && <UpsellCard />}
-      </div>
-      <div className="kl-conversation-input">
-        <ChatInput
-          value={inputValue}
-          onChange={onInputChange}
-          onSubmit={onSubmit}
-          disabled={isLoading}
-          placeholder="Type your reply\u2026"
-        />
+    <div className="kl-topbar">
+      <button className="kl-topbar-toggle" onClick={onToggleSidebar} aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div className="kl-topbar-title">AILANE Knowledge Library</div>
+      <div className="kl-topbar-right">
+        <span className={'kl-tier-badge ' + badgeClass}>{badgeLabel}</span>
       </div>
     </div>
   );
 }
 
-/* ── KLApp (Root) ── */
-function KLApp() {
-  const [pageState, setPageState] = useState('welcome');
+// ─── PanelRailPlaceholder ───
+
+function PanelRailPlaceholder() {
+  return (
+    <div className="kl-panelrail">
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+        <div key={i} className="kl-panelrail-slot" aria-hidden="true"></div>
+      ))}
+    </div>
+  );
+}
+
+// ─── AdvisoryBanner ───
+
+function AdvisoryBanner() {
+  return (
+    <div className="kl-advisory">
+      <p>This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)</p>
+    </div>
+  );
+}
+
+// ─── App ───
+
+function App() {
   const [messages, setMessages] = useState([]);
+  const [sessionId, setSessionId] = useState(() => 'eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
+  const [sessionHistory, setSessionHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const [tier, setTier] = useState(window.__ailaneUser?.tier || 'loading');
-  const [session, setSession] = useState(window.__ailaneSession || null);
-  const [sessionExpired, setSessionExpired] = useState(false);
-  const sessionIdRef = useRef(crypto.randomUUID());
-  const user = window.__ailaneUser || {};
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [accessType, setAccessType] = useState(window.__klAccessType || null);
+  const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
 
-  useEffect(() => {
-    function onTier(e) { setTier(e.detail.tier); }
-    function onSession(e) { setSession(e.detail); }
-    window.addEventListener('ailane-tier-loaded', onTier);
-    window.addEventListener('ailane-session-loaded', onSession);
-    return () => {
-      window.removeEventListener('ailane-tier-loaded', onTier);
-      window.removeEventListener('ailane-session-loaded', onSession);
-    };
-  }, []);
-
-  // Phase-B forward hook: announce KL page ready so the workspace bundle (or
-  // future panel consumers) can pull user + session context without racing
-  // auth. No consumer exists today; Q5 confirmed this is intentional.
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
-      detail: {
-        user: window.__ailaneUser || null,
-        session: window.__ailaneSession || null,
-      },
-    }));
-  }, []);
-
-  const handleExpired = useCallback(() => {
-    setSessionExpired(true);
-  }, []);
-
-  const sendToEileen = useCallback(async (message) => {
-    const userMsg = { role: 'user', text: message };
-    setMessages(prev => [...prev, userMsg]);
-    setPageState('conversation');
-    setInputValue('');
-    setIsLoading(true);
-
+  const loadSessionHistory = useCallback(async function () {
+    if (!window.__klToken || !window.__klUserId) return;
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/eileen-intelligence`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-            'apikey': SUPABASE_ANON_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message,
-            session_id: sessionIdRef.current,
-            page_context: 'knowledge-library',
-          }),
-        }
+      const resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_eileen_conversations?user_id=eq.' + window.__klUserId +
+          '&select=session_id,user_message,created_at&order=created_at.desc&limit=100',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
       );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const eileenMsg = {
-        role: 'eileen',
-        text: data.response || 'I wasn\'t able to process that request. Please try again.',
-        provisions_count: data.provisions_count,
-        cases_count: data.cases_count,
-      };
-      if (data.session_id) {
-        sessionIdRef.current = data.session_id;
-      }
-      setMessages(prev => [...prev, eileenMsg]);
+      const data = await resp.json();
+      if (!Array.isArray(data)) return;
+      const grouped = {};
+      data.forEach((row) => {
+        if (!grouped[row.session_id]) {
+          grouped[row.session_id] = {
+            sessionId: row.session_id,
+            title: row.user_message ? row.user_message.substring(0, 50) : '(untitled)',
+            lastActivity: row.created_at,
+          };
+        }
+      });
+      setSessionHistory(Object.values(grouped).slice(0, 50));
     } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'eileen',
-        text: 'I\'m having trouble connecting right now. Please try again in a moment.',
+      console.error('Failed to load session history:', err);
+    }
+  }, []);
+
+  // Wire up auth-ready event + trigger initial history load
+  useEffect(() => {
+    function onReady(e) {
+      setAccessType(e.detail.accessType);
+      setTier(e.detail.tier);
+      loadSessionHistory();
+    }
+    window.addEventListener('ailane-kl-ready', onReady);
+    if (window.__klAccessType) {
+      loadSessionHistory();
+    }
+    return () => window.removeEventListener('ailane-kl-ready', onReady);
+  }, [loadSessionHistory]);
+
+  // Toggle sidebar-collapsed class on the real #kl-root grid container
+  useEffect(() => {
+    const el = document.getElementById('kl-root');
+    if (el) el.classList.toggle('sidebar-collapsed', !sidebarOpen);
+  }, [sidebarOpen]);
+
+  async function loadSession(sid) {
+    if (!window.__klToken) return;
+    try {
+      const resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_eileen_conversations?session_id=eq.' + sid +
+          '&select=user_message,eileen_response,created_at&order=created_at.asc',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      const data = await resp.json();
+      if (!Array.isArray(data)) return;
+      const msgs = [];
+      data.forEach((row) => {
+        msgs.push({ role: 'user', content: row.user_message });
+        msgs.push({ role: 'assistant', content: row.eileen_response });
+      });
+      setMessages(msgs);
+      setSessionId(sid);
+    } catch (err) {
+      console.error('Failed to load session:', err);
+    }
+  }
+
+  function newChat() {
+    setSessionId('eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
+    setMessages([]);
+  }
+
+  async function sendMessage(text) {
+    const clean = (text || '').trim();
+    if (!clean || isLoading) return;
+    setMessages((prev) => [...prev, { role: 'user', content: clean }]);
+    setIsLoading(true);
+    try {
+      const resp = await fetch(EILEEN_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          message: clean,
+          session_id: sessionId,
+          page_context: 'knowledge-library',
+        }),
+      });
+      const data = await resp.json();
+      if (data && data.response) {
+        setMessages((prev) => [...prev, {
+          role: 'assistant',
+          content: data.response,
+          provisionsCount: data.provisions_count,
+          casesCount: data.cases_count,
+        }]);
+        loadSessionHistory();
+      } else {
+        setMessages((prev) => [...prev, {
+          role: 'assistant',
+          content: "I wasn't able to process that request. Please try again.",
+          isError: true,
+        }]);
+      }
+    } catch (err) {
+      console.error('sendMessage error:', err);
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: "I wasn't able to process that request. Please try again.",
+        isError: true,
       }]);
     } finally {
       setIsLoading(false);
     }
-  }, [user.token]);
+  }
 
-  const handleSubmit = useCallback(() => {
-    const trimmed = inputValue.trim();
-    if (!trimmed || isLoading) return;
-    sendToEileen(trimmed);
-  }, [inputValue, isLoading, sendToEileen]);
-
-  const handleTopicClick = useCallback((message) => {
-    if (isLoading) return;
-    sendToEileen(message);
-  }, [isLoading, sendToEileen]);
-
-  const handleNewChat = useCallback(() => {
-    sessionIdRef.current = crypto.randomUUID();
-    setMessages([]);
-    setPageState('welcome');
-    setInputValue('');
-  }, []);
-
-  // Show upsell card for per-session users after 3+ Eileen turns in the
-  // current conversation. Subscription users never see this.
-  const eileenTurnsCount = messages.filter(m => m.role === 'eileen').length;
-  const showUpsell = tier === 'per_session' && eileenTurnsCount >= 3;
-
+  // Fragment root: children become direct grid items of the real #kl-root.
+  // (Wrapping in another <div id="kl-root"> would duplicate the id and
+  // break the #kl-root.sidebar-collapsed CSS rule on the outer grid.)
   return (
-    <div className="kl-app">
-      <Header tier={tier} pageState={pageState} onNewChat={handleNewChat} />
-      <SessionStatus session={session} tier={tier} onExpired={handleExpired} />
-      <main className="kl-main">
-        {pageState === 'welcome' ? (
-          <WelcomeState
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            onSubmit={handleSubmit}
-            onTopicClick={handleTopicClick}
-          />
-        ) : (
-          <ConversationState
-            messages={messages}
-            isLoading={isLoading}
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            onSubmit={handleSubmit}
-            showUpsell={showUpsell}
-          />
-        )}
-      </main>
-      <Footer />
-      {sessionExpired && <ExpiredModal />}
-    </div>
+    <React.Fragment>
+      <TopBar
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        accessType={accessType}
+        tier={tier}
+      />
+      <Sidebar
+        open={sidebarOpen}
+        sessionHistory={sessionHistory}
+        activeSessionId={sessionId}
+        onSelectSession={loadSession}
+        onNewChat={newChat}
+        onCrownQuery={sendMessage}
+      />
+      <ConversationArea
+        messages={messages}
+        isLoading={isLoading}
+        onSend={sendMessage}
+        accessType={accessType}
+        tier={tier}
+      />
+      <PanelRailPlaceholder />
+      <AdvisoryBanner />
+    </React.Fragment>
   );
 }
 
-// Mount point — called from index.html boot script
-window.KLApp = KLApp;
+// ─── Init ───
+// The shell's auth guard calls window.initKLApp() once auth is confirmed.
+window.initKLApp = function () {
+  const container = document.getElementById('kl-root');
+  if (!container) return;
+  const root = ReactDOM.createRoot(container);
+  root.render(React.createElement(App));
+};
+
+// Auto-init if auth already completed before this bundle loaded.
+if (window.__klAccessType) {
+  window.initKLApp();
+}
