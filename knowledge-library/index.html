@@ -530,7 +530,20 @@
     }
 
     async function handleSession(session) {
-      const token = session.access_token;
+      let token = session.access_token;
+
+      // Refresh the session before making REST calls. The session object
+      // passed in may carry a stale access token (hydrated from storage
+      // between page loads), in which case every downstream raw fetch will
+      // 401. refreshSession() mints a new access token from the refresh
+      // token; if it fails we fall through with whatever we already had.
+      try {
+        const refreshResult = await sb.auth.refreshSession();
+        if (refreshResult.data && refreshResult.data.session) {
+          token = refreshResult.data.session.access_token;
+        }
+      } catch (e) { /* keep the original token */ }
+
       const payload = JSON.parse(atob(token.split('.')[1]));
       const userId = payload.sub;
 
@@ -539,10 +552,15 @@
         SUPABASE_URL + '/rest/v1/kl_sessions?user_id=eq.' + userId + '&status=eq.active&select=*',
         { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
       );
-      // Expired access token → force re-login rather than stranding the user.
-      if (sessResp.status === 401) { window.location.replace('/account/'); return; }
-      const sessions = await sessResp.json();
-      const activeSession = Array.isArray(sessions) ? sessions.find(s => new Date(s.expires_at) > new Date()) : null;
+      // 401 here is non-fatal: subscription users don't own any kl_sessions
+      // rows and RLS can legitimately return 401 for them. Treat it as
+      // "no active per-session access" and continue to the tier check —
+      // only a 401 on the profile check is treated as an auth failure.
+      let activeSession = null;
+      if (sessResp.ok) {
+        const sessions = await sessResp.json();
+        activeSession = Array.isArray(sessions) ? sessions.find(s => new Date(s.expires_at) > new Date()) : null;
+      }
 
       // Check subscription tier
       const profileResp = await fetch(
