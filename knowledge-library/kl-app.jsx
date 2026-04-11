@@ -715,14 +715,344 @@ function ClipboardPanel() {
   );
 }
 
+// ─── VaultPanel (compliance_uploads, user-scoped) ───
+// Raw REST fetch — consistent with NotesPanel and CLAUDE.md JWT-decode + raw-fetch rule.
+
+function VaultPanel() {
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!window.__klToken || !window.__klUserId) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const resp = await fetch(
+          SUPABASE_URL + '/rest/v1/compliance_uploads?user_id=eq.' + window.__klUserId +
+            '&select=id,file_name,display_name,overall_score,status,created_at' +
+            '&order=created_at.desc&limit=20',
+          { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        const data = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(data)) setDocs(data);
+      } catch (e) {
+        console.error('Vault load failed:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Loading documents…</div>;
+  }
+
+  if (docs.length === 0) {
+    return (
+      <div style={{ padding: '12px' }}>
+        <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '6px' }}>No documents yet.</p>
+        <p style={{ color: '#64748B', fontSize: '13px', lineHeight: 1.5 }}>
+          Upload a contract through Eileen to run a compliance check.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {docs.map((doc) => {
+        const score = doc.overall_score;
+        const hasScore = score != null;
+        const scoreColor = !hasScore ? null : score >= 70 ? '#10B981' : score >= 40 ? '#F59E0B' : '#EF4444';
+        const scoreBg = !hasScore ? null : score >= 70 ? 'rgba(16,185,129,0.15)' : score >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
+        return (
+          <div
+            key={doc.id}
+            style={{
+              padding: '12px', marginBottom: '8px', borderRadius: '8px',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                color: '#E2E8F0', fontSize: '13px', fontWeight: 500,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+              }}>
+                {doc.display_name || doc.file_name}
+              </span>
+              {hasScore && (
+                <span style={{
+                  fontSize: '12px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
+                  background: scoreBg, color: scoreColor, flexShrink: 0,
+                }}>
+                  {Math.round(score)}%
+                </span>
+              )}
+            </div>
+            <div style={{ color: '#64748B', fontSize: '11px', marginTop: '4px' }}>
+              {new Date(doc.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── CalendarPanel (regulatory_requirements, not user-scoped) ───
+
+function CalendarPanel() {
+  const [reqs, setReqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!window.__klToken) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const resp = await fetch(
+          SUPABASE_URL + '/rest/v1/regulatory_requirements' +
+            '?select=id,requirement_name,statutory_basis,effective_from,commencement_status,is_forward_requirement,source_act' +
+            '&order=effective_from.asc',
+          { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        const data = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(data)) setReqs(data);
+      } catch (e) {
+        console.error('Calendar load failed:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Loading regulatory calendar…</div>;
+  }
+
+  const forwardCount = reqs.filter((r) => r.is_forward_requirement).length;
+  const filtered = reqs.filter((r) => {
+    if (filter === 'forward') return r.is_forward_requirement;
+    if (filter === 'in_force') return r.commencement_status === 'in_force';
+    return true;
+  });
+
+  const filterButtons = [
+    { id: 'all', label: 'All (' + reqs.length + ')' },
+    { id: 'in_force', label: 'In Force' },
+    { id: 'forward', label: 'Forward (' + forwardCount + ')' },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {filterButtons.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => setFilter(f.id)}
+            style={{
+              padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer',
+              fontFamily: 'inherit',
+              border: filter === f.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+              background: filter === f.id ? 'rgba(14,165,233,0.15)' : 'transparent',
+              color: filter === f.id ? '#0EA5E9' : '#94A3B8',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 ? (
+        <div style={{ color: '#64748B', fontSize: '12px', padding: '8px 4px' }}>No requirements match this filter.</div>
+      ) : (
+        filtered.map((r) => (
+          <div
+            key={r.id}
+            style={{
+              padding: '10px', marginBottom: '6px', borderRadius: '6px',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+              borderLeft: r.is_forward_requirement ? '3px solid #F59E0B' : '3px solid #10B981',
+            }}
+          >
+            <div style={{ color: '#E2E8F0', fontSize: '13px', fontWeight: 500 }}>{r.requirement_name}</div>
+            {r.statutory_basis && (
+              <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '2px' }}>{r.statutory_basis}</div>
+            )}
+            {r.effective_from && (
+              <div style={{ color: '#64748B', fontSize: '11px', marginTop: '4px' }}>
+                {'Effective: ' + new Date(r.effective_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ─── ResearchPanel (kl_provisions + kl_cases, tabs + search) ───
+
+function ResearchPanel() {
+  const [tab, setTab] = useState('provisions');
+  const [search, setSearch] = useState('');
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!window.__klToken) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const path = tab === 'provisions'
+          ? '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id&limit=50'
+          : '/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=50';
+        const resp = await fetch(SUPABASE_URL + path, {
+          headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY },
+        });
+        const d = await resp.json();
+        if (cancelled) return;
+        setData(Array.isArray(d) ? d : []);
+      } catch (e) {
+        console.error('Research load failed:', e);
+        if (!cancelled) setData([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [tab]);
+
+  const filtered = data.filter((item) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    if (tab === 'provisions') {
+      return (item.title || '').toLowerCase().includes(s) || (item.instrument_id || '').toLowerCase().includes(s);
+    }
+    return (item.name || '').toLowerCase().includes(s) || (item.citation || '').toLowerCase().includes(s);
+  });
+
+  const tabs = [
+    { id: 'provisions', label: 'Provisions (391)' },
+    { id: 'cases', label: 'Cases (240)' },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => { setTab(t.id); setSearch(''); }}
+            style={{
+              flex: 1, padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+              fontFamily: 'inherit',
+              border: tab === t.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+              background: tab === t.id ? 'rgba(14,165,233,0.1)' : 'transparent',
+              color: tab === t.id ? '#0EA5E9' : '#94A3B8',
+              fontWeight: tab === t.id ? 600 : 400,
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <input
+        type="text"
+        placeholder={'Search ' + tab + '…'}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{
+          width: '100%', padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
+          border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)',
+          color: '#E2E8F0', marginBottom: '10px', outline: 'none', boxSizing: 'border-box',
+          fontFamily: 'inherit',
+        }}
+      />
+      {loading ? (
+        <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Loading…</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ color: '#64748B', fontSize: '12px', padding: '8px 4px' }}>No results.</div>
+      ) : (
+        filtered.slice(0, 30).map((item) => {
+          if (tab === 'provisions') {
+            return (
+              <div
+                key={item.provision_id}
+                style={{
+                  padding: '8px', marginBottom: '4px', borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                }}
+              >
+                <div style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 500 }}>{item.title}</div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ color: '#0EA5E9', fontSize: '11px' }}>
+                    {(item.instrument_id || '') + (item.section_num ? ' s.' + item.section_num : '')}
+                  </span>
+                  {item.is_era_2025 && (
+                    <span style={{
+                      color: '#F59E0B', fontSize: '10px', padding: '1px 5px', borderRadius: '3px',
+                      background: 'rgba(245,158,11,0.1)',
+                    }}>
+                      ERA 2025
+                    </span>
+                  )}
+                  <span style={{ color: item.in_force ? '#10B981' : '#94A3B8', fontSize: '10px' }}>
+                    {item.in_force ? 'In force' : 'Not yet'}
+                  </span>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div
+              key={item.case_id}
+              style={{
+                padding: '8px', marginBottom: '4px', borderRadius: '6px',
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+              }}
+            >
+              <div style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 500 }}>{item.name}</div>
+              <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '2px' }}>
+                {[item.citation, item.court, item.year].filter(Boolean).join(' · ')}
+              </div>
+              {item.principle && (
+                <div style={{ color: '#64748B', fontSize: '11px', marginTop: '3px', lineHeight: 1.4 }}>
+                  {item.principle.length > 120 ? item.principle.slice(0, 120) + '…' : item.principle}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
 // ─── PlaceholderPanel ───
 
 const PLACEHOLDER_DESCRIPTIONS = {
-  vault:     'Access and manage your compliance documents, view scan scores, and track document health.',
   documents: 'Create structured documents with watermarks, disclaimers, and export controls.',
-  calendar:  'Track regulatory commencement dates, review deadlines, and compliance milestones.',
   eileen:    'Context-aware Eileen chat with Vault and Calendar integration.',
-  research:  'Browse the Knowledge Library content — 391 provisions, 240 cases, 69 instruments.',
   planner:   'Six-step contract planning workflow with gap analysis and compliance mapping.',
 };
 
@@ -747,8 +1077,11 @@ const PANEL_LABELS = {
 };
 
 const PANEL_COMPONENTS = {
+  vault: VaultPanel,
   notes: NotesPanel,
   clipboard: ClipboardPanel,
+  calendar: CalendarPanel,
+  research: ResearchPanel,
 };
 
 function PanelDrawer({ panelId, onClose }) {
