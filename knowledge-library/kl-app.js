@@ -241,6 +241,7 @@
     const analysisTimeMs = data.analysis_time_ms || 0;
     const checksUsed = data.checks_used;
     const checkLimit = data.check_limit;
+    const [showCompliant, setShowCompliant] = useState(false);
     const expandedRef = useRef({});
     const [, setTick] = useState(0);
     function toggleFinding(key) {
@@ -262,57 +263,54 @@
         /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "#CBD5E1", lineHeight: 1.5 } }, "This document does not appear to be a UK employment contract, staff handbook, or workplace policy. The compliance engine analyses employment documents only. If this is an employment document, try uploading it in a different format (PDF or DOCX).")
       );
     }
-    const scoreColor = score >= 65 ? "#22C55E" : score >= 30 ? "#FBBF24" : "#EF4444";
+    const scoreColor = score >= 65 ? "#22C55E" : score >= 30 ? "#F59E0B" : "#EF4444";
     const SEV_COLORS = {
       critical: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.3)", text: "#EF4444", label: "Critical" },
       major: { bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.3)", text: "#FBBF24", label: "Major" },
       minor: { bg: "rgba(234,179,8,0.06)", border: "rgba(234,179,8,0.2)", text: "#EAB308", label: "Minor" },
       compliant: { bg: "rgba(34,197,94,0.06)", border: "rgba(34,197,94,0.2)", text: "#22C55E", label: "Compliant" }
     };
-    const severityOrder = { critical: 0, major: 1, minor: 2 };
-    const currentNonCompliant = findings.filter((f) => f.severity !== "compliant").slice().sort((a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3));
+    const severityOrder = { critical: 0, major: 1, minor: 2, compliant: 3 };
+    const visibleFindings = findings.filter((f) => showCompliant || f.severity !== "compliant").slice().sort((a, b) => (severityOrder[a.severity] != null ? severityOrder[a.severity] : 4) - (severityOrder[b.severity] != null ? severityOrder[b.severity] : 4));
     const forwardNonCompliant = forwardFindings.filter((f) => f.severity !== "compliant");
-    const summaryParts = [];
-    if (summary.critical) summaryParts.push(summary.critical + " critical");
-    if (summary.major) summaryParts.push(summary.major + " major");
-    if (summary.minor) summaryParts.push(summary.minor + " minor");
-    if (summary.compliant) summaryParts.push(summary.compliant + " compliant");
-    const summaryLine = summaryParts.join("  \xB7  ");
+    const compliantCount = findings.filter((f) => f.severity === "compliant").length;
+    const findingsTotal = findings.length;
+    const forwardTotal = forwardFindings.length;
     return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: "100%" } }, /* @__PURE__ */ React.createElement(
       "div",
       {
         style: {
-          display: "flex",
-          alignItems: "center",
-          gap: "16px",
-          padding: "16px",
-          marginBottom: "12px",
-          borderRadius: "10px",
-          background: "rgba(14,165,233,0.05)",
-          border: "1px solid rgba(14,165,233,0.15)"
+          background: "linear-gradient(135deg, rgba(14,165,233,0.12), rgba(14,165,233,0.04))",
+          border: "1px solid rgba(14,165,233,0.25)",
+          borderRadius: "12px",
+          padding: "16px 20px",
+          marginBottom: "16px"
         }
       },
-      /* @__PURE__ */ React.createElement(
-        "div",
-        {
-          style: {
-            width: "56px",
-            height: "56px",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(10,22,40,0.8)",
-            border: "2px solid " + scoreColor,
-            flexShrink: 0
-          }
-        },
-        /* @__PURE__ */ React.createElement("span", { style: { fontSize: "18px", fontWeight: 700, color: scoreColor } }, Math.round(score) + "%")
-      ),
-      /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "14px", fontWeight: 600, color: "#E2E8F0", marginBottom: "4px" } }, "Contract Compliance Check \u2014 Complete"), summaryLine && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94A3B8" } }, summaryLine), status === "sparse_report" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#FBBF24", marginTop: "4px" } }, "\u26A0\uFE0F Some requirements could not be assessed. Manual review recommended for gaps."))
-    ), currentNonCompliant.map((finding, idx) => {
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans', sans-serif", marginBottom: "4px" } }, "Contract Compliance Score"),
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "28px", fontWeight: 700, color: scoreColor, fontFamily: "'DM Mono', monospace" } }, Math.round(score) + "%"),
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "rgba(255,255,255,0.5)", marginTop: "4px", fontFamily: "'DM Sans', sans-serif" } }, findingsTotal + " finding" + (findingsTotal === 1 ? "" : "s") + " \xB7 " + forwardTotal + " forward exposure item" + (forwardTotal === 1 ? "" : "s"))
+    ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" } }, Object.entries(summary).map(function(entry) {
+      var sev = entry[0];
+      var count = entry[1];
+      if (!count) return null;
+      var colors = { critical: "#EF4444", major: "#F59E0B", minor: "#3B82F6", compliant: "#22C55E" };
+      return React.createElement("span", {
+        key: sev,
+        style: {
+          background: (colors[sev] || "#666") + "20",
+          border: "1px solid " + (colors[sev] || "#666") + "40",
+          borderRadius: "6px",
+          padding: "4px 10px",
+          fontSize: "12px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 600,
+          color: colors[sev] || "#aaa"
+        }
+      }, count + " " + sev);
+    })), status === "sparse_report" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#FBBF24", marginBottom: "12px" } }, "\u26A0\uFE0F Some requirements could not be assessed. Manual review recommended for gaps."), visibleFindings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "14px", fontWeight: 700, color: "#22D3EE", marginBottom: "8px", fontFamily: "'DM Sans', sans-serif" } }, "Current Law Findings"), visibleFindings.map((finding, idx) => {
       const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
-      const key = "c" + idx;
+      const key = "c" + idx + "-" + finding.severity;
       const isExpanded = !!expandedRef.current[key];
       return /* @__PURE__ */ React.createElement(
         "div",
@@ -400,35 +398,36 @@
           finding.remediation
         ))
       );
-    }), summary.compliant > 0 && /* @__PURE__ */ React.createElement(
-      "div",
+    }), compliantCount > 0 && /* @__PURE__ */ React.createElement(
+      "button",
       {
+        type: "button",
+        onClick: () => setShowCompliant(!showCompliant),
         style: {
-          padding: "8px 12px",
-          marginBottom: "8px",
-          borderRadius: "8px",
-          background: "rgba(34,197,94,0.06)",
-          border: "1px solid rgba(34,197,94,0.15)",
+          background: "none",
+          border: "none",
+          color: "rgba(255,255,255,0.5)",
           fontSize: "12px",
-          color: "#22C55E"
+          cursor: "pointer",
+          padding: "8px 0",
+          fontFamily: "'DM Sans', sans-serif"
         }
       },
-      "\u2713 " + summary.compliant + " requirement" + (summary.compliant === 1 ? "" : "s") + " assessed as compliant"
-    ), forwardNonCompliant.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px" } }, /* @__PURE__ */ React.createElement(
+      showCompliant ? "Hide compliant items" : "Show " + compliantCount + " compliant item" + (compliantCount === 1 ? "" : "s")
+    ), forwardNonCompliant.length > 0 && /* @__PURE__ */ React.createElement(
       "div",
       {
         style: {
-          fontSize: "13px",
-          fontWeight: 600,
-          color: "#A78BFA",
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "#A855F7",
+          marginTop: "20px",
           marginBottom: "8px",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px"
+          fontFamily: "'DM Sans', sans-serif"
         }
       },
-      "\u{1F52E} Legislative Horizon \u2014 Forward Exposure"
-    ), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94A3B8", marginBottom: "10px" } }, "These findings relate to provisions of the Employment Rights Act 2025 not yet in force. They do not affect the current compliance position."), forwardNonCompliant.map((finding, idx) => {
+      "Legislative Horizon \u2014 Forward Exposure"
+    ), forwardNonCompliant.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94A3B8", marginBottom: "10px" } }, "These findings relate to provisions of the Employment Rights Act 2025 not yet in force. They do not affect the current compliance position."), forwardNonCompliant.map((finding, idx) => {
       const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
       const key = "f" + idx;
       const isExpanded = !!expandedRef.current[key];
@@ -509,7 +508,76 @@
           finding.remediation
         ))
       );
-    })), /* @__PURE__ */ React.createElement(
+    })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "20px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: "12px" } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: async (e) => {
+          const btn = e.currentTarget;
+          btn.disabled = true;
+          btn.textContent = "Generating PDF\u2026";
+          try {
+            const token = window.__klToken;
+            if (!token) throw new Error("Not authenticated");
+            const response = await fetch(
+              SUPABASE_URL + "/functions/v1/generate-report-pdf",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + token,
+                  "apikey": SUPABASE_ANON_KEY
+                },
+                body: JSON.stringify({ upload_id: data.upload_id })
+              }
+            );
+            if (!response.ok) throw new Error("PDF generation failed");
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Ailane-Compliance-Report.pdf";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            btn.textContent = "\u2713 Downloaded";
+            btn.disabled = false;
+            setTimeout(() => {
+              btn.textContent = "\u{1F4C4} Download PDF Report";
+            }, 2e3);
+          } catch (err) {
+            console.error("PDF download error:", err);
+            btn.textContent = "\u274C Failed \u2014 try again";
+            btn.disabled = false;
+            setTimeout(() => {
+              btn.textContent = "\u{1F4C4} Download PDF Report";
+            }, 3e3);
+          }
+        },
+        style: {
+          background: "linear-gradient(135deg, #0EA5E9, #0284C7)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "8px",
+          padding: "10px 20px",
+          fontSize: "14px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 600,
+          cursor: "pointer",
+          transition: "transform 0.15s, box-shadow 0.15s"
+        },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.transform = "translateY(-1px)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(14,165,233,0.3)";
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.transform = "none";
+          e.currentTarget.style.boxShadow = "none";
+        }
+      },
+      "\u{1F4C4} Download PDF Report"
+    )), /* @__PURE__ */ React.createElement(
       "div",
       {
         style: {
@@ -549,7 +617,48 @@
         onRunAnalysis(msg.documentId, msg.id);
       }
     }
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), msg.isAnalysisLoading && /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content", style: { position: "relative" } }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), msg.role === "assistant" && !msg.isAnalysisResult && !msg.isAnalysisLoading && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: (e) => {
+          const btn = e.currentTarget;
+          if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+          navigator.clipboard.writeText(msg.content || "").then(() => {
+            const original = btn.textContent;
+            btn.textContent = "\u2713 Copied";
+            setTimeout(() => {
+              btn.textContent = original;
+            }, 1500);
+          }).catch((err) => {
+            console.error("Copy failed:", err);
+          });
+        },
+        style: {
+          position: "absolute",
+          top: "8px",
+          right: "8px",
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: "4px",
+          color: "rgba(255,255,255,0.5)",
+          fontSize: "11px",
+          padding: "2px 8px",
+          cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+          opacity: 0.6,
+          transition: "opacity 0.2s"
+        },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.opacity = "1";
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.opacity = "0.6";
+        },
+        title: "Copy to clipboard"
+      },
+      "\u{1F4CB} Copy"
+    ), msg.isAnalysisLoading && /* @__PURE__ */ React.createElement(
       "div",
       {
         style: {
@@ -878,7 +987,22 @@
     } else if (accessType === "per_session") {
       badgeLabel = "PER-SESSION";
     }
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-topbar" }, /* @__PURE__ */ React.createElement("button", { className: "kl-topbar-toggle", onClick: onToggleSidebar, "aria-label": sidebarOpen ? "Collapse sidebar" : "Expand sidebar" }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" }))), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-title" }, "AILANE Knowledge Library"), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel)));
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-topbar" }, /* @__PURE__ */ React.createElement("button", { className: "kl-topbar-toggle", onClick: onToggleSidebar, "aria-label": sidebarOpen ? "Collapse sidebar" : "Expand sidebar" }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" }))), /* @__PURE__ */ React.createElement(
+      "a",
+      {
+        className: "kl-topbar-title",
+        href: "/",
+        style: {
+          color: "#22D3EE",
+          textDecoration: "none",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 700,
+          fontSize: "16px",
+          cursor: "pointer"
+        }
+      },
+      "AILANE Knowledge Library"
+    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel)));
   }
   var PANEL_DEFS = [
     { id: "vault", icon: "\u{1F4C4}", label: "Document Vault", minTier: "operational_readiness" },
@@ -1885,7 +2009,9 @@
             content: "",
             isLocal: true,
             isAnalysisResult: true,
-            analysisData: pollResult
+            // R1-C §3: merge upload_id so the PDF download button in
+            // AnalysisResultMessage can reference it via data.upload_id.
+            analysisData: Object.assign({}, pollResult, { upload_id: uploadId })
           }]);
         });
       } catch (err) {
