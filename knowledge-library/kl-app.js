@@ -154,8 +154,24 @@
     }, [tier]);
     return /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef, className: "kl-nexus-canvas" });
   }
+  function EileenSenderLabel() {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        "aria-hidden": "true",
+        style: {
+          width: "8px",
+          height: "8px",
+          borderRadius: "50%",
+          background: "#0EA5E9",
+          boxShadow: "0 0 6px rgba(14,165,233,0.5)",
+          flexShrink: 0
+        }
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-sender", style: { marginBottom: 0 } }, "Eileen"));
+  }
   function TypingIndicator() {
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-sender" }, "Eileen"), /* @__PURE__ */ React.createElement("div", { className: "kl-typing-dots" }, /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }))));
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement("div", { className: "kl-typing-dots", style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }))));
   }
   function FileAttachmentBubble({ filename, fileSize, status, charCount }) {
     const sizeLabel = formatFileSize(fileSize);
@@ -224,7 +240,7 @@
     }
     const html = renderMarkdown(msg.content || "");
     const hasStats = msg.provisionsCount != null || msg.casesCount != null;
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-sender" }, "Eileen"), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body", dangerouslySetInnerHTML: { __html: html } }), hasStats && /* @__PURE__ */ React.createElement("div", { className: "kl-msg-footer" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-stats" }, "Based on ", msg.provisionsCount || 0, " provision", msg.provisionsCount === 1 ? "" : "s", " and ", msg.casesCount || 0, " case", msg.casesCount === 1 ? "" : "s"))));
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body", style: { marginTop: "8px" }, dangerouslySetInnerHTML: { __html: html } }), hasStats && /* @__PURE__ */ React.createElement("div", { className: "kl-msg-footer" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-stats" }, "Based on ", msg.provisionsCount || 0, " provision", msg.provisionsCount === 1 ? "" : "s", " and ", msg.casesCount || 0, " case", msg.casesCount === 1 ? "" : "s"))));
   }
   function MessageInput({ onSend, disabled, onFileSelect }) {
     const [value, setValue] = useState("");
@@ -261,17 +277,40 @@
         title: "Upload a contract for compliance analysis",
         "aria-label": "Upload a contract for compliance analysis",
         style: {
-          background: "none",
-          border: "none",
+          background: "rgba(14,165,233,0.08)",
+          border: "1px solid rgba(14,165,233,0.2)",
+          borderRadius: "8px",
           cursor: "pointer",
-          padding: "8px",
-          color: "#64748B",
-          fontSize: "18px",
+          padding: "6px 10px",
+          color: "#0EA5E9",
+          fontSize: "13px",
+          fontWeight: 500,
+          fontFamily: "'DM Sans', sans-serif",
           display: "flex",
-          alignItems: "center"
+          alignItems: "center",
+          gap: "6px",
+          whiteSpace: "nowrap",
+          flexShrink: 0
         }
       },
-      "\u{1F4CE}"
+      /* @__PURE__ */ React.createElement(
+        "svg",
+        {
+          width: "16",
+          height: "16",
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: "2",
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          "aria-hidden": "true"
+        },
+        /* @__PURE__ */ React.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }),
+        /* @__PURE__ */ React.createElement("polyline", { points: "17 8 12 3 7 8" }),
+        /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })
+      ),
+      /* @__PURE__ */ React.createElement("span", null, "Upload contract")
     ), /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -458,12 +497,9 @@
   var PANEL_DEFS = [
     { id: "vault", icon: "\u{1F4C4}", label: "Document Vault", minTier: "operational_readiness" },
     { id: "notes", icon: "\u{1F4DD}", label: "Notes", minTier: null },
-    { id: "documents", icon: "\u{1F4D1}", label: "Documents", minTier: "operational_readiness" },
     { id: "clipboard", icon: "\u{1F4CB}", label: "Clipboard", minTier: null },
     { id: "calendar", icon: "\u{1F4C5}", label: "Calendar", minTier: "operational_readiness" },
-    { id: "eileen", icon: "\u{1F4AC}", label: "Eileen", minTier: null },
-    { id: "research", icon: "\u{1F50D}", label: "Research", minTier: null },
-    { id: "planner", icon: "\u{1F4CA}", label: "Contract Planner", minTier: "governance" }
+    { id: "research", icon: "\u{1F50D}", label: "Research", minTier: null }
   ];
   var TIER_RANK = {
     per_session: 0,
