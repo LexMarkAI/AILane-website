@@ -396,14 +396,292 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier }) {
   );
 }
 
-// ─── PanelRailPlaceholder ───
+// ─── PanelRail (KLUI-001 §2.1) ───
 
-function PanelRailPlaceholder() {
+const PANEL_DEFS = [
+  { id: 'vault',     icon: '📄', label: 'Document Vault',   minTier: 'operational_readiness' },
+  { id: 'notes',     icon: '📝', label: 'Notes',            minTier: null },
+  { id: 'documents', icon: '📑', label: 'Documents',        minTier: 'operational_readiness' },
+  { id: 'clipboard', icon: '📋', label: 'Clipboard',        minTier: null },
+  { id: 'calendar',  icon: '📅', label: 'Calendar',         minTier: 'operational_readiness' },
+  { id: 'eileen',    icon: '💬', label: 'Eileen',           minTier: null },
+  { id: 'research',  icon: '🔍', label: 'Research',         minTier: null },
+  { id: 'planner',   icon: '📊', label: 'Contract Planner', minTier: 'governance' },
+];
+
+const TIER_RANK = {
+  per_session: 0,
+  kl_quick_session: 0,
+  kl_day_pass: 0,
+  kl_research_week: 0,
+  operational_readiness: 1,
+  governance: 2,
+  institutional: 3,
+};
+
+function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
+  const userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : (TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0);
   return (
     <div className="kl-panelrail">
-      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <div key={i} className="kl-panelrail-slot" aria-hidden="true"></div>
+      {PANEL_DEFS.map((p) => {
+        const minRank = p.minTier ? (TIER_RANK[p.minTier] != null ? TIER_RANK[p.minTier] : 99) : 0;
+        const locked = userRank < minRank;
+        const isActive = activePanel === p.id;
+        return (
+          <button
+            key={p.id}
+            type="button"
+            className={'kl-panel-rail-btn' + (isActive ? ' active' : '') + (locked ? ' locked' : '')}
+            title={locked ? p.label + ' (upgrade required)' : p.label}
+            aria-label={p.label}
+            aria-pressed={isActive}
+            disabled={locked}
+            onClick={() => { if (!locked) onSelectPanel(isActive ? null : p.id); }}
+          >
+            <span className="kl-panel-rail-icon" aria-hidden="true">{p.icon}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── NotesPanel (reads/writes kl_workspace_notes.content_plain) ───
+
+function NotesPanel() {
+  const [noteId, setNoteId] = useState(null);
+  const [title, setTitle] = useState('Untitled note');
+  const [body, setBody] = useState('');
+  const [status, setStatus] = useState('loading'); // loading | saved | dirty | saving | error
+  const saveTimer = useRef(null);
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!window.__klToken || !window.__klUserId) return;
+      try {
+        const resp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_workspace_notes?user_id=eq.' + window.__klUserId +
+            '&select=id,title,content_plain&order=updated_at.desc&limit=1',
+          { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        const data = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(data) && data[0]) {
+          setNoteId(data[0].id);
+          setTitle(data[0].title || 'Untitled note');
+          setBody(data[0].content_plain || '');
+        }
+        loadedRef.current = true;
+        setStatus('saved');
+      } catch (e) {
+        console.error('Notes load failed:', e);
+        if (!cancelled) setStatus('error');
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
+  async function performSave(nextTitle, nextBody, currentId) {
+    if (!window.__klToken || !window.__klUserId) return;
+    setStatus('saving');
+    const now = new Date().toISOString();
+    try {
+      if (currentId) {
+        // PATCH existing note
+        const resp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + currentId,
+          {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer ' + window.__klToken,
+              'apikey': SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              title: nextTitle || 'Untitled note',
+              content_plain: nextBody,
+              updated_at: now,
+            }),
+          }
+        );
+        if (!resp.ok) throw new Error('PATCH ' + resp.status);
+      } else {
+        // INSERT new note, store returned id
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+          },
+          body: JSON.stringify({
+            user_id: window.__klUserId,
+            project_id: null,
+            title: nextTitle || 'Untitled note',
+            content_plain: nextBody,
+          }),
+        });
+        if (!resp.ok) throw new Error('POST ' + resp.status);
+        const data = await resp.json();
+        if (Array.isArray(data) && data[0] && data[0].id) setNoteId(data[0].id);
+      }
+      setStatus('saved');
+    } catch (e) {
+      console.error('Notes save failed:', e);
+      setStatus('error');
+    }
+  }
+
+  function scheduleSave(nextTitle, nextBody) {
+    if (!loadedRef.current) return;
+    setStatus('dirty');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => performSave(nextTitle, nextBody, noteId), 1500);
+  }
+
+  function onTitleChange(e) {
+    const v = e.target.value;
+    setTitle(v);
+    scheduleSave(v, body);
+  }
+
+  function onBodyChange(e) {
+    const v = e.target.value;
+    setBody(v);
+    scheduleSave(title, v);
+  }
+
+  const statusLabel =
+    status === 'loading' ? 'Loading…' :
+    status === 'dirty'   ? 'Unsaved changes' :
+    status === 'saving'  ? 'Saving…' :
+    status === 'error'   ? 'Save failed' :
+                           '✓ Saved';
+  const statusClass = 'kl-notes-status' + (status === 'saved' ? ' saved' : '') + (status === 'error' ? ' error' : '');
+
+  return (
+    <div className="kl-notes-panel">
+      <input
+        className="kl-notes-title"
+        type="text"
+        value={title}
+        onChange={onTitleChange}
+        placeholder="Untitled note"
+      />
+      <div className={statusClass}>{statusLabel}</div>
+      <textarea
+        className="kl-notes-body"
+        value={body}
+        onChange={onBodyChange}
+        placeholder="Take notes during your research..."
+      />
+    </div>
+  );
+}
+
+// ─── ClipboardPanel ───
+
+function ClipboardPanel() {
+  const [clips, setClips] = useState([]);
+
+  useEffect(() => {
+    window.__klAddClip = function (text, source) {
+      setClips((prev) => [{ id: Date.now() + Math.random(), text: String(text || ''), source: source || null, copiedAt: new Date() }, ...prev]);
+    };
+    return () => { delete window.__klAddClip; };
+  }, []);
+
+  function removeClip(id) {
+    setClips((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch((e) => console.error('Clipboard copy failed:', e));
+    }
+  }
+
+  if (clips.length === 0) {
+    return (
+      <div className="kl-clipboard-panel">
+        <p className="kl-clipboard-empty">No clips yet. Copy text from Eileen's responses to save it here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="kl-clipboard-panel">
+      <button className="kl-clipboard-clear" onClick={() => setClips([])}>Clear all</button>
+      {clips.map((c) => (
+        <div key={c.id} className="kl-clip">
+          <p className="kl-clip-text">{c.text.length > 200 ? c.text.substring(0, 200) + '…' : c.text}</p>
+          <div className="kl-clip-actions">
+            <button className="kl-clip-copy" onClick={() => copyToClipboard(c.text)}>Copy</button>
+            <button className="kl-clip-remove" onClick={() => removeClip(c.id)}>Remove</button>
+          </div>
+        </div>
       ))}
+    </div>
+  );
+}
+
+// ─── PlaceholderPanel ───
+
+const PLACEHOLDER_DESCRIPTIONS = {
+  vault:     'Access and manage your compliance documents, view scan scores, and track document health.',
+  documents: 'Create structured documents with watermarks, disclaimers, and export controls.',
+  calendar:  'Track regulatory commencement dates, review deadlines, and compliance milestones.',
+  eileen:    'Context-aware Eileen chat with Vault and Calendar integration.',
+  research:  'Browse the Knowledge Library content — 391 provisions, 240 cases, 69 instruments.',
+  planner:   'Six-step contract planning workflow with gap analysis and compliance mapping.',
+};
+
+function PlaceholderPanel({ panelId }) {
+  return (
+    <div className="kl-placeholder-panel">
+      <div className="kl-placeholder-icon" aria-hidden="true">⚙</div>
+      <div className="kl-placeholder-title">Coming soon</div>
+      <p className="kl-placeholder-body">
+        {PLACEHOLDER_DESCRIPTIONS[panelId] || 'This panel is under development.'}
+      </p>
+    </div>
+  );
+}
+
+// ─── PanelDrawer (KLUI-001 §2.2) ───
+
+const PANEL_LABELS = {
+  vault: 'Document Vault', notes: 'Notes', documents: 'Documents',
+  clipboard: 'Clipboard', calendar: 'Calendar', eileen: 'Eileen',
+  research: 'Research', planner: 'Contract Planner',
+};
+
+const PANEL_COMPONENTS = {
+  notes: NotesPanel,
+  clipboard: ClipboardPanel,
+};
+
+function PanelDrawer({ panelId, onClose }) {
+  if (!panelId) return null;
+  const PanelContent = PANEL_COMPONENTS[panelId] || PlaceholderPanel;
+  const label = PANEL_LABELS[panelId] || panelId;
+  return (
+    <div className="kl-panel-drawer" role="dialog" aria-label={label}>
+      <div className="kl-panel-drawer-header">
+        <span className="kl-panel-drawer-title">{label}</span>
+        <button className="kl-panel-drawer-close" onClick={onClose} aria-label="Close panel">✕</button>
+      </div>
+      <div className="kl-panel-drawer-body">
+        <PanelContent panelId={panelId} />
+      </div>
     </div>
   );
 }
@@ -426,6 +704,7 @@ function App() {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activePanel, setActivePanel] = useState(null);
   const [accessType, setAccessType] = useState(window.__klAccessType || null);
   const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
 
@@ -474,6 +753,13 @@ function App() {
     const el = document.getElementById('kl-root');
     if (el) el.classList.toggle('sidebar-collapsed', !sidebarOpen);
   }, [sidebarOpen]);
+
+  // Toggle drawer-open class on the real #kl-root (layout signal only;
+  // the drawer itself is positioned fixed — this class is reserved for future push mode).
+  useEffect(() => {
+    const el = document.getElementById('kl-root');
+    if (el) el.classList.toggle('drawer-open', !!activePanel);
+  }, [activePanel]);
 
   async function loadSession(sid) {
     if (!window.__klToken) return;
@@ -575,8 +861,16 @@ function App() {
         accessType={accessType}
         tier={tier}
       />
-      <PanelRailPlaceholder />
+      <PanelRail
+        activePanel={activePanel}
+        onSelectPanel={setActivePanel}
+        accessType={accessType}
+        tier={tier}
+      />
       <AdvisoryBanner />
+      {activePanel && (
+        <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} />
+      )}
     </React.Fragment>
   );
 }

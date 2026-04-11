@@ -190,8 +190,151 @@
     .kl-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
     .kl-send-btn:not(:disabled):hover { opacity: 0.85; }
 
-    /* ─── Panel rail placeholder ─── */
+    /* ─── Panel rail (KLUI-001 §2.1) ─── */
     .kl-panelrail-slot { width: 28px; height: 28px; border-radius: 50%; background: var(--kl-surface-hover); border: 1px solid var(--kl-border); }
+    .kl-panel-rail-btn {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: none;
+      border-left: 2px solid transparent;
+      cursor: pointer;
+      color: var(--kl-text-muted);
+      font-size: 18px;
+      padding: 0;
+      transition: background 0.15s, border-left-color 0.15s, opacity 0.15s;
+    }
+    .kl-panel-rail-btn:hover:not(:disabled) { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-panel-rail-btn.active { background: var(--kl-surface-hover); border-left-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-panel-rail-btn.locked, .kl-panel-rail-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .kl-panel-rail-icon { font-size: 18px; line-height: 1; }
+
+    /* ─── Panel drawer (KLUI-001 §2.2) ─── */
+    .kl-panel-drawer {
+      position: fixed;
+      top: var(--kl-topbar-height);
+      right: var(--kl-panel-rail-width);
+      width: 420px;
+      height: calc(100vh - var(--kl-topbar-height) - var(--kl-advisory-height));
+      background: var(--kl-bg);
+      border-left: 1px solid var(--kl-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      animation: klSlideIn 0.2s ease-out;
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.25);
+    }
+    @media (max-width: 768px) {
+      .kl-panel-drawer { right: 0; width: 100%; }
+    }
+    @keyframes klSlideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    .kl-panel-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--kl-border);
+      background: var(--kl-surface);
+      flex-shrink: 0;
+    }
+    .kl-panel-drawer-title {
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--kl-text);
+      letter-spacing: 0.01em;
+    }
+    .kl-panel-drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--kl-text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .kl-panel-drawer-close:hover { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-panel-drawer-body { flex: 1; overflow: auto; padding: 16px; min-height: 0; }
+
+    /* ─── Notes panel ─── */
+    .kl-notes-panel { display: flex; flex-direction: column; height: 100%; gap: 8px; }
+    .kl-notes-title {
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--kl-text);
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .kl-notes-title:focus { border-color: var(--kl-cyan); }
+    .kl-notes-status { font-size: 11px; color: var(--kl-text-dim); font-family: var(--kl-font-mono); }
+    .kl-notes-status.saved { color: var(--kl-green); }
+    .kl-notes-status.error { color: var(--kl-red); }
+    .kl-notes-body {
+      flex: 1;
+      min-height: 200px;
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 12px;
+      color: var(--kl-text);
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      line-height: 1.7;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .kl-notes-body:focus { border-color: var(--kl-cyan); }
+
+    /* ─── Clipboard panel ─── */
+    .kl-clipboard-panel { display: flex; flex-direction: column; gap: 8px; }
+    .kl-clipboard-empty { color: var(--kl-text-dim); font-size: 13px; font-family: var(--kl-font-sans); line-height: 1.5; }
+    .kl-clipboard-clear {
+      align-self: flex-start;
+      background: transparent;
+      border: none;
+      color: var(--kl-red);
+      font-family: var(--kl-font-sans);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 2px 0;
+      margin-bottom: 4px;
+    }
+    .kl-clipboard-clear:hover { text-decoration: underline; }
+    .kl-clip {
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+    }
+    .kl-clip-text { color: var(--kl-text); margin: 0 0 6px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .kl-clip-actions { display: flex; gap: 12px; }
+    .kl-clip-copy, .kl-clip-remove {
+      background: transparent;
+      border: none;
+      font-family: var(--kl-font-sans);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .kl-clip-copy { color: var(--kl-cyan); }
+    .kl-clip-remove { color: var(--kl-text-dim); }
+    .kl-clip-copy:hover, .kl-clip-remove:hover { text-decoration: underline; }
+
+    /* ─── Placeholder panel ─── */
+    .kl-placeholder-panel { text-align: center; padding: 48px 16px 16px; }
+    .kl-placeholder-icon { font-size: 36px; color: var(--kl-text-dim); margin-bottom: 12px; line-height: 1; }
+    .kl-placeholder-title { font-family: var(--kl-font-sans); font-size: 16px; font-weight: 500; color: var(--kl-text); margin-bottom: 8px; }
+    .kl-placeholder-body { color: var(--kl-text-dim); font-size: 13px; line-height: 1.5; max-width: 280px; margin: 0 auto; }
 
     /* ─── Scrollbar ─── */
     ::-webkit-scrollbar { width: 8px; }
