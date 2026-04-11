@@ -500,7 +500,20 @@
 
     // ─── Auth Guard (canonical pattern) ───
     async function initAuth() {
-      const { data: { session } } = await sb.auth.getSession();
+      let { data: { session } } = await sb.auth.getSession();
+
+      // Fallback: if no in-memory session, try refreshing from the stored
+      // refresh token. Handles the case where the user just signed in on
+      // another page in a different tab and the supabase client here hasn't
+      // hydrated yet, or where the access token is stale but the refresh
+      // token is still valid.
+      if (!session) {
+        try {
+          const { data: refreshData } = await sb.auth.refreshSession();
+          if (refreshData && refreshData.session) session = refreshData.session;
+        } catch (e) { /* fall through to onAuthStateChange / redirect */ }
+      }
+
       if (session) return handleSession(session);
 
       const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
@@ -512,7 +525,7 @@
 
       setTimeout(() => {
         subscription.unsubscribe();
-        window.location.replace('/account/');
+        window.location.replace('/account/?returnTo=/knowledge-library/');
       }, 6000);
     }
 
