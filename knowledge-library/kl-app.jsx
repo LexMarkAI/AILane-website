@@ -185,14 +185,40 @@ function NexusCanvas({ tier }) {
   return <canvas ref={canvasRef} className="kl-nexus-canvas" />;
 }
 
+// ─── EileenSenderLabel ───
+// Static cyan "Nexus" dot + "Eileen" label, rendered on every Eileen message
+// bubble to restore Eileen's visual identity throughout the conversation
+// (KLUX-001 Art. 13 §13.2, Art. 19 §19.1(a)). Option B of the R1-A brief:
+// static dot rather than a per-message NexusCanvas instance, because NexusCanvas
+// has no size prop and each instance runs its own rAF loop (O(n²) per frame).
+
+function EileenSenderLabel() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div
+        aria-hidden="true"
+        style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          background: '#0EA5E9',
+          boxShadow: '0 0 6px rgba(14,165,233,0.5)',
+          flexShrink: 0,
+        }}
+      ></div>
+      <div className="kl-msg-sender" style={{ marginBottom: 0 }}>Eileen</div>
+    </div>
+  );
+}
+
 // ─── TypingIndicator ───
 
 function TypingIndicator() {
   return (
     <div className="kl-msg kl-msg-eileen">
       <div className="kl-msg-content">
-        <div className="kl-msg-sender">Eileen</div>
-        <div className="kl-typing-dots">
+        <EileenSenderLabel />
+        <div className="kl-typing-dots" style={{ marginTop: '8px' }}>
           <span className="kl-dot"></span>
           <span className="kl-dot"></span>
           <span className="kl-dot"></span>
@@ -291,8 +317,8 @@ function MessageBubble({ msg }) {
   return (
     <div className="kl-msg kl-msg-eileen">
       <div className="kl-msg-content">
-        <div className="kl-msg-sender">Eileen</div>
-        <div className="kl-msg-body" dangerouslySetInnerHTML={{ __html: html }} />
+        <EileenSenderLabel />
+        <div className="kl-msg-body" style={{ marginTop: '8px' }} dangerouslySetInnerHTML={{ __html: html }} />
         {hasStats && (
           <div className="kl-msg-footer">
             <div className="kl-msg-stats">
@@ -347,17 +373,38 @@ function MessageInput({ onSend, disabled, onFileSelect }) {
           title="Upload a contract for compliance analysis"
           aria-label="Upload a contract for compliance analysis"
           style={{
-            background: 'none',
-            border: 'none',
+            background: 'rgba(14,165,233,0.08)',
+            border: '1px solid rgba(14,165,233,0.2)',
+            borderRadius: '8px',
             cursor: 'pointer',
-            padding: '8px',
-            color: '#64748B',
-            fontSize: '18px',
+            padding: '6px 10px',
+            color: '#0EA5E9',
+            fontSize: '13px',
+            fontWeight: 500,
+            fontFamily: "'DM Sans', sans-serif",
             display: 'flex',
             alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
-          {'\uD83D\uDCCE'}
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Upload contract</span>
         </button>
       )}
       <input
@@ -658,15 +705,15 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
 
 // ─── PanelRail (KLUI-001 §2.1) ───
 
+// Dead panel icons (eileen, documents, planner) removed per KLUX-001 Art. 9 §9.1.
+// Only functional panels appear in the rail. PlaceholderPanel and its descriptions
+// are preserved below as a defensive fallback in PanelDrawer but are now unreachable.
 const PANEL_DEFS = [
   { id: 'vault',     icon: '📄', label: 'Document Vault',   minTier: 'operational_readiness' },
   { id: 'notes',     icon: '📝', label: 'Notes',            minTier: null },
-  { id: 'documents', icon: '📑', label: 'Documents',        minTier: 'operational_readiness' },
   { id: 'clipboard', icon: '📋', label: 'Clipboard',        minTier: null },
   { id: 'calendar',  icon: '📅', label: 'Calendar',         minTier: 'operational_readiness' },
-  { id: 'eileen',    icon: '💬', label: 'Eileen',           minTier: null },
   { id: 'research',  icon: '🔍', label: 'Research',         minTier: null },
-  { id: 'planner',   icon: '📊', label: 'Contract Planner', minTier: 'governance' },
 ];
 
 const TIER_RANK = {
