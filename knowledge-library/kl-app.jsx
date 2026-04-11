@@ -367,9 +367,88 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
   );
 }
 
+// ─── SessionCountdown (KLAC-001-AM-005) ───
+// Per-session timer rendered inside TopBar. Reports expiry upward via onExpired
+// so the App can hoist the modal to the root of the render tree.
+
+function SessionCountdown({ expiresAt, onExpired }) {
+  const [remaining, setRemaining] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    firedRef.current = false;
+    if (!expiresAt) return undefined;
+    const expiry = new Date(expiresAt).getTime();
+    if (isNaN(expiry)) return undefined;
+
+    function tick() {
+      const diff = expiry - Date.now();
+      if (diff <= 0) {
+        setRemaining('Expired');
+        setIsUrgent(true);
+        if (!firedRef.current && typeof onExpired === 'function') {
+          firedRef.current = true;
+          onExpired();
+        }
+        return false;
+      }
+      const totalSecs = Math.floor(diff / 1000);
+      const hours = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      const label = hours > 0
+        ? hours + 'h ' + String(mins).padStart(2, '0') + 'm'
+        : mins + 'm ' + String(secs).padStart(2, '0') + 's';
+      setRemaining(label);
+      setIsUrgent(diff < 15 * 60 * 1000);
+      return true;
+    }
+
+    if (!tick()) return undefined;
+    const interval = setInterval(() => { if (!tick()) clearInterval(interval); }, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt, onExpired]);
+
+  if (!expiresAt) return null;
+  return (
+    <span className={'kl-session-countdown' + (isUrgent ? ' urgent' : '')} title="Time remaining in this session">
+      <span aria-hidden="true">⏱</span>
+      <span className="kl-session-countdown-time">{remaining}</span>
+    </span>
+  );
+}
+
+// ─── ExpiredModal (KLAC-001-AM-005) ───
+
+function ExpiredModal() {
+  return (
+    <div className="kl-expired-modal" role="dialog" aria-modal="true" aria-labelledby="kl-expired-title">
+      <div className="kl-expired-backdrop" aria-hidden="true"></div>
+      <div className="kl-expired-content">
+        <h2 id="kl-expired-title" className="kl-expired-title">Session expired</h2>
+        <p className="kl-expired-body">
+          Your Knowledge Library session has ended. Purchase a new session to continue your research.
+        </p>
+        <a className="kl-expired-cta" href="/knowledge-library-preview/">
+          Get a new session
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── MobileSidebarBackdrop ───
+// Rendered whenever the sidebar is open. Hidden on desktop via CSS; visible on
+// mobile to give a click-outside-to-close affordance for the overlay sidebar.
+
+function MobileSidebarBackdrop({ onClick }) {
+  return <div className="kl-sidebar-backdrop" onClick={onClick} aria-hidden="true"></div>;
+}
+
 // ─── TopBar ───
 
-function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier }) {
+function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired }) {
   let badgeLabel = 'KNOWLEDGE LIBRARY';
   let badgeClass = 'kl-badge-per-session';
   if (accessType === 'subscription') {
@@ -390,6 +469,9 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier }) {
       </button>
       <div className="kl-topbar-title">AILANE Knowledge Library</div>
       <div className="kl-topbar-right">
+        {accessType === 'per_session' && sessionExpiresAt && (
+          <SessionCountdown expiresAt={sessionExpiresAt} onExpired={onSessionExpired} />
+        )}
         <span className={'kl-tier-badge ' + badgeClass}>{badgeLabel}</span>
       </div>
     </div>
@@ -703,10 +785,12 @@ function App() {
   const [sessionId, setSessionId] = useState(() => 'eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
   const [sessionHistory, setSessionHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' ? true : window.innerWidth > 768);
   const [activePanel, setActivePanel] = useState(null);
   const [accessType, setAccessType] = useState(window.__klAccessType || null);
   const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const loadSessionHistory = useCallback(async function () {
     if (!window.__klToken || !window.__klUserId) return;
@@ -739,6 +823,7 @@ function App() {
     function onReady(e) {
       setAccessType(e.detail.accessType);
       setTier(e.detail.tier);
+      setSessionExpiresAt(window.__klSessionExpiry || null);
       loadSessionHistory();
     }
     window.addEventListener('ailane-kl-ready', onReady);
@@ -747,6 +832,17 @@ function App() {
     }
     return () => window.removeEventListener('ailane-kl-ready', onReady);
   }, [loadSessionHistory]);
+
+  // Auto-close sidebar when resizing down to mobile; restore on resize up.
+  useEffect(() => {
+    function onResize() {
+      if (window.innerWidth <= 768) {
+        setSidebarOpen(false);
+      }
+    }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Toggle sidebar-collapsed class on the real #kl-root grid container
   useEffect(() => {
@@ -845,13 +941,15 @@ function App() {
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         accessType={accessType}
         tier={tier}
+        sessionExpiresAt={sessionExpiresAt}
+        onSessionExpired={() => setSessionExpired(true)}
       />
       <Sidebar
         open={sidebarOpen}
         sessionHistory={sessionHistory}
         activeSessionId={sessionId}
-        onSelectSession={loadSession}
-        onNewChat={newChat}
+        onSelectSession={(sid) => { loadSession(sid); if (window.innerWidth <= 768) setSidebarOpen(false); }}
+        onNewChat={() => { newChat(); if (window.innerWidth <= 768) setSidebarOpen(false); }}
         onCrownQuery={sendMessage}
       />
       <ConversationArea
@@ -868,9 +966,11 @@ function App() {
         tier={tier}
       />
       <AdvisoryBanner />
+      {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
       {activePanel && (
         <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} />
       )}
+      {sessionExpired && <ExpiredModal />}
     </React.Fragment>
   );
 }
