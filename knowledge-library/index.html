@@ -526,6 +526,8 @@
         SUPABASE_URL + '/rest/v1/kl_sessions?user_id=eq.' + userId + '&status=eq.active&select=*',
         { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
       );
+      // Expired access token → force re-login rather than stranding the user.
+      if (sessResp.status === 401) { window.location.replace('/account/'); return; }
       const sessions = await sessResp.json();
       const activeSession = Array.isArray(sessions) ? sessions.find(s => new Date(s.expires_at) > new Date()) : null;
 
@@ -534,6 +536,8 @@
         SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=*',
         { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
       );
+      // Expired access token → force re-login rather than stranding the user.
+      if (profileResp.status === 401) { window.location.replace('/account/'); return; }
       const profiles = await profileResp.json();
       const profile = Array.isArray(profiles) ? profiles[0] : null;
 
