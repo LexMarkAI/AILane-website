@@ -547,30 +547,41 @@
       const payload = JSON.parse(atob(token.split('.')[1]));
       const userId = payload.sub;
 
+      // Per AUTH-001 §8.2, use the Supabase JS client for page-load auth
+      // guard queries. The client auto-refreshes the access token before
+      // each call, which avoids the raw-fetch + stale-token 401 that used
+      // to bounce governance users into an /auth/callback → /governance-
+      // dashboard redirect loop (R-003). This is a page-load guard, not a
+      // post-OAuth callback — sb.from() is the correct pattern here.
+
       // Check per-session access (schema: kl_sessions.status text, not is_active bool)
-      const sessResp = await fetch(
-        SUPABASE_URL + '/rest/v1/kl_sessions?user_id=eq.' + userId + '&status=eq.active&select=*',
-        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
-      );
-      // 401 here is non-fatal: subscription users don't own any kl_sessions
-      // rows and RLS can legitimately return 401 for them. Treat it as
-      // "no active per-session access" and continue to the tier check —
-      // only a 401 on the profile check is treated as an auth failure.
       let activeSession = null;
-      if (sessResp.ok) {
-        const sessions = await sessResp.json();
-        activeSession = Array.isArray(sessions) ? sessions.find(s => new Date(s.expires_at) > new Date()) : null;
-      }
+      try {
+        const { data: sessionData, error: sessionErr } = await sb
+          .from('kl_sessions')
+          .select('id, expires_at, product_type')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .gte('expires_at', new Date().toISOString())
+          .order('expires_at', { ascending: false })
+          .limit(1);
+        if (!sessionErr && sessionData && sessionData.length > 0) {
+          activeSession = sessionData[0];
+        }
+      } catch (e) { /* leave activeSession null, fall through to tier check */ }
 
       // Check subscription tier
-      const profileResp = await fetch(
-        SUPABASE_URL + '/rest/v1/kl_account_profiles?user_id=eq.' + userId + '&select=*',
-        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY } }
-      );
-      // Expired access token → force re-login rather than stranding the user.
-      if (profileResp.status === 401) { window.location.replace('/account/'); return; }
-      const profiles = await profileResp.json();
-      const profile = Array.isArray(profiles) ? profiles[0] : null;
+      let profile = null;
+      try {
+        const { data: profileData, error: profileErr } = await sb
+          .from('kl_account_profiles')
+          .select('subscription_tier')
+          .eq('user_id', userId)
+          .limit(1);
+        if (!profileErr && profileData && profileData.length > 0) {
+          profile = profileData[0];
+        }
+      } catch (e) { /* leave profile null, fall through to no-access path */ }
 
       if (activeSession) {
         window.__klAccessType = 'per_session';
