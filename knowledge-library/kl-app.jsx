@@ -103,6 +103,32 @@ const TOPIC_DOMAINS = [
   },
 ];
 
+// ─── Contract intent keywords (KLAC-001-AM-006, AMD-043) ───
+// Eileen proactively routes contract-related requests to the compliance engine.
+const CONTRACT_INTENT_PATTERNS = [
+  'check my contract',
+  'review my contract',
+  'analyse my contract',
+  'analyze my contract',
+  'compliance check',
+  'upload my contract',
+  'is my contract compliant',
+  'contract review',
+  'check this contract',
+  'review this document',
+  'check my employment contract',
+  'contract compliance',
+  'look at my contract',
+  'scan my contract',
+];
+
+function hasContractIntent(text) {
+  var lower = (text || '').toLowerCase();
+  return CONTRACT_INTENT_PATTERNS.some(function(pattern) {
+    return lower.indexOf(pattern) !== -1;
+  });
+}
+
 // ─── R1-B keyframes (kl-pulse for compliance engine indicator) ───
 // Injected once at module load. index.html is out of scope per R1-B §12.
 // Distinct from the existing klPulse (typing dots) — this one scales 1→1.3
@@ -184,6 +210,40 @@ function formatRelativeTime(iso) {
   const days = Math.floor(hrs / 24);
   if (days < 7) return days + 'd ago';
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+// ─── groupSessionsByTime (KLUX-001 Art. 8) ───
+// Groups session history entries into Today / Yesterday / This Week / Earlier.
+
+function groupSessionsByTime(sessions) {
+  var now = new Date();
+  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  var yesterdayStart = todayStart - 86400000;
+  var weekStart = todayStart - (now.getDay() === 0 ? 6 : now.getDay() - 1) * 86400000;
+
+  var groups = {
+    today: { label: 'Today', items: [] },
+    yesterday: { label: 'Yesterday', items: [] },
+    thisWeek: { label: 'This Week', items: [] },
+    earlier: { label: 'Earlier', items: [] },
+  };
+
+  sessions.forEach(function(s) {
+    var t = new Date(s.lastActivity).getTime();
+    if (t >= todayStart) {
+      groups.today.items.push(s);
+    } else if (t >= yesterdayStart) {
+      groups.yesterday.items.push(s);
+    } else if (t >= weekStart) {
+      groups.thisWeek.items.push(s);
+    } else {
+      groups.earlier.items.push(s);
+    }
+  });
+
+  return [groups.today, groups.yesterday, groups.thisWeek, groups.earlier].filter(function(g) {
+    return g.items.length > 0;
+  });
 }
 
 function truncate(s, n) {
@@ -310,6 +370,65 @@ function EileenSenderLabel() {
         }}
       ></div>
       <div className="kl-msg-sender" style={{ marginBottom: 0 }}>Eileen</div>
+    </div>
+  );
+}
+
+// ─── QualifyingQuestion (KLIA-001 Art. 23 — EQIS) ───
+// Renders as a local Eileen message with two clickable buttons.
+// Appears once per browser (stored in localStorage). Not persisted to DB.
+
+function QualifyingQuestion({ onSelect }) {
+  return (
+    <div className="kl-msg kl-msg-eileen">
+      <div className="kl-msg-content">
+        <EileenSenderLabel />
+        <div className="kl-msg-body" style={{ marginTop: '8px' }}>
+          <p>To give you the most relevant guidance — are you an employer or HR professional managing compliance, or a worker with a question about your own employment rights?</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={function() { onSelect('employer'); }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: 'rgba(14, 165, 233, 0.1)',
+              border: '1px solid rgba(14, 165, 233, 0.3)',
+              color: '#0EA5E9',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={function(e) { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.2)'; }}
+            onMouseLeave={function(e) { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.1)'; }}
+          >
+            Employer / HR
+          </button>
+          <button
+            type="button"
+            onClick={function() { onSelect('worker'); }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              color: '#A78BFA',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={function(e) { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)'; }}
+            onMouseLeave={function(e) { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)'; }}
+          >
+            Worker
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1113,7 +1232,7 @@ function MessageBubble({ msg, onRunAnalysis }) {
 
 // ─── MessageInput ───
 
-function MessageInput({ onSend, disabled, onFileSelect }) {
+function MessageInput({ onSend, disabled, onFileSelect, pulseUpload }) {
   const [value, setValue] = useState('');
   const fileInputRef = useRef(null);
 
@@ -1167,6 +1286,7 @@ function MessageInput({ onSend, disabled, onFileSelect }) {
             gap: '6px',
             whiteSpace: 'nowrap',
             flexShrink: 0,
+            animation: pulseUpload ? 'kl-pulse 1.5s ease-in-out 3' : 'none',
           }}
         >
           <svg
@@ -1210,7 +1330,7 @@ function MessageInput({ onSend, disabled, onFileSelect }) {
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -1280,7 +1400,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           <HorizonAlert />
           <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
           <div className="kl-welcome-input">
-            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} />
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} />
           </div>
           <div className="kl-topics-grid">
             {TOPIC_DOMAINS.map((topic, i) => (
@@ -1308,10 +1428,11 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           />
           <div className="kl-messages" ref={scrollRef}>
             {messages.map((m, i) => <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />)}
+            {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
             {isLoading && <TypingIndicator />}
           </div>
           <div className="kl-conversation-input">
-            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} />
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} />
           </div>
         </div>
       )}
@@ -1462,16 +1583,32 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
         {sessionHistory.length === 0 ? (
           <div className="kl-sidebar-empty">No prior conversations</div>
         ) : (
-          sessionHistory.map((s) => (
-            <button
-              key={s.sessionId}
-              className={'kl-history-item' + (s.sessionId === activeSessionId ? ' active' : '')}
-              onClick={() => onSelectSession(s.sessionId)}
-            >
-              <div className="kl-history-title">{truncate(s.title, 40)}</div>
-              <div className="kl-history-time">{formatRelativeTime(s.lastActivity)}</div>
-            </button>
-          ))
+          groupSessionsByTime(sessionHistory).map(function(group) {
+            return React.createElement(React.Fragment, { key: group.label },
+              React.createElement('div', {
+                className: 'kl-history-group-label',
+                style: {
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  padding: '12px 10px 4px',
+                  fontFamily: "'DM Mono', monospace",
+                },
+              }, group.label),
+              group.items.map(function(s) {
+                return React.createElement('button', {
+                  key: s.sessionId,
+                  className: 'kl-history-item' + (s.sessionId === activeSessionId ? ' active' : ''),
+                  onClick: function() { onSelectSession(s.sessionId); },
+                },
+                  React.createElement('div', { className: 'kl-history-title' }, truncate(s.title, 40)),
+                  React.createElement('div', { className: 'kl-history-time' }, formatRelativeTime(s.lastActivity))
+                );
+              })
+            );
+          })
         )}
       </div>
       <div className="kl-sidebar-divider"></div>
@@ -2438,6 +2575,12 @@ function App() {
   const [minutesRemaining, setMinutesRemaining] = useState(null);
   const [upsellDismissed, setUpsellDismissed] = useState(false);
   const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
+  const [userType, setUserType] = useState(function() {
+    try { return localStorage.getItem('ailane_kl_user_type') || null; } catch(e) { return null; }
+  });
+  const [showQualifier, setShowQualifier] = useState(false);
+  const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
+  const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
 
   const loadSessionHistory = useCallback(async function () {
     if (!window.__klToken || !window.__klUserId) return;
@@ -2565,7 +2708,7 @@ function App() {
           'apikey': SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
-          message: clean,
+          message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional' : 'a worker') + '] ' : '') + clean,
           session_id: sessionId,
           page_context: 'knowledge-library',
         }),
@@ -2579,6 +2722,27 @@ function App() {
           casesCount: data.cases_count,
         }]);
         loadSessionHistory();
+
+        // EQIS: Show qualifying question after first Eileen response
+        // if user type not stored and not already shown this session
+        if (!userType && !qualifierShownThisSession) {
+          setShowQualifier(true);
+          setQualifierShownThisSession(true);
+        }
+
+        // AMD-043: Proactive contract routing
+        if (hasContractIntent(clean) && !hasUploadedThisSession) {
+          setTimeout(function() {
+            setMessages(function(prev) {
+              return prev.concat([{
+                role: 'assistant',
+                content: 'I can run your contract through our compliance engine for a detailed analysis against current UK employment law.\n\nUpload your contract using the **Upload contract** button below (PDF, DOCX, or TXT — up to 10MB). I will extract the text, route it through the engine, and present findings with a compliance score, clause-by-clause assessment, and forward legislative exposure analysis.',
+                isLocal: true,
+                isContractPrompt: true,
+              }]);
+            });
+          }, 800);
+        }
       } else {
         setMessages((prev) => [...prev, {
           role: 'assistant',
@@ -2596,6 +2760,12 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleUserTypeSelect(type) {
+    setUserType(type);
+    setShowQualifier(false);
+    try { localStorage.setItem('ailane_kl_user_type', type); } catch(e) { /* silent */ }
   }
 
   // ─── File upload flow (KL File Upload Widget, Stage A) ───
@@ -2953,6 +3123,7 @@ function App() {
   function handleFileSelect(e) {
     const file = e && e.target && e.target.files && e.target.files[0];
     if (!file) return;
+    setHasUploadedThisSession(true);
 
     // Validate extension
     const parts = file.name.split('.');
@@ -3035,6 +3206,9 @@ function App() {
         onRunAnalysis={handleRunAnalysis}
         floatingNexusExpanded={floatingNexusOpen}
         onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
+        showQualifier={showQualifier}
+        onUserTypeSelect={handleUserTypeSelect}
+        pulseUpload={messages.some(function(m) { return m.isContractPrompt; }) && !hasUploadedThisSession}
       />
       <PanelRail
         activePanel={activePanel}
