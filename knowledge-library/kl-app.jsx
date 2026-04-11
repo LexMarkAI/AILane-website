@@ -12,53 +12,83 @@ const CROWN_JEWELS = [
   {
     name: 'Employment Rights Act 1996',
     shortId: 'ERA 1996',
-    provisions: 95,
+    warmIntro: 'The foundation of modern employment protection in the UK.',
+    topics: 'Covers unfair dismissal, redundancy rights, written terms of employment, whistleblower protections, flexible working, and the right not to suffer detriment.',
+    keyQuestion: 'What does the ERA 1996 require of my employment contracts?',
     inForce: true,
-    summary: 'Core employment protections including unfair dismissal, redundancy, written statements, and whistleblowing.',
   },
   {
     name: 'Equality Act 2010',
     shortId: 'EqA 2010',
-    provisions: 62,
+    warmIntro: 'The single framework protecting people from discrimination at work.',
+    topics: 'Covers nine protected characteristics including age, disability, race, sex, and pregnancy. Addresses direct and indirect discrimination, harassment, victimisation, and the duty to make reasonable adjustments.',
+    keyQuestion: 'What are my obligations around workplace discrimination under the Equality Act?',
     inForce: true,
-    summary: 'Discrimination, harassment, and victimisation protections across nine protected characteristics.',
   },
   {
     name: 'Health and Safety at Work Act 1974',
     shortId: 'HSWA 1974',
-    provisions: 18,
+    warmIntro: 'The primary legislation ensuring workplaces are safe for everyone.',
+    topics: 'Establishes the employer\'s general duty of care, risk assessment obligations, employee consultation rights, and HSE enforcement powers.',
+    keyQuestion: 'What are my core health and safety duties as an employer?',
     inForce: true,
-    summary: 'Employer duties for workplace health, safety, and welfare of employees.',
   },
   {
     name: 'National Minimum Wage Act 1998',
     shortId: 'NMWA 1998',
-    provisions: 12,
+    warmIntro: 'Guarantees a minimum level of pay for virtually all workers.',
+    topics: 'Sets out entitlements to national minimum wage and national living wage, employer record-keeping duties, and HMRC enforcement mechanisms.',
+    keyQuestion: 'Am I meeting my minimum wage obligations for all worker categories?',
     inForce: true,
-    summary: 'Minimum wage entitlements, enforcement, and employer record-keeping obligations.',
   },
   {
     name: 'Trade Union and Labour Relations (Consolidation) Act 1992',
     shortId: 'TULRCA 1992',
-    provisions: 48,
+    warmIntro: 'Governs collective rights, union recognition, and industrial action.',
+    topics: 'Covers trade union recognition, collective bargaining, the right to be accompanied, collective redundancy consultation (Section 188), and lawful industrial action.',
+    keyQuestion: 'What are my obligations around collective consultation and trade union rights?',
     inForce: true,
-    summary: 'Collective rights, trade union recognition, industrial action, and collective redundancy consultation.',
   },
   {
     name: 'Employment Rights Act 2025',
     shortId: 'ERA 2025',
-    provisions: 41,
+    warmIntro: 'The most significant reform to employment law in a generation.',
+    topics: 'Introduces day-one unfair dismissal rights, restricts fire-and-rehire, reforms zero-hours contracts, strengthens flexible working, and creates the Fair Work Agency. Measures commenced 6 April 2026.',
+    keyQuestion: 'How does the Employment Rights Act 2025 change my obligations from April 2026?',
     inForce: false,
-    summary: 'Major reform: day-one unfair dismissal rights, zero-hours reforms, fire-and-rehire restrictions. Measures commenced 6 April 2026.',
   },
   {
     name: 'Public Interest Disclosure Act 1998',
     shortId: 'PIDA 1998',
-    provisions: 8,
+    warmIntro: 'Protects workers who raise concerns about wrongdoing.',
+    topics: 'Defines qualifying disclosures, protected disclosures in the public interest, protection from dismissal and detriment, and the prescribed persons framework.',
+    keyQuestion: 'How should I handle a whistleblowing disclosure from an employee?',
     inForce: true,
-    summary: 'Whistleblower protections for workers making qualifying disclosures in the public interest.',
   },
 ];
+
+// Human-readable names for instrument IDs used in the Research Panel
+var INSTRUMENT_NAMES = {
+  'ERA 1996': 'Employment Rights Act 1996',
+  'EqA 2010': 'Equality Act 2010',
+  'HSWA 1974': 'Health and Safety at Work Act 1974',
+  'NMWA 1998': 'National Minimum Wage Act 1998',
+  'TULRCA 1992': 'Trade Union and Labour Relations (Consolidation) Act 1992',
+  'ERA 2025': 'Employment Rights Act 2025',
+  'PIDA 1998': 'Public Interest Disclosure Act 1998',
+  'WTR 1998': 'Working Time Regulations 1998',
+  'MPL 1999': 'Maternity and Parental Leave Regulations 1999',
+  'TUPE 2006': 'Transfer of Undertakings Regulations 2006',
+  'ACAS Code 1': 'ACAS Code of Practice on Disciplinary and Grievance',
+  'FWR 2014': 'Flexible Working Regulations 2014',
+  'PTWR 2000': 'Part-Time Workers Regulations 2000',
+  'FTER 2002': 'Fixed-Term Employees Regulations 2002',
+  'AWR 2010': 'Agency Workers Regulations 2010',
+  'PAL 2002': 'Paternity and Adoption Leave Regulations 2002',
+  'SPL 2014': 'Shared Parental Leave Regulations 2014',
+  'MHSWR 1999': 'Management of Health and Safety at Work Regulations 1999',
+  'DPA 2018': 'Data Protection Act 2018',
+};
 
 const TOPIC_DOMAINS = [
   {
@@ -1397,11 +1427,21 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           <div className="kl-welcome-nexus">
             <NexusCanvas tier={tier} />
           </div>
-          <HorizonAlert />
           <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
+          <div className="kl-eileen-subtitle" style={{
+            fontSize: '12px',
+            color: '#64748B',
+            fontFamily: "'DM Mono', monospace",
+            letterSpacing: '0.06em',
+            marginBottom: '24px',
+            textAlign: 'center',
+          }}>
+            Eileen &middot; UK Employment Law Intelligence
+          </div>
           <div className="kl-welcome-input">
             <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} />
           </div>
+          <HorizonAlert />
           <div className="kl-topics-grid">
             {TOPIC_DOMAINS.map((topic, i) => (
               <button key={i} className="kl-topic-card" onClick={() => onSend(topic.query)} disabled={isLoading}>
@@ -1443,9 +1483,11 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
 // ─── CrownJewels ───
 
 function CrownJewels({ onQuery, disabled }) {
-  const [expanded, setExpanded] = useState({});
+  var _exp = useState({});
+  var expanded = _exp[0];
+  var setExpanded = _exp[1];
 
-  function toggleExpand(name) {
+  function toggle(name) {
     setExpanded(function(prev) {
       var next = {};
       for (var k in prev) next[k] = prev[k];
@@ -1454,166 +1496,140 @@ function CrownJewels({ onQuery, disabled }) {
     });
   }
 
-  return (
-    <div className="kl-crown">
-      <div className="kl-crown-title">Crown Jewels</div>
-      <div className="kl-crown-list">
-        {CROWN_JEWELS.map(function(jewel) {
-          var isOpen = !!expanded[jewel.name];
-          return React.createElement('div', { key: jewel.name, className: 'kl-crown-item' },
+  return React.createElement('div', { className: 'kl-crown' },
+    React.createElement('div', { className: 'kl-crown-title' }, 'Crown Jewels'),
+    React.createElement('div', { className: 'kl-crown-list' },
+      CROWN_JEWELS.map(function(jewel) {
+        var isOpen = !!expanded[jewel.name];
+        return React.createElement('div', { key: jewel.name, style: { marginBottom: '4px' } },
+          React.createElement('div', {
+            onClick: function() { toggle(jewel.name); },
+            style: {
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '7px 10px', borderRadius: isOpen ? '8px 8px 0 0' : '8px',
+              background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)',
+              cursor: 'pointer', transition: 'background 0.15s',
+            },
+          },
+            React.createElement('span', {
+              style: {
+                width: '5px', height: '5px', borderRadius: '50%', flexShrink: 0,
+                background: jewel.inForce ? '#10B981' : '#F59E0B',
+              },
+            }),
+            React.createElement('span', {
+              style: { flex: 1, fontSize: '11px', color: '#CBD5E1', lineHeight: 1.3, fontFamily: "'DM Sans', sans-serif" },
+            }, jewel.name),
+            React.createElement('span', {
+              style: { fontSize: '9px', color: '#64748B', flexShrink: 0, transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
+              'aria-hidden': 'true',
+            }, '\u25BC')
+          ),
+          isOpen && React.createElement('div', {
+            style: {
+              padding: '10px', background: 'rgba(14,165,233,0.02)',
+              border: '1px solid rgba(14,165,233,0.12)', borderTop: 'none',
+              borderRadius: '0 0 8px 8px',
+            },
+          },
             React.createElement('div', {
-              className: 'kl-crown-item-header',
+              style: { fontSize: '12px', color: '#0EA5E9', fontWeight: 500, marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" },
+            }, jewel.warmIntro),
+            React.createElement('div', {
+              style: { fontSize: '11px', color: '#94A3B8', lineHeight: 1.5, marginBottom: '10px' },
+            }, jewel.topics),
+            !jewel.inForce && React.createElement('div', {
               style: {
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '6px',
-                padding: '8px 10px',
-                background: 'rgba(14,165,233,0.05)',
-                border: '1px solid rgba(14,165,233,0.15)',
-                borderRadius: isOpen ? '8px 8px 0 0' : '8px',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
+                fontSize: '10px', color: '#F59E0B', padding: '4px 8px', borderRadius: '4px',
+                background: 'rgba(245,158,11,0.06)', marginBottom: '8px', display: 'inline-block',
               },
-              onClick: function() { toggleExpand(jewel.name); },
-            },
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('button', {
-                  className: 'kl-crown-name-btn',
-                  disabled: disabled,
-                  onClick: function(e) {
-                    e.stopPropagation();
-                    onQuery('Tell me about the key provisions and current obligations under the ' + jewel.name);
-                  },
-                  style: {
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    color: '#CBD5E1',
-                    fontSize: '11px',
-                    fontWeight: 400,
-                    lineHeight: 1.35,
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    textAlign: 'left',
-                    fontFamily: "'DM Sans', sans-serif",
-                    opacity: disabled ? 0.5 : 1,
-                  },
-                }, jewel.name),
-                React.createElement('div', {
-                  style: {
-                    display: 'flex',
-                    gap: '6px',
-                    marginTop: '3px',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                  },
-                },
-                  React.createElement('span', {
-                    style: {
-                      fontSize: '10px',
-                      color: '#0EA5E9',
-                      fontFamily: "'DM Mono', monospace",
-                    },
-                  }, jewel.provisions + ' provisions'),
-                  React.createElement('span', {
-                    style: {
-                      fontSize: '10px',
-                      color: jewel.inForce ? '#10B981' : '#F59E0B',
-                      padding: '0 4px',
-                      borderRadius: '3px',
-                      background: jewel.inForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                    },
-                  }, jewel.inForce ? 'In force' : 'Commenced 6 Apr 2026')
-                )
-              ),
-              React.createElement('span', {
-                style: {
-                  color: '#64748B',
-                  fontSize: '10px',
-                  marginTop: '2px',
-                  flexShrink: 0,
-                  transition: 'transform 0.15s',
-                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
-                },
-                'aria-hidden': 'true',
-              }, '\u25BC')
-            ),
-            isOpen && React.createElement('div', {
+            }, 'Commenced 6 April 2026'),
+            React.createElement('button', {
+              type: 'button',
+              disabled: disabled,
+              onClick: function(e) { e.stopPropagation(); onQuery(jewel.keyQuestion); },
               style: {
-                padding: '8px 10px',
-                background: 'rgba(14,165,233,0.03)',
-                border: '1px solid rgba(14,165,233,0.15)',
-                borderTop: 'none',
-                borderRadius: '0 0 8px 8px',
-                fontSize: '11px',
-                color: '#94A3B8',
-                lineHeight: 1.5,
+                display: 'block', width: '100%', padding: '7px 10px', borderRadius: '6px',
+                background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+                color: '#0EA5E9', fontSize: '11px', fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer',
+                fontFamily: "'DM Sans', sans-serif", textAlign: 'left', opacity: disabled ? 0.5 : 1,
+                transition: 'background 0.15s',
               },
-            },
-              React.createElement('div', { style: { marginBottom: '6px' } }, jewel.summary),
-              React.createElement('div', {
-                style: {
-                  fontSize: '10px',
-                  color: '#64748B',
-                  fontFamily: "'DM Mono', monospace",
-                },
-              }, jewel.shortId)
-            )
-          );
-        })}
-      </div>
-    </div>
+            }, '\u2192 ' + jewel.keyQuestion)
+          )
+        );
+      })
+    )
   );
 }
 
 // ─── Sidebar ───
 
 function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery }) {
-  return (
-    <div className={'kl-sidebar' + (open ? '' : ' collapsed')}>
-      <div className="kl-sidebar-section">
-        <button className="kl-new-chat-btn" onClick={onNewChat}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          <span>New Conversation</span>
-        </button>
-      </div>
-      <div className="kl-sidebar-history">
-        {sessionHistory.length === 0 ? (
-          <div className="kl-sidebar-empty">No prior conversations</div>
-        ) : (
-          groupSessionsByTime(sessionHistory).map(function(group) {
-            return React.createElement(React.Fragment, { key: group.label },
-              React.createElement('div', {
-                className: 'kl-history-group-label',
-                style: {
-                  fontSize: '10px',
-                  fontWeight: 500,
-                  color: '#64748B',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  padding: '12px 10px 4px',
-                  fontFamily: "'DM Mono', monospace",
-                },
-              }, group.label),
-              group.items.map(function(s) {
-                return React.createElement('button', {
-                  key: s.sessionId,
-                  className: 'kl-history-item' + (s.sessionId === activeSessionId ? ' active' : ''),
-                  onClick: function() { onSelectSession(s.sessionId); },
-                },
-                  React.createElement('div', { className: 'kl-history-title' }, truncate(s.title, 40)),
-                  React.createElement('div', { className: 'kl-history-time' }, formatRelativeTime(s.lastActivity))
-                );
-              })
-            );
-          })
-        )}
-      </div>
-      <div className="kl-sidebar-divider"></div>
-      <CrownJewels onQuery={onCrownQuery} />
-    </div>
+  var _historyOpen = useState(false);
+  var historyOpen = _historyOpen[0];
+  var setHistoryOpen = _historyOpen[1];
+
+  return React.createElement('div', { className: 'kl-sidebar' + (open ? '' : ' collapsed') },
+    React.createElement('div', { className: 'kl-sidebar-section' },
+      React.createElement('button', { className: 'kl-new-chat-btn', onClick: onNewChat },
+        React.createElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.25', strokeLinecap: 'round', strokeLinejoin: 'round' },
+          React.createElement('line', { x1: '12', y1: '5', x2: '12', y2: '19' }),
+          React.createElement('line', { x1: '5', y1: '12', x2: '19', y2: '12' })
+        ),
+        React.createElement('span', null, 'New Conversation')
+      )
+    ),
+
+    React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
+      React.createElement(CrownJewels, { onQuery: onCrownQuery })
+    ),
+
+    React.createElement('div', { style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' } },
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { setHistoryOpen(!historyOpen); },
+        style: {
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 12px', background: 'transparent', border: 'none',
+          color: '#64748B', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+          fontFamily: "'DM Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase',
+        },
+      },
+        React.createElement('span', null, 'History (' + sessionHistory.length + ')'),
+        React.createElement('span', {
+          style: { fontSize: '9px', transition: 'transform 0.15s', transform: historyOpen ? 'rotate(180deg)' : 'rotate(0)' },
+        }, '\u25BC')
+      ),
+
+      historyOpen && React.createElement('div', {
+        style: { maxHeight: '240px', overflowY: 'auto', padding: '0 8px 8px' },
+      },
+        sessionHistory.length === 0
+          ? React.createElement('div', { className: 'kl-sidebar-empty' }, 'No prior conversations')
+          : groupSessionsByTime(sessionHistory).map(function(group) {
+              return React.createElement(React.Fragment, { key: group.label },
+                React.createElement('div', {
+                  style: {
+                    fontSize: '9px', fontWeight: 500, color: '#475569',
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    padding: '8px 10px 3px', fontFamily: "'DM Mono', monospace",
+                  },
+                }, group.label),
+                group.items.map(function(s) {
+                  return React.createElement('button', {
+                    key: s.sessionId,
+                    className: 'kl-history-item' + (s.sessionId === activeSessionId ? ' active' : ''),
+                    onClick: function() { onSelectSession(s.sessionId); },
+                  },
+                    React.createElement('div', { className: 'kl-history-title' }, truncate(s.title, 40)),
+                    React.createElement('div', { className: 'kl-history-time' }, formatRelativeTime(s.lastActivity))
+                  );
+                })
+              );
+            })
+      )
+    )
   );
 }
 
@@ -2491,7 +2507,7 @@ function ResearchPanel() {
                       color: '#E2E8F0', fontSize: '12px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
                     },
                   },
-                    React.createElement('span', null, instId),
+                    React.createElement('span', null, INSTRUMENT_NAMES[instId] || instId),
                     React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
                       React.createElement('span', { style: { fontSize: '10px', color: '#0EA5E9', fontFamily: "'DM Mono', monospace" } }, items.length + ' provisions'),
                       React.createElement('span', { style: { fontSize: '10px', color: '#64748B', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
@@ -2514,8 +2530,8 @@ function ResearchPanel() {
                       },
                         React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.title),
                         React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '2px', flexWrap: 'wrap', alignItems: 'center' } },
-                          React.createElement('span', { style: { color: '#0EA5E9', fontSize: '11px' } },
-                            (item.instrument_id || '') + (item.section_num ? ' s.' + item.section_num : '')
+                          React.createElement('span', { style: { color: '#475569', fontSize: '10px', fontFamily: "'DM Mono', monospace" } },
+                            (item.section_num ? 's.' + item.section_num : '')
                           ),
                           item.is_era_2025 && React.createElement('span', {
                             style: { color: '#F59E0B', fontSize: '10px', padding: '1px 5px', borderRadius: '3px', background: 'rgba(245,158,11,0.1)' },
@@ -2533,16 +2549,51 @@ function ResearchPanel() {
         : (filtered.length === 0
             ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.')
             : filtered.slice(0, 50).map(function(item) {
+                var caseKey = 'case-' + item.case_id;
+                var isOpen = !!expanded[caseKey];
                 return React.createElement('div', {
                   key: item.case_id,
-                  style: { padding: '8px', marginBottom: '4px', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' },
+                  style: {
+                    marginBottom: '6px', borderRadius: '6px', overflow: 'hidden',
+                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                  },
                 },
-                  React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.name),
-                  React.createElement('div', { style: { color: '#94A3B8', fontSize: '11px', marginTop: '2px' } },
-                    [item.citation, item.court, item.year].filter(Boolean).join(' \u00B7 ')
+                  React.createElement('div', {
+                    onClick: function() { toggleInstrument(caseKey); },
+                    style: {
+                      padding: '8px 10px', cursor: 'pointer',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                    },
+                  },
+                    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                      React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.name),
+                      React.createElement('div', { style: { color: '#64748B', fontSize: '10px', marginTop: '2px', fontFamily: "'DM Mono', monospace" } },
+                        [item.citation, item.court, item.year].filter(Boolean).join(' \u00B7 ')
+                      )
+                    ),
+                    React.createElement('span', {
+                      style: { fontSize: '9px', color: '#64748B', flexShrink: 0, marginTop: '4px', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
+                      'aria-hidden': 'true',
+                    }, '\u25BC')
                   ),
-                  item.principle && React.createElement('div', { style: { color: '#64748B', fontSize: '11px', marginTop: '3px', lineHeight: 1.4 } },
-                    item.principle.length > 120 ? item.principle.slice(0, 120) + '\u2026' : item.principle
+                  isOpen && React.createElement('div', {
+                    style: { padding: '0 10px 10px', borderTop: '1px solid rgba(255,255,255,0.04)' },
+                  },
+                    item.principle && React.createElement('div', {
+                      style: { fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginTop: '8px', marginBottom: '10px' },
+                    }, item.principle),
+                    React.createElement('button', {
+                      type: 'button',
+                      onClick: function() {
+                        if (window.__klSendMessage) window.__klSendMessage('Tell me about the case ' + item.name + (item.citation ? ' (' + item.citation + ')' : '') + ' and what it means for employers');
+                      },
+                      style: {
+                        padding: '6px 12px', borderRadius: '6px',
+                        background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+                        color: '#0EA5E9', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+                        fontFamily: "'DM Sans', sans-serif",
+                      },
+                    }, '\u2192 Discuss with Eileen')
                   )
                 );
               })
@@ -2667,11 +2718,12 @@ function HorizonAlert() {
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        padding: '8px 16px',
+        padding: '6px 14px',
         borderRadius: '8px',
-        background: 'rgba(245, 158, 11, 0.06)',
-        border: '1px solid rgba(245, 158, 11, 0.15)',
-        marginBottom: '20px',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: '16px',
+        marginTop: '8px',
         maxWidth: '640px',
         width: '100%',
         fontFamily: "'DM Sans', sans-serif",
