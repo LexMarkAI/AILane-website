@@ -493,121 +493,124 @@
   </div>
 
   <script>
-    // ─── Auth Constants ───
-    const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0MTk2ODcsImV4cCI6MjA1NTk5NTY4N30.RE_n2oXvPYFqdPnztWRPBRaHRC9i3Mo71PBfGjDOPOA';
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ─── Auth Guard (reveal-first pattern, AUTH-001 §8.2) ───
+    // Design: reveal the page and boot React for any authenticated user.
+    // Tier and session data load ASYNC via sb.from() which handles token
+    // refresh automatically. NO blocking queries. NO redirect on data 401.
+    // Only redirect if there is genuinely no session at all.
+    (function() {
+      var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ─── Auth Guard (canonical pattern) ───
-    async function initAuth() {
-      let { data: { session } } = await sb.auth.getSession();
+      window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 
-      // Fallback: if no in-memory session, try refreshing from the stored
-      // refresh token. Handles the case where the user just signed in on
-      // another page in a different tab and the supabase client here hasn't
-      // hydrated yet, or where the access token is stale but the refresh
-      // token is still valid.
-      if (!session) {
+      function fail() { window.location.replace('/account/'); }
+
+      function boot(session) {
         try {
-          const { data: refreshData } = await sb.auth.refreshSession();
-          if (refreshData && refreshData.session) session = refreshData.session;
-        } catch (e) { /* fall through to onAuthStateChange / redirect */ }
+          var token = session.access_token;
+          var payload = JSON.parse(atob(token.split('.')[1]));
+          var userId = payload.sub;
+
+          // Set globals immediately — page reveals NOW
+          window.__klUserId = userId;
+          window.__klToken = token;
+          window.__klAccessType = 'subscription'; // default, updated async
+          window.__klTier = 'loading';
+
+          // Also set legacy globals for any code that reads them
+          window.__ailaneUser = { id: userId, email: payload.email || '', token: token, tier: 'loading' };
+
+          document.body.style.visibility = 'visible';
+
+          // Boot React
+          if (typeof window.initKLApp === 'function') {
+            window.initKLApp();
+          } else if (window.KLApp) {
+            ReactDOM.createRoot(document.getElementById('kl-root')).render(
+              React.createElement(window.KLApp)
+            );
+          }
+
+          // Load tier ASYNC via Supabase client (handles token refresh automatically)
+          sb.from('kl_account_profiles')
+            .select('subscription_tier')
+            .eq('user_id', userId)
+            .limit(1)
+            .then(function(result) {
+              if (result.data && result.data[0]) {
+                var tier = result.data[0].subscription_tier;
+                window.__klTier = tier;
+                window.__klAccessType = 'subscription';
+                window.__ailaneUser.tier = tier;
+                window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
+                  detail: { accessType: 'subscription', tier: tier, userId: userId }
+                }));
+                window.dispatchEvent(new CustomEvent('ailane-tier-loaded', { detail: { tier: tier } }));
+              }
+            })
+            .catch(function(e) { console.warn('Tier fetch failed (non-blocking):', e); });
+
+          // Load session ASYNC (for per-session users)
+          sb.from('kl_sessions')
+            .select('id, expires_at, product_type')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .gte('expires_at', new Date().toISOString())
+            .order('expires_at', { ascending: false })
+            .limit(1)
+            .then(function(result) {
+              if (result.data && result.data[0]) {
+                window.__klAccessType = 'per_session';
+                window.__klSessionExpiry = result.data[0].expires_at;
+                window.__klProductType = result.data[0].product_type;
+                window.__ailaneSession = result.data[0];
+                window.dispatchEvent(new CustomEvent('ailane-session-loaded', { detail: result.data[0] }));
+                window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
+                  detail: { accessType: 'per_session', tier: result.data[0].product_type, userId: userId }
+                }));
+              }
+            })
+            .catch(function(e) { console.warn('Session fetch failed (non-blocking):', e); });
+
+        } catch (e) {
+          console.error('Auth boot error:', e);
+          fail();
+        }
       }
 
-      if (session) return handleSession(session);
-
-      const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          subscription.unsubscribe();
-          handleSession(session);
+      // Main init
+      sb.auth.getSession().then(function(result) {
+        if (result.data && result.data.session) {
+          boot(result.data.session);
+        } else {
+          // Try refresh
+          sb.auth.refreshSession().then(function(refreshResult) {
+            if (refreshResult.data && refreshResult.data.session) {
+              boot(refreshResult.data.session);
+            } else {
+              // Wait for auth state change (handles OAuth/magic link redirects)
+              var resolved = false;
+              var timeout = setTimeout(function() {
+                if (!resolved) { resolved = true; fail(); }
+              }, 6000);
+              sb.auth.onAuthStateChange(function(event, session) {
+                if (!resolved && session) {
+                  resolved = true;
+                  clearTimeout(timeout);
+                  boot(session);
+                }
+              });
+            }
+          }).catch(function() {
+            fail();
+          });
         }
+      }).catch(function() {
+        fail();
       });
-
-      setTimeout(() => {
-        subscription.unsubscribe();
-        window.location.replace('/account/?returnTo=/knowledge-library/');
-      }, 6000);
-    }
-
-    async function handleSession(session) {
-      let token = session.access_token;
-
-      // Refresh the session before making REST calls. The session object
-      // passed in may carry a stale access token (hydrated from storage
-      // between page loads), in which case every downstream raw fetch will
-      // 401. refreshSession() mints a new access token from the refresh
-      // token; if it fails we fall through with whatever we already had.
-      try {
-        const refreshResult = await sb.auth.refreshSession();
-        if (refreshResult.data && refreshResult.data.session) {
-          token = refreshResult.data.session.access_token;
-        }
-      } catch (e) { /* keep the original token */ }
-
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const userId = payload.sub;
-
-      // Per AUTH-001 §8.2, use the Supabase JS client for page-load auth
-      // guard queries. The client auto-refreshes the access token before
-      // each call, which avoids the raw-fetch + stale-token 401 that used
-      // to bounce governance users into an /auth/callback → /governance-
-      // dashboard redirect loop (R-003). This is a page-load guard, not a
-      // post-OAuth callback — sb.from() is the correct pattern here.
-
-      // Check per-session access (schema: kl_sessions.status text, not is_active bool)
-      let activeSession = null;
-      try {
-        const { data: sessionData, error: sessionErr } = await sb
-          .from('kl_sessions')
-          .select('id, expires_at, product_type')
-          .eq('user_id', userId)
-          .eq('status', 'active')
-          .gte('expires_at', new Date().toISOString())
-          .order('expires_at', { ascending: false })
-          .limit(1);
-        if (!sessionErr && sessionData && sessionData.length > 0) {
-          activeSession = sessionData[0];
-        }
-      } catch (e) { /* leave activeSession null, fall through to tier check */ }
-
-      // Check subscription tier
-      let profile = null;
-      try {
-        const { data: profileData, error: profileErr } = await sb
-          .from('kl_account_profiles')
-          .select('subscription_tier')
-          .eq('user_id', userId)
-          .limit(1);
-        if (!profileErr && profileData && profileData.length > 0) {
-          profile = profileData[0];
-        }
-      } catch (e) { /* leave profile null, fall through to no-access path */ }
-
-      if (activeSession) {
-        window.__klAccessType = 'per_session';
-        window.__klSessionExpiry = activeSession.expires_at;
-        window.__klProductType = activeSession.product_type;
-      } else if (profile && ['operational_readiness', 'governance', 'institutional'].includes(profile.subscription_tier)) {
-        window.__klAccessType = 'subscription';
-        window.__klTier = profile.subscription_tier;
-      } else {
-        window.location.replace('/knowledge-library-preview/');
-        return;
-      }
-
-      window.__klUserId = userId;
-      window.__klToken = token;
-      document.body.style.visibility = 'visible';
-
-      window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
-        detail: { accessType: window.__klAccessType, tier: window.__klTier || window.__klProductType, userId: userId }
-      }));
-
-      // Boot React app if bundle loaded
-      if (typeof window.initKLApp === 'function') window.initKLApp();
-    }
-
-    initAuth();
+    })();
   </script>
 
   <!-- Pre-compiled React bundle (built by esbuild from kl-app.jsx) -->
