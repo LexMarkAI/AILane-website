@@ -2206,7 +2206,8 @@ function App() {
       const token = window.__klToken;
       if (!token) throw new Error('Not authenticated');
 
-      const response = await fetch(
+      // ── START the analysis (bridge v3 returns immediately) ──
+      const startResponse = await fetch(
         SUPABASE_URL + '/functions/v1/kl-compliance-bridge',
         {
           method: 'POST',
@@ -2217,24 +2218,24 @@ function App() {
           body: JSON.stringify({
             document_id: documentId,
             document_type: 'employment_contract',
+            action: 'start',
           }),
         }
       );
 
-      // Stop the phased text updates regardless of outcome
-      phaseTimers.forEach((t) => clearTimeout(t));
+      const startData = await startResponse.json();
 
-      const data = await response.json();
+      if (!startResponse.ok) {
+        // Stop phase timers on error
+        phaseTimers.forEach((t) => clearTimeout(t));
 
-      if (!response.ok) {
-        // Check limit reached — explain allowance, re-enable the trigger
-        if (data && data.error === 'check_limit_reached') {
+        if (startData && startData.error === 'check_limit_reached') {
           setMessages((prev) =>
             prev.map((m) => {
               if (m.id === loadingMsgId) {
                 return Object.assign({}, m, {
                   content:
-                    data.message ||
+                    startData.message ||
                     'You have used all bundled Contract Compliance Checks in this session. Additional checks are available at \u00a315 each.',
                   isAnalysisLoading: false,
                   isLocal: true,
@@ -2248,19 +2249,107 @@ function App() {
           );
           return;
         }
-        throw new Error((data && (data.error || data.detail)) || 'Analysis failed');
+        throw new Error((startData && (startData.error || startData.detail)) || 'Analysis failed');
       }
 
-      // 4. Success — drop the loading message, append the analysis result
-      setMessages((prev) => {
-        const withoutLoading = prev.filter((m) => m.id !== loadingMsgId);
+      var uploadId = startData.upload_id;
+      if (!uploadId) throw new Error('No upload_id returned from bridge');
+
+      // Update loading message with time expectation
+      setMessages(function(prev) {
+        return prev.map(function(m) {
+          return m.id === loadingMsgId
+            ? Object.assign({}, m, { content: 'Analysing your contract against UK employment law requirements. This typically takes 60\u201390 seconds.' })
+            : m;
+        });
+      });
+
+      // ── POLL for completion (every 5 seconds, max 60 attempts = 5 minutes) ──
+      var maxPolls = 60;
+      var pollCount = 0;
+      var pollResult = null;
+
+      while (pollCount < maxPolls) {
+        await new Promise(function(resolve) { setTimeout(resolve, 5000); });
+        pollCount++;
+
+        // Update phase messages based on elapsed time
+        var elapsed = pollCount * 5;
+        if (elapsed === 15) {
+          setMessages(function(prev) {
+            return prev.map(function(m) {
+              return m.id === loadingMsgId
+                ? Object.assign({}, m, { content: 'Checking statutory provisions and case law references\u2026' })
+                : m;
+            });
+          });
+        } else if (elapsed === 35) {
+          setMessages(function(prev) {
+            return prev.map(function(m) {
+              return m.id === loadingMsgId
+                ? Object.assign({}, m, { content: 'Assessing forward legislative exposure under ERA 2025\u2026' })
+                : m;
+            });
+          });
+        } else if (elapsed === 60) {
+          setMessages(function(prev) {
+            return prev.map(function(m) {
+              return m.id === loadingMsgId
+                ? Object.assign({}, m, { content: 'Compiling findings and scoring compliance position\u2026' })
+                : m;
+            });
+          });
+        }
+
+        try {
+          var pollResponse = await fetch(
+            SUPABASE_URL + '/functions/v1/kl-compliance-bridge',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+              },
+              body: JSON.stringify({
+                document_id: documentId,
+                upload_id: uploadId,
+                action: 'poll',
+              }),
+            }
+          );
+
+          var pollData = await pollResponse.json();
+
+          if (pollData.status === 'processing') {
+            continue;
+          }
+
+          // Analysis complete (or error/out_of_scope/sparse_report)
+          pollResult = pollData;
+          break;
+        } catch (pollErr) {
+          console.warn('Poll error (will retry):', pollErr);
+          continue;
+        }
+      }
+
+      // Stop phase timers (they may still be running from the original set)
+      phaseTimers.forEach(function(t) { clearTimeout(t); });
+
+      if (!pollResult) {
+        throw new Error('Analysis is taking longer than expected. Your results will appear in the Document Vault when ready.');
+      }
+
+      // ── SUCCESS — replace loading message with results ──
+      setMessages(function(prev) {
+        var withoutLoading = prev.filter(function(m) { return m.id !== loadingMsgId; });
         return withoutLoading.concat([{
           id: 'result-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
           role: 'assistant',
           content: '',
           isLocal: true,
           isAnalysisResult: true,
-          analysisData: data,
+          analysisData: pollResult,
         }]);
       });
     } catch (err) {
