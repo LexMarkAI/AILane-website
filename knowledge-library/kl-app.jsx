@@ -200,7 +200,13 @@ function renderMarkdown(text) {
   const escaped = escapeHtml(text);
   const withInline = escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>');
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Sprint H §2: Link library references like (acas-bm §17–25), (era1996 s.94).
+    // Already escaped, so instrument IDs and section refs are plain text here.
+    .replace(/\(([a-z][a-z0-9-]+)\s+(§|s\.)([^)]+)\)/gi, function(match, instId, prefix, sectionRef) {
+      var lowerInstId = instId.toLowerCase();
+      return '<span class="kl-ref-link" data-inst="' + escapeHtml(lowerInstId) + '" data-section="' + escapeHtml(prefix + sectionRef) + '" title="Open in Library: ' + escapeHtml(instId) + ' ' + escapeHtml(prefix + sectionRef) + '">' + escapeHtml(instId + ' ' + prefix + sectionRef) + '</span>';
+    });
   const lines = withInline.split('\n');
   const out = [];
   let listItems = [];
@@ -226,6 +232,38 @@ function renderMarkdown(text) {
   });
   flushList();
   return out.join('');
+}
+
+// ─── ACAS Part Title Humanisation (Sprint H §6) ───
+// Maps dry ACAS / guidance part titles to warm, human-readable descriptions.
+// Applied in renderInstrumentContent when grouping by part label.
+var ACAS_PART_TITLES = {
+  'Foreword': 'About This Code',
+  'Introduction': 'What This Code Covers',
+  'Keys to handling disciplinary situations in the workplace': 'Handling Disciplinary Situations',
+  'Keys to handling grievances in the workplace': 'Handling Workplace Grievances',
+  'Disciplinary situations': 'When Disciplinary Action May Be Needed',
+  'Grievance procedure': 'How to Handle a Grievance',
+  'Holding a meeting': 'Conducting the Meeting',
+  'Settlement agreements': 'Using Settlement Agreements',
+  'Flexible working': 'Managing Flexible Working Requests',
+  'Redundancy handling': 'Managing Redundancy Fairly',
+  'Bullying and harassment': 'Addressing Bullying and Harassment',
+  'Absence management': 'Managing Employee Absence',
+  'Whistleblowing': 'Handling Whistleblowing Disclosures',
+};
+
+function humanisePartTitle(title, cat) {
+  if (!title) return title;
+  if (cat === 'acas' || cat === 'guidance') {
+    return ACAS_PART_TITLES[title] || title;
+  }
+  return title;
+}
+// Expose for tests and integration — string literal key survives minification.
+if (typeof window !== 'undefined') {
+  window.__klFns = window.__klFns || {};
+  window.__klFns['humanisePartTitle'] = humanisePartTitle;
 }
 
 function formatRelativeTime(iso) {
@@ -1195,42 +1233,6 @@ function MessageBubble({ msg, onRunAnalysis }) {
       <div className="kl-msg-content" style={{ position: 'relative' }}>
         <EileenSenderLabel />
 
-        {/* Copy button — assistant text messages only (R1-C §2) */}
-        {msg.role === 'assistant' && !msg.isAnalysisResult && !msg.isAnalysisLoading && (
-          <button
-            type="button"
-            onClick={(e) => {
-              const btn = e.currentTarget;
-              if (!navigator.clipboard || !navigator.clipboard.writeText) return;
-              navigator.clipboard.writeText(msg.content || '').then(() => {
-                const original = btn.textContent;
-                btn.textContent = '\u2713 Copied';
-                setTimeout(() => { btn.textContent = original; }, 1500);
-              }).catch((err) => {
-                console.error('Copy failed:', err);
-              });
-            }}
-            style={{
-              position: 'absolute',
-              top: '8px',
-              right: '8px',
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '4px',
-              color: 'rgba(255,255,255,0.5)',
-              fontSize: '11px',
-              padding: '2px 8px',
-              cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
-              opacity: 0.6,
-              transition: 'opacity 0.2s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; }}
-            title="Copy to clipboard"
-          >{'\uD83D\uDCCB Copy'}</button>
-        )}
-
         {/* Analysis loading indicator — shown above the phased text */}
         {msg.isAnalysisLoading && (
           <div
@@ -1299,6 +1301,97 @@ function MessageBubble({ msg, onRunAnalysis }) {
             }}
           >
             {'\u2713 Contract Compliance Check initiated'}
+          </div>
+        )}
+
+        {/* Sprint H §1: Eileen response action bar (Copy | Save to Notes | Download) */}
+        {msg.role === 'assistant' && !msg.isAnalysisResult && !msg.isAnalysisLoading && !msg.isLocal && (
+          <div style={{
+            display: 'flex',
+            gap: '2px',
+            marginTop: '10px',
+            paddingTop: '8px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            {/* Copy */}
+            <button
+              type="button"
+              onClick={function(e) {
+                var btn = e.currentTarget;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(msg.content || '').then(function() {
+                    var orig = btn.textContent;
+                    btn.textContent = '\u2713 Copied';
+                    setTimeout(function() { btn.textContent = orig; }, 1500);
+                  });
+                }
+              }}
+              className="kl-action-btn"
+              title="Copy to clipboard"
+            >Copy</button>
+
+            {/* Save to Notes */}
+            <button
+              type="button"
+              onClick={function(e) {
+                var btn = e.currentTarget;
+                btn.disabled = true;
+                btn.textContent = 'Saving\u2026';
+                var token = window.__klToken;
+                var userId = window.__klUserId;
+                if (!token || !userId) { btn.textContent = 'Not signed in'; btn.disabled = false; return; }
+                var noteTitle = (msg.content || '').split('\n')[0].slice(0, 60) || 'Eileen response';
+                fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal',
+                  },
+                  body: JSON.stringify({
+                    user_id: userId,
+                    project_id: null,
+                    title: noteTitle,
+                    content_plain: msg.content || '',
+                  }),
+                }).then(function(resp) {
+                  if (resp.ok) {
+                    btn.textContent = '\u2713 Saved';
+                    btn.style.color = '#10B981';
+                  } else {
+                    btn.textContent = 'Failed';
+                    btn.style.color = '#EF4444';
+                  }
+                  setTimeout(function() { btn.textContent = 'Save to Notes'; btn.style.color = ''; btn.disabled = false; }, 2000);
+                }).catch(function() {
+                  btn.textContent = 'Failed';
+                  setTimeout(function() { btn.textContent = 'Save to Notes'; btn.style.color = ''; btn.disabled = false; }, 2000);
+                });
+              }}
+              className="kl-action-btn"
+              title="Save this response to your Notes"
+            >Save to Notes</button>
+
+            {/* Download */}
+            <button
+              type="button"
+              onClick={function() {
+                var text = msg.content || '';
+                var title = text.split('\n')[0].slice(0, 40).replace(/[^a-zA-Z0-9 ]/g, '') || 'Eileen-response';
+                var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = title.replace(/\s+/g, '-') + '.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+              className="kl-action-btn"
+              title="Download this response as a text file"
+            >Download</button>
           </div>
         )}
 
@@ -1504,39 +1597,15 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               </button>
             ))}
           </div>
-          {/* Sprint G §2.7: Browse the full library — opens Research Panel to Library tab */}
-          <div style={{ marginTop: '24px', textAlign: 'center' }}>
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window.__klOpenPanel === 'function') {
-                  window.__klOpenPanel('research');
-                }
-              }}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(14,165,233,0.2)',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                color: '#0EA5E9',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(14,165,233,0.08)';
-                e.currentTarget.style.borderColor = 'rgba(14,165,233,0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.borderColor = 'rgba(14,165,233,0.2)';
-              }}
-            >
-              {'\uD83D\uDCDA Browse the full Employment Law Library \u2014 72 instruments'}
-            </button>
-          </div>
+          {/* Sprint H §3.2: BookShelf replaces the Sprint G accent-line button.
+              Renders up to 15 instruments as leather-textured book covers. */}
+          <BookShelf onOpenBook={function(book) {
+            if (typeof window.__klOpenPanel === 'function') {
+              window.__klOpenPanel('research');
+              window.__klPendingInstrument = book.id;
+              window.dispatchEvent(new CustomEvent('kl-open-instrument', { detail: { id: book.id } }));
+            }
+          }} />
         </div>
       ) : (
         <div
@@ -1553,7 +1622,17 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             isExpanded={floatingNexusExpanded}
             onToggle={onToggleFloatingNexus}
           />
-          <div className="kl-messages" ref={scrollRef}>
+          <div className="kl-messages" ref={scrollRef} onClick={function(e) {
+            var target = e.target;
+            if (target && target.classList && target.classList.contains('kl-ref-link')) {
+              var instId = target.getAttribute('data-inst');
+              if (instId && typeof window.__klOpenPanel === 'function') {
+                window.__klOpenPanel('research');
+                window.__klPendingInstrument = instId;
+                window.dispatchEvent(new CustomEvent('kl-open-instrument', { detail: { id: instId } }));
+              }
+            }
+          }}>
             {messages.map((m, i) => <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />)}
             {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
             {isLoading && <TypingIndicator />}
@@ -2110,14 +2189,36 @@ function NotesPanel() {
 
   // Editor view
   return React.createElement('div', { className: 'kl-notes-panel' },
-    React.createElement('button', {
-      type: 'button',
-      onClick: function() { setView('list'); },
-      style: {
-        background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px', cursor: 'pointer',
-        padding: '0 0 8px', fontFamily: "'DM Sans', sans-serif", textAlign: 'left',
-      },
-    }, '\u2190 All notes'),
+    // Sprint H §4: Back + Download row
+    React.createElement('div', {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
+    },
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { setView('list'); },
+        style: {
+          background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px', cursor: 'pointer',
+          padding: '0', fontFamily: "'DM Sans', sans-serif", textAlign: 'left',
+        },
+      }, '\u2190 All notes'),
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() {
+          var blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = (title || 'note').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-') + '.txt';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        },
+        className: 'kl-action-btn',
+        title: 'Download this note',
+        style: { fontSize: '11px', padding: '4px 10px' },
+      }, '\u2B07 Download')
+    ),
     React.createElement('input', {
       className: 'kl-notes-title',
       type: 'text',
@@ -2271,20 +2372,59 @@ function VaultPanel() {
     return function() { cancelled = true; };
   }, []);
 
+  // Sprint H §5: Upload button for VaultPanel (hidden file input + visible trigger).
+  // Delegates to the App-level handleFileSelect via window.__klHandleFileSelect.
+  var uploadButton = React.createElement('div', { style: { marginBottom: '12px' } },
+    React.createElement('input', {
+      type: 'file',
+      id: 'vault-upload-input',
+      accept: '.pdf,.docx,.doc,.txt',
+      style: { display: 'none' },
+      onChange: function(e) {
+        if (typeof window.__klHandleFileSelect === 'function') {
+          window.__klHandleFileSelect(e);
+        }
+      },
+    }),
+    React.createElement('button', {
+      type: 'button',
+      onClick: function() {
+        var input = document.getElementById('vault-upload-input');
+        if (input) input.click();
+      },
+      style: {
+        width: '100%', padding: '10px', borderRadius: '8px',
+        background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+        color: '#0EA5E9', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+      },
+    },
+      React.createElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' },
+        React.createElement('path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }),
+        React.createElement('polyline', { points: '17 8 12 3 7 8' }),
+        React.createElement('line', { x1: '12', y1: '3', x2: '12', y2: '15' })
+      ),
+      'Upload document'
+    )
+  );
+
   if (loading) {
     return React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading documents\u2026');
   }
 
   if (docs.length === 0) {
     return React.createElement('div', { style: { padding: '12px' } },
+      uploadButton,
       React.createElement('p', { style: { color: '#94A3B8', fontSize: '14px', marginBottom: '6px' } }, 'No documents yet.'),
       React.createElement('p', { style: { color: '#64748B', fontSize: '13px', lineHeight: 1.5 } },
-        'Upload a contract through Eileen to run a compliance check.'
+        'Upload a contract here or through Eileen to run a compliance check.'
       )
     );
   }
 
   return React.createElement('div', null,
+    uploadButton,
     docs.map(function(doc) {
       var hasScore = doc.score != null;
       var scoreColor = !hasScore ? null : doc.score >= 70 ? '#10B981' : doc.score >= 40 ? '#F59E0B' : '#EF4444';
@@ -2542,12 +2682,43 @@ function ResearchPanel() {
       try {
         var resp = await fetch('/knowledge-library/content/content-index.json');
         var d = await resp.json();
-        if (!cancelled && Array.isArray(d)) setInstruments(d);
+        if (!cancelled && Array.isArray(d)) {
+          setInstruments(d);
+          // Sprint H §2.4: Check for pending instrument open (from reference click)
+          if (window.__klPendingInstrument) {
+            var pending = window.__klPendingInstrument;
+            delete window.__klPendingInstrument;
+            var target = d.find(function(inst) { return inst.id === pending; });
+            if (target) {
+              setTimeout(function() { loadInstrumentDetail(target); }, 100);
+            }
+          }
+        }
       } catch (e) { console.warn('Library manifest fetch failed:', e); }
     }
     if (instruments.length === 0) loadInstruments();
     return function() { cancelled = true; };
   }, [tab]);
+
+  // Sprint H §2.4: Listen for reference-click events dispatched from the
+  // conversation area. Switches to the Library tab and loads the requested
+  // instrument if it is already in the cached list; otherwise defers to
+  // the loader above via window.__klPendingInstrument.
+  useEffect(function() {
+    function handleOpen(e) {
+      var instId = e.detail && e.detail.id;
+      if (!instId) return;
+      setTab('library');
+      var found = instruments.find(function(inst) { return inst.id === instId; });
+      if (found) {
+        loadInstrumentDetail(found);
+      } else {
+        window.__klPendingInstrument = instId;
+      }
+    }
+    window.addEventListener('kl-open-instrument', handleOpen);
+    return function() { window.removeEventListener('kl-open-instrument', handleOpen); };
+  }, [instruments]);
 
   function toggleInstrument(instId) {
     setExpanded(function(prev) {
@@ -2953,12 +3124,16 @@ function ResearchPanel() {
       : (activeInstrument && activeInstrument.isInForce);
 
     // Normalise provisions across both schemas.
+    // Sprint H §6.2: Pass ACAS / guidance part labels through
+    // humanisePartTitle so grouping headers read humanistically.
+    var instCat = (activeInstrument && activeInstrument.cat) || detail.cat || '';
     var provisions = [];
     if (Array.isArray(detail.provisions)) {
       provisions = detail.provisions;
     } else if (Array.isArray(detail.parts)) {
       detail.parts.forEach(function(part) {
-        var partLabel = part.title || part.num || part.name || '';
+        var rawPartLabel = part.title || part.num || part.name || '';
+        var partLabel = humanisePartTitle(rawPartLabel, instCat);
         (part.sections || []).forEach(function(sec) {
           provisions.push({
             title: sec.title || sec.name || '',
@@ -3336,6 +3511,175 @@ function HorizonAlert() {
   );
 }
 
+// ─── BookShelf (Sprint H §3, KLUX-001 Art. 14–15, KLIA-001 §11) ───
+// Renders instruments as law book covers on shelves in the welcome state.
+// Fetches content-index.json manifest. Up to 15 featured books across the
+// top categories, with category-coloured leather gradients and gold titles.
+
+function BookShelf({ onOpenBook }) {
+  var _books = useState([]);
+  var books = _books[0];
+  var setBooks = _books[1];
+
+  useEffect(function() {
+    var cancelled = false;
+    fetch('/knowledge-library/content/content-index.json')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!cancelled && Array.isArray(data)) {
+          var byCat = {};
+          data.forEach(function(inst) {
+            if (!byCat[inst.cat]) byCat[inst.cat] = [];
+            byCat[inst.cat].push(inst);
+          });
+          var featured = [];
+          var catOrder = ['legislation', 'acas', 'hse', 'ehrc', 'ico'];
+          catOrder.forEach(function(cat) {
+            if (byCat[cat]) {
+              featured = featured.concat(byCat[cat].slice(0, 3));
+            }
+          });
+          setBooks(featured.slice(0, 15));
+        }
+      })
+      .catch(function(e) { console.warn('BookShelf fetch failed:', e); });
+    return function() { cancelled = true; };
+  }, []);
+
+  if (books.length === 0) return null;
+
+  var BOOK_COLOURS = {
+    legislation: { bg: 'linear-gradient(160deg, #1a2332 0%, #0f1923 50%, #1a2332 100%)', text: '#D4A017', spine: '#D4A017' },
+    acas: { bg: 'linear-gradient(160deg, #0f2318 0%, #0a1a12 50%, #0f2318 100%)', text: '#10B981', spine: '#10B981' },
+    hse: { bg: 'linear-gradient(160deg, #231a0f 0%, #1a1208 50%, #231a0f 100%)', text: '#F59E0B', spine: '#F59E0B' },
+    ehrc: { bg: 'linear-gradient(160deg, #1f0f23 0%, #170a1a 50%, #1f0f23 100%)', text: '#EC4899', spine: '#EC4899' },
+    ico: { bg: 'linear-gradient(160deg, #0f1523 0%, #0a0f1a 50%, #0f1523 100%)', text: '#8B5CF6', spine: '#8B5CF6' },
+  };
+
+  return React.createElement('div', {
+    className: 'kl-bookshelf',
+    style: { width: '100%', maxWidth: '820px', marginTop: '32px' },
+  },
+    React.createElement('div', {
+      style: {
+        fontSize: '10px', fontWeight: 500, color: '#475569', textTransform: 'uppercase',
+        letterSpacing: '0.1em', marginBottom: '12px', fontFamily: "'DM Mono', monospace",
+        textAlign: 'center',
+      },
+    }, 'The Employment Law Library'),
+
+    React.createElement('div', {
+      className: 'kl-shelf',
+      style: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '10px',
+        justifyContent: 'center',
+        padding: '16px 12px 20px',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.01) 0%, rgba(139,92,246,0.02) 100%)',
+        borderRadius: '8px',
+        border: '1px solid rgba(255,255,255,0.04)',
+        position: 'relative',
+      },
+    },
+      books.map(function(book) {
+        var colours = BOOK_COLOURS[book.cat] || BOOK_COLOURS.legislation;
+        var shortTitle = book.short || book.title;
+        if (shortTitle.length > 35) shortTitle = shortTitle.slice(0, 32) + '\u2026';
+
+        return React.createElement('div', {
+          key: book.id,
+          onClick: function() { onOpenBook(book); },
+          className: 'kl-book',
+          style: {
+            width: '100px',
+            height: '130px',
+            borderRadius: '2px 4px 4px 2px',
+            background: colours.bg,
+            cursor: 'pointer',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '10px 8px 8px',
+            overflow: 'hidden',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            boxShadow: '2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)',
+            borderLeft: '4px solid ' + colours.spine,
+          },
+          title: book.title,
+          onMouseEnter: function(e) {
+            e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+            e.currentTarget.style.boxShadow = '2px 6px 16px rgba(0,0,0,0.5), inset -1px 0 0 rgba(255,255,255,0.08)';
+          },
+          onMouseLeave: function(e) {
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)';
+          },
+        },
+          React.createElement('div', {
+            style: {
+              width: '60%', height: '1px', background: colours.text, opacity: 0.3,
+              marginBottom: '6px',
+            },
+          }),
+          React.createElement('div', {
+            style: {
+              color: colours.text,
+              fontSize: '10px',
+              fontWeight: 600,
+              lineHeight: 1.25,
+              fontFamily: "'DM Sans', sans-serif",
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+            },
+          }, shortTitle),
+          React.createElement('div', {
+            style: {
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            },
+          },
+            React.createElement('span', {
+              style: {
+                fontSize: '7px', color: colours.text, opacity: 0.5,
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+                fontFamily: "'DM Mono', monospace",
+              },
+            }, book.cat === 'legislation' ? 'Act' : book.cat === 'acas' ? 'ACAS' : book.cat === 'hse' ? 'HSE' : book.cat === 'ico' ? 'ICO' : book.cat === 'ehrc' ? 'EHRC' : ''),
+            React.createElement('div', {
+              style: {
+                width: '3px', height: '80%', position: 'absolute', right: 0, top: '10%',
+                background: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px)',
+              },
+            })
+          )
+        );
+      }),
+
+      React.createElement('div', {
+        style: {
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px',
+          background: 'linear-gradient(90deg, rgba(139,92,246,0.1), rgba(14,165,233,0.1), rgba(139,92,246,0.1))',
+          borderRadius: '0 0 8px 8px',
+        },
+      })
+    ),
+
+    React.createElement('div', { style: { textAlign: 'center', marginTop: '12px' } },
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { if (typeof window.__klOpenPanel === 'function') window.__klOpenPanel('research'); },
+        style: {
+          background: 'transparent', border: 'none', color: '#0EA5E9',
+          fontSize: '12px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+          padding: '4px 8px',
+        },
+      }, 'Browse all 72 instruments \u2192')
+    )
+  );
+}
+
 // ─── UpsellCard (KL upsell ladder, AMD-043) ───
 // Fixed-position overlay shown when per-session users approach expiry.
 // NOT registered in PANEL_COMPONENTS — renders directly in the App body.
@@ -3634,6 +3978,9 @@ function App() {
   window.__klOpenPanel = function(panelId) {
     setActivePanel(panelId);
   };
+  // Sprint H §5.1: Expose handleFileSelect so the VaultPanel upload button
+  // can invoke the App-level upload flow without prop drilling.
+  window.__klHandleFileSelect = handleFileSelect;
 
   function handleUserTypeSelect(type) {
     setUserType(type);
