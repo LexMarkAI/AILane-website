@@ -619,11 +619,14 @@ def scrape_historical_convictions(limit=None, since_date=None):
                 'sic_code': detail.get('sic_code'),
                 'sector': detail.get('sector'),
                 'local_authority': detail.get('local_authority'),
+                'acei_category': 'health_and_safety',
+                'acei_category_number': 8,
                 'source_url': detail_url or entry_url,
                 'content_hash': detail.get('content_hash'),
                 'scraped_at': datetime.now(timezone.utc).isoformat(),
                 'metadata': {
                     'scrape_source': 'historical',
+                    'register': 'convictions-history',
                     'case_id': case_id,
                     'page_number': page_num,
                 }

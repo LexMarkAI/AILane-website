@@ -1,589 +1,6316 @@
+// kl-app.jsx — Ailane Knowledge Library v3.0
+// KLUX-001 (AMD-036) | EILEEN-001 (AMD-020) | PLUGIN-001 (AMD-032)
+// Stage 2: Core React components
+
 const { useState, useEffect, useRef, useCallback } = React;
 
 const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-
-const TOPIC_CARDS = [
-  { label: 'Dismissal & Disciplinary', icon: 'shield', message: 'I need to understand our obligations around dismissing an employee' },
-  { label: 'Discrimination & Harassment', icon: 'scales', message: "We've had a complaint about discrimination — what should we know?" },
-  { label: 'Contracts & Terms', icon: 'document', message: 'Our employment contracts need reviewing — what are the current requirements?' },
-  { label: 'Family Leave & Pregnancy', icon: 'family', message: "An employee has just told us she's pregnant — what are our obligations?" },
-  { label: 'Business Transfers', icon: 'arrows', message: 'We\'re taking on staff from another company — what does TUPE require?' },
-  { label: 'Health & Safety', icon: 'hardhat', message: 'What are our core health and safety obligations as an employer?' },
-  { label: 'Whistleblowing', icon: 'megaphone', message: 'An employee says they want to raise a concern about practices in the company' },
-  { label: 'Data & Monitoring', icon: 'lock', message: "What are the rules around monitoring employees' emails and devices?" },
-];
+const EILEEN_ENDPOINT = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co') + '/functions/v1/eileen-intelligence';
 
 const CROWN_JEWELS = [
-  'ERA 1996', 'EqA 2010', 'HSWA 1974', 'TULRCA 1992', 'WTR 1998', 'DPA 2018', 'TUPE 2006'
+  {
+    name: 'Employment Rights Act 1996',
+    shortId: 'ERA 1996',
+    warmIntro: 'The foundation of modern employment protection in the UK.',
+    topics: 'Covers unfair dismissal, redundancy rights, written terms of employment, whistleblower protections, flexible working, and the right not to suffer detriment.',
+    keyQuestion: 'What does the ERA 1996 require of my employment contracts?',
+    inForce: true,
+  },
+  {
+    name: 'Equality Act 2010',
+    shortId: 'EqA 2010',
+    warmIntro: 'The single framework protecting people from discrimination at work.',
+    topics: 'Covers nine protected characteristics including age, disability, race, sex, and pregnancy. Addresses direct and indirect discrimination, harassment, victimisation, and the duty to make reasonable adjustments.',
+    keyQuestion: 'What are my obligations around workplace discrimination under the Equality Act?',
+    inForce: true,
+  },
+  {
+    name: 'Health and Safety at Work Act 1974',
+    shortId: 'HSWA 1974',
+    warmIntro: 'The primary legislation ensuring workplaces are safe for everyone.',
+    topics: 'Establishes the employer\'s general duty of care, risk assessment obligations, employee consultation rights, and HSE enforcement powers.',
+    keyQuestion: 'What are my core health and safety duties as an employer?',
+    inForce: true,
+  },
+  {
+    name: 'National Minimum Wage Act 1998',
+    shortId: 'NMWA 1998',
+    warmIntro: 'Guarantees a minimum level of pay for virtually all workers.',
+    topics: 'Sets out entitlements to national minimum wage and national living wage, employer record-keeping duties, and HMRC enforcement mechanisms.',
+    keyQuestion: 'Am I meeting my minimum wage obligations for all worker categories?',
+    inForce: true,
+  },
+  {
+    name: 'Trade Union and Labour Relations (Consolidation) Act 1992',
+    shortId: 'TULRCA 1992',
+    warmIntro: 'Governs collective rights, union recognition, and industrial action.',
+    topics: 'Covers trade union recognition, collective bargaining, the right to be accompanied, collective redundancy consultation (Section 188), and lawful industrial action.',
+    keyQuestion: 'What are my obligations around collective consultation and trade union rights?',
+    inForce: true,
+  },
+  {
+    name: 'Employment Rights Act 2025',
+    shortId: 'ERA 2025',
+    warmIntro: 'The most significant reform to employment law in a generation.',
+    topics: 'Introduces day-one unfair dismissal rights, restricts fire-and-rehire, reforms zero-hours contracts, strengthens flexible working, and creates the Fair Work Agency. Measures commenced 6 April 2026.',
+    keyQuestion: 'How does the Employment Rights Act 2025 change my obligations from April 2026?',
+    inForce: false,
+  },
+  {
+    name: 'Public Interest Disclosure Act 1998',
+    shortId: 'PIDA 1998',
+    warmIntro: 'Protects workers who raise concerns about wrongdoing.',
+    topics: 'Defines qualifying disclosures, protected disclosures in the public interest, protection from dismissal and detriment, and the prescribed persons framework.',
+    keyQuestion: 'How should I handle a whistleblowing disclosure from an employee?',
+    inForce: true,
+  },
 ];
 
-const TIER_LABELS = {
-  operational: 'Operational',
-  operational_readiness: 'Operational',
-  governance: 'Governance',
-  institutional: 'Institutional',
+// Human-readable names for instrument IDs used in the Research Panel
+var INSTRUMENT_NAMES = {
+  'ERA 1996': 'Employment Rights Act 1996',
+  'EqA 2010': 'Equality Act 2010',
+  'HSWA 1974': 'Health and Safety at Work Act 1974',
+  'NMWA 1998': 'National Minimum Wage Act 1998',
+  'TULRCA 1992': 'Trade Union and Labour Relations (Consolidation) Act 1992',
+  'ERA 2025': 'Employment Rights Act 2025',
+  'PIDA 1998': 'Public Interest Disclosure Act 1998',
+  'WTR 1998': 'Working Time Regulations 1998',
+  'MPL 1999': 'Maternity and Parental Leave Regulations 1999',
+  'TUPE 2006': 'Transfer of Undertakings Regulations 2006',
+  'ACAS Code 1': 'ACAS Code of Practice on Disciplinary and Grievance',
+  'FWR 2014': 'Flexible Working Regulations 2014',
+  'PTWR 2000': 'Part-Time Workers Regulations 2000',
+  'FTER 2002': 'Fixed-Term Employees Regulations 2002',
+  'AWR 2010': 'Agency Workers Regulations 2010',
+  'PAL 2002': 'Paternity and Adoption Leave Regulations 2002',
+  'SPL 2014': 'Shared Parental Leave Regulations 2014',
+  'MHSWR 1999': 'Management of Health and Safety at Work Regulations 1999',
+  'DPA 2018': 'Data Protection Act 2018',
 };
 
-/* ── SVG Icons ── */
-function CardIcon({ type }) {
-  const icons = {
-    shield: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-      </svg>
-    ),
-    scales: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3v18"/><path d="M4 7h16"/><path d="M4 7l3 8h-6l3-8z"/><path d="M20 7l-3 8h6l-3-8z"/>
-      </svg>
-    ),
-    document: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-      </svg>
-    ),
-    family: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-      </svg>
-    ),
-    arrows: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/>
-      </svg>
-    ),
-    hardhat: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 18h20v2H2z"/><path d="M4 18v-4a8 8 0 0116 0v4"/><path d="M12 2v4"/>
-      </svg>
-    ),
-    megaphone: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
-      </svg>
-    ),
-    lock: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-      </svg>
-    ),
-  };
-  return <span className="kl-card-icon">{icons[type]}</span>;
+const TOPIC_DOMAINS = [
+  {
+    label: 'Dismissal and disciplinary',
+    description: 'Unfair dismissal, redundancy, disciplinary procedures, ACAS Code',
+    query: "I need guidance on dismissal and disciplinary procedures — what are the key legal requirements I should be aware of?",
+  },
+  {
+    label: 'Discrimination and harassment',
+    description: 'Protected characteristics, harassment duties, reasonable adjustments',
+    query: "What are my obligations around discrimination and harassment in the workplace under current law?",
+  },
+  {
+    label: 'Contracts and terms',
+    description: 'Written statements, working time, flexible working, zero-hours',
+    query: "What should I know about employment contract requirements and terms under current legislation?",
+  },
+  {
+    label: 'Family leave and pregnancy',
+    description: 'Maternity, paternity, shared parental leave, redundancy protection',
+    query: "What are the current legal requirements for family leave and pregnancy protection in employment?",
+  },
+  {
+    label: 'Business transfers',
+    description: 'TUPE obligations, consultation requirements, employee protections',
+    query: "What do I need to know about TUPE and employee protections during business transfers?",
+  },
+  {
+    label: 'Health and safety',
+    description: 'Employer duties, risk assessment, stress, working conditions',
+    query: "What are the key health and safety obligations for employers under current law?",
+  },
+  {
+    label: 'Whistleblowing',
+    description: 'Protected disclosures, qualifying disclosures, detriment protection',
+    query: "What protections exist for whistleblowers and what are my obligations as an employer?",
+  },
+  {
+    label: 'Data and monitoring',
+    description: 'Employee data, workplace monitoring, UK GDPR, ICO guidance',
+    query: "What are the rules around employee data protection and workplace monitoring under UK GDPR?",
+  },
+];
+
+// ─── Domain sub-pages (AMD-045, KLUX-001-AM-001 §2–5) ───
+// Authoritative domain data for the 8 problem-domain sub-pages.
+
+const DOMAINS = [
+  {
+    id: 'dismissal',
+    slug: 'dismissal',
+    name: 'Dismissal and Disciplinary',
+    orientation: 'This area covers the law governing how employment relationships end and how employers must conduct disciplinary processes. It is the most litigated area of UK employment law.',
+    eileenGreeting: "I\u2019m here to help with dismissal and disciplinary matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Unfair Dismissal', instruments: 'ERA 1996 Part X, ERA 2025 ss.1\u20136', scope: 'Qualifying service, automatically unfair reasons, day-one rights (ERA 2025), remedies and compensation.' },
+      { name: 'Wrongful Dismissal', instruments: 'ERA 1996 ss.86\u201391', scope: 'Notice periods, breach of contract, payment in lieu of notice, garden leave.' },
+      { name: 'Constructive Dismissal', instruments: 'ERA 1996 s.95(1)(c)', scope: 'Fundamental breach, last straw doctrine, resignation in response to breach.' },
+      { name: 'Gross Misconduct', instruments: 'ACAS Code of Practice 1', scope: 'Definition, investigation requirements, suspension, right to be accompanied, appeal rights.' },
+      { name: 'ACAS Disciplinary Code', instruments: 'ACAS Code 1, ERA 1996 s.207A', scope: 'Full Code requirements, tribunal uplift for non-compliance, step-by-step procedure.' },
+      { name: 'Capability and Performance', instruments: 'ACAS performance guidance', scope: 'Performance improvement plans, capability procedures, reasonable adjustments.' },
+      { name: 'Probationary Dismissals', instruments: 'ERA 1996 Part X, ERA 2025 s.1', scope: 'Probationary period rights, day-one protection changes, notice during probation.' },
+      { name: 'Redundancy', instruments: 'ERA 1996 Part XI, TULRCA 1992 s.188', scope: 'Genuine redundancy, selection criteria, collective consultation, redundancy pay.' },
+    ]
+  },
+  {
+    id: 'discrimination',
+    slug: 'discrimination',
+    name: 'Discrimination and Harassment',
+    orientation: 'This area covers protection against unlawful discrimination, harassment, and victimisation in the workplace. It represents the largest concentration of case law in the Ailane intelligence estate.',
+    eileenGreeting: "I\u2019m here to help with discrimination and harassment matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'The Nine Protected Characteristics', instruments: 'EqA 2010 s.4', scope: 'Age, disability, gender reassignment, marriage/civil partnership, pregnancy/maternity, race, religion/belief, sex, sexual orientation.' },
+      { name: 'Direct Discrimination', instruments: 'EqA 2010 s.13', scope: 'Less favourable treatment, comparator requirements, burden of proof, defences.' },
+      { name: 'Indirect Discrimination', instruments: 'EqA 2010 s.19', scope: 'Provision, criterion or practice, particular disadvantage, justification defence.' },
+      { name: 'Harassment', instruments: 'EqA 2010 s.26, Worker Protection Act 2023', scope: 'Unwanted conduct, third-party harassment (new employer duty), sexual harassment.' },
+      { name: 'Victimisation', instruments: 'EqA 2010 s.27', scope: 'Protected acts, detriment, protection for complainants and witnesses.' },
+      { name: 'Reasonable Adjustments', instruments: 'EqA 2010 ss.20\u201322', scope: 'Duty to adjust for disabled workers, substantial disadvantage, auxiliary aids.' },
+      { name: 'Equal Pay', instruments: 'EqA 2010 ss.64\u201380', scope: 'Like work, work rated as equivalent, work of equal value, material factor defence.' },
+      { name: 'EHRC Employment Code', instruments: 'EHRC Statutory Code of Practice', scope: 'Full Code guidance, employer liability, vicarious liability, reasonable steps defence.' },
+    ]
+  },
+  {
+    id: 'contracts',
+    slug: 'contracts',
+    name: 'Contracts and Terms',
+    orientation: 'This area covers the legal framework governing employment contracts, written terms, working time, and contractual rights.',
+    eileenGreeting: "I\u2019m here to help with contracts and employment terms. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Written Statement of Particulars', instruments: 'ERA 1996 ss.1\u201312', scope: 'Day-one right, required content, changes to particulars, remedies for failure.' },
+      { name: 'Express and Implied Terms', instruments: 'Common law', scope: 'Express terms, implied terms (mutual trust, duty of care, fidelity), custom and practice.' },
+      { name: 'Variation of Contract', instruments: 'ERA 1996 s.4', scope: 'Lawful variation, agreement, fire and rehire restrictions (ERA 2025).' },
+      { name: 'Restrictive Covenants', instruments: 'Common law, ERA 2025', scope: 'Non-compete, non-solicitation, confidentiality, reasonableness test.' },
+      { name: 'Working Time', instruments: 'WTR 1998', scope: '48-hour week, opt-out, rest breaks, annual leave calculation (Brazel).' },
+      { name: 'Part-Time and Fixed-Term Rights', instruments: 'PTWR 2000, FTER 2002', scope: 'Less favourable treatment, objective justification, successive fixed-term contracts.' },
+      { name: 'Agency Worker Rights', instruments: 'AWR 2010', scope: '12-week qualifying period, day-one rights, comparator assessment.' },
+      { name: 'Flexible Working', instruments: 'ERA 1996 s.80F, FWR 2014, ERA 2025', scope: 'Day-one right (ERA 2025), application process, grounds for refusal.' },
+      { name: 'Zero-Hours and Low-Hours', instruments: 'ERA 2025', scope: 'Guaranteed hours, reasonable notice of shifts, compensation for cancellations.' },
+      { name: 'Holiday Pay Calculations', instruments: 'WTR 1998 Reg.16, EqA 2010', scope: 'Normal remuneration, 52-week reference, Brazel methodology, rolled-up holiday pay.' },
+    ]
+  },
+  {
+    id: 'family-leave',
+    slug: 'family-leave',
+    name: 'Family Leave and Pregnancy',
+    orientation: 'This area covers legal entitlements during pregnancy, maternity, paternity, adoption, and other family-related leave. One of the most active areas post-ERA 2025.',
+    eileenGreeting: "I\u2019m here to help with family leave and pregnancy matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Maternity Leave and Pay', instruments: 'MPL 1999, SMP Regs', scope: 'OML, AML, statutory maternity pay, notification, KIT days, return to work.' },
+      { name: 'Paternity Leave and Pay', instruments: 'PAL 2002', scope: 'Entitlement, notice, timing, statutory paternity pay.' },
+      { name: 'Shared Parental Leave', instruments: 'SPL Regs 2014', scope: 'Eligibility, curtailment, notice of entitlement and intention.' },
+      { name: 'Adoption Leave', instruments: 'PAL 2002', scope: 'Matching, notification, statutory adoption pay, overseas adoption.' },
+      { name: 'Parental Leave (Unpaid)', instruments: 'MPL 1999 Part III', scope: '18 weeks per child, qualifying conditions, postponement, default scheme.' },
+      { name: 'Time Off for Dependants', instruments: 'ERA 1996 s.57A', scope: 'Reasonable time off, definition of dependant, no pay requirement.' },
+      { name: 'Pregnancy Discrimination', instruments: 'EqA 2010 s.18', scope: 'Protected period, unfavourable treatment, no comparator required.' },
+      { name: 'Redundancy During Pregnancy/Maternity', instruments: 'Protection from Redundancy Act 2023, ERA 2025', scope: 'Priority right to suitable alternative, extended protection period.' },
+      { name: 'Neonatal Care Leave', instruments: 'ERA 2025', scope: 'New entitlement, qualifying conditions, duration, statutory neonatal care pay.' },
+    ]
+  },
+  {
+    id: 'transfers',
+    slug: 'transfers',
+    name: 'Business Transfers',
+    orientation: 'This area covers the Transfer of Undertakings regulations and the legal framework for business sales, outsourcing, and service provision changes.',
+    eileenGreeting: "I\u2019m here to help with business transfers and TUPE. What\u2019s your situation?",
+    subAreas: [
+      { name: 'What Constitutes a Transfer', instruments: 'TUPE 2006 Reg.3', scope: 'Relevant transfer, economic entity, service provision change, organised grouping.' },
+      { name: 'Employee Rights on Transfer', instruments: 'TUPE 2006 Reg.4', scope: 'Automatic transfer of contracts, continuity, preservation of terms.' },
+      { name: 'Information and Consultation', instruments: 'TUPE 2006 Regs.13\u201316', scope: 'Duty to inform/consult, long enough before transfer, compensation for failure.' },
+      { name: 'ETO Reasons', instruments: 'TUPE 2006 Reg.7', scope: 'Economic/technical/organisational reasons, when dismissal may be fair.' },
+      { name: 'Harmonisation Post-Transfer', instruments: 'TUPE 2006 Reg.4(4)', scope: 'Prohibition on varying terms by reason of transfer, one-year restriction.' },
+      { name: 'Collective Redundancy in Transfer', instruments: 'TULRCA 1992 s.188, TUPE 2006', scope: 'Dual consultation requirements, interaction of obligations.' },
+      { name: 'Outsourcing and Insourcing', instruments: 'TUPE 2006 Reg.3(1)(b)', scope: 'Service provision changes, activities ceasing and being carried on.' },
+    ]
+  },
+  {
+    id: 'health-safety',
+    slug: 'health-safety',
+    name: 'Health and Safety',
+    orientation: "This area covers the employer\u2019s duty to provide a safe working environment and the regulatory enforcement framework. Ailane\u2019s estate includes 2,498 HSE prosecutions (\u00A3462.7M in fines) and 30,543 enforcement notices.",
+    eileenGreeting: "I\u2019m here to help with health and safety matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'General Duties', instruments: 'HSWA 1974 ss.2\u20139', scope: "Employer\u2019s general duty to employees (s.2), to non-employees (s.3), premises control (s.4)." },
+      { name: 'Risk Assessment', instruments: 'MHSWR 1999 Reg.3', scope: 'Suitable and sufficient assessment, significant findings, review and revision.' },
+      { name: 'Display Screen Equipment', instruments: 'DSE Regs 1992', scope: 'Workstation assessment, eye tests, breaks, home/hybrid working DSE.' },
+      { name: 'Workplace Stress', instruments: 'HSWA 1974, MHSWR 1999, HSE Standards', scope: 'Management standards (demands, control, support, relationships, role, change).' },
+      { name: 'Accident Reporting', instruments: 'RIDDOR 2013', scope: 'Reportable injuries, occupational diseases, dangerous occurrences, deadlines.' },
+      { name: 'HSE Enforcement', instruments: 'HSWA 1974 ss.21\u201325', scope: 'Improvement notices, prohibition notices, prosecution, sentencing guidelines.' },
+      { name: 'Safety Representatives', instruments: 'SRSC Regs 1977, HSCER 1996', scope: 'Appointment, functions, time off, employer consultation duty.' },
+      { name: 'Right to Refuse Unsafe Work', instruments: 'ERA 1996 s.44, HSWA 1974', scope: 'Automatic unfair dismissal, detriment protection, reasonable belief.' },
+    ]
+  },
+  {
+    id: 'whistleblowing',
+    slug: 'whistleblowing',
+    name: 'Whistleblowing',
+    orientation: 'This area covers legal protection for workers who report wrongdoing. Users who arrive here are often in acute situations with immediate employment consequences.',
+    eileenGreeting: "I\u2019m here to help with whistleblowing and protected disclosures. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Qualifying Disclosures', instruments: 'ERA 1996 s.43B', scope: 'Six categories: criminal offence, legal obligation failure, miscarriage of justice, H&S danger, environmental damage, concealment.' },
+      { name: 'Protected Disclosures', instruments: 'ERA 1996 ss.43C\u201343H', scope: 'Disclosure to employer, legal adviser, Minister, prescribed person, wider disclosure.' },
+      { name: 'Automatic Unfair Dismissal', instruments: 'ERA 1996 s.103A', scope: 'No qualifying service, no compensation cap, burden of proof, interim relief.' },
+      { name: 'Detriment Short of Dismissal', instruments: 'ERA 1996 s.47B', scope: 'Acts or deliberate failures, co-worker liability, vicarious liability.' },
+      { name: 'Prescribed Persons', instruments: 'PI Disclosure (Prescribed Persons) Order', scope: 'Full list of prescribed regulators, coverage, reporting routes.' },
+      { name: 'NDAs and Confidentiality Clauses', instruments: 'ERA 1996 s.43J', scope: 'Void provisions, settlement agreements, clauses preventing protected disclosures.' },
+      { name: 'Whistleblowing Policies', instruments: 'ACAS workplace policies guide', scope: 'Best practice policies, designated officers, investigation, protection.' },
+    ]
+  },
+  {
+    id: 'data-monitoring',
+    slug: 'data-monitoring',
+    name: 'Data and Monitoring',
+    orientation: "This area covers data protection obligations in the employment relationship, including employee monitoring, subject access requests, and data retention.",
+    eileenGreeting: "I\u2019m here to help with data protection and employee monitoring matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Employer GDPR Obligations', instruments: 'UK GDPR, DPA 2018', scope: 'Lawful bases for employee data, legitimate interests, privacy notices.' },
+      { name: 'Lawful Bases for HR Processing', instruments: 'UK GDPR Art.6, Art.9', scope: 'Special category data (health, union, biometric), employment condition.' },
+      { name: 'Data Protection Impact Assessments', instruments: 'UK GDPR Art.35', scope: 'When DPIAs required for HR systems, systematic monitoring, large-scale special category.' },
+      { name: 'Employee Monitoring', instruments: 'ICO Employment Practices Code', scope: 'Email/internet, CCTV, telephone recording, covert monitoring, impact assessments.' },
+      { name: 'Subject Access Requests', instruments: 'UK GDPR Art.15', scope: 'Right to access, one-month period, exemptions, redaction of third-party data.' },
+      { name: 'Data Retention', instruments: 'UK GDPR Art.5(1)(e)', scope: 'Retention schedules, statutory minimums (tax, pension, H&S), destruction procedures.' },
+      { name: 'International Data Transfers', instruments: 'UK GDPR Art.44\u201349', scope: 'Post-Brexit adequacy, standard contractual clauses, binding corporate rules.' },
+      { name: 'Biometric Data', instruments: 'UK GDPR Art.9, DPA 2018', scope: 'Fingerprint/facial recognition clocking-in, explicit consent, DPIA, proportionality.' },
+    ]
+  },
+];
+
+// ─── Hash-based route detection (AMD-045 §3.1) ───
+function getRoute() {
+  var hash = (window.location.hash || '').replace('#', '') || '/';
+  if (hash.indexOf('/domain/') === 0) {
+    var slug = hash.replace('/domain/', '');
+    var domain = DOMAINS.find(function(d) { return d.slug === slug; });
+    return domain ? { view: 'domain', domain: domain } : { view: 'welcome' };
+  }
+  return { view: 'welcome' };
 }
 
-/* ── Nexus Canvas ── */
-function NexusCanvas({ size = 200, active = false, processing = false }) {
+// ─── §6.1 Contract intent detection (KLAC-001-AM-006, AMD-043) ───
+// Regex patterns for proactive contract routing to compliance engine.
+var CONTRACT_INTENT_PATTERNS = [
+  /\b(check|review|audit|analyse|analyze)\b.*\b(contract|document|policy|handbook)\b/i,
+  /\b(contract|document|policy|handbook)\b.*\b(check|review|audit|analyse|analyze)\b/i,
+  /\bupload\b.*\b(contract|document)\b/i,
+  /\b(compliance|compliant)\b.*\b(check|review)\b/i,
+  /\bcontract\s+compliance\b/i,
+  /\bcheck\s+my\s+contract\b/i,
+  /\breview\s+my\s+(contract|document)\b/i,
+  /\bis\s+my\s+contract\s+(legal|compliant|ok|okay)\b/i,
+];
+
+function hasContractIntent(text) {
+  return CONTRACT_INTENT_PATTERNS.some(function(pattern) {
+    return pattern.test(text || '');
+  });
+}
+
+// ─── R1-B keyframes (kl-pulse for compliance engine indicator) ───
+// Injected once at module load. index.html is out of scope per R1-B §12.
+// Distinct from the existing klPulse (typing dots) — this one scales 1→1.3
+// rather than 0.8→1 to give the analysis loading a different visual cadence.
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('kl-r1b-keyframes')) return;
+  const style = document.createElement('style');
+  style.id = 'kl-r1b-keyframes';
+  style.textContent =
+    '@keyframes kl-pulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }';
+  document.head.appendChild(style);
+})();
+
+// ─── Upload constants (KL File Upload Widget, Stage A) ───
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/plain',
+];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function formatFileSize(bytes) {
+  if (bytes == null) return '';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ─── Helpers ───
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// §2: Enhanced Eileen markdown renderer (EILEEN-002 §2–3, KLUX-001 Art. 13)
+// Handles the specific output patterns of eileen-intelligence: headers, bold,
+// italic, numbered/bullet lists, blockquotes, tables, inline code, code blocks,
+// horizontal rules, and Sprint H §2 library reference links.
+function renderMarkdown(text) {
+  if (!text) return '';
+  var escaped = escapeHtml(text);
+
+  // --- Pre-processing: extract code blocks before line-level parsing ---
+  var codeBlocks = [];
+  escaped = escaped.replace(/```(?:[a-z]*)\n([\s\S]*?)```/gm, function(match, code) {
+    var idx = codeBlocks.length;
+    codeBlocks.push('<pre style="background:#0F172A;border:1px solid #1E293B;border-radius:8px;padding:12px 16px;overflow-x:auto;margin:12px 0"><code style="font-family:\'DM Mono\',monospace;font-size:12px;color:#0EA5E9;line-height:1.6">' + code.trim() + '</code></pre>');
+    return '\n%%CODEBLOCK_' + idx + '%%\n';
+  });
+
+  // --- Pre-processing: extract tables before line-level parsing ---
+  var tables = [];
+  escaped = escaped.replace(/(\|.+\|\n\|[-:| ]+\|\n(?:\|.+\|\n?)+)/gm, function(match) {
+    var idx = tables.length;
+    var rows = match.trim().split('\n').filter(function(r) { return !r.match(/^\|[-:| ]+\|$/); });
+    if (rows.length < 1) { tables.push(match); return '%%TABLE_' + idx + '%%'; }
+    var headerCells = rows[0].split('|').filter(function(c) { return c.trim(); }).map(function(c) {
+      return '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid #1E293B;color:#F1F5F9;font-weight:600;font-size:12px">' + c.trim() + '</th>';
+    }).join('');
+    var bodyRows = rows.slice(1).map(function(row) {
+      var cells = row.split('|').filter(function(c) { return c.trim(); }).map(function(c) {
+        return '<td style="padding:8px 12px;border-bottom:1px solid #1E293B;color:#CBD5E1;font-size:13px">' + c.trim() + '</td>';
+      }).join('');
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+    tables.push('<div style="overflow-x:auto;margin:12px 0"><table style="width:100%;border-collapse:collapse;background:#0F172A;border-radius:8px;overflow:hidden"><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>');
+    return '\n%%TABLE_' + idx + '%%\n';
+  });
+
+  // --- Inline formatting ---
+  var withInline = escaped
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#F1F5F9">$1</strong>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code style="background:#1E293B;padding:2px 6px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;color:#0EA5E9">$1</code>')
+    // Sprint H §2: Link library references like (acas-bm §17–25), (era1996 s.94).
+    .replace(/\(([a-z][a-z0-9-]+)\s+(§|s\.)([^)]+)\)/gi, function(match, instId, prefix, sectionRef) {
+      var lowerInstId = instId.toLowerCase();
+      return '<span class="kl-ref-link" data-inst="' + escapeHtml(lowerInstId) + '" data-section="' + escapeHtml(prefix + sectionRef) + '" title="Open in Library: ' + escapeHtml(instId) + ' ' + escapeHtml(prefix + sectionRef) + '">' + escapeHtml(instId + ' ' + prefix + sectionRef) + '</span>';
+    });
+
+  // --- Line-level parsing ---
+  var lines = withInline.split('\n');
+  var out = [];
+  var ulItems = [];
+  var olItems = [];
+
+  function flushUl() {
+    if (ulItems.length) {
+      out.push('<ul style="margin:12px 0;padding-left:24px;color:#CBD5E1;list-style:disc">' + ulItems.join('') + '</ul>');
+      ulItems = [];
+    }
+  }
+  function flushOl() {
+    if (olItems.length) {
+      out.push('<ol style="margin:12px 0;padding-left:24px;color:#CBD5E1">' + olItems.join('') + '</ol>');
+      olItems = [];
+    }
+  }
+  function flushLists() { flushUl(); flushOl(); }
+
+  lines.forEach(function(line) {
+    var trimmed = line.trim();
+
+    // Placeholder restoration (code blocks, tables)
+    var codeMatch = trimmed.match(/^%%CODEBLOCK_(\d+)%%$/);
+    if (codeMatch) { flushLists(); out.push(codeBlocks[parseInt(codeMatch[1])]); return; }
+    var tableMatch = trimmed.match(/^%%TABLE_(\d+)%%$/);
+    if (tableMatch) { flushLists(); out.push(tables[parseInt(tableMatch[1])]); return; }
+
+    // Headers
+    var headerMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
+    if (headerMatch) {
+      flushLists();
+      var hLevel = headerMatch[1].length;
+      if (hLevel === 2) out.push('<h3 style="color:#F1F5F9;font-family:\'DM Sans\',sans-serif;font-size:16px;font-weight:600;margin:20px 0 10px">' + headerMatch[2] + '</h3>');
+      else if (hLevel === 3) out.push('<h4 style="color:#F1F5F9;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;margin:16px 0 8px">' + headerMatch[2] + '</h4>');
+      else out.push('<h4 style="color:#F1F5F9;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;margin:16px 0 8px">' + headerMatch[2] + '</h4>');
+      return;
+    }
+
+    // Horizontal rule
+    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+      flushLists();
+      out.push('<hr style="border:none;border-top:1px solid #1E293B;margin:16px 0">');
+      return;
+    }
+
+    // Blockquotes
+    if (trimmed.indexOf('&gt; ') === 0) {
+      flushLists();
+      var quoteContent = trimmed.substring(5);
+      out.push('<blockquote style="border-left:3px solid #0EA5E9;padding:8px 16px;margin:12px 0;color:#CBD5E1;font-style:italic;background:#0F172A;border-radius:0 6px 6px 0">' + quoteContent + '</blockquote>');
+      return;
+    }
+
+    // Numbered list
+    var olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olMatch) {
+      flushUl();
+      olItems.push('<li style="margin:4px 0;padding-left:4px">' + olMatch[2] + '</li>');
+      return;
+    }
+
+    // Bullet list
+    var ulMatch = trimmed.match(/^[-*]\s+(.*)$/);
+    if (ulMatch) {
+      flushOl();
+      ulItems.push('<li style="margin:4px 0;padding-left:4px">' + ulMatch[1] + '</li>');
+      return;
+    }
+
+    // Empty line
+    if (trimmed === '') {
+      flushLists();
+      return;
+    }
+
+    // Default paragraph
+    flushLists();
+    out.push('<p style="margin:0 0 12px;line-height:1.7">' + line + '</p>');
+  });
+  flushLists();
+  return out.join('');
+}
+
+// ─── ACAS Part Title Humanisation (Sprint H §6) ───
+// Maps dry ACAS / guidance part titles to warm, human-readable descriptions.
+// Applied in renderInstrumentContent when grouping by part label.
+var ACAS_PART_TITLES = {
+  'Foreword': 'About This Code',
+  'Introduction': 'What This Code Covers',
+  'Keys to handling disciplinary situations in the workplace': 'Handling Disciplinary Situations',
+  'Keys to handling grievances in the workplace': 'Handling Workplace Grievances',
+  'Disciplinary situations': 'When Disciplinary Action May Be Needed',
+  'Grievance procedure': 'How to Handle a Grievance',
+  'Holding a meeting': 'Conducting the Meeting',
+  'Settlement agreements': 'Using Settlement Agreements',
+  'Flexible working': 'Managing Flexible Working Requests',
+  'Redundancy handling': 'Managing Redundancy Fairly',
+  'Bullying and harassment': 'Addressing Bullying and Harassment',
+  'Absence management': 'Managing Employee Absence',
+  'Whistleblowing': 'Handling Whistleblowing Disclosures',
+};
+
+function humanisePartTitle(title, cat) {
+  if (!title) return title;
+  if (cat === 'acas' || cat === 'guidance') {
+    return ACAS_PART_TITLES[title] || title;
+  }
+  return title;
+}
+// Expose for tests and integration — string literal key survives minification.
+if (typeof window !== 'undefined') {
+  window.__klFns = window.__klFns || {};
+  window.__klFns['humanisePartTitle'] = humanisePartTitle;
+}
+
+function formatRelativeTime(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Date.now() - then);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+// ─── groupSessionsByTime (KLUX-001 Art. 8) ───
+// Groups session history entries into Today / Yesterday / This Week / Earlier.
+
+// §3.1 (AMD-044/C-1): Date classification per KLUX-001 Art. 8
+function classifyDate(dateStr) {
+  var now = new Date();
+  var d = new Date(dateStr);
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  var weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+
+  if (d >= today) return 'Today';
+  if (d >= yesterday) return 'Yesterday';
+  if (d >= weekAgo) return 'This Week';
+  return 'Earlier';
+}
+
+function groupSessionsByTime(sessions) {
+  var groups = {
+    today: { label: 'Today', items: [] },
+    yesterday: { label: 'Yesterday', items: [] },
+    thisWeek: { label: 'This Week', items: [] },
+    earlier: { label: 'Earlier', items: [] },
+  };
+
+  var groupKeyMap = { 'Today': 'today', 'Yesterday': 'yesterday', 'This Week': 'thisWeek', 'Earlier': 'earlier' };
+
+  sessions.forEach(function(s) {
+    var group = s.dateGroup || classifyDate(s.lastActivity);
+    var key = groupKeyMap[group] || 'earlier';
+    groups[key].items.push(s);
+  });
+
+  return [groups.today, groups.yesterday, groups.thisWeek, groups.earlier].filter(function(g) {
+    return g.items.length > 0;
+  });
+}
+
+// §4.1 (AMD-044/C-2): Category-to-title map per KLUX-001 Art. 8
+var CATEGORY_TITLES = {
+  unfair_dismissal: 'Unfair Dismissal',
+  discrimination: 'Discrimination',
+  wages_deductions: 'Wages and Deductions',
+  working_time: 'Working Time',
+  whistleblowing: 'Whistleblowing',
+  health_safety: 'Health and Safety',
+  tupe: 'Business Transfers (TUPE)',
+  data_protection: 'Data Protection',
+  family_leave: 'Family Leave',
+  redundancy: 'Redundancy',
+  contractual: 'Contract Terms',
+  equal_pay: 'Equal Pay',
+};
+
+function truncate(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.substring(0, n - 1) + '…' : s;
+}
+
+function tierPalette(tier) {
+  if (tier === 'institutional') return ['#D4A017', '#F1C85B'];
+  if (tier === 'governance') return ['#0EA5E9', '#8B5CF6'];
+  if (tier === 'operational_readiness') return ['#0EA5E9', '#10B981'];
+  return ['#0EA5E9', '#38BDF8'];
+}
+
+// ─── NexusCanvas (Sprint A — 4-state visual engine, EILEEN-002 §7.1) ───
+
+function NexusCanvas({ tier, size, nexusState, prefersReducedMotion }) {
   const canvasRef = useRef(null);
-  const frameRef = useRef(0);
-  const timeRef = useRef(0);
+  const rafRef = useRef(null);
+  const stateRef = useRef(nexusState || 'dormant');
+  const lerpFromRef = useRef(null);
+  const stateChangeTimeRef = useRef(0);
+  const dataPulsesRef = useRef([]);
+  const lastPulseSpawnRef = useRef(0);
+  const renderedRef = useRef(null);
+
+  // Track nexusState changes — snapshot rendered values for smooth lerp
+  useEffect(() => {
+    const incoming = nexusState || 'dormant';
+    if (stateRef.current !== incoming) {
+      if (renderedRef.current) lerpFromRef.current = Object.assign({}, renderedRef.current);
+      stateRef.current = incoming;
+      stateChangeTimeRef.current = performance.now();
+      if (incoming !== 'processing') dataPulsesRef.current = [];
+    }
+  }, [nexusState]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const w = size * dpr;
-    const h = size * dpr;
-    canvas.width = w;
-    canvas.height = h;
-    const cx = w / 2;
-    const cy = h / 2;
+    const canvasSize = size || 280;
+    canvas.width = canvasSize * dpr;
+    canvas.height = canvasSize * dpr;
+    canvas.style.width = canvasSize + 'px';
+    canvas.style.height = canvasSize + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
 
-    const nodeCount = size > 100 ? 20 : (processing ? 12 : active ? 10 : 8);
+    const [colorA, colorB] = tierPalette(tier);
+    const cx = canvasSize / 2;
+    const cy = canvasSize / 2;
+    const sc = canvasSize / 280;
+
+    // Build nodes with base angles for orbital movement
     const nodes = [];
-    for (let i = 0; i < nodeCount; i++) {
-      const ring = i < Math.floor(nodeCount * 0.4) ? 0.25 : 0.6;
-      const angle = (i / (i < Math.floor(nodeCount * 0.4) ? Math.floor(nodeCount * 0.4) : nodeCount - Math.floor(nodeCount * 0.4))) * Math.PI * 2 + i * 0.3;
-      const radius = ring * (w * 0.4);
-      nodes.push({
-        bx: cx + Math.cos(angle) * radius,
-        by: cy + Math.sin(angle) * radius,
-        r: (1.0 + Math.random() * 1.5) * dpr,
-        speed: 0.3 + Math.random() * 0.5,
-        phase: Math.random() * Math.PI * 2,
-        ring,
-      });
+    const rings = [
+      { count: 6, radius: 28 * sc },
+      { count: 8, radius: 68 * sc },
+      { count: 10, radius: 110 * sc },
+    ];
+    rings.forEach(function(ring, ri) {
+      for (var i = 0; i < ring.count; i++) {
+        var angle = (i / ring.count) * Math.PI * 2 + ri * 0.4;
+        nodes.push({
+          baseAngle: angle,
+          radius: ring.radius,
+          baseX: cx + Math.cos(angle) * ring.radius,
+          baseY: cy + Math.sin(angle) * ring.radius,
+          phase: Math.random() * Math.PI * 2,
+          ring: ri,
+        });
+      }
+    });
+
+    // Pre-compute all connections sorted by distance (closest first)
+    var allConns = [];
+    for (var i = 0; i < nodes.length; i++) {
+      for (var j = i + 1; j < nodes.length; j++) {
+        var dx = nodes[i].baseX - nodes[j].baseX;
+        var dy = nodes[i].baseY - nodes[j].baseY;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 100 * sc) allConns.push({ a: i, b: j, dist: d });
+      }
     }
+    allConns.sort(function(a, b) { return a.dist - b.dist; });
 
-    function draw() {
-      timeRef.current += processing ? 0.035 : active ? 0.02 : 0.01;
-      const t = timeRef.current;
-      ctx.clearRect(0, 0, w, h);
+    // §2.4 — Four-state config table
+    var CONFIGS = {
+      dormant:    { nOp: 0.3, cPct: 0.3, cOp: 0.15, pMin: 0.97, pMax: 1.03, pCyc: 4000, orb: 0.3 },
+      ready:      { nOp: 0.6, cPct: 0.5, cOp: 0.3,  pMin: 0.95, pMax: 1.05, pCyc: 2500, orb: 0.5 },
+      processing: { nOp: 1.0, cPct: 0.8, cOp: 0.5,  pMin: 0.9,  pMax: 1.1,  pCyc: 1500, orb: 1.0 },
+      presenting: { nOp: 1.0, cPct: 1.0, cOp: 0.7,  pMin: 1.0,  pMax: 1.05, pCyc: 600,  orb: 0.5 },
+    };
 
-      // Outer glow
-      const breathe = 1 + Math.sin(t * 0.8) * (processing ? 0.15 : 0.08);
-      const coreR = (processing ? 6 : active ? 5 : 3.5) * dpr;
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 4 * breathe);
-      glow.addColorStop(0, processing ? 'rgba(14,165,233,0.5)' : active ? 'rgba(14,165,233,0.35)' : 'rgba(14,165,233,0.15)');
-      glow.addColorStop(0.5, processing ? 'rgba(56,189,248,0.2)' : active ? 'rgba(56,189,248,0.1)' : 'rgba(56,189,248,0.04)');
-      glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR * 4 * breathe, 0, Math.PI * 2);
-      ctx.fill();
+    function lv(a, b, t) { return a + (b - a) * t; }
 
-      // Core
-      const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * breathe);
-      core.addColorStop(0, 'rgba(255,255,255,0.85)');
-      core.addColorStop(0.3, 'rgba(14,165,233,0.7)');
-      core.addColorStop(0.7, 'rgba(56,189,248,0.3)');
-      core.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = core;
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR * breathe, 0, Math.PI * 2);
-      ctx.fill();
+    // Initialise rendered values
+    var initCfg = CONFIGS[stateRef.current] || CONFIGS.dormant;
+    var rd = { nOp: initCfg.nOp, cPct: initCfg.cPct, cOp: initCfg.cOp, pMin: initCfg.pMin, pMax: initCfg.pMax, pCyc: initCfg.pCyc, orb: initCfg.orb };
+    if (!lerpFromRef.current) lerpFromRef.current = Object.assign({}, rd);
+    renderedRef.current = Object.assign({}, rd);
 
-      // Compute animated positions
-      const positions = nodes.map(n => {
-        const dx = Math.sin(t * n.speed + n.phase) * 3 * dpr;
-        const dy = Math.cos(t * n.speed * 0.7 + n.phase) * 2 * dpr;
-        return { x: n.bx + dx, y: n.by + dy, r: n.r, ring: n.ring };
-      });
+    var start = performance.now();
+    if (!stateChangeTimeRef.current) stateChangeTimeRef.current = start;
 
-      // Draw connections
-      const maxDist = w * 0.45;
-      for (let i = 0; i < positions.length; i++) {
-        for (let j = i + 1; j < positions.length; j++) {
-          const a = positions[i];
-          const b = positions[j];
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < maxDist) {
-            const alpha = (1 - dist / maxDist) * (processing ? 0.3 : active ? 0.2 : 0.1);
-            ctx.strokeStyle = `rgba(14,165,233,${alpha})`;
-            ctx.lineWidth = 0.5 * dpr;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.stroke();
-          }
-        }
+    function draw(now) {
+      var t = (now - start) / 1000;
+      var curState = stateRef.current;
+      var tgt = CONFIGS[curState] || CONFIGS.dormant;
+      var from = lerpFromRef.current;
+      var elapsed = now - stateChangeTimeRef.current;
+      var lt = Math.min(1, elapsed / 300);
 
-        // Radial lines from center
-        const p = positions[i];
-        const distFromCenter = Math.hypot(p.x - cx, p.y - cy);
-        const lineAlpha = (1 - distFromCenter / (w * 0.45)) * (active ? 0.12 : 0.05);
-        if (lineAlpha > 0) {
-          ctx.strokeStyle = `rgba(14,165,233,${lineAlpha})`;
-          ctx.lineWidth = 0.5 * dpr;
+      // §2.5 — Lerp all values over 300ms
+      rd.nOp  = lv(from.nOp,  tgt.nOp,  lt);
+      rd.cPct = lv(from.cPct, tgt.cPct, lt);
+      rd.cOp  = lv(from.cOp,  tgt.cOp,  lt);
+      rd.pMin = lv(from.pMin, tgt.pMin, lt);
+      rd.pMax = lv(from.pMax, tgt.pMax, lt);
+      rd.pCyc = lv(from.pCyc, tgt.pCyc, lt);
+      rd.orb  = lv(from.orb,  tgt.orb,  lt);
+
+      if (lt >= 1) lerpFromRef.current = Object.assign({}, rd);
+      renderedRef.current = Object.assign({}, rd);
+
+      ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+      // §2.7 — prefers-reduced-motion: static render, opacity-only state changes
+      if (prefersReducedMotion) {
+        var scc = Math.floor(allConns.length * rd.cPct);
+        ctx.lineWidth = 1;
+        for (var ci = 0; ci < scc; ci++) {
+          var cn = allConns[ci];
+          ctx.strokeStyle = 'rgba(14,165,233,' + rd.cOp.toFixed(3) + ')';
           ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(p.x, p.y);
+          ctx.moveTo(nodes[cn.a].baseX, nodes[cn.a].baseY);
+          ctx.lineTo(nodes[cn.b].baseX, nodes[cn.b].baseY);
           ctx.stroke();
         }
+        nodes.forEach(function(n) {
+          var color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : colorA);
+          ctx.beginPath();
+          ctx.arc(n.baseX, n.baseY, 3 * sc, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.globalAlpha = rd.nOp;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+        rafRef.current = requestAnimationFrame(draw);
+        return;
       }
 
-      // Draw nodes
-      positions.forEach((p, i) => {
-        const brightness = Math.sin(t * 2 + i) * 0.3 + 0.7;
-        const isPrimary = p.ring < 0.4;
-        const nodeGlow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
-        nodeGlow.addColorStop(0, `rgba(14,165,233,${brightness * (active ? 0.8 : 0.5)})`);
-        nodeGlow.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = nodeGlow;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
-        ctx.fill();
+      // Orbital node positions
+      var orbitRad = rd.orb * Math.PI / 3; // deg/frame@60fps → rad/s
+      var pos = [];
+      for (var ni = 0; ni < nodes.length; ni++) {
+        var n = nodes[ni];
+        pos.push({
+          x: cx + Math.cos(n.baseAngle + t * orbitRad) * n.radius,
+          y: cy + Math.sin(n.baseAngle + t * orbitRad) * n.radius,
+        });
+      }
 
-        ctx.fillStyle = isPrimary
-          ? `rgba(14,165,233,${brightness})`
-          : `rgba(56,189,248,${brightness * 0.8})`;
+      // Core pulse — subtle centre glow
+      var pPeriod = rd.pCyc / 1000;
+      var pPhase = pPeriod > 0 ? (t % pPeriod) / pPeriod * Math.PI * 2 : 0;
+      var pFactor = rd.pMin + (rd.pMax - rd.pMin) * (0.5 + 0.5 * Math.sin(pPhase));
+      var coreR = 14 * sc * pFactor;
+      var coreG = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+      coreG.addColorStop(0, 'rgba(14,165,233,' + (0.12 * rd.nOp).toFixed(3) + ')');
+      coreG.addColorStop(1, 'rgba(14,165,233,0)');
+      ctx.fillStyle = coreG;
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Connections — percentage-based visibility
+      var cc = Math.floor(allConns.length * rd.cPct);
+      ctx.lineWidth = 1;
+      for (var ci = 0; ci < cc; ci++) {
+        var cn = allConns[ci];
+        var distFactor = 1 - cn.dist / (100 * sc);
+        var alpha = distFactor * rd.cOp;
+        ctx.strokeStyle = 'rgba(14,165,233,' + alpha.toFixed(3) + ')';
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * (active ? 1 : 0.8), 0, Math.PI * 2);
+        ctx.moveTo(pos[cn.a].x, pos[cn.a].y);
+        ctx.lineTo(pos[cn.b].x, pos[cn.b].y);
+        ctx.stroke();
+      }
+
+      // §2.6 — Data pulse dots (processing state only)
+      if (curState === 'processing' && cc > 0) {
+        if (now - lastPulseSpawnRef.current > 1000) {
+          lastPulseSpawnRef.current = now;
+          var spawnCount = 2 + Math.floor(Math.random() * 2);
+          for (var k = 0; k < spawnCount; k++) {
+            dataPulsesRef.current.push({ ci: Math.floor(Math.random() * cc), st: now });
+          }
+        }
+      }
+      dataPulsesRef.current = dataPulsesRef.current.filter(function(p) {
+        var prog = (now - p.st) / 800;
+        if (prog > 1) return false;
+        var cn = allConns[p.ci];
+        if (!cn) return false;
+        var px = pos[cn.a].x + (pos[cn.b].x - pos[cn.a].x) * prog;
+        var py = pos[cn.a].y + (pos[cn.b].y - pos[cn.a].y) * prog;
+        var a = prog < 0.2 ? prog / 0.2 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
+        ctx.beginPath();
+        ctx.arc(px, py, Math.max(1, 2 * sc), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(14,165,233,' + a.toFixed(3) + ')';
         ctx.fill();
+        return true;
       });
 
-      frameRef.current = requestAnimationFrame(draw);
+      // Presenting flash — brightness burst over 600ms
+      var flashM = 1;
+      if (curState === 'presenting' && elapsed < 600) {
+        var ft = elapsed / 600;
+        flashM = ft < 0.5 ? 1 + 0.4 * ft * 2 : 1 + 0.4 * (1 - (ft - 0.5) * 2);
+      }
+
+      // Nodes
+      nodes.forEach(function(n, i) {
+        var p = pos[i];
+        var pulse = 0.5 + 0.5 * Math.sin(t * 2 + n.phase);
+        var r = (2 + pulse * 2.2) * sc;
+        var color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : (i % 2 ? colorA : colorB));
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * flashM, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = Math.min(1, rd.nOp * flashM);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+
+      rafRef.current = requestAnimationFrame(draw);
     }
 
-    draw();
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [size, active, processing]);
+    rafRef.current = requestAnimationFrame(draw);
+    return function() { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [tier, size, prefersReducedMotion]);
 
-  return <canvas ref={canvasRef} className="kl-nexus-canvas" style={{ width: size, height: size, borderRadius: '50%' }} />;
+  return <canvas ref={canvasRef} className="kl-nexus-canvas" />;
 }
 
-/* ── Tier Badge ── */
-function TierBadge({ tier }) {
-  const label = TIER_LABELS[tier] || 'Operational';
-  const badgeClass = tier === 'governance' ? 'kl-badge-governance'
-    : tier === 'institutional' ? 'kl-badge-institutional'
-    : 'kl-badge-operational';
-  return <span className={`kl-tier-badge ${badgeClass}`}>{label}</span>;
-}
+// ─── EileenSenderLabel ───
+// Static cyan "Nexus" dot + "Eileen" label, rendered on every Eileen message
+// bubble to restore Eileen's visual identity throughout the conversation
+// (KLUX-001 Art. 13 §13.2, Art. 19 §19.1(a)). Option B of the R1-A brief:
+// static dot rather than a per-message NexusCanvas instance, because NexusCanvas
+// has no size prop and each instance runs its own rAF loop (O(n²) per frame).
 
-/* ── Advisory Banner ── */
-function AdvisoryBanner() {
+function EileenSenderLabel() {
   return (
-    <div className="kl-advisory" role="alert">
-      <strong>Eileen provides regulatory intelligence.</strong> She does not provide legal advice.
-      For legal advice, consult a qualified employment solicitor.
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div
+        aria-hidden="true"
+        style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          background: '#0EA5E9',
+          boxShadow: '0 0 6px rgba(14,165,233,0.5)',
+          flexShrink: 0,
+        }}
+      ></div>
+      <div className="kl-msg-sender" style={{ marginBottom: 0 }}>Eileen</div>
     </div>
   );
 }
 
-/* ── Chat Input ── */
-function ChatInput({ value, onChange, onSubmit, disabled, placeholder }) {
-  const inputRef = useRef(null);
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSubmit();
-    }
-  };
-
-  useEffect(() => {
-    if (!disabled && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [disabled]);
-
+// §3.2: Reusable Eileen-voiced error message (KLUX-001 Art. 19)
+// Amber (#F59E0B) indicator dot distinguishes from Eileen's normal cyan.
+function EileenErrorMessage({ message, retryAction, retryLabel }) {
   return (
-    <div className="kl-input-bar">
-      <input
-        ref={inputRef}
-        type="text"
-        className="kl-input"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder || 'Ask Eileen anything about employment law\u2026'}
-        disabled={disabled}
-        aria-label="Message Eileen"
-      />
+    <div style={{
+      display: 'flex', gap: '12px', padding: '16px',
+      background: '#0F172A', borderRadius: '12px', border: '1px solid #1E293B',
+      margin: '8px 0', maxWidth: '520px',
+    }}>
+      <div style={{
+        width: '8px', height: '8px', borderRadius: '50%', marginTop: '6px',
+        background: '#F59E0B', boxShadow: '0 0 8px rgba(245,158,11,0.4)',
+        flexShrink: 0,
+      }} />
+      <div>
+        <p style={{ color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.6, margin: '0 0 8px' }}>
+          {message}
+        </p>
+        {retryAction && (
+          <button
+            onClick={retryAction}
+            style={{
+              background: 'transparent', border: '1px solid #334155', color: '#94A3B8',
+              borderRadius: '6px', padding: '6px 14px', fontSize: '12px',
+              fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+            }}
+          >
+            {retryLabel || 'Try again'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── §6.2 ContractUploadPrompt (KLAC-001-AM-006 §4.2) ───
+// Rendered in the conversation when contract intent is detected.
+// CCI Separation Doctrine: Eileen routes, the engine analyses.
+
+function ContractUploadPrompt({ onUpload }) {
+  return (
+    <div style={{
+      background: '#0F172A',
+      border: '1px solid #0EA5E9',
+      borderRadius: '12px',
+      padding: '20px',
+      margin: '12px 0',
+      maxWidth: '520px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <div style={{
+          width: '8px', height: '8px', borderRadius: '50%',
+          background: '#0EA5E9', boxShadow: '0 0 8px rgba(14,165,233,0.5)',
+        }} />
+        <span style={{ color: '#F1F5F9', fontSize: '14px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
+          Ready to check your contract
+        </span>
+      </div>
+      <p style={{ color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: '0 0 16px' }}>
+        Upload your employment contract or HR document and Eileen will route it through the Contract Compliance Check engine for analysis against current UK employment legislation.
+      </p>
       <button
-        className="kl-send-btn"
-        onClick={onSubmit}
-        disabled={disabled || !value.trim()}
-        aria-label="Send message"
+        onClick={onUpload}
+        style={{
+          background: '#0EA5E9',
+          color: '#FFFFFF',
+          border: 'none',
+          borderRadius: '8px',
+          padding: '10px 20px',
+          fontSize: '13px',
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+        onMouseEnter={function(e) { e.currentTarget.style.background = '#0284C7'; }}
+        onMouseLeave={function(e) { e.currentTarget.style.background = '#0EA5E9'; }}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
+        Upload Document
       </button>
     </div>
   );
 }
 
-/* ── Topic Card ── */
-function TopicCard({ card, onClick }) {
+// ─── QualifyingQuestion (KLIA-001 Art. 23 — EQIS) ───
+// Renders as a local Eileen message with two clickable buttons.
+// §5.3: Persisted to kl_user_preferences.preferences.user_type via DB.
+
+function QualifyingQuestion({ onSelect }) {
   return (
-    <button className="kl-topic-card" onClick={() => onClick(card.message)}>
-      <CardIcon type={card.icon} />
-      <span className="kl-card-label">{card.label}</span>
+    <div className="kl-msg kl-msg-eileen">
+      <div className="kl-msg-content">
+        <EileenSenderLabel />
+        <div className="kl-msg-body" style={{ marginTop: '8px' }}>
+          <p>Before we begin — are you an employer or HR professional managing staff, or a worker with a question about your own employment?</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={function() { onSelect('employer'); }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: 'rgba(14, 165, 233, 0.1)',
+              border: '1px solid rgba(14, 165, 233, 0.3)',
+              color: '#0EA5E9',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={function(e) { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.2)'; }}
+            onMouseLeave={function(e) { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.1)'; }}
+          >
+            Employer / HR Professional
+          </button>
+          <button
+            type="button"
+            onClick={function() { onSelect('worker'); }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              color: '#A78BFA',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={function(e) { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)'; }}
+            onMouseLeave={function(e) { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)'; }}
+          >
+            Worker
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TypingIndicator ───
+
+function TypingIndicator() {
+  return (
+    <div className="kl-msg kl-msg-eileen">
+      <div className="kl-msg-content">
+        <EileenSenderLabel />
+        <div className="kl-typing-dots" style={{ marginTop: '8px' }}>
+          <span className="kl-dot"></span>
+          <span className="kl-dot"></span>
+          <span className="kl-dot"></span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── FloatingNexus (EILEEN-001 §3–4, KLUX-001 Art. 13 §13.2) ───
+// Persistent Eileen presence during conversation state. 52px Nexus
+// anchored bottom-right. Four visual states driven by nexusState prop.
+
+function FloatingNexus({ tier, nexusState, isExpanded, onToggle, prefersReducedMotion }) {
+  // §3.3 — Per-state glow effect
+  var glowMap = {
+    dormant:    '0 0 8px rgba(14,165,233,0.1)',
+    ready:      '0 0 12px rgba(14,165,233,0.2)',
+    processing: '0 0 20px rgba(14,165,233,0.4)',
+    presenting: '0 0 24px rgba(14,165,233,0.5)',
+  };
+  var glow = glowMap[nexusState] || glowMap.dormant;
+
+  return (
+    <div
+      className="kl-floating-nexus-container"
+      style={{
+        position: 'absolute',
+        bottom: window.innerWidth <= 768 ? '100px' : '80px',
+        right: '24px',
+        zIndex: 30,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: '8px',
+        pointerEvents: 'auto',
+        maxWidth: 'calc(100vw - 48px)',
+      }}
+    >
+      {isExpanded && (
+        <FloatingNexusPanel tier={tier} onClose={onToggle} />
+      )}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={isExpanded ? 'Close Eileen panel' : 'Open Eileen panel'}
+        title="Eileen"
+        style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '50%',
+          background: 'rgba(10, 22, 40, 0.85)',
+          border: '1px solid rgba(14, 165, 233, 0.3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+          boxShadow: glow + ', 0 4px 16px rgba(0,0,0,0.3)',
+          transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+      >
+        <NexusCanvas tier={tier} size={36} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
+      </button>
+    </div>
+  );
+}
+
+// ─── FloatingNexusPanel ───
+// Expands above the FloatingNexus button. Quick actions + status.
+
+function FloatingNexusPanel({ tier, onClose }) {
+  const tierLabel = {
+    governance: 'Governance',
+    operational_readiness: 'Operational',
+    institutional: 'Institutional',
+  }[tier] || 'Knowledge Library';
+
+  return (
+    <div
+      className="kl-floating-panel"
+      style={{
+        width: '240px',
+        maxWidth: 'calc(100vw - 48px)',
+        background: 'rgba(15, 29, 50, 0.95)',
+        border: '1px solid rgba(14, 165, 233, 0.2)',
+        borderRadius: '12px',
+        padding: '16px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+        <div
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#0EA5E9',
+            boxShadow: '0 0 6px rgba(14,165,233,0.5)',
+          }}
+        ></div>
+        <span style={{ color: '#0EA5E9', fontSize: '12px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'DM Mono', monospace" }}>
+          Eileen
+        </span>
+        <span style={{ flex: 1 }}></span>
+        <span style={{ color: '#64748B', fontSize: '11px' }}>{tierLabel}</span>
+      </div>
+
+      <div style={{ color: '#CBD5E1', fontSize: '13px', lineHeight: 1.5, marginBottom: '12px' }}>
+        I'm here whenever you need me. Ask a question or upload a contract for analysis.
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <button
+          type="button"
+          onClick={() => { onClose(); window.scrollTo(0, 0); }}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            background: 'rgba(14, 165, 233, 0.08)',
+            border: '1px solid rgba(14, 165, 233, 0.2)',
+            borderRadius: '8px',
+            color: '#0EA5E9',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Ask a question
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Advisor Tips (Hotfix H-5 §6.3) ───
+var ADVISOR_TIPS = {
+  'dismissal': 'Eileen can guide you through unfair dismissal rights, disciplinary procedures, and the ACAS Code. This is the most litigated area of UK employment law.',
+  'discrimination': 'Eileen covers all nine protected characteristics, the EHRC Code, harassment obligations including the new Worker Protection Act 2023, and equal pay.',
+  'contracts': 'Eileen can analyse your contract terms against current legislation \u2014 including the new flexible working and zero-hours provisions under ERA 2025.',
+  'family-leave': 'Eileen covers maternity, paternity, shared parental leave, and the new neonatal care leave under ERA 2025. One of the most active areas of legislative change.',
+  'transfers': 'Eileen can explain TUPE transfer obligations, employee consultation requirements, and the interaction with collective redundancy law.',
+  'health-safety': "Eileen draws on 2,498 HSE prosecution records and 30,543 enforcement notices to contextualise your health and safety obligations.",
+  'whistleblowing': 'Eileen covers qualifying disclosures, protected disclosure routes, and the employment protections for workers who raise concerns.',
+  'data-monitoring': "Eileen can guide you through employer GDPR obligations, employee monitoring rules, and subject access request handling.",
+};
+
+// ─── FloatingNexusAdvisor (Hotfix H-5 §6.5) ───
+// Replaces the chat-panel FloatingNexus on the welcome state.
+// Shows contextual domain tooltip when user hovers near domain cards.
+
+function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion }) {
+  var _show = useState(false);
+  var showTooltip = _show[0];
+  var setShowTooltip = _show[1];
+  var tip = nearDomain ? ADVISOR_TIPS[nearDomain] : null;
+
+  useEffect(function() {
+    if (tip) {
+      setShowTooltip(true);
+    } else {
+      var t = setTimeout(function() { setShowTooltip(false); }, 300);
+      return function() { clearTimeout(t); };
+    }
+  }, [tip]);
+
+  return React.createElement('div', {
+    style: {
+      position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
+    },
+  },
+    // Advisor tooltip
+    showTooltip && tip ? React.createElement('div', {
+      style: {
+        background: '#0F172A', border: '1px solid #1E293B', borderRadius: '12px',
+        padding: '14px 18px', maxWidth: '300px',
+        opacity: tip ? 1 : 0, transform: tip ? 'translateY(0)' : 'translateY(8px)',
+        transition: 'opacity 0.3s, transform 0.3s',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      },
+    },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' } },
+        React.createElement(NexusCanvas, { size: 16, nexusState: 'ready', tier: 'kl', prefersReducedMotion: prefersReducedMotion }),
+        React.createElement('span', { style: { color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600 } }, 'Eileen')
+      ),
+      React.createElement('p', { style: { color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 } }, tip)
+    ) : null,
+    // Nexus orb
+    React.createElement('div', {
+      style: {
+        width: '52px', height: '52px', borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'default',
+        boxShadow: '0 0 ' + (nearDomain ? '16' : '8') + 'px rgba(14,165,233,' + (nearDomain ? '0.3' : '0.15') + ')',
+        transition: 'box-shadow 0.3s',
+      },
+    },
+      React.createElement(NexusCanvas, {
+        size: 52, nexusState: nearDomain ? 'ready' : (nexusState || 'dormant'),
+        tier: 'kl', prefersReducedMotion: prefersReducedMotion,
+      })
+    )
+  );
+}
+
+// ─── NexusSendButton (EILEEN-002 §7.2, Sprint A §4) ───
+// 38px Nexus replaces flat send arrow. Dormant when disabled,
+// reflects nexusState when active. IS the send action.
+
+function NexusSendButton({ size, nexusState, disabled, onClick, prefersReducedMotion, tier }) {
+  var s = size || 38;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: s + 'px',
+        height: s + 'px',
+        borderRadius: '50%',
+        border: 'none',
+        background: disabled ? 'transparent' : '#0EA5E9',
+        padding: 0,
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.3 : 1,
+        transition: 'opacity 0.2s, background 0.3s',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      aria-label="Send message to Eileen"
+    >
+      {/* NexusCanvas renders behind the arrow as atmospheric effect */}
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.4 }}>
+        <NexusCanvas
+          size={s}
+          nexusState={disabled ? 'dormant' : nexusState}
+          tier={tier || 'kl'}
+          prefersReducedMotion={prefersReducedMotion}
+        />
+      </div>
+      {/* Visible send arrow */}
+      <svg
+        width={Math.round(s * 0.45)}
+        height={Math.round(s * 0.45)}
+        viewBox="0 0 24 24"
+        fill="none"
+        style={{ position: 'relative', zIndex: 1 }}
+        aria-hidden="true"
+      >
+        <path
+          d="M5 12h14M13 6l6 6-6 6"
+          stroke="#FFFFFF"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </button>
   );
 }
 
-/* ── Eileen Message ── */
-function EileenMessage({ text, provisionsCount, casesCount }) {
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(text).catch(() => {});
+// ─── FileAttachmentBubble (KL File Upload Widget, Stage A) ───
+// Rendered on the user side for messages with type === 'file_upload'.
+// Shows filename, size, and a status indicator that transitions
+// uploading → extracting → ready (or error).
+
+function FileAttachmentBubble({ filename, fileSize, status, charCount }) {
+  const sizeLabel = formatFileSize(fileSize);
+
+  const statusIcon = {
+    uploading: '\u23F3',        // ⏳
+    extracting: '\u2699\uFE0F', // ⚙️
+    ready: '\u2705',            // ✅
+    error: '\u274C',            // ❌
+  }[status] || '\u23F3';
+
+  const statusLabel = {
+    uploading: 'Uploading...',
+    extracting: 'Extracting text...',
+    ready: charCount ? charCount.toLocaleString() + ' characters extracted' : 'Ready',
+    error: 'Upload failed',
+  }[status] || '';
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '10px 14px',
+        borderRadius: '10px',
+        background: 'rgba(14,165,233,0.08)',
+        border: '1px solid rgba(14,165,233,0.2)',
+        maxWidth: '320px',
+      }}
+    >
+      <span style={{ fontSize: '24px' }} aria-hidden="true">{'\uD83D\uDCC4'}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            color: '#E2E8F0',
+            fontSize: '13px',
+            fontWeight: 500,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {filename}
+        </div>
+        <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '2px' }}>
+          {sizeLabel + ' \u00B7 ' + statusLabel}
+        </div>
+      </div>
+      <span style={{ fontSize: '16px' }} aria-hidden="true">{statusIcon}</span>
+    </div>
+  );
+}
+
+// ─── AnalysisResultMessage (KL R1-B, CCI v1.0 Separation Doctrine) ───
+// Renders kl-compliance-bridge findings inside the conversation as an Eileen
+// response. Eileen routes to the engine and presents findings — she does not
+// compute scores or assess compliance (CCI v1.0 Art. I §1.5). PLUGIN-001
+// Art. XIV §14.2: no "you should", "you must", "you are compliant".
+
+function AnalysisResultMessage({ data }) {
+  const score = data.overall_score;
+  const status = data.status;
+  const findings = data.findings || [];
+  const forwardFindings = data.forward_findings || [];
+  const summary = data.summary || {};
+  const engineVersion = data.engine_version || '';
+  const analysisTimeMs = data.analysis_time_ms || 0;
+  const checksUsed = data.checks_used;
+  const checkLimit = data.check_limit;
+
+  // R1-C §4D — Hide compliant findings by default, toggle to reveal
+  const [showCompliant, setShowCompliant] = useState(false);
+
+  // Track which finding cards are expanded — use a ref + force-update counter
+  // so we can toggle without threading state setters through the render tree.
+  const expandedRef = useRef({});
+  const [, setTick] = useState(0);
+  function toggleFinding(key) {
+    expandedRef.current[key] = !expandedRef.current[key];
+    setTick((c) => c + 1);
+  }
+
+  // Out-of-scope handling — document is not an employment document.
+  if (status === 'out_of_scope') {
+    return (
+      <div
+        style={{
+          padding: '16px',
+          borderRadius: '10px',
+          background: 'rgba(251,191,36,0.08)',
+          border: '1px solid rgba(251,191,36,0.2)',
+        }}
+      >
+        <div style={{ fontSize: '14px', fontWeight: 600, color: '#FBBF24', marginBottom: '8px' }}>
+          {'\u26A0\uFE0F Document Outside Scope'}
+        </div>
+        <div style={{ fontSize: '13px', color: '#CBD5E1', lineHeight: 1.5 }}>
+          This document does not appear to be a UK employment contract, staff handbook, or workplace
+          policy. The compliance engine analyses employment documents only. If this is an employment
+          document, try uploading it in a different format (PDF or DOCX).
+        </div>
+      </div>
+    );
+  }
+
+  const scoreColor = score >= 65 ? '#22C55E' : score >= 30 ? '#F59E0B' : '#EF4444';
+
+  const SEV_COLORS = {
+    critical:  { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)',  text: '#EF4444', label: 'Critical' },
+    major:     { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.3)', text: '#FBBF24', label: 'Major'    },
+    minor:     { bg: 'rgba(234,179,8,0.06)',  border: 'rgba(234,179,8,0.2)',  text: '#EAB308', label: 'Minor'    },
+    compliant: { bg: 'rgba(34,197,94,0.06)',  border: 'rgba(34,197,94,0.2)',  text: '#22C55E', label: 'Compliant'},
   };
 
-  const renderText = (raw) => {
-    // Basic markdown: **bold**
-    const parts = raw.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i}>{part.slice(2, -2)}</strong>;
-      }
-      return <span key={i}>{part}</span>;
+  const severityOrder = { critical: 0, major: 1, minor: 2, compliant: 3 };
+  const visibleFindings = findings
+    .filter((f) => showCompliant || f.severity !== 'compliant')
+    .slice()
+    .sort((a, b) => (severityOrder[a.severity] != null ? severityOrder[a.severity] : 4) - (severityOrder[b.severity] != null ? severityOrder[b.severity] : 4));
+
+  const forwardNonCompliant = forwardFindings.filter((f) => f.severity !== 'compliant');
+  const compliantCount = findings.filter((f) => f.severity === 'compliant').length;
+  const findingsTotal = findings.length;
+  const forwardTotal = forwardFindings.length;
+
+  return (
+    <div style={{ maxWidth: '100%' }}>
+
+      {/* ── R1-C §4A: Overall Score Header ───────────────────────── */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.12), rgba(14,165,233,0.04))',
+          border: '1px solid rgba(14,165,233,0.25)',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '16px',
+        }}
+      >
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', fontFamily: "'DM Sans', sans-serif", marginBottom: '4px' }}>
+          Contract Compliance Score
+        </div>
+        <div style={{ fontSize: '28px', fontWeight: 700, color: scoreColor, fontFamily: "'DM Mono', monospace" }}>
+          {Math.round(score) + '%'}
+        </div>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+          {findingsTotal + ' finding' + (findingsTotal === 1 ? '' : 's') + ' \u00B7 ' + forwardTotal + ' forward exposure item' + (forwardTotal === 1 ? '' : 's')}
+        </div>
+      </div>
+
+      {/* ── R1-C §4B: Severity Summary Bar ───────────────────────── */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {Object.entries(summary).map(function(entry) {
+          var sev = entry[0];
+          var count = entry[1];
+          if (!count) return null;
+          var colors = { critical: '#EF4444', major: '#F59E0B', minor: '#3B82F6', compliant: '#22C55E' };
+          return React.createElement('span', {
+            key: sev,
+            style: {
+              background: (colors[sev] || '#666') + '20',
+              border: '1px solid ' + (colors[sev] || '#666') + '40',
+              borderRadius: '6px',
+              padding: '4px 10px',
+              fontSize: '12px',
+              fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 600,
+              color: colors[sev] || '#aaa',
+            }
+          }, count + ' ' + sev);
+        })}
+      </div>
+
+      {status === 'sparse_report' && (
+        <div style={{ fontSize: '12px', color: '#FBBF24', marginBottom: '12px' }}>
+          {'\u26A0\uFE0F Some requirements could not be assessed. Manual review recommended for gaps.'}
+        </div>
+      )}
+
+      {/* ── R1-C §4C: Current Law Findings header ────────────────── */}
+      {visibleFindings.length > 0 && (
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#22D3EE', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif" }}>
+          Current Law Findings
+        </div>
+      )}
+
+      {/* Current findings list (R1-C §4D: filtered by showCompliant) */}
+      {visibleFindings.map((finding, idx) => {
+        const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
+        const key = 'c' + idx + '-' + finding.severity;
+        const isExpanded = !!expandedRef.current[key];
+        return (
+          <div
+            key={key}
+            style={{
+              marginBottom: '8px', borderRadius: '8px',
+              background: sev.bg, border: '1px solid ' + sev.border,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              onClick={() => toggleFinding(key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 12px', cursor: 'pointer',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                  padding: '2px 6px', borderRadius: '4px',
+                  background: sev.border, color: sev.text,
+                }}
+              >
+                {sev.label}
+              </span>
+              <span style={{ fontSize: '12px', color: '#CBD5E1', flex: 1, minWidth: 0 }}>
+                {finding.clause_category}
+              </span>
+              {finding.statutory_ref && (
+                <span style={{ fontSize: '11px', color: '#64748B' }}>{finding.statutory_ref}</span>
+              )}
+              <span style={{ fontSize: '12px', color: '#64748B', marginLeft: '4px' }}>
+                {isExpanded ? '\u25B2' : '\u25BC'}
+              </span>
+            </div>
+
+            {isExpanded && (
+              <div style={{ padding: '0 12px 12px 12px' }}>
+                {finding.clause_text && finding.clause_text !== '[Not found in document]' && (
+                  <div
+                    style={{
+                      fontSize: '12px', color: '#94A3B8', fontStyle: 'italic',
+                      padding: '6px 10px', marginBottom: '8px', borderRadius: '4px',
+                      background: 'rgba(0,0,0,0.2)',
+                      borderLeft: '2px solid ' + sev.border,
+                    }}
+                  >
+                    {finding.clause_text.length > 300
+                      ? finding.clause_text.slice(0, 300) + '\u2026'
+                      : finding.clause_text}
+                  </div>
+                )}
+
+                {finding.finding_detail && (
+                  <div
+                    style={{
+                      fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginBottom: '8px',
+                    }}
+                  >
+                    {finding.finding_detail}
+                  </div>
+                )}
+
+                {finding.remediation && (
+                  <div
+                    style={{
+                      fontSize: '12px', color: '#0EA5E9', lineHeight: 1.5,
+                      padding: '8px 10px', borderRadius: '4px',
+                      background: 'rgba(14,165,233,0.06)',
+                      borderLeft: '2px solid rgba(14,165,233,0.3)',
+                    }}
+                  >
+                    <strong style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}>
+                      Remediation
+                    </strong>
+                    {finding.remediation}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* ── R1-C §4D: Toggle compliant visibility ────────────────── */}
+      {compliantCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowCompliant(!showCompliant)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '12px',
+            cursor: 'pointer',
+            padding: '8px 0',
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          {showCompliant
+            ? 'Hide compliant items'
+            : 'Show ' + compliantCount + ' compliant item' + (compliantCount === 1 ? '' : 's')}
+        </button>
+      )}
+
+      {/* ── R1-C §4C: Forward findings section header ────────────── */}
+      {forwardNonCompliant.length > 0 && (
+        <div
+          style={{
+            fontSize: '14px', fontWeight: 700, color: '#A855F7',
+            marginTop: '20px', marginBottom: '8px',
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          {'Legislative Horizon \u2014 Forward Exposure'}
+        </div>
+      )}
+
+      {/* Forward findings list */}
+      {forwardNonCompliant.length > 0 && (
+        <div>
+          <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '10px' }}>
+            These findings relate to provisions of the Employment Rights Act 2025 not yet in force.
+            They do not affect the current compliance position.
+          </div>
+
+          {forwardNonCompliant.map((finding, idx) => {
+            const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
+            const key = 'f' + idx;
+            const isExpanded = !!expandedRef.current[key];
+            return (
+              <div
+                key={key}
+                style={{
+                  marginBottom: '8px', borderRadius: '8px',
+                  background: 'rgba(167,139,250,0.04)',
+                  border: '1px solid rgba(167,139,250,0.15)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  onClick={() => toggleFinding(key)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 12px', cursor: 'pointer',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                      padding: '2px 6px', borderRadius: '4px',
+                      background: sev.border, color: sev.text,
+                    }}
+                  >
+                    {sev.label}
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#CBD5E1', flex: 1, minWidth: 0 }}>
+                    {finding.clause_category}
+                  </span>
+                  {finding.forward_effective_date && (
+                    <span style={{ fontSize: '10px', color: '#A78BFA' }}>
+                      {'Expected: ' + finding.forward_effective_date}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '12px', color: '#64748B', marginLeft: '4px' }}>
+                    {isExpanded ? '\u25B2' : '\u25BC'}
+                  </span>
+                </div>
+
+                {isExpanded && (
+                  <div style={{ padding: '0 12px 12px 12px' }}>
+                    {finding.finding_detail && (
+                      <div
+                        style={{
+                          fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginBottom: '8px',
+                        }}
+                      >
+                        {finding.finding_detail}
+                      </div>
+                    )}
+                    {finding.remediation && (
+                      <div
+                        style={{
+                          fontSize: '12px', color: '#A78BFA', lineHeight: 1.5,
+                          padding: '8px 10px', borderRadius: '4px',
+                          background: 'rgba(167,139,250,0.04)',
+                          borderLeft: '2px solid rgba(167,139,250,0.2)',
+                        }}
+                      >
+                        <strong
+                          style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}
+                        >
+                          Action Before Commencement
+                        </strong>
+                        {finding.remediation}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── R1-C §3: PDF Download Button ─────────────────────────── */}
+      <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: '12px' }}>
+        <button
+          type="button"
+          onClick={async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.textContent = 'Generating PDF\u2026';
+            try {
+              const token = window.__klToken;
+              if (!token) throw new Error('Not authenticated');
+              const response = await fetch(
+                SUPABASE_URL + '/functions/v1/generate-report-pdf',
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                    'apikey': SUPABASE_ANON_KEY,
+                  },
+                  body: JSON.stringify({ upload_id: data.upload_id }),
+                }
+              );
+              if (!response.ok) throw new Error('PDF generation failed');
+              const blob = await response.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'Ailane-Compliance-Report.pdf';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              btn.textContent = '\u2713 Downloaded';
+              btn.disabled = false;
+              setTimeout(() => { btn.textContent = '\uD83D\uDCC4 Download PDF Report'; }, 2000);
+            } catch (err) {
+              console.error('PDF download error:', err);
+              btn.textContent = '\u274C Failed \u2014 try again';
+              btn.disabled = false;
+              setTimeout(() => { btn.textContent = '\uD83D\uDCC4 Download PDF Report'; }, 3000);
+            }
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #0EA5E9, #0284C7)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(14,165,233,0.3)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+        >{'\uD83D\uDCC4 Download PDF Report'}</button>
+
+        {/* ── Sprint F §2.1: Save compliance findings to vault ───── */}
+        <button
+          type="button"
+          onClick={async (e) => {
+            var btn = e.currentTarget;
+            btn.disabled = true;
+            btn.textContent = 'Saving\u2026';
+            try {
+              var token = window.__klToken;
+              if (!token) throw new Error('Not authenticated');
+              var docId = data.document_id;
+              if (docId) {
+                var resp = await fetch(
+                  SUPABASE_URL + '/rest/v1/kl_vault_documents?id=eq.' + docId,
+                  {
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': 'Bearer ' + token,
+                      'apikey': SUPABASE_ANON_KEY,
+                      'Content-Type': 'application/json',
+                      'Prefer': 'return=minimal',
+                    },
+                    body: JSON.stringify({ analysis_status: 'completed' }),
+                  }
+                );
+                if (!resp.ok) throw new Error('Vault update failed (' + resp.status + ')');
+              }
+              btn.textContent = '\u2713 Saved to Vault';
+              btn.style.background = 'rgba(16,185,129,0.15)';
+              btn.style.color = '#10B981';
+              btn.style.borderColor = 'rgba(16,185,129,0.3)';
+            } catch (err) {
+              console.error('Save to Vault error:', err);
+              btn.textContent = '\u274C Failed \u2014 try again';
+              btn.disabled = false;
+              setTimeout(function() { btn.textContent = '\uD83D\uDCBE Save to Vault'; }, 3000);
+            }
+          }}
+          style={{
+            background: 'transparent',
+            color: '#CBD5E1',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(14,165,233,0.3)'; e.currentTarget.style.color = '#0EA5E9'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#CBD5E1'; }}
+        >{'\uD83D\uDCBE Save to Vault'}</button>
+      </div>
+
+      {/* ── Footer (Tier 4 disclaimer) ───────────────────────────── */}
+      <div
+        style={{
+          marginTop: '12px', paddingTop: '10px',
+          borderTop: '1px solid rgba(148,163,184,0.1)',
+          fontSize: '11px', color: '#64748B', lineHeight: 1.5,
+        }}
+      >
+        {'Engine ' + engineVersion + ' \u00B7 ' + Math.round(analysisTimeMs / 1000) + 's analysis time'}
+        {checksUsed != null && checkLimit != null
+          ? ' \u00B7 Check ' + checksUsed + '/' + checkLimit + ' used'
+          : ''}
+        <div style={{ marginTop: '6px', fontSize: '10px', color: '#475569' }}>
+          This analysis is regulatory intelligence grounded in Ailane's compliance engine. It does
+          not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)
+          trading as Ailane.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Voice Phase 1 (EILEEN-002 §7.3, VTCA-001 Art. 16) ───
+// Session-scoped module flag so the voice disclosure toast appears only once
+// per session, per VTCA-001 Art. 16.1.
+var __eileenVoiceDisclosureShown = false;
+
+// Select the best available Scottish/UK female voice per EILEEN-002 §7.3.
+// Priority cascade: Fiona → named UK female voices → any en-GB non-male
+// → any en-GB → any en → first available voice.
+function selectEileenVoice() {
+  try {
+    var voices = (window.speechSynthesis && window.speechSynthesis.getVoices()) || [];
+    if (!voices.length) return null;
+    // 1. Fiona (Scottish female) — exact match
+    var fiona = voices.find(function(v) { return /fiona/i.test(v.name); });
+    if (fiona) return fiona;
+    // 2. Named UK female voices
+    var namedFemale = ['kate', 'serena', 'moira', 'martha', 'tessa'];
+    for (var i = 0; i < namedFemale.length; i++) {
+      var match = voices.find(function(v) {
+        return new RegExp(namedFemale[i], 'i').test(v.name);
+      });
+      if (match) return match;
+    }
+    // 3. Any en-GB voice without obviously male name tokens
+    var maleTokens = /(daniel|oliver|arthur|male|man)/i;
+    var enGbFemale = voices.find(function(v) {
+      return (v.lang === 'en-GB' || /en[-_]gb/i.test(v.lang)) && !maleTokens.test(v.name);
     });
-  };
+    if (enGbFemale) return enGbFemale;
+    // 4. Any en-GB voice
+    var enGb = voices.find(function(v) { return v.lang === 'en-GB' || /en[-_]gb/i.test(v.lang); });
+    if (enGb) return enGb;
+    // 5. Any en voice
+    var en = voices.find(function(v) { return /^en/i.test(v.lang); });
+    if (en) return en;
+    // 6. Fallback: first available
+    return voices[0] || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+// Strip markdown to plain speech-safe text.
+function stripMarkdownForSpeech(src) {
+  if (!src) return '';
+  var s = String(src);
+  // Remove code fences and inline code
+  s = s.replace(/```[\s\S]*?```/g, ' ');
+  s = s.replace(/`([^`]+)`/g, '$1');
+  // Headings, blockquote markers
+  s = s.replace(/^#{1,6}\s+/gm, '');
+  s = s.replace(/^>\s+/gm, '');
+  // Bold / italic / strike
+  s = s.replace(/\*\*([^*]+)\*\*/g, '$1');
+  s = s.replace(/\*([^*]+)\*/g, '$1');
+  s = s.replace(/__([^_]+)__/g, '$1');
+  s = s.replace(/_([^_]+)_/g, '$1');
+  s = s.replace(/~~([^~]+)~~/g, '$1');
+  // Links: [text](url) → text
+  s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // List bullets
+  s = s.replace(/^[\s]*[-*+]\s+/gm, '');
+  s = s.replace(/^[\s]*\d+\.\s+/gm, '');
+  // HTML tags
+  s = s.replace(/<[^>]+>/g, ' ');
+  // Collapse whitespace
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+function ReadAloudButton({ text }) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(function() {
+    // Stop speaking if this component unmounts mid-utterance
+    return function() {
+      try {
+        if (isSpeaking && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (e) { /* silent */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleClick() {
+    if (!window.speechSynthesis) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    var clean = stripMarkdownForSpeech(text);
+    if (!clean) return;
+    // Cancel any in-flight utterance from another message
+    window.speechSynthesis.cancel();
+    var utt = new SpeechSynthesisUtterance(clean);
+    var voice = selectEileenVoice();
+    if (voice) utt.voice = voice;
+    utt.lang = (voice && voice.lang) || 'en-GB';
+    utt.pitch = 1.15;
+    utt.rate = 0.92;
+    utt.volume = 0.9;
+    utt.onend = function() { setIsSpeaking(false); };
+    utt.onerror = function() { setIsSpeaking(false); };
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utt);
+    // VTCA-001 Art. 16.1: session-scoped voice disclosure
+    if (!__eileenVoiceDisclosureShown) {
+      __eileenVoiceDisclosureShown = true;
+      try {
+        var toast = document.createElement('div');
+        toast.textContent = 'Eileen uses AI-generated voice technology';
+        toast.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#1E293B;color:#F1F5F9;padding:10px 18px;border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif;z-index:9999;border:1px solid #334155;box-shadow:0 4px 12px rgba(0,0,0,0.3);opacity:1;transition:opacity 0.4s;';
+        document.body.appendChild(toast);
+        setTimeout(function() {
+          toast.style.opacity = '0';
+          setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 400);
+        }, 3500);
+      } catch (e) { /* silent */ }
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="kl-action-btn"
+      title={isSpeaking ? 'Stop reading' : 'Read aloud'}
+      aria-label={isSpeaking ? 'Stop reading' : 'Read response aloud'}
+    >{isSpeaking ? '\u25A0 Stop' : '\u25B6 Read aloud'}</button>
+  );
+}
+
+// ─── UploadCompleteMessage (F-3) ───
+// Replaces the auto-prompt for compliance analysis with two explicit choices:
+// "Run Compliance Check" (routes to the engine) or "Save to Vault only"
+// (archives without analysis). CCI v1.0 Art. I §1.5 Separation Doctrine.
+
+function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis, onVaultOnly, dismissed, msgId }) {
+  if (dismissed) {
+    return (
+      <div style={{
+        marginTop: '8px', padding: '10px 14px',
+        background: 'rgba(16,185,129,0.08)',
+        border: '1px solid rgba(16,185,129,0.25)',
+        borderRadius: '8px', fontSize: '13px', color: '#10B981',
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        {'\u2713 Saved to Document Vault'}
+      </div>
+    );
+  }
+  var sizeLabel = charCount != null ? charCount.toLocaleString() + ' characters extracted' : 'ready';
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.7 }}>
+        I have your contract{filename ? ' \u2014 ' + filename : ''}{' \u2014 '}{sizeLabel}. How would you like to proceed?
+      </div>
+      <div style={{ display: 'flex', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={function() { if (typeof onRunAnalysis === 'function') onRunAnalysis(documentId, msgId); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '10px 18px',
+            background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+            color: '#FFFFFF', border: 'none', borderRadius: '8px',
+            cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif", transition: 'opacity 0.2s',
+          }}
+          onMouseEnter={function(e) { e.currentTarget.style.opacity = '0.9'; }}
+          onMouseLeave={function(e) { e.currentTarget.style.opacity = '1'; }}
+        >{'\u2713 Run Compliance Check'}</button>
+        <button
+          type="button"
+          onClick={function() { if (typeof onVaultOnly === 'function') onVaultOnly(msgId); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '10px 18px',
+            background: 'transparent',
+            color: '#CBD5E1', border: '1px solid #334155', borderRadius: '8px',
+            cursor: 'pointer', fontSize: '13px', fontWeight: 500,
+            fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.2s, color 0.2s',
+          }}
+          onMouseEnter={function(e) { e.currentTarget.style.borderColor = '#64748B'; e.currentTarget.style.color = '#F1F5F9'; }}
+          onMouseLeave={function(e) { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#CBD5E1'; }}
+        >Save to Vault only</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── MessageBubble ───
+
+function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
+  if (msg.type === 'file_upload') {
+    return (
+      <div className="kl-msg kl-msg-user">
+        <div className="kl-msg-content">
+          <FileAttachmentBubble
+            filename={msg.filename}
+            fileSize={msg.fileSize}
+            status={msg.status}
+            charCount={msg.charCount}
+          />
+        </div>
+      </div>
+    );
+  }
+  if (msg.role === 'user') {
+    return (
+      <div className="kl-msg kl-msg-user">
+        <div className="kl-msg-content">
+          <div className="kl-msg-body">{msg.content}</div>
+        </div>
+      </div>
+    );
+  }
+  // F-3: Upload-complete dual-choice card (Run Compliance Check / Save to Vault only)
+  if (msg.isUploadComplete) {
+    return (
+      <div className="kl-msg kl-msg-eileen">
+        <div className="kl-msg-content" style={{ position: 'relative' }}>
+          <EileenSenderLabel />
+          <UploadCompleteMessage
+            filename={msg.filename}
+            charCount={msg.charCount}
+            documentId={msg.documentId}
+            msgId={msg.id}
+            dismissed={!!msg.vaultOnly}
+            onRunAnalysis={onRunAnalysis}
+            onVaultOnly={onVaultOnly}
+          />
+        </div>
+      </div>
+    );
+  }
+  const hasStats = msg.provisionsCount != null || msg.casesCount != null;
+  const renderAnalysisResult = msg.isAnalysisResult && msg.analysisData;
+  const html = renderAnalysisResult ? '' : renderMarkdown(msg.content || '');
+
+  function handleRunClick() {
+    if (typeof onRunAnalysis === 'function') {
+      onRunAnalysis(msg.documentId, msg.id);
+    }
+  }
 
   return (
     <div className="kl-msg kl-msg-eileen">
-      <div className="kl-msg-avatar">
-        <NexusCanvas size={32} active={false} processing={false} />
-      </div>
-      <div className="kl-msg-content">
-        <div className="kl-msg-sender">Eileen</div>
-        <div className="kl-msg-body">{renderText(text)}</div>
-        <div className="kl-msg-footer">
-          {provisionsCount != null && (
-            <span className="kl-msg-stats">
-              {provisionsCount} provision{provisionsCount !== 1 ? 's' : ''}
-              {casesCount != null && <> &middot; {casesCount} case{casesCount !== 1 ? 's' : ''}</>}
+      <div className="kl-msg-content" style={{ position: 'relative' }}>
+        <EileenSenderLabel />
+
+        {/* Analysis loading indicator — shown above the phased text */}
+        {msg.isAnalysisLoading && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              marginTop: '8px', marginBottom: '4px',
+            }}
+          >
+            <div
+              className="kl-analysis-pulse"
+              style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: '#0EA5E9',
+                animation: 'kl-pulse 1.5s ease-in-out infinite',
+                flexShrink: 0,
+              }}
+              aria-hidden="true"
+            ></div>
+            <span style={{ color: '#94A3B8', fontSize: '11px', fontStyle: 'italic' }}>
+              Compliance engine active
             </span>
-          )}
-          <button className="kl-save-btn" onClick={copyToClipboard} title="Copy to clipboard">
-            Save <span aria-hidden="true">&#128221;</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+          </div>
+        )}
 
-/* ── User Message ── */
-function UserMessage({ text }) {
-  return (
-    <div className="kl-msg kl-msg-user">
-      <div className="kl-msg-content">
-        <div className="kl-msg-body">{text}</div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Typing Indicator ── */
-function TypingIndicator() {
-  return (
-    <div className="kl-msg kl-msg-eileen">
-      <div className="kl-msg-avatar">
-        <NexusCanvas size={32} active={true} processing={true} />
-      </div>
-      <div className="kl-msg-content">
-        <div className="kl-typing-dots" role="status" aria-live="polite">
-          <span className="kl-dot" /><span className="kl-dot" /><span className="kl-dot" />
-          <span className="sr-only">Eileen is thinking...</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Crown Jewels ── */
-function CrownJewels() {
-  return (
-    <div className="kl-crown">
-      <div className="kl-crown-title">Crown Jewels</div>
-      <div className="kl-crown-chips">
-        {CROWN_JEWELS.map(s => <span key={s} className="kl-chip">{s}</span>)}
-      </div>
-    </div>
-  );
-}
-
-/* ── Horizon Alert ── */
-function HorizonAlert() {
-  return (
-    <div className="kl-horizon">
-      <span className="kl-horizon-icon" aria-hidden="true">&#9889;</span>
-      <span>
-        <strong>ERA 2025:</strong> Unfair dismissal qualifying period reduces to 6 months from 1 January 2027
-      </span>
-    </div>
-  );
-}
-
-/* ── Footer ── */
-function Footer() {
-  return (
-    <footer className="kl-footer">
-      <div className="kl-footer-legal">
-        AI Lane Limited &middot; Company No. 17035654 &middot; ICO Reg. 00013389720
-      </div>
-      <div className="kl-footer-links">
-        <a href="/terms/">Terms</a>
-        <span>&middot;</span>
-        <a href="/privacy/">Privacy</a>
-      </div>
-    </footer>
-  );
-}
-
-/* ── Header ── */
-function Header({ tier, pageState, onNewChat }) {
-  return (
-    <header className="kl-header">
-      <div className="kl-header-left">
-        <TierBadge tier={tier} />
-      </div>
-      <div className="kl-header-center">
-        {pageState === 'conversation' && <span className="kl-header-title">Knowledge Library</span>}
-      </div>
-      <div className="kl-header-right">
-        {pageState === 'conversation' ? (
-          <button className="kl-new-chat-btn" onClick={onNewChat} aria-label="New conversation">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            New chat
-          </button>
+        {/* Body: either the structured analysis result, or markdown text */}
+        {renderAnalysisResult ? (
+          <div className="kl-msg-body" style={{ marginTop: '8px' }}>
+            <AnalysisResultMessage data={msg.analysisData} />
+          </div>
         ) : (
-          <img src="/assets/ailane-logo.svg" alt="Ailane" className="kl-logo" onError={(e) => { e.target.style.display = 'none'; }} />
+          <div
+            className="eileen-response-content"
+            style={{ color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.7, marginTop: '8px' }}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        )}
+
+        {/* Analysis trigger button — only when message is flagged analysisReady */}
+        {msg.analysisReady && msg.documentId && !msg.analysisTriggered && (
+          <button
+            type="button"
+            onClick={handleRunClick}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              marginTop: '12px', padding: '10px 18px',
+              background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+              color: '#FFFFFF', border: 'none', borderRadius: '8px',
+              cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+          >
+            {'\u2713 Run Contract Compliance Check'}
+          </button>
+        )}
+
+        {msg.analysisReady && msg.analysisTriggered && (
+          <div
+            style={{
+              marginTop: '12px', padding: '8px 14px',
+              background: 'rgba(14,165,233,0.08)',
+              borderRadius: '8px', fontSize: '12px', color: '#64748B',
+              display: 'inline-block',
+            }}
+          >
+            {'\u2713 Contract Compliance Check initiated'}
+          </div>
+        )}
+
+        {/* AMD-044 §3.3 + §3.4: Eileen response action bar (Copy | Save | Download) */}
+        {msg.role === 'assistant' && !msg.isAnalysisResult && !msg.isAnalysisLoading && !msg.isLocal && (
+          <div style={{
+            display: 'flex',
+            gap: '2px',
+            marginTop: '10px',
+            paddingTop: '8px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            {/* F-5: Read aloud — Web Speech API with Scottish female voice cascade */}
+            <ReadAloudButton text={msg.content || ''} />
+
+            {/* Copy */}
+            <button
+              type="button"
+              onClick={function(e) {
+                var btn = e.currentTarget;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(msg.content || '').then(function() {
+                    var orig = btn.textContent;
+                    btn.textContent = '\u2713 Copied';
+                    setTimeout(function() { btn.textContent = orig; }, 1500);
+                  });
+                }
+              }}
+              className="kl-action-btn"
+              title="Copy to clipboard"
+            >Copy</button>
+
+            {/* Save — AMD-044 §3.3: creates eileen_response note with source_attribution */}
+            <button
+              type="button"
+              onClick={function(e) {
+                var btn = e.currentTarget;
+                btn.disabled = true;
+                btn.textContent = 'Saving\u2026';
+                var token = window.__klToken;
+                var userId = window.__klUserId;
+                if (!token || !userId) { btn.textContent = 'Not signed in'; btn.disabled = false; return; }
+                var noteTitle = (msg.content || '').split('\n')[0].slice(0, 50) || 'Eileen response';
+                var now = new Date();
+                var dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                var timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                var attribution = '[Eileen \u2014 ' + dateStr + ' ' + timeStr + '] ' + noteTitle;
+                fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation',
+                  },
+                  body: JSON.stringify({
+                    user_id: userId,
+                    project_id: null,
+                    title: noteTitle,
+                    content_plain: msg.content || '',
+                    content_json: {},
+                    note_type: 'eileen_response',
+                    source_attribution: attribution,
+                  }),
+                }).then(function(resp) {
+                  if (resp.ok) {
+                    btn.textContent = '\u2713 Saved';
+                    btn.style.color = '#10B981';
+                    // Notify NotesPanel to refresh list
+                    resp.json().then(function(data) {
+                      if (Array.isArray(data) && data[0] && typeof window.__klNotesRefresh === 'function') {
+                        window.__klNotesRefresh(data[0]);
+                      }
+                    }).catch(function() {});
+                    // Toast — brief green notification
+                    var toast = document.createElement('div');
+                    toast.textContent = 'Saved to Saved Items';
+                    toast.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#10B981;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;opacity:1;transition:opacity 0.3s;';
+                    document.body.appendChild(toast);
+                    setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { document.body.removeChild(toast); }, 300); }, 2000);
+                  } else {
+                    btn.textContent = 'Failed';
+                    btn.style.color = '#EF4444';
+                  }
+                  setTimeout(function() { btn.textContent = 'Save'; btn.style.color = ''; btn.disabled = false; }, 2000);
+                }).catch(function() {
+                  btn.textContent = 'Failed';
+                  setTimeout(function() { btn.textContent = 'Save'; btn.style.color = ''; btn.disabled = false; }, 2000);
+                });
+              }}
+              className="kl-action-btn"
+              title="Save this response to Saved Items"
+            >Save</button>
+
+            {/* Download — AMD-044 §3.4: includes mandatory disclaimer */}
+            <button
+              type="button"
+              onClick={function() {
+                var text = msg.content || '';
+                var safeTitle = text.split('\n')[0].slice(0, 40).replace(/[^a-zA-Z0-9 ]/g, '') || 'Eileen-response';
+                var disclaimer = '\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited \u00B7 Company No. 17035654 \u00B7 ICO Reg. 00013389720 \u00B7 ailane.ai/terms/';
+                var blob = new Blob([text + disclaimer], { type: 'text/plain;charset=utf-8' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = safeTitle.replace(/\s+/g, '-') + '.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+              className="kl-action-btn"
+              title="Download this response as a text file"
+            >Download</button>
+          </div>
+        )}
+
+        {hasStats && (
+          <div className="kl-msg-footer">
+            <div className="kl-msg-stats">
+              Based on {msg.provisionsCount || 0} provision{msg.provisionsCount === 1 ? '' : 's'} and {msg.casesCount || 0} case{msg.casesCount === 1 ? '' : 's'}
+            </div>
+          </div>
         )}
       </div>
-    </header>
-  );
-}
-
-/* ── Welcome State ── */
-function WelcomeState({ inputValue, onInputChange, onSubmit, onTopicClick }) {
-  return (
-    <div className="kl-welcome">
-      <div className="kl-welcome-nexus">
-        <NexusCanvas size={200} active={false} processing={false} />
-      </div>
-      <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
-      <div className="kl-welcome-input">
-        <ChatInput
-          value={inputValue}
-          onChange={onInputChange}
-          onSubmit={onSubmit}
-          disabled={false}
-          placeholder="Ask Eileen anything about employment law\u2026"
-        />
-      </div>
-      <div className="kl-topics-grid">
-        {TOPIC_CARDS.map(card => (
-          <TopicCard key={card.label} card={card} onClick={onTopicClick} />
-        ))}
-      </div>
-      <CrownJewels />
-      <HorizonAlert />
     </div>
   );
 }
 
-/* ── Conversation State ── */
-function ConversationState({ messages, isLoading, inputValue, onInputChange, onSubmit }) {
-  const listRef = useRef(null);
+// ─── MessageInput ───
+
+function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion }) {
+  const [value, setValue] = useState('');
+  const fileInputRef = useRef(null);
+
+  function handleChange(e) {
+    var v = e.target.value;
+    setValue(v);
+    if (typeof onInputChange === 'function') onInputChange(v.trim().length);
+  }
+
+  function submit() {
+    const text = value.trim();
+    if (!text || disabled) return;
+    onSend(text);
+    setValue('');
+    if (typeof onInputChange === 'function') onInputChange(0);
+  }
+
+  function onKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  }
+
+  function onPaperclipClick() {
+    if (fileInputRef.current) fileInputRef.current.click();
+  }
+
+  return (
+    <div className="kl-input-bar">
+      {onFileSelect && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".pdf,.docx,.doc,.txt"
+          style={{ display: 'none' }}
+          onChange={onFileSelect}
+        />
+      )}
+      {onFileSelect && (
+        <button
+          type="button"
+          onClick={onPaperclipClick}
+          title="Upload a contract for compliance analysis"
+          aria-label="Upload a contract for compliance analysis"
+          style={{
+            background: 'rgba(14,165,233,0.08)',
+            border: '1px solid rgba(14,165,233,0.2)',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            padding: '6px 10px',
+            color: '#0EA5E9',
+            fontSize: '13px',
+            fontWeight: 500,
+            fontFamily: "'DM Sans', sans-serif",
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            animation: pulseUpload ? 'kl-pulse 1.5s ease-in-out 3' : 'none',
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Upload contract</span>
+        </button>
+      )}
+      <input
+        className="kl-input"
+        type="text"
+        placeholder="Ask Eileen anything about UK employment law..."
+        aria-label="Message Eileen"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={onKey}
+        disabled={disabled}
+      />
+      <NexusSendButton
+        size={38}
+        nexusState={nexusState || 'dormant'}
+        disabled={disabled || !value.trim()}
+        onClick={submit}
+        prefersReducedMotion={prefersReducedMotion}
+        tier={tier || window.__klTier || 'kl'}
+      />
+    </div>
+  );
+}
+
+// ─── ConversationArea ───
+
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
+  const scrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
-  return (
-    <div className="kl-conversation">
-      <AdvisoryBanner />
-      <div className="kl-messages" ref={listRef}>
-        {messages.map((msg, i) =>
-          msg.role === 'eileen' ? (
-            <EileenMessage key={i} text={msg.text} provisionsCount={msg.provisions_count} casesCount={msg.cases_count} />
-          ) : (
-            <UserMessage key={i} text={msg.text} />
-          )
-        )}
-        {isLoading && <TypingIndicator />}
+  const empty = messages.length === 0;
+
+  function onDragOver(e) {
+    if (!onFileSelect) return;
+    e.preventDefault();
+    setIsDragging(true);
+  }
+  function onDragLeave(e) {
+    if (!onFileSelect) return;
+    e.preventDefault();
+    setIsDragging(false);
+  }
+  function onDrop(e) {
+    if (!onFileSelect) return;
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length > 0) {
+      onFileSelect({ target: { files: files } });
+    }
+  }
+
+  const dragOverlay = isDragging && (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 50,
+        background: 'rgba(14,165,233,0.08)',
+        border: '2px dashed #0EA5E9',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <div style={{ color: '#0EA5E9', fontSize: '16px', fontWeight: 500 }}>
+        Drop your contract here
       </div>
-      <div className="kl-conversation-input">
-        <ChatInput
-          value={inputValue}
-          onChange={onInputChange}
-          onSubmit={onSubmit}
-          disabled={isLoading}
-          placeholder="Type your reply\u2026"
-        />
+    </div>
+  );
+
+  return (
+    <div className="kl-main">
+      {empty ? (
+        <div
+          className="kl-welcome"
+          style={{ position: 'relative' }}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
+          {dragOverlay}
+          <div className="kl-welcome-nexus">
+            <NexusCanvas tier={tier} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
+          </div>
+          <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
+          <div className="kl-eileen-subtitle" style={{
+            fontSize: '12px',
+            color: '#64748B',
+            fontFamily: "'DM Mono', monospace",
+            letterSpacing: '0.06em',
+            marginBottom: '24px',
+            textAlign: 'center',
+          }}>
+            Eileen &middot; UK Employment Law Intelligence
+          </div>
+          <div className="kl-welcome-input">
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
+          </div>
+          <HorizonAlert />
+          {/* AMD-045 §3.2: Domain navigation cards replace quick-start topic cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: '16px',
+            width: '100%',
+            maxWidth: '820px',
+          }}>
+            {DOMAINS.map(function(domain) {
+              var navToDomain = function() { window.location.hash = '/domain/' + domain.slug; };
+              return (
+                <div
+                  key={domain.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={'Explore ' + domain.name}
+                  onClick={navToDomain}
+                  onKeyDown={function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navToDomain(); } }}
+                  style={{
+                    background: '#111827',
+                    border: '1px solid #1E293B',
+                    borderLeft: '3px solid #1E293B',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.2s, border-left-color 0.2s',
+                  }}
+                  onMouseEnter={function(e) { e.currentTarget.style.borderLeftColor = '#0EA5E9'; if (typeof onDomainHover === 'function') onDomainHover(domain.slug); }}
+                  onMouseLeave={function(e) { e.currentTarget.style.borderLeftColor = '#1E293B'; if (typeof onDomainLeave === 'function') onDomainLeave(); }}
+                >
+                  <h3 style={{
+                    color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '16px', margin: '0 0 8px', fontWeight: 600,
+                  }}>{domain.name}</h3>
+                  <p style={{
+                    color: '#94A3B8', fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px', margin: '0 0 12px', lineHeight: 1.5,
+                  }}>{domain.orientation.substring(0, 100)}...</p>
+                  <span style={{
+                    color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif",
+                  }}>Explore &rarr;</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Sprint H §3.2: BookShelf replaces the Sprint G accent-line button.
+              Renders up to 15 instruments as leather-textured book covers. */}
+          <BookShelf onOpenBook={function(book) {
+            if (typeof window.__klOpenPanel === 'function') {
+              window.__klOpenPanel('research');
+              window.__klPendingInstrument = book.id;
+              window.dispatchEvent(new CustomEvent('kl-open-instrument', { detail: { id: book.id } }));
+            }
+          }} />
+          {/* F-1: FloatingNexusAdvisor is rendered at App level so it remains
+              visible even when Welcome is not the active view. See App render. */}
+        </div>
+      ) : (
+        <div
+          className="kl-conversation"
+          style={{ position: 'relative' }}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
+          {dragOverlay}
+          {/* H-5: Conversation state — simple Nexus state indicator, no panel */}
+          <div style={{
+            position: 'absolute', bottom: window.innerWidth <= 768 ? '100px' : '80px', right: '24px', zIndex: 30,
+            width: '52px', height: '52px', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 12px rgba(14,165,233,0.2)', pointerEvents: 'none',
+          }}>
+            <NexusCanvas size={52} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
+          </div>
+          <div className="kl-messages" ref={scrollRef} role="log" aria-live="polite" onClick={function(e) {
+            var target = e.target;
+            if (target && target.classList && target.classList.contains('kl-ref-link')) {
+              var instId = target.getAttribute('data-inst');
+              if (instId && typeof window.__klOpenPanel === 'function') {
+                window.__klOpenPanel('research');
+                window.__klPendingInstrument = instId;
+                window.dispatchEvent(new CustomEvent('kl-open-instrument', { detail: { id: instId } }));
+              }
+            }
+          }}>
+            {messages.map((m, i) => {
+              if (m.role === 'system_ui' && m.type === 'contract_upload_prompt') {
+                return <ContractUploadPrompt key={i} onUpload={function() {
+                  var fileInput = document.querySelector('.kl-conversation-input input[type="file"]') ||
+                                  document.querySelector('.kl-welcome-input input[type="file"]');
+                  if (fileInput) fileInput.click();
+                }} />;
+              }
+              if (m.isError) {
+                return <EileenErrorMessage key={i} message={m.errorMessage || m.content} retryAction={m.retryAction} retryLabel={m.retryLabel} />;
+              }
+              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} onVaultOnly={onVaultOnly} />;
+            })}
+            {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
+            {isLoading && <TypingIndicator />}
+          </div>
+          <div className="kl-conversation-input">
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CrownJewels ───
+
+function CrownJewels({ onQuery, disabled }) {
+  var _exp = useState({});
+  var expanded = _exp[0];
+  var setExpanded = _exp[1];
+
+  function toggle(name) {
+    setExpanded(function(prev) {
+      var next = {};
+      for (var k in prev) next[k] = prev[k];
+      next[name] = !prev[name];
+      return next;
+    });
+  }
+
+  return React.createElement('div', { className: 'kl-crown' },
+    React.createElement('div', { className: 'kl-crown-title' }, 'Crown Jewels'),
+    React.createElement('div', { className: 'kl-crown-list' },
+      CROWN_JEWELS.map(function(jewel) {
+        var isOpen = !!expanded[jewel.name];
+        return React.createElement('div', { key: jewel.name, style: { marginBottom: '4px' } },
+          React.createElement('div', {
+            onClick: function() { toggle(jewel.name); },
+            style: {
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '7px 10px', borderRadius: isOpen ? '8px 8px 0 0' : '8px',
+              background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)',
+              cursor: 'pointer', transition: 'background 0.15s',
+            },
+          },
+            React.createElement('span', {
+              style: {
+                width: '5px', height: '5px', borderRadius: '50%', flexShrink: 0,
+                background: jewel.inForce ? '#10B981' : '#F59E0B',
+              },
+            }),
+            React.createElement('span', {
+              style: { flex: 1, fontSize: '11px', color: '#CBD5E1', lineHeight: 1.3, fontFamily: "'DM Sans', sans-serif" },
+            }, jewel.name),
+            React.createElement('span', {
+              style: { fontSize: '9px', color: '#64748B', flexShrink: 0, transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
+              'aria-hidden': 'true',
+            }, '\u25BC')
+          ),
+          isOpen && React.createElement('div', {
+            style: {
+              padding: '10px', background: 'rgba(14,165,233,0.02)',
+              border: '1px solid rgba(14,165,233,0.12)', borderTop: 'none',
+              borderRadius: '0 0 8px 8px',
+            },
+          },
+            React.createElement('div', {
+              style: { fontSize: '12px', color: '#0EA5E9', fontWeight: 500, marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" },
+            }, jewel.warmIntro),
+            React.createElement('div', {
+              style: { fontSize: '11px', color: '#94A3B8', lineHeight: 1.5, marginBottom: '10px' },
+            }, jewel.topics),
+            !jewel.inForce && React.createElement('div', {
+              style: {
+                fontSize: '10px', color: '#F59E0B', padding: '4px 8px', borderRadius: '4px',
+                background: 'rgba(245,158,11,0.06)', marginBottom: '8px', display: 'inline-block',
+              },
+            }, 'Commenced 6 April 2026'),
+            React.createElement('button', {
+              type: 'button',
+              disabled: disabled,
+              onClick: function(e) { e.stopPropagation(); onQuery(jewel.keyQuestion); },
+              style: {
+                display: 'block', width: '100%', padding: '7px 10px', borderRadius: '6px',
+                background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+                color: '#0EA5E9', fontSize: '11px', fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer',
+                fontFamily: "'DM Sans', sans-serif", textAlign: 'left', opacity: disabled ? 0.5 : 1,
+                transition: 'background 0.15s',
+              },
+            }, '\u2192 ' + jewel.keyQuestion)
+          )
+        );
+      })
+    )
+  );
+}
+
+// ─── Sidebar ───
+
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion }) {
+  var _historyOpen = useState(false);
+  var historyOpen = _historyOpen[0];
+  var setHistoryOpen = _historyOpen[1];
+
+  return React.createElement('nav', { className: 'kl-sidebar' + (open ? '' : ' collapsed'), role: 'navigation', 'aria-label': 'Conversation history' },
+    // §5 — Sidebar Nexus indicator (20px, shows Eileen's current state)
+    React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' },
+    },
+      React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || 'dormant', tier: 'kl', prefersReducedMotion: prefersReducedMotion }),
+      React.createElement('span', {
+        style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' },
+      }, 'Eileen')
+    ),
+    React.createElement('div', { className: 'kl-sidebar-section' },
+      React.createElement('button', { className: 'kl-new-chat-btn', onClick: onNewChat },
+        React.createElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.25', strokeLinecap: 'round', strokeLinejoin: 'round' },
+          React.createElement('line', { x1: '12', y1: '5', x2: '12', y2: '19' }),
+          React.createElement('line', { x1: '5', y1: '12', x2: '19', y2: '12' })
+        ),
+        React.createElement('span', null, 'New Conversation')
+      )
+    ),
+
+    React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
+      React.createElement(CrownJewels, { onQuery: onCrownQuery })
+    ),
+
+    React.createElement('div', { style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' } },
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { setHistoryOpen(!historyOpen); },
+        style: {
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 12px', background: 'transparent', border: 'none',
+          color: '#64748B', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+          fontFamily: "'DM Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase',
+        },
+      },
+        React.createElement('span', null, 'History (' + sessionHistory.length + ')'),
+        React.createElement('span', {
+          style: { fontSize: '9px', transition: 'transform 0.15s', transform: historyOpen ? 'rotate(180deg)' : 'rotate(0)' },
+        }, '\u25BC')
+      ),
+
+      historyOpen && React.createElement('div', {
+        style: { maxHeight: '240px', overflowY: 'auto', padding: '0 8px 8px' },
+      },
+        sessionHistory.length === 0
+          ? React.createElement('div', { className: 'kl-sidebar-empty' }, 'No prior conversations')
+          : groupSessionsByTime(sessionHistory).map(function(group) {
+              return React.createElement(React.Fragment, { key: group.label },
+                React.createElement('div', {
+                  style: {
+                    fontSize: '9px', fontWeight: 500, color: '#475569',
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    padding: '8px 10px 3px', fontFamily: "'DM Mono', monospace",
+                  },
+                }, group.label),
+                group.items.map(function(s) {
+                  return React.createElement('button', {
+                    key: s.sessionId,
+                    className: 'kl-history-item' + (s.sessionId === activeSessionId ? ' active' : ''),
+                    onClick: function() { onSelectSession(s.sessionId); },
+                  },
+                    React.createElement('div', { className: 'kl-history-title' }, truncate(s.title, 40)),
+                    React.createElement('div', { className: 'kl-history-time' }, formatRelativeTime(s.lastActivity))
+                  );
+                })
+              );
+            })
+      )
+    )
+  );
+}
+
+// ─── SessionCountdown (KLAC-001-AM-005) ───
+// Per-session timer rendered inside TopBar. Reports expiry upward via onExpired
+// so the App can hoist the modal to the root of the render tree.
+
+function SessionCountdown({ expiresAt, onExpired }) {
+  const [remaining, setRemaining] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    firedRef.current = false;
+    if (!expiresAt) return undefined;
+    const expiry = new Date(expiresAt).getTime();
+    if (isNaN(expiry)) return undefined;
+
+    function tick() {
+      const diff = expiry - Date.now();
+      if (diff <= 0) {
+        setRemaining('Expired');
+        setIsUrgent(true);
+        if (!firedRef.current && typeof onExpired === 'function') {
+          firedRef.current = true;
+          onExpired();
+        }
+        return false;
+      }
+      const totalSecs = Math.floor(diff / 1000);
+      const hours = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      const label = hours > 0
+        ? hours + 'h ' + String(mins).padStart(2, '0') + 'm'
+        : mins + 'm ' + String(secs).padStart(2, '0') + 's';
+      setRemaining(label);
+      setIsUrgent(diff < 15 * 60 * 1000);
+      return true;
+    }
+
+    if (!tick()) return undefined;
+    const interval = setInterval(() => { if (!tick()) clearInterval(interval); }, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt, onExpired]);
+
+  if (!expiresAt) return null;
+  return (
+    <span className={'kl-session-countdown' + (isUrgent ? ' urgent' : '')} title="Time remaining in this session">
+      <span aria-hidden="true">⏱</span>
+      <span className="kl-session-countdown-time">{remaining}</span>
+    </span>
+  );
+}
+
+// ─── ExpiredModal (KLAC-001-AM-005) ───
+
+function ExpiredModal() {
+  return (
+    <div className="kl-expired-modal" role="dialog" aria-modal="true" aria-labelledby="kl-expired-title">
+      <div className="kl-expired-backdrop" aria-hidden="true"></div>
+      <div className="kl-expired-content">
+        <h2 id="kl-expired-title" className="kl-expired-title">Session expired</h2>
+        <p className="kl-expired-body">
+          Your Knowledge Library session has ended. Purchase a new session to continue your research.
+        </p>
+        <a className="kl-expired-cta" href="/knowledge-library-preview/">
+          Get a new session
+        </a>
       </div>
     </div>
   );
 }
 
-/* ── KLApp (Root) ── */
-function KLApp() {
-  const [pageState, setPageState] = useState('welcome');
-  const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const [tier, setTier] = useState(window.__ailaneUser?.tier || 'loading');
-  const sessionIdRef = useRef(crypto.randomUUID());
-  const user = window.__ailaneUser || {};
+// ─── MobileSidebarBackdrop ───
+// Rendered whenever the sidebar is open. Hidden on desktop via CSS; visible on
+// mobile to give a click-outside-to-close affordance for the overlay sidebar.
 
-  useEffect(() => {
-    function onTier(e) { setTier(e.detail.tier); }
-    window.addEventListener('ailane-tier-loaded', onTier);
-    return () => window.removeEventListener('ailane-tier-loaded', onTier);
+function MobileSidebarBackdrop({ onClick }) {
+  return <div className="kl-sidebar-backdrop" onClick={onClick} aria-hidden="true"></div>;
+}
+
+// ─── TopBar ───
+
+function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired }) {
+  let badgeLabel = 'KNOWLEDGE LIBRARY';
+  let badgeClass = 'kl-badge-per-session';
+  if (accessType === 'subscription') {
+    if (tier === 'operational_readiness') { badgeLabel = 'OPERATIONAL'; badgeClass = 'kl-badge-operational'; }
+    else if (tier === 'governance') { badgeLabel = 'GOVERNANCE'; badgeClass = 'kl-badge-governance'; }
+    else if (tier === 'institutional') { badgeLabel = 'INSTITUTIONAL'; badgeClass = 'kl-badge-institutional'; }
+  } else if (accessType === 'per_session') {
+    badgeLabel = 'PER-SESSION';
+  }
+  return (
+    <div className="kl-topbar">
+      <button className="kl-topbar-toggle" onClick={onToggleSidebar} aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a
+        className="kl-topbar-title"
+        href="/"
+        style={{
+          color: '#22D3EE',
+          textDecoration: 'none',
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 700,
+          fontSize: '16px',
+          cursor: 'pointer',
+        }}
+      >AILANE Knowledge Library</a>
+      <div className="kl-topbar-right">
+        {accessType === 'per_session' && sessionExpiresAt && (
+          <SessionCountdown expiresAt={sessionExpiresAt} onExpired={onSessionExpired} />
+        )}
+        <span className={'kl-tier-badge ' + badgeClass}>{badgeLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── PanelRail (KLUI-001 §2.1) ───
+
+// Dead panel icons (eileen, documents, planner) removed per KLUX-001 Art. 9 §9.1.
+// Only functional panels appear in the rail. PlaceholderPanel and its descriptions
+// are preserved below as a defensive fallback in PanelDrawer but are now unreachable.
+const PANEL_DEFS = [
+  // Primary group (AMD-044 §4.2)
+  { id: 'vault',     label: 'Document Vault',   minTier: 'operational_readiness', group: 'primary' },
+  { id: 'notes',     label: 'Saved Items',      minTier: null, group: 'primary' },
+  { id: 'research',  label: 'Research',         minTier: null, group: 'primary' },
+  // Secondary group — clipboard slot removed per AMD-044 §4
+  { id: 'calendar',  label: 'Calendar',         minTier: 'operational_readiness', group: 'secondary' },
+];
+
+// SVG icons for panel rail — 20px stroke-based, matching TopBar visual language
+function PanelIcon({ id }) {
+  var iconProps = { width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '1.75', strokeLinecap: 'round', strokeLinejoin: 'round' };
+
+  if (id === 'vault') {
+    return React.createElement('svg', iconProps,
+      React.createElement('path', { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' }),
+      React.createElement('polyline', { points: '14 2 14 8 20 8' }),
+      React.createElement('line', { x1: '16', y1: '13', x2: '8', y2: '13' }),
+      React.createElement('line', { x1: '16', y1: '17', x2: '8', y2: '17' })
+    );
+  }
+  if (id === 'notes') {
+    return React.createElement('svg', iconProps,
+      React.createElement('path', { d: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' }),
+      React.createElement('path', { d: 'M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' })
+    );
+  }
+  if (id === 'research') {
+    return React.createElement('svg', iconProps,
+      React.createElement('circle', { cx: '11', cy: '11', r: '8' }),
+      React.createElement('line', { x1: '21', y1: '21', x2: '16.65', y2: '16.65' })
+    );
+  }
+  if (id === 'calendar') {
+    return React.createElement('svg', iconProps,
+      React.createElement('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }),
+      React.createElement('line', { x1: '16', y1: '2', x2: '16', y2: '6' }),
+      React.createElement('line', { x1: '8', y1: '2', x2: '8', y2: '6' }),
+      React.createElement('line', { x1: '3', y1: '10', x2: '21', y2: '10' })
+    );
+  }
+  // clipboard icon removed — AMD-044 §4
+  // Fallback
+  return React.createElement('span', { style: { fontSize: '18px' } }, '?');
+}
+
+const TIER_RANK = {
+  per_session: 0,
+  kl_quick_session: 0,
+  kl_day_pass: 0,
+  kl_research_week: 0,
+  operational_readiness: 1,
+  governance: 2,
+  institutional: 3,
+};
+
+function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
+  var userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : (TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0);
+  var primaryPanels = PANEL_DEFS.filter(function(p) { return p.group === 'primary'; });
+  var secondaryPanels = PANEL_DEFS.filter(function(p) { return p.group === 'secondary'; });
+
+  function renderButton(p) {
+    var minRank = p.minTier ? (TIER_RANK[p.minTier] != null ? TIER_RANK[p.minTier] : 99) : 0;
+    var locked = userRank < minRank;
+    var isActive = activePanel === p.id;
+    return React.createElement('button', {
+      key: p.id,
+      type: 'button',
+      className: 'kl-panel-rail-btn' + (isActive ? ' active' : '') + (locked ? ' locked' : ''),
+      title: locked ? p.label + ' (upgrade required)' : p.label,
+      'aria-label': p.label,
+      'aria-pressed': isActive,
+      disabled: locked,
+      onClick: function() { if (!locked) onSelectPanel(isActive ? null : p.id); },
+    },
+      React.createElement(PanelIcon, { id: p.id })
+    );
+  }
+
+  return React.createElement('div', { className: 'kl-panelrail', role: 'toolbar', 'aria-label': 'Workspace panels' },
+    primaryPanels.map(renderButton),
+    React.createElement('div', {
+      className: 'kl-panel-rail-divider',
+      style: {
+        width: '24px',
+        height: '1px',
+        background: 'rgba(255,255,255,0.08)',
+        margin: '4px 0',
+      },
+      'aria-hidden': 'true',
+    }),
+    secondaryPanels.map(renderButton)
+  );
+}
+
+// ─── NotesPanel (AMD-044 multi-note list/editor — reads/writes kl_workspace_notes) ───
+// Two-pane layout: note list on left, editor on right.
+// Supports note_type filter chips (All / Notes / Clips / Eileen).
+// Download as Markdown / Text with mandatory advisory disclaimer.
+
+var NOTES_DISCLAIMER = '\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited \u00B7 Company No. 17035654 \u00B7 ICO Reg. 00013389720 \u00B7 ailane.ai/terms/';
+
+function noteTypeIcon(noteType) {
+  if (noteType === 'clip') return '\uD83D\uDCCC';
+  if (noteType === 'eileen_response') return '\uD83D\uDCAC';
+  return '\uD83D\uDCDD';
+}
+
+function relativeTime(dateStr) {
+  if (!dateStr) return '';
+  var diff = Date.now() - new Date(dateStr).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function downloadNoteFile(note, format) {
+  var safeTitle = (note.title || 'note').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/ +/g, '-');
+  var content, mimeType, ext;
+  if (format === 'md') {
+    content = '# ' + (note.title || 'Untitled Note') + '\n\n' + (note.content_plain || '') + NOTES_DISCLAIMER;
+    mimeType = 'text/markdown';
+    ext = '.md';
+  } else {
+    content = (note.title || 'Untitled Note') + '\n\n' + (note.content_plain || '') + NOTES_DISCLAIMER;
+    mimeType = 'text/plain;charset=utf-8';
+    ext = '.txt';
+  }
+  var blob = new Blob([content], { type: mimeType });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = safeTitle + ext;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function NotesPanel() {
+  var _notes = useState([]);
+  var notes = _notes[0];
+  var setNotes = _notes[1];
+  var _active = useState(null);
+  var activeId = _active[0];
+  var setActiveId = _active[1];
+  var _activeNote = useState(null);
+  var activeNote = _activeNote[0];
+  var setActiveNote = _activeNote[1];
+  var _title = useState('Untitled Note');
+  var title = _title[0];
+  var setTitle = _title[1];
+  var _body = useState('');
+  var body = _body[0];
+  var setBody = _body[1];
+  var _status = useState('loading');
+  var status = _status[0];
+  var setStatus = _status[1];
+  var _filter = useState('all');
+  var filter = _filter[0];
+  var setFilter = _filter[1];
+  var _editable = useState(false);
+  var editable = _editable[0];
+  var setEditable = _editable[1];
+  var _confirmDelete = useState(null);
+  var confirmDelete = _confirmDelete[0];
+  var setConfirmDelete = _confirmDelete[1];
+  var _downloadOpen = useState(false);
+  var downloadOpen = _downloadOpen[0];
+  var setDownloadOpen = _downloadOpen[1];
+  var saveTimer = useRef(null);
+
+  useEffect(function() {
+    var cancelled = false;
+    async function load() {
+      if (!window.__klToken || !window.__klUserId) { setStatus('saved'); return; }
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_workspace_notes?user_id=eq.' + window.__klUserId +
+            '&order=pinned.desc,updated_at.desc' +
+            '&select=id,title,note_type,source_attribution,pinned,updated_at,content_plain',
+          { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        var data = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(data)) { setNotes(data); }
+        setStatus('saved');
+      } catch (e) {
+        console.error('Notes load failed:', e);
+        if (!cancelled) setStatus('error');
+      }
+    }
+    load();
+    return function() { cancelled = true; if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, []);
 
-  const sendToEileen = useCallback(async (message) => {
-    const userMsg = { role: 'user', text: message };
-    setMessages(prev => [...prev, userMsg]);
-    setPageState('conversation');
-    setInputValue('');
-    setIsLoading(true);
+  // Expose a function so MessageBubble can add notes and refresh the list
+  useEffect(function() {
+    window.__klNotesRefresh = function(newNote) {
+      if (newNote) {
+        setNotes(function(prev) { return [newNote].concat(prev); });
+      }
+    };
+    return function() { delete window.__klNotesRefresh; };
+  }, []);
 
+  function selectNote(note) {
+    // Fetch full content for selected note
+    setActiveId(note.id);
+    setActiveNote(note);
+    setTitle(note.title || 'Untitled Note');
+    setBody(note.content_plain || '');
+    setStatus('saved');
+    setEditable(note.note_type === 'note' || !note.note_type);
+    setDownloadOpen(false);
+    // Fetch full content (content_json etc) for the selected note
+    if (window.__klToken) {
+      fetch(
+        SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + note.id + '&select=*',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      ).then(function(r) { return r.json(); }).then(function(d) {
+        if (Array.isArray(d) && d[0]) {
+          setBody(d[0].content_plain || '');
+          setTitle(d[0].title || 'Untitled Note');
+          setActiveNote(d[0]);
+        }
+      }).catch(function() {});
+    }
+  }
+
+  function newNote() {
+    if (!window.__klToken || !window.__klUserId) return;
+    var dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    var newTitle = 'Untitled Note \u2014 ' + dateStr;
+    fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify({ user_id: window.__klUserId, project_id: null, title: newTitle, content_plain: '', note_type: 'note' }),
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (Array.isArray(d) && d[0]) {
+        setNotes(function(prev) { return [d[0]].concat(prev); });
+        selectNote(d[0]);
+        setEditable(true);
+      }
+    }).catch(function(e) { console.error('Create note failed:', e); });
+  }
+
+  async function performSave(nextTitle, nextBody, currentId) {
+    if (!window.__klToken || !window.__klUserId || !currentId) return;
+    setStatus('saving');
+    var now = new Date().toISOString();
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/kl_ai_assistant`,
+      var resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + currentId,
         {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-            'apikey': SUPABASE_ANON_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message,
-            session_id: sessionIdRef.current,
-            page_context: 'knowledge-library',
-          }),
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ title: nextTitle || 'Untitled Note', content_plain: nextBody, updated_at: now }),
         }
       );
+      if (!resp.ok) throw new Error('PATCH ' + resp.status);
+      setNotes(function(prev) { return prev.map(function(n) { return n.id === currentId ? Object.assign({}, n, { title: nextTitle, content_plain: nextBody, updated_at: now }) : n; }); });
+      setStatus('saved');
+    } catch (e) {
+      console.error('Notes save failed:', e);
+      setStatus('error');
+    }
+  }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+  function scheduleSave(nextTitle, nextBody) {
+    setStatus('dirty');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(function() { performSave(nextTitle, nextBody, activeId); }, 3000);
+  }
+
+  async function deleteNote(noteId) {
+    if (!window.__klToken) return;
+    try {
+      await fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + noteId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY },
+      });
+      setNotes(function(prev) { return prev.filter(function(n) { return n.id !== noteId; }); });
+      if (activeId === noteId) { setActiveId(null); setActiveNote(null); }
+      setConfirmDelete(null);
+    } catch (e) { console.error('Delete failed:', e); }
+  }
+
+  var filteredNotes = notes.filter(function(n) {
+    if (filter === 'all') return true;
+    if (filter === 'note') return n.note_type === 'note' || !n.note_type;
+    if (filter === 'clip') return n.note_type === 'clip';
+    if (filter === 'eileen') return n.note_type === 'eileen_response';
+    return true;
+  });
+
+  var statusLabel = status === 'loading' ? 'Loading\u2026' : status === 'dirty' ? 'Unsaved changes' : status === 'saving' ? 'Saving\u2026' : status === 'error' ? 'Couldn\u2019t save \u2014 try again in a moment' : '\u2713 Saved';
+  var statusColor = status === 'saved' ? '#10B981' : status === 'saving' ? '#F59E0B' : status === 'error' ? '#EF4444' : '#94A3B8';
+
+  var filterChips = ['all', 'note', 'clip', 'eileen'];
+  var filterLabels = { all: 'All', note: 'Notes', clip: 'Clips', eileen: 'Eileen' };
+
+  // ─── Note list pane (left) ───
+  var noteListPane = React.createElement('div', {
+    style: {
+      width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0,
+      borderRight: activeId ? '1px solid rgba(255,255,255,0.06)' : 'none',
+      flex: activeId ? '0 0 200px' : '1',
+    },
+  },
+    // Filter chips row
+    React.createElement('div', { style: { display: 'flex', gap: '4px', padding: '0 0 8px', flexWrap: 'wrap' } },
+      filterChips.map(function(f) {
+        return React.createElement('button', {
+          key: f,
+          type: 'button',
+          onClick: function() { setFilter(f); },
+          style: {
+            padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 500,
+            fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', border: 'none',
+            background: filter === f ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.04)',
+            color: filter === f ? '#0EA5E9' : '#94A3B8',
+            transition: 'all 0.15s',
+          },
+        }, filterLabels[f]);
+      })
+    ),
+    // New Note button
+    React.createElement('button', {
+      type: 'button',
+      onClick: newNote,
+      style: {
+        width: '100%', padding: '8px', borderRadius: '8px', background: 'rgba(14,165,233,0.08)',
+        border: '1px solid rgba(14,165,233,0.2)', color: '#0EA5E9', fontSize: '12px', fontWeight: 500,
+        cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: '8px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+      },
+    }, '+ New Note'),
+    // Scrollable note list
+    React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
+      filteredNotes.length === 0
+        ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', textAlign: 'center', padding: '20px 4px' } },
+            filter === 'all' ? 'No saved items yet.' : 'No ' + filterLabels[filter].toLowerCase() + ' found.'
+          )
+        : filteredNotes.map(function(n) {
+            var isActive = activeId === n.id;
+            return React.createElement('div', {
+              key: n.id,
+              style: {
+                padding: '8px', marginBottom: '4px', borderRadius: '6px',
+                background: isActive ? 'rgba(14,165,233,0.08)' : 'rgba(255,255,255,0.02)',
+                borderLeft: isActive ? '3px solid #0EA5E9' : '3px solid transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '6px',
+                transition: 'all 0.15s',
+              },
+              onClick: function() { selectNote(n); },
+            },
+              // Type icon
+              React.createElement('span', { style: { fontSize: '12px', flexShrink: 0, marginTop: '1px' } }, noteTypeIcon(n.note_type)),
+              // Title + meta
+              React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                React.createElement('div', { style: {
+                  color: isActive ? '#E2E8F0' : '#CBD5E1', fontSize: '12px', fontWeight: 500,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                } }, (n.title || 'Untitled Note').substring(0, 40)),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' } },
+                  n.pinned ? React.createElement('span', { style: { fontSize: '9px' } }, '\uD83D\uDCCC') : null,
+                  React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, relativeTime(n.updated_at))
+                )
+              ),
+              // Delete button
+              React.createElement('button', {
+                type: 'button',
+                onClick: function(e) {
+                  e.stopPropagation();
+                  setConfirmDelete(n.id);
+                },
+                style: { background: 'none', border: 'none', color: '#64748B', fontSize: '12px', cursor: 'pointer', padding: '0 2px', flexShrink: 0, opacity: 0.6 },
+                title: 'Delete',
+                'aria-label': 'Delete note',
+              }, '\u2715')
+            );
+          })
+    )
+  );
+
+  // Delete confirmation dialog
+  var deleteDialog = confirmDelete ? React.createElement('div', {
+    style: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10,
+      background: 'rgba(10,22,40,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    },
+  },
+    React.createElement('div', {
+      style: {
+        background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px',
+        padding: '20px', maxWidth: '260px', textAlign: 'center',
+      },
+    },
+      React.createElement('p', { style: { color: '#E2E8F0', fontSize: '13px', marginBottom: '14px' } }, 'Delete this note?'),
+      React.createElement('div', { style: { display: 'flex', gap: '8px', justifyContent: 'center' } },
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { setConfirmDelete(null); },
+          className: 'kl-action-btn',
+          style: { fontSize: '12px', padding: '6px 14px' },
+        }, 'Cancel'),
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { deleteNote(confirmDelete); },
+          style: {
+            fontSize: '12px', padding: '6px 14px', borderRadius: '4px',
+            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+            color: '#EF4444', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+          },
+        }, 'Delete')
+      )
+    )
+  ) : null;
+
+  // ─── Editor pane (right) ───
+  var editorPane = null;
+  if (activeId && activeNote) {
+    var isReadOnly = (activeNote.note_type === 'clip' || activeNote.note_type === 'eileen_response') && !editable;
+
+    editorPane = React.createElement('div', {
+      style: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, paddingLeft: '12px' },
+    },
+      // Toolbar: Download + Email
+      React.createElement('div', {
+        style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexShrink: 0 },
+      },
+        // Back button (mobile-friendly)
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { setActiveId(null); setActiveNote(null); setDownloadOpen(false); },
+          style: {
+            background: 'none', border: 'none', color: '#0EA5E9', fontSize: '11px', cursor: 'pointer',
+            padding: '0', fontFamily: "'DM Sans', sans-serif",
+          },
+        }, '\u2190 Back'),
+        // Action buttons
+        React.createElement('div', { style: { display: 'flex', gap: '4px', position: 'relative' } },
+          // Download button with dropdown
+          React.createElement('div', { style: { position: 'relative' } },
+            React.createElement('button', {
+              type: 'button',
+              onClick: function() { setDownloadOpen(!downloadOpen); },
+              className: 'kl-action-btn',
+              title: 'Download',
+              style: { fontSize: '11px', padding: '3px 8px' },
+            }, '\u2B07 Download'),
+            downloadOpen ? React.createElement('div', {
+              style: {
+                position: 'absolute', top: '100%', right: 0, marginTop: '4px',
+                background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '6px',
+                padding: '4px 0', zIndex: 20, minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              },
+            },
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'md'); setDownloadOpen(false); },
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                },
+              }, 'Download as Markdown (.md)'),
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'txt'); setDownloadOpen(false); },
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                },
+              }, 'Download as Text (.txt)'),
+              React.createElement('div', { style: { height: '1px', background: '#1E3A5F', margin: '4px 0' } }),
+              React.createElement('button', {
+                type: 'button',
+                disabled: true,
+                title: 'Coming soon \u2014 requires server-side export',
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
+                  cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
+                },
+              }, 'Download as PDF (.pdf)'),
+              React.createElement('button', {
+                type: 'button',
+                disabled: true,
+                title: 'Coming soon \u2014 requires server-side export',
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
+                  cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
+                },
+              }, 'Download as DOCX (.docx)')
+            ) : null
+          ),
+          // Email to self (greyed out)
+          React.createElement('button', {
+            type: 'button',
+            disabled: true,
+            className: 'kl-action-btn',
+            title: 'Coming soon \u2014 requires server-side export',
+            style: { fontSize: '11px', padding: '3px 8px', opacity: 0.4, cursor: 'not-allowed' },
+          }, '\u2709 Email')
+        )
+      ),
+      // Source attribution (for clips / eileen responses)
+      activeNote.source_attribution ? React.createElement('div', {
+        style: { color: '#64748B', fontSize: '11px', fontStyle: 'italic', marginBottom: '6px', fontFamily: "'DM Mono', monospace" },
+      }, activeNote.source_attribution) : null,
+      // Title input
+      React.createElement('input', {
+        className: 'kl-notes-title',
+        type: 'text',
+        value: title,
+        readOnly: isReadOnly,
+        onChange: function(e) {
+          if (isReadOnly) return;
+          var v = e.target.value;
+          setTitle(v);
+          scheduleSave(v, body);
+        },
+        placeholder: 'Untitled Note',
+        style: isReadOnly ? { opacity: 0.8 } : {},
+      }),
+      // Status indicator
+      React.createElement('div', {
+        style: { fontSize: '10px', color: statusColor, marginBottom: '6px', fontFamily: "'DM Mono', monospace" },
+      }, statusLabel),
+      // Edit button for read-only notes
+      isReadOnly ? React.createElement('button', {
+        type: 'button',
+        onClick: function() { setEditable(true); },
+        className: 'kl-action-btn',
+        style: { fontSize: '11px', padding: '3px 8px', marginBottom: '6px', alignSelf: 'flex-start' },
+      }, '\u270E Edit') : null,
+      // Body editor / reader
+      React.createElement('textarea', {
+        className: 'kl-notes-body',
+        value: body,
+        readOnly: isReadOnly,
+        onChange: function(e) {
+          if (isReadOnly) return;
+          var v = e.target.value;
+          setBody(v);
+          scheduleSave(title, v);
+        },
+        placeholder: 'Take notes during your research...',
+        style: Object.assign({ flex: 1 }, isReadOnly ? { opacity: 0.85 } : {}),
+      })
+    );
+  } else {
+    // No note selected — show prompt
+    editorPane = React.createElement('div', {
+      style: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '12px' },
+    },
+      React.createElement('p', { style: { color: '#64748B', fontSize: '13px', textAlign: 'center' } }, 'Select a note or create a new one')
+    );
+  }
+
+  return React.createElement('div', {
+    className: 'kl-notes-panel',
+    style: { display: 'flex', flexDirection: 'row', height: '100%', position: 'relative', minHeight: 0 },
+  },
+    noteListPane,
+    editorPane,
+    deleteDialog
+  );
+}
+
+// ─── ClipboardPanel retired (AMD-044 §4) ───
+// Clipboard functionality absorbed by NotesPanel via note_type='clip'.
+// window.__klAddClip stub retained for backward compatibility with any
+// code that may still call it — silently no-ops.
+
+// ─── Vault helper functions (Hotfix H-2, H-3, H-4) ───
+
+async function downloadVaultDocument(storagePath, filename) {
+  if (!window.__klToken) return;
+  try {
+    var signResp = await fetch(
+      SUPABASE_URL + '/storage/v1/object/sign/kl-document-vault/' + encodeURIComponent(storagePath),
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ expiresIn: 3600 }),
+      }
+    );
+    var signData = await signResp.json();
+    if (!signData.signedURL) {
+      throw new Error('Failed to generate download URL');
+    }
+    var downloadUrl = SUPABASE_URL + '/storage/v1' + signData.signedURL;
+    var a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename || 'document';
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (err) {
+    console.error('Download failed:', err);
+    alert('Unable to download this document right now. Please try again.');
+  }
+}
+
+async function downloadComplianceReport(uploadId) {
+  if (!window.__klToken) return;
+  try {
+    var resp = await fetch(
+      SUPABASE_URL + '/functions/v1/generate-report-pdf',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ upload_id: uploadId }),
+      }
+    );
+    if (!resp.ok) {
+      throw new Error('PDF generation failed: ' + resp.status);
+    }
+    var blob = await resp.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Ailane-Compliance-Report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Report download failed:', err);
+    alert('Unable to generate the compliance report right now. Please try again.');
+  }
+}
+
+async function fetchDocumentText(documentId) {
+  if (!window.__klToken) return null;
+  try {
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/kl_vault_document_text?document_id=eq.' + documentId + '&select=extracted_text,char_count',
+      {
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+      }
+    );
+    var data = await resp.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+    return null;
+  } catch (err) {
+    console.error('Preview fetch failed:', err);
+    return null;
+  }
+}
+
+async function fetchComplianceFindings(uploadId) {
+  if (!window.__klToken) return null;
+  try {
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/compliance_findings?upload_id=eq.' + uploadId + '&select=clause_category,severity,finding_detail,statutory_ref,remediation&order=severity.desc',
+      {
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+      }
+    );
+    var data = await resp.json();
+    return Array.isArray(data) ? data : null;
+  } catch (err) {
+    console.error('Findings fetch failed:', err);
+    return null;
+  }
+}
+
+// ─── VaultPanel (AMD-044 §5 — dual-source: kl_vault_documents + compliance_uploads) ───
+// Raw REST fetch — consistent with NotesPanel and CLAUDE.md JWT-decode + raw-fetch rule.
+// Primary source: kl_vault_documents (KL upload flow).
+// Secondary source: compliance_uploads (compliance check portal uploads).
+// Client-side merge into normalised shape, sorted by date desc.
+
+function VaultPanel() {
+  var _s = useState([]);
+  var docs = _s[0];
+  var setDocs = _s[1];
+  var _l = useState(true);
+  var loading = _l[0];
+  var setLoading = _l[1];
+  var _err = useState(false);
+  var fetchError = _err[0];
+  var setFetchError = _err[1];
+  // H-3: Preview state — inline expandable per-document
+  var _pid = useState(null);
+  var previewDocId = _pid[0];
+  var setPreviewDocId = _pid[1];
+  var _ptxt = useState(null);
+  var previewContent = _ptxt[0];
+  var setPreviewContent = _ptxt[1];
+  var _pload = useState(false);
+  var previewLoading = _pload[0];
+  var setPreviewLoading = _pload[1];
+
+  async function handlePreview(doc) {
+    if (previewDocId === (doc.source + '-' + doc.id)) {
+      setPreviewDocId(null);
+      setPreviewContent(null);
+      return;
+    }
+    var key = doc.source + '-' + doc.id;
+    setPreviewDocId(key);
+    setPreviewLoading(true);
+    setPreviewContent(null);
+    if (doc.source === 'compliance') {
+      var findings = await fetchComplianceFindings(doc.id);
+      setPreviewContent({ type: 'findings', data: findings });
+    } else {
+      var result = await fetchDocumentText(doc.id);
+      setPreviewContent({ type: 'text', data: result ? result.extracted_text : 'No extracted text available for this document.' });
+    }
+    setPreviewLoading(false);
+  }
+
+  function loadDocs() {
+    setLoading(true);
+    setFetchError(false);
+    var cancelled = false;
+
+    async function load() {
+      if (!window.__klToken || !window.__klUserId) {
+        setLoading(false);
+        return;
+      }
+      var headers = { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY };
+      var vaultOk = false;
+      var uploadsOk = false;
+      var allDocs = [];
+
+      // Primary: kl_vault_documents (AMD-044 §5.1 query 1)
+      try {
+        var vaultResp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_vault_documents?user_id=eq.' + window.__klUserId +
+            '&deleted_at=is.null' +
+            '&order=created_at.desc' +
+            '&select=id,filename,storage_path,file_size_bytes,mime_type,extraction_status,analysis_status,created_at,visibility',
+          { headers: headers }
+        );
+        if (vaultResp.ok) {
+          var vaultData = await vaultResp.json();
+          vaultOk = true;
+          if (!cancelled && Array.isArray(vaultData)) {
+            vaultData.forEach(function(d) {
+              allDocs.push({
+                id: d.id,
+                name: d.filename,
+                source: 'vault',
+                size: d.file_size_bytes,
+                status: d.extraction_status,
+                score: null,
+                storagePath: d.storage_path,
+                date: d.created_at,
+              });
+            });
+          }
+        }
+      } catch (e) { console.warn('Vault docs fetch failed:', e); }
+
+      // Secondary: compliance_uploads (AMD-044 §5.1 query 2)
+      try {
+        var uploadsResp = await fetch(
+          SUPABASE_URL + '/rest/v1/compliance_uploads?user_id=eq.' + window.__klUserId +
+            '&order=created_at.desc' +
+            '&select=id,file_name,file_path,file_size_bytes,document_type,status,overall_score,created_at,display_name',
+          { headers: headers }
+        );
+        if (uploadsResp.ok) {
+          var uploadsData = await uploadsResp.json();
+          uploadsOk = true;
+          if (!cancelled && Array.isArray(uploadsData)) {
+            uploadsData.forEach(function(d) {
+              allDocs.push({
+                id: d.id,
+                name: d.display_name || d.file_name,
+                source: 'compliance',
+                size: d.file_size_bytes,
+                status: d.status,
+                score: d.overall_score,
+                storagePath: d.file_path,
+                date: d.created_at,
+              });
+            });
+          }
+        }
+      } catch (e) { console.warn('Uploads fetch failed:', e); }
+
+      if (!cancelled) {
+        if (!vaultOk && !uploadsOk) {
+          setFetchError(true);
+        }
+        allDocs.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+        setDocs(allDocs);
+        setLoading(false);
+      }
+    }
+
+    load();
+    return function() { cancelled = true; };
+  }
+
+  useEffect(function() {
+    var cleanup = loadDocs();
+    return cleanup;
+  }, []);
+
+  // Upload button (existing pattern, delegates to App-level handler)
+  var uploadButton = React.createElement('div', { style: { marginBottom: '12px' } },
+    React.createElement('input', {
+      type: 'file',
+      id: 'vault-upload-input',
+      accept: '.pdf,.docx,.doc,.txt',
+      style: { display: 'none' },
+      onChange: function(e) {
+        if (typeof window.__klHandleFileSelect === 'function') {
+          window.__klHandleFileSelect(e);
+        }
+      },
+    }),
+    React.createElement('button', {
+      type: 'button',
+      onClick: function() {
+        var input = document.getElementById('vault-upload-input');
+        if (input) input.click();
+      },
+      style: {
+        width: '100%', padding: '10px', borderRadius: '8px',
+        background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+        color: '#0EA5E9', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+      },
+    },
+      React.createElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' },
+        React.createElement('path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }),
+        React.createElement('polyline', { points: '17 8 12 3 7 8' }),
+        React.createElement('line', { x1: '12', y1: '3', x2: '12', y2: '15' })
+      ),
+      'Upload document'
+    )
+  );
+
+  if (loading) {
+    return React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading documents\u2026');
+  }
+
+  // Error state — both sources failed (AMD-044 §5.4)
+  if (fetchError && docs.length === 0) {
+    return React.createElement('div', { style: { padding: '12px' } },
+      uploadButton,
+      React.createElement(EileenErrorMessage, {
+        message: "I wasn't able to load your documents right now. This is usually temporary.",
+        retryAction: function() { loadDocs(); },
+        retryLabel: 'Retry',
+      })
+    );
+  }
+
+  if (docs.length === 0) {
+    return React.createElement('div', { style: { padding: '12px' } },
+      uploadButton,
+      React.createElement('p', { style: { color: '#94A3B8', fontSize: '14px', marginBottom: '6px' } }, 'No documents yet.'),
+      React.createElement('p', { style: { color: '#64748B', fontSize: '13px', lineHeight: 1.5 } },
+        'Upload a contract here or through Eileen to run a compliance check.'
+      )
+    );
+  }
+
+  return React.createElement('div', null,
+    uploadButton,
+    docs.map(function(doc) {
+      var hasScore = doc.score != null;
+      var scoreColor = !hasScore ? null : doc.score >= 75 ? '#10B981' : doc.score >= 50 ? '#F59E0B' : '#EF4444';
+      var scoreBg = !hasScore ? null : doc.score >= 75 ? 'rgba(16,185,129,0.15)' : doc.score >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
+
+      // Source badge (AMD-044 §5.3)
+      var sourceBadge = React.createElement('span', {
+        style: {
+          fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px',
+          fontFamily: "'DM Mono', monospace",
+          background: doc.source === 'vault' ? 'rgba(14,165,233,0.15)' : 'rgba(16,185,129,0.15)',
+          color: doc.source === 'vault' ? '#0EA5E9' : '#10B981',
+          flexShrink: 0,
+        },
+      }, doc.source === 'vault' ? 'Vault' : 'Check');
+
+      // Compliance score badge
+      var scoreBadge = hasScore ? React.createElement('span', {
+        style: {
+          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
+          background: scoreBg, color: scoreColor, flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+        },
+      },
+        React.createElement('span', {
+          style: { width: '8px', height: '8px', borderRadius: '50%', background: scoreColor, display: 'inline-block' },
+        }),
+        Math.round(doc.score) + '%'
+      ) : null;
+
+      // Status badge for non-scored items
+      var statusBadge = null;
+      if (!hasScore && doc.status) {
+        var statusColors = {
+          pending: { text: '#94A3B8', bg: 'rgba(148,163,184,0.1)' },
+          extracting: { text: '#0EA5E9', bg: 'rgba(14,165,233,0.1)' },
+          processing: { text: '#0EA5E9', bg: 'rgba(14,165,233,0.1)' },
+          completed: { text: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+          ready: { text: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+        };
+        var sc = statusColors[doc.status] || statusColors.pending;
+        statusBadge = React.createElement('span', {
+          style: { fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px', background: sc.bg, color: sc.text, flexShrink: 0, fontFamily: "'DM Mono', monospace" },
+        }, doc.status);
       }
 
-      const data = await response.json();
-      const eileenMsg = {
-        role: 'eileen',
-        text: data.response || 'I wasn\'t able to process that request. Please try again.',
-        provisions_count: data.provisions_count,
-        cases_count: data.cases_count,
-      };
-      if (data.session_id) {
-        sessionIdRef.current = data.session_id;
+      return React.createElement('div', {
+        key: doc.source + '-' + doc.id,
+        style: { padding: '12px', marginBottom: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' },
+      },
+        // Row 1: Name + score or status
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } },
+          React.createElement('span', {
+            style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
+          }, (doc.name || '').substring(0, 35)),
+          hasScore ? scoreBadge : statusBadge
+        ),
+        // Row 2: Source badge, date, file size
+        React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' } },
+          sourceBadge,
+          React.createElement('span', { style: { color: '#64748B', fontSize: '11px' } }, relativeTime(doc.date)),
+          doc.size ? React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, formatFileSize(doc.size)) : null
+        ),
+        // Row 3: Action buttons (Hotfix H-2/H-3/H-4)
+        React.createElement('div', { style: { display: 'flex', gap: '4px', marginTop: '8px' } },
+          React.createElement('button', {
+            type: 'button',
+            className: 'kl-action-btn',
+            onClick: function() { handlePreview(doc); },
+            style: { fontSize: '11px', padding: '3px 8px' },
+          }, previewDocId === (doc.source + '-' + doc.id) ? 'Close' : 'Preview'),
+          doc.source === 'compliance'
+            ? React.createElement('button', {
+                type: 'button',
+                className: 'kl-action-btn',
+                title: 'Download compliance report',
+                style: { fontSize: '11px', padding: '3px 8px' },
+                onClick: function() { downloadComplianceReport(doc.id); },
+              }, 'Download')
+            : React.createElement('button', {
+                type: 'button',
+                className: 'kl-action-btn',
+                title: 'Download original document',
+                style: { fontSize: '11px', padding: '3px 8px' },
+                onClick: function() { downloadVaultDocument(doc.storagePath, doc.name); },
+              }, 'Download')
+        ),
+        // Inline preview panel (H-3)
+        previewDocId === (doc.source + '-' + doc.id) ? React.createElement('div', {
+          style: {
+            background: '#0F172A', border: '1px solid #1E293B', borderTop: 'none',
+            borderRadius: '0 0 8px 8px', padding: '16px', maxHeight: '300px', overflowY: 'auto', marginTop: '8px',
+          },
+        },
+          previewLoading
+            ? React.createElement('span', { style: { color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" } }, 'Loading preview\u2026')
+            : previewContent && previewContent.type === 'findings' && Array.isArray(previewContent.data)
+              ? previewContent.data.map(function(f, i) {
+                  var sevColor = f.severity === 'high' || f.severity === 'critical' ? '#EF4444' : f.severity === 'medium' || f.severity === 'major' ? '#F59E0B' : '#10B981';
+                  return React.createElement('div', {
+                    key: i,
+                    style: { marginBottom: '12px', paddingBottom: '12px', borderBottom: i < previewContent.data.length - 1 ? '1px solid #1E293B' : 'none' },
+                  },
+                    React.createElement('div', { style: { display: 'flex', gap: '8px', marginBottom: '4px' } },
+                      React.createElement('span', {
+                        style: { fontSize: '11px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', color: sevColor },
+                      }, f.severity),
+                      React.createElement('span', { style: { fontSize: '11px', fontFamily: "'DM Mono', monospace", color: '#64748B' } }, f.clause_category)
+                    ),
+                    React.createElement('p', { style: { color: '#CBD5E1', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, margin: '0 0 4px' } }, f.finding_detail),
+                    f.statutory_ref ? React.createElement('span', { style: { fontSize: '11px', fontFamily: "'DM Mono', monospace", color: '#0EA5E9' } }, f.statutory_ref) : null
+                  );
+                })
+              : previewContent && previewContent.type === 'text'
+                ? React.createElement('pre', {
+                    style: { color: '#CBD5E1', fontFamily: "'DM Mono', monospace", fontSize: '12px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 },
+                  }, previewContent.data)
+                : React.createElement('span', { style: { color: '#94A3B8', fontSize: '13px' } }, 'No preview available.')
+        ) : null
+      );
+    })
+  );
+}
+
+// ─── CalendarPanel (regulatory_requirements, not user-scoped, expandable detail) ───
+
+function CalendarPanel() {
+  var _reqs = useState([]);
+  var reqs = _reqs[0];
+  var setReqs = _reqs[1];
+  var _loading = useState(true);
+  var loading = _loading[0];
+  var setLoading = _loading[1];
+  var _filter = useState('all');
+  var filter = _filter[0];
+  var setFilter = _filter[1];
+  var _expanded = useState({});
+  var expanded = _expanded[0];
+  var setExpanded = _expanded[1];
+
+  useEffect(function() {
+    var cancelled = false;
+    async function load() {
+      if (!window.__klToken) { setLoading(false); return; }
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/regulatory_requirements' +
+            '?select=id,requirement_name,statutory_basis,effective_from,commencement_status,is_forward_requirement,source_act' +
+            '&order=effective_from.asc',
+          { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        var data = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(data)) setReqs(data);
+      } catch (e) { console.error('Calendar load failed:', e); }
+      finally { if (!cancelled) setLoading(false); }
+    }
+    load();
+    return function() { cancelled = true; };
+  }, []);
+
+  function toggleExpand(id) {
+    setExpanded(function(prev) {
+      var next = {};
+      for (var k in prev) next[k] = prev[k];
+      next[id] = !prev[id];
+      return next;
+    });
+  }
+
+  if (loading) {
+    return React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading regulatory calendar\u2026');
+  }
+
+  var forwardCount = reqs.filter(function(r) { return r.is_forward_requirement; }).length;
+  var filtered = reqs.filter(function(r) {
+    if (filter === 'forward') return r.is_forward_requirement;
+    if (filter === 'in_force') return r.commencement_status === 'in_force';
+    return true;
+  });
+
+  var filterButtons = [
+    { id: 'all', label: 'All (' + reqs.length + ')' },
+    { id: 'in_force', label: 'In Force' },
+    { id: 'forward', label: 'Forward (' + forwardCount + ')' },
+  ];
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' } },
+      filterButtons.map(function(f) {
+        return React.createElement('button', {
+          key: f.id,
+          type: 'button',
+          onClick: function() { setFilter(f.id); },
+          style: {
+            padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer',
+            fontFamily: 'inherit',
+            border: filter === f.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+            background: filter === f.id ? 'rgba(14,165,233,0.15)' : 'transparent',
+            color: filter === f.id ? '#0EA5E9' : '#94A3B8',
+          },
+        }, f.label);
+      })
+    ),
+    filtered.length === 0
+      ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No requirements match this filter.')
+      : filtered.map(function(r) {
+          var isOpen = !!expanded[r.id];
+          return React.createElement('div', {
+            key: r.id,
+            style: {
+              marginBottom: '6px', borderRadius: '6px', overflow: 'hidden',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+              borderLeft: r.is_forward_requirement ? '3px solid #F59E0B' : '3px solid #10B981',
+            },
+          },
+            React.createElement('div', {
+              onClick: function() { toggleExpand(r.id); },
+              style: { padding: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
+            },
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('div', { style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500 } }, r.requirement_name),
+                r.effective_from && React.createElement('div', { style: { color: '#64748B', fontSize: '11px', marginTop: '2px' } },
+                  'Effective: ' + new Date(r.effective_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                )
+              ),
+              React.createElement('span', {
+                style: { color: '#64748B', fontSize: '10px', flexShrink: 0, transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
+                'aria-hidden': 'true',
+              }, '\u25BC')
+            ),
+            isOpen && React.createElement('div', {
+              style: { padding: '0 10px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' },
+            },
+              r.statutory_basis && React.createElement('div', { style: { marginTop: '8px' } },
+                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Statutory Basis'),
+                React.createElement('div', { style: { color: '#CBD5E1', fontSize: '12px', marginTop: '2px' } }, r.statutory_basis)
+              ),
+              r.source_act && React.createElement('div', { style: { marginTop: '8px' } },
+                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Source Act'),
+                React.createElement('div', { style: { color: '#CBD5E1', fontSize: '12px', marginTop: '2px' } }, r.source_act)
+              ),
+              React.createElement('div', { style: { marginTop: '8px' } },
+                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Status'),
+                React.createElement('div', { style: { marginTop: '2px' } },
+                  React.createElement('span', {
+                    style: {
+                      fontSize: '11px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px',
+                      background: r.commencement_status === 'in_force' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                      color: r.commencement_status === 'in_force' ? '#10B981' : '#F59E0B',
+                    },
+                  }, r.commencement_status === 'in_force' ? 'In Force' : r.commencement_status || 'Pending')
+                )
+              ),
+              r.is_forward_requirement && React.createElement('div', {
+                style: { marginTop: '8px', padding: '6px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.1)', fontSize: '11px', color: '#F59E0B' },
+              }, 'Forward requirement \u2014 not yet in force')
+            )
+          );
+        })
+  );
+}
+
+// ─── ResearchPanel (kl_provisions grouped by instrument + kl_cases, tabs + search) ───
+
+function ResearchPanel() {
+  // Sprint F §3.2: default tab is Library (was 'provisions')
+  var _tab = useState('library');
+  var tab = _tab[0];
+  var setTab = _tab[1];
+  var _search = useState('');
+  var search = _search[0];
+  var setSearch = _search[1];
+  var _data = useState([]);
+  var data = _data[0];
+  var setData = _data[1];
+  var _loading = useState(true);
+  var loading = _loading[0];
+  var setLoading = _loading[1];
+  var _expanded = useState({});
+  var expanded = _expanded[0];
+  var setExpanded = _expanded[1];
+  // Sprint F §3.3: Library tab state
+  var _instruments = useState([]);
+  var instruments = _instruments[0];
+  var setInstruments = _instruments[1];
+  var _activeInstrument = useState(null);
+  var activeInstrument = _activeInstrument[0];
+  var setActiveInstrument = _activeInstrument[1];
+  var _instrumentDetail = useState(null);
+  var instrumentDetail = _instrumentDetail[0];
+  var setInstrumentDetail = _instrumentDetail[1];
+  var _detailLoading = useState(false);
+  var detailLoading = _detailLoading[0];
+  var setDetailLoading = _detailLoading[1];
+
+  useEffect(function() {
+    // Sprint F §3.4: Library tab is handled by its own useEffect below.
+    if (tab === 'library') { setLoading(false); return; }
+    var cancelled = false;
+    async function load() {
+      if (!window.__klToken) { setLoading(false); return; }
+      setLoading(true);
+      try {
+        var path = tab === 'provisions'
+          ? '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=500'
+          : '/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100';
+        var resp = await fetch(SUPABASE_URL + path, {
+          headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY },
+        });
+        var d = await resp.json();
+        if (cancelled) return;
+        setData(Array.isArray(d) ? d : []);
+      } catch (e) {
+        console.error('Research load failed:', e);
+        if (!cancelled) setData([]);
+      } finally { if (!cancelled) setLoading(false); }
+    }
+    load();
+    return function() { cancelled = true; };
+  }, [tab]);
+
+  // Sprint G §2.1: Fetch static content manifest. Replaces the Sprint F
+  // legislation_library query. No auth, instant load, includes all 72
+  // instruments across legislation, ACAS, HSE, ICO, EHRC, and the rest
+  // of the bookshelf. The manifest is generated by build-content-index.js
+  // at repo root and regenerated whenever content files change.
+  useEffect(function() {
+    if (tab !== 'library') return;
+    var cancelled = false;
+    async function loadInstruments() {
+      try {
+        var resp = await fetch('/knowledge-library/content/content-index.json');
+        var d = await resp.json();
+        if (!cancelled && Array.isArray(d)) {
+          setInstruments(d);
+          // Sprint H §2.4: Check for pending instrument open (from reference click)
+          if (window.__klPendingInstrument) {
+            var pending = window.__klPendingInstrument;
+            delete window.__klPendingInstrument;
+            var target = d.find(function(inst) { return inst.id === pending; });
+            if (target) {
+              setTimeout(function() { loadInstrumentDetail(target); }, 100);
+            }
+          }
+        }
+      } catch (e) { console.warn('Library manifest fetch failed:', e); }
+    }
+    if (instruments.length === 0) loadInstruments();
+    return function() { cancelled = true; };
+  }, [tab]);
+
+  // Sprint H §2.4: Listen for reference-click events dispatched from the
+  // conversation area. Switches to the Library tab and loads the requested
+  // instrument if it is already in the cached list; otherwise defers to
+  // the loader above via window.__klPendingInstrument.
+  useEffect(function() {
+    function handleOpen(e) {
+      var instId = e.detail && e.detail.id;
+      if (!instId) return;
+      setTab('library');
+      var found = instruments.find(function(inst) { return inst.id === instId; });
+      if (found) {
+        loadInstrumentDetail(found);
+      } else {
+        window.__klPendingInstrument = instId;
       }
-      setMessages(prev => [...prev, eileenMsg]);
+    }
+    window.addEventListener('kl-open-instrument', handleOpen);
+    return function() { window.removeEventListener('kl-open-instrument', handleOpen); };
+  }, [instruments]);
+
+  function toggleInstrument(instId) {
+    setExpanded(function(prev) {
+      var next = {};
+      for (var k in prev) next[k] = prev[k];
+      next[instId] = !prev[instId];
+      return next;
+    });
+  }
+
+  // Sprint G: Fetch individual content file on instrument click.
+  // The manifest carries the filename directly (e.g. "era1996.json"),
+  // so we can fetch it without any registry lookup.
+  async function loadInstrumentDetail(inst) {
+    setActiveInstrument(inst);
+    setInstrumentDetail(null);
+    setDetailLoading(true);
+    try {
+      var filename = inst.filename || (inst.id ? inst.id + '.json' : null);
+      if (filename) {
+        var resp = await fetch('/knowledge-library/content/' + filename);
+        if (resp.ok) {
+          var d = await resp.json();
+          setInstrumentDetail(d);
+        }
+      }
+    } catch (e) { console.warn('Content file fetch failed:', e); }
+    finally { setDetailLoading(false); }
+  }
+
+  var filtered = data.filter(function(item) {
+    if (!search) return true;
+    var s = search.toLowerCase();
+    if (tab === 'provisions') {
+      return (item.title || '').toLowerCase().indexOf(s) !== -1 || (item.instrument_id || '').toLowerCase().indexOf(s) !== -1;
+    }
+    return (item.name || '').toLowerCase().indexOf(s) !== -1 || (item.citation || '').toLowerCase().indexOf(s) !== -1;
+  });
+
+  // Sprint G §3: Library-specific search filter. Matches on title, short
+  // name, warm subtitle, and category. Computed in the parent scope so
+  // renderLibraryTab can consume it via closure.
+  var filteredInstruments = instruments;
+  if (tab === 'library' && search) {
+    var libSearch = search.toLowerCase();
+    filteredInstruments = instruments.filter(function(inst) {
+      return (inst.title || '').toLowerCase().indexOf(libSearch) !== -1 ||
+             (inst.short || '').toLowerCase().indexOf(libSearch) !== -1 ||
+             (inst.warmSubtitle || '').toLowerCase().indexOf(libSearch) !== -1 ||
+             (inst.cat || '').toLowerCase().indexOf(libSearch) !== -1;
+    });
+  }
+
+  // Group provisions by instrument
+  var groupedProvisions = {};
+  if (tab === 'provisions') {
+    filtered.forEach(function(item) {
+      var key = item.instrument_id || 'Other';
+      if (!groupedProvisions[key]) { groupedProvisions[key] = []; }
+      groupedProvisions[key].push(item);
+    });
+  }
+  var instrumentKeys = Object.keys(groupedProvisions).sort();
+
+  // Sprint F §3.7: Existing Sprint D provisions rendering wrapped in a
+  // helper — logic unchanged, just callable by name.
+  function renderProvisionsTab() {
+    if (instrumentKeys.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.');
+    }
+    return instrumentKeys.map(function(instId) {
+      var items = groupedProvisions[instId];
+      var isOpen = !!expanded[instId];
+      return React.createElement('div', { key: instId, style: { marginBottom: '6px' } },
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { toggleInstrument(instId); },
+          style: {
+            width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px',
+            background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)',
+            cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            color: '#E2E8F0', fontSize: '12px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
+          },
+        },
+          React.createElement('span', null, INSTRUMENT_NAMES[instId] || instId),
+          React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+            React.createElement('span', { style: { fontSize: '10px', color: '#0EA5E9', fontFamily: "'DM Mono', monospace" } }, items.length + ' provisions'),
+            React.createElement('span', { style: { fontSize: '10px', color: '#64748B', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
+          )
+        ),
+        isOpen && React.createElement('div', { style: { paddingLeft: '8px', marginTop: '4px' } },
+          items.map(function(item) {
+            return React.createElement('div', {
+              key: item.provision_id,
+              style: {
+                padding: '6px 8px', marginBottom: '2px', borderRadius: '4px',
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
+                cursor: 'pointer',
+              },
+              onClick: function() {
+                var seedMsg = 'Tell me about ' + item.title + (item.instrument_id ? ' under the ' + item.instrument_id : '');
+                if (window.__klSendMessage) window.__klSendMessage(seedMsg);
+              },
+              title: 'Ask Eileen about this provision',
+            },
+              React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.title),
+              React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '2px', flexWrap: 'wrap', alignItems: 'center' } },
+                React.createElement('span', { style: { color: '#475569', fontSize: '10px', fontFamily: "'DM Mono', monospace" } },
+                  (item.section_num ? 's.' + item.section_num : '')
+                ),
+                item.is_era_2025 && React.createElement('span', {
+                  style: { color: '#F59E0B', fontSize: '10px', padding: '1px 5px', borderRadius: '3px', background: 'rgba(245,158,11,0.1)' },
+                }, 'ERA 2025'),
+                React.createElement('span', { style: { color: item.in_force ? '#10B981' : '#94A3B8', fontSize: '10px' } },
+                  item.in_force ? 'In force' : 'Not yet'
+                )
+              )
+            );
+          })
+        )
+      );
+    });
+  }
+
+  // Sprint F §3.7: Existing Sprint E cases rendering wrapped in a helper.
+  function renderCasesTab() {
+    if (filtered.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.');
+    }
+    return filtered.slice(0, 50).map(function(item) {
+      var caseKey = 'case-' + item.case_id;
+      var isOpen = !!expanded[caseKey];
+      return React.createElement('div', {
+        key: item.case_id,
+        style: {
+          marginBottom: '6px', borderRadius: '6px', overflow: 'hidden',
+          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+        },
+      },
+        React.createElement('div', {
+          onClick: function() { toggleInstrument(caseKey); },
+          style: {
+            padding: '8px 10px', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          },
+        },
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+            React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.name),
+            React.createElement('div', { style: { color: '#64748B', fontSize: '10px', marginTop: '2px', fontFamily: "'DM Mono', monospace" } },
+              [item.citation, item.court, item.year].filter(Boolean).join(' \u00B7 ')
+            )
+          ),
+          React.createElement('span', {
+            style: { fontSize: '9px', color: '#64748B', flexShrink: 0, marginTop: '4px', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
+            'aria-hidden': 'true',
+          }, '\u25BC')
+        ),
+        isOpen && React.createElement('div', {
+          style: { padding: '0 10px 10px', borderTop: '1px solid rgba(255,255,255,0.04)' },
+        },
+          item.principle && React.createElement('div', {
+            style: { fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginTop: '8px', marginBottom: '10px' },
+          }, item.principle),
+          React.createElement('button', {
+            type: 'button',
+            onClick: function() {
+              if (window.__klSendMessage) window.__klSendMessage('Tell me about the case ' + item.name + (item.citation ? ' (' + item.citation + ')' : '') + ' and what it means for employers');
+            },
+            style: {
+              padding: '6px 12px', borderRadius: '6px',
+              background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+              color: '#0EA5E9', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+            },
+          }, '\u2192 Discuss with Eileen')
+        )
+      );
+    });
+  }
+
+  // Sprint G §2.2–§2.4: The Bookshelf — 72-instrument browse tree grouped
+  // by derived category (legislation, acas, hse, ico, ehrc, etc.) with
+  // book-cover cards carrying category-coloured spine accents, warm
+  // subtitles, provision/case counts, and in-force badges.
+  function renderLibraryTab() {
+    if (activeInstrument) {
+      return renderInstrumentDetail();
+    }
+
+    // Warm category labels cover every `cat` value the manifest may emit.
+    var CATEGORY_LABELS = {
+      legislation: 'UK Employment Legislation',
+      acas: 'ACAS Codes of Practice & Guidance',
+      hse: 'Health & Safety Executive Guidance',
+      ico: 'ICO Data Protection Guidance',
+      ehrc: 'Equality & Human Rights Commission',
+      horizon: 'Forward Intelligence & Horizon',
+      training: 'Training Resources',
+      caselaw: 'Case Law Intelligence',
+      guidance: 'Regulatory Guidance',
+      'employment-relations': 'Employment Relations',
+      'cross-cutting': 'Cross-Cutting Provisions',
+    };
+    var CATEGORY_ORDER = ['legislation', 'acas', 'hse', 'ehrc', 'ico', 'guidance', 'employment-relations', 'cross-cutting', 'horizon', 'training', 'caselaw'];
+
+    // Spine accent colours — one per bookshelf.
+    var CATEGORY_COLOURS = {
+      legislation: '#0EA5E9',
+      acas: '#10B981',
+      hse: '#F59E0B',
+      ico: '#8B5CF6',
+      ehrc: '#EC4899',
+      horizon: '#F97316',
+      training: '#06B6D4',
+      caselaw: '#6366F1',
+      guidance: '#14B8A6',
+      'employment-relations': '#10B981',
+      'cross-cutting': '#64748B',
+    };
+
+    var grouped = {};
+    filteredInstruments.forEach(function(inst) {
+      var cat = inst.cat || 'legislation';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(inst);
+    });
+    // Preserve CATEGORY_ORDER first, then any unknown cat values at the
+    // end so new categories surface without code changes.
+    var filteredCats = CATEGORY_ORDER.filter(function(c) { return grouped[c] && grouped[c].length > 0; });
+    Object.keys(grouped).forEach(function(c) {
+      if (filteredCats.indexOf(c) === -1) filteredCats.push(c);
+    });
+
+    if (instruments.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '12px', textAlign: 'center' } },
+        'Loading instrument library\u2026'
+      );
+    }
+    if (filteredCats.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No instruments match your search.');
+    }
+
+    return React.createElement('div', null,
+      filteredCats.map(function(cat) {
+        var items = grouped[cat];
+        var label = CATEGORY_LABELS[cat] || cat;
+        var catColor = CATEGORY_COLOURS[cat] || '#0EA5E9';
+        var isCatOpen = expanded[cat] !== false; // default open
+
+        return React.createElement('div', { key: cat, style: { marginBottom: '12px' } },
+          React.createElement('button', {
+            type: 'button',
+            onClick: function() { toggleInstrument(cat); },
+            style: {
+              width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px',
+              background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)',
+              cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              color: catColor, fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+            },
+          },
+            React.createElement('span', null, label),
+            React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+              React.createElement('span', { style: { fontSize: '10px', color: '#64748B', fontFamily: "'DM Mono', monospace" } }, items.length + ' instruments'),
+              React.createElement('span', { style: { fontSize: '9px', color: '#64748B', transition: 'transform 0.15s', transform: isCatOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
+            )
+          ),
+          isCatOpen && React.createElement('div', { style: { paddingLeft: '4px', marginTop: '6px' } },
+            items.map(function(inst) {
+              var accentColor = CATEGORY_COLOURS[inst.cat] || '#0EA5E9';
+              return React.createElement('div', {
+                key: inst.id,
+                onClick: function() { loadInstrumentDetail(inst); },
+                style: {
+                  padding: '0',
+                  marginBottom: '6px',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex',
+                },
+                onMouseEnter: function(e) { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.3)'; },
+                onMouseLeave: function(e) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; },
+              },
+                // Book spine accent
+                React.createElement('div', {
+                  style: {
+                    width: '4px',
+                    background: accentColor,
+                    flexShrink: 0,
+                  },
+                }),
+                // Book cover content
+                React.createElement('div', {
+                  style: {
+                    flex: 1,
+                    padding: '10px 12px',
+                    background: 'rgba(255,255,255,0.02)',
+                  },
+                },
+                  React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500, marginBottom: '4px', lineHeight: 1.3 } },
+                    inst.title
+                  ),
+                  inst.warmSubtitle && React.createElement('div', {
+                    style: { color: '#94A3B8', fontSize: '11px', lineHeight: 1.4, marginBottom: '6px' },
+                  }, inst.warmSubtitle.length > 100 ? inst.warmSubtitle.slice(0, 100) + '\u2026' : inst.warmSubtitle),
+                  React.createElement('div', { style: { display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' } },
+                    inst.sectionCount > 0 && React.createElement('span', {
+                      style: { fontSize: '10px', color: accentColor, fontFamily: "'DM Mono', monospace" },
+                    }, inst.sectionCount + ' provisions'),
+                    inst.caseCount > 0 && React.createElement('span', {
+                      style: { fontSize: '10px', color: '#64748B', fontFamily: "'DM Mono', monospace" },
+                    }, inst.caseCount + ' cases'),
+                    inst.isInForce != null && React.createElement('span', {
+                      style: {
+                        fontSize: '9px', padding: '1px 5px', borderRadius: '3px',
+                        background: inst.isInForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                        color: inst.isInForce ? '#10B981' : '#F59E0B',
+                      },
+                    }, inst.isInForce ? 'In force' : 'Pending')
+                  )
+                )
+              );
+            })
+          )
+        );
+      })
+    );
+  }
+
+  function renderInstrumentDetail() {
+    return React.createElement('div', null,
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { setActiveInstrument(null); setInstrumentDetail(null); },
+        style: {
+          background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px',
+          cursor: 'pointer', padding: '0 0 10px', fontFamily: "'DM Sans', sans-serif",
+          textAlign: 'left',
+        },
+      }, '\u2190 Back to Library'),
+
+      detailLoading
+        ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '20px 0', textAlign: 'center' } }, 'Loading instrument detail\u2026')
+        : instrumentDetail
+          ? renderInstrumentContent(instrumentDetail)
+          : renderInstrumentSummary(activeInstrument)
+    );
+  }
+
+  // Sprint G: Fallback shown when the content JSON file fails to load.
+  // Reads from the manifest fields (title, type, jurisdiction,
+  // warmSubtitle, sourceUrl) rather than the old registry fields.
+  function renderInstrumentSummary(inst) {
+    return React.createElement('div', null,
+      React.createElement('div', { style: { fontSize: '16px', fontWeight: 600, color: '#E2E8F0', marginBottom: '8px' } }, inst.title),
+      React.createElement('div', { style: { fontSize: '12px', color: '#64748B', marginBottom: '4px', fontFamily: "'DM Mono', monospace" } },
+        (inst.type || '') + (inst.jurisdiction ? ' \u00B7 ' + inst.jurisdiction : '')
+      ),
+      inst.chapters && React.createElement('div', { style: { fontSize: '12px', color: '#94A3B8', marginBottom: '12px', lineHeight: 1.5 } }, inst.chapters),
+      inst.warmSubtitle && React.createElement('div', {
+        style: {
+          fontSize: '13px', color: '#CBD5E1', lineHeight: 1.6, marginBottom: '12px',
+          padding: '12px', background: 'rgba(14,165,233,0.04)', borderRadius: '8px',
+          borderLeft: '2px solid rgba(14,165,233,0.2)',
+        },
+      }, inst.warmSubtitle),
+      inst.sourceUrl && React.createElement('a', {
+        href: inst.sourceUrl, target: '_blank', rel: 'noopener noreferrer',
+        style: {
+          display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '12px',
+          fontSize: '11px', color: '#0EA5E9', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2197 View on legislation.gov.uk'),
+      !inst.warmSubtitle && React.createElement('div', { style: { fontSize: '12px', color: '#475569', fontStyle: 'italic', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' } },
+        'Deep content for this instrument is being enriched. Ask Eileen for current intelligence.'
+      ),
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Tell me about the ' + inst.title + ' and what it means for employers'); },
+        style: {
+          marginTop: '12px', padding: '8px 14px', borderRadius: '6px',
+          background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+          color: '#0EA5E9', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+          fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2192 Ask Eileen about this instrument')
+    );
+  }
+
+  // Deep view rendered from the loaded JSON content file. Handles both
+  // schemas in use: {parts:[{sections:[...]}]} (69 files) and
+  // {provisions:[...]} (3 files — era1996, horizon-tracker,
+  // redundancy-intelligence).
+  function renderInstrumentContent(detail) {
+    var displayTitle = detail.title || detail.shortTitle || (activeInstrument && activeInstrument.title) || 'Instrument';
+    var displayType = detail.type || (activeInstrument && activeInstrument.type) || '';
+    var displayJurisdiction = detail.jurisdiction || (activeInstrument && activeInstrument.jurisdiction) || '';
+    var description = detail.desc || detail.description || detail.summary || detail.overview || (activeInstrument && activeInstrument.warmSubtitle) || '';
+    var inForce = detail.isInForce != null
+      ? detail.isInForce
+      : (activeInstrument && activeInstrument.isInForce);
+
+    // Normalise provisions across both schemas.
+    // Sprint H §6.2: Pass ACAS / guidance part labels through
+    // humanisePartTitle so grouping headers read humanistically.
+    var instCat = (activeInstrument && activeInstrument.cat) || detail.cat || '';
+    var provisions = [];
+    if (Array.isArray(detail.provisions)) {
+      provisions = detail.provisions;
+    } else if (Array.isArray(detail.parts)) {
+      detail.parts.forEach(function(part) {
+        var rawPartLabel = part.title || part.num || part.name || '';
+        var partLabel = humanisePartTitle(rawPartLabel, instCat);
+        (part.sections || []).forEach(function(sec) {
+          provisions.push({
+            title: sec.title || sec.name || '',
+            section: sec.num || sec.sectionNum || sec.section || '',
+            text: sec.text || sec.currentText || sec.content || '',
+            summary: sec.summary || sec.keyPrinciple || '',
+            sourceUrl: sec.sourceUrl || null,
+            partLabel: partLabel,
+            leadingCases: sec.leadingCases || [],
+          });
+        });
+      });
+    }
+
+    // Aggregate leading cases from all sections, plus any top-level list.
+    var cases = [];
+    if (Array.isArray(detail.leadingCases)) cases = cases.concat(detail.leadingCases);
+    if (Array.isArray(detail.cases)) cases = cases.concat(detail.cases);
+    provisions.forEach(function(p) {
+      if (Array.isArray(p.leadingCases)) cases = cases.concat(p.leadingCases);
+    });
+
+    // Source link — prefer explicit detail.sourceUrl, then the manifest
+    // sourceUrl, then a first-provision sourceUrl.
+    var sourceUrl = detail.sourceUrl
+      || (activeInstrument && activeInstrument.sourceUrl)
+      || (provisions[0] && provisions[0].sourceUrl)
+      || null;
+
+    return React.createElement('div', null,
+      // Title block
+      React.createElement('div', { style: { marginBottom: '16px' } },
+        React.createElement('div', { style: { fontSize: '16px', fontWeight: 600, color: '#E2E8F0', marginBottom: '6px' } }, displayTitle),
+        React.createElement('div', { style: { fontSize: '11px', color: '#64748B', fontFamily: "'DM Mono', monospace", marginBottom: '4px' } },
+          [displayType, displayJurisdiction, detail.currentAsOf && ('Verified ' + detail.currentAsOf)].filter(Boolean).join(' \u00B7 ')
+        ),
+        detail.chapters && React.createElement('div', { style: { fontSize: '11px', color: '#94A3B8', marginBottom: '8px' } }, detail.chapters),
+        React.createElement('span', {
+          style: {
+            fontSize: '10px', padding: '2px 6px', borderRadius: '4px', display: 'inline-block',
+            background: inForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+            color: inForce ? '#10B981' : '#F59E0B',
+          },
+        }, inForce ? 'In force' : 'Not yet commenced')
+      ),
+
+      description && React.createElement('div', {
+        style: {
+          fontSize: '13px', color: '#CBD5E1', lineHeight: 1.6, marginBottom: '16px',
+          padding: '12px', background: 'rgba(14,165,233,0.04)', borderRadius: '8px',
+          borderLeft: '2px solid rgba(14,165,233,0.2)',
+        },
+      }, typeof description === 'string' ? description : JSON.stringify(description)),
+
+      sourceUrl && React.createElement('a', {
+        href: sourceUrl, target: '_blank', rel: 'noopener noreferrer',
+        style: {
+          display: 'inline-block', marginBottom: '16px',
+          fontSize: '11px', color: '#0EA5E9', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2197 View original source'),
+
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Give me a comprehensive briefing on the ' + displayTitle + ' including key obligations, recent changes, and practical implications for employers'); },
+        style: {
+          display: 'block', marginBottom: '16px', padding: '8px 14px', borderRadius: '6px',
+          background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+          color: '#0EA5E9', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+          fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2192 Get a full briefing from Eileen'),
+
+      // Provisions list (Level 2 + Level 3 on expand)
+      provisions.length > 0 && React.createElement('div', { style: { marginTop: '8px' } },
+        React.createElement('div', {
+          style: { fontSize: '12px', fontWeight: 600, color: '#0EA5E9', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif" },
+        }, 'Provisions (' + provisions.length + ')'),
+        provisions.slice(0, 40).map(function(prov, idx) {
+          var provKey = 'prov-' + idx;
+          var isProvOpen = !!expanded[provKey];
+          // Sprint G §2.5: surface the human-readable summary as the
+          // primary display; keep the official statutory title as a
+          // subtle italic subtitle when it differs.
+          var provTitle = prov.summary || prov.title || prov.name || ('Section ' + (prov.section || prov.sectionNum || prov.num || idx + 1));
+          if (provTitle.length > 140) provTitle = provTitle.slice(0, 140) + '\u2026';
+          var provOfficialTitle = (prov.summary && prov.title && prov.title !== prov.summary) ? prov.title : null;
+          var provText = prov.text || '';
+          var provSection = prov.section || '';
+
+          return React.createElement('div', {
+            key: provKey,
+            style: { marginBottom: '3px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' },
+          },
+            React.createElement('div', {
+              onClick: function() { toggleInstrument(provKey); },
+              style: {
+                padding: '6px 8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                background: 'rgba(255,255,255,0.02)',
+              },
+            },
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('span', { style: { color: '#E2E8F0', fontSize: '11px' } }, provTitle),
+                provSection && React.createElement('span', { style: { color: '#475569', fontSize: '10px', marginLeft: '6px', fontFamily: "'DM Mono', monospace" } },
+                  (String(provSection).indexOf('s.') === 0 ? '' : 's.') + provSection
+                ),
+                provOfficialTitle && React.createElement('div', {
+                  style: { color: '#475569', fontSize: '10px', fontStyle: 'italic', marginTop: '1px' },
+                }, provOfficialTitle)
+              ),
+              React.createElement('span', { style: { fontSize: '8px', color: '#475569', transition: 'transform 0.15s', transform: isProvOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
+            ),
+            isProvOpen && React.createElement('div', { style: { padding: '8px', borderTop: '1px solid rgba(255,255,255,0.04)' } },
+              prov.summary && React.createElement('div', { style: { fontSize: '11px', color: '#CBD5E1', lineHeight: 1.6, marginBottom: '6px' } },
+                prov.summary.length > 400 ? prov.summary.slice(0, 400) + '\u2026' : prov.summary
+              ),
+              provText && React.createElement('div', { style: { fontSize: '11px', color: '#94A3B8', lineHeight: 1.6, maxHeight: '200px', overflowY: 'auto', fontFamily: "'DM Mono', monospace" } },
+                provText.length > 500 ? provText.slice(0, 500) + '\u2026' : provText
+              ),
+              prov.sourceUrl && React.createElement('a', {
+                href: prov.sourceUrl,
+                target: '_blank',
+                rel: 'noopener noreferrer',
+                style: {
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  fontSize: '10px', color: '#0EA5E9', textDecoration: 'none',
+                  marginTop: '6px', marginBottom: '4px',
+                },
+              }, '\u2197 View on legislation.gov.uk'),
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Explain ' + provTitle + ' of the ' + displayTitle + ' and its practical implications'); },
+                style: {
+                  display: 'block', marginTop: '6px', padding: '4px 10px', borderRadius: '4px',
+                  background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)',
+                  color: '#0EA5E9', fontSize: '10px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                },
+              }, '\u2192 Ask Eileen')
+            )
+          );
+        })
+      ),
+
+      cases.length > 0 && React.createElement('div', { style: { marginTop: '16px' } },
+        React.createElement('div', {
+          style: { fontSize: '12px', fontWeight: 600, color: '#0EA5E9', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif" },
+        }, 'Leading Cases (' + cases.length + ')'),
+        cases.slice(0, 20).map(function(c, idx) {
+          var caseText = c.principle || c.heldText || c.held || c.significance || '';
+          return React.createElement('div', {
+            key: 'lc-' + idx,
+            style: { padding: '8px', marginBottom: '4px', borderRadius: '4px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' },
+          },
+            React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, c.name || c.title || 'Unnamed case'),
+            (c.citation || c.court || c.year) && React.createElement('div', { style: { color: '#64748B', fontSize: '10px', marginTop: '2px', fontFamily: "'DM Mono', monospace" } },
+              [c.citation, c.court, c.year].filter(Boolean).join(' \u00B7 ')
+            ),
+            caseText && React.createElement('div', { style: { color: '#94A3B8', fontSize: '11px', marginTop: '4px', lineHeight: 1.4 } },
+              caseText.length > 200 ? caseText.slice(0, 200) + '\u2026' : caseText
+            ),
+            (c.url || c.bailiiUrl) && React.createElement('a', {
+              href: c.url || c.bailiiUrl, target: '_blank', rel: 'noopener noreferrer',
+              style: { fontSize: '10px', color: '#0EA5E9', textDecoration: 'none', marginTop: '4px', display: 'inline-block' },
+            }, '\u2197 BAILII')
+          );
+        })
+      )
+    );
+  }
+
+  // Sprint F §3.1: three-tab layout — Library is the default
+  var tabs = [
+    { id: 'library', label: 'Library' },
+    { id: 'provisions', label: 'Provisions' },
+    { id: 'cases', label: 'Cases' },
+  ];
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', gap: '8px', marginBottom: '10px' } },
+      tabs.map(function(t) {
+        return React.createElement('button', {
+          key: t.id,
+          type: 'button',
+          onClick: function() { setTab(t.id); setSearch(''); setExpanded({}); },
+          style: {
+            flex: 1, padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
+            border: tab === t.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+            background: tab === t.id ? 'rgba(14,165,233,0.1)' : 'transparent',
+            color: tab === t.id ? '#0EA5E9' : '#94A3B8', fontWeight: tab === t.id ? 600 : 400,
+          },
+        }, t.label);
+      })
+    ),
+    React.createElement('input', {
+      type: 'text',
+      placeholder: 'Search ' + tab + '\u2026',
+      value: search,
+      onChange: function(e) { setSearch(e.target.value); },
+      style: {
+        width: '100%', padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
+        border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)',
+        color: '#E2E8F0', marginBottom: '10px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+      },
+    }),
+    loading
+      ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading\u2026')
+      : tab === 'library'
+        ? renderLibraryTab()
+        : tab === 'provisions'
+          ? renderProvisionsTab()
+          : renderCasesTab()
+  );
+}
+
+// ─── PlaceholderPanel ───
+
+const PLACEHOLDER_DESCRIPTIONS = {
+  documents: 'Create structured documents with watermarks, disclaimers, and export controls.',
+  eileen:    'Context-aware Eileen chat with Vault and Calendar integration.',
+  planner:   'Six-step contract planning workflow with gap analysis and compliance mapping.',
+};
+
+function PlaceholderPanel({ panelId }) {
+  return (
+    <div className="kl-placeholder-panel">
+      <div className="kl-placeholder-icon" aria-hidden="true">⚙</div>
+      <div className="kl-placeholder-title">Coming soon</div>
+      <p className="kl-placeholder-body">
+        {PLACEHOLDER_DESCRIPTIONS[panelId] || 'This panel is under development.'}
+      </p>
+    </div>
+  );
+}
+
+// ─── PanelDrawer (KLUI-001 §2.2) ───
+
+const PANEL_LABELS = {
+  vault: 'Document Vault', notes: 'Saved Items', documents: 'Documents',
+  calendar: 'Calendar', eileen: 'Eileen',
+  research: 'Research', planner: 'Contract Planner',
+};
+
+const PANEL_COMPONENTS = {
+  vault: VaultPanel,
+  notes: NotesPanel,
+  calendar: CalendarPanel,
+  research: ResearchPanel,
+};
+
+function PanelDrawer({ panelId, onClose }) {
+  if (!panelId) return null;
+  const PanelContent = PANEL_COMPONENTS[panelId] || PlaceholderPanel;
+  const label = PANEL_LABELS[panelId] || panelId;
+  return (
+    <div className="kl-panel-drawer" role="dialog" aria-label={label}>
+      <div className="kl-panel-drawer-header">
+        <span className="kl-panel-drawer-title">{label}</span>
+        <button className="kl-panel-drawer-close" onClick={onClose} aria-label="Close panel">✕</button>
+      </div>
+      <div className="kl-panel-drawer-body">
+        <PanelContent panelId={panelId} />
+      </div>
+    </div>
+  );
+}
+
+// ─── AdvisoryBanner ───
+
+function AdvisoryBanner() {
+  return (
+    <div className="kl-advisory">
+      <p>This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)</p>
+    </div>
+  );
+}
+
+// ─── HorizonAlert (KLUX-001 Art. 12 §12.1) ───
+// Shows the next imminent legislative event in the welcome state.
+// Single REST fetch from regulatory_requirements, forward items only.
+
+function HorizonAlert() {
+  const [event, setEvent] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const resp = await fetch(
+          SUPABASE_URL + '/rest/v1/regulatory_requirements' +
+            '?is_forward_requirement=eq.true' +
+            '&effective_from=gte.' + today +
+            '&select=requirement_name,statutory_basis,effective_from' +
+            '&order=effective_from.asc' +
+            '&limit=1',
+          {
+            headers: {
+              'Authorization': 'Bearer ' + (window.__klToken || ''),
+              'apikey': SUPABASE_ANON_KEY,
+            },
+          }
+        );
+        const data = await resp.json();
+        if (cancelled) return;
+        if (Array.isArray(data) && data[0]) {
+          setEvent(data[0]);
+        }
+      } catch (e) {
+        console.warn('HorizonAlert fetch failed (non-blocking):', e);
+      }
+    }
+    if (window.__klToken) load();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!event) return null;
+
+  const effectiveDate = new Date(event.effective_from);
+  const now = new Date();
+  const diffDays = Math.max(0, Math.ceil((effectiveDate - now) / (1000 * 60 * 60 * 24)));
+  const dateLabel = effectiveDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const urgencyColor = diffDays <= 30 ? '#F59E0B' : diffDays <= 90 ? '#0EA5E9' : '#64748B';
+
+  return (
+    <div
+      className="kl-horizon-alert"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '6px 14px',
+        borderRadius: '8px',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: '16px',
+        marginTop: '8px',
+        maxWidth: '640px',
+        width: '100%',
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: urgencyColor,
+          flexShrink: 0,
+        }}
+      ></div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 500 }}>
+          {event.requirement_name}
+        </span>
+        {event.statutory_basis && (
+          <span style={{ color: '#64748B', fontSize: '11px', marginLeft: '6px' }}>
+            {event.statutory_basis}
+          </span>
+        )}
+      </div>
+      <div
+        style={{
+          color: urgencyColor,
+          fontSize: '11px',
+          fontWeight: 500,
+          fontFamily: "'DM Mono', monospace",
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}
+      >
+        {diffDays === 0 ? 'Today' : diffDays === 1 ? 'Tomorrow' : diffDays + ' days'} — {dateLabel}
+      </div>
+    </div>
+  );
+}
+
+// ─── BookShelf (Sprint H §3, KLUX-001 Art. 14–15, KLIA-001 §11) ───
+// Renders instruments as law book covers on shelves in the welcome state.
+// Fetches content-index.json manifest. Up to 15 featured books across the
+// top categories, with category-coloured leather gradients and gold titles.
+
+function BookShelf({ onOpenBook }) {
+  var _books = useState([]);
+  var books = _books[0];
+  var setBooks = _books[1];
+
+  useEffect(function() {
+    var cancelled = false;
+    fetch('/knowledge-library/content/content-index.json')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!cancelled && Array.isArray(data)) {
+          var byCat = {};
+          data.forEach(function(inst) {
+            if (!byCat[inst.cat]) byCat[inst.cat] = [];
+            byCat[inst.cat].push(inst);
+          });
+          var featured = [];
+          var catOrder = ['legislation', 'acas', 'hse', 'ehrc', 'ico'];
+          catOrder.forEach(function(cat) {
+            if (byCat[cat]) {
+              featured = featured.concat(byCat[cat].slice(0, 3));
+            }
+          });
+          setBooks(featured.slice(0, 15));
+        }
+      })
+      .catch(function(e) { console.warn('BookShelf fetch failed:', e); });
+    return function() { cancelled = true; };
+  }, []);
+
+  if (books.length === 0) return null;
+
+  var BOOK_COLOURS = {
+    legislation: { bg: 'linear-gradient(160deg, #1a2332 0%, #0f1923 50%, #1a2332 100%)', text: '#D4A017', spine: '#D4A017' },
+    acas: { bg: 'linear-gradient(160deg, #0f2318 0%, #0a1a12 50%, #0f2318 100%)', text: '#10B981', spine: '#10B981' },
+    hse: { bg: 'linear-gradient(160deg, #231a0f 0%, #1a1208 50%, #231a0f 100%)', text: '#F59E0B', spine: '#F59E0B' },
+    ehrc: { bg: 'linear-gradient(160deg, #1f0f23 0%, #170a1a 50%, #1f0f23 100%)', text: '#EC4899', spine: '#EC4899' },
+    ico: { bg: 'linear-gradient(160deg, #0f1523 0%, #0a0f1a 50%, #0f1523 100%)', text: '#8B5CF6', spine: '#8B5CF6' },
+  };
+
+  return React.createElement('div', {
+    className: 'kl-bookshelf',
+    style: { width: '100%', maxWidth: '820px', marginTop: '32px' },
+  },
+    React.createElement('div', {
+      style: {
+        fontSize: '10px', fontWeight: 500, color: '#475569', textTransform: 'uppercase',
+        letterSpacing: '0.1em', marginBottom: '12px', fontFamily: "'DM Mono', monospace",
+        textAlign: 'center',
+      },
+    }, 'The Employment Law Library'),
+
+    React.createElement('div', {
+      className: 'kl-shelf',
+      style: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '10px',
+        justifyContent: 'center',
+        padding: '16px 12px 20px',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.01) 0%, rgba(139,92,246,0.02) 100%)',
+        borderRadius: '8px',
+        border: '1px solid rgba(255,255,255,0.04)',
+        position: 'relative',
+      },
+    },
+      books.map(function(book) {
+        var colours = BOOK_COLOURS[book.cat] || BOOK_COLOURS.legislation;
+        var shortTitle = book.short || book.title;
+        if (shortTitle.length > 35) shortTitle = shortTitle.slice(0, 32) + '\u2026';
+
+        return React.createElement('div', {
+          key: book.id,
+          onClick: function() { onOpenBook(book); },
+          className: 'kl-book',
+          style: {
+            width: '100px',
+            height: '130px',
+            borderRadius: '2px 4px 4px 2px',
+            background: colours.bg,
+            cursor: 'pointer',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '10px 8px 8px',
+            overflow: 'hidden',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            boxShadow: '2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)',
+            borderLeft: '4px solid ' + colours.spine,
+          },
+          title: book.title,
+          onMouseEnter: function(e) {
+            e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+            e.currentTarget.style.boxShadow = '2px 6px 16px rgba(0,0,0,0.5), inset -1px 0 0 rgba(255,255,255,0.08)';
+          },
+          onMouseLeave: function(e) {
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)';
+          },
+        },
+          React.createElement('div', {
+            style: {
+              width: '60%', height: '1px', background: colours.text, opacity: 0.3,
+              marginBottom: '6px',
+            },
+          }),
+          React.createElement('div', {
+            style: {
+              color: colours.text,
+              fontSize: '10px',
+              fontWeight: 600,
+              lineHeight: 1.25,
+              fontFamily: "'DM Sans', sans-serif",
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+            },
+          }, shortTitle),
+          React.createElement('div', {
+            style: {
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            },
+          },
+            React.createElement('span', {
+              style: {
+                fontSize: '7px', color: colours.text, opacity: 0.5,
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+                fontFamily: "'DM Mono', monospace",
+              },
+            }, book.cat === 'legislation' ? 'Act' : book.cat === 'acas' ? 'ACAS' : book.cat === 'hse' ? 'HSE' : book.cat === 'ico' ? 'ICO' : book.cat === 'ehrc' ? 'EHRC' : ''),
+            React.createElement('div', {
+              style: {
+                width: '3px', height: '80%', position: 'absolute', right: 0, top: '10%',
+                background: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px)',
+              },
+            })
+          )
+        );
+      }),
+
+      React.createElement('div', {
+        style: {
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px',
+          background: 'linear-gradient(90deg, rgba(139,92,246,0.1), rgba(14,165,233,0.1), rgba(139,92,246,0.1))',
+          borderRadius: '0 0 8px 8px',
+        },
+      })
+    ),
+
+    React.createElement('div', { style: { textAlign: 'center', marginTop: '12px' } },
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { if (typeof window.__klOpenPanel === 'function') window.__klOpenPanel('research'); },
+        style: {
+          background: 'transparent', border: 'none', color: '#0EA5E9',
+          fontSize: '12px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+          padding: '4px 8px',
+        },
+      }, 'Browse all 72 instruments \u2192')
+    )
+  );
+}
+
+// ─── DomainSubPage (AMD-045 §4 — domain sub-page with sub-area grid) ───
+// Renders a full domain sub-page with breadcrumb, domain selector,
+// domain header, expandable sub-area grid, key instruments strip,
+// and anchored Eileen panel at bottom.
+
+function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect, nexusState, prefersReducedMotion, onInputChange, tier }) {
+  var _exp = useState(null);
+  var expandedSubArea = _exp[0];
+  var setExpandedSubArea = _exp[1];
+
+  return React.createElement('div', {
+    className: 'kl-main',
+    style: { display: 'flex', flexDirection: 'column', height: '100%' },
+  },
+
+    // §4.2 Breadcrumb
+    React.createElement('nav', {
+      role: 'navigation',
+      'aria-label': 'Breadcrumb',
+      style: {
+        padding: '12px 24px', borderBottom: '1px solid #1E3A5F',
+        background: '#0F1D32', flexShrink: 0,
+      },
+    },
+      React.createElement('span', {
+        style: { color: '#94A3B8', cursor: 'pointer', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
+        onClick: onBack,
+      }, 'Knowledge Library'),
+      React.createElement('span', { style: { color: '#475569', margin: '0 8px' } }, '\u203A'),
+      React.createElement('span', {
+        style: { color: '#F1F5F9', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
+      }, domain.name)
+    ),
+
+    // §4.3 Domain selector — compact horizontal tabs
+    React.createElement('div', {
+      style: {
+        padding: '8px 24px', display: 'flex', gap: '8px', overflowX: 'auto',
+        borderBottom: '1px solid #1E3A5F', background: '#0F1D32', flexShrink: 0,
+      },
+    },
+      DOMAINS.map(function(d) {
+        return React.createElement('button', {
+          key: d.id,
+          type: 'button',
+          onClick: function() { window.location.hash = '/domain/' + d.slug; },
+          style: {
+            background: d.id === domain.id ? '#0EA5E9' : 'transparent',
+            color: d.id === domain.id ? '#FFFFFF' : '#94A3B8',
+            border: d.id === domain.id ? 'none' : '1px solid #334155',
+            borderRadius: '16px',
+            padding: '4px 12px',
+            fontSize: '12px',
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            transition: 'all 0.15s',
+          },
+        }, d.name);
+      })
+    ),
+
+    // Scrollable main content
+    React.createElement('div', {
+      style: { flex: 1, overflowY: 'auto', padding: '24px', minHeight: 0 },
+    },
+
+      // §4.4 Domain Header
+      React.createElement('h1', {
+        style: {
+          color: '#0EA5E9', fontFamily: "'DM Sans', sans-serif", fontSize: '28px',
+          margin: '0 0 12px', fontWeight: 700,
+        },
+      }, domain.name),
+      React.createElement('p', {
+        style: {
+          color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '15px',
+          lineHeight: 1.7, maxWidth: '720px', margin: '0 0 32px',
+        },
+      }, domain.orientation),
+
+      // §4.5 Sub-Area Grid
+      React.createElement('h2', {
+        style: {
+          color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '18px',
+          margin: '0 0 16px', fontWeight: 600,
+        },
+      }, 'Topics in this area'),
+      React.createElement('div', {
+        style: {
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '12px', marginBottom: '32px',
+        },
+      },
+        domain.subAreas.map(function(sa, i) {
+          var isExpanded = expandedSubArea === i;
+          var toggleExpand = function() { setExpandedSubArea(isExpanded ? null : i); };
+          return React.createElement('div', { key: i },
+            // Sub-area card header
+            React.createElement('div', {
+              role: 'button',
+              tabIndex: 0,
+              'aria-expanded': isExpanded,
+              'aria-label': sa.name + (isExpanded ? ' — collapse' : ' — expand for details'),
+              onClick: toggleExpand,
+              onKeyDown: function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(); } },
+              style: {
+                background: '#111827',
+                border: isExpanded ? '1px solid #0EA5E9' : '1px solid #1E293B',
+                borderRadius: isExpanded ? '8px 8px 0 0' : '8px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'border-color 0.2s',
+              },
+            },
+              React.createElement('h3', {
+                style: { color: '#F1F5F9', fontSize: '14px', fontFamily: "'DM Sans', sans-serif", margin: '0 0 6px', fontWeight: 600 },
+              }, sa.name),
+              React.createElement('p', {
+                style: { color: '#64748B', fontSize: '12px', fontFamily: "'DM Mono', monospace", margin: '0 0 8px' },
+              }, sa.instruments),
+              React.createElement('span', {
+                style: { color: isExpanded ? '#0EA5E9' : '#475569', fontSize: '11px' },
+              }, isExpanded ? '\u25BE Less' : '\u25B8 Details')
+            ),
+            // Expanded details
+            isExpanded ? React.createElement('div', {
+              style: {
+                background: '#0F172A', border: '1px solid #1E293B', borderTop: 'none',
+                borderRadius: '0 0 8px 8px', padding: '16px',
+              },
+            },
+              React.createElement('p', {
+                style: { color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: '0 0 12px' },
+              }, sa.scope),
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { onAskEileen('Tell me about ' + sa.name.toLowerCase() + ' in the context of ' + domain.name.toLowerCase()); },
+                style: {
+                  background: 'transparent', border: '1px solid #0EA5E9', color: '#0EA5E9',
+                  borderRadius: '6px', padding: '6px 14px', fontSize: '12px',
+                  fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+                  transition: 'all 0.15s',
+                },
+              }, 'Discuss with Eileen \u2192')
+            ) : null
+          );
+        })
+      ),
+
+      // §4.6 Key Instruments Strip
+      React.createElement('h2', {
+        style: {
+          color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '18px',
+          margin: '0 0 16px', fontWeight: 600,
+        },
+      }, 'Key instruments'),
+      React.createElement('div', {
+        style: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '32px' },
+      },
+        (function() {
+          var seen = {};
+          var unique = [];
+          domain.subAreas.forEach(function(sa) {
+            sa.instruments.split(', ').forEach(function(inst) {
+              if (!seen[inst]) { seen[inst] = true; unique.push(inst); }
+            });
+          });
+          return unique;
+        })().map(function(inst, i) {
+          return React.createElement('span', {
+            key: i,
+            style: {
+              background: '#1E293B', color: '#0EA5E9', padding: '6px 12px',
+              borderRadius: '16px', fontSize: '12px', fontFamily: "'DM Mono', monospace",
+              whiteSpace: 'nowrap',
+            },
+          }, inst);
+        })
+      )
+    ),
+
+    // §4.7 Eileen Panel — anchored at bottom
+    React.createElement('div', {
+      style: {
+        borderTop: '1px solid #1E3A5F', padding: '16px 24px',
+        background: '#0F1D32', flexShrink: 0,
+      },
+    },
+      React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' },
+      },
+        React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || 'dormant', tier: tier || 'kl', prefersReducedMotion: prefersReducedMotion }),
+        React.createElement('span', {
+          style: { color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
+        }, domain.eileenGreeting)
+      ),
+      React.createElement(MessageInput, { onSend: onSend, disabled: isLoading, onFileSelect: onFileSelect, onInputChange: onInputChange, nexusState: nexusState, tier: tier, prefersReducedMotion: prefersReducedMotion })
+    )
+  );
+}
+
+// ─── UpsellCard (KL upsell ladder, AMD-043) ───
+// Fixed-position overlay shown when per-session users approach expiry.
+// NOT registered in PANEL_COMPONENTS — renders directly in the App body.
+// Dismissible once per trigger (App-level state); does not reappear after dismissal.
+
+const UPSELL_CONFIG = {
+  kl_quick_session: {
+    threshold: 20,
+    title: 'Need more time?',
+    message: 'Your Quick Session ends in less than 20 minutes. Upgrade to a Day Pass for 24 hours of full access \u2014 including 2 compliance checks.',
+    cta: 'Upgrade to Day Pass \u2014 \u00a349',
+    href: '/kl-access/?product=kl_day_pass',
+  },
+  kl_day_pass: {
+    threshold: 60,
+    title: 'Extend your research',
+    message: 'Your Day Pass expires in under an hour. A Research Week gives you 7 full days and 3 compliance checks included.',
+    cta: 'Upgrade to Research Week \u2014 \u00a399',
+    href: '/kl-access/?product=kl_research_week',
+  },
+  kl_research_week: {
+    threshold: 1440,
+    title: 'Ready for continuous monitoring?',
+    message: 'Your Research Week ends tomorrow. Operational subscribers get 5 monitored contracts with auto-rescan, alerts, and ongoing Eileen access.',
+    cta: 'Explore Operational \u2014 \u00a3199/mo',
+    href: '/account/',
+  },
+};
+
+function UpsellCard({ productType, minutesRemaining, onDismiss }) {
+  const c = UPSELL_CONFIG[productType];
+  if (!c) return null;
+  if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
+
+  return (
+    <div
+      role="complementary"
+      aria-label="Session upgrade prompt"
+      style={{
+        position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+        maxWidth: '440px', width: '90%', padding: '16px 20px', borderRadius: '12px',
+        background: 'linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(14,165,233,0.04) 100%)',
+        border: '1px solid rgba(14,165,233,0.25)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        zIndex: 1000,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: '#0EA5E9', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
+            {c.title}
+          </div>
+          <div style={{ color: '#CBD5E1', fontSize: '13px', lineHeight: 1.5 }}>
+            {c.message}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss upgrade prompt"
+          style={{
+            background: 'none', border: 'none', color: '#64748B',
+            fontSize: '18px', cursor: 'pointer', padding: '0 0 0 12px', lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ marginTop: '12px' }}>
+        <a
+          href={c.href}
+          style={{
+            display: 'inline-block', padding: '8px 16px', borderRadius: '8px',
+            fontSize: '13px', fontWeight: 600,
+            background: '#0EA5E9', color: '#FFFFFF',
+            textDecoration: 'none', cursor: 'pointer',
+          }}
+        >
+          {c.cta}
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── App ───
+
+function App() {
+  const [messages, setMessages] = useState([]);
+  const [sessionId, setSessionId] = useState(() => 'eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' ? true : window.innerWidth > 768);
+  const [activePanel, setActivePanel] = useState(null);
+  const [accessType, setAccessType] = useState(window.__klAccessType || null);
+  const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [minutesRemaining, setMinutesRemaining] = useState(null);
+  const [upsellDismissed, setUpsellDismissed] = useState(false);
+  const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
+  // H-5: Domain hover tracking for FloatingNexusAdvisor
+  const [nearDomain, setNearDomain] = useState(null);
+  const nearDomainTimeout = useRef(null);
+  function handleDomainHover(domainSlug) {
+    setNearDomain(domainSlug);
+    if (nearDomainTimeout.current) clearTimeout(nearDomainTimeout.current);
+    nearDomainTimeout.current = setTimeout(function() { setNearDomain(null); }, 5000);
+  }
+  function handleDomainLeave() {
+    if (nearDomainTimeout.current) clearTimeout(nearDomainTimeout.current);
+    nearDomainTimeout.current = setTimeout(function() { setNearDomain(null); }, 2000);
+  }
+  // Sprint A §2 — Nexus visual state machine
+  const [nexusState, setNexusState] = useState('dormant');
+  const presentingTimerRef = useRef(null);
+  const [userType, setUserType] = useState(function() {
+    try { return localStorage.getItem('ailane_kl_user_type') || null; } catch(e) { return null; }
+  });
+  const [showQualifier, setShowQualifier] = useState(false);
+  const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
+  const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
+  // §6.4: One contract upload prompt per session
+  const contractPromptShown = useRef(false);
+
+  // AMD-045 §5: View state for domain sub-pages
+  const [currentView, setCurrentView] = useState(function() {
+    var route = getRoute();
+    return route.view;
+  });
+  const [currentDomain, setCurrentDomain] = useState(function() {
+    var route = getRoute();
+    return route.domain || null;
+  });
+
+  // AMD-045 §5: Hash-based routing listener
+  useEffect(function() {
+    function handleRoute() {
+      var route = getRoute();
+      if (route.view === 'domain') {
+        setCurrentView('domain');
+        setCurrentDomain(route.domain);
+      } else {
+        setCurrentView(messages.length > 0 ? 'conversation' : 'welcome');
+        setCurrentDomain(null);
+      }
+    }
+    window.addEventListener('hashchange', handleRoute);
+    return function() { window.removeEventListener('hashchange', handleRoute); };
+  }, [messages.length]);
+
+  const loadSessionHistory = useCallback(async function () {
+    if (!window.__klToken || !window.__klUserId) return;
+    try {
+      // §4.2: Include categories_matched for meaningful titles
+      const resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_eileen_conversations?user_id=eq.' + window.__klUserId +
+          '&select=session_id,user_message,categories_matched,created_at&order=created_at.desc&limit=200',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      const data = await resp.json();
+      if (!Array.isArray(data)) return;
+      const grouped = {};
+      data.forEach((row) => {
+        if (!grouped[row.session_id]) {
+          // §4.3: Category-based title (Pass 1) or first-message fallback (Pass 2)
+          var title = row.user_message ? row.user_message.substring(0, 50) : '(untitled)';
+          if (row.categories_matched && row.categories_matched.length > 0) {
+            var catKey = row.categories_matched[0];
+            if (CATEGORY_TITLES[catKey]) {
+              title = CATEGORY_TITLES[catKey];
+            }
+          }
+          grouped[row.session_id] = {
+            sessionId: row.session_id,
+            title: title,
+            lastActivity: row.created_at,
+            dateGroup: classifyDate(row.created_at),
+            messageCount: 1,
+          };
+        } else {
+          grouped[row.session_id].messageCount++;
+        }
+      });
+      // §4.3: Append message count to category-based titles
+      var sessions = Object.values(grouped);
+      var categoryTitleValues = Object.values(CATEGORY_TITLES);
+      sessions.forEach(function(s) {
+        if (s.messageCount > 1 && categoryTitleValues.indexOf(s.title) !== -1) {
+          s.title = s.title + ' (' + s.messageCount + ')';
+        }
+      });
+      setSessionHistory(sessions.slice(0, 50));
     } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'eileen',
-        text: 'I\'m having trouble connecting right now. Please try again in a moment.',
+      console.error('Failed to load session history:', err);
+    }
+  }, []);
+
+  // §5.2: Load user preferences (user_type) from kl_user_preferences on boot
+  async function loadUserPreferences() {
+    if (!window.__klToken || !window.__klUserId) return;
+    try {
+      var resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_user_preferences?user_id=eq.' + window.__klUserId + '&select=preferences',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      var data = await resp.json();
+      if (Array.isArray(data) && data.length > 0 && data[0].preferences) {
+        var prefs = data[0].preferences;
+        if (prefs.user_type) {
+          setUserType(prefs.user_type);
+          try { localStorage.setItem('ailane_kl_user_type', prefs.user_type); } catch(e) { /* silent */ }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load user preferences:', err);
+    }
+  }
+
+  // Wire up auth-ready event + trigger initial history load + preferences load
+  useEffect(() => {
+    function onReady(e) {
+      setAccessType(e.detail.accessType);
+      setTier(e.detail.tier);
+      setSessionExpiresAt(window.__klSessionExpiry || null);
+      loadSessionHistory();
+      loadUserPreferences();
+    }
+    window.addEventListener('ailane-kl-ready', onReady);
+    if (window.__klAccessType) {
+      loadSessionHistory();
+      loadUserPreferences();
+    }
+    return () => window.removeEventListener('ailane-kl-ready', onReady);
+  }, [loadSessionHistory]);
+
+  // §4.3: Track viewport width for responsive rendering
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // §5.5: Respect prefers-reduced-motion
+  const prefersReducedMotion = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // F-5: Preload Web Speech voice list. Chrome/Edge populate getVoices()
+  // asynchronously; Firefox/Safari fire voiceschanged. Warming the list
+  // here ensures selectEileenVoice() resolves Fiona (or fallback) on the
+  // first Read aloud click. EILEEN-002 §7.3.
+  useEffect(function() {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
+    try { window.speechSynthesis.getVoices(); } catch (e) { /* silent */ }
+    function onVoicesChanged() {
+      try { window.speechSynthesis.getVoices(); } catch (e) { /* silent */ }
+    }
+    window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+    return function() {
+      try {
+        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+        window.speechSynthesis.cancel();
+      } catch (e) { /* silent */ }
+    };
+  }, []);
+
+  // Auto-close sidebar when resizing down to mobile; track mobile state.
+  useEffect(() => {
+    function onResize() {
+      var mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      }
+    }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Toggle sidebar-collapsed class on the real #kl-root grid container
+  useEffect(() => {
+    const el = document.getElementById('kl-root');
+    if (el) el.classList.toggle('sidebar-collapsed', !sidebarOpen);
+  }, [sidebarOpen]);
+
+  // Toggle drawer-open class on the real #kl-root (layout signal only;
+  // the drawer itself is positioned fixed — this class is reserved for future push mode).
+  useEffect(() => {
+    const el = document.getElementById('kl-root');
+    if (el) el.classList.toggle('drawer-open', !!activePanel);
+  }, [activePanel]);
+
+  // Upsell ladder: minute-precision countdown used by UpsellCard only.
+  // Runs in parallel with SessionCountdown (which is second-precision for display).
+  // Reads sessionExpiresAt state so it picks up the ailane-kl-ready event.
+  useEffect(() => {
+    if (!sessionExpiresAt) {
+      setMinutesRemaining(null);
+      return undefined;
+    }
+    const expiresAt = new Date(sessionExpiresAt).getTime();
+    if (isNaN(expiresAt)) return undefined;
+
+    function update() {
+      const diff = Math.max(0, Math.floor((expiresAt - Date.now()) / 60000));
+      setMinutesRemaining(diff);
+    }
+    update();
+    const interval = setInterval(update, 60000);
+    return () => clearInterval(interval);
+  }, [sessionExpiresAt]);
+
+  async function loadSession(sid) {
+    // F-5: Cancel any active speech when switching sessions
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* silent */ }
+    if (!window.__klToken) return;
+    try {
+      const resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_eileen_conversations?session_id=eq.' + sid +
+          '&select=user_message,eileen_response,created_at&order=created_at.asc',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      const data = await resp.json();
+      if (!Array.isArray(data)) return;
+      const msgs = [];
+      data.forEach((row) => {
+        msgs.push({ role: 'user', content: row.user_message });
+        msgs.push({ role: 'assistant', content: row.eileen_response });
+      });
+      setMessages(msgs);
+      setSessionId(sid);
+    } catch (err) {
+      console.error('Failed to load session:', err);
+    }
+  }
+
+  function newChat() {
+    // F-5: Cancel any active speech when starting a new chat
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* silent */ }
+    setSessionId('eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
+    setMessages([]);
+    // AMD-045: Reset view to welcome and clear domain context
+    setCurrentView('welcome');
+    setCurrentDomain(null);
+    // §6.4: Reset contract prompt guard for new session
+    contractPromptShown.current = false;
+    if (window.location.hash && window.location.hash !== '#/') {
+      window.location.hash = '/';
+    }
+  }
+
+  async function sendMessage(text) {
+    const clean = (text || '').trim();
+    if (!clean || isLoading) return;
+    // AMD-045 §5: Transition from domain sub-page to conversation on send
+    if (currentView === 'domain') {
+      setCurrentView('conversation');
+      // Don't clear currentDomain — it's used for page_context
+    }
+    setMessages((prev) => [...prev, { role: 'user', content: clean }]);
+    setIsLoading(true);
+    if (presentingTimerRef.current) { clearTimeout(presentingTimerRef.current); presentingTimerRef.current = null; }
+    setNexusState('processing');
+    try {
+      // AMD-045 §4.8: Include domain context in Eileen request
+      var requestBody = {
+        message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional managing staff' : 'a worker with a question about their own employment') + '] ' : '') + clean,
+        session_id: sessionId,
+        page_context: currentDomain
+          ? 'knowledge-library/domain/' + currentDomain.slug
+          : 'knowledge-library',
+      };
+      if (currentDomain) {
+        requestBody.domain_context = currentDomain.id;
+      }
+      const resp = await fetch(EILEEN_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      const data = await resp.json();
+      if (data && data.response) {
+        setMessages((prev) => [...prev, {
+          role: 'assistant',
+          content: data.response,
+          provisionsCount: data.provisions_count,
+          casesCount: data.cases_count,
+        }]);
+        loadSessionHistory();
+        setNexusState('presenting');
+        presentingTimerRef.current = setTimeout(function() { setNexusState('dormant'); presentingTimerRef.current = null; }, 2000);
+
+        // EQIS: Show qualifying question after first Eileen response
+        // if user type not stored and not already shown this session
+        if (!userType && !qualifierShownThisSession) {
+          setShowQualifier(true);
+          setQualifierShownThisSession(true);
+        }
+
+        // §6.3/§6.4: Proactive contract routing — one prompt per session
+        if (hasContractIntent(clean) && !contractPromptShown.current && !hasUploadedThisSession) {
+          contractPromptShown.current = true;
+          setTimeout(function() {
+            setMessages(function(prev) {
+              return prev.concat([{
+                role: 'system_ui',
+                type: 'contract_upload_prompt',
+              }]);
+            });
+          }, 800);
+        }
+      } else {
+        setNexusState('dormant');
+        setMessages((prev) => [...prev, {
+          role: 'assistant',
+          isError: true,
+          errorMessage: "I wasn't able to process that just now. This is usually temporary — would you like to try again?",
+          retryAction: function() { sendMessage(clean); },
+        }]);
+      }
+    } catch (err) {
+      console.error('sendMessage error:', err);
+      setNexusState('dormant');
+      var isOffline = !navigator.onLine || (err && err.message && err.message.indexOf('fetch') !== -1);
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        isError: true,
+        errorMessage: isOffline
+          ? "It looks like we've lost connection. Please check your internet and try again when you're ready."
+          : "I wasn't able to process that just now. This is usually temporary — would you like to try again?",
+        retryAction: function() { sendMessage(clean); },
       }]);
     } finally {
       setIsLoading(false);
     }
-  }, [user.token]);
+  }
 
-  const handleSubmit = useCallback(() => {
-    const trimmed = inputValue.trim();
-    if (!trimmed || isLoading) return;
-    sendToEileen(trimmed);
-  }, [inputValue, isLoading, sendToEileen]);
+  // Sprint A §2.3: dormant ↔ ready based on input content
+  function handleInputChange(inputLength) {
+    if (inputLength > 0 && nexusState === 'dormant') setNexusState('ready');
+    else if (inputLength === 0 && nexusState === 'ready') setNexusState('dormant');
+  }
 
-  const handleTopicClick = useCallback((message) => {
-    if (isLoading) return;
-    sendToEileen(message);
-  }, [isLoading, sendToEileen]);
-
-  const handleNewChat = useCallback(() => {
-    sessionIdRef.current = crypto.randomUUID();
-    setMessages([]);
-    setPageState('welcome');
-    setInputValue('');
+  // Sprint A §2.5: Cleanup presenting timer on unmount
+  useEffect(function() {
+    return function() {
+      if (presentingTimerRef.current) clearTimeout(presentingTimerRef.current);
+    };
   }, []);
 
+  // Expose sendMessage for Research Panel provision click → seed Eileen
+  window.__klSendMessage = sendMessage;
+  // Sprint G §2.8: Expose the panel opener so the welcome-state
+  // "Browse the Library" button can open the Research Panel.
+  window.__klOpenPanel = function(panelId) {
+    setActivePanel(panelId);
+  };
+  // Sprint H §5.1: Expose handleFileSelect so the VaultPanel upload button
+  // can invoke the App-level upload flow without prop drilling.
+  window.__klHandleFileSelect = handleFileSelect;
+
+  // §5.3: Persist user_type to kl_user_preferences via PATCH (existing) or POST (new)
+  async function handleUserTypeSelect(type) {
+    setUserType(type);
+    setShowQualifier(false);
+    try { localStorage.setItem('ailane_kl_user_type', type); } catch(e) { /* silent */ }
+    if (!window.__klToken || !window.__klUserId) return;
+    try {
+      var checkResp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_user_preferences?user_id=eq.' + window.__klUserId + '&select=id,preferences',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      var existing = await checkResp.json();
+      if (Array.isArray(existing) && existing.length > 0) {
+        var merged = Object.assign({}, existing[0].preferences, { user_type: type });
+        await fetch(
+          SUPABASE_URL + '/rest/v1/kl_user_preferences?id=eq.' + existing[0].id,
+          {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer ' + window.__klToken,
+              'apikey': SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({ preferences: merged, updated_at: new Date().toISOString() }),
+          }
+        );
+      } else {
+        await fetch(
+          SUPABASE_URL + '/rest/v1/kl_user_preferences',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + window.__klToken,
+              'apikey': SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              user_id: window.__klUserId,
+              preferences: { user_type: type },
+            }),
+          }
+        );
+      }
+    } catch (err) {
+      console.error('Failed to save user type:', err);
+    }
+  }
+
+  // ─── File upload flow (KL File Upload Widget, Stage A) ───
+
+  function addMessage(msg) {
+    setMessages((prev) => [...prev, msg]);
+  }
+
+  function updateFileMessage(msgId, updates) {
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? Object.assign({}, m, updates) : m)));
+  }
+
+  async function uploadFile(file, msgId) {
+    // Step 4.3 — Upload to Supabase Storage
+    const storagePath = window.__klUserId + '/' + Date.now() + '-' + file.name;
+    let uploadOk = false;
+    try {
+      const uploadResp = await fetch(
+        SUPABASE_URL + '/storage/v1/object/kl-document-vault/' + encodeURIComponent(storagePath),
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': file.type || 'application/octet-stream',
+            'x-upsert': 'true',
+          },
+          body: file,
+        }
+      );
+      uploadOk = uploadResp.ok;
+    } catch (err) {
+      console.error('Storage upload failed:', err);
+    }
+    if (!uploadOk) {
+      updateFileMessage(msgId, { status: 'error' });
+      addMessage({
+        role: 'assistant',
+        isError: true,
+        errorMessage: "The document upload didn't complete. Please check the file is a PDF or Word document and try again.",
+      });
+      return;
+    }
+
+    // Step 4.4 — Create kl_vault_documents record
+    // Per §11.3: subscription users get session_only=false / expires_at=null;
+    // per-session users get session_only=true / expires_at=session expiry.
+    const isSubscription = (
+      window.__klAccessType === 'subscription' ||
+      window.__klTier === 'operational_readiness' ||
+      window.__klTier === 'governance' ||
+      window.__klTier === 'institutional'
+    );
+    const docRecord = {
+      user_id: window.__klUserId,
+      filename: file.name,
+      storage_path: storagePath,
+      file_size_bytes: file.size,
+      mime_type: file.type,
+      extraction_status: 'pending',
+      analysis_status: 'pending',
+      session_only: !isSubscription,
+      expires_at: isSubscription ? null : (window.__klSessionExpiry || null),
+    };
+
+    let documentId = null;
+    try {
+      const insertResp = await fetch(SUPABASE_URL + '/rest/v1/kl_vault_documents', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + window.__klToken,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(docRecord),
+      });
+      if (insertResp.ok) {
+        const insertedDocs = await insertResp.json();
+        if (Array.isArray(insertedDocs) && insertedDocs[0] && insertedDocs[0].id) {
+          documentId = insertedDocs[0].id;
+        }
+      }
+    } catch (err) {
+      console.error('Vault insert failed:', err);
+    }
+    if (!documentId) {
+      updateFileMessage(msgId, { status: 'error' });
+      addMessage({
+        role: 'assistant',
+        isError: true,
+        errorMessage: "The document upload didn't complete. Please check the file is a PDF or Word document and try again.",
+      });
+      return;
+    }
+    updateFileMessage(msgId, { documentId: documentId, status: 'extracting' });
+
+    // Step 4.5 — Call kl_document_extract
+    let extractResult = null;
+    try {
+      const extractResp = await fetch(
+        SUPABASE_URL + '/functions/v1/kl_document_extract',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ document_id: documentId }),
+        }
+      );
+      if (extractResp.ok) {
+        extractResult = await extractResp.json();
+      }
+    } catch (err) {
+      console.error('Document extract failed:', err);
+    }
+    if (!extractResult || typeof extractResult.char_count !== 'number') {
+      updateFileMessage(msgId, { status: 'error' });
+      addMessage({
+        role: 'assistant',
+        content: 'Text extraction failed. The file may be image-only or password-protected.',
+        isLocal: true,
+      });
+      return;
+    }
+
+    // Step 4.6 — F-3: Offer the user two explicit choices rather than auto-
+    // routing to the compliance engine. Surface filename, size, and both
+    // "Run Compliance Check" and "Save to Vault only" buttons via
+    // UploadCompleteMessage. CCI v1.0 Art. I §1.5 (Separation Doctrine).
+    updateFileMessage(msgId, { status: 'ready', charCount: extractResult.char_count });
+    addMessage({
+      id: 'ready-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      role: 'assistant',
+      content: '',
+      isLocal: true,
+      isUploadComplete: true,
+      filename: file.name,
+      fileSize: file.size,
+      charCount: extractResult.char_count,
+      documentId: documentId,
+      vaultOnly: false,
+    });
+  }
+
+  // F-3: "Save to Vault only" dismisses the upload-complete card. The
+  // document row is already persisted in kl_vault_documents by uploadFile,
+  // so no extra POST is required — we just collapse the card UI.
+  function handleVaultOnly(msgId) {
+    setMessages(function(prev) {
+      return prev.map(function(m) {
+        return m.id === msgId ? Object.assign({}, m, { vaultOnly: true }) : m;
+      });
+    });
+  }
+
+  // ─── Compliance bridge flow (KL R1-B, AMD-043) ───
+  // Calls kl-compliance-bridge (deployed v1 ACTIVE on Supabase). Eileen routes
+  // to the engine and presents findings — she does not compute scores.
+  // CCI v1.0 Art. I §1.5 (Separation Doctrine).
+  async function handleRunAnalysis(documentId, msgId) {
+    // 1. Lock the trigger button on the post-extraction message
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? Object.assign({}, m, { analysisTriggered: true }) : m))
+    );
+
+    // 2. Add Eileen loading message with a stable id so we can update/replace it
+    const loadingMsgId = 'analysis-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    addMessage({
+      id: loadingMsgId,
+      role: 'assistant',
+      content: 'Routing your contract through the compliance engine\u2026',
+      isLocal: true,
+      isAnalysisLoading: true,
+    });
+
+    // 3. Phased status updates during the 30-90s analysis window
+    const phases = [
+      { delay: 8000,  text: 'Analysing against UK employment law requirements\u2026' },
+      { delay: 20000, text: 'Checking statutory provisions and forward legislative exposure\u2026' },
+      { delay: 40000, text: 'Compiling findings and scoring compliance position\u2026' },
+    ];
+    const phaseTimers = phases.map((phase) =>
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === loadingMsgId ? Object.assign({}, m, { content: phase.text }) : m))
+        );
+      }, phase.delay)
+    );
+
+    try {
+      const token = window.__klToken;
+      if (!token) throw new Error('Not authenticated');
+
+      // ── START the analysis (bridge v3 returns immediately) ──
+      const startResponse = await fetch(
+        SUPABASE_URL + '/functions/v1/kl-compliance-bridge',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({
+            document_id: documentId,
+            document_type: 'employment_contract',
+            action: 'start',
+          }),
+        }
+      );
+
+      const startData = await startResponse.json();
+
+      if (!startResponse.ok) {
+        // Stop phase timers on error
+        phaseTimers.forEach((t) => clearTimeout(t));
+
+        if (startData && startData.error === 'check_limit_reached') {
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id === loadingMsgId) {
+                return Object.assign({}, m, {
+                  content:
+                    startData.message ||
+                    'You have used all bundled Contract Compliance Checks in this session. Additional checks are available at \u00a315 each.',
+                  isAnalysisLoading: false,
+                  isLocal: true,
+                });
+              }
+              if (m.id === msgId) {
+                return Object.assign({}, m, { analysisTriggered: false });
+              }
+              return m;
+            })
+          );
+          return;
+        }
+        throw new Error((startData && (startData.error || startData.detail)) || 'Analysis failed');
+      }
+
+      var uploadId = startData.upload_id;
+      if (!uploadId) throw new Error('No upload_id returned from bridge');
+
+      // Update loading message with time expectation
+      setMessages(function(prev) {
+        return prev.map(function(m) {
+          return m.id === loadingMsgId
+            ? Object.assign({}, m, { content: 'Analysing your contract against UK employment law requirements. This typically takes 60\u201390 seconds.' })
+            : m;
+        });
+      });
+
+      // ── POLL for completion (every 5 seconds, max 60 attempts = 5 minutes) ──
+      var maxPolls = 60;
+      var pollCount = 0;
+      var pollResult = null;
+
+      while (pollCount < maxPolls) {
+        await new Promise(function(resolve) { setTimeout(resolve, 5000); });
+        pollCount++;
+
+        // Update phase messages based on elapsed time
+        var elapsed = pollCount * 5;
+        if (elapsed === 15) {
+          setMessages(function(prev) {
+            return prev.map(function(m) {
+              return m.id === loadingMsgId
+                ? Object.assign({}, m, { content: 'Checking statutory provisions and case law references\u2026' })
+                : m;
+            });
+          });
+        } else if (elapsed === 35) {
+          setMessages(function(prev) {
+            return prev.map(function(m) {
+              return m.id === loadingMsgId
+                ? Object.assign({}, m, { content: 'Assessing forward legislative exposure under ERA 2025\u2026' })
+                : m;
+            });
+          });
+        } else if (elapsed === 60) {
+          setMessages(function(prev) {
+            return prev.map(function(m) {
+              return m.id === loadingMsgId
+                ? Object.assign({}, m, { content: 'Compiling findings and scoring compliance position\u2026' })
+                : m;
+            });
+          });
+        }
+
+        try {
+          var pollResponse = await fetch(
+            SUPABASE_URL + '/functions/v1/kl-compliance-bridge',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+              },
+              body: JSON.stringify({
+                document_id: documentId,
+                upload_id: uploadId,
+                action: 'poll',
+              }),
+            }
+          );
+
+          var pollData = await pollResponse.json();
+
+          if (pollData.status === 'processing') {
+            continue;
+          }
+
+          // Analysis complete (or error/out_of_scope/sparse_report)
+          pollResult = pollData;
+          break;
+        } catch (pollErr) {
+          console.warn('Poll error (will retry):', pollErr);
+          continue;
+        }
+      }
+
+      // Stop phase timers (they may still be running from the original set)
+      phaseTimers.forEach(function(t) { clearTimeout(t); });
+
+      if (!pollResult) {
+        throw new Error('Analysis is taking longer than expected. Your results will appear in the Document Vault when ready.');
+      }
+
+      // ── SUCCESS — replace loading message with results ──
+      setMessages(function(prev) {
+        var withoutLoading = prev.filter(function(m) { return m.id !== loadingMsgId; });
+        return withoutLoading.concat([{
+          id: 'result-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+          role: 'assistant',
+          content: '',
+          isLocal: true,
+          isAnalysisResult: true,
+          // R1-C §3: merge upload_id so the PDF download button in
+          // AnalysisResultMessage can reference it via data.upload_id.
+          // Sprint F §2.2: merge document_id so the Save to Vault button
+          // can PATCH the kl_vault_documents row.
+          analysisData: Object.assign({}, pollResult, { upload_id: uploadId, document_id: documentId }),
+        }]);
+      });
+    } catch (err) {
+      phaseTimers.forEach((t) => clearTimeout(t));
+      console.error('handleRunAnalysis error:', err);
+
+      // Generic error — re-enable the trigger so the user can retry
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === loadingMsgId) {
+            return Object.assign({}, m, {
+              content:
+                'I was unable to complete the analysis. ' +
+                ((err && err.message) || 'Please try again.'),
+              isAnalysisLoading: false,
+              isLocal: true,
+            });
+          }
+          if (m.id === msgId) {
+            return Object.assign({}, m, { analysisTriggered: false });
+          }
+          return m;
+        })
+      );
+    }
+  }
+
+  function handleFileSelect(e) {
+    const file = e && e.target && e.target.files && e.target.files[0];
+    if (!file) return;
+    setHasUploadedThisSession(true);
+
+    // Validate extension
+    const parts = file.name.split('.');
+    const ext = parts.length > 1 ? '.' + parts[parts.length - 1].toLowerCase() : '';
+    if (ALLOWED_EXTENSIONS.indexOf(ext) === -1) {
+      addMessage({
+        role: 'assistant',
+        content:
+          'I can accept PDF, DOCX, or TXT files up to 10MB. The file you selected (' +
+          (ext || 'unknown type') +
+          ') is not a supported format.',
+        isLocal: true,
+      });
+      if (e.target && 'value' in e.target) e.target.value = '';
+      return;
+    }
+
+    // Validate size
+    if (file.size > MAX_FILE_SIZE) {
+      addMessage({
+        role: 'assistant',
+        content:
+          'That file is too large (' +
+          (file.size / (1024 * 1024)).toFixed(1) +
+          'MB). The maximum is 10MB.',
+        isLocal: true,
+      });
+      if (e.target && 'value' in e.target) e.target.value = '';
+      return;
+    }
+
+    // Add upload preview to conversation
+    const msgId = 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    addMessage({
+      id: msgId,
+      role: 'user',
+      type: 'file_upload',
+      filename: file.name,
+      fileSize: file.size,
+      status: 'uploading',
+      documentId: null,
+      charCount: null,
+    });
+
+    // Kick off async upload flow
+    uploadFile(file, msgId);
+
+    // Reset input so the same file can be re-selected later
+    if (e.target && 'value' in e.target) e.target.value = '';
+  }
+
+  // Fragment root: children become direct grid items of the real #kl-root.
+  // (Wrapping in another <div id="kl-root"> would duplicate the id and
+  // break the #kl-root.sidebar-collapsed CSS rule on the outer grid.)
   return (
-    <div className="kl-app">
-      <Header tier={tier} pageState={pageState} onNewChat={handleNewChat} />
-      <main className="kl-main">
-        {pageState === 'welcome' ? (
-          <WelcomeState
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            onSubmit={handleSubmit}
-            onTopicClick={handleTopicClick}
-          />
-        ) : (
-          <ConversationState
-            messages={messages}
-            isLoading={isLoading}
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            onSubmit={handleSubmit}
-          />
-        )}
-      </main>
-      <Footer />
-    </div>
+    <React.Fragment>
+      <TopBar
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        accessType={accessType}
+        tier={tier}
+        sessionExpiresAt={sessionExpiresAt}
+        onSessionExpired={() => setSessionExpired(true)}
+      />
+      <Sidebar
+        open={sidebarOpen}
+        sessionHistory={sessionHistory}
+        activeSessionId={sessionId}
+        onSelectSession={(sid) => { loadSession(sid); if (window.innerWidth <= 768) setSidebarOpen(false); }}
+        onNewChat={() => { newChat(); if (window.innerWidth <= 768) setSidebarOpen(false); }}
+        onCrownQuery={sendMessage}
+        nexusState={nexusState}
+        prefersReducedMotion={prefersReducedMotion.current}
+      />
+      {/* AMD-045 §5: Conditional render — domain sub-page or conversation area */}
+      {currentView === 'domain' && currentDomain ? (
+        <DomainSubPage
+          domain={currentDomain}
+          onBack={function() { window.location.hash = '/'; }}
+          onAskEileen={function(question) { sendMessage(question); }}
+          onSend={sendMessage}
+          isLoading={isLoading}
+          onFileSelect={handleFileSelect}
+          nexusState={nexusState}
+          prefersReducedMotion={prefersReducedMotion.current}
+          onInputChange={handleInputChange}
+          tier={tier}
+        />
+      ) : (
+        <ConversationArea
+          messages={messages}
+          isLoading={isLoading}
+          onSend={sendMessage}
+          accessType={accessType}
+          tier={tier}
+          onFileSelect={handleFileSelect}
+          onRunAnalysis={handleRunAnalysis}
+          onVaultOnly={handleVaultOnly}
+          floatingNexusExpanded={floatingNexusOpen}
+          onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
+          showQualifier={showQualifier}
+          onUserTypeSelect={handleUserTypeSelect}
+          pulseUpload={messages.some(function(m) { return m.role === 'system_ui' && m.type === 'contract_upload_prompt'; }) && !hasUploadedThisSession}
+          nexusState={nexusState}
+          prefersReducedMotion={prefersReducedMotion.current}
+          onInputChange={handleInputChange}
+          nearDomain={nearDomain}
+          onDomainHover={handleDomainHover}
+          onDomainLeave={handleDomainLeave}
+        />
+      )}
+      {/* F-1: FloatingNexusAdvisor rendered at App level so it is visible
+          above ConversationArea (previously nested inside welcome branch
+          and effectively clipped). Hide on domain sub-pages. */}
+      {currentView !== 'domain' && messages.length === 0 && (
+        <FloatingNexusAdvisor
+          nearDomain={nearDomain}
+          nexusState={nexusState}
+          prefersReducedMotion={prefersReducedMotion.current}
+        />
+      )}
+      <PanelRail
+        activePanel={activePanel}
+        onSelectPanel={setActivePanel}
+        accessType={accessType}
+        tier={tier}
+      />
+      <AdvisoryBanner />
+      {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
+      {activePanel && (
+        <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} />
+      )}
+      {!upsellDismissed && !sessionExpired && (
+        <UpsellCard
+          productType={window.__klProductType || tier || ''}
+          minutesRemaining={minutesRemaining}
+          onDismiss={() => setUpsellDismissed(true)}
+        />
+      )}
+      {sessionExpired && <ExpiredModal />}
+    </React.Fragment>
   );
 }
 
-// Mount point — called from index.html boot script
-window.KLApp = KLApp;
+// ─── Init ───
+// The shell's auth guard calls window.initKLApp() once auth is confirmed.
+window.initKLApp = function () {
+  const container = document.getElementById('kl-root');
+  if (!container) return;
+  const root = ReactDOM.createRoot(container);
+  root.render(React.createElement(App));
+};
+
+// Auto-init if auth already completed before this bundle loaded.
+if (window.__klAccessType) {
+  window.initKLApp();
+}

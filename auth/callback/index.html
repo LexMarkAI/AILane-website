@@ -66,10 +66,12 @@
       var d=dest(tier);
       // returnTo: redirect preservation (P0 — KLUI-001 workspace redirect)
       // Honour stored returnTo instead of default tier route, if valid.
-      var returnTo=sessionStorage.getItem('ailane_returnTo');
+      // Also accept a returnTo query param, so /account/?returnTo=/knowledge-library/
+      // from the KL auth guard fallback works without sessionStorage plumbing.
+      var returnTo=sessionStorage.getItem('ailane_returnTo')||params.get('returnTo');
       sessionStorage.removeItem('ailane_returnTo');
       if(returnTo){
-        var allowedPrefixes=['/account/','/intelligence/','/governance-dashboard/'];
+        var allowedPrefixes=['/account/','/intelligence/','/governance-dashboard/','/knowledge-library/'];
         var isAllowed=allowedPrefixes.some(function(p){return returnTo.startsWith(p)});
         if(isAllowed)d=returnTo;
       }
