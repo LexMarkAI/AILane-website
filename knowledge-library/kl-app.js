@@ -234,25 +234,18 @@
     return { view: "welcome" };
   }
   var CONTRACT_INTENT_PATTERNS = [
-    "check my contract",
-    "review my contract",
-    "analyse my contract",
-    "analyze my contract",
-    "compliance check",
-    "upload my contract",
-    "is my contract compliant",
-    "contract review",
-    "check this contract",
-    "review this document",
-    "check my employment contract",
-    "contract compliance",
-    "look at my contract",
-    "scan my contract"
+    /\b(check|review|audit|analyse|analyze)\b.*\b(contract|document|policy|handbook)\b/i,
+    /\b(contract|document|policy|handbook)\b.*\b(check|review|audit|analyse|analyze)\b/i,
+    /\bupload\b.*\b(contract|document)\b/i,
+    /\b(compliance|compliant)\b.*\b(check|review)\b/i,
+    /\bcontract\s+compliance\b/i,
+    /\bcheck\s+my\s+contract\b/i,
+    /\breview\s+my\s+(contract|document)\b/i,
+    /\bis\s+my\s+contract\s+(legal|compliant|ok|okay)\b/i
   ];
   function hasContractIntent(text) {
-    var lower = (text || "").toLowerCase();
     return CONTRACT_INTENT_PATTERNS.some(function(pattern) {
-      return lower.indexOf(pattern) !== -1;
+      return pattern.test(text || "");
     });
   }
   (function() {
@@ -348,33 +341,50 @@
     if (days < 7) return days + "d ago";
     return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
   }
-  function groupSessionsByTime(sessions) {
+  function classifyDate(dateStr) {
     var now = /* @__PURE__ */ new Date();
-    var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    var yesterdayStart = todayStart - 864e5;
-    var weekStart = todayStart - (now.getDay() === 0 ? 6 : now.getDay() - 1) * 864e5;
+    var d = new Date(dateStr);
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    var weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+    if (d >= today) return "Today";
+    if (d >= yesterday) return "Yesterday";
+    if (d >= weekAgo) return "This Week";
+    return "Earlier";
+  }
+  function groupSessionsByTime(sessions) {
     var groups = {
       today: { label: "Today", items: [] },
       yesterday: { label: "Yesterday", items: [] },
       thisWeek: { label: "This Week", items: [] },
       earlier: { label: "Earlier", items: [] }
     };
+    var groupKeyMap = { "Today": "today", "Yesterday": "yesterday", "This Week": "thisWeek", "Earlier": "earlier" };
     sessions.forEach(function(s) {
-      var t = new Date(s.lastActivity).getTime();
-      if (t >= todayStart) {
-        groups.today.items.push(s);
-      } else if (t >= yesterdayStart) {
-        groups.yesterday.items.push(s);
-      } else if (t >= weekStart) {
-        groups.thisWeek.items.push(s);
-      } else {
-        groups.earlier.items.push(s);
-      }
+      var group = s.dateGroup || classifyDate(s.lastActivity);
+      var key = groupKeyMap[group] || "earlier";
+      groups[key].items.push(s);
     });
     return [groups.today, groups.yesterday, groups.thisWeek, groups.earlier].filter(function(g) {
       return g.items.length > 0;
     });
   }
+  var CATEGORY_TITLES = {
+    unfair_dismissal: "Unfair Dismissal",
+    discrimination: "Discrimination",
+    wages_deductions: "Wages and Deductions",
+    working_time: "Working Time",
+    whistleblowing: "Whistleblowing",
+    health_safety: "Health and Safety",
+    tupe: "Business Transfers (TUPE)",
+    data_protection: "Data Protection",
+    family_leave: "Family Leave",
+    redundancy: "Redundancy",
+    contractual: "Contract Terms",
+    equal_pay: "Equal Pay"
+  };
   function truncate(s, n) {
     if (!s) return "";
     return s.length > n ? s.substring(0, n - 1) + "\u2026" : s;
@@ -481,8 +491,47 @@
       }
     ), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-sender", style: { marginBottom: 0 } }, "Eileen"));
   }
+  function ContractUploadPrompt({ onUpload }) {
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      background: "#0F172A",
+      border: "1px solid #0EA5E9",
+      borderRadius: "12px",
+      padding: "20px",
+      margin: "12px 0",
+      maxWidth: "520px"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: {
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      background: "#0EA5E9",
+      boxShadow: "0 0 8px rgba(14,165,233,0.5)"
+    } }), /* @__PURE__ */ React.createElement("span", { style: { color: "#F1F5F9", fontSize: "14px", fontFamily: "'DM Sans', sans-serif", fontWeight: 600 } }, "Ready to check your contract")), /* @__PURE__ */ React.createElement("p", { style: { color: "#CBD5E1", fontSize: "13px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: "0 0 16px" } }, "Upload your employment contract or HR document and Eileen will route it through the Contract Compliance Check engine for analysis against current UK employment legislation."), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onUpload,
+        style: {
+          background: "#0EA5E9",
+          color: "#FFFFFF",
+          border: "none",
+          borderRadius: "8px",
+          padding: "10px 20px",
+          fontSize: "13px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 600,
+          cursor: "pointer"
+        },
+        onMouseEnter: function(e) {
+          e.currentTarget.style.background = "#0284C7";
+        },
+        onMouseLeave: function(e) {
+          e.currentTarget.style.background = "#0EA5E9";
+        }
+      },
+      "Upload Document"
+    ));
+  }
   function QualifyingQuestion({ onSelect }) {
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body", style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("p", null, "To give you the most relevant guidance \u2014 are you an employer or HR professional managing compliance, or a worker with a question about your own employment rights?")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body", style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("p", null, "Before we begin \u2014 are you an employer or HR professional managing staff, or a worker with a question about your own employment?")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -508,7 +557,7 @@
           e.currentTarget.style.background = "rgba(14, 165, 233, 0.1)";
         }
       },
-      "Employer / HR"
+      "Employer / HR Professional"
     ), /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -1607,7 +1656,15 @@
             window.dispatchEvent(new CustomEvent("kl-open-instrument", { detail: { id: instId } }));
           }
         }
-      } }, messages.map((m, i) => /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m, onRunAnalysis })), showQualifier && /* @__PURE__ */ React.createElement(QualifyingQuestion, { onSelect: onUserTypeSelect }), isLoading && /* @__PURE__ */ React.createElement(TypingIndicator, null)),
+      } }, messages.map((m, i) => {
+        if (m.role === "system_ui" && m.type === "contract_upload_prompt") {
+          return /* @__PURE__ */ React.createElement(ContractUploadPrompt, { key: i, onUpload: function() {
+            var fileInput = document.querySelector('.kl-conversation-input input[type="file"]') || document.querySelector('.kl-welcome-input input[type="file"]');
+            if (fileInput) fileInput.click();
+          } });
+        }
+        return /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m, onRunAnalysis });
+      }), showQualifier && /* @__PURE__ */ React.createElement(QualifyingQuestion, { onSelect: onUserTypeSelect }), isLoading && /* @__PURE__ */ React.createElement(TypingIndicator, null)),
       /* @__PURE__ */ React.createElement("div", { className: "kl-conversation-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload }))
     ));
   }
@@ -4702,6 +4759,7 @@
     const [showQualifier, setShowQualifier] = useState(false);
     const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
     const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
+    const contractPromptShown = useRef(false);
     const [currentView, setCurrentView] = useState(function() {
       var route = getRoute();
       return route.view;
@@ -4730,7 +4788,7 @@
       if (!window.__klToken || !window.__klUserId) return;
       try {
         const resp = await fetch(
-          SUPABASE_URL + "/rest/v1/kl_eileen_conversations?user_id=eq." + window.__klUserId + "&select=session_id,user_message,created_at&order=created_at.desc&limit=100",
+          SUPABASE_URL + "/rest/v1/kl_eileen_conversations?user_id=eq." + window.__klUserId + "&select=session_id,user_message,categories_matched,created_at&order=created_at.desc&limit=200",
           { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
         );
         const data = await resp.json();
@@ -4738,28 +4796,70 @@
         const grouped = {};
         data.forEach((row) => {
           if (!grouped[row.session_id]) {
+            var title = row.user_message ? row.user_message.substring(0, 50) : "(untitled)";
+            if (row.categories_matched && row.categories_matched.length > 0) {
+              var catKey = row.categories_matched[0];
+              if (CATEGORY_TITLES[catKey]) {
+                title = CATEGORY_TITLES[catKey];
+              }
+            }
             grouped[row.session_id] = {
               sessionId: row.session_id,
-              title: row.user_message ? row.user_message.substring(0, 50) : "(untitled)",
-              lastActivity: row.created_at
+              title,
+              lastActivity: row.created_at,
+              dateGroup: classifyDate(row.created_at),
+              messageCount: 1
             };
+          } else {
+            grouped[row.session_id].messageCount++;
           }
         });
-        setSessionHistory(Object.values(grouped).slice(0, 50));
+        var sessions = Object.values(grouped);
+        var categoryTitleValues = Object.values(CATEGORY_TITLES);
+        sessions.forEach(function(s) {
+          if (s.messageCount > 1 && categoryTitleValues.indexOf(s.title) !== -1) {
+            s.title = s.title + " (" + s.messageCount + ")";
+          }
+        });
+        setSessionHistory(sessions.slice(0, 50));
       } catch (err) {
         console.error("Failed to load session history:", err);
       }
     }, []);
+    async function loadUserPreferences() {
+      if (!window.__klToken || !window.__klUserId) return;
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + "/rest/v1/kl_user_preferences?user_id=eq." + window.__klUserId + "&select=preferences",
+          { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+        );
+        var data = await resp.json();
+        if (Array.isArray(data) && data.length > 0 && data[0].preferences) {
+          var prefs = data[0].preferences;
+          if (prefs.user_type) {
+            setUserType(prefs.user_type);
+            try {
+              localStorage.setItem("ailane_kl_user_type", prefs.user_type);
+            } catch (e) {
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user preferences:", err);
+      }
+    }
     useEffect(() => {
       function onReady(e) {
         setAccessType(e.detail.accessType);
         setTier(e.detail.tier);
         setSessionExpiresAt(window.__klSessionExpiry || null);
         loadSessionHistory();
+        loadUserPreferences();
       }
       window.addEventListener("ailane-kl-ready", onReady);
       if (window.__klAccessType) {
         loadSessionHistory();
+        loadUserPreferences();
       }
       return () => window.removeEventListener("ailane-kl-ready", onReady);
     }, [loadSessionHistory]);
@@ -4820,6 +4920,7 @@
       setMessages([]);
       setCurrentView("welcome");
       setCurrentDomain(null);
+      contractPromptShown.current = false;
       if (window.location.hash && window.location.hash !== "#/") {
         window.location.hash = "/";
       }
@@ -4834,7 +4935,7 @@
       setIsLoading(true);
       try {
         var requestBody = {
-          message: (userType ? "[Context: user is " + (userType === "employer" ? "an employer/HR professional" : "a worker") + "] " : "") + clean,
+          message: (userType ? "[Context: user is " + (userType === "employer" ? "an employer/HR professional managing staff" : "a worker with a question about their own employment") + "] " : "") + clean,
           session_id: sessionId,
           page_context: currentDomain ? "knowledge-library/domain/" + currentDomain.slug : "knowledge-library"
         };
@@ -4863,14 +4964,13 @@
             setShowQualifier(true);
             setQualifierShownThisSession(true);
           }
-          if (hasContractIntent(clean) && !hasUploadedThisSession) {
+          if (hasContractIntent(clean) && !contractPromptShown.current && !hasUploadedThisSession) {
+            contractPromptShown.current = true;
             setTimeout(function() {
               setMessages(function(prev) {
                 return prev.concat([{
-                  role: "assistant",
-                  content: "I can run your contract through our compliance engine for a detailed analysis against current UK employment law.\n\nUpload your contract using the **Upload contract** button below (PDF, DOCX, or TXT \u2014 up to 10MB). I will extract the text, route it through the engine, and present findings with a compliance score, clause-by-clause assessment, and forward legislative exposure analysis.",
-                  isLocal: true,
-                  isContractPrompt: true
+                  role: "system_ui",
+                  type: "contract_upload_prompt"
                 }]);
               });
             }, 800);
@@ -4898,12 +4998,55 @@
       setActivePanel(panelId);
     };
     window.__klHandleFileSelect = handleFileSelect;
-    function handleUserTypeSelect(type) {
+    async function handleUserTypeSelect(type) {
       setUserType(type);
       setShowQualifier(false);
       try {
         localStorage.setItem("ailane_kl_user_type", type);
       } catch (e) {
+      }
+      if (!window.__klToken || !window.__klUserId) return;
+      try {
+        var checkResp = await fetch(
+          SUPABASE_URL + "/rest/v1/kl_user_preferences?user_id=eq." + window.__klUserId + "&select=id,preferences",
+          { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+        );
+        var existing = await checkResp.json();
+        if (Array.isArray(existing) && existing.length > 0) {
+          var merged = Object.assign({}, existing[0].preferences, { user_type: type });
+          await fetch(
+            SUPABASE_URL + "/rest/v1/kl_user_preferences?id=eq." + existing[0].id,
+            {
+              method: "PATCH",
+              headers: {
+                "Authorization": "Bearer " + window.__klToken,
+                "apikey": SUPABASE_ANON_KEY,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+              },
+              body: JSON.stringify({ preferences: merged, updated_at: (/* @__PURE__ */ new Date()).toISOString() })
+            }
+          );
+        } else {
+          await fetch(
+            SUPABASE_URL + "/rest/v1/kl_user_preferences",
+            {
+              method: "POST",
+              headers: {
+                "Authorization": "Bearer " + window.__klToken,
+                "apikey": SUPABASE_ANON_KEY,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+              },
+              body: JSON.stringify({
+                user_id: window.__klUserId,
+                preferences: { user_type: type }
+              })
+            }
+          );
+        }
+      } catch (err) {
+        console.error("Failed to save user type:", err);
       }
     }
     function addMessage(msg) {
@@ -5287,7 +5430,7 @@
         showQualifier,
         onUserTypeSelect: handleUserTypeSelect,
         pulseUpload: messages.some(function(m) {
-          return m.isContractPrompt;
+          return m.role === "system_ui" && m.type === "contract_upload_prompt";
         }) && !hasUploadedThisSession
       }
     ), /* @__PURE__ */ React.createElement(

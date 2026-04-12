@@ -287,29 +287,22 @@ function getRoute() {
   return { view: 'welcome' };
 }
 
-// ─── Contract intent keywords (KLAC-001-AM-006, AMD-043) ───
-// Eileen proactively routes contract-related requests to the compliance engine.
-const CONTRACT_INTENT_PATTERNS = [
-  'check my contract',
-  'review my contract',
-  'analyse my contract',
-  'analyze my contract',
-  'compliance check',
-  'upload my contract',
-  'is my contract compliant',
-  'contract review',
-  'check this contract',
-  'review this document',
-  'check my employment contract',
-  'contract compliance',
-  'look at my contract',
-  'scan my contract',
+// ─── §6.1 Contract intent detection (KLAC-001-AM-006, AMD-043) ───
+// Regex patterns for proactive contract routing to compliance engine.
+var CONTRACT_INTENT_PATTERNS = [
+  /\b(check|review|audit|analyse|analyze)\b.*\b(contract|document|policy|handbook)\b/i,
+  /\b(contract|document|policy|handbook)\b.*\b(check|review|audit|analyse|analyze)\b/i,
+  /\bupload\b.*\b(contract|document)\b/i,
+  /\b(compliance|compliant)\b.*\b(check|review)\b/i,
+  /\bcontract\s+compliance\b/i,
+  /\bcheck\s+my\s+contract\b/i,
+  /\breview\s+my\s+(contract|document)\b/i,
+  /\bis\s+my\s+contract\s+(legal|compliant|ok|okay)\b/i,
 ];
 
 function hasContractIntent(text) {
-  var lower = (text || '').toLowerCase();
   return CONTRACT_INTENT_PATTERNS.some(function(pattern) {
-    return lower.indexOf(pattern) !== -1;
+    return pattern.test(text || '');
   });
 }
 
@@ -437,12 +430,21 @@ function formatRelativeTime(iso) {
 // ─── groupSessionsByTime (KLUX-001 Art. 8) ───
 // Groups session history entries into Today / Yesterday / This Week / Earlier.
 
-function groupSessionsByTime(sessions) {
+// §3.1 (AMD-044/C-1): Date classification per KLUX-001 Art. 8
+function classifyDate(dateStr) {
   var now = new Date();
-  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  var yesterdayStart = todayStart - 86400000;
-  var weekStart = todayStart - (now.getDay() === 0 ? 6 : now.getDay() - 1) * 86400000;
+  var d = new Date(dateStr);
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  var weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
 
+  if (d >= today) return 'Today';
+  if (d >= yesterday) return 'Yesterday';
+  if (d >= weekAgo) return 'This Week';
+  return 'Earlier';
+}
+
+function groupSessionsByTime(sessions) {
   var groups = {
     today: { label: 'Today', items: [] },
     yesterday: { label: 'Yesterday', items: [] },
@@ -450,23 +452,34 @@ function groupSessionsByTime(sessions) {
     earlier: { label: 'Earlier', items: [] },
   };
 
+  var groupKeyMap = { 'Today': 'today', 'Yesterday': 'yesterday', 'This Week': 'thisWeek', 'Earlier': 'earlier' };
+
   sessions.forEach(function(s) {
-    var t = new Date(s.lastActivity).getTime();
-    if (t >= todayStart) {
-      groups.today.items.push(s);
-    } else if (t >= yesterdayStart) {
-      groups.yesterday.items.push(s);
-    } else if (t >= weekStart) {
-      groups.thisWeek.items.push(s);
-    } else {
-      groups.earlier.items.push(s);
-    }
+    var group = s.dateGroup || classifyDate(s.lastActivity);
+    var key = groupKeyMap[group] || 'earlier';
+    groups[key].items.push(s);
   });
 
   return [groups.today, groups.yesterday, groups.thisWeek, groups.earlier].filter(function(g) {
     return g.items.length > 0;
   });
 }
+
+// §4.1 (AMD-044/C-2): Category-to-title map per KLUX-001 Art. 8
+var CATEGORY_TITLES = {
+  unfair_dismissal: 'Unfair Dismissal',
+  discrimination: 'Discrimination',
+  wages_deductions: 'Wages and Deductions',
+  working_time: 'Working Time',
+  whistleblowing: 'Whistleblowing',
+  health_safety: 'Health and Safety',
+  tupe: 'Business Transfers (TUPE)',
+  data_protection: 'Data Protection',
+  family_leave: 'Family Leave',
+  redundancy: 'Redundancy',
+  contractual: 'Contract Terms',
+  equal_pay: 'Equal Pay',
+};
 
 function truncate(s, n) {
   if (!s) return '';
@@ -596,9 +609,57 @@ function EileenSenderLabel() {
   );
 }
 
+// ─── §6.2 ContractUploadPrompt (KLAC-001-AM-006 §4.2) ───
+// Rendered in the conversation when contract intent is detected.
+// CCI Separation Doctrine: Eileen routes, the engine analyses.
+
+function ContractUploadPrompt({ onUpload }) {
+  return (
+    <div style={{
+      background: '#0F172A',
+      border: '1px solid #0EA5E9',
+      borderRadius: '12px',
+      padding: '20px',
+      margin: '12px 0',
+      maxWidth: '520px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <div style={{
+          width: '8px', height: '8px', borderRadius: '50%',
+          background: '#0EA5E9', boxShadow: '0 0 8px rgba(14,165,233,0.5)',
+        }} />
+        <span style={{ color: '#F1F5F9', fontSize: '14px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
+          Ready to check your contract
+        </span>
+      </div>
+      <p style={{ color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: '0 0 16px' }}>
+        Upload your employment contract or HR document and Eileen will route it through the Contract Compliance Check engine for analysis against current UK employment legislation.
+      </p>
+      <button
+        onClick={onUpload}
+        style={{
+          background: '#0EA5E9',
+          color: '#FFFFFF',
+          border: 'none',
+          borderRadius: '8px',
+          padding: '10px 20px',
+          fontSize: '13px',
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+        onMouseEnter={function(e) { e.currentTarget.style.background = '#0284C7'; }}
+        onMouseLeave={function(e) { e.currentTarget.style.background = '#0EA5E9'; }}
+      >
+        Upload Document
+      </button>
+    </div>
+  );
+}
+
 // ─── QualifyingQuestion (KLIA-001 Art. 23 — EQIS) ───
 // Renders as a local Eileen message with two clickable buttons.
-// Appears once per browser (stored in localStorage). Not persisted to DB.
+// §5.3: Persisted to kl_user_preferences.preferences.user_type via DB.
 
 function QualifyingQuestion({ onSelect }) {
   return (
@@ -606,7 +667,7 @@ function QualifyingQuestion({ onSelect }) {
       <div className="kl-msg-content">
         <EileenSenderLabel />
         <div className="kl-msg-body" style={{ marginTop: '8px' }}>
-          <p>To give you the most relevant guidance — are you an employer or HR professional managing compliance, or a worker with a question about your own employment rights?</p>
+          <p>Before we begin — are you an employer or HR professional managing staff, or a worker with a question about your own employment?</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
           <button
@@ -627,7 +688,7 @@ function QualifyingQuestion({ onSelect }) {
             onMouseEnter={function(e) { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.2)'; }}
             onMouseLeave={function(e) { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.1)'; }}
           >
-            Employer / HR
+            Employer / HR Professional
           </button>
           <button
             type="button"
@@ -1839,7 +1900,17 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               }
             }
           }}>
-            {messages.map((m, i) => <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />)}
+            {messages.map((m, i) => {
+              if (m.role === 'system_ui' && m.type === 'contract_upload_prompt') {
+                return <ContractUploadPrompt key={i} onUpload={function() {
+                  // Trigger the same file input the paperclip uses
+                  var fileInput = document.querySelector('.kl-conversation-input input[type="file"]') ||
+                                  document.querySelector('.kl-welcome-input input[type="file"]');
+                  if (fileInput) fileInput.click();
+                }} />;
+              }
+              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />;
+            })}
             {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
             {isLoading && <TypingIndicator />}
           </div>
@@ -4530,6 +4601,8 @@ function App() {
   const [showQualifier, setShowQualifier] = useState(false);
   const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
   const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
+  // §6.4: One contract upload prompt per session
+  const contractPromptShown = useRef(false);
 
   // AMD-045 §5: View state for domain sub-pages
   const [currentView, setCurrentView] = useState(function() {
@@ -4560,9 +4633,10 @@ function App() {
   const loadSessionHistory = useCallback(async function () {
     if (!window.__klToken || !window.__klUserId) return;
     try {
+      // §4.2: Include categories_matched for meaningful titles
       const resp = await fetch(
         SUPABASE_URL + '/rest/v1/kl_eileen_conversations?user_id=eq.' + window.__klUserId +
-          '&select=session_id,user_message,created_at&order=created_at.desc&limit=100',
+          '&select=session_id,user_message,categories_matched,created_at&order=created_at.desc&limit=200',
         { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
       );
       const data = await resp.json();
@@ -4570,30 +4644,73 @@ function App() {
       const grouped = {};
       data.forEach((row) => {
         if (!grouped[row.session_id]) {
+          // §4.3: Category-based title (Pass 1) or first-message fallback (Pass 2)
+          var title = row.user_message ? row.user_message.substring(0, 50) : '(untitled)';
+          if (row.categories_matched && row.categories_matched.length > 0) {
+            var catKey = row.categories_matched[0];
+            if (CATEGORY_TITLES[catKey]) {
+              title = CATEGORY_TITLES[catKey];
+            }
+          }
           grouped[row.session_id] = {
             sessionId: row.session_id,
-            title: row.user_message ? row.user_message.substring(0, 50) : '(untitled)',
+            title: title,
             lastActivity: row.created_at,
+            dateGroup: classifyDate(row.created_at),
+            messageCount: 1,
           };
+        } else {
+          grouped[row.session_id].messageCount++;
         }
       });
-      setSessionHistory(Object.values(grouped).slice(0, 50));
+      // §4.3: Append message count to category-based titles
+      var sessions = Object.values(grouped);
+      var categoryTitleValues = Object.values(CATEGORY_TITLES);
+      sessions.forEach(function(s) {
+        if (s.messageCount > 1 && categoryTitleValues.indexOf(s.title) !== -1) {
+          s.title = s.title + ' (' + s.messageCount + ')';
+        }
+      });
+      setSessionHistory(sessions.slice(0, 50));
     } catch (err) {
       console.error('Failed to load session history:', err);
     }
   }, []);
 
-  // Wire up auth-ready event + trigger initial history load
+  // §5.2: Load user preferences (user_type) from kl_user_preferences on boot
+  async function loadUserPreferences() {
+    if (!window.__klToken || !window.__klUserId) return;
+    try {
+      var resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_user_preferences?user_id=eq.' + window.__klUserId + '&select=preferences',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      var data = await resp.json();
+      if (Array.isArray(data) && data.length > 0 && data[0].preferences) {
+        var prefs = data[0].preferences;
+        if (prefs.user_type) {
+          setUserType(prefs.user_type);
+          try { localStorage.setItem('ailane_kl_user_type', prefs.user_type); } catch(e) { /* silent */ }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load user preferences:', err);
+    }
+  }
+
+  // Wire up auth-ready event + trigger initial history load + preferences load
   useEffect(() => {
     function onReady(e) {
       setAccessType(e.detail.accessType);
       setTier(e.detail.tier);
       setSessionExpiresAt(window.__klSessionExpiry || null);
       loadSessionHistory();
+      loadUserPreferences();
     }
     window.addEventListener('ailane-kl-ready', onReady);
     if (window.__klAccessType) {
       loadSessionHistory();
+      loadUserPreferences();
     }
     return () => window.removeEventListener('ailane-kl-ready', onReady);
   }, [loadSessionHistory]);
@@ -4670,6 +4787,8 @@ function App() {
     // AMD-045: Reset view to welcome and clear domain context
     setCurrentView('welcome');
     setCurrentDomain(null);
+    // §6.4: Reset contract prompt guard for new session
+    contractPromptShown.current = false;
     if (window.location.hash && window.location.hash !== '#/') {
       window.location.hash = '/';
     }
@@ -4688,7 +4807,7 @@ function App() {
     try {
       // AMD-045 §4.8: Include domain context in Eileen request
       var requestBody = {
-        message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional' : 'a worker') + '] ' : '') + clean,
+        message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional managing staff' : 'a worker with a question about their own employment') + '] ' : '') + clean,
         session_id: sessionId,
         page_context: currentDomain
           ? 'knowledge-library/domain/' + currentDomain.slug
@@ -4723,15 +4842,14 @@ function App() {
           setQualifierShownThisSession(true);
         }
 
-        // AMD-043: Proactive contract routing
-        if (hasContractIntent(clean) && !hasUploadedThisSession) {
+        // §6.3/§6.4: Proactive contract routing — one prompt per session
+        if (hasContractIntent(clean) && !contractPromptShown.current && !hasUploadedThisSession) {
+          contractPromptShown.current = true;
           setTimeout(function() {
             setMessages(function(prev) {
               return prev.concat([{
-                role: 'assistant',
-                content: 'I can run your contract through our compliance engine for a detailed analysis against current UK employment law.\n\nUpload your contract using the **Upload contract** button below (PDF, DOCX, or TXT — up to 10MB). I will extract the text, route it through the engine, and present findings with a compliance score, clause-by-clause assessment, and forward legislative exposure analysis.',
-                isLocal: true,
-                isContractPrompt: true,
+                role: 'system_ui',
+                type: 'contract_upload_prompt',
               }]);
             });
           }, 800);
@@ -4766,10 +4884,54 @@ function App() {
   // can invoke the App-level upload flow without prop drilling.
   window.__klHandleFileSelect = handleFileSelect;
 
-  function handleUserTypeSelect(type) {
+  // §5.3: Persist user_type to kl_user_preferences via PATCH (existing) or POST (new)
+  async function handleUserTypeSelect(type) {
     setUserType(type);
     setShowQualifier(false);
     try { localStorage.setItem('ailane_kl_user_type', type); } catch(e) { /* silent */ }
+    if (!window.__klToken || !window.__klUserId) return;
+    try {
+      var checkResp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_user_preferences?user_id=eq.' + window.__klUserId + '&select=id,preferences',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      var existing = await checkResp.json();
+      if (Array.isArray(existing) && existing.length > 0) {
+        var merged = Object.assign({}, existing[0].preferences, { user_type: type });
+        await fetch(
+          SUPABASE_URL + '/rest/v1/kl_user_preferences?id=eq.' + existing[0].id,
+          {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer ' + window.__klToken,
+              'apikey': SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({ preferences: merged, updated_at: new Date().toISOString() }),
+          }
+        );
+      } else {
+        await fetch(
+          SUPABASE_URL + '/rest/v1/kl_user_preferences',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + window.__klToken,
+              'apikey': SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              user_id: window.__klUserId,
+              preferences: { user_type: type },
+            }),
+          }
+        );
+      }
+    } catch (err) {
+      console.error('Failed to save user type:', err);
+    }
   }
 
   // ─── File upload flow (KL File Upload Widget, Stage A) ───
@@ -5225,7 +5387,7 @@ function App() {
           onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
           showQualifier={showQualifier}
           onUserTypeSelect={handleUserTypeSelect}
-          pulseUpload={messages.some(function(m) { return m.isContractPrompt; }) && !hasUploadedThisSession}
+          pulseUpload={messages.some(function(m) { return m.role === 'system_ui' && m.type === 'contract_upload_prompt'; }) && !hasUploadedThisSession}
         />
       )}
       <PanelRail
