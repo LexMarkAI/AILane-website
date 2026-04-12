@@ -1802,9 +1802,202 @@ function AnalysisResultMessage({ data }) {
   );
 }
 
+// ─── Voice Phase 1 (EILEEN-002 §7.3, VTCA-001 Art. 16) ───
+// Session-scoped module flag so the voice disclosure toast appears only once
+// per session, per VTCA-001 Art. 16.1.
+var __eileenVoiceDisclosureShown = false;
+
+// Select the best available Scottish/UK female voice per EILEEN-002 §7.3.
+// Priority cascade: Fiona → named UK female voices → any en-GB non-male
+// → any en-GB → any en → first available voice.
+function selectEileenVoice() {
+  try {
+    var voices = (window.speechSynthesis && window.speechSynthesis.getVoices()) || [];
+    if (!voices.length) return null;
+    // 1. Fiona (Scottish female) — exact match
+    var fiona = voices.find(function(v) { return /fiona/i.test(v.name); });
+    if (fiona) return fiona;
+    // 2. Named UK female voices
+    var namedFemale = ['kate', 'serena', 'moira', 'martha', 'tessa'];
+    for (var i = 0; i < namedFemale.length; i++) {
+      var match = voices.find(function(v) {
+        return new RegExp(namedFemale[i], 'i').test(v.name);
+      });
+      if (match) return match;
+    }
+    // 3. Any en-GB voice without obviously male name tokens
+    var maleTokens = /(daniel|oliver|arthur|male|man)/i;
+    var enGbFemale = voices.find(function(v) {
+      return (v.lang === 'en-GB' || /en[-_]gb/i.test(v.lang)) && !maleTokens.test(v.name);
+    });
+    if (enGbFemale) return enGbFemale;
+    // 4. Any en-GB voice
+    var enGb = voices.find(function(v) { return v.lang === 'en-GB' || /en[-_]gb/i.test(v.lang); });
+    if (enGb) return enGb;
+    // 5. Any en voice
+    var en = voices.find(function(v) { return /^en/i.test(v.lang); });
+    if (en) return en;
+    // 6. Fallback: first available
+    return voices[0] || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+// Strip markdown to plain speech-safe text.
+function stripMarkdownForSpeech(src) {
+  if (!src) return '';
+  var s = String(src);
+  // Remove code fences and inline code
+  s = s.replace(/```[\s\S]*?```/g, ' ');
+  s = s.replace(/`([^`]+)`/g, '$1');
+  // Headings, blockquote markers
+  s = s.replace(/^#{1,6}\s+/gm, '');
+  s = s.replace(/^>\s+/gm, '');
+  // Bold / italic / strike
+  s = s.replace(/\*\*([^*]+)\*\*/g, '$1');
+  s = s.replace(/\*([^*]+)\*/g, '$1');
+  s = s.replace(/__([^_]+)__/g, '$1');
+  s = s.replace(/_([^_]+)_/g, '$1');
+  s = s.replace(/~~([^~]+)~~/g, '$1');
+  // Links: [text](url) → text
+  s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // List bullets
+  s = s.replace(/^[\s]*[-*+]\s+/gm, '');
+  s = s.replace(/^[\s]*\d+\.\s+/gm, '');
+  // HTML tags
+  s = s.replace(/<[^>]+>/g, ' ');
+  // Collapse whitespace
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+function ReadAloudButton({ text }) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(function() {
+    // Stop speaking if this component unmounts mid-utterance
+    return function() {
+      try {
+        if (isSpeaking && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (e) { /* silent */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleClick() {
+    if (!window.speechSynthesis) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    var clean = stripMarkdownForSpeech(text);
+    if (!clean) return;
+    // Cancel any in-flight utterance from another message
+    window.speechSynthesis.cancel();
+    var utt = new SpeechSynthesisUtterance(clean);
+    var voice = selectEileenVoice();
+    if (voice) utt.voice = voice;
+    utt.lang = (voice && voice.lang) || 'en-GB';
+    utt.pitch = 1.15;
+    utt.rate = 0.92;
+    utt.volume = 0.9;
+    utt.onend = function() { setIsSpeaking(false); };
+    utt.onerror = function() { setIsSpeaking(false); };
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utt);
+    // VTCA-001 Art. 16.1: session-scoped voice disclosure
+    if (!__eileenVoiceDisclosureShown) {
+      __eileenVoiceDisclosureShown = true;
+      try {
+        var toast = document.createElement('div');
+        toast.textContent = 'Eileen uses AI-generated voice technology';
+        toast.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#1E293B;color:#F1F5F9;padding:10px 18px;border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif;z-index:9999;border:1px solid #334155;box-shadow:0 4px 12px rgba(0,0,0,0.3);opacity:1;transition:opacity 0.4s;';
+        document.body.appendChild(toast);
+        setTimeout(function() {
+          toast.style.opacity = '0';
+          setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 400);
+        }, 3500);
+      } catch (e) { /* silent */ }
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="kl-action-btn"
+      title={isSpeaking ? 'Stop reading' : 'Read aloud'}
+      aria-label={isSpeaking ? 'Stop reading' : 'Read response aloud'}
+    >{isSpeaking ? '\u25A0 Stop' : '\u25B6 Read aloud'}</button>
+  );
+}
+
+// ─── UploadCompleteMessage (F-3) ───
+// Replaces the auto-prompt for compliance analysis with two explicit choices:
+// "Run Compliance Check" (routes to the engine) or "Save to Vault only"
+// (archives without analysis). CCI v1.0 Art. I §1.5 Separation Doctrine.
+
+function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis, onVaultOnly, dismissed, msgId }) {
+  if (dismissed) {
+    return (
+      <div style={{
+        marginTop: '8px', padding: '10px 14px',
+        background: 'rgba(16,185,129,0.08)',
+        border: '1px solid rgba(16,185,129,0.25)',
+        borderRadius: '8px', fontSize: '13px', color: '#10B981',
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        {'\u2713 Saved to Document Vault'}
+      </div>
+    );
+  }
+  var sizeLabel = charCount != null ? charCount.toLocaleString() + ' characters extracted' : 'ready';
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.7 }}>
+        I have your contract{filename ? ' \u2014 ' + filename : ''}{' \u2014 '}{sizeLabel}. How would you like to proceed?
+      </div>
+      <div style={{ display: 'flex', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={function() { if (typeof onRunAnalysis === 'function') onRunAnalysis(documentId, msgId); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '10px 18px',
+            background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+            color: '#FFFFFF', border: 'none', borderRadius: '8px',
+            cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif", transition: 'opacity 0.2s',
+          }}
+          onMouseEnter={function(e) { e.currentTarget.style.opacity = '0.9'; }}
+          onMouseLeave={function(e) { e.currentTarget.style.opacity = '1'; }}
+        >{'\u2713 Run Compliance Check'}</button>
+        <button
+          type="button"
+          onClick={function() { if (typeof onVaultOnly === 'function') onVaultOnly(msgId); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '10px 18px',
+            background: 'transparent',
+            color: '#CBD5E1', border: '1px solid #334155', borderRadius: '8px',
+            cursor: 'pointer', fontSize: '13px', fontWeight: 500,
+            fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.2s, color 0.2s',
+          }}
+          onMouseEnter={function(e) { e.currentTarget.style.borderColor = '#64748B'; e.currentTarget.style.color = '#F1F5F9'; }}
+          onMouseLeave={function(e) { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#CBD5E1'; }}
+        >Save to Vault only</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── MessageBubble ───
 
-function MessageBubble({ msg, onRunAnalysis }) {
+function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
   if (msg.type === 'file_upload') {
     return (
       <div className="kl-msg kl-msg-user">
@@ -1824,6 +2017,25 @@ function MessageBubble({ msg, onRunAnalysis }) {
       <div className="kl-msg kl-msg-user">
         <div className="kl-msg-content">
           <div className="kl-msg-body">{msg.content}</div>
+        </div>
+      </div>
+    );
+  }
+  // F-3: Upload-complete dual-choice card (Run Compliance Check / Save to Vault only)
+  if (msg.isUploadComplete) {
+    return (
+      <div className="kl-msg kl-msg-eileen">
+        <div className="kl-msg-content" style={{ position: 'relative' }}>
+          <EileenSenderLabel />
+          <UploadCompleteMessage
+            filename={msg.filename}
+            charCount={msg.charCount}
+            documentId={msg.documentId}
+            msgId={msg.id}
+            dismissed={!!msg.vaultOnly}
+            onRunAnalysis={onRunAnalysis}
+            onVaultOnly={onVaultOnly}
+          />
         </div>
       </div>
     );
@@ -1923,6 +2135,9 @@ function MessageBubble({ msg, onRunAnalysis }) {
             paddingTop: '8px',
             borderTop: '1px solid rgba(255,255,255,0.06)',
           }}>
+            {/* F-5: Read aloud — Web Speech API with Scottish female voice cascade */}
+            <ReadAloudButton text={msg.content || ''} />
+
             {/* Copy */}
             <button
               type="button"
@@ -2145,7 +2360,7 @@ function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChan
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -2281,12 +2496,8 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               window.dispatchEvent(new CustomEvent('kl-open-instrument', { detail: { id: book.id } }));
             }
           }} />
-          {/* H-5: FloatingNexusAdvisor on welcome state */}
-          <FloatingNexusAdvisor
-            nearDomain={nearDomain}
-            nexusState={nexusState}
-            prefersReducedMotion={prefersReducedMotion}
-          />
+          {/* F-1: FloatingNexusAdvisor is rendered at App level so it remains
+              visible even when Welcome is not the active view. See App render. */}
         </div>
       ) : (
         <div
@@ -2328,7 +2539,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               if (m.isError) {
                 return <EileenErrorMessage key={i} message={m.errorMessage || m.content} retryAction={m.retryAction} retryLabel={m.retryLabel} />;
               }
-              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />;
+              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} onVaultOnly={onVaultOnly} />;
             })}
             {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
             {isLoading && <TypingIndicator />}
@@ -5306,6 +5517,25 @@ function App() {
   // §5.5: Respect prefers-reduced-motion
   const prefersReducedMotion = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+  // F-5: Preload Web Speech voice list. Chrome/Edge populate getVoices()
+  // asynchronously; Firefox/Safari fire voiceschanged. Warming the list
+  // here ensures selectEileenVoice() resolves Fiona (or fallback) on the
+  // first Read aloud click. EILEEN-002 §7.3.
+  useEffect(function() {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
+    try { window.speechSynthesis.getVoices(); } catch (e) { /* silent */ }
+    function onVoicesChanged() {
+      try { window.speechSynthesis.getVoices(); } catch (e) { /* silent */ }
+    }
+    window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+    return function() {
+      try {
+        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+        window.speechSynthesis.cancel();
+      } catch (e) { /* silent */ }
+    };
+  }, []);
+
   // Auto-close sidebar when resizing down to mobile; track mobile state.
   useEffect(() => {
     function onResize() {
@@ -5353,6 +5583,8 @@ function App() {
   }, [sessionExpiresAt]);
 
   async function loadSession(sid) {
+    // F-5: Cancel any active speech when switching sessions
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* silent */ }
     if (!window.__klToken) return;
     try {
       const resp = await fetch(
@@ -5375,6 +5607,8 @@ function App() {
   }
 
   function newChat() {
+    // F-5: Cancel any active speech when starting a new chat
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* silent */ }
     setSessionId('eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
     setMessages([]);
     // AMD-045: Reset view to welcome and clear domain context
@@ -5676,19 +5910,33 @@ function App() {
       return;
     }
 
-    // Step 4.6 — Ready + local Eileen confirmation with analysis trigger metadata
+    // Step 4.6 — F-3: Offer the user two explicit choices rather than auto-
+    // routing to the compliance engine. Surface filename, size, and both
+    // "Run Compliance Check" and "Save to Vault only" buttons via
+    // UploadCompleteMessage. CCI v1.0 Art. I §1.5 (Separation Doctrine).
     updateFileMessage(msgId, { status: 'ready', charCount: extractResult.char_count });
     addMessage({
       id: 'ready-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
       role: 'assistant',
-      content:
-        'I have your contract \u2014 ' +
-        extractResult.char_count.toLocaleString() +
-        ' characters extracted and ready for analysis.',
+      content: '',
       isLocal: true,
-      analysisReady: true,
+      isUploadComplete: true,
+      filename: file.name,
+      fileSize: file.size,
+      charCount: extractResult.char_count,
       documentId: documentId,
-      analysisTriggered: false,
+      vaultOnly: false,
+    });
+  }
+
+  // F-3: "Save to Vault only" dismisses the upload-complete card. The
+  // document row is already persisted in kl_vault_documents by uploadFile,
+  // so no extra POST is required — we just collapse the card UI.
+  function handleVaultOnly(msgId) {
+    setMessages(function(prev) {
+      return prev.map(function(m) {
+        return m.id === msgId ? Object.assign({}, m, { vaultOnly: true }) : m;
+      });
     });
   }
 
@@ -6006,6 +6254,7 @@ function App() {
           tier={tier}
           onFileSelect={handleFileSelect}
           onRunAnalysis={handleRunAnalysis}
+          onVaultOnly={handleVaultOnly}
           floatingNexusExpanded={floatingNexusOpen}
           onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
           showQualifier={showQualifier}
@@ -6017,6 +6266,16 @@ function App() {
           nearDomain={nearDomain}
           onDomainHover={handleDomainHover}
           onDomainLeave={handleDomainLeave}
+        />
+      )}
+      {/* F-1: FloatingNexusAdvisor rendered at App level so it is visible
+          above ConversationArea (previously nested inside welcome branch
+          and effectively clipped). Hide on domain sub-pages. */}
+      {currentView !== 'domain' && messages.length === 0 && (
+        <FloatingNexusAdvisor
+          nearDomain={nearDomain}
+          nexusState={nexusState}
+          prefersReducedMotion={prefersReducedMotion.current}
         />
       )}
       <PanelRail

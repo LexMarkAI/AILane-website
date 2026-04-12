@@ -1448,7 +1448,204 @@
       /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "10px", color: "#475569" } }, "This analysis is regulatory intelligence grounded in Ailane's compliance engine. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720) trading as Ailane.")
     ));
   }
-  function MessageBubble({ msg, onRunAnalysis }) {
+  var __eileenVoiceDisclosureShown = false;
+  function selectEileenVoice() {
+    try {
+      var voices = window.speechSynthesis && window.speechSynthesis.getVoices() || [];
+      if (!voices.length) return null;
+      var fiona = voices.find(function(v) {
+        return /fiona/i.test(v.name);
+      });
+      if (fiona) return fiona;
+      var namedFemale = ["kate", "serena", "moira", "martha", "tessa"];
+      for (var i = 0; i < namedFemale.length; i++) {
+        var match = voices.find(function(v) {
+          return new RegExp(namedFemale[i], "i").test(v.name);
+        });
+        if (match) return match;
+      }
+      var maleTokens = /(daniel|oliver|arthur|male|man)/i;
+      var enGbFemale = voices.find(function(v) {
+        return (v.lang === "en-GB" || /en[-_]gb/i.test(v.lang)) && !maleTokens.test(v.name);
+      });
+      if (enGbFemale) return enGbFemale;
+      var enGb = voices.find(function(v) {
+        return v.lang === "en-GB" || /en[-_]gb/i.test(v.lang);
+      });
+      if (enGb) return enGb;
+      var en = voices.find(function(v) {
+        return /^en/i.test(v.lang);
+      });
+      if (en) return en;
+      return voices[0] || null;
+    } catch (err) {
+      return null;
+    }
+  }
+  function stripMarkdownForSpeech(src) {
+    if (!src) return "";
+    var s = String(src);
+    s = s.replace(/```[\s\S]*?```/g, " ");
+    s = s.replace(/`([^`]+)`/g, "$1");
+    s = s.replace(/^#{1,6}\s+/gm, "");
+    s = s.replace(/^>\s+/gm, "");
+    s = s.replace(/\*\*([^*]+)\*\*/g, "$1");
+    s = s.replace(/\*([^*]+)\*/g, "$1");
+    s = s.replace(/__([^_]+)__/g, "$1");
+    s = s.replace(/_([^_]+)_/g, "$1");
+    s = s.replace(/~~([^~]+)~~/g, "$1");
+    s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    s = s.replace(/^[\s]*[-*+]\s+/gm, "");
+    s = s.replace(/^[\s]*\d+\.\s+/gm, "");
+    s = s.replace(/<[^>]+>/g, " ");
+    s = s.replace(/\s+/g, " ").trim();
+    return s;
+  }
+  function ReadAloudButton({ text }) {
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    useEffect(function() {
+      return function() {
+        try {
+          if (isSpeaking && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+          }
+        } catch (e) {
+        }
+      };
+    }, []);
+    function handleClick() {
+      if (!window.speechSynthesis) return;
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+        return;
+      }
+      var clean = stripMarkdownForSpeech(text);
+      if (!clean) return;
+      window.speechSynthesis.cancel();
+      var utt = new SpeechSynthesisUtterance(clean);
+      var voice = selectEileenVoice();
+      if (voice) utt.voice = voice;
+      utt.lang = voice && voice.lang || "en-GB";
+      utt.pitch = 1.15;
+      utt.rate = 0.92;
+      utt.volume = 0.9;
+      utt.onend = function() {
+        setIsSpeaking(false);
+      };
+      utt.onerror = function() {
+        setIsSpeaking(false);
+      };
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utt);
+      if (!__eileenVoiceDisclosureShown) {
+        __eileenVoiceDisclosureShown = true;
+        try {
+          var toast = document.createElement("div");
+          toast.textContent = "Eileen uses AI-generated voice technology";
+          toast.style.cssText = "position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#1E293B;color:#F1F5F9;padding:10px 18px;border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif;z-index:9999;border:1px solid #334155;box-shadow:0 4px 12px rgba(0,0,0,0.3);opacity:1;transition:opacity 0.4s;";
+          document.body.appendChild(toast);
+          setTimeout(function() {
+            toast.style.opacity = "0";
+            setTimeout(function() {
+              if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 400);
+          }, 3500);
+        } catch (e) {
+        }
+      }
+    }
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: handleClick,
+        className: "kl-action-btn",
+        title: isSpeaking ? "Stop reading" : "Read aloud",
+        "aria-label": isSpeaking ? "Stop reading" : "Read response aloud"
+      },
+      isSpeaking ? "\u25A0 Stop" : "\u25B6 Read aloud"
+    );
+  }
+  function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis, onVaultOnly, dismissed, msgId }) {
+    if (dismissed) {
+      return /* @__PURE__ */ React.createElement("div", { style: {
+        marginTop: "8px",
+        padding: "10px 14px",
+        background: "rgba(16,185,129,0.08)",
+        border: "1px solid rgba(16,185,129,0.25)",
+        borderRadius: "8px",
+        fontSize: "13px",
+        color: "#10B981",
+        fontFamily: "'DM Sans', sans-serif"
+      } }, "\u2713 Saved to Document Vault");
+    }
+    var sizeLabel = charCount != null ? charCount.toLocaleString() + " characters extracted" : "ready";
+    return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.7 } }, "I have your contract", filename ? " \u2014 " + filename : "", " \u2014 ", sizeLabel, ". How would you like to proceed?"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function() {
+          if (typeof onRunAnalysis === "function") onRunAnalysis(documentId, msgId);
+        },
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "10px 18px",
+          background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
+          color: "#FFFFFF",
+          border: "none",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: 600,
+          fontFamily: "'DM Sans', sans-serif",
+          transition: "opacity 0.2s"
+        },
+        onMouseEnter: function(e) {
+          e.currentTarget.style.opacity = "0.9";
+        },
+        onMouseLeave: function(e) {
+          e.currentTarget.style.opacity = "1";
+        }
+      },
+      "\u2713 Run Compliance Check"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function() {
+          if (typeof onVaultOnly === "function") onVaultOnly(msgId);
+        },
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "10px 18px",
+          background: "transparent",
+          color: "#CBD5E1",
+          border: "1px solid #334155",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: 500,
+          fontFamily: "'DM Sans', sans-serif",
+          transition: "border-color 0.2s, color 0.2s"
+        },
+        onMouseEnter: function(e) {
+          e.currentTarget.style.borderColor = "#64748B";
+          e.currentTarget.style.color = "#F1F5F9";
+        },
+        onMouseLeave: function(e) {
+          e.currentTarget.style.borderColor = "#334155";
+          e.currentTarget.style.color = "#CBD5E1";
+        }
+      },
+      "Save to Vault only"
+    )));
+  }
+  function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
     if (msg.type === "file_upload") {
       return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-user" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(
         FileAttachmentBubble,
@@ -1462,6 +1659,20 @@
     }
     if (msg.role === "user") {
       return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-user" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body" }, msg.content)));
+    }
+    if (msg.isUploadComplete) {
+      return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content", style: { position: "relative" } }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement(
+        UploadCompleteMessage,
+        {
+          filename: msg.filename,
+          charCount: msg.charCount,
+          documentId: msg.documentId,
+          msgId: msg.id,
+          dismissed: !!msg.vaultOnly,
+          onRunAnalysis,
+          onVaultOnly
+        }
+      )));
     }
     const hasStats = msg.provisionsCount != null || msg.casesCount != null;
     const renderAnalysisResult = msg.isAnalysisResult && msg.analysisData;
@@ -1554,7 +1765,7 @@
       marginTop: "10px",
       paddingTop: "8px",
       borderTop: "1px solid rgba(255,255,255,0.06)"
-    } }, /* @__PURE__ */ React.createElement(
+    } }, /* @__PURE__ */ React.createElement(ReadAloudButton, { text: msg.content || "" }), /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -1777,7 +1988,7 @@
       }
     ));
   }
-  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
+  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
     const scrollRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     useEffect(() => {
@@ -1914,15 +2125,7 @@
           window.__klPendingInstrument = book.id;
           window.dispatchEvent(new CustomEvent("kl-open-instrument", { detail: { id: book.id } }));
         }
-      } }),
-      /* @__PURE__ */ React.createElement(
-        FloatingNexusAdvisor,
-        {
-          nearDomain,
-          nexusState,
-          prefersReducedMotion
-        }
-      )
+      } })
     ) : /* @__PURE__ */ React.createElement(
       "div",
       {
@@ -1967,7 +2170,7 @@
         if (m.isError) {
           return /* @__PURE__ */ React.createElement(EileenErrorMessage, { key: i, message: m.errorMessage || m.content, retryAction: m.retryAction, retryLabel: m.retryLabel });
         }
-        return /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m, onRunAnalysis });
+        return /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m, onRunAnalysis, onVaultOnly });
       }), showQualifier && /* @__PURE__ */ React.createElement(QualifyingQuestion, { onSelect: onUserTypeSelect }), isLoading && /* @__PURE__ */ React.createElement(TypingIndicator, null)),
       /* @__PURE__ */ React.createElement("div", { className: "kl-conversation-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion }))
     ));
@@ -5341,6 +5544,27 @@
     }, [loadSessionHistory]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const prefersReducedMotion = useRef(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    useEffect(function() {
+      if (typeof window === "undefined" || !window.speechSynthesis) return void 0;
+      try {
+        window.speechSynthesis.getVoices();
+      } catch (e) {
+      }
+      function onVoicesChanged() {
+        try {
+          window.speechSynthesis.getVoices();
+        } catch (e) {
+        }
+      }
+      window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
+      return function() {
+        try {
+          window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+          window.speechSynthesis.cancel();
+        } catch (e) {
+        }
+      };
+    }, []);
     useEffect(() => {
       function onResize() {
         var mobile = window.innerWidth < 768;
@@ -5376,6 +5600,10 @@
       return () => clearInterval(interval);
     }, [sessionExpiresAt]);
     async function loadSession(sid) {
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch (e) {
+      }
       if (!window.__klToken) return;
       try {
         const resp = await fetch(
@@ -5396,6 +5624,10 @@
       }
     }
     function newChat() {
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch (e) {
+      }
       setSessionId("eileen-" + Date.now() + "-" + Math.random().toString(36).substr(2, 7));
       setMessages([]);
       setCurrentView("welcome");
@@ -5668,11 +5900,21 @@
       addMessage({
         id: "ready-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
         role: "assistant",
-        content: "I have your contract \u2014 " + extractResult.char_count.toLocaleString() + " characters extracted and ready for analysis.",
+        content: "",
         isLocal: true,
-        analysisReady: true,
+        isUploadComplete: true,
+        filename: file.name,
+        fileSize: file.size,
+        charCount: extractResult.char_count,
         documentId,
-        analysisTriggered: false
+        vaultOnly: false
+      });
+    }
+    function handleVaultOnly(msgId) {
+      setMessages(function(prev) {
+        return prev.map(function(m) {
+          return m.id === msgId ? Object.assign({}, m, { vaultOnly: true }) : m;
+        });
       });
     }
     async function handleRunAnalysis(documentId, msgId) {
@@ -5939,6 +6181,7 @@
         tier,
         onFileSelect: handleFileSelect,
         onRunAnalysis: handleRunAnalysis,
+        onVaultOnly: handleVaultOnly,
         floatingNexusExpanded: floatingNexusOpen,
         onToggleFloatingNexus: () => setFloatingNexusOpen(!floatingNexusOpen),
         showQualifier,
@@ -5952,6 +6195,13 @@
         nearDomain,
         onDomainHover: handleDomainHover,
         onDomainLeave: handleDomainLeave
+      }
+    ), currentView !== "domain" && messages.length === 0 && /* @__PURE__ */ React.createElement(
+      FloatingNexusAdvisor,
+      {
+        nearDomain,
+        nexusState,
+        prefersReducedMotion: prefersReducedMotion.current
       }
     ), /* @__PURE__ */ React.createElement(
       PanelRail,
