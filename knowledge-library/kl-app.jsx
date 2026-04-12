@@ -342,42 +342,135 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// §2: Enhanced Eileen markdown renderer (EILEEN-002 §2–3, KLUX-001 Art. 13)
+// Handles the specific output patterns of eileen-intelligence: headers, bold,
+// italic, numbered/bullet lists, blockquotes, tables, inline code, code blocks,
+// horizontal rules, and Sprint H §2 library reference links.
 function renderMarkdown(text) {
   if (!text) return '';
-  const escaped = escapeHtml(text);
-  const withInline = escaped
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
+  var escaped = escapeHtml(text);
+
+  // --- Pre-processing: extract code blocks before line-level parsing ---
+  var codeBlocks = [];
+  escaped = escaped.replace(/```(?:[a-z]*)\n([\s\S]*?)```/gm, function(match, code) {
+    var idx = codeBlocks.length;
+    codeBlocks.push('<pre style="background:#0F172A;border:1px solid #1E293B;border-radius:8px;padding:12px 16px;overflow-x:auto;margin:12px 0"><code style="font-family:\'DM Mono\',monospace;font-size:12px;color:#0EA5E9;line-height:1.6">' + code.trim() + '</code></pre>');
+    return '\n%%CODEBLOCK_' + idx + '%%\n';
+  });
+
+  // --- Pre-processing: extract tables before line-level parsing ---
+  var tables = [];
+  escaped = escaped.replace(/(\|.+\|\n\|[-:| ]+\|\n(?:\|.+\|\n?)+)/gm, function(match) {
+    var idx = tables.length;
+    var rows = match.trim().split('\n').filter(function(r) { return !r.match(/^\|[-:| ]+\|$/); });
+    if (rows.length < 1) { tables.push(match); return '%%TABLE_' + idx + '%%'; }
+    var headerCells = rows[0].split('|').filter(function(c) { return c.trim(); }).map(function(c) {
+      return '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid #1E293B;color:#F1F5F9;font-weight:600;font-size:12px">' + c.trim() + '</th>';
+    }).join('');
+    var bodyRows = rows.slice(1).map(function(row) {
+      var cells = row.split('|').filter(function(c) { return c.trim(); }).map(function(c) {
+        return '<td style="padding:8px 12px;border-bottom:1px solid #1E293B;color:#CBD5E1;font-size:13px">' + c.trim() + '</td>';
+      }).join('');
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+    tables.push('<div style="overflow-x:auto;margin:12px 0"><table style="width:100%;border-collapse:collapse;background:#0F172A;border-radius:8px;overflow:hidden"><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>');
+    return '\n%%TABLE_' + idx + '%%\n';
+  });
+
+  // --- Inline formatting ---
+  var withInline = escaped
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#F1F5F9">$1</strong>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code style="background:#1E293B;padding:2px 6px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;color:#0EA5E9">$1</code>')
     // Sprint H §2: Link library references like (acas-bm §17–25), (era1996 s.94).
-    // Already escaped, so instrument IDs and section refs are plain text here.
     .replace(/\(([a-z][a-z0-9-]+)\s+(§|s\.)([^)]+)\)/gi, function(match, instId, prefix, sectionRef) {
       var lowerInstId = instId.toLowerCase();
       return '<span class="kl-ref-link" data-inst="' + escapeHtml(lowerInstId) + '" data-section="' + escapeHtml(prefix + sectionRef) + '" title="Open in Library: ' + escapeHtml(instId) + ' ' + escapeHtml(prefix + sectionRef) + '">' + escapeHtml(instId + ' ' + prefix + sectionRef) + '</span>';
     });
-  const lines = withInline.split('\n');
-  const out = [];
-  let listItems = [];
-  function flushList() {
-    if (listItems.length) { out.push('<ul>' + listItems.join('') + '</ul>'); listItems = []; }
-  }
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    const headerMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
-    const listMatch = trimmed.match(/^[-*]\s+(.*)$/);
-    if (headerMatch) {
-      flushList();
-      const level = Math.min(6, headerMatch[1].length + 3);
-      out.push('<h' + level + '>' + headerMatch[2] + '</h' + level + '>');
-    } else if (listMatch) {
-      listItems.push('<li>' + listMatch[1] + '</li>');
-    } else if (trimmed === '') {
-      flushList();
-    } else {
-      flushList();
-      out.push('<p>' + line + '</p>');
+
+  // --- Line-level parsing ---
+  var lines = withInline.split('\n');
+  var out = [];
+  var ulItems = [];
+  var olItems = [];
+
+  function flushUl() {
+    if (ulItems.length) {
+      out.push('<ul style="margin:12px 0;padding-left:24px;color:#CBD5E1;list-style:disc">' + ulItems.join('') + '</ul>');
+      ulItems = [];
     }
+  }
+  function flushOl() {
+    if (olItems.length) {
+      out.push('<ol style="margin:12px 0;padding-left:24px;color:#CBD5E1">' + olItems.join('') + '</ol>');
+      olItems = [];
+    }
+  }
+  function flushLists() { flushUl(); flushOl(); }
+
+  lines.forEach(function(line) {
+    var trimmed = line.trim();
+
+    // Placeholder restoration (code blocks, tables)
+    var codeMatch = trimmed.match(/^%%CODEBLOCK_(\d+)%%$/);
+    if (codeMatch) { flushLists(); out.push(codeBlocks[parseInt(codeMatch[1])]); return; }
+    var tableMatch = trimmed.match(/^%%TABLE_(\d+)%%$/);
+    if (tableMatch) { flushLists(); out.push(tables[parseInt(tableMatch[1])]); return; }
+
+    // Headers
+    var headerMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
+    if (headerMatch) {
+      flushLists();
+      var hLevel = headerMatch[1].length;
+      if (hLevel === 2) out.push('<h3 style="color:#F1F5F9;font-family:\'DM Sans\',sans-serif;font-size:16px;font-weight:600;margin:20px 0 10px">' + headerMatch[2] + '</h3>');
+      else if (hLevel === 3) out.push('<h4 style="color:#F1F5F9;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;margin:16px 0 8px">' + headerMatch[2] + '</h4>');
+      else out.push('<h4 style="color:#F1F5F9;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;margin:16px 0 8px">' + headerMatch[2] + '</h4>');
+      return;
+    }
+
+    // Horizontal rule
+    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+      flushLists();
+      out.push('<hr style="border:none;border-top:1px solid #1E293B;margin:16px 0">');
+      return;
+    }
+
+    // Blockquotes
+    if (trimmed.indexOf('&gt; ') === 0) {
+      flushLists();
+      var quoteContent = trimmed.substring(5);
+      out.push('<blockquote style="border-left:3px solid #0EA5E9;padding:8px 16px;margin:12px 0;color:#CBD5E1;font-style:italic;background:#0F172A;border-radius:0 6px 6px 0">' + quoteContent + '</blockquote>');
+      return;
+    }
+
+    // Numbered list
+    var olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olMatch) {
+      flushUl();
+      olItems.push('<li style="margin:4px 0;padding-left:4px">' + olMatch[2] + '</li>');
+      return;
+    }
+
+    // Bullet list
+    var ulMatch = trimmed.match(/^[-*]\s+(.*)$/);
+    if (ulMatch) {
+      flushOl();
+      ulItems.push('<li style="margin:4px 0;padding-left:4px">' + ulMatch[1] + '</li>');
+      return;
+    }
+
+    // Empty line
+    if (trimmed === '') {
+      flushLists();
+      return;
+    }
+
+    // Default paragraph
+    flushLists();
+    out.push('<p style="margin:0 0 12px;line-height:1.7">' + line + '</p>');
   });
-  flushList();
+  flushLists();
   return out.join('');
 }
 
@@ -605,6 +698,41 @@ function EileenSenderLabel() {
         }}
       ></div>
       <div className="kl-msg-sender" style={{ marginBottom: 0 }}>Eileen</div>
+    </div>
+  );
+}
+
+// §3.2: Reusable Eileen-voiced error message (KLUX-001 Art. 19)
+// Amber (#F59E0B) indicator dot distinguishes from Eileen's normal cyan.
+function EileenErrorMessage({ message, retryAction, retryLabel }) {
+  return (
+    <div style={{
+      display: 'flex', gap: '12px', padding: '16px',
+      background: '#0F172A', borderRadius: '12px', border: '1px solid #1E293B',
+      margin: '8px 0', maxWidth: '520px',
+    }}>
+      <div style={{
+        width: '8px', height: '8px', borderRadius: '50%', marginTop: '6px',
+        background: '#F59E0B', boxShadow: '0 0 8px rgba(245,158,11,0.4)',
+        flexShrink: 0,
+      }} />
+      <div>
+        <p style={{ color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.6, margin: '0 0 8px' }}>
+          {message}
+        </p>
+        {retryAction && (
+          <button
+            onClick={retryAction}
+            style={{
+              background: 'transparent', border: '1px solid #334155', color: '#94A3B8',
+              borderRadius: '6px', padding: '6px 14px', fontSize: '12px',
+              fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+            }}
+          >
+            {retryLabel || 'Try again'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -1479,8 +1607,8 @@ function MessageBubble({ msg, onRunAnalysis }) {
           </div>
         ) : (
           <div
-            className="kl-msg-body"
-            style={{ marginTop: '8px' }}
+            className="eileen-response-content"
+            style={{ color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.7, marginTop: '8px' }}
             dangerouslySetInnerHTML={{ __html: html }}
           />
         )}
@@ -1723,6 +1851,7 @@ function MessageInput({ onSend, disabled, onFileSelect, pulseUpload }) {
         className="kl-input"
         type="text"
         placeholder="Ask Eileen anything about UK employment law..."
+        aria-label="Message Eileen"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={onKey}
@@ -1833,10 +1962,15 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             maxWidth: '820px',
           }}>
             {DOMAINS.map(function(domain) {
+              var navToDomain = function() { window.location.hash = '/domain/' + domain.slug; };
               return (
                 <div
                   key={domain.id}
-                  onClick={function() { window.location.hash = '/domain/' + domain.slug; }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={'Explore ' + domain.name}
+                  onClick={navToDomain}
+                  onKeyDown={function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navToDomain(); } }}
                   style={{
                     background: '#111827',
                     border: '1px solid #1E293B',
@@ -1889,7 +2023,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             isExpanded={floatingNexusExpanded}
             onToggle={onToggleFloatingNexus}
           />
-          <div className="kl-messages" ref={scrollRef} onClick={function(e) {
+          <div className="kl-messages" ref={scrollRef} role="log" aria-live="polite" onClick={function(e) {
             var target = e.target;
             if (target && target.classList && target.classList.contains('kl-ref-link')) {
               var instId = target.getAttribute('data-inst');
@@ -1903,11 +2037,13 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             {messages.map((m, i) => {
               if (m.role === 'system_ui' && m.type === 'contract_upload_prompt') {
                 return <ContractUploadPrompt key={i} onUpload={function() {
-                  // Trigger the same file input the paperclip uses
                   var fileInput = document.querySelector('.kl-conversation-input input[type="file"]') ||
                                   document.querySelector('.kl-welcome-input input[type="file"]');
                   if (fileInput) fileInput.click();
                 }} />;
+              }
+              if (m.isError) {
+                return <EileenErrorMessage key={i} message={m.errorMessage || m.content} retryAction={m.retryAction} retryLabel={m.retryLabel} />;
               }
               return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} />;
             })}
@@ -2013,7 +2149,7 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
 
-  return React.createElement('div', { className: 'kl-sidebar' + (open ? '' : ' collapsed') },
+  return React.createElement('nav', { className: 'kl-sidebar' + (open ? '' : ' collapsed'), role: 'navigation', 'aria-label': 'Conversation history' },
     React.createElement('div', { className: 'kl-sidebar-section' },
       React.createElement('button', { className: 'kl-new-chat-btn', onClick: onNewChat },
         React.createElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.25', strokeLinecap: 'round', strokeLinejoin: 'round' },
@@ -2282,7 +2418,7 @@ function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
     );
   }
 
-  return React.createElement('div', { className: 'kl-panelrail' },
+  return React.createElement('div', { className: 'kl-panelrail', role: 'toolbar', 'aria-label': 'Workspace panels' },
     primaryPanels.map(renderButton),
     React.createElement('div', {
       className: 'kl-panel-rail-divider',
@@ -2504,7 +2640,7 @@ function NotesPanel() {
     return true;
   });
 
-  var statusLabel = status === 'loading' ? 'Loading\u2026' : status === 'dirty' ? 'Unsaved changes' : status === 'saving' ? 'Saving\u2026' : status === 'error' ? 'Save failed' : '\u2713 Saved';
+  var statusLabel = status === 'loading' ? 'Loading\u2026' : status === 'dirty' ? 'Unsaved changes' : status === 'saving' ? 'Saving\u2026' : status === 'error' ? 'Couldn\u2019t save \u2014 try again in a moment' : '\u2713 Saved';
   var statusColor = status === 'saved' ? '#10B981' : status === 'saving' ? '#F59E0B' : status === 'error' ? '#EF4444' : '#94A3B8';
 
   var filterChips = ['all', 'note', 'clip', 'eileen'];
@@ -2940,15 +3076,13 @@ function VaultPanel() {
 
   // Error state — both sources failed (AMD-044 §5.4)
   if (fetchError && docs.length === 0) {
-    return React.createElement('div', { style: { padding: '12px', textAlign: 'center' } },
+    return React.createElement('div', { style: { padding: '12px' } },
       uploadButton,
-      React.createElement('p', { style: { color: '#94A3B8', fontSize: '13px', marginBottom: '10px' } }, 'Unable to load your documents. Please try again.'),
-      React.createElement('button', {
-        type: 'button',
-        onClick: function() { loadDocs(); },
-        className: 'kl-action-btn',
-        style: { fontSize: '12px', padding: '6px 14px' },
-      }, 'Retry')
+      React.createElement(EileenErrorMessage, {
+        message: "I wasn't able to load your documents right now. This is usually temporary.",
+        retryAction: function() { loadDocs(); },
+        retryLabel: 'Retry',
+      })
     );
   }
 
@@ -4306,7 +4440,9 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
   },
 
     // §4.2 Breadcrumb
-    React.createElement('div', {
+    React.createElement('nav', {
+      role: 'navigation',
+      'aria-label': 'Breadcrumb',
       style: {
         padding: '12px 24px', borderBottom: '1px solid #1E3A5F',
         background: '#0F1D32', flexShrink: 0,
@@ -4385,10 +4521,16 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
       },
         domain.subAreas.map(function(sa, i) {
           var isExpanded = expandedSubArea === i;
+          var toggleExpand = function() { setExpandedSubArea(isExpanded ? null : i); };
           return React.createElement('div', { key: i },
             // Sub-area card header
             React.createElement('div', {
-              onClick: function() { setExpandedSubArea(isExpanded ? null : i); },
+              role: 'button',
+              tabIndex: 0,
+              'aria-expanded': isExpanded,
+              'aria-label': sa.name + (isExpanded ? ' — collapse' : ' — expand for details'),
+              onClick: toggleExpand,
+              onKeyDown: function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(); } },
               style: {
                 background: '#111827',
                 border: isExpanded ? '1px solid #0EA5E9' : '1px solid #1E293B',
@@ -4715,10 +4857,17 @@ function App() {
     return () => window.removeEventListener('ailane-kl-ready', onReady);
   }, [loadSessionHistory]);
 
-  // Auto-close sidebar when resizing down to mobile; restore on resize up.
+  // §4.3: Track viewport width for responsive rendering
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // §5.5: Respect prefers-reduced-motion
+  const prefersReducedMotion = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // Auto-close sidebar when resizing down to mobile; track mobile state.
   useEffect(() => {
     function onResize() {
-      if (window.innerWidth <= 768) {
+      var mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
         setSidebarOpen(false);
       }
     }
@@ -4857,16 +5006,21 @@ function App() {
       } else {
         setMessages((prev) => [...prev, {
           role: 'assistant',
-          content: "I wasn't able to process that request. Please try again.",
           isError: true,
+          errorMessage: "I wasn't able to process that just now. This is usually temporary — would you like to try again?",
+          retryAction: function() { sendMessage(clean); },
         }]);
       }
     } catch (err) {
       console.error('sendMessage error:', err);
+      var isOffline = !navigator.onLine || (err && err.message && err.message.indexOf('fetch') !== -1);
       setMessages((prev) => [...prev, {
         role: 'assistant',
-        content: "I wasn't able to process that request. Please try again.",
         isError: true,
+        errorMessage: isOffline
+          ? "It looks like we've lost connection. Please check your internet and try again when you're ready."
+          : "I wasn't able to process that just now. This is usually temporary — would you like to try again?",
+        retryAction: function() { sendMessage(clean); },
       }]);
     } finally {
       setIsLoading(false);
@@ -4970,8 +5124,8 @@ function App() {
       updateFileMessage(msgId, { status: 'error' });
       addMessage({
         role: 'assistant',
-        content: 'Upload failed. Please try again.',
-        isLocal: true,
+        isError: true,
+        errorMessage: "The document upload didn't complete. Please check the file is a PDF or Word document and try again.",
       });
       return;
     }
@@ -5022,8 +5176,8 @@ function App() {
       updateFileMessage(msgId, { status: 'error' });
       addMessage({
         role: 'assistant',
-        content: 'Upload failed. Please try again.',
-        isLocal: true,
+        isError: true,
+        errorMessage: "The document upload didn't complete. Please check the file is a PDF or Word document and try again.",
       });
       return;
     }
