@@ -1076,6 +1076,60 @@ function AnalysisResultMessage({ data }) {
           onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(14,165,233,0.3)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
         >{'\uD83D\uDCC4 Download PDF Report'}</button>
+
+        {/* ── Sprint F §2.1: Save compliance findings to vault ───── */}
+        <button
+          type="button"
+          onClick={async (e) => {
+            var btn = e.currentTarget;
+            btn.disabled = true;
+            btn.textContent = 'Saving\u2026';
+            try {
+              var token = window.__klToken;
+              if (!token) throw new Error('Not authenticated');
+              var docId = data.document_id;
+              if (docId) {
+                var resp = await fetch(
+                  SUPABASE_URL + '/rest/v1/kl_vault_documents?id=eq.' + docId,
+                  {
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': 'Bearer ' + token,
+                      'apikey': SUPABASE_ANON_KEY,
+                      'Content-Type': 'application/json',
+                      'Prefer': 'return=minimal',
+                    },
+                    body: JSON.stringify({ analysis_status: 'completed' }),
+                  }
+                );
+                if (!resp.ok) throw new Error('Vault update failed (' + resp.status + ')');
+              }
+              btn.textContent = '\u2713 Saved to Vault';
+              btn.style.background = 'rgba(16,185,129,0.15)';
+              btn.style.color = '#10B981';
+              btn.style.borderColor = 'rgba(16,185,129,0.3)';
+            } catch (err) {
+              console.error('Save to Vault error:', err);
+              btn.textContent = '\u274C Failed \u2014 try again';
+              btn.disabled = false;
+              setTimeout(function() { btn.textContent = '\uD83D\uDCBE Save to Vault'; }, 3000);
+            }
+          }}
+          style={{
+            background: 'transparent',
+            color: '#CBD5E1',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(14,165,233,0.3)'; e.currentTarget.style.color = '#0EA5E9'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#CBD5E1'; }}
+        >{'\uD83D\uDCBE Save to Vault'}</button>
       </div>
 
       {/* ── Footer (Tier 4 disclaimer) ───────────────────────────── */}
@@ -2387,7 +2441,8 @@ function CalendarPanel() {
 // ─── ResearchPanel (kl_provisions grouped by instrument + kl_cases, tabs + search) ───
 
 function ResearchPanel() {
-  var _tab = useState('provisions');
+  // Sprint F §3.2: default tab is Library (was 'provisions')
+  var _tab = useState('library');
   var tab = _tab[0];
   var setTab = _tab[1];
   var _search = useState('');
@@ -2402,8 +2457,23 @@ function ResearchPanel() {
   var _expanded = useState({});
   var expanded = _expanded[0];
   var setExpanded = _expanded[1];
+  // Sprint F §3.3: Library tab state
+  var _instruments = useState([]);
+  var instruments = _instruments[0];
+  var setInstruments = _instruments[1];
+  var _activeInstrument = useState(null);
+  var activeInstrument = _activeInstrument[0];
+  var setActiveInstrument = _activeInstrument[1];
+  var _instrumentDetail = useState(null);
+  var instrumentDetail = _instrumentDetail[0];
+  var setInstrumentDetail = _instrumentDetail[1];
+  var _detailLoading = useState(false);
+  var detailLoading = _detailLoading[0];
+  var setDetailLoading = _detailLoading[1];
 
   useEffect(function() {
+    // Sprint F §3.4: Library tab is handled by its own useEffect below.
+    if (tab === 'library') { setLoading(false); return; }
     var cancelled = false;
     async function load() {
       if (!window.__klToken) { setLoading(false); return; }
@@ -2427,6 +2497,30 @@ function ResearchPanel() {
     return function() { cancelled = true; };
   }, [tab]);
 
+  // Sprint F §3.4: Fetch instrument registry from legislation_library.
+  // Real column names: short_title, legislation_type, lifecycle_stage,
+  // kl_content_file, home_jurisdiction_code (brief's column names
+  // do not exist on this table).
+  useEffect(function() {
+    if (tab !== 'library') return;
+    var cancelled = false;
+    async function loadInstruments() {
+      if (!window.__klToken) return;
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/legislation_library' +
+            '?select=id,legislation_ref,short_title,long_title,legislation_type,lifecycle_stage,kl_content_file,summary,legislation_gov_url,home_jurisdiction_code' +
+            '&order=legislation_type,short_title',
+          { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+        );
+        var d = await resp.json();
+        if (!cancelled && Array.isArray(d)) setInstruments(d);
+      } catch (e) { console.warn('Library fetch failed:', e); }
+    }
+    if (instruments.length === 0) loadInstruments();
+    return function() { cancelled = true; };
+  }, [tab]);
+
   function toggleInstrument(instId) {
     setExpanded(function(prev) {
       var next = {};
@@ -2434,6 +2528,24 @@ function ResearchPanel() {
       next[instId] = !prev[instId];
       return next;
     });
+  }
+
+  // Sprint F §3.5: Fetch individual content file on instrument click
+  async function loadInstrumentDetail(inst) {
+    setActiveInstrument(inst);
+    setInstrumentDetail(null);
+    setDetailLoading(true);
+    try {
+      var contentFile = inst.kl_content_file;
+      if (contentFile) {
+        var resp = await fetch('/knowledge-library/content/' + contentFile + '.json');
+        if (resp.ok) {
+          var d = await resp.json();
+          setInstrumentDetail(d);
+        }
+      }
+    } catch (e) { console.warn('Content file fetch failed:', e); }
+    finally { setDetailLoading(false); }
   }
 
   var filtered = data.filter(function(item) {
@@ -2456,7 +2568,489 @@ function ResearchPanel() {
   }
   var instrumentKeys = Object.keys(groupedProvisions).sort();
 
+  // Sprint F §3.7: Existing Sprint D provisions rendering wrapped in a
+  // helper — logic unchanged, just callable by name.
+  function renderProvisionsTab() {
+    if (instrumentKeys.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.');
+    }
+    return instrumentKeys.map(function(instId) {
+      var items = groupedProvisions[instId];
+      var isOpen = !!expanded[instId];
+      return React.createElement('div', { key: instId, style: { marginBottom: '6px' } },
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { toggleInstrument(instId); },
+          style: {
+            width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px',
+            background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)',
+            cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            color: '#E2E8F0', fontSize: '12px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
+          },
+        },
+          React.createElement('span', null, INSTRUMENT_NAMES[instId] || instId),
+          React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+            React.createElement('span', { style: { fontSize: '10px', color: '#0EA5E9', fontFamily: "'DM Mono', monospace" } }, items.length + ' provisions'),
+            React.createElement('span', { style: { fontSize: '10px', color: '#64748B', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
+          )
+        ),
+        isOpen && React.createElement('div', { style: { paddingLeft: '8px', marginTop: '4px' } },
+          items.map(function(item) {
+            return React.createElement('div', {
+              key: item.provision_id,
+              style: {
+                padding: '6px 8px', marginBottom: '2px', borderRadius: '4px',
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
+                cursor: 'pointer',
+              },
+              onClick: function() {
+                var seedMsg = 'Tell me about ' + item.title + (item.instrument_id ? ' under the ' + item.instrument_id : '');
+                if (window.__klSendMessage) window.__klSendMessage(seedMsg);
+              },
+              title: 'Ask Eileen about this provision',
+            },
+              React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.title),
+              React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '2px', flexWrap: 'wrap', alignItems: 'center' } },
+                React.createElement('span', { style: { color: '#475569', fontSize: '10px', fontFamily: "'DM Mono', monospace" } },
+                  (item.section_num ? 's.' + item.section_num : '')
+                ),
+                item.is_era_2025 && React.createElement('span', {
+                  style: { color: '#F59E0B', fontSize: '10px', padding: '1px 5px', borderRadius: '3px', background: 'rgba(245,158,11,0.1)' },
+                }, 'ERA 2025'),
+                React.createElement('span', { style: { color: item.in_force ? '#10B981' : '#94A3B8', fontSize: '10px' } },
+                  item.in_force ? 'In force' : 'Not yet'
+                )
+              )
+            );
+          })
+        )
+      );
+    });
+  }
+
+  // Sprint F §3.7: Existing Sprint E cases rendering wrapped in a helper.
+  function renderCasesTab() {
+    if (filtered.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.');
+    }
+    return filtered.slice(0, 50).map(function(item) {
+      var caseKey = 'case-' + item.case_id;
+      var isOpen = !!expanded[caseKey];
+      return React.createElement('div', {
+        key: item.case_id,
+        style: {
+          marginBottom: '6px', borderRadius: '6px', overflow: 'hidden',
+          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+        },
+      },
+        React.createElement('div', {
+          onClick: function() { toggleInstrument(caseKey); },
+          style: {
+            padding: '8px 10px', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          },
+        },
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+            React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.name),
+            React.createElement('div', { style: { color: '#64748B', fontSize: '10px', marginTop: '2px', fontFamily: "'DM Mono', monospace" } },
+              [item.citation, item.court, item.year].filter(Boolean).join(' \u00B7 ')
+            )
+          ),
+          React.createElement('span', {
+            style: { fontSize: '9px', color: '#64748B', flexShrink: 0, marginTop: '4px', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
+            'aria-hidden': 'true',
+          }, '\u25BC')
+        ),
+        isOpen && React.createElement('div', {
+          style: { padding: '0 10px 10px', borderTop: '1px solid rgba(255,255,255,0.04)' },
+        },
+          item.principle && React.createElement('div', {
+            style: { fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginTop: '8px', marginBottom: '10px' },
+          }, item.principle),
+          React.createElement('button', {
+            type: 'button',
+            onClick: function() {
+              if (window.__klSendMessage) window.__klSendMessage('Tell me about the case ' + item.name + (item.citation ? ' (' + item.citation + ')' : '') + ' and what it means for employers');
+            },
+            style: {
+              padding: '6px 12px', borderRadius: '6px',
+              background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+              color: '#0EA5E9', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+            },
+          }, '\u2192 Discuss with Eileen')
+        )
+      );
+    });
+  }
+
+  // Sprint F §3.6: Library browse tree — groups 53 instruments by
+  // legislation_type (no `cat` column on legislation_library).
+  function renderLibraryTab() {
+    if (activeInstrument) {
+      return renderInstrumentDetail();
+    }
+
+    // Real legislation_library.legislation_type values: primary,
+    // statutory_instrument, binding_code. No HSE/ICO/horizon rows in
+    // this table — empty groups are filtered naturally.
+    var CATEGORY_LABELS = {
+      primary:              'Primary Legislation',
+      statutory_instrument: 'Secondary Legislation',
+      binding_code:         'Statutory Codes of Practice',
+    };
+    var CATEGORY_ORDER = ['primary', 'statutory_instrument', 'binding_code'];
+
+    var searchTerm = (search || '').toLowerCase();
+    var visible = instruments.filter(function(inst) {
+      if (!searchTerm) return true;
+      var title = (inst.short_title || '').toLowerCase();
+      var longTitle = (inst.long_title || '').toLowerCase();
+      var ref = (inst.legislation_ref || '').toLowerCase();
+      return title.indexOf(searchTerm) !== -1 || longTitle.indexOf(searchTerm) !== -1 || ref.indexOf(searchTerm) !== -1;
+    });
+
+    var grouped = {};
+    visible.forEach(function(inst) {
+      var cat = inst.legislation_type || 'primary';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(inst);
+    });
+    // Preserve CATEGORY_ORDER first, then any unknown legislation_type
+    // values at the end so new categories surface without code changes.
+    var filteredCats = CATEGORY_ORDER.filter(function(c) { return grouped[c] && grouped[c].length > 0; });
+    Object.keys(grouped).forEach(function(c) {
+      if (filteredCats.indexOf(c) === -1) filteredCats.push(c);
+    });
+
+    if (instruments.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '12px', textAlign: 'center' } },
+        'Loading instrument library\u2026'
+      );
+    }
+    if (filteredCats.length === 0) {
+      return React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No instruments match your search.');
+    }
+
+    return React.createElement('div', null,
+      filteredCats.map(function(cat) {
+        var items = grouped[cat];
+        var label = CATEGORY_LABELS[cat] || cat;
+        var isCatOpen = expanded[cat] !== false; // default open
+
+        return React.createElement('div', { key: cat, style: { marginBottom: '12px' } },
+          React.createElement('button', {
+            type: 'button',
+            onClick: function() { toggleInstrument(cat); },
+            style: {
+              width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px',
+              background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)',
+              cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              color: '#0EA5E9', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+            },
+          },
+            React.createElement('span', null, label),
+            React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+              React.createElement('span', { style: { fontSize: '10px', color: '#64748B', fontFamily: "'DM Mono', monospace" } }, items.length + ' instruments'),
+              React.createElement('span', { style: { fontSize: '9px', color: '#64748B', transition: 'transform 0.15s', transform: isCatOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
+            )
+          ),
+          isCatOpen && React.createElement('div', { style: { paddingLeft: '4px', marginTop: '6px' } },
+            items.map(function(inst) {
+              var inForce = inst.lifecycle_stage === 'in_force';
+              var stageLabel = inForce
+                ? 'In force'
+                : inst.lifecycle_stage === 'partially_commenced'
+                  ? 'Partially commenced'
+                  : 'Pending';
+              var typeLabel = inst.legislation_type === 'primary'
+                ? 'Primary Legislation'
+                : inst.legislation_type === 'statutory_instrument'
+                  ? 'Statutory Instrument'
+                  : inst.legislation_type === 'binding_code'
+                    ? 'Statutory Code of Practice'
+                    : (inst.legislation_type || '');
+              return React.createElement('div', {
+                key: inst.id,
+                onClick: function() { loadInstrumentDetail(inst); },
+                style: {
+                  padding: '10px', marginBottom: '4px', borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                  cursor: 'pointer', transition: 'border-color 0.15s',
+                },
+                onMouseEnter: function(e) { e.currentTarget.style.borderColor = 'rgba(14,165,233,0.2)'; },
+                onMouseLeave: function(e) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; },
+              },
+                React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500, marginBottom: '3px' } }, inst.short_title),
+                React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+                  React.createElement('span', { style: { fontSize: '10px', color: '#64748B', fontFamily: "'DM Mono', monospace" } }, typeLabel),
+                  React.createElement('span', {
+                    style: {
+                      fontSize: '10px', padding: '1px 5px', borderRadius: '3px',
+                      background: inForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                      color: inForce ? '#10B981' : '#F59E0B',
+                    },
+                  }, stageLabel),
+                  inst.home_jurisdiction_code && React.createElement('span', { style: { fontSize: '10px', color: '#475569' } }, inst.home_jurisdiction_code)
+                )
+              );
+            })
+          )
+        );
+      })
+    );
+  }
+
+  function renderInstrumentDetail() {
+    return React.createElement('div', null,
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { setActiveInstrument(null); setInstrumentDetail(null); },
+        style: {
+          background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px',
+          cursor: 'pointer', padding: '0 0 10px', fontFamily: "'DM Sans', sans-serif",
+          textAlign: 'left',
+        },
+      }, '\u2190 Back to Library'),
+
+      detailLoading
+        ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '20px 0', textAlign: 'center' } }, 'Loading instrument detail\u2026')
+        : instrumentDetail
+          ? renderInstrumentContent(instrumentDetail)
+          : renderInstrumentSummary(activeInstrument)
+    );
+  }
+
+  // Fallback when no JSON content file is available — surfaces the
+  // registry row data and offers an Eileen prompt.
+  function renderInstrumentSummary(inst) {
+    var typeLabel = inst.legislation_type === 'primary'
+      ? 'Primary Legislation'
+      : inst.legislation_type === 'statutory_instrument'
+        ? 'Statutory Instrument'
+        : inst.legislation_type === 'binding_code'
+          ? 'Statutory Code of Practice'
+          : (inst.legislation_type || '');
+    return React.createElement('div', null,
+      React.createElement('div', { style: { fontSize: '16px', fontWeight: 600, color: '#E2E8F0', marginBottom: '8px' } }, inst.short_title),
+      React.createElement('div', { style: { fontSize: '12px', color: '#64748B', marginBottom: '4px', fontFamily: "'DM Mono', monospace" } },
+        typeLabel + (inst.home_jurisdiction_code ? ' \u00B7 ' + inst.home_jurisdiction_code : '')
+      ),
+      inst.long_title && React.createElement('div', { style: { fontSize: '12px', color: '#94A3B8', marginBottom: '12px', lineHeight: 1.5 } }, inst.long_title),
+      inst.summary && React.createElement('div', {
+        style: {
+          fontSize: '13px', color: '#CBD5E1', lineHeight: 1.6, marginBottom: '12px',
+          padding: '12px', background: 'rgba(14,165,233,0.04)', borderRadius: '8px',
+          borderLeft: '2px solid rgba(14,165,233,0.2)',
+        },
+      }, inst.summary),
+      inst.legislation_gov_url && React.createElement('a', {
+        href: inst.legislation_gov_url, target: '_blank', rel: 'noopener noreferrer',
+        style: {
+          display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '12px',
+          fontSize: '11px', color: '#0EA5E9', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2197 View on legislation.gov.uk'),
+      !inst.summary && React.createElement('div', { style: { fontSize: '12px', color: '#475569', fontStyle: 'italic', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' } },
+        'Deep content for this instrument is being enriched. Ask Eileen for current intelligence.'
+      ),
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Tell me about the ' + inst.short_title + ' and what it means for employers'); },
+        style: {
+          marginTop: '12px', padding: '8px 14px', borderRadius: '6px',
+          background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+          color: '#0EA5E9', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+          fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2192 Ask Eileen about this instrument')
+    );
+  }
+
+  // Deep view rendered from the loaded JSON content file. Handles both
+  // schemas in use: {parts:[{sections:[...]}]} (69 files) and
+  // {provisions:[...]} (3 files — era1996, horizon-tracker,
+  // redundancy-intelligence).
+  function renderInstrumentContent(detail) {
+    var displayTitle = detail.title || detail.shortTitle || (activeInstrument && activeInstrument.short_title) || 'Instrument';
+    var displayType = detail.type || (activeInstrument && (
+      activeInstrument.legislation_type === 'primary' ? 'Primary Legislation'
+        : activeInstrument.legislation_type === 'statutory_instrument' ? 'Statutory Instrument'
+          : activeInstrument.legislation_type === 'binding_code' ? 'Statutory Code of Practice'
+            : activeInstrument.legislation_type || ''
+    )) || '';
+    var displayJurisdiction = detail.jurisdiction || (activeInstrument && activeInstrument.home_jurisdiction_code) || '';
+    var description = detail.desc || detail.description || detail.summary || detail.overview || '';
+    var inForce = detail.isInForce != null
+      ? detail.isInForce
+      : (activeInstrument && activeInstrument.lifecycle_stage === 'in_force');
+
+    // Normalise provisions across both schemas.
+    var provisions = [];
+    if (Array.isArray(detail.provisions)) {
+      provisions = detail.provisions;
+    } else if (Array.isArray(detail.parts)) {
+      detail.parts.forEach(function(part) {
+        var partLabel = part.title || part.num || part.name || '';
+        (part.sections || []).forEach(function(sec) {
+          provisions.push({
+            title: sec.title || sec.name || '',
+            section: sec.num || sec.sectionNum || sec.section || '',
+            text: sec.text || sec.currentText || sec.content || '',
+            summary: sec.summary || sec.keyPrinciple || '',
+            sourceUrl: sec.sourceUrl || null,
+            partLabel: partLabel,
+            leadingCases: sec.leadingCases || [],
+          });
+        });
+      });
+    }
+
+    // Aggregate leading cases from all sections, plus any top-level list.
+    var cases = [];
+    if (Array.isArray(detail.leadingCases)) cases = cases.concat(detail.leadingCases);
+    if (Array.isArray(detail.cases)) cases = cases.concat(detail.cases);
+    provisions.forEach(function(p) {
+      if (Array.isArray(p.leadingCases)) cases = cases.concat(p.leadingCases);
+    });
+
+    // Source link — prefer explicit detail.sourceUrl, then the registry
+    // legislation_gov_url, then a first-provision sourceUrl.
+    var sourceUrl = detail.sourceUrl
+      || (activeInstrument && activeInstrument.legislation_gov_url)
+      || (provisions[0] && provisions[0].sourceUrl)
+      || null;
+
+    return React.createElement('div', null,
+      // Title block
+      React.createElement('div', { style: { marginBottom: '16px' } },
+        React.createElement('div', { style: { fontSize: '16px', fontWeight: 600, color: '#E2E8F0', marginBottom: '6px' } }, displayTitle),
+        React.createElement('div', { style: { fontSize: '11px', color: '#64748B', fontFamily: "'DM Mono', monospace", marginBottom: '4px' } },
+          [displayType, displayJurisdiction, detail.currentAsOf && ('Verified ' + detail.currentAsOf)].filter(Boolean).join(' \u00B7 ')
+        ),
+        detail.chapters && React.createElement('div', { style: { fontSize: '11px', color: '#94A3B8', marginBottom: '8px' } }, detail.chapters),
+        React.createElement('span', {
+          style: {
+            fontSize: '10px', padding: '2px 6px', borderRadius: '4px', display: 'inline-block',
+            background: inForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+            color: inForce ? '#10B981' : '#F59E0B',
+          },
+        }, inForce ? 'In force' : 'Not yet commenced')
+      ),
+
+      description && React.createElement('div', {
+        style: {
+          fontSize: '13px', color: '#CBD5E1', lineHeight: 1.6, marginBottom: '16px',
+          padding: '12px', background: 'rgba(14,165,233,0.04)', borderRadius: '8px',
+          borderLeft: '2px solid rgba(14,165,233,0.2)',
+        },
+      }, typeof description === 'string' ? description : JSON.stringify(description)),
+
+      sourceUrl && React.createElement('a', {
+        href: sourceUrl, target: '_blank', rel: 'noopener noreferrer',
+        style: {
+          display: 'inline-block', marginBottom: '16px',
+          fontSize: '11px', color: '#0EA5E9', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2197 View original source'),
+
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Give me a comprehensive briefing on the ' + displayTitle + ' including key obligations, recent changes, and practical implications for employers'); },
+        style: {
+          display: 'block', marginBottom: '16px', padding: '8px 14px', borderRadius: '6px',
+          background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
+          color: '#0EA5E9', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+          fontFamily: "'DM Sans', sans-serif",
+        },
+      }, '\u2192 Get a full briefing from Eileen'),
+
+      // Provisions list (Level 2 + Level 3 on expand)
+      provisions.length > 0 && React.createElement('div', { style: { marginTop: '8px' } },
+        React.createElement('div', {
+          style: { fontSize: '12px', fontWeight: 600, color: '#0EA5E9', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif" },
+        }, 'Provisions (' + provisions.length + ')'),
+        provisions.slice(0, 40).map(function(prov, idx) {
+          var provKey = 'prov-' + idx;
+          var isProvOpen = !!expanded[provKey];
+          var provTitle = prov.title || ('Section ' + (prov.section || idx + 1));
+          var provText = prov.text || '';
+          var provSection = prov.section || '';
+
+          return React.createElement('div', {
+            key: provKey,
+            style: { marginBottom: '3px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)' },
+          },
+            React.createElement('div', {
+              onClick: function() { toggleInstrument(provKey); },
+              style: {
+                padding: '6px 8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                background: 'rgba(255,255,255,0.02)',
+              },
+            },
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('span', { style: { color: '#E2E8F0', fontSize: '11px' } }, provTitle),
+                provSection && React.createElement('span', { style: { color: '#475569', fontSize: '10px', marginLeft: '6px', fontFamily: "'DM Mono', monospace" } },
+                  (String(provSection).indexOf('s.') === 0 ? '' : 's.') + provSection
+                )
+              ),
+              React.createElement('span', { style: { fontSize: '8px', color: '#475569', transition: 'transform 0.15s', transform: isProvOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
+            ),
+            isProvOpen && React.createElement('div', { style: { padding: '8px', borderTop: '1px solid rgba(255,255,255,0.04)' } },
+              prov.summary && React.createElement('div', { style: { fontSize: '11px', color: '#CBD5E1', lineHeight: 1.6, marginBottom: '6px' } },
+                prov.summary.length > 400 ? prov.summary.slice(0, 400) + '\u2026' : prov.summary
+              ),
+              provText && React.createElement('div', { style: { fontSize: '11px', color: '#94A3B8', lineHeight: 1.6, maxHeight: '200px', overflowY: 'auto', fontFamily: "'DM Mono', monospace" } },
+                provText.length > 500 ? provText.slice(0, 500) + '\u2026' : provText
+              ),
+              prov.sourceUrl && React.createElement('a', {
+                href: prov.sourceUrl, target: '_blank', rel: 'noopener noreferrer',
+                style: { display: 'inline-block', marginTop: '6px', fontSize: '10px', color: '#0EA5E9', textDecoration: 'none' },
+              }, '\u2197 legislation.gov.uk'),
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Explain ' + provTitle + ' of the ' + displayTitle + ' and its practical implications'); },
+                style: {
+                  display: 'block', marginTop: '6px', padding: '4px 10px', borderRadius: '4px',
+                  background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)',
+                  color: '#0EA5E9', fontSize: '10px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                },
+              }, '\u2192 Ask Eileen')
+            )
+          );
+        })
+      ),
+
+      cases.length > 0 && React.createElement('div', { style: { marginTop: '16px' } },
+        React.createElement('div', {
+          style: { fontSize: '12px', fontWeight: 600, color: '#0EA5E9', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif" },
+        }, 'Leading Cases (' + cases.length + ')'),
+        cases.slice(0, 20).map(function(c, idx) {
+          var caseText = c.principle || c.heldText || c.held || c.significance || '';
+          return React.createElement('div', {
+            key: 'lc-' + idx,
+            style: { padding: '8px', marginBottom: '4px', borderRadius: '4px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' },
+          },
+            React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, c.name || c.title || 'Unnamed case'),
+            (c.citation || c.court || c.year) && React.createElement('div', { style: { color: '#64748B', fontSize: '10px', marginTop: '2px', fontFamily: "'DM Mono', monospace" } },
+              [c.citation, c.court, c.year].filter(Boolean).join(' \u00B7 ')
+            ),
+            caseText && React.createElement('div', { style: { color: '#94A3B8', fontSize: '11px', marginTop: '4px', lineHeight: 1.4 } },
+              caseText.length > 200 ? caseText.slice(0, 200) + '\u2026' : caseText
+            ),
+            (c.url || c.bailiiUrl) && React.createElement('a', {
+              href: c.url || c.bailiiUrl, target: '_blank', rel: 'noopener noreferrer',
+              style: { fontSize: '10px', color: '#0EA5E9', textDecoration: 'none', marginTop: '4px', display: 'inline-block' },
+            }, '\u2197 BAILII')
+          );
+        })
+      )
+    );
+  }
+
+  // Sprint F §3.1: three-tab layout — Library is the default
   var tabs = [
+    { id: 'library', label: 'Library' },
     { id: 'provisions', label: 'Provisions' },
     { id: 'cases', label: 'Cases' },
   ];
@@ -2490,114 +3084,11 @@ function ResearchPanel() {
     }),
     loading
       ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading\u2026')
-      : tab === 'provisions'
-        ? (instrumentKeys.length === 0
-            ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.')
-            : instrumentKeys.map(function(instId) {
-                var items = groupedProvisions[instId];
-                var isOpen = !!expanded[instId];
-                return React.createElement('div', { key: instId, style: { marginBottom: '6px' } },
-                  React.createElement('button', {
-                    type: 'button',
-                    onClick: function() { toggleInstrument(instId); },
-                    style: {
-                      width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '6px',
-                      background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.12)',
-                      cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      color: '#E2E8F0', fontSize: '12px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
-                    },
-                  },
-                    React.createElement('span', null, INSTRUMENT_NAMES[instId] || instId),
-                    React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
-                      React.createElement('span', { style: { fontSize: '10px', color: '#0EA5E9', fontFamily: "'DM Mono', monospace" } }, items.length + ' provisions'),
-                      React.createElement('span', { style: { fontSize: '10px', color: '#64748B', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
-                    )
-                  ),
-                  isOpen && React.createElement('div', { style: { paddingLeft: '8px', marginTop: '4px' } },
-                    items.map(function(item) {
-                      return React.createElement('div', {
-                        key: item.provision_id,
-                        style: {
-                          padding: '6px 8px', marginBottom: '2px', borderRadius: '4px',
-                          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
-                          cursor: 'pointer',
-                        },
-                        onClick: function() {
-                          var seedMsg = 'Tell me about ' + item.title + (item.instrument_id ? ' under the ' + item.instrument_id : '');
-                          if (window.__klSendMessage) window.__klSendMessage(seedMsg);
-                        },
-                        title: 'Ask Eileen about this provision',
-                      },
-                        React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.title),
-                        React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '2px', flexWrap: 'wrap', alignItems: 'center' } },
-                          React.createElement('span', { style: { color: '#475569', fontSize: '10px', fontFamily: "'DM Mono', monospace" } },
-                            (item.section_num ? 's.' + item.section_num : '')
-                          ),
-                          item.is_era_2025 && React.createElement('span', {
-                            style: { color: '#F59E0B', fontSize: '10px', padding: '1px 5px', borderRadius: '3px', background: 'rgba(245,158,11,0.1)' },
-                          }, 'ERA 2025'),
-                          React.createElement('span', { style: { color: item.in_force ? '#10B981' : '#94A3B8', fontSize: '10px' } },
-                            item.in_force ? 'In force' : 'Not yet'
-                          )
-                        )
-                      );
-                    })
-                  )
-                );
-              })
-          )
-        : (filtered.length === 0
-            ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No results.')
-            : filtered.slice(0, 50).map(function(item) {
-                var caseKey = 'case-' + item.case_id;
-                var isOpen = !!expanded[caseKey];
-                return React.createElement('div', {
-                  key: item.case_id,
-                  style: {
-                    marginBottom: '6px', borderRadius: '6px', overflow: 'hidden',
-                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-                  },
-                },
-                  React.createElement('div', {
-                    onClick: function() { toggleInstrument(caseKey); },
-                    style: {
-                      padding: '8px 10px', cursor: 'pointer',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                    },
-                  },
-                    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                      React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500 } }, item.name),
-                      React.createElement('div', { style: { color: '#64748B', fontSize: '10px', marginTop: '2px', fontFamily: "'DM Mono', monospace" } },
-                        [item.citation, item.court, item.year].filter(Boolean).join(' \u00B7 ')
-                      )
-                    ),
-                    React.createElement('span', {
-                      style: { fontSize: '9px', color: '#64748B', flexShrink: 0, marginTop: '4px', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
-                      'aria-hidden': 'true',
-                    }, '\u25BC')
-                  ),
-                  isOpen && React.createElement('div', {
-                    style: { padding: '0 10px 10px', borderTop: '1px solid rgba(255,255,255,0.04)' },
-                  },
-                    item.principle && React.createElement('div', {
-                      style: { fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5, marginTop: '8px', marginBottom: '10px' },
-                    }, item.principle),
-                    React.createElement('button', {
-                      type: 'button',
-                      onClick: function() {
-                        if (window.__klSendMessage) window.__klSendMessage('Tell me about the case ' + item.name + (item.citation ? ' (' + item.citation + ')' : '') + ' and what it means for employers');
-                      },
-                      style: {
-                        padding: '6px 12px', borderRadius: '6px',
-                        background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
-                        color: '#0EA5E9', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
-                        fontFamily: "'DM Sans', sans-serif",
-                      },
-                    }, '\u2192 Discuss with Eileen')
-                  )
-                );
-              })
-          )
+      : tab === 'library'
+        ? renderLibraryTab()
+        : tab === 'provisions'
+          ? renderProvisionsTab()
+          : renderCasesTab()
   );
 }
 
@@ -3388,7 +3879,9 @@ function App() {
           isAnalysisResult: true,
           // R1-C §3: merge upload_id so the PDF download button in
           // AnalysisResultMessage can reference it via data.upload_id.
-          analysisData: Object.assign({}, pollResult, { upload_id: uploadId }),
+          // Sprint F §2.2: merge document_id so the Save to Vault button
+          // can PATCH the kl_vault_documents row.
+          analysisData: Object.assign({}, pollResult, { upload_id: uploadId, document_id: documentId }),
         }]);
       });
     } catch (err) {
