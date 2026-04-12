@@ -1,6 +1,4854 @@
-(()=>{var{useState:k,useEffect:J,useRef:ie,useCallback:ve}=React,j="https://cnbsxwtvazfvzmltkuvx.supabase.co",Q="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g",ke=j.replace(".supabase.co",".functions.supabase.co")+"/functions/v1/eileen-intelligence",we=[{name:"Employment Rights Act 1996",shortId:"ERA 1996",warmIntro:"The foundation of modern employment protection in the UK.",topics:"Covers unfair dismissal, redundancy rights, written terms of employment, whistleblower protections, flexible working, and the right not to suffer detriment.",keyQuestion:"What does the ERA 1996 require of my employment contracts?",inForce:!0},{name:"Equality Act 2010",shortId:"EqA 2010",warmIntro:"The single framework protecting people from discrimination at work.",topics:"Covers nine protected characteristics including age, disability, race, sex, and pregnancy. Addresses direct and indirect discrimination, harassment, victimisation, and the duty to make reasonable adjustments.",keyQuestion:"What are my obligations around workplace discrimination under the Equality Act?",inForce:!0},{name:"Health and Safety at Work Act 1974",shortId:"HSWA 1974",warmIntro:"The primary legislation ensuring workplaces are safe for everyone.",topics:"Establishes the employer's general duty of care, risk assessment obligations, employee consultation rights, and HSE enforcement powers.",keyQuestion:"What are my core health and safety duties as an employer?",inForce:!0},{name:"National Minimum Wage Act 1998",shortId:"NMWA 1998",warmIntro:"Guarantees a minimum level of pay for virtually all workers.",topics:"Sets out entitlements to national minimum wage and national living wage, employer record-keeping duties, and HMRC enforcement mechanisms.",keyQuestion:"Am I meeting my minimum wage obligations for all worker categories?",inForce:!0},{name:"Trade Union and Labour Relations (Consolidation) Act 1992",shortId:"TULRCA 1992",warmIntro:"Governs collective rights, union recognition, and industrial action.",topics:"Covers trade union recognition, collective bargaining, the right to be accompanied, collective redundancy consultation (Section 188), and lawful industrial action.",keyQuestion:"What are my obligations around collective consultation and trade union rights?",inForce:!0},{name:"Employment Rights Act 2025",shortId:"ERA 2025",warmIntro:"The most significant reform to employment law in a generation.",topics:"Introduces day-one unfair dismissal rights, restricts fire-and-rehire, reforms zero-hours contracts, strengthens flexible working, and creates the Fair Work Agency. Measures commenced 6 April 2026.",keyQuestion:"How does the Employment Rights Act 2025 change my obligations from April 2026?",inForce:!1},{name:"Public Interest Disclosure Act 1998",shortId:"PIDA 1998",warmIntro:"Protects workers who raise concerns about wrongdoing.",topics:"Defines qualifying disclosures, protected disclosures in the public interest, protection from dismissal and detriment, and the prescribed persons framework.",keyQuestion:"How should I handle a whistleblowing disclosure from an employee?",inForce:!0}],Ee={"ERA 1996":"Employment Rights Act 1996","EqA 2010":"Equality Act 2010","HSWA 1974":"Health and Safety at Work Act 1974","NMWA 1998":"National Minimum Wage Act 1998","TULRCA 1992":"Trade Union and Labour Relations (Consolidation) Act 1992","ERA 2025":"Employment Rights Act 2025","PIDA 1998":"Public Interest Disclosure Act 1998","WTR 1998":"Working Time Regulations 1998","MPL 1999":"Maternity and Parental Leave Regulations 1999","TUPE 2006":"Transfer of Undertakings Regulations 2006","ACAS Code 1":"ACAS Code of Practice on Disciplinary and Grievance","FWR 2014":"Flexible Working Regulations 2014","PTWR 2000":"Part-Time Workers Regulations 2000","FTER 2002":"Fixed-Term Employees Regulations 2002","AWR 2010":"Agency Workers Regulations 2010","PAL 2002":"Paternity and Adoption Leave Regulations 2002","SPL 2014":"Shared Parental Leave Regulations 2014","MHSWR 1999":"Management of Health and Safety at Work Regulations 1999","DPA 2018":"Data Protection Act 2018"},_e=[{label:"Dismissal and disciplinary",description:"Unfair dismissal, redundancy, disciplinary procedures, ACAS Code",query:"I need guidance on dismissal and disciplinary procedures \u2014 what are the key legal requirements I should be aware of?"},{label:"Discrimination and harassment",description:"Protected characteristics, harassment duties, reasonable adjustments",query:"What are my obligations around discrimination and harassment in the workplace under current law?"},{label:"Contracts and terms",description:"Written statements, working time, flexible working, zero-hours",query:"What should I know about employment contract requirements and terms under current legislation?"},{label:"Family leave and pregnancy",description:"Maternity, paternity, shared parental leave, redundancy protection",query:"What are the current legal requirements for family leave and pregnancy protection in employment?"},{label:"Business transfers",description:"TUPE obligations, consultation requirements, employee protections",query:"What do I need to know about TUPE and employee protections during business transfers?"},{label:"Health and safety",description:"Employer duties, risk assessment, stress, working conditions",query:"What are the key health and safety obligations for employers under current law?"},{label:"Whistleblowing",description:"Protected disclosures, qualifying disclosures, detriment protection",query:"What protections exist for whistleblowers and what are my obligations as an employer?"},{label:"Data and monitoring",description:"Employee data, workplace monitoring, UK GDPR, ICO guidance",query:"What are the rules around employee data protection and workplace monitoring under UK GDPR?"}],Se=["check my contract","review my contract","analyse my contract","analyze my contract","compliance check","upload my contract","is my contract compliant","contract review","check this contract","review this document","check my employment contract","contract compliance","look at my contract","scan my contract"];function Re(e){var t=(e||"").toLowerCase();return Se.some(function(c){return t.indexOf(c)!==-1})}(function(){if(typeof document>"u"||document.getElementById("kl-r1b-keyframes"))return;let e=document.createElement("style");e.id="kl-r1b-keyframes",e.textContent="@keyframes kl-pulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }",document.head.appendChild(e)})();var Ce=[".pdf",".docx",".doc",".txt"],Te=10*1024*1024;function Ae(e){return e==null?"":e<1024*1024?Math.round(e/1024)+" KB":(e/(1024*1024)).toFixed(1)+" MB"}function le(e){return String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function Be(e){if(!e)return"";let d=le(e).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\(([a-z][a-z0-9-]+)\s+(§|s\.)([^)]+)\)/gi,function(n,o,f,l){var w=o.toLowerCase();return'<span class="kl-ref-link" data-inst="'+le(w)+'" data-section="'+le(f+l)+'" title="Open in Library: '+le(o)+" "+le(f+l)+'">'+le(o+" "+f+l)+"</span>"}).split(`
-`),p=[],s=[];function a(){s.length&&(p.push("<ul>"+s.join("")+"</ul>"),s=[])}return d.forEach(n=>{let o=n.trim(),f=o.match(/^(#{1,3})\s+(.*)$/),l=o.match(/^[-*]\s+(.*)$/);if(f){a();let w=Math.min(6,f[1].length+3);p.push("<h"+w+">"+f[2]+"</h"+w+">")}else l?s.push("<li>"+l[1]+"</li>"):o===""?a():(a(),p.push("<p>"+n+"</p>"))}),a(),p.join("")}var De={Foreword:"About This Code",Introduction:"What This Code Covers","Keys to handling disciplinary situations in the workplace":"Handling Disciplinary Situations","Keys to handling grievances in the workplace":"Handling Workplace Grievances","Disciplinary situations":"When Disciplinary Action May Be Needed","Grievance procedure":"How to Handle a Grievance","Holding a meeting":"Conducting the Meeting","Settlement agreements":"Using Settlement Agreements","Flexible working":"Managing Flexible Working Requests","Redundancy handling":"Managing Redundancy Fairly","Bullying and harassment":"Addressing Bullying and Harassment","Absence management":"Managing Employee Absence",Whistleblowing:"Handling Whistleblowing Disclosures"};function he(e,t){return e&&((t==="acas"||t==="guidance")&&De[e]||e)}typeof window<"u"&&(window.__klFns=window.__klFns||{},window.__klFns.humanisePartTitle=he);function Fe(e){if(!e)return"";let t=new Date(e).getTime(),c=Math.max(0,Date.now()-t),d=Math.floor(c/6e4);if(d<1)return"just now";if(d<60)return d+"m ago";let p=Math.floor(d/60);if(p<24)return p+"h ago";let s=Math.floor(p/24);return s<7?s+"d ago":new Date(e).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}function ze(e){var t=new Date,c=new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime(),d=c-864e5,p=c-(t.getDay()===0?6:t.getDay()-1)*864e5,s={today:{label:"Today",items:[]},yesterday:{label:"Yesterday",items:[]},thisWeek:{label:"This Week",items:[]},earlier:{label:"Earlier",items:[]}};return e.forEach(function(a){var n=new Date(a.lastActivity).getTime();n>=c?s.today.items.push(a):n>=d?s.yesterday.items.push(a):n>=p?s.thisWeek.items.push(a):s.earlier.items.push(a)}),[s.today,s.yesterday,s.thisWeek,s.earlier].filter(function(a){return a.items.length>0})}function Me(e,t){return e?e.length>t?e.substring(0,t-1)+"\u2026":e:""}function Ne(e){return e==="institutional"?["#D4A017","#F1C85B"]:e==="governance"?["#0EA5E9","#8B5CF6"]:e==="operational_readiness"?["#0EA5E9","#10B981"]:["#0EA5E9","#38BDF8"]}function fe({tier:e,size:t,state:c}){let d=ie(null),p=ie(null);return J(()=>{let s=d.current;if(!s)return;let a=window.devicePixelRatio||1,n=t||280;s.width=n*a,s.height=n*a,s.style.width=n+"px",s.style.height=n+"px";let o=s.getContext("2d");o.scale(a,a);let[f,l]=Ne(e),w=n/2,F=n/2,S=[],R=n/280;[{count:6,radius:28*R},{count:8,radius:68*R},{count:10,radius:110*R}].forEach((D,b)=>{for(let C=0;C<D.count;C++){let H=C/D.count*Math.PI*2+b*.4;S.push({x:w+Math.cos(H)*D.radius,y:F+Math.sin(H)*D.radius,phase:Math.random()*Math.PI*2,ring:b})}});let g=performance.now();function z(D){let b=(D-g)/1e3,C=c||"ready",H=C==="processing"?3:C==="dormant"?.4:1.2;o.clearRect(0,0,n,n),o.lineWidth=1;for(let O=0;O<S.length;O++)for(let u=O+1;u<S.length;u++){let E=S[O].x-S[u].x,y=S[O].y-S[u].y,v=Math.sqrt(E*E+y*y);if(v<72*R){let B=C==="processing"?.45:.2,U=(1-v/(72*R))*B;o.strokeStyle="rgba(14,165,233,"+U.toFixed(3)+")",o.beginPath(),o.moveTo(S[O].x,S[O].y),o.lineTo(S[u].x,S[u].y),o.stroke()}}S.forEach((O,u)=>{let E=.5+.5*Math.sin(b*H+O.phase),y=(2+E*2.2)*R,v=O.ring===0?f:O.ring===2?l:u%2?f:l;o.beginPath(),o.arc(O.x,O.y,y,0,Math.PI*2),o.fillStyle=v;let B=C==="dormant"?.25:C==="processing"?.6:.45,U=C==="dormant"?.3:C==="processing"?.4:.55;o.globalAlpha=B+E*U,o.fill(),o.globalAlpha=1}),p.current=requestAnimationFrame(z)}return p.current=requestAnimationFrame(z),()=>{p.current&&cancelAnimationFrame(p.current)}},[e,t,c]),React.createElement("canvas",{ref:d,className:"kl-nexus-canvas"})}function ge(){return React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},React.createElement("div",{"aria-hidden":"true",style:{width:"8px",height:"8px",borderRadius:"50%",background:"#0EA5E9",boxShadow:"0 0 6px rgba(14,165,233,0.5)",flexShrink:0}}),React.createElement("div",{className:"kl-msg-sender",style:{marginBottom:0}},"Eileen"))}function Ie({onSelect:e}){return React.createElement("div",{className:"kl-msg kl-msg-eileen"},React.createElement("div",{className:"kl-msg-content"},React.createElement(ge,null),React.createElement("div",{className:"kl-msg-body",style:{marginTop:"8px"}},React.createElement("p",null,"To give you the most relevant guidance \u2014 are you an employer or HR professional managing compliance, or a worker with a question about your own employment rights?")),React.createElement("div",{style:{display:"flex",gap:"8px",marginTop:"12px",flexWrap:"wrap"}},React.createElement("button",{type:"button",onClick:function(){e("employer")},style:{padding:"8px 16px",borderRadius:"8px",background:"rgba(14, 165, 233, 0.1)",border:"1px solid rgba(14, 165, 233, 0.3)",color:"#0EA5E9",fontSize:"13px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans', sans-serif",transition:"all 0.15s"},onMouseEnter:function(t){t.currentTarget.style.background="rgba(14, 165, 233, 0.2)"},onMouseLeave:function(t){t.currentTarget.style.background="rgba(14, 165, 233, 0.1)"}},"Employer / HR"),React.createElement("button",{type:"button",onClick:function(){e("worker")},style:{padding:"8px 16px",borderRadius:"8px",background:"rgba(139, 92, 246, 0.1)",border:"1px solid rgba(139, 92, 246, 0.3)",color:"#A78BFA",fontSize:"13px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans', sans-serif",transition:"all 0.15s"},onMouseEnter:function(t){t.currentTarget.style.background="rgba(139, 92, 246, 0.2)"},onMouseLeave:function(t){t.currentTarget.style.background="rgba(139, 92, 246, 0.1)"}},"Worker"))))}function Le(){return React.createElement("div",{className:"kl-msg kl-msg-eileen"},React.createElement("div",{className:"kl-msg-content"},React.createElement(ge,null),React.createElement("div",{className:"kl-typing-dots",style:{marginTop:"8px"}},React.createElement("span",{className:"kl-dot"}),React.createElement("span",{className:"kl-dot"}),React.createElement("span",{className:"kl-dot"}))))}function Oe({tier:e,isLoading:t,isExpanded:c,onToggle:d}){let p=t?"processing":"dormant";return React.createElement("div",{className:"kl-floating-nexus-container",style:{position:"absolute",bottom:window.innerWidth<=768?"100px":"80px",right:"24px",zIndex:30,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"8px",pointerEvents:"auto",maxWidth:"calc(100vw - 48px)"}},c&&React.createElement(Pe,{tier:e,onClose:d}),React.createElement("button",{type:"button",onClick:d,"aria-label":c?"Close Eileen panel":"Open Eileen panel",title:"Eileen",style:{width:"52px",height:"52px",borderRadius:"50%",background:"rgba(10, 22, 40, 0.85)",border:"1px solid rgba(14, 165, 233, 0.3)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,boxShadow:t?"0 0 20px rgba(14, 165, 233, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3)":"0 4px 16px rgba(0, 0, 0, 0.3)",transition:"box-shadow 0.3s ease, border-color 0.3s ease",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)"}},React.createElement(fe,{tier:e,size:36,state:p})))}function Pe({tier:e,onClose:t}){let c={governance:"Governance",operational_readiness:"Operational",institutional:"Institutional"}[e]||"Knowledge Library";return React.createElement("div",{className:"kl-floating-panel",style:{width:"240px",maxWidth:"calc(100vw - 48px)",background:"rgba(15, 29, 50, 0.95)",border:"1px solid rgba(14, 165, 233, 0.2)",borderRadius:"12px",padding:"16px",boxShadow:"0 8px 32px rgba(0, 0, 0, 0.4)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",fontFamily:"'DM Sans', sans-serif"}},React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}},React.createElement("div",{style:{width:"8px",height:"8px",borderRadius:"50%",background:"#0EA5E9",boxShadow:"0 0 6px rgba(14,165,233,0.5)"}}),React.createElement("span",{style:{color:"#0EA5E9",fontSize:"12px",fontWeight:500,letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:"'DM Mono', monospace"}},"Eileen"),React.createElement("span",{style:{flex:1}}),React.createElement("span",{style:{color:"#64748B",fontSize:"11px"}},c)),React.createElement("div",{style:{color:"#CBD5E1",fontSize:"13px",lineHeight:1.5,marginBottom:"12px"}},"I'm here whenever you need me. Ask a question or upload a contract for analysis."),React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:"6px"}},React.createElement("button",{type:"button",onClick:()=>{t(),window.scrollTo(0,0)},style:{width:"100%",padding:"8px 12px",background:"rgba(14, 165, 233, 0.08)",border:"1px solid rgba(14, 165, 233, 0.2)",borderRadius:"8px",color:"#0EA5E9",fontSize:"12px",fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans', sans-serif"}},"Ask a question")))}function We({hasText:e,isLoading:t,tier:c}){return React.createElement(fe,{tier:c,size:20,state:t?"processing":e?"ready":"dormant"})}function Ue({filename:e,fileSize:t,status:c,charCount:d}){let p=Ae(t),s={uploading:"\u23F3",extracting:"\u2699\uFE0F",ready:"\u2705",error:"\u274C"}[c]||"\u23F3",a={uploading:"Uploading...",extracting:"Extracting text...",ready:d?d.toLocaleString()+" characters extracted":"Ready",error:"Upload failed"}[c]||"";return React.createElement("div",{style:{display:"inline-flex",alignItems:"center",gap:"10px",padding:"10px 14px",borderRadius:"10px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",maxWidth:"320px"}},React.createElement("span",{style:{fontSize:"24px"},"aria-hidden":"true"},"\u{1F4C4}"),React.createElement("div",{style:{flex:1,minWidth:0}},React.createElement("div",{style:{color:"#E2E8F0",fontSize:"13px",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},e),React.createElement("div",{style:{color:"#94A3B8",fontSize:"11px",marginTop:"2px"}},p+" \xB7 "+a)),React.createElement("span",{style:{fontSize:"16px"},"aria-hidden":"true"},s))}function je({data:e}){let t=e.overall_score,c=e.status,d=e.findings||[],p=e.forward_findings||[],s=e.summary||{},a=e.engine_version||"",n=e.analysis_time_ms||0,o=e.checks_used,f=e.check_limit,[l,w]=k(!1),F=ie({}),[,S]=k(0);function R(u){F.current[u]=!F.current[u],S(E=>E+1)}if(c==="out_of_scope")return React.createElement("div",{style:{padding:"16px",borderRadius:"10px",background:"rgba(251,191,36,0.08)",border:"1px solid rgba(251,191,36,0.2)"}},React.createElement("div",{style:{fontSize:"14px",fontWeight:600,color:"#FBBF24",marginBottom:"8px"}},"\u26A0\uFE0F Document Outside Scope"),React.createElement("div",{style:{fontSize:"13px",color:"#CBD5E1",lineHeight:1.5}},"This document does not appear to be a UK employment contract, staff handbook, or workplace policy. The compliance engine analyses employment documents only. If this is an employment document, try uploading it in a different format (PDF or DOCX)."));let T=t>=65?"#22C55E":t>=30?"#F59E0B":"#EF4444",g={critical:{bg:"rgba(239,68,68,0.08)",border:"rgba(239,68,68,0.3)",text:"#EF4444",label:"Critical"},major:{bg:"rgba(251,191,36,0.08)",border:"rgba(251,191,36,0.3)",text:"#FBBF24",label:"Major"},minor:{bg:"rgba(234,179,8,0.06)",border:"rgba(234,179,8,0.2)",text:"#EAB308",label:"Minor"},compliant:{bg:"rgba(34,197,94,0.06)",border:"rgba(34,197,94,0.2)",text:"#22C55E",label:"Compliant"}},z={critical:0,major:1,minor:2,compliant:3},D=d.filter(u=>l||u.severity!=="compliant").slice().sort((u,E)=>(z[u.severity]!=null?z[u.severity]:4)-(z[E.severity]!=null?z[E.severity]:4)),b=p.filter(u=>u.severity!=="compliant"),C=d.filter(u=>u.severity==="compliant").length,H=d.length,O=p.length;return React.createElement("div",{style:{maxWidth:"100%"}},React.createElement("div",{style:{background:"linear-gradient(135deg, rgba(14,165,233,0.12), rgba(14,165,233,0.04))",border:"1px solid rgba(14,165,233,0.25)",borderRadius:"12px",padding:"16px 20px",marginBottom:"16px"}},React.createElement("div",{style:{fontSize:"13px",color:"rgba(255,255,255,0.6)",fontFamily:"'DM Sans', sans-serif",marginBottom:"4px"}},"Contract Compliance Score"),React.createElement("div",{style:{fontSize:"28px",fontWeight:700,color:T,fontFamily:"'DM Mono', monospace"}},Math.round(t)+"%"),React.createElement("div",{style:{fontSize:"13px",color:"rgba(255,255,255,0.5)",marginTop:"4px",fontFamily:"'DM Sans', sans-serif"}},H+" finding"+(H===1?"":"s")+" \xB7 "+O+" forward exposure item"+(O===1?"":"s"))),React.createElement("div",{style:{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}},Object.entries(s).map(function(u){var E=u[0],y=u[1];if(!y)return null;var v={critical:"#EF4444",major:"#F59E0B",minor:"#3B82F6",compliant:"#22C55E"};return React.createElement("span",{key:E,style:{background:(v[E]||"#666")+"20",border:"1px solid "+(v[E]||"#666")+"40",borderRadius:"6px",padding:"4px 10px",fontSize:"12px",fontFamily:"'DM Sans', sans-serif",fontWeight:600,color:v[E]||"#aaa"}},y+" "+E)})),c==="sparse_report"&&React.createElement("div",{style:{fontSize:"12px",color:"#FBBF24",marginBottom:"12px"}},"\u26A0\uFE0F Some requirements could not be assessed. Manual review recommended for gaps."),D.length>0&&React.createElement("div",{style:{fontSize:"14px",fontWeight:700,color:"#22D3EE",marginBottom:"8px",fontFamily:"'DM Sans', sans-serif"}},"Current Law Findings"),D.map((u,E)=>{let y=g[u.severity]||g.minor,v="c"+E+"-"+u.severity,B=!!F.current[v];return React.createElement("div",{key:v,style:{marginBottom:"8px",borderRadius:"8px",background:y.bg,border:"1px solid "+y.border,overflow:"hidden"}},React.createElement("div",{onClick:()=>R(v),style:{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",cursor:"pointer"}},React.createElement("span",{style:{fontSize:"10px",fontWeight:700,textTransform:"uppercase",padding:"2px 6px",borderRadius:"4px",background:y.border,color:y.text}},y.label),React.createElement("span",{style:{fontSize:"12px",color:"#CBD5E1",flex:1,minWidth:0}},u.clause_category),u.statutory_ref&&React.createElement("span",{style:{fontSize:"11px",color:"#64748B"}},u.statutory_ref),React.createElement("span",{style:{fontSize:"12px",color:"#64748B",marginLeft:"4px"}},B?"\u25B2":"\u25BC")),B&&React.createElement("div",{style:{padding:"0 12px 12px 12px"}},u.clause_text&&u.clause_text!=="[Not found in document]"&&React.createElement("div",{style:{fontSize:"12px",color:"#94A3B8",fontStyle:"italic",padding:"6px 10px",marginBottom:"8px",borderRadius:"4px",background:"rgba(0,0,0,0.2)",borderLeft:"2px solid "+y.border}},u.clause_text.length>300?u.clause_text.slice(0,300)+"\u2026":u.clause_text),u.finding_detail&&React.createElement("div",{style:{fontSize:"12px",color:"#CBD5E1",lineHeight:1.5,marginBottom:"8px"}},u.finding_detail),u.remediation&&React.createElement("div",{style:{fontSize:"12px",color:"#0EA5E9",lineHeight:1.5,padding:"8px 10px",borderRadius:"4px",background:"rgba(14,165,233,0.06)",borderLeft:"2px solid rgba(14,165,233,0.3)"}},React.createElement("strong",{style:{fontSize:"11px",display:"block",marginBottom:"4px"}},"Remediation"),u.remediation)))}),C>0&&React.createElement("button",{type:"button",onClick:()=>w(!l),style:{background:"none",border:"none",color:"rgba(255,255,255,0.5)",fontSize:"12px",cursor:"pointer",padding:"8px 0",fontFamily:"'DM Sans', sans-serif"}},l?"Hide compliant items":"Show "+C+" compliant item"+(C===1?"":"s")),b.length>0&&React.createElement("div",{style:{fontSize:"14px",fontWeight:700,color:"#A855F7",marginTop:"20px",marginBottom:"8px",fontFamily:"'DM Sans', sans-serif"}},"Legislative Horizon \u2014 Forward Exposure"),b.length>0&&React.createElement("div",null,React.createElement("div",{style:{fontSize:"11px",color:"#94A3B8",marginBottom:"10px"}},"These findings relate to provisions of the Employment Rights Act 2025 not yet in force. They do not affect the current compliance position."),b.map((u,E)=>{let y=g[u.severity]||g.minor,v="f"+E,B=!!F.current[v];return React.createElement("div",{key:v,style:{marginBottom:"8px",borderRadius:"8px",background:"rgba(167,139,250,0.04)",border:"1px solid rgba(167,139,250,0.15)",overflow:"hidden"}},React.createElement("div",{onClick:()=>R(v),style:{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",cursor:"pointer"}},React.createElement("span",{style:{fontSize:"10px",fontWeight:700,textTransform:"uppercase",padding:"2px 6px",borderRadius:"4px",background:y.border,color:y.text}},y.label),React.createElement("span",{style:{fontSize:"12px",color:"#CBD5E1",flex:1,minWidth:0}},u.clause_category),u.forward_effective_date&&React.createElement("span",{style:{fontSize:"10px",color:"#A78BFA"}},"Expected: "+u.forward_effective_date),React.createElement("span",{style:{fontSize:"12px",color:"#64748B",marginLeft:"4px"}},B?"\u25B2":"\u25BC")),B&&React.createElement("div",{style:{padding:"0 12px 12px 12px"}},u.finding_detail&&React.createElement("div",{style:{fontSize:"12px",color:"#CBD5E1",lineHeight:1.5,marginBottom:"8px"}},u.finding_detail),u.remediation&&React.createElement("div",{style:{fontSize:"12px",color:"#A78BFA",lineHeight:1.5,padding:"8px 10px",borderRadius:"4px",background:"rgba(167,139,250,0.04)",borderLeft:"2px solid rgba(167,139,250,0.2)"}},React.createElement("strong",{style:{fontSize:"11px",display:"block",marginBottom:"4px"}},"Action Before Commencement"),u.remediation)))})),React.createElement("div",{style:{marginTop:"20px",paddingTop:"16px",borderTop:"1px solid rgba(255,255,255,0.1)",display:"flex",gap:"12px"}},React.createElement("button",{type:"button",onClick:async u=>{let E=u.currentTarget;E.disabled=!0,E.textContent="Generating PDF\u2026";try{let y=window.__klToken;if(!y)throw new Error("Not authenticated");let v=await fetch(j+"/functions/v1/generate-report-pdf",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+y,apikey:Q},body:JSON.stringify({upload_id:e.upload_id})});if(!v.ok)throw new Error("PDF generation failed");let B=await v.blob(),U=URL.createObjectURL(B),K=document.createElement("a");K.href=U,K.download="Ailane-Compliance-Report.pdf",document.body.appendChild(K),K.click(),document.body.removeChild(K),URL.revokeObjectURL(U),E.textContent="\u2713 Downloaded",E.disabled=!1,setTimeout(()=>{E.textContent="\u{1F4C4} Download PDF Report"},2e3)}catch(y){console.error("PDF download error:",y),E.textContent="\u274C Failed \u2014 try again",E.disabled=!1,setTimeout(()=>{E.textContent="\u{1F4C4} Download PDF Report"},3e3)}},style:{background:"linear-gradient(135deg, #0EA5E9, #0284C7)",color:"#fff",border:"none",borderRadius:"8px",padding:"10px 20px",fontSize:"14px",fontFamily:"'DM Sans', sans-serif",fontWeight:600,cursor:"pointer",transition:"transform 0.15s, box-shadow 0.15s"},onMouseEnter:u=>{u.currentTarget.style.transform="translateY(-1px)",u.currentTarget.style.boxShadow="0 4px 12px rgba(14,165,233,0.3)"},onMouseLeave:u=>{u.currentTarget.style.transform="none",u.currentTarget.style.boxShadow="none"}},"\u{1F4C4} Download PDF Report"),React.createElement("button",{type:"button",onClick:async u=>{var E=u.currentTarget;E.disabled=!0,E.textContent="Saving\u2026";try{var y=window.__klToken;if(!y)throw new Error("Not authenticated");var v=e.document_id;if(v){var B=await fetch(j+"/rest/v1/kl_vault_documents?id=eq."+v,{method:"PATCH",headers:{Authorization:"Bearer "+y,apikey:Q,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({analysis_status:"completed"})});if(!B.ok)throw new Error("Vault update failed ("+B.status+")")}E.textContent="\u2713 Saved to Vault",E.style.background="rgba(16,185,129,0.15)",E.style.color="#10B981",E.style.borderColor="rgba(16,185,129,0.3)"}catch(U){console.error("Save to Vault error:",U),E.textContent="\u274C Failed \u2014 try again",E.disabled=!1,setTimeout(function(){E.textContent="\u{1F4BE} Save to Vault"},3e3)}},style:{background:"transparent",color:"#CBD5E1",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",padding:"10px 20px",fontSize:"14px",fontFamily:"'DM Sans', sans-serif",fontWeight:500,cursor:"pointer",transition:"all 0.15s"},onMouseEnter:u=>{u.currentTarget.style.borderColor="rgba(14,165,233,0.3)",u.currentTarget.style.color="#0EA5E9"},onMouseLeave:u=>{u.currentTarget.style.borderColor="rgba(255,255,255,0.15)",u.currentTarget.style.color="#CBD5E1"}},"\u{1F4BE} Save to Vault")),React.createElement("div",{style:{marginTop:"12px",paddingTop:"10px",borderTop:"1px solid rgba(148,163,184,0.1)",fontSize:"11px",color:"#64748B",lineHeight:1.5}},"Engine "+a+" \xB7 "+Math.round(n/1e3)+"s analysis time",o!=null&&f!=null?" \xB7 Check "+o+"/"+f+" used":"",React.createElement("div",{style:{marginTop:"6px",fontSize:"10px",color:"#475569"}},"This analysis is regulatory intelligence grounded in Ailane's compliance engine. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720) trading as Ailane.")))}function He({msg:e,onRunAnalysis:t}){if(e.type==="file_upload")return React.createElement("div",{className:"kl-msg kl-msg-user"},React.createElement("div",{className:"kl-msg-content"},React.createElement(Ue,{filename:e.filename,fileSize:e.fileSize,status:e.status,charCount:e.charCount})));if(e.role==="user")return React.createElement("div",{className:"kl-msg kl-msg-user"},React.createElement("div",{className:"kl-msg-content"},React.createElement("div",{className:"kl-msg-body"},e.content)));let c=e.provisionsCount!=null||e.casesCount!=null,d=e.isAnalysisResult&&e.analysisData,p=d?"":Be(e.content||"");function s(){typeof t=="function"&&t(e.documentId,e.id)}return React.createElement("div",{className:"kl-msg kl-msg-eileen"},React.createElement("div",{className:"kl-msg-content",style:{position:"relative"}},React.createElement(ge,null),e.isAnalysisLoading&&React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginTop:"8px",marginBottom:"4px"}},React.createElement("div",{className:"kl-analysis-pulse",style:{width:"8px",height:"8px",borderRadius:"50%",background:"#0EA5E9",animation:"kl-pulse 1.5s ease-in-out infinite",flexShrink:0},"aria-hidden":"true"}),React.createElement("span",{style:{color:"#94A3B8",fontSize:"11px",fontStyle:"italic"}},"Compliance engine active")),d?React.createElement("div",{className:"kl-msg-body",style:{marginTop:"8px"}},React.createElement(je,{data:e.analysisData})):React.createElement("div",{className:"kl-msg-body",style:{marginTop:"8px"},dangerouslySetInnerHTML:{__html:p}}),e.analysisReady&&e.documentId&&!e.analysisTriggered&&React.createElement("button",{type:"button",onClick:s,style:{display:"flex",alignItems:"center",gap:"8px",marginTop:"12px",padding:"10px 18px",background:"linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",color:"#FFFFFF",border:"none",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:600,fontFamily:"'DM Sans', sans-serif",transition:"opacity 0.2s"},onMouseEnter:a=>{a.currentTarget.style.opacity="0.9"},onMouseLeave:a=>{a.currentTarget.style.opacity="1"}},"\u2713 Run Contract Compliance Check"),e.analysisReady&&e.analysisTriggered&&React.createElement("div",{style:{marginTop:"12px",padding:"8px 14px",background:"rgba(14,165,233,0.08)",borderRadius:"8px",fontSize:"12px",color:"#64748B",display:"inline-block"}},"\u2713 Contract Compliance Check initiated"),e.role==="assistant"&&!e.isAnalysisResult&&!e.isAnalysisLoading&&!e.isLocal&&React.createElement("div",{style:{display:"flex",gap:"2px",marginTop:"10px",paddingTop:"8px",borderTop:"1px solid rgba(255,255,255,0.06)"}},React.createElement("button",{type:"button",onClick:function(a){var n=a.currentTarget;navigator.clipboard&&navigator.clipboard.writeText&&navigator.clipboard.writeText(e.content||"").then(function(){var o=n.textContent;n.textContent="\u2713 Copied",setTimeout(function(){n.textContent=o},1500)})},className:"kl-action-btn",title:"Copy to clipboard"},"Copy"),React.createElement("button",{type:"button",onClick:function(a){var n=a.currentTarget;n.disabled=!0,n.textContent="Saving\u2026";var o=window.__klToken,f=window.__klUserId;if(!o||!f){n.textContent="Not signed in",n.disabled=!1;return}var l=(e.content||"").split(`
-`)[0].slice(0,60)||"Eileen response";fetch(j+"/rest/v1/kl_workspace_notes",{method:"POST",headers:{Authorization:"Bearer "+o,apikey:Q,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({user_id:f,project_id:null,title:l,content_plain:e.content||""})}).then(function(w){w.ok?(n.textContent="\u2713 Saved",n.style.color="#10B981"):(n.textContent="Failed",n.style.color="#EF4444"),setTimeout(function(){n.textContent="Save to Notes",n.style.color="",n.disabled=!1},2e3)}).catch(function(){n.textContent="Failed",setTimeout(function(){n.textContent="Save to Notes",n.style.color="",n.disabled=!1},2e3)})},className:"kl-action-btn",title:"Save this response to your Notes"},"Save to Notes"),React.createElement("button",{type:"button",onClick:function(){var a=e.content||"",n=a.split(`
-`)[0].slice(0,40).replace(/[^a-zA-Z0-9 ]/g,"")||"Eileen-response",o=new Blob([a],{type:"text/plain;charset=utf-8"}),f=URL.createObjectURL(o),l=document.createElement("a");l.href=f,l.download=n.replace(/\s+/g,"-")+".txt",document.body.appendChild(l),l.click(),document.body.removeChild(l),URL.revokeObjectURL(f)},className:"kl-action-btn",title:"Download this response as a text file"},"Download")),c&&React.createElement("div",{className:"kl-msg-footer"},React.createElement("div",{className:"kl-msg-stats"},"Based on ",e.provisionsCount||0," provision",e.provisionsCount===1?"":"s"," and ",e.casesCount||0," case",e.casesCount===1?"":"s"))))}function ye({onSend:e,disabled:t,onFileSelect:c,pulseUpload:d}){let[p,s]=k(""),a=ie(null);function n(){let l=p.trim();!l||t||(e(l),s(""))}function o(l){l.key==="Enter"&&!l.shiftKey&&(l.preventDefault(),n())}function f(){a.current&&a.current.click()}return React.createElement("div",{className:"kl-input-bar"},c&&React.createElement("input",{type:"file",ref:a,accept:".pdf,.docx,.doc,.txt",style:{display:"none"},onChange:c}),c&&React.createElement("button",{type:"button",onClick:f,title:"Upload a contract for compliance analysis","aria-label":"Upload a contract for compliance analysis",style:{background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",borderRadius:"8px",cursor:"pointer",padding:"6px 10px",color:"#0EA5E9",fontSize:"13px",fontWeight:500,fontFamily:"'DM Sans', sans-serif",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",flexShrink:0,animation:d?"kl-pulse 1.5s ease-in-out 3":"none"}},React.createElement("svg",{width:"16",height:"16",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round","aria-hidden":"true"},React.createElement("path",{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"}),React.createElement("polyline",{points:"17 8 12 3 7 8"}),React.createElement("line",{x1:"12",y1:"3",x2:"12",y2:"15"})),React.createElement("span",null,"Upload contract")),React.createElement("input",{className:"kl-input",type:"text",placeholder:"Ask Eileen anything about UK employment law...",value:p,onChange:l=>s(l.target.value),onKeyDown:o,disabled:t}),React.createElement("button",{className:"kl-send-btn",onClick:n,disabled:t||!p.trim(),"aria-label":"Send message"},React.createElement(We,{hasText:!!p.trim(),isLoading:t,tier:window.__klTier||"per_session"})))}function qe({messages:e,isLoading:t,onSend:c,tier:d,onFileSelect:p,onRunAnalysis:s,floatingNexusExpanded:a,onToggleFloatingNexus:n,showQualifier:o,onUserTypeSelect:f,pulseUpload:l}){let w=ie(null),[F,S]=k(!1);J(()=>{w.current&&(w.current.scrollTop=w.current.scrollHeight)},[e,t]);let R=e.length===0;function T(b){p&&(b.preventDefault(),S(!0))}function g(b){p&&(b.preventDefault(),S(!1))}function z(b){if(!p)return;b.preventDefault(),S(!1);let C=b.dataTransfer&&b.dataTransfer.files;C&&C.length>0&&p({target:{files:C}})}let D=F&&React.createElement("div",{style:{position:"absolute",inset:0,zIndex:50,background:"rgba(14,165,233,0.08)",border:"2px dashed #0EA5E9",borderRadius:"12px",display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}},React.createElement("div",{style:{color:"#0EA5E9",fontSize:"16px",fontWeight:500}},"Drop your contract here"));return React.createElement("div",{className:"kl-main"},R?React.createElement("div",{className:"kl-welcome",style:{position:"relative"},onDragOver:T,onDragLeave:g,onDrop:z},D,React.createElement("div",{className:"kl-welcome-nexus"},React.createElement(fe,{tier:d})),React.createElement("h1",{className:"kl-welcome-greeting"},"What can I help you with today?"),React.createElement("div",{className:"kl-eileen-subtitle",style:{fontSize:"12px",color:"#64748B",fontFamily:"'DM Mono', monospace",letterSpacing:"0.06em",marginBottom:"24px",textAlign:"center"}},"Eileen \xB7 UK Employment Law Intelligence"),React.createElement("div",{className:"kl-welcome-input"},React.createElement(ye,{onSend:c,disabled:t,onFileSelect:p,pulseUpload:l})),React.createElement(dt,null),React.createElement("div",{className:"kl-topics-grid"},_e.map((b,C)=>React.createElement("button",{key:C,className:"kl-topic-card",onClick:()=>c(b.query),disabled:t},React.createElement("div",{className:"kl-card-label"},b.label),React.createElement("div",{className:"kl-card-desc"},b.description)))),React.createElement(pt,{onOpenBook:function(b){typeof window.__klOpenPanel=="function"&&(window.__klOpenPanel("research"),window.__klPendingInstrument=b.id,window.dispatchEvent(new CustomEvent("kl-open-instrument",{detail:{id:b.id}})))}})):React.createElement("div",{className:"kl-conversation",style:{position:"relative"},onDragOver:T,onDragLeave:g,onDrop:z},D,React.createElement(Oe,{tier:d,isLoading:t,isExpanded:a,onToggle:n}),React.createElement("div",{className:"kl-messages",ref:w,onClick:function(b){var C=b.target;if(C&&C.classList&&C.classList.contains("kl-ref-link")){var H=C.getAttribute("data-inst");H&&typeof window.__klOpenPanel=="function"&&(window.__klOpenPanel("research"),window.__klPendingInstrument=H,window.dispatchEvent(new CustomEvent("kl-open-instrument",{detail:{id:H}})))}}},e.map((b,C)=>React.createElement(He,{key:C,msg:b,onRunAnalysis:s})),o&&React.createElement(Ie,{onSelect:f}),t&&React.createElement(Le,null)),React.createElement("div",{className:"kl-conversation-input"},React.createElement(ye,{onSend:c,disabled:t,onFileSelect:p,pulseUpload:l}))))}function Ke({onQuery:e,disabled:t}){var c=k({}),d=c[0],p=c[1];function s(a){p(function(n){var o={};for(var f in n)o[f]=n[f];return o[a]=!n[a],o})}return React.createElement("div",{className:"kl-crown"},React.createElement("div",{className:"kl-crown-title"},"Crown Jewels"),React.createElement("div",{className:"kl-crown-list"},we.map(function(a){var n=!!d[a.name];return React.createElement("div",{key:a.name,style:{marginBottom:"4px"}},React.createElement("div",{onClick:function(){s(a.name)},style:{display:"flex",alignItems:"center",gap:"6px",padding:"7px 10px",borderRadius:n?"8px 8px 0 0":"8px",background:"rgba(14,165,233,0.04)",border:"1px solid rgba(14,165,233,0.12)",cursor:"pointer",transition:"background 0.15s"}},React.createElement("span",{style:{width:"5px",height:"5px",borderRadius:"50%",flexShrink:0,background:a.inForce?"#10B981":"#F59E0B"}}),React.createElement("span",{style:{flex:1,fontSize:"11px",color:"#CBD5E1",lineHeight:1.3,fontFamily:"'DM Sans', sans-serif"}},a.name),React.createElement("span",{style:{fontSize:"9px",color:"#64748B",flexShrink:0,transition:"transform 0.15s",transform:n?"rotate(180deg)":"rotate(0)"},"aria-hidden":"true"},"\u25BC")),n&&React.createElement("div",{style:{padding:"10px",background:"rgba(14,165,233,0.02)",border:"1px solid rgba(14,165,233,0.12)",borderTop:"none",borderRadius:"0 0 8px 8px"}},React.createElement("div",{style:{fontSize:"12px",color:"#0EA5E9",fontWeight:500,marginBottom:"6px",fontFamily:"'DM Sans', sans-serif"}},a.warmIntro),React.createElement("div",{style:{fontSize:"11px",color:"#94A3B8",lineHeight:1.5,marginBottom:"10px"}},a.topics),!a.inForce&&React.createElement("div",{style:{fontSize:"10px",color:"#F59E0B",padding:"4px 8px",borderRadius:"4px",background:"rgba(245,158,11,0.06)",marginBottom:"8px",display:"inline-block"}},"Commenced 6 April 2026"),React.createElement("button",{type:"button",disabled:t,onClick:function(o){o.stopPropagation(),e(a.keyQuestion)},style:{display:"block",width:"100%",padding:"7px 10px",borderRadius:"6px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",color:"#0EA5E9",fontSize:"11px",fontWeight:500,cursor:t?"not-allowed":"pointer",fontFamily:"'DM Sans', sans-serif",textAlign:"left",opacity:t?.5:1,transition:"background 0.15s"}},"\u2192 "+a.keyQuestion)))})))}function Ge({open:e,sessionHistory:t,activeSessionId:c,onSelectSession:d,onNewChat:p,onCrownQuery:s}){var a=k(!1),n=a[0],o=a[1];return React.createElement("div",{className:"kl-sidebar"+(e?"":" collapsed")},React.createElement("div",{className:"kl-sidebar-section"},React.createElement("button",{className:"kl-new-chat-btn",onClick:p},React.createElement("svg",{width:"14",height:"14",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2.25",strokeLinecap:"round",strokeLinejoin:"round"},React.createElement("line",{x1:"12",y1:"5",x2:"12",y2:"19"}),React.createElement("line",{x1:"5",y1:"12",x2:"19",y2:"12"})),React.createElement("span",null,"New Conversation"))),React.createElement("div",{style:{flex:1,overflowY:"auto",minHeight:0}},React.createElement(Ke,{onQuery:s})),React.createElement("div",{style:{flexShrink:0,borderTop:"1px solid rgba(255,255,255,0.06)"}},React.createElement("button",{type:"button",onClick:function(){o(!n)},style:{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",background:"transparent",border:"none",color:"#64748B",fontSize:"11px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Mono', monospace",letterSpacing:"0.06em",textTransform:"uppercase"}},React.createElement("span",null,"History ("+t.length+")"),React.createElement("span",{style:{fontSize:"9px",transition:"transform 0.15s",transform:n?"rotate(180deg)":"rotate(0)"}},"\u25BC")),n&&React.createElement("div",{style:{maxHeight:"240px",overflowY:"auto",padding:"0 8px 8px"}},t.length===0?React.createElement("div",{className:"kl-sidebar-empty"},"No prior conversations"):ze(t).map(function(f){return React.createElement(React.Fragment,{key:f.label},React.createElement("div",{style:{fontSize:"9px",fontWeight:500,color:"#475569",textTransform:"uppercase",letterSpacing:"0.08em",padding:"8px 10px 3px",fontFamily:"'DM Mono', monospace"}},f.label),f.items.map(function(l){return React.createElement("button",{key:l.sessionId,className:"kl-history-item"+(l.sessionId===c?" active":""),onClick:function(){d(l.sessionId)}},React.createElement("div",{className:"kl-history-title"},Me(l.title,40)),React.createElement("div",{className:"kl-history-time"},Fe(l.lastActivity)))}))}))))}function Ve({expiresAt:e,onExpired:t}){let[c,d]=k(""),[p,s]=k(!1),a=ie(!1);return J(()=>{if(a.current=!1,!e)return;let n=new Date(e).getTime();if(isNaN(n))return;function o(){let l=n-Date.now();if(l<=0)return d("Expired"),s(!0),!a.current&&typeof t=="function"&&(a.current=!0,t()),!1;let w=Math.floor(l/1e3),F=Math.floor(w/3600),S=Math.floor(w%3600/60),R=w%60,T=F>0?F+"h "+String(S).padStart(2,"0")+"m":S+"m "+String(R).padStart(2,"0")+"s";return d(T),s(l<900*1e3),!0}if(!o())return;let f=setInterval(()=>{o()||clearInterval(f)},1e3);return()=>clearInterval(f)},[e,t]),e?React.createElement("span",{className:"kl-session-countdown"+(p?" urgent":""),title:"Time remaining in this session"},React.createElement("span",{"aria-hidden":"true"},"\u23F1"),React.createElement("span",{className:"kl-session-countdown-time"},c)):null}function Ye(){return React.createElement("div",{className:"kl-expired-modal",role:"dialog","aria-modal":"true","aria-labelledby":"kl-expired-title"},React.createElement("div",{className:"kl-expired-backdrop","aria-hidden":"true"}),React.createElement("div",{className:"kl-expired-content"},React.createElement("h2",{id:"kl-expired-title",className:"kl-expired-title"},"Session expired"),React.createElement("p",{className:"kl-expired-body"},"Your Knowledge Library session has ended. Purchase a new session to continue your research."),React.createElement("a",{className:"kl-expired-cta",href:"/knowledge-library-preview/"},"Get a new session")))}function Je({onClick:e}){return React.createElement("div",{className:"kl-sidebar-backdrop",onClick:e,"aria-hidden":"true"})}function Qe({sidebarOpen:e,onToggleSidebar:t,accessType:c,tier:d,sessionExpiresAt:p,onSessionExpired:s}){let a="KNOWLEDGE LIBRARY",n="kl-badge-per-session";return c==="subscription"?d==="operational_readiness"?(a="OPERATIONAL",n="kl-badge-operational"):d==="governance"?(a="GOVERNANCE",n="kl-badge-governance"):d==="institutional"&&(a="INSTITUTIONAL",n="kl-badge-institutional"):c==="per_session"&&(a="PER-SESSION"),React.createElement("div",{className:"kl-topbar"},React.createElement("button",{className:"kl-topbar-toggle",onClick:t,"aria-label":e?"Collapse sidebar":"Expand sidebar"},React.createElement("svg",{width:"20",height:"20",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round"},React.createElement("line",{x1:"3",y1:"12",x2:"21",y2:"12"}),React.createElement("line",{x1:"3",y1:"6",x2:"21",y2:"6"}),React.createElement("line",{x1:"3",y1:"18",x2:"21",y2:"18"}))),React.createElement("a",{className:"kl-topbar-title",href:"/",style:{color:"#22D3EE",textDecoration:"none",fontFamily:"'DM Sans', sans-serif",fontWeight:700,fontSize:"16px",cursor:"pointer"}},"AILANE Knowledge Library"),React.createElement("div",{className:"kl-topbar-right"},c==="per_session"&&p&&React.createElement(Ve,{expiresAt:p,onExpired:s}),React.createElement("span",{className:"kl-tier-badge "+n},a)))}var xe=[{id:"vault",label:"Document Vault",minTier:"operational_readiness",group:"primary"},{id:"notes",label:"Notes",minTier:null,group:"primary"},{id:"research",label:"Research",minTier:null,group:"primary"},{id:"calendar",label:"Calendar",minTier:"operational_readiness",group:"secondary"},{id:"clipboard",label:"Saved Snippets",minTier:null,group:"secondary"}];function Xe({id:e}){var t={width:"20",height:"20",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"1.75",strokeLinecap:"round",strokeLinejoin:"round"};return e==="vault"?React.createElement("svg",t,React.createElement("path",{d:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"}),React.createElement("polyline",{points:"14 2 14 8 20 8"}),React.createElement("line",{x1:"16",y1:"13",x2:"8",y2:"13"}),React.createElement("line",{x1:"16",y1:"17",x2:"8",y2:"17"})):e==="notes"?React.createElement("svg",t,React.createElement("path",{d:"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"}),React.createElement("path",{d:"M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"})):e==="research"?React.createElement("svg",t,React.createElement("circle",{cx:"11",cy:"11",r:"8"}),React.createElement("line",{x1:"21",y1:"21",x2:"16.65",y2:"16.65"})):e==="calendar"?React.createElement("svg",t,React.createElement("rect",{x:"3",y:"4",width:"18",height:"18",rx:"2",ry:"2"}),React.createElement("line",{x1:"16",y1:"2",x2:"16",y2:"6"}),React.createElement("line",{x1:"8",y1:"2",x2:"8",y2:"6"}),React.createElement("line",{x1:"3",y1:"10",x2:"21",y2:"10"})):e==="clipboard"?React.createElement("svg",t,React.createElement("path",{d:"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"}),React.createElement("rect",{x:"8",y:"2",width:"8",height:"4",rx:"1",ry:"1"})):React.createElement("span",{style:{fontSize:"18px"}},"?")}var ce={per_session:0,kl_quick_session:0,kl_day_pass:0,kl_research_week:0,operational_readiness:1,governance:2,institutional:3};function Ze({activePanel:e,onSelectPanel:t,accessType:c,tier:d}){var p=ce[d]!=null?ce[d]:ce[c]!=null?ce[c]:0,s=xe.filter(function(o){return o.group==="primary"}),a=xe.filter(function(o){return o.group==="secondary"});function n(o){var f=o.minTier?ce[o.minTier]!=null?ce[o.minTier]:99:0,l=p<f,w=e===o.id;return React.createElement("button",{key:o.id,type:"button",className:"kl-panel-rail-btn"+(w?" active":"")+(l?" locked":""),title:l?o.label+" (upgrade required)":o.label,"aria-label":o.label,"aria-pressed":w,disabled:l,onClick:function(){l||t(w?null:o.id)}},React.createElement(Xe,{id:o.id}))}return React.createElement("div",{className:"kl-panelrail"},s.map(n),React.createElement("div",{className:"kl-panel-rail-divider",style:{width:"24px",height:"1px",background:"rgba(255,255,255,0.08)",margin:"4px 0"},"aria-hidden":"true"}),a.map(n))}function $e(){var e=k([]),t=e[0],c=e[1],d=k(null),p=d[0],s=d[1],a=k("Untitled note"),n=a[0],o=a[1],f=k(""),l=f[0],w=f[1],F=k("loading"),S=F[0],R=F[1],T=k("list"),g=T[0],z=T[1],D=ie(null);J(function(){var y=!1;async function v(){if(!window.__klToken||!window.__klUserId){R("saved"),z("list");return}try{var B=await fetch(j+"/rest/v1/kl_workspace_notes?user_id=eq."+window.__klUserId+"&select=id,title,content_plain,updated_at&order=updated_at.desc&limit=50",{headers:{Authorization:"Bearer "+window.__klToken,apikey:Q}}),U=await B.json();if(y)return;Array.isArray(U)&&c(U),R("saved")}catch(K){console.error("Notes load failed:",K),y||R("error")}}return v(),function(){y=!0,D.current&&clearTimeout(D.current)}},[]);function b(y){s(y.id),o(y.title||"Untitled note"),w(y.content_plain||""),z("editor"),R("saved")}function C(){s(null),o("Untitled note"),w(""),z("editor"),R("saved")}async function H(y,v,B){if(!(!window.__klToken||!window.__klUserId)){R("saving");var U=new Date().toISOString();try{if(B){var K=await fetch(j+"/rest/v1/kl_workspace_notes?id=eq."+B,{method:"PATCH",headers:{Authorization:"Bearer "+window.__klToken,apikey:Q,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({title:y||"Untitled note",content_plain:v,updated_at:U})});if(!K.ok)throw new Error("PATCH "+K.status);c(function(Z){return Z.map(function(ae){return ae.id===B?Object.assign({},ae,{title:y,content_plain:v,updated_at:U}):ae})})}else{var ne=await fetch(j+"/rest/v1/kl_workspace_notes",{method:"POST",headers:{Authorization:"Bearer "+window.__klToken,apikey:Q,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify({user_id:window.__klUserId,project_id:null,title:y||"Untitled note",content_plain:v})});if(!ne.ok)throw new Error("POST "+ne.status);var ee=await ne.json();Array.isArray(ee)&&ee[0]&&ee[0].id&&(s(ee[0].id),c(function(Z){return[ee[0]].concat(Z)}))}R("saved")}catch(Z){console.error("Notes save failed:",Z),R("error")}}}function O(y,v){R("dirty"),D.current&&clearTimeout(D.current),D.current=setTimeout(function(){H(y,v,p)},1500)}async function u(y){if(window.__klToken)try{await fetch(j+"/rest/v1/kl_workspace_notes?id=eq."+y,{method:"DELETE",headers:{Authorization:"Bearer "+window.__klToken,apikey:Q}}),c(function(v){return v.filter(function(B){return B.id!==y})}),p===y&&(z("list"),s(null))}catch(v){console.error("Delete failed:",v)}}var E=S==="loading"?"Loading\u2026":S==="dirty"?"Unsaved changes":S==="saving"?"Saving\u2026":S==="error"?"Save failed":"\u2713 Saved";return g==="list"?React.createElement("div",{className:"kl-notes-panel"},React.createElement("button",{type:"button",onClick:C,style:{width:"100%",padding:"10px",borderRadius:"8px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",color:"#0EA5E9",fontSize:"13px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans', sans-serif",marginBottom:"12px",display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"}},"+ New Note"),t.length===0?React.createElement("div",{style:{color:"#64748B",fontSize:"13px",textAlign:"center",padding:"24px 0"}},"No notes yet. Create one to start."):t.map(function(y){return React.createElement("div",{key:y.id,style:{padding:"10px",marginBottom:"6px",borderRadius:"8px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px"},onClick:function(){b(y)}},React.createElement("div",{style:{minWidth:0,flex:1}},React.createElement("div",{style:{color:"#E2E8F0",fontSize:"13px",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},y.title||"Untitled note"),React.createElement("div",{style:{color:"#64748B",fontSize:"11px",marginTop:"2px"}},y.updated_at?new Date(y.updated_at).toLocaleDateString("en-GB",{day:"numeric",month:"short"}):"")),React.createElement("button",{type:"button",onClick:function(v){v.stopPropagation(),u(y.id)},style:{background:"none",border:"none",color:"#64748B",fontSize:"14px",cursor:"pointer",padding:"0 4px",flexShrink:0},title:"Delete note","aria-label":"Delete note"},"\u2715"))})):React.createElement("div",{className:"kl-notes-panel"},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}},React.createElement("button",{type:"button",onClick:function(){z("list")},style:{background:"none",border:"none",color:"#0EA5E9",fontSize:"12px",cursor:"pointer",padding:"0",fontFamily:"'DM Sans', sans-serif",textAlign:"left"}},"\u2190 All notes"),React.createElement("button",{type:"button",onClick:function(){var y=new Blob([l],{type:"text/plain;charset=utf-8"}),v=URL.createObjectURL(y),B=document.createElement("a");B.href=v,B.download=(n||"note").replace(/[^a-zA-Z0-9 ]/g,"").replace(/\s+/g,"-")+".txt",document.body.appendChild(B),B.click(),document.body.removeChild(B),URL.revokeObjectURL(v)},className:"kl-action-btn",title:"Download this note",style:{fontSize:"11px",padding:"4px 10px"}},"\u2B07 Download")),React.createElement("input",{className:"kl-notes-title",type:"text",value:n,onChange:function(y){var v=y.target.value;o(v),O(v,l)},placeholder:"Untitled note"}),React.createElement("div",{className:"kl-notes-status"+(S==="saved"?" saved":"")+(S==="error"?" error":"")},E),React.createElement("textarea",{className:"kl-notes-body",value:l,onChange:function(y){var v=y.target.value;w(v),O(n,v)},placeholder:"Take notes during your research..."}))}function et(){var e=k([]),t=e[0],c=e[1];J(function(){return window.__klAddClip=function(s,a){c(function(n){return[{id:Date.now()+Math.random(),text:String(s||""),source:a||"Eileen response",copiedAt:new Date}].concat(n)})},function(){delete window.__klAddClip}},[]);function d(s){c(function(a){return a.filter(function(n){return n.id!==s})})}function p(s){navigator.clipboard&&navigator.clipboard.writeText&&navigator.clipboard.writeText(s).catch(function(a){console.error("Clipboard copy failed:",a)})}return t.length===0?React.createElement("div",{className:"kl-clipboard-panel"},React.createElement("p",{className:"kl-clipboard-empty"},"Snippets you copy from Eileen\u2019s responses will appear here for quick reference during your session.")):React.createElement("div",{className:"kl-clipboard-panel"},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}},React.createElement("span",{style:{color:"#94A3B8",fontSize:"11px",fontFamily:"'DM Mono', monospace"}},t.length+" snippet"+(t.length===1?"":"s")),React.createElement("button",{className:"kl-clipboard-clear",onClick:function(){c([])}},"Clear all")),t.map(function(s){return React.createElement("div",{key:s.id,className:"kl-clip"},React.createElement("p",{className:"kl-clip-text"},s.text.length>200?s.text.substring(0,200)+"\u2026":s.text),React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:"6px"}},React.createElement("span",{style:{color:"#64748B",fontSize:"10px",fontFamily:"'DM Mono', monospace"}},s.source),React.createElement("div",{className:"kl-clip-actions"},React.createElement("button",{className:"kl-clip-copy",onClick:function(){p(s.text)}},"Copy"),React.createElement("button",{className:"kl-clip-remove",onClick:function(){d(s.id)}},"Remove"))))}))}function tt(){var e=k([]),t=e[0],c=e[1],d=k(!0),p=d[0],s=d[1];J(function(){var n=!1;async function o(){if(!window.__klToken||!window.__klUserId){s(!1);return}var f={Authorization:"Bearer "+window.__klToken,apikey:Q},l=[];try{var w=await fetch(j+"/rest/v1/kl_vault_documents?user_id=eq."+window.__klUserId+"&select=id,filename,file_size_bytes,extraction_status,analysis_status,created_at&order=created_at.desc&limit=20",{headers:f}),F=await w.json();!n&&Array.isArray(F)&&F.forEach(function(T){l.push({id:T.id,name:T.filename,score:null,status:T.analysis_status||T.extraction_status||"pending",source:"vault",created:T.created_at})})}catch(T){console.warn("Vault docs fetch failed:",T)}try{var S=await fetch(j+"/rest/v1/compliance_uploads?user_id=eq."+window.__klUserId+"&select=id,file_name,display_name,overall_score,status,created_at&status=neq.error&order=created_at.desc&limit=20",{headers:f}),R=await S.json();!n&&Array.isArray(R)&&R.forEach(function(T){l.push({id:T.id,name:T.display_name||T.file_name,score:T.overall_score,status:T.status,source:"portal",created:T.created_at})})}catch(T){console.warn("Uploads fetch failed:",T)}n||(l.sort(function(T,g){return new Date(g.created)-new Date(T.created)}),c(l),s(!1))}return o(),function(){n=!0}},[]);var a=React.createElement("div",{style:{marginBottom:"12px"}},React.createElement("input",{type:"file",id:"vault-upload-input",accept:".pdf,.docx,.doc,.txt",style:{display:"none"},onChange:function(n){typeof window.__klHandleFileSelect=="function"&&window.__klHandleFileSelect(n)}}),React.createElement("button",{type:"button",onClick:function(){var n=document.getElementById("vault-upload-input");n&&n.click()},style:{width:"100%",padding:"10px",borderRadius:"8px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",color:"#0EA5E9",fontSize:"13px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans', sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"}},React.createElement("svg",{width:"14",height:"14",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"round",strokeLinejoin:"round"},React.createElement("path",{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"}),React.createElement("polyline",{points:"17 8 12 3 7 8"}),React.createElement("line",{x1:"12",y1:"3",x2:"12",y2:"15"})),"Upload document"));return p?React.createElement("div",{style:{color:"#94A3B8",fontSize:"13px",padding:"12px"}},"Loading documents\u2026"):t.length===0?React.createElement("div",{style:{padding:"12px"}},a,React.createElement("p",{style:{color:"#94A3B8",fontSize:"14px",marginBottom:"6px"}},"No documents yet."),React.createElement("p",{style:{color:"#64748B",fontSize:"13px",lineHeight:1.5}},"Upload a contract here or through Eileen to run a compliance check.")):React.createElement("div",null,a,t.map(function(n){var o=n.score!=null,f=o?n.score>=70?"#10B981":n.score>=40?"#F59E0B":"#EF4444":null,l=o?n.score>=70?"rgba(16,185,129,0.15)":n.score>=40?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)":null,w=null;if(!o&&n.status){var F={pending:{text:"#94A3B8",bg:"rgba(148,163,184,0.1)"},extracting:{text:"#0EA5E9",bg:"rgba(14,165,233,0.1)"},processing:{text:"#0EA5E9",bg:"rgba(14,165,233,0.1)"},completed:{text:"#10B981",bg:"rgba(16,185,129,0.1)"},ready:{text:"#10B981",bg:"rgba(16,185,129,0.1)"}},S=F[n.status]||F.pending;w=React.createElement("span",{style:{fontSize:"10px",fontWeight:500,padding:"2px 6px",borderRadius:"4px",background:S.bg,color:S.text,flexShrink:0,fontFamily:"'DM Mono', monospace"}},n.status)}return React.createElement("div",{key:n.source+"-"+n.id,style:{padding:"12px",marginBottom:"8px",borderRadius:"8px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)"}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}},React.createElement("span",{style:{color:"#E2E8F0",fontSize:"13px",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}},n.name),o?React.createElement("span",{style:{fontSize:"12px",fontWeight:600,padding:"2px 8px",borderRadius:"4px",background:l,color:f,flexShrink:0}},Math.round(n.score)+"%"):w),React.createElement("div",{style:{display:"flex",gap:"8px",alignItems:"center",marginTop:"4px"}},React.createElement("span",{style:{color:"#64748B",fontSize:"11px"}},new Date(n.created).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})),React.createElement("span",{style:{fontSize:"10px",color:n.source==="vault"?"#0EA5E9":"#64748B",fontFamily:"'DM Mono', monospace"}},n.source==="vault"?"KL Upload":"Portal")))}))}function nt(){var e=k([]),t=e[0],c=e[1],d=k(!0),p=d[0],s=d[1],a=k("all"),n=a[0],o=a[1],f=k({}),l=f[0],w=f[1];J(function(){var g=!1;async function z(){if(!window.__klToken){s(!1);return}try{var D=await fetch(j+"/rest/v1/regulatory_requirements?select=id,requirement_name,statutory_basis,effective_from,commencement_status,is_forward_requirement,source_act&order=effective_from.asc",{headers:{Authorization:"Bearer "+window.__klToken,apikey:Q}}),b=await D.json();if(g)return;Array.isArray(b)&&c(b)}catch(C){console.error("Calendar load failed:",C)}finally{g||s(!1)}}return z(),function(){g=!0}},[]);function F(g){w(function(z){var D={};for(var b in z)D[b]=z[b];return D[g]=!z[g],D})}if(p)return React.createElement("div",{style:{color:"#94A3B8",fontSize:"13px",padding:"12px"}},"Loading regulatory calendar\u2026");var S=t.filter(function(g){return g.is_forward_requirement}).length,R=t.filter(function(g){return n==="forward"?g.is_forward_requirement:n==="in_force"?g.commencement_status==="in_force":!0}),T=[{id:"all",label:"All ("+t.length+")"},{id:"in_force",label:"In Force"},{id:"forward",label:"Forward ("+S+")"}];return React.createElement("div",null,React.createElement("div",{style:{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}},T.map(function(g){return React.createElement("button",{key:g.id,type:"button",onClick:function(){o(g.id)},style:{padding:"4px 10px",borderRadius:"4px",fontSize:"11px",cursor:"pointer",fontFamily:"inherit",border:n===g.id?"1px solid #0EA5E9":"1px solid rgba(255,255,255,0.1)",background:n===g.id?"rgba(14,165,233,0.15)":"transparent",color:n===g.id?"#0EA5E9":"#94A3B8"}},g.label)})),R.length===0?React.createElement("div",{style:{color:"#64748B",fontSize:"12px",padding:"8px 4px"}},"No requirements match this filter."):R.map(function(g){var z=!!l[g.id];return React.createElement("div",{key:g.id,style:{marginBottom:"6px",borderRadius:"6px",overflow:"hidden",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderLeft:g.is_forward_requirement?"3px solid #F59E0B":"3px solid #10B981"}},React.createElement("div",{onClick:function(){F(g.id)},style:{padding:"10px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},React.createElement("div",{style:{flex:1,minWidth:0}},React.createElement("div",{style:{color:"#E2E8F0",fontSize:"13px",fontWeight:500}},g.requirement_name),g.effective_from&&React.createElement("div",{style:{color:"#64748B",fontSize:"11px",marginTop:"2px"}},"Effective: "+new Date(g.effective_from).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}))),React.createElement("span",{style:{color:"#64748B",fontSize:"10px",flexShrink:0,transition:"transform 0.15s",transform:z?"rotate(180deg)":"rotate(0)"},"aria-hidden":"true"},"\u25BC")),z&&React.createElement("div",{style:{padding:"0 10px 10px",borderTop:"1px solid rgba(255,255,255,0.06)"}},g.statutory_basis&&React.createElement("div",{style:{marginTop:"8px"}},React.createElement("span",{style:{color:"#64748B",fontSize:"10px",fontFamily:"'DM Mono', monospace",textTransform:"uppercase",letterSpacing:"0.06em"}},"Statutory Basis"),React.createElement("div",{style:{color:"#CBD5E1",fontSize:"12px",marginTop:"2px"}},g.statutory_basis)),g.source_act&&React.createElement("div",{style:{marginTop:"8px"}},React.createElement("span",{style:{color:"#64748B",fontSize:"10px",fontFamily:"'DM Mono', monospace",textTransform:"uppercase",letterSpacing:"0.06em"}},"Source Act"),React.createElement("div",{style:{color:"#CBD5E1",fontSize:"12px",marginTop:"2px"}},g.source_act)),React.createElement("div",{style:{marginTop:"8px"}},React.createElement("span",{style:{color:"#64748B",fontSize:"10px",fontFamily:"'DM Mono', monospace",textTransform:"uppercase",letterSpacing:"0.06em"}},"Status"),React.createElement("div",{style:{marginTop:"2px"}},React.createElement("span",{style:{fontSize:"11px",fontWeight:500,padding:"2px 6px",borderRadius:"4px",background:g.commencement_status==="in_force"?"rgba(16,185,129,0.1)":"rgba(245,158,11,0.1)",color:g.commencement_status==="in_force"?"#10B981":"#F59E0B"}},g.commencement_status==="in_force"?"In Force":g.commencement_status||"Pending"))),g.is_forward_requirement&&React.createElement("div",{style:{marginTop:"8px",padding:"6px 8px",borderRadius:"4px",background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.1)",fontSize:"11px",color:"#F59E0B"}},"Forward requirement \u2014 not yet in force")))}))}function at(){var e=k("library"),t=e[0],c=e[1],d=k(""),p=d[0],s=d[1],a=k([]),n=a[0],o=a[1],f=k(!0),l=f[0],w=f[1],F=k({}),S=F[0],R=F[1],T=k([]),g=T[0],z=T[1],D=k(null),b=D[0],C=D[1],H=k(null),O=H[0],u=H[1],E=k(!1),y=E[0],v=E[1];J(function(){if(t==="library"){w(!1);return}var r=!1;async function A(){if(!window.__klToken){w(!1);return}w(!0);try{var N=t==="provisions"?"/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=500":"/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100",i=await fetch(j+N,{headers:{Authorization:"Bearer "+window.__klToken,apikey:Q}}),x=await i.json();if(r)return;o(Array.isArray(x)?x:[])}catch(h){console.error("Research load failed:",h),r||o([])}finally{r||w(!1)}}return A(),function(){r=!0}},[t]),J(function(){if(t!=="library")return;var r=!1;async function A(){try{var N=await fetch("/knowledge-library/content/content-index.json"),i=await N.json();if(!r&&Array.isArray(i)&&(z(i),window.__klPendingInstrument)){var x=window.__klPendingInstrument;delete window.__klPendingInstrument;var h=i.find(function(_){return _.id===x});h&&setTimeout(function(){U(h)},100)}}catch(_){console.warn("Library manifest fetch failed:",_)}}return g.length===0&&A(),function(){r=!0}},[t]),J(function(){function r(A){var N=A.detail&&A.detail.id;if(N){c("library");var i=g.find(function(x){return x.id===N});i?U(i):window.__klPendingInstrument=N}}return window.addEventListener("kl-open-instrument",r),function(){window.removeEventListener("kl-open-instrument",r)}},[g]);function B(r){R(function(A){var N={};for(var i in A)N[i]=A[i];return N[r]=!A[r],N})}async function U(r){C(r),u(null),v(!0);try{var A=r.filename||(r.id?r.id+".json":null);if(A){var N=await fetch("/knowledge-library/content/"+A);if(N.ok){var i=await N.json();u(i)}}}catch(x){console.warn("Content file fetch failed:",x)}finally{v(!1)}}var K=n.filter(function(r){if(!p)return!0;var A=p.toLowerCase();return t==="provisions"?(r.title||"").toLowerCase().indexOf(A)!==-1||(r.instrument_id||"").toLowerCase().indexOf(A)!==-1:(r.name||"").toLowerCase().indexOf(A)!==-1||(r.citation||"").toLowerCase().indexOf(A)!==-1}),ne=g;if(t==="library"&&p){var ee=p.toLowerCase();ne=g.filter(function(r){return(r.title||"").toLowerCase().indexOf(ee)!==-1||(r.short||"").toLowerCase().indexOf(ee)!==-1||(r.warmSubtitle||"").toLowerCase().indexOf(ee)!==-1||(r.cat||"").toLowerCase().indexOf(ee)!==-1})}var Z={};t==="provisions"&&K.forEach(function(r){var A=r.instrument_id||"Other";Z[A]||(Z[A]=[]),Z[A].push(r)});var ae=Object.keys(Z).sort();function se(){return ae.length===0?React.createElement("div",{style:{color:"#64748B",fontSize:"12px",padding:"8px 4px"}},"No results."):ae.map(function(r){var A=Z[r],N=!!S[r];return React.createElement("div",{key:r,style:{marginBottom:"6px"}},React.createElement("button",{type:"button",onClick:function(){B(r)},style:{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:"6px",background:"rgba(14,165,233,0.04)",border:"1px solid rgba(14,165,233,0.12)",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:"#E2E8F0",fontSize:"12px",fontWeight:500,fontFamily:"'DM Sans', sans-serif"}},React.createElement("span",null,Ee[r]||r),React.createElement("span",{style:{display:"flex",alignItems:"center",gap:"6px"}},React.createElement("span",{style:{fontSize:"10px",color:"#0EA5E9",fontFamily:"'DM Mono', monospace"}},A.length+" provisions"),React.createElement("span",{style:{fontSize:"10px",color:"#64748B",transition:"transform 0.15s",transform:N?"rotate(180deg)":"rotate(0)"}},"\u25BC"))),N&&React.createElement("div",{style:{paddingLeft:"8px",marginTop:"4px"}},A.map(function(i){return React.createElement("div",{key:i.provision_id,style:{padding:"6px 8px",marginBottom:"2px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"},onClick:function(){var x="Tell me about "+i.title+(i.instrument_id?" under the "+i.instrument_id:"");window.__klSendMessage&&window.__klSendMessage(x)},title:"Ask Eileen about this provision"},React.createElement("div",{style:{color:"#E2E8F0",fontSize:"12px",fontWeight:500}},i.title),React.createElement("div",{style:{display:"flex",gap:"6px",marginTop:"2px",flexWrap:"wrap",alignItems:"center"}},React.createElement("span",{style:{color:"#475569",fontSize:"10px",fontFamily:"'DM Mono', monospace"}},i.section_num?"s."+i.section_num:""),i.is_era_2025&&React.createElement("span",{style:{color:"#F59E0B",fontSize:"10px",padding:"1px 5px",borderRadius:"3px",background:"rgba(245,158,11,0.1)"}},"ERA 2025"),React.createElement("span",{style:{color:i.in_force?"#10B981":"#94A3B8",fontSize:"10px"}},i.in_force?"In force":"Not yet")))})))})}function pe(){return K.length===0?React.createElement("div",{style:{color:"#64748B",fontSize:"12px",padding:"8px 4px"}},"No results."):K.slice(0,50).map(function(r){var A="case-"+r.case_id,N=!!S[A];return React.createElement("div",{key:r.case_id,style:{marginBottom:"6px",borderRadius:"6px",overflow:"hidden",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.05)"}},React.createElement("div",{onClick:function(){B(A)},style:{padding:"8px 10px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},React.createElement("div",{style:{flex:1,minWidth:0}},React.createElement("div",{style:{color:"#E2E8F0",fontSize:"12px",fontWeight:500}},r.name),React.createElement("div",{style:{color:"#64748B",fontSize:"10px",marginTop:"2px",fontFamily:"'DM Mono', monospace"}},[r.citation,r.court,r.year].filter(Boolean).join(" \xB7 "))),React.createElement("span",{style:{fontSize:"9px",color:"#64748B",flexShrink:0,marginTop:"4px",transition:"transform 0.15s",transform:N?"rotate(180deg)":"rotate(0)"},"aria-hidden":"true"},"\u25BC")),N&&React.createElement("div",{style:{padding:"0 10px 10px",borderTop:"1px solid rgba(255,255,255,0.04)"}},r.principle&&React.createElement("div",{style:{fontSize:"12px",color:"#CBD5E1",lineHeight:1.5,marginTop:"8px",marginBottom:"10px"}},r.principle),React.createElement("button",{type:"button",onClick:function(){window.__klSendMessage&&window.__klSendMessage("Tell me about the case "+r.name+(r.citation?" ("+r.citation+")":"")+" and what it means for employers")},style:{padding:"6px 12px",borderRadius:"6px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",color:"#0EA5E9",fontSize:"11px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans', sans-serif"}},"\u2192 Discuss with Eileen")))})}function ue(){if(b)return de();var r={legislation:"UK Employment Legislation",acas:"ACAS Codes of Practice & Guidance",hse:"Health & Safety Executive Guidance",ico:"ICO Data Protection Guidance",ehrc:"Equality & Human Rights Commission",horizon:"Forward Intelligence & Horizon",training:"Training Resources",caselaw:"Case Law Intelligence",guidance:"Regulatory Guidance","employment-relations":"Employment Relations","cross-cutting":"Cross-Cutting Provisions"},A=["legislation","acas","hse","ehrc","ico","guidance","employment-relations","cross-cutting","horizon","training","caselaw"],N={legislation:"#0EA5E9",acas:"#10B981",hse:"#F59E0B",ico:"#8B5CF6",ehrc:"#EC4899",horizon:"#F97316",training:"#06B6D4",caselaw:"#6366F1",guidance:"#14B8A6","employment-relations":"#10B981","cross-cutting":"#64748B"},i={};ne.forEach(function(h){var _=h.cat||"legislation";i[_]||(i[_]=[]),i[_].push(h)});var x=A.filter(function(h){return i[h]&&i[h].length>0});return Object.keys(i).forEach(function(h){x.indexOf(h)===-1&&x.push(h)}),g.length===0?React.createElement("div",{style:{color:"#64748B",fontSize:"13px",padding:"12px",textAlign:"center"}},"Loading instrument library\u2026"):x.length===0?React.createElement("div",{style:{color:"#64748B",fontSize:"12px",padding:"8px 4px"}},"No instruments match your search."):React.createElement("div",null,x.map(function(h){var _=i[h],M=r[h]||h,G=N[h]||"#0EA5E9",$=S[h]!==!1;return React.createElement("div",{key:h,style:{marginBottom:"12px"}},React.createElement("button",{type:"button",onClick:function(){B(h)},style:{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:"6px",background:"rgba(14,165,233,0.06)",border:"1px solid rgba(14,165,233,0.15)",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:G,fontSize:"12px",fontWeight:600,fontFamily:"'DM Sans', sans-serif"}},React.createElement("span",null,M),React.createElement("span",{style:{display:"flex",alignItems:"center",gap:"6px"}},React.createElement("span",{style:{fontSize:"10px",color:"#64748B",fontFamily:"'DM Mono', monospace"}},_.length+" instruments"),React.createElement("span",{style:{fontSize:"9px",color:"#64748B",transition:"transform 0.15s",transform:$?"rotate(180deg)":"rotate(0)"}},"\u25BC"))),$&&React.createElement("div",{style:{paddingLeft:"4px",marginTop:"6px"}},_.map(function(m){var I=N[m.cat]||"#0EA5E9";return React.createElement("div",{key:m.id,onClick:function(){U(m)},style:{padding:"0",marginBottom:"6px",borderRadius:"4px",overflow:"hidden",cursor:"pointer",transition:"transform 0.15s, box-shadow 0.15s",border:"1px solid rgba(255,255,255,0.06)",display:"flex"},onMouseEnter:function(L){L.currentTarget.style.transform="translateX(4px)",L.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.3)"},onMouseLeave:function(L){L.currentTarget.style.transform="none",L.currentTarget.style.boxShadow="none"}},React.createElement("div",{style:{width:"4px",background:I,flexShrink:0}}),React.createElement("div",{style:{flex:1,padding:"10px 12px",background:"rgba(255,255,255,0.02)"}},React.createElement("div",{style:{color:"#E2E8F0",fontSize:"12px",fontWeight:500,marginBottom:"4px",lineHeight:1.3}},m.title),m.warmSubtitle&&React.createElement("div",{style:{color:"#94A3B8",fontSize:"11px",lineHeight:1.4,marginBottom:"6px"}},m.warmSubtitle.length>100?m.warmSubtitle.slice(0,100)+"\u2026":m.warmSubtitle),React.createElement("div",{style:{display:"flex",gap:"6px",alignItems:"center",flexWrap:"wrap"}},m.sectionCount>0&&React.createElement("span",{style:{fontSize:"10px",color:I,fontFamily:"'DM Mono', monospace"}},m.sectionCount+" provisions"),m.caseCount>0&&React.createElement("span",{style:{fontSize:"10px",color:"#64748B",fontFamily:"'DM Mono', monospace"}},m.caseCount+" cases"),m.isInForce!=null&&React.createElement("span",{style:{fontSize:"9px",padding:"1px 5px",borderRadius:"3px",background:m.isInForce?"rgba(16,185,129,0.1)":"rgba(245,158,11,0.1)",color:m.isInForce?"#10B981":"#F59E0B"}},m.isInForce?"In force":"Pending"))))})))}))}function de(){return React.createElement("div",null,React.createElement("button",{type:"button",onClick:function(){C(null),u(null)},style:{background:"none",border:"none",color:"#0EA5E9",fontSize:"12px",cursor:"pointer",padding:"0 0 10px",fontFamily:"'DM Sans', sans-serif",textAlign:"left"}},"\u2190 Back to Library"),y?React.createElement("div",{style:{color:"#94A3B8",fontSize:"13px",padding:"20px 0",textAlign:"center"}},"Loading instrument detail\u2026"):O?te(O):me(b))}function me(r){return React.createElement("div",null,React.createElement("div",{style:{fontSize:"16px",fontWeight:600,color:"#E2E8F0",marginBottom:"8px"}},r.title),React.createElement("div",{style:{fontSize:"12px",color:"#64748B",marginBottom:"4px",fontFamily:"'DM Mono', monospace"}},(r.type||"")+(r.jurisdiction?" \xB7 "+r.jurisdiction:"")),r.chapters&&React.createElement("div",{style:{fontSize:"12px",color:"#94A3B8",marginBottom:"12px",lineHeight:1.5}},r.chapters),r.warmSubtitle&&React.createElement("div",{style:{fontSize:"13px",color:"#CBD5E1",lineHeight:1.6,marginBottom:"12px",padding:"12px",background:"rgba(14,165,233,0.04)",borderRadius:"8px",borderLeft:"2px solid rgba(14,165,233,0.2)"}},r.warmSubtitle),r.sourceUrl&&React.createElement("a",{href:r.sourceUrl,target:"_blank",rel:"noopener noreferrer",style:{display:"inline-flex",alignItems:"center",gap:"4px",marginBottom:"12px",fontSize:"11px",color:"#0EA5E9",textDecoration:"none",fontFamily:"'DM Sans', sans-serif"}},"\u2197 View on legislation.gov.uk"),!r.warmSubtitle&&React.createElement("div",{style:{fontSize:"12px",color:"#475569",fontStyle:"italic",padding:"12px",background:"rgba(255,255,255,0.02)",borderRadius:"6px",border:"1px solid rgba(255,255,255,0.05)"}},"Deep content for this instrument is being enriched. Ask Eileen for current intelligence."),React.createElement("button",{type:"button",onClick:function(){window.__klSendMessage&&window.__klSendMessage("Tell me about the "+r.title+" and what it means for employers")},style:{marginTop:"12px",padding:"8px 14px",borderRadius:"6px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",color:"#0EA5E9",fontSize:"12px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans', sans-serif"}},"\u2192 Ask Eileen about this instrument"))}function te(r){var A=r.title||r.shortTitle||b&&b.title||"Instrument",N=r.type||b&&b.type||"",i=r.jurisdiction||b&&b.jurisdiction||"",x=r.desc||r.description||r.summary||r.overview||b&&b.warmSubtitle||"",h=r.isInForce!=null?r.isInForce:b&&b.isInForce,_=b&&b.cat||r.cat||"",M=[];Array.isArray(r.provisions)?M=r.provisions:Array.isArray(r.parts)&&r.parts.forEach(function(m){var I=m.title||m.num||m.name||"",L=he(I,_);(m.sections||[]).forEach(function(V){M.push({title:V.title||V.name||"",section:V.num||V.sectionNum||V.section||"",text:V.text||V.currentText||V.content||"",summary:V.summary||V.keyPrinciple||"",sourceUrl:V.sourceUrl||null,partLabel:L,leadingCases:V.leadingCases||[]})})});var G=[];Array.isArray(r.leadingCases)&&(G=G.concat(r.leadingCases)),Array.isArray(r.cases)&&(G=G.concat(r.cases)),M.forEach(function(m){Array.isArray(m.leadingCases)&&(G=G.concat(m.leadingCases))});var $=r.sourceUrl||b&&b.sourceUrl||M[0]&&M[0].sourceUrl||null;return React.createElement("div",null,React.createElement("div",{style:{marginBottom:"16px"}},React.createElement("div",{style:{fontSize:"16px",fontWeight:600,color:"#E2E8F0",marginBottom:"6px"}},A),React.createElement("div",{style:{fontSize:"11px",color:"#64748B",fontFamily:"'DM Mono', monospace",marginBottom:"4px"}},[N,i,r.currentAsOf&&"Verified "+r.currentAsOf].filter(Boolean).join(" \xB7 ")),r.chapters&&React.createElement("div",{style:{fontSize:"11px",color:"#94A3B8",marginBottom:"8px"}},r.chapters),React.createElement("span",{style:{fontSize:"10px",padding:"2px 6px",borderRadius:"4px",display:"inline-block",background:h?"rgba(16,185,129,0.1)":"rgba(245,158,11,0.1)",color:h?"#10B981":"#F59E0B"}},h?"In force":"Not yet commenced")),x&&React.createElement("div",{style:{fontSize:"13px",color:"#CBD5E1",lineHeight:1.6,marginBottom:"16px",padding:"12px",background:"rgba(14,165,233,0.04)",borderRadius:"8px",borderLeft:"2px solid rgba(14,165,233,0.2)"}},typeof x=="string"?x:JSON.stringify(x)),$&&React.createElement("a",{href:$,target:"_blank",rel:"noopener noreferrer",style:{display:"inline-block",marginBottom:"16px",fontSize:"11px",color:"#0EA5E9",textDecoration:"none",fontFamily:"'DM Sans', sans-serif"}},"\u2197 View original source"),React.createElement("button",{type:"button",onClick:function(){window.__klSendMessage&&window.__klSendMessage("Give me a comprehensive briefing on the "+A+" including key obligations, recent changes, and practical implications for employers")},style:{display:"block",marginBottom:"16px",padding:"8px 14px",borderRadius:"6px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.2)",color:"#0EA5E9",fontSize:"12px",fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans', sans-serif"}},"\u2192 Get a full briefing from Eileen"),M.length>0&&React.createElement("div",{style:{marginTop:"8px"}},React.createElement("div",{style:{fontSize:"12px",fontWeight:600,color:"#0EA5E9",marginBottom:"8px",fontFamily:"'DM Sans', sans-serif"}},"Provisions ("+M.length+")"),M.slice(0,40).map(function(m,I){var L="prov-"+I,V=!!S[L],re=m.summary||m.title||m.name||"Section "+(m.section||m.sectionNum||m.num||I+1);re.length>140&&(re=re.slice(0,140)+"\u2026");var X=m.summary&&m.title&&m.title!==m.summary?m.title:null,Y=m.text||"",W=m.section||"";return React.createElement("div",{key:L,style:{marginBottom:"3px",borderRadius:"4px",overflow:"hidden",border:"1px solid rgba(255,255,255,0.04)"}},React.createElement("div",{onClick:function(){B(L)},style:{padding:"6px 8px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.02)"}},React.createElement("div",{style:{flex:1,minWidth:0}},React.createElement("span",{style:{color:"#E2E8F0",fontSize:"11px"}},re),W&&React.createElement("span",{style:{color:"#475569",fontSize:"10px",marginLeft:"6px",fontFamily:"'DM Mono', monospace"}},(String(W).indexOf("s.")===0?"":"s.")+W),X&&React.createElement("div",{style:{color:"#475569",fontSize:"10px",fontStyle:"italic",marginTop:"1px"}},X)),React.createElement("span",{style:{fontSize:"8px",color:"#475569",transition:"transform 0.15s",transform:V?"rotate(180deg)":"rotate(0)"}},"\u25BC")),V&&React.createElement("div",{style:{padding:"8px",borderTop:"1px solid rgba(255,255,255,0.04)"}},m.summary&&React.createElement("div",{style:{fontSize:"11px",color:"#CBD5E1",lineHeight:1.6,marginBottom:"6px"}},m.summary.length>400?m.summary.slice(0,400)+"\u2026":m.summary),Y&&React.createElement("div",{style:{fontSize:"11px",color:"#94A3B8",lineHeight:1.6,maxHeight:"200px",overflowY:"auto",fontFamily:"'DM Mono', monospace"}},Y.length>500?Y.slice(0,500)+"\u2026":Y),m.sourceUrl&&React.createElement("a",{href:m.sourceUrl,target:"_blank",rel:"noopener noreferrer",style:{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"10px",color:"#0EA5E9",textDecoration:"none",marginTop:"6px",marginBottom:"4px"}},"\u2197 View on legislation.gov.uk"),React.createElement("button",{type:"button",onClick:function(){window.__klSendMessage&&window.__klSendMessage("Explain "+re+" of the "+A+" and its practical implications")},style:{display:"block",marginTop:"6px",padding:"4px 10px",borderRadius:"4px",background:"rgba(14,165,233,0.06)",border:"1px solid rgba(14,165,233,0.15)",color:"#0EA5E9",fontSize:"10px",cursor:"pointer",fontFamily:"'DM Sans', sans-serif"}},"\u2192 Ask Eileen")))})),G.length>0&&React.createElement("div",{style:{marginTop:"16px"}},React.createElement("div",{style:{fontSize:"12px",fontWeight:600,color:"#0EA5E9",marginBottom:"8px",fontFamily:"'DM Sans', sans-serif"}},"Leading Cases ("+G.length+")"),G.slice(0,20).map(function(m,I){var L=m.principle||m.heldText||m.held||m.significance||"";return React.createElement("div",{key:"lc-"+I,style:{padding:"8px",marginBottom:"4px",borderRadius:"4px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.04)"}},React.createElement("div",{style:{color:"#E2E8F0",fontSize:"12px",fontWeight:500}},m.name||m.title||"Unnamed case"),(m.citation||m.court||m.year)&&React.createElement("div",{style:{color:"#64748B",fontSize:"10px",marginTop:"2px",fontFamily:"'DM Mono', monospace"}},[m.citation,m.court,m.year].filter(Boolean).join(" \xB7 ")),L&&React.createElement("div",{style:{color:"#94A3B8",fontSize:"11px",marginTop:"4px",lineHeight:1.4}},L.length>200?L.slice(0,200)+"\u2026":L),(m.url||m.bailiiUrl)&&React.createElement("a",{href:m.url||m.bailiiUrl,target:"_blank",rel:"noopener noreferrer",style:{fontSize:"10px",color:"#0EA5E9",textDecoration:"none",marginTop:"4px",display:"inline-block"}},"\u2197 BAILII"))})))}var oe=[{id:"library",label:"Library"},{id:"provisions",label:"Provisions"},{id:"cases",label:"Cases"}];return React.createElement("div",null,React.createElement("div",{style:{display:"flex",gap:"8px",marginBottom:"10px"}},oe.map(function(r){return React.createElement("button",{key:r.id,type:"button",onClick:function(){c(r.id),s(""),R({})},style:{flex:1,padding:"6px",borderRadius:"6px",fontSize:"12px",cursor:"pointer",fontFamily:"inherit",border:t===r.id?"1px solid #0EA5E9":"1px solid rgba(255,255,255,0.1)",background:t===r.id?"rgba(14,165,233,0.1)":"transparent",color:t===r.id?"#0EA5E9":"#94A3B8",fontWeight:t===r.id?600:400}},r.label)})),React.createElement("input",{type:"text",placeholder:"Search "+t+"\u2026",value:p,onChange:function(r){s(r.target.value)},style:{width:"100%",padding:"8px 12px",borderRadius:"6px",fontSize:"13px",border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"#E2E8F0",marginBottom:"10px",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}),l?React.createElement("div",{style:{color:"#94A3B8",fontSize:"13px",padding:"12px"}},"Loading\u2026"):t==="library"?ue():t==="provisions"?se():pe())}var rt={documents:"Create structured documents with watermarks, disclaimers, and export controls.",eileen:"Context-aware Eileen chat with Vault and Calendar integration.",planner:"Six-step contract planning workflow with gap analysis and compliance mapping."};function ot({panelId:e}){return React.createElement("div",{className:"kl-placeholder-panel"},React.createElement("div",{className:"kl-placeholder-icon","aria-hidden":"true"},"\u2699"),React.createElement("div",{className:"kl-placeholder-title"},"Coming soon"),React.createElement("p",{className:"kl-placeholder-body"},rt[e]||"This panel is under development."))}var it={vault:"Document Vault",notes:"Notes",documents:"Documents",clipboard:"Saved Snippets",calendar:"Calendar",eileen:"Eileen",research:"Research",planner:"Contract Planner"},st={vault:tt,notes:$e,clipboard:et,calendar:nt,research:at};function lt({panelId:e,onClose:t}){if(!e)return null;let c=st[e]||ot,d=it[e]||e;return React.createElement("div",{className:"kl-panel-drawer",role:"dialog","aria-label":d},React.createElement("div",{className:"kl-panel-drawer-header"},React.createElement("span",{className:"kl-panel-drawer-title"},d),React.createElement("button",{className:"kl-panel-drawer-close",onClick:t,"aria-label":"Close panel"},"\u2715")),React.createElement("div",{className:"kl-panel-drawer-body"},React.createElement(c,{panelId:e})))}function ct(){return React.createElement("div",{className:"kl-advisory"},React.createElement("p",null,"This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)"))}function dt(){let[e,t]=k(null);if(J(()=>{let n=!1;async function o(){try{let f=new Date().toISOString().split("T")[0],w=await(await fetch(j+"/rest/v1/regulatory_requirements?is_forward_requirement=eq.true&effective_from=gte."+f+"&select=requirement_name,statutory_basis,effective_from&order=effective_from.asc&limit=1",{headers:{Authorization:"Bearer "+(window.__klToken||""),apikey:Q}})).json();if(n)return;Array.isArray(w)&&w[0]&&t(w[0])}catch(f){console.warn("HorizonAlert fetch failed (non-blocking):",f)}}return window.__klToken&&o(),()=>{n=!0}},[]),!e)return null;let c=new Date(e.effective_from),p=Math.max(0,Math.ceil((c-new Date)/(1e3*60*60*24))),s=c.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),a=p<=30?"#F59E0B":p<=90?"#0EA5E9":"#64748B";return React.createElement("div",{className:"kl-horizon-alert",style:{display:"flex",alignItems:"center",gap:"10px",padding:"6px 14px",borderRadius:"8px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:"16px",marginTop:"8px",maxWidth:"640px",width:"100%",fontFamily:"'DM Sans', sans-serif"}},React.createElement("div",{style:{width:"6px",height:"6px",borderRadius:"50%",background:a,flexShrink:0}}),React.createElement("div",{style:{flex:1,minWidth:0}},React.createElement("span",{style:{color:"#E2E8F0",fontSize:"12px",fontWeight:500}},e.requirement_name),e.statutory_basis&&React.createElement("span",{style:{color:"#64748B",fontSize:"11px",marginLeft:"6px"}},e.statutory_basis)),React.createElement("div",{style:{color:a,fontSize:"11px",fontWeight:500,fontFamily:"'DM Mono', monospace",whiteSpace:"nowrap",flexShrink:0}},p===0?"Today":p===1?"Tomorrow":p+" days"," \u2014 ",s))}function pt({onOpenBook:e}){var t=k([]),c=t[0],d=t[1];if(J(function(){var s=!1;return fetch("/knowledge-library/content/content-index.json").then(function(a){return a.json()}).then(function(a){if(!s&&Array.isArray(a)){var n={};a.forEach(function(l){n[l.cat]||(n[l.cat]=[]),n[l.cat].push(l)});var o=[],f=["legislation","acas","hse","ehrc","ico"];f.forEach(function(l){n[l]&&(o=o.concat(n[l].slice(0,3)))}),d(o.slice(0,15))}}).catch(function(a){console.warn("BookShelf fetch failed:",a)}),function(){s=!0}},[]),c.length===0)return null;var p={legislation:{bg:"linear-gradient(160deg, #1a2332 0%, #0f1923 50%, #1a2332 100%)",text:"#D4A017",spine:"#D4A017"},acas:{bg:"linear-gradient(160deg, #0f2318 0%, #0a1a12 50%, #0f2318 100%)",text:"#10B981",spine:"#10B981"},hse:{bg:"linear-gradient(160deg, #231a0f 0%, #1a1208 50%, #231a0f 100%)",text:"#F59E0B",spine:"#F59E0B"},ehrc:{bg:"linear-gradient(160deg, #1f0f23 0%, #170a1a 50%, #1f0f23 100%)",text:"#EC4899",spine:"#EC4899"},ico:{bg:"linear-gradient(160deg, #0f1523 0%, #0a0f1a 50%, #0f1523 100%)",text:"#8B5CF6",spine:"#8B5CF6"}};return React.createElement("div",{className:"kl-bookshelf",style:{width:"100%",maxWidth:"820px",marginTop:"32px"}},React.createElement("div",{style:{fontSize:"10px",fontWeight:500,color:"#475569",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"12px",fontFamily:"'DM Mono', monospace",textAlign:"center"}},"The Employment Law Library"),React.createElement("div",{className:"kl-shelf",style:{display:"flex",flexWrap:"wrap",gap:"10px",justifyContent:"center",padding:"16px 12px 20px",background:"linear-gradient(180deg, rgba(255,255,255,0.01) 0%, rgba(139,92,246,0.02) 100%)",borderRadius:"8px",border:"1px solid rgba(255,255,255,0.04)",position:"relative"}},c.map(function(s){var a=p[s.cat]||p.legislation,n=s.short||s.title;return n.length>35&&(n=n.slice(0,32)+"\u2026"),React.createElement("div",{key:s.id,onClick:function(){e(s)},className:"kl-book",style:{width:"100px",height:"130px",borderRadius:"2px 4px 4px 2px",background:a.bg,cursor:"pointer",position:"relative",display:"flex",flexDirection:"column",justifyContent:"space-between",padding:"10px 8px 8px",overflow:"hidden",transition:"transform 0.2s, box-shadow 0.2s",boxShadow:"2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)",borderLeft:"4px solid "+a.spine},title:s.title,onMouseEnter:function(o){o.currentTarget.style.transform="translateY(-4px) scale(1.02)",o.currentTarget.style.boxShadow="2px 6px 16px rgba(0,0,0,0.5), inset -1px 0 0 rgba(255,255,255,0.08)"},onMouseLeave:function(o){o.currentTarget.style.transform="none",o.currentTarget.style.boxShadow="2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)"}},React.createElement("div",{style:{width:"60%",height:"1px",background:a.text,opacity:.3,marginBottom:"6px"}}),React.createElement("div",{style:{color:a.text,fontSize:"10px",fontWeight:600,lineHeight:1.25,fontFamily:"'DM Sans', sans-serif",flex:1,display:"flex",alignItems:"center"}},n),React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}},React.createElement("span",{style:{fontSize:"7px",color:a.text,opacity:.5,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'DM Mono', monospace"}},s.cat==="legislation"?"Act":s.cat==="acas"?"ACAS":s.cat==="hse"?"HSE":s.cat==="ico"?"ICO":s.cat==="ehrc"?"EHRC":""),React.createElement("div",{style:{width:"3px",height:"80%",position:"absolute",right:0,top:"10%",background:"repeating-linear-gradient(180deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px)"}})))}),React.createElement("div",{style:{position:"absolute",bottom:0,left:0,right:0,height:"4px",background:"linear-gradient(90deg, rgba(139,92,246,0.1), rgba(14,165,233,0.1), rgba(139,92,246,0.1))",borderRadius:"0 0 8px 8px"}})),React.createElement("div",{style:{textAlign:"center",marginTop:"12px"}},React.createElement("button",{type:"button",onClick:function(){typeof window.__klOpenPanel=="function"&&window.__klOpenPanel("research")},style:{background:"transparent",border:"none",color:"#0EA5E9",fontSize:"12px",cursor:"pointer",fontFamily:"'DM Sans', sans-serif",padding:"4px 8px"}},"Browse all 72 instruments \u2192")))}var ut={kl_quick_session:{threshold:20,title:"Need more time?",message:"Your Quick Session ends in less than 20 minutes. Upgrade to a Day Pass for 24 hours of full access \u2014 including 2 compliance checks.",cta:"Upgrade to Day Pass \u2014 \xA349",href:"/kl-access/?product=kl_day_pass"},kl_day_pass:{threshold:60,title:"Extend your research",message:"Your Day Pass expires in under an hour. A Research Week gives you 7 full days and 3 compliance checks included.",cta:"Upgrade to Research Week \u2014 \xA399",href:"/kl-access/?product=kl_research_week"},kl_research_week:{threshold:1440,title:"Ready for continuous monitoring?",message:"Your Research Week ends tomorrow. Operational subscribers get 5 monitored contracts with auto-rescan, alerts, and ongoing Eileen access.",cta:"Explore Operational \u2014 \xA3199/mo",href:"/account/"}};function mt({productType:e,minutesRemaining:t,onDismiss:c}){let d=ut[e];return!d||t==null||t<=0||t>d.threshold?null:React.createElement("div",{role:"complementary","aria-label":"Session upgrade prompt",style:{position:"fixed",bottom:"80px",left:"50%",transform:"translateX(-50%)",maxWidth:"440px",width:"90%",padding:"16px 20px",borderRadius:"12px",background:"linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(14,165,233,0.04) 100%)",border:"1px solid rgba(14,165,233,0.25)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",zIndex:1e3,boxShadow:"0 8px 32px rgba(0,0,0,0.3)",fontFamily:"'DM Sans', sans-serif"}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},React.createElement("div",{style:{flex:1,minWidth:0}},React.createElement("div",{style:{color:"#0EA5E9",fontSize:"14px",fontWeight:600,marginBottom:"6px"}},d.title),React.createElement("div",{style:{color:"#CBD5E1",fontSize:"13px",lineHeight:1.5}},d.message)),React.createElement("button",{type:"button",onClick:c,"aria-label":"Dismiss upgrade prompt",style:{background:"none",border:"none",color:"#64748B",fontSize:"18px",cursor:"pointer",padding:"0 0 0 12px",lineHeight:1}},"\xD7")),React.createElement("div",{style:{marginTop:"12px"}},React.createElement("a",{href:d.href,style:{display:"inline-block",padding:"8px 16px",borderRadius:"8px",fontSize:"13px",fontWeight:600,background:"#0EA5E9",color:"#FFFFFF",textDecoration:"none",cursor:"pointer"}},d.cta)))}function ft(){let[e,t]=k([]),[c,d]=k(()=>"eileen-"+Date.now()+"-"+Math.random().toString(36).substr(2,7)),[p,s]=k([]),[a,n]=k(!1),[o,f]=k(()=>typeof window>"u"?!0:window.innerWidth>768),[l,w]=k(null),[F,S]=k(window.__klAccessType||null),[R,T]=k(window.__klTier||window.__klProductType||null),[g,z]=k(window.__klSessionExpiry||null),[D,b]=k(!1),[C,H]=k(null),[O,u]=k(!1),[E,y]=k(!1),[v,B]=k(function(){try{return localStorage.getItem("ailane_kl_user_type")||null}catch{return null}}),[U,K]=k(!1),[ne,ee]=k(!1),[Z,ae]=k(!1),se=ve(async function(){if(!(!window.__klToken||!window.__klUserId))try{let x=await(await fetch(j+"/rest/v1/kl_eileen_conversations?user_id=eq."+window.__klUserId+"&select=session_id,user_message,created_at&order=created_at.desc&limit=100",{headers:{Authorization:"Bearer "+window.__klToken,apikey:Q}})).json();if(!Array.isArray(x))return;let h={};x.forEach(_=>{h[_.session_id]||(h[_.session_id]={sessionId:_.session_id,title:_.user_message?_.user_message.substring(0,50):"(untitled)",lastActivity:_.created_at})}),s(Object.values(h).slice(0,50))}catch(i){console.error("Failed to load session history:",i)}},[]);J(()=>{function i(x){S(x.detail.accessType),T(x.detail.tier),z(window.__klSessionExpiry||null),se()}return window.addEventListener("ailane-kl-ready",i),window.__klAccessType&&se(),()=>window.removeEventListener("ailane-kl-ready",i)},[se]),J(()=>{function i(){window.innerWidth<=768&&f(!1)}return window.addEventListener("resize",i),()=>window.removeEventListener("resize",i)},[]),J(()=>{let i=document.getElementById("kl-root");i&&i.classList.toggle("sidebar-collapsed",!o)},[o]),J(()=>{let i=document.getElementById("kl-root");i&&i.classList.toggle("drawer-open",!!l)},[l]),J(()=>{if(!g){H(null);return}let i=new Date(g).getTime();if(isNaN(i))return;function x(){let _=Math.max(0,Math.floor((i-Date.now())/6e4));H(_)}x();let h=setInterval(x,6e4);return()=>clearInterval(h)},[g]);async function pe(i){if(window.__klToken)try{let h=await(await fetch(j+"/rest/v1/kl_eileen_conversations?session_id=eq."+i+"&select=user_message,eileen_response,created_at&order=created_at.asc",{headers:{Authorization:"Bearer "+window.__klToken,apikey:Q}})).json();if(!Array.isArray(h))return;let _=[];h.forEach(M=>{_.push({role:"user",content:M.user_message}),_.push({role:"assistant",content:M.eileen_response})}),t(_),d(i)}catch(x){console.error("Failed to load session:",x)}}function ue(){d("eileen-"+Date.now()+"-"+Math.random().toString(36).substr(2,7)),t([])}async function de(i){let x=(i||"").trim();if(!(!x||a)){t(h=>[...h,{role:"user",content:x}]),n(!0);try{let _=await(await fetch(ke,{method:"POST",headers:{Authorization:"Bearer "+window.__klToken,"Content-Type":"application/json",apikey:Q},body:JSON.stringify({message:(v?"[Context: user is "+(v==="employer"?"an employer/HR professional":"a worker")+"] ":"")+x,session_id:c,page_context:"knowledge-library"})})).json();_&&_.response?(t(M=>[...M,{role:"assistant",content:_.response,provisionsCount:_.provisions_count,casesCount:_.cases_count}]),se(),!v&&!ne&&(K(!0),ee(!0)),Re(x)&&!Z&&setTimeout(function(){t(function(M){return M.concat([{role:"assistant",content:`I can run your contract through our compliance engine for a detailed analysis against current UK employment law.
-
-Upload your contract using the **Upload contract** button below (PDF, DOCX, or TXT \u2014 up to 10MB). I will extract the text, route it through the engine, and present findings with a compliance score, clause-by-clause assessment, and forward legislative exposure analysis.`,isLocal:!0,isContractPrompt:!0}])})},800)):t(M=>[...M,{role:"assistant",content:"I wasn't able to process that request. Please try again.",isError:!0}])}catch(h){console.error("sendMessage error:",h),t(_=>[..._,{role:"assistant",content:"I wasn't able to process that request. Please try again.",isError:!0}])}finally{n(!1)}}}window.__klSendMessage=de,window.__klOpenPanel=function(i){w(i)},window.__klHandleFileSelect=N;function me(i){B(i),K(!1);try{localStorage.setItem("ailane_kl_user_type",i)}catch{}}function te(i){t(x=>[...x,i])}function oe(i,x){t(h=>h.map(_=>_.id===i?Object.assign({},_,x):_))}async function r(i,x){let h=window.__klUserId+"/"+Date.now()+"-"+i.name,_=!1;try{_=(await fetch(j+"/storage/v1/object/kl-document-vault/"+encodeURIComponent(h),{method:"POST",headers:{Authorization:"Bearer "+window.__klToken,apikey:Q,"Content-Type":i.type||"application/octet-stream","x-upsert":"true"},body:i})).ok}catch(I){console.error("Storage upload failed:",I)}if(!_){oe(x,{status:"error"}),te({role:"assistant",content:"Upload failed. Please try again.",isLocal:!0});return}let M=window.__klAccessType==="subscription"||window.__klTier==="operational_readiness"||window.__klTier==="governance"||window.__klTier==="institutional",G={user_id:window.__klUserId,filename:i.name,storage_path:h,file_size_bytes:i.size,mime_type:i.type,extraction_status:"pending",analysis_status:"pending",session_only:!M,expires_at:M?null:window.__klSessionExpiry||null},$=null;try{let I=await fetch(j+"/rest/v1/kl_vault_documents",{method:"POST",headers:{Authorization:"Bearer "+window.__klToken,apikey:Q,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify(G)});if(I.ok){let L=await I.json();Array.isArray(L)&&L[0]&&L[0].id&&($=L[0].id)}}catch(I){console.error("Vault insert failed:",I)}if(!$){oe(x,{status:"error"}),te({role:"assistant",content:"Upload failed. Please try again.",isLocal:!0});return}oe(x,{documentId:$,status:"extracting"});let m=null;try{let I=await fetch(j+"/functions/v1/kl_document_extract",{method:"POST",headers:{Authorization:"Bearer "+window.__klToken,"Content-Type":"application/json"},body:JSON.stringify({document_id:$})});I.ok&&(m=await I.json())}catch(I){console.error("Document extract failed:",I)}if(!m||typeof m.char_count!="number"){oe(x,{status:"error"}),te({role:"assistant",content:"Text extraction failed. The file may be image-only or password-protected.",isLocal:!0});return}oe(x,{status:"ready",charCount:m.char_count}),te({id:"ready-"+Date.now()+"-"+Math.random().toString(36).substr(2,5),role:"assistant",content:"I have your contract \u2014 "+m.char_count.toLocaleString()+" characters extracted and ready for analysis.",isLocal:!0,analysisReady:!0,documentId:$,analysisTriggered:!1})}async function A(i,x){t(X=>X.map(Y=>Y.id===x?Object.assign({},Y,{analysisTriggered:!0}):Y));let h="analysis-"+Date.now()+"-"+Math.random().toString(36).substr(2,5);te({id:h,role:"assistant",content:"Routing your contract through the compliance engine\u2026",isLocal:!0,isAnalysisLoading:!0});let M=[{delay:8e3,text:"Analysing against UK employment law requirements\u2026"},{delay:2e4,text:"Checking statutory provisions and forward legislative exposure\u2026"},{delay:4e4,text:"Compiling findings and scoring compliance position\u2026"}].map(X=>setTimeout(()=>{t(Y=>Y.map(W=>W.id===h?Object.assign({},W,{content:X.text}):W))},X.delay));try{let X=window.__klToken;if(!X)throw new Error("Not authenticated");let Y=await fetch(j+"/functions/v1/kl-compliance-bridge",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+X},body:JSON.stringify({document_id:i,document_type:"employment_contract",action:"start"})}),W=await Y.json();if(!Y.ok){if(M.forEach(q=>clearTimeout(q)),W&&W.error==="check_limit_reached"){t(q=>q.map(P=>P.id===h?Object.assign({},P,{content:W.message||"You have used all bundled Contract Compliance Checks in this session. Additional checks are available at \xA315 each.",isAnalysisLoading:!1,isLocal:!0}):P.id===x?Object.assign({},P,{analysisTriggered:!1}):P));return}throw new Error(W&&(W.error||W.detail)||"Analysis failed")}var G=W.upload_id;if(!G)throw new Error("No upload_id returned from bridge");t(function(q){return q.map(function(P){return P.id===h?Object.assign({},P,{content:"Analysing your contract against UK employment law requirements. This typically takes 60\u201390 seconds."}):P})});for(var $=60,m=0,I=null;m<$;){await new Promise(function(q){setTimeout(q,5e3)}),m++;var L=m*5;L===15?t(function(q){return q.map(function(P){return P.id===h?Object.assign({},P,{content:"Checking statutory provisions and case law references\u2026"}):P})}):L===35?t(function(q){return q.map(function(P){return P.id===h?Object.assign({},P,{content:"Assessing forward legislative exposure under ERA 2025\u2026"}):P})}):L===60&&t(function(q){return q.map(function(P){return P.id===h?Object.assign({},P,{content:"Compiling findings and scoring compliance position\u2026"}):P})});try{var V=await fetch(j+"/functions/v1/kl-compliance-bridge",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+X},body:JSON.stringify({document_id:i,upload_id:G,action:"poll"})}),re=await V.json();if(re.status==="processing")continue;I=re;break}catch(q){console.warn("Poll error (will retry):",q);continue}}if(M.forEach(function(q){clearTimeout(q)}),!I)throw new Error("Analysis is taking longer than expected. Your results will appear in the Document Vault when ready.");t(function(q){var P=q.filter(function(be){return be.id!==h});return P.concat([{id:"result-"+Date.now()+"-"+Math.random().toString(36).substr(2,5),role:"assistant",content:"",isLocal:!0,isAnalysisResult:!0,analysisData:Object.assign({},I,{upload_id:G,document_id:i})}])})}catch(X){M.forEach(Y=>clearTimeout(Y)),console.error("handleRunAnalysis error:",X),t(Y=>Y.map(W=>W.id===h?Object.assign({},W,{content:"I was unable to complete the analysis. "+(X&&X.message||"Please try again."),isAnalysisLoading:!1,isLocal:!0}):W.id===x?Object.assign({},W,{analysisTriggered:!1}):W))}}function N(i){let x=i&&i.target&&i.target.files&&i.target.files[0];if(!x)return;ae(!0);let h=x.name.split("."),_=h.length>1?"."+h[h.length-1].toLowerCase():"";if(Ce.indexOf(_)===-1){te({role:"assistant",content:"I can accept PDF, DOCX, or TXT files up to 10MB. The file you selected ("+(_||"unknown type")+") is not a supported format.",isLocal:!0}),i.target&&"value"in i.target&&(i.target.value="");return}if(x.size>Te){te({role:"assistant",content:"That file is too large ("+(x.size/(1024*1024)).toFixed(1)+"MB). The maximum is 10MB.",isLocal:!0}),i.target&&"value"in i.target&&(i.target.value="");return}let M="upload-"+Date.now()+"-"+Math.random().toString(36).substr(2,5);te({id:M,role:"user",type:"file_upload",filename:x.name,fileSize:x.size,status:"uploading",documentId:null,charCount:null}),r(x,M),i.target&&"value"in i.target&&(i.target.value="")}return React.createElement(React.Fragment,null,React.createElement(Qe,{sidebarOpen:o,onToggleSidebar:()=>f(!o),accessType:F,tier:R,sessionExpiresAt:g,onSessionExpired:()=>b(!0)}),React.createElement(Ge,{open:o,sessionHistory:p,activeSessionId:c,onSelectSession:i=>{pe(i),window.innerWidth<=768&&f(!1)},onNewChat:()=>{ue(),window.innerWidth<=768&&f(!1)},onCrownQuery:de}),React.createElement(qe,{messages:e,isLoading:a,onSend:de,accessType:F,tier:R,onFileSelect:N,onRunAnalysis:A,floatingNexusExpanded:E,onToggleFloatingNexus:()=>y(!E),showQualifier:U,onUserTypeSelect:me,pulseUpload:e.some(function(i){return i.isContractPrompt})&&!Z}),React.createElement(Ze,{activePanel:l,onSelectPanel:w,accessType:F,tier:R}),React.createElement(ct,null),o&&React.createElement(Je,{onClick:()=>f(!1)}),l&&React.createElement(lt,{panelId:l,onClose:()=>w(null)}),!O&&!D&&React.createElement(mt,{productType:window.__klProductType||R||"",minutesRemaining:C,onDismiss:()=>u(!0)}),D&&React.createElement(Ye,null))}window.initKLApp=function(){let e=document.getElementById("kl-root");if(!e)return;ReactDOM.createRoot(e).render(React.createElement(ft))};window.__klAccessType&&window.initKLApp();})();
+(() => {
+  // knowledge-library/kl-app.jsx
+  var { useState, useEffect, useRef, useCallback } = React;
+  var SUPABASE_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+  var EILEEN_ENDPOINT = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co") + "/functions/v1/eileen-intelligence";
+  var CROWN_JEWELS = [
+    {
+      name: "Employment Rights Act 1996",
+      shortId: "ERA 1996",
+      warmIntro: "The foundation of modern employment protection in the UK.",
+      topics: "Covers unfair dismissal, redundancy rights, written terms of employment, whistleblower protections, flexible working, and the right not to suffer detriment.",
+      keyQuestion: "What does the ERA 1996 require of my employment contracts?",
+      inForce: true
+    },
+    {
+      name: "Equality Act 2010",
+      shortId: "EqA 2010",
+      warmIntro: "The single framework protecting people from discrimination at work.",
+      topics: "Covers nine protected characteristics including age, disability, race, sex, and pregnancy. Addresses direct and indirect discrimination, harassment, victimisation, and the duty to make reasonable adjustments.",
+      keyQuestion: "What are my obligations around workplace discrimination under the Equality Act?",
+      inForce: true
+    },
+    {
+      name: "Health and Safety at Work Act 1974",
+      shortId: "HSWA 1974",
+      warmIntro: "The primary legislation ensuring workplaces are safe for everyone.",
+      topics: "Establishes the employer's general duty of care, risk assessment obligations, employee consultation rights, and HSE enforcement powers.",
+      keyQuestion: "What are my core health and safety duties as an employer?",
+      inForce: true
+    },
+    {
+      name: "National Minimum Wage Act 1998",
+      shortId: "NMWA 1998",
+      warmIntro: "Guarantees a minimum level of pay for virtually all workers.",
+      topics: "Sets out entitlements to national minimum wage and national living wage, employer record-keeping duties, and HMRC enforcement mechanisms.",
+      keyQuestion: "Am I meeting my minimum wage obligations for all worker categories?",
+      inForce: true
+    },
+    {
+      name: "Trade Union and Labour Relations (Consolidation) Act 1992",
+      shortId: "TULRCA 1992",
+      warmIntro: "Governs collective rights, union recognition, and industrial action.",
+      topics: "Covers trade union recognition, collective bargaining, the right to be accompanied, collective redundancy consultation (Section 188), and lawful industrial action.",
+      keyQuestion: "What are my obligations around collective consultation and trade union rights?",
+      inForce: true
+    },
+    {
+      name: "Employment Rights Act 2025",
+      shortId: "ERA 2025",
+      warmIntro: "The most significant reform to employment law in a generation.",
+      topics: "Introduces day-one unfair dismissal rights, restricts fire-and-rehire, reforms zero-hours contracts, strengthens flexible working, and creates the Fair Work Agency. Measures commenced 6 April 2026.",
+      keyQuestion: "How does the Employment Rights Act 2025 change my obligations from April 2026?",
+      inForce: false
+    },
+    {
+      name: "Public Interest Disclosure Act 1998",
+      shortId: "PIDA 1998",
+      warmIntro: "Protects workers who raise concerns about wrongdoing.",
+      topics: "Defines qualifying disclosures, protected disclosures in the public interest, protection from dismissal and detriment, and the prescribed persons framework.",
+      keyQuestion: "How should I handle a whistleblowing disclosure from an employee?",
+      inForce: true
+    }
+  ];
+  var INSTRUMENT_NAMES = {
+    "ERA 1996": "Employment Rights Act 1996",
+    "EqA 2010": "Equality Act 2010",
+    "HSWA 1974": "Health and Safety at Work Act 1974",
+    "NMWA 1998": "National Minimum Wage Act 1998",
+    "TULRCA 1992": "Trade Union and Labour Relations (Consolidation) Act 1992",
+    "ERA 2025": "Employment Rights Act 2025",
+    "PIDA 1998": "Public Interest Disclosure Act 1998",
+    "WTR 1998": "Working Time Regulations 1998",
+    "MPL 1999": "Maternity and Parental Leave Regulations 1999",
+    "TUPE 2006": "Transfer of Undertakings Regulations 2006",
+    "ACAS Code 1": "ACAS Code of Practice on Disciplinary and Grievance",
+    "FWR 2014": "Flexible Working Regulations 2014",
+    "PTWR 2000": "Part-Time Workers Regulations 2000",
+    "FTER 2002": "Fixed-Term Employees Regulations 2002",
+    "AWR 2010": "Agency Workers Regulations 2010",
+    "PAL 2002": "Paternity and Adoption Leave Regulations 2002",
+    "SPL 2014": "Shared Parental Leave Regulations 2014",
+    "MHSWR 1999": "Management of Health and Safety at Work Regulations 1999",
+    "DPA 2018": "Data Protection Act 2018"
+  };
+  var TOPIC_DOMAINS = [
+    {
+      label: "Dismissal and disciplinary",
+      description: "Unfair dismissal, redundancy, disciplinary procedures, ACAS Code",
+      query: "I need guidance on dismissal and disciplinary procedures \u2014 what are the key legal requirements I should be aware of?"
+    },
+    {
+      label: "Discrimination and harassment",
+      description: "Protected characteristics, harassment duties, reasonable adjustments",
+      query: "What are my obligations around discrimination and harassment in the workplace under current law?"
+    },
+    {
+      label: "Contracts and terms",
+      description: "Written statements, working time, flexible working, zero-hours",
+      query: "What should I know about employment contract requirements and terms under current legislation?"
+    },
+    {
+      label: "Family leave and pregnancy",
+      description: "Maternity, paternity, shared parental leave, redundancy protection",
+      query: "What are the current legal requirements for family leave and pregnancy protection in employment?"
+    },
+    {
+      label: "Business transfers",
+      description: "TUPE obligations, consultation requirements, employee protections",
+      query: "What do I need to know about TUPE and employee protections during business transfers?"
+    },
+    {
+      label: "Health and safety",
+      description: "Employer duties, risk assessment, stress, working conditions",
+      query: "What are the key health and safety obligations for employers under current law?"
+    },
+    {
+      label: "Whistleblowing",
+      description: "Protected disclosures, qualifying disclosures, detriment protection",
+      query: "What protections exist for whistleblowers and what are my obligations as an employer?"
+    },
+    {
+      label: "Data and monitoring",
+      description: "Employee data, workplace monitoring, UK GDPR, ICO guidance",
+      query: "What are the rules around employee data protection and workplace monitoring under UK GDPR?"
+    }
+  ];
+  var CONTRACT_INTENT_PATTERNS = [
+    "check my contract",
+    "review my contract",
+    "analyse my contract",
+    "analyze my contract",
+    "compliance check",
+    "upload my contract",
+    "is my contract compliant",
+    "contract review",
+    "check this contract",
+    "review this document",
+    "check my employment contract",
+    "contract compliance",
+    "look at my contract",
+    "scan my contract"
+  ];
+  function hasContractIntent(text) {
+    var lower = (text || "").toLowerCase();
+    return CONTRACT_INTENT_PATTERNS.some(function(pattern) {
+      return lower.indexOf(pattern) !== -1;
+    });
+  }
+  (function() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("kl-r1b-keyframes")) return;
+    const style = document.createElement("style");
+    style.id = "kl-r1b-keyframes";
+    style.textContent = "@keyframes kl-pulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }";
+    document.head.appendChild(style);
+  })();
+  var ALLOWED_EXTENSIONS = [".pdf", ".docx", ".doc", ".txt"];
+  var MAX_FILE_SIZE = 10 * 1024 * 1024;
+  function formatFileSize(bytes) {
+    if (bytes == null) return "";
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function renderMarkdown(text) {
+    if (!text) return "";
+    const escaped = escapeHtml(text);
+    const withInline = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\(([a-z][a-z0-9-]+)\s+(§|s\.)([^)]+)\)/gi, function(match, instId, prefix, sectionRef) {
+      var lowerInstId = instId.toLowerCase();
+      return '<span class="kl-ref-link" data-inst="' + escapeHtml(lowerInstId) + '" data-section="' + escapeHtml(prefix + sectionRef) + '" title="Open in Library: ' + escapeHtml(instId) + " " + escapeHtml(prefix + sectionRef) + '">' + escapeHtml(instId + " " + prefix + sectionRef) + "</span>";
+    });
+    const lines = withInline.split("\n");
+    const out = [];
+    let listItems = [];
+    function flushList() {
+      if (listItems.length) {
+        out.push("<ul>" + listItems.join("") + "</ul>");
+        listItems = [];
+      }
+    }
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      const headerMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
+      const listMatch = trimmed.match(/^[-*]\s+(.*)$/);
+      if (headerMatch) {
+        flushList();
+        const level = Math.min(6, headerMatch[1].length + 3);
+        out.push("<h" + level + ">" + headerMatch[2] + "</h" + level + ">");
+      } else if (listMatch) {
+        listItems.push("<li>" + listMatch[1] + "</li>");
+      } else if (trimmed === "") {
+        flushList();
+      } else {
+        flushList();
+        out.push("<p>" + line + "</p>");
+      }
+    });
+    flushList();
+    return out.join("");
+  }
+  var ACAS_PART_TITLES = {
+    "Foreword": "About This Code",
+    "Introduction": "What This Code Covers",
+    "Keys to handling disciplinary situations in the workplace": "Handling Disciplinary Situations",
+    "Keys to handling grievances in the workplace": "Handling Workplace Grievances",
+    "Disciplinary situations": "When Disciplinary Action May Be Needed",
+    "Grievance procedure": "How to Handle a Grievance",
+    "Holding a meeting": "Conducting the Meeting",
+    "Settlement agreements": "Using Settlement Agreements",
+    "Flexible working": "Managing Flexible Working Requests",
+    "Redundancy handling": "Managing Redundancy Fairly",
+    "Bullying and harassment": "Addressing Bullying and Harassment",
+    "Absence management": "Managing Employee Absence",
+    "Whistleblowing": "Handling Whistleblowing Disclosures"
+  };
+  function humanisePartTitle(title, cat) {
+    if (!title) return title;
+    if (cat === "acas" || cat === "guidance") {
+      return ACAS_PART_TITLES[title] || title;
+    }
+    return title;
+  }
+  if (typeof window !== "undefined") {
+    window.__klFns = window.__klFns || {};
+    window.__klFns["humanisePartTitle"] = humanisePartTitle;
+  }
+  function formatRelativeTime(iso) {
+    if (!iso) return "";
+    const then = new Date(iso).getTime();
+    const diff = Math.max(0, Date.now() - then);
+    const mins = Math.floor(diff / 6e4);
+    if (mins < 1) return "just now";
+    if (mins < 60) return mins + "m ago";
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + "h ago";
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return days + "d ago";
+    return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  }
+  function groupSessionsByTime(sessions) {
+    var now = /* @__PURE__ */ new Date();
+    var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    var yesterdayStart = todayStart - 864e5;
+    var weekStart = todayStart - (now.getDay() === 0 ? 6 : now.getDay() - 1) * 864e5;
+    var groups = {
+      today: { label: "Today", items: [] },
+      yesterday: { label: "Yesterday", items: [] },
+      thisWeek: { label: "This Week", items: [] },
+      earlier: { label: "Earlier", items: [] }
+    };
+    sessions.forEach(function(s) {
+      var t = new Date(s.lastActivity).getTime();
+      if (t >= todayStart) {
+        groups.today.items.push(s);
+      } else if (t >= yesterdayStart) {
+        groups.yesterday.items.push(s);
+      } else if (t >= weekStart) {
+        groups.thisWeek.items.push(s);
+      } else {
+        groups.earlier.items.push(s);
+      }
+    });
+    return [groups.today, groups.yesterday, groups.thisWeek, groups.earlier].filter(function(g) {
+      return g.items.length > 0;
+    });
+  }
+  function truncate(s, n) {
+    if (!s) return "";
+    return s.length > n ? s.substring(0, n - 1) + "\u2026" : s;
+  }
+  function tierPalette(tier) {
+    if (tier === "institutional") return ["#D4A017", "#F1C85B"];
+    if (tier === "governance") return ["#0EA5E9", "#8B5CF6"];
+    if (tier === "operational_readiness") return ["#0EA5E9", "#10B981"];
+    return ["#0EA5E9", "#38BDF8"];
+  }
+  function NexusCanvas({ tier, size, state }) {
+    const canvasRef = useRef(null);
+    const rafRef = useRef(null);
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const canvasSize = size || 280;
+      canvas.width = canvasSize * dpr;
+      canvas.height = canvasSize * dpr;
+      canvas.style.width = canvasSize + "px";
+      canvas.style.height = canvasSize + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      const [colorA, colorB] = tierPalette(tier);
+      const cx = canvasSize / 2;
+      const cy = canvasSize / 2;
+      const nodes = [];
+      const scale = canvasSize / 280;
+      const rings = [
+        { count: 6, radius: 28 * scale },
+        { count: 8, radius: 68 * scale },
+        { count: 10, radius: 110 * scale }
+      ];
+      rings.forEach((ring, ri) => {
+        for (let i = 0; i < ring.count; i++) {
+          const angle = i / ring.count * Math.PI * 2 + ri * 0.4;
+          nodes.push({
+            x: cx + Math.cos(angle) * ring.radius,
+            y: cy + Math.sin(angle) * ring.radius,
+            phase: Math.random() * Math.PI * 2,
+            ring: ri
+          });
+        }
+      });
+      const start = performance.now();
+      function draw(now) {
+        const t = (now - start) / 1e3;
+        const animState = state || "ready";
+        const speed = animState === "processing" ? 3 : animState === "dormant" ? 0.4 : 1.2;
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
+        ctx.lineWidth = 1;
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const dx = nodes[i].x - nodes[j].x;
+            const dy = nodes[i].y - nodes[j].y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (d < 72 * scale) {
+              const connAlpha = animState === "processing" ? 0.45 : 0.2;
+              const alpha = (1 - d / (72 * scale)) * connAlpha;
+              ctx.strokeStyle = "rgba(14,165,233," + alpha.toFixed(3) + ")";
+              ctx.beginPath();
+              ctx.moveTo(nodes[i].x, nodes[i].y);
+              ctx.lineTo(nodes[j].x, nodes[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+        nodes.forEach((n, i) => {
+          const pulse = 0.5 + 0.5 * Math.sin(t * speed + n.phase);
+          const r = (2 + pulse * 2.2) * scale;
+          const color = n.ring === 0 ? colorA : n.ring === 2 ? colorB : i % 2 ? colorA : colorB;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          const baseAlpha = animState === "dormant" ? 0.25 : animState === "processing" ? 0.6 : 0.45;
+          const pulseRange = animState === "dormant" ? 0.3 : animState === "processing" ? 0.4 : 0.55;
+          ctx.globalAlpha = baseAlpha + pulse * pulseRange;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+        rafRef.current = requestAnimationFrame(draw);
+      }
+      rafRef.current = requestAnimationFrame(draw);
+      return () => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      };
+    }, [tier, size, state]);
+    return /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef, className: "kl-nexus-canvas" });
+  }
+  function EileenSenderLabel() {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        "aria-hidden": "true",
+        style: {
+          width: "8px",
+          height: "8px",
+          borderRadius: "50%",
+          background: "#0EA5E9",
+          boxShadow: "0 0 6px rgba(14,165,233,0.5)",
+          flexShrink: 0
+        }
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-sender", style: { marginBottom: 0 } }, "Eileen"));
+  }
+  function QualifyingQuestion({ onSelect }) {
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body", style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("p", null, "To give you the most relevant guidance \u2014 are you an employer or HR professional managing compliance, or a worker with a question about your own employment rights?")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function() {
+          onSelect("employer");
+        },
+        style: {
+          padding: "8px 16px",
+          borderRadius: "8px",
+          background: "rgba(14, 165, 233, 0.1)",
+          border: "1px solid rgba(14, 165, 233, 0.3)",
+          color: "#0EA5E9",
+          fontSize: "13px",
+          fontWeight: 500,
+          cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+          transition: "all 0.15s"
+        },
+        onMouseEnter: function(e) {
+          e.currentTarget.style.background = "rgba(14, 165, 233, 0.2)";
+        },
+        onMouseLeave: function(e) {
+          e.currentTarget.style.background = "rgba(14, 165, 233, 0.1)";
+        }
+      },
+      "Employer / HR"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function() {
+          onSelect("worker");
+        },
+        style: {
+          padding: "8px 16px",
+          borderRadius: "8px",
+          background: "rgba(139, 92, 246, 0.1)",
+          border: "1px solid rgba(139, 92, 246, 0.3)",
+          color: "#A78BFA",
+          fontSize: "13px",
+          fontWeight: 500,
+          cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+          transition: "all 0.15s"
+        },
+        onMouseEnter: function(e) {
+          e.currentTarget.style.background = "rgba(139, 92, 246, 0.2)";
+        },
+        onMouseLeave: function(e) {
+          e.currentTarget.style.background = "rgba(139, 92, 246, 0.1)";
+        }
+      },
+      "Worker"
+    ))));
+  }
+  function TypingIndicator() {
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement("div", { className: "kl-typing-dots", style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }))));
+  }
+  function FloatingNexus({ tier, isLoading, isExpanded, onToggle }) {
+    const nexusState = isLoading ? "processing" : "dormant";
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-floating-nexus-container",
+        style: {
+          position: "absolute",
+          bottom: window.innerWidth <= 768 ? "100px" : "80px",
+          right: "24px",
+          zIndex: 30,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: "8px",
+          pointerEvents: "auto",
+          maxWidth: "calc(100vw - 48px)"
+        }
+      },
+      isExpanded && /* @__PURE__ */ React.createElement(FloatingNexusPanel, { tier, onClose: onToggle }),
+      /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: onToggle,
+          "aria-label": isExpanded ? "Close Eileen panel" : "Open Eileen panel",
+          title: "Eileen",
+          style: {
+            width: "52px",
+            height: "52px",
+            borderRadius: "50%",
+            background: "rgba(10, 22, 40, 0.85)",
+            border: "1px solid rgba(14, 165, 233, 0.3)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 0,
+            boxShadow: isLoading ? "0 0 20px rgba(14, 165, 233, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3)" : "0 4px 16px rgba(0, 0, 0, 0.3)",
+            transition: "box-shadow 0.3s ease, border-color 0.3s ease",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)"
+          }
+        },
+        /* @__PURE__ */ React.createElement(NexusCanvas, { tier, size: 36, state: nexusState })
+      )
+    );
+  }
+  function FloatingNexusPanel({ tier, onClose }) {
+    const tierLabel = {
+      governance: "Governance",
+      operational_readiness: "Operational",
+      institutional: "Institutional"
+    }[tier] || "Knowledge Library";
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-floating-panel",
+        style: {
+          width: "240px",
+          maxWidth: "calc(100vw - 48px)",
+          background: "rgba(15, 29, 50, 0.95)",
+          border: "1px solid rgba(14, 165, 233, 0.2)",
+          borderRadius: "12px",
+          padding: "16px",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          fontFamily: "'DM Sans', sans-serif"
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" } }, /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          style: {
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            background: "#0EA5E9",
+            boxShadow: "0 0 6px rgba(14,165,233,0.5)"
+          }
+        }
+      ), /* @__PURE__ */ React.createElement("span", { style: { color: "#0EA5E9", fontSize: "12px", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "'DM Mono', monospace" } }, "Eileen"), /* @__PURE__ */ React.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ React.createElement("span", { style: { color: "#64748B", fontSize: "11px" } }, tierLabel)),
+      /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "13px", lineHeight: 1.5, marginBottom: "12px" } }, "I'm here whenever you need me. Ask a question or upload a contract for analysis."),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px" } }, /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            onClose();
+            window.scrollTo(0, 0);
+          },
+          style: {
+            width: "100%",
+            padding: "8px 12px",
+            background: "rgba(14, 165, 233, 0.08)",
+            border: "1px solid rgba(14, 165, 233, 0.2)",
+            borderRadius: "8px",
+            color: "#0EA5E9",
+            fontSize: "12px",
+            fontWeight: 500,
+            cursor: "pointer",
+            textAlign: "left",
+            fontFamily: "'DM Sans', sans-serif"
+          }
+        },
+        "Ask a question"
+      ))
+    );
+  }
+  function NexusSendButton({ hasText, isLoading, tier }) {
+    const state = isLoading ? "processing" : hasText ? "ready" : "dormant";
+    return /* @__PURE__ */ React.createElement(NexusCanvas, { tier, size: 20, state });
+  }
+  function FileAttachmentBubble({ filename, fileSize, status, charCount }) {
+    const sizeLabel = formatFileSize(fileSize);
+    const statusIcon = {
+      uploading: "\u23F3",
+      // ⏳
+      extracting: "\u2699\uFE0F",
+      // ⚙️
+      ready: "\u2705",
+      // ✅
+      error: "\u274C"
+      // ❌
+    }[status] || "\u23F3";
+    const statusLabel = {
+      uploading: "Uploading...",
+      extracting: "Extracting text...",
+      ready: charCount ? charCount.toLocaleString() + " characters extracted" : "Ready",
+      error: "Upload failed"
+    }[status] || "";
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "10px",
+          padding: "10px 14px",
+          borderRadius: "10px",
+          background: "rgba(14,165,233,0.08)",
+          border: "1px solid rgba(14,165,233,0.2)",
+          maxWidth: "320px"
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: "24px" }, "aria-hidden": "true" }, "\u{1F4C4}"),
+      /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          style: {
+            color: "#E2E8F0",
+            fontSize: "13px",
+            fontWeight: 500,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }
+        },
+        filename
+      ), /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "11px", marginTop: "2px" } }, sizeLabel + " \xB7 " + statusLabel)),
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: "16px" }, "aria-hidden": "true" }, statusIcon)
+    );
+  }
+  function AnalysisResultMessage({ data }) {
+    const score = data.overall_score;
+    const status = data.status;
+    const findings = data.findings || [];
+    const forwardFindings = data.forward_findings || [];
+    const summary = data.summary || {};
+    const engineVersion = data.engine_version || "";
+    const analysisTimeMs = data.analysis_time_ms || 0;
+    const checksUsed = data.checks_used;
+    const checkLimit = data.check_limit;
+    const [showCompliant, setShowCompliant] = useState(false);
+    const expandedRef = useRef({});
+    const [, setTick] = useState(0);
+    function toggleFinding(key) {
+      expandedRef.current[key] = !expandedRef.current[key];
+      setTick((c) => c + 1);
+    }
+    if (status === "out_of_scope") {
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          style: {
+            padding: "16px",
+            borderRadius: "10px",
+            background: "rgba(251,191,36,0.08)",
+            border: "1px solid rgba(251,191,36,0.2)"
+          }
+        },
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: "14px", fontWeight: 600, color: "#FBBF24", marginBottom: "8px" } }, "\u26A0\uFE0F Document Outside Scope"),
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "#CBD5E1", lineHeight: 1.5 } }, "This document does not appear to be a UK employment contract, staff handbook, or workplace policy. The compliance engine analyses employment documents only. If this is an employment document, try uploading it in a different format (PDF or DOCX).")
+      );
+    }
+    const scoreColor = score >= 65 ? "#22C55E" : score >= 30 ? "#F59E0B" : "#EF4444";
+    const SEV_COLORS = {
+      critical: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.3)", text: "#EF4444", label: "Critical" },
+      major: { bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.3)", text: "#FBBF24", label: "Major" },
+      minor: { bg: "rgba(234,179,8,0.06)", border: "rgba(234,179,8,0.2)", text: "#EAB308", label: "Minor" },
+      compliant: { bg: "rgba(34,197,94,0.06)", border: "rgba(34,197,94,0.2)", text: "#22C55E", label: "Compliant" }
+    };
+    const severityOrder = { critical: 0, major: 1, minor: 2, compliant: 3 };
+    const visibleFindings = findings.filter((f) => showCompliant || f.severity !== "compliant").slice().sort((a, b) => (severityOrder[a.severity] != null ? severityOrder[a.severity] : 4) - (severityOrder[b.severity] != null ? severityOrder[b.severity] : 4));
+    const forwardNonCompliant = forwardFindings.filter((f) => f.severity !== "compliant");
+    const compliantCount = findings.filter((f) => f.severity === "compliant").length;
+    const findingsTotal = findings.length;
+    const forwardTotal = forwardFindings.length;
+    return /* @__PURE__ */ React.createElement("div", { style: { maxWidth: "100%" } }, /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          background: "linear-gradient(135deg, rgba(14,165,233,0.12), rgba(14,165,233,0.04))",
+          border: "1px solid rgba(14,165,233,0.25)",
+          borderRadius: "12px",
+          padding: "16px 20px",
+          marginBottom: "16px"
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans', sans-serif", marginBottom: "4px" } }, "Contract Compliance Score"),
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "28px", fontWeight: 700, color: scoreColor, fontFamily: "'DM Mono', monospace" } }, Math.round(score) + "%"),
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "rgba(255,255,255,0.5)", marginTop: "4px", fontFamily: "'DM Sans', sans-serif" } }, findingsTotal + " finding" + (findingsTotal === 1 ? "" : "s") + " \xB7 " + forwardTotal + " forward exposure item" + (forwardTotal === 1 ? "" : "s"))
+    ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" } }, Object.entries(summary).map(function(entry) {
+      var sev = entry[0];
+      var count = entry[1];
+      if (!count) return null;
+      var colors = { critical: "#EF4444", major: "#F59E0B", minor: "#3B82F6", compliant: "#22C55E" };
+      return React.createElement("span", {
+        key: sev,
+        style: {
+          background: (colors[sev] || "#666") + "20",
+          border: "1px solid " + (colors[sev] || "#666") + "40",
+          borderRadius: "6px",
+          padding: "4px 10px",
+          fontSize: "12px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 600,
+          color: colors[sev] || "#aaa"
+        }
+      }, count + " " + sev);
+    })), status === "sparse_report" && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#FBBF24", marginBottom: "12px" } }, "\u26A0\uFE0F Some requirements could not be assessed. Manual review recommended for gaps."), visibleFindings.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "14px", fontWeight: 700, color: "#22D3EE", marginBottom: "8px", fontFamily: "'DM Sans', sans-serif" } }, "Current Law Findings"), visibleFindings.map((finding, idx) => {
+      const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
+      const key = "c" + idx + "-" + finding.severity;
+      const isExpanded = !!expandedRef.current[key];
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          key,
+          style: {
+            marginBottom: "8px",
+            borderRadius: "8px",
+            background: sev.bg,
+            border: "1px solid " + sev.border,
+            overflow: "hidden"
+          }
+        },
+        /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            onClick: () => toggleFinding(key),
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 12px",
+              cursor: "pointer"
+            }
+          },
+          /* @__PURE__ */ React.createElement(
+            "span",
+            {
+              style: {
+                fontSize: "10px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                background: sev.border,
+                color: sev.text
+              }
+            },
+            sev.label
+          ),
+          /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#CBD5E1", flex: 1, minWidth: 0 } }, finding.clause_category),
+          finding.statutory_ref && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#64748B" } }, finding.statutory_ref),
+          /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#64748B", marginLeft: "4px" } }, isExpanded ? "\u25B2" : "\u25BC")
+        ),
+        isExpanded && /* @__PURE__ */ React.createElement("div", { style: { padding: "0 12px 12px 12px" } }, finding.clause_text && finding.clause_text !== "[Not found in document]" && /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "12px",
+              color: "#94A3B8",
+              fontStyle: "italic",
+              padding: "6px 10px",
+              marginBottom: "8px",
+              borderRadius: "4px",
+              background: "rgba(0,0,0,0.2)",
+              borderLeft: "2px solid " + sev.border
+            }
+          },
+          finding.clause_text.length > 300 ? finding.clause_text.slice(0, 300) + "\u2026" : finding.clause_text
+        ), finding.finding_detail && /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "12px",
+              color: "#CBD5E1",
+              lineHeight: 1.5,
+              marginBottom: "8px"
+            }
+          },
+          finding.finding_detail
+        ), finding.remediation && /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "12px",
+              color: "#0EA5E9",
+              lineHeight: 1.5,
+              padding: "8px 10px",
+              borderRadius: "4px",
+              background: "rgba(14,165,233,0.06)",
+              borderLeft: "2px solid rgba(14,165,233,0.3)"
+            }
+          },
+          /* @__PURE__ */ React.createElement("strong", { style: { fontSize: "11px", display: "block", marginBottom: "4px" } }, "Remediation"),
+          finding.remediation
+        ))
+      );
+    }), compliantCount > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setShowCompliant(!showCompliant),
+        style: {
+          background: "none",
+          border: "none",
+          color: "rgba(255,255,255,0.5)",
+          fontSize: "12px",
+          cursor: "pointer",
+          padding: "8px 0",
+          fontFamily: "'DM Sans', sans-serif"
+        }
+      },
+      showCompliant ? "Hide compliant items" : "Show " + compliantCount + " compliant item" + (compliantCount === 1 ? "" : "s")
+    ), forwardNonCompliant.length > 0 && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "#A855F7",
+          marginTop: "20px",
+          marginBottom: "8px",
+          fontFamily: "'DM Sans', sans-serif"
+        }
+      },
+      "Legislative Horizon \u2014 Forward Exposure"
+    ), forwardNonCompliant.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94A3B8", marginBottom: "10px" } }, "These findings relate to provisions of the Employment Rights Act 2025 not yet in force. They do not affect the current compliance position."), forwardNonCompliant.map((finding, idx) => {
+      const sev = SEV_COLORS[finding.severity] || SEV_COLORS.minor;
+      const key = "f" + idx;
+      const isExpanded = !!expandedRef.current[key];
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          key,
+          style: {
+            marginBottom: "8px",
+            borderRadius: "8px",
+            background: "rgba(167,139,250,0.04)",
+            border: "1px solid rgba(167,139,250,0.15)",
+            overflow: "hidden"
+          }
+        },
+        /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            onClick: () => toggleFinding(key),
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 12px",
+              cursor: "pointer"
+            }
+          },
+          /* @__PURE__ */ React.createElement(
+            "span",
+            {
+              style: {
+                fontSize: "10px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                background: sev.border,
+                color: sev.text
+              }
+            },
+            sev.label
+          ),
+          /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#CBD5E1", flex: 1, minWidth: 0 } }, finding.clause_category),
+          finding.forward_effective_date && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", color: "#A78BFA" } }, "Expected: " + finding.forward_effective_date),
+          /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#64748B", marginLeft: "4px" } }, isExpanded ? "\u25B2" : "\u25BC")
+        ),
+        isExpanded && /* @__PURE__ */ React.createElement("div", { style: { padding: "0 12px 12px 12px" } }, finding.finding_detail && /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "12px",
+              color: "#CBD5E1",
+              lineHeight: 1.5,
+              marginBottom: "8px"
+            }
+          },
+          finding.finding_detail
+        ), finding.remediation && /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            style: {
+              fontSize: "12px",
+              color: "#A78BFA",
+              lineHeight: 1.5,
+              padding: "8px 10px",
+              borderRadius: "4px",
+              background: "rgba(167,139,250,0.04)",
+              borderLeft: "2px solid rgba(167,139,250,0.2)"
+            }
+          },
+          /* @__PURE__ */ React.createElement(
+            "strong",
+            {
+              style: { fontSize: "11px", display: "block", marginBottom: "4px" }
+            },
+            "Action Before Commencement"
+          ),
+          finding.remediation
+        ))
+      );
+    })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "20px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: "12px" } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: async (e) => {
+          const btn = e.currentTarget;
+          btn.disabled = true;
+          btn.textContent = "Generating PDF\u2026";
+          try {
+            const token = window.__klToken;
+            if (!token) throw new Error("Not authenticated");
+            const response = await fetch(
+              SUPABASE_URL + "/functions/v1/generate-report-pdf",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + token,
+                  "apikey": SUPABASE_ANON_KEY
+                },
+                body: JSON.stringify({ upload_id: data.upload_id })
+              }
+            );
+            if (!response.ok) throw new Error("PDF generation failed");
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "Ailane-Compliance-Report.pdf";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            btn.textContent = "\u2713 Downloaded";
+            btn.disabled = false;
+            setTimeout(() => {
+              btn.textContent = "\u{1F4C4} Download PDF Report";
+            }, 2e3);
+          } catch (err) {
+            console.error("PDF download error:", err);
+            btn.textContent = "\u274C Failed \u2014 try again";
+            btn.disabled = false;
+            setTimeout(() => {
+              btn.textContent = "\u{1F4C4} Download PDF Report";
+            }, 3e3);
+          }
+        },
+        style: {
+          background: "linear-gradient(135deg, #0EA5E9, #0284C7)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "8px",
+          padding: "10px 20px",
+          fontSize: "14px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 600,
+          cursor: "pointer",
+          transition: "transform 0.15s, box-shadow 0.15s"
+        },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.transform = "translateY(-1px)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(14,165,233,0.3)";
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.transform = "none";
+          e.currentTarget.style.boxShadow = "none";
+        }
+      },
+      "\u{1F4C4} Download PDF Report"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: async (e) => {
+          var btn = e.currentTarget;
+          btn.disabled = true;
+          btn.textContent = "Saving\u2026";
+          try {
+            var token = window.__klToken;
+            if (!token) throw new Error("Not authenticated");
+            var docId = data.document_id;
+            if (docId) {
+              var resp = await fetch(
+                SUPABASE_URL + "/rest/v1/kl_vault_documents?id=eq." + docId,
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Authorization": "Bearer " + token,
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                  },
+                  body: JSON.stringify({ analysis_status: "completed" })
+                }
+              );
+              if (!resp.ok) throw new Error("Vault update failed (" + resp.status + ")");
+            }
+            btn.textContent = "\u2713 Saved to Vault";
+            btn.style.background = "rgba(16,185,129,0.15)";
+            btn.style.color = "#10B981";
+            btn.style.borderColor = "rgba(16,185,129,0.3)";
+          } catch (err) {
+            console.error("Save to Vault error:", err);
+            btn.textContent = "\u274C Failed \u2014 try again";
+            btn.disabled = false;
+            setTimeout(function() {
+              btn.textContent = "\u{1F4BE} Save to Vault";
+            }, 3e3);
+          }
+        },
+        style: {
+          background: "transparent",
+          color: "#CBD5E1",
+          border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: "8px",
+          padding: "10px 20px",
+          fontSize: "14px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 500,
+          cursor: "pointer",
+          transition: "all 0.15s"
+        },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.borderColor = "rgba(14,165,233,0.3)";
+          e.currentTarget.style.color = "#0EA5E9";
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+          e.currentTarget.style.color = "#CBD5E1";
+        }
+      },
+      "\u{1F4BE} Save to Vault"
+    )), /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          marginTop: "12px",
+          paddingTop: "10px",
+          borderTop: "1px solid rgba(148,163,184,0.1)",
+          fontSize: "11px",
+          color: "#64748B",
+          lineHeight: 1.5
+        }
+      },
+      "Engine " + engineVersion + " \xB7 " + Math.round(analysisTimeMs / 1e3) + "s analysis time",
+      checksUsed != null && checkLimit != null ? " \xB7 Check " + checksUsed + "/" + checkLimit + " used" : "",
+      /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "10px", color: "#475569" } }, "This analysis is regulatory intelligence grounded in Ailane's compliance engine. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720) trading as Ailane.")
+    ));
+  }
+  function MessageBubble({ msg, onRunAnalysis }) {
+    if (msg.type === "file_upload") {
+      return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-user" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(
+        FileAttachmentBubble,
+        {
+          filename: msg.filename,
+          fileSize: msg.fileSize,
+          status: msg.status,
+          charCount: msg.charCount
+        }
+      )));
+    }
+    if (msg.role === "user") {
+      return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-user" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body" }, msg.content)));
+    }
+    const hasStats = msg.provisionsCount != null || msg.casesCount != null;
+    const renderAnalysisResult = msg.isAnalysisResult && msg.analysisData;
+    const html = renderAnalysisResult ? "" : renderMarkdown(msg.content || "");
+    function handleRunClick() {
+      if (typeof onRunAnalysis === "function") {
+        onRunAnalysis(msg.documentId, msg.id);
+      }
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content", style: { position: "relative" } }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), msg.isAnalysisLoading && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginTop: "8px",
+          marginBottom: "4px"
+        }
+      },
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          className: "kl-analysis-pulse",
+          style: {
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            background: "#0EA5E9",
+            animation: "kl-pulse 1.5s ease-in-out infinite",
+            flexShrink: 0
+          },
+          "aria-hidden": "true"
+        }
+      ),
+      /* @__PURE__ */ React.createElement("span", { style: { color: "#94A3B8", fontSize: "11px", fontStyle: "italic" } }, "Compliance engine active")
+    ), renderAnalysisResult ? /* @__PURE__ */ React.createElement("div", { className: "kl-msg-body", style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement(AnalysisResultMessage, { data: msg.analysisData })) : /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-msg-body",
+        style: { marginTop: "8px" },
+        dangerouslySetInnerHTML: { __html: html }
+      }
+    ), msg.analysisReady && msg.documentId && !msg.analysisTriggered && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: handleRunClick,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginTop: "12px",
+          padding: "10px 18px",
+          background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
+          color: "#FFFFFF",
+          border: "none",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: 600,
+          fontFamily: "'DM Sans', sans-serif",
+          transition: "opacity 0.2s"
+        },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.opacity = "0.9";
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.opacity = "1";
+        }
+      },
+      "\u2713 Run Contract Compliance Check"
+    ), msg.analysisReady && msg.analysisTriggered && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          marginTop: "12px",
+          padding: "8px 14px",
+          background: "rgba(14,165,233,0.08)",
+          borderRadius: "8px",
+          fontSize: "12px",
+          color: "#64748B",
+          display: "inline-block"
+        }
+      },
+      "\u2713 Contract Compliance Check initiated"
+    ), msg.role === "assistant" && !msg.isAnalysisResult && !msg.isAnalysisLoading && !msg.isLocal && /* @__PURE__ */ React.createElement("div", { style: {
+      display: "flex",
+      gap: "2px",
+      marginTop: "10px",
+      paddingTop: "8px",
+      borderTop: "1px solid rgba(255,255,255,0.06)"
+    } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function(e) {
+          var btn = e.currentTarget;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(msg.content || "").then(function() {
+              var orig = btn.textContent;
+              btn.textContent = "\u2713 Copied";
+              setTimeout(function() {
+                btn.textContent = orig;
+              }, 1500);
+            });
+          }
+        },
+        className: "kl-action-btn",
+        title: "Copy to clipboard"
+      },
+      "Copy"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function(e) {
+          var btn = e.currentTarget;
+          btn.disabled = true;
+          btn.textContent = "Saving\u2026";
+          var token = window.__klToken;
+          var userId = window.__klUserId;
+          if (!token || !userId) {
+            btn.textContent = "Not signed in";
+            btn.disabled = false;
+            return;
+          }
+          var noteTitle = (msg.content || "").split("\n")[0].slice(0, 50) || "Eileen response";
+          var now = /* @__PURE__ */ new Date();
+          var dateStr = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+          var timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+          var attribution = "[Eileen \u2014 " + dateStr + " " + timeStr + "] " + noteTitle;
+          fetch(SUPABASE_URL + "/rest/v1/kl_workspace_notes", {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + token,
+              "apikey": SUPABASE_ANON_KEY,
+              "Content-Type": "application/json",
+              "Prefer": "return=representation"
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              project_id: null,
+              title: noteTitle,
+              content_plain: msg.content || "",
+              content_json: {},
+              note_type: "eileen_response",
+              source_attribution: attribution
+            })
+          }).then(function(resp) {
+            if (resp.ok) {
+              btn.textContent = "\u2713 Saved";
+              btn.style.color = "#10B981";
+              resp.json().then(function(data) {
+                if (Array.isArray(data) && data[0] && typeof window.__klNotesRefresh === "function") {
+                  window.__klNotesRefresh(data[0]);
+                }
+              }).catch(function() {
+              });
+              var toast = document.createElement("div");
+              toast.textContent = "Saved to Saved Items";
+              toast.style.cssText = "position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#10B981;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;opacity:1;transition:opacity 0.3s;";
+              document.body.appendChild(toast);
+              setTimeout(function() {
+                toast.style.opacity = "0";
+                setTimeout(function() {
+                  document.body.removeChild(toast);
+                }, 300);
+              }, 2e3);
+            } else {
+              btn.textContent = "Failed";
+              btn.style.color = "#EF4444";
+            }
+            setTimeout(function() {
+              btn.textContent = "Save";
+              btn.style.color = "";
+              btn.disabled = false;
+            }, 2e3);
+          }).catch(function() {
+            btn.textContent = "Failed";
+            setTimeout(function() {
+              btn.textContent = "Save";
+              btn.style.color = "";
+              btn.disabled = false;
+            }, 2e3);
+          });
+        },
+        className: "kl-action-btn",
+        title: "Save this response to Saved Items"
+      },
+      "Save"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function() {
+          var text = msg.content || "";
+          var safeTitle = text.split("\n")[0].slice(0, 40).replace(/[^a-zA-Z0-9 ]/g, "") || "Eileen-response";
+          var disclaimer = "\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited \xB7 Company No. 17035654 \xB7 ICO Reg. 00013389720 \xB7 ailane.ai/terms/";
+          var blob = new Blob([text + disclaimer], { type: "text/plain;charset=utf-8" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = safeTitle.replace(/\s+/g, "-") + ".txt";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        },
+        className: "kl-action-btn",
+        title: "Download this response as a text file"
+      },
+      "Download"
+    )), hasStats && /* @__PURE__ */ React.createElement("div", { className: "kl-msg-footer" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-stats" }, "Based on ", msg.provisionsCount || 0, " provision", msg.provisionsCount === 1 ? "" : "s", " and ", msg.casesCount || 0, " case", msg.casesCount === 1 ? "" : "s"))));
+  }
+  function MessageInput({ onSend, disabled, onFileSelect, pulseUpload }) {
+    const [value, setValue] = useState("");
+    const fileInputRef = useRef(null);
+    function submit() {
+      const text = value.trim();
+      if (!text || disabled) return;
+      onSend(text);
+      setValue("");
+    }
+    function onKey(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submit();
+      }
+    }
+    function onPaperclipClick() {
+      if (fileInputRef.current) fileInputRef.current.click();
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-input-bar" }, onFileSelect && /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "file",
+        ref: fileInputRef,
+        accept: ".pdf,.docx,.doc,.txt",
+        style: { display: "none" },
+        onChange: onFileSelect
+      }
+    ), onFileSelect && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onPaperclipClick,
+        title: "Upload a contract for compliance analysis",
+        "aria-label": "Upload a contract for compliance analysis",
+        style: {
+          background: "rgba(14,165,233,0.08)",
+          border: "1px solid rgba(14,165,233,0.2)",
+          borderRadius: "8px",
+          cursor: "pointer",
+          padding: "6px 10px",
+          color: "#0EA5E9",
+          fontSize: "13px",
+          fontWeight: 500,
+          fontFamily: "'DM Sans', sans-serif",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+          animation: pulseUpload ? "kl-pulse 1.5s ease-in-out 3" : "none"
+        }
+      },
+      /* @__PURE__ */ React.createElement(
+        "svg",
+        {
+          width: "16",
+          height: "16",
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: "2",
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          "aria-hidden": "true"
+        },
+        /* @__PURE__ */ React.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }),
+        /* @__PURE__ */ React.createElement("polyline", { points: "17 8 12 3 7 8" }),
+        /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })
+      ),
+      /* @__PURE__ */ React.createElement("span", null, "Upload contract")
+    ), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        className: "kl-input",
+        type: "text",
+        placeholder: "Ask Eileen anything about UK employment law...",
+        value,
+        onChange: (e) => setValue(e.target.value),
+        onKeyDown: onKey,
+        disabled
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: "kl-send-btn",
+        onClick: submit,
+        disabled: disabled || !value.trim(),
+        "aria-label": "Send message"
+      },
+      /* @__PURE__ */ React.createElement(NexusSendButton, { hasText: !!value.trim(), isLoading: disabled, tier: window.__klTier || "per_session" })
+    ));
+  }
+  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload }) {
+    const scrollRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+    useEffect(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, [messages, isLoading]);
+    const empty = messages.length === 0;
+    function onDragOver(e) {
+      if (!onFileSelect) return;
+      e.preventDefault();
+      setIsDragging(true);
+    }
+    function onDragLeave(e) {
+      if (!onFileSelect) return;
+      e.preventDefault();
+      setIsDragging(false);
+    }
+    function onDrop(e) {
+      if (!onFileSelect) return;
+      e.preventDefault();
+      setIsDragging(false);
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length > 0) {
+        onFileSelect({ target: { files } });
+      }
+    }
+    const dragOverlay = isDragging && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          inset: 0,
+          zIndex: 50,
+          background: "rgba(14,165,233,0.08)",
+          border: "2px dashed #0EA5E9",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none"
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { color: "#0EA5E9", fontSize: "16px", fontWeight: 500 } }, "Drop your contract here")
+    );
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-main" }, empty ? /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-welcome",
+        style: { position: "relative" },
+        onDragOver,
+        onDragLeave,
+        onDrop
+      },
+      dragOverlay,
+      /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-nexus" }, /* @__PURE__ */ React.createElement(NexusCanvas, { tier })),
+      /* @__PURE__ */ React.createElement("h1", { className: "kl-welcome-greeting" }, "What can I help you with today?"),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-eileen-subtitle", style: {
+        fontSize: "12px",
+        color: "#64748B",
+        fontFamily: "'DM Mono', monospace",
+        letterSpacing: "0.06em",
+        marginBottom: "24px",
+        textAlign: "center"
+      } }, "Eileen \xB7 UK Employment Law Intelligence"),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload })),
+      /* @__PURE__ */ React.createElement(HorizonAlert, null),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-topics-grid" }, TOPIC_DOMAINS.map((topic, i) => /* @__PURE__ */ React.createElement("button", { key: i, className: "kl-topic-card", onClick: () => onSend(topic.query), disabled: isLoading }, /* @__PURE__ */ React.createElement("div", { className: "kl-card-label" }, topic.label), /* @__PURE__ */ React.createElement("div", { className: "kl-card-desc" }, topic.description)))),
+      /* @__PURE__ */ React.createElement(BookShelf, { onOpenBook: function(book) {
+        if (typeof window.__klOpenPanel === "function") {
+          window.__klOpenPanel("research");
+          window.__klPendingInstrument = book.id;
+          window.dispatchEvent(new CustomEvent("kl-open-instrument", { detail: { id: book.id } }));
+        }
+      } })
+    ) : /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-conversation",
+        style: { position: "relative" },
+        onDragOver,
+        onDragLeave,
+        onDrop
+      },
+      dragOverlay,
+      /* @__PURE__ */ React.createElement(
+        FloatingNexus,
+        {
+          tier,
+          isLoading,
+          isExpanded: floatingNexusExpanded,
+          onToggle: onToggleFloatingNexus
+        }
+      ),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-messages", ref: scrollRef, onClick: function(e) {
+        var target = e.target;
+        if (target && target.classList && target.classList.contains("kl-ref-link")) {
+          var instId = target.getAttribute("data-inst");
+          if (instId && typeof window.__klOpenPanel === "function") {
+            window.__klOpenPanel("research");
+            window.__klPendingInstrument = instId;
+            window.dispatchEvent(new CustomEvent("kl-open-instrument", { detail: { id: instId } }));
+          }
+        }
+      } }, messages.map((m, i) => /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m, onRunAnalysis })), showQualifier && /* @__PURE__ */ React.createElement(QualifyingQuestion, { onSelect: onUserTypeSelect }), isLoading && /* @__PURE__ */ React.createElement(TypingIndicator, null)),
+      /* @__PURE__ */ React.createElement("div", { className: "kl-conversation-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload }))
+    ));
+  }
+  function CrownJewels({ onQuery, disabled }) {
+    var _exp = useState({});
+    var expanded = _exp[0];
+    var setExpanded = _exp[1];
+    function toggle(name) {
+      setExpanded(function(prev) {
+        var next = {};
+        for (var k in prev) next[k] = prev[k];
+        next[name] = !prev[name];
+        return next;
+      });
+    }
+    return React.createElement(
+      "div",
+      { className: "kl-crown" },
+      React.createElement("div", { className: "kl-crown-title" }, "Crown Jewels"),
+      React.createElement(
+        "div",
+        { className: "kl-crown-list" },
+        CROWN_JEWELS.map(function(jewel) {
+          var isOpen = !!expanded[jewel.name];
+          return React.createElement(
+            "div",
+            { key: jewel.name, style: { marginBottom: "4px" } },
+            React.createElement(
+              "div",
+              {
+                onClick: function() {
+                  toggle(jewel.name);
+                },
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "7px 10px",
+                  borderRadius: isOpen ? "8px 8px 0 0" : "8px",
+                  background: "rgba(14,165,233,0.04)",
+                  border: "1px solid rgba(14,165,233,0.12)",
+                  cursor: "pointer",
+                  transition: "background 0.15s"
+                }
+              },
+              React.createElement("span", {
+                style: {
+                  width: "5px",
+                  height: "5px",
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  background: jewel.inForce ? "#10B981" : "#F59E0B"
+                }
+              }),
+              React.createElement("span", {
+                style: { flex: 1, fontSize: "11px", color: "#CBD5E1", lineHeight: 1.3, fontFamily: "'DM Sans', sans-serif" }
+              }, jewel.name),
+              React.createElement("span", {
+                style: { fontSize: "9px", color: "#64748B", flexShrink: 0, transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0)" },
+                "aria-hidden": "true"
+              }, "\u25BC")
+            ),
+            isOpen && React.createElement(
+              "div",
+              {
+                style: {
+                  padding: "10px",
+                  background: "rgba(14,165,233,0.02)",
+                  border: "1px solid rgba(14,165,233,0.12)",
+                  borderTop: "none",
+                  borderRadius: "0 0 8px 8px"
+                }
+              },
+              React.createElement("div", {
+                style: { fontSize: "12px", color: "#0EA5E9", fontWeight: 500, marginBottom: "6px", fontFamily: "'DM Sans', sans-serif" }
+              }, jewel.warmIntro),
+              React.createElement("div", {
+                style: { fontSize: "11px", color: "#94A3B8", lineHeight: 1.5, marginBottom: "10px" }
+              }, jewel.topics),
+              !jewel.inForce && React.createElement("div", {
+                style: {
+                  fontSize: "10px",
+                  color: "#F59E0B",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  background: "rgba(245,158,11,0.06)",
+                  marginBottom: "8px",
+                  display: "inline-block"
+                }
+              }, "Commenced 6 April 2026"),
+              React.createElement("button", {
+                type: "button",
+                disabled,
+                onClick: function(e) {
+                  e.stopPropagation();
+                  onQuery(jewel.keyQuestion);
+                },
+                style: {
+                  display: "block",
+                  width: "100%",
+                  padding: "7px 10px",
+                  borderRadius: "6px",
+                  background: "rgba(14,165,233,0.08)",
+                  border: "1px solid rgba(14,165,233,0.2)",
+                  color: "#0EA5E9",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  textAlign: "left",
+                  opacity: disabled ? 0.5 : 1,
+                  transition: "background 0.15s"
+                }
+              }, "\u2192 " + jewel.keyQuestion)
+            )
+          );
+        })
+      )
+    );
+  }
+  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery }) {
+    var _historyOpen = useState(false);
+    var historyOpen = _historyOpen[0];
+    var setHistoryOpen = _historyOpen[1];
+    return React.createElement(
+      "div",
+      { className: "kl-sidebar" + (open ? "" : " collapsed") },
+      React.createElement(
+        "div",
+        { className: "kl-sidebar-section" },
+        React.createElement(
+          "button",
+          { className: "kl-new-chat-btn", onClick: onNewChat },
+          React.createElement(
+            "svg",
+            { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.25", strokeLinecap: "round", strokeLinejoin: "round" },
+            React.createElement("line", { x1: "12", y1: "5", x2: "12", y2: "19" }),
+            React.createElement("line", { x1: "5", y1: "12", x2: "19", y2: "12" })
+          ),
+          React.createElement("span", null, "New Conversation")
+        )
+      ),
+      React.createElement(
+        "div",
+        { style: { flex: 1, overflowY: "auto", minHeight: 0 } },
+        React.createElement(CrownJewels, { onQuery: onCrownQuery })
+      ),
+      React.createElement(
+        "div",
+        { style: { flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.06)" } },
+        React.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: function() {
+              setHistoryOpen(!historyOpen);
+            },
+            style: {
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 12px",
+              background: "transparent",
+              border: "none",
+              color: "#64748B",
+              fontSize: "11px",
+              fontWeight: 500,
+              cursor: "pointer",
+              fontFamily: "'DM Mono', monospace",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase"
+            }
+          },
+          React.createElement("span", null, "History (" + sessionHistory.length + ")"),
+          React.createElement("span", {
+            style: { fontSize: "9px", transition: "transform 0.15s", transform: historyOpen ? "rotate(180deg)" : "rotate(0)" }
+          }, "\u25BC")
+        ),
+        historyOpen && React.createElement(
+          "div",
+          {
+            style: { maxHeight: "240px", overflowY: "auto", padding: "0 8px 8px" }
+          },
+          sessionHistory.length === 0 ? React.createElement("div", { className: "kl-sidebar-empty" }, "No prior conversations") : groupSessionsByTime(sessionHistory).map(function(group) {
+            return React.createElement(
+              React.Fragment,
+              { key: group.label },
+              React.createElement("div", {
+                style: {
+                  fontSize: "9px",
+                  fontWeight: 500,
+                  color: "#475569",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  padding: "8px 10px 3px",
+                  fontFamily: "'DM Mono', monospace"
+                }
+              }, group.label),
+              group.items.map(function(s) {
+                return React.createElement(
+                  "button",
+                  {
+                    key: s.sessionId,
+                    className: "kl-history-item" + (s.sessionId === activeSessionId ? " active" : ""),
+                    onClick: function() {
+                      onSelectSession(s.sessionId);
+                    }
+                  },
+                  React.createElement("div", { className: "kl-history-title" }, truncate(s.title, 40)),
+                  React.createElement("div", { className: "kl-history-time" }, formatRelativeTime(s.lastActivity))
+                );
+              })
+            );
+          })
+        )
+      )
+    );
+  }
+  function SessionCountdown({ expiresAt, onExpired }) {
+    const [remaining, setRemaining] = useState("");
+    const [isUrgent, setIsUrgent] = useState(false);
+    const firedRef = useRef(false);
+    useEffect(() => {
+      firedRef.current = false;
+      if (!expiresAt) return void 0;
+      const expiry = new Date(expiresAt).getTime();
+      if (isNaN(expiry)) return void 0;
+      function tick() {
+        const diff = expiry - Date.now();
+        if (diff <= 0) {
+          setRemaining("Expired");
+          setIsUrgent(true);
+          if (!firedRef.current && typeof onExpired === "function") {
+            firedRef.current = true;
+            onExpired();
+          }
+          return false;
+        }
+        const totalSecs = Math.floor(diff / 1e3);
+        const hours = Math.floor(totalSecs / 3600);
+        const mins = Math.floor(totalSecs % 3600 / 60);
+        const secs = totalSecs % 60;
+        const label = hours > 0 ? hours + "h " + String(mins).padStart(2, "0") + "m" : mins + "m " + String(secs).padStart(2, "0") + "s";
+        setRemaining(label);
+        setIsUrgent(diff < 15 * 60 * 1e3);
+        return true;
+      }
+      if (!tick()) return void 0;
+      const interval = setInterval(() => {
+        if (!tick()) clearInterval(interval);
+      }, 1e3);
+      return () => clearInterval(interval);
+    }, [expiresAt, onExpired]);
+    if (!expiresAt) return null;
+    return /* @__PURE__ */ React.createElement("span", { className: "kl-session-countdown" + (isUrgent ? " urgent" : ""), title: "Time remaining in this session" }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u23F1"), /* @__PURE__ */ React.createElement("span", { className: "kl-session-countdown-time" }, remaining));
+  }
+  function ExpiredModal() {
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-expired-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "kl-expired-title" }, /* @__PURE__ */ React.createElement("div", { className: "kl-expired-backdrop", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "kl-expired-content" }, /* @__PURE__ */ React.createElement("h2", { id: "kl-expired-title", className: "kl-expired-title" }, "Session expired"), /* @__PURE__ */ React.createElement("p", { className: "kl-expired-body" }, "Your Knowledge Library session has ended. Purchase a new session to continue your research."), /* @__PURE__ */ React.createElement("a", { className: "kl-expired-cta", href: "/knowledge-library-preview/" }, "Get a new session")));
+  }
+  function MobileSidebarBackdrop({ onClick }) {
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-sidebar-backdrop", onClick, "aria-hidden": "true" });
+  }
+  function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired }) {
+    let badgeLabel = "KNOWLEDGE LIBRARY";
+    let badgeClass = "kl-badge-per-session";
+    if (accessType === "subscription") {
+      if (tier === "operational_readiness") {
+        badgeLabel = "OPERATIONAL";
+        badgeClass = "kl-badge-operational";
+      } else if (tier === "governance") {
+        badgeLabel = "GOVERNANCE";
+        badgeClass = "kl-badge-governance";
+      } else if (tier === "institutional") {
+        badgeLabel = "INSTITUTIONAL";
+        badgeClass = "kl-badge-institutional";
+      }
+    } else if (accessType === "per_session") {
+      badgeLabel = "PER-SESSION";
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-topbar" }, /* @__PURE__ */ React.createElement("button", { className: "kl-topbar-toggle", onClick: onToggleSidebar, "aria-label": sidebarOpen ? "Collapse sidebar" : "Expand sidebar" }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" }))), /* @__PURE__ */ React.createElement(
+      "a",
+      {
+        className: "kl-topbar-title",
+        href: "/",
+        style: {
+          color: "#22D3EE",
+          textDecoration: "none",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 700,
+          fontSize: "16px",
+          cursor: "pointer"
+        }
+      },
+      "AILANE Knowledge Library"
+    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel)));
+  }
+  var PANEL_DEFS = [
+    // Primary group (AMD-044 §4.2)
+    { id: "vault", label: "Document Vault", minTier: "operational_readiness", group: "primary" },
+    { id: "notes", label: "Saved Items", minTier: null, group: "primary" },
+    { id: "research", label: "Research", minTier: null, group: "primary" },
+    // Secondary group — clipboard slot removed per AMD-044 §4
+    { id: "calendar", label: "Calendar", minTier: "operational_readiness", group: "secondary" }
+  ];
+  function PanelIcon({ id }) {
+    var iconProps = { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.75", strokeLinecap: "round", strokeLinejoin: "round" };
+    if (id === "vault") {
+      return React.createElement(
+        "svg",
+        iconProps,
+        React.createElement("path", { d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" }),
+        React.createElement("polyline", { points: "14 2 14 8 20 8" }),
+        React.createElement("line", { x1: "16", y1: "13", x2: "8", y2: "13" }),
+        React.createElement("line", { x1: "16", y1: "17", x2: "8", y2: "17" })
+      );
+    }
+    if (id === "notes") {
+      return React.createElement(
+        "svg",
+        iconProps,
+        React.createElement("path", { d: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" }),
+        React.createElement("path", { d: "M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" })
+      );
+    }
+    if (id === "research") {
+      return React.createElement(
+        "svg",
+        iconProps,
+        React.createElement("circle", { cx: "11", cy: "11", r: "8" }),
+        React.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" })
+      );
+    }
+    if (id === "calendar") {
+      return React.createElement(
+        "svg",
+        iconProps,
+        React.createElement("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2", ry: "2" }),
+        React.createElement("line", { x1: "16", y1: "2", x2: "16", y2: "6" }),
+        React.createElement("line", { x1: "8", y1: "2", x2: "8", y2: "6" }),
+        React.createElement("line", { x1: "3", y1: "10", x2: "21", y2: "10" })
+      );
+    }
+    return React.createElement("span", { style: { fontSize: "18px" } }, "?");
+  }
+  var TIER_RANK = {
+    per_session: 0,
+    kl_quick_session: 0,
+    kl_day_pass: 0,
+    kl_research_week: 0,
+    operational_readiness: 1,
+    governance: 2,
+    institutional: 3
+  };
+  function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
+    var userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0;
+    var primaryPanels = PANEL_DEFS.filter(function(p) {
+      return p.group === "primary";
+    });
+    var secondaryPanels = PANEL_DEFS.filter(function(p) {
+      return p.group === "secondary";
+    });
+    function renderButton(p) {
+      var minRank = p.minTier ? TIER_RANK[p.minTier] != null ? TIER_RANK[p.minTier] : 99 : 0;
+      var locked = userRank < minRank;
+      var isActive = activePanel === p.id;
+      return React.createElement(
+        "button",
+        {
+          key: p.id,
+          type: "button",
+          className: "kl-panel-rail-btn" + (isActive ? " active" : "") + (locked ? " locked" : ""),
+          title: locked ? p.label + " (upgrade required)" : p.label,
+          "aria-label": p.label,
+          "aria-pressed": isActive,
+          disabled: locked,
+          onClick: function() {
+            if (!locked) onSelectPanel(isActive ? null : p.id);
+          }
+        },
+        React.createElement(PanelIcon, { id: p.id })
+      );
+    }
+    return React.createElement(
+      "div",
+      { className: "kl-panelrail" },
+      primaryPanels.map(renderButton),
+      React.createElement("div", {
+        className: "kl-panel-rail-divider",
+        style: {
+          width: "24px",
+          height: "1px",
+          background: "rgba(255,255,255,0.08)",
+          margin: "4px 0"
+        },
+        "aria-hidden": "true"
+      }),
+      secondaryPanels.map(renderButton)
+    );
+  }
+  var NOTES_DISCLAIMER = "\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited \xB7 Company No. 17035654 \xB7 ICO Reg. 00013389720 \xB7 ailane.ai/terms/";
+  function noteTypeIcon(noteType) {
+    if (noteType === "clip") return "\u{1F4CC}";
+    if (noteType === "eileen_response") return "\u{1F4AC}";
+    return "\u{1F4DD}";
+  }
+  function relativeTime(dateStr) {
+    if (!dateStr) return "";
+    var diff = Date.now() - new Date(dateStr).getTime();
+    var mins = Math.floor(diff / 6e4);
+    if (mins < 1) return "just now";
+    if (mins < 60) return mins + "m ago";
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + "h ago";
+    var days = Math.floor(hrs / 24);
+    if (days < 7) return days + "d ago";
+    return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  }
+  function downloadNoteFile(note, format) {
+    var safeTitle = (note.title || "note").replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/ +/g, "-");
+    var content, mimeType, ext;
+    if (format === "md") {
+      content = "# " + (note.title || "Untitled Note") + "\n\n" + (note.content_plain || "") + NOTES_DISCLAIMER;
+      mimeType = "text/markdown";
+      ext = ".md";
+    } else {
+      content = (note.title || "Untitled Note") + "\n\n" + (note.content_plain || "") + NOTES_DISCLAIMER;
+      mimeType = "text/plain;charset=utf-8";
+      ext = ".txt";
+    }
+    var blob = new Blob([content], { type: mimeType });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = safeTitle + ext;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function NotesPanel() {
+    var _notes = useState([]);
+    var notes = _notes[0];
+    var setNotes = _notes[1];
+    var _active = useState(null);
+    var activeId = _active[0];
+    var setActiveId = _active[1];
+    var _activeNote = useState(null);
+    var activeNote = _activeNote[0];
+    var setActiveNote = _activeNote[1];
+    var _title = useState("Untitled Note");
+    var title = _title[0];
+    var setTitle = _title[1];
+    var _body = useState("");
+    var body = _body[0];
+    var setBody = _body[1];
+    var _status = useState("loading");
+    var status = _status[0];
+    var setStatus = _status[1];
+    var _filter = useState("all");
+    var filter = _filter[0];
+    var setFilter = _filter[1];
+    var _editable = useState(false);
+    var editable = _editable[0];
+    var setEditable = _editable[1];
+    var _confirmDelete = useState(null);
+    var confirmDelete = _confirmDelete[0];
+    var setConfirmDelete = _confirmDelete[1];
+    var _downloadOpen = useState(false);
+    var downloadOpen = _downloadOpen[0];
+    var setDownloadOpen = _downloadOpen[1];
+    var saveTimer = useRef(null);
+    useEffect(function() {
+      var cancelled = false;
+      async function load() {
+        if (!window.__klToken || !window.__klUserId) {
+          setStatus("saved");
+          return;
+        }
+        try {
+          var resp = await fetch(
+            SUPABASE_URL + "/rest/v1/kl_workspace_notes?user_id=eq." + window.__klUserId + "&order=pinned.desc,updated_at.desc&select=id,title,note_type,source_attribution,pinned,updated_at,content_plain",
+            { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+          );
+          var data = await resp.json();
+          if (cancelled) return;
+          if (Array.isArray(data)) {
+            setNotes(data);
+          }
+          setStatus("saved");
+        } catch (e) {
+          console.error("Notes load failed:", e);
+          if (!cancelled) setStatus("error");
+        }
+      }
+      load();
+      return function() {
+        cancelled = true;
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+      };
+    }, []);
+    useEffect(function() {
+      window.__klNotesRefresh = function(newNote2) {
+        if (newNote2) {
+          setNotes(function(prev) {
+            return [newNote2].concat(prev);
+          });
+        }
+      };
+      return function() {
+        delete window.__klNotesRefresh;
+      };
+    }, []);
+    function selectNote(note) {
+      setActiveId(note.id);
+      setActiveNote(note);
+      setTitle(note.title || "Untitled Note");
+      setBody(note.content_plain || "");
+      setStatus("saved");
+      setEditable(note.note_type === "note" || !note.note_type);
+      setDownloadOpen(false);
+      if (window.__klToken) {
+        fetch(
+          SUPABASE_URL + "/rest/v1/kl_workspace_notes?id=eq." + note.id + "&select=*",
+          { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+        ).then(function(r) {
+          return r.json();
+        }).then(function(d) {
+          if (Array.isArray(d) && d[0]) {
+            setBody(d[0].content_plain || "");
+            setTitle(d[0].title || "Untitled Note");
+            setActiveNote(d[0]);
+          }
+        }).catch(function() {
+        });
+      }
+    }
+    function newNote() {
+      if (!window.__klToken || !window.__klUserId) return;
+      var dateStr = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      var newTitle = "Untitled Note \u2014 " + dateStr;
+      fetch(SUPABASE_URL + "/rest/v1/kl_workspace_notes", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json", "Prefer": "return=representation" },
+        body: JSON.stringify({ user_id: window.__klUserId, project_id: null, title: newTitle, content_plain: "", note_type: "note" })
+      }).then(function(r) {
+        return r.json();
+      }).then(function(d) {
+        if (Array.isArray(d) && d[0]) {
+          setNotes(function(prev) {
+            return [d[0]].concat(prev);
+          });
+          selectNote(d[0]);
+          setEditable(true);
+        }
+      }).catch(function(e) {
+        console.error("Create note failed:", e);
+      });
+    }
+    async function performSave(nextTitle, nextBody, currentId) {
+      if (!window.__klToken || !window.__klUserId || !currentId) return;
+      setStatus("saving");
+      var now = (/* @__PURE__ */ new Date()).toISOString();
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + "/rest/v1/kl_workspace_notes?id=eq." + currentId,
+          {
+            method: "PATCH",
+            headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
+            body: JSON.stringify({ title: nextTitle || "Untitled Note", content_plain: nextBody, updated_at: now })
+          }
+        );
+        if (!resp.ok) throw new Error("PATCH " + resp.status);
+        setNotes(function(prev) {
+          return prev.map(function(n) {
+            return n.id === currentId ? Object.assign({}, n, { title: nextTitle, content_plain: nextBody, updated_at: now }) : n;
+          });
+        });
+        setStatus("saved");
+      } catch (e) {
+        console.error("Notes save failed:", e);
+        setStatus("error");
+      }
+    }
+    function scheduleSave(nextTitle, nextBody) {
+      setStatus("dirty");
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(function() {
+        performSave(nextTitle, nextBody, activeId);
+      }, 3e3);
+    }
+    async function deleteNote(noteId) {
+      if (!window.__klToken) return;
+      try {
+        await fetch(SUPABASE_URL + "/rest/v1/kl_workspace_notes?id=eq." + noteId, {
+          method: "DELETE",
+          headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY }
+        });
+        setNotes(function(prev) {
+          return prev.filter(function(n) {
+            return n.id !== noteId;
+          });
+        });
+        if (activeId === noteId) {
+          setActiveId(null);
+          setActiveNote(null);
+        }
+        setConfirmDelete(null);
+      } catch (e) {
+        console.error("Delete failed:", e);
+      }
+    }
+    var filteredNotes = notes.filter(function(n) {
+      if (filter === "all") return true;
+      if (filter === "note") return n.note_type === "note" || !n.note_type;
+      if (filter === "clip") return n.note_type === "clip";
+      if (filter === "eileen") return n.note_type === "eileen_response";
+      return true;
+    });
+    var statusLabel = status === "loading" ? "Loading\u2026" : status === "dirty" ? "Unsaved changes" : status === "saving" ? "Saving\u2026" : status === "error" ? "Save failed" : "\u2713 Saved";
+    var statusColor = status === "saved" ? "#10B981" : status === "saving" ? "#F59E0B" : status === "error" ? "#EF4444" : "#94A3B8";
+    var filterChips = ["all", "note", "clip", "eileen"];
+    var filterLabels = { all: "All", note: "Notes", clip: "Clips", eileen: "Eileen" };
+    var noteListPane = React.createElement(
+      "div",
+      {
+        style: {
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          borderRight: activeId ? "1px solid rgba(255,255,255,0.06)" : "none",
+          flex: activeId ? "0 0 200px" : "1"
+        }
+      },
+      // Filter chips row
+      React.createElement(
+        "div",
+        { style: { display: "flex", gap: "4px", padding: "0 0 8px", flexWrap: "wrap" } },
+        filterChips.map(function(f) {
+          return React.createElement("button", {
+            key: f,
+            type: "button",
+            onClick: function() {
+              setFilter(f);
+            },
+            style: {
+              padding: "3px 8px",
+              borderRadius: "12px",
+              fontSize: "10px",
+              fontWeight: 500,
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: "pointer",
+              border: "none",
+              background: filter === f ? "rgba(14,165,233,0.2)" : "rgba(255,255,255,0.04)",
+              color: filter === f ? "#0EA5E9" : "#94A3B8",
+              transition: "all 0.15s"
+            }
+          }, filterLabels[f]);
+        })
+      ),
+      // New Note button
+      React.createElement("button", {
+        type: "button",
+        onClick: newNote,
+        style: {
+          width: "100%",
+          padding: "8px",
+          borderRadius: "8px",
+          background: "rgba(14,165,233,0.08)",
+          border: "1px solid rgba(14,165,233,0.2)",
+          color: "#0EA5E9",
+          fontSize: "12px",
+          fontWeight: 500,
+          cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+          marginBottom: "8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "4px"
+        }
+      }, "+ New Note"),
+      // Scrollable note list
+      React.createElement(
+        "div",
+        { style: { flex: 1, overflowY: "auto", minHeight: 0 } },
+        filteredNotes.length === 0 ? React.createElement(
+          "div",
+          { style: { color: "#64748B", fontSize: "12px", textAlign: "center", padding: "20px 4px" } },
+          filter === "all" ? "No saved items yet." : "No " + filterLabels[filter].toLowerCase() + " found."
+        ) : filteredNotes.map(function(n) {
+          var isActive = activeId === n.id;
+          return React.createElement(
+            "div",
+            {
+              key: n.id,
+              style: {
+                padding: "8px",
+                marginBottom: "4px",
+                borderRadius: "6px",
+                background: isActive ? "rgba(14,165,233,0.08)" : "rgba(255,255,255,0.02)",
+                borderLeft: isActive ? "3px solid #0EA5E9" : "3px solid transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "6px",
+                transition: "all 0.15s"
+              },
+              onClick: function() {
+                selectNote(n);
+              }
+            },
+            // Type icon
+            React.createElement("span", { style: { fontSize: "12px", flexShrink: 0, marginTop: "1px" } }, noteTypeIcon(n.note_type)),
+            // Title + meta
+            React.createElement(
+              "div",
+              { style: { minWidth: 0, flex: 1 } },
+              React.createElement("div", { style: {
+                color: isActive ? "#E2E8F0" : "#CBD5E1",
+                fontSize: "12px",
+                fontWeight: 500,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              } }, (n.title || "Untitled Note").substring(0, 40)),
+              React.createElement(
+                "div",
+                { style: { display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" } },
+                n.pinned ? React.createElement("span", { style: { fontSize: "9px" } }, "\u{1F4CC}") : null,
+                React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace" } }, relativeTime(n.updated_at))
+              )
+            ),
+            // Delete button
+            React.createElement("button", {
+              type: "button",
+              onClick: function(e) {
+                e.stopPropagation();
+                setConfirmDelete(n.id);
+              },
+              style: { background: "none", border: "none", color: "#64748B", fontSize: "12px", cursor: "pointer", padding: "0 2px", flexShrink: 0, opacity: 0.6 },
+              title: "Delete",
+              "aria-label": "Delete note"
+            }, "\u2715")
+          );
+        })
+      )
+    );
+    var deleteDialog = confirmDelete ? React.createElement(
+      "div",
+      {
+        style: {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 10,
+          background: "rgba(10,22,40,0.85)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }
+      },
+      React.createElement(
+        "div",
+        {
+          style: {
+            background: "#0F1D32",
+            border: "1px solid #1E3A5F",
+            borderRadius: "10px",
+            padding: "20px",
+            maxWidth: "260px",
+            textAlign: "center"
+          }
+        },
+        React.createElement("p", { style: { color: "#E2E8F0", fontSize: "13px", marginBottom: "14px" } }, "Delete this note?"),
+        React.createElement(
+          "div",
+          { style: { display: "flex", gap: "8px", justifyContent: "center" } },
+          React.createElement("button", {
+            type: "button",
+            onClick: function() {
+              setConfirmDelete(null);
+            },
+            className: "kl-action-btn",
+            style: { fontSize: "12px", padding: "6px 14px" }
+          }, "Cancel"),
+          React.createElement("button", {
+            type: "button",
+            onClick: function() {
+              deleteNote(confirmDelete);
+            },
+            style: {
+              fontSize: "12px",
+              padding: "6px 14px",
+              borderRadius: "4px",
+              background: "rgba(239,68,68,0.15)",
+              border: "1px solid rgba(239,68,68,0.3)",
+              color: "#EF4444",
+              cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif"
+            }
+          }, "Delete")
+        )
+      )
+    ) : null;
+    var editorPane = null;
+    if (activeId && activeNote) {
+      var isReadOnly = (activeNote.note_type === "clip" || activeNote.note_type === "eileen_response") && !editable;
+      editorPane = React.createElement(
+        "div",
+        {
+          style: { flex: 1, display: "flex", flexDirection: "column", minHeight: 0, paddingLeft: "12px" }
+        },
+        // Toolbar: Download + Email
+        React.createElement(
+          "div",
+          {
+            style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexShrink: 0 }
+          },
+          // Back button (mobile-friendly)
+          React.createElement("button", {
+            type: "button",
+            onClick: function() {
+              setActiveId(null);
+              setActiveNote(null);
+              setDownloadOpen(false);
+            },
+            style: {
+              background: "none",
+              border: "none",
+              color: "#0EA5E9",
+              fontSize: "11px",
+              cursor: "pointer",
+              padding: "0",
+              fontFamily: "'DM Sans', sans-serif"
+            }
+          }, "\u2190 Back"),
+          // Action buttons
+          React.createElement(
+            "div",
+            { style: { display: "flex", gap: "4px", position: "relative" } },
+            // Download button with dropdown
+            React.createElement(
+              "div",
+              { style: { position: "relative" } },
+              React.createElement("button", {
+                type: "button",
+                onClick: function() {
+                  setDownloadOpen(!downloadOpen);
+                },
+                className: "kl-action-btn",
+                title: "Download",
+                style: { fontSize: "11px", padding: "3px 8px" }
+              }, "\u2B07 Download"),
+              downloadOpen ? React.createElement(
+                "div",
+                {
+                  style: {
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: "4px",
+                    background: "#0F1D32",
+                    border: "1px solid #1E3A5F",
+                    borderRadius: "6px",
+                    padding: "4px 0",
+                    zIndex: 20,
+                    minWidth: "180px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                  }
+                },
+                React.createElement("button", {
+                  type: "button",
+                  onClick: function() {
+                    downloadNoteFile({ title, content_plain: body }, "md");
+                    setDownloadOpen(false);
+                  },
+                  style: {
+                    display: "block",
+                    width: "100%",
+                    padding: "6px 12px",
+                    background: "transparent",
+                    border: "none",
+                    color: "#E2E8F0",
+                    fontSize: "12px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif"
+                  }
+                }, "Download as Markdown (.md)"),
+                React.createElement("button", {
+                  type: "button",
+                  onClick: function() {
+                    downloadNoteFile({ title, content_plain: body }, "txt");
+                    setDownloadOpen(false);
+                  },
+                  style: {
+                    display: "block",
+                    width: "100%",
+                    padding: "6px 12px",
+                    background: "transparent",
+                    border: "none",
+                    color: "#E2E8F0",
+                    fontSize: "12px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif"
+                  }
+                }, "Download as Text (.txt)"),
+                React.createElement("div", { style: { height: "1px", background: "#1E3A5F", margin: "4px 0" } }),
+                React.createElement("button", {
+                  type: "button",
+                  disabled: true,
+                  title: "Coming soon \u2014 requires server-side export",
+                  style: {
+                    display: "block",
+                    width: "100%",
+                    padding: "6px 12px",
+                    background: "transparent",
+                    border: "none",
+                    color: "#64748B",
+                    fontSize: "12px",
+                    textAlign: "left",
+                    cursor: "not-allowed",
+                    fontFamily: "'DM Sans', sans-serif",
+                    opacity: 0.5
+                  }
+                }, "Download as PDF (.pdf)"),
+                React.createElement("button", {
+                  type: "button",
+                  disabled: true,
+                  title: "Coming soon \u2014 requires server-side export",
+                  style: {
+                    display: "block",
+                    width: "100%",
+                    padding: "6px 12px",
+                    background: "transparent",
+                    border: "none",
+                    color: "#64748B",
+                    fontSize: "12px",
+                    textAlign: "left",
+                    cursor: "not-allowed",
+                    fontFamily: "'DM Sans', sans-serif",
+                    opacity: 0.5
+                  }
+                }, "Download as DOCX (.docx)")
+              ) : null
+            ),
+            // Email to self (greyed out)
+            React.createElement("button", {
+              type: "button",
+              disabled: true,
+              className: "kl-action-btn",
+              title: "Coming soon \u2014 requires server-side export",
+              style: { fontSize: "11px", padding: "3px 8px", opacity: 0.4, cursor: "not-allowed" }
+            }, "\u2709 Email")
+          )
+        ),
+        // Source attribution (for clips / eileen responses)
+        activeNote.source_attribution ? React.createElement("div", {
+          style: { color: "#64748B", fontSize: "11px", fontStyle: "italic", marginBottom: "6px", fontFamily: "'DM Mono', monospace" }
+        }, activeNote.source_attribution) : null,
+        // Title input
+        React.createElement("input", {
+          className: "kl-notes-title",
+          type: "text",
+          value: title,
+          readOnly: isReadOnly,
+          onChange: function(e) {
+            if (isReadOnly) return;
+            var v = e.target.value;
+            setTitle(v);
+            scheduleSave(v, body);
+          },
+          placeholder: "Untitled Note",
+          style: isReadOnly ? { opacity: 0.8 } : {}
+        }),
+        // Status indicator
+        React.createElement("div", {
+          style: { fontSize: "10px", color: statusColor, marginBottom: "6px", fontFamily: "'DM Mono', monospace" }
+        }, statusLabel),
+        // Edit button for read-only notes
+        isReadOnly ? React.createElement("button", {
+          type: "button",
+          onClick: function() {
+            setEditable(true);
+          },
+          className: "kl-action-btn",
+          style: { fontSize: "11px", padding: "3px 8px", marginBottom: "6px", alignSelf: "flex-start" }
+        }, "\u270E Edit") : null,
+        // Body editor / reader
+        React.createElement("textarea", {
+          className: "kl-notes-body",
+          value: body,
+          readOnly: isReadOnly,
+          onChange: function(e) {
+            if (isReadOnly) return;
+            var v = e.target.value;
+            setBody(v);
+            scheduleSave(title, v);
+          },
+          placeholder: "Take notes during your research...",
+          style: Object.assign({ flex: 1 }, isReadOnly ? { opacity: 0.85 } : {})
+        })
+      );
+    } else {
+      editorPane = React.createElement(
+        "div",
+        {
+          style: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", paddingLeft: "12px" }
+        },
+        React.createElement("p", { style: { color: "#64748B", fontSize: "13px", textAlign: "center" } }, "Select a note or create a new one")
+      );
+    }
+    return React.createElement(
+      "div",
+      {
+        className: "kl-notes-panel",
+        style: { display: "flex", flexDirection: "row", height: "100%", position: "relative", minHeight: 0 }
+      },
+      noteListPane,
+      editorPane,
+      deleteDialog
+    );
+  }
+  function VaultPanel() {
+    var _s = useState([]);
+    var docs = _s[0];
+    var setDocs = _s[1];
+    var _l = useState(true);
+    var loading = _l[0];
+    var setLoading = _l[1];
+    var _err = useState(false);
+    var fetchError = _err[0];
+    var setFetchError = _err[1];
+    var _preview = useState(null);
+    var previewDoc = _preview[0];
+    var setPreviewDoc = _preview[1];
+    function loadDocs() {
+      setLoading(true);
+      setFetchError(false);
+      var cancelled = false;
+      async function load() {
+        if (!window.__klToken || !window.__klUserId) {
+          setLoading(false);
+          return;
+        }
+        var headers = { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY };
+        var vaultOk = false;
+        var uploadsOk = false;
+        var allDocs = [];
+        try {
+          var vaultResp = await fetch(
+            SUPABASE_URL + "/rest/v1/kl_vault_documents?user_id=eq." + window.__klUserId + "&deleted_at=is.null&order=created_at.desc&select=id,filename,storage_path,file_size_bytes,mime_type,extraction_status,analysis_status,created_at,visibility",
+            { headers }
+          );
+          if (vaultResp.ok) {
+            var vaultData = await vaultResp.json();
+            vaultOk = true;
+            if (!cancelled && Array.isArray(vaultData)) {
+              vaultData.forEach(function(d) {
+                allDocs.push({
+                  id: d.id,
+                  name: d.filename,
+                  source: "vault",
+                  size: d.file_size_bytes,
+                  status: d.extraction_status,
+                  score: null,
+                  storagePath: d.storage_path,
+                  date: d.created_at
+                });
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Vault docs fetch failed:", e);
+        }
+        try {
+          var uploadsResp = await fetch(
+            SUPABASE_URL + "/rest/v1/compliance_uploads?user_id=eq." + window.__klUserId + "&order=created_at.desc&select=id,file_name,file_path,file_size_bytes,document_type,status,overall_score,created_at,display_name",
+            { headers }
+          );
+          if (uploadsResp.ok) {
+            var uploadsData = await uploadsResp.json();
+            uploadsOk = true;
+            if (!cancelled && Array.isArray(uploadsData)) {
+              uploadsData.forEach(function(d) {
+                allDocs.push({
+                  id: d.id,
+                  name: d.display_name || d.file_name,
+                  source: "compliance",
+                  size: d.file_size_bytes,
+                  status: d.status,
+                  score: d.overall_score,
+                  storagePath: d.file_path,
+                  date: d.created_at
+                });
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Uploads fetch failed:", e);
+        }
+        if (!cancelled) {
+          if (!vaultOk && !uploadsOk) {
+            setFetchError(true);
+          }
+          allDocs.sort(function(a, b) {
+            return new Date(b.date) - new Date(a.date);
+          });
+          setDocs(allDocs);
+          setLoading(false);
+        }
+      }
+      load();
+      return function() {
+        cancelled = true;
+      };
+    }
+    useEffect(function() {
+      var cleanup = loadDocs();
+      return cleanup;
+    }, []);
+    var uploadButton = React.createElement(
+      "div",
+      { style: { marginBottom: "12px" } },
+      React.createElement("input", {
+        type: "file",
+        id: "vault-upload-input",
+        accept: ".pdf,.docx,.doc,.txt",
+        style: { display: "none" },
+        onChange: function(e) {
+          if (typeof window.__klHandleFileSelect === "function") {
+            window.__klHandleFileSelect(e);
+          }
+        }
+      }),
+      React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: function() {
+            var input = document.getElementById("vault-upload-input");
+            if (input) input.click();
+          },
+          style: {
+            width: "100%",
+            padding: "10px",
+            borderRadius: "8px",
+            background: "rgba(14,165,233,0.08)",
+            border: "1px solid rgba(14,165,233,0.2)",
+            color: "#0EA5E9",
+            fontSize: "13px",
+            fontWeight: 500,
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px"
+          }
+        },
+        React.createElement(
+          "svg",
+          { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" },
+          React.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }),
+          React.createElement("polyline", { points: "17 8 12 3 7 8" }),
+          React.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })
+        ),
+        "Upload document"
+      )
+    );
+    if (loading) {
+      return React.createElement("div", { style: { color: "#94A3B8", fontSize: "13px", padding: "12px" } }, "Loading documents\u2026");
+    }
+    if (fetchError && docs.length === 0) {
+      return React.createElement(
+        "div",
+        { style: { padding: "12px", textAlign: "center" } },
+        uploadButton,
+        React.createElement("p", { style: { color: "#94A3B8", fontSize: "13px", marginBottom: "10px" } }, "Unable to load your documents. Please try again."),
+        React.createElement("button", {
+          type: "button",
+          onClick: function() {
+            loadDocs();
+          },
+          className: "kl-action-btn",
+          style: { fontSize: "12px", padding: "6px 14px" }
+        }, "Retry")
+      );
+    }
+    if (previewDoc) {
+      return React.createElement(
+        "div",
+        { style: { padding: "12px" } },
+        React.createElement("button", {
+          type: "button",
+          onClick: function() {
+            setPreviewDoc(null);
+          },
+          style: { background: "none", border: "none", color: "#0EA5E9", fontSize: "12px", cursor: "pointer", padding: "0", marginBottom: "10px", fontFamily: "'DM Sans', sans-serif" }
+        }, "\u2190 Back to documents"),
+        React.createElement("div", { style: { color: "#E2E8F0", fontSize: "14px", fontWeight: 500, marginBottom: "4px" } }, previewDoc.name),
+        React.createElement(
+          "div",
+          { style: { display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" } },
+          React.createElement("span", {
+            style: { fontSize: "10px", padding: "2px 6px", borderRadius: "4px", fontFamily: "'DM Mono', monospace", background: previewDoc.source === "vault" ? "rgba(14,165,233,0.15)" : "rgba(16,185,129,0.15)", color: previewDoc.source === "vault" ? "#0EA5E9" : "#10B981" }
+          }, previewDoc.source === "vault" ? "Vault" : "Check"),
+          previewDoc.size ? React.createElement("span", { style: { fontSize: "10px", color: "#64748B", fontFamily: "'DM Mono', monospace" } }, formatFileSize(previewDoc.size)) : null,
+          React.createElement("span", { style: { fontSize: "10px", color: "#64748B", fontFamily: "'DM Mono', monospace" } }, relativeTime(previewDoc.date))
+        ),
+        React.createElement("div", {
+          style: { color: "#94A3B8", fontSize: "12px", lineHeight: 1.6, padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }
+        }, "Document preview is available after extraction is complete. Full document content will appear here in a future update.")
+      );
+    }
+    if (docs.length === 0) {
+      return React.createElement(
+        "div",
+        { style: { padding: "12px" } },
+        uploadButton,
+        React.createElement("p", { style: { color: "#94A3B8", fontSize: "14px", marginBottom: "6px" } }, "No documents yet."),
+        React.createElement(
+          "p",
+          { style: { color: "#64748B", fontSize: "13px", lineHeight: 1.5 } },
+          "Upload a contract here or through Eileen to run a compliance check."
+        )
+      );
+    }
+    return React.createElement(
+      "div",
+      null,
+      uploadButton,
+      docs.map(function(doc) {
+        var hasScore = doc.score != null;
+        var scoreColor = !hasScore ? null : doc.score >= 75 ? "#10B981" : doc.score >= 50 ? "#F59E0B" : "#EF4444";
+        var scoreBg = !hasScore ? null : doc.score >= 75 ? "rgba(16,185,129,0.15)" : doc.score >= 50 ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)";
+        var sourceBadge = React.createElement("span", {
+          style: {
+            fontSize: "10px",
+            fontWeight: 500,
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontFamily: "'DM Mono', monospace",
+            background: doc.source === "vault" ? "rgba(14,165,233,0.15)" : "rgba(16,185,129,0.15)",
+            color: doc.source === "vault" ? "#0EA5E9" : "#10B981",
+            flexShrink: 0
+          }
+        }, doc.source === "vault" ? "Vault" : "Check");
+        var scoreBadge = hasScore ? React.createElement(
+          "span",
+          {
+            style: {
+              fontSize: "11px",
+              fontWeight: 600,
+              padding: "2px 8px",
+              borderRadius: "4px",
+              background: scoreBg,
+              color: scoreColor,
+              flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px"
+            }
+          },
+          React.createElement("span", {
+            style: { width: "8px", height: "8px", borderRadius: "50%", background: scoreColor, display: "inline-block" }
+          }),
+          Math.round(doc.score) + "%"
+        ) : null;
+        var statusBadge = null;
+        if (!hasScore && doc.status) {
+          var statusColors = {
+            pending: { text: "#94A3B8", bg: "rgba(148,163,184,0.1)" },
+            extracting: { text: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
+            processing: { text: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
+            completed: { text: "#10B981", bg: "rgba(16,185,129,0.1)" },
+            ready: { text: "#10B981", bg: "rgba(16,185,129,0.1)" }
+          };
+          var sc = statusColors[doc.status] || statusColors.pending;
+          statusBadge = React.createElement("span", {
+            style: { fontSize: "10px", fontWeight: 500, padding: "2px 6px", borderRadius: "4px", background: sc.bg, color: sc.text, flexShrink: 0, fontFamily: "'DM Mono', monospace" }
+          }, doc.status);
+        }
+        return React.createElement(
+          "div",
+          {
+            key: doc.source + "-" + doc.id,
+            style: { padding: "12px", marginBottom: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }
+          },
+          // Row 1: Name + score or status
+          React.createElement(
+            "div",
+            { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" } },
+            React.createElement("span", {
+              style: { color: "#E2E8F0", fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }
+            }, (doc.name || "").substring(0, 35)),
+            hasScore ? scoreBadge : statusBadge
+          ),
+          // Row 2: Source badge, date, file size
+          React.createElement(
+            "div",
+            { style: { display: "flex", gap: "8px", alignItems: "center", marginTop: "6px", flexWrap: "wrap" } },
+            sourceBadge,
+            React.createElement("span", { style: { color: "#64748B", fontSize: "11px" } }, relativeTime(doc.date)),
+            doc.size ? React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace" } }, formatFileSize(doc.size)) : null
+          ),
+          // Row 3: Action buttons (AMD-044 §5.3)
+          React.createElement(
+            "div",
+            { style: { display: "flex", gap: "4px", marginTop: "8px" } },
+            React.createElement("button", {
+              type: "button",
+              className: "kl-action-btn",
+              onClick: function() {
+                setPreviewDoc(doc);
+              },
+              style: { fontSize: "11px", padding: "3px 8px" }
+            }, "Preview"),
+            doc.source === "compliance" ? React.createElement("button", {
+              type: "button",
+              className: "kl-action-btn",
+              title: "Download compliance report",
+              style: { fontSize: "11px", padding: "3px 8px" },
+              onClick: function() {
+                if (typeof window.__klDownloadReport === "function") {
+                  window.__klDownloadReport(doc.id);
+                }
+              }
+            }, "Download") : React.createElement("button", {
+              type: "button",
+              className: "kl-action-btn",
+              disabled: true,
+              title: "Preview only \u2014 download will be available when storage retrieval is built",
+              style: { fontSize: "11px", padding: "3px 8px", opacity: 0.4, cursor: "not-allowed" }
+            }, "Download")
+          )
+        );
+      })
+    );
+  }
+  function CalendarPanel() {
+    var _reqs = useState([]);
+    var reqs = _reqs[0];
+    var setReqs = _reqs[1];
+    var _loading = useState(true);
+    var loading = _loading[0];
+    var setLoading = _loading[1];
+    var _filter = useState("all");
+    var filter = _filter[0];
+    var setFilter = _filter[1];
+    var _expanded = useState({});
+    var expanded = _expanded[0];
+    var setExpanded = _expanded[1];
+    useEffect(function() {
+      var cancelled = false;
+      async function load() {
+        if (!window.__klToken) {
+          setLoading(false);
+          return;
+        }
+        try {
+          var resp = await fetch(
+            SUPABASE_URL + "/rest/v1/regulatory_requirements?select=id,requirement_name,statutory_basis,effective_from,commencement_status,is_forward_requirement,source_act&order=effective_from.asc",
+            { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+          );
+          var data = await resp.json();
+          if (cancelled) return;
+          if (Array.isArray(data)) setReqs(data);
+        } catch (e) {
+          console.error("Calendar load failed:", e);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      }
+      load();
+      return function() {
+        cancelled = true;
+      };
+    }, []);
+    function toggleExpand(id) {
+      setExpanded(function(prev) {
+        var next = {};
+        for (var k in prev) next[k] = prev[k];
+        next[id] = !prev[id];
+        return next;
+      });
+    }
+    if (loading) {
+      return React.createElement("div", { style: { color: "#94A3B8", fontSize: "13px", padding: "12px" } }, "Loading regulatory calendar\u2026");
+    }
+    var forwardCount = reqs.filter(function(r) {
+      return r.is_forward_requirement;
+    }).length;
+    var filtered = reqs.filter(function(r) {
+      if (filter === "forward") return r.is_forward_requirement;
+      if (filter === "in_force") return r.commencement_status === "in_force";
+      return true;
+    });
+    var filterButtons = [
+      { id: "all", label: "All (" + reqs.length + ")" },
+      { id: "in_force", label: "In Force" },
+      { id: "forward", label: "Forward (" + forwardCount + ")" }
+    ];
+    return React.createElement(
+      "div",
+      null,
+      React.createElement(
+        "div",
+        { style: { display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" } },
+        filterButtons.map(function(f) {
+          return React.createElement("button", {
+            key: f.id,
+            type: "button",
+            onClick: function() {
+              setFilter(f.id);
+            },
+            style: {
+              padding: "4px 10px",
+              borderRadius: "4px",
+              fontSize: "11px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              border: filter === f.id ? "1px solid #0EA5E9" : "1px solid rgba(255,255,255,0.1)",
+              background: filter === f.id ? "rgba(14,165,233,0.15)" : "transparent",
+              color: filter === f.id ? "#0EA5E9" : "#94A3B8"
+            }
+          }, f.label);
+        })
+      ),
+      filtered.length === 0 ? React.createElement("div", { style: { color: "#64748B", fontSize: "12px", padding: "8px 4px" } }, "No requirements match this filter.") : filtered.map(function(r) {
+        var isOpen = !!expanded[r.id];
+        return React.createElement(
+          "div",
+          {
+            key: r.id,
+            style: {
+              marginBottom: "6px",
+              borderRadius: "6px",
+              overflow: "hidden",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderLeft: r.is_forward_requirement ? "3px solid #F59E0B" : "3px solid #10B981"
+            }
+          },
+          React.createElement(
+            "div",
+            {
+              onClick: function() {
+                toggleExpand(r.id);
+              },
+              style: { padding: "10px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }
+            },
+            React.createElement(
+              "div",
+              { style: { flex: 1, minWidth: 0 } },
+              React.createElement("div", { style: { color: "#E2E8F0", fontSize: "13px", fontWeight: 500 } }, r.requirement_name),
+              r.effective_from && React.createElement(
+                "div",
+                { style: { color: "#64748B", fontSize: "11px", marginTop: "2px" } },
+                "Effective: " + new Date(r.effective_from).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+              )
+            ),
+            React.createElement("span", {
+              style: { color: "#64748B", fontSize: "10px", flexShrink: 0, transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0)" },
+              "aria-hidden": "true"
+            }, "\u25BC")
+          ),
+          isOpen && React.createElement(
+            "div",
+            {
+              style: { padding: "0 10px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }
+            },
+            r.statutory_basis && React.createElement(
+              "div",
+              { style: { marginTop: "8px" } },
+              React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em" } }, "Statutory Basis"),
+              React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", marginTop: "2px" } }, r.statutory_basis)
+            ),
+            r.source_act && React.createElement(
+              "div",
+              { style: { marginTop: "8px" } },
+              React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em" } }, "Source Act"),
+              React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", marginTop: "2px" } }, r.source_act)
+            ),
+            React.createElement(
+              "div",
+              { style: { marginTop: "8px" } },
+              React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em" } }, "Status"),
+              React.createElement(
+                "div",
+                { style: { marginTop: "2px" } },
+                React.createElement("span", {
+                  style: {
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    background: r.commencement_status === "in_force" ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
+                    color: r.commencement_status === "in_force" ? "#10B981" : "#F59E0B"
+                  }
+                }, r.commencement_status === "in_force" ? "In Force" : r.commencement_status || "Pending")
+              )
+            ),
+            r.is_forward_requirement && React.createElement("div", {
+              style: { marginTop: "8px", padding: "6px 8px", borderRadius: "4px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.1)", fontSize: "11px", color: "#F59E0B" }
+            }, "Forward requirement \u2014 not yet in force")
+          )
+        );
+      })
+    );
+  }
+  function ResearchPanel() {
+    var _tab = useState("library");
+    var tab = _tab[0];
+    var setTab = _tab[1];
+    var _search = useState("");
+    var search = _search[0];
+    var setSearch = _search[1];
+    var _data = useState([]);
+    var data = _data[0];
+    var setData = _data[1];
+    var _loading = useState(true);
+    var loading = _loading[0];
+    var setLoading = _loading[1];
+    var _expanded = useState({});
+    var expanded = _expanded[0];
+    var setExpanded = _expanded[1];
+    var _instruments = useState([]);
+    var instruments = _instruments[0];
+    var setInstruments = _instruments[1];
+    var _activeInstrument = useState(null);
+    var activeInstrument = _activeInstrument[0];
+    var setActiveInstrument = _activeInstrument[1];
+    var _instrumentDetail = useState(null);
+    var instrumentDetail = _instrumentDetail[0];
+    var setInstrumentDetail = _instrumentDetail[1];
+    var _detailLoading = useState(false);
+    var detailLoading = _detailLoading[0];
+    var setDetailLoading = _detailLoading[1];
+    useEffect(function() {
+      if (tab === "library") {
+        setLoading(false);
+        return;
+      }
+      var cancelled = false;
+      async function load() {
+        if (!window.__klToken) {
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
+        try {
+          var path = tab === "provisions" ? "/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=500" : "/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100";
+          var resp = await fetch(SUPABASE_URL + path, {
+            headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY }
+          });
+          var d = await resp.json();
+          if (cancelled) return;
+          setData(Array.isArray(d) ? d : []);
+        } catch (e) {
+          console.error("Research load failed:", e);
+          if (!cancelled) setData([]);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      }
+      load();
+      return function() {
+        cancelled = true;
+      };
+    }, [tab]);
+    useEffect(function() {
+      if (tab !== "library") return;
+      var cancelled = false;
+      async function loadInstruments() {
+        try {
+          var resp = await fetch("/knowledge-library/content/content-index.json");
+          var d = await resp.json();
+          if (!cancelled && Array.isArray(d)) {
+            setInstruments(d);
+            if (window.__klPendingInstrument) {
+              var pending = window.__klPendingInstrument;
+              delete window.__klPendingInstrument;
+              var target = d.find(function(inst) {
+                return inst.id === pending;
+              });
+              if (target) {
+                setTimeout(function() {
+                  loadInstrumentDetail(target);
+                }, 100);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Library manifest fetch failed:", e);
+        }
+      }
+      if (instruments.length === 0) loadInstruments();
+      return function() {
+        cancelled = true;
+      };
+    }, [tab]);
+    useEffect(function() {
+      function handleOpen(e) {
+        var instId = e.detail && e.detail.id;
+        if (!instId) return;
+        setTab("library");
+        var found = instruments.find(function(inst) {
+          return inst.id === instId;
+        });
+        if (found) {
+          loadInstrumentDetail(found);
+        } else {
+          window.__klPendingInstrument = instId;
+        }
+      }
+      window.addEventListener("kl-open-instrument", handleOpen);
+      return function() {
+        window.removeEventListener("kl-open-instrument", handleOpen);
+      };
+    }, [instruments]);
+    function toggleInstrument(instId) {
+      setExpanded(function(prev) {
+        var next = {};
+        for (var k in prev) next[k] = prev[k];
+        next[instId] = !prev[instId];
+        return next;
+      });
+    }
+    async function loadInstrumentDetail(inst) {
+      setActiveInstrument(inst);
+      setInstrumentDetail(null);
+      setDetailLoading(true);
+      try {
+        var filename = inst.filename || (inst.id ? inst.id + ".json" : null);
+        if (filename) {
+          var resp = await fetch("/knowledge-library/content/" + filename);
+          if (resp.ok) {
+            var d = await resp.json();
+            setInstrumentDetail(d);
+          }
+        }
+      } catch (e) {
+        console.warn("Content file fetch failed:", e);
+      } finally {
+        setDetailLoading(false);
+      }
+    }
+    var filtered = data.filter(function(item) {
+      if (!search) return true;
+      var s = search.toLowerCase();
+      if (tab === "provisions") {
+        return (item.title || "").toLowerCase().indexOf(s) !== -1 || (item.instrument_id || "").toLowerCase().indexOf(s) !== -1;
+      }
+      return (item.name || "").toLowerCase().indexOf(s) !== -1 || (item.citation || "").toLowerCase().indexOf(s) !== -1;
+    });
+    var filteredInstruments = instruments;
+    if (tab === "library" && search) {
+      var libSearch = search.toLowerCase();
+      filteredInstruments = instruments.filter(function(inst) {
+        return (inst.title || "").toLowerCase().indexOf(libSearch) !== -1 || (inst.short || "").toLowerCase().indexOf(libSearch) !== -1 || (inst.warmSubtitle || "").toLowerCase().indexOf(libSearch) !== -1 || (inst.cat || "").toLowerCase().indexOf(libSearch) !== -1;
+      });
+    }
+    var groupedProvisions = {};
+    if (tab === "provisions") {
+      filtered.forEach(function(item) {
+        var key = item.instrument_id || "Other";
+        if (!groupedProvisions[key]) {
+          groupedProvisions[key] = [];
+        }
+        groupedProvisions[key].push(item);
+      });
+    }
+    var instrumentKeys = Object.keys(groupedProvisions).sort();
+    function renderProvisionsTab() {
+      if (instrumentKeys.length === 0) {
+        return React.createElement("div", { style: { color: "#64748B", fontSize: "12px", padding: "8px 4px" } }, "No results.");
+      }
+      return instrumentKeys.map(function(instId) {
+        var items = groupedProvisions[instId];
+        var isOpen = !!expanded[instId];
+        return React.createElement(
+          "div",
+          { key: instId, style: { marginBottom: "6px" } },
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: function() {
+                toggleInstrument(instId);
+              },
+              style: {
+                width: "100%",
+                textAlign: "left",
+                padding: "8px 10px",
+                borderRadius: "6px",
+                background: "rgba(14,165,233,0.04)",
+                border: "1px solid rgba(14,165,233,0.12)",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                color: "#E2E8F0",
+                fontSize: "12px",
+                fontWeight: 500,
+                fontFamily: "'DM Sans', sans-serif"
+              }
+            },
+            React.createElement("span", null, INSTRUMENT_NAMES[instId] || instId),
+            React.createElement(
+              "span",
+              { style: { display: "flex", alignItems: "center", gap: "6px" } },
+              React.createElement("span", { style: { fontSize: "10px", color: "#0EA5E9", fontFamily: "'DM Mono', monospace" } }, items.length + " provisions"),
+              React.createElement("span", { style: { fontSize: "10px", color: "#64748B", transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0)" } }, "\u25BC")
+            )
+          ),
+          isOpen && React.createElement(
+            "div",
+            { style: { paddingLeft: "8px", marginTop: "4px" } },
+            items.map(function(item) {
+              return React.createElement(
+                "div",
+                {
+                  key: item.provision_id,
+                  style: {
+                    padding: "6px 8px",
+                    marginBottom: "2px",
+                    borderRadius: "4px",
+                    background: "rgba(255,255,255,0.02)",
+                    border: "1px solid rgba(255,255,255,0.04)",
+                    cursor: "pointer"
+                  },
+                  onClick: function() {
+                    var seedMsg = "Tell me about " + item.title + (item.instrument_id ? " under the " + item.instrument_id : "");
+                    if (window.__klSendMessage) window.__klSendMessage(seedMsg);
+                  },
+                  title: "Ask Eileen about this provision"
+                },
+                React.createElement("div", { style: { color: "#E2E8F0", fontSize: "12px", fontWeight: 500 } }, item.title),
+                React.createElement(
+                  "div",
+                  { style: { display: "flex", gap: "6px", marginTop: "2px", flexWrap: "wrap", alignItems: "center" } },
+                  React.createElement(
+                    "span",
+                    { style: { color: "#475569", fontSize: "10px", fontFamily: "'DM Mono', monospace" } },
+                    item.section_num ? "s." + item.section_num : ""
+                  ),
+                  item.is_era_2025 && React.createElement("span", {
+                    style: { color: "#F59E0B", fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(245,158,11,0.1)" }
+                  }, "ERA 2025"),
+                  React.createElement(
+                    "span",
+                    { style: { color: item.in_force ? "#10B981" : "#94A3B8", fontSize: "10px" } },
+                    item.in_force ? "In force" : "Not yet"
+                  )
+                )
+              );
+            })
+          )
+        );
+      });
+    }
+    function renderCasesTab() {
+      if (filtered.length === 0) {
+        return React.createElement("div", { style: { color: "#64748B", fontSize: "12px", padding: "8px 4px" } }, "No results.");
+      }
+      return filtered.slice(0, 50).map(function(item) {
+        var caseKey = "case-" + item.case_id;
+        var isOpen = !!expanded[caseKey];
+        return React.createElement(
+          "div",
+          {
+            key: item.case_id,
+            style: {
+              marginBottom: "6px",
+              borderRadius: "6px",
+              overflow: "hidden",
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)"
+            }
+          },
+          React.createElement(
+            "div",
+            {
+              onClick: function() {
+                toggleInstrument(caseKey);
+              },
+              style: {
+                padding: "8px 10px",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start"
+              }
+            },
+            React.createElement(
+              "div",
+              { style: { flex: 1, minWidth: 0 } },
+              React.createElement("div", { style: { color: "#E2E8F0", fontSize: "12px", fontWeight: 500 } }, item.name),
+              React.createElement(
+                "div",
+                { style: { color: "#64748B", fontSize: "10px", marginTop: "2px", fontFamily: "'DM Mono', monospace" } },
+                [item.citation, item.court, item.year].filter(Boolean).join(" \xB7 ")
+              )
+            ),
+            React.createElement("span", {
+              style: { fontSize: "9px", color: "#64748B", flexShrink: 0, marginTop: "4px", transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0)" },
+              "aria-hidden": "true"
+            }, "\u25BC")
+          ),
+          isOpen && React.createElement(
+            "div",
+            {
+              style: { padding: "0 10px 10px", borderTop: "1px solid rgba(255,255,255,0.04)" }
+            },
+            item.principle && React.createElement("div", {
+              style: { fontSize: "12px", color: "#CBD5E1", lineHeight: 1.5, marginTop: "8px", marginBottom: "10px" }
+            }, item.principle),
+            React.createElement("button", {
+              type: "button",
+              onClick: function() {
+                if (window.__klSendMessage) window.__klSendMessage("Tell me about the case " + item.name + (item.citation ? " (" + item.citation + ")" : "") + " and what it means for employers");
+              },
+              style: {
+                padding: "6px 12px",
+                borderRadius: "6px",
+                background: "rgba(14,165,233,0.08)",
+                border: "1px solid rgba(14,165,233,0.2)",
+                color: "#0EA5E9",
+                fontSize: "11px",
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif"
+              }
+            }, "\u2192 Discuss with Eileen")
+          )
+        );
+      });
+    }
+    function renderLibraryTab() {
+      if (activeInstrument) {
+        return renderInstrumentDetail();
+      }
+      var CATEGORY_LABELS = {
+        legislation: "UK Employment Legislation",
+        acas: "ACAS Codes of Practice & Guidance",
+        hse: "Health & Safety Executive Guidance",
+        ico: "ICO Data Protection Guidance",
+        ehrc: "Equality & Human Rights Commission",
+        horizon: "Forward Intelligence & Horizon",
+        training: "Training Resources",
+        caselaw: "Case Law Intelligence",
+        guidance: "Regulatory Guidance",
+        "employment-relations": "Employment Relations",
+        "cross-cutting": "Cross-Cutting Provisions"
+      };
+      var CATEGORY_ORDER = ["legislation", "acas", "hse", "ehrc", "ico", "guidance", "employment-relations", "cross-cutting", "horizon", "training", "caselaw"];
+      var CATEGORY_COLOURS = {
+        legislation: "#0EA5E9",
+        acas: "#10B981",
+        hse: "#F59E0B",
+        ico: "#8B5CF6",
+        ehrc: "#EC4899",
+        horizon: "#F97316",
+        training: "#06B6D4",
+        caselaw: "#6366F1",
+        guidance: "#14B8A6",
+        "employment-relations": "#10B981",
+        "cross-cutting": "#64748B"
+      };
+      var grouped = {};
+      filteredInstruments.forEach(function(inst) {
+        var cat = inst.cat || "legislation";
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(inst);
+      });
+      var filteredCats = CATEGORY_ORDER.filter(function(c) {
+        return grouped[c] && grouped[c].length > 0;
+      });
+      Object.keys(grouped).forEach(function(c) {
+        if (filteredCats.indexOf(c) === -1) filteredCats.push(c);
+      });
+      if (instruments.length === 0) {
+        return React.createElement(
+          "div",
+          { style: { color: "#64748B", fontSize: "13px", padding: "12px", textAlign: "center" } },
+          "Loading instrument library\u2026"
+        );
+      }
+      if (filteredCats.length === 0) {
+        return React.createElement("div", { style: { color: "#64748B", fontSize: "12px", padding: "8px 4px" } }, "No instruments match your search.");
+      }
+      return React.createElement(
+        "div",
+        null,
+        filteredCats.map(function(cat) {
+          var items = grouped[cat];
+          var label = CATEGORY_LABELS[cat] || cat;
+          var catColor = CATEGORY_COLOURS[cat] || "#0EA5E9";
+          var isCatOpen = expanded[cat] !== false;
+          return React.createElement(
+            "div",
+            { key: cat, style: { marginBottom: "12px" } },
+            React.createElement(
+              "button",
+              {
+                type: "button",
+                onClick: function() {
+                  toggleInstrument(cat);
+                },
+                style: {
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  background: "rgba(14,165,233,0.06)",
+                  border: "1px solid rgba(14,165,233,0.15)",
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  color: catColor,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif"
+                }
+              },
+              React.createElement("span", null, label),
+              React.createElement(
+                "span",
+                { style: { display: "flex", alignItems: "center", gap: "6px" } },
+                React.createElement("span", { style: { fontSize: "10px", color: "#64748B", fontFamily: "'DM Mono', monospace" } }, items.length + " instruments"),
+                React.createElement("span", { style: { fontSize: "9px", color: "#64748B", transition: "transform 0.15s", transform: isCatOpen ? "rotate(180deg)" : "rotate(0)" } }, "\u25BC")
+              )
+            ),
+            isCatOpen && React.createElement(
+              "div",
+              { style: { paddingLeft: "4px", marginTop: "6px" } },
+              items.map(function(inst) {
+                var accentColor = CATEGORY_COLOURS[inst.cat] || "#0EA5E9";
+                return React.createElement(
+                  "div",
+                  {
+                    key: inst.id,
+                    onClick: function() {
+                      loadInstrumentDetail(inst);
+                    },
+                    style: {
+                      padding: "0",
+                      marginBottom: "6px",
+                      borderRadius: "4px",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      transition: "transform 0.15s, box-shadow 0.15s",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      display: "flex"
+                    },
+                    onMouseEnter: function(e) {
+                      e.currentTarget.style.transform = "translateX(4px)";
+                      e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
+                    },
+                    onMouseLeave: function(e) {
+                      e.currentTarget.style.transform = "none";
+                      e.currentTarget.style.boxShadow = "none";
+                    }
+                  },
+                  // Book spine accent
+                  React.createElement("div", {
+                    style: {
+                      width: "4px",
+                      background: accentColor,
+                      flexShrink: 0
+                    }
+                  }),
+                  // Book cover content
+                  React.createElement(
+                    "div",
+                    {
+                      style: {
+                        flex: 1,
+                        padding: "10px 12px",
+                        background: "rgba(255,255,255,0.02)"
+                      }
+                    },
+                    React.createElement(
+                      "div",
+                      { style: { color: "#E2E8F0", fontSize: "12px", fontWeight: 500, marginBottom: "4px", lineHeight: 1.3 } },
+                      inst.title
+                    ),
+                    inst.warmSubtitle && React.createElement("div", {
+                      style: { color: "#94A3B8", fontSize: "11px", lineHeight: 1.4, marginBottom: "6px" }
+                    }, inst.warmSubtitle.length > 100 ? inst.warmSubtitle.slice(0, 100) + "\u2026" : inst.warmSubtitle),
+                    React.createElement(
+                      "div",
+                      { style: { display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" } },
+                      inst.sectionCount > 0 && React.createElement("span", {
+                        style: { fontSize: "10px", color: accentColor, fontFamily: "'DM Mono', monospace" }
+                      }, inst.sectionCount + " provisions"),
+                      inst.caseCount > 0 && React.createElement("span", {
+                        style: { fontSize: "10px", color: "#64748B", fontFamily: "'DM Mono', monospace" }
+                      }, inst.caseCount + " cases"),
+                      inst.isInForce != null && React.createElement("span", {
+                        style: {
+                          fontSize: "9px",
+                          padding: "1px 5px",
+                          borderRadius: "3px",
+                          background: inst.isInForce ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
+                          color: inst.isInForce ? "#10B981" : "#F59E0B"
+                        }
+                      }, inst.isInForce ? "In force" : "Pending")
+                    )
+                  )
+                );
+              })
+            )
+          );
+        })
+      );
+    }
+    function renderInstrumentDetail() {
+      return React.createElement(
+        "div",
+        null,
+        React.createElement("button", {
+          type: "button",
+          onClick: function() {
+            setActiveInstrument(null);
+            setInstrumentDetail(null);
+          },
+          style: {
+            background: "none",
+            border: "none",
+            color: "#0EA5E9",
+            fontSize: "12px",
+            cursor: "pointer",
+            padding: "0 0 10px",
+            fontFamily: "'DM Sans', sans-serif",
+            textAlign: "left"
+          }
+        }, "\u2190 Back to Library"),
+        detailLoading ? React.createElement("div", { style: { color: "#94A3B8", fontSize: "13px", padding: "20px 0", textAlign: "center" } }, "Loading instrument detail\u2026") : instrumentDetail ? renderInstrumentContent(instrumentDetail) : renderInstrumentSummary(activeInstrument)
+      );
+    }
+    function renderInstrumentSummary(inst) {
+      return React.createElement(
+        "div",
+        null,
+        React.createElement("div", { style: { fontSize: "16px", fontWeight: 600, color: "#E2E8F0", marginBottom: "8px" } }, inst.title),
+        React.createElement(
+          "div",
+          { style: { fontSize: "12px", color: "#64748B", marginBottom: "4px", fontFamily: "'DM Mono', monospace" } },
+          (inst.type || "") + (inst.jurisdiction ? " \xB7 " + inst.jurisdiction : "")
+        ),
+        inst.chapters && React.createElement("div", { style: { fontSize: "12px", color: "#94A3B8", marginBottom: "12px", lineHeight: 1.5 } }, inst.chapters),
+        inst.warmSubtitle && React.createElement("div", {
+          style: {
+            fontSize: "13px",
+            color: "#CBD5E1",
+            lineHeight: 1.6,
+            marginBottom: "12px",
+            padding: "12px",
+            background: "rgba(14,165,233,0.04)",
+            borderRadius: "8px",
+            borderLeft: "2px solid rgba(14,165,233,0.2)"
+          }
+        }, inst.warmSubtitle),
+        inst.sourceUrl && React.createElement("a", {
+          href: inst.sourceUrl,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            marginBottom: "12px",
+            fontSize: "11px",
+            color: "#0EA5E9",
+            textDecoration: "none",
+            fontFamily: "'DM Sans', sans-serif"
+          }
+        }, "\u2197 View on legislation.gov.uk"),
+        !inst.warmSubtitle && React.createElement(
+          "div",
+          { style: { fontSize: "12px", color: "#475569", fontStyle: "italic", padding: "12px", background: "rgba(255,255,255,0.02)", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.05)" } },
+          "Deep content for this instrument is being enriched. Ask Eileen for current intelligence."
+        ),
+        React.createElement("button", {
+          type: "button",
+          onClick: function() {
+            if (window.__klSendMessage) window.__klSendMessage("Tell me about the " + inst.title + " and what it means for employers");
+          },
+          style: {
+            marginTop: "12px",
+            padding: "8px 14px",
+            borderRadius: "6px",
+            background: "rgba(14,165,233,0.08)",
+            border: "1px solid rgba(14,165,233,0.2)",
+            color: "#0EA5E9",
+            fontSize: "12px",
+            fontWeight: 500,
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif"
+          }
+        }, "\u2192 Ask Eileen about this instrument")
+      );
+    }
+    function renderInstrumentContent(detail) {
+      var displayTitle = detail.title || detail.shortTitle || activeInstrument && activeInstrument.title || "Instrument";
+      var displayType = detail.type || activeInstrument && activeInstrument.type || "";
+      var displayJurisdiction = detail.jurisdiction || activeInstrument && activeInstrument.jurisdiction || "";
+      var description = detail.desc || detail.description || detail.summary || detail.overview || activeInstrument && activeInstrument.warmSubtitle || "";
+      var inForce = detail.isInForce != null ? detail.isInForce : activeInstrument && activeInstrument.isInForce;
+      var instCat = activeInstrument && activeInstrument.cat || detail.cat || "";
+      var provisions = [];
+      if (Array.isArray(detail.provisions)) {
+        provisions = detail.provisions;
+      } else if (Array.isArray(detail.parts)) {
+        detail.parts.forEach(function(part) {
+          var rawPartLabel = part.title || part.num || part.name || "";
+          var partLabel = humanisePartTitle(rawPartLabel, instCat);
+          (part.sections || []).forEach(function(sec) {
+            provisions.push({
+              title: sec.title || sec.name || "",
+              section: sec.num || sec.sectionNum || sec.section || "",
+              text: sec.text || sec.currentText || sec.content || "",
+              summary: sec.summary || sec.keyPrinciple || "",
+              sourceUrl: sec.sourceUrl || null,
+              partLabel,
+              leadingCases: sec.leadingCases || []
+            });
+          });
+        });
+      }
+      var cases = [];
+      if (Array.isArray(detail.leadingCases)) cases = cases.concat(detail.leadingCases);
+      if (Array.isArray(detail.cases)) cases = cases.concat(detail.cases);
+      provisions.forEach(function(p) {
+        if (Array.isArray(p.leadingCases)) cases = cases.concat(p.leadingCases);
+      });
+      var sourceUrl = detail.sourceUrl || activeInstrument && activeInstrument.sourceUrl || provisions[0] && provisions[0].sourceUrl || null;
+      return React.createElement(
+        "div",
+        null,
+        // Title block
+        React.createElement(
+          "div",
+          { style: { marginBottom: "16px" } },
+          React.createElement("div", { style: { fontSize: "16px", fontWeight: 600, color: "#E2E8F0", marginBottom: "6px" } }, displayTitle),
+          React.createElement(
+            "div",
+            { style: { fontSize: "11px", color: "#64748B", fontFamily: "'DM Mono', monospace", marginBottom: "4px" } },
+            [displayType, displayJurisdiction, detail.currentAsOf && "Verified " + detail.currentAsOf].filter(Boolean).join(" \xB7 ")
+          ),
+          detail.chapters && React.createElement("div", { style: { fontSize: "11px", color: "#94A3B8", marginBottom: "8px" } }, detail.chapters),
+          React.createElement("span", {
+            style: {
+              fontSize: "10px",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              display: "inline-block",
+              background: inForce ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
+              color: inForce ? "#10B981" : "#F59E0B"
+            }
+          }, inForce ? "In force" : "Not yet commenced")
+        ),
+        description && React.createElement("div", {
+          style: {
+            fontSize: "13px",
+            color: "#CBD5E1",
+            lineHeight: 1.6,
+            marginBottom: "16px",
+            padding: "12px",
+            background: "rgba(14,165,233,0.04)",
+            borderRadius: "8px",
+            borderLeft: "2px solid rgba(14,165,233,0.2)"
+          }
+        }, typeof description === "string" ? description : JSON.stringify(description)),
+        sourceUrl && React.createElement("a", {
+          href: sourceUrl,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: {
+            display: "inline-block",
+            marginBottom: "16px",
+            fontSize: "11px",
+            color: "#0EA5E9",
+            textDecoration: "none",
+            fontFamily: "'DM Sans', sans-serif"
+          }
+        }, "\u2197 View original source"),
+        React.createElement("button", {
+          type: "button",
+          onClick: function() {
+            if (window.__klSendMessage) window.__klSendMessage("Give me a comprehensive briefing on the " + displayTitle + " including key obligations, recent changes, and practical implications for employers");
+          },
+          style: {
+            display: "block",
+            marginBottom: "16px",
+            padding: "8px 14px",
+            borderRadius: "6px",
+            background: "rgba(14,165,233,0.08)",
+            border: "1px solid rgba(14,165,233,0.2)",
+            color: "#0EA5E9",
+            fontSize: "12px",
+            fontWeight: 500,
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif"
+          }
+        }, "\u2192 Get a full briefing from Eileen"),
+        // Provisions list (Level 2 + Level 3 on expand)
+        provisions.length > 0 && React.createElement(
+          "div",
+          { style: { marginTop: "8px" } },
+          React.createElement("div", {
+            style: { fontSize: "12px", fontWeight: 600, color: "#0EA5E9", marginBottom: "8px", fontFamily: "'DM Sans', sans-serif" }
+          }, "Provisions (" + provisions.length + ")"),
+          provisions.slice(0, 40).map(function(prov, idx) {
+            var provKey = "prov-" + idx;
+            var isProvOpen = !!expanded[provKey];
+            var provTitle = prov.summary || prov.title || prov.name || "Section " + (prov.section || prov.sectionNum || prov.num || idx + 1);
+            if (provTitle.length > 140) provTitle = provTitle.slice(0, 140) + "\u2026";
+            var provOfficialTitle = prov.summary && prov.title && prov.title !== prov.summary ? prov.title : null;
+            var provText = prov.text || "";
+            var provSection = prov.section || "";
+            return React.createElement(
+              "div",
+              {
+                key: provKey,
+                style: { marginBottom: "3px", borderRadius: "4px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.04)" }
+              },
+              React.createElement(
+                "div",
+                {
+                  onClick: function() {
+                    toggleInstrument(provKey);
+                  },
+                  style: {
+                    padding: "6px 8px",
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: "rgba(255,255,255,0.02)"
+                  }
+                },
+                React.createElement(
+                  "div",
+                  { style: { flex: 1, minWidth: 0 } },
+                  React.createElement("span", { style: { color: "#E2E8F0", fontSize: "11px" } }, provTitle),
+                  provSection && React.createElement(
+                    "span",
+                    { style: { color: "#475569", fontSize: "10px", marginLeft: "6px", fontFamily: "'DM Mono', monospace" } },
+                    (String(provSection).indexOf("s.") === 0 ? "" : "s.") + provSection
+                  ),
+                  provOfficialTitle && React.createElement("div", {
+                    style: { color: "#475569", fontSize: "10px", fontStyle: "italic", marginTop: "1px" }
+                  }, provOfficialTitle)
+                ),
+                React.createElement("span", { style: { fontSize: "8px", color: "#475569", transition: "transform 0.15s", transform: isProvOpen ? "rotate(180deg)" : "rotate(0)" } }, "\u25BC")
+              ),
+              isProvOpen && React.createElement(
+                "div",
+                { style: { padding: "8px", borderTop: "1px solid rgba(255,255,255,0.04)" } },
+                prov.summary && React.createElement(
+                  "div",
+                  { style: { fontSize: "11px", color: "#CBD5E1", lineHeight: 1.6, marginBottom: "6px" } },
+                  prov.summary.length > 400 ? prov.summary.slice(0, 400) + "\u2026" : prov.summary
+                ),
+                provText && React.createElement(
+                  "div",
+                  { style: { fontSize: "11px", color: "#94A3B8", lineHeight: 1.6, maxHeight: "200px", overflowY: "auto", fontFamily: "'DM Mono', monospace" } },
+                  provText.length > 500 ? provText.slice(0, 500) + "\u2026" : provText
+                ),
+                prov.sourceUrl && React.createElement("a", {
+                  href: prov.sourceUrl,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  style: {
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "10px",
+                    color: "#0EA5E9",
+                    textDecoration: "none",
+                    marginTop: "6px",
+                    marginBottom: "4px"
+                  }
+                }, "\u2197 View on legislation.gov.uk"),
+                React.createElement("button", {
+                  type: "button",
+                  onClick: function() {
+                    if (window.__klSendMessage) window.__klSendMessage("Explain " + provTitle + " of the " + displayTitle + " and its practical implications");
+                  },
+                  style: {
+                    display: "block",
+                    marginTop: "6px",
+                    padding: "4px 10px",
+                    borderRadius: "4px",
+                    background: "rgba(14,165,233,0.06)",
+                    border: "1px solid rgba(14,165,233,0.15)",
+                    color: "#0EA5E9",
+                    fontSize: "10px",
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif"
+                  }
+                }, "\u2192 Ask Eileen")
+              )
+            );
+          })
+        ),
+        cases.length > 0 && React.createElement(
+          "div",
+          { style: { marginTop: "16px" } },
+          React.createElement("div", {
+            style: { fontSize: "12px", fontWeight: 600, color: "#0EA5E9", marginBottom: "8px", fontFamily: "'DM Sans', sans-serif" }
+          }, "Leading Cases (" + cases.length + ")"),
+          cases.slice(0, 20).map(function(c, idx) {
+            var caseText = c.principle || c.heldText || c.held || c.significance || "";
+            return React.createElement(
+              "div",
+              {
+                key: "lc-" + idx,
+                style: { padding: "8px", marginBottom: "4px", borderRadius: "4px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }
+              },
+              React.createElement("div", { style: { color: "#E2E8F0", fontSize: "12px", fontWeight: 500 } }, c.name || c.title || "Unnamed case"),
+              (c.citation || c.court || c.year) && React.createElement(
+                "div",
+                { style: { color: "#64748B", fontSize: "10px", marginTop: "2px", fontFamily: "'DM Mono', monospace" } },
+                [c.citation, c.court, c.year].filter(Boolean).join(" \xB7 ")
+              ),
+              caseText && React.createElement(
+                "div",
+                { style: { color: "#94A3B8", fontSize: "11px", marginTop: "4px", lineHeight: 1.4 } },
+                caseText.length > 200 ? caseText.slice(0, 200) + "\u2026" : caseText
+              ),
+              (c.url || c.bailiiUrl) && React.createElement("a", {
+                href: c.url || c.bailiiUrl,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                style: { fontSize: "10px", color: "#0EA5E9", textDecoration: "none", marginTop: "4px", display: "inline-block" }
+              }, "\u2197 BAILII")
+            );
+          })
+        )
+      );
+    }
+    var tabs = [
+      { id: "library", label: "Library" },
+      { id: "provisions", label: "Provisions" },
+      { id: "cases", label: "Cases" }
+    ];
+    return React.createElement(
+      "div",
+      null,
+      React.createElement(
+        "div",
+        { style: { display: "flex", gap: "8px", marginBottom: "10px" } },
+        tabs.map(function(t) {
+          return React.createElement("button", {
+            key: t.id,
+            type: "button",
+            onClick: function() {
+              setTab(t.id);
+              setSearch("");
+              setExpanded({});
+            },
+            style: {
+              flex: 1,
+              padding: "6px",
+              borderRadius: "6px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              border: tab === t.id ? "1px solid #0EA5E9" : "1px solid rgba(255,255,255,0.1)",
+              background: tab === t.id ? "rgba(14,165,233,0.1)" : "transparent",
+              color: tab === t.id ? "#0EA5E9" : "#94A3B8",
+              fontWeight: tab === t.id ? 600 : 400
+            }
+          }, t.label);
+        })
+      ),
+      React.createElement("input", {
+        type: "text",
+        placeholder: "Search " + tab + "\u2026",
+        value: search,
+        onChange: function(e) {
+          setSearch(e.target.value);
+        },
+        style: {
+          width: "100%",
+          padding: "8px 12px",
+          borderRadius: "6px",
+          fontSize: "13px",
+          border: "1px solid rgba(255,255,255,0.1)",
+          background: "rgba(255,255,255,0.03)",
+          color: "#E2E8F0",
+          marginBottom: "10px",
+          outline: "none",
+          boxSizing: "border-box",
+          fontFamily: "inherit"
+        }
+      }),
+      loading ? React.createElement("div", { style: { color: "#94A3B8", fontSize: "13px", padding: "12px" } }, "Loading\u2026") : tab === "library" ? renderLibraryTab() : tab === "provisions" ? renderProvisionsTab() : renderCasesTab()
+    );
+  }
+  var PLACEHOLDER_DESCRIPTIONS = {
+    documents: "Create structured documents with watermarks, disclaimers, and export controls.",
+    eileen: "Context-aware Eileen chat with Vault and Calendar integration.",
+    planner: "Six-step contract planning workflow with gap analysis and compliance mapping."
+  };
+  function PlaceholderPanel({ panelId }) {
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-placeholder-panel" }, /* @__PURE__ */ React.createElement("div", { className: "kl-placeholder-icon", "aria-hidden": "true" }, "\u2699"), /* @__PURE__ */ React.createElement("div", { className: "kl-placeholder-title" }, "Coming soon"), /* @__PURE__ */ React.createElement("p", { className: "kl-placeholder-body" }, PLACEHOLDER_DESCRIPTIONS[panelId] || "This panel is under development."));
+  }
+  var PANEL_LABELS = {
+    vault: "Document Vault",
+    notes: "Saved Items",
+    documents: "Documents",
+    calendar: "Calendar",
+    eileen: "Eileen",
+    research: "Research",
+    planner: "Contract Planner"
+  };
+  var PANEL_COMPONENTS = {
+    vault: VaultPanel,
+    notes: NotesPanel,
+    calendar: CalendarPanel,
+    research: ResearchPanel
+  };
+  function PanelDrawer({ panelId, onClose }) {
+    if (!panelId) return null;
+    const PanelContent = PANEL_COMPONENTS[panelId] || PlaceholderPanel;
+    const label = PANEL_LABELS[panelId] || panelId;
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer", role: "dialog", "aria-label": label }, /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-header" }, /* @__PURE__ */ React.createElement("span", { className: "kl-panel-drawer-title" }, label), /* @__PURE__ */ React.createElement("button", { className: "kl-panel-drawer-close", onClick: onClose, "aria-label": "Close panel" }, "\u2715")), /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-body" }, /* @__PURE__ */ React.createElement(PanelContent, { panelId })));
+  }
+  function AdvisoryBanner() {
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-advisory" }, /* @__PURE__ */ React.createElement("p", null, "This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)"));
+  }
+  function HorizonAlert() {
+    const [event, setEvent] = useState(null);
+    useEffect(() => {
+      let cancelled = false;
+      async function load() {
+        try {
+          const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+          const resp = await fetch(
+            SUPABASE_URL + "/rest/v1/regulatory_requirements?is_forward_requirement=eq.true&effective_from=gte." + today + "&select=requirement_name,statutory_basis,effective_from&order=effective_from.asc&limit=1",
+            {
+              headers: {
+                "Authorization": "Bearer " + (window.__klToken || ""),
+                "apikey": SUPABASE_ANON_KEY
+              }
+            }
+          );
+          const data = await resp.json();
+          if (cancelled) return;
+          if (Array.isArray(data) && data[0]) {
+            setEvent(data[0]);
+          }
+        } catch (e) {
+          console.warn("HorizonAlert fetch failed (non-blocking):", e);
+        }
+      }
+      if (window.__klToken) load();
+      return () => {
+        cancelled = true;
+      };
+    }, []);
+    if (!event) return null;
+    const effectiveDate = new Date(event.effective_from);
+    const now = /* @__PURE__ */ new Date();
+    const diffDays = Math.max(0, Math.ceil((effectiveDate - now) / (1e3 * 60 * 60 * 24)));
+    const dateLabel = effectiveDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    const urgencyColor = diffDays <= 30 ? "#F59E0B" : diffDays <= 90 ? "#0EA5E9" : "#64748B";
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "kl-horizon-alert",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          padding: "6px 14px",
+          borderRadius: "8px",
+          background: "rgba(255,255,255,0.02)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          marginBottom: "16px",
+          marginTop: "8px",
+          maxWidth: "640px",
+          width: "100%",
+          fontFamily: "'DM Sans', sans-serif"
+        }
+      },
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          style: {
+            width: "6px",
+            height: "6px",
+            borderRadius: "50%",
+            background: urgencyColor,
+            flexShrink: 0
+          }
+        }
+      ),
+      /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { style: { color: "#E2E8F0", fontSize: "12px", fontWeight: 500 } }, event.requirement_name), event.statutory_basis && /* @__PURE__ */ React.createElement("span", { style: { color: "#64748B", fontSize: "11px", marginLeft: "6px" } }, event.statutory_basis)),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          style: {
+            color: urgencyColor,
+            fontSize: "11px",
+            fontWeight: 500,
+            fontFamily: "'DM Mono', monospace",
+            whiteSpace: "nowrap",
+            flexShrink: 0
+          }
+        },
+        diffDays === 0 ? "Today" : diffDays === 1 ? "Tomorrow" : diffDays + " days",
+        " \u2014 ",
+        dateLabel
+      )
+    );
+  }
+  function BookShelf({ onOpenBook }) {
+    var _books = useState([]);
+    var books = _books[0];
+    var setBooks = _books[1];
+    useEffect(function() {
+      var cancelled = false;
+      fetch("/knowledge-library/content/content-index.json").then(function(r) {
+        return r.json();
+      }).then(function(data) {
+        if (!cancelled && Array.isArray(data)) {
+          var byCat = {};
+          data.forEach(function(inst) {
+            if (!byCat[inst.cat]) byCat[inst.cat] = [];
+            byCat[inst.cat].push(inst);
+          });
+          var featured = [];
+          var catOrder = ["legislation", "acas", "hse", "ehrc", "ico"];
+          catOrder.forEach(function(cat) {
+            if (byCat[cat]) {
+              featured = featured.concat(byCat[cat].slice(0, 3));
+            }
+          });
+          setBooks(featured.slice(0, 15));
+        }
+      }).catch(function(e) {
+        console.warn("BookShelf fetch failed:", e);
+      });
+      return function() {
+        cancelled = true;
+      };
+    }, []);
+    if (books.length === 0) return null;
+    var BOOK_COLOURS = {
+      legislation: { bg: "linear-gradient(160deg, #1a2332 0%, #0f1923 50%, #1a2332 100%)", text: "#D4A017", spine: "#D4A017" },
+      acas: { bg: "linear-gradient(160deg, #0f2318 0%, #0a1a12 50%, #0f2318 100%)", text: "#10B981", spine: "#10B981" },
+      hse: { bg: "linear-gradient(160deg, #231a0f 0%, #1a1208 50%, #231a0f 100%)", text: "#F59E0B", spine: "#F59E0B" },
+      ehrc: { bg: "linear-gradient(160deg, #1f0f23 0%, #170a1a 50%, #1f0f23 100%)", text: "#EC4899", spine: "#EC4899" },
+      ico: { bg: "linear-gradient(160deg, #0f1523 0%, #0a0f1a 50%, #0f1523 100%)", text: "#8B5CF6", spine: "#8B5CF6" }
+    };
+    return React.createElement(
+      "div",
+      {
+        className: "kl-bookshelf",
+        style: { width: "100%", maxWidth: "820px", marginTop: "32px" }
+      },
+      React.createElement("div", {
+        style: {
+          fontSize: "10px",
+          fontWeight: 500,
+          color: "#475569",
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          marginBottom: "12px",
+          fontFamily: "'DM Mono', monospace",
+          textAlign: "center"
+        }
+      }, "The Employment Law Library"),
+      React.createElement(
+        "div",
+        {
+          className: "kl-shelf",
+          style: {
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            justifyContent: "center",
+            padding: "16px 12px 20px",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.01) 0%, rgba(139,92,246,0.02) 100%)",
+            borderRadius: "8px",
+            border: "1px solid rgba(255,255,255,0.04)",
+            position: "relative"
+          }
+        },
+        books.map(function(book) {
+          var colours = BOOK_COLOURS[book.cat] || BOOK_COLOURS.legislation;
+          var shortTitle = book.short || book.title;
+          if (shortTitle.length > 35) shortTitle = shortTitle.slice(0, 32) + "\u2026";
+          return React.createElement(
+            "div",
+            {
+              key: book.id,
+              onClick: function() {
+                onOpenBook(book);
+              },
+              className: "kl-book",
+              style: {
+                width: "100px",
+                height: "130px",
+                borderRadius: "2px 4px 4px 2px",
+                background: colours.bg,
+                cursor: "pointer",
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                padding: "10px 8px 8px",
+                overflow: "hidden",
+                transition: "transform 0.2s, box-shadow 0.2s",
+                boxShadow: "2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)",
+                borderLeft: "4px solid " + colours.spine
+              },
+              title: book.title,
+              onMouseEnter: function(e) {
+                e.currentTarget.style.transform = "translateY(-4px) scale(1.02)";
+                e.currentTarget.style.boxShadow = "2px 6px 16px rgba(0,0,0,0.5), inset -1px 0 0 rgba(255,255,255,0.08)";
+              },
+              onMouseLeave: function(e) {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.boxShadow = "2px 2px 8px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.05)";
+              }
+            },
+            React.createElement("div", {
+              style: {
+                width: "60%",
+                height: "1px",
+                background: colours.text,
+                opacity: 0.3,
+                marginBottom: "6px"
+              }
+            }),
+            React.createElement("div", {
+              style: {
+                color: colours.text,
+                fontSize: "10px",
+                fontWeight: 600,
+                lineHeight: 1.25,
+                fontFamily: "'DM Sans', sans-serif",
+                flex: 1,
+                display: "flex",
+                alignItems: "center"
+              }
+            }, shortTitle),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end"
+                }
+              },
+              React.createElement("span", {
+                style: {
+                  fontSize: "7px",
+                  color: colours.text,
+                  opacity: 0.5,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  fontFamily: "'DM Mono', monospace"
+                }
+              }, book.cat === "legislation" ? "Act" : book.cat === "acas" ? "ACAS" : book.cat === "hse" ? "HSE" : book.cat === "ico" ? "ICO" : book.cat === "ehrc" ? "EHRC" : ""),
+              React.createElement("div", {
+                style: {
+                  width: "3px",
+                  height: "80%",
+                  position: "absolute",
+                  right: 0,
+                  top: "10%",
+                  background: "repeating-linear-gradient(180deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px)"
+                }
+              })
+            )
+          );
+        }),
+        React.createElement("div", {
+          style: {
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "4px",
+            background: "linear-gradient(90deg, rgba(139,92,246,0.1), rgba(14,165,233,0.1), rgba(139,92,246,0.1))",
+            borderRadius: "0 0 8px 8px"
+          }
+        })
+      ),
+      React.createElement(
+        "div",
+        { style: { textAlign: "center", marginTop: "12px" } },
+        React.createElement("button", {
+          type: "button",
+          onClick: function() {
+            if (typeof window.__klOpenPanel === "function") window.__klOpenPanel("research");
+          },
+          style: {
+            background: "transparent",
+            border: "none",
+            color: "#0EA5E9",
+            fontSize: "12px",
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+            padding: "4px 8px"
+          }
+        }, "Browse all 72 instruments \u2192")
+      )
+    );
+  }
+  var UPSELL_CONFIG = {
+    kl_quick_session: {
+      threshold: 20,
+      title: "Need more time?",
+      message: "Your Quick Session ends in less than 20 minutes. Upgrade to a Day Pass for 24 hours of full access \u2014 including 2 compliance checks.",
+      cta: "Upgrade to Day Pass \u2014 \xA349",
+      href: "/kl-access/?product=kl_day_pass"
+    },
+    kl_day_pass: {
+      threshold: 60,
+      title: "Extend your research",
+      message: "Your Day Pass expires in under an hour. A Research Week gives you 7 full days and 3 compliance checks included.",
+      cta: "Upgrade to Research Week \u2014 \xA399",
+      href: "/kl-access/?product=kl_research_week"
+    },
+    kl_research_week: {
+      threshold: 1440,
+      title: "Ready for continuous monitoring?",
+      message: "Your Research Week ends tomorrow. Operational subscribers get 5 monitored contracts with auto-rescan, alerts, and ongoing Eileen access.",
+      cta: "Explore Operational \u2014 \xA3199/mo",
+      href: "/account/"
+    }
+  };
+  function UpsellCard({ productType, minutesRemaining, onDismiss }) {
+    const c = UPSELL_CONFIG[productType];
+    if (!c) return null;
+    if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        role: "complementary",
+        "aria-label": "Session upgrade prompt",
+        style: {
+          position: "fixed",
+          bottom: "80px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          maxWidth: "440px",
+          width: "90%",
+          padding: "16px 20px",
+          borderRadius: "12px",
+          background: "linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(14,165,233,0.04) 100%)",
+          border: "1px solid rgba(14,165,233,0.25)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          zIndex: 1e3,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+          fontFamily: "'DM Sans', sans-serif"
+        }
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#0EA5E9", fontSize: "14px", fontWeight: 600, marginBottom: "6px" } }, c.title), /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "13px", lineHeight: 1.5 } }, c.message)), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: onDismiss,
+          "aria-label": "Dismiss upgrade prompt",
+          style: {
+            background: "none",
+            border: "none",
+            color: "#64748B",
+            fontSize: "18px",
+            cursor: "pointer",
+            padding: "0 0 0 12px",
+            lineHeight: 1
+          }
+        },
+        "\xD7"
+      )),
+      /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement(
+        "a",
+        {
+          href: c.href,
+          style: {
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            background: "#0EA5E9",
+            color: "#FFFFFF",
+            textDecoration: "none",
+            cursor: "pointer"
+          }
+        },
+        c.cta
+      ))
+    );
+  }
+  function App() {
+    const [messages, setMessages] = useState([]);
+    const [sessionId, setSessionId] = useState(() => "eileen-" + Date.now() + "-" + Math.random().toString(36).substr(2, 7));
+    const [sessionHistory, setSessionHistory] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === "undefined" ? true : window.innerWidth > 768);
+    const [activePanel, setActivePanel] = useState(null);
+    const [accessType, setAccessType] = useState(window.__klAccessType || null);
+    const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
+    const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
+    const [sessionExpired, setSessionExpired] = useState(false);
+    const [minutesRemaining, setMinutesRemaining] = useState(null);
+    const [upsellDismissed, setUpsellDismissed] = useState(false);
+    const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
+    const [userType, setUserType] = useState(function() {
+      try {
+        return localStorage.getItem("ailane_kl_user_type") || null;
+      } catch (e) {
+        return null;
+      }
+    });
+    const [showQualifier, setShowQualifier] = useState(false);
+    const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
+    const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
+    const loadSessionHistory = useCallback(async function() {
+      if (!window.__klToken || !window.__klUserId) return;
+      try {
+        const resp = await fetch(
+          SUPABASE_URL + "/rest/v1/kl_eileen_conversations?user_id=eq." + window.__klUserId + "&select=session_id,user_message,created_at&order=created_at.desc&limit=100",
+          { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+        );
+        const data = await resp.json();
+        if (!Array.isArray(data)) return;
+        const grouped = {};
+        data.forEach((row) => {
+          if (!grouped[row.session_id]) {
+            grouped[row.session_id] = {
+              sessionId: row.session_id,
+              title: row.user_message ? row.user_message.substring(0, 50) : "(untitled)",
+              lastActivity: row.created_at
+            };
+          }
+        });
+        setSessionHistory(Object.values(grouped).slice(0, 50));
+      } catch (err) {
+        console.error("Failed to load session history:", err);
+      }
+    }, []);
+    useEffect(() => {
+      function onReady(e) {
+        setAccessType(e.detail.accessType);
+        setTier(e.detail.tier);
+        setSessionExpiresAt(window.__klSessionExpiry || null);
+        loadSessionHistory();
+      }
+      window.addEventListener("ailane-kl-ready", onReady);
+      if (window.__klAccessType) {
+        loadSessionHistory();
+      }
+      return () => window.removeEventListener("ailane-kl-ready", onReady);
+    }, [loadSessionHistory]);
+    useEffect(() => {
+      function onResize() {
+        if (window.innerWidth <= 768) {
+          setSidebarOpen(false);
+        }
+      }
+      window.addEventListener("resize", onResize);
+      return () => window.removeEventListener("resize", onResize);
+    }, []);
+    useEffect(() => {
+      const el = document.getElementById("kl-root");
+      if (el) el.classList.toggle("sidebar-collapsed", !sidebarOpen);
+    }, [sidebarOpen]);
+    useEffect(() => {
+      const el = document.getElementById("kl-root");
+      if (el) el.classList.toggle("drawer-open", !!activePanel);
+    }, [activePanel]);
+    useEffect(() => {
+      if (!sessionExpiresAt) {
+        setMinutesRemaining(null);
+        return void 0;
+      }
+      const expiresAt = new Date(sessionExpiresAt).getTime();
+      if (isNaN(expiresAt)) return void 0;
+      function update() {
+        const diff = Math.max(0, Math.floor((expiresAt - Date.now()) / 6e4));
+        setMinutesRemaining(diff);
+      }
+      update();
+      const interval = setInterval(update, 6e4);
+      return () => clearInterval(interval);
+    }, [sessionExpiresAt]);
+    async function loadSession(sid) {
+      if (!window.__klToken) return;
+      try {
+        const resp = await fetch(
+          SUPABASE_URL + "/rest/v1/kl_eileen_conversations?session_id=eq." + sid + "&select=user_message,eileen_response,created_at&order=created_at.asc",
+          { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+        );
+        const data = await resp.json();
+        if (!Array.isArray(data)) return;
+        const msgs = [];
+        data.forEach((row) => {
+          msgs.push({ role: "user", content: row.user_message });
+          msgs.push({ role: "assistant", content: row.eileen_response });
+        });
+        setMessages(msgs);
+        setSessionId(sid);
+      } catch (err) {
+        console.error("Failed to load session:", err);
+      }
+    }
+    function newChat() {
+      setSessionId("eileen-" + Date.now() + "-" + Math.random().toString(36).substr(2, 7));
+      setMessages([]);
+    }
+    async function sendMessage(text) {
+      const clean = (text || "").trim();
+      if (!clean || isLoading) return;
+      setMessages((prev) => [...prev, { role: "user", content: clean }]);
+      setIsLoading(true);
+      try {
+        const resp = await fetch(EILEEN_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + window.__klToken,
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({
+            message: (userType ? "[Context: user is " + (userType === "employer" ? "an employer/HR professional" : "a worker") + "] " : "") + clean,
+            session_id: sessionId,
+            page_context: "knowledge-library"
+          })
+        });
+        const data = await resp.json();
+        if (data && data.response) {
+          setMessages((prev) => [...prev, {
+            role: "assistant",
+            content: data.response,
+            provisionsCount: data.provisions_count,
+            casesCount: data.cases_count
+          }]);
+          loadSessionHistory();
+          if (!userType && !qualifierShownThisSession) {
+            setShowQualifier(true);
+            setQualifierShownThisSession(true);
+          }
+          if (hasContractIntent(clean) && !hasUploadedThisSession) {
+            setTimeout(function() {
+              setMessages(function(prev) {
+                return prev.concat([{
+                  role: "assistant",
+                  content: "I can run your contract through our compliance engine for a detailed analysis against current UK employment law.\n\nUpload your contract using the **Upload contract** button below (PDF, DOCX, or TXT \u2014 up to 10MB). I will extract the text, route it through the engine, and present findings with a compliance score, clause-by-clause assessment, and forward legislative exposure analysis.",
+                  isLocal: true,
+                  isContractPrompt: true
+                }]);
+              });
+            }, 800);
+          }
+        } else {
+          setMessages((prev) => [...prev, {
+            role: "assistant",
+            content: "I wasn't able to process that request. Please try again.",
+            isError: true
+          }]);
+        }
+      } catch (err) {
+        console.error("sendMessage error:", err);
+        setMessages((prev) => [...prev, {
+          role: "assistant",
+          content: "I wasn't able to process that request. Please try again.",
+          isError: true
+        }]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    window.__klSendMessage = sendMessage;
+    window.__klOpenPanel = function(panelId) {
+      setActivePanel(panelId);
+    };
+    window.__klHandleFileSelect = handleFileSelect;
+    function handleUserTypeSelect(type) {
+      setUserType(type);
+      setShowQualifier(false);
+      try {
+        localStorage.setItem("ailane_kl_user_type", type);
+      } catch (e) {
+      }
+    }
+    function addMessage(msg) {
+      setMessages((prev) => [...prev, msg]);
+    }
+    function updateFileMessage(msgId, updates) {
+      setMessages((prev) => prev.map((m) => m.id === msgId ? Object.assign({}, m, updates) : m));
+    }
+    async function uploadFile(file, msgId) {
+      const storagePath = window.__klUserId + "/" + Date.now() + "-" + file.name;
+      let uploadOk = false;
+      try {
+        const uploadResp = await fetch(
+          SUPABASE_URL + "/storage/v1/object/kl-document-vault/" + encodeURIComponent(storagePath),
+          {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + window.__klToken,
+              "apikey": SUPABASE_ANON_KEY,
+              "Content-Type": file.type || "application/octet-stream",
+              "x-upsert": "true"
+            },
+            body: file
+          }
+        );
+        uploadOk = uploadResp.ok;
+      } catch (err) {
+        console.error("Storage upload failed:", err);
+      }
+      if (!uploadOk) {
+        updateFileMessage(msgId, { status: "error" });
+        addMessage({
+          role: "assistant",
+          content: "Upload failed. Please try again.",
+          isLocal: true
+        });
+        return;
+      }
+      const isSubscription = window.__klAccessType === "subscription" || window.__klTier === "operational_readiness" || window.__klTier === "governance" || window.__klTier === "institutional";
+      const docRecord = {
+        user_id: window.__klUserId,
+        filename: file.name,
+        storage_path: storagePath,
+        file_size_bytes: file.size,
+        mime_type: file.type,
+        extraction_status: "pending",
+        analysis_status: "pending",
+        session_only: !isSubscription,
+        expires_at: isSubscription ? null : window.__klSessionExpiry || null
+      };
+      let documentId = null;
+      try {
+        const insertResp = await fetch(SUPABASE_URL + "/rest/v1/kl_vault_documents", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + window.__klToken,
+            "apikey": SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+          },
+          body: JSON.stringify(docRecord)
+        });
+        if (insertResp.ok) {
+          const insertedDocs = await insertResp.json();
+          if (Array.isArray(insertedDocs) && insertedDocs[0] && insertedDocs[0].id) {
+            documentId = insertedDocs[0].id;
+          }
+        }
+      } catch (err) {
+        console.error("Vault insert failed:", err);
+      }
+      if (!documentId) {
+        updateFileMessage(msgId, { status: "error" });
+        addMessage({
+          role: "assistant",
+          content: "Upload failed. Please try again.",
+          isLocal: true
+        });
+        return;
+      }
+      updateFileMessage(msgId, { documentId, status: "extracting" });
+      let extractResult = null;
+      try {
+        const extractResp = await fetch(
+          SUPABASE_URL + "/functions/v1/kl_document_extract",
+          {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + window.__klToken,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ document_id: documentId })
+          }
+        );
+        if (extractResp.ok) {
+          extractResult = await extractResp.json();
+        }
+      } catch (err) {
+        console.error("Document extract failed:", err);
+      }
+      if (!extractResult || typeof extractResult.char_count !== "number") {
+        updateFileMessage(msgId, { status: "error" });
+        addMessage({
+          role: "assistant",
+          content: "Text extraction failed. The file may be image-only or password-protected.",
+          isLocal: true
+        });
+        return;
+      }
+      updateFileMessage(msgId, { status: "ready", charCount: extractResult.char_count });
+      addMessage({
+        id: "ready-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+        role: "assistant",
+        content: "I have your contract \u2014 " + extractResult.char_count.toLocaleString() + " characters extracted and ready for analysis.",
+        isLocal: true,
+        analysisReady: true,
+        documentId,
+        analysisTriggered: false
+      });
+    }
+    async function handleRunAnalysis(documentId, msgId) {
+      setMessages(
+        (prev) => prev.map((m) => m.id === msgId ? Object.assign({}, m, { analysisTriggered: true }) : m)
+      );
+      const loadingMsgId = "analysis-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+      addMessage({
+        id: loadingMsgId,
+        role: "assistant",
+        content: "Routing your contract through the compliance engine\u2026",
+        isLocal: true,
+        isAnalysisLoading: true
+      });
+      const phases = [
+        { delay: 8e3, text: "Analysing against UK employment law requirements\u2026" },
+        { delay: 2e4, text: "Checking statutory provisions and forward legislative exposure\u2026" },
+        { delay: 4e4, text: "Compiling findings and scoring compliance position\u2026" }
+      ];
+      const phaseTimers = phases.map(
+        (phase) => setTimeout(() => {
+          setMessages(
+            (prev) => prev.map((m) => m.id === loadingMsgId ? Object.assign({}, m, { content: phase.text }) : m)
+          );
+        }, phase.delay)
+      );
+      try {
+        const token = window.__klToken;
+        if (!token) throw new Error("Not authenticated");
+        const startResponse = await fetch(
+          SUPABASE_URL + "/functions/v1/kl-compliance-bridge",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+              document_id: documentId,
+              document_type: "employment_contract",
+              action: "start"
+            })
+          }
+        );
+        const startData = await startResponse.json();
+        if (!startResponse.ok) {
+          phaseTimers.forEach((t) => clearTimeout(t));
+          if (startData && startData.error === "check_limit_reached") {
+            setMessages(
+              (prev) => prev.map((m) => {
+                if (m.id === loadingMsgId) {
+                  return Object.assign({}, m, {
+                    content: startData.message || "You have used all bundled Contract Compliance Checks in this session. Additional checks are available at \xA315 each.",
+                    isAnalysisLoading: false,
+                    isLocal: true
+                  });
+                }
+                if (m.id === msgId) {
+                  return Object.assign({}, m, { analysisTriggered: false });
+                }
+                return m;
+              })
+            );
+            return;
+          }
+          throw new Error(startData && (startData.error || startData.detail) || "Analysis failed");
+        }
+        var uploadId = startData.upload_id;
+        if (!uploadId) throw new Error("No upload_id returned from bridge");
+        setMessages(function(prev) {
+          return prev.map(function(m) {
+            return m.id === loadingMsgId ? Object.assign({}, m, { content: "Analysing your contract against UK employment law requirements. This typically takes 60\u201390 seconds." }) : m;
+          });
+        });
+        var maxPolls = 60;
+        var pollCount = 0;
+        var pollResult = null;
+        while (pollCount < maxPolls) {
+          await new Promise(function(resolve) {
+            setTimeout(resolve, 5e3);
+          });
+          pollCount++;
+          var elapsed = pollCount * 5;
+          if (elapsed === 15) {
+            setMessages(function(prev) {
+              return prev.map(function(m) {
+                return m.id === loadingMsgId ? Object.assign({}, m, { content: "Checking statutory provisions and case law references\u2026" }) : m;
+              });
+            });
+          } else if (elapsed === 35) {
+            setMessages(function(prev) {
+              return prev.map(function(m) {
+                return m.id === loadingMsgId ? Object.assign({}, m, { content: "Assessing forward legislative exposure under ERA 2025\u2026" }) : m;
+              });
+            });
+          } else if (elapsed === 60) {
+            setMessages(function(prev) {
+              return prev.map(function(m) {
+                return m.id === loadingMsgId ? Object.assign({}, m, { content: "Compiling findings and scoring compliance position\u2026" }) : m;
+              });
+            });
+          }
+          try {
+            var pollResponse = await fetch(
+              SUPABASE_URL + "/functions/v1/kl-compliance-bridge",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                  document_id: documentId,
+                  upload_id: uploadId,
+                  action: "poll"
+                })
+              }
+            );
+            var pollData = await pollResponse.json();
+            if (pollData.status === "processing") {
+              continue;
+            }
+            pollResult = pollData;
+            break;
+          } catch (pollErr) {
+            console.warn("Poll error (will retry):", pollErr);
+            continue;
+          }
+        }
+        phaseTimers.forEach(function(t) {
+          clearTimeout(t);
+        });
+        if (!pollResult) {
+          throw new Error("Analysis is taking longer than expected. Your results will appear in the Document Vault when ready.");
+        }
+        setMessages(function(prev) {
+          var withoutLoading = prev.filter(function(m) {
+            return m.id !== loadingMsgId;
+          });
+          return withoutLoading.concat([{
+            id: "result-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+            role: "assistant",
+            content: "",
+            isLocal: true,
+            isAnalysisResult: true,
+            // R1-C §3: merge upload_id so the PDF download button in
+            // AnalysisResultMessage can reference it via data.upload_id.
+            // Sprint F §2.2: merge document_id so the Save to Vault button
+            // can PATCH the kl_vault_documents row.
+            analysisData: Object.assign({}, pollResult, { upload_id: uploadId, document_id: documentId })
+          }]);
+        });
+      } catch (err) {
+        phaseTimers.forEach((t) => clearTimeout(t));
+        console.error("handleRunAnalysis error:", err);
+        setMessages(
+          (prev) => prev.map((m) => {
+            if (m.id === loadingMsgId) {
+              return Object.assign({}, m, {
+                content: "I was unable to complete the analysis. " + (err && err.message || "Please try again."),
+                isAnalysisLoading: false,
+                isLocal: true
+              });
+            }
+            if (m.id === msgId) {
+              return Object.assign({}, m, { analysisTriggered: false });
+            }
+            return m;
+          })
+        );
+      }
+    }
+    function handleFileSelect(e) {
+      const file = e && e.target && e.target.files && e.target.files[0];
+      if (!file) return;
+      setHasUploadedThisSession(true);
+      const parts = file.name.split(".");
+      const ext = parts.length > 1 ? "." + parts[parts.length - 1].toLowerCase() : "";
+      if (ALLOWED_EXTENSIONS.indexOf(ext) === -1) {
+        addMessage({
+          role: "assistant",
+          content: "I can accept PDF, DOCX, or TXT files up to 10MB. The file you selected (" + (ext || "unknown type") + ") is not a supported format.",
+          isLocal: true
+        });
+        if (e.target && "value" in e.target) e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        addMessage({
+          role: "assistant",
+          content: "That file is too large (" + (file.size / (1024 * 1024)).toFixed(1) + "MB). The maximum is 10MB.",
+          isLocal: true
+        });
+        if (e.target && "value" in e.target) e.target.value = "";
+        return;
+      }
+      const msgId = "upload-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+      addMessage({
+        id: msgId,
+        role: "user",
+        type: "file_upload",
+        filename: file.name,
+        fileSize: file.size,
+        status: "uploading",
+        documentId: null,
+        charCount: null
+      });
+      uploadFile(file, msgId);
+      if (e.target && "value" in e.target) e.target.value = "";
+    }
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      TopBar,
+      {
+        sidebarOpen,
+        onToggleSidebar: () => setSidebarOpen(!sidebarOpen),
+        accessType,
+        tier,
+        sessionExpiresAt,
+        onSessionExpired: () => setSessionExpired(true)
+      }
+    ), /* @__PURE__ */ React.createElement(
+      Sidebar,
+      {
+        open: sidebarOpen,
+        sessionHistory,
+        activeSessionId: sessionId,
+        onSelectSession: (sid) => {
+          loadSession(sid);
+          if (window.innerWidth <= 768) setSidebarOpen(false);
+        },
+        onNewChat: () => {
+          newChat();
+          if (window.innerWidth <= 768) setSidebarOpen(false);
+        },
+        onCrownQuery: sendMessage
+      }
+    ), /* @__PURE__ */ React.createElement(
+      ConversationArea,
+      {
+        messages,
+        isLoading,
+        onSend: sendMessage,
+        accessType,
+        tier,
+        onFileSelect: handleFileSelect,
+        onRunAnalysis: handleRunAnalysis,
+        floatingNexusExpanded: floatingNexusOpen,
+        onToggleFloatingNexus: () => setFloatingNexusOpen(!floatingNexusOpen),
+        showQualifier,
+        onUserTypeSelect: handleUserTypeSelect,
+        pulseUpload: messages.some(function(m) {
+          return m.isContractPrompt;
+        }) && !hasUploadedThisSession
+      }
+    ), /* @__PURE__ */ React.createElement(
+      PanelRail,
+      {
+        activePanel,
+        onSelectPanel: setActivePanel,
+        accessType,
+        tier
+      }
+    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => setActivePanel(null) }), !upsellDismissed && !sessionExpired && /* @__PURE__ */ React.createElement(
+      UpsellCard,
+      {
+        productType: window.__klProductType || tier || "",
+        minutesRemaining,
+        onDismiss: () => setUpsellDismissed(true)
+      }
+    ), sessionExpired && /* @__PURE__ */ React.createElement(ExpiredModal, null));
+  }
+  window.initKLApp = function() {
+    const container = document.getElementById("kl-root");
+    if (!container) return;
+    const root = ReactDOM.createRoot(container);
+    root.render(React.createElement(App));
+  };
+  if (window.__klAccessType) {
+    window.initKLApp();
+  }
+})();
