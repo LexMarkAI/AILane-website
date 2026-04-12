@@ -586,11 +586,28 @@ function tierPalette(tier) {
   return ['#0EA5E9', '#38BDF8'];
 }
 
-// ─── NexusCanvas ───
+// ─── NexusCanvas (Sprint A — 4-state visual engine, EILEEN-002 §7.1) ───
 
-function NexusCanvas({ tier, size, state }) {
+function NexusCanvas({ tier, size, nexusState, prefersReducedMotion }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
+  const stateRef = useRef(nexusState || 'dormant');
+  const lerpFromRef = useRef(null);
+  const stateChangeTimeRef = useRef(0);
+  const dataPulsesRef = useRef([]);
+  const lastPulseSpawnRef = useRef(0);
+  const renderedRef = useRef(null);
+
+  // Track nexusState changes — snapshot rendered values for smooth lerp
+  useEffect(() => {
+    const incoming = nexusState || 'dormant';
+    if (stateRef.current !== incoming) {
+      if (renderedRef.current) lerpFromRef.current = Object.assign({}, renderedRef.current);
+      stateRef.current = incoming;
+      stateChangeTimeRef.current = performance.now();
+      if (incoming !== 'processing') dataPulsesRef.current = [];
+    }
+  }, [nexusState]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -607,71 +624,197 @@ function NexusCanvas({ tier, size, state }) {
     const [colorA, colorB] = tierPalette(tier);
     const cx = canvasSize / 2;
     const cy = canvasSize / 2;
+    const sc = canvasSize / 280;
+
+    // Build nodes with base angles for orbital movement
     const nodes = [];
-    const scale = canvasSize / 280;
     const rings = [
-      { count: 6, radius: 28 * scale },
-      { count: 8, radius: 68 * scale },
-      { count: 10, radius: 110 * scale },
+      { count: 6, radius: 28 * sc },
+      { count: 8, radius: 68 * sc },
+      { count: 10, radius: 110 * sc },
     ];
-    rings.forEach((ring, ri) => {
-      for (let i = 0; i < ring.count; i++) {
-        const angle = (i / ring.count) * Math.PI * 2 + ri * 0.4;
+    rings.forEach(function(ring, ri) {
+      for (var i = 0; i < ring.count; i++) {
+        var angle = (i / ring.count) * Math.PI * 2 + ri * 0.4;
         nodes.push({
-          x: cx + Math.cos(angle) * ring.radius,
-          y: cy + Math.sin(angle) * ring.radius,
+          baseAngle: angle,
+          radius: ring.radius,
+          baseX: cx + Math.cos(angle) * ring.radius,
+          baseY: cy + Math.sin(angle) * ring.radius,
           phase: Math.random() * Math.PI * 2,
           ring: ri,
         });
       }
     });
 
-    const start = performance.now();
+    // Pre-compute all connections sorted by distance (closest first)
+    var allConns = [];
+    for (var i = 0; i < nodes.length; i++) {
+      for (var j = i + 1; j < nodes.length; j++) {
+        var dx = nodes[i].baseX - nodes[j].baseX;
+        var dy = nodes[i].baseY - nodes[j].baseY;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 100 * sc) allConns.push({ a: i, b: j, dist: d });
+      }
+    }
+    allConns.sort(function(a, b) { return a.dist - b.dist; });
+
+    // §2.4 — Four-state config table
+    var CONFIGS = {
+      dormant:    { nOp: 0.3, cPct: 0.3, cOp: 0.15, pMin: 0.97, pMax: 1.03, pCyc: 4000, orb: 0.3 },
+      ready:      { nOp: 0.6, cPct: 0.5, cOp: 0.3,  pMin: 0.95, pMax: 1.05, pCyc: 2500, orb: 0.5 },
+      processing: { nOp: 1.0, cPct: 0.8, cOp: 0.5,  pMin: 0.9,  pMax: 1.1,  pCyc: 1500, orb: 1.0 },
+      presenting: { nOp: 1.0, cPct: 1.0, cOp: 0.7,  pMin: 1.0,  pMax: 1.05, pCyc: 600,  orb: 0.5 },
+    };
+
+    function lv(a, b, t) { return a + (b - a) * t; }
+
+    // Initialise rendered values
+    var initCfg = CONFIGS[stateRef.current] || CONFIGS.dormant;
+    var rd = { nOp: initCfg.nOp, cPct: initCfg.cPct, cOp: initCfg.cOp, pMin: initCfg.pMin, pMax: initCfg.pMax, pCyc: initCfg.pCyc, orb: initCfg.orb };
+    if (!lerpFromRef.current) lerpFromRef.current = Object.assign({}, rd);
+    renderedRef.current = Object.assign({}, rd);
+
+    var start = performance.now();
+    if (!stateChangeTimeRef.current) stateChangeTimeRef.current = start;
+
     function draw(now) {
-      const t = (now - start) / 1000;
-      const animState = state || 'ready';
-      const speed = animState === 'processing' ? 3.0 : animState === 'dormant' ? 0.4 : 1.2;
+      var t = (now - start) / 1000;
+      var curState = stateRef.current;
+      var tgt = CONFIGS[curState] || CONFIGS.dormant;
+      var from = lerpFromRef.current;
+      var elapsed = now - stateChangeTimeRef.current;
+      var lt = Math.min(1, elapsed / 300);
+
+      // §2.5 — Lerp all values over 300ms
+      rd.nOp  = lv(from.nOp,  tgt.nOp,  lt);
+      rd.cPct = lv(from.cPct, tgt.cPct, lt);
+      rd.cOp  = lv(from.cOp,  tgt.cOp,  lt);
+      rd.pMin = lv(from.pMin, tgt.pMin, lt);
+      rd.pMax = lv(from.pMax, tgt.pMax, lt);
+      rd.pCyc = lv(from.pCyc, tgt.pCyc, lt);
+      rd.orb  = lv(from.orb,  tgt.orb,  lt);
+
+      if (lt >= 1) lerpFromRef.current = Object.assign({}, rd);
+      renderedRef.current = Object.assign({}, rd);
+
       ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-      // Connections between nearby nodes
+      // §2.7 — prefers-reduced-motion: static render, opacity-only state changes
+      if (prefersReducedMotion) {
+        var scc = Math.floor(allConns.length * rd.cPct);
+        ctx.lineWidth = 1;
+        for (var ci = 0; ci < scc; ci++) {
+          var cn = allConns[ci];
+          ctx.strokeStyle = 'rgba(14,165,233,' + rd.cOp.toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.moveTo(nodes[cn.a].baseX, nodes[cn.a].baseY);
+          ctx.lineTo(nodes[cn.b].baseX, nodes[cn.b].baseY);
+          ctx.stroke();
+        }
+        nodes.forEach(function(n) {
+          var color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : colorA);
+          ctx.beginPath();
+          ctx.arc(n.baseX, n.baseY, 3 * sc, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.globalAlpha = rd.nOp;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
+      // Orbital node positions
+      var orbitRad = rd.orb * Math.PI / 3; // deg/frame@60fps → rad/s
+      var pos = [];
+      for (var ni = 0; ni < nodes.length; ni++) {
+        var n = nodes[ni];
+        pos.push({
+          x: cx + Math.cos(n.baseAngle + t * orbitRad) * n.radius,
+          y: cy + Math.sin(n.baseAngle + t * orbitRad) * n.radius,
+        });
+      }
+
+      // Core pulse — subtle centre glow
+      var pPeriod = rd.pCyc / 1000;
+      var pPhase = pPeriod > 0 ? (t % pPeriod) / pPeriod * Math.PI * 2 : 0;
+      var pFactor = rd.pMin + (rd.pMax - rd.pMin) * (0.5 + 0.5 * Math.sin(pPhase));
+      var coreR = 14 * sc * pFactor;
+      var coreG = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+      coreG.addColorStop(0, 'rgba(14,165,233,' + (0.12 * rd.nOp).toFixed(3) + ')');
+      coreG.addColorStop(1, 'rgba(14,165,233,0)');
+      ctx.fillStyle = coreG;
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Connections — percentage-based visibility
+      var cc = Math.floor(allConns.length * rd.cPct);
       ctx.lineWidth = 1;
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x;
-          const dy = nodes[i].y - nodes[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 72 * scale) {
-            const connAlpha = animState === 'processing' ? 0.45 : 0.2;
-            const alpha = (1 - d / (72 * scale)) * connAlpha;
-            ctx.strokeStyle = 'rgba(14,165,233,' + alpha.toFixed(3) + ')';
-            ctx.beginPath();
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.stroke();
+      for (var ci = 0; ci < cc; ci++) {
+        var cn = allConns[ci];
+        var distFactor = 1 - cn.dist / (100 * sc);
+        var alpha = distFactor * rd.cOp;
+        ctx.strokeStyle = 'rgba(14,165,233,' + alpha.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(pos[cn.a].x, pos[cn.a].y);
+        ctx.lineTo(pos[cn.b].x, pos[cn.b].y);
+        ctx.stroke();
+      }
+
+      // §2.6 — Data pulse dots (processing state only)
+      if (curState === 'processing' && cc > 0) {
+        if (now - lastPulseSpawnRef.current > 1000) {
+          lastPulseSpawnRef.current = now;
+          var spawnCount = 2 + Math.floor(Math.random() * 2);
+          for (var k = 0; k < spawnCount; k++) {
+            dataPulsesRef.current.push({ ci: Math.floor(Math.random() * cc), st: now });
           }
         }
       }
-
-      // Nodes with pulse animation
-      nodes.forEach((n, i) => {
-        const pulse = 0.5 + 0.5 * Math.sin(t * speed + n.phase);
-        const r = (2 + pulse * 2.2) * scale;
-        const color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : (i % 2 ? colorA : colorB));
+      dataPulsesRef.current = dataPulsesRef.current.filter(function(p) {
+        var prog = (now - p.st) / 800;
+        if (prog > 1) return false;
+        var cn = allConns[p.ci];
+        if (!cn) return false;
+        var px = pos[cn.a].x + (pos[cn.b].x - pos[cn.a].x) * prog;
+        var py = pos[cn.a].y + (pos[cn.b].y - pos[cn.a].y) * prog;
+        var a = prog < 0.2 ? prog / 0.2 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.arc(px, py, Math.max(1, 2 * sc), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(14,165,233,' + a.toFixed(3) + ')';
+        ctx.fill();
+        return true;
+      });
+
+      // Presenting flash — brightness burst over 600ms
+      var flashM = 1;
+      if (curState === 'presenting' && elapsed < 600) {
+        var ft = elapsed / 600;
+        flashM = ft < 0.5 ? 1 + 0.4 * ft * 2 : 1 + 0.4 * (1 - (ft - 0.5) * 2);
+      }
+
+      // Nodes
+      nodes.forEach(function(n, i) {
+        var p = pos[i];
+        var pulse = 0.5 + 0.5 * Math.sin(t * 2 + n.phase);
+        var r = (2 + pulse * 2.2) * sc;
+        var color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : (i % 2 ? colorA : colorB));
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * flashM, 0, Math.PI * 2);
         ctx.fillStyle = color;
-        const baseAlpha = animState === 'dormant' ? 0.25 : animState === 'processing' ? 0.6 : 0.45;
-        const pulseRange = animState === 'dormant' ? 0.3 : animState === 'processing' ? 0.4 : 0.55;
-        ctx.globalAlpha = baseAlpha + pulse * pulseRange;
+        ctx.globalAlpha = Math.min(1, rd.nOp * flashM);
         ctx.fill();
         ctx.globalAlpha = 1;
       });
 
       rafRef.current = requestAnimationFrame(draw);
     }
+
     rafRef.current = requestAnimationFrame(draw);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [tier, size, state]);
+    return function() { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [tier, size, prefersReducedMotion]);
 
   return <canvas ref={canvasRef} className="kl-nexus-canvas" />;
 }
@@ -863,11 +1006,17 @@ function TypingIndicator() {
 
 // ─── FloatingNexus (EILEEN-001 §3–4, KLUX-001 Art. 13 §13.2) ───
 // Persistent Eileen presence during conversation state. 52px Nexus
-// anchored bottom-right of conversation area. Three states driven
-// by isLoading prop. Click to expand mini-panel.
+// anchored bottom-right. Four visual states driven by nexusState prop.
 
-function FloatingNexus({ tier, isLoading, isExpanded, onToggle }) {
-  const nexusState = isLoading ? 'processing' : 'dormant';
+function FloatingNexus({ tier, nexusState, isExpanded, onToggle, prefersReducedMotion }) {
+  // §3.3 — Per-state glow effect
+  var glowMap = {
+    dormant:    '0 0 8px rgba(14,165,233,0.1)',
+    ready:      '0 0 12px rgba(14,165,233,0.2)',
+    processing: '0 0 20px rgba(14,165,233,0.4)',
+    presenting: '0 0 24px rgba(14,165,233,0.5)',
+  };
+  var glow = glowMap[nexusState] || glowMap.dormant;
 
   return (
     <div
@@ -904,15 +1053,13 @@ function FloatingNexus({ tier, isLoading, isExpanded, onToggle }) {
           alignItems: 'center',
           justifyContent: 'center',
           padding: 0,
-          boxShadow: isLoading
-            ? '0 0 20px rgba(14, 165, 233, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3)'
-            : '0 4px 16px rgba(0, 0, 0, 0.3)',
+          boxShadow: glow + ', 0 4px 16px rgba(0,0,0,0.3)',
           transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
         }}
       >
-        <NexusCanvas tier={tier} size={36} state={nexusState} />
+        <NexusCanvas tier={tier} size={36} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
       </button>
     </div>
   );
@@ -990,13 +1137,39 @@ function FloatingNexusPanel({ tier, onClose }) {
   );
 }
 
-// ─── NexusSendButton (EILEEN-002 §7.2) ───
-// 20px micro-Nexus inside the send button. Dormant when input empty,
-// active when text entered, processing when isLoading.
+// ─── NexusSendButton (EILEEN-002 §7.2, Sprint A §4) ───
+// 38px Nexus replaces flat send arrow. Dormant when disabled,
+// reflects nexusState when active. IS the send action.
 
-function NexusSendButton({ hasText, isLoading, tier }) {
-  const state = isLoading ? 'processing' : hasText ? 'ready' : 'dormant';
-  return <NexusCanvas tier={tier} size={20} state={state} />;
+function NexusSendButton({ size, nexusState, disabled, onClick, prefersReducedMotion, tier }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: (size || 38) + 'px',
+        height: (size || 38) + 'px',
+        borderRadius: '50%',
+        border: 'none',
+        background: 'transparent',
+        padding: 0,
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        transition: 'opacity 0.2s',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      aria-label="Send message to Eileen"
+    >
+      <NexusCanvas
+        size={size || 38}
+        nexusState={disabled ? 'dormant' : nexusState}
+        tier={tier || 'kl'}
+        prefersReducedMotion={prefersReducedMotion}
+      />
+    </button>
+  );
 }
 
 // ─── FileAttachmentBubble (KL File Upload Widget, Stage A) ───
@@ -1772,15 +1945,22 @@ function MessageBubble({ msg, onRunAnalysis }) {
 
 // ─── MessageInput ───
 
-function MessageInput({ onSend, disabled, onFileSelect, pulseUpload }) {
+function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion }) {
   const [value, setValue] = useState('');
   const fileInputRef = useRef(null);
+
+  function handleChange(e) {
+    var v = e.target.value;
+    setValue(v);
+    if (typeof onInputChange === 'function') onInputChange(v.trim().length);
+  }
 
   function submit() {
     const text = value.trim();
     if (!text || disabled) return;
     onSend(text);
     setValue('');
+    if (typeof onInputChange === 'function') onInputChange(0);
   }
 
   function onKey(e) {
@@ -1853,25 +2033,25 @@ function MessageInput({ onSend, disabled, onFileSelect, pulseUpload }) {
         placeholder="Ask Eileen anything about UK employment law..."
         aria-label="Message Eileen"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={handleChange}
         onKeyDown={onKey}
         disabled={disabled}
       />
-      <button
-        className="kl-send-btn"
-        onClick={submit}
+      <NexusSendButton
+        size={38}
+        nexusState={nexusState || 'dormant'}
         disabled={disabled || !value.trim()}
-        aria-label="Send message"
-      >
-        <NexusSendButton hasText={!!value.trim()} isLoading={disabled} tier={window.__klTier || 'per_session'} />
-      </button>
+        onClick={submit}
+        prefersReducedMotion={prefersReducedMotion}
+        tier={tier || window.__klTier || 'kl'}
+      />
     </div>
   );
 }
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -1936,7 +2116,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
         >
           {dragOverlay}
           <div className="kl-welcome-nexus">
-            <NexusCanvas tier={tier} />
+            <NexusCanvas tier={tier} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
           </div>
           <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
           <div className="kl-eileen-subtitle" style={{
@@ -1950,7 +2130,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             Eileen &middot; UK Employment Law Intelligence
           </div>
           <div className="kl-welcome-input">
-            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} />
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
           </div>
           <HorizonAlert />
           {/* AMD-045 §3.2: Domain navigation cards replace quick-start topic cards */}
@@ -2019,9 +2199,10 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           {dragOverlay}
           <FloatingNexus
             tier={tier}
-            isLoading={isLoading}
+            nexusState={nexusState}
             isExpanded={floatingNexusExpanded}
             onToggle={onToggleFloatingNexus}
+            prefersReducedMotion={prefersReducedMotion}
           />
           <div className="kl-messages" ref={scrollRef} role="log" aria-live="polite" onClick={function(e) {
             var target = e.target;
@@ -2051,7 +2232,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             {isLoading && <TypingIndicator />}
           </div>
           <div className="kl-conversation-input">
-            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} />
+            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
           </div>
         </div>
       )}
@@ -2144,12 +2325,21 @@ function CrownJewels({ onQuery, disabled }) {
 
 // ─── Sidebar ───
 
-function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery }) {
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion }) {
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
 
   return React.createElement('nav', { className: 'kl-sidebar' + (open ? '' : ' collapsed'), role: 'navigation', 'aria-label': 'Conversation history' },
+    // §5 — Sidebar Nexus indicator (20px, shows Eileen's current state)
+    React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' },
+    },
+      React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || 'dormant', tier: 'kl', prefersReducedMotion: prefersReducedMotion }),
+      React.createElement('span', {
+        style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' },
+      }, 'Eileen')
+    ),
     React.createElement('div', { className: 'kl-sidebar-section' },
       React.createElement('button', { className: 'kl-new-chat-btn', onClick: onNewChat },
         React.createElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.25', strokeLinecap: 'round', strokeLinejoin: 'round' },
@@ -4429,7 +4619,7 @@ function BookShelf({ onOpenBook }) {
 // domain header, expandable sub-area grid, key instruments strip,
 // and anchored Eileen panel at bottom.
 
-function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect }) {
+function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect, nexusState, prefersReducedMotion, onInputChange, tier }) {
   var _exp = useState(null);
   var expandedSubArea = _exp[0];
   var setExpandedSubArea = _exp[1];
@@ -4617,18 +4807,12 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
       React.createElement('div', {
         style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' },
       },
-        React.createElement('div', {
-          style: {
-            width: '8px', height: '8px', borderRadius: '50%',
-            background: '#0EA5E9', boxShadow: '0 0 8px rgba(14,165,233,0.5)',
-            flexShrink: 0,
-          },
-        }),
+        React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || 'dormant', tier: tier || 'kl', prefersReducedMotion: prefersReducedMotion }),
         React.createElement('span', {
           style: { color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
         }, domain.eileenGreeting)
       ),
-      React.createElement(MessageInput, { onSend: onSend, disabled: isLoading, onFileSelect: onFileSelect })
+      React.createElement(MessageInput, { onSend: onSend, disabled: isLoading, onFileSelect: onFileSelect, onInputChange: onInputChange, nexusState: nexusState, tier: tier, prefersReducedMotion: prefersReducedMotion })
     )
   );
 }
@@ -4737,6 +4921,9 @@ function App() {
   const [minutesRemaining, setMinutesRemaining] = useState(null);
   const [upsellDismissed, setUpsellDismissed] = useState(false);
   const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
+  // Sprint A §2 — Nexus visual state machine
+  const [nexusState, setNexusState] = useState('dormant');
+  const presentingTimerRef = useRef(null);
   const [userType, setUserType] = useState(function() {
     try { return localStorage.getItem('ailane_kl_user_type') || null; } catch(e) { return null; }
   });
@@ -4953,6 +5140,8 @@ function App() {
     }
     setMessages((prev) => [...prev, { role: 'user', content: clean }]);
     setIsLoading(true);
+    if (presentingTimerRef.current) { clearTimeout(presentingTimerRef.current); presentingTimerRef.current = null; }
+    setNexusState('processing');
     try {
       // AMD-045 §4.8: Include domain context in Eileen request
       var requestBody = {
@@ -4983,6 +5172,8 @@ function App() {
           casesCount: data.cases_count,
         }]);
         loadSessionHistory();
+        setNexusState('presenting');
+        presentingTimerRef.current = setTimeout(function() { setNexusState('dormant'); presentingTimerRef.current = null; }, 2000);
 
         // EQIS: Show qualifying question after first Eileen response
         // if user type not stored and not already shown this session
@@ -5004,6 +5195,7 @@ function App() {
           }, 800);
         }
       } else {
+        setNexusState('dormant');
         setMessages((prev) => [...prev, {
           role: 'assistant',
           isError: true,
@@ -5013,6 +5205,7 @@ function App() {
       }
     } catch (err) {
       console.error('sendMessage error:', err);
+      setNexusState('dormant');
       var isOffline = !navigator.onLine || (err && err.message && err.message.indexOf('fetch') !== -1);
       setMessages((prev) => [...prev, {
         role: 'assistant',
@@ -5026,6 +5219,19 @@ function App() {
       setIsLoading(false);
     }
   }
+
+  // Sprint A §2.3: dormant ↔ ready based on input content
+  function handleInputChange(inputLength) {
+    if (inputLength > 0 && nexusState === 'dormant') setNexusState('ready');
+    else if (inputLength === 0 && nexusState === 'ready') setNexusState('dormant');
+  }
+
+  // Sprint A §2.5: Cleanup presenting timer on unmount
+  useEffect(function() {
+    return function() {
+      if (presentingTimerRef.current) clearTimeout(presentingTimerRef.current);
+    };
+  }, []);
 
   // Expose sendMessage for Research Panel provision click → seed Eileen
   window.__klSendMessage = sendMessage;
@@ -5517,6 +5723,8 @@ function App() {
         onSelectSession={(sid) => { loadSession(sid); if (window.innerWidth <= 768) setSidebarOpen(false); }}
         onNewChat={() => { newChat(); if (window.innerWidth <= 768) setSidebarOpen(false); }}
         onCrownQuery={sendMessage}
+        nexusState={nexusState}
+        prefersReducedMotion={prefersReducedMotion.current}
       />
       {/* AMD-045 §5: Conditional render — domain sub-page or conversation area */}
       {currentView === 'domain' && currentDomain ? (
@@ -5527,6 +5735,10 @@ function App() {
           onSend={sendMessage}
           isLoading={isLoading}
           onFileSelect={handleFileSelect}
+          nexusState={nexusState}
+          prefersReducedMotion={prefersReducedMotion.current}
+          onInputChange={handleInputChange}
+          tier={tier}
         />
       ) : (
         <ConversationArea
@@ -5542,6 +5754,9 @@ function App() {
           showQualifier={showQualifier}
           onUserTypeSelect={handleUserTypeSelect}
           pulseUpload={messages.some(function(m) { return m.role === 'system_ui' && m.type === 'contract_upload_prompt'; }) && !hasUploadedThisSession}
+          nexusState={nexusState}
+          prefersReducedMotion={prefersReducedMotion.current}
+          onInputChange={handleInputChange}
         />
       )}
       <PanelRail
