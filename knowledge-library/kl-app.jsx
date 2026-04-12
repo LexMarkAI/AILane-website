@@ -1304,7 +1304,7 @@ function MessageBubble({ msg, onRunAnalysis }) {
           </div>
         )}
 
-        {/* Sprint H §1: Eileen response action bar (Copy | Save to Notes | Download) */}
+        {/* AMD-044 §3.3 + §3.4: Eileen response action bar (Copy | Save | Download) */}
         {msg.role === 'assistant' && !msg.isAnalysisResult && !msg.isAnalysisLoading && !msg.isLocal && (
           <div style={{
             display: 'flex',
@@ -1330,7 +1330,7 @@ function MessageBubble({ msg, onRunAnalysis }) {
               title="Copy to clipboard"
             >Copy</button>
 
-            {/* Save to Notes */}
+            {/* Save — AMD-044 §3.3: creates eileen_response note with source_attribution */}
             <button
               type="button"
               onClick={function(e) {
@@ -1340,50 +1340,70 @@ function MessageBubble({ msg, onRunAnalysis }) {
                 var token = window.__klToken;
                 var userId = window.__klUserId;
                 if (!token || !userId) { btn.textContent = 'Not signed in'; btn.disabled = false; return; }
-                var noteTitle = (msg.content || '').split('\n')[0].slice(0, 60) || 'Eileen response';
+                var noteTitle = (msg.content || '').split('\n')[0].slice(0, 50) || 'Eileen response';
+                var now = new Date();
+                var dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                var timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                var attribution = '[Eileen \u2014 ' + dateStr + ' ' + timeStr + '] ' + noteTitle;
                 fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
                   method: 'POST',
                   headers: {
                     'Authorization': 'Bearer ' + token,
                     'apikey': SUPABASE_ANON_KEY,
                     'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal',
+                    'Prefer': 'return=representation',
                   },
                   body: JSON.stringify({
                     user_id: userId,
                     project_id: null,
                     title: noteTitle,
                     content_plain: msg.content || '',
+                    content_json: {},
+                    note_type: 'eileen_response',
+                    source_attribution: attribution,
                   }),
                 }).then(function(resp) {
                   if (resp.ok) {
                     btn.textContent = '\u2713 Saved';
                     btn.style.color = '#10B981';
+                    // Notify NotesPanel to refresh list
+                    resp.json().then(function(data) {
+                      if (Array.isArray(data) && data[0] && typeof window.__klNotesRefresh === 'function') {
+                        window.__klNotesRefresh(data[0]);
+                      }
+                    }).catch(function() {});
+                    // Toast — brief green notification
+                    var toast = document.createElement('div');
+                    toast.textContent = 'Saved to Saved Items';
+                    toast.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#10B981;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;opacity:1;transition:opacity 0.3s;';
+                    document.body.appendChild(toast);
+                    setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { document.body.removeChild(toast); }, 300); }, 2000);
                   } else {
                     btn.textContent = 'Failed';
                     btn.style.color = '#EF4444';
                   }
-                  setTimeout(function() { btn.textContent = 'Save to Notes'; btn.style.color = ''; btn.disabled = false; }, 2000);
+                  setTimeout(function() { btn.textContent = 'Save'; btn.style.color = ''; btn.disabled = false; }, 2000);
                 }).catch(function() {
                   btn.textContent = 'Failed';
-                  setTimeout(function() { btn.textContent = 'Save to Notes'; btn.style.color = ''; btn.disabled = false; }, 2000);
+                  setTimeout(function() { btn.textContent = 'Save'; btn.style.color = ''; btn.disabled = false; }, 2000);
                 });
               }}
               className="kl-action-btn"
-              title="Save this response to your Notes"
-            >Save to Notes</button>
+              title="Save this response to Saved Items"
+            >Save</button>
 
-            {/* Download */}
+            {/* Download — AMD-044 §3.4: includes mandatory disclaimer */}
             <button
               type="button"
               onClick={function() {
                 var text = msg.content || '';
-                var title = text.split('\n')[0].slice(0, 40).replace(/[^a-zA-Z0-9 ]/g, '') || 'Eileen-response';
-                var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                var safeTitle = text.split('\n')[0].slice(0, 40).replace(/[^a-zA-Z0-9 ]/g, '') || 'Eileen-response';
+                var disclaimer = '\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited \u00B7 Company No. 17035654 \u00B7 ICO Reg. 00013389720 \u00B7 ailane.ai/terms/';
+                var blob = new Blob([text + disclaimer], { type: 'text/plain;charset=utf-8' });
                 var url = URL.createObjectURL(blob);
                 var a = document.createElement('a');
                 a.href = url;
-                a.download = title.replace(/\s+/g, '-') + '.txt';
+                a.download = safeTitle.replace(/\s+/g, '-') + '.txt';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1927,13 +1947,12 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
 // Only functional panels appear in the rail. PlaceholderPanel and its descriptions
 // are preserved below as a defensive fallback in PanelDrawer but are now unreachable.
 const PANEL_DEFS = [
-  // Primary group
+  // Primary group (AMD-044 §4.2)
   { id: 'vault',     label: 'Document Vault',   minTier: 'operational_readiness', group: 'primary' },
-  { id: 'notes',     label: 'Notes',            minTier: null, group: 'primary' },
+  { id: 'notes',     label: 'Saved Items',      minTier: null, group: 'primary' },
   { id: 'research',  label: 'Research',         minTier: null, group: 'primary' },
-  // Secondary group
+  // Secondary group — clipboard slot removed per AMD-044 §4
   { id: 'calendar',  label: 'Calendar',         minTier: 'operational_readiness', group: 'secondary' },
-  { id: 'clipboard', label: 'Saved Snippets',   minTier: null, group: 'secondary' },
 ];
 
 // SVG icons for panel rail — 20px stroke-based, matching TopBar visual language
@@ -1968,12 +1987,7 @@ function PanelIcon({ id }) {
       React.createElement('line', { x1: '3', y1: '10', x2: '21', y2: '10' })
     );
   }
-  if (id === 'clipboard') {
-    return React.createElement('svg', iconProps,
-      React.createElement('path', { d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' }),
-      React.createElement('rect', { x: '8', y: '2', width: '8', height: '4', rx: '1', ry: '1' })
-    );
-  }
+  // clipboard icon removed — AMD-044 §4
   // Fallback
   return React.createElement('span', { style: { fontSize: '18px' } }, '?');
 }
@@ -2027,7 +2041,54 @@ function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
   );
 }
 
-// ─── NotesPanel (multi-note list/editor — reads/writes kl_workspace_notes) ───
+// ─── NotesPanel (AMD-044 multi-note list/editor — reads/writes kl_workspace_notes) ───
+// Two-pane layout: note list on left, editor on right.
+// Supports note_type filter chips (All / Notes / Clips / Eileen).
+// Download as Markdown / Text with mandatory advisory disclaimer.
+
+var NOTES_DISCLAIMER = '\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited \u00B7 Company No. 17035654 \u00B7 ICO Reg. 00013389720 \u00B7 ailane.ai/terms/';
+
+function noteTypeIcon(noteType) {
+  if (noteType === 'clip') return '\uD83D\uDCCC';
+  if (noteType === 'eileen_response') return '\uD83D\uDCAC';
+  return '\uD83D\uDCDD';
+}
+
+function relativeTime(dateStr) {
+  if (!dateStr) return '';
+  var diff = Date.now() - new Date(dateStr).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function downloadNoteFile(note, format) {
+  var safeTitle = (note.title || 'note').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/ +/g, '-');
+  var content, mimeType, ext;
+  if (format === 'md') {
+    content = '# ' + (note.title || 'Untitled Note') + '\n\n' + (note.content_plain || '') + NOTES_DISCLAIMER;
+    mimeType = 'text/markdown';
+    ext = '.md';
+  } else {
+    content = (note.title || 'Untitled Note') + '\n\n' + (note.content_plain || '') + NOTES_DISCLAIMER;
+    mimeType = 'text/plain;charset=utf-8';
+    ext = '.txt';
+  }
+  var blob = new Blob([content], { type: mimeType });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = safeTitle + ext;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 function NotesPanel() {
   var _notes = useState([]);
@@ -2036,7 +2097,10 @@ function NotesPanel() {
   var _active = useState(null);
   var activeId = _active[0];
   var setActiveId = _active[1];
-  var _title = useState('Untitled note');
+  var _activeNote = useState(null);
+  var activeNote = _activeNote[0];
+  var setActiveNote = _activeNote[1];
+  var _title = useState('Untitled Note');
   var title = _title[0];
   var setTitle = _title[1];
   var _body = useState('');
@@ -2045,19 +2109,29 @@ function NotesPanel() {
   var _status = useState('loading');
   var status = _status[0];
   var setStatus = _status[1];
-  var _view = useState('list');
-  var view = _view[0];
-  var setView = _view[1];
+  var _filter = useState('all');
+  var filter = _filter[0];
+  var setFilter = _filter[1];
+  var _editable = useState(false);
+  var editable = _editable[0];
+  var setEditable = _editable[1];
+  var _confirmDelete = useState(null);
+  var confirmDelete = _confirmDelete[0];
+  var setConfirmDelete = _confirmDelete[1];
+  var _downloadOpen = useState(false);
+  var downloadOpen = _downloadOpen[0];
+  var setDownloadOpen = _downloadOpen[1];
   var saveTimer = useRef(null);
 
   useEffect(function() {
     var cancelled = false;
     async function load() {
-      if (!window.__klToken || !window.__klUserId) { setStatus('saved'); setView('list'); return; }
+      if (!window.__klToken || !window.__klUserId) { setStatus('saved'); return; }
       try {
         var resp = await fetch(
           SUPABASE_URL + '/rest/v1/kl_workspace_notes?user_id=eq.' + window.__klUserId +
-            '&select=id,title,content_plain,updated_at&order=updated_at.desc&limit=50',
+            '&order=pinned.desc,updated_at.desc' +
+            '&select=id,title,note_type,source_attribution,pinned,updated_at,content_plain',
           { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
         );
         var data = await resp.json();
@@ -2073,51 +2147,72 @@ function NotesPanel() {
     return function() { cancelled = true; if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, []);
 
-  function openNote(note) {
+  // Expose a function so MessageBubble can add notes and refresh the list
+  useEffect(function() {
+    window.__klNotesRefresh = function(newNote) {
+      if (newNote) {
+        setNotes(function(prev) { return [newNote].concat(prev); });
+      }
+    };
+    return function() { delete window.__klNotesRefresh; };
+  }, []);
+
+  function selectNote(note) {
+    // Fetch full content for selected note
     setActiveId(note.id);
-    setTitle(note.title || 'Untitled note');
+    setActiveNote(note);
+    setTitle(note.title || 'Untitled Note');
     setBody(note.content_plain || '');
-    setView('editor');
     setStatus('saved');
+    setEditable(note.note_type === 'note' || !note.note_type);
+    setDownloadOpen(false);
+    // Fetch full content (content_json etc) for the selected note
+    if (window.__klToken) {
+      fetch(
+        SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + note.id + '&select=*',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      ).then(function(r) { return r.json(); }).then(function(d) {
+        if (Array.isArray(d) && d[0]) {
+          setBody(d[0].content_plain || '');
+          setTitle(d[0].title || 'Untitled Note');
+          setActiveNote(d[0]);
+        }
+      }).catch(function() {});
+    }
   }
 
   function newNote() {
-    setActiveId(null);
-    setTitle('Untitled note');
-    setBody('');
-    setView('editor');
-    setStatus('saved');
+    if (!window.__klToken || !window.__klUserId) return;
+    var dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    var newTitle = 'Untitled Note \u2014 ' + dateStr;
+    fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify({ user_id: window.__klUserId, project_id: null, title: newTitle, content_plain: '', note_type: 'note' }),
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (Array.isArray(d) && d[0]) {
+        setNotes(function(prev) { return [d[0]].concat(prev); });
+        selectNote(d[0]);
+        setEditable(true);
+      }
+    }).catch(function(e) { console.error('Create note failed:', e); });
   }
 
   async function performSave(nextTitle, nextBody, currentId) {
-    if (!window.__klToken || !window.__klUserId) return;
+    if (!window.__klToken || !window.__klUserId || !currentId) return;
     setStatus('saving');
     var now = new Date().toISOString();
     try {
-      if (currentId) {
-        var resp = await fetch(
-          SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + currentId,
-          {
-            method: 'PATCH',
-            headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ title: nextTitle || 'Untitled note', content_plain: nextBody, updated_at: now }),
-          }
-        );
-        if (!resp.ok) throw new Error('PATCH ' + resp.status);
-        setNotes(function(prev) { return prev.map(function(n) { return n.id === currentId ? Object.assign({}, n, { title: nextTitle, content_plain: nextBody, updated_at: now }) : n; }); });
-      } else {
-        var resp2 = await fetch(SUPABASE_URL + '/rest/v1/kl_workspace_notes', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-          body: JSON.stringify({ user_id: window.__klUserId, project_id: null, title: nextTitle || 'Untitled note', content_plain: nextBody }),
-        });
-        if (!resp2.ok) throw new Error('POST ' + resp2.status);
-        var data = await resp2.json();
-        if (Array.isArray(data) && data[0] && data[0].id) {
-          setActiveId(data[0].id);
-          setNotes(function(prev) { return [data[0]].concat(prev); });
+      var resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_workspace_notes?id=eq.' + currentId,
+        {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ title: nextTitle || 'Untitled Note', content_plain: nextBody, updated_at: now }),
         }
-      }
+      );
+      if (!resp.ok) throw new Error('PATCH ' + resp.status);
+      setNotes(function(prev) { return prev.map(function(n) { return n.id === currentId ? Object.assign({}, n, { title: nextTitle, content_plain: nextBody, updated_at: now }) : n; }); });
       setStatus('saved');
     } catch (e) {
       console.error('Notes save failed:', e);
@@ -2128,7 +2223,7 @@ function NotesPanel() {
   function scheduleSave(nextTitle, nextBody) {
     setStatus('dirty');
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(function() { performSave(nextTitle, nextBody, activeId); }, 1500);
+    saveTimer.current = setTimeout(function() { performSave(nextTitle, nextBody, activeId); }, 3000);
   }
 
   async function deleteNote(noteId) {
@@ -2139,162 +2234,307 @@ function NotesPanel() {
         headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY },
       });
       setNotes(function(prev) { return prev.filter(function(n) { return n.id !== noteId; }); });
-      if (activeId === noteId) { setView('list'); setActiveId(null); }
+      if (activeId === noteId) { setActiveId(null); setActiveNote(null); }
+      setConfirmDelete(null);
     } catch (e) { console.error('Delete failed:', e); }
   }
 
-  var statusLabel = status === 'loading' ? 'Loading\u2026' : status === 'dirty' ? 'Unsaved changes' : status === 'saving' ? 'Saving\u2026' : status === 'error' ? 'Save failed' : '\u2713 Saved';
+  var filteredNotes = notes.filter(function(n) {
+    if (filter === 'all') return true;
+    if (filter === 'note') return n.note_type === 'note' || !n.note_type;
+    if (filter === 'clip') return n.note_type === 'clip';
+    if (filter === 'eileen') return n.note_type === 'eileen_response';
+    return true;
+  });
 
-  if (view === 'list') {
-    return React.createElement('div', { className: 'kl-notes-panel' },
-      React.createElement('button', {
-        type: 'button',
-        onClick: newNote,
-        style: {
-          width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(14,165,233,0.08)',
-          border: '1px solid rgba(14,165,233,0.2)', color: '#0EA5E9', fontSize: '13px', fontWeight: 500,
-          cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: '12px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-        },
-      }, '+ New Note'),
-      notes.length === 0
-        ? React.createElement('div', { style: { color: '#64748B', fontSize: '13px', textAlign: 'center', padding: '24px 0' } }, 'No notes yet. Create one to start.')
-        : notes.map(function(n) {
+  var statusLabel = status === 'loading' ? 'Loading\u2026' : status === 'dirty' ? 'Unsaved changes' : status === 'saving' ? 'Saving\u2026' : status === 'error' ? 'Save failed' : '\u2713 Saved';
+  var statusColor = status === 'saved' ? '#10B981' : status === 'saving' ? '#F59E0B' : status === 'error' ? '#EF4444' : '#94A3B8';
+
+  var filterChips = ['all', 'note', 'clip', 'eileen'];
+  var filterLabels = { all: 'All', note: 'Notes', clip: 'Clips', eileen: 'Eileen' };
+
+  // ─── Note list pane (left) ───
+  var noteListPane = React.createElement('div', {
+    style: {
+      width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0,
+      borderRight: activeId ? '1px solid rgba(255,255,255,0.06)' : 'none',
+      flex: activeId ? '0 0 200px' : '1',
+    },
+  },
+    // Filter chips row
+    React.createElement('div', { style: { display: 'flex', gap: '4px', padding: '0 0 8px', flexWrap: 'wrap' } },
+      filterChips.map(function(f) {
+        return React.createElement('button', {
+          key: f,
+          type: 'button',
+          onClick: function() { setFilter(f); },
+          style: {
+            padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 500,
+            fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', border: 'none',
+            background: filter === f ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.04)',
+            color: filter === f ? '#0EA5E9' : '#94A3B8',
+            transition: 'all 0.15s',
+          },
+        }, filterLabels[f]);
+      })
+    ),
+    // New Note button
+    React.createElement('button', {
+      type: 'button',
+      onClick: newNote,
+      style: {
+        width: '100%', padding: '8px', borderRadius: '8px', background: 'rgba(14,165,233,0.08)',
+        border: '1px solid rgba(14,165,233,0.2)', color: '#0EA5E9', fontSize: '12px', fontWeight: 500,
+        cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: '8px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+      },
+    }, '+ New Note'),
+    // Scrollable note list
+    React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
+      filteredNotes.length === 0
+        ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', textAlign: 'center', padding: '20px 4px' } },
+            filter === 'all' ? 'No saved items yet.' : 'No ' + filterLabels[filter].toLowerCase() + ' found.'
+          )
+        : filteredNotes.map(function(n) {
+            var isActive = activeId === n.id;
             return React.createElement('div', {
               key: n.id,
               style: {
-                padding: '10px', marginBottom: '6px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', display: 'flex',
-                justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px',
+                padding: '8px', marginBottom: '4px', borderRadius: '6px',
+                background: isActive ? 'rgba(14,165,233,0.08)' : 'rgba(255,255,255,0.02)',
+                borderLeft: isActive ? '3px solid #0EA5E9' : '3px solid transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '6px',
+                transition: 'all 0.15s',
               },
-              onClick: function() { openNote(n); },
+              onClick: function() { selectNote(n); },
             },
+              // Type icon
+              React.createElement('span', { style: { fontSize: '12px', flexShrink: 0, marginTop: '1px' } }, noteTypeIcon(n.note_type)),
+              // Title + meta
               React.createElement('div', { style: { minWidth: 0, flex: 1 } },
-                React.createElement('div', { style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, n.title || 'Untitled note'),
-                React.createElement('div', { style: { color: '#64748B', fontSize: '11px', marginTop: '2px' } },
-                  n.updated_at ? new Date(n.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
+                React.createElement('div', { style: {
+                  color: isActive ? '#E2E8F0' : '#CBD5E1', fontSize: '12px', fontWeight: 500,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                } }, (n.title || 'Untitled Note').substring(0, 40)),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' } },
+                  n.pinned ? React.createElement('span', { style: { fontSize: '9px' } }, '\uD83D\uDCCC') : null,
+                  React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, relativeTime(n.updated_at))
                 )
               ),
+              // Delete button
               React.createElement('button', {
                 type: 'button',
-                onClick: function(e) { e.stopPropagation(); deleteNote(n.id); },
-                style: { background: 'none', border: 'none', color: '#64748B', fontSize: '14px', cursor: 'pointer', padding: '0 4px', flexShrink: 0 },
-                title: 'Delete note',
+                onClick: function(e) {
+                  e.stopPropagation();
+                  setConfirmDelete(n.id);
+                },
+                style: { background: 'none', border: 'none', color: '#64748B', fontSize: '12px', cursor: 'pointer', padding: '0 2px', flexShrink: 0, opacity: 0.6 },
+                title: 'Delete',
                 'aria-label': 'Delete note',
               }, '\u2715')
             );
           })
-    );
-  }
+    )
+  );
 
-  // Editor view
-  return React.createElement('div', { className: 'kl-notes-panel' },
-    // Sprint H §4: Back + Download row
-    React.createElement('div', {
-      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
+  // Delete confirmation dialog
+  var deleteDialog = confirmDelete ? React.createElement('div', {
+    style: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10,
+      background: 'rgba(10,22,40,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center',
     },
-      React.createElement('button', {
-        type: 'button',
-        onClick: function() { setView('list'); },
-        style: {
-          background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px', cursor: 'pointer',
-          padding: '0', fontFamily: "'DM Sans', sans-serif", textAlign: 'left',
-        },
-      }, '\u2190 All notes'),
-      React.createElement('button', {
-        type: 'button',
-        onClick: function() {
-          var blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = (title || 'note').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-') + '.txt';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        },
-        className: 'kl-action-btn',
-        title: 'Download this note',
-        style: { fontSize: '11px', padding: '4px 10px' },
-      }, '\u2B07 Download')
-    ),
-    React.createElement('input', {
-      className: 'kl-notes-title',
-      type: 'text',
-      value: title,
-      onChange: function(e) { var v = e.target.value; setTitle(v); scheduleSave(v, body); },
-      placeholder: 'Untitled note',
-    }),
-    React.createElement('div', { className: 'kl-notes-status' + (status === 'saved' ? ' saved' : '') + (status === 'error' ? ' error' : '') }, statusLabel),
-    React.createElement('textarea', {
-      className: 'kl-notes-body',
-      value: body,
-      onChange: function(e) { var v = e.target.value; setBody(v); scheduleSave(title, v); },
-      placeholder: 'Take notes during your research...',
-    })
-  );
-}
-
-// ─── ClipboardPanel (repurposed as Saved Snippets) ───
-// Captures text from Eileen message copy buttons. Session-scoped (in-memory).
-
-function ClipboardPanel() {
-  var _clips = useState([]);
-  var clips = _clips[0];
-  var setClips = _clips[1];
-
-  useEffect(function() {
-    window.__klAddClip = function(text, source) {
-      setClips(function(prev) {
-        return [{ id: Date.now() + Math.random(), text: String(text || ''), source: source || 'Eileen response', copiedAt: new Date() }].concat(prev);
-      });
-    };
-    return function() { delete window.__klAddClip; };
-  }, []);
-
-  function removeClip(id) {
-    setClips(function(prev) { return prev.filter(function(c) { return c.id !== id; }); });
-  }
-
-  function copyToClipboard(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).catch(function(e) { console.error('Clipboard copy failed:', e); });
-    }
-  }
-
-  if (clips.length === 0) {
-    return React.createElement('div', { className: 'kl-clipboard-panel' },
-      React.createElement('p', { className: 'kl-clipboard-empty' },
-        'Snippets you copy from Eileen\u2019s responses will appear here for quick reference during your session.'
+  },
+    React.createElement('div', {
+      style: {
+        background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px',
+        padding: '20px', maxWidth: '260px', textAlign: 'center',
+      },
+    },
+      React.createElement('p', { style: { color: '#E2E8F0', fontSize: '13px', marginBottom: '14px' } }, 'Delete this note?'),
+      React.createElement('div', { style: { display: 'flex', gap: '8px', justifyContent: 'center' } },
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { setConfirmDelete(null); },
+          className: 'kl-action-btn',
+          style: { fontSize: '12px', padding: '6px 14px' },
+        }, 'Cancel'),
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { deleteNote(confirmDelete); },
+          style: {
+            fontSize: '12px', padding: '6px 14px', borderRadius: '4px',
+            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+            color: '#EF4444', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+          },
+        }, 'Delete')
       )
+    )
+  ) : null;
+
+  // ─── Editor pane (right) ───
+  var editorPane = null;
+  if (activeId && activeNote) {
+    var isReadOnly = (activeNote.note_type === 'clip' || activeNote.note_type === 'eileen_response') && !editable;
+
+    editorPane = React.createElement('div', {
+      style: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, paddingLeft: '12px' },
+    },
+      // Toolbar: Download + Email
+      React.createElement('div', {
+        style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexShrink: 0 },
+      },
+        // Back button (mobile-friendly)
+        React.createElement('button', {
+          type: 'button',
+          onClick: function() { setActiveId(null); setActiveNote(null); setDownloadOpen(false); },
+          style: {
+            background: 'none', border: 'none', color: '#0EA5E9', fontSize: '11px', cursor: 'pointer',
+            padding: '0', fontFamily: "'DM Sans', sans-serif",
+          },
+        }, '\u2190 Back'),
+        // Action buttons
+        React.createElement('div', { style: { display: 'flex', gap: '4px', position: 'relative' } },
+          // Download button with dropdown
+          React.createElement('div', { style: { position: 'relative' } },
+            React.createElement('button', {
+              type: 'button',
+              onClick: function() { setDownloadOpen(!downloadOpen); },
+              className: 'kl-action-btn',
+              title: 'Download',
+              style: { fontSize: '11px', padding: '3px 8px' },
+            }, '\u2B07 Download'),
+            downloadOpen ? React.createElement('div', {
+              style: {
+                position: 'absolute', top: '100%', right: 0, marginTop: '4px',
+                background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '6px',
+                padding: '4px 0', zIndex: 20, minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              },
+            },
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'md'); setDownloadOpen(false); },
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                },
+              }, 'Download as Markdown (.md)'),
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'txt'); setDownloadOpen(false); },
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                },
+              }, 'Download as Text (.txt)'),
+              React.createElement('div', { style: { height: '1px', background: '#1E3A5F', margin: '4px 0' } }),
+              React.createElement('button', {
+                type: 'button',
+                disabled: true,
+                title: 'Coming soon \u2014 requires server-side export',
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
+                  cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
+                },
+              }, 'Download as PDF (.pdf)'),
+              React.createElement('button', {
+                type: 'button',
+                disabled: true,
+                title: 'Coming soon \u2014 requires server-side export',
+                style: {
+                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                  border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
+                  cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
+                },
+              }, 'Download as DOCX (.docx)')
+            ) : null
+          ),
+          // Email to self (greyed out)
+          React.createElement('button', {
+            type: 'button',
+            disabled: true,
+            className: 'kl-action-btn',
+            title: 'Coming soon \u2014 requires server-side export',
+            style: { fontSize: '11px', padding: '3px 8px', opacity: 0.4, cursor: 'not-allowed' },
+          }, '\u2709 Email')
+        )
+      ),
+      // Source attribution (for clips / eileen responses)
+      activeNote.source_attribution ? React.createElement('div', {
+        style: { color: '#64748B', fontSize: '11px', fontStyle: 'italic', marginBottom: '6px', fontFamily: "'DM Mono', monospace" },
+      }, activeNote.source_attribution) : null,
+      // Title input
+      React.createElement('input', {
+        className: 'kl-notes-title',
+        type: 'text',
+        value: title,
+        readOnly: isReadOnly,
+        onChange: function(e) {
+          if (isReadOnly) return;
+          var v = e.target.value;
+          setTitle(v);
+          scheduleSave(v, body);
+        },
+        placeholder: 'Untitled Note',
+        style: isReadOnly ? { opacity: 0.8 } : {},
+      }),
+      // Status indicator
+      React.createElement('div', {
+        style: { fontSize: '10px', color: statusColor, marginBottom: '6px', fontFamily: "'DM Mono', monospace" },
+      }, statusLabel),
+      // Edit button for read-only notes
+      isReadOnly ? React.createElement('button', {
+        type: 'button',
+        onClick: function() { setEditable(true); },
+        className: 'kl-action-btn',
+        style: { fontSize: '11px', padding: '3px 8px', marginBottom: '6px', alignSelf: 'flex-start' },
+      }, '\u270E Edit') : null,
+      // Body editor / reader
+      React.createElement('textarea', {
+        className: 'kl-notes-body',
+        value: body,
+        readOnly: isReadOnly,
+        onChange: function(e) {
+          if (isReadOnly) return;
+          var v = e.target.value;
+          setBody(v);
+          scheduleSave(title, v);
+        },
+        placeholder: 'Take notes during your research...',
+        style: Object.assign({ flex: 1 }, isReadOnly ? { opacity: 0.85 } : {}),
+      })
+    );
+  } else {
+    // No note selected — show prompt
+    editorPane = React.createElement('div', {
+      style: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '12px' },
+    },
+      React.createElement('p', { style: { color: '#64748B', fontSize: '13px', textAlign: 'center' } }, 'Select a note or create a new one')
     );
   }
 
-  return React.createElement('div', { className: 'kl-clipboard-panel' },
-    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' } },
-      React.createElement('span', { style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Mono', monospace" } }, clips.length + ' snippet' + (clips.length === 1 ? '' : 's')),
-      React.createElement('button', { className: 'kl-clipboard-clear', onClick: function() { setClips([]); } }, 'Clear all')
-    ),
-    clips.map(function(c) {
-      return React.createElement('div', { key: c.id, className: 'kl-clip' },
-        React.createElement('p', { className: 'kl-clip-text' }, c.text.length > 200 ? c.text.substring(0, 200) + '\u2026' : c.text),
-        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' } },
-          React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, c.source),
-          React.createElement('div', { className: 'kl-clip-actions' },
-            React.createElement('button', { className: 'kl-clip-copy', onClick: function() { copyToClipboard(c.text); } }, 'Copy'),
-            React.createElement('button', { className: 'kl-clip-remove', onClick: function() { removeClip(c.id); } }, 'Remove')
-          )
-        )
-      );
-    })
+  return React.createElement('div', {
+    className: 'kl-notes-panel',
+    style: { display: 'flex', flexDirection: 'row', height: '100%', position: 'relative', minHeight: 0 },
+  },
+    noteListPane,
+    editorPane,
+    deleteDialog
   );
 }
 
-// ─── VaultPanel (kl_vault_documents + compliance_uploads, user-scoped) ───
+// ─── ClipboardPanel retired (AMD-044 §4) ───
+// Clipboard functionality absorbed by NotesPanel via note_type='clip'.
+// window.__klAddClip stub retained for backward compatibility with any
+// code that may still call it — silently no-ops.
+
+// ─── VaultPanel (AMD-044 §5 — dual-source: kl_vault_documents + compliance_uploads) ───
 // Raw REST fetch — consistent with NotesPanel and CLAUDE.md JWT-decode + raw-fetch rule.
 // Primary source: kl_vault_documents (KL upload flow).
-// Fallback source: compliance_uploads (legacy portal uploads).
+// Secondary source: compliance_uploads (compliance check portal uploads).
+// Client-side merge into normalised shape, sorted by date desc.
 
 function VaultPanel() {
   var _s = useState([]);
@@ -2303,77 +2543,105 @@ function VaultPanel() {
   var _l = useState(true);
   var loading = _l[0];
   var setLoading = _l[1];
+  var _err = useState(false);
+  var fetchError = _err[0];
+  var setFetchError = _err[1];
+  var _preview = useState(null);
+  var previewDoc = _preview[0];
+  var setPreviewDoc = _preview[1];
 
-  useEffect(function() {
+  function loadDocs() {
+    setLoading(true);
+    setFetchError(false);
     var cancelled = false;
+
     async function load() {
       if (!window.__klToken || !window.__klUserId) {
         setLoading(false);
         return;
       }
       var headers = { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY };
+      var vaultOk = false;
+      var uploadsOk = false;
       var allDocs = [];
 
-      // Primary: kl_vault_documents (KL upload flow)
+      // Primary: kl_vault_documents (AMD-044 §5.1 query 1)
       try {
         var vaultResp = await fetch(
           SUPABASE_URL + '/rest/v1/kl_vault_documents?user_id=eq.' + window.__klUserId +
-            '&select=id,filename,file_size_bytes,extraction_status,analysis_status,created_at' +
-            '&order=created_at.desc&limit=20',
+            '&deleted_at=is.null' +
+            '&order=created_at.desc' +
+            '&select=id,filename,storage_path,file_size_bytes,mime_type,extraction_status,analysis_status,created_at,visibility',
           { headers: headers }
         );
-        var vaultData = await vaultResp.json();
-        if (!cancelled && Array.isArray(vaultData)) {
-          vaultData.forEach(function(d) {
-            allDocs.push({
-              id: d.id,
-              name: d.filename,
-              score: null,
-              status: d.analysis_status || d.extraction_status || 'pending',
-              source: 'vault',
-              created: d.created_at,
+        if (vaultResp.ok) {
+          var vaultData = await vaultResp.json();
+          vaultOk = true;
+          if (!cancelled && Array.isArray(vaultData)) {
+            vaultData.forEach(function(d) {
+              allDocs.push({
+                id: d.id,
+                name: d.filename,
+                source: 'vault',
+                size: d.file_size_bytes,
+                status: d.extraction_status,
+                score: null,
+                storagePath: d.storage_path,
+                date: d.created_at,
+              });
             });
-          });
+          }
         }
       } catch (e) { console.warn('Vault docs fetch failed:', e); }
 
-      // Secondary: compliance_uploads (legacy portal uploads)
+      // Secondary: compliance_uploads (AMD-044 §5.1 query 2)
       try {
         var uploadsResp = await fetch(
           SUPABASE_URL + '/rest/v1/compliance_uploads?user_id=eq.' + window.__klUserId +
-            '&select=id,file_name,display_name,overall_score,status,created_at' +
-            '&status=neq.error' +
-            '&order=created_at.desc&limit=20',
+            '&order=created_at.desc' +
+            '&select=id,file_name,file_path,file_size_bytes,document_type,status,overall_score,created_at,display_name',
           { headers: headers }
         );
-        var uploadsData = await uploadsResp.json();
-        if (!cancelled && Array.isArray(uploadsData)) {
-          uploadsData.forEach(function(d) {
-            allDocs.push({
-              id: d.id,
-              name: d.display_name || d.file_name,
-              score: d.overall_score,
-              status: d.status,
-              source: 'portal',
-              created: d.created_at,
+        if (uploadsResp.ok) {
+          var uploadsData = await uploadsResp.json();
+          uploadsOk = true;
+          if (!cancelled && Array.isArray(uploadsData)) {
+            uploadsData.forEach(function(d) {
+              allDocs.push({
+                id: d.id,
+                name: d.display_name || d.file_name,
+                source: 'compliance',
+                size: d.file_size_bytes,
+                status: d.status,
+                score: d.overall_score,
+                storagePath: d.file_path,
+                date: d.created_at,
+              });
             });
-          });
+          }
         }
       } catch (e) { console.warn('Uploads fetch failed:', e); }
 
       if (!cancelled) {
-        // Sort by created desc, deduplicate by name (vault takes precedence)
-        allDocs.sort(function(a, b) { return new Date(b.created) - new Date(a.created); });
+        if (!vaultOk && !uploadsOk) {
+          setFetchError(true);
+        }
+        allDocs.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
         setDocs(allDocs);
         setLoading(false);
       }
     }
+
     load();
     return function() { cancelled = true; };
+  }
+
+  useEffect(function() {
+    var cleanup = loadDocs();
+    return cleanup;
   }, []);
 
-  // Sprint H §5: Upload button for VaultPanel (hidden file input + visible trigger).
-  // Delegates to the App-level handleFileSelect via window.__klHandleFileSelect.
+  // Upload button (existing pattern, delegates to App-level handler)
   var uploadButton = React.createElement('div', { style: { marginBottom: '12px' } },
     React.createElement('input', {
       type: 'file',
@@ -2413,6 +2681,42 @@ function VaultPanel() {
     return React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading documents\u2026');
   }
 
+  // Error state — both sources failed (AMD-044 §5.4)
+  if (fetchError && docs.length === 0) {
+    return React.createElement('div', { style: { padding: '12px', textAlign: 'center' } },
+      uploadButton,
+      React.createElement('p', { style: { color: '#94A3B8', fontSize: '13px', marginBottom: '10px' } }, 'Unable to load your documents. Please try again.'),
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { loadDocs(); },
+        className: 'kl-action-btn',
+        style: { fontSize: '12px', padding: '6px 14px' },
+      }, 'Retry')
+    );
+  }
+
+  // Preview overlay
+  if (previewDoc) {
+    return React.createElement('div', { style: { padding: '12px' } },
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { setPreviewDoc(null); },
+        style: { background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px', cursor: 'pointer', padding: '0', marginBottom: '10px', fontFamily: "'DM Sans', sans-serif" },
+      }, '\u2190 Back to documents'),
+      React.createElement('div', { style: { color: '#E2E8F0', fontSize: '14px', fontWeight: 500, marginBottom: '4px' } }, previewDoc.name),
+      React.createElement('div', { style: { display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' } },
+        React.createElement('span', {
+          style: { fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontFamily: "'DM Mono', monospace", background: previewDoc.source === 'vault' ? 'rgba(14,165,233,0.15)' : 'rgba(16,185,129,0.15)', color: previewDoc.source === 'vault' ? '#0EA5E9' : '#10B981' },
+        }, previewDoc.source === 'vault' ? 'Vault' : 'Check'),
+        previewDoc.size ? React.createElement('span', { style: { fontSize: '10px', color: '#64748B', fontFamily: "'DM Mono', monospace" } }, formatFileSize(previewDoc.size)) : null,
+        React.createElement('span', { style: { fontSize: '10px', color: '#64748B', fontFamily: "'DM Mono', monospace" } }, relativeTime(previewDoc.date))
+      ),
+      React.createElement('div', {
+        style: { color: '#94A3B8', fontSize: '12px', lineHeight: 1.6, padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' },
+      }, 'Document preview is available after extraction is complete. Full document content will appear here in a future update.')
+    );
+  }
+
   if (docs.length === 0) {
     return React.createElement('div', { style: { padding: '12px' } },
       uploadButton,
@@ -2427,9 +2731,35 @@ function VaultPanel() {
     uploadButton,
     docs.map(function(doc) {
       var hasScore = doc.score != null;
-      var scoreColor = !hasScore ? null : doc.score >= 70 ? '#10B981' : doc.score >= 40 ? '#F59E0B' : '#EF4444';
-      var scoreBg = !hasScore ? null : doc.score >= 70 ? 'rgba(16,185,129,0.15)' : doc.score >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
+      var scoreColor = !hasScore ? null : doc.score >= 75 ? '#10B981' : doc.score >= 50 ? '#F59E0B' : '#EF4444';
+      var scoreBg = !hasScore ? null : doc.score >= 75 ? 'rgba(16,185,129,0.15)' : doc.score >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
 
+      // Source badge (AMD-044 §5.3)
+      var sourceBadge = React.createElement('span', {
+        style: {
+          fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px',
+          fontFamily: "'DM Mono', monospace",
+          background: doc.source === 'vault' ? 'rgba(14,165,233,0.15)' : 'rgba(16,185,129,0.15)',
+          color: doc.source === 'vault' ? '#0EA5E9' : '#10B981',
+          flexShrink: 0,
+        },
+      }, doc.source === 'vault' ? 'Vault' : 'Check');
+
+      // Compliance score badge
+      var scoreBadge = hasScore ? React.createElement('span', {
+        style: {
+          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
+          background: scoreBg, color: scoreColor, flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+        },
+      },
+        React.createElement('span', {
+          style: { width: '8px', height: '8px', borderRadius: '50%', background: scoreColor, display: 'inline-block' },
+        }),
+        Math.round(doc.score) + '%'
+      ) : null;
+
+      // Status badge for non-scored items
       var statusBadge = null;
       if (!hasScore && doc.status) {
         var statusColors = {
@@ -2449,23 +2779,47 @@ function VaultPanel() {
         key: doc.source + '-' + doc.id,
         style: { padding: '12px', marginBottom: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' },
       },
+        // Row 1: Name + score or status
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } },
           React.createElement('span', {
             style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
-          }, doc.name),
-          hasScore
-            ? React.createElement('span', {
-                style: { fontSize: '12px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: scoreBg, color: scoreColor, flexShrink: 0 },
-              }, Math.round(doc.score) + '%')
-            : statusBadge
+          }, (doc.name || '').substring(0, 35)),
+          hasScore ? scoreBadge : statusBadge
         ),
-        React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' } },
-          React.createElement('span', { style: { color: '#64748B', fontSize: '11px' } },
-            new Date(doc.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-          ),
-          React.createElement('span', {
-            style: { fontSize: '10px', color: doc.source === 'vault' ? '#0EA5E9' : '#64748B', fontFamily: "'DM Mono', monospace" },
-          }, doc.source === 'vault' ? 'KL Upload' : 'Portal')
+        // Row 2: Source badge, date, file size
+        React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' } },
+          sourceBadge,
+          React.createElement('span', { style: { color: '#64748B', fontSize: '11px' } }, relativeTime(doc.date)),
+          doc.size ? React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, formatFileSize(doc.size)) : null
+        ),
+        // Row 3: Action buttons (AMD-044 §5.3)
+        React.createElement('div', { style: { display: 'flex', gap: '4px', marginTop: '8px' } },
+          React.createElement('button', {
+            type: 'button',
+            className: 'kl-action-btn',
+            onClick: function() { setPreviewDoc(doc); },
+            style: { fontSize: '11px', padding: '3px 8px' },
+          }, 'Preview'),
+          doc.source === 'compliance'
+            ? React.createElement('button', {
+                type: 'button',
+                className: 'kl-action-btn',
+                title: 'Download compliance report',
+                style: { fontSize: '11px', padding: '3px 8px' },
+                onClick: function() {
+                  // Trigger existing generate-report-pdf pipeline if available
+                  if (typeof window.__klDownloadReport === 'function') {
+                    window.__klDownloadReport(doc.id);
+                  }
+                },
+              }, 'Download')
+            : React.createElement('button', {
+                type: 'button',
+                className: 'kl-action-btn',
+                disabled: true,
+                title: 'Preview only \u2014 download will be available when storage retrieval is built',
+                style: { fontSize: '11px', padding: '3px 8px', opacity: 0.4, cursor: 'not-allowed' },
+              }, 'Download')
         )
       );
     })
@@ -3371,15 +3725,14 @@ function PlaceholderPanel({ panelId }) {
 // ─── PanelDrawer (KLUI-001 §2.2) ───
 
 const PANEL_LABELS = {
-  vault: 'Document Vault', notes: 'Notes', documents: 'Documents',
-  clipboard: 'Saved Snippets', calendar: 'Calendar', eileen: 'Eileen',
+  vault: 'Document Vault', notes: 'Saved Items', documents: 'Documents',
+  calendar: 'Calendar', eileen: 'Eileen',
   research: 'Research', planner: 'Contract Planner',
 };
 
 const PANEL_COMPONENTS = {
   vault: VaultPanel,
   notes: NotesPanel,
-  clipboard: ClipboardPanel,
   calendar: CalendarPanel,
   research: ResearchPanel,
 };
