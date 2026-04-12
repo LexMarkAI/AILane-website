@@ -133,6 +133,160 @@ const TOPIC_DOMAINS = [
   },
 ];
 
+// ─── Domain sub-pages (AMD-045, KLUX-001-AM-001 §2–5) ───
+// Authoritative domain data for the 8 problem-domain sub-pages.
+
+const DOMAINS = [
+  {
+    id: 'dismissal',
+    slug: 'dismissal',
+    name: 'Dismissal and Disciplinary',
+    orientation: 'This area covers the law governing how employment relationships end and how employers must conduct disciplinary processes. It is the most litigated area of UK employment law.',
+    eileenGreeting: "I\u2019m here to help with dismissal and disciplinary matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Unfair Dismissal', instruments: 'ERA 1996 Part X, ERA 2025 ss.1\u20136', scope: 'Qualifying service, automatically unfair reasons, day-one rights (ERA 2025), remedies and compensation.' },
+      { name: 'Wrongful Dismissal', instruments: 'ERA 1996 ss.86\u201391', scope: 'Notice periods, breach of contract, payment in lieu of notice, garden leave.' },
+      { name: 'Constructive Dismissal', instruments: 'ERA 1996 s.95(1)(c)', scope: 'Fundamental breach, last straw doctrine, resignation in response to breach.' },
+      { name: 'Gross Misconduct', instruments: 'ACAS Code of Practice 1', scope: 'Definition, investigation requirements, suspension, right to be accompanied, appeal rights.' },
+      { name: 'ACAS Disciplinary Code', instruments: 'ACAS Code 1, ERA 1996 s.207A', scope: 'Full Code requirements, tribunal uplift for non-compliance, step-by-step procedure.' },
+      { name: 'Capability and Performance', instruments: 'ACAS performance guidance', scope: 'Performance improvement plans, capability procedures, reasonable adjustments.' },
+      { name: 'Probationary Dismissals', instruments: 'ERA 1996 Part X, ERA 2025 s.1', scope: 'Probationary period rights, day-one protection changes, notice during probation.' },
+      { name: 'Redundancy', instruments: 'ERA 1996 Part XI, TULRCA 1992 s.188', scope: 'Genuine redundancy, selection criteria, collective consultation, redundancy pay.' },
+    ]
+  },
+  {
+    id: 'discrimination',
+    slug: 'discrimination',
+    name: 'Discrimination and Harassment',
+    orientation: 'This area covers protection against unlawful discrimination, harassment, and victimisation in the workplace. It represents the largest concentration of case law in the Ailane intelligence estate.',
+    eileenGreeting: "I\u2019m here to help with discrimination and harassment matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'The Nine Protected Characteristics', instruments: 'EqA 2010 s.4', scope: 'Age, disability, gender reassignment, marriage/civil partnership, pregnancy/maternity, race, religion/belief, sex, sexual orientation.' },
+      { name: 'Direct Discrimination', instruments: 'EqA 2010 s.13', scope: 'Less favourable treatment, comparator requirements, burden of proof, defences.' },
+      { name: 'Indirect Discrimination', instruments: 'EqA 2010 s.19', scope: 'Provision, criterion or practice, particular disadvantage, justification defence.' },
+      { name: 'Harassment', instruments: 'EqA 2010 s.26, Worker Protection Act 2023', scope: 'Unwanted conduct, third-party harassment (new employer duty), sexual harassment.' },
+      { name: 'Victimisation', instruments: 'EqA 2010 s.27', scope: 'Protected acts, detriment, protection for complainants and witnesses.' },
+      { name: 'Reasonable Adjustments', instruments: 'EqA 2010 ss.20\u201322', scope: 'Duty to adjust for disabled workers, substantial disadvantage, auxiliary aids.' },
+      { name: 'Equal Pay', instruments: 'EqA 2010 ss.64\u201380', scope: 'Like work, work rated as equivalent, work of equal value, material factor defence.' },
+      { name: 'EHRC Employment Code', instruments: 'EHRC Statutory Code of Practice', scope: 'Full Code guidance, employer liability, vicarious liability, reasonable steps defence.' },
+    ]
+  },
+  {
+    id: 'contracts',
+    slug: 'contracts',
+    name: 'Contracts and Terms',
+    orientation: 'This area covers the legal framework governing employment contracts, written terms, working time, and contractual rights.',
+    eileenGreeting: "I\u2019m here to help with contracts and employment terms. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Written Statement of Particulars', instruments: 'ERA 1996 ss.1\u201312', scope: 'Day-one right, required content, changes to particulars, remedies for failure.' },
+      { name: 'Express and Implied Terms', instruments: 'Common law', scope: 'Express terms, implied terms (mutual trust, duty of care, fidelity), custom and practice.' },
+      { name: 'Variation of Contract', instruments: 'ERA 1996 s.4', scope: 'Lawful variation, agreement, fire and rehire restrictions (ERA 2025).' },
+      { name: 'Restrictive Covenants', instruments: 'Common law, ERA 2025', scope: 'Non-compete, non-solicitation, confidentiality, reasonableness test.' },
+      { name: 'Working Time', instruments: 'WTR 1998', scope: '48-hour week, opt-out, rest breaks, annual leave calculation (Brazel).' },
+      { name: 'Part-Time and Fixed-Term Rights', instruments: 'PTWR 2000, FTER 2002', scope: 'Less favourable treatment, objective justification, successive fixed-term contracts.' },
+      { name: 'Agency Worker Rights', instruments: 'AWR 2010', scope: '12-week qualifying period, day-one rights, comparator assessment.' },
+      { name: 'Flexible Working', instruments: 'ERA 1996 s.80F, FWR 2014, ERA 2025', scope: 'Day-one right (ERA 2025), application process, grounds for refusal.' },
+      { name: 'Zero-Hours and Low-Hours', instruments: 'ERA 2025', scope: 'Guaranteed hours, reasonable notice of shifts, compensation for cancellations.' },
+      { name: 'Holiday Pay Calculations', instruments: 'WTR 1998 Reg.16, EqA 2010', scope: 'Normal remuneration, 52-week reference, Brazel methodology, rolled-up holiday pay.' },
+    ]
+  },
+  {
+    id: 'family-leave',
+    slug: 'family-leave',
+    name: 'Family Leave and Pregnancy',
+    orientation: 'This area covers legal entitlements during pregnancy, maternity, paternity, adoption, and other family-related leave. One of the most active areas post-ERA 2025.',
+    eileenGreeting: "I\u2019m here to help with family leave and pregnancy matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Maternity Leave and Pay', instruments: 'MPL 1999, SMP Regs', scope: 'OML, AML, statutory maternity pay, notification, KIT days, return to work.' },
+      { name: 'Paternity Leave and Pay', instruments: 'PAL 2002', scope: 'Entitlement, notice, timing, statutory paternity pay.' },
+      { name: 'Shared Parental Leave', instruments: 'SPL Regs 2014', scope: 'Eligibility, curtailment, notice of entitlement and intention.' },
+      { name: 'Adoption Leave', instruments: 'PAL 2002', scope: 'Matching, notification, statutory adoption pay, overseas adoption.' },
+      { name: 'Parental Leave (Unpaid)', instruments: 'MPL 1999 Part III', scope: '18 weeks per child, qualifying conditions, postponement, default scheme.' },
+      { name: 'Time Off for Dependants', instruments: 'ERA 1996 s.57A', scope: 'Reasonable time off, definition of dependant, no pay requirement.' },
+      { name: 'Pregnancy Discrimination', instruments: 'EqA 2010 s.18', scope: 'Protected period, unfavourable treatment, no comparator required.' },
+      { name: 'Redundancy During Pregnancy/Maternity', instruments: 'Protection from Redundancy Act 2023, ERA 2025', scope: 'Priority right to suitable alternative, extended protection period.' },
+      { name: 'Neonatal Care Leave', instruments: 'ERA 2025', scope: 'New entitlement, qualifying conditions, duration, statutory neonatal care pay.' },
+    ]
+  },
+  {
+    id: 'transfers',
+    slug: 'transfers',
+    name: 'Business Transfers',
+    orientation: 'This area covers the Transfer of Undertakings regulations and the legal framework for business sales, outsourcing, and service provision changes.',
+    eileenGreeting: "I\u2019m here to help with business transfers and TUPE. What\u2019s your situation?",
+    subAreas: [
+      { name: 'What Constitutes a Transfer', instruments: 'TUPE 2006 Reg.3', scope: 'Relevant transfer, economic entity, service provision change, organised grouping.' },
+      { name: 'Employee Rights on Transfer', instruments: 'TUPE 2006 Reg.4', scope: 'Automatic transfer of contracts, continuity, preservation of terms.' },
+      { name: 'Information and Consultation', instruments: 'TUPE 2006 Regs.13\u201316', scope: 'Duty to inform/consult, long enough before transfer, compensation for failure.' },
+      { name: 'ETO Reasons', instruments: 'TUPE 2006 Reg.7', scope: 'Economic/technical/organisational reasons, when dismissal may be fair.' },
+      { name: 'Harmonisation Post-Transfer', instruments: 'TUPE 2006 Reg.4(4)', scope: 'Prohibition on varying terms by reason of transfer, one-year restriction.' },
+      { name: 'Collective Redundancy in Transfer', instruments: 'TULRCA 1992 s.188, TUPE 2006', scope: 'Dual consultation requirements, interaction of obligations.' },
+      { name: 'Outsourcing and Insourcing', instruments: 'TUPE 2006 Reg.3(1)(b)', scope: 'Service provision changes, activities ceasing and being carried on.' },
+    ]
+  },
+  {
+    id: 'health-safety',
+    slug: 'health-safety',
+    name: 'Health and Safety',
+    orientation: "This area covers the employer\u2019s duty to provide a safe working environment and the regulatory enforcement framework. Ailane\u2019s estate includes 2,498 HSE prosecutions (\u00A3462.7M in fines) and 30,543 enforcement notices.",
+    eileenGreeting: "I\u2019m here to help with health and safety matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'General Duties', instruments: 'HSWA 1974 ss.2\u20139', scope: "Employer\u2019s general duty to employees (s.2), to non-employees (s.3), premises control (s.4)." },
+      { name: 'Risk Assessment', instruments: 'MHSWR 1999 Reg.3', scope: 'Suitable and sufficient assessment, significant findings, review and revision.' },
+      { name: 'Display Screen Equipment', instruments: 'DSE Regs 1992', scope: 'Workstation assessment, eye tests, breaks, home/hybrid working DSE.' },
+      { name: 'Workplace Stress', instruments: 'HSWA 1974, MHSWR 1999, HSE Standards', scope: 'Management standards (demands, control, support, relationships, role, change).' },
+      { name: 'Accident Reporting', instruments: 'RIDDOR 2013', scope: 'Reportable injuries, occupational diseases, dangerous occurrences, deadlines.' },
+      { name: 'HSE Enforcement', instruments: 'HSWA 1974 ss.21\u201325', scope: 'Improvement notices, prohibition notices, prosecution, sentencing guidelines.' },
+      { name: 'Safety Representatives', instruments: 'SRSC Regs 1977, HSCER 1996', scope: 'Appointment, functions, time off, employer consultation duty.' },
+      { name: 'Right to Refuse Unsafe Work', instruments: 'ERA 1996 s.44, HSWA 1974', scope: 'Automatic unfair dismissal, detriment protection, reasonable belief.' },
+    ]
+  },
+  {
+    id: 'whistleblowing',
+    slug: 'whistleblowing',
+    name: 'Whistleblowing',
+    orientation: 'This area covers legal protection for workers who report wrongdoing. Users who arrive here are often in acute situations with immediate employment consequences.',
+    eileenGreeting: "I\u2019m here to help with whistleblowing and protected disclosures. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Qualifying Disclosures', instruments: 'ERA 1996 s.43B', scope: 'Six categories: criminal offence, legal obligation failure, miscarriage of justice, H&S danger, environmental damage, concealment.' },
+      { name: 'Protected Disclosures', instruments: 'ERA 1996 ss.43C\u201343H', scope: 'Disclosure to employer, legal adviser, Minister, prescribed person, wider disclosure.' },
+      { name: 'Automatic Unfair Dismissal', instruments: 'ERA 1996 s.103A', scope: 'No qualifying service, no compensation cap, burden of proof, interim relief.' },
+      { name: 'Detriment Short of Dismissal', instruments: 'ERA 1996 s.47B', scope: 'Acts or deliberate failures, co-worker liability, vicarious liability.' },
+      { name: 'Prescribed Persons', instruments: 'PI Disclosure (Prescribed Persons) Order', scope: 'Full list of prescribed regulators, coverage, reporting routes.' },
+      { name: 'NDAs and Confidentiality Clauses', instruments: 'ERA 1996 s.43J', scope: 'Void provisions, settlement agreements, clauses preventing protected disclosures.' },
+      { name: 'Whistleblowing Policies', instruments: 'ACAS workplace policies guide', scope: 'Best practice policies, designated officers, investigation, protection.' },
+    ]
+  },
+  {
+    id: 'data-monitoring',
+    slug: 'data-monitoring',
+    name: 'Data and Monitoring',
+    orientation: "This area covers data protection obligations in the employment relationship, including employee monitoring, subject access requests, and data retention.",
+    eileenGreeting: "I\u2019m here to help with data protection and employee monitoring matters. What\u2019s your situation?",
+    subAreas: [
+      { name: 'Employer GDPR Obligations', instruments: 'UK GDPR, DPA 2018', scope: 'Lawful bases for employee data, legitimate interests, privacy notices.' },
+      { name: 'Lawful Bases for HR Processing', instruments: 'UK GDPR Art.6, Art.9', scope: 'Special category data (health, union, biometric), employment condition.' },
+      { name: 'Data Protection Impact Assessments', instruments: 'UK GDPR Art.35', scope: 'When DPIAs required for HR systems, systematic monitoring, large-scale special category.' },
+      { name: 'Employee Monitoring', instruments: 'ICO Employment Practices Code', scope: 'Email/internet, CCTV, telephone recording, covert monitoring, impact assessments.' },
+      { name: 'Subject Access Requests', instruments: 'UK GDPR Art.15', scope: 'Right to access, one-month period, exemptions, redaction of third-party data.' },
+      { name: 'Data Retention', instruments: 'UK GDPR Art.5(1)(e)', scope: 'Retention schedules, statutory minimums (tax, pension, H&S), destruction procedures.' },
+      { name: 'International Data Transfers', instruments: 'UK GDPR Art.44\u201349', scope: 'Post-Brexit adequacy, standard contractual clauses, binding corporate rules.' },
+      { name: 'Biometric Data', instruments: 'UK GDPR Art.9, DPA 2018', scope: 'Fingerprint/facial recognition clocking-in, explicit consent, DPIA, proportionality.' },
+    ]
+  },
+];
+
+// ─── Hash-based route detection (AMD-045 §3.1) ───
+function getRoute() {
+  var hash = (window.location.hash || '').replace('#', '') || '/';
+  if (hash.indexOf('/domain/') === 0) {
+    var slug = hash.replace('/domain/', '');
+    var domain = DOMAINS.find(function(d) { return d.slug === slug; });
+    return domain ? { view: 'domain', domain: domain } : { view: 'welcome' };
+  }
+  return { view: 'welcome' };
+}
+
 // ─── Contract intent keywords (KLAC-001-AM-006, AMD-043) ───
 // Eileen proactively routes contract-related requests to the compliance engine.
 const CONTRACT_INTENT_PATTERNS = [
@@ -1609,13 +1763,45 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} />
           </div>
           <HorizonAlert />
-          <div className="kl-topics-grid">
-            {TOPIC_DOMAINS.map((topic, i) => (
-              <button key={i} className="kl-topic-card" onClick={() => onSend(topic.query)} disabled={isLoading}>
-                <div className="kl-card-label">{topic.label}</div>
-                <div className="kl-card-desc">{topic.description}</div>
-              </button>
-            ))}
+          {/* AMD-045 §3.2: Domain navigation cards replace quick-start topic cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: '16px',
+            width: '100%',
+            maxWidth: '820px',
+          }}>
+            {DOMAINS.map(function(domain) {
+              return (
+                <div
+                  key={domain.id}
+                  onClick={function() { window.location.hash = '/domain/' + domain.slug; }}
+                  style={{
+                    background: '#111827',
+                    border: '1px solid #1E293B',
+                    borderLeft: '3px solid #1E293B',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.2s, border-left-color 0.2s',
+                  }}
+                  onMouseEnter={function(e) { e.currentTarget.style.borderLeftColor = '#0EA5E9'; }}
+                  onMouseLeave={function(e) { e.currentTarget.style.borderLeftColor = '#1E293B'; }}
+                >
+                  <h3 style={{
+                    color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '16px', margin: '0 0 8px', fontWeight: 600,
+                  }}>{domain.name}</h3>
+                  <p style={{
+                    color: '#94A3B8', fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px', margin: '0 0 12px', lineHeight: 1.5,
+                  }}>{domain.orientation.substring(0, 100)}...</p>
+                  <span style={{
+                    color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif",
+                  }}>Explore &rarr;</span>
+                </div>
+              );
+            })}
           </div>
           {/* Sprint H §3.2: BookShelf replaces the Sprint G accent-line button.
               Renders up to 15 instruments as leather-textured book covers. */}
@@ -4033,6 +4219,207 @@ function BookShelf({ onOpenBook }) {
   );
 }
 
+// ─── DomainSubPage (AMD-045 §4 — domain sub-page with sub-area grid) ───
+// Renders a full domain sub-page with breadcrumb, domain selector,
+// domain header, expandable sub-area grid, key instruments strip,
+// and anchored Eileen panel at bottom.
+
+function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect }) {
+  var _exp = useState(null);
+  var expandedSubArea = _exp[0];
+  var setExpandedSubArea = _exp[1];
+
+  return React.createElement('div', {
+    className: 'kl-main',
+    style: { display: 'flex', flexDirection: 'column', height: '100%' },
+  },
+
+    // §4.2 Breadcrumb
+    React.createElement('div', {
+      style: {
+        padding: '12px 24px', borderBottom: '1px solid #1E3A5F',
+        background: '#0F1D32', flexShrink: 0,
+      },
+    },
+      React.createElement('span', {
+        style: { color: '#94A3B8', cursor: 'pointer', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
+        onClick: onBack,
+      }, 'Knowledge Library'),
+      React.createElement('span', { style: { color: '#475569', margin: '0 8px' } }, '\u203A'),
+      React.createElement('span', {
+        style: { color: '#F1F5F9', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
+      }, domain.name)
+    ),
+
+    // §4.3 Domain selector — compact horizontal tabs
+    React.createElement('div', {
+      style: {
+        padding: '8px 24px', display: 'flex', gap: '8px', overflowX: 'auto',
+        borderBottom: '1px solid #1E3A5F', background: '#0F1D32', flexShrink: 0,
+      },
+    },
+      DOMAINS.map(function(d) {
+        return React.createElement('button', {
+          key: d.id,
+          type: 'button',
+          onClick: function() { window.location.hash = '/domain/' + d.slug; },
+          style: {
+            background: d.id === domain.id ? '#0EA5E9' : 'transparent',
+            color: d.id === domain.id ? '#FFFFFF' : '#94A3B8',
+            border: d.id === domain.id ? 'none' : '1px solid #334155',
+            borderRadius: '16px',
+            padding: '4px 12px',
+            fontSize: '12px',
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            transition: 'all 0.15s',
+          },
+        }, d.name);
+      })
+    ),
+
+    // Scrollable main content
+    React.createElement('div', {
+      style: { flex: 1, overflowY: 'auto', padding: '24px', minHeight: 0 },
+    },
+
+      // §4.4 Domain Header
+      React.createElement('h1', {
+        style: {
+          color: '#0EA5E9', fontFamily: "'DM Sans', sans-serif", fontSize: '28px',
+          margin: '0 0 12px', fontWeight: 700,
+        },
+      }, domain.name),
+      React.createElement('p', {
+        style: {
+          color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '15px',
+          lineHeight: 1.7, maxWidth: '720px', margin: '0 0 32px',
+        },
+      }, domain.orientation),
+
+      // §4.5 Sub-Area Grid
+      React.createElement('h2', {
+        style: {
+          color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '18px',
+          margin: '0 0 16px', fontWeight: 600,
+        },
+      }, 'Topics in this area'),
+      React.createElement('div', {
+        style: {
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '12px', marginBottom: '32px',
+        },
+      },
+        domain.subAreas.map(function(sa, i) {
+          var isExpanded = expandedSubArea === i;
+          return React.createElement('div', { key: i },
+            // Sub-area card header
+            React.createElement('div', {
+              onClick: function() { setExpandedSubArea(isExpanded ? null : i); },
+              style: {
+                background: '#111827',
+                border: isExpanded ? '1px solid #0EA5E9' : '1px solid #1E293B',
+                borderRadius: isExpanded ? '8px 8px 0 0' : '8px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'border-color 0.2s',
+              },
+            },
+              React.createElement('h3', {
+                style: { color: '#F1F5F9', fontSize: '14px', fontFamily: "'DM Sans', sans-serif", margin: '0 0 6px', fontWeight: 600 },
+              }, sa.name),
+              React.createElement('p', {
+                style: { color: '#64748B', fontSize: '12px', fontFamily: "'DM Mono', monospace", margin: '0 0 8px' },
+              }, sa.instruments),
+              React.createElement('span', {
+                style: { color: isExpanded ? '#0EA5E9' : '#475569', fontSize: '11px' },
+              }, isExpanded ? '\u25BE Less' : '\u25B8 Details')
+            ),
+            // Expanded details
+            isExpanded ? React.createElement('div', {
+              style: {
+                background: '#0F172A', border: '1px solid #1E293B', borderTop: 'none',
+                borderRadius: '0 0 8px 8px', padding: '16px',
+              },
+            },
+              React.createElement('p', {
+                style: { color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: '0 0 12px' },
+              }, sa.scope),
+              React.createElement('button', {
+                type: 'button',
+                onClick: function() { onAskEileen('Tell me about ' + sa.name.toLowerCase() + ' in the context of ' + domain.name.toLowerCase()); },
+                style: {
+                  background: 'transparent', border: '1px solid #0EA5E9', color: '#0EA5E9',
+                  borderRadius: '6px', padding: '6px 14px', fontSize: '12px',
+                  fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+                  transition: 'all 0.15s',
+                },
+              }, 'Discuss with Eileen \u2192')
+            ) : null
+          );
+        })
+      ),
+
+      // §4.6 Key Instruments Strip
+      React.createElement('h2', {
+        style: {
+          color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '18px',
+          margin: '0 0 16px', fontWeight: 600,
+        },
+      }, 'Key instruments'),
+      React.createElement('div', {
+        style: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '32px' },
+      },
+        (function() {
+          var seen = {};
+          var unique = [];
+          domain.subAreas.forEach(function(sa) {
+            sa.instruments.split(', ').forEach(function(inst) {
+              if (!seen[inst]) { seen[inst] = true; unique.push(inst); }
+            });
+          });
+          return unique;
+        })().map(function(inst, i) {
+          return React.createElement('span', {
+            key: i,
+            style: {
+              background: '#1E293B', color: '#0EA5E9', padding: '6px 12px',
+              borderRadius: '16px', fontSize: '12px', fontFamily: "'DM Mono', monospace",
+              whiteSpace: 'nowrap',
+            },
+          }, inst);
+        })
+      )
+    ),
+
+    // §4.7 Eileen Panel — anchored at bottom
+    React.createElement('div', {
+      style: {
+        borderTop: '1px solid #1E3A5F', padding: '16px 24px',
+        background: '#0F1D32', flexShrink: 0,
+      },
+    },
+      React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' },
+      },
+        React.createElement('div', {
+          style: {
+            width: '8px', height: '8px', borderRadius: '50%',
+            background: '#0EA5E9', boxShadow: '0 0 8px rgba(14,165,233,0.5)',
+            flexShrink: 0,
+          },
+        }),
+        React.createElement('span', {
+          style: { color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
+        }, domain.eileenGreeting)
+      ),
+      React.createElement(MessageInput, { onSend: onSend, disabled: isLoading, onFileSelect: onFileSelect })
+    )
+  );
+}
+
 // ─── UpsellCard (KL upsell ladder, AMD-043) ───
 // Fixed-position overlay shown when per-session users approach expiry.
 // NOT registered in PANEL_COMPONENTS — renders directly in the App body.
@@ -4144,6 +4531,32 @@ function App() {
   const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
   const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
 
+  // AMD-045 §5: View state for domain sub-pages
+  const [currentView, setCurrentView] = useState(function() {
+    var route = getRoute();
+    return route.view;
+  });
+  const [currentDomain, setCurrentDomain] = useState(function() {
+    var route = getRoute();
+    return route.domain || null;
+  });
+
+  // AMD-045 §5: Hash-based routing listener
+  useEffect(function() {
+    function handleRoute() {
+      var route = getRoute();
+      if (route.view === 'domain') {
+        setCurrentView('domain');
+        setCurrentDomain(route.domain);
+      } else {
+        setCurrentView(messages.length > 0 ? 'conversation' : 'welcome');
+        setCurrentDomain(null);
+      }
+    }
+    window.addEventListener('hashchange', handleRoute);
+    return function() { window.removeEventListener('hashchange', handleRoute); };
+  }, [messages.length]);
+
   const loadSessionHistory = useCallback(async function () {
     if (!window.__klToken || !window.__klUserId) return;
     try {
@@ -4254,14 +4667,36 @@ function App() {
   function newChat() {
     setSessionId('eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
     setMessages([]);
+    // AMD-045: Reset view to welcome and clear domain context
+    setCurrentView('welcome');
+    setCurrentDomain(null);
+    if (window.location.hash && window.location.hash !== '#/') {
+      window.location.hash = '/';
+    }
   }
 
   async function sendMessage(text) {
     const clean = (text || '').trim();
     if (!clean || isLoading) return;
+    // AMD-045 §5: Transition from domain sub-page to conversation on send
+    if (currentView === 'domain') {
+      setCurrentView('conversation');
+      // Don't clear currentDomain — it's used for page_context
+    }
     setMessages((prev) => [...prev, { role: 'user', content: clean }]);
     setIsLoading(true);
     try {
+      // AMD-045 §4.8: Include domain context in Eileen request
+      var requestBody = {
+        message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional' : 'a worker') + '] ' : '') + clean,
+        session_id: sessionId,
+        page_context: currentDomain
+          ? 'knowledge-library/domain/' + currentDomain.slug
+          : 'knowledge-library',
+      };
+      if (currentDomain) {
+        requestBody.domain_context = currentDomain.id;
+      }
       const resp = await fetch(EILEEN_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -4269,11 +4704,7 @@ function App() {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({
-          message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional' : 'a worker') + '] ' : '') + clean,
-          session_id: sessionId,
-          page_context: 'knowledge-library',
-        }),
+        body: JSON.stringify(requestBody),
       });
       const data = await resp.json();
       if (data && data.response) {
@@ -4771,20 +5202,32 @@ function App() {
         onNewChat={() => { newChat(); if (window.innerWidth <= 768) setSidebarOpen(false); }}
         onCrownQuery={sendMessage}
       />
-      <ConversationArea
-        messages={messages}
-        isLoading={isLoading}
-        onSend={sendMessage}
-        accessType={accessType}
-        tier={tier}
-        onFileSelect={handleFileSelect}
-        onRunAnalysis={handleRunAnalysis}
-        floatingNexusExpanded={floatingNexusOpen}
-        onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
-        showQualifier={showQualifier}
-        onUserTypeSelect={handleUserTypeSelect}
-        pulseUpload={messages.some(function(m) { return m.isContractPrompt; }) && !hasUploadedThisSession}
-      />
+      {/* AMD-045 §5: Conditional render — domain sub-page or conversation area */}
+      {currentView === 'domain' && currentDomain ? (
+        <DomainSubPage
+          domain={currentDomain}
+          onBack={function() { window.location.hash = '/'; }}
+          onAskEileen={function(question) { sendMessage(question); }}
+          onSend={sendMessage}
+          isLoading={isLoading}
+          onFileSelect={handleFileSelect}
+        />
+      ) : (
+        <ConversationArea
+          messages={messages}
+          isLoading={isLoading}
+          onSend={sendMessage}
+          accessType={accessType}
+          tier={tier}
+          onFileSelect={handleFileSelect}
+          onRunAnalysis={handleRunAnalysis}
+          floatingNexusExpanded={floatingNexusOpen}
+          onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
+          showQualifier={showQualifier}
+          onUserTypeSelect={handleUserTypeSelect}
+          pulseUpload={messages.some(function(m) { return m.isContractPrompt; }) && !hasUploadedThisSession}
+        />
+      )}
       <PanelRail
         activePanel={activePanel}
         onSelectPanel={setActivePanel}
