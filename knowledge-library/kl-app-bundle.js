@@ -825,152 +825,150 @@
   function TypingIndicator() {
     return /* @__PURE__ */ React.createElement("div", { className: "kl-msg kl-msg-eileen" }, /* @__PURE__ */ React.createElement("div", { className: "kl-msg-content" }, /* @__PURE__ */ React.createElement(EileenSenderLabel, null), /* @__PURE__ */ React.createElement("div", { className: "kl-typing-dots", style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }), /* @__PURE__ */ React.createElement("span", { className: "kl-dot" }))));
   }
-  function FloatingNexus({ tier, nexusState, isExpanded, onToggle, prefersReducedMotion }) {
-    var glowMap = {
-      dormant: "0 0 8px rgba(14,165,233,0.1)",
-      ready: "0 0 12px rgba(14,165,233,0.2)",
-      processing: "0 0 20px rgba(14,165,233,0.4)",
-      presenting: "0 0 24px rgba(14,165,233,0.5)"
-    };
-    var glow = glowMap[nexusState] || glowMap.dormant;
-    return /* @__PURE__ */ React.createElement(
+  var ADVISOR_TIPS = {
+    "dismissal": "Eileen can guide you through unfair dismissal rights, disciplinary procedures, and the ACAS Code. This is the most litigated area of UK employment law.",
+    "discrimination": "Eileen covers all nine protected characteristics, the EHRC Code, harassment obligations including the new Worker Protection Act 2023, and equal pay.",
+    "contracts": "Eileen can analyse your contract terms against current legislation \u2014 including the new flexible working and zero-hours provisions under ERA 2025.",
+    "family-leave": "Eileen covers maternity, paternity, shared parental leave, and the new neonatal care leave under ERA 2025. One of the most active areas of legislative change.",
+    "transfers": "Eileen can explain TUPE transfer obligations, employee consultation requirements, and the interaction with collective redundancy law.",
+    "health-safety": "Eileen draws on 2,498 HSE prosecution records and 30,543 enforcement notices to contextualise your health and safety obligations.",
+    "whistleblowing": "Eileen covers qualifying disclosures, protected disclosure routes, and the employment protections for workers who raise concerns.",
+    "data-monitoring": "Eileen can guide you through employer GDPR obligations, employee monitoring rules, and subject access request handling."
+  };
+  function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion }) {
+    var _show = useState(false);
+    var showTooltip = _show[0];
+    var setShowTooltip = _show[1];
+    var tip = nearDomain ? ADVISOR_TIPS[nearDomain] : null;
+    useEffect(function() {
+      if (tip) {
+        setShowTooltip(true);
+      } else {
+        var t = setTimeout(function() {
+          setShowTooltip(false);
+        }, 300);
+        return function() {
+          clearTimeout(t);
+        };
+      }
+    }, [tip]);
+    return React.createElement(
       "div",
       {
-        className: "kl-floating-nexus-container",
         style: {
-          position: "absolute",
-          bottom: window.innerWidth <= 768 ? "100px" : "80px",
+          position: "fixed",
+          bottom: "24px",
           right: "24px",
-          zIndex: 30,
+          zIndex: 1e3,
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-end",
-          gap: "8px",
-          pointerEvents: "auto",
-          maxWidth: "calc(100vw - 48px)"
+          gap: "8px"
         }
       },
-      isExpanded && /* @__PURE__ */ React.createElement(FloatingNexusPanel, { tier, onClose: onToggle }),
-      /* @__PURE__ */ React.createElement(
-        "button",
+      // Advisor tooltip
+      showTooltip && tip ? React.createElement(
+        "div",
         {
-          type: "button",
-          onClick: onToggle,
-          "aria-label": isExpanded ? "Close Eileen panel" : "Open Eileen panel",
-          title: "Eileen",
+          style: {
+            background: "#0F172A",
+            border: "1px solid #1E293B",
+            borderRadius: "12px",
+            padding: "14px 18px",
+            maxWidth: "300px",
+            opacity: tip ? 1 : 0,
+            transform: tip ? "translateY(0)" : "translateY(8px)",
+            transition: "opacity 0.3s, transform 0.3s",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
+          }
+        },
+        React.createElement(
+          "div",
+          { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" } },
+          React.createElement(NexusCanvas, { size: 16, nexusState: "ready", tier: "kl", prefersReducedMotion }),
+          React.createElement("span", { style: { color: "#0EA5E9", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", fontWeight: 600 } }, "Eileen")
+        ),
+        React.createElement("p", { style: { color: "#CBD5E1", fontSize: "13px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 } }, tip)
+      ) : null,
+      // Nexus orb
+      React.createElement(
+        "div",
+        {
           style: {
             width: "52px",
             height: "52px",
             borderRadius: "50%",
-            background: "rgba(10, 22, 40, 0.85)",
-            border: "1px solid rgba(14, 165, 233, 0.3)",
-            cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 0,
-            boxShadow: glow + ", 0 4px 16px rgba(0,0,0,0.3)",
-            transition: "box-shadow 0.3s ease, border-color 0.3s ease",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)"
+            cursor: "default",
+            boxShadow: "0 0 " + (nearDomain ? "16" : "8") + "px rgba(14,165,233," + (nearDomain ? "0.3" : "0.15") + ")",
+            transition: "box-shadow 0.3s"
           }
         },
-        /* @__PURE__ */ React.createElement(NexusCanvas, { tier, size: 36, nexusState, prefersReducedMotion })
+        React.createElement(NexusCanvas, {
+          size: 52,
+          nexusState: nearDomain ? "ready" : nexusState || "dormant",
+          tier: "kl",
+          prefersReducedMotion
+        })
       )
     );
   }
-  function FloatingNexusPanel({ tier, onClose }) {
-    const tierLabel = {
-      governance: "Governance",
-      operational_readiness: "Operational",
-      institutional: "Institutional"
-    }[tier] || "Knowledge Library";
-    return /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        className: "kl-floating-panel",
-        style: {
-          width: "240px",
-          maxWidth: "calc(100vw - 48px)",
-          background: "rgba(15, 29, 50, 0.95)",
-          border: "1px solid rgba(14, 165, 233, 0.2)",
-          borderRadius: "12px",
-          padding: "16px",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          fontFamily: "'DM Sans', sans-serif"
-        }
-      },
-      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" } }, /* @__PURE__ */ React.createElement(
-        "div",
-        {
-          style: {
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            background: "#0EA5E9",
-            boxShadow: "0 0 6px rgba(14,165,233,0.5)"
-          }
-        }
-      ), /* @__PURE__ */ React.createElement("span", { style: { color: "#0EA5E9", fontSize: "12px", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "'DM Mono', monospace" } }, "Eileen"), /* @__PURE__ */ React.createElement("span", { style: { flex: 1 } }), /* @__PURE__ */ React.createElement("span", { style: { color: "#64748B", fontSize: "11px" } }, tierLabel)),
-      /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "13px", lineHeight: 1.5, marginBottom: "12px" } }, "I'm here whenever you need me. Ask a question or upload a contract for analysis."),
-      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px" } }, /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          type: "button",
-          onClick: () => {
-            onClose();
-            window.scrollTo(0, 0);
-          },
-          style: {
-            width: "100%",
-            padding: "8px 12px",
-            background: "rgba(14, 165, 233, 0.08)",
-            border: "1px solid rgba(14, 165, 233, 0.2)",
-            borderRadius: "8px",
-            color: "#0EA5E9",
-            fontSize: "12px",
-            fontWeight: 500,
-            cursor: "pointer",
-            textAlign: "left",
-            fontFamily: "'DM Sans', sans-serif"
-          }
-        },
-        "Ask a question"
-      ))
-    );
-  }
   function NexusSendButton({ size, nexusState, disabled, onClick, prefersReducedMotion, tier }) {
+    var s = size || 38;
     return /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick,
         disabled,
         style: {
-          width: (size || 38) + "px",
-          height: (size || 38) + "px",
+          width: s + "px",
+          height: s + "px",
           borderRadius: "50%",
           border: "none",
-          background: "transparent",
+          background: disabled ? "transparent" : "#0EA5E9",
           padding: 0,
           cursor: disabled ? "default" : "pointer",
-          opacity: disabled ? 0.4 : 1,
-          transition: "opacity 0.2s",
+          opacity: disabled ? 0.3 : 1,
+          transition: "opacity 0.2s, background 0.3s",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center"
+          justifyContent: "center",
+          position: "relative",
+          overflow: "hidden"
         },
         "aria-label": "Send message to Eileen"
       },
-      /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, opacity: 0.4 } }, /* @__PURE__ */ React.createElement(
         NexusCanvas,
         {
-          size: size || 38,
+          size: s,
           nexusState: disabled ? "dormant" : nexusState,
           tier: tier || "kl",
           prefersReducedMotion
         }
+      )),
+      /* @__PURE__ */ React.createElement(
+        "svg",
+        {
+          width: Math.round(s * 0.45),
+          height: Math.round(s * 0.45),
+          viewBox: "0 0 24 24",
+          fill: "none",
+          style: { position: "relative", zIndex: 1 },
+          "aria-hidden": "true"
+        },
+        /* @__PURE__ */ React.createElement(
+          "path",
+          {
+            d: "M5 12h14M13 6l6 6-6 6",
+            stroke: "#FFFFFF",
+            strokeWidth: "2.5",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        )
       )
     );
   }
@@ -1779,7 +1777,7 @@
       }
     ));
   }
-  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange }) {
+  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
     const scrollRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     useEffect(() => {
@@ -1882,9 +1880,11 @@
             },
             onMouseEnter: function(e) {
               e.currentTarget.style.borderLeftColor = "#0EA5E9";
+              if (typeof onDomainHover === "function") onDomainHover(domain.slug);
             },
             onMouseLeave: function(e) {
               e.currentTarget.style.borderLeftColor = "#1E293B";
+              if (typeof onDomainLeave === "function") onDomainLeave();
             }
           },
           /* @__PURE__ */ React.createElement("h3", { style: {
@@ -1914,7 +1914,15 @@
           window.__klPendingInstrument = book.id;
           window.dispatchEvent(new CustomEvent("kl-open-instrument", { detail: { id: book.id } }));
         }
-      } })
+      } }),
+      /* @__PURE__ */ React.createElement(
+        FloatingNexusAdvisor,
+        {
+          nearDomain,
+          nexusState,
+          prefersReducedMotion
+        }
+      )
     ) : /* @__PURE__ */ React.createElement(
       "div",
       {
@@ -1925,16 +1933,20 @@
         onDrop
       },
       dragOverlay,
-      /* @__PURE__ */ React.createElement(
-        FloatingNexus,
-        {
-          tier,
-          nexusState,
-          isExpanded: floatingNexusExpanded,
-          onToggle: onToggleFloatingNexus,
-          prefersReducedMotion
-        }
-      ),
+      /* @__PURE__ */ React.createElement("div", { style: {
+        position: "absolute",
+        bottom: window.innerWidth <= 768 ? "100px" : "80px",
+        right: "24px",
+        zIndex: 30,
+        width: "52px",
+        height: "52px",
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 0 12px rgba(14,165,233,0.2)",
+        pointerEvents: "none"
+      } }, /* @__PURE__ */ React.createElement(NexusCanvas, { size: 52, nexusState, tier, prefersReducedMotion })),
       /* @__PURE__ */ React.createElement("div", { className: "kl-messages", ref: scrollRef, role: "log", "aria-live": "polite", onClick: function(e) {
         var target = e.target;
         if (target && target.classList && target.classList.contains("kl-ref-link")) {
@@ -2996,6 +3008,111 @@
       deleteDialog
     );
   }
+  async function downloadVaultDocument(storagePath, filename) {
+    if (!window.__klToken) return;
+    try {
+      var signResp = await fetch(
+        SUPABASE_URL + "/storage/v1/object/sign/kl-document-vault/" + encodeURIComponent(storagePath),
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + window.__klToken,
+            "apikey": SUPABASE_ANON_KEY,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ expiresIn: 3600 })
+        }
+      );
+      var signData = await signResp.json();
+      if (!signData.signedURL) {
+        throw new Error("Failed to generate download URL");
+      }
+      var downloadUrl = SUPABASE_URL + "/storage/v1" + signData.signedURL;
+      var a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename || "document";
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Download failed:", err);
+      alert("Unable to download this document right now. Please try again.");
+    }
+  }
+  async function downloadComplianceReport(uploadId) {
+    if (!window.__klToken) return;
+    try {
+      var resp = await fetch(
+        SUPABASE_URL + "/functions/v1/generate-report-pdf",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + window.__klToken,
+            "apikey": SUPABASE_ANON_KEY,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ upload_id: uploadId })
+        }
+      );
+      if (!resp.ok) {
+        throw new Error("PDF generation failed: " + resp.status);
+      }
+      var blob = await resp.blob();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "Ailane-Compliance-Report.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Report download failed:", err);
+      alert("Unable to generate the compliance report right now. Please try again.");
+    }
+  }
+  async function fetchDocumentText(documentId) {
+    if (!window.__klToken) return null;
+    try {
+      var resp = await fetch(
+        SUPABASE_URL + "/rest/v1/kl_vault_document_text?document_id=eq." + documentId + "&select=extracted_text,char_count",
+        {
+          headers: {
+            "Authorization": "Bearer " + window.__klToken,
+            "apikey": SUPABASE_ANON_KEY
+          }
+        }
+      );
+      var data = await resp.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data[0];
+      }
+      return null;
+    } catch (err) {
+      console.error("Preview fetch failed:", err);
+      return null;
+    }
+  }
+  async function fetchComplianceFindings(uploadId) {
+    if (!window.__klToken) return null;
+    try {
+      var resp = await fetch(
+        SUPABASE_URL + "/rest/v1/compliance_findings?upload_id=eq." + uploadId + "&select=clause_category,severity,finding_detail,statutory_ref,remediation&order=severity.desc",
+        {
+          headers: {
+            "Authorization": "Bearer " + window.__klToken,
+            "apikey": SUPABASE_ANON_KEY
+          }
+        }
+      );
+      var data = await resp.json();
+      return Array.isArray(data) ? data : null;
+    } catch (err) {
+      console.error("Findings fetch failed:", err);
+      return null;
+    }
+  }
   function VaultPanel() {
     var _s = useState([]);
     var docs = _s[0];
@@ -3006,9 +3123,34 @@
     var _err = useState(false);
     var fetchError = _err[0];
     var setFetchError = _err[1];
-    var _preview = useState(null);
-    var previewDoc = _preview[0];
-    var setPreviewDoc = _preview[1];
+    var _pid = useState(null);
+    var previewDocId = _pid[0];
+    var setPreviewDocId = _pid[1];
+    var _ptxt = useState(null);
+    var previewContent = _ptxt[0];
+    var setPreviewContent = _ptxt[1];
+    var _pload = useState(false);
+    var previewLoading = _pload[0];
+    var setPreviewLoading = _pload[1];
+    async function handlePreview(doc) {
+      if (previewDocId === doc.source + "-" + doc.id) {
+        setPreviewDocId(null);
+        setPreviewContent(null);
+        return;
+      }
+      var key = doc.source + "-" + doc.id;
+      setPreviewDocId(key);
+      setPreviewLoading(true);
+      setPreviewContent(null);
+      if (doc.source === "compliance") {
+        var findings = await fetchComplianceFindings(doc.id);
+        setPreviewContent({ type: "findings", data: findings });
+      } else {
+        var result = await fetchDocumentText(doc.id);
+        setPreviewContent({ type: "text", data: result ? result.extracted_text : "No extracted text available for this document." });
+      }
+      setPreviewLoading(false);
+    }
     function loadDocs() {
       setLoading(true);
       setFetchError(false);
@@ -3160,32 +3302,6 @@
         })
       );
     }
-    if (previewDoc) {
-      return React.createElement(
-        "div",
-        { style: { padding: "12px" } },
-        React.createElement("button", {
-          type: "button",
-          onClick: function() {
-            setPreviewDoc(null);
-          },
-          style: { background: "none", border: "none", color: "#0EA5E9", fontSize: "12px", cursor: "pointer", padding: "0", marginBottom: "10px", fontFamily: "'DM Sans', sans-serif" }
-        }, "\u2190 Back to documents"),
-        React.createElement("div", { style: { color: "#E2E8F0", fontSize: "14px", fontWeight: 500, marginBottom: "4px" } }, previewDoc.name),
-        React.createElement(
-          "div",
-          { style: { display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" } },
-          React.createElement("span", {
-            style: { fontSize: "10px", padding: "2px 6px", borderRadius: "4px", fontFamily: "'DM Mono', monospace", background: previewDoc.source === "vault" ? "rgba(14,165,233,0.15)" : "rgba(16,185,129,0.15)", color: previewDoc.source === "vault" ? "#0EA5E9" : "#10B981" }
-          }, previewDoc.source === "vault" ? "Vault" : "Check"),
-          previewDoc.size ? React.createElement("span", { style: { fontSize: "10px", color: "#64748B", fontFamily: "'DM Mono', monospace" } }, formatFileSize(previewDoc.size)) : null,
-          React.createElement("span", { style: { fontSize: "10px", color: "#64748B", fontFamily: "'DM Mono', monospace" } }, relativeTime(previewDoc.date))
-        ),
-        React.createElement("div", {
-          style: { color: "#94A3B8", fontSize: "12px", lineHeight: 1.6, padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }
-        }, "Document preview is available after extraction is complete. Full document content will appear here in a future update.")
-      );
-    }
     if (docs.length === 0) {
       return React.createElement(
         "div",
@@ -3277,7 +3393,7 @@
             React.createElement("span", { style: { color: "#64748B", fontSize: "11px" } }, relativeTime(doc.date)),
             doc.size ? React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace" } }, formatFileSize(doc.size)) : null
           ),
-          // Row 3: Action buttons (AMD-044 §5.3)
+          // Row 3: Action buttons (Hotfix H-2/H-3/H-4)
           React.createElement(
             "div",
             { style: { display: "flex", gap: "4px", marginTop: "8px" } },
@@ -3285,28 +3401,66 @@
               type: "button",
               className: "kl-action-btn",
               onClick: function() {
-                setPreviewDoc(doc);
+                handlePreview(doc);
               },
               style: { fontSize: "11px", padding: "3px 8px" }
-            }, "Preview"),
+            }, previewDocId === doc.source + "-" + doc.id ? "Close" : "Preview"),
             doc.source === "compliance" ? React.createElement("button", {
               type: "button",
               className: "kl-action-btn",
               title: "Download compliance report",
               style: { fontSize: "11px", padding: "3px 8px" },
               onClick: function() {
-                if (typeof window.__klDownloadReport === "function") {
-                  window.__klDownloadReport(doc.id);
-                }
+                downloadComplianceReport(doc.id);
               }
             }, "Download") : React.createElement("button", {
               type: "button",
               className: "kl-action-btn",
-              disabled: true,
-              title: "Preview only \u2014 download will be available when storage retrieval is built",
-              style: { fontSize: "11px", padding: "3px 8px", opacity: 0.4, cursor: "not-allowed" }
+              title: "Download original document",
+              style: { fontSize: "11px", padding: "3px 8px" },
+              onClick: function() {
+                downloadVaultDocument(doc.storagePath, doc.name);
+              }
             }, "Download")
-          )
+          ),
+          // Inline preview panel (H-3)
+          previewDocId === doc.source + "-" + doc.id ? React.createElement(
+            "div",
+            {
+              style: {
+                background: "#0F172A",
+                border: "1px solid #1E293B",
+                borderTop: "none",
+                borderRadius: "0 0 8px 8px",
+                padding: "16px",
+                maxHeight: "300px",
+                overflowY: "auto",
+                marginTop: "8px"
+              }
+            },
+            previewLoading ? React.createElement("span", { style: { color: "#94A3B8", fontSize: "13px", fontFamily: "'DM Sans', sans-serif" } }, "Loading preview\u2026") : previewContent && previewContent.type === "findings" && Array.isArray(previewContent.data) ? previewContent.data.map(function(f, i) {
+              var sevColor = f.severity === "high" || f.severity === "critical" ? "#EF4444" : f.severity === "medium" || f.severity === "major" ? "#F59E0B" : "#10B981";
+              return React.createElement(
+                "div",
+                {
+                  key: i,
+                  style: { marginBottom: "12px", paddingBottom: "12px", borderBottom: i < previewContent.data.length - 1 ? "1px solid #1E293B" : "none" }
+                },
+                React.createElement(
+                  "div",
+                  { style: { display: "flex", gap: "8px", marginBottom: "4px" } },
+                  React.createElement("span", {
+                    style: { fontSize: "11px", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: "uppercase", color: sevColor }
+                  }, f.severity),
+                  React.createElement("span", { style: { fontSize: "11px", fontFamily: "'DM Mono', monospace", color: "#64748B" } }, f.clause_category)
+                ),
+                React.createElement("p", { style: { color: "#CBD5E1", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, margin: "0 0 4px" } }, f.finding_detail),
+                f.statutory_ref ? React.createElement("span", { style: { fontSize: "11px", fontFamily: "'DM Mono', monospace", color: "#0EA5E9" } }, f.statutory_ref) : null
+              );
+            }) : previewContent && previewContent.type === "text" ? React.createElement("pre", {
+              style: { color: "#CBD5E1", fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }
+            }, previewContent.data) : React.createElement("span", { style: { color: "#94A3B8", fontSize: "13px" } }, "No preview available.")
+          ) : null
         );
       })
     );
@@ -5054,6 +5208,21 @@
     const [minutesRemaining, setMinutesRemaining] = useState(null);
     const [upsellDismissed, setUpsellDismissed] = useState(false);
     const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
+    const [nearDomain, setNearDomain] = useState(null);
+    const nearDomainTimeout = useRef(null);
+    function handleDomainHover(domainSlug) {
+      setNearDomain(domainSlug);
+      if (nearDomainTimeout.current) clearTimeout(nearDomainTimeout.current);
+      nearDomainTimeout.current = setTimeout(function() {
+        setNearDomain(null);
+      }, 5e3);
+    }
+    function handleDomainLeave() {
+      if (nearDomainTimeout.current) clearTimeout(nearDomainTimeout.current);
+      nearDomainTimeout.current = setTimeout(function() {
+        setNearDomain(null);
+      }, 2e3);
+    }
     const [nexusState, setNexusState] = useState("dormant");
     const presentingTimerRef = useRef(null);
     const [userType, setUserType] = useState(function() {
@@ -5779,7 +5948,10 @@
         }) && !hasUploadedThisSession,
         nexusState,
         prefersReducedMotion: prefersReducedMotion.current,
-        onInputChange: handleInputChange
+        onInputChange: handleInputChange,
+        nearDomain,
+        onDomainHover: handleDomainHover,
+        onDomainLeave: handleDomainLeave
       }
     ), /* @__PURE__ */ React.createElement(
       PanelRail,
