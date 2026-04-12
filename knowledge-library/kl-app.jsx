@@ -1153,7 +1153,7 @@ var ADVISOR_TIPS = {
 // Replaces the chat-panel FloatingNexus on the welcome state.
 // Shows contextual domain tooltip when user hovers near domain cards.
 
-function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion }) {
+function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, onProximityDomain }) {
   var _show = useState(false);
   var showTooltip = _show[0];
   var setShowTooltip = _show[1];
@@ -1168,12 +1168,90 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion }) 
     }
   }, [tip]);
 
-  return React.createElement('div', {
-    style: {
-      position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
-    },
-  },
+  // KLUX-001-AM-002 §3: Drag state. null x/y = default bottom-right anchor.
+  var _pos = useState({ x: null, y: null });
+  var pos = _pos[0];
+  var setPos = _pos[1];
+  var dragging = useRef(false);
+  var dragOffset = useRef({ x: 0, y: 0 });
+  var lastProximityCheck = useRef(0);
+
+  function checkProximity(currentX, currentY) {
+    var nowTs = Date.now();
+    if (nowTs - lastProximityCheck.current < 100) return;
+    lastProximityCheck.current = nowTs;
+    var elements = document.querySelectorAll('[data-domain-slug], [data-feed-id], [data-calendar-id]');
+    var closest = null;
+    var closestDist = Infinity;
+    elements.forEach(function(el) {
+      var rect = el.getBoundingClientRect();
+      var cx = (rect.left + rect.right) / 2;
+      var cy = (rect.top + rect.bottom) / 2;
+      var dist = Math.sqrt(Math.pow(currentX - cx, 2) + Math.pow(currentY - cy, 2));
+      if (dist < 120 && dist < closestDist) {
+        closestDist = dist;
+        closest = el.dataset.domainSlug || null;
+      }
+    });
+    if (typeof onProximityDomain === 'function') onProximityDomain(closest);
+  }
+
+  function handleMouseDown(e) {
+    dragging.current = true;
+    var rect = e.currentTarget.getBoundingClientRect();
+    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    e.preventDefault();
+  }
+
+  function handleTouchStart(e) {
+    dragging.current = true;
+    var touch = e.touches[0];
+    var rect = e.currentTarget.getBoundingClientRect();
+    dragOffset.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+  }
+
+  useEffect(function() {
+    function handleMouseMove(e) {
+      if (!dragging.current) return;
+      var x = Math.max(0, Math.min(window.innerWidth - 52, e.clientX - dragOffset.current.x));
+      var y = Math.max(0, Math.min(window.innerHeight - 52, e.clientY - dragOffset.current.y));
+      setPos({ x: x, y: y });
+      checkProximity(e.clientX, e.clientY);
+    }
+    function handleMouseUp() {
+      dragging.current = false;
+    }
+    function handleTouchMove(e) {
+      if (!dragging.current) return;
+      var touch = e.touches[0];
+      var x = Math.max(0, Math.min(window.innerWidth - 52, touch.clientX - dragOffset.current.x));
+      var y = Math.max(0, Math.min(window.innerHeight - 52, touch.clientY - dragOffset.current.y));
+      setPos({ x: x, y: y });
+      checkProximity(touch.clientX, touch.clientY);
+      if (e.cancelable) e.preventDefault();
+    }
+    function handleTouchEnd() {
+      dragging.current = false;
+    }
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    return function() {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
+  var posStyle = pos.x !== null
+    ? { position: 'fixed', left: pos.x + 'px', top: pos.y + 'px', zIndex: 1000,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }
+    : { position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' };
+
+  return React.createElement('div', { style: posStyle },
     // Advisor tooltip
     showTooltip && tip ? React.createElement('div', {
       style: {
@@ -1190,12 +1268,18 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion }) 
       ),
       React.createElement('p', { style: { color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 } }, tip)
     ) : null,
-    // Nexus orb
+    // Nexus orb (draggable)
     React.createElement('div', {
+      onMouseDown: handleMouseDown,
+      onTouchStart: handleTouchStart,
+      role: 'button',
+      'aria-label': 'Drag Eileen',
       style: {
         width: '52px', height: '52px', borderRadius: '50%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'default',
+        cursor: dragging.current ? 'grabbing' : 'grab',
+        touchAction: 'none',
+        userSelect: 'none',
         boxShadow: '0 0 ' + (nearDomain ? '16' : '8') + 'px rgba(14,165,233,' + (nearDomain ? '0.3' : '0.15') + ')',
         transition: 'box-shadow 0.3s',
       },
@@ -2455,6 +2539,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               return (
                 <div
                   key={domain.id}
+                  data-domain-slug={domain.slug}
                   role="button"
                   tabIndex={0}
                   aria-label={'Explore ' + domain.name}
@@ -2553,7 +2638,99 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
   );
 }
 
-// ─── CrownJewels ───
+// ─── Regulatory Intelligence Feed (KLUX-001-AM-002 §2, AMD-046) ───
+// Replaces Crown Jewels in the sidebar. Shows rolling 180-day window of
+// regulatory requirements (90 days past, 90 days future) from the
+// regulatory_requirements table.
+
+async function loadRegulatoryFeed() {
+  if (!window.__klToken) return [];
+  try {
+    var now = new Date();
+    var past = new Date(now); past.setDate(past.getDate() - 90);
+    var future = new Date(now); future.setDate(future.getDate() + 90);
+
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/regulatory_requirements' +
+        '?effective_from=gte.' + past.toISOString().split('T')[0] +
+        '&effective_from=lte.' + future.toISOString().split('T')[0] +
+        '&select=id,requirement_name,statutory_basis,effective_from,commencement_status,is_forward_requirement,source_act' +
+        '&order=effective_from.desc' +
+        '&limit=20',
+      { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+    );
+    var data = await resp.json();
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('Regulatory feed failed:', e);
+    return [];
+  }
+}
+
+function RegulatoryFeedItem({ item, onDiscuss }) {
+  var _exp = useState(false);
+  var expanded = _exp[0];
+  var setExpanded = _exp[1];
+
+  var now = new Date();
+  var effectiveDate = new Date(item.effective_from);
+  var isPast = effectiveDate <= now;
+  var daysAway = Math.ceil((effectiveDate - now) / (1000 * 60 * 60 * 24));
+
+  var badgeColor = isPast ? '#10B981' : daysAway <= 30 ? '#EF4444' : '#F59E0B';
+  var badgeText = isPast ? 'In force' : daysAway + ' days';
+
+  return (
+    <div data-feed-id={item.id} style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div
+        onClick={function() { setExpanded(!expanded); }}
+        style={{ cursor: 'pointer' }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } }}
+        aria-expanded={expanded}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <span style={{
+            fontSize: '10px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
+            color: badgeColor, background: badgeColor + '15',
+            padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap',
+          }}>{badgeText}</span>
+          <span style={{
+            color: '#E2E8F0', fontSize: '12px', fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            flex: 1, minWidth: 0,
+          }}>{item.requirement_name}</span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span style={{ color: '#0EA5E9', fontSize: '10px', fontFamily: "'DM Mono', monospace" }}>{item.source_act}</span>
+          <span style={{ color: '#64748B', fontSize: '10px' }}>
+            {effectiveDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </span>
+        </div>
+      </div>
+      {expanded && (
+        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <p style={{
+            color: '#CBD5E1', fontSize: '11px', fontFamily: "'DM Sans', sans-serif",
+            lineHeight: 1.5, margin: '0 0 8px',
+          }}>{item.statutory_basis}</p>
+          <button
+            type="button"
+            onClick={function(e) { e.stopPropagation(); onDiscuss(item); }}
+            style={{
+              background: 'transparent', border: '1px solid #0EA5E9', color: '#0EA5E9',
+              borderRadius: '6px', padding: '4px 10px', fontSize: '11px',
+              fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+            }}
+          >Discuss with Eileen</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CrownJewels (removed from Sidebar per KLUX-001-AM-002 §2.1; constant retained at top of file) ───
 
 function CrownJewels({ onQuery, disabled }) {
   var _exp = useState({});
@@ -2642,6 +2819,18 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
+  // KLUX-001-AM-002 §2: Regulatory Intelligence Feed state (replaces Crown Jewels)
+  var _feed = useState([]);
+  var feedItems = _feed[0];
+  var setFeedItems = _feed[1];
+
+  useEffect(function() {
+    var cancelled = false;
+    loadRegulatoryFeed().then(function(items) {
+      if (!cancelled) setFeedItems(items);
+    });
+    return function() { cancelled = true; };
+  }, []);
 
   return React.createElement('nav', { className: 'kl-sidebar' + (open ? '' : ' collapsed'), role: 'navigation', 'aria-label': 'Conversation history' },
     // §5 — Sidebar Nexus indicator (20px, shows Eileen's current state)
@@ -2663,8 +2852,30 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
       )
     ),
 
+    // KLUX-001-AM-002 §2.3: Regulatory Intelligence Feed (replaces Crown Jewels)
     React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
-      React.createElement(CrownJewels, { onQuery: onCrownQuery })
+      React.createElement('div', { style: { marginTop: '12px' } },
+        React.createElement('div', {
+          style: {
+            color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace",
+            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
+            padding: '8px 16px',
+          },
+        }, 'Regulatory Intelligence'),
+        feedItems.length === 0
+          ? React.createElement('div', {
+              style: { padding: '8px 16px', color: '#475569', fontSize: '11px' },
+            }, 'No recent regulatory events')
+          : feedItems.map(function(item, i) {
+              return React.createElement(RegulatoryFeedItem, {
+                key: item.id || i,
+                item: item,
+                onDiscuss: function(it) {
+                  onCrownQuery('Tell me about ' + it.requirement_name + ' under ' + it.source_act);
+                },
+              });
+            })
+      )
     ),
 
     React.createElement('div', { style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' } },
@@ -3429,10 +3640,20 @@ function NotesPanel() {
 // ─── Vault helper functions (Hotfix H-2, H-3, H-4) ───
 
 async function downloadVaultDocument(storagePath, filename) {
-  if (!window.__klToken) return;
+  if (!window.__klToken || !storagePath) {
+    alert('Unable to download \u2014 please refresh and try again.');
+    return;
+  }
   try {
+    // Sprint G §5: Encode each path segment individually so slashes are
+    // preserved but spaces and special characters in the filename are encoded.
+    // Supabase Storage rejects fully-encoded paths where '/' has become '%2F'.
+    var encodedPath = storagePath.split('/').map(function(part) {
+      return encodeURIComponent(part);
+    }).join('/');
+
     var signResp = await fetch(
-      SUPABASE_URL + '/storage/v1/object/sign/kl-document-vault/' + encodeURIComponent(storagePath),
+      SUPABASE_URL + '/storage/v1/object/sign/kl-document-vault/' + encodedPath,
       {
         method: 'POST',
         headers: {
@@ -3443,21 +3664,34 @@ async function downloadVaultDocument(storagePath, filename) {
         body: JSON.stringify({ expiresIn: 3600 }),
       }
     );
-    var signData = await signResp.json();
-    if (!signData.signedURL) {
-      throw new Error('Failed to generate download URL');
+
+    if (!signResp.ok) {
+      var errText = await signResp.text();
+      console.error('Signed URL error:', signResp.status, errText);
+      alert('Download failed \u2014 the file may not be available. Please try again.');
+      return;
     }
+
+    var signData = await signResp.json();
+
+    if (!signData.signedURL) {
+      console.error('No signedURL in response:', signData);
+      alert('Download failed \u2014 please try again.');
+      return;
+    }
+
     var downloadUrl = SUPABASE_URL + '/storage/v1' + signData.signedURL;
+
     var a = document.createElement('a');
     a.href = downloadUrl;
     a.download = filename || 'document';
-    a.target = '_blank';
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   } catch (err) {
-    console.error('Download failed:', err);
-    alert('Unable to download this document right now. Please try again.');
+    console.error('Download error:', err);
+    alert('Unable to download this document right now. Please check your connection and try again.');
   }
 }
 
@@ -3863,7 +4097,10 @@ function VaultPanel() {
   );
 }
 
-// ─── CalendarPanel (regulatory_requirements, not user-scoped, expandable detail) ───
+// ─── CalendarPanel (regulatory_requirements, month-grouped, date-prominent) ───
+// KLUX-001-AM-002 §4: Replaces flat list with month-grouped layout and
+// prominent day-number date badges. Each event is expandable and offers a
+// "Discuss with Eileen" seed button.
 
 function CalendarPanel() {
   var _reqs = useState([]);
@@ -3909,12 +4146,18 @@ function CalendarPanel() {
     });
   }
 
+  function discussWithEileen(req) {
+    if (typeof window.__klSendMessage === 'function') {
+      window.__klSendMessage('Tell me about ' + req.requirement_name + ' under ' + (req.source_act || 'UK employment law'));
+    }
+  }
+
   if (loading) {
-    return React.createElement('div', { style: { color: '#94A3B8', fontSize: '13px', padding: '12px' } }, 'Loading regulatory calendar\u2026');
+    return <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Loading regulatory calendar&hellip;</div>;
   }
 
   var forwardCount = reqs.filter(function(r) { return r.is_forward_requirement; }).length;
-  var filtered = reqs.filter(function(r) {
+  var filteredReqs = reqs.filter(function(r) {
     if (filter === 'forward') return r.is_forward_requirement;
     if (filter === 'in_force') return r.commencement_status === 'in_force';
     return true;
@@ -3926,79 +4169,129 @@ function CalendarPanel() {
     { id: 'forward', label: 'Forward (' + forwardCount + ')' },
   ];
 
-  return React.createElement('div', null,
-    React.createElement('div', { style: { display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' } },
-      filterButtons.map(function(f) {
-        return React.createElement('button', {
-          key: f.id,
-          type: 'button',
-          onClick: function() { setFilter(f.id); },
-          style: {
-            padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer',
-            fontFamily: 'inherit',
-            border: filter === f.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
-            background: filter === f.id ? 'rgba(14,165,233,0.15)' : 'transparent',
-            color: filter === f.id ? '#0EA5E9' : '#94A3B8',
-          },
-        }, f.label);
-      })
-    ),
-    filtered.length === 0
-      ? React.createElement('div', { style: { color: '#64748B', fontSize: '12px', padding: '8px 4px' } }, 'No requirements match this filter.')
-      : filtered.map(function(r) {
-          var isOpen = !!expanded[r.id];
-          return React.createElement('div', {
-            key: r.id,
-            style: {
-              marginBottom: '6px', borderRadius: '6px', overflow: 'hidden',
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-              borderLeft: r.is_forward_requirement ? '3px solid #F59E0B' : '3px solid #10B981',
-            },
-          },
-            React.createElement('div', {
-              onClick: function() { toggleExpand(r.id); },
-              style: { padding: '10px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
-            },
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { color: '#E2E8F0', fontSize: '13px', fontWeight: 500 } }, r.requirement_name),
-                r.effective_from && React.createElement('div', { style: { color: '#64748B', fontSize: '11px', marginTop: '2px' } },
-                  'Effective: ' + new Date(r.effective_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                )
-              ),
-              React.createElement('span', {
-                style: { color: '#64748B', fontSize: '10px', flexShrink: 0, transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' },
-                'aria-hidden': 'true',
-              }, '\u25BC')
-            ),
-            isOpen && React.createElement('div', {
-              style: { padding: '0 10px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' },
-            },
-              r.statutory_basis && React.createElement('div', { style: { marginTop: '8px' } },
-                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Statutory Basis'),
-                React.createElement('div', { style: { color: '#CBD5E1', fontSize: '12px', marginTop: '2px' } }, r.statutory_basis)
-              ),
-              r.source_act && React.createElement('div', { style: { marginTop: '8px' } },
-                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Source Act'),
-                React.createElement('div', { style: { color: '#CBD5E1', fontSize: '12px', marginTop: '2px' } }, r.source_act)
-              ),
-              React.createElement('div', { style: { marginTop: '8px' } },
-                React.createElement('span', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' } }, 'Status'),
-                React.createElement('div', { style: { marginTop: '2px' } },
-                  React.createElement('span', {
-                    style: {
-                      fontSize: '11px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px',
-                      background: r.commencement_status === 'in_force' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                      color: r.commencement_status === 'in_force' ? '#10B981' : '#F59E0B',
-                    },
-                  }, r.commencement_status === 'in_force' ? 'In Force' : r.commencement_status || 'Pending')
-                )
-              ),
-              r.is_forward_requirement && React.createElement('div', {
-                style: { marginTop: '8px', padding: '6px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.1)', fontSize: '11px', color: '#F59E0B' },
-              }, 'Forward requirement \u2014 not yet in force')
-            )
+  // KLUX-001-AM-002 §4.1: Group filtered events by month
+  var grouped = {};
+  filteredReqs.forEach(function(req) {
+    if (!req.effective_from) return;
+    var d = new Date(req.effective_from);
+    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    var label = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    if (!grouped[key]) grouped[key] = { label: label, items: [] };
+    grouped[key].items.push(req);
+  });
+  var months = Object.keys(grouped).sort();
+
+  return (
+    <div style={{ padding: '12px' }}>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {filterButtons.map(function(f) {
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={function() { setFilter(f.id); }}
+              style={{
+                padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer',
+                fontFamily: 'inherit',
+                border: filter === f.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+                background: filter === f.id ? 'rgba(14,165,233,0.15)' : 'transparent',
+                color: filter === f.id ? '#0EA5E9' : '#94A3B8',
+              }}
+            >{f.label}</button>
           );
-        })
+        })}
+      </div>
+
+      {months.length === 0 ? (
+        <div style={{ color: '#64748B', fontSize: '12px', padding: '8px 4px' }}>No requirements match this filter.</div>
+      ) : months.map(function(monthKey) {
+        var month = grouped[monthKey];
+        return (
+          <div key={monthKey} style={{ marginBottom: '20px' }}>
+            <div style={{
+              color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 600, padding: '8px 0', borderBottom: '1px solid #1E293B',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span>{month.label}</span>
+              <span style={{ fontSize: '11px', color: '#475569' }}>{month.items.length} event{month.items.length === 1 ? '' : 's'}</span>
+            </div>
+
+            {month.items.map(function(req, i) {
+              var d = new Date(req.effective_from);
+              var dayNum = d.getDate();
+              var isExpanded = !!expanded[req.id];
+              var statusColor = req.commencement_status === 'in_force' ? '#10B981'
+                : req.is_forward_requirement ? '#F59E0B' : '#0EA5E9';
+
+              return (
+                <div
+                  key={req.id || i}
+                  data-calendar-id={req.id}
+                  onClick={function() { toggleExpand(req.id); }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(req.id); } }}
+                  aria-expanded={isExpanded}
+                  style={{
+                    display: 'flex', gap: '12px', padding: '10px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer',
+                  }}
+                >
+                  <div style={{
+                    minWidth: '44px', height: '44px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    background: statusColor + '15', borderRadius: '8px', flexShrink: 0,
+                  }}>
+                    <span style={{
+                      color: statusColor, fontSize: '18px', fontWeight: 700,
+                      fontFamily: "'DM Sans', sans-serif", lineHeight: 1,
+                    }}>{dayNum}</span>
+                    <span style={{
+                      color: statusColor, fontSize: '9px',
+                      fontFamily: "'DM Mono', monospace", textTransform: 'uppercase',
+                    }}>{d.toLocaleDateString('en-GB', { month: 'short' })}</span>
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      color: '#E2E8F0', fontSize: '12px',
+                      fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                    }}>{req.requirement_name}</div>
+                    {req.source_act && (
+                      <div style={{
+                        color: '#64748B', fontSize: '10px',
+                        fontFamily: "'DM Mono', monospace", marginTop: '2px',
+                      }}>{req.source_act}</div>
+                    )}
+
+                    {isExpanded && (
+                      <div style={{ marginTop: '8px' }}>
+                        {req.statutory_basis && (
+                          <p style={{
+                            color: '#CBD5E1', fontSize: '11px', lineHeight: 1.5,
+                            margin: '0 0 8px', fontFamily: "'DM Sans', sans-serif",
+                          }}>{req.statutory_basis}</p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={function(e) { e.stopPropagation(); discussWithEileen(req); }}
+                          style={{
+                            background: 'transparent', border: '1px solid #0EA5E9', color: '#0EA5E9',
+                            borderRadius: '6px', padding: '4px 10px', fontSize: '11px',
+                            fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+                          }}
+                        >Discuss with Eileen</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -6276,6 +6569,7 @@ function App() {
           nearDomain={nearDomain}
           nexusState={nexusState}
           prefersReducedMotion={prefersReducedMotion.current}
+          onProximityDomain={function(slug) { if (slug) handleDomainHover(slug); else handleDomainLeave(); }}
         />
       )}
       <PanelRail

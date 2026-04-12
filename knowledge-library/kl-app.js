@@ -1,67 +1,9 @@
 (() => {
-  // kl-app.jsx
+  // knowledge-library/kl-app.jsx
   var { useState, useEffect, useRef, useCallback } = React;
   var SUPABASE_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
   var EILEEN_ENDPOINT = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co") + "/functions/v1/eileen-intelligence";
-  var CROWN_JEWELS = [
-    {
-      name: "Employment Rights Act 1996",
-      shortId: "ERA 1996",
-      warmIntro: "The foundation of modern employment protection in the UK.",
-      topics: "Covers unfair dismissal, redundancy rights, written terms of employment, whistleblower protections, flexible working, and the right not to suffer detriment.",
-      keyQuestion: "What does the ERA 1996 require of my employment contracts?",
-      inForce: true
-    },
-    {
-      name: "Equality Act 2010",
-      shortId: "EqA 2010",
-      warmIntro: "The single framework protecting people from discrimination at work.",
-      topics: "Covers nine protected characteristics including age, disability, race, sex, and pregnancy. Addresses direct and indirect discrimination, harassment, victimisation, and the duty to make reasonable adjustments.",
-      keyQuestion: "What are my obligations around workplace discrimination under the Equality Act?",
-      inForce: true
-    },
-    {
-      name: "Health and Safety at Work Act 1974",
-      shortId: "HSWA 1974",
-      warmIntro: "The primary legislation ensuring workplaces are safe for everyone.",
-      topics: "Establishes the employer's general duty of care, risk assessment obligations, employee consultation rights, and HSE enforcement powers.",
-      keyQuestion: "What are my core health and safety duties as an employer?",
-      inForce: true
-    },
-    {
-      name: "National Minimum Wage Act 1998",
-      shortId: "NMWA 1998",
-      warmIntro: "Guarantees a minimum level of pay for virtually all workers.",
-      topics: "Sets out entitlements to national minimum wage and national living wage, employer record-keeping duties, and HMRC enforcement mechanisms.",
-      keyQuestion: "Am I meeting my minimum wage obligations for all worker categories?",
-      inForce: true
-    },
-    {
-      name: "Trade Union and Labour Relations (Consolidation) Act 1992",
-      shortId: "TULRCA 1992",
-      warmIntro: "Governs collective rights, union recognition, and industrial action.",
-      topics: "Covers trade union recognition, collective bargaining, the right to be accompanied, collective redundancy consultation (Section 188), and lawful industrial action.",
-      keyQuestion: "What are my obligations around collective consultation and trade union rights?",
-      inForce: true
-    },
-    {
-      name: "Employment Rights Act 2025",
-      shortId: "ERA 2025",
-      warmIntro: "The most significant reform to employment law in a generation.",
-      topics: "Introduces day-one unfair dismissal rights, restricts fire-and-rehire, reforms zero-hours contracts, strengthens flexible working, and creates the Fair Work Agency. Measures commenced 6 April 2026.",
-      keyQuestion: "How does the Employment Rights Act 2025 change my obligations from April 2026?",
-      inForce: false
-    },
-    {
-      name: "Public Interest Disclosure Act 1998",
-      shortId: "PIDA 1998",
-      warmIntro: "Protects workers who raise concerns about wrongdoing.",
-      topics: "Defines qualifying disclosures, protected disclosures in the public interest, protection from dismissal and detriment, and the prescribed persons framework.",
-      keyQuestion: "How should I handle a whistleblowing disclosure from an employee?",
-      inForce: true
-    }
-  ];
   var INSTRUMENT_NAMES = {
     "ERA 1996": "Employment Rights Act 1996",
     "EqA 2010": "Equality Act 2010",
@@ -835,7 +777,7 @@
     "whistleblowing": "Eileen covers qualifying disclosures, protected disclosure routes, and the employment protections for workers who raise concerns.",
     "data-monitoring": "Eileen can guide you through employer GDPR obligations, employee monitoring rules, and subject access request handling."
   };
-  function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion }) {
+  function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, onProximityDomain }) {
     var _show = useState(false);
     var showTooltip = _show[0];
     var setShowTooltip = _show[1];
@@ -852,20 +794,99 @@
         };
       }
     }, [tip]);
+    var _pos = useState({ x: null, y: null });
+    var pos = _pos[0];
+    var setPos = _pos[1];
+    var dragging = useRef(false);
+    var dragOffset = useRef({ x: 0, y: 0 });
+    var lastProximityCheck = useRef(0);
+    function checkProximity(currentX, currentY) {
+      var nowTs = Date.now();
+      if (nowTs - lastProximityCheck.current < 100) return;
+      lastProximityCheck.current = nowTs;
+      var elements = document.querySelectorAll("[data-domain-slug], [data-feed-id], [data-calendar-id]");
+      var closest = null;
+      var closestDist = Infinity;
+      elements.forEach(function(el) {
+        var rect = el.getBoundingClientRect();
+        var cx = (rect.left + rect.right) / 2;
+        var cy = (rect.top + rect.bottom) / 2;
+        var dist = Math.sqrt(Math.pow(currentX - cx, 2) + Math.pow(currentY - cy, 2));
+        if (dist < 120 && dist < closestDist) {
+          closestDist = dist;
+          closest = el.dataset.domainSlug || null;
+        }
+      });
+      if (typeof onProximityDomain === "function") onProximityDomain(closest);
+    }
+    function handleMouseDown(e) {
+      dragging.current = true;
+      var rect = e.currentTarget.getBoundingClientRect();
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      e.preventDefault();
+    }
+    function handleTouchStart(e) {
+      dragging.current = true;
+      var touch = e.touches[0];
+      var rect = e.currentTarget.getBoundingClientRect();
+      dragOffset.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    }
+    useEffect(function() {
+      function handleMouseMove(e) {
+        if (!dragging.current) return;
+        var x = Math.max(0, Math.min(window.innerWidth - 52, e.clientX - dragOffset.current.x));
+        var y = Math.max(0, Math.min(window.innerHeight - 52, e.clientY - dragOffset.current.y));
+        setPos({ x, y });
+        checkProximity(e.clientX, e.clientY);
+      }
+      function handleMouseUp() {
+        dragging.current = false;
+      }
+      function handleTouchMove(e) {
+        if (!dragging.current) return;
+        var touch = e.touches[0];
+        var x = Math.max(0, Math.min(window.innerWidth - 52, touch.clientX - dragOffset.current.x));
+        var y = Math.max(0, Math.min(window.innerHeight - 52, touch.clientY - dragOffset.current.y));
+        setPos({ x, y });
+        checkProximity(touch.clientX, touch.clientY);
+        if (e.cancelable) e.preventDefault();
+      }
+      function handleTouchEnd() {
+        dragging.current = false;
+      }
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("touchmove", handleTouchMove, { passive: false });
+      window.addEventListener("touchend", handleTouchEnd);
+      return function() {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+        window.removeEventListener("touchmove", handleTouchMove);
+        window.removeEventListener("touchend", handleTouchEnd);
+      };
+    }, []);
+    var posStyle = pos.x !== null ? {
+      position: "fixed",
+      left: pos.x + "px",
+      top: pos.y + "px",
+      zIndex: 1e3,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "8px"
+    } : {
+      position: "fixed",
+      bottom: "24px",
+      right: "24px",
+      zIndex: 1e3,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      gap: "8px"
+    };
     return React.createElement(
       "div",
-      {
-        style: {
-          position: "fixed",
-          bottom: "24px",
-          right: "24px",
-          zIndex: 1e3,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: "8px"
-        }
-      },
+      { style: posStyle },
       // Advisor tooltip
       showTooltip && tip ? React.createElement(
         "div",
@@ -890,10 +911,14 @@
         ),
         React.createElement("p", { style: { color: "#CBD5E1", fontSize: "13px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 } }, tip)
       ) : null,
-      // Nexus orb
+      // Nexus orb (draggable)
       React.createElement(
         "div",
         {
+          onMouseDown: handleMouseDown,
+          onTouchStart: handleTouchStart,
+          role: "button",
+          "aria-label": "Drag Eileen",
           style: {
             width: "52px",
             height: "52px",
@@ -901,7 +926,9 @@
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            cursor: "default",
+            cursor: dragging.current ? "grabbing" : "grab",
+            touchAction: "none",
+            userSelect: "none",
             boxShadow: "0 0 " + (nearDomain ? "16" : "8") + "px rgba(14,165,233," + (nearDomain ? "0.3" : "0.15") + ")",
             transition: "box-shadow 0.3s"
           }
@@ -2070,6 +2097,7 @@
           "div",
           {
             key: domain.id,
+            "data-domain-slug": domain.slug,
             role: "button",
             tabIndex: 0,
             "aria-label": "Explore " + domain.name,
@@ -2175,127 +2203,117 @@
       /* @__PURE__ */ React.createElement("div", { className: "kl-conversation-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion }))
     ));
   }
-  function CrownJewels({ onQuery, disabled }) {
-    var _exp = useState({});
+  async function loadRegulatoryFeed() {
+    if (!window.__klToken) return [];
+    try {
+      var now = /* @__PURE__ */ new Date();
+      var past = new Date(now);
+      past.setDate(past.getDate() - 90);
+      var future = new Date(now);
+      future.setDate(future.getDate() + 90);
+      var resp = await fetch(
+        SUPABASE_URL + "/rest/v1/regulatory_requirements?effective_from=gte." + past.toISOString().split("T")[0] + "&effective_from=lte." + future.toISOString().split("T")[0] + "&select=id,requirement_name,statutory_basis,effective_from,commencement_status,is_forward_requirement,source_act&order=effective_from.desc&limit=20",
+        { headers: { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY } }
+      );
+      var data = await resp.json();
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.error("Regulatory feed failed:", e);
+      return [];
+    }
+  }
+  function RegulatoryFeedItem({ item, onDiscuss }) {
+    var _exp = useState(false);
     var expanded = _exp[0];
     var setExpanded = _exp[1];
-    function toggle(name) {
-      setExpanded(function(prev) {
-        var next = {};
-        for (var k in prev) next[k] = prev[k];
-        next[name] = !prev[name];
-        return next;
-      });
-    }
-    return React.createElement(
+    var now = /* @__PURE__ */ new Date();
+    var effectiveDate = new Date(item.effective_from);
+    var isPast = effectiveDate <= now;
+    var daysAway = Math.ceil((effectiveDate - now) / (1e3 * 60 * 60 * 24));
+    var badgeColor = isPast ? "#10B981" : daysAway <= 30 ? "#EF4444" : "#F59E0B";
+    var badgeText = isPast ? "In force" : daysAway + " days";
+    return /* @__PURE__ */ React.createElement("div", { "data-feed-id": item.id, style: { padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" } }, /* @__PURE__ */ React.createElement(
       "div",
-      { className: "kl-crown" },
-      React.createElement("div", { className: "kl-crown-title" }, "Crown Jewels"),
-      React.createElement(
-        "div",
-        { className: "kl-crown-list" },
-        CROWN_JEWELS.map(function(jewel) {
-          var isOpen = !!expanded[jewel.name];
-          return React.createElement(
-            "div",
-            { key: jewel.name, style: { marginBottom: "4px" } },
-            React.createElement(
-              "div",
-              {
-                onClick: function() {
-                  toggle(jewel.name);
-                },
-                style: {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "7px 10px",
-                  borderRadius: isOpen ? "8px 8px 0 0" : "8px",
-                  background: "rgba(14,165,233,0.04)",
-                  border: "1px solid rgba(14,165,233,0.12)",
-                  cursor: "pointer",
-                  transition: "background 0.15s"
-                }
-              },
-              React.createElement("span", {
-                style: {
-                  width: "5px",
-                  height: "5px",
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  background: jewel.inForce ? "#10B981" : "#F59E0B"
-                }
-              }),
-              React.createElement("span", {
-                style: { flex: 1, fontSize: "11px", color: "#CBD5E1", lineHeight: 1.3, fontFamily: "'DM Sans', sans-serif" }
-              }, jewel.name),
-              React.createElement("span", {
-                style: { fontSize: "9px", color: "#64748B", flexShrink: 0, transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0)" },
-                "aria-hidden": "true"
-              }, "\u25BC")
-            ),
-            isOpen && React.createElement(
-              "div",
-              {
-                style: {
-                  padding: "10px",
-                  background: "rgba(14,165,233,0.02)",
-                  border: "1px solid rgba(14,165,233,0.12)",
-                  borderTop: "none",
-                  borderRadius: "0 0 8px 8px"
-                }
-              },
-              React.createElement("div", {
-                style: { fontSize: "12px", color: "#0EA5E9", fontWeight: 500, marginBottom: "6px", fontFamily: "'DM Sans', sans-serif" }
-              }, jewel.warmIntro),
-              React.createElement("div", {
-                style: { fontSize: "11px", color: "#94A3B8", lineHeight: 1.5, marginBottom: "10px" }
-              }, jewel.topics),
-              !jewel.inForce && React.createElement("div", {
-                style: {
-                  fontSize: "10px",
-                  color: "#F59E0B",
-                  padding: "4px 8px",
-                  borderRadius: "4px",
-                  background: "rgba(245,158,11,0.06)",
-                  marginBottom: "8px",
-                  display: "inline-block"
-                }
-              }, "Commenced 6 April 2026"),
-              React.createElement("button", {
-                type: "button",
-                disabled,
-                onClick: function(e) {
-                  e.stopPropagation();
-                  onQuery(jewel.keyQuestion);
-                },
-                style: {
-                  display: "block",
-                  width: "100%",
-                  padding: "7px 10px",
-                  borderRadius: "6px",
-                  background: "rgba(14,165,233,0.08)",
-                  border: "1px solid rgba(14,165,233,0.2)",
-                  color: "#0EA5E9",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  cursor: disabled ? "not-allowed" : "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  textAlign: "left",
-                  opacity: disabled ? 0.5 : 1,
-                  transition: "background 0.15s"
-                }
-              }, "\u2192 " + jewel.keyQuestion)
-            )
-          );
-        })
-      )
-    );
+      {
+        onClick: function() {
+          setExpanded(!expanded);
+        },
+        style: { cursor: "pointer" },
+        role: "button",
+        tabIndex: 0,
+        onKeyDown: function(e) {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        },
+        "aria-expanded": expanded
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" } }, /* @__PURE__ */ React.createElement("span", { style: {
+        fontSize: "10px",
+        fontFamily: "'DM Sans', sans-serif",
+        fontWeight: 600,
+        color: badgeColor,
+        background: badgeColor + "15",
+        padding: "2px 6px",
+        borderRadius: "4px",
+        whiteSpace: "nowrap"
+      } }, badgeText), /* @__PURE__ */ React.createElement("span", { style: {
+        color: "#E2E8F0",
+        fontSize: "12px",
+        fontFamily: "'DM Sans', sans-serif",
+        fontWeight: 500,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        flex: 1,
+        minWidth: 0
+      } }, item.requirement_name)),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { color: "#0EA5E9", fontSize: "10px", fontFamily: "'DM Mono', monospace" } }, item.source_act), /* @__PURE__ */ React.createElement("span", { style: { color: "#64748B", fontSize: "10px" } }, effectiveDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })))
+    ), expanded && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.04)" } }, /* @__PURE__ */ React.createElement("p", { style: {
+      color: "#CBD5E1",
+      fontSize: "11px",
+      fontFamily: "'DM Sans', sans-serif",
+      lineHeight: 1.5,
+      margin: "0 0 8px"
+    } }, item.statutory_basis), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: function(e) {
+          e.stopPropagation();
+          onDiscuss(item);
+        },
+        style: {
+          background: "transparent",
+          border: "1px solid #0EA5E9",
+          color: "#0EA5E9",
+          borderRadius: "6px",
+          padding: "4px 10px",
+          fontSize: "11px",
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: "pointer"
+        }
+      },
+      "Discuss with Eileen"
+    )));
   }
   function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion }) {
     var _historyOpen = useState(false);
     var historyOpen = _historyOpen[0];
     var setHistoryOpen = _historyOpen[1];
+    var _feed = useState([]);
+    var feedItems = _feed[0];
+    var setFeedItems = _feed[1];
+    useEffect(function() {
+      var cancelled = false;
+      loadRegulatoryFeed().then(function(items) {
+        if (!cancelled) setFeedItems(items);
+      });
+      return function() {
+        cancelled = true;
+      };
+    }, []);
     return React.createElement(
       "nav",
       { className: "kl-sidebar" + (open ? "" : " collapsed"), role: "navigation", "aria-label": "Conversation history" },
@@ -2325,10 +2343,36 @@
           React.createElement("span", null, "New Conversation")
         )
       ),
+      // KLUX-001-AM-002 §2.3: Regulatory Intelligence Feed (replaces Crown Jewels)
       React.createElement(
         "div",
         { style: { flex: 1, overflowY: "auto", minHeight: 0 } },
-        React.createElement(CrownJewels, { onQuery: onCrownQuery })
+        React.createElement(
+          "div",
+          { style: { marginTop: "12px" } },
+          React.createElement("div", {
+            style: {
+              color: "#64748B",
+              fontSize: "10px",
+              fontFamily: "'DM Mono', monospace",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              padding: "8px 16px"
+            }
+          }, "Regulatory Intelligence"),
+          feedItems.length === 0 ? React.createElement("div", {
+            style: { padding: "8px 16px", color: "#475569", fontSize: "11px" }
+          }, "No recent regulatory events") : feedItems.map(function(item, i) {
+            return React.createElement(RegulatoryFeedItem, {
+              key: item.id || i,
+              item,
+              onDiscuss: function(it) {
+                onCrownQuery("Tell me about " + it.requirement_name + " under " + it.source_act);
+              }
+            });
+          })
+        )
       ),
       React.createElement(
         "div",
@@ -3212,10 +3256,16 @@
     );
   }
   async function downloadVaultDocument(storagePath, filename) {
-    if (!window.__klToken) return;
+    if (!window.__klToken || !storagePath) {
+      alert("Unable to download \u2014 please refresh and try again.");
+      return;
+    }
     try {
+      var encodedPath = storagePath.split("/").map(function(part) {
+        return encodeURIComponent(part);
+      }).join("/");
       var signResp = await fetch(
-        SUPABASE_URL + "/storage/v1/object/sign/kl-document-vault/" + encodeURIComponent(storagePath),
+        SUPABASE_URL + "/storage/v1/object/sign/kl-document-vault/" + encodedPath,
         {
           method: "POST",
           headers: {
@@ -3226,21 +3276,29 @@
           body: JSON.stringify({ expiresIn: 3600 })
         }
       );
+      if (!signResp.ok) {
+        var errText = await signResp.text();
+        console.error("Signed URL error:", signResp.status, errText);
+        alert("Download failed \u2014 the file may not be available. Please try again.");
+        return;
+      }
       var signData = await signResp.json();
       if (!signData.signedURL) {
-        throw new Error("Failed to generate download URL");
+        console.error("No signedURL in response:", signData);
+        alert("Download failed \u2014 please try again.");
+        return;
       }
       var downloadUrl = SUPABASE_URL + "/storage/v1" + signData.signedURL;
       var a = document.createElement("a");
       a.href = downloadUrl;
       a.download = filename || "document";
-      a.target = "_blank";
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     } catch (err) {
-      console.error("Download failed:", err);
-      alert("Unable to download this document right now. Please try again.");
+      console.error("Download error:", err);
+      alert("Unable to download this document right now. Please check your connection and try again.");
     }
   }
   async function downloadComplianceReport(uploadId) {
@@ -3715,13 +3773,18 @@
         return next;
       });
     }
+    function discussWithEileen(req) {
+      if (typeof window.__klSendMessage === "function") {
+        window.__klSendMessage("Tell me about " + req.requirement_name + " under " + (req.source_act || "UK employment law"));
+      }
+    }
     if (loading) {
-      return React.createElement("div", { style: { color: "#94A3B8", fontSize: "13px", padding: "12px" } }, "Loading regulatory calendar\u2026");
+      return /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "13px", padding: "12px" } }, "Loading regulatory calendar\u2026");
     }
     var forwardCount = reqs.filter(function(r) {
       return r.is_forward_requirement;
     }).length;
-    var filtered = reqs.filter(function(r) {
+    var filteredReqs = reqs.filter(function(r) {
       if (filter === "forward") return r.is_forward_requirement;
       if (filter === "in_force") return r.commencement_status === "in_force";
       return true;
@@ -3731,113 +3794,142 @@
       { id: "in_force", label: "In Force" },
       { id: "forward", label: "Forward (" + forwardCount + ")" }
     ];
-    return React.createElement(
-      "div",
-      null,
-      React.createElement(
-        "div",
-        { style: { display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" } },
-        filterButtons.map(function(f) {
-          return React.createElement("button", {
-            key: f.id,
-            type: "button",
-            onClick: function() {
-              setFilter(f.id);
-            },
-            style: {
-              padding: "4px 10px",
-              borderRadius: "4px",
-              fontSize: "11px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              border: filter === f.id ? "1px solid #0EA5E9" : "1px solid rgba(255,255,255,0.1)",
-              background: filter === f.id ? "rgba(14,165,233,0.15)" : "transparent",
-              color: filter === f.id ? "#0EA5E9" : "#94A3B8"
-            }
-          }, f.label);
-        })
-      ),
-      filtered.length === 0 ? React.createElement("div", { style: { color: "#64748B", fontSize: "12px", padding: "8px 4px" } }, "No requirements match this filter.") : filtered.map(function(r) {
-        var isOpen = !!expanded[r.id];
-        return React.createElement(
+    var grouped = {};
+    filteredReqs.forEach(function(req) {
+      if (!req.effective_from) return;
+      var d = new Date(req.effective_from);
+      var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      var label = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      if (!grouped[key]) grouped[key] = { label, items: [] };
+      grouped[key].items.push(req);
+    });
+    var months = Object.keys(grouped).sort();
+    return /* @__PURE__ */ React.createElement("div", { style: { padding: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" } }, filterButtons.map(function(f) {
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: f.id,
+          type: "button",
+          onClick: function() {
+            setFilter(f.id);
+          },
+          style: {
+            padding: "4px 10px",
+            borderRadius: "4px",
+            fontSize: "11px",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            border: filter === f.id ? "1px solid #0EA5E9" : "1px solid rgba(255,255,255,0.1)",
+            background: filter === f.id ? "rgba(14,165,233,0.15)" : "transparent",
+            color: filter === f.id ? "#0EA5E9" : "#94A3B8"
+          }
+        },
+        f.label
+      );
+    })), months.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px", padding: "8px 4px" } }, "No requirements match this filter.") : months.map(function(monthKey) {
+      var month = grouped[monthKey];
+      return /* @__PURE__ */ React.createElement("div", { key: monthKey, style: { marginBottom: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: {
+        color: "#94A3B8",
+        fontSize: "13px",
+        fontFamily: "'DM Sans', sans-serif",
+        fontWeight: 600,
+        padding: "8px 0",
+        borderBottom: "1px solid #1E293B",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      } }, /* @__PURE__ */ React.createElement("span", null, month.label), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#475569" } }, month.items.length, " event", month.items.length === 1 ? "" : "s")), month.items.map(function(req, i) {
+        var d = new Date(req.effective_from);
+        var dayNum = d.getDate();
+        var isExpanded = !!expanded[req.id];
+        var statusColor = req.commencement_status === "in_force" ? "#10B981" : req.is_forward_requirement ? "#F59E0B" : "#0EA5E9";
+        return /* @__PURE__ */ React.createElement(
           "div",
           {
-            key: r.id,
+            key: req.id || i,
+            "data-calendar-id": req.id,
+            onClick: function() {
+              toggleExpand(req.id);
+            },
+            role: "button",
+            tabIndex: 0,
+            onKeyDown: function(e) {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleExpand(req.id);
+              }
+            },
+            "aria-expanded": isExpanded,
             style: {
-              marginBottom: "6px",
-              borderRadius: "6px",
-              overflow: "hidden",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderLeft: r.is_forward_requirement ? "3px solid #F59E0B" : "3px solid #10B981"
+              display: "flex",
+              gap: "12px",
+              padding: "10px 0",
+              borderBottom: "1px solid rgba(255,255,255,0.04)",
+              cursor: "pointer"
             }
           },
-          React.createElement(
-            "div",
+          /* @__PURE__ */ React.createElement("div", { style: {
+            minWidth: "44px",
+            height: "44px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: statusColor + "15",
+            borderRadius: "8px",
+            flexShrink: 0
+          } }, /* @__PURE__ */ React.createElement("span", { style: {
+            color: statusColor,
+            fontSize: "18px",
+            fontWeight: 700,
+            fontFamily: "'DM Sans', sans-serif",
+            lineHeight: 1
+          } }, dayNum), /* @__PURE__ */ React.createElement("span", { style: {
+            color: statusColor,
+            fontSize: "9px",
+            fontFamily: "'DM Mono', monospace",
+            textTransform: "uppercase"
+          } }, d.toLocaleDateString("en-GB", { month: "short" }))),
+          /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: {
+            color: "#E2E8F0",
+            fontSize: "12px",
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 500
+          } }, req.requirement_name), req.source_act && /* @__PURE__ */ React.createElement("div", { style: {
+            color: "#64748B",
+            fontSize: "10px",
+            fontFamily: "'DM Mono', monospace",
+            marginTop: "2px"
+          } }, req.source_act), isExpanded && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px" } }, req.statutory_basis && /* @__PURE__ */ React.createElement("p", { style: {
+            color: "#CBD5E1",
+            fontSize: "11px",
+            lineHeight: 1.5,
+            margin: "0 0 8px",
+            fontFamily: "'DM Sans', sans-serif"
+          } }, req.statutory_basis), /* @__PURE__ */ React.createElement(
+            "button",
             {
-              onClick: function() {
-                toggleExpand(r.id);
+              type: "button",
+              onClick: function(e) {
+                e.stopPropagation();
+                discussWithEileen(req);
               },
-              style: { padding: "10px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }
+              style: {
+                background: "transparent",
+                border: "1px solid #0EA5E9",
+                color: "#0EA5E9",
+                borderRadius: "6px",
+                padding: "4px 10px",
+                fontSize: "11px",
+                fontFamily: "'DM Sans', sans-serif",
+                cursor: "pointer"
+              }
             },
-            React.createElement(
-              "div",
-              { style: { flex: 1, minWidth: 0 } },
-              React.createElement("div", { style: { color: "#E2E8F0", fontSize: "13px", fontWeight: 500 } }, r.requirement_name),
-              r.effective_from && React.createElement(
-                "div",
-                { style: { color: "#64748B", fontSize: "11px", marginTop: "2px" } },
-                "Effective: " + new Date(r.effective_from).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-              )
-            ),
-            React.createElement("span", {
-              style: { color: "#64748B", fontSize: "10px", flexShrink: 0, transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0)" },
-              "aria-hidden": "true"
-            }, "\u25BC")
-          ),
-          isOpen && React.createElement(
-            "div",
-            {
-              style: { padding: "0 10px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }
-            },
-            r.statutory_basis && React.createElement(
-              "div",
-              { style: { marginTop: "8px" } },
-              React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em" } }, "Statutory Basis"),
-              React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", marginTop: "2px" } }, r.statutory_basis)
-            ),
-            r.source_act && React.createElement(
-              "div",
-              { style: { marginTop: "8px" } },
-              React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em" } }, "Source Act"),
-              React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", marginTop: "2px" } }, r.source_act)
-            ),
-            React.createElement(
-              "div",
-              { style: { marginTop: "8px" } },
-              React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em" } }, "Status"),
-              React.createElement(
-                "div",
-                { style: { marginTop: "2px" } },
-                React.createElement("span", {
-                  style: {
-                    fontSize: "11px",
-                    fontWeight: 500,
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    background: r.commencement_status === "in_force" ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
-                    color: r.commencement_status === "in_force" ? "#10B981" : "#F59E0B"
-                  }
-                }, r.commencement_status === "in_force" ? "In Force" : r.commencement_status || "Pending")
-              )
-            ),
-            r.is_forward_requirement && React.createElement("div", {
-              style: { marginTop: "8px", padding: "6px 8px", borderRadius: "4px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.1)", fontSize: "11px", color: "#F59E0B" }
-            }, "Forward requirement \u2014 not yet in force")
-          )
+            "Discuss with Eileen"
+          )))
         );
-      })
-    );
+      }));
+    }));
   }
   function ResearchPanel() {
     var _tab = useState("library");
@@ -6201,7 +6293,11 @@
       {
         nearDomain,
         nexusState,
-        prefersReducedMotion: prefersReducedMotion.current
+        prefersReducedMotion: prefersReducedMotion.current,
+        onProximityDomain: function(slug) {
+          if (slug) handleDomainHover(slug);
+          else handleDomainLeave();
+        }
       }
     ), /* @__PURE__ */ React.createElement(
       PanelRail,
