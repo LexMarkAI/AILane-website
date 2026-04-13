@@ -441,6 +441,9 @@ Deno.serve(async (req: Request) => {
     const complianceContext = await buildComplianceFindingsContext(supabase, userId);
     ragContext += complianceContext;
 
+    // Temporal resolution from kl_versions
+    const temporalContext = await resolveTemporalContext(supabase, temporalIntent);
+
     let conversationHistory: { role: string; content: string }[] = [];
     try {
       const { data: history } = await supabase.from('kl_eileen_conversations')
