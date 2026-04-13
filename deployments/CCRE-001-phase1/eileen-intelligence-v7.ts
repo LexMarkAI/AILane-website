@@ -241,8 +241,8 @@ function detectTemporalIntent(message: string): TemporalIntent {
   }
 
   // Explicit date: "on 1 April 2020", "as of 6 January 2019"
-  const months: Record<string, string> = { january:'01', february:'02', march:'03', april:'04', may:'05', june:'06', july:'07', august:'08', september:'09', october:'10', november:'11', december:'12' };
-  const dateMatch = msgLower.match(/(?:on|as of|from|before|after|until)\s+(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+((?:19|20)\d{2})/);
+  const months: Record<string, string> = { january:'01', february:'02', march:'03', april:'04', may:'05', june:'06', july:'07', august:'08', september:'09', october:'10', november:'11', december:'12', jan:'01', feb:'02', mar:'03', apr:'04', jun:'06', jul:'07', aug:'08', sep:'09', oct:'10', nov:'11', dec:'12' };
+  const dateMatch = msgLower.match(/(?:on|as of|from|before|after|until|in)\s+(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s+((?:19|20)\d{2})/);
   if (dateMatch) {
     result.isTemporalQuery = true;
     result.targetDate = `${dateMatch[3]}-${months[dateMatch[2]]}-${dateMatch[1].padStart(2, '0')}`;
