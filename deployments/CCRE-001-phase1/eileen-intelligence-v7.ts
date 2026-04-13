@@ -1,4 +1,4 @@
-// eileen-intelligence/index.ts — v8 (CCRE-001 Path B refactor)
+// eileen-intelligence/index.ts — v9 (CCRE-001 Path B refactor)
 // AILANE-SPEC-CCRE-001 v1.0 (AMD-047, ratified 13 April 2026)
 //
 // CHANGE FROM v5:
@@ -297,6 +297,45 @@ async function resolveTemporalContext(supabase: any, intent: TemporalIntent): Pr
     }
   } catch (err) { console.error('Temporal resolution error:', err); }
   return '';
+}
+
+// ── EMPLOYMENT LIMITS RUNTIME QUERY (PROC-KLMAINT-001 §5) ──
+
+async function fetchCurrentLimits(supabase: any): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('kl_employment_limits')
+      .select('category, name, value, unit, effective_from, source_instrument')
+      .is('effective_to', null)
+      .order('category')
+      .order('name');
+
+    if (error || !data || data.length === 0) return '';
+
+    const unitLabels: Record<string, string> = {
+      per_hour: '/hour', per_week: '/week', per_day: '/day',
+      per_year: '/year', lump_sum: ''
+    };
+
+    let ctx = '\n\n--- CURRENT EMPLOYMENT RATES AND LIMITS (from kl_employment_limits) ---\n';
+    ctx += 'These are the authoritative current figures. ALWAYS cite these over training data.\n\n';
+
+    let currentCategory = '';
+    for (const row of data) {
+      if (row.category !== currentCategory) {
+        currentCategory = row.category;
+        const label = currentCategory.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        ctx += `\n${label}:\n`;
+      }
+      ctx += `  ${row.name}: £${row.value}${unitLabels[row.unit] || ''} (from ${row.effective_from}, ${row.source_instrument || 'source pending'})\n`;
+    }
+
+    ctx += '\n--- END CURRENT EMPLOYMENT RATES AND LIMITS ---\n';
+    return ctx;
+  } catch (err) {
+    console.error('[eileen v8] Employment limits query error:', err);
+    return '';
+  }
 }
 
 Deno.serve(async (req: Request) => {
