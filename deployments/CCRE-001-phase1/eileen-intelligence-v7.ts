@@ -1,4 +1,4 @@
-// eileen-intelligence/index.ts — v8 (CCRE-001 Path B refactor)
+// eileen-intelligence/index.ts — v9 (CCRE-001 Path B refactor)
 // AILANE-SPEC-CCRE-001 v1.0 (AMD-047, ratified 13 April 2026)
 //
 // CHANGE FROM v5:
@@ -299,6 +299,45 @@ async function resolveTemporalContext(supabase: any, intent: TemporalIntent): Pr
   return '';
 }
 
+// ── EMPLOYMENT LIMITS RUNTIME QUERY (PROC-KLMAINT-001 §5) ──
+
+async function fetchCurrentLimits(supabase: any): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('kl_employment_limits')
+      .select('category, name, value, unit, effective_from, source_instrument')
+      .is('effective_to', null)
+      .order('category')
+      .order('name');
+
+    if (error || !data || data.length === 0) return '';
+
+    const unitLabels: Record<string, string> = {
+      per_hour: '/hour', per_week: '/week', per_day: '/day',
+      per_year: '/year', lump_sum: ''
+    };
+
+    let ctx = '\n\n--- CURRENT EMPLOYMENT RATES AND LIMITS (from kl_employment_limits) ---\n';
+    ctx += 'These are the authoritative current figures. ALWAYS cite these over training data.\n\n';
+
+    let currentCategory = '';
+    for (const row of data) {
+      if (row.category !== currentCategory) {
+        currentCategory = row.category;
+        const label = currentCategory.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        ctx += `\n${label}:\n`;
+      }
+      ctx += `  ${row.name}: £${row.value}${unitLabels[row.unit] || ''} (from ${row.effective_from}, ${row.source_instrument || 'source pending'})\n`;
+    }
+
+    ctx += '\n--- END CURRENT EMPLOYMENT RATES AND LIMITS ---\n';
+    return ctx;
+  } catch (err) {
+    console.error('[eileen v8] Employment limits query error:', err);
+    return '';
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
 
@@ -443,6 +482,8 @@ Deno.serve(async (req: Request) => {
 
     // Temporal resolution from kl_versions
     const temporalContext = await resolveTemporalContext(supabase, temporalIntent);
+    // Current employment rates and limits from kl_employment_limits
+    const limitsContext = await fetchCurrentLimits(supabase);
 
     let conversationHistory: { role: string; content: string }[] = [];
     try {
@@ -458,8 +499,8 @@ Deno.serve(async (req: Request) => {
     } catch (histErr) { console.warn(`[eileen v6] History: ${(histErr as Error).message}`); }
 
     const currentDate = new Date().toISOString().split('T')[0];
-    const dateContext = `\n\nCRITICAL TEMPORAL CONTEXT: Today is ${currentDate}. Key ERA 2025 dates: ACAS Early Conciliation extended to 12 weeks from 1 Dec 2025 (IN FORCE). Day-one paternity/parental leave from 6 Apr 2026 (IN FORCE). Unfair dismissal qualifying period reduces from 2 years to 6 months on 1 Jan 2027. Compensatory award cap removed 1 Jan 2027. Time limit for unfair dismissal claims extends from 3 to 6 months from Oct 2026. SI 2026/310 limits effective 6 Apr 2026: weekly pay cap \u00a3751, max basic award \u00a322,530.\n`;
-    const fullSystemPrompt = SYSTEM_PROMPT_CONSTITUTIONAL + dateContext + ragContext + temporalContext;
+    const dateContext = `\n\nCRITICAL TEMPORAL CONTEXT: Today is ${currentDate}. Assess ALL temporal references relative to this date. When discussing ERA 2025 provisions, state clearly whether each provision is already in force, coming into force on a specific future date, or still pending commencement. Key ERA 2025 dates: ACAS Early Conciliation extended to 12 weeks from 1 Dec 2025 (IN FORCE). Day-one paternity/parental leave from 6 Apr 2026 (IN FORCE). Unfair dismissal qualifying period reduces from 2 years to 6 months on 1 Jan 2027. Compensatory award cap removed 1 Jan 2027. Time limit for unfair dismissal claims extends from 3 to 6 months from Oct 2026.\n`;
+    const fullSystemPrompt = SYSTEM_PROMPT_CONSTITUTIONAL + dateContext + ragContext + temporalContext + limitsContext;
     const messages = [...conversationHistory, { role: 'user', content: message }];
 
     const result = await callClaude(ANTHROPIC_API_KEY, fullSystemPrompt, messages, 2000, 60000);
