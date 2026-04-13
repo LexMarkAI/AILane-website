@@ -1,4 +1,4 @@
-// eileen-intelligence/index.ts — v9 (CCRE-001 Path B refactor)
+// eileen-intelligence/index.ts — v10 (CCRE-001 Path B refactor)
 // AILANE-SPEC-CCRE-001 v1.0 (AMD-047, ratified 13 April 2026)
 //
 // CHANGE FROM v5:
