@@ -372,6 +372,7 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await req.json();
     const message: string = body.message || '';
+    const temporalIntent = detectTemporalIntent(message);
     const sessionId: string = body.session_id || sessionCheck.sessionId || crypto.randomUUID();
     const pageContext: string = body.page_context || 'knowledge-library';
     if (!message.trim()) return new Response(JSON.stringify({ error: 'Message is required' }), { status: 400, headers: CORS_HEADERS });
