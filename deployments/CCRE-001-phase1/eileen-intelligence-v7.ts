@@ -248,6 +248,15 @@ function detectTemporalIntent(message: string): TemporalIntent {
     result.targetDate = `${dateMatch[3]}-${months[dateMatch[2]]}-${dateMatch[1].padStart(2, '0')}`;
   }
 
+  // Month-year without day: "in Jan 2020", "from March 2019"
+  if (!result.isTemporalQuery) {
+    const monthYearMatch = msgLower.match(/(?:in|from|before|after|since|around|during)\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s+((?:19|20)\d{2})/);
+    if (monthYearMatch && parseInt(monthYearMatch[2]) < new Date().getFullYear()) {
+      result.isTemporalQuery = true;
+      result.targetDate = `${monthYearMatch[2]}-${months[monthYearMatch[1]]}-01`;
+    }
+  }
+
   // Historical phrasing without date
   if (!result.isTemporalQuery) {
     const patterns = [/what (?:was|were|did|used to)/, /how (?:has|have) .+ changed/, /original (?:version|text|wording|provision)/, /before (?:the|it was) (?:amended|changed|updated|reformed)/, /history of/, /previous (?:version|rate|amount|threshold|limit)/, /used to be/, /when (?:was|did) .+ (?:change|amend|introduce|increase)/];
