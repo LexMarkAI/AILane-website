@@ -482,6 +482,8 @@ Deno.serve(async (req: Request) => {
 
     // Temporal resolution from kl_versions
     const temporalContext = await resolveTemporalContext(supabase, temporalIntent);
+    // Current employment rates and limits from kl_employment_limits
+    const limitsContext = await fetchCurrentLimits(supabase);
 
     let conversationHistory: { role: string; content: string }[] = [];
     try {
@@ -498,7 +500,7 @@ Deno.serve(async (req: Request) => {
 
     const currentDate = new Date().toISOString().split('T')[0];
     const dateContext = `\n\nCRITICAL TEMPORAL CONTEXT: Today is ${currentDate}. Key ERA 2025 dates: ACAS Early Conciliation extended to 12 weeks from 1 Dec 2025 (IN FORCE). Day-one paternity/parental leave from 6 Apr 2026 (IN FORCE). Unfair dismissal qualifying period reduces from 2 years to 6 months on 1 Jan 2027. Compensatory award cap removed 1 Jan 2027. Time limit for unfair dismissal claims extends from 3 to 6 months from Oct 2026. SI 2026/310 limits effective 6 Apr 2026: weekly pay cap \u00a3751, max basic award \u00a322,530.\n`;
-    const fullSystemPrompt = SYSTEM_PROMPT_CONSTITUTIONAL + dateContext + ragContext + temporalContext;
+    const fullSystemPrompt = SYSTEM_PROMPT_CONSTITUTIONAL + dateContext + ragContext + temporalContext + limitsContext;
     const messages = [...conversationHistory, { role: 'user', content: message }];
 
     const result = await callClaude(ANTHROPIC_API_KEY, fullSystemPrompt, messages, 2000, 60000);
