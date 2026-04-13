@@ -1,4 +1,4 @@
-// eileen-intelligence/index.ts — v6 (CCRE-001 Path B refactor)
+// eileen-intelligence/index.ts — v8 (CCRE-001 Path B refactor)
 // AILANE-SPEC-CCRE-001 v1.0 (AMD-047, ratified 13 April 2026)
 //
 // CHANGE FROM v5:
@@ -215,6 +215,88 @@ async function buildComplianceFindingsContext(
     console.warn(`[eileen v6] Compliance context failed: ${(e as Error).message}`);
     return '';
   }
+}
+
+// ── TEMPORAL INTENT DETECTION (KLIA-001 §4 / PROC-KLMAINT-001) ──
+
+interface TemporalIntent {
+  isTemporalQuery: boolean;
+  targetDate: string | null;
+  instrumentHint: string | null;
+  sectionHint: string | null;
+}
+
+function detectTemporalIntent(message: string): TemporalIntent {
+  const result: TemporalIntent = { isTemporalQuery: false, targetDate: null, instrumentHint: null, sectionHint: null };
+  const msgLower = message.toLowerCase();
+
+  // Explicit year references: "in 2020", "back in 1999"
+  const yearMatch = msgLower.match(/(?:in|back in|during|around|as of|before|after|since|from|until)\s+((?:19|20)\d{2})/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1]);
+    if (year < new Date().getFullYear()) {
+      result.isTemporalQuery = true;
+      result.targetDate = `${year}-04-01`;
+    }
+  }
+
+  // Explicit date: "on 1 April 2020", "as of 6 January 2019"
+  const months: Record<string, string> = { january:'01', february:'02', march:'03', april:'04', may:'05', june:'06', july:'07', august:'08', september:'09', october:'10', november:'11', december:'12' };
+  const dateMatch = msgLower.match(/(?:on|as of|from|before|after|until)\s+(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+((?:19|20)\d{2})/);
+  if (dateMatch) {
+    result.isTemporalQuery = true;
+    result.targetDate = `${dateMatch[3]}-${months[dateMatch[2]]}-${dateMatch[1].padStart(2, '0')}`;
+  }
+
+  // Historical phrasing without date
+  if (!result.isTemporalQuery) {
+    const patterns = [/what (?:was|were|did|used to)/, /how (?:has|have) .+ changed/, /original (?:version|text|wording|provision)/, /before (?:the|it was) (?:amended|changed|updated|reformed)/, /history of/, /previous (?:version|rate|amount|threshold|limit)/, /used to be/, /when (?:was|did) .+ (?:change|amend|introduce|increase)/];
+    for (const p of patterns) { if (p.test(msgLower)) { result.isTemporalQuery = true; break; } }
+  }
+
+  // Instrument hint
+  const instrumentMap: Record<string, string> = { 'minimum wage':'nmwa1998', 'national minimum wage':'nmwa1998', 'national living wage':'nmwa1998', 'nmw':'nmwa1998', 'nlw':'nmwa1998', 'employment rights act':'era1996', 'era 1996':'era1996', 'era 2025':'era2025', 'equality act':'eqa2010', 'working time':'wtr1998', 'tupe':'tupe2006', 'unfair dismissal':'era1996', 'qualifying period':'era1996', 'redundancy':'era1996', 'maternity':'mpl1999', 'paternity':'pal2002', 'flexible working':'era1996', 'holiday pay':'wtr1998', 'health and safety':'hswa1974' };
+  for (const [phrase, id] of Object.entries(instrumentMap)) { if (msgLower.includes(phrase)) { result.instrumentHint = id; break; } }
+
+  // Section hint: "section 108", "s.108", "reg.16"
+  const secMatch = msgLower.match(/(?:section|s\.?|§)\s*(\d+[a-z]?)/);
+  if (secMatch) result.sectionHint = `s.${secMatch[1]}`;
+  const regMatch = msgLower.match(/(?:regulation|reg\.?)\s*(\d+[a-z]?)/);
+  if (regMatch) result.sectionHint = `reg.${regMatch[1]}`;
+
+  return result;
+}
+
+async function resolveTemporalContext(supabase: any, intent: TemporalIntent): Promise<string> {
+  if (!intent.isTemporalQuery) return '';
+  try {
+    if (intent.instrumentHint && intent.sectionHint && intent.targetDate) {
+      const { data, error } = await supabase.rpc('resolve_provision_at_date', { p_instrument_id: intent.instrumentHint, p_section_num: intent.sectionHint, p_target_date: intent.targetDate });
+      if (!error && data && data.length > 0) {
+        const v = data[0];
+        return '\n\n--- TEMPORAL RESOLUTION (from kl_versions) ---\n' +
+          `Instrument: ${v.instrument_id} | Section: ${v.section_num}\n` +
+          `Effective from: ${v.effective_from || 'unknown'} | Effective to: ${v.effective_to || 'current'}\n` +
+          `Text at ${intent.targetDate}: ${v.text}\n` +
+          `Amended by: ${v.amended_by || 'N/A'}\nSource URL: ${v.source_url || 'N/A'}\n` +
+          `Policy rationale: ${v.policy_rationale || 'N/A'}\n` +
+          `Resolution source: ${v.resolution_source}\nIs current version: ${v.is_current}\n` +
+          '--- END TEMPORAL RESOLUTION ---\n';
+      }
+    }
+    if (intent.instrumentHint && intent.targetDate) {
+      const { data, error } = await supabase.from('kl_versions').select('*').eq('instrument_id', intent.instrumentHint).lte('effective_from', intent.targetDate).or(`effective_to.is.null,effective_to.gte.${intent.targetDate}`).order('section_num').limit(10);
+      if (!error && data && data.length > 0) {
+        let ctx = `\n\n--- TEMPORAL RESOLUTION (from kl_versions — ${data.length} records) ---\nInstrument: ${intent.instrumentHint} | Target date: ${intent.targetDate}\n`;
+        for (const v of data) { ctx += `\nSection ${v.section_num} (${v.effective_from} to ${v.effective_to || 'current'}):\n  Text: ${v.text?.substring(0, 500)}${(v.text?.length || 0) > 500 ? '...' : ''}\n  Amended by: ${v.amended_by || 'N/A'}\n`; }
+        return ctx + '--- END TEMPORAL RESOLUTION ---\n';
+      }
+    }
+    if (intent.isTemporalQuery && !intent.targetDate) {
+      return '\n\n--- TEMPORAL CONTEXT NOTE ---\nThe user appears to be asking a historical/temporal question. The kl_versions table contains temporal version records across multiple instruments. If you need a specific historical text, ask the user for the approximate date they are interested in.\n--- END TEMPORAL CONTEXT NOTE ---\n';
+    }
+  } catch (err) { console.error('Temporal resolution error:', err); }
+  return '';
 }
 
 Deno.serve(async (req: Request) => {
