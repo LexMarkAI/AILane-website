@@ -2341,6 +2341,24 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
 function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion }) {
   const [value, setValue] = useState('');
   const fileInputRef = useRef(null);
+  const textInputRef = useRef(null);
+
+  // KLUX-001-AM-002 §2.4 / Art. 5: "Discuss with Eileen" seeds the input
+  // without auto-sending. Listens for kl-seed-input custom events dispatched
+  // from RegulatoryFeed and CalendarPanel.
+  useEffect(function() {
+    function onSeed(e) {
+      var text = e && e.detail && e.detail.text;
+      if (typeof text !== 'string' || !text) return;
+      setValue(text);
+      if (typeof onInputChange === 'function') onInputChange(text.trim().length);
+      if (textInputRef.current) {
+        try { textInputRef.current.focus(); } catch (err) { /* silent */ }
+      }
+    }
+    window.addEventListener('kl-seed-input', onSeed);
+    return function() { window.removeEventListener('kl-seed-input', onSeed); };
+  }, [onInputChange]);
 
   function handleChange(e) {
     var v = e.target.value;
@@ -2421,6 +2439,7 @@ function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChan
         </button>
       )}
       <input
+        ref={textInputRef}
         className="kl-input"
         type="text"
         placeholder="Ask Eileen anything about UK employment law..."
@@ -2677,7 +2696,9 @@ function RegulatoryFeedItem({ item, onDiscuss }) {
   var isPast = effectiveDate <= now;
   var daysAway = Math.ceil((effectiveDate - now) / (1000 * 60 * 60 * 24));
 
-  var badgeColor = isPast ? '#10B981' : daysAway <= 30 ? '#EF4444' : '#F59E0B';
+  // KLUX-001-AM-002 §2.3: no brand gold (#F59E0B/#D4A017) outside Institutional tier.
+  // Pending items use warm amber (#D97706) as specified in AMD-050 §3.2.
+  var badgeColor = isPast ? '#10B981' : daysAway <= 30 ? '#EF4444' : '#D97706';
   var badgeText = isPast ? 'In force' : daysAway + ' days';
 
   return (
@@ -2823,6 +2844,10 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
   var _feed = useState([]);
   var feedItems = _feed[0];
   var setFeedItems = _feed[1];
+  // AMD-050 §3.2: Default to compact 3-item view; expandable to full list.
+  var _feedExpanded = useState(false);
+  var feedExpanded = _feedExpanded[0];
+  var setFeedExpanded = _feedExpanded[1];
 
   useEffect(function() {
     var cancelled = false;
@@ -2866,15 +2891,49 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
           ? React.createElement('div', {
               style: { padding: '8px 16px', color: '#475569', fontSize: '11px' },
             }, 'No recent regulatory events')
-          : feedItems.map(function(item, i) {
-              return React.createElement(RegulatoryFeedItem, {
-                key: item.id || i,
-                item: item,
-                onDiscuss: function(it) {
-                  onCrownQuery('Tell me about ' + it.requirement_name + ' under ' + it.source_act);
-                },
+          : (function() {
+              // AMD-050 §3.2: default to first 3; "Show all" reveals the remainder.
+              var display = feedExpanded ? feedItems : feedItems.slice(0, 3);
+              var rendered = display.map(function(item, i) {
+                return React.createElement(RegulatoryFeedItem, {
+                  key: item.id || i,
+                  item: item,
+                  // AMD-050 §3.3 + KLUX-001 Art. 5: seed the input, do NOT auto-send.
+                  onDiscuss: function(it) {
+                    var seed = 'Tell me about ' + (it.requirement_name || 'this regulatory event') +
+                      (it.source_act ? ' under ' + it.source_act : '') +
+                      ' and what it means for employers.';
+                    if (typeof window.__klSeedInput === 'function') {
+                      window.__klSeedInput(seed);
+                    } else if (typeof onCrownQuery === 'function') {
+                      // Fallback (should not occur post-AMD-050)
+                      onCrownQuery(seed);
+                    }
+                  },
+                });
               });
-            })
+              if (feedItems.length > 3) {
+                rendered.push(React.createElement('button', {
+                  key: '__feed-toggle',
+                  type: 'button',
+                  onClick: function() { setFeedExpanded(!feedExpanded); },
+                  style: {
+                    width: '100%', padding: '8px 16px', marginTop: '4px',
+                    background: 'transparent', border: 'none',
+                    borderTop: '1px solid rgba(255,255,255,0.04)',
+                    color: '#0EA5E9', fontSize: '11px',
+                    fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                    textAlign: 'left', cursor: 'pointer',
+                  },
+                  'aria-expanded': feedExpanded,
+                },
+                  feedExpanded
+                    ? '\u25B2 Show fewer'
+                    : '\u25BC Show all regulatory events (' + feedItems.length + ')'
+                ));
+              }
+              return rendered;
+            })()
       )
     ),
 
@@ -3797,6 +3856,83 @@ function VaultPanel() {
   var _pload = useState(false);
   var previewLoading = _pload[0];
   var setPreviewLoading = _pload[1];
+  // AMD-050 §5: soft-delete confirmation modal state + in-flight guard
+  var _del = useState(null);
+  var deleteTarget = _del[0];
+  var setDeleteTarget = _del[1];
+  var _delPending = useState(false);
+  var deletePending = _delPending[0];
+  var setDeletePending = _delPending[1];
+  var _delError = useState(null);
+  var deleteError = _delError[0];
+  var setDeleteError = _delError[1];
+
+  function openDeleteConfirm(doc) {
+    setDeleteError(null);
+    setDeleteTarget(doc);
+  }
+
+  function cancelDelete() {
+    if (deletePending) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+  }
+
+  async function confirmDelete() {
+    var doc = deleteTarget;
+    if (!doc || deletePending) return;
+    // AMD-050 §5: vault documents support soft-delete via UPDATE deleted_at.
+    // Compliance uploads do not carry a deleted_at column (§0.f) — skip them
+    // with a user-visible message rather than a silent no-op.
+    if (doc.source !== 'vault') {
+      setDeleteError("Compliance check uploads can't be deleted from here.");
+      return;
+    }
+    if (!window.__klToken || !window.__klUserId) {
+      setDeleteError("You're not signed in. Please refresh and try again.");
+      return;
+    }
+    setDeletePending(true);
+    setDeleteError(null);
+    try {
+      var resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_vault_documents?id=eq.' + doc.id +
+          '&user_id=eq.' + window.__klUserId,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ deleted_at: new Date().toISOString() }),
+        }
+      );
+      if (!resp.ok) {
+        setDeleteError("That didn't go through. Please try again in a moment.");
+        return;
+      }
+      // Optimistic removal from local state — no full refetch (AMD-050 §5).
+      setDocs(function(prev) {
+        return prev.filter(function(d) {
+          return !(d.source === doc.source && d.id === doc.id);
+        });
+      });
+      // Close inline preview if it was showing the deleted doc
+      var key = doc.source + '-' + doc.id;
+      if (previewDocId === key) {
+        setPreviewDocId(null);
+        setPreviewContent(null);
+      }
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error('Vault delete failed:', err);
+      setDeleteError("That didn't go through. Please check your connection and try again.");
+    } finally {
+      setDeletePending(false);
+    }
+  }
 
   async function handlePreview(doc) {
     if (previewDocId === (doc.source + '-' + doc.id)) {
@@ -3971,8 +4107,84 @@ function VaultPanel() {
     );
   }
 
+  // AMD-050 §5.2: Delete confirmation modal. Rendered alongside the vault
+  // list so it appears above all panel content without depending on a
+  // portal mechanism.
+  var deleteModal = deleteTarget ? React.createElement('div', {
+    role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kl-del-title',
+    onClick: function(e) { if (e.target === e.currentTarget) cancelDelete(); },
+    onKeyDown: function(e) { if (e.key === 'Escape') cancelDelete(); },
+    style: {
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000,
+    },
+  },
+    React.createElement('div', {
+      style: {
+        background: '#111827', border: '1px solid #1E293B',
+        borderRadius: '12px', padding: '24px',
+        maxWidth: '400px', width: '90%',
+        fontFamily: "'DM Sans', sans-serif",
+      },
+    },
+      React.createElement('div', {
+        id: 'kl-del-title',
+        style: { fontSize: '16px', fontWeight: 600, color: '#F1F5F9', marginBottom: '12px' },
+      }, 'Delete document?'),
+      React.createElement('div', {
+        style: { fontSize: '13px', color: '#94A3B8', marginBottom: '20px', lineHeight: 1.6 },
+      },
+        'Are you sure you want to delete ',
+        React.createElement('strong', { style: { color: '#E2E8F0' } },
+          (deleteTarget.name || 'this document')),
+        '? This action cannot be undone.'
+      ),
+      deleteError ? React.createElement('div', {
+        style: {
+          fontSize: '12px', color: '#EF4444', marginBottom: '12px',
+          padding: '8px 10px', background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.25)', borderRadius: '6px',
+        },
+      }, deleteError) : null,
+      React.createElement('div', {
+        style: { display: 'flex', gap: '12px', justifyContent: 'flex-end' },
+      },
+        React.createElement('button', {
+          type: 'button',
+          onClick: cancelDelete,
+          disabled: deletePending,
+          style: {
+            background: 'transparent', border: '1px solid #374151',
+            borderRadius: '8px', padding: '8px 16px',
+            color: '#94A3B8', fontSize: '13px',
+            cursor: deletePending ? 'not-allowed' : 'pointer',
+            fontFamily: "'DM Sans', sans-serif",
+            opacity: deletePending ? 0.6 : 1,
+          },
+        }, 'Cancel'),
+        React.createElement('button', {
+          type: 'button',
+          onClick: confirmDelete,
+          disabled: deletePending,
+          style: {
+            background: 'rgba(239,68,68,0.15)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            borderRadius: '8px', padding: '8px 16px',
+            color: '#EF4444', fontSize: '13px', fontWeight: 600,
+            cursor: deletePending ? 'not-allowed' : 'pointer',
+            fontFamily: "'DM Sans', sans-serif",
+            opacity: deletePending ? 0.6 : 1,
+          },
+        }, deletePending ? 'Deleting\u2026' : 'Delete')
+      )
+    )
+  ) : null;
+
   return React.createElement('div', null,
     uploadButton,
+    deleteModal,
     docs.map(function(doc) {
       var hasScore = doc.score != null;
       var scoreColor = !hasScore ? null : doc.score >= 75 ? '#10B981' : doc.score >= 50 ? '#F59E0B' : '#EF4444';
@@ -4058,7 +4270,22 @@ function VaultPanel() {
                 title: 'Download original document',
                 style: { fontSize: '11px', padding: '3px 8px' },
                 onClick: function() { downloadVaultDocument(doc.storagePath, doc.name); },
-              }, 'Download')
+              }, 'Download'),
+          // AMD-050 §5: soft-delete action. Only offered for vault-sourced
+          // documents; compliance_uploads have no deleted_at column.
+          doc.source === 'vault'
+            ? React.createElement('button', {
+                type: 'button',
+                className: 'kl-action-btn',
+                title: 'Delete document',
+                'aria-label': 'Delete ' + (doc.name || 'document'),
+                style: {
+                  fontSize: '11px', padding: '3px 8px',
+                  marginLeft: 'auto', color: '#94A3B8',
+                },
+                onClick: function(e) { e.stopPropagation(); openDeleteConfirm(doc); },
+              }, 'Delete')
+            : null
         ),
         // Inline preview panel (H-3)
         previewDocId === (doc.source + '-' + doc.id) ? React.createElement('div', {
@@ -4147,8 +4374,14 @@ function CalendarPanel() {
   }
 
   function discussWithEileen(req) {
-    if (typeof window.__klSendMessage === 'function') {
-      window.__klSendMessage('Tell me about ' + req.requirement_name + ' under ' + (req.source_act || 'UK employment law'));
+    // AMD-050 §8.4 + KLUX-001 Art. 5: seed the input, do NOT auto-send.
+    var seed = 'Tell me about ' + (req.requirement_name || 'this regulatory event') +
+      (req.source_act ? ' under ' + req.source_act : '') +
+      ' and what it means for employers.';
+    if (typeof window.__klSeedInput === 'function') {
+      window.__klSeedInput(seed);
+    } else if (typeof window.__klSendMessage === 'function') {
+      window.__klSendMessage(seed);
     }
   }
 
@@ -4221,8 +4454,10 @@ function CalendarPanel() {
               var d = new Date(req.effective_from);
               var dayNum = d.getDate();
               var isExpanded = !!expanded[req.id];
+              // AMD-050 §8: forward items use warm amber (#D97706); brand gold
+              // (#F59E0B / #D4A017) is Institutional tier only.
               var statusColor = req.commencement_status === 'in_force' ? '#10B981'
-                : req.is_forward_requirement ? '#F59E0B' : '#0EA5E9';
+                : req.is_forward_requirement ? '#D97706' : '#0EA5E9';
 
               return (
                 <div
@@ -4704,9 +4939,14 @@ function ResearchPanel() {
                     background: 'rgba(255,255,255,0.02)',
                   },
                 },
+                  // AMD-050 §4: render the human-readable topicLabel as primary
+                  // when present; the formal title falls back to a secondary line.
                   React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500, marginBottom: '4px', lineHeight: 1.3 } },
-                    inst.title
+                    inst.topicLabel || inst.title
                   ),
+                  inst.topicLabel && inst.title && React.createElement('div', {
+                    style: { color: '#64748B', fontSize: '11px', lineHeight: 1.35, marginBottom: '4px' },
+                  }, inst.title),
                   inst.warmSubtitle && React.createElement('div', {
                     style: { color: '#94A3B8', fontSize: '11px', lineHeight: 1.4, marginBottom: '6px' },
                   }, inst.warmSubtitle.length > 100 ? inst.warmSubtitle.slice(0, 100) + '\u2026' : inst.warmSubtitle),
@@ -4799,7 +5039,10 @@ function ResearchPanel() {
   // {provisions:[...]} (3 files — era1996, horizon-tracker,
   // redundancy-intelligence).
   function renderInstrumentContent(detail) {
-    var displayTitle = detail.title || detail.shortTitle || (activeInstrument && activeInstrument.title) || 'Instrument';
+    var formalTitle = detail.title || detail.shortTitle || (activeInstrument && activeInstrument.title) || 'Instrument';
+    // AMD-050 §4: topicLabel is the human-readable primary name when present.
+    var topicLabel = detail.topicLabel || (activeInstrument && activeInstrument.topicLabel) || null;
+    var displayTitle = topicLabel || formalTitle;
     var displayType = detail.type || (activeInstrument && activeInstrument.type) || '';
     var displayJurisdiction = detail.jurisdiction || (activeInstrument && activeInstrument.jurisdiction) || '';
     var description = detail.desc || detail.description || detail.summary || detail.overview || (activeInstrument && activeInstrument.warmSubtitle) || '';
@@ -4851,6 +5094,12 @@ function ResearchPanel() {
       // Title block
       React.createElement('div', { style: { marginBottom: '16px' } },
         React.createElement('div', { style: { fontSize: '16px', fontWeight: 600, color: '#E2E8F0', marginBottom: '6px' } }, displayTitle),
+        // AMD-050 §4: formal title rendered secondary when a topicLabel is set.
+        topicLabel && formalTitle && topicLabel !== formalTitle
+          ? React.createElement('div', {
+              style: { fontSize: '11px', color: '#64748B', marginBottom: '4px' },
+            }, formalTitle)
+          : null,
         React.createElement('div', { style: { fontSize: '11px', color: '#64748B', fontFamily: "'DM Mono', monospace", marginBottom: '4px' } },
           [displayType, displayJurisdiction, detail.currentAsOf && ('Verified ' + detail.currentAsOf)].filter(Boolean).join(' \u00B7 ')
         ),
@@ -6019,6 +6268,18 @@ function App() {
 
   // Expose sendMessage for Research Panel provision click → seed Eileen
   window.__klSendMessage = sendMessage;
+  // KLUX-001-AM-002 §2.4 / Art. 5: "Discuss with Eileen" seeds the input
+  // (does NOT auto-send). Dispatched to the MessageInput via custom event.
+  window.__klSeedInput = function(text) {
+    if (typeof text !== 'string' || !text) return;
+    try {
+      window.dispatchEvent(new CustomEvent('kl-seed-input', { detail: { text: text } }));
+    } catch (e) {
+      var ev = document.createEvent('CustomEvent');
+      ev.initCustomEvent('kl-seed-input', true, true, { text: text });
+      window.dispatchEvent(ev);
+    }
+  };
   // Sprint G §2.8: Expose the panel opener so the welcome-state
   // "Browse the Library" button can open the Research Panel.
   window.__klOpenPanel = function(panelId) {

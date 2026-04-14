@@ -85,6 +85,22 @@
       grid-template-columns: var(--kl-sidebar-width) 1fr 468px;
     }
 
+    /* AMD-050 §3: Sidebar layout protection.
+       — Compact (220px) in mid-width viewports so the conversation panel
+         never crushes the sidebar.
+       — flex-shrink: 0 / min-width safeguards belt-and-braces the grid column
+         in case any future flex wrapper is introduced above #kl-root. */
+    .kl-sidebar { min-width: 220px; flex-shrink: 0; }
+    .kl-main { flex: 1; min-width: 0; }
+    @media (min-width: 769px) and (max-width: 1279px) {
+      #kl-root:not(.sidebar-collapsed) {
+        grid-template-columns: 220px 1fr var(--kl-panel-rail-width);
+      }
+      #kl-root.drawer-open:not(.sidebar-collapsed) {
+        grid-template-columns: 220px 1fr 468px;
+      }
+    }
+
     /* Mobile responsive — sidebar becomes overlay, panel rail hidden */
     @media (max-width: 768px) {
       #kl-root {
