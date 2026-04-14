@@ -97,6 +97,10 @@ files.forEach(function(filename) {
       cat: derivedCat,
       originalCat: data.cat || null,
       title: data.title || filename.replace('.json', ''),
+      // KLUX-001-AM-002 §4 / AMD-050 §4: human-readable topic label rendered
+      // as the primary name when present; the formal title falls back to the
+      // secondary line. Null when not yet backfilled on the source file.
+      topicLabel: data.topicLabel || null,
       short: data.short || '',
       type: data.type || '',
       jurisdiction: data.jurisdiction || '',
