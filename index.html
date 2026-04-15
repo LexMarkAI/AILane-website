@@ -29,7 +29,7 @@
 <!-- Fonts: Instrument Serif (display/editorial) + DM Sans (body) + JetBrains Mono (data) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- NO SUPABASE CDN. ZERO AUTH. INCIDENT RULE 13/27. -->
 <style>
@@ -103,6 +103,11 @@ h1, h2, h3, h4 {
   line-height: 1.15;
   letter-spacing: -0.01em;
   font-weight: 400;
+  font-style: normal;
+}
+h1 em, h2 em, h3 em, h4 em,
+.hero-headline em, .hero-headline i {
+  font-style: normal;
 }
 h1 { font-size: clamp(2.4rem, 5.6vw, 4.4rem); line-height: 1.08; letter-spacing: -0.02em; }
 h2 { font-size: clamp(2rem, 4.2vw, 3.2rem); }
@@ -409,7 +414,8 @@ section {
   font-family: var(--font-display);
   font-weight: 400;
 }
-.hero-headline em { color: var(--cyan); font-style: italic; }
+.hero-headline em,
+.hero-headline .cyan-accent { color: var(--cyan); font-style: normal; }
 .hero-subline {
   font-size: clamp(1.05rem, 1.6vw, 1.2rem);
   color: var(--text-secondary);
@@ -1035,11 +1041,19 @@ footer {
 }
 
 .tier-card--institutional {
-  box-shadow: 0 0 50px rgba(245, 158, 11, 0.08);
+  border-left: 4px solid var(--tier-institutional-gold);
+  box-shadow: 0 0 60px rgba(245, 158, 11, 0.12),
+              0 0 20px rgba(245, 158, 11, 0.06);
+  background: linear-gradient(135deg,
+    rgba(245, 158, 11, 0.04) 0%,
+    rgba(15, 23, 42, 0.95) 50%);
 }
+.tier-card--institutional::before { display: none; }
 .tier-card--institutional:hover {
   border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 0 60px rgba(245, 158, 11, 0.14);
+  border-left-color: var(--tier-institutional-gold);
+  box-shadow: 0 0 80px rgba(245, 158, 11, 0.18),
+              0 0 24px rgba(245, 158, 11, 0.08);
   transform: translateY(-2px);
 }
 
@@ -1061,7 +1075,11 @@ footer {
 }
 .tier-card--operational .tier-name { color: var(--tier-operational); }
 .tier-card--governance .tier-name { color: var(--tier-governance-purple); }
-.tier-card--institutional .tier-name { color: var(--tier-institutional-gold); }
+.tier-card--institutional .tier-name {
+  color: var(--tier-institutional-gold);
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+}
 
 .tier-tagline {
   color: var(--text-secondary);
@@ -1186,19 +1204,20 @@ footer {
 }
 .tier-card--institutional .tier-cta {
   background: linear-gradient(135deg, var(--tier-institutional-gold), var(--tier-institutional-gold-deep));
-  color: #1a1208;
-  border-color: var(--tier-institutional-gold);
+  color: #0a0e1a;
+  border: none;
+  font-weight: 600;
 }
 .tier-card--institutional .tier-cta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
 }
 
 /* ── Price anchor callout ─────────────────── */
 .price-anchor {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(245, 158, 11, 0.01));
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  border-left: 3px solid var(--tier-institutional-gold);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(14, 165, 233, 0.01));
+  border: 1px solid var(--cyan-border);
+  border-left: 3px solid var(--cyan);
   border-radius: 8px;
   padding: 24px 28px;
   margin: 40px 0;
@@ -1209,7 +1228,7 @@ footer {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--tier-institutional-gold);
+  color: var(--cyan);
   margin-bottom: 10px;
 }
 .price-anchor-text {
@@ -1363,15 +1382,6 @@ footer {
   transition: opacity var(--fade-speed) ease;
 }
 #eileen-text.fading { opacity: 0; }
-
-#eileen-context {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-top: 4px;
-}
 
 /* ── Constellation nodes (Nexus intro canvas) ─────── */
 .constellation-node {
@@ -1546,7 +1556,7 @@ footer {
     <span class="hero-eyebrow fade-in">Employment Rights Act 2025 · Tracking 535 legislative changes</span>
     <h1 class="hero-headline fade-in fade-in-delay-1">
       The biggest change to UK employment law in a generation just landed.
-      <em>Your contracts weren't written for it.</em>
+      <span class="cyan-accent">Your contracts weren't written for it.</span>
     </h1>
     <p class="hero-subline fade-in fade-in-delay-2">
       The Employment Rights Act 2025 affects eight areas of employment law — from unfair dismissal to zero-hours contracts to fire-and-rehire. Provisions are commencing now. Ailane tells you what has changed, what is coming, and exactly where your documents expose you.
@@ -1568,9 +1578,8 @@ footer {
   <div class="container">
     <div class="eileen-stage">
       <div class="eileen-nexus-large" aria-hidden="true"><canvas id="nexus-intro-canvas"></canvas></div>
-      <span class="eyebrow">An intelligence, not a chatbot</span>
-      <h2>Meet Eileen.</h2>
-      <p style="max-width:620px; margin: 20px auto 0;">She is the interface to the Ailane intelligence estate — reading every statutory instrument, tribunal decision, and enforcement notice as it lands, and answering your questions with sources cited.</p>
+      <h2 style="margin-bottom: 8px;">This is Eileen.</h2>
+      <p style="max-width:620px; margin: 0 auto; color: var(--text-primary); font-size: 1.1rem;">She doesn't search the internet for answers. She reads the law.</p>
     </div>
 
     <!-- Conversation mock (NOT a live widget — presentational) -->
@@ -1915,15 +1924,14 @@ footer {
           <span class="tier-price">£199</span>
           <span class="tier-price-period">/ month</span>
         </div>
-        <div class="tier-price-note">Billed monthly · No commitment · Cancel at any time</div>
-
-        <div class="tier-summary">Five monitored documents, unlimited legislative alerts, monthly compliance checks, and a live view of your exposure across twelve compliance categories.</div>
 
         <button class="expand-trigger" data-depth-trigger="op-l2" aria-expanded="false">
           Full capability <span class="expand-arrow">▾</span>
         </button>
 
         <div class="depth-reveal" id="op-l2" data-depth-layer="2">
+          <div class="tier-price-note" style="margin-top: 0;">Billed monthly · No commitment · Cancel at any time</div>
+          <div class="tier-summary">Five monitored documents, unlimited legislative alerts, monthly compliance checks, and a live view of your exposure across twelve compliance categories.</div>
           <ul class="tier-feature-list">
             <li class="tier-feature">
               <svg class="tier-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -1998,15 +2006,14 @@ footer {
           <span class="tier-price">£799</span>
           <span class="tier-price-period">/ month</span>
         </div>
-        <div class="tier-price-note">Billed monthly · Board-ready reporting · Tribunal intelligence access</div>
-
-        <div class="tier-summary">Everything in Operational, plus unlimited compliance checks, tribunal intelligence (judges, claim types, representative patterns), full framework scoring, and board-ready governance reports.</div>
 
         <button class="expand-trigger" data-depth-trigger="gov-l2" aria-expanded="false">
           Full capability <span class="expand-arrow">▾</span>
         </button>
 
         <div class="depth-reveal" id="gov-l2" data-depth-layer="2">
+          <div class="tier-price-note" style="margin-top: 0;">Billed monthly · Board-ready reporting · Tribunal intelligence access</div>
+          <div class="tier-summary">Everything in Operational, plus unlimited compliance checks, tribunal intelligence (judges, claim types, representative patterns), full framework scoring, and board-ready governance reports.</div>
           <span class="tier-includes-all">Everything in Operational, plus:</span>
 
           <ul class="tier-feature-list">
@@ -2074,15 +2081,14 @@ footer {
         <div class="tier-price-block">
           <span class="tier-price">Custom</span>
         </div>
-        <div class="tier-price-note">Annual commitment · Dedicated briefings · Full estate access</div>
-
-        <div class="tier-summary">Everything in Governance, applied across any number of entities. Dedicated intelligence briefings, direct API access, and custom integration with your GRC systems.</div>
 
         <button class="expand-trigger" data-depth-trigger="inst-l2" aria-expanded="false">
           Full capability <span class="expand-arrow">▾</span>
         </button>
 
         <div class="depth-reveal" id="inst-l2" data-depth-layer="2">
+          <div class="tier-price-note" style="margin-top: 0;">Annual commitment · Dedicated briefings · Full estate access</div>
+          <div class="tier-summary">Everything in Governance, applied across any number of entities. Dedicated intelligence briefings, direct API access, and custom integration with your GRC systems.</div>
           <span class="tier-includes-all">Everything in Governance, plus:</span>
 
           <ul class="tier-feature-list">
@@ -2196,13 +2202,13 @@ footer {
   </div>
 
   <div class="container">
-    <p style="margin-top: 32px; max-width: 680px; color: var(--text-secondary);"><strong style="color: var(--text-heading);">It's a live intelligence pipeline.</strong> Connected to 34 sources across 22 publishers — with 336 source files ingested and 535 legislative changes tracked to date.</p>
-
-    <button class="expand-trigger" data-depth-trigger="intel-l2" aria-expanded="false" style="margin-top: 8px;">
+    <button class="expand-trigger" data-depth-trigger="intel-l2" aria-expanded="false" style="margin-top: 32px;">
       What Eileen is watching <span class="expand-arrow">▾</span>
     </button>
 
     <div class="depth-reveal" id="intel-l2" data-depth-layer="2">
+      <p style="max-width: 680px; color: var(--text-secondary); margin-bottom: 32px;"><strong style="color: var(--text-heading);">It's a live intelligence pipeline.</strong> Connected to 34 sources across 22 publishers — with 336 source files ingested and 535 legislative changes tracked to date.</p>
+
       <h3 style="margin-bottom: 16px;">The compliance calendar</h3>
       <p style="margin-bottom: 8px;">Every date that matters to UK employers, visualised as a forward calendar with impact analysis. Operational subscribers see this filtered to their monitored documents.</p>
 
@@ -2464,7 +2470,6 @@ footer {
       <button id="eileen-close" aria-label="Minimise Eileen">×</button>
     </div>
     <div id="eileen-text">—</div>
-    <div id="eileen-context"></div>
   </div>
 </div>
 <script>
@@ -2473,27 +2478,51 @@ footer {
 /* ====================================================== */
 
 /* ── Preserved i18n engine (Option C: empty dictionaries, toggle UI stays) ─ */
+/* Fallback chain: CY value → EN value → original innerHTML (captured once). */
 (function(){
   "use strict";
   var EN = {};
   var CY = {};
   var LANGS = { en: EN, cy: CY };
   function getLang(){ try { return localStorage.getItem("ailane_lang") || "en"; } catch(e){ return "en"; } }
-  function applyLang(code){
-    var t = LANGS[code] || LANGS["en"];
-    document.querySelectorAll("[data-i18n-placeholder]").forEach(function(el){
-      var k = el.getAttribute("data-i18n-placeholder");
-      if (t[k] !== undefined) { el.placeholder = t[k]; }
-    });
+
+  function captureOriginals(){
     document.querySelectorAll("[data-i18n]").forEach(function(el){
-      var k = el.getAttribute("data-i18n");
-      if (t[k] !== undefined) { el.innerHTML = t[k]; }
+      if (!el.dataset.i18nOriginal) el.dataset.i18nOriginal = el.innerHTML;
     });
-    document.querySelectorAll(".lang-flag-btn").forEach(function(b){
-      b.classList.toggle("active", b.getAttribute("data-lang-toggle") === code);
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function(el){
+      if (!el.dataset.i18nPlaceholderOriginal) {
+        el.dataset.i18nPlaceholderOriginal = el.placeholder || '';
+      }
     });
-    document.documentElement.lang = code;
-    document.body && document.body.setAttribute("data-lang", code);
+  }
+
+  function resolve(dict, key, fallback){
+    if (dict && dict[key] !== undefined && dict[key] !== null && dict[key] !== '') return dict[key];
+    if (EN && EN[key] !== undefined && EN[key] !== null && EN[key] !== '') return EN[key];
+    return fallback;
+  }
+
+  function applyLang(code){
+    try {
+      captureOriginals();
+      var t = LANGS[code] || LANGS["en"];
+      document.querySelectorAll("[data-i18n-placeholder]").forEach(function(el){
+        var k = el.getAttribute("data-i18n-placeholder");
+        el.placeholder = resolve(t, k, el.dataset.i18nPlaceholderOriginal || '');
+      });
+      document.querySelectorAll("[data-i18n]").forEach(function(el){
+        var k = el.getAttribute("data-i18n");
+        el.innerHTML = resolve(t, k, el.dataset.i18nOriginal || el.innerHTML);
+      });
+      document.querySelectorAll(".lang-flag-btn").forEach(function(b){
+        b.classList.toggle("active", b.getAttribute("data-lang-toggle") === code);
+      });
+      document.documentElement.lang = code;
+      document.body && document.body.setAttribute("data-lang", code);
+    } catch(err) {
+      if (window.console) console.warn('[ailaneI18n] applyLang fallback', err);
+    }
   }
   window.ailaneI18n = {
     setLang: function(code){ try { localStorage.setItem("ailane_lang", code); } catch(e){} applyLang(code); },
@@ -2838,6 +2867,9 @@ var commentaryMap = {
   institutional: {
     layer2: function(d){
       return "Institutional clients operate at scale. The intelligence compounds. 200 contracts in the vault means 200 data points informing your sector exposure profile.";
+    },
+    layer3: function(d){
+      return "At institutional scale, the value is in the integration. Your GRC system asks me a question; I answer from the source, not from a dashboard. Every answer is traceable back to a statutory provision, a tribunal decision, or an enforcement notice.";
     }
   },
   'live-intelligence': {
@@ -2906,10 +2938,9 @@ var eileenState = {
 };
 
 /* ── Core: render a commentary string into the floating panel ────── */
-function renderFloatingCommentary(text, contextLabel){
+function renderFloatingCommentary(text){
   var card  = document.getElementById('eileen-card');
   var slot  = document.getElementById('eileen-text');
-  var ctx   = document.getElementById('eileen-context');
   if (!card || !slot) return;
 
   // Show the card if currently minimised — unless user explicitly minimised
@@ -2923,7 +2954,6 @@ function renderFloatingCommentary(text, contextLabel){
   slot.classList.add('fading');
   setTimeout(function(){
     slot.textContent = text;
-    if (ctx) ctx.textContent = contextLabel || '';
     slot.classList.remove('fading');
   }, 300);
 }
@@ -2958,8 +2988,8 @@ function updateFloatingCommentary(){
   }
   var text = lookupCommentary(section, layer, eileenState.data);
   if (text) {
-    var contextLabel = section.toUpperCase() + ' · LAYER ' + layer;
-    renderFloatingCommentary(text, contextLabel);
+    // No debug context label in production — Eileen's panel shows her name, text, and close only.
+    renderFloatingCommentary(text);
   }
 }
 
@@ -3183,6 +3213,8 @@ function initEileenDrag(){
 
 /* ====================================================== */
 /* NEXUS CANVAS — 52px floating constellation             */
+/* 8 nodes in a slightly irregular ring with adjacent      */
+/* + cross-connections. Breathing via CSS on parent.       */
 /* ====================================================== */
 function initEileenNexus(){
   var canvas = document.getElementById('nexus-floating-canvas');
@@ -3196,38 +3228,33 @@ function initEileenNexus(){
   canvas.style.height = size + 'px';
   ctx.scale(dpr, dpr);
 
-  var N = 10;
+  // 8 nodes in a slightly irregular ring — ±3px organic offset per node
+  var N = 8;
   var nodes = [];
   var cx = size / 2, cy = size / 2;
-  var radius = 16;
+  var baseRadius = 17;
   for (var i = 0; i < N; i++) {
     var angle = (i / N) * Math.PI * 2;
+    // deterministic offsets so shape is stable across frames
+    var rOff = ((Math.sin(i * 2.13) + Math.cos(i * 1.77)) * 1.5);
+    var r = baseRadius + rOff;
     nodes.push({
-      baseAngle: angle,
-      x: cx + Math.cos(angle) * radius,
-      y: cy + Math.sin(angle) * radius
+      x: cx + Math.cos(angle) * r,
+      y: cy + Math.sin(angle) * r
     });
   }
 
-  var lastFrame = 0;
-  var frameInterval = 1000 / 30;
-  function draw(now){
-    if (now - lastFrame < frameInterval) { requestAnimationFrame(draw); return; }
-    lastFrame = now;
-    var t = now / 1000;
-    var pulse = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t / 2));
+  // Cross-connections (indices pairs) — 3 chords for organic neural feel
+  var crossPairs = [[0, 3], [1, 5], [2, 6]];
+
+  // Static render — breathing provided by CSS animation on parent #eileen-nexus.
+  // Single-paint at 15fps cap would normally be unnecessary; paint once.
+  function render(){
     ctx.clearRect(0, 0, size, size);
 
-    // Update positions with subtle rotation
-    nodes.forEach(function(n, i){
-      var angle = n.baseAngle + t * 0.18;
-      n.x = cx + Math.cos(angle) * radius;
-      n.y = cy + Math.sin(angle) * radius;
-    });
-
-    // Connection lines between adjacent nodes
-    ctx.strokeStyle = 'rgba(14, 165, 233, ' + (0.18 * pulse) + ')';
-    ctx.lineWidth = 0.7;
+    // Adjacent ring connections
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.3)';
+    ctx.lineWidth = 0.5;
     for (var i = 0; i < nodes.length; i++) {
       var a = nodes[i];
       var b = nodes[(i + 1) % nodes.length];
@@ -3237,38 +3264,47 @@ function initEileenNexus(){
       ctx.stroke();
     }
 
-    // Cross-ring connections (every 3rd node) — subtle depth
-    ctx.strokeStyle = 'rgba(14, 165, 233, ' + (0.10 * pulse) + ')';
-    for (var j = 0; j < nodes.length; j++) {
-      var p = nodes[j];
-      var q = nodes[(j + 3) % nodes.length];
+    // Cross-connections (2–3 chords)
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.3)';
+    ctx.lineWidth = 0.5;
+    crossPairs.forEach(function(pair){
+      var p = nodes[pair[0]];
+      var q = nodes[pair[1]];
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(q.x, q.y);
       ctx.stroke();
-    }
+    });
 
-    // Nodes
+    // Peripheral nodes — 2px radius, full opacity cyan
+    ctx.fillStyle = '#0EA5E9';
     nodes.forEach(function(n){
-      ctx.fillStyle = 'rgba(14, 165, 233, ' + (0.85 * pulse) + ')';
       ctx.beginPath();
-      ctx.arc(n.x, n.y, 1.4, 0, Math.PI * 2);
+      ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    // Core dot
-    ctx.fillStyle = 'rgba(34, 211, 238, ' + (0.8 * pulse) + ')';
+    // Centre node — 3px radius, full opacity
     ctx.beginPath();
-    ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
     ctx.fill();
-
-    requestAnimationFrame(draw);
   }
-  requestAnimationFrame(draw);
+  render();
+
+  // Re-render on visibility change (cheap — drawing is static).
+  if ('IntersectionObserver' in window) {
+    var vObs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) render(); });
+    }, { threshold: 0 });
+    vObs.observe(canvas);
+  }
 }
 
 /* ====================================================== */
 /* NEXUS INTRO CANVAS — 180px centred in Meet Eileen      */
+/* 16 nodes in two rings (inner 6, outer 10). Outer ring   */
+/* slow-rotates 360° over 60s. Centre radial glow.         */
+/* Breathing via CSS animation on parent container.        */
 /* ====================================================== */
 function initNexusIntro(){
   var canvas = document.getElementById('nexus-intro-canvas');
@@ -3282,32 +3318,48 @@ function initNexusIntro(){
   canvas.style.height = size + 'px';
   ctx.scale(dpr, dpr);
 
-  var N = 18;
-  var rings = [
-    { r: 44, count: 10, phase: 0 },
-    { r: 72, count: 14, phase: Math.PI / 6 }
-  ];
   var cx = size / 2, cy = size / 2;
+  var rings = [
+    { r: 42, count: 6,  phase: 0, rotate: false },
+    { r: 72, count: 10, phase: Math.PI / 10, rotate: true }
+  ];
 
+  var visible = true;
   var lastFrame = 0;
-  var frameInterval = 1000 / 30;
+  var frameInterval = 1000 / 15; // 15fps cap — outer ring rotates slowly
+
   function draw(now){
+    if (!visible) { requestAnimationFrame(draw); return; }
     if (now - lastFrame < frameInterval) { requestAnimationFrame(draw); return; }
     lastFrame = now;
     var t = now / 1000;
-    var pulse = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t / 2.5));
+    // Outer ring: 360° over 60s  =>  (2π / 60) rad/sec
+    var outerRotation = (t * (Math.PI * 2)) / 60;
+
     ctx.clearRect(0, 0, size, size);
 
-    rings.forEach(function(ring, ri){
-      var rotation = t * (ri === 0 ? 0.15 : -0.1);
+    // Centre radial glow
+    var glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 36);
+    glow.addColorStop(0, 'rgba(14, 165, 233, 0.15)');
+    glow.addColorStop(1, 'rgba(14, 165, 233, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, size, size);
+
+    // Compute ring points
+    var ringPts = rings.map(function(ring){
       var pts = [];
+      var rot = ring.rotate ? outerRotation : 0;
       for (var i = 0; i < ring.count; i++) {
-        var a = (i / ring.count) * Math.PI * 2 + ring.phase + rotation;
+        var a = (i / ring.count) * Math.PI * 2 + ring.phase + rot;
         pts.push({ x: cx + Math.cos(a) * ring.r, y: cy + Math.sin(a) * ring.r });
       }
-      // Connect adjacent
-      ctx.strokeStyle = 'rgba(14, 165, 233, ' + (0.14 * pulse) + ')';
-      ctx.lineWidth = 0.8;
+      return pts;
+    });
+
+    // Adjacent ring connections (within each ring)
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.3)';
+    ctx.lineWidth = 0.6;
+    ringPts.forEach(function(pts){
       for (var i = 0; i < pts.length; i++) {
         var a = pts[i], b = pts[(i + 1) % pts.length];
         ctx.beginPath();
@@ -3315,32 +3367,35 @@ function initNexusIntro(){
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
       }
-      // Nodes
+    });
+
+    // Cross-ring connections — each inner node to its nearest outer node
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.18)';
+    ctx.lineWidth = 0.5;
+    ringPts[0].forEach(function(ip){
+      var nearest = ringPts[1][0], nd = Infinity;
+      ringPts[1].forEach(function(op){
+        var dx = op.x - ip.x, dy = op.y - ip.y;
+        var d2 = dx*dx + dy*dy;
+        if (d2 < nd) { nd = d2; nearest = op; }
+      });
+      ctx.beginPath();
+      ctx.moveTo(ip.x, ip.y);
+      ctx.lineTo(nearest.x, nearest.y);
+      ctx.stroke();
+    });
+
+    // Nodes
+    ctx.fillStyle = '#0EA5E9';
+    ringPts.forEach(function(pts){
       pts.forEach(function(p){
-        ctx.fillStyle = 'rgba(14, 165, 233, ' + (0.8 * pulse) + ')';
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
         ctx.fill();
       });
     });
 
-    // Cross-ring connections (sparse)
-    var outerPts = [];
-    for (var i = 0; i < rings[1].count; i++) {
-      var a = (i / rings[1].count) * Math.PI * 2 + rings[1].phase + t * -0.1;
-      outerPts.push({ x: cx + Math.cos(a) * rings[1].r, y: cy + Math.sin(a) * rings[1].r });
-    }
-    ctx.strokeStyle = 'rgba(14, 165, 233, ' + (0.06 * pulse) + ')';
-    for (var k = 0; k < outerPts.length; k += 2) {
-      var p = outerPts[k];
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-    }
-
-    // Core
-    ctx.fillStyle = 'rgba(34, 211, 238, ' + (0.9 * pulse) + ')';
+    // Core dot
     ctx.beginPath();
     ctx.arc(cx, cy, 3, 0, Math.PI * 2);
     ctx.fill();
@@ -3348,6 +3403,14 @@ function initNexusIntro(){
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
+
+  // Pause animation when canvas out of view
+  if ('IntersectionObserver' in window) {
+    var vObs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ visible = e.isIntersecting; });
+    }, { threshold: 0 });
+    vObs.observe(canvas);
+  }
 }
 /* ====================================================== */
 /* TICKER STRIP — seamless marquee loop                   */
