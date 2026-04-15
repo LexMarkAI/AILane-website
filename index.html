@@ -1109,8 +1109,16 @@ function initEileenCommentary() {
 
 /* ── Eileen LIVE CHAT HANDLER (LP-002 §4.2 — THE critical integration) ── */
 var chatMessages = [];
-var visitorHash = 'v_' + Math.random().toString(36).substr(2, 9);
-var conversationId = null;
+/* visitor_hash must be >= 16 chars per eileen-presales schema validation.
+   Use crypto.randomUUID when available; fall back to timestamp+random. */
+var visitorHash = (function() {
+  try {
+    if (window.crypto && typeof crypto.randomUUID === 'function') {
+      return 'v_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+    }
+  } catch (e) {}
+  return 'v_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+})();
 
 async function sendToEileen(userText) {
   var historyEl = document.getElementById('eileen-chat-history');
@@ -1147,8 +1155,7 @@ async function sendToEileen(userText) {
         page: 'main',
         section: currentSection,
         messages: chatMessages,
-        visitor_hash: visitorHash,
-        conversation_id: conversationId
+        visitor_hash: visitorHash
       })
     });
 
@@ -1157,7 +1164,6 @@ async function sendToEileen(userText) {
 
     if (data.response) {
       chatMessages.push({ role: 'assistant', content: data.response });
-      if (data.conversation_id) conversationId = data.conversation_id;
 
       var eileenBubble = document.createElement('div');
       eileenBubble.className = 'chat-eileen';
