@@ -1663,8 +1663,17 @@
        PRINT
        ========================================================= */
     @media print {
-      .sidebar {
+      /* Layout: drop sidebar, main goes full-width */
+      .sidebar,
+      .activation-cta-sidebar,
+      .sidebar-footer,
+      .eileen-notice {
         display: none !important;
+      }
+
+      .app {
+        display: block !important;
+        background: #FFFFFF !important;
       }
 
       .main {
@@ -1673,7 +1682,58 @@
         padding-bottom: 0 !important;
       }
 
-      .app {
+      body {
+        background: #FFFFFF !important;
+      }
+
+      /* Avoid breaking cards across pages */
+      .metric-card,
+      .finding-card,
+      .action-card,
+      .entity-node,
+      .entity-detail-card,
+      .account-card,
+      .coming-soon {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      /* Preserve gold on metric cards when browsers strip backgrounds */
+      .metric-card {
+        border-color: var(--ailane-gold-dark) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      /* Hide interactive affordances that make no sense on paper */
+      .finding-toggle,
+      .action-arrow {
+        display: none !important;
+      }
+
+      /* Force all finding cards open — print the expanded body */
+      .finding-body {
+        max-height: none !important;
+        overflow: visible !important;
+        margin-top: 10px !important;
+      }
+
+      /* Force <details> (ACEI text-alternative table) open;
+         hide the "Show data" summary since content is now visible */
+      .acei-expand > *:not(summary) {
         display: block !important;
+      }
+
+      .acei-expand summary {
+        display: none !important;
+      }
+
+      /* Footer stays visible and prints on the last page */
+      .main-footer {
+        display: block !important;
+        margin-top: 32px !important;
+        border-top: 1px solid var(--ailane-slate) !important;
+        background: #FFFFFF !important;
+        page-break-before: auto;
       }
     }
