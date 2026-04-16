@@ -3159,6 +3159,7 @@ function PanelIcon({ id }) {
 }
 
 const TIER_RANK = {
+  loading: 1,
   per_session: 0,
   kl_quick_session: 0,
   kl_day_pass: 0,
