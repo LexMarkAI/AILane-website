@@ -315,6 +315,212 @@
       .metric-card { min-height: 120px; padding: 20px 16px 16px; }
     }
 
+    /* =========================================================
+       DASHBOARD — ACEI BAR CHART (brief §4.3 row 3, §4.5)
+       ========================================================= */
+    .acei-panel {
+      background: var(--ailane-bg);
+      border: 1px solid var(--ailane-border);
+      border-radius: 10px;
+      padding: 24px 24px 16px;
+    }
+
+    .acei-panel-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .acei-panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ailane-dark);
+    }
+
+    .acei-panel-caption {
+      font-size: 12px;
+      color: var(--ailane-slate-light);
+      letter-spacing: 0.02em;
+    }
+
+    .acei-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .acei-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 92px;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .acei-row-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ailane-dark);
+      line-height: 1.3;
+    }
+
+    .acei-row-track {
+      position: relative;
+      height: 22px;
+      background: var(--ailane-light);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .acei-row-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      border-radius: 4px;
+      transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .acei-row-fill[data-trend="accelerating"]      { background: var(--ailane-amber); }
+    .acei-row-fill[data-trend="active_upheld"]     { background: var(--ailane-gold-dark); }
+    .acei-row-fill[data-trend="active_hmrc_named"] { background: var(--ailane-gold-dark); }
+    .acei-row-fill[data-trend="new_exposure"]      { background: var(--ailane-cyan); }
+    .acei-row-fill[data-trend="historical"]        { background: var(--ailane-slate-light); }
+
+    .acei-row-meta {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .acei-row-count {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ailane-dark);
+    }
+
+    .acei-row-trend {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: var(--ailane-slate);
+      background: rgba(148, 163, 184, 0.14);
+    }
+
+    .acei-row-trend[data-trend="accelerating"] {
+      color: #B45309;
+      background: rgba(245, 158, 11, 0.14);
+    }
+    .acei-row-trend[data-trend="active_upheld"],
+    .acei-row-trend[data-trend="active_hmrc_named"] {
+      color: #B45309;
+      background: rgba(212, 160, 23, 0.18);
+    }
+    .acei-row-trend[data-trend="new_exposure"] {
+      color: #0E7490;
+      background: rgba(6, 182, 212, 0.14);
+    }
+
+    .acei-expand {
+      margin-top: 16px;
+      border-top: 1px dashed var(--ailane-border);
+      padding-top: 4px;
+    }
+
+    .acei-expand summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 10px 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ailane-cyan);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .acei-expand summary::-webkit-details-marker { display: none; }
+
+    .acei-expand summary::after {
+      content: "\25BC";
+      font-size: 9px;
+      transition: transform 0.2s ease;
+    }
+
+    .acei-expand[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .acei-expand summary:hover {
+      color: var(--ailane-dark);
+    }
+
+    .acei-table-wrap {
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+
+    .acei-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .acei-table th,
+    .acei-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--ailane-border);
+    }
+
+    .acei-table th {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ailane-slate);
+      background: var(--ailane-light);
+    }
+
+    .acei-table td {
+      color: var(--ailane-dark);
+      vertical-align: top;
+    }
+
+    .acei-table td.num {
+      font-variant-numeric: tabular-nums;
+      width: 64px;
+    }
+
+    .acei-table td.trend-cell {
+      width: 150px;
+    }
+
+    .acei-table tbody tr:last-child th,
+    .acei-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    @media (max-width: 768px) {
+      .acei-panel { padding: 18px 16px 12px; }
+      .acei-row { grid-template-columns: 140px 1fr 72px; gap: 8px; }
+      .acei-row-label { font-size: 12px; }
+    }
+
+    @media (max-width: 520px) {
+      .acei-row { grid-template-columns: 1fr; gap: 4px; }
+      .acei-row-meta { justify-content: flex-start; }
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
       .welcome-title { font-size: 22px; }
@@ -1021,13 +1227,54 @@
       }
 
       // =======================================================
+      // STATIC CONTENT — brief §4.5
+      // =======================================================
+      var AILANE_RESPONSES = {
+        'unfair_dismissal': 'Disciplinary and grievance policy compliance review',
+        'discrimination_harassment': 'EDI policy and reasonable adjustments audit',
+        'whistleblowing': 'Whistleblowing policy and reporting channel review',
+        'wages_working_time': 'Payroll compliance and Working Time Regulations audit',
+        'business_transfers': 'TUPE integration compliance framework',
+        'redundancy_org_change': 'Restructuring protocol review'
+      };
+
+      // Display labels match the brief's chart mock-up rows
+      var ACEI_CATEGORY_LABELS = {
+        'unfair_dismissal': 'Unfair Dismissal',
+        'discrimination_harassment': 'Discrimination & Harassment',
+        'whistleblowing': 'Whistleblowing',
+        'wages_working_time': 'Wages & Working Time',
+        'business_transfers': 'Business Transfers',
+        'redundancy_org_change': 'Redundancy & Org Change'
+      };
+
+      // Trend labels for the meta pill and expanded table
+      var ACEI_TREND_LABELS = {
+        'accelerating': 'Accelerating',
+        'active_upheld': 'Active · Upheld',
+        'active_hmrc_named': 'Active · HMRC',
+        'new_exposure': 'New Exposure',
+        'historical': 'Historical'
+      };
+
+      // Preserve display order — matches brief §4.3 row 3 mock-up
+      var ACEI_DISPLAY_ORDER = [
+        'unfair_dismissal',
+        'discrimination_harassment',
+        'whistleblowing',
+        'wages_working_time',
+        'business_transfers',
+        'redundancy_org_change'
+      ];
+
+      // =======================================================
       // DASHBOARD RENDERER (orchestrator)
       // =======================================================
       function renderDashboard(data) {
         if (!data) return;
         renderWelcomeBar(data);
         renderMetricCards(data);
-        // Task 2c: renderAceiChart(data);
+        renderAceiChart(data);
         // Task 2d: renderKeyFindings();
         // Task 2e: renderQuickActions();
       }
@@ -1170,6 +1417,166 @@
           // Kick off animation (800ms ease-out)
           animateCount(valueEl, m.value, 800);
         });
+      }
+
+      // -----------------------------------------------------
+      // ACEI BAR CHART (brief §4.5 — vanilla HTML/CSS bars)
+      // -----------------------------------------------------
+      function renderAceiChart(data) {
+        var container = document.querySelector('[data-section="acei"]');
+        if (!container || !data || !data.intelligence || !data.intelligence.acei_profile) return;
+
+        var categoriesObj = data.intelligence.acei_profile.categories || {};
+        var engaged = Number(data.intelligence.acei_profile.categories_engaged) || 0;
+
+        // Build ordered rows — respect display order, skip categories not in response
+        var rows = ACEI_DISPLAY_ORDER
+          .filter(function (key) { return categoriesObj[key]; })
+          .map(function (key) {
+            var c = categoriesObj[key];
+            return {
+              key: key,
+              label: ACEI_CATEGORY_LABELS[key] || key,
+              total: Number(c.total) || 0,
+              since2024: Number(c.since_2024) || 0,
+              trend: c.trend || 'historical',
+              response: AILANE_RESPONSES[key] || ''
+            };
+          });
+
+        var maxTotal = rows.reduce(function (m, r) { return Math.max(m, r.total); }, 0) || 1;
+
+        // Build panel
+        var panel = document.createElement('section');
+        panel.className = 'acei-panel';
+        panel.setAttribute('aria-labelledby', 'acei-panel-title');
+
+        var header = document.createElement('div');
+        header.className = 'acei-panel-header';
+
+        var title = document.createElement('h2');
+        title.className = 'acei-panel-title';
+        title.id = 'acei-panel-title';
+        title.textContent = 'ACEI Category Profile';
+
+        var caption = document.createElement('span');
+        caption.className = 'acei-panel-caption';
+        caption.textContent = engaged + ' of 12 categories engaged';
+
+        header.appendChild(title);
+        header.appendChild(caption);
+        panel.appendChild(header);
+
+        var chart = document.createElement('div');
+        chart.className = 'acei-chart';
+        chart.setAttribute('role', 'list');
+        chart.setAttribute('aria-label', 'ACEI category totals');
+
+        rows.forEach(function (r) {
+          var row = document.createElement('div');
+          row.className = 'acei-row';
+          row.setAttribute('role', 'listitem');
+          row.setAttribute('aria-label',
+            r.label + ': ' + r.total + ' decisions, ' +
+            (ACEI_TREND_LABELS[r.trend] || r.trend));
+
+          var labelEl = document.createElement('div');
+          labelEl.className = 'acei-row-label';
+          labelEl.textContent = r.label;
+
+          var track = document.createElement('div');
+          track.className = 'acei-row-track';
+
+          var fill = document.createElement('div');
+          fill.className = 'acei-row-fill';
+          fill.setAttribute('data-trend', r.trend);
+          fill.setAttribute('data-width', String((r.total / maxTotal) * 100));
+
+          track.appendChild(fill);
+
+          var meta = document.createElement('div');
+          meta.className = 'acei-row-meta';
+
+          var count = document.createElement('span');
+          count.className = 'acei-row-count';
+          count.textContent = r.total;
+
+          var trendPill = document.createElement('span');
+          trendPill.className = 'acei-row-trend';
+          trendPill.setAttribute('data-trend', r.trend);
+          trendPill.textContent = (ACEI_TREND_LABELS[r.trend] || r.trend).split(' · ')[0];
+
+          meta.appendChild(count);
+          meta.appendChild(trendPill);
+
+          row.appendChild(labelEl);
+          row.appendChild(track);
+          row.appendChild(meta);
+          chart.appendChild(row);
+        });
+
+        panel.appendChild(chart);
+
+        // Expandable full table
+        var expand = document.createElement('details');
+        expand.className = 'acei-expand';
+
+        var summary = document.createElement('summary');
+        summary.textContent = 'Expand to full table';
+        expand.appendChild(summary);
+
+        var tableWrap = document.createElement('div');
+        tableWrap.className = 'acei-table-wrap';
+
+        var table = document.createElement('table');
+        table.className = 'acei-table';
+
+        var thead = document.createElement('thead');
+        thead.innerHTML =
+          '<tr>' +
+            '<th scope="col">Category</th>' +
+            '<th scope="col">Total</th>' +
+            '<th scope="col">2024+</th>' +
+            '<th scope="col">Trend</th>' +
+            '<th scope="col">Ailane Response</th>' +
+          '</tr>';
+        table.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
+        rows.forEach(function (r) {
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<th scope="row" style="font-weight:600;color:var(--ailane-dark)">' + escapeHtml(r.label) + '</th>' +
+            '<td class="num">' + r.total + '</td>' +
+            '<td class="num">' + r.since2024 + '</td>' +
+            '<td class="trend-cell">' + escapeHtml(ACEI_TREND_LABELS[r.trend] || r.trend) + '</td>' +
+            '<td>' + escapeHtml(r.response) + '</td>';
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
+        expand.appendChild(tableWrap);
+        panel.appendChild(expand);
+
+        container.innerHTML = '';
+        container.appendChild(panel);
+
+        // Animate bar widths on next frame so CSS transition fires
+        requestAnimationFrame(function () {
+          var fills = container.querySelectorAll('.acei-row-fill');
+          for (var i = 0; i < fills.length; i++) {
+            fills[i].style.width = fills[i].getAttribute('data-width') + '%';
+          }
+        });
+      }
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
       }
 
       // =======================================================
