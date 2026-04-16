@@ -521,6 +521,120 @@
       .acei-row-meta { justify-content: flex-start; }
     }
 
+    /* =========================================================
+       DASHBOARD — KEY FINDINGS (brief §4.3 row 4, §4.6)
+       ========================================================= */
+    .dash-findings-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .finding-card {
+      background: var(--ailane-bg);
+      border: 1px solid var(--ailane-border);
+      border-left-width: 4px;
+      border-radius: 8px;
+      padding: 18px 20px;
+      cursor: pointer;
+      transition: box-shadow 0.15s ease, transform 0.15s ease;
+      text-align: left;
+      width: 100%;
+    }
+
+    .finding-card:hover {
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .finding-card[data-tone="amber"] {
+      border-left-color: var(--ailane-amber);
+    }
+
+    .finding-card[data-tone="blue"] {
+      border-left-color: var(--ailane-cyan);
+    }
+
+    .finding-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .finding-icon {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .finding-card[data-tone="amber"] .finding-icon {
+      color: #B45309;
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .finding-card[data-tone="blue"] .finding-icon {
+      color: #0E7490;
+      background: rgba(6, 182, 212, 0.14);
+    }
+
+    .finding-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ailane-dark);
+      line-height: 1.35;
+    }
+
+    .finding-summary {
+      font-size: 13px;
+      color: var(--ailane-slate);
+      line-height: 1.45;
+      margin-bottom: 4px;
+    }
+
+    .finding-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 200ms ease, margin-top 200ms ease;
+      font-size: 13px;
+      color: var(--ailane-slate);
+      line-height: 1.55;
+    }
+
+    .finding-card[aria-expanded="true"] .finding-body {
+      max-height: 400px;
+      margin-top: 10px;
+    }
+
+    .finding-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ailane-cyan);
+      margin-top: 10px;
+    }
+
+    .finding-toggle::after {
+      content: "\2192";
+      font-size: 12px;
+      transition: transform 0.15s ease;
+    }
+
+    .finding-card[aria-expanded="true"] .finding-toggle::after {
+      transform: rotate(90deg);
+    }
+
+    @media (max-width: 768px) {
+      .dash-findings-row { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
       .welcome-title { font-size: 22px; }
@@ -1268,6 +1382,44 @@
       ];
 
       // =======================================================
+      // KEY FINDINGS — verbatim brief §4.6
+      // =======================================================
+      var KEY_FINDINGS = [
+        {
+          id: 'whistleblowing',
+          tone: 'amber',
+          icon: '!',
+          title: 'Whistleblowing Governance Signal',
+          summary: 's.103A upheld (Platt, Apr 2025)',
+          body: "In April 2025, the Employment Tribunal upheld a complaint of automatic unfair dismissal under s.103A ERA 1996 and detriment for making a protected disclosure under s.47B. This finding indicates that the company's whistleblowing reporting channel and investigation process may benefit from a structured review against current best practice."
+        },
+        {
+          id: 'nmw',
+          tone: 'amber',
+          icon: '!',
+          title: 'National Minimum Wage Compliance',
+          summary: 'HMRC naming March 2025 \u2014 \u00a333,941 to 43 workers',
+          body: "In March 2025, Bidvest Noonan was included on the government's published list of employers that failed to pay the national minimum wage. This is a payroll compliance event, not a tribunal finding, and represents an opportunity to strengthen pay audit processes \u2014 particularly important as the Fair Work Agency assumes enforcement responsibility from April 2025."
+        },
+        {
+          id: 'acquisitions',
+          tone: 'blue',
+          icon: 'i',
+          title: 'Acquisition Integration Exposure',
+          summary: '52 Cordant decisions inherited',
+          body: 'With five acquisitions completed since 2021 \u2014 Cordant Group, Axis Group, Robinson Services, Sword Security, and Nexgen Group \u2014 Bidvest Noonan inherits the employment practices of each acquired entity. The consolidated profile reveals Cordant entities alone account for 52 historical decisions.'
+        },
+        {
+          id: 'harassment',
+          tone: 'amber',
+          icon: '!',
+          title: 'Multi-Ground Harassment Pattern',
+          summary: 'Sex, age, race upheld simultaneously',
+          body: 'The tribunal has upheld complaints of harassment related to sex, age, and race in a single decision. Combined with industrial relations activity at UCL and bus depot sites, this pattern suggests that frontline workforce management practices would benefit from targeted compliance attention.'
+        }
+      ];
+
+      // =======================================================
       // DASHBOARD RENDERER (orchestrator)
       // =======================================================
       function renderDashboard(data) {
@@ -1275,7 +1427,7 @@
         renderWelcomeBar(data);
         renderMetricCards(data);
         renderAceiChart(data);
-        // Task 2d: renderKeyFindings();
+        renderKeyFindings();
         // Task 2e: renderQuickActions();
       }
 
@@ -1577,6 +1729,80 @@
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#039;');
+      }
+
+      // -----------------------------------------------------
+      // KEY FINDINGS (brief §4.6 — 2x2 expandable cards)
+      // -----------------------------------------------------
+      function renderKeyFindings() {
+        var container = document.querySelector('[data-section="findings"]');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        KEY_FINDINGS.forEach(function (f) {
+          var card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'finding-card';
+          card.setAttribute('data-finding', f.id);
+          card.setAttribute('data-tone', f.tone);
+          card.setAttribute('aria-expanded', 'false');
+          card.setAttribute('aria-label', f.title + ' — expand for details');
+
+          var header = document.createElement('div');
+          header.className = 'finding-header';
+
+          var icon = document.createElement('span');
+          icon.className = 'finding-icon';
+          icon.setAttribute('aria-hidden', 'true');
+          icon.textContent = f.icon;
+
+          var titleWrap = document.createElement('div');
+          var titleEl = document.createElement('div');
+          titleEl.className = 'finding-title';
+          titleEl.textContent = f.title;
+          titleWrap.appendChild(titleEl);
+
+          header.appendChild(icon);
+          header.appendChild(titleWrap);
+
+          var summary = document.createElement('p');
+          summary.className = 'finding-summary';
+          summary.textContent = f.summary;
+
+          var toggle = document.createElement('span');
+          toggle.className = 'finding-toggle';
+          toggle.textContent = 'Read more';
+
+          var body = document.createElement('div');
+          body.className = 'finding-body';
+          body.setAttribute('aria-hidden', 'true');
+          var bodyP = document.createElement('p');
+          bodyP.textContent = f.body;
+          body.appendChild(bodyP);
+
+          card.appendChild(header);
+          card.appendChild(summary);
+          card.appendChild(toggle);
+          card.appendChild(body);
+
+          card.addEventListener('click', function () {
+            var wasOpen = card.getAttribute('aria-expanded') === 'true';
+            card.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
+            body.setAttribute('aria-hidden', wasOpen ? 'true' : 'false');
+            toggle.firstChild && (toggle.firstChild.nodeValue = wasOpen ? 'Read more' : 'Read less');
+
+            if (!wasOpen) {
+              try {
+                if (window.gtag) {
+                  window.gtag('event', 'prospect_finding_expand', { finding: f.id });
+                }
+              } catch (e) { /* noop */ }
+            }
+          });
+
+          container.appendChild(card);
+        });
       }
 
       // =======================================================
