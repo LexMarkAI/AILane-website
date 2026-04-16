@@ -238,6 +238,83 @@
       margin-bottom: 0;
     }
 
+    /* =========================================================
+       DASHBOARD — METRIC CARDS (brief §4.3 row 2, §4.4)
+       ========================================================= */
+    .dash-metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .metric-card {
+      position: relative;
+      background: var(--ailane-gold-light);
+      border: 1px solid var(--ailane-gold-dark);
+      border-radius: 10px;
+      padding: 24px 20px 20px;
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-card-info {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ailane-slate);
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(212, 160, 23, 0.4);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      line-height: 1;
+      cursor: help;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .metric-card-info:hover,
+    .metric-card-info:focus-visible {
+      background: #FFFFFF;
+      color: var(--ailane-gold-dark);
+    }
+
+    .metric-card-value {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--ailane-dark);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-card-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ailane-slate);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .dash-metrics-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 520px) {
+      .dash-metrics-row { grid-template-columns: 1fr; }
+      .metric-card-value { font-size: 40px; }
+      .metric-card { min-height: 120px; padding: 20px 16px 16px; }
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
       .welcome-title { font-size: 22px; }
@@ -949,7 +1026,7 @@
       function renderDashboard(data) {
         if (!data) return;
         renderWelcomeBar(data);
-        // Task 2b: renderMetricCards(data);
+        renderMetricCards(data);
         // Task 2c: renderAceiChart(data);
         // Task 2d: renderKeyFindings();
         // Task 2e: renderQuickActions();
@@ -965,6 +1042,134 @@
         if (daysEl && data.preview && typeof data.preview.days_remaining === 'number') {
           daysEl.textContent = data.preview.days_remaining;
         }
+      }
+
+      // -----------------------------------------------------
+      // HELPERS — count animation + compact currency formatter
+      // -----------------------------------------------------
+      function animateCount(el, to, duration) {
+        if (!el) return;
+        var target = Number(to) || 0;
+        var dur = Number(duration) || 800;
+        var prefersReducedMotion = window.matchMedia &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Preserve any formatter the caller attached (e.g. "£467k+")
+        var formatter = el.__formatter || function (n) {
+          return String(Math.round(n));
+        };
+
+        if (prefersReducedMotion || dur <= 0) {
+          el.textContent = formatter(target);
+          return;
+        }
+
+        var start = performance.now();
+        var from = 0;
+
+        function frame(now) {
+          var t = Math.min(1, (now - start) / dur);
+          // Ease-out cubic
+          var eased = 1 - Math.pow(1 - t, 3);
+          var value = from + (target - from) * eased;
+          el.textContent = formatter(value);
+          if (t < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            el.textContent = formatter(target);
+          }
+        }
+        requestAnimationFrame(frame);
+      }
+
+      // Format GBP as compact "£467k+" (brief §4.4 card 3)
+      function formatCompactGbp(value) {
+        var n = Number(value) || 0;
+        if (n >= 1000000) {
+          return '£' + (n / 1000000).toFixed(n >= 10000000 ? 0 : 1).replace(/\.0$/, '') + 'm+';
+        }
+        if (n >= 1000) {
+          return '£' + Math.floor(n / 1000) + 'k+';
+        }
+        return '£' + Math.round(n);
+      }
+
+      // -----------------------------------------------------
+      // METRIC CARDS (brief §4.4 — 4 gold-bordered cards)
+      // -----------------------------------------------------
+      function renderMetricCards(data) {
+        var container = document.querySelector('[data-section="metrics"]');
+        if (!container || !data || !data.intelligence) return;
+
+        var intel = data.intelligence;
+        var acquiredCount = (intel.entity_consolidation &&
+          Array.isArray(intel.entity_consolidation.acquired_entities))
+            ? intel.entity_consolidation.acquired_entities.length
+            : 0;
+
+        var metrics = [
+          {
+            id: 'decisions',
+            value: Number(intel.total_decisions) || 0,
+            label: 'Tribunal Decisions',
+            tooltip: 'Consolidated across the Bidvest Noonan group, including acquired entities.'
+          },
+          {
+            id: 'categories',
+            value: (intel.acei_profile && Number(intel.acei_profile.categories_engaged)) || 0,
+            label: 'ACEI Categories',
+            tooltip: 'Six of twelve compliance exposure categories are engaged in your tribunal profile.'
+          },
+          {
+            id: 'costs',
+            value: Number(intel.total_estimated_ecosystem_cost) || 0,
+            label: 'Estimated Compliance Costs',
+            tooltip: "Analytical estimate using Ailane's cost methodology applied to published hearing data. Indicative only.",
+            formatter: formatCompactGbp
+          },
+          {
+            id: 'entities',
+            value: acquiredCount + 1,
+            label: 'Entities Mapped',
+            tooltip: 'Primary entity plus five acquired or predecessor entities.'
+          }
+        ];
+
+        container.innerHTML = '';
+
+        metrics.forEach(function (m) {
+          var card = document.createElement('article');
+          card.className = 'metric-card';
+          card.setAttribute('data-metric', m.id);
+
+          var info = document.createElement('span');
+          info.className = 'metric-card-info';
+          info.setAttribute('tabindex', '0');
+          info.setAttribute('role', 'img');
+          info.setAttribute('aria-label', m.tooltip);
+          info.setAttribute('title', m.tooltip);
+          info.textContent = 'i';
+
+          var valueEl = document.createElement('div');
+          valueEl.className = 'metric-card-value';
+          if (m.formatter) {
+            valueEl.__formatter = m.formatter;
+          }
+          // Initial placeholder while animation prepares
+          valueEl.textContent = m.formatter ? m.formatter(0) : '0';
+
+          var labelEl = document.createElement('div');
+          labelEl.className = 'metric-card-label';
+          labelEl.textContent = m.label;
+
+          card.appendChild(info);
+          card.appendChild(valueEl);
+          card.appendChild(labelEl);
+          container.appendChild(card);
+
+          // Kick off animation (800ms ease-out)
+          animateCount(valueEl, m.value, 800);
+        });
       }
 
       // =======================================================
