@@ -1560,6 +1560,78 @@
     }
 
     /* =========================================================
+       COMING-SOON STATE (brief §6.2 — shared across 7 sections)
+       ========================================================= */
+    .coming-soon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 560px;
+      margin: 56px auto 0;
+      padding: 0 20px;
+    }
+
+    .coming-soon-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ailane-gold-dark);
+      margin-bottom: 24px;
+    }
+
+    .coming-soon-icon svg {
+      width: 64px;
+      height: 64px;
+    }
+
+    .coming-soon-heading {
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--ailane-dark);
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+    }
+
+    .coming-soon-body {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--ailane-slate);
+      margin-bottom: 24px;
+    }
+
+    .coming-soon-note {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--ailane-gold-dark);
+      font-style: italic;
+      font-weight: 500;
+    }
+
+    @media (max-width: 600px) {
+      .coming-soon {
+        margin-top: 32px;
+      }
+
+      .coming-soon-icon {
+        margin-bottom: 20px;
+      }
+
+      .coming-soon-icon svg {
+        width: 56px;
+        height: 56px;
+      }
+
+      .coming-soon-heading {
+        font-size: 22px;
+      }
+
+      .coming-soon-body {
+        font-size: 14px;
+      }
+    }
+
+    /* =========================================================
        PRINT
        ========================================================= */
     @media print {
@@ -1717,21 +1789,11 @@
         <!-- Row 5: Quick actions (Task 2e fills this) -->
         <div class="dash-row dash-actions-row" data-section="actions"></div>
       </section>
-      <section class="view" data-view="compliance-checker" aria-labelledby="view-heading-compliance-checker" hidden>
-        <h2 id="view-heading-compliance-checker" class="view-heading">Compliance Checker</h2>
-      </section>
-      <section class="view" data-view="contract-creator" aria-labelledby="view-heading-contract-creator" hidden>
-        <h2 id="view-heading-contract-creator" class="view-heading">Contract Creator</h2>
-      </section>
-      <section class="view" data-view="document-vault" aria-labelledby="view-heading-document-vault" hidden>
-        <h2 id="view-heading-document-vault" class="view-heading">Document Vault</h2>
-      </section>
-      <section class="view" data-view="knowledge-library" aria-labelledby="view-heading-knowledge-library" hidden>
-        <h2 id="view-heading-knowledge-library" class="view-heading">Knowledge Library</h2>
-      </section>
-      <section class="view" data-view="regulatory-ticker" aria-labelledby="view-heading-regulatory-ticker" hidden>
-        <h2 id="view-heading-regulatory-ticker" class="view-heading">Regulatory Ticker</h2>
-      </section>
+      <section class="view" data-view="compliance-checker" aria-labelledby="view-heading-compliance-checker" hidden></section>
+      <section class="view" data-view="contract-creator" aria-labelledby="view-heading-contract-creator" hidden></section>
+      <section class="view" data-view="document-vault" aria-labelledby="view-heading-document-vault" hidden></section>
+      <section class="view" data-view="knowledge-library" aria-labelledby="view-heading-knowledge-library" hidden></section>
+      <section class="view" data-view="regulatory-ticker" aria-labelledby="view-heading-regulatory-ticker" hidden></section>
       <section class="view" data-view="entity-map" aria-labelledby="view-heading-entity-map" hidden>
         <header class="entity-map-header">
           <h1 id="view-heading-entity-map" class="entity-map-title">Group Structure &amp; Consolidated Profile</h1>
@@ -1748,12 +1810,8 @@
 
         <div class="entity-detail" id="entity-detail" data-section="entity-detail" aria-live="polite"></div>
       </section>
-      <section class="view" data-view="sector-benchmarking" aria-labelledby="view-heading-sector-benchmarking" hidden>
-        <h2 id="view-heading-sector-benchmarking" class="view-heading">Sector Benchmarking</h2>
-      </section>
-      <section class="view" data-view="forward-intelligence" aria-labelledby="view-heading-forward-intelligence" hidden>
-        <h2 id="view-heading-forward-intelligence" class="view-heading">Forward Intelligence</h2>
-      </section>
+      <section class="view" data-view="sector-benchmarking" aria-labelledby="view-heading-sector-benchmarking" hidden></section>
+      <section class="view" data-view="forward-intelligence" aria-labelledby="view-heading-forward-intelligence" hidden></section>
       <section class="view" data-view="account" aria-labelledby="view-heading-account" hidden>
         <header class="account-header">
           <h1 id="view-heading-account" class="account-page-title">Account &amp; Settings</h1>
@@ -2041,6 +2099,7 @@
         renderQuickActions();
         renderEntityMap(data);
         renderAccountPanel(data);
+        renderAllComingSoonStates();
       }
 
       function renderWelcomeBar(data) {
@@ -2795,6 +2854,131 @@
         var companyEl = document.querySelector('[data-field="account-company-name"]');
         if (companyEl && company.name) {
           companyEl.textContent = company.name;
+        }
+      }
+
+      // =======================================================
+      // COMING-SOON STATES (brief §6.2 — 7 sections, verbatim copy)
+      // =======================================================
+
+      // Heroicon v2 outline paths — same data as the sidebar icons,
+      // rendered at 64px with color: var(--ailane-gold-dark).
+      var COMING_SOON_ICONS = {
+        'clipboard-document-check':
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12l1.5 1.5 3-3.75"/>',
+        'document-plus':
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm1.5 12.75v-6m-3 3h6"/>',
+        'folder-open':
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/>',
+        'book-open':
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/>',
+        'rss':
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M12.75 19.5v-.75a7.5 7.5 0 0 0-7.5-7.5H4.5m.75-8.25A17.25 17.25 0 0 1 22.5 20.25M5.25 3.375a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>',
+        'chart-pie':
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z"/>',
+        'sparkles':
+          '<path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>'
+      };
+
+      // Closing italic line — identical across all 7 sections (brief §6.2)
+      var COMING_SOON_NOTE = 'Available during your preview period. Ask Eileen for more information.';
+
+      // Section config — view key, H1 label, icon, verbatim §6.2 body.
+      // Static content; the helper clones from here.
+      var COMING_SOON_CONFIG = [
+        {
+          view: 'compliance-checker',
+          h1: 'Compliance Checker',
+          icon: 'clipboard-document-check',
+          body: 'Upload any employment contract, handbook, or HR policy for clause-level compliance analysis against 71 statutory requirements. Three independent analytical passes cross-validate every finding. Your results are mapped to Bidvest Noonan\u2019s ACEI exposure profile.'
+        },
+        {
+          view: 'contract-creator',
+          h1: 'Contract Creator',
+          icon: 'document-plus',
+          body: 'Build compliant employment contracts through a guided conversation with Eileen. She asks what you need, assembles the regulatory requirements, and produces a contract framework ready for legal review. Designed for your cleaning, security, and FM divisions.'
+        },
+        {
+          view: 'document-vault',
+          h1: 'Document Vault',
+          icon: 'folder-open',
+          body: 'Your pre-mapped document vault with 33 compliance-critical document slots organised by division \u2014 Group, Cleaning, Security, Facilities Management, Acquired Entities, and Compliance. Upload, check, and track compliance scores across your entire document estate.'
+        },
+        {
+          view: 'knowledge-library',
+          h1: 'Knowledge Library',
+          icon: 'book-open',
+          body: '71 regulatory requirements, 240 case studies, and the full UK employment law intelligence estate \u2014 delivered through Eileen. Ask any employment law question and receive structured intelligence with statutory references.'
+        },
+        {
+          view: 'regulatory-ticker',
+          h1: 'Regulatory Ticker',
+          icon: 'rss',
+          body: 'Live regulatory intelligence feed tracking employment law changes, Fair Work Agency enforcement actions, tribunal trends, and ERA 2025 implementation milestones \u2014 filtered to the categories that affect Bidvest Noonan\u2019s exposure profile.'
+        },
+        {
+          view: 'sector-benchmarking',
+          h1: 'Sector Benchmarking',
+          icon: 'chart-pie',
+          body: 'How does Bidvest Noonan\u2019s compliance profile compare to other facilities management companies? Category-by-category comparison against FM sector peers, anonymised and aggregated from Ailane\u2019s 78,699-employer intelligence estate.'
+        },
+        {
+          view: 'forward-intelligence',
+          h1: 'Forward Intelligence',
+          icon: 'sparkles',
+          body: 'The Employment Rights Act 2025 introduces day-one unfair dismissal rights, zero-hours contract restrictions, and Fair Work Agency enforcement powers. This section maps each change to Bidvest Noonan\u2019s specific workforce profile, division by division.'
+        }
+      ];
+
+      // Renders the standard coming-soon layout into a view container.
+      // Uses textContent for H1/body/note (safe); icon SVG is from a
+      // trusted static map (not user-controlled), so innerHTML is fine.
+      function renderComingSoonState(viewEl, config) {
+        if (!viewEl || !config) return;
+
+        var headingId = 'view-heading-' + config.view;
+        var iconPaths = COMING_SOON_ICONS[config.icon] || '';
+
+        var wrap = document.createElement('div');
+        wrap.className = 'coming-soon';
+
+        var iconWrap = document.createElement('div');
+        iconWrap.className = 'coming-soon-icon';
+        iconWrap.setAttribute('aria-hidden', 'true');
+        iconWrap.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" ' +
+          'stroke-width="1.5" stroke="currentColor">' + iconPaths + '</svg>';
+
+        var h1 = document.createElement('h1');
+        h1.className = 'coming-soon-heading';
+        h1.id = headingId;
+        h1.textContent = config.h1;
+
+        var body = document.createElement('p');
+        body.className = 'coming-soon-body';
+        body.textContent = config.body;
+
+        var note = document.createElement('p');
+        note.className = 'coming-soon-note';
+        note.textContent = COMING_SOON_NOTE;
+
+        wrap.appendChild(iconWrap);
+        wrap.appendChild(h1);
+        wrap.appendChild(body);
+        wrap.appendChild(note);
+
+        // Replace any existing content (view containers are empty shells)
+        viewEl.innerHTML = '';
+        viewEl.appendChild(wrap);
+      }
+
+      function renderAllComingSoonStates() {
+        for (var i = 0; i < COMING_SOON_CONFIG.length; i++) {
+          var cfg = COMING_SOON_CONFIG[i];
+          var viewEl = document.querySelector('[data-view="' + cfg.view + '"]');
+          if (viewEl) {
+            renderComingSoonState(viewEl, cfg);
+          }
         }
       }
 
