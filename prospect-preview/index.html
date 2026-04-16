@@ -187,8 +187,63 @@
       margin-bottom: 8px;
     }
 
+    /* =========================================================
+       DASHBOARD — WELCOME BAR (brief §4.3 row 1)
+       ========================================================= */
+    .welcome-bar {
+      padding: 8px 0 28px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--ailane-border);
+    }
+
+    .welcome-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ailane-dark);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .welcome-subtitle {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ailane-slate);
+      margin-bottom: 10px;
+    }
+
+    .welcome-meta {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ailane-slate-light);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .welcome-meta span[data-field="days-remaining"] {
+      color: var(--ailane-gold-dark);
+      font-weight: 700;
+    }
+
+    /* Dashboard row spacing — each row gets generous separation */
+    .dash-row {
+      margin-bottom: 32px;
+    }
+
+    .dash-row:empty {
+      margin-bottom: 0;
+    }
+
+    .dash-row:last-child {
+      margin-bottom: 0;
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
+      .welcome-title { font-size: 22px; }
+      .welcome-subtitle { font-size: 13.5px; }
+      .welcome-bar { padding: 4px 0 20px; margin-bottom: 20px; }
+      .dash-row { margin-bottom: 24px; }
     }
 
     /* =========================================================
@@ -697,7 +752,26 @@
     </aside>
     <main class="main" id="main">
       <section class="view is-active" data-view="dashboard" aria-labelledby="view-heading-dashboard">
-        <h2 id="view-heading-dashboard" class="view-heading">Dashboard</h2>
+        <!-- Row 1: Welcome bar -->
+        <header class="welcome-bar">
+          <h1 id="view-heading-dashboard" class="welcome-title" data-field="company-name">Bidvest Noonan (UK) Limited</h1>
+          <p class="welcome-subtitle">Employer Compliance Intelligence Profile</p>
+          <p class="welcome-meta">
+            Preview access &middot; <span data-field="days-remaining">&mdash;</span> days remaining
+          </p>
+        </header>
+
+        <!-- Row 2: Metric cards (Task 2b fills this) -->
+        <div class="dash-row dash-metrics-row" data-section="metrics"></div>
+
+        <!-- Row 3: ACEI bar chart (Task 2c fills this) -->
+        <div class="dash-row dash-acei-row" data-section="acei"></div>
+
+        <!-- Row 4: Key findings (Task 2d fills this) -->
+        <div class="dash-row dash-findings-row" data-section="findings"></div>
+
+        <!-- Row 5: Quick actions (Task 2e fills this) -->
+        <div class="dash-row dash-actions-row" data-section="actions"></div>
       </section>
       <section class="view" data-view="compliance-checker" aria-labelledby="view-heading-compliance-checker" hidden>
         <h2 id="view-heading-compliance-checker" class="view-heading">Compliance Checker</h2>
@@ -870,6 +944,30 @@
       }
 
       // =======================================================
+      // DASHBOARD RENDERER (orchestrator)
+      // =======================================================
+      function renderDashboard(data) {
+        if (!data) return;
+        renderWelcomeBar(data);
+        // Task 2b: renderMetricCards(data);
+        // Task 2c: renderAceiChart(data);
+        // Task 2d: renderKeyFindings();
+        // Task 2e: renderQuickActions();
+      }
+
+      function renderWelcomeBar(data) {
+        if (!data) return;
+        var titleEl = document.querySelector('[data-field="company-name"]');
+        if (titleEl && data.company && data.company.name) {
+          titleEl.textContent = data.company.name;
+        }
+        var daysEl = document.querySelector('[data-field="days-remaining"]');
+        if (daysEl && data.preview && typeof data.preview.days_remaining === 'number') {
+          daysEl.textContent = data.preview.days_remaining;
+        }
+      }
+
+      // =======================================================
       // WIRE INTERACTIONS
       // =======================================================
       function wireNavigation() {
@@ -922,6 +1020,7 @@
           window.__prospectData = result; // exposed for Task 2+ renderers
 
           populateSidebarFromData(result);
+          renderDashboard(result);
           wireNavigation();
           showState('app');
           showView('dashboard');
