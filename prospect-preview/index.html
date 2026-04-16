@@ -635,6 +635,103 @@
       .dash-findings-row { grid-template-columns: 1fr; }
     }
 
+    /* =========================================================
+       DASHBOARD — QUICK ACTIONS (brief §4.3 row 5, §4.7)
+       ========================================================= */
+    .dash-actions-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .action-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 22px 22px 20px;
+      background: var(--ailane-bg);
+      border: 1px solid var(--ailane-border);
+      border-radius: 10px;
+      text-align: left;
+      width: 100%;
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .action-card:hover {
+      border-color: var(--ailane-gold-dark);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+      transform: translateY(-1px);
+    }
+
+    .action-card:active {
+      transform: translateY(0);
+    }
+
+    .action-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ailane-dark);
+      line-height: 1.25;
+    }
+
+    .action-desc {
+      font-size: 13px;
+      color: var(--ailane-slate);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .action-arrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ailane-gold-dark);
+      margin-top: auto;
+    }
+
+    .action-arrow::after {
+      content: "\2192";
+      font-size: 16px;
+      transition: transform 0.15s ease;
+    }
+
+    .action-card:hover .action-arrow::after {
+      transform: translateX(3px);
+    }
+
+    /* Eileen placeholder modal-like notice */
+    .eileen-notice {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: var(--ailane-dark);
+      color: #FFFFFF;
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      transform: translateX(-50%) translateY(6px);
+    }
+
+    .eileen-notice.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 900px) {
+      .dash-actions-row { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
       .welcome-title { font-size: 22px; }
@@ -1428,7 +1525,7 @@
         renderMetricCards(data);
         renderAceiChart(data);
         renderKeyFindings();
-        // Task 2e: renderQuickActions();
+        renderQuickActions();
       }
 
       function renderWelcomeBar(data) {
@@ -1803,6 +1900,95 @@
 
           container.appendChild(card);
         });
+      }
+
+      // -----------------------------------------------------
+      // QUICK ACTIONS (brief §4.3 row 5, §4.7)
+      // -----------------------------------------------------
+      var QUICK_ACTIONS = [
+        {
+          id: 'check_contract',
+          title: 'Check a Contract',
+          desc: 'Upload a contract, handbook, or policy for clause-level compliance analysis mapped to your ACEI profile.',
+          targetView: 'document-vault'
+        },
+        {
+          id: 'explore_kl',
+          title: 'Explore your Knowledge Library',
+          desc: '71 regulatory requirements and 240 case studies, filtered to your group exposure profile.',
+          targetView: 'knowledge-library'
+        },
+        {
+          id: 'ask_eileen',
+          title: 'Ask Eileen a Question',
+          desc: 'Eileen joins your preview in a few days. A placeholder notice appears for now.',
+          targetView: null
+        }
+      ];
+
+      function renderQuickActions() {
+        var container = document.querySelector('[data-section="actions"]');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        QUICK_ACTIONS.forEach(function (a) {
+          var card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'action-card';
+          card.setAttribute('data-action', a.id);
+          card.setAttribute('aria-label', a.title);
+
+          var titleEl = document.createElement('div');
+          titleEl.className = 'action-title';
+          titleEl.textContent = a.title;
+
+          var descEl = document.createElement('p');
+          descEl.className = 'action-desc';
+          descEl.textContent = a.desc;
+
+          var arrow = document.createElement('span');
+          arrow.className = 'action-arrow';
+          arrow.textContent = a.id === 'ask_eileen' ? 'Open notice' : 'Open';
+
+          card.appendChild(titleEl);
+          card.appendChild(descEl);
+          card.appendChild(arrow);
+
+          card.addEventListener('click', function () {
+            try {
+              if (window.gtag) {
+                window.gtag('event', 'prospect_cta_click', { cta: a.id });
+              }
+            } catch (e) { /* noop */ }
+
+            if (a.targetView) {
+              showView(a.targetView);
+            } else {
+              showEileenNotice();
+            }
+          });
+
+          container.appendChild(card);
+        });
+      }
+
+      function showEileenNotice() {
+        var notice = document.getElementById('eileen-notice');
+        if (!notice) {
+          notice = document.createElement('div');
+          notice.id = 'eileen-notice';
+          notice.className = 'eileen-notice';
+          notice.setAttribute('role', 'status');
+          notice.setAttribute('aria-live', 'polite');
+          notice.textContent = 'Eileen joins your preview in a few days.';
+          document.body.appendChild(notice);
+        }
+        notice.classList.add('is-visible');
+        clearTimeout(notice.__hideTimer);
+        notice.__hideTimer = setTimeout(function () {
+          notice.classList.remove('is-visible');
+        }, 3200);
       }
 
       // =======================================================
