@@ -2622,49 +2622,27 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
           </div>
           <HorizonAlert />
-          {/* AMD-045 §3.2: Domain navigation cards replace quick-start topic cards */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '16px',
-            width: '100%',
-            maxWidth: '820px',
-          }}>
+          {/* AMD-045 §3.2 (revised Brief 5): Compact domain list — one row
+              per domain, name + one-line orientation + arrow. Two columns on
+              desktop, single column on mobile via .kl-domain-compact-grid. */}
+          <div className="kl-domain-compact-grid">
             {DOMAINS.map(function(domain) {
               var navToDomain = function() { window.location.hash = '/domain/' + domain.slug; };
               return (
-                <div
+                <button
                   key={domain.id}
+                  type="button"
+                  className="kl-domain-compact"
                   data-domain-slug={domain.slug}
-                  role="button"
-                  tabIndex={0}
                   aria-label={'Explore ' + domain.name}
                   onClick={navToDomain}
-                  onKeyDown={function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navToDomain(); } }}
-                  style={{
-                    background: '#111827',
-                    border: '1px solid #1E293B',
-                    borderLeft: '3px solid #1E293B',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.2s, border-left-color 0.2s',
-                  }}
-                  onMouseEnter={function(e) { e.currentTarget.style.borderLeftColor = '#0EA5E9'; if (typeof onDomainHover === 'function') onDomainHover(domain.slug); }}
-                  onMouseLeave={function(e) { e.currentTarget.style.borderLeftColor = '#1E293B'; if (typeof onDomainLeave === 'function') onDomainLeave(); }}
+                  onMouseEnter={function() { if (typeof onDomainHover === 'function') onDomainHover(domain.slug); }}
+                  onMouseLeave={function() { if (typeof onDomainLeave === 'function') onDomainLeave(); }}
                 >
-                  <h3 style={{
-                    color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif",
-                    fontSize: '16px', margin: '0 0 8px', fontWeight: 600,
-                  }}>{domain.name}</h3>
-                  <p style={{
-                    color: '#94A3B8', fontFamily: "'DM Sans', sans-serif",
-                    fontSize: '13px', margin: '0 0 12px', lineHeight: 1.5,
-                  }}>{domain.orientation.substring(0, 100)}...</p>
-                  <span style={{
-                    color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif",
-                  }}>Explore &rarr;</span>
-                </div>
+                  <span className="kl-domain-compact-name">{domain.name}</span>
+                  <span className="kl-domain-compact-orient">{domain.orientation}</span>
+                  <span className="kl-domain-compact-arrow" aria-hidden="true">&rarr;</span>
+                </button>
               );
             })}
           </div>
@@ -6052,6 +6030,15 @@ function App() {
   const [showQualifier, setShowQualifier] = useState(false);
   const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
   const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
+  // Brief 5: Minimalist welcome — suppress early noise.
+  // pageLoadTime gates the qualifier (≥2 user messages OR ≥60s elapsed) and
+  // upsellGraceElapsed gates the upsell card (30s grace after first render).
+  const pageLoadTime = useRef(Date.now());
+  const [upsellGraceElapsed, setUpsellGraceElapsed] = useState(false);
+  useEffect(function() {
+    var t = setTimeout(function() { setUpsellGraceElapsed(true); }, 30000);
+    return function() { clearTimeout(t); };
+  }, []);
   // §6.4: One contract upload prompt per session
   const contractPromptShown = useRef(false);
 
@@ -6320,9 +6307,16 @@ function App() {
         setNexusState('presenting');
         presentingTimerRef.current = setTimeout(function() { setNexusState('dormant'); presentingTimerRef.current = null; }, 2000);
 
-        // EQIS: Show qualifying question after first Eileen response
-        // if user type not stored and not already shown this session
-        if (!userType && !qualifierShownThisSession) {
+        // EQIS: Show qualifying question only once the user is engaged.
+        // Brief 5 §1.4: gate on ≥2 user messages OR ≥60s on-page, to keep
+        // the welcome/early conversation state quiet.
+        var userMsgCount = 0;
+        for (var i = 0; i < messages.length; i++) {
+          if (messages[i] && messages[i].role === 'user') userMsgCount++;
+        }
+        userMsgCount += 1; // include the message just sent in this turn
+        var elapsedMs = Date.now() - pageLoadTime.current;
+        if (!userType && !qualifierShownThisSession && (userMsgCount >= 2 || elapsedMs >= 60000)) {
           setShowQualifier(true);
           setQualifierShownThisSession(true);
         }
@@ -6957,7 +6951,7 @@ function App() {
       {activePanel && (
         <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} lang={lang} />
       )}
-      {!upsellDismissed && !sessionExpired && (
+      {!upsellDismissed && !sessionExpired && upsellGraceElapsed && (
         <UpsellCard
           productType={window.__klProductType || tier || ''}
           minutesRemaining={minutesRemaining}

@@ -2153,68 +2153,29 @@ var KLApp = (() => {
       } }, "Eileen \xB7 UK Employment Law Intelligence"),
       /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion })),
       /* @__PURE__ */ React.createElement(HorizonAlert, null),
-      /* @__PURE__ */ React.createElement("div", { style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-        gap: "16px",
-        width: "100%",
-        maxWidth: "820px"
-      } }, DOMAINS.map(function(domain) {
+      /* @__PURE__ */ React.createElement("div", { className: "kl-domain-compact-grid" }, DOMAINS.map(function(domain) {
         var navToDomain = function() {
           window.location.hash = "/domain/" + domain.slug;
         };
         return /* @__PURE__ */ React.createElement(
-          "div",
+          "button",
           {
             key: domain.id,
+            type: "button",
+            className: "kl-domain-compact",
             "data-domain-slug": domain.slug,
-            role: "button",
-            tabIndex: 0,
             "aria-label": "Explore " + domain.name,
             onClick: navToDomain,
-            onKeyDown: function(e) {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navToDomain();
-              }
-            },
-            style: {
-              background: "#111827",
-              border: "1px solid #1E293B",
-              borderLeft: "3px solid #1E293B",
-              borderRadius: "12px",
-              padding: "20px",
-              cursor: "pointer",
-              transition: "border-color 0.2s, border-left-color 0.2s"
-            },
-            onMouseEnter: function(e) {
-              e.currentTarget.style.borderLeftColor = "#0EA5E9";
+            onMouseEnter: function() {
               if (typeof onDomainHover === "function") onDomainHover(domain.slug);
             },
-            onMouseLeave: function(e) {
-              e.currentTarget.style.borderLeftColor = "#1E293B";
+            onMouseLeave: function() {
               if (typeof onDomainLeave === "function") onDomainLeave();
             }
           },
-          /* @__PURE__ */ React.createElement("h3", { style: {
-            color: "#F1F5F9",
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "16px",
-            margin: "0 0 8px",
-            fontWeight: 600
-          } }, domain.name),
-          /* @__PURE__ */ React.createElement("p", { style: {
-            color: "#94A3B8",
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "13px",
-            margin: "0 0 12px",
-            lineHeight: 1.5
-          } }, domain.orientation.substring(0, 100), "..."),
-          /* @__PURE__ */ React.createElement("span", { style: {
-            color: "#0EA5E9",
-            fontSize: "12px",
-            fontFamily: "'DM Sans', sans-serif"
-          } }, "Explore \u2192")
+          /* @__PURE__ */ React.createElement("span", { className: "kl-domain-compact-name" }, domain.name),
+          /* @__PURE__ */ React.createElement("span", { className: "kl-domain-compact-orient" }, domain.orientation),
+          /* @__PURE__ */ React.createElement("span", { className: "kl-domain-compact-arrow", "aria-hidden": "true" }, "\u2192")
         );
       })),
       /* @__PURE__ */ React.createElement(BookShelf, { onOpenBook: function(book) {
@@ -5888,6 +5849,16 @@ var KLApp = (() => {
     const [showQualifier, setShowQualifier] = useState(false);
     const [qualifierShownThisSession, setQualifierShownThisSession] = useState(false);
     const [hasUploadedThisSession, setHasUploadedThisSession] = useState(false);
+    const pageLoadTime = useRef(Date.now());
+    const [upsellGraceElapsed, setUpsellGraceElapsed] = useState(false);
+    useEffect(function() {
+      var t = setTimeout(function() {
+        setUpsellGraceElapsed(true);
+      }, 3e4);
+      return function() {
+        clearTimeout(t);
+      };
+    }, []);
     const contractPromptShown = useRef(false);
     const [currentView, setCurrentView] = useState(function() {
       var route = getRoute();
@@ -6132,7 +6103,13 @@ var KLApp = (() => {
             setNexusState("dormant");
             presentingTimerRef.current = null;
           }, 2e3);
-          if (!userType && !qualifierShownThisSession) {
+          var userMsgCount = 0;
+          for (var i = 0; i < messages.length; i++) {
+            if (messages[i] && messages[i].role === "user") userMsgCount++;
+          }
+          userMsgCount += 1;
+          var elapsedMs = Date.now() - pageLoadTime.current;
+          if (!userType && !qualifierShownThisSession && (userMsgCount >= 2 || elapsedMs >= 6e4)) {
             setShowQualifier(true);
             setQualifierShownThisSession(true);
           }
@@ -6676,7 +6653,7 @@ var KLApp = (() => {
         accessType,
         tier
       }
-    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => setActivePanel(null), lang }), !upsellDismissed && !sessionExpired && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => setActivePanel(null), lang }), !upsellDismissed && !sessionExpired && upsellGraceElapsed && /* @__PURE__ */ React.createElement(
       UpsellCard,
       {
         productType: window.__klProductType || tier || "",
