@@ -732,6 +732,77 @@
       .dash-actions-row { grid-template-columns: 1fr; }
     }
 
+    /* =========================================================
+       ENTITY MAP VIEW (brief §5)
+       ========================================================= */
+    .entity-map-header {
+      padding: 0 0 24px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--ailane-border);
+    }
+
+    .entity-map-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--ailane-dark);
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .entity-map-lead {
+      font-size: 14px;
+      color: var(--ailane-slate);
+      line-height: 1.55;
+      max-width: 720px;
+    }
+
+    /* Tree container — three tiers stacked, centred */
+    .entity-map-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 32px 0 24px;
+    }
+
+    .tier {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Tier 3 (acquired siblings) — horizontal flex spread */
+    .tier[data-tier="3"] {
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* Tier 1 + 2 each carry a single node */
+    .tier[data-tier="1"],
+    .tier[data-tier="2"] {
+      align-items: center;
+    }
+
+    /* Empty tier collapses to no height (avoids stray gap before JS render) */
+    .tier:empty {
+      min-height: 0;
+    }
+
+    /* Detail panel rendered below the tree (brief §5.3) */
+    .entity-detail {
+      margin-top: 24px;
+      min-height: 0;
+    }
+
+    @media (max-width: 768px) {
+      .entity-map-title { font-size: 20px; }
+      .entity-map-lead { font-size: 13px; }
+      .entity-map-wrap { padding: 20px 0 12px; }
+      .tier[data-tier="3"] { gap: 10px; }
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
       .welcome-title { font-size: 22px; }
@@ -1283,7 +1354,20 @@
         <h2 id="view-heading-regulatory-ticker" class="view-heading">Regulatory Ticker</h2>
       </section>
       <section class="view" data-view="entity-map" aria-labelledby="view-heading-entity-map" hidden>
-        <h2 id="view-heading-entity-map" class="view-heading">Entity Map</h2>
+        <header class="entity-map-header">
+          <h1 id="view-heading-entity-map" class="entity-map-title">Group Structure &amp; Consolidated Profile</h1>
+          <p class="entity-map-lead">
+            Bidvest Noonan's tribunal record consolidated across the primary UK entity, the predecessor entity, and acquired groups inherited at acquisition. Click any node to view its detail.
+          </p>
+        </header>
+
+        <div class="entity-map-wrap" role="group" aria-label="Group entity hierarchy">
+          <div class="tier" data-tier="1" data-section="entity-tier-1"></div>
+          <div class="tier" data-tier="2" data-section="entity-tier-2"></div>
+          <div class="tier" data-tier="3" data-section="entity-tier-3"></div>
+        </div>
+
+        <div class="entity-detail" id="entity-detail" data-section="entity-detail" aria-live="polite"></div>
       </section>
       <section class="view" data-view="sector-benchmarking" aria-labelledby="view-heading-sector-benchmarking" hidden>
         <h2 id="view-heading-sector-benchmarking" class="view-heading">Sector Benchmarking</h2>
