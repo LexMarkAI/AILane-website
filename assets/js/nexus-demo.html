@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus — Internal Test Harness</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE (first script, no exceptions) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP (SEC-001 §3.2, verbatim standard) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <style>
+    :root {
+      --bg: #06080f;
+      --panel: rgba(15, 23, 42, 0.6);
+      --border: rgba(148, 163, 184, 0.18);
+      --text: #E2E8F0;
+      --text-dim: #94A3B8;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 { font-size: 1.2rem; margin-bottom: 4px; letter-spacing: -0.01em; }
+    .sub { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px; }
+    .warn {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #F59E0B;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      margin-bottom: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .cell {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 230px;
+      position: relative;
+    }
+    .cell header {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+      text-align: center;
+      line-height: 1.35;
+    }
+    .cell .canvas-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 150px;
+    }
+    .cell canvas { pointer-events: none; }
+    .cell.interactive canvas { pointer-events: auto; }
+    .cell canvas.viewport {
+      width: 100%;
+      height: 150px;
+      display: block;
+    }
+    .stats {
+      font-family: ui-monospace, 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+      text-align: center;
+    }
+    .stats .fps { color: #22D3EE; }
+    .stats .warn-metric { color: #F59E0B; }
+  </style>
+</head>
+<body>
+  <!-- INTERNAL TEST HARNESS — DO NOT LINK FROM PRODUCTION -->
+  <h1>Nexus — 4×4 rendering harness</h1>
+  <p class="sub">4 sizes × 4 tier palettes. Authority: AILANE-SPEC-EILEEN-UNIFIED-001 v1.0 Part V (AMD-058).</p>
+  <p class="warn">INTERNAL ONLY — not linked from production. Interactive instances (180 px, viewport) attach pointer events; decorative instances (52 px, 38 px) do not.</p>
+
+  <div class="grid" id="grid"></div>
+
+  <script type="module">
+    import { renderNexus } from './nexus.js';
+
+    const sizes = [
+      { size: 52,         label: '52 px · decorative', fps: 15, interactive: false, nodeCount: 12 },
+      { size: 38,         label: '38 px · decorative', fps: 15, interactive: false, nodeCount: 12 },
+      { size: 180,        label: '180 px · interactive', fps: 30, interactive: true,  nodeCount: 32 },
+      { size: 'viewport', label: 'viewport · interactive', fps: 30, interactive: true,  nodeCount: 81 }
+    ];
+    const tiers = ['cyan', 'cyan+green', 'cyan+purple', 'gold'];
+
+    const grid = document.getElementById('grid');
+    const handles = [];
+
+    for (const s of sizes) {
+      for (const tier of tiers) {
+        const cell = document.createElement('div');
+        cell.className = 'cell' + (s.interactive ? ' interactive' : '');
+
+        const header = document.createElement('header');
+        header.textContent = s.label + ' · ' + tier;
+        cell.appendChild(header);
+
+        const wrap = document.createElement('div');
+        wrap.className = 'canvas-wrap';
+        const canvas = document.createElement('canvas');
+        if (s.size === 'viewport') canvas.classList.add('viewport');
+        wrap.appendChild(canvas);
+        cell.appendChild(wrap);
+
+        const stats = document.createElement('div');
+        stats.className = 'stats';
+        stats.textContent = 'fps — | draw — ms | dropped —';
+        cell.appendChild(stats);
+
+        grid.appendChild(cell);
+
+        const h = renderNexus({
+          canvas,
+          size: s.size,
+          tierColour: tier,
+          nodeCount: s.nodeCount,
+          interactive: s.interactive,
+          dataSource: null,
+          fps: s.fps,
+          pauseOffscreen: true,
+          respectReducedMotion: true,
+          ariaLabel: 'Nexus demo ' + s.label + ' ' + tier,
+          attachEvents: s.interactive
+        });
+        h.start();
+        handles.push({ h, stats, size: s.size });
+      }
+    }
+
+    setInterval(() => {
+      for (const item of handles) {
+        const st = item.h.getStats();
+        const drawWarn = st.avgDrawMs > 2;
+        item.stats.innerHTML =
+          '<span class="fps">fps ' + (st.fps || '—') + '</span>' +
+          ' | draw <span' + (drawWarn ? ' class="warn-metric"' : '') + '>' +
+          (st.avgDrawMs.toFixed(2)) + ' ms</span>' +
+          ' | dropped ' + st.droppedFrames;
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
