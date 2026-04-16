@@ -1224,6 +1224,10 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
   }
 
   function handleMouseDown(e) {
+    if (window.innerWidth < 768) {
+      setShowTooltip(function(v) { return !v; });
+      return;
+    }
     dragging.current = true;
     var rect = e.currentTarget.getBoundingClientRect();
     dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -1231,6 +1235,10 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
   }
 
   function handleTouchStart(e) {
+    if (window.innerWidth < 768) {
+      setShowTooltip(function(v) { return !v; });
+      return;
+    }
     dragging.current = true;
     var touch = e.touches[0];
     var rect = e.currentTarget.getBoundingClientRect();
@@ -1247,6 +1255,12 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
     }
     function handleMouseUp() {
       dragging.current = false;
+      setPos(function(prev) {
+        if (prev.x !== null && (prev.x < 60 || prev.y < 60)) {
+          return { x: null, y: null };
+        }
+        return prev;
+      });
     }
     function handleTouchMove(e) {
       if (!dragging.current) return;
@@ -1259,6 +1273,12 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
     }
     function handleTouchEnd() {
       dragging.current = false;
+      setPos(function(prev) {
+        if (prev.x !== null && (prev.x < 60 || prev.y < 60)) {
+          return { x: null, y: null };
+        }
+        return prev;
+      });
     }
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
@@ -1272,11 +1292,16 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
     };
   }, []);
 
+  // alignItems is kept 'flex-end' in both branches so the tooltip stays
+  // right-anchored relative to the orb after a drag — preventing the
+  // misalignment where the tooltip would jump left when the anchor flipped.
   var posStyle = pos.x !== null
     ? { position: 'fixed', left: pos.x + 'px', top: pos.y + 'px', zIndex: 1000,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
+        cursor: dragging.current ? 'grabbing' : 'grab' }
     : { position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' };
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
+        cursor: dragging.current ? 'grabbing' : 'grab' };
 
   return React.createElement('div', { style: posStyle },
     // Advisor tooltip
