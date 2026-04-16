@@ -803,6 +803,177 @@
       .tier[data-tier="3"] { gap: 10px; }
     }
 
+    /* =========================================================
+       ENTITY MAP — NODE CARDS
+       ========================================================= */
+    .entity-node {
+      position: relative;
+      background: var(--ailane-bg);
+      border: 1px solid var(--ailane-border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 180px;
+      max-width: 220px;
+      text-align: center;
+      cursor: pointer;
+      transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease,
+        background-color 0.15s ease;
+    }
+
+    .entity-node-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ailane-dark);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .entity-node-meta {
+      font-size: 11px;
+      color: var(--ailane-slate);
+      line-height: 1.4;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .entity-node-rel {
+      font-size: 10.5px;
+      font-style: italic;
+      color: var(--ailane-slate-light);
+      margin-top: 4px;
+    }
+
+    /* Tier 1 — parent (plain slate border) */
+    .entity-node.is-parent {
+      border: 1px solid var(--ailane-border);
+      background: var(--ailane-bg);
+    }
+
+    /* Tier 2 — primary entity (gold solid border) */
+    .entity-node.is-primary {
+      border: 2px solid var(--ailane-gold-dark);
+      background: var(--ailane-gold-light);
+      transform: scale(1.02);
+      min-width: 220px;
+      max-width: 260px;
+    }
+
+    .entity-node.is-primary .entity-node-name {
+      font-size: 14px;
+    }
+
+    /* Tier 3 — acquired (dashed slate border) */
+    .entity-node.is-acquired {
+      border: 1px dashed var(--ailane-slate-light);
+      background: var(--ailane-bg);
+      min-width: 150px;
+      max-width: 180px;
+      padding: 10px 12px;
+    }
+
+    .entity-node.is-acquired .entity-node-name {
+      font-size: 12.5px;
+    }
+
+    /* Hover lift */
+    .entity-node:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .entity-node.is-primary:hover {
+      transform: scale(1.02) translateY(-2px);
+    }
+
+    /* Expanded ring */
+    .entity-node.is-expanded {
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+    }
+
+    /* =========================================================
+       ENTITY MAP — CONNECTOR LINES (CSS pseudo-elements only)
+       ========================================================= */
+
+    /* Tier 1 -> Tier 2: vertical line below parent node */
+    .tier[data-tier="1"] .entity-node::after,
+    .tier[data-tier="2"] .entity-node::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 0;
+      height: 24px;
+      border-left: 1px solid var(--ailane-border);
+      pointer-events: none;
+    }
+
+    /* Tier 3 horizontal connector bar above siblings.
+       Centres of 5 evenly-spaced flex children (justify-content:center
+       with gap:16px and consistent widths) sit close to 10% / 30% / 50%
+       / 70% / 90% of the row's effective width. We span 10%-90% for the
+       horizontal bar, pulled in slightly so it visually meets the
+       outermost children's vertical stubs. */
+    .tier[data-tier="3"] {
+      padding-top: 24px;
+    }
+
+    .tier[data-tier="3"]::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 12%;
+      right: 12%;
+      height: 12px;
+      border-top: 1px solid var(--ailane-border);
+      border-left: 1px solid var(--ailane-border);
+      border-right: 1px solid var(--ailane-border);
+      border-radius: 2px 2px 0 0;
+      pointer-events: none;
+    }
+
+    /* Each tier-3 child gets a short vertical stub from horizontal bar */
+    .tier[data-tier="3"] .entity-node::before {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      width: 0;
+      height: 12px;
+      border-left: 1px solid var(--ailane-border);
+      pointer-events: none;
+    }
+
+    /* Mobile: tree stacks vertically, drop the horizontal connector
+       bar (replaced with vertical stubs only) */
+    @media (max-width: 640px) {
+      .tier[data-tier="3"] {
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding-top: 18px;
+      }
+
+      .tier[data-tier="3"]::before {
+        display: none;
+      }
+
+      .tier[data-tier="3"] .entity-node {
+        max-width: 240px;
+        width: 80%;
+      }
+
+      .tier[data-tier="3"] .entity-node::before {
+        height: 18px;
+      }
+
+      .entity-node.is-primary {
+        max-width: 280px;
+        width: 80%;
+      }
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
       .welcome-title { font-size: 22px; }
