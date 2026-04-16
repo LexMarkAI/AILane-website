@@ -4759,14 +4759,22 @@ function ResearchPanel({ lang }) {
   // Sprint G §3: Library-specific search filter. Matches on title, short
   // name, warm subtitle, and category. Computed in the parent scope so
   // renderLibraryTab can consume it via closure.
+  // Brief 3B: when Welsh is active, also match against title_cy and
+  // warmSubtitle_cy so Welsh users can search Welsh text.
   var filteredInstruments = instruments;
   if (tab === 'library' && search) {
     var libSearch = search.toLowerCase();
+    var isCy = lang === 'cy';
     filteredInstruments = instruments.filter(function(inst) {
-      return (inst.title || '').toLowerCase().indexOf(libSearch) !== -1 ||
-             (inst.short || '').toLowerCase().indexOf(libSearch) !== -1 ||
-             (inst.warmSubtitle || '').toLowerCase().indexOf(libSearch) !== -1 ||
-             (inst.cat || '').toLowerCase().indexOf(libSearch) !== -1;
+      if ((inst.title || '').toLowerCase().indexOf(libSearch) !== -1) return true;
+      if ((inst.short || '').toLowerCase().indexOf(libSearch) !== -1) return true;
+      if ((inst.warmSubtitle || '').toLowerCase().indexOf(libSearch) !== -1) return true;
+      if ((inst.cat || '').toLowerCase().indexOf(libSearch) !== -1) return true;
+      if (isCy) {
+        if ((inst.title_cy || '').toLowerCase().indexOf(libSearch) !== -1) return true;
+        if ((inst.warmSubtitle_cy || '').toLowerCase().indexOf(libSearch) !== -1) return true;
+      }
+      return false;
     });
   }
 
@@ -5020,15 +5028,21 @@ function ResearchPanel({ lang }) {
                 },
                   // AMD-050 §4: render the human-readable topicLabel as primary
                   // when present; the formal title falls back to a secondary line.
+                  // Brief 3B: bl() swaps title/warmSubtitle to Welsh when lang==='cy'.
+                  // topicLabel stays English — human-readable tag, not translatable.
                   React.createElement('div', { style: { color: '#E2E8F0', fontSize: '12px', fontWeight: 500, marginBottom: '4px', lineHeight: 1.3 } },
-                    inst.topicLabel || inst.title
+                    inst.topicLabel || bl(inst, 'title', lang)
                   ),
                   inst.topicLabel && inst.title && React.createElement('div', {
                     style: { color: '#64748B', fontSize: '11px', lineHeight: 1.35, marginBottom: '4px' },
-                  }, inst.title),
-                  inst.warmSubtitle && React.createElement('div', {
-                    style: { color: '#94A3B8', fontSize: '11px', lineHeight: 1.4, marginBottom: '6px' },
-                  }, inst.warmSubtitle.length > 100 ? inst.warmSubtitle.slice(0, 100) + '\u2026' : inst.warmSubtitle),
+                  }, bl(inst, 'title', lang)),
+                  (function() {
+                    var ws = bl(inst, 'warmSubtitle', lang);
+                    if (!ws) return null;
+                    return React.createElement('div', {
+                      style: { color: '#94A3B8', fontSize: '11px', lineHeight: 1.4, marginBottom: '6px' },
+                    }, ws.length > 100 ? ws.slice(0, 100) + '\u2026' : ws);
+                  })(),
                   React.createElement('div', { style: { display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' } },
                     inst.sectionCount > 0 && React.createElement('span', {
                       style: { fontSize: '10px', color: accentColor, fontFamily: "'DM Mono', monospace" },
@@ -5077,19 +5091,23 @@ function ResearchPanel({ lang }) {
   // Reads from the manifest fields (title, type, jurisdiction,
   // warmSubtitle, sourceUrl) rather than the old registry fields.
   function renderInstrumentSummary(inst) {
+    // Brief 3B: bl() swaps title/warmSubtitle to Welsh when lang==='cy'.
+    // type/jurisdiction/chapters stay English (structural metadata).
+    var summaryTitle = bl(inst, 'title', lang);
+    var summaryWarm = bl(inst, 'warmSubtitle', lang);
     return React.createElement('div', null,
-      React.createElement('div', { style: { fontSize: '16px', fontWeight: 600, color: '#E2E8F0', marginBottom: '8px' } }, inst.title),
+      React.createElement('div', { style: { fontSize: '16px', fontWeight: 600, color: '#E2E8F0', marginBottom: '8px' } }, summaryTitle),
       React.createElement('div', { style: { fontSize: '12px', color: '#64748B', marginBottom: '4px', fontFamily: "'DM Mono', monospace" } },
         (inst.type || '') + (inst.jurisdiction ? ' \u00B7 ' + inst.jurisdiction : '')
       ),
       inst.chapters && React.createElement('div', { style: { fontSize: '12px', color: '#94A3B8', marginBottom: '12px', lineHeight: 1.5 } }, inst.chapters),
-      inst.warmSubtitle && React.createElement('div', {
+      summaryWarm && React.createElement('div', {
         style: {
           fontSize: '13px', color: '#CBD5E1', lineHeight: 1.6, marginBottom: '12px',
           padding: '12px', background: 'rgba(14,165,233,0.04)', borderRadius: '8px',
           borderLeft: '2px solid rgba(14,165,233,0.2)',
         },
-      }, inst.warmSubtitle),
+      }, summaryWarm),
       inst.sourceUrl && React.createElement('a', {
         href: inst.sourceUrl, target: '_blank', rel: 'noopener noreferrer',
         style: {
@@ -5118,13 +5136,24 @@ function ResearchPanel({ lang }) {
   // {provisions:[...]} (3 files — era1996, horizon-tracker,
   // redundancy-intelligence).
   function renderInstrumentContent(detail) {
-    var formalTitle = detail.title || detail.shortTitle || (activeInstrument && activeInstrument.title) || 'Instrument';
+    // Brief 3B: bl() swaps formalTitle/description to Welsh when lang==='cy'.
+    // topicLabel, type, jurisdiction, chapters, and section-level content stay
+    // English (structural metadata / untranslated statutory text).
+    var formalTitle = bl(detail, 'title', lang)
+      || detail.shortTitle
+      || (activeInstrument && bl(activeInstrument, 'title', lang))
+      || 'Instrument';
     // AMD-050 §4: topicLabel is the human-readable primary name when present.
     var topicLabel = detail.topicLabel || (activeInstrument && activeInstrument.topicLabel) || null;
     var displayTitle = topicLabel || formalTitle;
     var displayType = detail.type || (activeInstrument && activeInstrument.type) || '';
     var displayJurisdiction = detail.jurisdiction || (activeInstrument && activeInstrument.jurisdiction) || '';
-    var description = detail.desc || detail.description || detail.summary || detail.overview || (activeInstrument && activeInstrument.warmSubtitle) || '';
+    var description = bl(detail, 'desc', lang)
+      || bl(detail, 'description', lang)
+      || bl(detail, 'summary', lang)
+      || bl(detail, 'overview', lang)
+      || (activeInstrument && bl(activeInstrument, 'warmSubtitle', lang))
+      || '';
     var inForce = detail.isInForce != null
       ? detail.isInForce
       : (activeInstrument && activeInstrument.isInForce);
@@ -6880,6 +6909,26 @@ function App() {
         lang={lang}
         onToggleLang={toggleLang}
       />
+      {/* DMSP-002: AI translation disclaimer. Mandatory sibling below TopBar
+          whenever Welsh is active — bilingual Welsh/English copy makes clear
+          the translations are AI-generated and not an official translation
+          under the Welsh Language Act 1993. */}
+      {lang === 'cy' && (
+        <div
+          role="note"
+          style={{
+            fontSize: '10px',
+            color: '#94a3b8',
+            textAlign: 'center',
+            padding: '2px 0',
+            background: 'rgba(245,158,11,0.06)',
+            borderBottom: '1px solid rgba(245,158,11,0.1)',
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Cyfieithiad AI — nid cyfieithiad swyddogol. / AI translation — not an official translation.
+        </div>
+      )}
       <Sidebar
         open={sidebarOpen}
         sessionHistory={sessionHistory}
