@@ -1417,6 +1417,149 @@
     }
 
     /* =========================================================
+       ACCOUNT & SETTINGS VIEW
+       ========================================================= */
+    .account-header {
+      margin-bottom: 24px;
+    }
+
+    .account-page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--ailane-dark);
+      letter-spacing: -0.01em;
+    }
+
+    .account-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 720px;
+    }
+
+    .account-card {
+      background: var(--ailane-bg);
+      border: 1px solid var(--ailane-border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .account-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ailane-dark);
+      margin-bottom: 16px;
+      letter-spacing: -0.005em;
+    }
+
+    .account-status-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      column-gap: 32px;
+      row-gap: 12px;
+      align-items: center;
+      margin: 0;
+    }
+
+    .account-status-grid dt {
+      font-size: 13px;
+      color: var(--ailane-slate);
+      font-weight: 500;
+    }
+
+    .account-status-grid dd {
+      font-size: 14px;
+      color: var(--ailane-dark);
+      font-weight: 500;
+      margin: 0;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .status-pill.is-active {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--ailane-green);
+    }
+
+    .status-pill.is-active::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ailane-green);
+    }
+
+    .account-body {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--ailane-slate);
+      margin-bottom: 16px;
+    }
+
+    .account-body [data-field="account-company-name"] {
+      color: var(--ailane-dark);
+      font-weight: 600;
+    }
+
+    .account-activation-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 20px;
+      background: transparent;
+      color: var(--ailane-gold-dark);
+      border: 1.5px solid var(--ailane-gold);
+      border-radius: 6px;
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: not-allowed;
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    .account-activation-btn:disabled {
+      cursor: not-allowed;
+    }
+
+    .account-body-note {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--ailane-slate-light);
+      font-style: italic;
+      margin: 0;
+    }
+
+    @media (max-width: 600px) {
+      .account-card {
+        padding: 20px;
+      }
+
+      .account-status-grid {
+        grid-template-columns: 1fr;
+        column-gap: 0;
+        row-gap: 4px;
+      }
+
+      .account-status-grid dt {
+        margin-top: 8px;
+      }
+
+      .account-status-grid dt:first-child {
+        margin-top: 0;
+      }
+    }
+
+    /* =========================================================
        PRINT
        ========================================================= */
     @media print {
@@ -1612,7 +1755,57 @@
         <h2 id="view-heading-forward-intelligence" class="view-heading">Forward Intelligence</h2>
       </section>
       <section class="view" data-view="account" aria-labelledby="view-heading-account" hidden>
-        <h2 id="view-heading-account" class="view-heading">Account &amp; Settings</h2>
+        <header class="account-header">
+          <h1 id="view-heading-account" class="account-page-title">Account &amp; Settings</h1>
+        </header>
+
+        <div class="account-sections">
+          <!-- Section 1: Preview Status -->
+          <section class="account-card" aria-labelledby="account-status-h">
+            <h2 class="account-section-title" id="account-status-h">Preview Status</h2>
+            <dl class="account-status-grid">
+              <dt>Status</dt>
+              <dd><span class="status-pill is-active">Active</span></dd>
+
+              <dt>Days remaining</dt>
+              <dd data-field="account-days-remaining">&mdash;</dd>
+
+              <dt>Access count</dt>
+              <dd data-field="account-access-count">&mdash;</dd>
+
+              <dt>First accessed</dt>
+              <dd data-field="account-first-accessed">&mdash;</dd>
+
+              <dt>Expires</dt>
+              <dd data-field="account-expires">&mdash;</dd>
+            </dl>
+          </section>
+
+          <!-- Section 2: Activation CTA -->
+          <section class="account-card" aria-labelledby="account-activation-h">
+            <h2 class="account-section-title" id="account-activation-h">Activate Your Organisation's Ailane Account</h2>
+            <p class="account-body">
+              Activate a permanent Ailane account for <span data-field="account-company-name">your organisation</span>. Your configured dashboard, document vault, and Eileen context will migrate seamlessly to your new account.
+            </p>
+            <button type="button" class="account-activation-btn" disabled aria-disabled="true">
+              Activate Account &mdash; Coming soon
+            </button>
+            <p class="account-body-note">
+              Account activation will be available during your preview period. Ask Eileen when you are ready to proceed.
+            </p>
+          </section>
+
+          <!-- Section 3: Multi-User Teaser -->
+          <section class="account-card" aria-labelledby="account-team-h">
+            <h2 class="account-section-title" id="account-team-h">Invite Your Team</h2>
+            <p class="account-body">
+              Ailane supports multi-site HR collaboration. Each team member gets their own view while sharing the organisational document vault and compliance intelligence.
+            </p>
+            <p class="account-body-note">
+              Multi-user invitations available at account activation.
+            </p>
+          </section>
+        </div>
       </section>
     </main>
   </div>
@@ -1847,6 +2040,7 @@
         renderKeyFindings();
         renderQuickActions();
         renderEntityMap(data);
+        renderAccountPanel(data);
       }
 
       function renderWelcomeBar(data) {
@@ -2537,6 +2731,70 @@
         }
         if (primary) {
           setExpandedNode(primary.id);
+        }
+      }
+
+      // =======================================================
+      // ACCOUNT & SETTINGS PANEL (brief §6.1)
+      // =======================================================
+      // UK long-format date, e.g. "16 April 2026"
+      function formatLongDate(iso) {
+        if (!iso) return '—';
+        try {
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return '—';
+          var months = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ];
+          return d.getUTCDate() + ' ' + months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+        } catch (e) {
+          return '—';
+        }
+      }
+
+      function renderAccountPanel(data) {
+        if (!data) return;
+
+        var preview = data.preview || {};
+        var company = data.company || {};
+
+        // Days remaining
+        var daysEl = document.querySelector('[data-field="account-days-remaining"]');
+        if (daysEl) {
+          if (typeof preview.days_remaining === 'number') {
+            daysEl.textContent = preview.days_remaining + (preview.days_remaining === 1 ? ' day' : ' days');
+          } else {
+            daysEl.textContent = '—';
+          }
+        }
+
+        // Access count
+        var accessEl = document.querySelector('[data-field="account-access-count"]');
+        if (accessEl) {
+          if (typeof preview.access_count === 'number') {
+            accessEl.textContent = preview.access_count + (preview.access_count === 1 ? ' visit' : ' visits');
+          } else {
+            accessEl.textContent = '—';
+          }
+        }
+
+        // First accessed
+        var firstEl = document.querySelector('[data-field="account-first-accessed"]');
+        if (firstEl) {
+          firstEl.textContent = formatLongDate(preview.first_accessed_at);
+        }
+
+        // Expires
+        var expiresEl = document.querySelector('[data-field="account-expires"]');
+        if (expiresEl) {
+          expiresEl.textContent = formatLongDate(preview.expires_at);
+        }
+
+        // Company name in activation CTA paragraph
+        var companyEl = document.querySelector('[data-field="account-company-name"]');
+        if (companyEl && company.name) {
+          companyEl.textContent = company.name;
         }
       }
 
