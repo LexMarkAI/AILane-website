@@ -820,12 +820,24 @@ var KLApp = (() => {
       if (typeof onProximityDomain === "function") onProximityDomain(closest);
     }
     function handleMouseDown(e) {
+      if (window.innerWidth < 768) {
+        setShowTooltip(function(v) {
+          return !v;
+        });
+        return;
+      }
       dragging.current = true;
       var rect = e.currentTarget.getBoundingClientRect();
       dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       e.preventDefault();
     }
     function handleTouchStart(e) {
+      if (window.innerWidth < 768) {
+        setShowTooltip(function(v) {
+          return !v;
+        });
+        return;
+      }
       dragging.current = true;
       var touch = e.touches[0];
       var rect = e.currentTarget.getBoundingClientRect();
@@ -841,6 +853,12 @@ var KLApp = (() => {
       }
       function handleMouseUp() {
         dragging.current = false;
+        setPos(function(prev) {
+          if (prev.x !== null && (prev.x < 60 || prev.y < 60)) {
+            return { x: null, y: null };
+          }
+          return prev;
+        });
       }
       function handleTouchMove(e) {
         if (!dragging.current) return;
@@ -853,6 +871,12 @@ var KLApp = (() => {
       }
       function handleTouchEnd() {
         dragging.current = false;
+        setPos(function(prev) {
+          if (prev.x !== null && (prev.x < 60 || prev.y < 60)) {
+            return { x: null, y: null };
+          }
+          return prev;
+        });
       }
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
@@ -872,8 +896,9 @@ var KLApp = (() => {
       zIndex: 1e3,
       display: "flex",
       flexDirection: "column",
-      alignItems: "flex-start",
-      gap: "8px"
+      alignItems: "flex-end",
+      gap: "8px",
+      cursor: dragging.current ? "grabbing" : "grab"
     } : {
       position: "fixed",
       bottom: "24px",
@@ -882,7 +907,8 @@ var KLApp = (() => {
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-end",
-      gap: "8px"
+      gap: "8px",
+      cursor: dragging.current ? "grabbing" : "grab"
     };
     return React.createElement(
       "div",
