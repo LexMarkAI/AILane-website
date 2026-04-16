@@ -171,6 +171,26 @@
       background: var(--ailane-bg);
     }
 
+    .view {
+      padding: 32px 40px;
+      max-width: 1280px;
+    }
+
+    .view[hidden] {
+      display: none;
+    }
+
+    .view-heading {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ailane-dark);
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .view { padding: 20px 16px; }
+    }
+
     /* =========================================================
        SIDEBAR — BRAND BLOCK
        ========================================================= */
@@ -675,16 +695,256 @@
         </button>
       </div>
     </aside>
-    <main class="main">
-      <!-- View containers added in Task 1d -->
+    <main class="main" id="main">
+      <section class="view is-active" data-view="dashboard" aria-labelledby="view-heading-dashboard">
+        <h2 id="view-heading-dashboard" class="view-heading">Dashboard</h2>
+      </section>
+      <section class="view" data-view="compliance-checker" aria-labelledby="view-heading-compliance-checker" hidden>
+        <h2 id="view-heading-compliance-checker" class="view-heading">Compliance Checker</h2>
+      </section>
+      <section class="view" data-view="contract-creator" aria-labelledby="view-heading-contract-creator" hidden>
+        <h2 id="view-heading-contract-creator" class="view-heading">Contract Creator</h2>
+      </section>
+      <section class="view" data-view="document-vault" aria-labelledby="view-heading-document-vault" hidden>
+        <h2 id="view-heading-document-vault" class="view-heading">Document Vault</h2>
+      </section>
+      <section class="view" data-view="knowledge-library" aria-labelledby="view-heading-knowledge-library" hidden>
+        <h2 id="view-heading-knowledge-library" class="view-heading">Knowledge Library</h2>
+      </section>
+      <section class="view" data-view="regulatory-ticker" aria-labelledby="view-heading-regulatory-ticker" hidden>
+        <h2 id="view-heading-regulatory-ticker" class="view-heading">Regulatory Ticker</h2>
+      </section>
+      <section class="view" data-view="entity-map" aria-labelledby="view-heading-entity-map" hidden>
+        <h2 id="view-heading-entity-map" class="view-heading">Entity Map</h2>
+      </section>
+      <section class="view" data-view="sector-benchmarking" aria-labelledby="view-heading-sector-benchmarking" hidden>
+        <h2 id="view-heading-sector-benchmarking" class="view-heading">Sector Benchmarking</h2>
+      </section>
+      <section class="view" data-view="forward-intelligence" aria-labelledby="view-heading-forward-intelligence" hidden>
+        <h2 id="view-heading-forward-intelligence" class="view-heading">Forward Intelligence</h2>
+      </section>
+      <section class="view" data-view="account" aria-labelledby="view-heading-account" hidden>
+        <h2 id="view-heading-account" class="view-heading">Account &amp; Settings</h2>
+      </section>
     </main>
   </div>
 
   <script>
-    // Entry point — populated across Tasks 1b–1d.
-    document.addEventListener('DOMContentLoaded', function () {
-      // Placeholder: Task 1d wires token parsing, data fetch and view routing.
-    });
+    (function () {
+      'use strict';
+
+      // =======================================================
+      // CONFIG
+      // =======================================================
+      var PREVIEW_API = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/prospect-preview-data';
+
+      // =======================================================
+      // STATE
+      // =======================================================
+      var currentView = 'dashboard';
+      var prospectData = null;
+
+      // =======================================================
+      // TOKEN + DATA FETCH
+      // =======================================================
+      function getToken() {
+        try {
+          return new URLSearchParams(window.location.search).get('token');
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function loadProspectData(token) {
+        return fetch(PREVIEW_API + '?token=' + encodeURIComponent(token))
+          .then(function (response) {
+            if (response.status === 403) {
+              return response.json().then(function (body) {
+                return { error: body && body.expired ? 'expired' : 'invalid' };
+              }).catch(function () {
+                return { error: 'invalid' };
+              });
+            }
+            if (!response.ok) {
+              throw new Error('fetch failed: ' + response.status);
+            }
+            return response.json();
+          })
+          .catch(function (e) {
+            console.error('Preview data fetch failed:', e);
+            return { error: 'network' };
+          });
+      }
+
+      // =======================================================
+      // VIEW ROUTING
+      // =======================================================
+      function showView(viewName) {
+        if (!viewName) return;
+        currentView = viewName;
+
+        // Toggle view panels
+        var views = document.querySelectorAll('.view');
+        for (var i = 0; i < views.length; i++) {
+          var v = views[i];
+          var match = v.getAttribute('data-view') === viewName;
+          v.hidden = !match;
+          v.classList.toggle('is-active', match);
+        }
+
+        // Toggle sidebar active state
+        var navItems = document.querySelectorAll('.nav-item');
+        for (var j = 0; j < navItems.length; j++) {
+          var btn = navItems[j];
+          var isActive = btn.getAttribute('data-view') === viewName;
+          btn.classList.toggle('is-active', isActive);
+          if (isActive) {
+            btn.setAttribute('aria-current', 'page');
+          } else {
+            btn.removeAttribute('aria-current');
+          }
+        }
+
+        // GA4 section_view event
+        try {
+          if (window.gtag) {
+            var detail = {};
+            var payload = { section: viewName };
+            var trigger = navItems && document.querySelector('.nav-item.is-active');
+            if (trigger && trigger.getAttribute('data-coming-soon') === 'true') {
+              payload.section = 'coming_soon';
+              payload.detail = viewName.replace(/-/g, '_');
+            }
+            window.gtag('event', 'prospect_section_view', payload);
+          }
+        } catch (e) { /* noop */ }
+
+        // Scroll top of main on view change
+        var main = document.getElementById('main');
+        if (main) main.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+
+      // =======================================================
+      // ERROR + LOADING STATES
+      // =======================================================
+      function hideAllStates() {
+        var ids = ['loading', 'error-invalid', 'error-expired', 'error-network', 'app'];
+        for (var i = 0; i < ids.length; i++) {
+          var el = document.getElementById(ids[i]);
+          if (el) el.classList.add('hidden');
+        }
+      }
+
+      function showState(id) {
+        hideAllStates();
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+      }
+
+      // =======================================================
+      // DATA RENDERING (Task 1d: sidebar populate only)
+      // =======================================================
+      function formatExpiryDate(iso) {
+        if (!iso) return '—';
+        try {
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return '—';
+          var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          return d.getUTCDate() + ' ' + months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+        } catch (e) {
+          return '—';
+        }
+      }
+
+      function populateSidebarFromData(data) {
+        if (!data) return;
+        if (data.company && data.company.name) {
+          var companyEl = document.getElementById('sidebar-company');
+          if (companyEl) companyEl.textContent = data.company.name;
+        }
+        if (data.preview && data.preview.expires_at) {
+          var expiryEl = document.getElementById('sidebar-expiry-date');
+          if (expiryEl) expiryEl.textContent = formatExpiryDate(data.preview.expires_at);
+        }
+      }
+
+      // =======================================================
+      // WIRE INTERACTIONS
+      // =======================================================
+      function wireNavigation() {
+        var navItems = document.querySelectorAll('.nav-item');
+        for (var i = 0; i < navItems.length; i++) {
+          navItems[i].addEventListener('click', function (e) {
+            var view = this.getAttribute('data-view');
+            showView(view);
+          });
+        }
+
+        var activationCta = document.getElementById('activation-cta-sidebar');
+        if (activationCta) {
+          activationCta.addEventListener('click', function () {
+            try {
+              if (window.gtag) {
+                window.gtag('event', 'prospect_cta_click', { cta: 'activate_account' });
+              }
+            } catch (e) { /* noop */ }
+            showView('account');
+          });
+        }
+      }
+
+      // =======================================================
+      // INIT
+      // =======================================================
+      function init() {
+        var token = getToken();
+        if (!token) {
+          showState('error-invalid');
+          return;
+        }
+
+        showState('loading');
+
+        loadProspectData(token).then(function (result) {
+          if (result && result.error) {
+            if (result.error === 'expired') {
+              showState('error-expired');
+            } else if (result.error === 'network') {
+              showState('error-network');
+            } else {
+              showState('error-invalid');
+            }
+            return;
+          }
+
+          prospectData = result;
+          window.__prospectData = result; // exposed for Task 2+ renderers
+
+          populateSidebarFromData(result);
+          wireNavigation();
+          showState('app');
+          showView('dashboard');
+
+          // GA4 access event (token prefix only — never log full token)
+          try {
+            if (window.gtag) {
+              var prefix = token.split('-')[0] || 'unknown';
+              window.gtag('event', 'prospect_preview_access', {
+                token: prefix,
+                company: 'bidvest_noonan'
+              });
+            }
+          } catch (e) { /* noop */ }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
   </script>
 </body>
 </html>
