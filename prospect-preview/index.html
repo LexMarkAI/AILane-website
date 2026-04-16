@@ -337,15 +337,16 @@
           }
         }
 
-        // GA4 section_view event
+        // GA4 section_view event — payload keys are always snake_case
+        // (brief §7.5: entity_map, not entity-map)
         try {
           if (window.gtag) {
-            var detail = {};
-            var payload = { section: viewName };
+            var viewNameSnake = viewName.replace(/-/g, '_');
+            var payload = { section: viewNameSnake };
             var trigger = navItems && document.querySelector('.nav-item.is-active');
             if (trigger && trigger.getAttribute('data-coming-soon') === 'true') {
               payload.section = 'coming_soon';
-              payload.detail = viewName.replace(/-/g, '_');
+              payload.detail = viewNameSnake;
             }
             window.gtag('event', 'prospect_section_view', payload);
           }
