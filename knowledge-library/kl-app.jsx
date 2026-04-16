@@ -276,6 +276,33 @@ const DOMAINS = [
   },
 ];
 
+// ─── Bilingual field helpers (KL Welsh toggle plumbing) ───
+// bl(): generic English/Welsh selector — Welsh field name is the English
+// field + '_cy' suffix. blLeg(): explicit map for legislation records where
+// the Welsh field names do not follow the _cy suffix convention (e.g.
+// short_title → title_cy). Both fall back to the English value when the
+// Welsh value is absent or the language is 'en'.
+function bl(record, englishField, lang) {
+  if (!record) return '';
+  if (lang !== 'cy') return record[englishField] || '';
+  var cyField = englishField + '_cy';
+  return record[cyField] || record[englishField] || '';
+}
+
+function blLeg(record, englishField, lang) {
+  if (!record) return '';
+  if (lang !== 'cy') return record[englishField] || '';
+  var CY_MAP = {
+    'short_title': 'title_cy',
+    'summary': 'summary_cy',
+    'key_provisions': 'key_provisions_cy',
+    'obligations_summary': 'obligations_cy',
+  };
+  var cyField = CY_MAP[englishField];
+  if (cyField && record[cyField]) return record[cyField];
+  return record[englishField] || '';
+}
+
 // ─── Hash-based route detection (AMD-045 §3.1) ───
 function getRoute() {
   var hash = (window.location.hash || '').replace('#', '') || '/';
@@ -2861,7 +2888,7 @@ function CrownJewels({ onQuery, disabled }) {
 
 // ─── Sidebar ───
 
-function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion }) {
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang }) {
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
@@ -3091,7 +3118,7 @@ function MobileSidebarBackdrop({ onClick }) {
 
 // ─── TopBar ───
 
-function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired }) {
+function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang }) {
   let badgeLabel = 'KNOWLEDGE LIBRARY';
   let badgeClass = 'kl-badge-per-session';
   if (accessType === 'subscription') {
@@ -3125,6 +3152,29 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
       <div className="kl-topbar-right">
         {accessType === 'per_session' && sessionExpiresAt && (
           <SessionCountdown expiresAt={sessionExpiresAt} onExpired={onSessionExpired} />
+        )}
+        {onToggleLang && (
+          <button
+            type="button"
+            onClick={onToggleLang}
+            className="kl-lang-toggle"
+            title={lang === 'en' ? 'Newid i Gymraeg' : 'Switch to English'}
+            aria-label={lang === 'en' ? 'Switch to Welsh' : 'Switch to English'}
+            style={{
+              background: 'none',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '6px',
+              color: '#fff',
+              padding: '4px 10px',
+              fontSize: '13px',
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              letterSpacing: '0.5px',
+              marginRight: '8px',
+            }}
+          >
+            {lang === 'en' ? 'CY' : 'EN'}
+          </button>
         )}
         <span className={'kl-tier-badge ' + badgeClass}>{badgeLabel}</span>
       </div>
@@ -4558,7 +4608,7 @@ function CalendarPanel() {
 
 // ─── ResearchPanel (kl_provisions grouped by instrument + kl_cases, tabs + search) ───
 
-function ResearchPanel() {
+function ResearchPanel({ lang }) {
   // Sprint F §3.2: default tab is Library (was 'provisions')
   var _tab = useState('library');
   var tab = _tab[0];
@@ -5342,7 +5392,7 @@ const PANEL_COMPONENTS = {
   research: ResearchPanel,
 };
 
-function PanelDrawer({ panelId, onClose }) {
+function PanelDrawer({ panelId, onClose, lang }) {
   if (!panelId) return null;
   const PanelContent = PANEL_COMPONENTS[panelId] || PlaceholderPanel;
   const label = PANEL_LABELS[panelId] || panelId;
@@ -5353,7 +5403,7 @@ function PanelDrawer({ panelId, onClose }) {
         <button className="kl-panel-drawer-close" onClick={onClose} aria-label="Close panel">✕</button>
       </div>
       <div className="kl-panel-drawer-body">
-        <PanelContent panelId={panelId} />
+        <PanelContent panelId={panelId} lang={lang} />
       </div>
     </div>
   );
@@ -5643,7 +5693,7 @@ function BookShelf({ onOpenBook }) {
 // domain header, expandable sub-area grid, key instruments strip,
 // and anchored Eileen panel at bottom.
 
-function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect, nexusState, prefersReducedMotion, onInputChange, tier }) {
+function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect, nexusState, prefersReducedMotion, onInputChange, tier, lang }) {
   var _exp = useState(null);
   var expandedSubArea = _exp[0];
   var setExpandedSubArea = _exp[1];
@@ -5945,6 +5995,17 @@ function App() {
   const [minutesRemaining, setMinutesRemaining] = useState(null);
   const [upsellDismissed, setUpsellDismissed] = useState(false);
   const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
+  // Welsh toggle — persisted in localStorage, defaults to English.
+  const [lang, setLang] = useState(function() {
+    try { return localStorage.getItem('ailane_kl_lang') || 'en'; } catch(e) { return 'en'; }
+  });
+  function toggleLang() {
+    setLang(function(prev) {
+      var next = prev === 'en' ? 'cy' : 'en';
+      try { localStorage.setItem('ailane_kl_lang', next); } catch(e) { /* silent */ }
+      return next;
+    });
+  }
   // H-5: Domain hover tracking for FloatingNexusAdvisor
   const [nearDomain, setNearDomain] = useState(null);
   const nearDomainTimeout = useRef(null);
@@ -6797,6 +6858,8 @@ function App() {
         tier={tier}
         sessionExpiresAt={sessionExpiresAt}
         onSessionExpired={() => setSessionExpired(true)}
+        lang={lang}
+        onToggleLang={toggleLang}
       />
       <Sidebar
         open={sidebarOpen}
@@ -6807,6 +6870,7 @@ function App() {
         onCrownQuery={sendMessage}
         nexusState={nexusState}
         prefersReducedMotion={prefersReducedMotion.current}
+        lang={lang}
       />
       {/* AMD-045 §5: Conditional render — domain sub-page or conversation area */}
       {currentView === 'domain' && currentDomain ? (
@@ -6821,6 +6885,7 @@ function App() {
           prefersReducedMotion={prefersReducedMotion.current}
           onInputChange={handleInputChange}
           tier={tier}
+          lang={lang}
         />
       ) : (
         <ConversationArea
@@ -6865,7 +6930,7 @@ function App() {
       <AdvisoryBanner />
       {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
       {activePanel && (
-        <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} />
+        <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} lang={lang} />
       )}
       {!upsellDismissed && !sessionExpired && (
         <UpsellCard
