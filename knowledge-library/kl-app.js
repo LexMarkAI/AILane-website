@@ -2342,7 +2342,7 @@ var KLApp = (() => {
       "Discuss with Eileen"
     )));
   }
-  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion }) {
+  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang }) {
     var _historyOpen = useState(false);
     var historyOpen = _historyOpen[0];
     var setHistoryOpen = _historyOpen[1];
@@ -2575,7 +2575,7 @@ var KLApp = (() => {
   function MobileSidebarBackdrop({ onClick }) {
     return /* @__PURE__ */ React.createElement("div", { className: "kl-sidebar-backdrop", onClick, "aria-hidden": "true" });
   }
-  function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired }) {
+  function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang }) {
     let badgeLabel = "KNOWLEDGE LIBRARY";
     let badgeClass = "kl-badge-per-session";
     if (accessType === "subscription") {
@@ -2607,7 +2607,29 @@ var KLApp = (() => {
         }
       },
       "AILANE Knowledge Library"
-    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel)));
+    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), onToggleLang && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onToggleLang,
+        className: "kl-lang-toggle",
+        title: lang === "en" ? "Newid i Gymraeg" : "Switch to English",
+        "aria-label": lang === "en" ? "Switch to Welsh" : "Switch to English",
+        style: {
+          background: "none",
+          border: "1px solid rgba(255,255,255,0.3)",
+          borderRadius: "6px",
+          color: "#fff",
+          padding: "4px 10px",
+          fontSize: "13px",
+          cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+          letterSpacing: "0.5px",
+          marginRight: "8px"
+        }
+      },
+      lang === "en" ? "CY" : "EN"
+    ), /* @__PURE__ */ React.createElement("span", { className: "kl-tier-badge " + badgeClass }, badgeLabel)));
   }
   var PANEL_DEFS = [
     // Primary group (AMD-044 §4.2)
@@ -4213,7 +4235,7 @@ var KLApp = (() => {
       }));
     }));
   }
-  function ResearchPanel() {
+  function ResearchPanel({ lang }) {
     var _tab = useState("library");
     var tab = _tab[0];
     var setTab = _tab[1];
@@ -5141,11 +5163,11 @@ var KLApp = (() => {
     calendar: CalendarPanel,
     research: ResearchPanel
   };
-  function PanelDrawer({ panelId, onClose }) {
+  function PanelDrawer({ panelId, onClose, lang }) {
     if (!panelId) return null;
     const PanelContent = PANEL_COMPONENTS[panelId] || PlaceholderPanel;
     const label = PANEL_LABELS[panelId] || panelId;
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer", role: "dialog", "aria-label": label }, /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-header" }, /* @__PURE__ */ React.createElement("span", { className: "kl-panel-drawer-title" }, label), /* @__PURE__ */ React.createElement("button", { className: "kl-panel-drawer-close", onClick: onClose, "aria-label": "Close panel" }, "\u2715")), /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-body" }, /* @__PURE__ */ React.createElement(PanelContent, { panelId })));
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer", role: "dialog", "aria-label": label }, /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-header" }, /* @__PURE__ */ React.createElement("span", { className: "kl-panel-drawer-title" }, label), /* @__PURE__ */ React.createElement("button", { className: "kl-panel-drawer-close", onClick: onClose, "aria-label": "Close panel" }, "\u2715")), /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-body" }, /* @__PURE__ */ React.createElement(PanelContent, { panelId, lang })));
   }
   function AdvisoryBanner() {
     return /* @__PURE__ */ React.createElement("div", { className: "kl-advisory" }, /* @__PURE__ */ React.createElement("p", null, "This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)"));
@@ -5433,7 +5455,7 @@ var KLApp = (() => {
       )
     );
   }
-  function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect, nexusState, prefersReducedMotion, onInputChange, tier }) {
+  function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect, nexusState, prefersReducedMotion, onInputChange, tier, lang }) {
     var _exp = useState(null);
     var expandedSubArea = _exp[0];
     var setExpandedSubArea = _exp[1];
@@ -5796,6 +5818,23 @@ var KLApp = (() => {
     const [minutesRemaining, setMinutesRemaining] = useState(null);
     const [upsellDismissed, setUpsellDismissed] = useState(false);
     const [floatingNexusOpen, setFloatingNexusOpen] = useState(false);
+    const [lang, setLang] = useState(function() {
+      try {
+        return localStorage.getItem("ailane_kl_lang") || "en";
+      } catch (e) {
+        return "en";
+      }
+    });
+    function toggleLang() {
+      setLang(function(prev) {
+        var next = prev === "en" ? "cy" : "en";
+        try {
+          localStorage.setItem("ailane_kl_lang", next);
+        } catch (e) {
+        }
+        return next;
+      });
+    }
     const [nearDomain, setNearDomain] = useState(null);
     const nearDomainTimeout = useRef(null);
     function handleDomainHover(domainSlug) {
@@ -6525,7 +6564,9 @@ var KLApp = (() => {
         accessType,
         tier,
         sessionExpiresAt,
-        onSessionExpired: () => setSessionExpired(true)
+        onSessionExpired: () => setSessionExpired(true),
+        lang,
+        onToggleLang: toggleLang
       }
     ), /* @__PURE__ */ React.createElement(
       Sidebar,
@@ -6543,7 +6584,8 @@ var KLApp = (() => {
         },
         onCrownQuery: sendMessage,
         nexusState,
-        prefersReducedMotion: prefersReducedMotion.current
+        prefersReducedMotion: prefersReducedMotion.current,
+        lang
       }
     ), currentView === "domain" && currentDomain ? /* @__PURE__ */ React.createElement(
       DomainSubPage,
@@ -6561,7 +6603,8 @@ var KLApp = (() => {
         nexusState,
         prefersReducedMotion: prefersReducedMotion.current,
         onInputChange: handleInputChange,
-        tier
+        tier,
+        lang
       }
     ) : /* @__PURE__ */ React.createElement(
       ConversationArea,
@@ -6607,7 +6650,7 @@ var KLApp = (() => {
         accessType,
         tier
       }
-    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => setActivePanel(null) }), !upsellDismissed && !sessionExpired && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => setActivePanel(null), lang }), !upsellDismissed && !sessionExpired && /* @__PURE__ */ React.createElement(
       UpsellCard,
       {
         productType: window.__klProductType || tier || "",
