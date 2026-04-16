@@ -1,4 +1,4 @@
-(() => {
+var KLApp = (() => {
   // knowledge-library/kl-app.jsx
   var { useState, useEffect, useRef, useCallback } = React;
   var SUPABASE_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
@@ -2634,6 +2634,7 @@
     return React.createElement("span", { style: { fontSize: "18px" } }, "?");
   }
   var TIER_RANK = {
+    loading: 1,
     per_session: 0,
     kl_quick_session: 0,
     kl_day_pass: 0,
