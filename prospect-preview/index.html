@@ -136,7 +136,7 @@
         <p class="sidebar-expiry">
           Preview expires: <span id="sidebar-expiry-date">&mdash;</span>
         </p>
-        <button type="button" class="activation-cta-sidebar" id="activation-cta-sidebar">
+        <button type="button" class="activation-cta-sidebar" id="activation-cta-sidebar" aria-label="Activate Account">
           Activate Account &rarr;
         </button>
       </div>
@@ -746,6 +746,13 @@
 
         var table = document.createElement('table');
         table.className = 'acei-table';
+
+        // SR-only caption — labels the table as the text alternative
+        // to the bar chart above (WCAG 1.1.1, brief §7.4)
+        var caption = document.createElement('caption');
+        caption.className = 'sr-only';
+        caption.textContent = 'ACEI Category Profile \u2014 text alternative to bar chart above';
+        table.appendChild(caption);
 
         var thead = document.createElement('thead');
         thead.innerHTML =
@@ -1401,6 +1408,43 @@
       }
 
       // =======================================================
+      // KEYBOARD — Escape collapses expanded cards
+      // =======================================================
+      function wireKeyboard() {
+        document.addEventListener('keydown', function (e) {
+          if (e.key !== 'Escape' && e.keyCode !== 27) return;
+          var target = e.target;
+          if (!target) return;
+
+          // Escape on an expanded finding card collapses it
+          var finding = target.closest && target.closest('.finding-card');
+          if (finding && finding.getAttribute('aria-expanded') === 'true') {
+            finding.setAttribute('aria-expanded', 'false');
+            var body = finding.querySelector('.finding-body');
+            if (body) body.setAttribute('aria-hidden', 'true');
+            var toggle = finding.querySelector('.finding-toggle');
+            if (toggle && toggle.firstChild) toggle.firstChild.nodeValue = 'Read more';
+            e.preventDefault();
+            return;
+          }
+
+          // Escape on an expanded entity node clears the detail panel
+          var node = target.closest && target.closest('.entity-node');
+          if (node && node.getAttribute('aria-expanded') === 'true') {
+            var allNodes = document.querySelectorAll('.entity-node');
+            for (var i = 0; i < allNodes.length; i++) {
+              allNodes[i].classList.remove('is-expanded');
+              allNodes[i].setAttribute('aria-expanded', 'false');
+            }
+            var panel = document.getElementById('entity-detail');
+            if (panel) panel.innerHTML = '';
+            if (typeof ENTITY_STATE !== 'undefined') ENTITY_STATE.expandedId = null;
+            e.preventDefault();
+          }
+        });
+      }
+
+      // =======================================================
       // INIT
       // =======================================================
       function init() {
@@ -1430,6 +1474,7 @@
           populateSidebarFromData(result);
           renderDashboard(result);
           wireNavigation();
+          wireKeyboard();
           showState('app');
           showView('dashboard');
 

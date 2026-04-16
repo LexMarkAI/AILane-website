@@ -4,6 +4,7 @@
     :root {
       --ailane-dark: #0F172A;
       --ailane-cyan: #06B6D4;
+      --ailane-cyan-dark: #0E7490;
       --ailane-gold: #F59E0B;
       --ailane-gold-dark: #D4A017;
       --ailane-gold-light: #FEF3C7;
@@ -83,11 +84,41 @@
       display: none !important;
     }
 
-    /* Accessibility — focus ring */
+    /* Accessibility — visually-hidden utility for screen readers */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Accessibility — 2px cyan focus ring, 3px offset, keyboard-only
+       (:focus-visible avoids rings on mouse click while preserving
+       them for keyboard nav, as required by WCAG 2.4.7). */
     :focus-visible {
       outline: 2px solid var(--ailane-cyan);
-      outline-offset: 2px;
+      outline-offset: 3px;
       border-radius: 3px;
+    }
+
+    /* Elements with rounded borders get a matched-radius ring */
+    .finding-card:focus-visible,
+    .action-card:focus-visible,
+    .entity-node:focus-visible,
+    .metric-card-info:focus-visible,
+    .account-activation-btn:focus-visible {
+      outline-offset: 3px;
+    }
+
+    /* Sidebar nav items get an inner ring to stay within the rail */
+    .nav-item:focus-visible {
+      outline-offset: -2px;
+      outline-color: var(--ailane-cyan);
     }
 
     /* =========================================================
@@ -414,7 +445,7 @@
       padding: 10px 4px;
       font-size: 13px;
       font-weight: 600;
-      color: var(--ailane-cyan);
+      color: var(--ailane-cyan-dark);
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -590,7 +621,7 @@
       gap: 4px;
       font-size: 12px;
       font-weight: 600;
-      color: var(--ailane-cyan);
+      color: var(--ailane-cyan-dark);
       margin-top: 10px;
     }
 
@@ -1630,7 +1661,7 @@
     }
 
     .main-footer a {
-      color: var(--ailane-cyan);
+      color: var(--ailane-cyan-dark);
       text-decoration: none;
       transition: color 0.15s ease;
     }
