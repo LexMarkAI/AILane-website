@@ -974,6 +974,71 @@
       }
     }
 
+    /* =========================================================
+       ENTITY MAP — DETAIL CARD (expanded reveal)
+       ========================================================= */
+    .entity-detail-card {
+      background: var(--ailane-bg);
+      border: 1px solid var(--ailane-border);
+      border-left: 4px solid var(--ailane-gold-dark);
+      border-radius: 8px;
+      padding: 20px 22px;
+      max-width: 720px;
+      margin: 0 auto;
+      animation: entity-detail-in 200ms ease-out;
+    }
+
+    @keyframes entity-detail-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .entity-detail-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ailane-dark);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .entity-detail-meta {
+      font-size: 13px;
+      color: var(--ailane-slate);
+      margin-bottom: 14px;
+      font-style: italic;
+    }
+
+    .entity-detail-grid {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      row-gap: 8px;
+      column-gap: 16px;
+      font-size: 13px;
+    }
+
+    .entity-detail-grid dt {
+      font-weight: 600;
+      color: var(--ailane-slate);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      align-self: center;
+    }
+
+    .entity-detail-grid dd {
+      color: var(--ailane-dark);
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 600px) {
+      .entity-detail-grid { grid-template-columns: 1fr; row-gap: 4px; }
+      .entity-detail-grid dt { padding-top: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .entity-detail-card { animation: none; }
+    }
+
     @media (max-width: 768px) {
       .view { padding: 20px 16px; }
       .welcome-title { font-size: 22px; }
@@ -1781,6 +1846,7 @@
         renderAceiChart(data);
         renderKeyFindings();
         renderQuickActions();
+        renderEntityMap(data);
       }
 
       function renderWelcomeBar(data) {
@@ -2244,6 +2310,234 @@
         notice.__hideTimer = setTimeout(function () {
           notice.classList.remove('is-visible');
         }, 3200);
+      }
+
+      // -----------------------------------------------------
+      // ENTITY MAP (brief §5)
+      // -----------------------------------------------------
+      function snakeCaseId(s) {
+        return String(s || '')
+          .toLowerCase()
+          .replace(/&/g, ' and ')
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+      }
+
+      function formatLatestDecision(iso) {
+        if (!iso) return null;
+        try {
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return null;
+          var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          return months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Build a unified node descriptor from consolidation data
+      function buildEntityNodes(consolidation) {
+        var nodes = [];
+
+        if (consolidation && consolidation.parent_company) {
+          nodes.push({
+            id: 'parent_' + snakeCaseId(consolidation.parent_company),
+            tier: 1,
+            tone: 'parent',
+            name: consolidation.parent_company,
+            decisions: null,
+            relationship: 'Ultimate parent company',
+            latest: null
+          });
+        }
+
+        if (consolidation && consolidation.primary_entity) {
+          var p = consolidation.primary_entity;
+          nodes.push({
+            id: 'primary_' + snakeCaseId(p.name || 'primary'),
+            tier: 2,
+            tone: 'primary',
+            name: p.name || 'Primary entity',
+            chNumber: p.ch_number || null,
+            decisions: typeof p.decisions === 'number' ? p.decisions : null,
+            relationship: 'Primary UK entity',
+            latest: p.latest || null
+          });
+        }
+
+        if (consolidation && Array.isArray(consolidation.acquired_entities)) {
+          consolidation.acquired_entities.forEach(function (e, idx) {
+            nodes.push({
+              id: 'acquired_' + (snakeCaseId(e.name) || ('entity_' + idx)),
+              tier: 3,
+              tone: 'acquired',
+              name: e.name,
+              decisions: typeof e.decisions === 'number' ? e.decisions : null,
+              relationship: e.relationship || '',
+              latest: null
+            });
+          });
+        }
+
+        return nodes;
+      }
+
+      function renderEntityNode(node) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'entity-node is-' + node.tone;
+        btn.setAttribute('data-entity-id', node.id);
+        btn.setAttribute('aria-expanded', 'false');
+        btn.setAttribute('aria-label', node.name + ' — view detail');
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'entity-node-name';
+        nameEl.textContent = node.name;
+        btn.appendChild(nameEl);
+
+        if (typeof node.decisions === 'number') {
+          var meta = document.createElement('div');
+          meta.className = 'entity-node-meta';
+          meta.textContent = node.decisions + ' decision' + (node.decisions === 1 ? '' : 's');
+          btn.appendChild(meta);
+        }
+
+        if (node.tone === 'acquired' && node.relationship) {
+          var rel = document.createElement('div');
+          rel.className = 'entity-node-rel';
+          rel.textContent = node.relationship;
+          btn.appendChild(rel);
+        }
+
+        return btn;
+      }
+
+      function renderEntityDetail(panel, node, consolidation) {
+        if (!panel) return;
+        panel.innerHTML = '';
+        if (!node) return;
+
+        var card = document.createElement('article');
+        card.className = 'entity-detail-card';
+        card.setAttribute('role', 'region');
+        card.setAttribute('aria-label', node.name + ' detail');
+
+        var heading = document.createElement('h2');
+        heading.className = 'entity-detail-name';
+        heading.textContent = node.name;
+        card.appendChild(heading);
+
+        var meta = document.createElement('p');
+        meta.className = 'entity-detail-meta';
+        meta.textContent = node.relationship;
+        card.appendChild(meta);
+
+        var grid = document.createElement('dl');
+        grid.className = 'entity-detail-grid';
+
+        function addRow(label, value) {
+          if (value == null || value === '') return;
+          var dt = document.createElement('dt');
+          dt.textContent = label;
+          var dd = document.createElement('dd');
+          dd.textContent = value;
+          grid.appendChild(dt);
+          grid.appendChild(dd);
+        }
+
+        if (node.tone === 'parent' && consolidation) {
+          // Show ultimate parent context
+          addRow('Group structure', node.name);
+        }
+
+        if (node.chNumber) {
+          addRow('Companies House', node.chNumber);
+        }
+
+        if (typeof node.decisions === 'number') {
+          addRow('Decisions in profile', node.decisions);
+        }
+
+        var latestStr = formatLatestDecision(node.latest);
+        if (latestStr) {
+          addRow('Latest decision', latestStr);
+        }
+
+        card.appendChild(grid);
+        panel.appendChild(card);
+      }
+
+      var ENTITY_STATE = {
+        nodes: [],
+        consolidation: null,
+        expandedId: null
+      };
+
+      function setExpandedNode(id) {
+        ENTITY_STATE.expandedId = id;
+        var allBtns = document.querySelectorAll('.entity-node');
+        for (var i = 0; i < allBtns.length; i++) {
+          var b = allBtns[i];
+          var match = b.getAttribute('data-entity-id') === id;
+          b.classList.toggle('is-expanded', match);
+          b.setAttribute('aria-expanded', match ? 'true' : 'false');
+        }
+
+        var node = null;
+        for (var j = 0; j < ENTITY_STATE.nodes.length; j++) {
+          if (ENTITY_STATE.nodes[j].id === id) {
+            node = ENTITY_STATE.nodes[j];
+            break;
+          }
+        }
+
+        var panel = document.getElementById('entity-detail');
+        renderEntityDetail(panel, node, ENTITY_STATE.consolidation);
+      }
+
+      function renderEntityMap(data) {
+        var consolidation = data && data.intelligence && data.intelligence.entity_consolidation;
+        if (!consolidation) return;
+
+        var tier1 = document.querySelector('[data-section="entity-tier-1"]');
+        var tier2 = document.querySelector('[data-section="entity-tier-2"]');
+        var tier3 = document.querySelector('[data-section="entity-tier-3"]');
+        if (!tier1 || !tier2 || !tier3) return;
+
+        var nodes = buildEntityNodes(consolidation);
+        ENTITY_STATE.nodes = nodes;
+        ENTITY_STATE.consolidation = consolidation;
+
+        tier1.innerHTML = '';
+        tier2.innerHTML = '';
+        tier3.innerHTML = '';
+
+        nodes.forEach(function (n) {
+          var btn = renderEntityNode(n);
+          if (n.tier === 1) tier1.appendChild(btn);
+          else if (n.tier === 2) tier2.appendChild(btn);
+          else if (n.tier === 3) tier3.appendChild(btn);
+
+          btn.addEventListener('click', function () {
+            // Accordion: clicking the open one keeps it open; clicking another swaps
+            if (ENTITY_STATE.expandedId === n.id) return;
+            setExpandedNode(n.id);
+            try {
+              if (window.gtag) {
+                window.gtag('event', 'prospect_entity_click', { entity_name: n.id });
+              }
+            } catch (e) { /* noop */ }
+          });
+        });
+
+        // Pre-expand the primary entity (brief §5.3)
+        var primary = null;
+        for (var k = 0; k < nodes.length; k++) {
+          if (nodes[k].tone === 'primary') { primary = nodes[k]; break; }
+        }
+        if (primary) {
+          setExpandedNode(primary.id);
+        }
       }
 
       // =======================================================
