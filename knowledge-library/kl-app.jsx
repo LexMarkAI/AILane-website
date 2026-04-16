@@ -2025,7 +2025,7 @@ function ReadAloudButton({ text }) {
 // "Run Compliance Check" (routes to the engine) or "Save to Vault only"
 // (archives without analysis). CCI v1.0 Art. I §1.5 Separation Doctrine.
 
-function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis, onVaultOnly, dismissed, msgId }) {
+function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis, onVaultOnly, dismissed, msgId, extractionFailed }) {
   if (dismissed) {
     return (
       <div style={{
@@ -2039,27 +2039,51 @@ function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis,
       </div>
     );
   }
-  var sizeLabel = charCount != null ? charCount.toLocaleString() + ' characters extracted' : 'ready';
+  var sizeLabel = extractionFailed
+    ? 'saved to vault (text extraction unavailable)'
+    : (charCount != null ? charCount.toLocaleString() + ' characters extracted' : 'ready');
   return (
     <div style={{ marginTop: '8px' }}>
       <div style={{ color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.7 }}>
         I have your contract{filename ? ' \u2014 ' + filename : ''}{' \u2014 '}{sizeLabel}. How would you like to proceed?
       </div>
+      {extractionFailed && (
+        <div style={{ fontSize: '12px', color: '#b08000', marginTop: '10px', marginBottom: '8px' }}>
+          Text extraction was not possible. The file is saved in your vault. To run a compliance check, try re-uploading as a text-based PDF.
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={function() { if (typeof onRunAnalysis === 'function') onRunAnalysis(documentId, msgId); }}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            padding: '10px 18px',
-            background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
-            color: '#FFFFFF', border: 'none', borderRadius: '8px',
-            cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-            fontFamily: "'DM Sans', sans-serif", transition: 'opacity 0.2s',
-          }}
-          onMouseEnter={function(e) { e.currentTarget.style.opacity = '0.9'; }}
-          onMouseLeave={function(e) { e.currentTarget.style.opacity = '1'; }}
-        >{'\u2713 Run Compliance Check'}</button>
+        {!extractionFailed && (
+          <button
+            type="button"
+            onClick={function() { if (typeof onRunAnalysis === 'function') onRunAnalysis(documentId, msgId); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '10px 18px',
+              background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+              color: '#FFFFFF', border: 'none', borderRadius: '8px',
+              cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif", transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={function(e) { e.currentTarget.style.opacity = '0.9'; }}
+            onMouseLeave={function(e) { e.currentTarget.style.opacity = '1'; }}
+          >{'\u2713 Run Compliance Check'}</button>
+        )}
+        {extractionFailed && (
+          <button
+            type="button"
+            disabled
+            title="Text extraction failed \u2014 file saved to vault but cannot run compliance check"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '10px 18px',
+              background: '#334155',
+              color: '#94A3B8', border: 'none', borderRadius: '8px',
+              cursor: 'not-allowed', fontSize: '13px', fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif", opacity: 0.6,
+            }}
+          >Compliance Check Unavailable</button>
+        )}
         <button
           type="button"
           onClick={function() { if (typeof onVaultOnly === 'function') onVaultOnly(msgId); }}
@@ -2117,6 +2141,7 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
             documentId={msg.documentId}
             msgId={msg.id}
             dismissed={!!msg.vaultOnly}
+            extractionFailed={!!msg.extractionFailed}
             onRunAnalysis={onRunAnalysis}
             onVaultOnly={onVaultOnly}
           />
@@ -6455,21 +6480,17 @@ function App() {
     } catch (err) {
       console.error('Document extract failed:', err);
     }
-    if (!extractResult || typeof extractResult.char_count !== 'number') {
-      updateFileMessage(msgId, { status: 'error' });
-      addMessage({
-        role: 'assistant',
-        content: 'Text extraction failed. The file may be image-only or password-protected.',
-        isLocal: true,
-      });
-      return;
-    }
+    // If extraction failed, still offer vault-only save (record already exists)
+    var charCount = (extractResult && typeof extractResult.char_count === 'number')
+      ? extractResult.char_count
+      : null;
+    var extractionFailed = (charCount === null);
 
-    // Step 4.6 — F-3: Offer the user two explicit choices rather than auto-
-    // routing to the compliance engine. Surface filename, size, and both
-    // "Run Compliance Check" and "Save to Vault only" buttons via
-    // UploadCompleteMessage. CCI v1.0 Art. I §1.5 (Separation Doctrine).
-    updateFileMessage(msgId, { status: 'ready', charCount: extractResult.char_count });
+    updateFileMessage(msgId, {
+      status: extractionFailed ? 'saved-no-extract' : 'ready',
+      charCount: charCount || 0
+    });
+
     addMessage({
       id: 'ready-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
       role: 'assistant',
@@ -6478,9 +6499,10 @@ function App() {
       isUploadComplete: true,
       filename: file.name,
       fileSize: file.size,
-      charCount: extractResult.char_count,
+      charCount: charCount || 0,
       documentId: documentId,
       vaultOnly: false,
+      extractionFailed: extractionFailed,
     });
   }
 

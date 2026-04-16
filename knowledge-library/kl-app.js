@@ -1594,7 +1594,7 @@ var KLApp = (() => {
       isSpeaking ? "\u25A0 Stop" : "\u25B6 Read aloud"
     );
   }
-  function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis, onVaultOnly, dismissed, msgId }) {
+  function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis, onVaultOnly, dismissed, msgId, extractionFailed }) {
     if (dismissed) {
       return /* @__PURE__ */ React.createElement("div", { style: {
         marginTop: "8px",
@@ -1607,8 +1607,8 @@ var KLApp = (() => {
         fontFamily: "'DM Sans', sans-serif"
       } }, "\u2713 Saved to Document Vault");
     }
-    var sizeLabel = charCount != null ? charCount.toLocaleString() + " characters extracted" : "ready";
-    return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.7 } }, "I have your contract", filename ? " \u2014 " + filename : "", " \u2014 ", sizeLabel, ". How would you like to proceed?"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+    var sizeLabel = extractionFailed ? "saved to vault (text extraction unavailable)" : charCount != null ? charCount.toLocaleString() + " characters extracted" : "ready";
+    return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.7 } }, "I have your contract", filename ? " \u2014 " + filename : "", " \u2014 ", sizeLabel, ". How would you like to proceed?"), extractionFailed && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#b08000", marginTop: "10px", marginBottom: "8px" } }, "Text extraction was not possible. The file is saved in your vault. To run a compliance check, try re-uploading as a text-based PDF."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" } }, !extractionFailed && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -1638,6 +1638,29 @@ var KLApp = (() => {
         }
       },
       "\u2713 Run Compliance Check"
+    ), extractionFailed && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: true,
+        title: "Text extraction failed \\u2014 file saved to vault but cannot run compliance check",
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "10px 18px",
+          background: "#334155",
+          color: "#94A3B8",
+          border: "none",
+          borderRadius: "8px",
+          cursor: "not-allowed",
+          fontSize: "13px",
+          fontWeight: 600,
+          fontFamily: "'DM Sans', sans-serif",
+          opacity: 0.6
+        }
+      },
+      "Compliance Check Unavailable"
     ), /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -1696,6 +1719,7 @@ var KLApp = (() => {
           documentId: msg.documentId,
           msgId: msg.id,
           dismissed: !!msg.vaultOnly,
+          extractionFailed: !!msg.extractionFailed,
           onRunAnalysis,
           onVaultOnly
         }
@@ -6258,16 +6282,12 @@ var KLApp = (() => {
       } catch (err) {
         console.error("Document extract failed:", err);
       }
-      if (!extractResult || typeof extractResult.char_count !== "number") {
-        updateFileMessage(msgId, { status: "error" });
-        addMessage({
-          role: "assistant",
-          content: "Text extraction failed. The file may be image-only or password-protected.",
-          isLocal: true
-        });
-        return;
-      }
-      updateFileMessage(msgId, { status: "ready", charCount: extractResult.char_count });
+      var charCount = extractResult && typeof extractResult.char_count === "number" ? extractResult.char_count : null;
+      var extractionFailed = charCount === null;
+      updateFileMessage(msgId, {
+        status: extractionFailed ? "saved-no-extract" : "ready",
+        charCount: charCount || 0
+      });
       addMessage({
         id: "ready-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
         role: "assistant",
@@ -6276,9 +6296,10 @@ var KLApp = (() => {
         isUploadComplete: true,
         filename: file.name,
         fileSize: file.size,
-        charCount: extractResult.char_count,
+        charCount: charCount || 0,
         documentId,
-        vaultOnly: false
+        vaultOnly: false,
+        extractionFailed
       });
     }
     function handleVaultOnly(msgId) {
