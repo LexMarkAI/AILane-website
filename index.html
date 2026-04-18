@@ -1020,15 +1020,6 @@ async function fetchIntel() {
     if (r.ok) {
       var data = await r.json();
       liveData = Object.assign({}, FALLBACK, data);
-      /* v3 Art. 13.1 shape — forward canonical categories + relationships to Nexus. */
-      if (window.AilaneNexus && window.AilaneNexus.updateLive &&
-          (Array.isArray(data.categories) || Array.isArray(data.relationships))) {
-        window.AilaneNexus.updateLive({
-          categories: data.categories || [],
-          relationships: data.relationships || [],
-          snapshotAt: data.snapshotAt || null
-        });
-      }
     }
   } catch (e) {
     console.warn('[Eileen] Intel fetch failed, using fallback');
