@@ -990,6 +990,7 @@ function initSectionObserver() {
 }
 /* ── Eileen: live intel + hover commentary (LP-002 §4.2, 4.3) ── */
 var INTEL_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-landing-intel';
+var NEXUS_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-nexus-intel';
 var PRESALES_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-presales';
 
 var FALLBACK = {
@@ -1019,18 +1020,53 @@ async function fetchIntel() {
     if (r.ok) {
       var data = await r.json();
       liveData = Object.assign({}, FALLBACK, data);
-      /* v3 Art. 13.1 shape — forward canonical categories + relationships to Nexus. */
-      if (window.AilaneNexus && window.AilaneNexus.updateLive &&
-          (Array.isArray(data.categories) || Array.isArray(data.relationships))) {
-        window.AilaneNexus.updateLive({
-          categories: data.categories || [],
-          relationships: data.relationships || [],
-          snapshotAt: data.snapshotAt || null
-        });
-      }
     }
   } catch (e) {
     console.warn('[Eileen] Intel fetch failed, using fallback');
+  }
+}
+
+/* Nexus v3 consumer — AMD-058 Art. 13.1, CIE-PAR-B-RULING-004 (Split Fetch).
+   Contract: 5 top-level keys (categories, instruments, relationships,
+   snapshotAt, version). On contract drift / non-200 / network failure,
+   retain seed weights silently (no user-visible error, console.warn only).
+   TODO (§2.1 view refinement): category label title-casing handled client-side
+   until the endpoint view emits human-readable labels. */
+async function fetchNexus() {
+  var ctrl = new AbortController();
+  var timeoutId = setTimeout(function () { ctrl.abort(); }, 6000);
+  try {
+    var r = await fetch(NEXUS_URL, { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    if (!r.ok) { console.warn('[Nexus] HTTP ' + r.status); return; }
+    var data = await r.json();
+    if (data.version !== 'v3') {
+      console.warn('[Nexus] contract drift: expected v3, got ' + data.version);
+      return;
+    }
+    if (!Array.isArray(data.categories) || data.categories.length === 0) {
+      return;
+    }
+    var categories = data.categories.map(function (c) {
+      return {
+        id: c.id,
+        label: typeof c.label === 'string'
+          ? c.label.replace(/_/g, ' ').replace(/\b\w/g, function (ch) { return ch.toUpperCase(); })
+          : c.id,
+        claim_frequency: c.claim_frequency,
+        provision_count: c.provision_count
+      };
+    });
+    if (window.AilaneNexus && window.AilaneNexus.updateLive) {
+      window.AilaneNexus.updateLive({
+        categories: categories,
+        relationships: Array.isArray(data.relationships) ? data.relationships : [],
+        snapshotAt: data.snapshotAt || null
+      });
+    }
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.warn('[Nexus] fetch failed, retaining seed weights');
   }
 }
 
@@ -1282,7 +1318,8 @@ function initEileenMinimise() {
    Weights seed from legacy distribution; v3 claims_frequency rebalances them live. */
 /* ── Bootstrap ─────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async function() {
-  // Fetch live intel first
+  // Fetch live intel (v2 ticker) + Nexus v3 in parallel — RULING-004
+  fetchNexus();
   await fetchIntel();
 
   // Update hero strip date if live data available
@@ -1307,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       window.AilaneNexus.createNexus(introCanvas, {
         size: 180,
         interactive: true,
-        dataSource: 'eileen-landing-intel'
+        dataSource: 'eileen-nexus-intel'
       });
     }
 
@@ -1317,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         size: 52,
         interactive: false,
         showRelationships: false,
-        dataSource: 'eileen-landing-intel'
+        dataSource: 'eileen-nexus-intel'
       });
     }
 
@@ -1331,13 +1368,14 @@ document.addEventListener('DOMContentLoaded', async function() {
       window.AilaneNexus.createNexus(heroCanvas, {
         size: heroSize,
         interactive: false,
-        dataSource: 'eileen-landing-intel'
+        dataSource: 'eileen-nexus-intel'
       });
     }
   }
 
-  // Keep Nexus in sync with upstream — re-poll every 5 min (matches pg_cron cadence).
+  // Keep ticker + Nexus in sync with upstream — re-poll every 5 min (matches pg_cron cadence).
   setInterval(fetchIntel, 5 * 60 * 1000);
+  setInterval(fetchNexus, 5 * 60 * 1000);
 
   // Ticker: duplicate content for seamless loop
   var tickerTrack = document.querySelector('.ticker-track');
