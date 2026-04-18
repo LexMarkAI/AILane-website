@@ -901,6 +901,7 @@ footer {
     </div>
   </div>
 </div>
+<script src="/assets/js/nexus.js" defer></script>
 <script>
 /* ── Expand / collapse engine ─────────────────────────────── */
 function initExpand() {
@@ -1018,6 +1019,15 @@ async function fetchIntel() {
     if (r.ok) {
       var data = await r.json();
       liveData = Object.assign({}, FALLBACK, data);
+      /* v3 Art. 13.1 shape — forward canonical categories + relationships to Nexus. */
+      if (window.AilaneNexus && window.AilaneNexus.updateLive &&
+          (Array.isArray(data.categories) || Array.isArray(data.relationships))) {
+        window.AilaneNexus.updateLive({
+          categories: data.categories || [],
+          relationships: data.relationships || [],
+          snapshotAt: data.snapshotAt || null
+        });
+      }
     }
   } catch (e) {
     console.warn('[Eileen] Intel fetch failed, using fallback');
@@ -1267,165 +1277,9 @@ function initEileenMinimise() {
     body.classList.add('hidden');
   });
 }
-/* ── Nexus: live data visualisation (EILEEN-008 §4) ──────────
-   12 primary nodes = ACEI categories.
-   Glow intensity proportional to tribunal frequency (weight). */
-var CATEGORY_WEIGHTS = {
-  unfair_dismissal: 0.28,
-  discrimination: 0.22,
-  wages_working_time: 0.15,
-  breach_of_contract: 0.12,
-  redundancy: 0.06,
-  tupe: 0.04,
-  whistleblowing: 0.03,
-  health_safety: 0.03,
-  family_rights: 0.03,
-  data_protection: 0.02,
-  employment_status: 0.01,
-  collective: 0.01
-};
-var CATEGORY_NAMES = Object.keys(CATEGORY_WEIGHTS);
-
-function renderNexus(canvas, size, opts) {
-  opts = opts || {};
-  var ctx = canvas.getContext('2d');
-  var dpr = window.devicePixelRatio || 1;
-
-  // Support HiDPI
-  canvas.width = size * dpr;
-  canvas.height = size * dpr;
-  if (!canvas.style.width) canvas.style.width = size + 'px';
-  if (!canvas.style.height) canvas.style.height = size + 'px';
-  ctx.scale(dpr, dpr);
-
-  var cx = size / 2;
-  var cy = size / 2;
-  var radius = size * 0.35;
-  var nodeCount = 12;
-  var nodes = [];
-
-  // Position nodes in a slightly irregular ring
-  for (var i = 0; i < nodeCount; i++) {
-    var angle = (i / nodeCount) * Math.PI * 2 - Math.PI / 2;
-    var jitter = (Math.sin(i * 2.3) * 0.5) * size * 0.04;
-    nodes.push({
-      x: cx + Math.cos(angle) * (radius + jitter),
-      y: cy + Math.sin(angle) * (radius + jitter),
-      weight: CATEGORY_WEIGHTS[CATEGORY_NAMES[i]] || 0.01,
-      name: CATEGORY_NAMES[i],
-      phase: Math.random() * Math.PI * 2
-    });
-  }
-
-  var animFrame = null;
-  var tierColour = opts.colour || '#0EA5E9';
-
-  // Parse hex colour into rgba helper
-  function rgba(alpha) {
-    var hex = tierColour.replace('#', '');
-    var r = parseInt(hex.substr(0, 2), 16);
-    var g = parseInt(hex.substr(2, 2), 16);
-    var b = parseInt(hex.substr(4, 2), 16);
-    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
-  }
-
-  function draw(time) {
-    ctx.clearRect(0, 0, size, size);
-
-    // Connection lines — node to centre
-    nodes.forEach(function(n, i) {
-      ctx.beginPath();
-      ctx.moveTo(n.x, n.y);
-      ctx.lineTo(cx, cy);
-      ctx.strokeStyle = rgba(0.1 + n.weight * 0.4);
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      // Node to adjacent
-      var next = nodes[(i + 1) % nodeCount];
-      ctx.beginPath();
-      ctx.moveTo(n.x, n.y);
-      ctx.lineTo(next.x, next.y);
-      ctx.strokeStyle = rgba(0.15);
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      // Cross connections (every 3rd node)
-      if (i % 3 === 0) {
-        var cross = nodes[(i + 4) % nodeCount];
-        ctx.beginPath();
-        ctx.moveTo(n.x, n.y);
-        ctx.lineTo(cross.x, cross.y);
-        ctx.strokeStyle = rgba(0.08);
-        ctx.lineWidth = 0.3;
-        ctx.stroke();
-      }
-    });
-
-    // Draw nodes — glow proportional to tribunal weight
-    nodes.forEach(function(n) {
-      var breathe = 0.7 + 0.3 * Math.sin(time / 2000 + n.phase);
-      var nodeRadius = size * (0.015 + n.weight * 0.02);
-      var glowRadius = nodeRadius * (2 + n.weight * 4);
-
-      // Glow
-      var grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowRadius);
-      grad.addColorStop(0, rgba(n.weight * 0.5 * breathe));
-      grad.addColorStop(1, rgba(0));
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, glowRadius, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Node core
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, nodeRadius, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(0.5 + n.weight * 0.5 * breathe);
-      ctx.fill();
-    });
-
-    // Centre halo
-    var centreBreath = 0.7 + 0.3 * Math.sin(time / 3000);
-    var centreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.15);
-    centreGrad.addColorStop(0, rgba(0.15 * centreBreath));
-    centreGrad.addColorStop(1, rgba(0));
-    ctx.beginPath();
-    ctx.arc(cx, cy, size * 0.15, 0, Math.PI * 2);
-    ctx.fillStyle = centreGrad;
-    ctx.fill();
-
-    // Centre node
-    ctx.beginPath();
-    ctx.arc(cx, cy, size * 0.025, 0, Math.PI * 2);
-    ctx.fillStyle = rgba(0.9);
-    ctx.fill();
-
-    animFrame = requestAnimationFrame(draw);
-  }
-
-  // IntersectionObserver — pause when off screen
-  function start() {
-    if (!animFrame) animFrame = requestAnimationFrame(draw);
-  }
-  function stop() {
-    if (animFrame) {
-      cancelAnimationFrame(animFrame);
-      animFrame = null;
-    }
-  }
-
-  if ('IntersectionObserver' in window) {
-    var observer = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) start();
-        else stop();
-      });
-    });
-    observer.observe(canvas);
-  }
-
-  start();
-}
+/* ── Nexus: live data visualisation (Art. 13.1) ──────────────
+   Renderer lives in /assets/js/nexus.js — window.AilaneNexus.
+   Weights seed from legacy distribution; v3 claims_frequency rebalances them live. */
 /* ── Bootstrap ─────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async function() {
   // Fetch live intel first
@@ -1446,22 +1300,44 @@ document.addEventListener('DOMContentLoaded', async function() {
   initEileenDrag();
   initEileenMinimise();
 
-  // Render Nexus instances
-  var introCanvas = document.getElementById('nexus-intro');
-  if (introCanvas) renderNexus(introCanvas, 180);
+  // Render Nexus instances via window.AilaneNexus (assets/js/nexus.js).
+  if (window.AilaneNexus && window.AilaneNexus.createNexus) {
+    var introCanvas = document.getElementById('nexus-intro');
+    if (introCanvas) {
+      window.AilaneNexus.createNexus(introCanvas, {
+        size: 180,
+        interactive: true,
+        dataSource: 'eileen-landing-intel'
+      });
+    }
 
-  var floatCanvas = document.getElementById('eileen-nexus');
-  if (floatCanvas) renderNexus(floatCanvas, 52);
+    var floatCanvas = document.getElementById('eileen-nexus');
+    if (floatCanvas) {
+      window.AilaneNexus.createNexus(floatCanvas, {
+        size: 52,
+        interactive: false,
+        showRelationships: false,
+        dataSource: 'eileen-landing-intel'
+      });
+    }
 
-  // Hero background nexus — large, low opacity
-  var heroCanvas = document.getElementById('hero-nexus');
-  if (heroCanvas) {
-    heroCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.06;pointer-events:none;';
-    var heroSize = Math.min(window.innerWidth, window.innerHeight);
-    heroCanvas.style.width = window.innerWidth + 'px';
-    heroCanvas.style.height = window.innerHeight + 'px';
-    renderNexus(heroCanvas, heroSize);
+    // Hero background nexus — large, low opacity, non-interactive (pointer-events:none).
+    var heroCanvas = document.getElementById('hero-nexus');
+    if (heroCanvas) {
+      heroCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.06;pointer-events:none;';
+      var heroSize = Math.min(window.innerWidth, window.innerHeight);
+      heroCanvas.style.width = window.innerWidth + 'px';
+      heroCanvas.style.height = window.innerHeight + 'px';
+      window.AilaneNexus.createNexus(heroCanvas, {
+        size: heroSize,
+        interactive: false,
+        dataSource: 'eileen-landing-intel'
+      });
+    }
   }
+
+  // Keep Nexus in sync with upstream — re-poll every 5 min (matches pg_cron cadence).
+  setInterval(fetchIntel, 5 * 60 * 1000);
 
   // Ticker: duplicate content for seamless loop
   var tickerTrack = document.querySelector('.ticker-track');
