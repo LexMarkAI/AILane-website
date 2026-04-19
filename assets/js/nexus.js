@@ -14,6 +14,62 @@
 (function () {
   'use strict';
 
+  /* AMD-069 — Two-layer palette.
+     Core Identity Colour is constant and tier-independent; it paints the core
+     Nexus node and its halo on every surface. Tier Ring Palette paints the
+     secondary nodes and connector edges and is resolved from pageTier. */
+  var NEXUS_CORE_COLOUR = '#F59E0B';
+  var NEXUS_CORE_GLOW = 'rgba(245, 158, 11, 0.30)';
+  var NEXUS_CORE_RADIUS_MULTIPLIER = 1.4;
+
+  var NEXUS_RING_BASELINE = '#0EA5E9';
+  var NEXUS_RING_BASELINE_DIM = 'rgba(14, 165, 233, 0.35)';
+
+  var NEXUS_RING_HIGH_ACCENT = '#D97706';
+  var NEXUS_RING_HIGH_ACCENT_DIM = 'rgba(217, 119, 6, 0.35)';
+
+  var NEXUS_EDGE_ACTIVE_ALPHA = 0.60;
+  var NEXUS_EDGE_IDLE_ALPHA = 0.15;
+
+  function hexToRgbTuple(hex) {
+    var h = String(hex || '').replace('#', '');
+    return {
+      r: parseInt(h.substring(0, 2), 16),
+      g: parseInt(h.substring(2, 4), 16),
+      b: parseInt(h.substring(4, 6), 16)
+    };
+  }
+
+  function rgbaFromHex(hex, alpha) {
+    var t = hexToRgbTuple(hex);
+    return 'rgba(' + t.r + ', ' + t.g + ', ' + t.b + ', ' + alpha + ')';
+  }
+
+  function resolveRingPalette(tier) {
+    switch (tier) {
+      case 'institutional':
+      case 'ceo_command':
+        return {
+          active: NEXUS_RING_HIGH_ACCENT,
+          dim:    NEXUS_RING_HIGH_ACCENT_DIM
+        };
+      case 'landing':
+      case 'operational_readiness':
+      case 'governance':
+      default:
+        return {
+          active: NEXUS_RING_BASELINE,
+          dim:    NEXUS_RING_BASELINE_DIM
+        };
+    }
+  }
+
+  function resolveEdgeColour(tier, active) {
+    var ring = resolveRingPalette(tier);
+    var alpha = active ? NEXUS_EDGE_ACTIVE_ALPHA : NEXUS_EDGE_IDLE_ALPHA;
+    return rgbaFromHex(ring.active, alpha);
+  }
+
   var CANONICAL_KEYS = [
     'discrimination_harassment', 'whistleblowing', 'unfair_dismissal',
     'wages_working_time', 'redundancy_org_change', 'employment_status',
@@ -95,7 +151,12 @@
     }
     opts = opts || {};
     var size = Number(opts.size) || 180;
-    var tierColour = opts.colour || opts.tierColour || '#0EA5E9';
+    /* AMD-069: ring colour is derived from pageTier when supplied. Legacy
+       `colour`/`tierColour` opts remain honoured as a direct ring-colour
+       override so existing call sites that pre-date pageTier keep working. */
+    var ringPalette = opts.pageTier ? resolveRingPalette(opts.pageTier) : null;
+    var legacyRing = opts.colour || opts.tierColour || null;
+    var ringActive = (ringPalette && ringPalette.active) || legacyRing || NEXUS_RING_BASELINE;
     var interactive = opts.interactive === true;
     var showRelationships = opts.showRelationships !== false;
 
@@ -126,12 +187,14 @@
       };
     });
 
+    /* Ring strokes / secondary-node fills — tinted to the resolved ring colour. */
     function rgba(alpha) {
-      var hex = tierColour.replace('#', '');
-      var r = parseInt(hex.substr(0, 2), 16);
-      var g = parseInt(hex.substr(2, 2), 16);
-      var b = parseInt(hex.substr(4, 2), 16);
-      return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+      return rgbaFromHex(ringActive, alpha);
+    }
+    /* Core strokes / fills — locked to NEXUS_CORE_COLOUR (AMD-069 core constancy). */
+    var coreRgb = hexToRgbTuple(NEXUS_CORE_COLOUR);
+    function coreRgba(alpha) {
+      return 'rgba(' + coreRgb.r + ', ' + coreRgb.g + ', ' + coreRgb.b + ', ' + alpha + ')';
     }
 
     var animFrame = null;
@@ -247,19 +310,23 @@
         ctx.fill();
       });
 
-      /* Centre halo + node. */
+      /* Centre halo + core node — AMD-069 core constancy.
+         Both paint in NEXUS_CORE_COLOUR irrespective of ring palette / tier.
+         Core radius uses NEXUS_CORE_RADIUS_MULTIPLIER against the baseline
+         secondary-node radius (size * 0.025) so it reads as 1.4× the ring. */
       var centreBreath = 0.7 + 0.3 * Math.sin(time / 3000);
       var centreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.15);
-      centreGrad.addColorStop(0, rgba(0.15 * centreBreath));
-      centreGrad.addColorStop(1, rgba(0));
+      centreGrad.addColorStop(0, coreRgba(0.30 * centreBreath));
+      centreGrad.addColorStop(1, coreRgba(0));
       ctx.beginPath();
       ctx.arc(cx, cy, size * 0.15, 0, Math.PI * 2);
       ctx.fillStyle = centreGrad;
       ctx.fill();
 
+      var coreRadius = size * 0.025 * NEXUS_CORE_RADIUS_MULTIPLIER;
       ctx.beginPath();
-      ctx.arc(cx, cy, size * 0.025, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(0.9);
+      ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2);
+      ctx.fillStyle = coreRgba(0.95);
       ctx.fill();
 
       animFrame = requestAnimationFrame(draw);
@@ -334,6 +401,20 @@
   window.AilaneNexus = {
     createNexus: createNexus,
     updateLive: updateLive,
-    CANONICAL_KEYS: CANONICAL_KEYS
+    CANONICAL_KEYS: CANONICAL_KEYS,
+
+    /* AMD-069 palette surface — consumers must read colours from here
+       and never hardcode Nexus hexes outside this module. */
+    NEXUS_CORE_COLOUR: NEXUS_CORE_COLOUR,
+    NEXUS_CORE_GLOW: NEXUS_CORE_GLOW,
+    NEXUS_CORE_RADIUS_MULTIPLIER: NEXUS_CORE_RADIUS_MULTIPLIER,
+    NEXUS_RING_BASELINE: NEXUS_RING_BASELINE,
+    NEXUS_RING_BASELINE_DIM: NEXUS_RING_BASELINE_DIM,
+    NEXUS_RING_HIGH_ACCENT: NEXUS_RING_HIGH_ACCENT,
+    NEXUS_RING_HIGH_ACCENT_DIM: NEXUS_RING_HIGH_ACCENT_DIM,
+    NEXUS_EDGE_ACTIVE_ALPHA: NEXUS_EDGE_ACTIVE_ALPHA,
+    NEXUS_EDGE_IDLE_ALPHA: NEXUS_EDGE_IDLE_ALPHA,
+    resolveRingPalette: resolveRingPalette,
+    resolveEdgeColour: resolveEdgeColour
   };
 })();

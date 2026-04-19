@@ -981,12 +981,17 @@
   (function(){
     // Nexus renderer — simplified for static pages per LPEX-001 Art. 15
     // Cyan only for session/KL pages. Tier colours on subscription cards.
+    // Gold drift-corrected to canonical #F59E0B per AMD-069.
     const COLORS = {
       cyan: '#0EA5E9',
       green: '#22C55E',
       purple: '#8B5CF6',
-      gold: '#D4A017'
+      gold: '#F59E0B'
     };
+
+    // AMD-069 Core Identity Colour — locks the centre-node fill to Gold on
+    // every Block-A invocation, regardless of the ring colour opts.color.
+    const NEXUS_CORE_COLOUR = (window.AilaneNexus && window.AilaneNexus.NEXUS_CORE_COLOUR) || '#F59E0B';
 
     function createNexus(canvas, opts) {
       if (!canvas) return;
@@ -1026,17 +1031,17 @@
         pulsePhase += 0.02;
         const pulse = 0.95 + 0.05 * Math.sin(pulsePhase);
 
-        // Core glow
+        // Core glow — AMD-069 core constancy: always Gold regardless of ring.
         const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.3 * pulse);
-        coreGrad.addColorStop(0, primaryColor + '40');
+        coreGrad.addColorStop(0, NEXUS_CORE_COLOUR + '40');
         coreGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = coreGrad;
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.3 * pulse, 0, Math.PI * 2);
         ctx.fill();
 
-        // Core dot
-        ctx.fillStyle = primaryColor;
+        // Core dot — AMD-069 core constancy: always Gold regardless of ring.
+        ctx.fillStyle = NEXUS_CORE_COLOUR;
         ctx.beginPath();
         ctx.arc(cx, cy, 2 * (w/120), 0, Math.PI * 2);
         ctx.fill();
@@ -1496,7 +1501,7 @@
       cg.addColorStop(0, 'rgba(14,165,233,' + (0.5 + 0.2 * Math.sin(pulsePhase)) + ')');
       cg.addColorStop(1, 'rgba(14,165,233,0)');
       ctx.beginPath(); ctx.arc(52, 52, 12, 0, Math.PI * 2); ctx.fillStyle = cg; ctx.fill();
-      ctx.beginPath(); ctx.arc(52, 52, 3, 0, Math.PI * 2); ctx.fillStyle = '#0EA5E9'; ctx.fill();
+      ctx.beginPath(); ctx.arc(52, 52, 3, 0, Math.PI * 2); ctx.fillStyle = (window.AilaneNexus && window.AilaneNexus.NEXUS_CORE_COLOUR) || '#F59E0B'; ctx.fill();
       var positions = [];
       for (var i = 0; i < nodeCount; i++) {
         var a = nodes[i].angle + angleOffset; nodes[i].angle += nodes[i].speed;
