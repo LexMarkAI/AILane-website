@@ -417,6 +417,271 @@
     };
   }
 
+  /* ============================================================
+     LAYER 3 — ACEI CHROMATIC SIGNATURE API (EILEEN-009 / AMD-072)
+     Declares the 12-colour ACEI palette accessors, WeightVector
+     renderers (bar, ring, chips), and the provenance accessor.
+     The chromatic signature indicates the ACEI-category composition
+     computed for an artefact. Intelligence, not legal advice.
+     Consumers: NEXUS-KL-001 (Brief #6). No surface consumes this
+     namespace at ailane.ai today — declaration only.
+     ============================================================ */
+
+  var ACEI_PALETTE = [
+    { n: 1,  token: '--acei-1',  hex: '#EF4444', nonText: false },
+    { n: 2,  token: '--acei-2',  hex: '#D946EF', nonText: false },
+    { n: 3,  token: '--acei-3',  hex: '#22C55E', nonText: false },
+    { n: 4,  token: '--acei-4',  hex: '#FACC15', nonText: false },
+    { n: 5,  token: '--acei-5',  hex: '#3B82F6', nonText: false },
+    { n: 6,  token: '--acei-6',  hex: '#F97316', nonText: false },
+    { n: 7,  token: '--acei-7',  hex: '#F43F5E', nonText: false },
+    { n: 8,  token: '--acei-8',  hex: '#A21CAF', nonText: true  },
+    { n: 9,  token: '--acei-9',  hex: '#6366F1', nonText: false },
+    { n: 10, token: '--acei-10', hex: '#14B8A6', nonText: false },
+    { n: 11, token: '--acei-11', hex: '#4338CA', nonText: true  },
+    { n: 12, token: '--acei-12', hex: '#64748B', nonText: false }
+  ];
+  (function freezeACEIPalette() {
+    for (var fi = 0; fi < ACEI_PALETTE.length; fi++) {
+      Object.freeze(ACEI_PALETTE[fi]);
+    }
+    Object.freeze(ACEI_PALETTE);
+  })();
+
+  var ACEI_WEIGHT_KEYS = [
+    'c1','c2','c3','c4','c5','c6','c7','c8','c9','c10','c11','c12'
+  ];
+  var ACEI_TOLERANCE = 0.005;
+  var ACEI_RESIDUAL_COLOUR = '#1E293B';
+  var ACEI_NONTEXT_FG = '#FFFFFF';
+  var ACEI_TEXT_FG = '#0a0e1a';
+
+  function resolveACEIPalette() {
+    return ACEI_PALETTE;
+  }
+
+  /* Read a WeightVector as c1..c12. Warns (does not silently renormalise)
+     when the sum falls outside ±ACEI_TOLERANCE — that is an upstream
+     emission fault per EILEEN-009 Annex B. Segment drawing still uses
+     values/total so a malformed vector degrades visibly, not silently. */
+  function readACEIWeights(w) {
+    var values = [];
+    var total = 0;
+    for (var i = 0; i < ACEI_WEIGHT_KEYS.length; i++) {
+      var k = ACEI_WEIGHT_KEYS[i];
+      var v = Number(w && w[k]);
+      if (!isFinite(v) || v < 0) v = 0;
+      values.push(v);
+      total += v;
+    }
+    if (total > 0 && Math.abs(total - 1.0) > ACEI_TOLERANCE) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[Nexus Layer 3] WeightVector sum ' + total.toFixed(4) +
+          ' exceeds tolerance ±' + ACEI_TOLERANCE +
+          '. Upstream emission likely faulty.');
+      }
+    }
+    return { values: values, total: total };
+  }
+
+  function clearACEIHost(host) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+  }
+
+  function renderBar(host, w, opts) {
+    if (!host) return;
+    opts = opts || {};
+    var height = Number(opts.height) || 8;
+    var minSegmentPct = typeof opts.minSegmentPct === 'number' ? opts.minSegmentPct : 2;
+    var labels = opts.labels === true;
+
+    var read = readACEIWeights(w);
+    clearACEIHost(host);
+    host.style.display = 'flex';
+    host.style.width = '100%';
+    host.style.height = height + 'px';
+    host.style.overflow = 'hidden';
+    host.style.borderRadius = '2px';
+    host.setAttribute('role', 'img');
+    host.setAttribute('aria-label', 'ACEI chromatic signature bar');
+
+    if (read.total <= 0) return;
+
+    var residualPct = 0;
+    for (var i = 0; i < read.values.length; i++) {
+      var entry = ACEI_PALETTE[i];
+      var pct = (read.values[i] / read.total) * 100;
+      if (pct < minSegmentPct) {
+        residualPct += pct;
+        continue;
+      }
+      var seg = document.createElement('div');
+      seg.style.flex = pct + ' 0 0';
+      seg.style.background = entry.hex;
+      seg.setAttribute('aria-label',
+        'category ' + entry.n + ' ' + pct.toFixed(1) + '%');
+      if (labels) {
+        seg.textContent = entry.n;
+        seg.style.color = entry.nonText ? ACEI_NONTEXT_FG : ACEI_TEXT_FG;
+        seg.style.fontSize = Math.max(9, height - 2) + 'px';
+        seg.style.display = 'flex';
+        seg.style.alignItems = 'center';
+        seg.style.justifyContent = 'center';
+      }
+      host.appendChild(seg);
+    }
+    if (residualPct > 0) {
+      var res = document.createElement('div');
+      res.style.flex = residualPct + ' 0 0';
+      res.style.background = ACEI_RESIDUAL_COLOUR;
+      res.setAttribute('aria-label', 'residual categories');
+      host.appendChild(res);
+    }
+  }
+
+  function renderRing(host, w, opts) {
+    if (!host) return;
+    opts = opts || {};
+    var size = Number(opts.size) || 64;
+    var thickness = Number(opts.thickness) || 8;
+    var startAngle = typeof opts.startAngle === 'number' ? opts.startAngle : -90;
+    var minSegmentPct = 2;
+
+    var read = readACEIWeights(w);
+    clearACEIHost(host);
+    host.setAttribute('role', 'img');
+    host.setAttribute('aria-label', 'ACEI chromatic signature ring');
+
+    var svgns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgns, 'svg');
+    svg.setAttribute('width', String(size));
+    svg.setAttribute('height', String(size));
+    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+    host.appendChild(svg);
+
+    if (read.total <= 0) return;
+
+    var cx = size / 2;
+    var cy = size / 2;
+    var r = (size - thickness) / 2;
+    var circumference = 2 * Math.PI * r;
+
+    var cursor = startAngle;
+    var residualPct = 0;
+
+    for (var i = 0; i < read.values.length; i++) {
+      var entry = ACEI_PALETTE[i];
+      var pct = (read.values[i] / read.total) * 100;
+      if (pct < minSegmentPct) {
+        residualPct += pct;
+        continue;
+      }
+      var arcLen = (pct / 100) * circumference;
+      var seg = document.createElementNS(svgns, 'circle');
+      seg.setAttribute('cx', String(cx));
+      seg.setAttribute('cy', String(cy));
+      seg.setAttribute('r', String(r));
+      seg.setAttribute('fill', 'none');
+      seg.setAttribute('stroke', entry.hex);
+      seg.setAttribute('stroke-width', String(thickness));
+      seg.setAttribute('stroke-dasharray', arcLen + ' ' + circumference);
+      seg.setAttribute('transform', 'rotate(' + cursor + ' ' + cx + ' ' + cy + ')');
+      seg.setAttribute('aria-label',
+        'category ' + entry.n + ' ' + pct.toFixed(1) + '%');
+      svg.appendChild(seg);
+      cursor += (pct / 100) * 360;
+    }
+    if (residualPct > 0) {
+      var arcLenR = (residualPct / 100) * circumference;
+      var segR = document.createElementNS(svgns, 'circle');
+      segR.setAttribute('cx', String(cx));
+      segR.setAttribute('cy', String(cy));
+      segR.setAttribute('r', String(r));
+      segR.setAttribute('fill', 'none');
+      segR.setAttribute('stroke', ACEI_RESIDUAL_COLOUR);
+      segR.setAttribute('stroke-width', String(thickness));
+      segR.setAttribute('stroke-dasharray', arcLenR + ' ' + circumference);
+      segR.setAttribute('transform', 'rotate(' + cursor + ' ' + cx + ' ' + cy + ')');
+      segR.setAttribute('aria-label', 'residual categories');
+      svg.appendChild(segR);
+    }
+  }
+
+  function renderChips(host, w, opts) {
+    if (!host) return;
+    opts = opts || {};
+    var threshold = typeof opts.threshold === 'number' ? opts.threshold : 0.08;
+    var max = Number(opts.max) || 4;
+    var showPct = opts.showPct !== false;
+
+    var read = readACEIWeights(w);
+    clearACEIHost(host);
+    host.style.display = 'flex';
+    host.style.flexWrap = 'wrap';
+    host.style.gap = '6px';
+    host.setAttribute('role', 'list');
+    host.setAttribute('aria-label', 'ACEI dominant categories');
+
+    if (read.total <= 0) return;
+
+    var ranked = [];
+    for (var i = 0; i < read.values.length; i++) {
+      var ratio = read.values[i] / read.total;
+      if (ratio < threshold) continue;
+      ranked.push({ entry: ACEI_PALETTE[i], ratio: ratio });
+    }
+    ranked.sort(function (a, b) { return b.ratio - a.ratio; });
+    if (ranked.length > max) ranked.length = max;
+
+    for (var j = 0; j < ranked.length; j++) {
+      var item = ranked[j];
+      var chip = document.createElement('span');
+      chip.setAttribute('role', 'listitem');
+      chip.style.display = 'inline-flex';
+      chip.style.alignItems = 'center';
+      chip.style.padding = '2px 8px';
+      chip.style.borderRadius = '999px';
+      chip.style.background = item.entry.hex;
+      chip.style.color = item.entry.nonText ? ACEI_NONTEXT_FG : ACEI_TEXT_FG;
+      chip.style.fontSize = '11px';
+      chip.style.fontWeight = '600';
+      chip.style.lineHeight = '1.4';
+      var label = 'C' + item.entry.n;
+      if (showPct) label += ' · ' + (item.ratio * 100).toFixed(0) + '%';
+      chip.textContent = label;
+      host.appendChild(chip);
+    }
+  }
+
+  function resolvePrimary(w) {
+    var read = readACEIWeights(w);
+    if (read.total <= 0) return null;
+    var bestRatio = -1;
+    var bestIdx = -1;
+    for (var i = 0; i < read.values.length; i++) {
+      var ratio = read.values[i] / read.total;
+      if (ratio > bestRatio) { bestRatio = ratio; bestIdx = i; }
+    }
+    if (bestIdx < 0 || bestRatio <= 0.20) return null;
+    var entry = ACEI_PALETTE[bestIdx];
+    return {
+      n: entry.n,
+      token: entry.token,
+      hex: entry.hex,
+      weight: bestRatio
+    };
+  }
+
+  function getProvenance(w) {
+    if (!w || !w.provenance || typeof w.provenance !== 'object') return null;
+    var p = w.provenance;
+    return {
+      source: String(p.source || ''),
+      computed_at: String(p.computed_at || ''),
+      confidence: Number(p.confidence) || 0
+    };
+  }
+
   window.AilaneNexus = {
     createNexus: createNexus,
     updateLive: updateLive,
@@ -440,4 +705,99 @@
     resolveRingPalette: resolveRingPalette,
     resolveEdgeColour: resolveEdgeColour
   };
+
+  // Layer 3 — ACEI Chromatic Signature (EILEEN-009 / AMD-072)
+  window.AilaneNexus.chromaticSignature = {
+    resolveACEIPalette: resolveACEIPalette,
+    renderBar: renderBar,
+    renderRing: renderRing,
+    renderChips: renderChips,
+    resolvePrimary: resolvePrimary,
+    getProvenance: getProvenance
+  };
+  window.AilaneNexus.resolveACEIPalette = resolveACEIPalette;
+
+  /* ============================================================
+     Layer 3 DEV self-test — runs on localhost or with
+     ?nexus-debug=1 in the URL. Production loads suppress entirely.
+     ============================================================ */
+  (function layerThreeSelfTest() {
+    if (typeof window === 'undefined' || !window.document) return;
+    var hostname = (window.location && window.location.hostname) || '';
+    var search = (window.location && window.location.search) || '';
+    var debug = search.indexOf('nexus-debug=1') >= 0;
+    if (hostname !== 'localhost' && !debug) return;
+    if (!window.AilaneNexus || !window.AilaneNexus.chromaticSignature) return;
+
+    try {
+      var cs = window.AilaneNexus.chromaticSignature;
+
+      var expected = [
+        ['--acei-1',  '#EF4444'], ['--acei-2',  '#D946EF'],
+        ['--acei-3',  '#22C55E'], ['--acei-4',  '#FACC15'],
+        ['--acei-5',  '#3B82F6'], ['--acei-6',  '#F97316'],
+        ['--acei-7',  '#F43F5E'], ['--acei-8',  '#A21CAF'],
+        ['--acei-9',  '#6366F1'], ['--acei-10', '#14B8A6'],
+        ['--acei-11', '#4338CA'], ['--acei-12', '#64748B']
+      ];
+      var rootStyle = getComputedStyle(document.documentElement);
+      for (var i = 0; i < expected.length; i++) {
+        var got = rootStyle.getPropertyValue(expected[i][0]).trim().toUpperCase();
+        var want = expected[i][1].toUpperCase();
+        if (got !== want) {
+          throw new Error('token ' + expected[i][0] + ' resolved "' + got +
+            '", expected "' + want + '"');
+        }
+      }
+
+      var pal = cs.resolveACEIPalette();
+      if (!Array.isArray(pal) || pal.length !== 12) {
+        throw new Error('resolveACEIPalette length ' + (pal && pal.length));
+      }
+      if (!Object.isFrozen(pal)) throw new Error('palette array not frozen');
+      for (var j = 0; j < 12; j++) {
+        if (pal[j].n !== j + 1) {
+          throw new Error('palette order at index ' + j + ' -> n=' + pal[j].n);
+        }
+        var shouldBeNonText = (pal[j].n === 8 || pal[j].n === 11);
+        if (pal[j].nonText !== shouldBeNonText) {
+          throw new Error('nonText flag category ' + pal[j].n);
+        }
+        if (!Object.isFrozen(pal[j])) {
+          throw new Error('palette entry not frozen category ' + pal[j].n);
+        }
+      }
+
+      var uniform = {
+        c1: 1/12, c2: 1/12, c3: 1/12, c4:  1/12,
+        c5: 1/12, c6: 1/12, c7: 1/12, c8:  1/12,
+        c9: 1/12, c10: 1/12, c11: 1/12, c12: 1/12,
+        provenance: {
+          source: 'selftest.uniform',
+          computed_at: new Date().toISOString(),
+          confidence: 1.0
+        }
+      };
+
+      var barHost = document.createElement('div');
+      cs.renderBar(barHost, uniform);
+      if (barHost.childNodes.length !== 12) {
+        throw new Error('renderBar children ' + barHost.childNodes.length);
+      }
+
+      var ringHost = document.createElement('div');
+      cs.renderRing(ringHost, uniform);
+      var svg = ringHost.firstChild;
+      if (!svg || svg.childNodes.length !== 12) {
+        throw new Error('renderRing children ' +
+          (svg && svg.childNodes.length));
+      }
+
+      console.log('[Nexus Layer 3] self-test PASSED');
+    } catch (e) {
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('[Nexus Layer 3] self-test FAILED:', e && e.message);
+      }
+    }
+  })();
 })();
