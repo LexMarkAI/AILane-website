@@ -23,11 +23,15 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/tokens.css">
   <style>
+    :root {
+      --op-cyan: var(--tier-operational);
+      --op-cyan-glow: var(--tier-operational-glow);
+    }
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #060D1B; color: #e2e8f0; font-family: 'DM Sans', sans-serif; overflow: hidden; }
     #root { width: 100vw; height: 100vh; }
     #auth-gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #060D1B; color: #fff; font-family: 'DM Sans', sans-serif; }
-    .auth-spinner { width: 36px; height: 36px; border: 3px solid rgba(56,189,248,0.15); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 18px; }
+    .auth-spinner { width: 36px; height: 36px; border: 3px solid rgba(14,165,233,0.15); border-top-color: var(--op-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 18px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #0A1628; }
@@ -107,7 +111,7 @@
 
   // ══════════════════════════════════════════════════════════════════
   // THE NEXUS — Eileen Visual Identity (AILANE-SPEC-EILEEN-001 §3)
-  // Operational tier: cyan #38bdf8 + green #22c55e, 12-14 nodes, 2 rings
+  // Operational tier: cyan var(--op-cyan) + green #22c55e, 12-14 nodes, 2 rings
   // ══════════════════════════════════════════════════════════════════
   function NexusAvatar({ size = 40, active = false, processing = false }) {
     const canvasRef = useRef(null);
@@ -146,7 +150,7 @@
         const breathe = 1 + Math.sin(t * 0.8) * (processing ? 0.15 : 0.08);
         const coreR = (processing ? 6 : active ? 5 : 3.5) * dpr;
         const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 4 * breathe);
-        glow.addColorStop(0, processing ? "rgba(56,189,248,0.6)" : active ? "rgba(56,189,248,0.4)" : "rgba(56,189,248,0.2)");
+        glow.addColorStop(0, processing ? "rgba(14,165,233,0.6)" : active ? "rgba(14,165,233,0.4)" : "rgba(14,165,233,0.2)");
         glow.addColorStop(0.4, processing ? "rgba(34,197,94,0.25)" : active ? "rgba(34,197,94,0.15)" : "rgba(34,197,94,0.05)");
         glow.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = glow;
@@ -155,7 +159,7 @@
         ctx.fill();
         const coreGrd = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * breathe);
         coreGrd.addColorStop(0, "rgba(255,255,255,0.9)");
-        coreGrd.addColorStop(0.3, "rgba(56,189,248,0.8)");
+        coreGrd.addColorStop(0.3, "rgba(14,165,233,0.8)");
         coreGrd.addColorStop(0.7, "rgba(34,197,94,0.4)");
         coreGrd.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = coreGrd;
@@ -178,7 +182,7 @@
               const pulse = processing ? (Math.sin(t * 3 + i + j) + 1) * 0.5 : 0;
               ctx.strokeStyle = pulse > 0.7
                 ? `rgba(34,197,94,${alpha + pulse * 0.2})`
-                : `rgba(56,189,248,${alpha})`;
+                : `rgba(14,165,233,${alpha})`;
               ctx.lineWidth = (0.5 + pulse * 0.5) * dpr;
               ctx.beginPath();
               ctx.moveTo(a.x, a.y);
@@ -189,7 +193,7 @@
           const n = nodePositions[i];
           const coreDist = Math.hypot(n.x - cx, n.y - cy);
           const coreAlpha = (1 - coreDist / (w * 0.45)) * (active ? 0.15 : 0.06);
-          ctx.strokeStyle = `rgba(56,189,248,${coreAlpha})`;
+          ctx.strokeStyle = `rgba(14,165,233,${coreAlpha})`;
           ctx.lineWidth = 0.5 * dpr;
           ctx.beginPath();
           ctx.moveTo(cx, cy);
@@ -201,14 +205,14 @@
           const nodeGlow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 3);
           const isCyan = n.ring < 0.4;
           nodeGlow.addColorStop(0, isCyan
-            ? `rgba(56,189,248,${pulse * (active ? 0.9 : 0.6)})`
+            ? `rgba(14,165,233,${pulse * (active ? 0.9 : 0.6)})`
             : `rgba(34,197,94,${pulse * (active ? 0.8 : 0.5)})`);
           nodeGlow.addColorStop(1, "rgba(0,0,0,0)");
           ctx.fillStyle = nodeGlow;
           ctx.beginPath();
           ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = isCyan ? `rgba(56,189,248,${pulse})` : `rgba(34,197,94,${pulse})`;
+          ctx.fillStyle = isCyan ? `rgba(14,165,233,${pulse})` : `rgba(34,197,94,${pulse})`;
           ctx.beginPath();
           ctx.arc(n.x, n.y, n.r * (active ? 1 : 0.8), 0, Math.PI * 2);
           ctx.fill();
@@ -409,12 +413,12 @@
   // ══════════════════════════════════════════════════════════════════
   // HELPERS
   // ══════════════════════════════════════════════════════════════════
-  const bc = (s) => s >= 80 ? "#ef4444" : s >= 60 ? "#f59e0b" : s >= 40 ? "#eab308" : s >= 20 ? "#22c55e" : "#38bdf8";
+  const bc = (s) => s >= 80 ? "#ef4444" : s >= 60 ? "#f59e0b" : s >= 40 ? "#eab308" : s >= 20 ? "#22c55e" : "var(--op-cyan)";
   const ti = (t) => t === "rising" ? "\u2191" : t === "declining" ? "\u2193" : "\u2192";
   const tc2 = (t) => t === "rising" ? "#ef4444" : t === "declining" ? "#22c55e" : "#94a3b8";
-  const tpc = (t) => t === "enforcement" ? "#ef4444" : t === "legislative" ? "#38bdf8" : "#22c55e";
-  const tpb = (t) => t === "enforcement" ? "rgba(239,68,68,0.1)" : t === "legislative" ? "rgba(56,189,248,0.06)" : "rgba(34,197,94,0.06)";
-  const sc = (s) => s === "critical" ? "#ef4444" : s === "high" ? "#f59e0b" : "#38bdf8";
+  const tpc = (t) => t === "enforcement" ? "#ef4444" : t === "legislative" ? "var(--op-cyan)" : "#22c55e";
+  const tpb = (t) => t === "enforcement" ? "rgba(239,68,68,0.1)" : t === "legislative" ? "rgba(14,165,233,0.06)" : "rgba(34,197,94,0.06)";
+  const sc = (s) => s === "critical" ? "#ef4444" : s === "high" ? "#f59e0b" : "var(--op-cyan)";
   const isOT = (q) => {
     const ql = q.toLowerCase();
     const on = ["contract", "clause", "finding", "flagged", "score", "acei", "rri", "cci", "document", "handbook", "policy", "compliance", "exposure", "risk", "category", "ticker", "legislation", "legislative", "tribunal", "alert", "notification", "report", "calendar", "workspace", "note", "governance", "upgrade", "tier", "product", "pricing", "knowledge library", "kl", "instrument", "statute", "act", "regulation", "dismissal", "redundancy", "discrimination", "whistleblow", "parental", "health safety", "data protection", "tupe", "transfer", "wages", "holiday", "notice", "breach", "working time", "leave", "trade union", "collective", "flexible working", "walkthrough", "tour", "eileen",
@@ -671,7 +675,7 @@
         <header style={{ background: "#0A1628", borderBottom: "1px solid #1e293b", padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <button onClick={() => setSb(!sb)} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer" }}>{sb ? "\u2630" : "\u2630"}</button>
-            <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 20 }}>Ai<span style={{ color: "#38bdf8" }}>lane</span></span>
+            <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 20 }}>Ai<span style={{ color: "var(--op-cyan)" }}>lane</span></span>
             <div style={{ height: 24, width: 1, background: "#1e293b" }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b", background: "rgba(245,158,11,0.1)", padding: "4px 10px", borderRadius: 4 }}>OPERATIONAL READINESS</span>
             <button onClick={() => setLang(lang === "en" ? "cy" : "en")} style={{ background: "none", border: "1px solid #1e293b", color: "#64748b", padding: "4px 10px", borderRadius: 4, fontSize: 11, cursor: "pointer" }}>
@@ -700,14 +704,14 @@
             <nav style={{ width: 220, background: "#0A1628", borderRight: "1px solid #1e293b", overflowY: "auto", flexShrink: 0 }}>
               <div style={{ padding: "0 16px 10px", fontSize: 9, color: "#64748b", letterSpacing: "0.1em", marginTop: 16 }}>INTELLIGENCE</div>
               {NAV.map((n) => (
-                <button key={n.id} onClick={() => setSec(n.id)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", background: sec === n.id ? "rgba(56,189,248,0.08)" : "transparent", border: "none", borderLeft: sec === n.id ? "2px solid #38bdf8" : "2px solid transparent", color: sec === n.id ? "#e2e8f0" : "#94a3b8", cursor: "pointer", fontSize: 13, textAlign: "left" }}>
+                <button key={n.id} onClick={() => setSec(n.id)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", background: sec === n.id ? "rgba(14,165,233,0.08)" : "transparent", border: "none", borderLeft: sec === n.id ? "2px solid var(--op-cyan)" : "2px solid transparent", color: sec === n.id ? "#e2e8f0" : "#94a3b8", cursor: "pointer", fontSize: 13, textAlign: "left" }}>
                   <span>{n.i} {n.l}</span>
                   {n.b && <span style={{ fontSize: 10, background: "#1e293b", padding: "2px 6px", borderRadius: 8 }}>{n.b}</span>}
                 </button>
               ))}
               <div style={{ padding: "12px 16px 6px", borderTop: "1px solid #1e293b", marginTop: 8, fontSize: 9, color: "#64748b", letterSpacing: "0.1em" }}>WORKSPACE</div>
               {[{ id: "workspace", l: "Notes & Docs", i: "\u270E" }, { id: "calendar", l: "Calendar", i: "\u25A3" }].map((n) => (
-                <button key={n.id} onClick={() => setSec(n.id)} style={{ width: "100%", display: "flex", padding: "10px 16px", background: sec === n.id ? "rgba(56,189,248,0.08)" : "transparent", border: "none", borderLeft: sec === n.id ? "2px solid #38bdf8" : "2px solid transparent", color: sec === n.id ? "#e2e8f0" : "#94a3b8", cursor: "pointer", fontSize: 13, textAlign: "left" }}>
+                <button key={n.id} onClick={() => setSec(n.id)} style={{ width: "100%", display: "flex", padding: "10px 16px", background: sec === n.id ? "rgba(14,165,233,0.08)" : "transparent", border: "none", borderLeft: sec === n.id ? "2px solid var(--op-cyan)" : "2px solid transparent", color: sec === n.id ? "#e2e8f0" : "#94a3b8", cursor: "pointer", fontSize: 13, textAlign: "left" }}>
                   {n.i} {n.l}
                 </button>
               ))}
@@ -727,7 +731,7 @@
               </div>
               {wtD && (
                 <div style={{ padding: "10px 16px", borderTop: "1px solid #1e293b", marginTop: 8 }}>
-                  <button onClick={startWt} style={{ width: "100%", padding: "8px 12px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.15)", borderRadius: 6, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>
+                  <button onClick={startWt} style={{ width: "100%", padding: "8px 12px", background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.15)", borderRadius: 6, color: "var(--op-cyan)", cursor: "pointer", fontSize: 12 }}>
                     \u21BB Replay Walkthrough
                   </button>
                 </div>
@@ -737,10 +741,10 @@
           {/* MAIN CONTENT */}
           <main style={{ flex: 1, padding: "24px 32px", overflowY: "auto", maxHeight: "calc(100vh - 56px)" }}>
             {!wtD && wt < 0 && (
-              <div style={{ background: "linear-gradient(135deg, rgba(56,189,248,0.06), rgba(34,197,94,0.04))", border: "1px solid rgba(56,189,248,0.15)", borderRadius: 12, padding: 32, marginBottom: 24, textAlign: "center" }}>
+              <div style={{ background: "linear-gradient(135deg, rgba(14,165,233,0.06), rgba(34,197,94,0.04))", border: "1px solid rgba(14,165,233,0.15)", borderRadius: 12, padding: 32, marginBottom: 24, textAlign: "center" }}>
                 <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, margin: "0 0 8px" }}>Welcome to Operational Readiness</h2>
                 <p style={{ color: "#94a3b8", margin: "0 0 20px", fontSize: 14 }}>Eileen is ready to walk you through your compliance position.</p>
-                <button onClick={startWt} style={{ background: "linear-gradient(135deg, #38bdf8, #22c55e)", border: "none", color: "#fff", padding: "12px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={startWt} style={{ background: "linear-gradient(135deg, var(--op-cyan), #22c55e)", border: "none", color: "#fff", padding: "12px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                   Start Guided Tour
                 </button>
               </div>
@@ -933,7 +937,7 @@
                       <div style={{ fontWeight: 600 }}>Monthly ACEI Report</div>
                       <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Domain score, 12-category breakdown, document summary</div>
                     </div>
-                    <span style={{ fontSize: 11, color: "#38bdf8", background: "rgba(56,189,248,0.08)", padding: "6px 12px", borderRadius: 6 }}>Generate PDF</span>
+                    <span style={{ fontSize: 11, color: "var(--op-cyan)", background: "rgba(14,165,233,0.08)", padding: "6px 12px", borderRadius: 6 }}>Generate PDF</span>
                   </div>
                 </div>
                 <div style={{ marginTop: 12, padding: "12px 16px", background: "rgba(168,85,247,0.06)", borderRadius: 8, fontSize: 12, color: "#a855f7" }}>\uD83D\uDD12 Board-ready PDF with executive summary available at Governance tier</div>
@@ -945,14 +949,14 @@
                 <SH t="Workspace" s="Notes, drafts \u00B7 100MB" />
                 <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                   {["notes", "drafts"].map((tab) => (
-                    <button key={tab} onClick={() => setWsT(tab)} style={{ padding: "6px 16px", background: wsT === tab ? "rgba(56,189,248,0.08)" : "transparent", border: `1px solid ${wsT === tab ? "#38bdf8" : "#1e293b"}`, borderRadius: 6, color: wsT === tab ? "#38bdf8" : "#64748b", cursor: "pointer", fontSize: 12 }}>{tab}</button>
+                    <button key={tab} onClick={() => setWsT(tab)} style={{ padding: "6px 16px", background: wsT === tab ? "rgba(14,165,233,0.08)" : "transparent", border: `1px solid ${wsT === tab ? "var(--op-cyan)" : "#1e293b"}`, borderRadius: 6, color: wsT === tab ? "var(--op-cyan)" : "#64748b", cursor: "pointer", fontSize: 12 }}>{tab}</button>
                   ))}
                 </div>
                 {wsT === "notes" && (
                   <div>
                     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                       <input value={nI} onChange={(e) => setNI(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} placeholder="Add a note..." style={{ flex: 1, padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
-                      <button onClick={addNote} style={{ padding: "8px 16px", background: "#38bdf8", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", fontSize: 13 }}>Add</button>
+                      <button onClick={addNote} style={{ padding: "8px 16px", background: "var(--op-cyan)", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", fontSize: 13 }}>Add</button>
                     </div>
                     {notes.map((n) => (
                       <div key={n.id} style={{ background: "#0A1628", border: "1px solid #1e293b", borderRadius: 8, padding: 14, marginBottom: 8 }}>
@@ -975,7 +979,7 @@
                 <SH t="Calendar" s="Reminders \u00B7 Deadlines" />
                 <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                   {["upcoming", "add"].map((tab) => (
-                    <button key={tab} onClick={() => setCT(tab)} style={{ padding: "6px 16px", background: cT === tab ? "rgba(56,189,248,0.08)" : "transparent", border: `1px solid ${cT === tab ? "#38bdf8" : "#1e293b"}`, borderRadius: 6, color: cT === tab ? "#38bdf8" : "#64748b", cursor: "pointer", fontSize: 12 }}>{tab}</button>
+                    <button key={tab} onClick={() => setCT(tab)} style={{ padding: "6px 16px", background: cT === tab ? "rgba(14,165,233,0.08)" : "transparent", border: `1px solid ${cT === tab ? "var(--op-cyan)" : "#1e293b"}`, borderRadius: 6, color: cT === tab ? "var(--op-cyan)" : "#64748b", cursor: "pointer", fontSize: 12 }}>{tab}</button>
                   ))}
                 </div>
                 {cT === "upcoming" && (
@@ -997,7 +1001,7 @@
                       <input value={nE.title} onChange={(e) => setNE({ ...nE, title: e.target.value })} placeholder="Event title" style={{ padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
                       <input type="date" value={nE.date} onChange={(e) => setNE({ ...nE, date: e.target.value })} style={{ padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
                       <input value={nE.note} onChange={(e) => setNE({ ...nE, note: e.target.value })} placeholder="Notes (optional)" style={{ padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, color: "#e2e8f0", fontSize: 13, outline: "none" }} />
-                      <button onClick={addEvt} style={{ padding: "10px", background: "#38bdf8", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", fontSize: 13 }}>Add Event</button>
+                      <button onClick={addEvt} style={{ padding: "10px", background: "var(--op-cyan)", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", fontSize: 13 }}>Add Event</button>
                     </div>
                   </div>
                 )}
@@ -1015,7 +1019,7 @@
                 <span style={{ fontSize: 10, color: "#64748b" }}>Operational</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button onClick={() => { if (voicePlaying) stopVoice(); else setVoiceOn(!voiceOn); }} style={{ background: voiceOn ? "rgba(56,189,248,0.15)" : "none", border: `1px solid ${voiceOn ? "#38bdf8" : "#1e293b"}`, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 14, color: voiceOn ? "#38bdf8" : "#64748b" }} title={voiceOn ? "Voice enabled" : "Enable voice"}>
+                <button onClick={() => { if (voicePlaying) stopVoice(); else setVoiceOn(!voiceOn); }} style={{ background: voiceOn ? "rgba(14,165,233,0.15)" : "none", border: `1px solid ${voiceOn ? "var(--op-cyan)" : "#1e293b"}`, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 14, color: voiceOn ? "var(--op-cyan)" : "#64748b" }} title={voiceOn ? "Voice enabled" : "Enable voice"}>
                   {voicePlaying ? "\uD83D\uDD0A" : "\uD83D\uDD08"}
                 </button>
                 <button onClick={() => setEM(true)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 16 }}>\u2014</button>
@@ -1025,7 +1029,7 @@
             <div ref={cr} style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
               {msgs.map((m, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-                  <div style={{ maxWidth: "85%", padding: "10px 14px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.role === "user" ? "rgba(56,189,248,0.12)" : "#0f172a", fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                  <div style={{ maxWidth: "85%", padding: "10px 14px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: m.role === "user" ? "rgba(14,165,233,0.12)" : "#0f172a", fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                     {m.text}
                   </div>
                 </div>
@@ -1033,14 +1037,14 @@
               {wt >= 0 && wt < WT.length && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
                   {WT[wt].acts.map((a, i) => (
-                    <button key={i} onClick={() => wtAct(i)} style={{ padding: "8px 14px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 8, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>{a}</button>
+                    <button key={i} onClick={() => wtAct(i)} style={{ padding: "8px 14px", background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)", borderRadius: 8, color: "var(--op-cyan)", cursor: "pointer", fontSize: 12 }}>{a}</button>
                   ))}
                 </div>
               )}
               {sSC && (
                 <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                  <button onClick={() => saveChat(true)} style={{ padding: "8px 14px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 8, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>Summary</button>
-                  <button onClick={() => saveChat(false)} style={{ padding: "8px 14px", background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 8, color: "#38bdf8", cursor: "pointer", fontSize: 12 }}>Full conversation</button>
+                  <button onClick={() => saveChat(true)} style={{ padding: "8px 14px", background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)", borderRadius: 8, color: "var(--op-cyan)", cursor: "pointer", fontSize: 12 }}>Summary</button>
+                  <button onClick={() => saveChat(false)} style={{ padding: "8px 14px", background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)", borderRadius: 8, color: "var(--op-cyan)", cursor: "pointer", fontSize: 12 }}>Full conversation</button>
                 </div>
               )}
             </div>
@@ -1050,18 +1054,18 @@
                 placeholder="Ask Eileen about employment law, your findings, processes..."
                 style={{ flex: 1, padding: "10px 14px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, color: "#e2e8f0", fontSize: 13, outline: "none" }}
               />
-              <button onClick={send} style={{ width: 44, height: 44, borderRadius: "50%", background: inp.trim() ? "rgba(56,189,248,0.08)" : "transparent", border: inp.trim() ? "1px solid rgba(56,189,248,0.25)" : "1px solid #1e293b", cursor: inp.trim() ? "pointer" : "default", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }} title="Send to Eileen">
+              <button onClick={send} style={{ width: 44, height: 44, borderRadius: "50%", background: inp.trim() ? "rgba(14,165,233,0.08)" : "transparent", border: inp.trim() ? "1px solid rgba(14,165,233,0.25)" : "1px solid #1e293b", cursor: inp.trim() ? "pointer" : "default", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }} title="Send to Eileen">
                 <NexusAvatar size={38} active={!!inp.trim()} processing={eileenThinking} />
               </button>
             </div>
             {voiceOn && (
-              <div style={{ padding: "4px 16px 6px", fontSize: 10, color: "#38bdf8", display: "flex", justifyContent: "space-between" }}>
+              <div style={{ padding: "4px 16px 6px", fontSize: 10, color: "var(--op-cyan)", display: "flex", justifyContent: "space-between" }}>
                 <span>\uD83C\uDFA4</span>
                 <span>{voicePlaying ? "Speaking..." : `Voice: ${selectedVoiceRef.current?.name || "loading..."}`}</span>
                 {voicePlaying && (<button onClick={stopVoice} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 10 }}>Stop</button>)}
               </div>
             )}
-            <div style={{ height: 3, background: "linear-gradient(90deg, #38bdf8, #22c55e)", borderRadius: "0 0 16px 16px" }} />
+            <div style={{ height: 3, background: "linear-gradient(90deg, var(--op-cyan), #22c55e)", borderRadius: "0 0 16px 16px" }} />
           </div>
         )}
         {(eM || !eO) && (
