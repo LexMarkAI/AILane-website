@@ -14,7 +14,10 @@
 (function () {
   'use strict';
 
-  /* AMD-069 — Two-layer palette.
+  /* AMD-069 — Two-layer palette. Authority: AILANE-AMD-069 §1.3.
+     Source of truth: assets/css/tokens.css (--nexus-* tokens). This block
+     mirrors those tokens for JS consumers; do not introduce values here that
+     are not also present in tokens.css.
      Core Identity Colour is constant and tier-independent; it paints the core
      Nexus node and its halo on every surface. Tier Ring Palette paints the
      secondary nodes and connector edges and is resolved from pageTier. */
@@ -27,6 +30,12 @@
 
   var NEXUS_RING_HIGH_ACCENT = '#D97706';
   var NEXUS_RING_HIGH_ACCENT_DIM = 'rgba(217, 119, 6, 0.35)';
+
+  var NEXUS_RING_OPERATIONAL_LIFT = '#22d3ee';
+  var NEXUS_RING_OPERATIONAL_LIFT_DIM = 'rgba(34, 211, 238, 0.35)';
+
+  var NEXUS_RING_GOVERNANCE_OVERLAY = '#a855f7';
+  var NEXUS_RING_GOVERNANCE_OVERLAY_DIM = 'rgba(168, 85, 247, 0.35)';
 
   var NEXUS_EDGE_ACTIVE_ALPHA = 0.60;
   var NEXUS_EDGE_IDLE_ALPHA = 0.15;
@@ -412,6 +421,10 @@
     NEXUS_RING_BASELINE_DIM: NEXUS_RING_BASELINE_DIM,
     NEXUS_RING_HIGH_ACCENT: NEXUS_RING_HIGH_ACCENT,
     NEXUS_RING_HIGH_ACCENT_DIM: NEXUS_RING_HIGH_ACCENT_DIM,
+    NEXUS_RING_OPERATIONAL_LIFT: NEXUS_RING_OPERATIONAL_LIFT,
+    NEXUS_RING_OPERATIONAL_LIFT_DIM: NEXUS_RING_OPERATIONAL_LIFT_DIM,
+    NEXUS_RING_GOVERNANCE_OVERLAY: NEXUS_RING_GOVERNANCE_OVERLAY,
+    NEXUS_RING_GOVERNANCE_OVERLAY_DIM: NEXUS_RING_GOVERNANCE_OVERLAY_DIM,
     NEXUS_EDGE_ACTIVE_ALPHA: NEXUS_EDGE_ACTIVE_ALPHA,
     NEXUS_EDGE_IDLE_ALPHA: NEXUS_EDGE_IDLE_ALPHA,
     resolveRingPalette: resolveRingPalette,
