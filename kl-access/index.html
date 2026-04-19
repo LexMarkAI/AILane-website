@@ -30,6 +30,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+  <!-- Canonical token layer (AMD-069/070/071/072). Placed BEFORE inline <style>
+       so local :root redeclarations override where intentional (--cyan, --cyan-glow);
+       --tier-*, --nexus-*, and --acei-* tokens are additive. -->
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -109,7 +114,7 @@
     .card.feat::before{content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--cyan);color:var(--bg);font-size:0.625rem;font-weight:700;letter-spacing:0.1em;padding:0.25rem 1rem;border-radius:100px}
     .card.gov-feat{border-color:var(--purple);box-shadow:0 0 40px var(--purple-dim)}
     .card.gov-feat::before{content:'RECOMMENDED';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--purple);color:#fff;font-size:0.625rem;font-weight:700;letter-spacing:0.1em;padding:0.25rem 1rem;border-radius:100px}
-    .card.gold{border-color:var(--gold);box-shadow:0 0 40px var(--gold-dim)}
+    .card.gold{border-color:var(--gold);box-shadow:0 0 40px var(--tier-institutional-glow)}
 
     /* Eileen indicator on cards */
     .card-eileen{display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem}
@@ -138,13 +143,15 @@
     .cta{display:block;text-align:center;text-decoration:none;padding:0.875rem 1.5rem;border-radius:8px;font-size:0.9375rem;font-weight:600;transition:all 0.2s;cursor:pointer;border:none;width:100%}
     .cta-cyan{background:var(--cyan);color:var(--bg)}.cta-cyan:hover{background:#38BDF8}
     .cta-cyan-o{background:transparent;color:var(--cyan);border:1px solid var(--cyan)}.cta-cyan-o:hover{background:var(--cyan-dim)}
+    .card[data-tier="operational_readiness"] .cta-cyan-o{color:var(--tier-operational);border-color:var(--tier-operational)}
+    .card[data-tier="operational_readiness"] .cta-cyan-o:hover{background:var(--tier-operational-glow)}
     .cta-purple{background:var(--purple);color:#fff}.cta-purple:hover{background:#7C3AED}
-    .cta-gold{background:var(--gold);color:var(--bg)}.cta-gold:hover{background:#E5B422}
+    .cta-gold{background:var(--gold);color:var(--bg)}.cta-gold:hover{}
 
     .badge{font-family:var(--mono);font-size:0.625rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1rem}
-    .badge-op{background:rgba(14,165,233,0.1);color:var(--cyan);border:1px solid rgba(14,165,233,0.3)}
+    .badge-op{background:rgba(34, 211, 238, 0.1);color:var(--tier-operational);border:1px solid rgba(34, 211, 238, 0.3)}
     .badge-gov{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(139,92,246,0.3)}
-    .badge-inst{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,160,23,0.3)}
+    .badge-inst{background:var(--tier-institutional-glow);color:var(--gold);border:1px solid rgba(212,160,23,0.3)}
 
     /* SEPARATOR */
     .sep{text-align:center;padding:3rem 0 1rem;position:relative}
@@ -750,7 +757,7 @@
 
       <div class="tier-row">
         <!-- Operational — Cyan + Green -->
-        <div class="card">
+        <div class="card" data-tier="operational_readiness">
           <span class="badge badge-op">Operational</span>
           <div class="card-eileen eileen-cg"><canvas class="nexus-mini" width="32" height="32" data-color="cyan-green"></canvas><span>Eileen + monitoring</span></div>
           <div class="card-name">Operational Readiness</div>
