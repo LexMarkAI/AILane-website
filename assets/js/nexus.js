@@ -14,13 +14,15 @@
 (function () {
   'use strict';
 
-  /* AMD-069 — Two-layer palette. Authority: AILANE-AMD-069 §1.3.
-     Source of truth: assets/css/tokens.css (--nexus-* tokens). This block
-     mirrors those tokens for JS consumers; do not introduce values here that
-     are not also present in tokens.css.
-     Core Identity Colour is constant and tier-independent; it paints the core
-     Nexus node and its halo on every surface. Tier Ring Palette paints the
-     secondary nodes and connector edges and is resolved from pageTier. */
+  /* Nexus palette — AMD-069 canonical values.
+     Source of truth: assets/css/tokens.css (CSS variable layer).
+     This constant block mirrors the CSS for JS consumers.
+     Introduced by TOKENS-AUG-001 (AMD-070). Tier mapping aligned by
+     TOKENS-REMAP-001 (AMD-071).
+     Core Identity Colour is constant and tier-independent; it paints the
+     core Nexus node and its halo on every surface. Tier Ring Palette paints
+     the secondary nodes and connector edges and is resolved from pageTier.
+     Do not hardcode nexus hex values outside this block. */
   var NEXUS_CORE_COLOUR = '#F59E0B';
   var NEXUS_CORE_GLOW = 'rgba(245, 158, 11, 0.30)';
   var NEXUS_CORE_RADIUS_MULTIPLIER = 1.4;
@@ -62,9 +64,17 @@
           active: NEXUS_RING_HIGH_ACCENT,
           dim:    NEXUS_RING_HIGH_ACCENT_DIM
         };
-      case 'landing':
-      case 'operational_readiness':
       case 'governance':
+        return {
+          active: NEXUS_RING_GOVERNANCE_OVERLAY,
+          dim:    NEXUS_RING_GOVERNANCE_OVERLAY_DIM
+        };
+      case 'operational_readiness':
+        return {
+          active: NEXUS_RING_OPERATIONAL_LIFT,
+          dim:    NEXUS_RING_OPERATIONAL_LIFT_DIM
+        };
+      case 'landing':
       default:
         return {
           active: NEXUS_RING_BASELINE,
