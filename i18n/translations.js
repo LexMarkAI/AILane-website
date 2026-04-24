@@ -213,6 +213,7 @@ const AILANE_TRANSLATIONS = {
       links: {
         privacy: "Privacy Policy",
         terms: "Terms of Service",
+        tribunalPrivacy: "Tribunal Data Privacy Notice",
         earlyAccess: "Early Access",
       },
     },
@@ -389,6 +390,7 @@ const AILANE_TRANSLATIONS = {
       links: {
         privacy: "Polisi Preifatrwydd",
         terms: "Telerau Gwasanaeth",
+        tribunalPrivacy: "Tribunal Data Privacy Notice",
         earlyAccess: "Mynediad Cynnar",
       },
     },
