@@ -847,12 +847,8 @@ footer {
 <section id="intelligence" data-section="intelligence">
   <div class="container">
     <div class="ticker-strip" id="ticker">
-      <div class="ticker-track">
-        <span>ERA 2025 Commencement No. 1 — SI 2026</span>
-        <span>NLW increase to £12.71/hr — 1 Apr 2026</span>
-        <span>UD compensatory cap: £115,461 — 6 Apr 2026</span>
-        <span>Vento upper band: £37,400 — 6 Apr 2026</span>
-        <span>EAT Amendment Rules 2026 — in force 18 Feb 2026</span>
+      <div class="ticker-track" id="ticker-track">
+        <!-- Populated by renderTicker() from liveData.recent_events; static fallback used if endpoint omits the field. -->
       </div>
     </div>
     <p class="section-statement" data-i18n="intel.statement">34 intelligence sources. 22 publishers. Updated continuously.</p>
@@ -1144,6 +1140,33 @@ var hoverMap = {
   }
 };
 
+var TICKER_FALLBACK = [
+  { label: 'ERA 2025 Commencement No. 1 — SI 2026', source: 'GOV.UK', when: '2026-03-01', kind: 'commencement' },
+  { label: 'NLW increase to £12.71/hr — 1 Apr 2026', source: 'GOV.UK', when: '2026-04-01', kind: 'guidance' },
+  { label: 'UD compensatory cap: £115,461 — 6 Apr 2026', source: 'GOV.UK', when: '2026-04-06', kind: 'guidance' },
+  { label: 'Vento upper band: £37,400 — 6 Apr 2026', source: 'EAT', when: '2026-04-06', kind: 'guidance' },
+  { label: 'EAT Amendment Rules 2026 — in force 18 Feb 2026', source: 'EAT', when: '2026-02-18', kind: 'instrument' }
+];
+
+function renderTicker() {
+  var track = document.getElementById('ticker-track');
+  if (!track) return;
+  var events = (liveData && Array.isArray(liveData.recent_events) && liveData.recent_events.length)
+    ? liveData.recent_events
+    : TICKER_FALLBACK;
+
+  while (track.firstChild) track.removeChild(track.firstChild);
+  events.forEach(function(e) {
+    if (!e || typeof e.label !== 'string') return;
+    var span = document.createElement('span');
+    span.textContent = e.label;
+    if (e.source) span.setAttribute('data-source', e.source);
+    track.appendChild(span);
+  });
+  // Seamless-loop pattern — duplicate the rendered content.
+  track.innerHTML += track.innerHTML;
+}
+
 function setCommentary(text) {
   var commentary = document.getElementById('eileen-commentary');
   if (!commentary) return;
@@ -1423,10 +1446,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Keep ticker + Nexus in sync with upstream — re-poll every 5 min (matches pg_cron cadence).
   setInterval(fetchIntel, 5 * 60 * 1000);
   setInterval(fetchNexus, 5 * 60 * 1000);
-
-  // Ticker: duplicate content for seamless loop
-  var tickerTrack = document.querySelector('.ticker-track');
-  if (tickerTrack) tickerTrack.innerHTML += tickerTrack.innerHTML;
 
   // Initial Eileen commentary
   var commentary = document.getElementById('eileen-commentary');
