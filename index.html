@@ -300,6 +300,22 @@ section h2 { margin-bottom: 20px; }
 .product-card h3 { margin-bottom: 12px; }
 .product-card > p { color: var(--text-dim); font-size: 0.98rem; margin-bottom: 16px; line-height: 1.55; }
 
+/* ── Triad (§2.5) ───────────────────────────── */
+.triad-card {
+  background: var(--surface-raised, var(--bg-card));
+  border: 1px solid var(--border-mid, var(--border-medium));
+  border-radius: var(--card-radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.triad-card:hover { border-color: var(--cyan-border); transform: translateY(-2px); }
+.triad-card h3 { color: var(--text-prime, var(--text-heading)); margin-bottom: 0; }
+.triad-card > p { color: var(--text-body, var(--text)); font-size: 0.98rem; line-height: 1.55; }
+
 /* ── Subscription tiers (§4) ────────────────── */
 .tier-row {
   display: grid;
@@ -726,6 +742,52 @@ footer {
   </div>
 </section>
 
+<!-- ── SECTION 2.5 — TRIAD (LP-003 v1.2 §4 evolution #3) ───── -->
+<section id="triad" data-section="triad">
+  <div class="container">
+    <h2 data-i18n="triad.headline">Risk scoring on three dimensions.</h2>
+    <p class="section-statement" data-i18n="triad.statement">Three lenses on the same evidence. Each one independent. Together, the picture you actually need.</p>
+
+    <div class="card-trio triad-trio">
+      <div class="triad-card" data-section="triad-exposure">
+        <h3 data-i18n="triad.exposure.title">Exposure history</h3>
+        <p data-i18n="triad.exposure.sub">What tribunals have decided about employers handling situations like yours.</p>
+        <span class="expand-trigger" data-expand="triad-exposure-detail">
+          <span data-i18n="triad.exposure.trigger">How exposure is measured</span>
+          <span class="expand-arrow">▾</span>
+        </span>
+        <div class="expand-panel" id="triad-exposure-detail">
+          <p data-i18n="triad.exposure.detail">Twelve compliance categories. Tribunal decisions in each category mapped to claim type, employer sector, decision year. Your sector's recent loss patterns. The judges who've heard those cases. The remedies awarded. Patterns from 131,648 decisions, with 34,205 deeply enriched.</p>
+        </div>
+      </div>
+
+      <div class="triad-card" data-section="triad-readiness">
+        <h3 data-i18n="triad.readiness.title">Regulatory readiness</h3>
+        <p data-i18n="triad.readiness.sub">What current and forthcoming legislation requires you to be ready for.</p>
+        <span class="expand-trigger" data-expand="triad-readiness-detail">
+          <span data-i18n="triad.readiness.trigger">How readiness is measured</span>
+          <span class="expand-arrow">▾</span>
+        </span>
+        <div class="expand-panel" id="triad-readiness-detail">
+          <p data-i18n="triad.readiness.detail">401 statutory provisions tracked across 69 instruments. Current requirements you need to meet today. Forthcoming requirements with commencement dates. The Forward Intelligence Layer flags what will be true tomorrow that isn't true yet — so policy and contract gaps surface before commencement.</p>
+        </div>
+      </div>
+
+      <div class="triad-card" data-section="triad-conduct">
+        <h3 data-i18n="triad.conduct.title">Conduct</h3>
+        <p data-i18n="triad.conduct.sub">How clearly your policies, contracts, and communications protect both sides.</p>
+        <span class="expand-trigger" data-expand="triad-conduct-detail">
+          <span data-i18n="triad.conduct.trigger">How conduct is measured</span>
+          <span class="expand-arrow">▾</span>
+        </span>
+        <div class="expand-panel" id="triad-conduct-detail">
+          <p data-i18n="triad.conduct.detail">Documents read against the requirements they need to meet. Clauses traced to statute. Communications tested against guidance. Where the document is silent, where it conflicts with the law, where it leaves a clause that won't survive scrutiny — surfaced as findings, with the statutory basis attached to each one.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ── SECTION 3 — PRODUCTS (LP-002 §3.1) ──────────────────── -->
 <section id="products">
   <div class="container">
@@ -1137,6 +1199,19 @@ var hoverMap = {
   },
   cta: function(d) {
     return 'Every contract in your organisation was written under the law as it was. The law has changed.';
+  },
+  triad: function(d) {
+    return 'Three lenses on the same evidence. Exposure history, regulatory readiness, conduct. Each one independent.';
+  },
+  'triad-exposure': function(d) {
+    return Number(d.total_decisions).toLocaleString() + ' tribunal decisions. ' +
+      Number(d.total_enriched).toLocaleString() + ' deeply enriched. Patterns by sector, by claim type, by judge.';
+  },
+  'triad-readiness': function(d) {
+    return d.kl_provisions + ' statutory provisions across 69 instruments. The Forward Intelligence Layer surfaces what is coming, not just what is.';
+  },
+  'triad-conduct': function(d) {
+    return 'Every clause traced to its statutory basis. Every gap surfaced. Every finding cited.';
   }
 };
 
@@ -1195,7 +1270,10 @@ function initEileenCommentary() {
       'create-detail': 'create',
       'op-detail': 'operational',
       'gov-detail': 'governance',
-      'inst-detail': 'institutional'
+      'inst-detail': 'institutional',
+      'triad-exposure-detail': 'triad-exposure',
+      'triad-readiness-detail': 'triad-readiness',
+      'triad-conduct-detail': 'triad-conduct'
     };
     var key = keyMap[id];
     if (key && hoverMap[key]) setCommentary(hoverMap[key](liveData));
