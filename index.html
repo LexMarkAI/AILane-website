@@ -202,7 +202,18 @@ nav {
 }
 #hero h1 { margin-bottom: 28px; }
 .hero-sub { font-size: clamp(1.05rem, 1.6vw, 1.2rem); color: var(--text-dim); max-width: 720px; margin-bottom: 40px; line-height: 1.55; }
-.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 48px; }
+.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 48px; align-items: center; }
+.hero-tertiary {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  font-weight: 400;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.hero-tertiary:hover { color: var(--cyan); }
 .hero-strip {
   display: flex;
   gap: 28px;
@@ -683,6 +694,7 @@ footer {
     <div class="hero-ctas">
       <a href="/contract-scan/" class="btn-primary" data-i18n="hero.cta.primary">Check your contracts — from £19</a>
       <a href="/knowledge-library/" class="btn-secondary" data-i18n="hero.cta.secondary">Talk to Eileen about the changes</a>
+      <a href="#eileen-section" id="hero-tertiary" class="hero-tertiary" data-i18n="hero.cta.tertiary">Read more about how Eileen works ↓</a>
     </div>
     <div class="hero-strip">
       <span data-i18n="hero.strip.employers">78,699 employers profiled</span>
@@ -1327,6 +1339,16 @@ function initEileenDrag() {
   });
 }
 
+function initHeroTertiary() {
+  var link = document.getElementById('hero-tertiary');
+  if (!link) return;
+  link.addEventListener('click', function() {
+    if (typeof gtag === 'function') {
+      gtag('event', 'hero_read_more_click', { section: 'hero' });
+    }
+  });
+}
+
 function initEileenMinimise() {
   var body = document.getElementById('eileen-body');
   var close = document.getElementById('eileen-close');
@@ -1357,6 +1379,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   initEileenChat();
   initEileenDrag();
   initEileenMinimise();
+  initHeroTertiary();
 
   // Render Nexus instances via window.AilaneNexus (assets/js/nexus.js).
   if (window.AilaneNexus && window.AilaneNexus.createNexus) {
