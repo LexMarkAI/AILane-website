@@ -687,8 +687,10 @@ footer {
     <div class="hero-strip">
       <span data-i18n="hero.strip.employers">78,699 employers profiled</span>
       <span data-i18n="hero.strip.decisions">131,648 tribunal decisions</span>
+      <span data-i18n="hero.strip.enriched">34,205 deeply enriched</span>
+      <span data-i18n="hero.strip.judges">1,555 judges profiled</span>
       <span data-i18n="hero.strip.provisions">401 statutory provisions</span>
-      <span id="strip-date">Updated 14 Apr 2026</span>
+      <span id="strip-date">Updated <span data-bind="latest_scrape_date">14 Apr 2026</span></span>
     </div>
   </div>
 </section>
@@ -1021,9 +1023,28 @@ async function fetchIntel() {
     if (r.ok) {
       var data = await r.json();
       liveData = Object.assign({}, FALLBACK, data);
+      applyLiveStripData();
+      renderTicker();
     }
   } catch (e) {
     console.warn('[Eileen] Intel fetch failed, using fallback');
+  }
+}
+
+function formatScrapeDate(iso) {
+  var parts = String(iso).split('-');
+  if (parts.length !== 3) return iso;
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var d = parseInt(parts[2], 10);
+  var m = parseInt(parts[1], 10) - 1;
+  if (isNaN(d) || isNaN(m) || m < 0 || m > 11) return iso;
+  return d + ' ' + months[m] + ' ' + parts[0];
+}
+
+function applyLiveStripData() {
+  var dateEl = document.querySelector('[data-bind="latest_scrape_date"]');
+  if (dateEl && liveData && liveData.latest_scrape_date) {
+    dateEl.textContent = formatScrapeDate(liveData.latest_scrape_date);
   }
 }
 
@@ -1319,15 +1340,14 @@ function initEileenMinimise() {
    Weights seed from legacy distribution; v3 claims_frequency rebalances them live. */
 /* ── Bootstrap ─────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async function() {
+  // Render initial strip + ticker from FALLBACK so the page never shows
+  // a placeholder while the network call is in flight.
+  applyLiveStripData();
+  renderTicker();
+
   // Fetch live intel (v2 ticker) + Nexus v3 in parallel — RULING-004
   fetchNexus();
   await fetchIntel();
-
-  // Update hero strip date if live data available
-  var stripDate = document.getElementById('strip-date');
-  if (stripDate && liveData.latest_scrape_date) {
-    stripDate.textContent = 'Updated ' + liveData.latest_scrape_date;
-  }
 
   // Init all systems
   initExpand();
