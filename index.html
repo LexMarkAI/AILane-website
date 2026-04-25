@@ -622,6 +622,14 @@ footer {
   min-height: 40px;
   transition: opacity 0.3s ease;
 }
+/* LP-V3-PUNCHLIST §3.3 — hide hover commentary once chat is active */
+#eileen-body:has(#eileen-chat-history:not(:empty)) #eileen-commentary {
+  display: none;
+}
+/* JS fallback class for browsers without :has() support */
+#eileen-body.chat-active #eileen-commentary {
+  display: none;
+}
 #eileen-chat-history {
   max-height: 320px;
   overflow-y: auto;
@@ -1330,6 +1338,18 @@ function setCommentary(text) {
   }, 300);
 }
 
+/* LP-V3-PUNCHLIST §3.3 — toggle chat-active class for browsers without :has() support */
+function updateEileenChatActiveClass() {
+  var history = document.getElementById('eileen-chat-history');
+  var body = document.getElementById('eileen-body');
+  if (!history || !body) return;
+  if (history.children.length > 0) {
+    body.classList.add('chat-active');
+  } else {
+    body.classList.remove('chat-active');
+  }
+}
+
 function initEileenCommentary() {
   // On scroll: section-change event
   window.addEventListener('section-change', function(e) {
@@ -1392,6 +1412,7 @@ async function sendToEileen(userText) {
   userBubble.textContent = userText;
   historyEl.appendChild(userBubble);
   historyEl.scrollTop = historyEl.scrollHeight;
+  updateEileenChatActiveClass();
 
   chatMessages.push({ role: 'user', content: userText });
 
@@ -1432,6 +1453,7 @@ async function sendToEileen(userText) {
       eileenBubble.className = 'chat-eileen';
       eileenBubble.textContent = data.response;
       historyEl.appendChild(eileenBubble);
+      updateEileenChatActiveClass();
 
       if (commentary) commentary.textContent = '';
       historyEl.scrollTop = historyEl.scrollHeight;
@@ -1555,6 +1577,7 @@ function initInstitutionalEnquiry() {
       bubble.textContent = SEED_PROMPT;
       historyEl.appendChild(bubble);
       historyEl.scrollTop = historyEl.scrollHeight;
+      updateEileenChatActiveClass();
       chatMessages.push({ role: 'assistant', content: SEED_PROMPT });
     }
     if (commentary) commentary.textContent = 'Routing this enquiry. I\'ll capture what we need and pass it on.';
