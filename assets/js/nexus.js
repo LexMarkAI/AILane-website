@@ -118,6 +118,7 @@
   var liveStore = {
     weights: null,          /* { canonical_key: normalised 0..1 } when v3 delivered */
     relationships: [],      /* [{ from_id, to_id, strength }, ...] */
+    instruments: [],        /* [{ id, category_id, provision_count }, ...] — D1 secondaries */
     snapshotAt: null,
     subscribers: []
   };
@@ -156,6 +157,19 @@
       });
     }
 
+    /* D1 — secondary statutory instruments orbiting the canonical primary nodes.
+       Deployed eileen-nexus-intel v3 emits this field already; the upstream view
+       starts as a stub (empty array) and lights up after a Path A migration.
+       Filter is permissive about empty arrays (no-op) and rejects malformed rows. */
+    if (Array.isArray(payload.instruments)) {
+      liveStore.instruments = payload.instruments.filter(function (inst) {
+        return inst &&
+          typeof inst.id === 'string' &&
+          CANONICAL_KEYS.indexOf(inst.category_id) >= 0 &&
+          Number(inst.provision_count) >= 0;
+      });
+    }
+
     if (payload.snapshotAt) liveStore.snapshotAt = payload.snapshotAt;
     notify();
   }
@@ -178,6 +192,9 @@
     var ringActive = (ringPalette && ringPalette.active) || legacyRing || NEXUS_RING_BASELINE;
     var interactive = opts.interactive === true;
     var showRelationships = opts.showRelationships !== false;
+    var showSecondaryNodes = opts.showSecondaryNodes === true;
+    var prefersReducedMotion = (typeof window !== 'undefined' &&
+      window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
@@ -225,13 +242,61 @@
     var FRAME_MS = 1000 / 30;
     var lastFrameAt = 0;
 
+    var currentRot = 0;
     function positionNodes(time) {
-      var rot = (time / 120000) * Math.PI * 2; /* 120-second ambient rotation */
+      currentRot = (time / 120000) * Math.PI * 2; /* 120-second ambient rotation */
       nodes.forEach(function (n) {
-        var a = n.angle + rot;
+        var a = n.angle + currentRot;
         n.x = cx + Math.cos(a) * (radius + n.jitter);
         n.y = cy + Math.sin(a) * (radius + n.jitter);
       });
+    }
+
+    /* Draw 0..N secondary "instrument" nodes orbiting their parent primary.
+       Silent no-op when the live store is empty or when the opt is off. */
+    function drawSecondaries(time, primariesById) {
+      if (!showSecondaryNodes) return;
+      var instruments = liveStore.instruments;
+      if (!instruments || !instruments.length) return;
+
+      var byParent = {};
+      for (var i = 0; i < instruments.length; i++) {
+        var inst = instruments[i];
+        if (!byParent[inst.category_id]) byParent[inst.category_id] = [];
+        byParent[inst.category_id].push(inst);
+      }
+
+      var orbitRadius = size * 0.06;
+      var parentIds = Object.keys(byParent);
+      for (var p = 0; p < parentIds.length; p++) {
+        var parent = primariesById[parentIds[p]];
+        if (!parent) continue;
+        var children = byParent[parentIds[p]];
+        for (var c = 0; c < children.length; c++) {
+          var inst2 = children[c];
+          var angleOffset = (c / Math.max(children.length, 1)) * Math.PI * 2;
+          var breathOff = prefersReducedMotion
+            ? 1
+            : 0.95 + 0.05 * Math.sin(time / 3000 + angleOffset);
+          var angle = angleOffset + (prefersReducedMotion ? 0 : currentRot);
+          var sx = parent.x + Math.cos(angle) * orbitRadius * breathOff;
+          var sy = parent.y + Math.sin(angle) * orbitRadius * breathOff;
+
+          ctx.beginPath();
+          ctx.moveTo(parent.x, parent.y);
+          ctx.lineTo(sx, sy);
+          ctx.strokeStyle = rgba(0.08);
+          ctx.lineWidth = 0.3;
+          ctx.stroke();
+
+          var nodeRadius = size * 0.005 +
+            Math.min(Number(inst2.provision_count) / 50, 1) * size * 0.004;
+          ctx.beginPath();
+          ctx.arc(sx, sy, nodeRadius, 0, Math.PI * 2);
+          ctx.fillStyle = rgba(0.4);
+          ctx.fill();
+        }
+      }
     }
 
     function draw(time) {
@@ -328,6 +393,15 @@
         ctx.fillStyle = rgba((0.5 + freqRatio * 0.5) * breathe * dim);
         ctx.fill();
       });
+
+      /* D1 — secondary statutory instruments orbit their parent primaries.
+         Drawn after primaries so the small dim dots sit visually beneath the
+         core glow but outside each primary node's halo. */
+      if (showSecondaryNodes && liveStore.instruments && liveStore.instruments.length) {
+        var primariesById = {};
+        nodes.forEach(function (n) { primariesById[n.id] = n; });
+        drawSecondaries(time, primariesById);
+      }
 
       /* Centre halo + core node — AMD-069 core constancy.
          Both paint in NEXUS_CORE_COLOUR irrespective of ring palette / tier.
