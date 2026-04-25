@@ -614,6 +614,38 @@ footer {
   letter-spacing: 0.14em;
   margin-bottom: 8px;
 }
+/* LP-V3-PUNCHLIST §3.4 — context bar */
+#eileen-context-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  background: rgba(14,165,233,0.08);
+  border: 1px solid var(--cyan-border);
+  border-radius: 6px;
+  font-size: 0.78rem;
+}
+#eileen-context-bar.hidden { display: none; }
+#eileen-context-label {
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+#eileen-context-exit {
+  background: transparent;
+  border: 1px solid var(--cyan-border);
+  border-radius: 4px;
+  color: var(--text-dim, var(--text-muted));
+  cursor: pointer;
+  font-size: 0.74rem;
+  padding: 2px 8px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+#eileen-context-exit:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
 #eileen-commentary {
   color: var(--text);
   font-size: 0.9rem;
@@ -1047,6 +1079,10 @@ footer {
   <div id="eileen-body">
     <button id="eileen-close" aria-label="Minimise Eileen">×</button>
     <div id="eileen-name">EILEEN</div>
+    <div id="eileen-context-bar" class="hidden">
+      <span id="eileen-context-label" data-i18n="eileen.context.label">Currently: Institutional enquiry</span>
+      <button type="button" id="eileen-context-exit" data-i18n="eileen.context.exit" aria-label="Exit enquiry mode and chat normally">✕ Exit</button>
+    </div>
     <div id="eileen-commentary"></div>
     <div id="eileen-chat-history" aria-live="polite"></div>
     <div id="eileen-input-area">
@@ -1566,6 +1602,7 @@ function initInstitutionalEnquiry() {
 
   trigger.addEventListener('click', function() {
     eileenContext = 'institutional_enquiry';
+    showEileenContextBar();
     if (body && body.classList.contains('hidden')) body.classList.remove('hidden');
     if (form.hidden) form.hidden = false;
 
@@ -1658,6 +1695,46 @@ function initEileenMinimise() {
     body.classList.add('hidden');
   });
 }
+
+/* LP-V3-PUNCHLIST §3.4 — context exit mechanism */
+var CONTEXT_LABELS = {
+  'institutional_enquiry': 'Currently: Institutional enquiry'
+};
+
+function showEileenContextBar() {
+  var bar = document.getElementById('eileen-context-bar');
+  var label = document.getElementById('eileen-context-label');
+  if (!bar || !label) return;
+  if (eileenContext && CONTEXT_LABELS[eileenContext]) {
+    label.textContent = CONTEXT_LABELS[eileenContext];
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function exitEileenContext() {
+  var previous = eileenContext;
+  eileenContext = null;
+  showEileenContextBar();
+  var instForm = document.getElementById('inst-enquiry-form');
+  if (instForm) instForm.hidden = true;
+  var history = document.getElementById('eileen-chat-history');
+  if (history) history.innerHTML = '';
+  chatMessages = [];
+  updateEileenChatActiveClass();
+  var input = document.getElementById('eileen-input');
+  if (input) input.focus();
+  if (typeof gtag === 'function') {
+    gtag('event', 'eileen_context_exit', { previous_context: previous || 'unknown' });
+  }
+}
+
+function initEileenContextExit() {
+  var exitBtn = document.getElementById('eileen-context-exit');
+  if (!exitBtn) return;
+  exitBtn.addEventListener('click', exitEileenContext);
+}
 /* ── Nexus: live data visualisation (Art. 13.1) ──────────────
    Renderer lives in /assets/js/nexus.js — window.AilaneNexus.
    Weights seed from legacy distribution; v3 claims_frequency rebalances them live. */
@@ -1680,6 +1757,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   initEileenChat();
   initEileenDrag();
   initEileenMinimise();
+  initEileenContextExit();
   initHeroTertiary();
   initInstitutionalEnquiry();
 
