@@ -316,6 +316,99 @@ section h2 { margin-bottom: 20px; }
 .triad-card h3 { color: var(--text-prime, var(--text-heading)); margin-bottom: 0; }
 .triad-card > p { color: var(--text-body, var(--text)); font-size: 0.98rem; line-height: 1.55; }
 
+/* ── Knowledge Library (LP-V3-PUNCHLIST §3.6) ───────────── */
+#knowledge-library .section-statement {
+  max-width: 780px;
+  margin: 0 auto 32px;
+  text-align: center;
+}
+.kl-card {
+  background: var(--surface-raised, var(--bg-card));
+  border: 1px solid var(--border-mid, var(--border-medium));
+  border-radius: var(--card-radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.kl-card:hover { border-color: var(--cyan-border); transform: translateY(-2px); }
+.kl-card h3 {
+  color: var(--text-prime, var(--text-heading));
+  margin-bottom: 0;
+}
+.kl-card > p {
+  color: var(--text-body, var(--text));
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+.kl-confidence-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px 0;
+  margin: 32px auto;
+  border-top: 1px solid var(--border-mid, var(--border-medium));
+  border-bottom: 1px solid var(--border-mid, var(--border-medium));
+  font-size: 0.92rem;
+  color: var(--text-dim, var(--text-muted));
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.kl-sessions {
+  margin-top: 32px;
+  text-align: center;
+}
+.kl-sessions h3 {
+  margin-bottom: 24px;
+  color: var(--text-prime, var(--text-heading));
+}
+.kl-session-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.kl-session {
+  background: var(--surface-raised, var(--bg-card));
+  border: 1px solid var(--border-mid, var(--border-medium));
+  border-radius: var(--card-radius);
+  padding: 20px;
+  text-align: center;
+}
+.kl-session-name {
+  color: var(--text-prime, var(--text-heading));
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.kl-session-price {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--cyan);
+  margin-bottom: 4px;
+}
+.kl-session-detail {
+  font-size: 0.86rem;
+  color: var(--text-dim, var(--text-muted));
+}
+.kl-session-addon {
+  margin-top: 16px;
+  font-size: 0.86rem;
+  color: var(--text-dim, var(--text-muted));
+  text-align: center;
+}
+.kl-cta-row {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+}
+@media (max-width: 768px) {
+  .kl-session-row { grid-template-columns: 1fr; }
+}
+
 /* ── Subscription tiers (§4) ────────────────── */
 .tier-row {
   display: grid;
@@ -537,8 +630,10 @@ section h2 { margin-bottom: 20px; }
 /* ── CTA row (§7) ───────────────────────────── */
 .cta-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
+  max-width: 720px;
+  margin: 0 auto;
 }
 .cta-card {
   background: var(--bg-card);
@@ -599,8 +694,8 @@ footer {
   border-radius: 12px;
   padding: 16px;
   padding-right: 28px;
-  max-width: 360px;
-  width: 360px;
+  max-width: 440px;
+  width: 440px;
   backdrop-filter: blur(12px);
   position: relative;
   box-shadow: 0 12px 48px rgba(0,0,0,0.5);
@@ -614,6 +709,38 @@ footer {
   letter-spacing: 0.14em;
   margin-bottom: 8px;
 }
+/* LP-V3-PUNCHLIST §3.4 — context bar */
+#eileen-context-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  background: rgba(14,165,233,0.08);
+  border: 1px solid var(--cyan-border);
+  border-radius: 6px;
+  font-size: 0.78rem;
+}
+#eileen-context-bar.hidden { display: none; }
+#eileen-context-label {
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+#eileen-context-exit {
+  background: transparent;
+  border: 1px solid var(--cyan-border);
+  border-radius: 4px;
+  color: var(--text-dim, var(--text-muted));
+  cursor: pointer;
+  font-size: 0.74rem;
+  padding: 2px 8px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+#eileen-context-exit:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
 #eileen-commentary {
   color: var(--text);
   font-size: 0.9rem;
@@ -622,8 +749,16 @@ footer {
   min-height: 40px;
   transition: opacity 0.3s ease;
 }
+/* LP-V3-PUNCHLIST §3.3 — hide hover commentary once chat is active */
+#eileen-body:has(#eileen-chat-history:not(:empty)) #eileen-commentary {
+  display: none;
+}
+/* JS fallback class for browsers without :has() support */
+#eileen-body.chat-active #eileen-commentary {
+  display: none;
+}
 #eileen-chat-history {
-  max-height: 240px;
+  max-height: 320px;
   overflow-y: auto;
   margin-bottom: 12px;
 }
@@ -755,10 +890,10 @@ footer {
   <div class="container hero-content">
     <p class="hero-badge" data-i18n="hero.badge">EMPLOYMENT RIGHTS ACT 2025 · TRACKING 535 LEGISLATIVE CHANGES</p>
     <h1 data-i18n="hero.headline">The intelligence layer for UK employment law.</h1>
-    <p class="hero-sub" data-i18n="hero.sub">131,648+ Tribunal decisions. 34,205 deeply enriched. 78,699 employer profiles. 1,555 judges. 401 statutory provisions. Made conversational by Eileen — for the people who need answers in minutes.</p>
+    <p class="hero-sub" data-i18n="hero.sub">131,648 tribunal decisions. 34,205 deeply enriched. 78,699 employer profiles. 1,555 judges. 401 statutory provisions. Made conversational by Eileen — for the people who need answers in minutes.</p>
     <div class="hero-ctas">
       <a href="/contract-scan/" class="btn-primary" data-i18n="hero.cta.primary">Check your contracts — from £19</a>
-      <a href="/knowledge-library/" class="btn-secondary" data-i18n="hero.cta.secondary">Talk to Eileen about the changes</a>
+      <button type="button" class="btn-secondary" data-action="open-eileen-changes" data-i18n="hero.cta.secondary">Talk to Eileen about the changes</button>
       <a href="#eileen-section" id="hero-tertiary" class="hero-tertiary" data-i18n="hero.cta.tertiary">Read more about how Eileen works ↓</a>
     </div>
     <div class="hero-strip">
@@ -833,6 +968,66 @@ footer {
           <p data-i18n="triad.conduct.detail">Documents read against the requirements they need to meet. Clauses traced to statute. Communications tested against guidance. Where the document is silent, where it conflicts with the law, where it leaves a clause that won't survive scrutiny — surfaced as findings, with the statutory basis attached to each one.</p>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 2.6 — KNOWLEDGE LIBRARY (LP-V3-PUNCHLIST §3.6, Director Approach B) ───── -->
+<section id="knowledge-library" data-section="knowledge-library">
+  <div class="container">
+    <h2 data-i18n="kl.headline">The Knowledge Library</h2>
+    <p class="section-statement" data-i18n="kl.statement">Research-grade UK employment law, conversational. Built on 131,648 tribunal decisions, 401 statutory provisions, and the case law that interprets them. Eileen reads everything. You ask the questions.</p>
+
+    <div class="card-trio kl-trio">
+      <div class="kl-card" data-section="kl-search">
+        <h3 data-i18n="kl.search.title">Search</h3>
+        <p data-i18n="kl.search.body">Find what's been decided. Filter tribunal decisions by claim type, sector, judge, year, or outcome. Each result links back to the statute that decided it. The citation chain stays attached.</p>
+      </div>
+
+      <div class="kl-card" data-section="kl-ask">
+        <h3 data-i18n="kl.ask.title">Ask Eileen</h3>
+        <p data-i18n="kl.ask.body">Type a question in plain English. Eileen returns a paraphrased answer grounded in the relevant statute or case, with the source cited inline. Nothing invented — every reference traces to its origin.</p>
+      </div>
+
+      <div class="kl-card" data-section="kl-check">
+        <h3 data-i18n="kl.check.title">Check a Contract</h3>
+        <p data-i18n="kl.check.body">Upload an employment contract, policy, or handbook. Get a clause-level findings report against current statutory requirements, with Employment Rights Act 2025 forthcoming changes flagged. Every finding cited to its statutory basis.</p>
+      </div>
+    </div>
+
+    <div class="kl-confidence-strip" aria-label="Knowledge Library data coverage">
+      <span data-i18n="kl.confidence.decisions">131,648 tribunal decisions</span>
+      <span data-i18n="kl.confidence.enriched">34,205 deeply enriched</span>
+      <span data-i18n="kl.confidence.provisions">401 statutory provisions</span>
+      <span data-i18n="kl.confidence.instruments">69 statutory instruments</span>
+      <span data-i18n="kl.confidence.employers">78,699 employer profiles</span>
+      <span data-i18n="kl.confidence.judges">1,555 judges profiled</span>
+    </div>
+
+    <div class="kl-sessions">
+      <h3 data-i18n="kl.sessions.title">Sessions</h3>
+      <div class="kl-session-row">
+        <div class="kl-session">
+          <div class="kl-session-name" data-i18n="kl.sessions.quick.name">Quick Session</div>
+          <div class="kl-session-price" data-i18n="kl.sessions.quick.price">£29</div>
+          <div class="kl-session-detail" data-i18n="kl.sessions.quick.detail">2 hours · 1 contract check</div>
+        </div>
+        <div class="kl-session">
+          <div class="kl-session-name" data-i18n="kl.sessions.day.name">Day Pass</div>
+          <div class="kl-session-price" data-i18n="kl.sessions.day.price">£49</div>
+          <div class="kl-session-detail" data-i18n="kl.sessions.day.detail">24 hours · 2 contract checks</div>
+        </div>
+        <div class="kl-session">
+          <div class="kl-session-name" data-i18n="kl.sessions.week.name">Research Week</div>
+          <div class="kl-session-price" data-i18n="kl.sessions.week.price">£99</div>
+          <div class="kl-session-detail" data-i18n="kl.sessions.week.detail">7 days · 3 contract checks</div>
+        </div>
+      </div>
+      <p class="kl-session-addon" data-i18n="kl.sessions.addon">Additional in-session contract checks: £15 each.</p>
+    </div>
+
+    <div class="kl-cta-row">
+      <button type="button" class="btn-primary" data-action="open-eileen-kl" data-i18n="kl.cta.start">Start a session</button>
     </div>
   </div>
 </section>
@@ -1009,10 +1204,6 @@ footer {
       <h3 data-i18n="cta.check.title">Check a contract</h3>
       <p data-i18n="cta.check.price">From £19</p>
     </a>
-    <a href="/knowledge-library/" class="cta-card">
-      <h3 data-i18n="cta.session.title">Spend a session with Eileen</h3>
-      <p data-i18n="cta.session.price">From £29</p>
-    </a>
     <a href="/account/" class="cta-card">
       <h3 data-i18n="cta.monitor.title">Start continuous monitoring</h3>
       <p data-i18n="cta.monitor.price">£199/month</p>
@@ -1039,6 +1230,10 @@ footer {
   <div id="eileen-body">
     <button id="eileen-close" aria-label="Minimise Eileen">×</button>
     <div id="eileen-name">EILEEN</div>
+    <div id="eileen-context-bar" class="hidden">
+      <span id="eileen-context-label" data-i18n="eileen.context.label">Currently: Institutional enquiry</span>
+      <button type="button" id="eileen-context-exit" data-i18n="eileen.context.exit" aria-label="Exit enquiry mode and chat normally">✕ Exit</button>
+    </div>
     <div id="eileen-commentary"></div>
     <div id="eileen-chat-history" aria-live="polite"></div>
     <div id="eileen-input-area">
@@ -1290,6 +1485,19 @@ var hoverMap = {
   },
   'triad-conduct': function(d) {
     return 'Every clause traced to its statutory basis. Every gap surfaced. Every finding cited.';
+  },
+  /* LP-V3-PUNCHLIST §3.6 — KL hover commentary */
+  'knowledge-library': function(d) {
+    return Number(d.total_decisions || 131648).toLocaleString() + ' decisions, ' + Number(d.kl_provisions || 401) + ' provisions, 69 instruments. All conversational through Eileen.';
+  },
+  'kl-search': function(d) {
+    return 'Filter by claim type, sector, judge, year, outcome. Citation chain preserved on every result.';
+  },
+  'kl-ask': function(d) {
+    return 'Plain English in. Cited statutory paraphrase out. Every reference traces to source.';
+  },
+  'kl-check': function(d) {
+    return 'Clause-level findings. Current statute + ERA 2025 forthcoming changes. Every flag cited.';
   }
 };
 
@@ -1328,6 +1536,18 @@ function setCommentary(text) {
     commentary.textContent = text;
     commentary.style.opacity = '1';
   }, 300);
+}
+
+/* LP-V3-PUNCHLIST §3.3 — toggle chat-active class for browsers without :has() support */
+function updateEileenChatActiveClass() {
+  var history = document.getElementById('eileen-chat-history');
+  var body = document.getElementById('eileen-body');
+  if (!history || !body) return;
+  if (history.children.length > 0) {
+    body.classList.add('chat-active');
+  } else {
+    body.classList.remove('chat-active');
+  }
 }
 
 function initEileenCommentary() {
@@ -1392,6 +1612,7 @@ async function sendToEileen(userText) {
   userBubble.textContent = userText;
   historyEl.appendChild(userBubble);
   historyEl.scrollTop = historyEl.scrollHeight;
+  updateEileenChatActiveClass();
 
   chatMessages.push({ role: 'user', content: userText });
 
@@ -1432,6 +1653,7 @@ async function sendToEileen(userText) {
       eileenBubble.className = 'chat-eileen';
       eileenBubble.textContent = data.response;
       historyEl.appendChild(eileenBubble);
+      updateEileenChatActiveClass();
 
       if (commentary) commentary.textContent = '';
       historyEl.scrollTop = historyEl.scrollHeight;
@@ -1544,6 +1766,7 @@ function initInstitutionalEnquiry() {
 
   trigger.addEventListener('click', function() {
     eileenContext = 'institutional_enquiry';
+    showEileenContextBar();
     if (body && body.classList.contains('hidden')) body.classList.remove('hidden');
     if (form.hidden) form.hidden = false;
 
@@ -1555,6 +1778,7 @@ function initInstitutionalEnquiry() {
       bubble.textContent = SEED_PROMPT;
       historyEl.appendChild(bubble);
       historyEl.scrollTop = historyEl.scrollHeight;
+      updateEileenChatActiveClass();
       chatMessages.push({ role: 'assistant', content: SEED_PROMPT });
     }
     if (commentary) commentary.textContent = 'Routing this enquiry. I\'ll capture what we need and pass it on.';
@@ -1617,6 +1841,66 @@ function initInstitutionalEnquiry() {
   });
 }
 
+/* LP-V3-PUNCHLIST §3.5 — hero secondary CTA opens chat panel with ERA changes seed */
+function initHeroChangesButton() {
+  var btn = document.querySelector('[data-action="open-eileen-changes"]');
+  if (!btn) return;
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    var body = document.getElementById('eileen-body');
+    if (body) body.classList.remove('hidden');
+    eileenContext = null;
+    showEileenContextBar();
+    var history = document.getElementById('eileen-chat-history');
+    if (history && history.children.length === 0) {
+      var msg = document.createElement('div');
+      msg.className = 'chat-eileen';
+      msg.textContent = "Happy to talk about the changes coming through UK employment law — the Employment Rights Act 2025 is the big one, but there are also limit updates, statutory rate changes, and EAT procedure changes in 2026. What's on your mind?";
+      history.appendChild(msg);
+      chatMessages.push({ role: 'assistant', content: msg.textContent });
+      updateEileenChatActiveClass();
+    }
+    if (body) body.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var input = document.getElementById('eileen-input');
+    if (input) input.focus();
+    if (typeof gtag === 'function') {
+      gtag('event', 'hero_secondary_cta_click', { destination: 'eileen_chat', topic: 'changes' });
+    }
+  });
+}
+
+/* LP-V3-PUNCHLIST §3.6 v1.1 — KL section "Start a session" opens chat panel.
+   Stripe is currently disabled at the rails on all products; this button must NOT
+   route to /knowledge-library/ which would mis-route unauthenticated visitors to
+   /login/. When Stripe is re-enabled and KL is production-ready, this handler can
+   be replaced with a navigation to the session purchase page. */
+function initKLStartButton() {
+  var btn = document.querySelector('[data-action="open-eileen-kl"]');
+  if (!btn) return;
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    var body = document.getElementById('eileen-body');
+    if (body) body.classList.remove('hidden');
+    eileenContext = null;
+    showEileenContextBar();
+    var history = document.getElementById('eileen-chat-history');
+    if (history && history.children.length === 0) {
+      var msg = document.createElement('div');
+      msg.className = 'chat-eileen';
+      msg.textContent = "The Knowledge Library is where I work most closely with you — searching across 131,648 tribunal decisions, citing statutes inline, checking your contracts against current law. What's the question that brought you here today?";
+      history.appendChild(msg);
+      chatMessages.push({ role: 'assistant', content: msg.textContent });
+      updateEileenChatActiveClass();
+    }
+    if (body) body.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var input = document.getElementById('eileen-input');
+    if (input) input.focus();
+    if (typeof gtag === 'function') {
+      gtag('event', 'kl_start_session_click', { destination: 'eileen_chat', topic: 'knowledge_library' });
+    }
+  });
+}
+
 function initHeroTertiary() {
   var link = document.getElementById('hero-tertiary');
   if (!link) return;
@@ -1634,6 +1918,46 @@ function initEileenMinimise() {
   close.addEventListener('click', function() {
     body.classList.add('hidden');
   });
+}
+
+/* LP-V3-PUNCHLIST §3.4 — context exit mechanism */
+var CONTEXT_LABELS = {
+  'institutional_enquiry': 'Currently: Institutional enquiry'
+};
+
+function showEileenContextBar() {
+  var bar = document.getElementById('eileen-context-bar');
+  var label = document.getElementById('eileen-context-label');
+  if (!bar || !label) return;
+  if (eileenContext && CONTEXT_LABELS[eileenContext]) {
+    label.textContent = CONTEXT_LABELS[eileenContext];
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function exitEileenContext() {
+  var previous = eileenContext;
+  eileenContext = null;
+  showEileenContextBar();
+  var instForm = document.getElementById('inst-enquiry-form');
+  if (instForm) instForm.hidden = true;
+  var history = document.getElementById('eileen-chat-history');
+  if (history) history.innerHTML = '';
+  chatMessages = [];
+  updateEileenChatActiveClass();
+  var input = document.getElementById('eileen-input');
+  if (input) input.focus();
+  if (typeof gtag === 'function') {
+    gtag('event', 'eileen_context_exit', { previous_context: previous || 'unknown' });
+  }
+}
+
+function initEileenContextExit() {
+  var exitBtn = document.getElementById('eileen-context-exit');
+  if (!exitBtn) return;
+  exitBtn.addEventListener('click', exitEileenContext);
 }
 /* ── Nexus: live data visualisation (Art. 13.1) ──────────────
    Renderer lives in /assets/js/nexus.js — window.AilaneNexus.
@@ -1657,7 +1981,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   initEileenChat();
   initEileenDrag();
   initEileenMinimise();
+  initEileenContextExit();
   initHeroTertiary();
+  initHeroChangesButton();
+  initKLStartButton();
   initInstitutionalEnquiry();
 
   // Render Nexus instances via window.AilaneNexus (assets/js/nexus.js).
