@@ -5335,10 +5335,10 @@ function ResearchPanel({ lang }) {
             caseText && React.createElement('div', { style: { color: '#94A3B8', fontSize: '11px', marginTop: '4px', lineHeight: 1.4 } },
               caseText.length > 200 ? caseText.slice(0, 200) + '\u2026' : caseText
             ),
-            (c.url || c.bailiiUrl) && React.createElement('a', {
-              href: c.url || c.bailiiUrl, target: '_blank', rel: 'noopener noreferrer',
+            (c.tna_url || c.supremecourt_url || c.judiciary_url) && React.createElement('a', {
+              href: c.tna_url || c.supremecourt_url || c.judiciary_url, target: '_blank', rel: 'noopener noreferrer',
               style: { fontSize: '10px', color: '#0EA5E9', textDecoration: 'none', marginTop: '4px', display: 'inline-block' },
-            }, '\u2197 BAILII')
+            }, '\u2197 Read judgment')
           );
         })
       )
