@@ -6,6 +6,17 @@
    Brief: AILANE-CC-BRIEF-DEAL-ROOM-PHASE-1B-001 v1.0
    Auth pattern: RULE 26 / RULE 2 (JWT decode + raw fetch).
 
+   PHASE 1B BUILD-TIME GAP FIX v6 (2 May 2026):
+   v5 placed the Eileen panel at the bottom of each sub-page,
+   below all page-specific content (documents list, status grid,
+   pathway diagrams). v6 corrects the positioning: Eileen sits
+   IMMEDIATELY after the primary nav row on every page —
+   directly under Documents / Engagement Status / Pathway nav
+   cards. revealPage() now runs injectSubPageNav BEFORE
+   injectEileenPanel so Eileen can anchor to the freshly-inserted
+   .dr-subpage-nav-section. Landing page unchanged (Eileen is
+   already in the correct position via static HTML).
+
    PHASE 1B BUILD-TIME GAP FIX v5 (2 May 2026):
    - The original auth guard called window.location.replace('/login/')
      for unauthenticated visitors, but no /login/ surface exists in
@@ -307,10 +318,10 @@
     var emailEl = document.getElementById('dr-user-email');
     if (emailEl && window.__dealRoomUser) emailEl.textContent = window.__dealRoomUser.email;
     document.body.style.visibility = 'visible';
+    injectSubPageNav();
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
-    injectSubPageNav();
   }
 
   function startGuard() {
@@ -508,19 +519,30 @@
 
   // ─── Eileen panel injection (sub-pages) ────────────────
   // The deal-room landing page (/partners/dnb-2026/) ships the
-  // Eileen section as static HTML. The three sub-pages (Documents,
-  // Engagement Status, Pathway) do not — and Eileen is intended
-  // to be present on every page so a counterparty can pose a
-  // question from wherever they are. This function injects the
-  // same section (matching IDs/classes so existing style.css and
-  // bindEileenPanel() wire up automatically) at the bottom of the
-  // .dr-container on any page that doesn't already have it.
+  // Eileen section as static HTML positioned right after the
+  // home nav cards. The three sub-pages (Documents, Engagement
+  // Status, Pathway) do not — and Eileen is intended to be
+  // present on every page so a counterparty can pose a question
+  // from wherever they are.
+  //
+  // Positioning rule (v6): Eileen sits IMMEDIATELY after the
+  // primary nav row on every page. On sub-pages that means
+  // right after the .dr-subpage-nav-section that injectSubPageNav
+  // has already inserted (so injectSubPageNav must run first —
+  // see revealPage() ordering). On the landing page this
+  // function is a no-op because the Eileen section is already
+  // hard-coded into index.html in the correct position.
+  //
+  // Identical IDs/classes to the landing page section so existing
+  // style.css and bindEileenPanel() wire up automatically.
   // Idempotent — safe to call repeatedly.
   function injectEileenPanel() {
     if (document.getElementById('dr-eileen-panel')) return;
 
-    var container = document.querySelector('.dr-main .dr-container');
-    if (!container) return;
+    var subnav = document.querySelector('.dr-subpage-nav-section');
+    var hero   = document.querySelector('.dr-main .dr-container .dr-hero');
+    var anchor = subnav || hero;
+    if (!anchor) return;
 
     var section = document.createElement('section');
     section.className = 'dr-eileen-section';
@@ -544,7 +566,7 @@
         '</div>' +
       '</div>';
 
-    container.appendChild(section);
+    anchor.insertAdjacentElement('afterend', section);
   }
 
   // ─── Sub-page secondary nav injection ───────────────────
