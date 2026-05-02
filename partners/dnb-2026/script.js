@@ -6,7 +6,7 @@
    Brief: AILANE-CC-BRIEF-DEAL-ROOM-PHASE-1B-001 v1.0
    Auth pattern: RULE 26 / RULE 2 (JWT decode + raw fetch).
 
-   PHASE 1B BUILD-TIME GAP FIX v4 (2 May 2026):
+   PHASE 1B BUILD-TIME GAP FIX v5 (2 May 2026):
    - The original auth guard called window.location.replace('/login/')
      for unauthenticated visitors, but no /login/ surface exists in
      the repo. Result: counterparty hits the deal-room, gets bounced
@@ -45,6 +45,19 @@
      between sub-pages without returning to workspace home first.
      Workspace home unchanged (already surfaces all three cards).
      Brand mark in dr-header continues to link home for fallback.
+   - Eileen panel on every page: the deal-room landing page ships
+     the Eileen section as static HTML; sub-pages did not. v5
+     injects the same section (identical IDs/classes so existing
+     style.css and bindEileenPanel() wire up automatically) at the
+     bottom of every sub-page. Counterparty can converse with
+     Eileen from anywhere in the workspace. Eileen routes through
+     the eileen-dealroom Edge Function exclusively (NOT
+     eileen-intelligence, eileen-landing-intel, eileen-nexus-intel,
+     eileen-presales, or eileen-training-assistant); deal-room
+     surface has its own banned-phrase guardrails, CLID-scoped
+     session storage, and Layer 3 RAG into the kl_provisions corpus
+     covering DPA 2018, UK GDPR, ERA 1996/2025, Equality Act, TUPE,
+     ACAS Codes, ICO guidance and the wider 78-instrument estate.
    - Patch authority: AILANE-AMD-REG-001 AM-101 (in preparation).
    ============================================================ */
 
@@ -294,6 +307,7 @@
     var emailEl = document.getElementById('dr-user-email');
     if (emailEl && window.__dealRoomUser) emailEl.textContent = window.__dealRoomUser.email;
     document.body.style.visibility = 'visible';
+    injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
     injectSubPageNav();
@@ -490,6 +504,47 @@
         cards[i].appendChild(badge);
       }
     }
+  }
+
+  // ─── Eileen panel injection (sub-pages) ────────────────
+  // The deal-room landing page (/partners/dnb-2026/) ships the
+  // Eileen section as static HTML. The three sub-pages (Documents,
+  // Engagement Status, Pathway) do not — and Eileen is intended
+  // to be present on every page so a counterparty can pose a
+  // question from wherever they are. This function injects the
+  // same section (matching IDs/classes so existing style.css and
+  // bindEileenPanel() wire up automatically) at the bottom of the
+  // .dr-container on any page that doesn't already have it.
+  // Idempotent — safe to call repeatedly.
+  function injectEileenPanel() {
+    if (document.getElementById('dr-eileen-panel')) return;
+
+    var container = document.querySelector('.dr-main .dr-container');
+    if (!container) return;
+
+    var section = document.createElement('section');
+    section.className = 'dr-eileen-section';
+    section.setAttribute('aria-label', 'Eileen intelligence agent');
+    section.innerHTML =
+      '<div class="dr-eileen-header">' +
+        '<h2>Eileen</h2>' +
+        '<p class="dr-eileen-subtitle">' +
+          'AI Lane intelligence agent &middot; counterparty mode &middot; commercial terms route via ' +
+          '<a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.' +
+        '</p>' +
+      '</div>' +
+      '<div id="dr-eileen-panel" class="dr-eileen-panel">' +
+        '<div id="dr-eileen-transcript" class="dr-eileen-transcript" aria-live="polite">' +
+          '<div class="dr-eileen-empty">Ask about the estate, the ACEI taxonomy, the engagement pathway, or the underlying UK employment law.</div>' +
+        '</div>' +
+        '<div class="dr-eileen-input-row">' +
+          '<textarea id="dr-eileen-input" class="dr-eileen-input" rows="2" ' +
+            'placeholder="Ask Eileen about the estate, the ACEI taxonomy, the engagement pathway, or UK employment law..."></textarea>' +
+          '<button id="dr-eileen-send" class="dr-eileen-send" type="button">Send</button>' +
+        '</div>' +
+      '</div>';
+
+    container.appendChild(section);
   }
 
   // ─── Sub-page secondary nav injection ───────────────────
