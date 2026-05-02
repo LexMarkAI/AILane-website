@@ -6,6 +6,19 @@
    Brief: AILANE-CC-BRIEF-DEAL-ROOM-PHASE-1B-001 v1.0
    Auth pattern: RULE 26 / RULE 2 (JWT decode + raw fetch).
 
+   PHASE 1B BUILD-TIME GAP FIX v7 (2 May 2026):
+   v6 left the conversation transcript bound to the lifetime of
+   one page-render — navigating between deal-room sub-pages
+   wiped Eileen's history, both visually and in the array sent
+   to the EF on subsequent calls. v7 persists conversationMessages
+   to sessionStorage keyed on (clid, user_id), restores on every
+   bindEileenPanel(), and clears on sign-out. sessionStorage
+   scopes to the tab session, mirroring the lifecycle of a
+   counterparty deal-room visit; backend dealroom_eileen_sessions
+   remains the durable audit-grade record. Companion CSS patch
+   removes bubble shading and turns user input into gold-toned
+   left-aligned text — see /partners/dnb-2026/style.css.
+
    PHASE 1B BUILD-TIME GAP FIX v6 (2 May 2026):
    v5 placed the Eileen panel at the bottom of each sub-page,
    below all page-specific content (documents list, status grid,
@@ -367,6 +380,7 @@
     if (!btn) return;
     btn.addEventListener('click', async function (ev) {
       ev.preventDefault();
+      try { clearStoredTranscript(); } catch (e) { /* swallow */ }
       try { if (window.__dealRoomSb) await window.__dealRoomSb.auth.signOut(); } catch (e) { /* fall through */ }
       window.location.replace('/');
     });
@@ -387,6 +401,37 @@
     }
   }
 
+  // ─── Transcript persistence helpers (v7) ─────────────────
+  // Eileen's conversation must survive page navigation within
+  // the deal-room workspace. sessionStorage scopes correctly:
+  // it persists across navigations within the same tab and
+  // clears when the tab closes — which is exactly the lifecycle
+  // a counterparty conversation should have. The Eileen-dealroom
+  // EF receives the full conversationMessages array on every
+  // call, so persistence is critical for context continuity, not
+  // just a UI nicety. Backend sessions in dealroom_eileen_sessions
+  // remain the durable, audit-grade source of truth.
+  function transcriptStorageKey() {
+    var uid = (window.__dealRoomUser && window.__dealRoomUser.id) || 'anon';
+    return 'ailane.dealroom.' + CLID + '.' + uid + '.messages';
+  }
+  function loadStoredTranscript() {
+    try {
+      var raw = sessionStorage.getItem(transcriptStorageKey());
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  }
+  function saveStoredTranscript(arr) {
+    try { sessionStorage.setItem(transcriptStorageKey(), JSON.stringify(arr)); }
+    catch (e) { /* quota / private-mode — degrade silently */ }
+  }
+  function clearStoredTranscript() {
+    try { sessionStorage.removeItem(transcriptStorageKey()); }
+    catch (e) { /* swallow */ }
+  }
+
   // ─── Eileen counterparty chat panel ─────────────────────
   function bindEileenPanel() {
     var panel = document.getElementById('dr-eileen-panel');
@@ -397,7 +442,7 @@
     if (panel.dataset.bound === '1') return;
     panel.dataset.bound = '1';
 
-    var conversationMessages = [];
+    var conversationMessages = loadStoredTranscript();
 
     function clearEmptyState() {
       var empty = transcript.querySelector('.dr-eileen-empty');
@@ -414,6 +459,14 @@
       return bubble;
     }
 
+    // Re-hydrate transcript from sessionStorage if present
+    if (conversationMessages.length > 0) {
+      conversationMessages.forEach(function (m) {
+        if (!m || !m.role || !m.content) return;
+        appendBubble(m.role === 'user' ? 'user' : 'eileen', m.content);
+      });
+    }
+
     async function sendMessage() {
       var text = (input.value || '').trim();
       if (!text) return;
@@ -423,6 +476,7 @@
       appendBubble('user', text);
       input.value = '';
       conversationMessages.push({ role: 'user', content: text });
+      saveStoredTranscript(conversationMessages);
 
       var thinking = appendBubble('eileen', '...', 'dr-eileen-thinking');
 
@@ -448,6 +502,7 @@
         if (data && data.response) {
           appendBubble('eileen', responseText);
           conversationMessages.push({ role: 'assistant', content: data.response });
+          saveStoredTranscript(conversationMessages);
         } else {
           appendBubble('eileen', responseText, 'dr-eileen-error');
         }
