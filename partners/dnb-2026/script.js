@@ -5,6 +5,23 @@
    chat panel, and gate-state-driven document gating.
    Brief: AILANE-CC-BRIEF-DEAL-ROOM-PHASE-1B-001 v1.0
    Auth pattern: RULE 26 / RULE 2 (JWT decode + raw fetch).
+
+   PHASE 1B BUILD-TIME GAP FIX (2 May 2026):
+   - The original auth guard called window.location.replace('/login/')
+     for unauthenticated visitors, but no /login/ surface exists in
+     the repo. Result: counterparty hits the deal-room, gets bounced
+     to a 404, falls back to root sign-in, and is then routed by
+     subscription_tier (e.g. Institutional → /institutional/), never
+     reaching the deal-room at all.
+   - This patch replaces that redirect with an inline magic-link
+     auth panel scoped to /partners/dnb-2026/. The magic link's
+     emailRedirectTo returns the visitor to the deal-room directly.
+     Counterparty never leaves the workspace.
+   - Path ordering: partner_contacts membership now PRECEDES
+     subscription_tier check. Engagement-specific role wins over
+     coincidental tier subscription so role_title and gate-state
+     document gating apply correctly for dual-role users.
+   - Patch authority: AILANE-AMD-REG-001 AM-101 (in preparation).
    ============================================================ */
 
 (function () {
@@ -13,17 +30,21 @@
   var DIRECTOR_EMAIL = 'mark@ailane.ai';
   var ALLOWED_TIER = 'institutional';
   var CLID = 'dnb-2026-001';
+  var WORKSPACE_ROOT = '/partners/dnb-2026/';
 
   var GATE_ORDER = ['pre_engagement', 'A', 'B', 'C', 'D', 'E', 'F'];
 
-  function redirectToLogin() {
-    window.location.replace('/login/');
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
 
   function decodeJwt(token) {
     try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
   }
 
+  // ─── REST helpers ───────────────────────────────────────
   async function fetchSubscriptionTier(token, userId) {
     try {
       var res = await fetch(
@@ -68,11 +89,145 @@
     }
   }
 
+  // ─── Inline magic-link auth panel ───────────────────────
+  function injectAuthStyles() {
+    if (document.getElementById('dr-auth-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'dr-auth-styles';
+    style.textContent =
+      '.dr-auth-overlay{position:fixed;inset:0;background:#0b0d12;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:"DM Sans",-apple-system,sans-serif;color:#e8eaee;padding:24px;box-sizing:border-box;visibility:visible !important;}' +
+      '.dr-auth-card{max-width:480px;width:100%;background:#13161d;border:1px solid #232830;border-radius:12px;padding:36px 32px;box-shadow:0 12px 48px rgba(0,0,0,0.5);}' +
+      '.dr-auth-brand{font-family:"DM Serif Display",serif;font-size:28px;color:#e8eaee;margin-bottom:8px;letter-spacing:0.02em;}' +
+      '.dr-auth-brand em{color:#c9a86b;font-style:normal;}' +
+      '.dr-auth-eyebrow{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#7e8590;margin-bottom:20px;font-weight:500;}' +
+      '.dr-auth-card h1{font-family:"DM Serif Display",serif;font-size:24px;font-weight:400;margin:0 0 12px;color:#e8eaee;line-height:1.3;}' +
+      '.dr-auth-lede{font-size:14px;line-height:1.55;color:#a8aeb8;margin:0 0 24px;}' +
+      '.dr-auth-form{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}' +
+      '.dr-auth-form input{background:#0b0d12;border:1px solid #2c333d;border-radius:6px;padding:11px 14px;font-size:14px;color:#e8eaee;font-family:inherit;outline:none;transition:border-color 0.15s;}' +
+      '.dr-auth-form input:focus{border-color:#c9a86b;}' +
+      '.dr-auth-form input:disabled{opacity:0.6;}' +
+      '.dr-auth-form button{background:#c9a86b;border:none;border-radius:6px;padding:11px 14px;font-size:14px;font-weight:500;color:#0b0d12;cursor:pointer;font-family:inherit;transition:background 0.15s;}' +
+      '.dr-auth-form button:hover{background:#d6b87a;}' +
+      '.dr-auth-form button:disabled{background:#5a4d3a;color:#8e8276;cursor:not-allowed;}' +
+      '.dr-auth-status{font-size:13px;line-height:1.5;margin:8px 0 16px;min-height:18px;color:#a8aeb8;}' +
+      '.dr-auth-status a{color:#c9a86b;text-decoration:none;}' +
+      '.dr-auth-status a:hover{text-decoration:underline;}' +
+      '.dr-auth-status-error{color:#e88080;}' +
+      '.dr-auth-status-success{color:#8ecca5;}' +
+      '.dr-auth-help{font-size:12px;color:#7e8590;margin:0;padding-top:18px;border-top:1px solid #232830;}' +
+      '.dr-auth-help a{color:#c9a86b;text-decoration:none;}' +
+      '.dr-auth-help a:hover{text-decoration:underline;}' +
+      '.dr-auth-footer{font-size:11px;color:#5a6068;margin-top:18px;line-height:1.5;}';
+    document.head.appendChild(style);
+  }
+
+  function showAuthPanel(reason) {
+    injectAuthStyles();
+
+    var existing = document.getElementById('dr-auth-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-auth-overlay';
+    overlay.className = 'dr-auth-overlay';
+
+    var headline, lede;
+    if (reason === 'access_denied') {
+      headline = 'Access not authorised';
+      lede = 'You are signed in, but the email address used is not registered against this engagement workspace. Sign out and sign in with the address registered to the AI Lane &times; Dun &amp; Bradstreet engagement, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a> if you believe this is an error.';
+    } else if (reason === 'init_error') {
+      headline = 'Workspace temporarily unavailable';
+      lede = 'A platform initialisation error occurred. Please refresh the page; if the issue persists, contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.';
+    } else {
+      headline = 'Welcome to the engagement workspace';
+      lede = 'This is the private space for the AI Lane &times; Dun &amp; Bradstreet strategic data partnership. Enter your email to receive a magic-link sign-in. The link will return you to this workspace directly.';
+    }
+
+    overlay.innerHTML =
+      '<div class="dr-auth-card">' +
+        '<div class="dr-auth-brand">Ai<em>lane</em></div>' +
+        '<div class="dr-auth-eyebrow">Dun &amp; Bradstreet × AI Lane Deal Room</div>' +
+        '<h1>' + escapeHtml(headline) + '</h1>' +
+        '<p class="dr-auth-lede">' + lede + '</p>' +
+        '<div class="dr-auth-form">' +
+          '<input type="email" id="dr-auth-email" placeholder="you@dnb.com" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" />' +
+          '<button type="button" id="dr-auth-send">Send magic link</button>' +
+        '</div>' +
+        '<p id="dr-auth-status" class="dr-auth-status"></p>' +
+        '<p class="dr-auth-help">Trouble signing in? Email <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</p>' +
+        '<p class="dr-auth-footer">AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720<br>Confidential — pre-contractual workspace.</p>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+    document.body.style.visibility = 'visible';
+
+    var emailInput = document.getElementById('dr-auth-email');
+    var sendBtn = document.getElementById('dr-auth-send');
+    var statusEl = document.getElementById('dr-auth-status');
+
+    function setStatus(html, kind) {
+      statusEl.innerHTML = html;
+      statusEl.className = 'dr-auth-status' + (kind ? ' dr-auth-status-' + kind : '');
+    }
+
+    async function send() {
+      var email = (emailInput.value || '').trim();
+      if (!email || email.indexOf('@') < 0) {
+        setStatus('Please enter a valid email address.', 'error');
+        try { emailInput.focus(); } catch (e) {}
+        return;
+      }
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+      setStatus('Sending magic link...');
+
+      try {
+        var result = await window.__dealRoomSb.auth.signInWithOtp({
+          email: email,
+          options: {
+            emailRedirectTo: window.location.origin + WORKSPACE_ROOT,
+            shouldCreateUser: false
+          }
+        });
+        if (result && result.error) {
+          setStatus('We could not send a magic link to that address. Please verify the email is registered to this engagement, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.', 'error');
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Send magic link';
+          return;
+        }
+        setStatus('Magic link sent. Please check your inbox at <strong>' + escapeHtml(email) + '</strong> &mdash; the link will return you to this workspace.', 'success');
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Resend magic link';
+        emailInput.disabled = true;
+
+        try {
+          if (window.gtag) window.gtag('event', 'dealroom_magiclink_sent', { clid: CLID });
+        } catch (e) { /* swallow */ }
+      } catch (e) {
+        setStatus('Connection issue &mdash; please try again, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send magic link';
+      }
+    }
+
+    sendBtn.addEventListener('click', send);
+    emailInput.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); send(); }
+    });
+
+    setTimeout(function () { try { emailInput.focus(); } catch (e) {} }, 50);
+
+    try {
+      if (window.gtag) window.gtag('event', 'dealroom_auth_panel_shown', { clid: CLID, reason: reason || 'no_session' });
+    } catch (e) { /* swallow */ }
+  }
+
+  // ─── Auth flow ──────────────────────────────────────────
   async function checkAccess(session) {
     var token = session && session.access_token;
-    if (!token) return redirectToLogin();
+    if (!token) return showAuthPanel('no_session');
     var payload = decodeJwt(token);
-    if (!payload || !payload.sub) return redirectToLogin();
+    if (!payload || !payload.sub) return showAuthPanel('no_session');
 
     var email = payload.email || '';
 
@@ -82,20 +237,15 @@
       return revealPage();
     }
 
-    // Path 2 — institutional tier
-    var tier = await fetchSubscriptionTier(token, payload.sub);
-    if (tier === ALLOWED_TIER) {
-      window.__dealRoomUser = { id: payload.sub, email: email, tier: tier, token: token, role: 'institutional', clid: CLID };
-      return revealPage();
-    }
-
-    // Path 3 — partner_contacts row scoped to this CLID
+    // Path 2 — partner_contacts row scoped to this CLID
+    // (PRECEDES tier check: engagement-specific role wins over coincidental tier subscription)
     var contact = await fetchPartnerContact(token, payload.sub, CLID);
     if (contact && contact.status === 'active') {
+      var tier1 = await fetchSubscriptionTier(token, payload.sub);
       window.__dealRoomUser = {
         id: payload.sub,
         email: email,
-        tier: tier || 'partner',
+        tier: tier1 || 'partner',
         token: token,
         role: 'partner_contact',
         clid: CLID,
@@ -104,10 +254,19 @@
       return revealPage();
     }
 
-    return redirectToLogin();
+    // Path 3 — institutional tier (fallback for AI Lane internal Institutional users)
+    var tier = await fetchSubscriptionTier(token, payload.sub);
+    if (tier === ALLOWED_TIER) {
+      window.__dealRoomUser = { id: payload.sub, email: email, tier: tier, token: token, role: 'institutional', clid: CLID };
+      return revealPage();
+    }
+
+    return showAuthPanel('access_denied');
   }
 
   function revealPage() {
+    var overlay = document.getElementById('dr-auth-overlay');
+    if (overlay) overlay.remove();
     var emailEl = document.getElementById('dr-user-email');
     if (emailEl && window.__dealRoomUser) emailEl.textContent = window.__dealRoomUser.email;
     document.body.style.visibility = 'visible';
@@ -116,7 +275,7 @@
   }
 
   function startGuard() {
-    if (!window.supabase || !window.supabase.createClient) return redirectToLogin();
+    if (!window.supabase || !window.supabase.createClient) return showAuthPanel('init_error');
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window.__dealRoomSb = sb;
 
@@ -126,16 +285,29 @@
         var session = result && result.data ? result.data.session : null;
         if (session) return checkAccess(session);
 
+        // Wait briefly for onAuthStateChange in case supabase-js is mid-process
+        // (e.g. magic-link hash being consumed). If nothing fires within 4s,
+        // surface the inline auth panel.
         await new Promise(function (resolve) {
           var done = false;
-          var t = setTimeout(function () { if (!done) { done = true; redirectToLogin(); resolve(); } }, 6000);
+          var t = setTimeout(function () {
+            if (!done) { done = true; showAuthPanel('no_session'); resolve(); }
+          }, 4000);
           sb.auth.onAuthStateChange(function (_event, s) {
             if (done) return;
-            if (s) { done = true; clearTimeout(t); checkAccess(s).finally(resolve); }
+            if (s) {
+              done = true;
+              clearTimeout(t);
+              // Cosmetic: strip magic-link tokens from the URL on success
+              if (window.location.hash && window.location.hash.indexOf('access_token=') >= 0) {
+                try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+              }
+              checkAccess(s).finally(resolve);
+            }
           });
         });
       } catch (e) {
-        redirectToLogin();
+        showAuthPanel('init_error');
       }
     })();
   }
@@ -165,7 +337,7 @@
     }
   }
 
-  // ── Eileen counterparty chat panel ─────────────────────
+  // ─── Eileen counterparty chat panel ─────────────────────
   function bindEileenPanel() {
     var panel = document.getElementById('dr-eileen-panel');
     var input = document.getElementById('dr-eileen-input');
@@ -257,7 +429,7 @@
     });
   }
 
-  // ── Gate-state-driven document gating (documents page) ─
+  // ─── Gate-state-driven document gating (documents page) ─
   async function applyDocumentGating() {
     var cards = document.querySelectorAll('[data-released-phase]');
     if (cards.length === 0) return;
