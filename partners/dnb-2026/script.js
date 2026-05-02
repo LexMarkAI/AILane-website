@@ -6,7 +6,7 @@
    Brief: AILANE-CC-BRIEF-DEAL-ROOM-PHASE-1B-001 v1.0
    Auth pattern: RULE 26 / RULE 2 (JWT decode + raw fetch).
 
-   PHASE 1B BUILD-TIME GAP FIX v3 (2 May 2026):
+   PHASE 1B BUILD-TIME GAP FIX v4 (2 May 2026):
    - The original auth guard called window.location.replace('/login/')
      for unauthenticated visitors, but no /login/ surface exists in
      the repo. Result: counterparty hits the deal-room, gets bounced
@@ -39,6 +39,12 @@
      redirect in v0 because no auth-API call was ever made before
      the redirect fired. Verified live via Supabase MCP
      get_publishable_keys; signature ends ...VZ5g.
+   - Sub-page secondary navigation: on /documents/, /status/, and
+     /pathway/, two nav cards linking to the OTHER two sub-pages
+     are injected after the hero section so visitors can move
+     between sub-pages without returning to workspace home first.
+     Workspace home unchanged (already surfaces all three cards).
+     Brand mark in dr-header continues to link home for fallback.
    - Patch authority: AILANE-AMD-REG-001 AM-101 (in preparation).
    ============================================================ */
 
@@ -290,6 +296,7 @@
     document.body.style.visibility = 'visible';
     bindEileenPanel();
     applyDocumentGating();
+    injectSubPageNav();
   }
 
   function startGuard() {
@@ -483,6 +490,87 @@
         cards[i].appendChild(badge);
       }
     }
+  }
+
+  // ─── Sub-page secondary nav injection ───────────────────
+  // On each sub-page (/documents/, /status/, /pathway/), inject
+  // nav cards to the OTHER two sub-pages so the visitor can move
+  // between them without returning to workspace home first. The
+  // workspace home page already shows all three nav cards in its
+  // primary content, so injection is skipped there. Reuses
+  // existing .dr-nav-card / .dr-nav-grid styles for visual
+  // consistency; adds one scoped CSS rule for the 2-card layout.
+  // Idempotent — safe to call repeatedly.
+  function injectSubPageNav() {
+    var path = window.location.pathname;
+    var current = null;
+    if (path.indexOf('/documents/') >= 0) current = 'documents';
+    else if (path.indexOf('/status/') >= 0) current = 'status';
+    else if (path.indexOf('/pathway/') >= 0) current = 'pathway';
+    if (!current) return;
+
+    if (document.querySelector('.dr-subpage-nav-section')) return;
+
+    var pages = {
+      documents: {
+        icon: 'D',
+        title: 'Documents',
+        desc: 'Engagement roadmap, commercial proposal, Legal &amp; Audit pack overview.',
+        meta: 'Phase 0 · Pre-engagement release',
+        href: '/partners/dnb-2026/documents/'
+      },
+      status: {
+        icon: 'S',
+        title: 'Engagement Status',
+        desc: 'Six-phase progression and Legal &amp; Audit gate status for this engagement.',
+        meta: 'Phase A — In progress',
+        href: '/partners/dnb-2026/status/'
+      },
+      pathway: {
+        icon: 'P',
+        title: 'Pathway',
+        desc: 'Engagement pathway summary, three asynchronous next-step paths, and the full diagram.',
+        meta: 'A → F · Pre-engagement to renewal',
+        href: '/partners/dnb-2026/pathway/'
+      }
+    };
+
+    var hero = document.querySelector('.dr-hero');
+    if (!hero) return;
+
+    if (!document.getElementById('dr-subpage-nav-styles')) {
+      var style = document.createElement('style');
+      style.id = 'dr-subpage-nav-styles';
+      style.textContent =
+        '.dr-subpage-nav-section{margin-bottom:32px;}' +
+        '.dr-subpage-nav-section .dr-nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:760px;}';
+      document.head.appendChild(style);
+    }
+
+    var section = document.createElement('section');
+    section.className = 'dr-section dr-subpage-nav-section';
+
+    var grid = document.createElement('div');
+    grid.className = 'dr-nav-grid';
+
+    var order = ['documents', 'status', 'pathway'];
+    for (var i = 0; i < order.length; i++) {
+      var slug = order[i];
+      if (slug === current) continue;
+      var p = pages[slug];
+      var card = document.createElement('a');
+      card.className = 'dr-nav-card';
+      card.href = p.href;
+      card.innerHTML =
+        '<div class="dr-nav-card-icon">' + p.icon + '</div>' +
+        '<div class="dr-nav-card-title">' + p.title + '</div>' +
+        '<div class="dr-nav-card-desc">' + p.desc + '</div>' +
+        '<div class="dr-nav-card-meta">' + p.meta + '</div>';
+      grid.appendChild(card);
+    }
+
+    section.appendChild(grid);
+    hero.insertAdjacentElement('afterend', section);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
