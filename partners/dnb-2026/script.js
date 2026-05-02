@@ -6,7 +6,7 @@
    Brief: AILANE-CC-BRIEF-DEAL-ROOM-PHASE-1B-001 v1.0
    Auth pattern: RULE 26 / RULE 2 (JWT decode + raw fetch).
 
-   PHASE 1B BUILD-TIME GAP FIX (2 May 2026):
+   PHASE 1B BUILD-TIME GAP FIX v2 (2 May 2026):
    - The original auth guard called window.location.replace('/login/')
      for unauthenticated visitors, but no /login/ surface exists in
      the repo. Result: counterparty hits the deal-room, gets bounced
@@ -21,6 +21,17 @@
      subscription_tier check. Engagement-specific role wins over
      coincidental tier subscription so role_title and gate-state
      document gating apply correctly for dual-role users.
+   - signInWithOtp uses shouldCreateUser:true. Authentication
+     (email control) and authorisation (engagement membership) are
+     deliberately separated: any email may request a magic link;
+     only emails with an active partner_contacts row, Director
+     identity, or Institutional tier pass the post-auth checkAccess
+     gate. Anyone else lands on the access_denied panel and sees
+     nothing of value. This avoids brittle pre-provisioning of
+     auth.users for each new counterparty (Anna Krayn, Edward
+     Thorne, future cohorts) — only partner_contacts rows are
+     pre-provisioned; auth.users rows are auto-created on first
+     magic-link click-through.
    - Patch authority: AILANE-AMD-REG-001 AM-101 (in preparation).
    ============================================================ */
 
@@ -186,11 +197,11 @@
           email: email,
           options: {
             emailRedirectTo: window.location.origin + WORKSPACE_ROOT,
-            shouldCreateUser: false
+            shouldCreateUser: true
           }
         });
         if (result && result.error) {
-          setStatus('We could not send a magic link to that address. Please verify the email is registered to this engagement, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.', 'error');
+          setStatus('We could not send a magic link right now. Please try again, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.', 'error');
           sendBtn.disabled = false;
           sendBtn.textContent = 'Send magic link';
           return;
