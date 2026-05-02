@@ -6,7 +6,7 @@
    Brief: AILANE-CC-BRIEF-DEAL-ROOM-PHASE-1B-001 v1.0
    Auth pattern: RULE 26 / RULE 2 (JWT decode + raw fetch).
 
-   PHASE 1B BUILD-TIME GAP FIX v2 (2 May 2026):
+   PHASE 1B BUILD-TIME GAP FIX v3 (2 May 2026):
    - The original auth guard called window.location.replace('/login/')
      for unauthenticated visitors, but no /login/ surface exists in
      the repo. Result: counterparty hits the deal-room, gets bounced
@@ -32,12 +32,19 @@
      Thorne, future cohorts) — only partner_contacts rows are
      pre-provisioned; auth.users rows are auto-created on first
      magic-link click-through.
+   - SUPABASE_ANON_KEY refreshed to the current project anon key
+     (issued 25 April 2026, iat=1771103703). The earlier embedded
+     key (issued 9 March 2025) had been rotated and was returning
+     HTTP 401 on /auth/v1/otp calls — masked by the /login/
+     redirect in v0 because no auth-API call was ever made before
+     the redirect fired. Verified live via Supabase MCP
+     get_publishable_keys; signature ends ...VZ5g.
    - Patch authority: AILANE-AMD-REG-001 AM-101 (in preparation).
    ============================================================ */
 
 (function () {
   var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1NDQ5MDIsImV4cCI6MjA1NzEyMDkwMn0.LMfOjHp97P9MKaOeaK3GI2JCQ7kj5Kxpuq6llLD-1H0';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   var DIRECTOR_EMAIL = 'mark@ailane.ai';
   var ALLOWED_TIER = 'institutional';
   var CLID = 'dnb-2026-001';
