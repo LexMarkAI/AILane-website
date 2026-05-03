@@ -651,6 +651,7 @@
     var path = window.location.pathname;
     var current = null;
     if (path.indexOf('/documents/') >= 0) current = 'documents';
+    else if (path.indexOf('/configurator/') >= 0) current = 'configurator';
     else if (path.indexOf('/status/') >= 0) current = 'status';
     else if (path.indexOf('/pathway/') >= 0) current = 'pathway';
     if (!current) return;
@@ -663,21 +664,28 @@
         title: 'Documents',
         desc: 'Engagement roadmap, commercial proposal, Legal &amp; Audit pack overview.',
         meta: 'Phase 0 · Pre-engagement release',
-        href: '/partners/dnb-2026/documents/'
+        href: WORKSPACE_ROOT + 'documents/'
+      },
+      configurator: {
+        icon: 'C',
+        title: 'Configurator',
+        desc: 'Compose pricing configurations across the six data-estate layers and four modifiers. Live deterministic quote; non-binding indications.',
+        meta: 'Live pricing · counter-proposal at Phase A',
+        href: WORKSPACE_ROOT + 'configurator/'
       },
       status: {
         icon: 'S',
         title: 'Engagement Status',
         desc: 'Six-phase progression and Legal &amp; Audit gate status for this engagement.',
         meta: 'Phase A — In progress',
-        href: '/partners/dnb-2026/status/'
+        href: WORKSPACE_ROOT + 'status/'
       },
       pathway: {
         icon: 'P',
         title: 'Pathway',
         desc: 'Engagement pathway summary, three asynchronous next-step paths, and the full diagram.',
         meta: 'A → F · Pre-engagement to renewal',
-        href: '/partners/dnb-2026/pathway/'
+        href: WORKSPACE_ROOT + 'pathway/'
       }
     };
 
