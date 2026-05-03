@@ -344,6 +344,9 @@
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
+    if (location.pathname.indexOf('/documents/') !== -1) {
+      populateDocumentsCatalog(window.__dealRoomUser);
+    }
   }
 
   function startGuard() {
@@ -578,6 +581,179 @@
         badge.textContent = label;
         cards[i].appendChild(badge);
       }
+    }
+  }
+
+  // ─── Documents page: dynamic catalog from dealroom_documents_catalog ──
+  // AMD-XXX §4.2(e). Live schema field names per Director Decision 1:
+  //   document_id, doc_code, name, description, phase, available_from_phase,
+  //   kind, version_label, display_order, storage_path, file_size_bytes.
+  // Drops is_active filter (column does not exist on this table).
+  // Storage_path-driven clickability + size-badge gates (clarifications i+ii):
+  //   - Size badge renders ONLY when storage_path && file_size_bytes truthy
+  //   - Click handler attaches ONLY when storage_path truthy
+  // Director-bypass preserved for phase-locking; sandbox NULL storage_path
+  // means non-clickable for everyone (Decision 2 A1 — by design).
+  // EF call: { clid, catalog_document_id: doc.document_id, action: 'preview' }
+  // populateDocumentsCatalog runs AFTER applyDocumentGating in revealPage()
+  // for defensive ordering (gating is no-op on the empty loading state).
+  async function populateDocumentsCatalog(user) {
+    var grid = document.getElementById('dr-documents-grid');
+    if (!grid) return;
+    if (!user || !user.token) return;
+
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/dealroom_documents_catalog' +
+        '?clid=eq.' + encodeURIComponent(CLID) +
+        '&deleted_at=is.null' +
+        '&select=document_id,doc_code,name,description,phase,available_from_phase,kind,version_label,display_order,storage_path,file_size_bytes' +
+        '&order=available_from_phase.asc,display_order.asc',
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + user.token,
+            'Accept': 'application/json'
+          }
+        }
+      );
+      if (!res.ok) {
+        grid.innerHTML = '<div class="dr-doc-empty dr-doc-empty-error">Document catalog temporarily unavailable. Please refresh, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
+        return;
+      }
+      var docs = await res.json();
+      if (!Array.isArray(docs) || docs.length === 0) {
+        grid.innerHTML = '<div class="dr-doc-empty">No documents catalogued for this CLID yet.</div>';
+        return;
+      }
+
+      // Resolve current phase from partner_clids.gate_state (canonical 7-state)
+      var currentPhase = await fetchClidGateState(user.token, CLID);
+      var currentIdx = GATE_ORDER.indexOf(currentPhase);
+      if (currentIdx === -1) currentIdx = 0;
+
+      // Update "Currently in ..." label using GATE_DISPLAY
+      var phaseLabel = document.getElementById('dr-current-phase');
+      if (phaseLabel) {
+        var letter = GATE_DISPLAY[currentPhase] || currentPhase;
+        phaseLabel.textContent = (currentPhase === 'phase_0')
+          ? 'Phase 0 — Pre-engagement'
+          : 'Phase ' + letter;
+      }
+
+      grid.innerHTML = '';
+      docs.forEach(function (doc) {
+        var releasedPhase = doc.available_from_phase || doc.phase || 'phase_0';
+        var releasedIdx = GATE_ORDER.indexOf(releasedPhase);
+        var isLocked = (releasedIdx > currentIdx) && (user.role !== 'director');
+
+        var card = document.createElement('article');
+        card.className = 'dr-document-card';
+        if (isLocked) {
+          card.classList.add('dr-doc-locked');
+          card.setAttribute('aria-disabled', 'true');
+          card.setAttribute('tabindex', '-1');
+        }
+        card.setAttribute('role', 'listitem');
+        card.setAttribute('data-document-ref', doc.doc_code || doc.document_id);
+        card.setAttribute('data-released-phase', releasedPhase);
+
+        var phaseDisplay = GATE_DISPLAY[releasedPhase] || releasedPhase;
+        var statusBadge;
+        if (isLocked) {
+          statusBadge = '<span class="dr-doc-status">Released on Phase ' + escapeHtml(phaseDisplay) + ' execution</span>';
+        } else if (releasedPhase === 'phase_0') {
+          statusBadge = '<span class="dr-doc-status dr-doc-status-available">Available now</span>';
+        } else {
+          statusBadge = '<span class="dr-doc-status dr-doc-status-available">Available — Phase ' + escapeHtml(phaseDisplay) + '</span>';
+        }
+
+        // Size badge (clarification i): only when storage_path AND file_size_bytes both truthy
+        var sizeBadge = '';
+        if (doc.storage_path && doc.file_size_bytes) {
+          var bytes = Number(doc.file_size_bytes);
+          var sizeText;
+          if (bytes < 1024) {
+            sizeText = bytes + ' B';
+          } else if (bytes < 1024 * 1024) {
+            sizeText = Math.round(bytes / 1024) + ' KB';
+          } else {
+            sizeText = (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+          }
+          sizeBadge = '<span class="dr-document-meta-item">' + escapeHtml(sizeText) + '</span>';
+        }
+
+        var versionBadge = '<span class="dr-document-meta-item">' + escapeHtml(doc.version_label || 'v1') + '</span>';
+        var kindBadge = doc.kind ? '<span class="dr-document-meta-item">' + escapeHtml(doc.kind) + '</span>' : '';
+
+        card.innerHTML =
+          '<header class="dr-document-card-header">' +
+            '<h3 class="dr-document-title">' + escapeHtml(doc.name || '') + '</h3>' +
+            '<span class="dr-document-ref">' + escapeHtml(doc.doc_code || '—') + '</span>' +
+          '</header>' +
+          '<p class="dr-document-desc">' + escapeHtml(doc.description || '') + '</p>' +
+          '<footer class="dr-document-meta">' +
+            versionBadge +
+            kindBadge +
+            sizeBadge +
+            statusBadge +
+          '</footer>';
+
+        // Click handler (clarification ii): only when storage_path truthy
+        if (!isLocked && doc.storage_path) {
+          card.style.cursor = 'pointer';
+          (function (docRef, docId) {
+            card.addEventListener('click', function () {
+              downloadDocument(docRef, docId);
+            });
+          })(doc.doc_code || doc.document_id, doc.document_id);
+        }
+
+        grid.appendChild(card);
+      });
+    } catch (err) {
+      console.error('populateDocumentsCatalog error:', err);
+      grid.innerHTML = '<div class="dr-doc-empty dr-doc-empty-error">Document catalog could not be loaded. Please try again or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
+    }
+  }
+
+  async function downloadDocument(documentRef, catalogDocumentId) {
+    try {
+      if (window.gtag) {
+        window.gtag('event', 'document_download', { clid: CLID, document_ref: documentRef });
+      }
+    } catch (e) { /* swallow */ }
+
+    var user = window.__dealRoomUser;
+    if (!user || !user.token) return;
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/functions/v1/dealroom-document-fetch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + user.token,
+          'apikey': SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({
+          clid: CLID,
+          catalog_document_id: catalogDocumentId,
+          action: 'preview'
+        })
+      });
+      if (!res.ok) {
+        alert('Document temporarily unavailable. Please try again, or contact partnerships@ailane.ai.');
+        return;
+      }
+      var data = await res.json();
+      if (data && data.signed_url) {
+        window.open(data.signed_url, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('Document temporarily unavailable. Please try again, or contact partnerships@ailane.ai.');
+      }
+    } catch (err) {
+      console.error('downloadDocument error:', err);
+      alert('Document download failed. Please contact partnerships@ailane.ai.');
     }
   }
 
