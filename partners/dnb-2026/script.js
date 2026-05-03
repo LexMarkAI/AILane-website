@@ -361,7 +361,7 @@
       }
     }
 
-    // Path 3 — institutional tier (fallback for AI Lane internal Institutional users)
+    // Path 3 — institutional tier (fallback for Ailane internal Institutional users)
     var tier = await fetchSubscriptionTier(token, payload.sub);
     if (tier === ALLOWED_TIER) {
       window.__dealRoomUser = { id: payload.sub, email: email, tier: tier, token: token, role: 'institutional', clid: CLID };
@@ -652,12 +652,12 @@
 
     var section = document.createElement('section');
     section.className = 'dr-eileen-section';
-    section.setAttribute('aria-label', 'Eileen intelligence agent');
+    section.setAttribute('aria-label', 'Eileen intelligence entity');
     section.innerHTML =
       '<div class="dr-eileen-header">' +
         '<h2>Eileen</h2>' +
         '<p class="dr-eileen-subtitle">' +
-          'AI Lane intelligence agent &middot; counterparty mode &middot; commercial terms route via ' +
+          'Ailane intelligence entity &middot; counterparty mode &middot; commercial terms route via ' +
           '<a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.' +
         '</p>' +
       '</div>' +
