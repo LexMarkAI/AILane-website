@@ -805,39 +805,45 @@
   // Counter-proposal INSERT to partner_counter_proposals (28-col schema verified).
   // Reuses existing escapeHtml, fetchClidGateState, GATE_ORDER, GATE_DISPLAY.
   // EIM-001 phrasing-memo binding: exclusivity copy is mechanical only.
+  // Fix 3 (Interpretation A) — Panel 1 = canonical 4-package selector.
+  // CONFIG_STATE.tier removed; ACTIVE_PRESET tracks UI is-selected state.
+  // Slider/modifier user input clears ACTIVE_PRESET (transitions to "custom").
   var CONFIG_STATE = {
-    tier: 'identity',
     scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
     modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 },
     rationale: '', timing: '', urgency: 'standard'
   };
+  var ACTIVE_PRESET = null;  // 'pkg1' | 'pkg2' | 'pkg3' | 'pkg4' | null (custom or reset)
   var LAST_QUOTE = null;
   var TIERS_META = [];
   var MODIFIERS_META = [];
   var FEATURE_FLAGS = {};
   var configRecomputeTimer = null;
 
+  // Canonical 4-package matrix verified against pricing_quote_function:
+  //   Pkg 1 → £550,893  / Pkg 2 → £1,402,811  / Pkg 3 → £1,645,346  / Pkg 4 → £2,727,579
+  var PKG1_PRESET = {
+    label: 'Pkg 1 — Identity',
+    scope: { identity: 78699, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
+    modifiers: { duns_match: true, refresh: 'quarterly', exclusivity: 'none', term_years: 1 }
+  };
   var PKG2_PRESET = {
-    label: 'Pkg 2 baseline (Employer Risk Overlay)',
-    tier: 'full_acei',
+    label: 'Pkg 2 — Tribunal Exposure + Outcome',
     scope: { identity: 78699, tribunal_exposure: 20000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 0, premium: 0 },
     modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 }
   };
   var PKG3_PRESET = {
-    label: 'Pkg 3 with Premium Enrichment',
-    tier: 'full_enrichment',
+    label: 'Pkg 3 — Premium Full-Stack',
     scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 0 },
     modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 }
   };
   var PKG4_PRESET = {
-    label: 'Pkg 4 with Full UK Exclusivity',
-    tier: 'premium',
+    label: 'Pkg 4 — Bespoke + Full UK Exclusivity',
     scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 6000 },
     modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'full_uk', term_years: 3 }
   };
   var RESET_PRESET = {
-    label: 'Reset to blank',
-    tier: 'identity',
+    label: 'Reset to defaults',
     scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
     modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 }
   };
@@ -853,24 +859,14 @@
     if (!user || !user.token) return;
 
     CONFIG_STATE = {
-      tier: 'identity',
       scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
       modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 },
       rationale: '', timing: '', urgency: 'standard'
     };
+    ACTIVE_PRESET = null;
 
     try { if (window.gtag) window.gtag('event', 'configurator_open', { clid: CLID }); } catch (e) { /* swallow */ }
-
-    var presetButtons = document.querySelectorAll('.dr-config-preset[data-preset]');
-    for (var pi = 0; pi < presetButtons.length; pi++) (function (btn) {
-      btn.addEventListener('click', function () {
-        var p = btn.getAttribute('data-preset');
-        if (p === 'pkg2') applyPreset(PKG2_PRESET, 'pkg2');
-        else if (p === 'pkg3') applyPreset(PKG3_PRESET, 'pkg3');
-        else if (p === 'pkg4') applyPreset(PKG4_PRESET, 'pkg4');
-        else if (p === 'reset') applyPreset(RESET_PRESET, 'reset');
-      });
-    })(presetButtons[pi]);
+    // Header preset chip strip retired (Fix 3 / Interpretation A) — Panel 1 binds at render time.
 
     try {
       var hdrs = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + user.token, 'Accept': 'application/json' };
@@ -899,7 +895,6 @@
 
   function applyPreset(preset, presetCode) {
     CONFIG_STATE = {
-      tier: preset.tier,
       scope: {
         identity: preset.scope.identity, tribunal_exposure: preset.scope.tribunal_exposure,
         outcome_intelligence: preset.scope.outcome_intelligence, full_acei: preset.scope.full_acei,
@@ -911,21 +906,17 @@
       },
       rationale: '', timing: '', urgency: 'standard'
     };
-    var presetButtons = document.querySelectorAll('.dr-config-preset[data-preset]');
-    for (var i = 0; i < presetButtons.length; i++) {
-      var btn = presetButtons[i];
-      if (btn.getAttribute('data-preset') === presetCode) btn.classList.add('is-selected');
-      else btn.classList.remove('is-selected');
-    }
+    // presetCode null when user clicks Reset (no preset is selected after reset)
+    ACTIVE_PRESET = (presetCode === 'pkg1' || presetCode === 'pkg2' || presetCode === 'pkg3' || presetCode === 'pkg4') ? presetCode : null;
     renderConfigurator();
     computeQuote();
-    try { if (window.gtag) window.gtag('event', 'configurator_preset_applied', { clid: CLID, preset: presetCode }); } catch (e) { /* swallow */ }
+    try { if (window.gtag) window.gtag('event', 'configurator_preset_applied', { clid: CLID, preset: presetCode || 'reset' }); } catch (e) { /* swallow */ }
   }
 
   function renderConfigurator() {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
-    anchor.innerHTML = renderPanel1Tier_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
+    anchor.innerHTML = renderPanel1Packages_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
     bindConfiguratorRuntimeHandlers_();
   }
 
@@ -941,47 +932,50 @@
     ];
   }
 
-  function renderPanel1Tier_() {
-    var tiers = getTierData_();
+  function renderPanel1Packages_() {
+    // Fix 3 / Interpretation A — Panel 1 is the canonical 4-package selector
+    // (replaces retired 6-tier display-floor + retired header preset chip strip).
+    var packages = [
+      { code: 'pkg1', label: 'Pkg 1 — Identity' },
+      { code: 'pkg2', label: 'Pkg 2 — Tribunal Exposure + Outcome' },
+      { code: 'pkg3', label: 'Pkg 3 — Premium Full-Stack' },
+      { code: 'pkg4', label: 'Pkg 4 — Bespoke + Full UK Exclusivity' }
+    ];
     var buttons = '';
-    for (var i = 0; i < tiers.length; i++) {
-      var t = tiers[i];
-      var active = (CONFIG_STATE.tier === t.tier_code) ? ' is-active' : '';
-      buttons += '<button type="button" class="dr-tier-button' + active + '" data-tier="' + escapeHtml(t.tier_code) + '">' +
-                   escapeHtml(t.display_name) + '</button>';
+    for (var i = 0; i < packages.length; i++) {
+      var p = packages[i];
+      var active = (ACTIVE_PRESET === p.code) ? ' is-active' : '';
+      buttons += '<button type="button" class="dr-tier-button' + active + '" data-package="' + escapeHtml(p.code) + '">' +
+                   escapeHtml(p.label) + '</button>';
     }
-    return '<section class="dr-config-panel" aria-labelledby="dr-panel-tier-h">' +
+    buttons += '<button type="button" class="dr-tier-button dr-config-reset-btn" data-package="reset">Reset to defaults</button>';
+    return '<section class="dr-config-panel" aria-labelledby="dr-panel-pkg-h">' +
              '<header class="dr-config-panel-header">' +
                '<span class="dr-config-panel-number">Panel 1</span>' +
-               '<h2 id="dr-panel-tier-h" class="dr-config-panel-title">Coverage tier</h2>' +
+               '<h2 id="dr-panel-pkg-h" class="dr-config-panel-title">Coverage package</h2>' +
              '</header>' +
              '<p class="dr-config-panel-sub">' +
-               'The deepest enrichment layer in your configuration. Acts as a display floor for the scope inputs below &mdash; layers above the chosen tier are hidden from the form.' +
+               'Select a package to load preset coverage and modifiers. Adjust the scope and modifiers below as needed; the live quote updates after each change.' +
              '</p>' +
              '<div class="dr-tier-grid">' + buttons + '</div>' +
            '</section>';
   }
 
   function renderPanel2Scope_() {
+    // Fix 3 / Interpretation A — tier-floor disable logic retired. All 6 layer
+    // inputs always-enabled. getTierData_ now provides layer rate metadata only.
     var tiers = getTierData_();
-    var currentTierIdx = -1;
-    for (var t = 0; t < tiers.length; t++) {
-      if (tiers[t].tier_code === CONFIG_STATE.tier) { currentTierIdx = t; break; }
-    }
-    if (currentTierIdx === -1) currentTierIdx = 0;
     var inputs = '';
     for (var i = 0; i < tiers.length; i++) {
       var tier = tiers[i];
-      var disabled = (i > currentTierIdx) ? ' disabled' : '';
-      var dim = (i > currentTierIdx) ? ' dr-config-scope-row-dim' : '';
       var rate = '+£' + Math.round(Number(tier.delta_rate_pence || 0) / 100) + '/employer-year';
       var current = CONFIG_STATE.scope[tier.tier_code] || 0;
-      inputs += '<div class="dr-config-scope-row' + dim + '">' +
+      inputs += '<div class="dr-config-scope-row">' +
                   '<label class="dr-config-scope-label">' +
                     '<span class="dr-config-scope-name">' + escapeHtml(tier.display_name) + '</span>' +
                     '<span class="dr-config-scope-rate">' + escapeHtml(rate) + '</span>' +
                   '</label>' +
-                  '<input type="number" min="0" max="78699" step="100" class="dr-config-scope-input"' + disabled +
+                  '<input type="number" min="0" max="78699" step="100" class="dr-config-scope-input"' +
                     ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '">' +
                 '</div>';
     }
@@ -991,7 +985,7 @@
                '<h2 id="dr-panel-scope-h" class="dr-config-panel-title">Coverage scope</h2>' +
              '</header>' +
              '<p class="dr-config-panel-sub">' +
-               'Number of employers receiving each enrichment layer. Identity is the universe (max 78,699 &mdash; the current employer_master count).' +
+               'Number of employers receiving each enrichment layer. Identity is the universe (max 78,699 &mdash; the current employer_master count). Selecting a package preloads these values; manual adjustments transition to a custom configuration.' +
              '</p>' +
              '<div class="dr-config-scope-grid">' + inputs + '</div>' +
              '<div class="dr-config-scope-total">' +
@@ -1095,23 +1089,34 @@
   }
 
   function bindConfiguratorRuntimeHandlers_() {
-    var tBtns = document.querySelectorAll('.dr-tier-button[data-tier]');
-    for (var i = 0; i < tBtns.length; i++) (function (btn) {
+    // Fix 3 / Interpretation A — Panel 1 buttons use data-package attribute,
+    // each click applies the named preset. Reset clears ACTIVE_PRESET to null.
+    var pkgBtns = document.querySelectorAll('.dr-tier-button[data-package]');
+    for (var i = 0; i < pkgBtns.length; i++) (function (btn) {
       btn.addEventListener('click', function () {
-        CONFIG_STATE.tier = btn.getAttribute('data-tier');
-        renderConfigurator();
-        computeQuoteDebounced_();
+        var pkg = btn.getAttribute('data-package');
+        if (pkg === 'pkg1') applyPreset(PKG1_PRESET, 'pkg1');
+        else if (pkg === 'pkg2') applyPreset(PKG2_PRESET, 'pkg2');
+        else if (pkg === 'pkg3') applyPreset(PKG3_PRESET, 'pkg3');
+        else if (pkg === 'pkg4') applyPreset(PKG4_PRESET, 'pkg4');
+        else if (pkg === 'reset') applyPreset(RESET_PRESET, null);
       });
-    })(tBtns[i]);
+    })(pkgBtns[i]);
 
+    // Slider/modifier user input transitions to "custom" — clear ACTIVE_PRESET so the
+    // package buttons no longer show is-active indicator. Re-render reflects this.
     var sInputs = document.querySelectorAll('.dr-config-scope-input[data-scope]');
     for (var j = 0; j < sInputs.length; j++) (function (input) {
       input.addEventListener('input', function () {
         var k = input.getAttribute('data-scope');
         var v = parseInt(input.value || '0', 10);
         CONFIG_STATE.scope[k] = isNaN(v) ? 0 : v;
+        ACTIVE_PRESET = null;
         var totalEl = document.querySelector('.dr-config-scope-total strong');
         if (totalEl) totalEl.textContent = (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB');
+        // Clear is-active class on package buttons without full re-render (perf)
+        var btnsToClear = document.querySelectorAll('.dr-tier-button[data-package].is-active');
+        for (var c = 0; c < btnsToClear.length; c++) btnsToClear[c].classList.remove('is-active');
         computeQuoteDebounced_();
       });
     })(sInputs[j]);
@@ -1119,6 +1124,7 @@
     var dunsEl = document.getElementById('dr-config-duns');
     if (dunsEl) dunsEl.addEventListener('change', function () {
       CONFIG_STATE.modifiers.duns_match = dunsEl.checked;
+      ACTIVE_PRESET = null;
       renderConfigurator();
       computeQuoteDebounced_();
     });
@@ -1127,6 +1133,7 @@
     for (var r = 0; r < rBtns.length; r++) (function (btn) {
       btn.addEventListener('click', function () {
         CONFIG_STATE.modifiers.refresh = btn.getAttribute('data-refresh');
+        ACTIVE_PRESET = null;
         renderConfigurator();
         computeQuoteDebounced_();
       });
@@ -1136,6 +1143,7 @@
     for (var e2 = 0; e2 < eBtns.length; e2++) (function (btn) {
       btn.addEventListener('click', function () {
         CONFIG_STATE.modifiers.exclusivity = btn.getAttribute('data-exclusivity');
+        ACTIVE_PRESET = null;
         renderConfigurator();
         computeQuoteDebounced_();
       });
@@ -1145,6 +1153,7 @@
     for (var tr = 0; tr < trBtns.length; tr++) (function (btn) {
       btn.addEventListener('click', function () {
         CONFIG_STATE.modifiers.term_years = parseInt(btn.getAttribute('data-term'), 10) || 1;
+        ACTIVE_PRESET = null;
         renderConfigurator();
         computeQuoteDebounced_();
       });
