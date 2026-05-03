@@ -93,7 +93,16 @@
   var CLID = 'dnb-2026-001';
   var WORKSPACE_ROOT = '/partners/dnb-2026/';
 
-  var GATE_ORDER = ['pre_engagement', 'A', 'B', 'C', 'D', 'E', 'F'];
+  var GATE_ORDER = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+  var GATE_DISPLAY = {
+    phase_0: 'pre-engagement',
+    phase_a: 'A',
+    phase_b: 'B',
+    phase_c: 'C',
+    phase_d: 'D',
+    phase_e: 'E',
+    phase_f: 'F'
+  };
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -142,11 +151,11 @@
         SUPABASE_URL + '/rest/v1/partner_clids?clid=eq.' + encodeURIComponent(clid) + '&select=gate_state&limit=1',
         { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
       );
-      if (!res.ok) return 'pre_engagement';
+      if (!res.ok) return 'phase_0';
       var rows = await res.json();
-      return (rows && rows[0] && rows[0].gate_state) ? rows[0].gate_state : 'pre_engagement';
+      return (rows && rows[0] && rows[0].gate_state) ? rows[0].gate_state : 'phase_0';
     } catch (e) {
-      return 'pre_engagement';
+      return 'phase_0';
     }
   }
 
@@ -558,9 +567,9 @@
       cards[i].setAttribute('tabindex', '-1');
       var existingStatus = cards[i].querySelector('.dr-doc-status');
       var hasStaticMeta = cards[i].querySelector('.dr-document-future-meta');
-      var label = (releasedPhase === 'pre_engagement')
+      var label = (releasedPhase === 'phase_0')
         ? 'Released pre-engagement'
-        : 'Released on Phase ' + releasedPhase + ' execution';
+        : 'Released on Phase ' + (GATE_DISPLAY[releasedPhase] || releasedPhase) + ' execution';
       if (existingStatus) {
         existingStatus.textContent = label;
       } else if (!hasStaticMeta) {
