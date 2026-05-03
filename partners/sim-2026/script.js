@@ -1368,7 +1368,7 @@
     var modSummary = (m.duns_match ? 'DUNS' : 'no-DUNS') + ' / ' + m.refresh + ' / ' +
                      (m.exclusivity === 'none' ? 'non-exclusive' : m.exclusivity) + ' / ' +
                      (m.term_years * 12) + ' months';
-    var configSummary = CONFIG_STATE.tier + ' · ' + (layers.length ? layers.join(' / ') : 'no coverage') + ' · ' + modSummary;
+    var configSummary = (ACTIVE_PRESET || 'custom') + ' · ' + (layers.length ? layers.join(' / ') : 'no coverage') + ' · ' + modSummary;
     var minVal = (LAST_QUOTE.annual_band_min_pence != null) ? Math.round(Number(LAST_QUOTE.annual_band_min_pence) / 100) : null;
     var maxVal = (LAST_QUOTE.annual_band_max_pence != null) ? Math.round(Number(LAST_QUOTE.annual_band_max_pence) / 100) : null;
     var payload = {
@@ -1377,7 +1377,7 @@
       submitted_by_email: user.email,
       proposal_version: 1,
       parent_proposal_id: null,
-      config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers, tier: CONFIG_STATE.tier },
+      config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers, preset: ACTIVE_PRESET || 'custom' },
       config_summary: configSummary,
       eileen_evaluation: {},
       eileen_evaluation_text: '',
