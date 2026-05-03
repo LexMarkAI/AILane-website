@@ -93,7 +93,16 @@
   var CLID = 'dnb-2026-001';
   var WORKSPACE_ROOT = '/partners/dnb-2026/';
 
-  var GATE_ORDER = ['pre_engagement', 'A', 'B', 'C', 'D', 'E', 'F'];
+  var GATE_ORDER = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+  var GATE_DISPLAY = {
+    phase_0: 'pre-engagement',
+    phase_a: 'A',
+    phase_b: 'B',
+    phase_c: 'C',
+    phase_d: 'D',
+    phase_e: 'E',
+    phase_f: 'F'
+  };
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -136,17 +145,33 @@
     }
   }
 
+  async function fetchPartnerContactByEmail(token, email, clid) {
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/partner_contacts?email=eq.' + encodeURIComponent(email.toLowerCase()) +
+        '&clid=eq.' + encodeURIComponent(clid) +
+        '&status=eq.active&select=contact_id,status,role_title,user_id&limit=1',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) return null;
+      var rows = await res.json();
+      return (rows && rows.length > 0) ? rows[0] : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function fetchClidGateState(token, clid) {
     try {
       var res = await fetch(
         SUPABASE_URL + '/rest/v1/partner_clids?clid=eq.' + encodeURIComponent(clid) + '&select=gate_state&limit=1',
         { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
       );
-      if (!res.ok) return 'pre_engagement';
+      if (!res.ok) return 'phase_0';
       var rows = await res.json();
-      return (rows && rows[0] && rows[0].gate_state) ? rows[0].gate_state : 'pre_engagement';
+      return (rows && rows[0] && rows[0].gate_state) ? rows[0].gate_state : 'phase_0';
     } catch (e) {
-      return 'pre_engagement';
+      return 'phase_0';
     }
   }
 
@@ -315,7 +340,28 @@
       return revealPage();
     }
 
-    // Path 3 — institutional tier (fallback for AI Lane internal Institutional users)
+    // Path 2.5 — partner_contacts row by EMAIL match (post-§3.1 RLS migration AMD-XXX)
+    // Falls back when partner_contacts.user_id was seeded with a different user (e.g. Director
+    // test setup) or NULL; the partner_contacts_select_by_email RLS policy lets the authenticated
+    // user see any row where lower(email) matches their JWT email claim.
+    if (email) {
+      var contactByEmail = await fetchPartnerContactByEmail(token, email, CLID);
+      if (contactByEmail && contactByEmail.status === 'active') {
+        var tier15 = await fetchSubscriptionTier(token, payload.sub);
+        window.__dealRoomUser = {
+          id: payload.sub,
+          email: email,
+          tier: tier15 || 'partner',
+          token: token,
+          role: 'partner_contact',
+          clid: CLID,
+          role_title: contactByEmail.role_title || null
+        };
+        return revealPage();
+      }
+    }
+
+    // Path 3 — institutional tier (fallback for Ailane internal Institutional users)
     var tier = await fetchSubscriptionTier(token, payload.sub);
     if (tier === ALLOWED_TIER) {
       window.__dealRoomUser = { id: payload.sub, email: email, tier: tier, token: token, role: 'institutional', clid: CLID };
@@ -335,6 +381,11 @@
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
+    if (location.pathname.indexOf('/documents/') !== -1) {
+      populateDocumentsCatalog(window.__dealRoomUser);
+    } else if (location.pathname.indexOf('/configurator/') !== -1) {
+      populateConfigurator(window.__dealRoomUser);
+    }
   }
 
   function startGuard() {
@@ -443,6 +494,9 @@
     panel.dataset.bound = '1';
 
     var conversationMessages = loadStoredTranscript();
+    // Fix 4 — typewriter animation flags (cancellable on new send)
+    var eileenAnimating = false;
+    var eileenAnimationCancelled = false;
 
     function clearEmptyState() {
       var empty = transcript.querySelector('.dr-eileen-empty');
@@ -459,6 +513,48 @@
       return bubble;
     }
 
+    // Fix 4 — typewriter rendering for Eileen replies (frontend-only; no Anthropic
+    // streaming dependency). New bubble gets scroll-to-top of panel rather than
+    // auto-scroll-to-bottom, then characters animate at ~40 chars/sec via
+    // requestAnimationFrame. Cancellable on new send (prior bubble snaps complete).
+    function startEileenTypewriter(fullText) {
+      clearEmptyState();
+      var bubble = document.createElement('div');
+      bubble.className = 'dr-eileen-bubble dr-eileen-eileen';
+      bubble.textContent = '';
+      transcript.appendChild(bubble);
+      // Scroll START of new bubble to top of panel viewport (not auto-scroll-bottom)
+      requestAnimationFrame(function () {
+        try { bubble.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* swallow */ }
+      });
+      var CHARS_PER_SECOND = 40;
+      var charIndex = 0;
+      var lastFrame = performance.now();
+      eileenAnimating = true;
+      eileenAnimationCancelled = false;
+      function tick(now) {
+        if (eileenAnimationCancelled) {
+          bubble.textContent = fullText;
+          eileenAnimating = false;
+          eileenAnimationCancelled = false;
+          return;
+        }
+        var elapsed = now - lastFrame;
+        var charsToAdd = Math.floor(elapsed * CHARS_PER_SECOND / 1000);
+        if (charsToAdd > 0) {
+          charIndex = Math.min(charIndex + charsToAdd, fullText.length);
+          bubble.textContent = fullText.slice(0, charIndex);
+          lastFrame = now;
+        }
+        if (charIndex < fullText.length) {
+          requestAnimationFrame(tick);
+        } else {
+          eileenAnimating = false;
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+
     // Re-hydrate transcript from sessionStorage if present
     if (conversationMessages.length > 0) {
       conversationMessages.forEach(function (m) {
@@ -471,6 +567,9 @@
       var text = (input.value || '').trim();
       if (!text) return;
       if (!window.__dealRoomUser || !window.__dealRoomUser.token) return;
+
+      // Fix 4 — cancel any prior typewriter animation so prior bubble snaps to full text
+      if (eileenAnimating) eileenAnimationCancelled = true;
 
       sendBtn.disabled = true;
       appendBubble('user', text);
@@ -500,9 +599,11 @@
           : 'Connection issue — please try again, or reach the team at partnerships@ailane.ai.';
 
         if (data && data.response) {
-          appendBubble('eileen', responseText);
+          // Push to conversation immediately so subsequent sends include prior context
           conversationMessages.push({ role: 'assistant', content: data.response });
           saveStoredTranscript(conversationMessages);
+          // Fix 4 — visual: typewriter render the response character-by-character
+          startEileenTypewriter(data.response);
         } else {
           appendBubble('eileen', responseText, 'dr-eileen-error');
         }
@@ -558,9 +659,9 @@
       cards[i].setAttribute('tabindex', '-1');
       var existingStatus = cards[i].querySelector('.dr-doc-status');
       var hasStaticMeta = cards[i].querySelector('.dr-document-future-meta');
-      var label = (releasedPhase === 'pre_engagement')
+      var label = (releasedPhase === 'phase_0')
         ? 'Released pre-engagement'
-        : 'Released on Phase ' + releasedPhase + ' execution';
+        : 'Released on Phase ' + (GATE_DISPLAY[releasedPhase] || releasedPhase) + ' execution';
       if (existingStatus) {
         existingStatus.textContent = label;
       } else if (!hasStaticMeta) {
@@ -601,12 +702,12 @@
 
     var section = document.createElement('section');
     section.className = 'dr-eileen-section';
-    section.setAttribute('aria-label', 'Eileen intelligence agent');
+    section.setAttribute('aria-label', 'Eileen intelligence entity');
     section.innerHTML =
       '<div class="dr-eileen-header">' +
         '<h2>Eileen</h2>' +
         '<p class="dr-eileen-subtitle">' +
-          'AI Lane intelligence agent &middot; counterparty mode &middot; commercial terms route via ' +
+          'Ailane intelligence entity &middot; counterparty mode &middot; commercial terms route via ' +
           '<a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.' +
         '</p>' +
       '</div>' +
@@ -637,6 +738,7 @@
     var path = window.location.pathname;
     var current = null;
     if (path.indexOf('/documents/') >= 0) current = 'documents';
+    else if (path.indexOf('/configurator/') >= 0) current = 'configurator';
     else if (path.indexOf('/status/') >= 0) current = 'status';
     else if (path.indexOf('/pathway/') >= 0) current = 'pathway';
     if (!current) return;
@@ -649,21 +751,28 @@
         title: 'Documents',
         desc: 'Engagement roadmap, commercial proposal, Legal &amp; Audit pack overview.',
         meta: 'Phase 0 · Pre-engagement release',
-        href: '/partners/dnb-2026/documents/'
+        href: WORKSPACE_ROOT + 'documents/'
+      },
+      configurator: {
+        icon: 'C',
+        title: 'Configurator',
+        desc: 'Compose pricing configurations across the six data-estate layers and four modifiers. Live deterministic quote; non-binding indications.',
+        meta: 'Live pricing · counter-proposal at Phase A',
+        href: WORKSPACE_ROOT + 'configurator/'
       },
       status: {
         icon: 'S',
         title: 'Engagement Status',
         desc: 'Six-phase progression and Legal &amp; Audit gate status for this engagement.',
         meta: 'Phase A — In progress',
-        href: '/partners/dnb-2026/status/'
+        href: WORKSPACE_ROOT + 'status/'
       },
       pathway: {
         icon: 'P',
         title: 'Pathway',
         desc: 'Engagement pathway summary, three asynchronous next-step paths, and the full diagram.',
         meta: 'A → F · Pre-engagement to renewal',
-        href: '/partners/dnb-2026/pathway/'
+        href: WORKSPACE_ROOT + 'pathway/'
       }
     };
 
@@ -675,7 +784,7 @@
       style.id = 'dr-subpage-nav-styles';
       style.textContent =
         '.dr-subpage-nav-section{margin-bottom:32px;}' +
-        '.dr-subpage-nav-section .dr-nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:760px;}';
+        '.dr-subpage-nav-section .dr-nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}';
       document.head.appendChild(style);
     }
 
@@ -685,7 +794,7 @@
     var grid = document.createElement('div');
     grid.className = 'dr-nav-grid';
 
-    var order = ['documents', 'status', 'pathway'];
+    var order = ['documents', 'configurator', 'status', 'pathway'];
     for (var i = 0; i < order.length; i++) {
       var slug = order[i];
       if (slug === current) continue;
