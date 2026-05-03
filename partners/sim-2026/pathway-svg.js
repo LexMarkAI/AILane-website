@@ -11,11 +11,11 @@
     A: {
       title: 'Phase A — Roadmap & routing',
       timing: 'Earliest: April 2026 · Envelope: April–May 2026',
-      description: 'The engagement roadmap, commercial proposal, and Legal & Audit pack are released to this workspace. D&B routes the partnership internally and the engagement record is opened. AI Lane prepares the mutual NDA template against the proposal\'s confidentiality covering terms.',
+      description: 'The engagement roadmap, commercial proposal, and Legal & Audit pack are released to this workspace. D&B routes the partnership internally and the engagement record is opened. Ailane prepares the mutual NDA template against the proposal\'s confidentiality covering terms.',
       activities: [
         'Roadmap and proposal review by D&B',
         'Internal routing acknowledgement by D&B',
-        'Engagement record opened by AI Lane',
+        'Engagement record opened by Ailane',
         'NDA template prepared'
       ],
       deliverable: 'Routing acknowledged; Phase A documents released; deal-room workspace seeded.'
@@ -23,7 +23,7 @@
     B: {
       title: 'Phase B — NDA execution & Pilot SOW preparation',
       timing: 'Earliest: May 2026 · Envelope: May–June 2026',
-      description: 'A mutual non-disclosure agreement is executed between AI Lane and Dun & Bradstreet. The Pilot Statement of Work is scoped against the per-package data field schedule. NDA execution unlocks subsequent document releases in this workspace.',
+      description: 'A mutual non-disclosure agreement is executed between Ailane and Dun & Bradstreet. The Pilot Statement of Work is scoped against the per-package data field schedule. NDA execution unlocks subsequent document releases in this workspace.',
       activities: [
         'Mutual NDA review and execution',
         'Pilot SOW scoped against package selection',
