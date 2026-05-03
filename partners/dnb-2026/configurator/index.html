@@ -1,127 +1,583 @@
-# =============================================================================
-# AMD-107 Stage F.2 — Completion script
-# =============================================================================
-# AILANE-AMD-REG-001 / AMD-107
-#
-# Context: previous PowerShell deploy succeeded for documents/index.html only.
-# Two paste-artefact errors (line concatenation) caused 4 of 5 file copies to
-# silently fail. This script lands the remaining 4 files cleanly. Idempotent —
-# safe to re-run; git will only stage real diffs.
-#
-# Usage:
-#   1. Save this file to C:\Users\Ailane\Desktop\DEAL-ROOM\
-#   2. In PowerShell:
-#        cd C:\Users\Ailane\Desktop\DEAL-ROOM
-#        .\deploy-amd107-completion.ps1
-# =============================================================================
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deal-Room — Configurator · Ailane</title>
+  <meta name="description" content="Ailane partnership deal-room — pricing configurator.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="../shared/dealroom.css">
+</head>
+<body>
+  <div id="drApp"></div>
 
-$RepoPath   = "C:\Users\Ailane\Desktop\AILane-website"
-$SourcePath = "C:\Users\Ailane\Desktop\DEAL-ROOM"
-$CommitMsg  = "AMD-107 Stage F.2 deal-room front-end - complete (4 remaining files: shared CSS/JS + configurator)"
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../shared/auth.js"></script>
+  <script src="../shared/api.js"></script>
 
-function Write-Step($n, $msg) { Write-Host "`n[$n] $msg" -ForegroundColor Cyan }
-function Write-OK($msg)       { Write-Host "    [OK] $msg" -ForegroundColor Green }
-function Write-Info($msg)     { Write-Host "    [INFO] $msg" -ForegroundColor Yellow }
-function Write-Fail($msg)     { Write-Host "    [FAIL] $msg" -ForegroundColor Red; Pop-Location; exit 1 }
+  <script>
+    // =========================================================================
+    // AILANE Deal-Room — Configurator page
+    // AILANE-AMD-REG-001 / AMD-107 (Stage F.2 front-end rebuild)
+    //
+    // Drop into: /partners/dnb-2026/configurator/index.html
+    //
+    // Four-panel configurator surface backed by pricing_quote_function (AMD-106).
+    //   Panel 1 — Tier (6 options)
+    //   Panel 2 — Coverage scope (manual + presets)
+    //   Panel 3 — Modifiers (DUNS, refresh, exclusivity, term)
+    //   Panel 4 — Live quote (right rail) — calls pricing_quote_function
+    //
+    // Counter-proposal submission gated on gate_state ≥ phase_a (Director bypasses).
+    // =========================================================================
 
-Write-Host "============================================================" -ForegroundColor White
-Write-Host "AMD-107 Completion — landing remaining 4 files on main" -ForegroundColor White
-Write-Host "============================================================" -ForegroundColor White
+    const esc = window.dealroomAuth.escapeHtml;
+    const fmt = window.dealroomApi.formatPence;
 
-# ----- Pre-flight ------------------------------------------------------------
-Write-Step 1 "Pre-flight checks"
-if (-not (Test-Path "$RepoPath\.git")) { Write-Host "[FAIL] Repo not found at $RepoPath" -ForegroundColor Red; exit 1 }
-if (-not (Test-Path $SourcePath))      { Write-Host "[FAIL] Source folder not found: $SourcePath" -ForegroundColor Red; exit 1 }
-$Files = @(
-    @{ src = "dealroom.css";              dst = "partners\dnb-2026\shared\dealroom.css" },
-    @{ src = "dealroom-auth.js";          dst = "partners\dnb-2026\shared\auth.js" },
-    @{ src = "dealroom-api.js";           dst = "partners\dnb-2026\shared\api.js" },
-    @{ src = "dealroom-documents.html";   dst = "partners\dnb-2026\documents\index.html" },
-    @{ src = "dealroom-configurator.html"; dst = "partners\dnb-2026\configurator\index.html" }
-)
-foreach ($f in $Files) {
-    $sourceFile = Join-Path $SourcePath $f.src
-    if (-not (Test-Path $sourceFile)) { Write-Host "[FAIL] Missing source file: $sourceFile" -ForegroundColor Red; exit 1 }
-}
-Write-OK "Repo, source folder, and 5 source files all present"
+    let SESSION = null;
+    let TIERS = [];
+    let MODIFIERS = [];
+    let STATE = null;        // current configurator state
+    let LAST_QUOTE = null;   // last pricing_quote_function output
+    let recomputeTimer = null;
 
-Push-Location $RepoPath
+    // Pkg 2 canonical worked example (per Proposal §8.2 / AMD-106 verification)
+    const PKG2_PRESET = {
+      label: 'Pkg 2 (Sector Risk + Tribunal Exposure)',
+      tier: 'full_acei',
+      scope: { identity: 78699, tribunal_exposure: 20000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 0, premium: 0 },
+      modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 },
+    };
 
-# ----- Verify on main --------------------------------------------------------
-Write-Step 2 "Verifying current branch is main"
-$currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
-if ($currentBranch -ne "main") { Write-Fail "Not on main (currently: $currentBranch). Run 'git checkout main' first." }
-Write-OK "On main"
+    const PKG3_PRESET = {
+      label: 'Pkg 3 (Full Outcome + Severity)',
+      tier: 'full_enrichment',
+      scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 0 },
+      modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 },
+    };
 
-# ----- Pull latest -----------------------------------------------------------
-Write-Step 3 "Pulling latest main"
-git pull origin main
-if ($LASTEXITCODE -ne 0) { Write-Fail "git pull failed" }
-Write-OK "main up to date"
+    const PKG4_PRESET = {
+      label: 'Pkg 4 (Exclusive Partnership)',
+      tier: 'premium',
+      scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 6000 },
+      modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'full_uk', term_years: 3 },
+    };
 
-# ----- Create subdirectories (idempotent) ------------------------------------
-Write-Step 4 "Ensuring subdirectories exist"
-$Dirs = @(
-    "partners\dnb-2026\shared",
-    "partners\dnb-2026\documents",
-    "partners\dnb-2026\configurator"
-)
-foreach ($d in $Dirs) {
-    $full = Join-Path $RepoPath $d
-    if (-not (Test-Path $full)) {
-        New-Item -ItemType Directory -Path $full -Force | Out-Null
-        Write-OK "Created: $d"
-    } else {
-        Write-OK "Exists:  $d"
+    document.addEventListener('DOMContentLoaded', () => {
+      window.dealroomAuth.guard({ onReady: bootstrap });
+    });
+
+    async function bootstrap(session) {
+      SESSION = session;
+      mountShell();
+      try {
+        TIERS = await window.dealroomApi.loadPricingTiers();
+        MODIFIERS = await window.dealroomApi.loadPricingModifiers();
+      } catch (e) {
+        document.getElementById('drConfigBody').innerHTML = `
+          <div class="dr-notice dr-notice-danger">Failed to load pricing model: ${esc(e.message || 'Unknown error')}</div>
+        `;
+        return;
+      }
+
+      // Default state: blank custom config
+      STATE = {
+        tier: 'identity',
+        scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
+        modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 },
+        rationale: '',
+        timing: '',
+      };
+
+      renderConfigurator();
+      // Initial quote (will be £0)
+      recompute();
     }
-}
 
-# ----- Copy all 5 files (idempotent) -----------------------------------------
-Write-Step 5 "Copying all 5 files (overwriting existing)"
-foreach ($f in $Files) {
-    $source = Join-Path $SourcePath $f.src
-    $dest   = Join-Path $RepoPath   $f.dst
-    Copy-Item $source $dest -Force
-    Write-OK "$($f.src)  ->  $($f.dst)"
-}
+    function mountShell() {
+      const counterparty = SESSION.counterparty_name || 'Partner';
+      const userEmail = SESSION.user?.email || '';
+      const contactName = SESSION.contact?.full_name || '';
+      const phase = SESSION.gate_state || 'phase_0';
+      const phaseChip = `<span class="dr-chip dr-chip-${phase}">${esc(phase.replace('phase_', 'Phase '))}</span>`;
 
-# ----- Show diff -------------------------------------------------------------
-Write-Step 6 "Showing diff (git status)"
-git status --short
-Write-Host ""
-git diff --stat
+      document.getElementById('drApp').innerHTML = `
+        <div class="dr-shell">
+          <header class="dr-header">
+            <div class="dr-header-brand">
+              <div class="dr-header-brand-mark">AL</div>
+              <div>
+                <div class="dr-header-title">Ailane × ${esc(counterparty)}</div>
+                <div class="dr-header-subtitle">Deal-Room · ${esc(window.dealroomAuth.PHASE_LABEL[phase] || phase)}</div>
+              </div>
+            </div>
+            <div class="dr-header-meta">
+              ${phaseChip}
+              <div class="dr-header-user">
+                <div class="dr-header-user-name">${esc(contactName || userEmail)}</div>
+                <div class="dr-header-user-email">${esc(userEmail)}</div>
+              </div>
+              <button id="drSignOutBtn" class="dr-btn dr-btn-ghost dr-btn-sm">Sign out</button>
+            </div>
+          </header>
 
-# ----- Stage, commit, push ---------------------------------------------------
-Write-Step 7 "Staging changes"
-git add partners/dnb-2026/
-Write-OK "Staged"
+          <nav class="dr-nav">
+            <a href="../documents/" class="dr-nav-link">Documents</a>
+            <a href="../configurator/" class="dr-nav-link active">Configurator</a>
+          </nav>
 
-Write-Step 8 "Committing"
-git commit -m $CommitMsg
-if ($LASTEXITCODE -ne 0) {
-    $stat = git status --short
-    if (-not $stat) {
-        Write-Info "Nothing to commit — all 5 files already on main and identical to source. Deployment was already complete."
-        Pop-Location
-        exit 0
-    } else {
-        Write-Fail "git commit failed unexpectedly"
+          <main class="dr-main" id="drConfigBody">
+            <div class="dr-loading"><span class="dr-spinner"></span> Loading pricing model…</div>
+          </main>
+
+          <footer class="dr-footer">
+            <div class="dr-footer-strong">AI Lane Limited (trading as Ailane)</div>
+            Company No. 17035654 · ICO Reg. 00013389720 · UK Trademark UK00004347220
+          </footer>
+        </div>
+        <div id="drModalRoot"></div>
+      `;
+
+      document.getElementById('drSignOutBtn').addEventListener('click', async () => {
+        await window.dealroomAuth.signOut();
+        window.location.reload();
+      });
     }
-}
-Write-OK "Committed"
 
-Write-Step 9 "Pushing main"
-git push origin main
-if ($LASTEXITCODE -ne 0) { Write-Fail "git push failed" }
-Write-OK "Pushed to origin/main"
+    function renderConfigurator() {
+      const canSubmit = window.dealroomAuth.isPhaseUnlocked(SESSION.gate_state, 'phase_a') || SESSION.is_director;
 
-Pop-Location
+      document.getElementById('drConfigBody').innerHTML = `
+        <div class="dr-page-header">
+          <div class="dr-page-title">Pricing configurator</div>
+          <div class="dr-page-subtitle">
+            Build a coverage configuration. The live quote on the right computes from <code>pricing_quote_function</code> using ratified rates per AMD-088 + AMD-091 + AMD-103 + AMD-106.
+            ${canSubmit ? '' : '<br><strong>Read-only at the current phase.</strong> Counter-proposal submission unlocks once the engagement reaches Phase A.'}
+          </div>
+        </div>
 
-Write-Host "`n============================================================" -ForegroundColor Green
-Write-Host "DEPLOYMENT COMPLETE" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "Wait ~90 seconds for GitHub Pages to rebuild, then verify:" -ForegroundColor White
-Write-Host "  https://ailane.ai/partners/dnb-2026/documents/" -ForegroundColor White
-Write-Host "  https://ailane.ai/partners/dnb-2026/configurator/" -ForegroundColor White
-Write-Host ""
-Write-Host "Sign in with mark@ailane.ai (Director administrator override)." -ForegroundColor White
+        <div class="dr-configurator">
+          <div class="dr-configurator-panels">
+            ${renderPresetBar()}
+            ${renderPanel1()}
+            ${renderPanel2()}
+            ${renderPanel3()}
+            ${canSubmit ? renderRationaleBlock() : ''}
+          </div>
+          <aside id="drQuotePanel">${renderQuoteSkeleton()}</aside>
+        </div>
+      `;
+
+      bindHandlers(canSubmit);
+    }
+
+    function renderPresetBar() {
+      return `
+        <div class="dr-panel" style="padding:14px 18px;">
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <div style="font-size:12px; color:var(--dr-text-secondary); font-weight:500; text-transform:uppercase; letter-spacing:0.04em;">Quick presets</div>
+            <button class="dr-btn dr-btn-secondary dr-btn-sm" data-preset="pkg2">${esc(PKG2_PRESET.label)}</button>
+            <button class="dr-btn dr-btn-secondary dr-btn-sm" data-preset="pkg3">${esc(PKG3_PRESET.label)}</button>
+            <button class="dr-btn dr-btn-secondary dr-btn-sm" data-preset="pkg4">${esc(PKG4_PRESET.label)}</button>
+            <button class="dr-btn dr-btn-ghost dr-btn-sm" data-preset="reset" style="margin-left:auto;">Reset</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPanel1() {
+      const buttons = TIERS.map(t => {
+        const active = STATE.tier === t.tier_code ? 'active' : '';
+        return `
+          <button class="dr-tier-button ${active}" data-tier="${esc(t.tier_code)}">
+            <div class="dr-tier-button-name">${esc(t.display_name)}</div>
+            <div class="dr-tier-button-rate">£${(t.cumulative_rate_pence / 100).toFixed(0)} cumulative · +£${(t.delta_rate_pence / 100).toFixed(0)} delta</div>
+          </button>
+        `;
+      }).join('');
+
+      return `
+        <section class="dr-panel">
+          <div class="dr-panel-header">
+            <span class="dr-panel-number">Panel 1</span>
+            <span class="dr-panel-title">Coverage tier</span>
+          </div>
+          <div class="dr-panel-subtitle">The deepest tier in your configuration. Cumulative rates apply per matched employer-year. Outcome Intelligence is the £33 tier introduced under AMD-088.</div>
+          <div class="dr-tier-grid">${buttons}</div>
+        </section>
+      `;
+    }
+
+    function renderPanel2() {
+      const totalEmployers = 78699; // current employer_master count
+
+      const inputs = TIERS.map(t => {
+        const code = t.tier_code;
+        const value = STATE.scope[code] || 0;
+        return `
+          <div class="dr-form-group" style="margin-bottom:14px;">
+            <label class="dr-label">${esc(t.display_name)} coverage <span style="color:var(--dr-text-muted); font-weight:400;">(employers)</span></label>
+            <input type="number" min="0" max="${totalEmployers}" step="100" class="dr-input" data-scope="${esc(code)}" value="${value}">
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <section class="dr-panel">
+          <div class="dr-panel-header">
+            <span class="dr-panel-number">Panel 2</span>
+            <span class="dr-panel-title">Coverage scope</span>
+          </div>
+          <div class="dr-panel-subtitle">Per-tier employer counts. Each tier is an independent coverage set — you pay per-employer where data exists at that depth, not as nested subsets. Maximum identity coverage: ${totalEmployers.toLocaleString('en-GB')} employers (current employer_master).</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">${inputs}</div>
+        </section>
+      `;
+    }
+
+    function renderPanel3() {
+      const refreshOptions = ['quarterly', 'daily', 'realtime'];
+      const exclusivityOptions = ['none', 'vertical', 'full_uk'];
+      const termOptions = [1, 2, 3];
+
+      const refreshChips = refreshOptions.map(o => `
+        <button class="dr-radio-option ${STATE.modifiers.refresh === o ? 'active' : ''}" data-refresh="${esc(o)}">${esc(o.replace('_', ' '))}</button>
+      `).join('');
+
+      const exclusivityChips = exclusivityOptions.map(o => `
+        <button class="dr-radio-option ${STATE.modifiers.exclusivity === o ? 'active' : ''}" data-exclusivity="${esc(o)}">${esc(o.replace('_', ' '))}</button>
+      `).join('');
+
+      const termChips = termOptions.map(o => {
+        const label = o === 1 ? '12 months' : (o === 2 ? '24 months · −5%' : '36 months · −10%');
+        return `<button class="dr-radio-option ${STATE.modifiers.term_years === o ? 'active' : ''}" data-term="${o}">${esc(label)}</button>`;
+      }).join('');
+
+      return `
+        <section class="dr-panel">
+          <div class="dr-panel-header">
+            <span class="dr-panel-number">Panel 3</span>
+            <span class="dr-panel-title">Modifiers</span>
+          </div>
+          <div class="dr-panel-subtitle">Operational modifiers compose against the enrichment-layer subtotal. Term discount applies on aggregate.</div>
+
+          <div class="dr-modifier-row">
+            <div>
+              <div class="dr-modifier-label">DUNS match additive</div>
+              <div class="dr-modifier-meta">+£3 per matched employer-year. Coverage transparency declared per AMD-103.</div>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="drDuns" ${STATE.modifiers.duns_match ? 'checked' : ''}>
+              <span style="font-size:13px; color:var(--dr-text-primary);">${STATE.modifiers.duns_match ? 'On' : 'Off'}</span>
+            </label>
+          </div>
+
+          <div class="dr-modifier-row">
+            <div>
+              <div class="dr-modifier-label">Refresh cadence</div>
+              <div class="dr-modifier-meta">Daily +15% · Real-time +25% on enrichment layers</div>
+            </div>
+            <div class="dr-radio-group">${refreshChips}</div>
+          </div>
+
+          <div class="dr-modifier-row">
+            <div>
+              <div class="dr-modifier-label">Exclusivity</div>
+              <div class="dr-modifier-meta">Vertical / Full UK both +60% on enrichment layers</div>
+            </div>
+            <div class="dr-radio-group">${exclusivityChips}</div>
+          </div>
+
+          <div class="dr-modifier-row">
+            <div>
+              <div class="dr-modifier-label">Term length</div>
+              <div class="dr-modifier-meta">Multi-year discount on aggregate</div>
+            </div>
+            <div class="dr-radio-group">${termChips}</div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderRationaleBlock() {
+      return `
+        <section class="dr-panel">
+          <div class="dr-panel-header">
+            <span class="dr-panel-number">Submit</span>
+            <span class="dr-panel-title">Counter-proposal</span>
+          </div>
+          <div class="dr-panel-subtitle">Optional notes accompanying the configuration. Your submission becomes a row in <code>partner_counter_proposals</code> and triggers Director-side review.</div>
+
+          <div class="dr-form-group">
+            <label class="dr-label">Counterparty rationale</label>
+            <textarea class="dr-textarea" id="drRationale" placeholder="Why this configuration?">${esc(STATE.rationale || '')}</textarea>
+          </div>
+
+          <div class="dr-form-group">
+            <label class="dr-label">Timing</label>
+            <input class="dr-input" id="drTiming" placeholder="e.g. Q3 2026 launch" value="${esc(STATE.timing || '')}">
+          </div>
+
+          <button class="dr-btn dr-btn-primary dr-btn-lg" id="drSubmitBtn" style="width:100%; margin-top:6px;">Submit counter-proposal</button>
+          <div id="drSubmitStatus" style="margin-top:14px;"></div>
+        </section>
+      `;
+    }
+
+    function renderQuoteSkeleton() {
+      return `
+        <div class="dr-quote-panel">
+          <div class="dr-quote-headline">Annual quote</div>
+          <div class="dr-quote-amount" id="drQuoteAmount">—</div>
+          <div class="dr-quote-band" id="drQuoteBand">Configure to see quote</div>
+          <div class="dr-quote-breakdown" id="drQuoteBreakdown"></div>
+          <div style="font-size:11px; color:var(--dr-text-muted); margin-top:8px; line-height:1.5;">
+            Quote computed by <code>pricing_quote_function</code> per AMD-088 + AMD-091 + AMD-103 + AMD-106. Band is ±10% around the point quote; contract negotiation closes the point.
+          </div>
+        </div>
+      `;
+    }
+
+    function bindHandlers(canSubmit) {
+      // Presets
+      document.querySelectorAll('button[data-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = btn.getAttribute('data-preset');
+          if (p === 'pkg2') applyPreset(PKG2_PRESET);
+          else if (p === 'pkg3') applyPreset(PKG3_PRESET);
+          else if (p === 'pkg4') applyPreset(PKG4_PRESET);
+          else if (p === 'reset') applyPreset({ tier: 'identity', scope: { identity:0, tribunal_exposure:0, outcome_intelligence:0, full_acei:0, full_enrichment:0, premium:0 }, modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 } });
+        });
+      });
+
+      // Tier buttons
+      document.querySelectorAll('button[data-tier]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          STATE.tier = btn.getAttribute('data-tier');
+          renderConfigurator();
+          recompute();
+        });
+      });
+
+      // Scope inputs
+      document.querySelectorAll('input[data-scope]').forEach(inp => {
+        inp.addEventListener('input', () => {
+          const code = inp.getAttribute('data-scope');
+          STATE.scope[code] = parseInt(inp.value || '0', 10) || 0;
+          recomputeDebounced();
+        });
+      });
+
+      // Modifiers
+      const dunsEl = document.getElementById('drDuns');
+      if (dunsEl) dunsEl.addEventListener('change', () => {
+        STATE.modifiers.duns_match = dunsEl.checked;
+        renderConfigurator();
+        recompute();
+      });
+
+      document.querySelectorAll('button[data-refresh]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          STATE.modifiers.refresh = btn.getAttribute('data-refresh');
+          renderConfigurator();
+          recompute();
+        });
+      });
+
+      document.querySelectorAll('button[data-exclusivity]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          STATE.modifiers.exclusivity = btn.getAttribute('data-exclusivity');
+          renderConfigurator();
+          recompute();
+        });
+      });
+
+      document.querySelectorAll('button[data-term]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          STATE.modifiers.term_years = parseInt(btn.getAttribute('data-term'), 10);
+          renderConfigurator();
+          recompute();
+        });
+      });
+
+      // Submission
+      if (canSubmit) {
+        document.getElementById('drSubmitBtn').addEventListener('click', performSubmit);
+        document.getElementById('drRationale').addEventListener('input', (e) => { STATE.rationale = e.target.value; });
+        document.getElementById('drTiming').addEventListener('input', (e) => { STATE.timing = e.target.value; });
+      }
+    }
+
+    function applyPreset(preset) {
+      STATE = { ...STATE, ...preset };
+      renderConfigurator();
+      recompute();
+    }
+
+    function recomputeDebounced() {
+      clearTimeout(recomputeTimer);
+      recomputeTimer = setTimeout(recompute, 280);
+    }
+
+    async function recompute() {
+      const config = {
+        tier: STATE.tier,
+        scope: STATE.scope,
+        modifiers: STATE.modifiers,
+      };
+
+      const total = (STATE.scope.identity || 0) + (STATE.scope.tribunal_exposure || 0)
+        + (STATE.scope.outcome_intelligence || 0) + (STATE.scope.full_acei || 0)
+        + (STATE.scope.full_enrichment || 0) + (STATE.scope.premium || 0);
+
+      if (total === 0) {
+        document.getElementById('drQuoteAmount').textContent = '£0';
+        document.getElementById('drQuoteBand').textContent = 'Add coverage to see breakdown';
+        document.getElementById('drQuoteBreakdown').innerHTML = '';
+        LAST_QUOTE = null;
+        return;
+      }
+
+      try {
+        const quote = await window.dealroomApi.computeQuote(config);
+        LAST_QUOTE = quote;
+        renderQuote(quote);
+      } catch (e) {
+        document.getElementById('drQuoteBreakdown').innerHTML = `
+          <div class="dr-notice dr-notice-danger">Quote compute failed: ${esc(e.message || 'Unknown error')}</div>
+        `;
+      }
+    }
+
+    function renderQuote(q) {
+      document.getElementById('drQuoteAmount').textContent = fmt(q.annual_pence);
+      document.getElementById('drQuoteBand').textContent =
+        `Band: ${fmt(q.annual_band_min_pence)} – ${fmt(q.annual_band_max_pence)}`;
+
+      // Build the breakdown rows
+      const rows = [];
+      const log = q.computation_log || [];
+
+      for (const entry of log) {
+        if (entry.value_pence == null || entry.value_pence === 0) continue;
+        let label, valueClass = '';
+        switch (entry.step) {
+          case 'identity_layer':
+            label = `Identity (${(entry.count || 0).toLocaleString()})`; break;
+          case 'tribunal_exposure_delta':
+            label = `Tribunal Exposure (${(entry.count || 0).toLocaleString()})`; break;
+          case 'outcome_intelligence_delta':
+            label = `Outcome Intelligence (${(entry.count || 0).toLocaleString()})`; break;
+          case 'full_acei_delta':
+            label = `Full ACEI (${(entry.count || 0).toLocaleString()})`; break;
+          case 'full_enrichment_delta':
+            label = `Full Enrichment (${(entry.count || 0).toLocaleString()})`; break;
+          case 'premium_delta':
+            label = `Premium (${(entry.count || 0).toLocaleString()})`; break;
+          case 'duns_additive':
+            if (!entry.enabled) continue;
+            label = 'DUNS match additive'; break;
+          case 'refresh_modifier':
+            label = `Refresh ${entry.code.replace('refresh_', '')} (+${entry.pct}%)`;
+            valueClass = 'dr-quote-row-positive';
+            break;
+          case 'exclusivity_modifier':
+            label = `Exclusivity ${entry.code.replace('exclusivity_', '')} (+${entry.pct}%)`;
+            valueClass = 'dr-quote-row-positive';
+            break;
+          case 'term_discount':
+            if (entry.pct === 0) continue;
+            label = `Term discount (−${entry.pct}%)`;
+            valueClass = 'dr-quote-row-negative';
+            break;
+          case 'subtotal':
+          case 'enrichment_subtotal':
+          case 'pre_discount':
+          case 'annual':
+            continue; // shown elsewhere
+          default:
+            continue;
+        }
+        rows.push({ label, value: entry.value_pence, valueClass });
+      }
+
+      let html = '';
+      for (const r of rows) {
+        const sign = r.valueClass === 'dr-quote-row-negative' ? '−' : '';
+        html += `
+          <div class="dr-quote-row">
+            <div class="dr-quote-row-label">${esc(r.label)}</div>
+            <div class="dr-quote-row-value ${r.valueClass}">${sign}${fmt(r.value)}</div>
+          </div>
+        `;
+      }
+      // Subtotal + total
+      html += `
+        <div class="dr-quote-row" style="border-top:1px solid var(--dr-border-strong); padding-top:14px; margin-top:8px;">
+          <div class="dr-quote-row-label">Subtotal</div>
+          <div class="dr-quote-row-value">${fmt(q.subtotal_pence)}</div>
+        </div>
+        <div class="dr-quote-row dr-quote-total-row">
+          <div class="dr-quote-row-label">Annual</div>
+          <div class="dr-quote-row-value">${fmt(q.annual_pence)}</div>
+        </div>
+      `;
+
+      document.getElementById('drQuoteBreakdown').innerHTML = html;
+    }
+
+    async function performSubmit() {
+      const status = document.getElementById('drSubmitStatus');
+      const btn = document.getElementById('drSubmitBtn');
+
+      if (!LAST_QUOTE) {
+        status.innerHTML = `<div class="dr-notice dr-notice-warning">Configure a quote before submitting.</div>`;
+        return;
+      }
+
+      if (!SESSION.clid) {
+        status.innerHTML = `<div class="dr-notice dr-notice-warning">CLID not resolved — cannot submit.</div>`;
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="dr-spinner"></span> Submitting…';
+
+      const summary = `${STATE.tier} · ${(STATE.scope.identity || 0).toLocaleString()} employers · ${STATE.modifiers.refresh} · ${STATE.modifiers.term_years}-year · ${fmt(LAST_QUOTE.annual_pence)}/yr`;
+
+      try {
+        const result = await window.dealroomApi.submitCounterProposal({
+          clid: SESSION.clid,
+          configSnapshot: {
+            tier: STATE.tier,
+            scope: STATE.scope,
+            modifiers: STATE.modifiers,
+            quote: {
+              annual_pence: LAST_QUOTE.annual_pence,
+              annual_band_min_pence: LAST_QUOTE.annual_band_min_pence,
+              annual_band_max_pence: LAST_QUOTE.annual_band_max_pence,
+            },
+          },
+          configSummary: summary,
+          counterpartyRationale: STATE.rationale || null,
+          counterpartyTiming: STATE.timing || null,
+          urgencyFlag: false,
+          proposalVersion: 1,
+        });
+        status.innerHTML = `
+          <div class="dr-notice dr-notice-success">
+            <strong>Counter-proposal submitted.</strong><br>
+            Reference: <code>${esc(result.id)}</code><br>
+            Director response status: <strong>pending review</strong>.
+          </div>
+        `;
+        btn.disabled = false;
+        btn.textContent = 'Submit another counter-proposal';
+      } catch (e) {
+        status.innerHTML = `<div class="dr-notice dr-notice-danger">Submission failed: ${esc(e.message || 'Unknown error')}</div>`;
+        btn.disabled = false;
+        btn.textContent ='Submit counter-proposal';
+      }
+    }
+  </script>
+</body>
+</html>
