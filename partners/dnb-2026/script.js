@@ -145,6 +145,22 @@
     }
   }
 
+  async function fetchPartnerContactByEmail(token, email, clid) {
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/partner_contacts?email=eq.' + encodeURIComponent(email.toLowerCase()) +
+        '&clid=eq.' + encodeURIComponent(clid) +
+        '&status=eq.active&select=contact_id,status,role_title,user_id&limit=1',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) return null;
+      var rows = await res.json();
+      return (rows && rows.length > 0) ? rows[0] : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function fetchClidGateState(token, clid) {
     try {
       var res = await fetch(
@@ -322,6 +338,27 @@
         role_title: contact.role_title || null
       };
       return revealPage();
+    }
+
+    // Path 2.5 — partner_contacts row by EMAIL match (post-§3.1 RLS migration AMD-XXX)
+    // Falls back when partner_contacts.user_id was seeded with a different user (e.g. Director
+    // test setup) or NULL; the partner_contacts_select_by_email RLS policy lets the authenticated
+    // user see any row where lower(email) matches their JWT email claim.
+    if (email) {
+      var contactByEmail = await fetchPartnerContactByEmail(token, email, CLID);
+      if (contactByEmail && contactByEmail.status === 'active') {
+        var tier15 = await fetchSubscriptionTier(token, payload.sub);
+        window.__dealRoomUser = {
+          id: payload.sub,
+          email: email,
+          tier: tier15 || 'partner',
+          token: token,
+          role: 'partner_contact',
+          clid: CLID,
+          role_title: contactByEmail.role_title || null
+        };
+        return revealPage();
+      }
     }
 
     // Path 3 — institutional tier (fallback for AI Lane internal Institutional users)
