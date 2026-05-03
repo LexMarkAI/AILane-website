@@ -494,6 +494,9 @@
     panel.dataset.bound = '1';
 
     var conversationMessages = loadStoredTranscript();
+    // Fix 4 — typewriter animation flags (cancellable on new send)
+    var eileenAnimating = false;
+    var eileenAnimationCancelled = false;
 
     function clearEmptyState() {
       var empty = transcript.querySelector('.dr-eileen-empty');
@@ -510,6 +513,48 @@
       return bubble;
     }
 
+    // Fix 4 — typewriter rendering for Eileen replies (frontend-only; no Anthropic
+    // streaming dependency). New bubble gets scroll-to-top of panel rather than
+    // auto-scroll-to-bottom, then characters animate at ~40 chars/sec via
+    // requestAnimationFrame. Cancellable on new send (prior bubble snaps complete).
+    function startEileenTypewriter(fullText) {
+      clearEmptyState();
+      var bubble = document.createElement('div');
+      bubble.className = 'dr-eileen-bubble dr-eileen-eileen';
+      bubble.textContent = '';
+      transcript.appendChild(bubble);
+      // Scroll START of new bubble to top of panel viewport (not auto-scroll-bottom)
+      requestAnimationFrame(function () {
+        try { bubble.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* swallow */ }
+      });
+      var CHARS_PER_SECOND = 40;
+      var charIndex = 0;
+      var lastFrame = performance.now();
+      eileenAnimating = true;
+      eileenAnimationCancelled = false;
+      function tick(now) {
+        if (eileenAnimationCancelled) {
+          bubble.textContent = fullText;
+          eileenAnimating = false;
+          eileenAnimationCancelled = false;
+          return;
+        }
+        var elapsed = now - lastFrame;
+        var charsToAdd = Math.floor(elapsed * CHARS_PER_SECOND / 1000);
+        if (charsToAdd > 0) {
+          charIndex = Math.min(charIndex + charsToAdd, fullText.length);
+          bubble.textContent = fullText.slice(0, charIndex);
+          lastFrame = now;
+        }
+        if (charIndex < fullText.length) {
+          requestAnimationFrame(tick);
+        } else {
+          eileenAnimating = false;
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+
     // Re-hydrate transcript from sessionStorage if present
     if (conversationMessages.length > 0) {
       conversationMessages.forEach(function (m) {
@@ -522,6 +567,9 @@
       var text = (input.value || '').trim();
       if (!text) return;
       if (!window.__dealRoomUser || !window.__dealRoomUser.token) return;
+
+      // Fix 4 — cancel any prior typewriter animation so prior bubble snaps to full text
+      if (eileenAnimating) eileenAnimationCancelled = true;
 
       sendBtn.disabled = true;
       appendBubble('user', text);
@@ -551,9 +599,11 @@
           : 'Connection issue — please try again, or reach the team at partnerships@ailane.ai.';
 
         if (data && data.response) {
-          appendBubble('eileen', responseText);
+          // Push to conversation immediately so subsequent sends include prior context
           conversationMessages.push({ role: 'assistant', content: data.response });
           saveStoredTranscript(conversationMessages);
+          // Fix 4 — visual: typewriter render the response character-by-character
+          startEileenTypewriter(data.response);
         } else {
           appendBubble('eileen', responseText, 'dr-eileen-error');
         }
