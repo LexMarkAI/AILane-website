@@ -1,0 +1,127 @@
+# =============================================================================
+# AMD-107 Stage F.2 — Completion script
+# =============================================================================
+# AILANE-AMD-REG-001 / AMD-107
+#
+# Context: previous PowerShell deploy succeeded for documents/index.html only.
+# Two paste-artefact errors (line concatenation) caused 4 of 5 file copies to
+# silently fail. This script lands the remaining 4 files cleanly. Idempotent —
+# safe to re-run; git will only stage real diffs.
+#
+# Usage:
+#   1. Save this file to C:\Users\Ailane\Desktop\DEAL-ROOM\
+#   2. In PowerShell:
+#        cd C:\Users\Ailane\Desktop\DEAL-ROOM
+#        .\deploy-amd107-completion.ps1
+# =============================================================================
+
+$RepoPath   = "C:\Users\Ailane\Desktop\AILane-website"
+$SourcePath = "C:\Users\Ailane\Desktop\DEAL-ROOM"
+$CommitMsg  = "AMD-107 Stage F.2 deal-room front-end - complete (4 remaining files: shared CSS/JS + configurator)"
+
+function Write-Step($n, $msg) { Write-Host "`n[$n] $msg" -ForegroundColor Cyan }
+function Write-OK($msg)       { Write-Host "    [OK] $msg" -ForegroundColor Green }
+function Write-Info($msg)     { Write-Host "    [INFO] $msg" -ForegroundColor Yellow }
+function Write-Fail($msg)     { Write-Host "    [FAIL] $msg" -ForegroundColor Red; Pop-Location; exit 1 }
+
+Write-Host "============================================================" -ForegroundColor White
+Write-Host "AMD-107 Completion — landing remaining 4 files on main" -ForegroundColor White
+Write-Host "============================================================" -ForegroundColor White
+
+# ----- Pre-flight ------------------------------------------------------------
+Write-Step 1 "Pre-flight checks"
+if (-not (Test-Path "$RepoPath\.git")) { Write-Host "[FAIL] Repo not found at $RepoPath" -ForegroundColor Red; exit 1 }
+if (-not (Test-Path $SourcePath))      { Write-Host "[FAIL] Source folder not found: $SourcePath" -ForegroundColor Red; exit 1 }
+$Files = @(
+    @{ src = "dealroom.css";              dst = "partners\dnb-2026\shared\dealroom.css" },
+    @{ src = "dealroom-auth.js";          dst = "partners\dnb-2026\shared\auth.js" },
+    @{ src = "dealroom-api.js";           dst = "partners\dnb-2026\shared\api.js" },
+    @{ src = "dealroom-documents.html";   dst = "partners\dnb-2026\documents\index.html" },
+    @{ src = "dealroom-configurator.html"; dst = "partners\dnb-2026\configurator\index.html" }
+)
+foreach ($f in $Files) {
+    $sourceFile = Join-Path $SourcePath $f.src
+    if (-not (Test-Path $sourceFile)) { Write-Host "[FAIL] Missing source file: $sourceFile" -ForegroundColor Red; exit 1 }
+}
+Write-OK "Repo, source folder, and 5 source files all present"
+
+Push-Location $RepoPath
+
+# ----- Verify on main --------------------------------------------------------
+Write-Step 2 "Verifying current branch is main"
+$currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
+if ($currentBranch -ne "main") { Write-Fail "Not on main (currently: $currentBranch). Run 'git checkout main' first." }
+Write-OK "On main"
+
+# ----- Pull latest -----------------------------------------------------------
+Write-Step 3 "Pulling latest main"
+git pull origin main
+if ($LASTEXITCODE -ne 0) { Write-Fail "git pull failed" }
+Write-OK "main up to date"
+
+# ----- Create subdirectories (idempotent) ------------------------------------
+Write-Step 4 "Ensuring subdirectories exist"
+$Dirs = @(
+    "partners\dnb-2026\shared",
+    "partners\dnb-2026\documents",
+    "partners\dnb-2026\configurator"
+)
+foreach ($d in $Dirs) {
+    $full = Join-Path $RepoPath $d
+    if (-not (Test-Path $full)) {
+        New-Item -ItemType Directory -Path $full -Force | Out-Null
+        Write-OK "Created: $d"
+    } else {
+        Write-OK "Exists:  $d"
+    }
+}
+
+# ----- Copy all 5 files (idempotent) -----------------------------------------
+Write-Step 5 "Copying all 5 files (overwriting existing)"
+foreach ($f in $Files) {
+    $source = Join-Path $SourcePath $f.src
+    $dest   = Join-Path $RepoPath   $f.dst
+    Copy-Item $source $dest -Force
+    Write-OK "$($f.src)  ->  $($f.dst)"
+}
+
+# ----- Show diff -------------------------------------------------------------
+Write-Step 6 "Showing diff (git status)"
+git status --short
+Write-Host ""
+git diff --stat
+
+# ----- Stage, commit, push ---------------------------------------------------
+Write-Step 7 "Staging changes"
+git add partners/dnb-2026/
+Write-OK "Staged"
+
+Write-Step 8 "Committing"
+git commit -m $CommitMsg
+if ($LASTEXITCODE -ne 0) {
+    $stat = git status --short
+    if (-not $stat) {
+        Write-Info "Nothing to commit — all 5 files already on main and identical to source. Deployment was already complete."
+        Pop-Location
+        exit 0
+    } else {
+        Write-Fail "git commit failed unexpectedly"
+    }
+}
+Write-OK "Committed"
+
+Write-Step 9 "Pushing main"
+git push origin main
+if ($LASTEXITCODE -ne 0) { Write-Fail "git push failed" }
+Write-OK "Pushed to origin/main"
+
+Pop-Location
+
+Write-Host "`n============================================================" -ForegroundColor Green
+Write-Host "DEPLOYMENT COMPLETE" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor Green
+Write-Host "Wait ~90 seconds for GitHub Pages to rebuild, then verify:" -ForegroundColor White
+Write-Host "  https://ailane.ai/partners/dnb-2026/documents/" -ForegroundColor White
+Write-Host "  https://ailane.ai/partners/dnb-2026/configurator/" -ForegroundColor White
+Write-Host ""
+Write-Host "Sign in with mark@ailane.ai (Director administrator override)." -ForegroundColor White
