@@ -344,6 +344,11 @@
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
+    if (location.pathname.indexOf('/documents/') !== -1) {
+      populateDocumentsCatalog(window.__dealRoomUser);
+    } else if (location.pathname.indexOf('/configurator/') !== -1) {
+      populateConfigurator(window.__dealRoomUser);
+    }
   }
 
   function startGuard() {

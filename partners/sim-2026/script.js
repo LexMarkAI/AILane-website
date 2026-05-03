@@ -346,6 +346,8 @@
     applyDocumentGating();
     if (location.pathname.indexOf('/documents/') !== -1) {
       populateDocumentsCatalog(window.__dealRoomUser);
+    } else if (location.pathname.indexOf('/configurator/') !== -1) {
+      populateConfigurator(window.__dealRoomUser);
     }
   }
 
@@ -754,6 +756,637 @@
     } catch (err) {
       console.error('downloadDocument error:', err);
       alert('Document download failed. Please contact partnerships@ailane.ai.');
+    }
+  }
+
+  // ─── Configurator: state, presets, render, RPC, counter-proposal ───
+  // AMD-XXX §4.3(c). Live pricing_quote_function RPC (p_config_snapshot input,
+  // pence output). Penny-perfect reference matrix:
+  //   Pkg 2 → £1,402,811   (annual_pence: 140,281,085)
+  //   Pkg 3 → £1,645,346   (annual_pence: 164,534,585)
+  //   Pkg 4 → £2,727,579   (annual_pence: 272,757,870)
+  // Counter-proposal INSERT to partner_counter_proposals (28-col schema verified).
+  // Reuses existing escapeHtml, fetchClidGateState, GATE_ORDER, GATE_DISPLAY.
+  // EIM-001 phrasing-memo binding: exclusivity copy is mechanical only.
+  var CONFIG_STATE = {
+    tier: 'identity',
+    scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
+    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 },
+    rationale: '', timing: '', urgency: 'standard'
+  };
+  var LAST_QUOTE = null;
+  var TIERS_META = [];
+  var MODIFIERS_META = [];
+  var FEATURE_FLAGS = {};
+  var configRecomputeTimer = null;
+
+  var PKG2_PRESET = {
+    label: 'Pkg 2 baseline (Employer Risk Overlay)',
+    tier: 'full_acei',
+    scope: { identity: 78699, tribunal_exposure: 20000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 0, premium: 0 },
+    modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 }
+  };
+  var PKG3_PRESET = {
+    label: 'Pkg 3 with Premium Enrichment',
+    tier: 'full_enrichment',
+    scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 0 },
+    modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 }
+  };
+  var PKG4_PRESET = {
+    label: 'Pkg 4 with Full UK Exclusivity',
+    tier: 'premium',
+    scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 6000 },
+    modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'full_uk', term_years: 3 }
+  };
+  var RESET_PRESET = {
+    label: 'Reset to blank',
+    tier: 'identity',
+    scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
+    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 }
+  };
+
+  function formatPence(pence) {
+    if (pence == null) return '—';
+    return '£' + Math.round(Number(pence) / 100).toLocaleString('en-GB');
+  }
+
+  async function populateConfigurator(user) {
+    var anchor = document.getElementById('dr-configurator-panels');
+    if (!anchor) return;
+    if (!user || !user.token) return;
+
+    CONFIG_STATE = {
+      tier: 'identity',
+      scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
+      modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 },
+      rationale: '', timing: '', urgency: 'standard'
+    };
+
+    try { if (window.gtag) window.gtag('event', 'configurator_open', { clid: CLID }); } catch (e) { /* swallow */ }
+
+    var presetButtons = document.querySelectorAll('.dr-config-preset[data-preset]');
+    for (var pi = 0; pi < presetButtons.length; pi++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var p = btn.getAttribute('data-preset');
+        if (p === 'pkg2') applyPreset(PKG2_PRESET, 'pkg2');
+        else if (p === 'pkg3') applyPreset(PKG3_PRESET, 'pkg3');
+        else if (p === 'pkg4') applyPreset(PKG4_PRESET, 'pkg4');
+        else if (p === 'reset') applyPreset(RESET_PRESET, 'reset');
+      });
+    })(presetButtons[pi]);
+
+    try {
+      var hdrs = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + user.token, 'Accept': 'application/json' };
+      var results = await Promise.all([
+        fetch(SUPABASE_URL + '/rest/v1/pricing_tier?select=tier_code,display_name,delta_rate_pence,cumulative_rate_pence,is_enrichment_layer,sort_order&order=sort_order.asc', { headers: hdrs }),
+        fetch(SUPABASE_URL + '/rest/v1/pricing_modifier?select=modifier_code,modifier_type,display_name,value_pence,value_pct,applies_to,sort_order&order=sort_order.asc', { headers: hdrs }),
+        fetch(SUPABASE_URL + '/rest/v1/dealroom_feature_flags?select=feature_key,enabled', { headers: hdrs }),
+        fetchClidGateState(user.token, CLID)
+      ]);
+      if (results[0].ok) TIERS_META = await results[0].json();
+      if (results[1].ok) MODIFIERS_META = await results[1].json();
+      if (results[2].ok) {
+        var flags = await results[2].json();
+        FEATURE_FLAGS = {};
+        for (var fi = 0; fi < flags.length; fi++) FEATURE_FLAGS[flags[fi].feature_key] = flags[fi].enabled;
+      }
+      var gateState = results[3] || 'phase_0';
+      renderConfigurator();
+      renderCounterProposalSection(user, gateState);
+      computeQuote();
+    } catch (err) {
+      console.error('populateConfigurator error:', err);
+      anchor.innerHTML = '<div class="dr-config-empty-error">Configurator could not be loaded. Please refresh, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
+    }
+  }
+
+  function applyPreset(preset, presetCode) {
+    CONFIG_STATE = {
+      tier: preset.tier,
+      scope: {
+        identity: preset.scope.identity, tribunal_exposure: preset.scope.tribunal_exposure,
+        outcome_intelligence: preset.scope.outcome_intelligence, full_acei: preset.scope.full_acei,
+        full_enrichment: preset.scope.full_enrichment, premium: preset.scope.premium
+      },
+      modifiers: {
+        duns_match: preset.modifiers.duns_match, refresh: preset.modifiers.refresh,
+        exclusivity: preset.modifiers.exclusivity, term_years: preset.modifiers.term_years
+      },
+      rationale: '', timing: '', urgency: 'standard'
+    };
+    var presetButtons = document.querySelectorAll('.dr-config-preset[data-preset]');
+    for (var i = 0; i < presetButtons.length; i++) {
+      var btn = presetButtons[i];
+      if (btn.getAttribute('data-preset') === presetCode) btn.classList.add('is-selected');
+      else btn.classList.remove('is-selected');
+    }
+    renderConfigurator();
+    computeQuote();
+    try { if (window.gtag) window.gtag('event', 'configurator_preset_applied', { clid: CLID, preset: presetCode }); } catch (e) { /* swallow */ }
+  }
+
+  function renderConfigurator() {
+    var anchor = document.getElementById('dr-configurator-panels');
+    if (!anchor) return;
+    anchor.innerHTML = renderPanel1Tier_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
+    bindConfiguratorRuntimeHandlers_();
+  }
+
+  function getTierData_() {
+    if (TIERS_META && TIERS_META.length > 0) return TIERS_META;
+    return [
+      { tier_code: 'identity',             display_name: 'Identity',             delta_rate_pence: 400 },
+      { tier_code: 'tribunal_exposure',    display_name: 'Tribunal Exposure',    delta_rate_pence: 1400 },
+      { tier_code: 'outcome_intelligence', display_name: 'Outcome Intelligence', delta_rate_pence: 1500 },
+      { tier_code: 'full_acei',            display_name: 'Full ACEI',            delta_rate_pence: 1200 },
+      { tier_code: 'full_enrichment',      display_name: 'Full Enrichment',      delta_rate_pence: 3000 },
+      { tier_code: 'premium',              display_name: 'Premium',              delta_rate_pence: 6500 }
+    ];
+  }
+
+  function renderPanel1Tier_() {
+    var tiers = getTierData_();
+    var buttons = '';
+    for (var i = 0; i < tiers.length; i++) {
+      var t = tiers[i];
+      var active = (CONFIG_STATE.tier === t.tier_code) ? ' is-active' : '';
+      buttons += '<button type="button" class="dr-tier-button' + active + '" data-tier="' + escapeHtml(t.tier_code) + '">' +
+                   escapeHtml(t.display_name) + '</button>';
+    }
+    return '<section class="dr-config-panel" aria-labelledby="dr-panel-tier-h">' +
+             '<header class="dr-config-panel-header">' +
+               '<span class="dr-config-panel-number">Panel 1</span>' +
+               '<h2 id="dr-panel-tier-h" class="dr-config-panel-title">Coverage tier</h2>' +
+             '</header>' +
+             '<p class="dr-config-panel-sub">' +
+               'The deepest enrichment layer in your configuration. Acts as a display floor for the scope inputs below &mdash; layers above the chosen tier are hidden from the form.' +
+             '</p>' +
+             '<div class="dr-tier-grid">' + buttons + '</div>' +
+           '</section>';
+  }
+
+  function renderPanel2Scope_() {
+    var tiers = getTierData_();
+    var currentTierIdx = -1;
+    for (var t = 0; t < tiers.length; t++) {
+      if (tiers[t].tier_code === CONFIG_STATE.tier) { currentTierIdx = t; break; }
+    }
+    if (currentTierIdx === -1) currentTierIdx = 0;
+    var inputs = '';
+    for (var i = 0; i < tiers.length; i++) {
+      var tier = tiers[i];
+      var disabled = (i > currentTierIdx) ? ' disabled' : '';
+      var dim = (i > currentTierIdx) ? ' dr-config-scope-row-dim' : '';
+      var rate = '+£' + Math.round(Number(tier.delta_rate_pence || 0) / 100) + '/employer-year';
+      var current = CONFIG_STATE.scope[tier.tier_code] || 0;
+      inputs += '<div class="dr-config-scope-row' + dim + '">' +
+                  '<label class="dr-config-scope-label">' +
+                    '<span class="dr-config-scope-name">' + escapeHtml(tier.display_name) + '</span>' +
+                    '<span class="dr-config-scope-rate">' + escapeHtml(rate) + '</span>' +
+                  '</label>' +
+                  '<input type="number" min="0" max="78699" step="100" class="dr-config-scope-input"' + disabled +
+                    ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '">' +
+                '</div>';
+    }
+    return '<section class="dr-config-panel" aria-labelledby="dr-panel-scope-h">' +
+             '<header class="dr-config-panel-header">' +
+               '<span class="dr-config-panel-number">Panel 2</span>' +
+               '<h2 id="dr-panel-scope-h" class="dr-config-panel-title">Coverage scope</h2>' +
+             '</header>' +
+             '<p class="dr-config-panel-sub">' +
+               'Number of employers receiving each enrichment layer. Identity is the universe (max 78,699 &mdash; the current employer_master count).' +
+             '</p>' +
+             '<div class="dr-config-scope-grid">' + inputs + '</div>' +
+             '<div class="dr-config-scope-total">' +
+               'Identity coverage: <strong>' + (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB') + '</strong> employers' +
+             '</div>' +
+           '</section>';
+  }
+
+  function renderPanel3Modifiers_() {
+    var REFRESH = [
+      { code: 'quarterly', label: 'Quarterly · baseline' },
+      { code: 'daily',     label: 'Daily · +15%' },
+      { code: 'realtime',  label: 'Real-time · +25%' }
+    ];
+    var EXCL = [
+      { code: 'none',     label: 'Non-exclusive' },
+      { code: 'vertical', label: 'Vertical-Exclusive · +60% on enrichment layers' },
+      { code: 'full_uk',  label: 'Full UK Exclusivity · +60% on enrichment layers' }
+    ];
+    var TERM = [
+      { code: 1, label: '12 months' },
+      { code: 2, label: '24 months · −5%' },
+      { code: 3, label: '36 months · −10%' }
+    ];
+    var refreshChips = '', exclChips = '', termChips = '';
+    for (var i = 0; i < REFRESH.length; i++) {
+      var o = REFRESH[i];
+      var act = (CONFIG_STATE.modifiers.refresh === o.code) ? ' is-active' : '';
+      refreshChips += '<button type="button" class="dr-radio-option' + act + '" data-refresh="' + escapeHtml(o.code) + '">' + escapeHtml(o.label) + '</button>';
+    }
+    for (var j = 0; j < EXCL.length; j++) {
+      var o2 = EXCL[j];
+      var act2 = (CONFIG_STATE.modifiers.exclusivity === o2.code) ? ' is-active' : '';
+      exclChips += '<button type="button" class="dr-radio-option' + act2 + '" data-exclusivity="' + escapeHtml(o2.code) + '">' + escapeHtml(o2.label) + '</button>';
+    }
+    for (var k = 0; k < TERM.length; k++) {
+      var o3 = TERM[k];
+      var act3 = (CONFIG_STATE.modifiers.term_years === o3.code) ? ' is-active' : '';
+      termChips += '<button type="button" class="dr-radio-option' + act3 + '" data-term="' + o3.code + '">' + escapeHtml(o3.label) + '</button>';
+    }
+    var dunsChecked = CONFIG_STATE.modifiers.duns_match ? ' checked' : '';
+    var dunsState = CONFIG_STATE.modifiers.duns_match ? 'On' : 'Off';
+    return '<section class="dr-config-panel" aria-labelledby="dr-panel-mods-h">' +
+             '<header class="dr-config-panel-header">' +
+               '<span class="dr-config-panel-number">Panel 3</span>' +
+               '<h2 id="dr-panel-mods-h" class="dr-config-panel-title">Modifiers</h2>' +
+             '</header>' +
+             '<p class="dr-config-panel-sub">' +
+               'Operational modifiers compose against the enrichment-layer subtotal. Term discount applies on aggregate.' +
+             '</p>' +
+             '<div class="dr-modifier-row">' +
+               '<div>' +
+                 '<div class="dr-modifier-label">DUNS match additive</div>' +
+                 '<div class="dr-modifier-meta">+£3 per matched employer-year. Coverage transparency declared per AMD-103.</div>' +
+               '</div>' +
+               '<label class="dr-config-toggle-label">' +
+                 '<input type="checkbox" id="dr-config-duns" class="dr-config-toggle"' + dunsChecked + '>' +
+                 '<span class="dr-config-toggle-state">' + dunsState + '</span>' +
+               '</label>' +
+             '</div>' +
+             '<div class="dr-modifier-row">' +
+               '<div>' +
+                 '<div class="dr-modifier-label">Refresh cadence</div>' +
+                 '<div class="dr-modifier-meta">Daily and real-time apply additive percentages on enrichment layers.</div>' +
+               '</div>' +
+               '<div class="dr-radio-group">' + refreshChips + '</div>' +
+             '</div>' +
+             '<div class="dr-modifier-row">' +
+               '<div>' +
+                 '<div class="dr-modifier-label">Exclusivity</div>' +
+                 '<div class="dr-modifier-meta">Vertical and full UK both apply +60% on enrichment layers.</div>' +
+               '</div>' +
+               '<div class="dr-radio-group">' + exclChips + '</div>' +
+             '</div>' +
+             '<div class="dr-modifier-row">' +
+               '<div>' +
+                 '<div class="dr-modifier-label">Term length</div>' +
+                 '<div class="dr-modifier-meta">Multi-year discount applies on aggregate after layer + modifier composition.</div>' +
+               '</div>' +
+               '<div class="dr-radio-group">' + termChips + '</div>' +
+             '</div>' +
+           '</section>';
+  }
+
+  function renderPanel4Quote_() {
+    return '<aside class="dr-quote-rail" id="dr-config-quote-rail" aria-live="polite" aria-labelledby="dr-panel-quote-h">' +
+             '<header class="dr-config-panel-header">' +
+               '<span class="dr-config-panel-number">Panel 4</span>' +
+               '<h2 id="dr-panel-quote-h" class="dr-config-panel-title">Live quote</h2>' +
+             '</header>' +
+             '<div class="dr-quote-breakdown" id="dr-quote-breakdown">' +
+               '<div class="dr-quote-empty">Configure a coverage to see the live breakdown.</div>' +
+             '</div>' +
+             '<div class="dr-quote-amount" id="dr-quote-amount">£0</div>' +
+             '<div class="dr-quote-band" id="dr-quote-band">&mdash;</div>' +
+             '<div class="dr-quote-meta">' +
+               '<span class="dr-quote-amd-chip">AMD-088 + AMD-091 + AMD-103 + AMD-106</span>' +
+               '<span class="dr-quote-validity">30 days; commitments require contract</span>' +
+             '</div>' +
+           '</aside>';
+  }
+
+  function bindConfiguratorRuntimeHandlers_() {
+    var tBtns = document.querySelectorAll('.dr-tier-button[data-tier]');
+    for (var i = 0; i < tBtns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        CONFIG_STATE.tier = btn.getAttribute('data-tier');
+        renderConfigurator();
+        computeQuoteDebounced_();
+      });
+    })(tBtns[i]);
+
+    var sInputs = document.querySelectorAll('.dr-config-scope-input[data-scope]');
+    for (var j = 0; j < sInputs.length; j++) (function (input) {
+      input.addEventListener('input', function () {
+        var k = input.getAttribute('data-scope');
+        var v = parseInt(input.value || '0', 10);
+        CONFIG_STATE.scope[k] = isNaN(v) ? 0 : v;
+        var totalEl = document.querySelector('.dr-config-scope-total strong');
+        if (totalEl) totalEl.textContent = (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB');
+        computeQuoteDebounced_();
+      });
+    })(sInputs[j]);
+
+    var dunsEl = document.getElementById('dr-config-duns');
+    if (dunsEl) dunsEl.addEventListener('change', function () {
+      CONFIG_STATE.modifiers.duns_match = dunsEl.checked;
+      renderConfigurator();
+      computeQuoteDebounced_();
+    });
+
+    var rBtns = document.querySelectorAll('.dr-radio-option[data-refresh]');
+    for (var r = 0; r < rBtns.length; r++) (function (btn) {
+      btn.addEventListener('click', function () {
+        CONFIG_STATE.modifiers.refresh = btn.getAttribute('data-refresh');
+        renderConfigurator();
+        computeQuoteDebounced_();
+      });
+    })(rBtns[r]);
+
+    var eBtns = document.querySelectorAll('.dr-radio-option[data-exclusivity]');
+    for (var e2 = 0; e2 < eBtns.length; e2++) (function (btn) {
+      btn.addEventListener('click', function () {
+        CONFIG_STATE.modifiers.exclusivity = btn.getAttribute('data-exclusivity');
+        renderConfigurator();
+        computeQuoteDebounced_();
+      });
+    })(eBtns[e2]);
+
+    var trBtns = document.querySelectorAll('.dr-radio-option[data-term]');
+    for (var tr = 0; tr < trBtns.length; tr++) (function (btn) {
+      btn.addEventListener('click', function () {
+        CONFIG_STATE.modifiers.term_years = parseInt(btn.getAttribute('data-term'), 10) || 1;
+        renderConfigurator();
+        computeQuoteDebounced_();
+      });
+    })(trBtns[tr]);
+  }
+
+  function computeQuoteDebounced_() {
+    clearTimeout(configRecomputeTimer);
+    configRecomputeTimer = setTimeout(computeQuote, 300);
+  }
+
+  async function computeQuote() {
+    var user = window.__dealRoomUser;
+    if (!user || !user.token) return;
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/pricing_quote_function', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + user.token,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          p_config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers }
+        })
+      });
+      if (!res.ok) {
+        LAST_QUOTE = null;
+        renderQuoteError_(new Error('HTTP ' + res.status));
+        return;
+      }
+      var quote = await res.json();
+      LAST_QUOTE = quote;
+      renderQuote(quote);
+    } catch (err) {
+      LAST_QUOTE = null;
+      renderQuoteError_(err);
+    }
+  }
+
+  function renderQuote(quote) {
+    var amountEl = document.getElementById('dr-quote-amount');
+    var bandEl = document.getElementById('dr-quote-band');
+    var breakdownEl = document.getElementById('dr-quote-breakdown');
+    if (!amountEl || !bandEl || !breakdownEl) return;
+    amountEl.textContent = formatPence(quote.annual_pence);
+    if (quote.annual_band_min_pence != null && quote.annual_band_max_pence != null) {
+      bandEl.textContent = 'Band: ' + formatPence(quote.annual_band_min_pence) + ' – ' + formatPence(quote.annual_band_max_pence);
+    } else {
+      bandEl.textContent = '—';
+    }
+    var rows = '';
+    var log = (quote.computation_log && Array.isArray(quote.computation_log)) ? quote.computation_log : [];
+    for (var i = 0; i < log.length; i++) {
+      var entry = log[i];
+      var label = '';
+      var rowClass = '';
+      var skipZero = false;
+      switch (entry.step) {
+        case 'identity_layer':
+          label = 'Identity (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
+        case 'tribunal_exposure_delta':
+          label = 'Tribunal Exposure (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
+        case 'outcome_intelligence_delta':
+          label = 'Outcome Intelligence (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
+        case 'full_acei_delta':
+          label = 'Full ACEI (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
+        case 'full_enrichment_delta':
+          label = 'Full Enrichment (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
+        case 'premium_delta':
+          label = 'Premium (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
+        case 'duns_additive':
+          if (!entry.enabled) continue;
+          label = 'DUNS match additive (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
+        case 'refresh_modifier':
+          if ((entry.pct || 0) === 0) continue;
+          label = 'Refresh ' + String(entry.code || '').replace('refresh_', '') + ' (+' + entry.pct + '%)';
+          rowClass = ' dr-quote-row-positive'; break;
+        case 'exclusivity_modifier':
+          if ((entry.pct || 0) === 0) continue;
+          label = 'Exclusivity ' + String(entry.code || '').replace('exclusivity_', '') + ' (+' + entry.pct + '%)';
+          rowClass = ' dr-quote-row-positive'; break;
+        case 'term_discount':
+          if ((entry.pct || 0) === 0) continue;
+          label = 'Term discount (−' + entry.pct + '%)';
+          rowClass = ' dr-quote-row-negative'; break;
+        case 'subtotal':
+        case 'enrichment_subtotal':
+        case 'pre_discount':
+        case 'annual':
+          continue;
+        default: continue;
+      }
+      if (skipZero && (entry.value_pence == null || entry.value_pence === 0)) continue;
+      var sign = (rowClass === ' dr-quote-row-negative') ? '−' : '';
+      rows += '<div class="dr-quote-row' + rowClass + '">' +
+                '<span class="dr-quote-row-label">' + escapeHtml(label) + '</span>' +
+                '<span class="dr-quote-row-value">' + sign + escapeHtml(formatPence(entry.value_pence)) + '</span>' +
+              '</div>';
+    }
+    if (quote.subtotal_pence != null) {
+      rows += '<div class="dr-quote-row dr-quote-row-subtotal">' +
+                '<span class="dr-quote-row-label">Subtotal</span>' +
+                '<span class="dr-quote-row-value">' + escapeHtml(formatPence(quote.subtotal_pence)) + '</span>' +
+              '</div>';
+    }
+    if (quote.pre_discount_pence != null && quote.pre_discount_pence !== quote.subtotal_pence) {
+      rows += '<div class="dr-quote-row dr-quote-row-pre-discount">' +
+                '<span class="dr-quote-row-label">Pre-discount</span>' +
+                '<span class="dr-quote-row-value">' + escapeHtml(formatPence(quote.pre_discount_pence)) + '</span>' +
+              '</div>';
+    }
+    breakdownEl.innerHTML = (rows === '') ? '<div class="dr-quote-empty">Configure a coverage to see the live breakdown.</div>' : rows;
+  }
+
+  function renderQuoteError_(err) {
+    var amountEl = document.getElementById('dr-quote-amount');
+    var bandEl = document.getElementById('dr-quote-band');
+    var breakdownEl = document.getElementById('dr-quote-breakdown');
+    if (amountEl) amountEl.textContent = '—';
+    if (bandEl) bandEl.textContent = '';
+    if (breakdownEl) breakdownEl.innerHTML = '<div class="dr-config-empty-error">Quote unavailable. Please retry, or contact partnerships@ailane.ai.</div>';
+    console.error('computeQuote error:', err);
+  }
+
+  function renderCounterProposalSection(user, gateState) {
+    var anchor = document.getElementById('dr-counter-proposal-section');
+    if (!anchor) return;
+    var isDirector = (user && user.role === 'director');
+    var currentIdx = GATE_ORDER.indexOf(gateState || 'phase_0');
+    var phaseAIdx = GATE_ORDER.indexOf('phase_a');
+    var canSubmit = isDirector || (currentIdx >= phaseAIdx);
+    var featureEnabled = (FEATURE_FLAGS.counter_proposal_submission_enabled !== false);
+    var html = '';
+    if (!canSubmit) {
+      html = '<header class="dr-section-head">' +
+               '<h2>Counter-proposal</h2>' +
+               '<p class="dr-section-sub">Submit a configuration as a counter-proposal once the engagement reaches Phase A.</p>' +
+             '</header>' +
+             '<div class="dr-counter-proposal-placeholder">' +
+               'Counter-proposal submission opens at Phase A. Continue reviewing the documents and engaging ' +
+               'with Eileen during Phase 0; the Director will advance the workspace to Phase A when ready.' +
+             '</div>';
+    } else if (!featureEnabled) {
+      html = '<header class="dr-section-head"><h2>Counter-proposal</h2></header>' +
+             '<div class="dr-counter-proposal-placeholder">' +
+               'Counter-proposal submission temporarily disabled. Please engage with Eileen to continue the conversation.' +
+             '</div>';
+    } else {
+      html = '<header class="dr-section-head">' +
+               '<h2>Counter-proposal</h2>' +
+               '<p class="dr-section-sub">Submit your configuration for Director review. Eileen evaluates against the constitutional framework when you next engage her.</p>' +
+             '</header>' +
+             '<div class="dr-counter-proposal-form">' +
+               '<label class="dr-cp-label">' +
+                 '<span>Rationale (optional, 200 chars max)</span>' +
+                 '<textarea id="dr-cp-rationale" class="dr-cp-textarea" maxlength="200" placeholder="Why this configuration?"></textarea>' +
+               '</label>' +
+               '<label class="dr-cp-label">' +
+                 '<span>Timing (optional, 200 chars max)</span>' +
+                 '<textarea id="dr-cp-timing" class="dr-cp-textarea" maxlength="200" placeholder="e.g. Q3 2026 launch"></textarea>' +
+               '</label>' +
+               '<label class="dr-cp-label">' +
+                 '<span>Urgency</span>' +
+                 '<select id="dr-cp-urgency" class="dr-cp-select">' +
+                   '<option value="standard">Standard</option>' +
+                   '<option value="time-sensitive">Time-sensitive</option>' +
+                   '<option value="urgent">Urgent</option>' +
+                 '</select>' +
+               '</label>' +
+               '<button type="button" id="dr-cp-submit" class="dr-cp-submit-btn">Submit counter-proposal</button>' +
+               '<div id="dr-cp-status" class="dr-cp-status" aria-live="polite"></div>' +
+             '</div>';
+    }
+    anchor.innerHTML = html;
+    if (canSubmit && featureEnabled) {
+      var ratEl = document.getElementById('dr-cp-rationale');
+      var timEl = document.getElementById('dr-cp-timing');
+      var urgEl = document.getElementById('dr-cp-urgency');
+      var btnEl = document.getElementById('dr-cp-submit');
+      if (ratEl) ratEl.addEventListener('input', function () { CONFIG_STATE.rationale = ratEl.value; });
+      if (timEl) timEl.addEventListener('input', function () { CONFIG_STATE.timing = timEl.value; });
+      if (urgEl) urgEl.addEventListener('change', function () { CONFIG_STATE.urgency = urgEl.value; });
+      if (btnEl) btnEl.addEventListener('click', function () { submitCounterProposal(); });
+    }
+  }
+
+  async function submitCounterProposal() {
+    var user = window.__dealRoomUser;
+    var statusEl = document.getElementById('dr-cp-status');
+    var btnEl = document.getElementById('dr-cp-submit');
+    if (!user || !user.token) {
+      if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">Not signed in.</div>';
+      return;
+    }
+    if (!LAST_QUOTE) {
+      if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">Configure a quote before submitting.</div>';
+      return;
+    }
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Submitting…'; }
+    if (statusEl) statusEl.innerHTML = '';
+    var s = CONFIG_STATE.scope;
+    var m = CONFIG_STATE.modifiers;
+    var layers = [];
+    if (s.identity) layers.push(s.identity.toLocaleString('en-GB') + ' identity');
+    if (s.tribunal_exposure) layers.push(s.tribunal_exposure.toLocaleString('en-GB') + ' TE');
+    if (s.outcome_intelligence) layers.push(s.outcome_intelligence.toLocaleString('en-GB') + ' OI');
+    if (s.full_acei) layers.push(s.full_acei.toLocaleString('en-GB') + ' FA');
+    if (s.full_enrichment) layers.push(s.full_enrichment.toLocaleString('en-GB') + ' FE');
+    if (s.premium) layers.push(s.premium.toLocaleString('en-GB') + ' Premium');
+    var modSummary = (m.duns_match ? 'DUNS' : 'no-DUNS') + ' / ' + m.refresh + ' / ' +
+                     (m.exclusivity === 'none' ? 'non-exclusive' : m.exclusivity) + ' / ' +
+                     (m.term_years * 12) + ' months';
+    var configSummary = CONFIG_STATE.tier + ' · ' + (layers.length ? layers.join(' / ') : 'no coverage') + ' · ' + modSummary;
+    var minVal = (LAST_QUOTE.annual_band_min_pence != null) ? Math.round(Number(LAST_QUOTE.annual_band_min_pence) / 100) : null;
+    var maxVal = (LAST_QUOTE.annual_band_max_pence != null) ? Math.round(Number(LAST_QUOTE.annual_band_max_pence) / 100) : null;
+    var payload = {
+      clid: CLID,
+      submitted_by_user_id: user.id,
+      submitted_by_email: user.email,
+      proposal_version: 1,
+      parent_proposal_id: null,
+      config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers, tier: CONFIG_STATE.tier },
+      config_summary: configSummary,
+      eileen_evaluation: {},
+      eileen_evaluation_text: '',
+      estimated_annual_value_min: minVal,
+      estimated_annual_value_max: maxVal,
+      gates_activated: [],
+      constitutional_flags: {},
+      counterparty_rationale: CONFIG_STATE.rationale || null,
+      counterparty_timing: CONFIG_STATE.timing || null,
+      urgency_flag: CONFIG_STATE.urgency || 'standard',
+      is_simulation: (CLID === 'sim-2026-001'),
+      eileen_evaluation_pending: true
+    };
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/partner_counter_proposals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + user.token,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        var errTxt = await res.text();
+        throw new Error('HTTP ' + res.status + ': ' + errTxt);
+      }
+      var data = await res.json();
+      try {
+        if (window.gtag) window.gtag('event', 'counter_proposal_submitted', {
+          clid: CLID, urgency: CONFIG_STATE.urgency,
+          annual_min: minVal, annual_max: maxVal
+        });
+      } catch (e) { /* swallow */ }
+      if (statusEl) {
+        statusEl.innerHTML = '<div class="dr-cp-success">' +
+          '<strong>Counter-proposal submitted.</strong> ' +
+          'Eileen will evaluate when you next engage her. The Director responds asynchronously through the deal-room.' +
+          '</div>';
+      }
+      CONFIG_STATE.rationale = '';
+      CONFIG_STATE.timing = '';
+      CONFIG_STATE.urgency = 'standard';
+      var ratEl = document.getElementById('dr-cp-rationale');
+      var timEl = document.getElementById('dr-cp-timing');
+      var urgEl = document.getElementById('dr-cp-urgency');
+      if (ratEl) ratEl.value = '';
+      if (timEl) timEl.value = '';
+      if (urgEl) urgEl.value = 'standard';
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Submit counter-proposal'; }
+    } catch (err) {
+      console.error('submitCounterProposal error:', err);
+      if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">Submission failed. Please try again or contact partnerships@ailane.ai if the issue persists.</div>';
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Submit counter-proposal'; }
     }
   }
 
