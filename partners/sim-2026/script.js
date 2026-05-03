@@ -849,7 +849,7 @@
   // ─── Configurator: state, presets, render, RPC, counter-proposal ───
   // AMD-XXX §4.3(c). Live pricing_quote_function RPC (p_config_snapshot input,
   // pence output). Penny-perfect reference matrix:
-  //   Pkg 2 → £1,402,811   (annual_pence: 140,281,085)
+  //   Pkg 2 → £1,448,696   (annual_pence: 144,869,585)  [AMD-110 nesting realignment]
   //   Pkg 3 → £1,645,346   (annual_pence: 164,534,585)
   //   Pkg 4 → £2,727,579   (annual_pence: 272,757,870)
   // Counter-proposal INSERT to partner_counter_proposals (28-col schema verified).
@@ -860,7 +860,7 @@
   // Slider/modifier user input clears ACTIVE_PRESET (transitions to "custom").
   var CONFIG_STATE = {
     scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 },
+    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_scope: 'mixed' },
     rationale: '', timing: '', urgency: 'standard'
   };
   var ACTIVE_PRESET = null;  // 'pkg1' | 'pkg2' | 'pkg3' | 'pkg4' | null (custom or reset)
@@ -868,10 +868,20 @@
   var TIERS_META = [];
   var MODIFIERS_META = [];
   var FEATURE_FLAGS = {};
+  // AMD-110 — live ceilings populated by loadCeilings on mount; null pre-mount triggers
+  // 78699 fallback in computeEffectiveMax_. Module-scope so renderPanel2Scope_ re-renders
+  // consume the same source-of-truth (Director institutional concern: imperative el.max
+  // would be wiped on preset click / modifier toggle re-render).
+  var CEILINGS = null;
+  // AMD-109 — launch-partner status loaded once on mount via get_partner_launch_status RPC.
+  // is_launch_partner=true → badge renders + CONFIG_STATE.modifiers.clid set for authoritative
+  // function-side discount. Silent on null/false per RRI v1.0 (system explains presence,
+  // never absence).
+  var LAUNCH_PARTNER_STATUS = null;
   var configRecomputeTimer = null;
 
   // Canonical 4-package matrix verified against pricing_quote_function:
-  //   Pkg 1 → £550,893  / Pkg 2 → £1,402,811  / Pkg 3 → £1,645,346  / Pkg 4 → £2,727,579
+  //   Pkg 1 → £550,893  / Pkg 2 → £1,448,696  / Pkg 3 → £1,645,346  / Pkg 4 → £2,727,579
   var PKG1_PRESET = {
     label: 'Pkg 1 — Identity',
     scope: { identity: 78699, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
@@ -879,7 +889,7 @@
   };
   var PKG2_PRESET = {
     label: 'Pkg 2 — Tribunal Exposure + Outcome',
-    scope: { identity: 78699, tribunal_exposure: 20000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 0, premium: 0 },
+    scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 0, premium: 0 },
     modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 }
   };
   var PKG3_PRESET = {
@@ -903,6 +913,128 @@
     return '£' + Math.round(Number(pence) / 100).toLocaleString('en-GB');
   }
 
+  // AMD-110 — fetch live ceilings from get_pricing_ceilings RPC at mount time.
+  // Hard-coded fallback per CCI v1.0 binding (never silent-fail to unbounded sliders).
+  async function loadCeilings(token) {
+    var fallback = {
+      identity: 78699, tribunal_exposure: 80124, outcome_intelligence: 80124,
+      full_acei: 18552, full_enrichment: 13588, premium: 6000
+    };
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_pricing_ceilings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/json'
+        },
+        body: '{}'
+      });
+      if (!res.ok) {
+        console.warn('[AMD-110] get_pricing_ceilings RPC returned ' + res.status + '; using fallback');
+        return fallback;
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows)) {
+        console.warn('[AMD-110] get_pricing_ceilings non-array response; using fallback');
+        return fallback;
+      }
+      var map = {};
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i] && rows[i].tier_code && rows[i].real_ceiling != null) {
+          map[rows[i].tier_code] = Number(rows[i].real_ceiling);
+        }
+      }
+      var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
+      for (var t = 0; t < TIERS.length; t++) {
+        if (map[TIERS[t]] == null) map[TIERS[t]] = fallback[TIERS[t]];
+      }
+      return map;
+    } catch (err) {
+      console.warn('[AMD-110] loadCeilings error; using fallback:', err);
+      return fallback;
+    }
+  }
+
+  // AMD-109 — fetch launch-partner status from get_partner_launch_status RPC.
+  // Returns { clid, is_launch_partner, window_start_date, window_end_date,
+  // discount_pct, amd_authority } or { is_launch_partner: false } if not flagged.
+  // Silent on RPC failure (no badge rendered, no clid passed to function).
+  async function loadLaunchPartnerStatus(token) {
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_partner_launch_status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ p_clid: CLID })
+      });
+      if (!res.ok) {
+        console.warn('[AMD-109] get_partner_launch_status RPC returned ' + res.status + '; LP badge will not render');
+        return null;
+      }
+      var data = await res.json();
+      return data || null;
+    } catch (err) {
+      console.warn('[AMD-109] loadLaunchPartnerStatus error:', err);
+      return null;
+    }
+  }
+
+  // AMD-110 + AMD-108 — single source of truth for slider max calculation.
+  // Composes (1) real_ceiling per layer, (2) nested-depth cascading (parent
+  // layer count caps child), (3) sector_public_only override (521 cap on
+  // enrichment layers). Used by renderPanel2Scope_ (max attr at render time)
+  // AND applyAllCaps (state + DOM clamp post-input). Re-render-safe.
+  function computeEffectiveMax_(layer) {
+    if (!CEILINGS) return 78699;
+    var realCap = (CEILINGS[layer] != null) ? CEILINGS[layer] : 78699;
+    if (layer === 'identity') return realCap;          // identity excluded from sector cap (sector neutrality of baseline, AMD-108)
+    var parentByLayer = {
+      tribunal_exposure: CONFIG_STATE.scope.identity,
+      outcome_intelligence: CONFIG_STATE.scope.tribunal_exposure,
+      full_acei: CONFIG_STATE.scope.outcome_intelligence,
+      full_enrichment: CONFIG_STATE.scope.full_acei,
+      premium: CONFIG_STATE.scope.full_enrichment
+    };
+    var parentVal = parentByLayer[layer];
+    if (parentVal == null) parentVal = realCap;
+    var effectiveMax = Math.min(realCap, parentVal);
+    // AMD-108 — sector_public_only 521 cap COMPOSES with parent cascade + real_ceiling.
+    // Doctrine (Director, Fix-pack-004 pre-§6): modifier-driven caps compose, never replace.
+    // Earlier short-circuit pattern was self-corrected before §6 wiring exposed UI/RPC divergence.
+    if (CONFIG_STATE.modifiers.sector_scope === 'public_only') {
+      effectiveMax = Math.min(effectiveMax, 521);
+    }
+    return effectiveMax;
+  }
+
+  // AMD-110 + AMD-108 — enforce computeEffectiveMax_ across CONFIG_STATE.scope
+  // (truth) and DOM slider input.max attributes (HTML constraint). Iterates
+  // parent → child so each layer's effective max sees clamped parent values.
+  // Called from: populateConfigurator (initial), applyPreset (post-preset),
+  // slider input handler (post-edit), sector_scope toggle (§6 — when added).
+  function applyAllCaps() {
+    var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
+    for (var i = 0; i < TIERS.length; i++) {
+      var layer = TIERS[i];
+      var maxAllowed = computeEffectiveMax_(layer);
+      if (CONFIG_STATE.scope[layer] > maxAllowed) {
+        CONFIG_STATE.scope[layer] = maxAllowed;
+      }
+      var el = document.querySelector('.dr-config-scope-input[data-scope="' + layer + '"]');
+      if (el) {
+        el.max = String(maxAllowed);
+        var domVal = parseInt(el.value || '0', 10);
+        if (domVal > maxAllowed) el.value = String(maxAllowed);
+      }
+    }
+  }
+
   async function populateConfigurator(user) {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
@@ -910,7 +1042,7 @@
 
     CONFIG_STATE = {
       scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-      modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 },
+      modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_scope: 'mixed' },
       rationale: '', timing: '', urgency: 'standard'
     };
     ACTIVE_PRESET = null;
@@ -924,7 +1056,9 @@
         fetch(SUPABASE_URL + '/rest/v1/pricing_tier?select=tier_code,display_name,delta_rate_pence,cumulative_rate_pence,is_enrichment_layer,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/pricing_modifier?select=modifier_code,modifier_type,display_name,value_pence,value_pct,applies_to,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/dealroom_feature_flags?select=feature_key,enabled', { headers: hdrs }),
-        fetchClidGateState(user.token, CLID)
+        fetchClidGateState(user.token, CLID),
+        loadCeilings(user.token),
+        loadLaunchPartnerStatus(user.token)
       ]);
       if (results[0].ok) TIERS_META = await results[0].json();
       if (results[1].ok) MODIFIERS_META = await results[1].json();
@@ -934,7 +1068,16 @@
         for (var fi = 0; fi < flags.length; fi++) FEATURE_FLAGS[flags[fi].feature_key] = flags[fi].enabled;
       }
       var gateState = results[3] || 'phase_0';
+      CEILINGS = results[4];                       // AMD-110 — populated before first render
+      LAUNCH_PARTNER_STATUS = results[5];          // AMD-109 — populated before first render
+      // AMD-109 — pre-first-quote synchronisation: set clid in modifiers BEFORE computeQuote
+      // fires so the first quote already includes the LP discount (avoids £1,448,696 →
+      // £1,303,826 flicker). Silent on non-LP users — no clid sent, no LP path triggered.
+      if (LAUNCH_PARTNER_STATUS && LAUNCH_PARTNER_STATUS.is_launch_partner === true) {
+        CONFIG_STATE.modifiers.clid = CLID;
+      }
       renderConfigurator();
+      applyAllCaps();         // initial DOM input.max attrs
       renderCounterProposalSection(user, gateState);
       computeQuote();
     } catch (err) {
@@ -952,12 +1095,18 @@
       },
       modifiers: {
         duns_match: preset.modifiers.duns_match, refresh: preset.modifiers.refresh,
-        exclusivity: preset.modifiers.exclusivity, term_years: preset.modifiers.term_years
+        exclusivity: preset.modifiers.exclusivity, term_years: preset.modifiers.term_years,
+        // AMD-108 — preset.modifiers.sector_scope falls back to 'mixed' (PRESETs are commercial-data, sector-neutral)
+        sector_scope: preset.modifiers.sector_scope || 'mixed',
+        // AMD-109 — preserve clid through preset replacement (set on mount if user is launch partner;
+        // undefined for non-LP users → JSON.stringify omits it → function v2 skips LP path)
+        clid: CONFIG_STATE.modifiers.clid
       },
       rationale: '', timing: '', urgency: 'standard'
     };
     // presetCode null when user clicks Reset (no preset is selected after reset)
     ACTIVE_PRESET = (presetCode === 'pkg1' || presetCode === 'pkg2' || presetCode === 'pkg3' || presetCode === 'pkg4') ? presetCode : null;
+    applyAllCaps();  // AMD-110 — defensive enforcement (presets respect ceilings, but cascade order matters if ceilings ever change)
     renderConfigurator();
     computeQuote();
     try { if (window.gtag) window.gtag('event', 'configurator_preset_applied', { clid: CLID, preset: presetCode || 'reset' }); } catch (e) { /* swallow */ }
@@ -1020,12 +1169,15 @@
       var tier = tiers[i];
       var rate = '+£' + Math.round(Number(tier.delta_rate_pence || 0) / 100) + '/employer-year';
       var current = CONFIG_STATE.scope[tier.tier_code] || 0;
+      // AMD-110 + AMD-108 — max attribute consumed from CEILINGS via computeEffectiveMax_
+      // (re-render-safe: re-set on every render from module-scope CEILINGS, not imperative).
+      var effectiveMax = computeEffectiveMax_(tier.tier_code);
       inputs += '<div class="dr-config-scope-row">' +
                   '<label class="dr-config-scope-label">' +
                     '<span class="dr-config-scope-name">' + escapeHtml(tier.display_name) + '</span>' +
                     '<span class="dr-config-scope-rate">' + escapeHtml(rate) + '</span>' +
                   '</label>' +
-                  '<input type="number" min="0" max="78699" step="100" class="dr-config-scope-input"' +
+                  '<input type="number" min="0" max="' + effectiveMax + '" step="100" class="dr-config-scope-input"' +
                     ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '">' +
                 '</div>';
     }
@@ -1035,7 +1187,7 @@
                '<h2 id="dr-panel-scope-h" class="dr-config-panel-title">Coverage scope</h2>' +
              '</header>' +
              '<p class="dr-config-panel-sub">' +
-               'Number of employers receiving each enrichment layer. Identity is the universe (max 78,699 &mdash; the current employer_master count). Selecting a package preloads these values; manual adjustments transition to a custom configuration.' +
+               'Number of employers receiving each enrichment layer. Identity is the universe; each enrichment layer applies depth uplift on the layer above (Premium &sub; Full Enrichment &sub; Full ACEI &sub; Outcome Intelligence &sub; Tribunal Exposure &sub; Identity). Per AMD-110, configurations violating this nesting fail at compute time. Selecting a package preloads these values; manual adjustments transition to a custom configuration.' +
              '</p>' +
              '<div class="dr-config-scope-grid">' + inputs + '</div>' +
              '<div class="dr-config-scope-total">' +
@@ -1060,7 +1212,13 @@
       { code: 2, label: '24 months · −5%' },
       { code: 3, label: '36 months · −10%' }
     ];
-    var refreshChips = '', exclChips = '', termChips = '';
+    // AMD-108 — sector_scope chips (3 codes match pricing_quote_function v2 contract)
+    var SECTOR = [
+      { code: 'mixed',        label: 'Mixed (default)' },
+      { code: 'private_only', label: 'Private only · −2%' },
+      { code: 'public_only',  label: 'Public only · +50%' }
+    ];
+    var refreshChips = '', exclChips = '', termChips = '', sectorChips = '';
     for (var i = 0; i < REFRESH.length; i++) {
       var o = REFRESH[i];
       var act = (CONFIG_STATE.modifiers.refresh === o.code) ? ' is-active' : '';
@@ -1076,8 +1234,17 @@
       var act3 = (CONFIG_STATE.modifiers.term_years === o3.code) ? ' is-active' : '';
       termChips += '<button type="button" class="dr-radio-option' + act3 + '" data-term="' + o3.code + '">' + escapeHtml(o3.label) + '</button>';
     }
+    for (var sx = 0; sx < SECTOR.length; sx++) {
+      var o4 = SECTOR[sx];
+      var act4 = (CONFIG_STATE.modifiers.sector_scope === o4.code) ? ' is-active' : '';
+      sectorChips += '<button type="button" class="dr-radio-option' + act4 + '" data-sector-scope="' + escapeHtml(o4.code) + '">' + escapeHtml(o4.label) + '</button>';
+    }
     var dunsChecked = CONFIG_STATE.modifiers.duns_match ? ' checked' : '';
     var dunsState = CONFIG_STATE.modifiers.duns_match ? 'On' : 'Off';
+    // AMD-108 — public_only hint banner (verbatim per AMD-108 §3 estate-honesty discipline / Misrepresentation Act 1967 binding)
+    var sectorPublicHint = (CONFIG_STATE.modifiers.sector_scope === 'public_only')
+      ? '<div class="dr-modifier-meta">Public-sector segment: 521 unique enriched employers currently. Phase 2 expansion roadmapped.</div>'
+      : '';
     return '<section class="dr-config-panel" aria-labelledby="dr-panel-mods-h">' +
              '<header class="dr-config-panel-header">' +
                '<span class="dr-config-panel-number">Panel 3</span>' +
@@ -1117,10 +1284,28 @@
                '</div>' +
                '<div class="dr-radio-group">' + termChips + '</div>' +
              '</div>' +
+             '<div class="dr-modifier-row" data-modifier="sector_scope">' +
+               '<div>' +
+                 '<div class="dr-modifier-label">Sector scope</div>' +
+                 '<div class="dr-modifier-meta">AMD-108 binding. Mixed = whole estate; Private only = excludes NHS / public bodies; Public only = NHS / public bodies only (premium reflecting smaller specialty market).</div>' +
+               '</div>' +
+               '<div class="dr-radio-group">' + sectorChips + '</div>' +
+             '</div>' +
+             sectorPublicHint +
            '</section>';
   }
 
   function renderPanel4Quote_() {
+    // AMD-109 — launch-partner badge above headline. Silent on null/false (RRI v1.0:
+    // system explains presence, never absence — no "potential launch partner" or
+    // "you are not a launch partner" copy). Teal palette per AMD-069 (gold reserved).
+    var launchPartnerBadge = (LAUNCH_PARTNER_STATUS && LAUNCH_PARTNER_STATUS.is_launch_partner === true)
+      ? '<div class="dr-launch-partner-badge" role="status" aria-label="Launch partner status">' +
+          '<span class="dr-launch-partner-icon" aria-hidden="true">&check;</span>' +
+          '<span class="dr-launch-partner-label">Launch Partner</span>' +
+          '<span class="dr-launch-partner-detail">&minus;10% sequential discount applied (post multi-year)</span>' +
+        '</div>'
+      : '';
     return '<aside class="dr-quote-rail" id="dr-config-quote-rail" aria-live="polite" aria-labelledby="dr-panel-quote-h">' +
              '<header class="dr-config-panel-header">' +
                '<span class="dr-config-panel-number">Panel 4</span>' +
@@ -1129,6 +1314,7 @@
              '<div class="dr-quote-breakdown" id="dr-quote-breakdown">' +
                '<div class="dr-quote-empty">Configure a coverage to see the live breakdown.</div>' +
              '</div>' +
+             launchPartnerBadge +
              '<div class="dr-quote-amount" id="dr-quote-amount">£0</div>' +
              '<div class="dr-quote-band" id="dr-quote-band">&mdash;</div>' +
              '<div class="dr-quote-meta">' +
@@ -1162,6 +1348,7 @@
         var v = parseInt(input.value || '0', 10);
         CONFIG_STATE.scope[k] = isNaN(v) ? 0 : v;
         ACTIVE_PRESET = null;
+        applyAllCaps();  // AMD-110 cascade-clamp dependent layers + AMD-108 sector override
         var totalEl = document.querySelector('.dr-config-scope-total strong');
         if (totalEl) totalEl.textContent = (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB');
         // Clear is-active class on package buttons without full re-render (perf)
@@ -1208,6 +1395,20 @@
         computeQuoteDebounced_();
       });
     })(trBtns[tr]);
+
+    // AMD-108 — sector_scope chip handler. Sequencing per Director design contract:
+    //   1) state update  2) applyAllCaps (state clamp via composition rule)
+    //   3) renderConfigurator (re-render Panel 2 max attrs)  4) computeQuoteDebounced
+    var sBtns = document.querySelectorAll('.dr-radio-option[data-sector-scope]');
+    for (var sb = 0; sb < sBtns.length; sb++) (function (btn) {
+      btn.addEventListener('click', function () {
+        CONFIG_STATE.modifiers.sector_scope = btn.getAttribute('data-sector-scope');
+        ACTIVE_PRESET = null;
+        applyAllCaps();
+        renderConfigurator();
+        computeQuoteDebounced_();
+      });
+    })(sBtns[sb]);
   }
 
   function computeQuoteDebounced_() {
