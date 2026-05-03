@@ -1538,7 +1538,7 @@
       style.id = 'dr-subpage-nav-styles';
       style.textContent =
         '.dr-subpage-nav-section{margin-bottom:32px;}' +
-        '.dr-subpage-nav-section .dr-nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:760px;}';
+        '.dr-subpage-nav-section .dr-nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}';
       document.head.appendChild(style);
     }
 
@@ -1548,7 +1548,7 @@
     var grid = document.createElement('div');
     grid.className = 'dr-nav-grid';
 
-    var order = ['documents', 'status', 'pathway'];
+    var order = ['documents', 'configurator', 'status', 'pathway'];
     for (var i = 0; i < order.length; i++) {
       var slug = order[i];
       if (slug === current) continue;
