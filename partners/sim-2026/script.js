@@ -939,6 +939,58 @@
   var LAUNCH_PARTNER_STATUS = null;
   var configRecomputeTimer = null;
 
+  // ─── AMD-114 four-axis configurator state ──────────────────────────
+  // Source-of-truth for the new four-axis scope-builder payload sent to
+  // compute_scope_universe / pricing_quote_function_v4. Replaces the
+  // layered enrichment-stack CONFIG_STATE (kept above as transitional
+  // scaffolding for submitCounterProposal until the full v4 cutover).
+  var SCOPE_STATE = {
+    sector:       { l1: [], l2: [] },
+    geography:    { level: 'L1', values: [] },
+    industry:     { level: 'L1', values: [] },
+    intelligence: { acei: [], rri: [], cci: [] }
+  };
+  var MODIFIERS_STATE = {
+    tier:         'institutional',
+    refresh:      'quarterly',
+    exclusivity:  'none',
+    term_years:   1,
+    duns_match:   false
+  };
+  var LAST_UNIVERSE = null;     // most recent compute_scope_universe response
+  var LAST_QUOTE_V4 = null;     // most recent pricing_quote_function_v4 response
+  var EXPANDED_AXIS = null;     // 'sector' | 'geography' | 'industry' | 'intelligence' | null
+  var INTEL_TAB = 'acei';       // 'acei' | 'rri' | 'cci' (CCI deferred this build)
+  var CEILINGS_V3 = null;       // get_pricing_ceilings_v3 payload (loaded at mount)
+  var quoteRequestSeq = 0;      // monotonic guard for stale RPC results
+
+  // ─── AMD-115 RPC helpers (raw fetch per RULE 26) ───────────────────
+  async function callRpcRaw_(fnName, params) {
+    var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+    var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fnName, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify(params || {})
+    });
+    if (!res.ok) {
+      var errBody = '';
+      try { errBody = await res.text(); } catch (e) {}
+      var err = new Error('RPC ' + fnName + ' failed: ' + res.status);
+      err.status = res.status;
+      err.body = errBody;
+      err.fnName = fnName;
+      throw err;
+    }
+    return await res.json();
+  }
+  async function loadCeilingsV3_() { return await callRpcRaw_('get_pricing_ceilings_v3', {}); }
+  async function computeScopeUniverse_(scope) { return await callRpcRaw_('compute_scope_universe', { p_scope: scope }); }
+  async function quoteV4_(scope, modifiers) {
+    return await callRpcRaw_('pricing_quote_function_v4', {
+      p_config_snapshot: { scope: scope, modifiers: modifiers }
+    });
+  }
+
   // Canonical 4-package matrix verified against pricing_quote_function:
   //   Pkg 1 → £550,893  / Pkg 2 → £1,448,696  / Pkg 3 → £1,645,346  / Pkg 4 → £2,727,579
   var PKG1_PRESET = {
@@ -1245,10 +1297,31 @@
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
     // In production a token is required; in sandbox the configurator runs anon-only on
-    // pricing RPCs (Director: pricing_quote_function + get_pricing_ceilings are anon-
-    // accessible). Other auth-required REST calls below are skipped in sandbox.
+    // pricing RPCs (Director: pricing RPCs are anon-accessible). Other auth-required
+    // REST calls below are skipped in sandbox.
     if (!IS_SANDBOX && (!user || !user.token)) return;
 
+    // AMD-114 — initialise four-axis scope state (unconstrained baseline) and modifier
+    // defaults (Institutional tier, quarterly refresh, no exclusivity, 12-month term).
+    SCOPE_STATE = {
+      sector:       { l1: [], l2: [] },
+      geography:    { level: 'L1', values: [] },
+      industry:     { level: 'L1', values: [] },
+      intelligence: { acei: [], rri: [], cci: [] }
+    };
+    MODIFIERS_STATE = {
+      tier:         'institutional',
+      refresh:      'quarterly',
+      exclusivity:  'none',
+      term_years:   1,
+      duns_match:   false
+    };
+    LAST_UNIVERSE = null;
+    LAST_QUOTE_V4 = null;
+    EXPANDED_AXIS = null;
+    INTEL_TAB = 'acei';
+    // Transitional CONFIG_STATE — preserved until submitCounterProposal is migrated to
+    // the four-axis payload (commits 8/10).
     CONFIG_STATE = {
       scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
       modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_segments: ['private', 'public', 'third'] },
@@ -1257,23 +1330,19 @@
     ACTIVE_PRESET = null;
 
     try { if (window.gtag) window.gtag('event', 'configurator_open', { clid: CLID }); } catch (e) { /* swallow */ }
-    // Header preset chip strip retired (Fix 3 / Interpretation A) — Panel 1 binds at render time.
 
     try {
       var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
-      // In sandbox: skip auth-required RPCs (gate-state, LP status). Pricing RPCs and
-      // pricing-metadata REST queries either work anon (per Director) or degrade
-      // gracefully via the in-code fallback paths (TIERS_META → getTierData_ default,
-      // CEILINGS → loadCeilings hard-coded fallback, FEATURE_FLAGS → empty {} treated
-      // as enabled).
       var sandboxToken = IS_SANDBOX ? null : user.token;
+      // REST table fetches preserved per brief §10.4 (pricing_tier, pricing_modifier,
+      // dealroom_feature_flags). FEATURE_FLAGS in particular drives the counter-proposal
+      // section's gating in renderCounterProposalSection.
       var results = await Promise.all([
         fetch(SUPABASE_URL + '/rest/v1/pricing_tier?select=tier_code,display_name,delta_rate_pence,cumulative_rate_pence,is_enrichment_layer,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/pricing_modifier?select=modifier_code,modifier_type,display_name,value_pence,value_pct,applies_to,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/dealroom_feature_flags?select=feature_key,enabled', { headers: hdrs }),
         IS_SANDBOX ? Promise.resolve('phase_0') : fetchClidGateState(sandboxToken, CLID),
-        loadCeilings(sandboxToken),
-        IS_SANDBOX ? Promise.resolve(null) : loadLaunchPartnerStatus(sandboxToken)
+        loadCeilingsV3_()
       ]);
       if (results[0].ok) TIERS_META = await results[0].json();
       if (results[1].ok) MODIFIERS_META = await results[1].json();
@@ -1283,18 +1352,10 @@
         for (var fi = 0; fi < flags.length; fi++) FEATURE_FLAGS[flags[fi].feature_key] = flags[fi].enabled;
       }
       var gateState = results[3] || 'phase_0';
-      CEILINGS = results[4];                       // AMD-110 — populated before first render
-      LAUNCH_PARTNER_STATUS = results[5];          // AMD-109 — populated before first render (null in sandbox)
-      // AMD-109 — pre-first-quote synchronisation: set clid in modifiers BEFORE computeQuote
-      // fires so the first quote already includes the LP discount (avoids £1,448,696 →
-      // £1,303,826 flicker). Silent on non-LP users — no clid sent, no LP path triggered.
-      if (LAUNCH_PARTNER_STATUS && LAUNCH_PARTNER_STATUS.is_launch_partner === true) {
-        CONFIG_STATE.modifiers.clid = CLID;
-      }
+      CEILINGS_V3 = results[4];
       renderConfigurator();
-      applyAllCaps();         // initial DOM input.max attrs
       renderCounterProposalSection(user, gateState);
-      computeQuote();
+      // Initial recompute is wired in subsequent commits (axis handlers + tier selector).
     } catch (err) {
       console.error('populateConfigurator error:', err);
       anchor.innerHTML = '<div class="dr-config-empty-error">Configurator could not be loaded. Please refresh, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
@@ -1374,17 +1435,69 @@
   function renderConfigurator() {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
-    // Defensive: if any panel render throws, surface a visible error in the anchor
-    // (instead of silently rendering an incomplete panel set) and log the underlying
-    // exception to the console so a regression is diagnosable without a debugger.
+    // AMD-114 — three-panel architecture (scope-builder + modifiers + live quote)
+    // replaces the AMD-088/091/106/108/111-era four-panel surface. Defensive try
+    // surfaces render errors to the user rather than silently rendering an
+    // incomplete panel set; underlying exception is logged for diagnosis.
     try {
-      var html = renderPanel1Packages_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
+      var html = renderScopeBuilderPanel_() + renderModifiersPanel_() + renderLiveQuotePanel_();
       anchor.innerHTML = html;
-      bindConfiguratorRuntimeHandlers_();
+      bindScopeBuilderHandlers_();
     } catch (err) {
-      console.error('[AMD-111-113] renderConfigurator threw — panel set may be incomplete:', err);
+      console.error('[AMD-114] renderConfigurator threw — panel set may be incomplete:', err);
       anchor.innerHTML = '<div class="dr-config-empty-error">Configurator render error. Please refresh the page; if the issue persists, contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
     }
+  }
+
+  // ─── AMD-114 three-panel render scaffolding ────────────────────────
+  // Commit 1 stubs: each render function returns its panel skeleton with
+  // header + an empty content slot. Subsequent commits populate the
+  // axis-row content (Panel 1), modifier controls (Panel 2), and live
+  // quote display (Panel 3).
+  function renderScopeBuilderPanel_() {
+    return '<section class="dr-config-panel dr-scope-builder-panel" aria-labelledby="dr-panel-scope-h">' +
+             '<header class="dr-config-panel-header">' +
+               '<span class="dr-config-panel-number">Panel 1</span>' +
+               '<h2 id="dr-panel-scope-h" class="dr-config-panel-title">Scope builder</h2>' +
+               '<button type="button" class="dr-scope-reset-btn" data-scope-reset>Reset all axes</button>' +
+             '</header>' +
+             '<p class="dr-config-panel-sub">' +
+               'Compose your scope across four axes &mdash; sector, geography, industry, intelligence. ' +
+               'The universe and per-record price update live as you narrow.' +
+             '</p>' +
+             '<div class="dr-axis-list" data-axis-list></div>' +
+           '</section>';
+  }
+
+  function renderModifiersPanel_() {
+    return '<section class="dr-config-panel dr-modifiers-panel" aria-labelledby="dr-panel-mods-h">' +
+             '<header class="dr-config-panel-header">' +
+               '<span class="dr-config-panel-number">Panel 2</span>' +
+               '<h2 id="dr-panel-mods-h" class="dr-config-panel-title">Modifiers</h2>' +
+             '</header>' +
+             '<div class="dr-modifiers-content" data-modifiers-content></div>' +
+           '</section>';
+  }
+
+  function renderLiveQuotePanel_() {
+    return '<aside class="dr-quote-rail dr-live-quote-panel" id="dr-config-quote-rail" aria-live="polite" aria-labelledby="dr-panel-quote-h">' +
+             '<header class="dr-config-panel-header">' +
+               '<span class="dr-config-panel-number">Panel 3</span>' +
+               '<h2 id="dr-panel-quote-h" class="dr-config-panel-title">Live quote</h2>' +
+             '</header>' +
+             '<div class="dr-quote-content" data-quote-content>' +
+               '<div class="dr-quote-empty">Compose a scope to see the live quote.</div>' +
+             '</div>' +
+             '<div class="dr-quote-meta">' +
+               '<span class="dr-quote-amd-chip" data-quote-amd-chip>AMD-114 + AMD-115</span>' +
+               '<span class="dr-quote-validity">30 days; commitments require contract</span>' +
+             '</div>' +
+           '</aside>';
+  }
+
+  function bindScopeBuilderHandlers_() {
+    // Commit 1 stub. Axis rows, tier selector, modifier controls, and
+    // live recompute are wired by subsequent commits.
   }
 
   function getTierData_() {
