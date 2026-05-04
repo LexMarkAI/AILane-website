@@ -1728,12 +1728,120 @@
              '<div class="dr-axis-checkbox-grid dr-axis-checkbox-grid-industry">' + (boxes || '<div class="dr-axis-empty">No L1 values returned.</div>') + '</div>' +
            '</fieldset>';
   }
+  // ─── Intelligence axis (ACEI L1 / RRI L2 / CCI deferred) ───────────
+  function humaniseIntelligenceSummary_() {
+    var i = SCOPE_STATE.intelligence;
+    var acei = (i.acei || []), rri = (i.rri || []);
+    if (acei.length === 0 && rri.length === 0) return 'All matters';
+    var parts = [];
+    if (acei.length === 1) {
+      var label = aceiDisplayLabel_(acei[0]);
+      parts.push(label || acei[0]);
+    } else if (acei.length > 1) {
+      parts.push(acei.length + ' ACEI categor' + (acei.length === 1 ? 'y' : 'ies'));
+    }
+    if (rri.length === 1) {
+      parts.push(rriDisplayLabel_(rri[0]) || rri[0]);
+    } else if (rri.length > 1) {
+      parts.push(rri.length + ' RRI band' + (rri.length === 1 ? '' : 's'));
+    }
+    return parts.join(' + ');
+  }
+
+  function aceiDisplayLabel_(code) {
+    var meta = getAxisMeta_('intelligence');
+    var L1 = (meta && meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+    for (var i = 0; i < L1.length; i++) {
+      if (L1[i].value_code === code) return L1[i].display_label || code;
+    }
+    return code;
+  }
+  function rriDisplayLabel_(code) {
+    var meta = getAxisMeta_('intelligence');
+    var L2 = (meta && meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+    for (var i = 0; i < L2.length; i++) {
+      if (L2[i].value_code === code) return L2[i].display_label || code;
+    }
+    return code;
+  }
+
   function renderIntelligenceAxisRow_() {
+    var meta = getAxisMeta_('intelligence') || { displayName: 'Intelligence', bumpLabel: '+8% bump', levels: {} };
+    var summary = humaniseIntelligenceSummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'intelligence') ? renderIntelligenceExpanded_(meta) : '';
     return renderAxisRowFrame_({
-      code: 'intelligence', displayName: 'Intelligence', bumpLabel: '+8% bump',
-      summary: 'All matters',
-      expandedHtml: '<div class="dr-axis-coming-soon">Intelligence drill-down available in commit 5.</div>'
+      code: 'intelligence', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
     });
+  }
+
+  // ACEI numeric extraction: 'acei_1' → 1; used to bind --acei-N token swatches.
+  function aceiOrdinal_(code) {
+    var m = /^acei_(\d{1,2})$/.exec(code || '');
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  function renderIntelligenceExpanded_(meta) {
+    var rriDisabled = (MODIFIERS_STATE.tier === 'operational_readiness');
+    var tabs = [
+      { code: 'acei', label: 'ACEI', disabled: false, tip: 'ACEI categories — universal access.' },
+      { code: 'rri',  label: 'RRI',  disabled: rriDisabled, tip: rriDisabled ? 'RRI band selection requires Governance tier.' : 'RRI bands — Governance+ tier.' },
+      { code: 'cci',  label: 'CCI',  disabled: true,  tip: 'CCI category drill-down — Coming soon.' }
+    ];
+    var tabBtns = '';
+    for (var t = 0; t < tabs.length; t++) {
+      var tab = tabs[t];
+      var act = (INTEL_TAB === tab.code && !tab.disabled) ? ' is-active' : '';
+      var dis = tab.disabled ? ' is-disabled' : '';
+      tabBtns += '<button type="button" class="dr-axis-tab' + act + dis + '" data-intel-tab="' + escapeHtml(tab.code) + '"' +
+                  (tab.disabled ? ' disabled aria-disabled="true"' : '') +
+                  ' title="' + escapeHtml(tab.tip) + '">' + escapeHtml(tab.label) + '</button>';
+    }
+
+    var tabPanel = '';
+    var activeTab = (INTEL_TAB === 'rri' && rriDisabled) ? 'acei' : INTEL_TAB;
+    if (activeTab === 'acei') {
+      var L1 = (meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+      var boxes = '';
+      for (var i = 0; i < L1.length; i++) {
+        var v = L1[i];
+        var ch = (SCOPE_STATE.intelligence.acei.indexOf(v.value_code) !== -1) ? ' checked' : '';
+        var ord = aceiOrdinal_(v.value_code);
+        var swatch = (ord != null && ord >= 1 && ord <= 12)
+          ? '<span class="dr-axis-acei-swatch" style="background:var(--acei-' + ord + ')" aria-hidden="true"></span>'
+          : '';
+        var enC = (v.enriched_count != null) ? Number(v.enriched_count).toLocaleString('en-GB') : '—';
+        boxes += '<label class="dr-axis-checkbox dr-axis-checkbox-acei">' +
+                   '<input type="checkbox" data-intel-acei-input value="' + escapeHtml(v.value_code) + '"' + ch + '>' +
+                   swatch +
+                   '<span class="dr-axis-checkbox-label">' + escapeHtml(v.display_label || v.value_code) + '</span>' +
+                   '<span class="dr-axis-checkbox-meta">' + enC + ' enriched</span>' +
+                 '</label>';
+      }
+      tabPanel = '<fieldset class="dr-axis-fieldset">' +
+                   '<legend>ACEI categories</legend>' +
+                   '<div class="dr-axis-checkbox-grid dr-axis-checkbox-grid-acei">' + (boxes || '<div class="dr-axis-empty">No ACEI values returned.</div>') + '</div>' +
+                 '</fieldset>';
+    } else if (activeTab === 'rri') {
+      var L2 = (meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+      var rriBoxes = '';
+      for (var j = 0; j < L2.length; j++) {
+        var w = L2[j];
+        var ch2 = (SCOPE_STATE.intelligence.rri.indexOf(w.value_code) !== -1) ? ' checked' : '';
+        rriBoxes += '<label class="dr-axis-checkbox">' +
+                      '<input type="checkbox" data-intel-rri-input value="' + escapeHtml(w.value_code) + '"' + ch2 + '>' +
+                      '<span class="dr-axis-checkbox-label">' + escapeHtml(w.display_label || w.value_code) + '</span>' +
+                    '</label>';
+      }
+      tabPanel = '<fieldset class="dr-axis-fieldset">' +
+                   '<legend>RRI bands (Governance+)</legend>' +
+                   '<div class="dr-axis-checkbox-grid">' + (rriBoxes || '<div class="dr-axis-empty">No RRI values returned.</div>') + '</div>' +
+                 '</fieldset>';
+    } else if (activeTab === 'cci') {
+      tabPanel = '<div class="dr-axis-coming-soon">CCI category drill-down — Coming soon.</div>';
+    }
+
+    return '<div class="dr-axis-tab-row" role="tablist">' + tabBtns + '</div>' + tabPanel;
   }
 
   function renderAxisListDom_() {
@@ -1881,6 +1989,47 @@
         recomputeDebounced_();
       });
     })(indL1[ii]);
+
+    // Intelligence sub-axis tabs (ACEI / RRI / CCI)
+    var intelTabs = document.querySelectorAll('[data-intel-tab]');
+    for (var it = 0; it < intelTabs.length; it++) (function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        var code = btn.getAttribute('data-intel-tab');
+        if (code === 'cci') return;
+        if (code === 'rri' && MODIFIERS_STATE.tier === 'operational_readiness') return;
+        INTEL_TAB = code;
+        renderAxisListDom_();
+      });
+    })(intelTabs[it]);
+
+    // Intelligence ACEI checkboxes
+    var aceiInputs = document.querySelectorAll('[data-intel-acei-input]');
+    for (var ai = 0; ai < aceiInputs.length; ai++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.intelligence.acei.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.intelligence.acei = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(aceiInputs[ai]);
+
+    // Intelligence RRI checkboxes (Governance+ tier — UI gates the tab; RPC will reject otherwise)
+    var rriInputs = document.querySelectorAll('[data-intel-rri-input]');
+    for (var ri = 0; ri < rriInputs.length; ri++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.intelligence.rri.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.intelligence.rri = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(rriInputs[ri]);
   }
 
   function handleResetAllAxes_() {
