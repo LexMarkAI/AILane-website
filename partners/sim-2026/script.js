@@ -418,6 +418,9 @@
     }
     document.body.style.visibility = 'visible';
     injectSubPageNav();
+    injectAuthChip();
+    injectPhaseTracker();
+    injectDocumentVault();
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
@@ -2554,6 +2557,105 @@
 
     section.appendChild(grid);
     hero.insertAdjacentElement('afterend', section);
+  }
+
+  // ============================================================
+  // PHASE 3 BRIEF β — workspace shell (auth chip + vault + tracker)
+  // AILANE-CC-BRIEF-WORKSPACE-DOCS-PHASE-3-001
+  // Authority: AMD-094 (privacy) + AMD-103 (provenance) + AMD-106
+  // (canonical 7-state phase taxonomy) + AMD-114 (CONFIG-001) +
+  // AMD-115/117/118 Stage A.
+  // Data sources (per Director-amended §4.4 Path I):
+  //   - dealroom_documents_catalog (REST, RLS-gated)
+  //   - partner_clids                 (REST, RLS-gated)
+  //   - dealroom_uploads              (REST, RLS-gated)
+  // EFs:
+  //   - dealroom-document-fetch v3    (preview/download)
+  //   - dealroom-document-upload v1   (multipart submission)
+  // dealroom-pipeline-list v1 is OUT OF SCOPE — implements CPPP/FCR
+  // submissions, not a document catalog source.
+  // ============================================================
+
+  // ─── Phase 3 — canonical taxonomy + tokens ─────────────────
+  var PHASE_RANK = {
+    phase_0: 0, phase_a: 1, phase_b: 2, phase_c: 3,
+    phase_d: 4, phase_e: 5, phase_f: 6, all_phases: 0
+  };
+  var PHASE_LABELS = {
+    phase_0: 'Pre-engagement',
+    phase_a: 'Engagement opened',
+    phase_b: 'Engagement signed',
+    phase_c: 'Active engagement',
+    phase_d: 'Renewal',
+    phase_e: 'Wind-down',
+    phase_f: 'Closed',
+    all_phases: 'Always available'
+  };
+
+  // ─── Shell injection — commit 1 stubs ──────────────────────
+  // Each renders skeleton DOM only; data + behaviour wired in
+  // subsequent commits. Idempotent (safe to call repeatedly).
+
+  function injectAuthChip() {
+    if (document.getElementById('dr-auth-chip')) return;
+    var anchor = document.querySelector('.dr-header-right') || document.querySelector('.dr-header');
+    if (!anchor) return;
+    var chip = document.createElement('div');
+    chip.id = 'dr-auth-chip';
+    chip.className = 'dr-auth-chip';
+    chip.setAttribute('aria-live', 'polite');
+    chip.innerHTML = '<span class="dr-auth-chip-pending">Loading&hellip;</span>';
+    anchor.appendChild(chip);
+  }
+
+  function injectPhaseTracker() {
+    if (document.getElementById('dr-phase-tracker')) return;
+    var anchor =
+      document.querySelector('.dr-subpage-nav-section') ||
+      document.querySelector('.dr-main .dr-container .dr-hero');
+    if (!anchor) return;
+    var section = document.createElement('aside');
+    section.id = 'dr-phase-tracker';
+    section.className = 'dr-phase-tracker';
+    section.setAttribute('aria-label', 'Engagement phase progression');
+    section.innerHTML =
+      '<header class="dr-phase-tracker-header">' +
+        '<h2 class="dr-phase-tracker-title">Engagement Phase</h2>' +
+      '</header>' +
+      '<div class="dr-phase-tracker-body" data-phase-tracker-body>' +
+        '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>' +
+      '</div>';
+    anchor.insertAdjacentElement('afterend', section);
+  }
+
+  function injectDocumentVault(opts) {
+    if (document.getElementById('dr-document-vault')) return;
+    opts = opts || {};
+    var pathLandingRoot = (window.location.pathname.replace(/\/+$/, '') === WORKSPACE_ROOT.replace(/\/+$/, ''));
+    var collapsedByDefault = (typeof opts.collapsedByDefault === 'boolean')
+      ? opts.collapsedByDefault
+      : !pathLandingRoot;
+    var anchor =
+      document.getElementById('dr-phase-tracker') ||
+      document.querySelector('.dr-subpage-nav-section') ||
+      document.querySelector('.dr-main .dr-container .dr-hero');
+    if (!anchor) return;
+    var aside = document.createElement('aside');
+    aside.id = 'dr-document-vault';
+    aside.className = 'dr-vault' + (collapsedByDefault ? ' dr-vault-collapsed' : '');
+    aside.dataset.collapsed = collapsedByDefault ? 'true' : 'false';
+    aside.setAttribute('aria-label', 'Document Vault');
+    aside.innerHTML =
+      '<header class="dr-vault-header">' +
+        '<h2 class="dr-vault-title">Document Vault</h2>' +
+        '<button type="button" class="dr-vault-toggle" data-vault-toggle aria-expanded="' + (collapsedByDefault ? 'false' : 'true') + '">' +
+          (collapsedByDefault ? '▸' : '▾') +
+        '</button>' +
+      '</header>' +
+      '<div class="dr-vault-body" data-vault-body>' +
+        '<div class="dr-vault-pending">Loading documents&hellip;</div>' +
+      '</div>';
+    anchor.insertAdjacentElement('afterend', aside);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
