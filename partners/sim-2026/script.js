@@ -1676,12 +1676,57 @@
 
     return '<div class="dr-axis-level-selector"><span class="dr-axis-level-label">Granularity:</span>' + levelChips + '</div>' + valuesBlock;
   }
+  // ─── Industry axis (L1 UK SIC 2007 sections; L2-L4 deferred) ───────
+  function humaniseIndustrySummary_() {
+    var ind = SCOPE_STATE.industry;
+    var vals = ind.values || [];
+    if (vals.length === 0) return 'All industries';
+    if (vals.length === 1) return 'SIC Section ' + vals[0];
+    if (vals.length >= 21) return 'All SIC sections';
+    return vals.length + ' SIC sections';
+  }
+
   function renderIndustryAxisRow_() {
+    var meta = getAxisMeta_('industry') || { displayName: 'Industry', bumpLabel: '+6% bump', levels: {} };
+    var summary = humaniseIndustrySummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'industry') ? renderIndustryExpanded_(meta) : '';
     return renderAxisRowFrame_({
-      code: 'industry', displayName: 'Industry', bumpLabel: '+6% bump',
-      summary: 'All industries',
-      expandedHtml: '<div class="dr-axis-coming-soon">Industry drill-down available in commit 4.</div>'
+      code: 'industry', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
     });
+  }
+
+  function renderIndustryExpanded_(meta) {
+    var ind = SCOPE_STATE.industry;
+    var L1 = (meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+    // Order alphabetically by value_code (single-letter section A..U)
+    var sorted = L1.slice().sort(function (a, b) {
+      return String(a.value_code || '').localeCompare(String(b.value_code || ''));
+    });
+    var levelChips =
+      '<button type="button" class="dr-axis-level-chip is-active" disabled aria-disabled="true">L1 — SIC Section</button>' +
+      '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="SIC Division — Coming soon">L2 — Coming soon</button>' +
+      '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="SIC Group — Coming soon">L3 — Coming soon</button>' +
+      '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="SIC Class — Institutional tier only; Coming soon">L4 — Coming soon</button>';
+
+    var boxes = '';
+    for (var i = 0; i < sorted.length; i++) {
+      var v = sorted[i];
+      var ch = (ind.values.indexOf(v.value_code) !== -1) ? ' checked' : '';
+      var idC = (v.identity_count != null) ? Number(v.identity_count).toLocaleString('en-GB') + ' employers' : '';
+      var label = v.value_code + ' — ' + (v.display_label || v.value_code);
+      boxes += '<label class="dr-axis-checkbox dr-axis-checkbox-industry">' +
+                 '<input type="checkbox" data-industry-l1-input value="' + escapeHtml(v.value_code) + '"' + ch + '>' +
+                 '<span class="dr-axis-checkbox-label">' + escapeHtml(label) + '</span>' +
+                 (idC ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(idC) + '</span>' : '') +
+               '</label>';
+    }
+
+    return '<div class="dr-axis-level-selector"><span class="dr-axis-level-label">Granularity:</span>' + levelChips + '</div>' +
+           '<fieldset class="dr-axis-fieldset">' +
+             '<legend>UK SIC 2007 sections</legend>' +
+             '<div class="dr-axis-checkbox-grid dr-axis-checkbox-grid-industry">' + (boxes || '<div class="dr-axis-empty">No L1 values returned.</div>') + '</div>' +
+           '</fieldset>';
   }
   function renderIntelligenceAxisRow_() {
     return renderAxisRowFrame_({
@@ -1821,6 +1866,21 @@
       renderAxisListDom_();
       recomputeDebounced_();
     });
+
+    // Industry L1 SIC section checkboxes
+    var indL1 = document.querySelectorAll('[data-industry-l1-input]');
+    for (var ii = 0; ii < indL1.length; ii++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.industry.values.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.industry.values = arr;
+        SCOPE_STATE.industry.level = 'L1';
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(indL1[ii]);
   }
 
   function handleResetAllAxes_() {
