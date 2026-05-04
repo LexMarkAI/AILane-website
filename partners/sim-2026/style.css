@@ -1311,13 +1311,23 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
 }
-/* AMD-111 fixup-2 Issue 3 — hide native number-input spinner arrows for clean visual */
-.dr-config-scope-input::-webkit-inner-spin-button,
-.dr-config-scope-input::-webkit-outer-spin-button {
+/* AMD-111-113 fixup-3 Issue 3 — universal hide for native number-input spinner arrows.
+   Replaces the earlier class-scoped (.dr-config-scope-input) rule that did not visibly
+   suppress spinners in Director's browser. The universal selector + standard `appearance`
+   property + Mozilla and WebKit prefixes catch every number input across the deal-room
+   surface (configurator and any future surfaces). Layer inputs render as plain numeric
+   text fields with cyan focus ring. */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   margin: 0;
 }
-.dr-config-scope-input { -moz-appearance: textfield; }
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 .dr-config-scope-total {
   margin-top: 12px;
   padding-top: 12px;
@@ -1332,6 +1342,10 @@ body {
 }
 
 /* Panel 3 — modifiers */
+/* AMD-111-113 fixup-3 Issue 2 — fix Exclusivity row text overflow.
+   Description column gets a fixed 280px so it cannot be squeezed by long chip labels.
+   Chip-group container gets flex:1 with flex-wrap so chips wrap to a second line when
+   space is tight (instead of pushing into the description column). */
 .dr-modifier-row {
   display: flex;
   justify-content: space-between;
@@ -1339,6 +1353,10 @@ body {
   gap: 16px;
   padding: 12px 0;
   border-bottom: 1px dashed rgba(148, 163, 184, 0.10);
+}
+.dr-modifier-row > div:first-child {
+  flex: 0 0 280px;
+  min-width: 0;
 }
 .dr-modifier-row:last-child { border-bottom: none; }
 .dr-modifier-label {
@@ -1354,10 +1372,16 @@ body {
 }
 .dr-radio-group {
   display: flex;
+  flex: 1;
   gap: 4px;
-  flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .dr-modifier-row { flex-direction: column; align-items: stretch; }
+  .dr-modifier-row > div:first-child { flex: 1 1 auto; }
+  .dr-radio-group { justify-content: flex-start; }
 }
 .dr-radio-option {
   padding: 6px 10px;

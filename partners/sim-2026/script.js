@@ -1486,10 +1486,12 @@
       { code: 'daily',     label: 'Daily · +15%' },
       { code: 'realtime',  label: 'Real-time · +25%' }
     ];
+    // AMD-111-113 fixup-3 — shortened labels (the "on enrichment layers" qualifier is
+    // already in the row's .dr-modifier-meta description, no need to repeat per chip).
     var EXCL = [
       { code: 'none',     label: 'Non-exclusive' },
-      { code: 'vertical', label: 'Vertical-Exclusive · +60% on enrichment layers' },
-      { code: 'full_uk',  label: 'Full UK Exclusivity · +60% on enrichment layers' }
+      { code: 'vertical', label: 'Vertical-Exclusive · +60%' },
+      { code: 'full_uk',  label: 'Full UK Exclusivity · +60%' }
     ];
     var TERM = [
       { code: 1, label: '12 months' },
