@@ -2787,23 +2787,187 @@
   }
 
   function injectPhaseTracker() {
-    if (document.getElementById('dr-phase-tracker')) return;
-    var anchor =
-      document.querySelector('.dr-subpage-nav-section') ||
-      document.querySelector('.dr-main .dr-container .dr-hero');
-    if (!anchor) return;
-    var section = document.createElement('aside');
-    section.id = 'dr-phase-tracker';
-    section.className = 'dr-phase-tracker';
-    section.setAttribute('aria-label', 'Engagement phase progression');
-    section.innerHTML =
-      '<header class="dr-phase-tracker-header">' +
-        '<h2 class="dr-phase-tracker-title">Engagement Phase</h2>' +
-      '</header>' +
-      '<div class="dr-phase-tracker-body" data-phase-tracker-body>' +
-        '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>' +
-      '</div>';
-    anchor.insertAdjacentElement('afterend', section);
+    var alreadyExists = !!document.getElementById('dr-phase-tracker');
+    if (!alreadyExists) {
+      var anchor =
+        document.querySelector('.dr-subpage-nav-section') ||
+        document.querySelector('.dr-main .dr-container .dr-hero');
+      if (!anchor) return;
+      var section = document.createElement('aside');
+      section.id = 'dr-phase-tracker';
+      section.className = 'dr-phase-tracker';
+      section.setAttribute('aria-label', 'Engagement phase progression');
+      section.innerHTML =
+        '<header class="dr-phase-tracker-header">' +
+          '<h2 class="dr-phase-tracker-title">Engagement Phase</h2>' +
+        '</header>' +
+        '<div class="dr-phase-tracker-body" data-phase-tracker-body>' +
+          '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>' +
+        '</div>';
+      anchor.insertAdjacentElement('afterend', section);
+      window.addEventListener('dr-auth-state-changed', refreshPhaseTracker_);
+    }
+    refreshPhaseTracker_();
+  }
+
+  // Refresh the tracker. Reuses window.__dealRoomVaultData when populated
+  // within the freshness window (30s) so we don't hit the catalog twice
+  // on simultaneous vault+tracker render.
+  async function refreshPhaseTracker_() {
+    var body = document.querySelector('[data-phase-tracker-body]');
+    if (!body) return;
+    var session = await getDealroomSession_();
+    if (!session) {
+      body.innerHTML = '<div class="dr-phase-tracker-unauth"><p>Sign in to view phase status.</p></div>';
+      return;
+    }
+    body.innerHTML = '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>';
+    try {
+      var cached = window.__dealRoomVaultData;
+      var fresh = (cached && (Date.now() - (cached.fetchedAt || 0)) < 30000);
+      var data = fresh ? cached : await loadVaultData_();
+      if (!fresh) window.__dealRoomVaultData = data;
+      renderTrackerBody_(data);
+    } catch (err) {
+      console.error('[Phase 3] tracker load failed:', err);
+      body.innerHTML =
+        '<div class="dr-phase-tracker-error" role="alert">' +
+          '<p>Could not load phase status. ' + escapeHtml((err && err.message) || '') + '</p>' +
+          '<button type="button" class="dr-btn-secondary" data-tracker-retry>Retry</button>' +
+        '</div>';
+      var retryBtn = body.querySelector('[data-tracker-retry]');
+      if (retryBtn) retryBtn.addEventListener('click', refreshPhaseTracker_);
+    }
+  }
+
+  // Determine the next phase that gates advance (lowest rank > current
+  // among phases that contain blocking-requirement rows). Skips phases
+  // with no blockers (e.g. phase_0 → phase_b in the seed catalog —
+  // phase_a has no docs).
+  function findNextBlockingPhase_(catalog, currentRank) {
+    var ranks = [];
+    for (var i = 0; i < catalog.length; i++) {
+      var row = catalog[i];
+      if (row.kind !== 'requirement') continue;
+      if (!row.is_blocking_phase_advance) continue;
+      var rank = PHASE_RANK[row.available_from_phase];
+      if (rank == null || rank <= currentRank) continue;
+      ranks.push(rank);
+    }
+    if (ranks.length === 0) return null;
+    return Math.min.apply(null, ranks);
+  }
+
+  function rankToPhaseCode_(rank) {
+    var keys = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+    return keys[rank] || null;
+  }
+
+  function renderTrackerBody_(data) {
+    var body = document.querySelector('[data-phase-tracker-body]');
+    if (!body) return;
+    var clidRow = data.clidRow;
+    var catalog = data.catalog || [];
+    var uploadsByDocId = data.uploadsByDocId || {};
+    var currentGateState = (clidRow && clidRow.gate_state) || 'phase_0';
+    var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+
+    // Render 7 chevrons in order phase_0..phase_f
+    var phases = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+    var chevronsHtml = '';
+    for (var i = 0; i < phases.length; i++) {
+      var p = phases[i];
+      var rank = PHASE_RANK[p];
+      var state = (rank < currentRank) ? 'completed' : (rank === currentRank) ? 'current' : 'future';
+      var icon = (state === 'completed') ? '✓' : (state === 'current') ? '●' : '○';
+      // AMD-069 gold reservation: --dr-gold ONLY for Institutional active
+      // tier (Panel 2 chip) per Phase 2; tracker uses cyan baseline. The
+      // brief §9.3 mentions optional gold for current=phase_c (institutional
+      // engagement); kept cyan here for consistency with AMD-069.
+      chevronsHtml +=
+        '<li class="dr-phase-chevron" data-phase="' + p + '" data-state="' + state + '">' +
+          '<span class="dr-phase-chevron-icon" aria-hidden="true">' + icon + '</span>' +
+          '<span class="dr-phase-chevron-code">' + p + '</span>' +
+          '<span class="dr-phase-chevron-label">' + escapeHtml(PHASE_LABELS[p] || p) + '</span>' +
+        '</li>';
+    }
+
+    // "What's needed to advance"
+    var nextRank = findNextBlockingPhase_(catalog, currentRank);
+    var advancePanelHtml = '';
+    if (nextRank != null) {
+      var nextPhaseCode = rankToPhaseCode_(nextRank);
+      var nextPhaseLabel = PHASE_LABELS[nextPhaseCode] || nextPhaseCode;
+      var blockers = [];
+      for (var b = 0; b < catalog.length; b++) {
+        var row = catalog[b];
+        if (row.kind !== 'requirement') continue;
+        if (!row.is_blocking_phase_advance) continue;
+        if (row.available_from_phase !== nextPhaseCode) continue;
+        var upload = uploadsByDocId[row.document_id] || null;
+        var blockerStatus = upload && upload.status ? upload.status : 'open';
+        blockers.push({ row: row, status: blockerStatus });
+      }
+      var allAccepted = blockers.length > 0 && blockers.every(function (b) { return b.status === 'accepted'; });
+      var blockerItems = blockers.map(function (b) {
+        var icon = (b.status === 'accepted') ? '✓'
+                 : (b.status === 'submitted') ? '⏱'
+                 : (b.status === 'declined') ? '!'
+                 : '✗';
+        return '<li class="dr-phase-blocker" data-status="' + escapeHtml(b.status) + '">' +
+                 '<span class="dr-phase-blocker-status-icon" aria-hidden="true">' + icon + '</span>' +
+                 '<span class="dr-phase-blocker-name">' + escapeHtml(b.row.name || b.row.doc_code) + '</span>' +
+                 '<a href="#" class="dr-phase-blocker-link" data-blocker-doc-id="' + escapeHtml(b.row.document_id) + '">Go to document</a>' +
+               '</li>';
+      }).join('');
+
+      advancePanelHtml =
+        '<section class="dr-phase-tracker-advance">' +
+          '<h3 class="dr-phase-tracker-advance-title">Required to advance to <strong>' + nextPhaseCode + '</strong> &mdash; ' + escapeHtml(nextPhaseLabel) + '</h3>' +
+          '<ul class="dr-phase-tracker-blockers">' + (blockerItems || '<li class="dr-phase-tracker-empty">No blocking documents found.</li>') + '</ul>' +
+          (allAccepted
+            ? '<div class="dr-phase-tracker-ready" role="status">' +
+                '<p><strong>All required documents accepted.</strong> Director will advance your engagement to ' + nextPhaseCode + ' shortly.</p>' +
+              '</div>'
+            : '<p class="dr-phase-tracker-blurb">' +
+                'Director-controlled. When all required documents are accepted, your engagement advances. ' +
+                'There is no automatic advance.' +
+              '</p>') +
+        '</section>';
+    } else {
+      // No more blocking phases ahead — engagement is at terminal state or
+      // beyond this build's modelled phases.
+      advancePanelHtml =
+        '<section class="dr-phase-tracker-advance">' +
+          '<p class="dr-phase-tracker-blurb">No further blocking documents identified for this phase.</p>' +
+        '</section>';
+    }
+
+    body.innerHTML =
+      '<ol class="dr-phase-tracker-chevrons" aria-label="Engagement phase progression">' + chevronsHtml + '</ol>' +
+      advancePanelHtml;
+
+    // Wire 'Go to document' links — smooth-scroll to the matching tile in
+    // the document vault and briefly highlight it.
+    var blockerLinks = body.querySelectorAll('[data-blocker-doc-id]');
+    for (var l = 0; l < blockerLinks.length; l++) (function (link) {
+      link.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        var docId = link.getAttribute('data-blocker-doc-id');
+        var tile = document.querySelector('.dr-doc-tile[data-document-id="' + docId + '"]');
+        if (!tile) return;
+        // Ensure vault is expanded so the tile is visible
+        var aside = document.getElementById('dr-document-vault');
+        if (aside && aside.dataset.collapsed === 'true') {
+          var t = aside.querySelector('[data-vault-toggle]');
+          if (t) t.click();
+        }
+        try { tile.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        catch (e) { tile.scrollIntoView(); }
+        tile.classList.add('dr-doc-tile-highlighted');
+        setTimeout(function () { tile.classList.remove('dr-doc-tile-highlighted'); }, 2000);
+      });
+    })(blockerLinks[l]);
   }
 
   function injectDocumentVault(opts) {
@@ -2889,7 +3053,7 @@
 
   async function loadVaultData_() {
     var clidParam = encodeURIComponent(CLID);
-    var catalogSelect = 'document_id,doc_code,clid,name,description,kind,available_from_phase,version_label,display_order,storage_path,file_size_bytes,mime_type';
+    var catalogSelect = 'document_id,doc_code,clid,name,description,kind,available_from_phase,is_blocking_phase_advance,version_label,display_order,storage_path,file_size_bytes,mime_type';
     var uploadsSelect = 'upload_id,document_id,version_number,status,uploaded_by_email,original_filename,mime_type,file_size_bytes,created_at,review_notes';
     var clidsSelect = 'clid,counterparty_name,gate_state,is_simulation,is_launch_partner';
 
