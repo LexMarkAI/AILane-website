@@ -450,6 +450,8 @@
       populateArtefactsView();
     } else if (location.pathname.indexOf('/configurator/') !== -1) {
       populateConfigurator(window.__dealRoomUser);
+    } else if (location.pathname.indexOf('/status/') !== -1) {
+      populateEngagementPanels();
     }
   }
 
@@ -4236,6 +4238,282 @@
     overlay.addEventListener('click', function (ev) { if (ev.target === overlay) close(); });
     var closeBtn = overlay.querySelector('[data-modal-close]');
     if (closeBtn) closeBtn.addEventListener('click', close);
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 3 — Engagement page (current state)
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §8
+  // Renders 4 panels at /status/: Current Phase, Open Capability
+  // Requests, Latest Counter-Proposal, Recent Director Responses.
+  // Brief §8.2 #2 eileen_triage_class chip is Director-only (visibility
+  // gated on userEmail === DIRECTOR_EMAIL). All panels degrade to
+  // truthful empty-state in the three observable cases (no-auth,
+  // zero-rows, prod-with-rows replaces in place).
+  // ============================================================
+
+  // JIPA-GRD-001 §5 phase descriptions + "what's needed to advance"
+  // — hard-coded per brief §8.2 #1 ("hard-code the six descriptions in
+  // dealroom.js as a constant"; here in script.js, single source of
+  // truth, no per-page duplication).
+  var ENGAGEMENT_PHASE_META = {
+    phase_0: {
+      label: 'Phase 0 — Pre-engagement',
+      description: 'Initial introduction and context-setting before the formal engagement opens. Both parties get familiar with the workspace.',
+      needed: 'Director moves the engagement to Phase A when the parties are ready to formally open. No counterparty action required at this stage.'
+    },
+    phase_a: {
+      label: 'Phase A — Engagement opened',
+      description: 'NDA and engagement framing executed; the deal-room is fully provisioned for substantive work.',
+      needed: 'Counterparty signs the mutual NDA and confirms named engagement contacts. Director executes the engagement-opening pack.'
+    },
+    phase_b: {
+      label: 'Phase B — Engagement signed',
+      description: 'Today configuration agreed; Tier-β sprint scope opens for delivery.',
+      needed: 'Counterparty signs the Today configuration and acknowledges the data field schedule. Director enables the Tier-β workspace surfaces.'
+    },
+    phase_c: {
+      label: 'Phase C — Active engagement (DPA + MSA)',
+      description: 'Data Processing Agreement and Master Services Agreement executed; substantive data exchange and collaboration active.',
+      needed: 'Counterparty signs the DPA addendum and MSA. Director executes the corresponding signature pack.'
+    },
+    phase_d: {
+      label: 'Phase D — Renewal (Full config + Tier β+ enabled)',
+      description: 'Full configuration committed; Tier β+ surfaces enabled; renewal cycle planning under way.',
+      needed: 'Counterparty signs the Full configuration; Director enables Tier β+ workspace surfaces.'
+    },
+    phase_e: {
+      label: 'Phase E — Wind-down (commercial schedule)',
+      description: 'Commercial schedule executed; engagement winding down per agreed terms.',
+      needed: 'Counterparty acknowledges the commercial schedule. Director executes the wind-down pack.'
+    },
+    phase_f: {
+      label: 'Phase F — Closed (operational handover)',
+      description: 'Operational handover complete; engagement formally closed.',
+      needed: 'No further action required; the deal-room remains available as an audit-grade record.'
+    }
+  };
+
+  function populateEngagementPanels() {
+    var section = document.getElementById('dr-engagement-panels');
+    if (!section || section.dataset.populated === '1') return;
+    section.dataset.populated = '1';
+
+    fetchEngagementPhasePanel_();
+    fetchEngagementOpenFcrsPanel_();
+    fetchEngagementLatestProposalPanel_();
+    fetchEngagementRecentResponsesPanel_();
+  }
+
+  function engagementPanelBody_(slug) {
+    var el = document.querySelector('[data-engagement-panel="' + slug + '"] [data-engagement-body]');
+    return el || null;
+  }
+
+  // Business-day countdown helper. Counts working days (Mon–Fri) between
+  // now and the target. UK bank holidays are NOT subtracted client-side
+  // (the SQL function compute_uk_business_day_offset is the authority for
+  // generating sla_target_response_at server-side; this client display
+  // walks Mon–Fri to render a friendly "N working days" label that aligns
+  // with how the user would count). If days < 0 → "SLA elapsed".
+  function businessDaysRemaining_(targetIso) {
+    if (!targetIso) return null;
+    var target = new Date(targetIso);
+    var now = new Date();
+    if (isNaN(target.getTime())) return null;
+    if (target.getTime() <= now.getTime()) return 0;
+    var days = 0;
+    var cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var end = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    while (cursor < end) {
+      cursor.setDate(cursor.getDate() + 1);
+      var dow = cursor.getDay();
+      if (dow !== 0 && dow !== 6) days++;
+    }
+    return days;
+  }
+
+  async function fetchEngagementPhasePanel_() {
+    var body = engagementPanelBody_('phase');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view current phase status.</div>';
+      return;
+    }
+    try {
+      var phase = await fetchClidGateState(token, CLID);
+      var meta = ENGAGEMENT_PHASE_META[phase] || { label: phase, description: '', needed: '' };
+      body.innerHTML =
+        '<div class="dr-engagement-headline">' + escapeHtml(meta.label) + '</div>' +
+        (meta.description ? '<p class="dr-engagement-desc">' + escapeHtml(meta.description) + '</p>' : '') +
+        '<h4 class="dr-engagement-subhead">What&rsquo;s needed to advance</h4>' +
+        '<p class="dr-engagement-needed">' + escapeHtml(meta.needed || 'No advancement actions defined for this phase.') + '</p>';
+    } catch (err) {
+      console.error('[STOP 3] phase panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchEngagementOpenFcrsPanel_() {
+    var body = engagementPanelBody_('fcrs');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view open capability requests.</div>';
+      return;
+    }
+    var isDirector = !!(user && user.email && user.email === DIRECTOR_EMAIL);
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=eq.pending' +
+          '&select=id,request_summary,request_category,submitted_at,sla_target_response_at,eileen_triage_class' +
+          '&order=sla_target_response_at.asc',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-engagement-empty">No open capability requests visible to your account.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        body.innerHTML = '<div class="dr-engagement-empty">No open capability requests. New off-estate requests Eileen lodges with the Director appear here while under review.</div>';
+        return;
+      }
+      var items = rows.map(function (r) {
+        var title = (r.request_summary || r.request_category || '(no summary)').slice(0, 120);
+        var submitted = r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('en-GB') : '';
+        var days = businessDaysRemaining_(r.sla_target_response_at);
+        var slaStr;
+        if (days == null) slaStr = '';
+        else if (days === 0) slaStr = 'Director response due today';
+        else slaStr = 'Director response due in ' + days + ' working day' + (days === 1 ? '' : 's');
+        var triageChip = (isDirector && r.eileen_triage_class)
+          ? '<span class="dr-engagement-triage-chip" title="Eileen triage class (Director only)">' + escapeHtml(r.eileen_triage_class) + '</span>'
+          : '';
+        return '<li class="dr-engagement-fcr-item">' +
+                 '<div class="dr-engagement-fcr-title">' + escapeHtml(title) + triageChip + '</div>' +
+                 '<div class="dr-engagement-fcr-meta">' +
+                   (submitted ? '<span>Submitted ' + escapeHtml(submitted) + '</span>' : '') +
+                   (slaStr ? '<span class="dr-engagement-sla">' + escapeHtml(slaStr) + '</span>' : '') +
+                 '</div>' +
+               '</li>';
+      }).join('');
+      body.innerHTML = '<ul class="dr-engagement-fcr-list">' + items + '</ul>';
+    } catch (err) {
+      console.error('[STOP 3] open-FCRs panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchEngagementLatestProposalPanel_() {
+    var body = engagementPanelBody_('proposal');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view counter-proposal status.</div>';
+      return;
+    }
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/partner_counter_proposals' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&select=id,config_summary,estimated_annual_value_min,estimated_annual_value_max,director_response_status,director_response_text,urgency_flag,eileen_evaluation_pending,submitted_at' +
+          '&order=submitted_at.desc&limit=1',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-engagement-empty">No counter-proposals visible to your account.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        body.innerHTML = '<div class="dr-engagement-empty">No counter-proposals submitted yet. Compose a configuration in Deal Creator and submit it for Director review.</div>';
+        return;
+      }
+      var p = rows[0];
+      var range = (p.estimated_annual_value_min != null && p.estimated_annual_value_max != null)
+        ? '£' + Number(p.estimated_annual_value_min).toLocaleString('en-GB') + '–£' + Number(p.estimated_annual_value_max).toLocaleString('en-GB')
+        : 'range not set';
+      var statusLine;
+      if (p.eileen_evaluation_pending) {
+        statusLine = 'Eileen has acknowledged this submission; Director is reviewing.';
+      } else if (p.director_response_status && p.director_response_status !== 'pending') {
+        statusLine = 'Director response: ' + p.director_response_status + (p.director_response_text ? ' — "' + p.director_response_text + '"' : '');
+      } else {
+        statusLine = 'Awaiting Director response.';
+      }
+      body.innerHTML =
+        '<div class="dr-engagement-headline">' + escapeHtml(p.config_summary || '(no summary)') + '</div>' +
+        '<div class="dr-engagement-meta-row">' +
+          '<span><strong>' + escapeHtml(range) + '</strong> /year</span>' +
+          '<span>Urgency: ' + escapeHtml(p.urgency_flag || 'standard') + '</span>' +
+          (p.submitted_at ? '<span>Submitted ' + escapeHtml(new Date(p.submitted_at).toLocaleDateString('en-GB')) + '</span>' : '') +
+        '</div>' +
+        '<p class="dr-engagement-needed">' + escapeHtml(statusLine) + '</p>';
+    } catch (err) {
+      console.error('[STOP 3] latest-proposal panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchEngagementRecentResponsesPanel_() {
+    var body = engagementPanelBody_('responses');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view recent Director responses.</div>';
+      return;
+    }
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=in.(accepted,declined,roadmapped)' +
+          '&select=id,request_summary,director_review_status,director_response_text,director_response_at' +
+          '&order=director_response_at.desc&limit=3',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-engagement-empty">No recent responses visible to your account.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        body.innerHTML = '<div class="dr-engagement-empty">No Director responses yet. Closed capability requests appear here as Director responds.</div>';
+        return;
+      }
+      var items = rows.map(function (r) {
+        var when = r.director_response_at ? new Date(r.director_response_at).toLocaleDateString('en-GB') : '';
+        var note = r.director_response_text ? '<div class="dr-engagement-response-note">' + escapeHtml(r.director_response_text) + '</div>' : '';
+        return '<li class="dr-engagement-response-item">' +
+                 '<div class="dr-engagement-response-title">' + escapeHtml((r.request_summary || '').slice(0, 120)) + '</div>' +
+                 '<div class="dr-engagement-response-meta">' +
+                   '<span class="dr-engagement-response-decision">' + escapeHtml(r.director_review_status) + '</span>' +
+                   (when ? '<span>' + escapeHtml(when) + '</span>' : '') +
+                 '</div>' +
+                 note +
+               '</li>';
+      }).join('');
+      body.innerHTML = '<ul class="dr-engagement-response-list">' + items + '</ul>';
+    } catch (err) {
+      console.error('[STOP 3] recent-responses panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
