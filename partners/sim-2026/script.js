@@ -417,7 +417,22 @@
       if (emailEl2 && window.__dealRoomUser) emailEl2.textContent = window.__dealRoomUser.email;
     }
     document.body.style.visibility = 'visible';
+    // ─── Workspace shell injection (Phase 3 brief β §6.4 ordering) ───
+    // revealPage is the central post-auth runtime hook called by every
+    // sim-2026 page (sandbox path + magic-link path). The five injects
+    // below propagate the workspace shell uniformly to every authenticated
+    // surface — index, configurator, documents, pathway, status, and the
+    // future auth-callback redirect target. Order matters because each
+    // anchor depends on the previous element being in the DOM:
+    //   subPageNav  → top of <main>
+    //   authChip    → .dr-header-right (replaces legacy static UI)
+    //   phaseTracker → after .dr-subpage-nav-section || .dr-hero
+    //   documentVault → after #dr-phase-tracker (so they stack vertically)
+    //   eileenPanel → after subpage-nav (Brief α wires content)
     injectSubPageNav();
+    injectAuthChip();
+    injectPhaseTracker();
+    injectDocumentVault();
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
@@ -2554,6 +2569,1064 @@
 
     section.appendChild(grid);
     hero.insertAdjacentElement('afterend', section);
+  }
+
+  // ============================================================
+  // PHASE 3 BRIEF β — workspace shell (auth chip + vault + tracker)
+  // AILANE-CC-BRIEF-WORKSPACE-DOCS-PHASE-3-001
+  // Authority: AMD-094 (privacy) + AMD-103 (provenance) + AMD-106
+  // (canonical 7-state phase taxonomy) + AMD-114 (CONFIG-001) +
+  // AMD-115/117/118 Stage A.
+  // Data sources (per Director-amended §4.4 Path I):
+  //   - dealroom_documents_catalog (REST, RLS-gated)
+  //   - partner_clids                 (REST, RLS-gated)
+  //   - dealroom_uploads              (REST, RLS-gated)
+  // EFs:
+  //   - dealroom-document-fetch v3    (preview/download)
+  //   - dealroom-document-upload v1   (multipart submission)
+  // dealroom-pipeline-list v1 is OUT OF SCOPE — implements CPPP/FCR
+  // submissions, not a document catalog source.
+  // ============================================================
+
+  // ─── Phase 3 — canonical taxonomy + tokens ─────────────────
+  var PHASE_RANK = {
+    phase_0: 0, phase_a: 1, phase_b: 2, phase_c: 3,
+    phase_d: 4, phase_e: 5, phase_f: 6, all_phases: 0
+  };
+  var PHASE_LABELS = {
+    phase_0: 'Pre-engagement',
+    phase_a: 'Engagement opened',
+    phase_b: 'Engagement signed',
+    phase_c: 'Active engagement',
+    phase_d: 'Renewal',
+    phase_e: 'Wind-down',
+    phase_f: 'Closed',
+    all_phases: 'Always available'
+  };
+
+  // ─── Auth helpers (magic-link via Supabase JS client) ─────
+  async function getDealroomSession_() {
+    if (!window.__dealRoomSb) return null;
+    try {
+      var result = await window.__dealRoomSb.auth.getSession();
+      return (result && result.data) ? result.data.session : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function startMagicLinkSignin_(email) {
+    if (!window.__dealRoomSb) throw new Error('Supabase client not ready');
+    try {
+      sessionStorage.setItem('dr_auth_return_url', window.location.href);
+    } catch (e) { /* sessionStorage may be unavailable; non-fatal */ }
+    var redirectTo = window.location.origin + WORKSPACE_ROOT + 'auth-callback/';
+    var result = await window.__dealRoomSb.auth.signInWithOtp({
+      email: email,
+      options: { emailRedirectTo: redirectTo }
+    });
+    if (result && result.error) {
+      throw new Error(result.error.message || 'Could not send magic link.');
+    }
+    return (result && result.data) || {};
+  }
+
+  async function signOutDealroom_() {
+    if (!window.__dealRoomSb) return;
+    try { await window.__dealRoomSb.auth.signOut(); } catch (e) { /* swallow; reload anyway */ }
+    try { sessionStorage.removeItem('dr_auth_return_url'); } catch (e) {}
+    window.__dealRoomUser = null;
+    window.location.reload();
+  }
+
+  function showAuthModal_() {
+    var existing = document.getElementById('dr-auth-modal-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-auth-modal-overlay';
+    overlay.className = 'dr-auth-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'dr-auth-modal-title');
+    overlay.innerHTML =
+      '<div class="dr-auth-modal-card">' +
+        '<h2 id="dr-auth-modal-title" class="dr-auth-modal-title">Sign in to your dealroom</h2>' +
+        '<p class="dr-auth-modal-lede">Enter the email associated with your engagement. We&rsquo;ll send you a magic link.</p>' +
+        '<form id="dr-auth-modal-form" class="dr-auth-modal-form" novalidate>' +
+          '<label for="dr-auth-modal-email" class="dr-auth-modal-label">Email</label>' +
+          '<input type="email" id="dr-auth-modal-email" class="dr-auth-modal-input" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" required>' +
+          '<div class="dr-auth-modal-actions">' +
+            '<button type="button" class="dr-btn-secondary" data-auth-modal-action="cancel">Cancel</button>' +
+            '<button type="submit" class="dr-btn-primary" data-auth-modal-submit>Send magic link</button>' +
+          '</div>' +
+        '</form>' +
+        '<div class="dr-auth-modal-status" data-auth-modal-status aria-live="polite"></div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    function close() { overlay.remove(); }
+
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target === overlay) close();
+    });
+    var cancelBtn = overlay.querySelector('[data-auth-modal-action="cancel"]');
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+
+    var form = overlay.querySelector('#dr-auth-modal-form');
+    var input = overlay.querySelector('#dr-auth-modal-email');
+    var submitBtn = overlay.querySelector('[data-auth-modal-submit]');
+    var statusEl = overlay.querySelector('[data-auth-modal-status]');
+
+    form.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      var email = (input.value || '').trim();
+      if (!email || email.indexOf('@') < 0) {
+        statusEl.innerHTML = '<span class="dr-auth-modal-error">Please enter a valid email address.</span>';
+        try { input.focus(); } catch (e) {}
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending…';
+      statusEl.innerHTML = '';
+      try {
+        await startMagicLinkSignin_(email);
+        statusEl.innerHTML = '<span class="dr-auth-modal-success">Check your email &mdash; link sent to <strong>' + escapeHtml(email) + '</strong>. Click the link to continue.</span>';
+        submitBtn.textContent = 'Resend magic link';
+        submitBtn.disabled = false;
+        input.disabled = true;
+        try { if (window.gtag) window.gtag('event', 'dealroom_magiclink_sent', { clid: CLID }); } catch (e) {}
+      } catch (err) {
+        statusEl.innerHTML = '<span class="dr-auth-modal-error">' + escapeHtml((err && err.message) || 'Could not send magic link.') + '</span>';
+        submitBtn.textContent = 'Send magic link';
+        submitBtn.disabled = false;
+      }
+    });
+
+    setTimeout(function () { try { input.focus(); } catch (e) {} }, 50);
+  }
+
+  // ─── Shell injection ────────────────────────────────────────
+  // Each renders skeleton DOM and (for the auth chip) live data;
+  // vault/tracker data fetch wired in later commits. Idempotent.
+
+  function injectAuthChip() {
+    var anchor = document.querySelector('.dr-header-right') || document.querySelector('.dr-header');
+    if (!anchor) return;
+    var chip = document.getElementById('dr-auth-chip');
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.id = 'dr-auth-chip';
+      chip.className = 'dr-auth-chip';
+      chip.setAttribute('aria-live', 'polite');
+      chip.innerHTML = '<span class="dr-auth-chip-pending">&hellip;</span>';
+      anchor.appendChild(chip);
+      // Hide legacy static auth UI (Phase-1B-era #dr-user-email + #dr-signout).
+      // The chip is the new canonical auth surface.
+      var legacyEmail = document.getElementById('dr-user-email');
+      if (legacyEmail) legacyEmail.style.display = 'none';
+      var legacySignout = document.getElementById('dr-signout');
+      if (legacySignout) legacySignout.style.display = 'none';
+    }
+    setupAuthStateListener_();
+    renderAuthChip_(chip);
+  }
+
+  async function renderAuthChip_(chip) {
+    var session = await getDealroomSession_();
+    if (session) {
+      var email = (session.user && session.user.email) || 'signed in';
+      chip.classList.add('dr-auth-chip-signed-in');
+      chip.classList.remove('dr-auth-chip-signed-out');
+      chip.innerHTML =
+        '<span class="dr-auth-chip-email" title="' + escapeHtml(email) + '">' + escapeHtml(email) + '</span>' +
+        '<button type="button" class="dr-auth-chip-btn" data-auth-action="signout">Sign out</button>';
+    } else {
+      chip.classList.add('dr-auth-chip-signed-out');
+      chip.classList.remove('dr-auth-chip-signed-in');
+      chip.innerHTML =
+        '<button type="button" class="dr-auth-chip-btn dr-auth-chip-btn-primary" data-auth-action="signin">Sign in</button>';
+    }
+    var btn = chip.querySelector('[data-auth-action]');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        var action = btn.getAttribute('data-auth-action');
+        if (action === 'signin') showAuthModal_();
+        else if (action === 'signout') signOutDealroom_();
+      });
+    }
+  }
+
+  // Global accessor for vault/tracker (and Brief α Eileen panel) to
+  // consume current auth state without each module duplicating logic.
+  window.__dealRoomAuth = {
+    getSession: getDealroomSession_,
+    isSignedIn: async function () { return !!(await getDealroomSession_()); },
+    showSigninModal: showAuthModal_,
+    signOut: signOutDealroom_
+  };
+
+  // ─── Auth state propagation ────────────────────────────────
+  // Single subscription to supabase.auth.onAuthStateChange. On every
+  // SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED / USER_UPDATED:
+  //   1. Re-render the auth chip in place
+  //   2. Emit a custom DOM event 'dr-auth-state-changed' on window so
+  //      the document vault and phase tracker (and Brief α Eileen
+  //      panel) can re-render without each module duplicating the
+  //      Supabase subscription.
+  // Idempotent — bails on second invocation.
+  var __authListenerInstalled = false;
+  function setupAuthStateListener_() {
+    if (__authListenerInstalled) return;
+    if (!window.__dealRoomSb || !window.__dealRoomSb.auth) return;
+    __authListenerInstalled = true;
+    try {
+      window.__dealRoomSb.auth.onAuthStateChange(function (event, session) {
+        // Re-render the chip if present
+        var chip = document.getElementById('dr-auth-chip');
+        if (chip) renderAuthChip_(chip);
+        // Notify other modules
+        try {
+          window.dispatchEvent(new CustomEvent('dr-auth-state-changed', {
+            detail: { event: event, session: session, isSignedIn: !!session }
+          }));
+        } catch (e) { /* CustomEvent unsupported on truly ancient browsers; non-fatal */ }
+      });
+    } catch (e) {
+      console.warn('[Phase 3] auth state listener setup failed:', e);
+      __authListenerInstalled = false;
+    }
+  }
+
+  function injectPhaseTracker() {
+    var alreadyExists = !!document.getElementById('dr-phase-tracker');
+    if (!alreadyExists) {
+      var anchor =
+        document.querySelector('.dr-subpage-nav-section') ||
+        document.querySelector('.dr-main .dr-container .dr-hero');
+      if (!anchor) return;
+      var section = document.createElement('aside');
+      section.id = 'dr-phase-tracker';
+      section.className = 'dr-phase-tracker';
+      section.setAttribute('aria-label', 'Engagement phase progression');
+      section.innerHTML =
+        '<header class="dr-phase-tracker-header">' +
+          '<h2 class="dr-phase-tracker-title">Engagement Phase</h2>' +
+        '</header>' +
+        '<div class="dr-phase-tracker-body" data-phase-tracker-body>' +
+          '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>' +
+        '</div>';
+      anchor.insertAdjacentElement('afterend', section);
+      window.addEventListener('dr-auth-state-changed', refreshPhaseTracker_);
+    }
+    refreshPhaseTracker_();
+  }
+
+  // Refresh the tracker. Reuses window.__dealRoomVaultData when populated
+  // within the freshness window (30s) so we don't hit the catalog twice
+  // on simultaneous vault+tracker render.
+  async function refreshPhaseTracker_() {
+    var body = document.querySelector('[data-phase-tracker-body]');
+    if (!body) return;
+    var session = await getDealroomSession_();
+    if (!session) {
+      body.innerHTML = '<div class="dr-phase-tracker-unauth"><p>Sign in to view phase status.</p></div>';
+      return;
+    }
+    body.innerHTML = '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>';
+    try {
+      var cached = window.__dealRoomVaultData;
+      var fresh = (cached && (Date.now() - (cached.fetchedAt || 0)) < 30000);
+      var data = fresh ? cached : await loadVaultData_();
+      if (!fresh) window.__dealRoomVaultData = data;
+      renderTrackerBody_(data);
+    } catch (err) {
+      console.error('[Phase 3] tracker load failed:', err);
+      body.innerHTML =
+        '<div class="dr-phase-tracker-error" role="alert">' +
+          '<p>Could not load phase status. ' + escapeHtml((err && err.message) || '') + '</p>' +
+          '<button type="button" class="dr-btn-secondary" data-tracker-retry>Retry</button>' +
+        '</div>';
+      var retryBtn = body.querySelector('[data-tracker-retry]');
+      if (retryBtn) retryBtn.addEventListener('click', refreshPhaseTracker_);
+    }
+  }
+
+  // Determine the next phase that gates advance (lowest rank > current
+  // among phases that contain blocking-requirement rows). Skips phases
+  // with no blockers (e.g. phase_0 → phase_b in the seed catalog —
+  // phase_a has no docs).
+  function findNextBlockingPhase_(catalog, currentRank) {
+    var ranks = [];
+    for (var i = 0; i < catalog.length; i++) {
+      var row = catalog[i];
+      if (row.kind !== 'requirement') continue;
+      if (!row.is_blocking_phase_advance) continue;
+      var rank = PHASE_RANK[row.available_from_phase];
+      if (rank == null || rank <= currentRank) continue;
+      ranks.push(rank);
+    }
+    if (ranks.length === 0) return null;
+    return Math.min.apply(null, ranks);
+  }
+
+  function rankToPhaseCode_(rank) {
+    var keys = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+    return keys[rank] || null;
+  }
+
+  function renderTrackerBody_(data) {
+    var body = document.querySelector('[data-phase-tracker-body]');
+    if (!body) return;
+    var clidRow = data.clidRow;
+    var catalog = data.catalog || [];
+    var uploadsByDocId = data.uploadsByDocId || {};
+    var currentGateState = (clidRow && clidRow.gate_state) || 'phase_0';
+    var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+
+    // Render 7 chevrons in order phase_0..phase_f
+    var phases = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+    var chevronsHtml = '';
+    for (var i = 0; i < phases.length; i++) {
+      var p = phases[i];
+      var rank = PHASE_RANK[p];
+      var state = (rank < currentRank) ? 'completed' : (rank === currentRank) ? 'current' : 'future';
+      var icon = (state === 'completed') ? '✓' : (state === 'current') ? '●' : '○';
+      // AMD-069 gold reservation: --dr-gold ONLY for Institutional active
+      // tier (Panel 2 chip) per Phase 2; tracker uses cyan baseline. The
+      // brief §9.3 mentions optional gold for current=phase_c (institutional
+      // engagement); kept cyan here for consistency with AMD-069.
+      chevronsHtml +=
+        '<li class="dr-phase-chevron" data-phase="' + p + '" data-state="' + state + '">' +
+          '<span class="dr-phase-chevron-icon" aria-hidden="true">' + icon + '</span>' +
+          '<span class="dr-phase-chevron-code">' + p + '</span>' +
+          '<span class="dr-phase-chevron-label">' + escapeHtml(PHASE_LABELS[p] || p) + '</span>' +
+        '</li>';
+    }
+
+    // "What's needed to advance"
+    var nextRank = findNextBlockingPhase_(catalog, currentRank);
+    var advancePanelHtml = '';
+    if (nextRank != null) {
+      var nextPhaseCode = rankToPhaseCode_(nextRank);
+      var nextPhaseLabel = PHASE_LABELS[nextPhaseCode] || nextPhaseCode;
+      var blockers = [];
+      for (var b = 0; b < catalog.length; b++) {
+        var row = catalog[b];
+        if (row.kind !== 'requirement') continue;
+        if (!row.is_blocking_phase_advance) continue;
+        if (row.available_from_phase !== nextPhaseCode) continue;
+        var upload = uploadsByDocId[row.document_id] || null;
+        var blockerStatus = upload && upload.status ? upload.status : 'open';
+        blockers.push({ row: row, status: blockerStatus });
+      }
+      var allAccepted = blockers.length > 0 && blockers.every(function (b) { return b.status === 'accepted'; });
+      var blockerItems = blockers.map(function (b) {
+        var icon = (b.status === 'accepted') ? '✓'
+                 : (b.status === 'submitted') ? '⏱'
+                 : (b.status === 'declined') ? '!'
+                 : '✗';
+        return '<li class="dr-phase-blocker" data-status="' + escapeHtml(b.status) + '">' +
+                 '<span class="dr-phase-blocker-status-icon" aria-hidden="true">' + icon + '</span>' +
+                 '<span class="dr-phase-blocker-name">' + escapeHtml(b.row.name || b.row.doc_code) + '</span>' +
+                 '<a href="#" class="dr-phase-blocker-link" data-blocker-doc-id="' + escapeHtml(b.row.document_id) + '">Go to document</a>' +
+               '</li>';
+      }).join('');
+
+      advancePanelHtml =
+        '<section class="dr-phase-tracker-advance">' +
+          '<h3 class="dr-phase-tracker-advance-title">Required to advance to <strong>' + nextPhaseCode + '</strong> &mdash; ' + escapeHtml(nextPhaseLabel) + '</h3>' +
+          '<ul class="dr-phase-tracker-blockers">' + (blockerItems || '<li class="dr-phase-tracker-empty">No blocking documents found.</li>') + '</ul>' +
+          (allAccepted
+            ? '<div class="dr-phase-tracker-ready" role="status">' +
+                '<p><strong>All required documents accepted.</strong> Director will advance your engagement to ' + nextPhaseCode + ' shortly.</p>' +
+              '</div>'
+            : '<p class="dr-phase-tracker-blurb">' +
+                'Director-controlled. When all required documents are accepted, your engagement advances. ' +
+                'There is no automatic advance.' +
+              '</p>') +
+        '</section>';
+    } else {
+      // No more blocking phases ahead — engagement is at terminal state or
+      // beyond this build's modelled phases.
+      advancePanelHtml =
+        '<section class="dr-phase-tracker-advance">' +
+          '<p class="dr-phase-tracker-blurb">No further blocking documents identified for this phase.</p>' +
+        '</section>';
+    }
+
+    body.innerHTML =
+      '<ol class="dr-phase-tracker-chevrons" aria-label="Engagement phase progression">' + chevronsHtml + '</ol>' +
+      advancePanelHtml;
+
+    // Wire 'Go to document' links — smooth-scroll to the matching tile in
+    // the document vault and briefly highlight it.
+    var blockerLinks = body.querySelectorAll('[data-blocker-doc-id]');
+    for (var l = 0; l < blockerLinks.length; l++) (function (link) {
+      link.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        var docId = link.getAttribute('data-blocker-doc-id');
+        var tile = document.querySelector('.dr-doc-tile[data-document-id="' + docId + '"]');
+        if (!tile) return;
+        // Ensure vault is expanded so the tile is visible
+        var aside = document.getElementById('dr-document-vault');
+        if (aside && aside.dataset.collapsed === 'true') {
+          var t = aside.querySelector('[data-vault-toggle]');
+          if (t) t.click();
+        }
+        try { tile.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        catch (e) { tile.scrollIntoView(); }
+        tile.classList.add('dr-doc-tile-highlighted');
+        setTimeout(function () { tile.classList.remove('dr-doc-tile-highlighted'); }, 2000);
+      });
+    })(blockerLinks[l]);
+  }
+
+  function injectDocumentVault(opts) {
+    var alreadyExists = !!document.getElementById('dr-document-vault');
+    opts = opts || {};
+    // Landing-root match accepts both '/partners/sim-2026/' (GitHub Pages
+    // directory URL) AND '/partners/sim-2026/index.html' (direct file path).
+    // Sub-pages (configurator/, documents/, pathway/, status/, auth-callback/)
+    // get collapsed-by-default vault.
+    var rawPath = window.location.pathname;
+    var stripped = rawPath.replace(/\/index\.html?$/, '/').replace(/\/+$/, '');
+    var pathLandingRoot = (stripped === WORKSPACE_ROOT.replace(/\/+$/, ''));
+    var collapsedByDefault = (typeof opts.collapsedByDefault === 'boolean')
+      ? opts.collapsedByDefault
+      : !pathLandingRoot;
+    if (!alreadyExists) {
+      var anchor =
+        document.getElementById('dr-phase-tracker') ||
+        document.querySelector('.dr-subpage-nav-section') ||
+        document.querySelector('.dr-main .dr-container .dr-hero');
+      if (!anchor) return;
+      var aside = document.createElement('aside');
+      aside.id = 'dr-document-vault';
+      aside.className = 'dr-vault' + (collapsedByDefault ? ' dr-vault-collapsed' : '');
+      aside.dataset.collapsed = collapsedByDefault ? 'true' : 'false';
+      aside.setAttribute('aria-label', 'Document Vault');
+      aside.innerHTML =
+        '<header class="dr-vault-header">' +
+          '<h2 class="dr-vault-title">Document Vault</h2>' +
+          '<button type="button" class="dr-vault-toggle" data-vault-toggle aria-expanded="' + (collapsedByDefault ? 'false' : 'true') + '">' +
+            (collapsedByDefault ? '▸' : '▾') +
+          '</button>' +
+        '</header>' +
+        '<div class="dr-vault-body" data-vault-body>' +
+          '<div class="dr-vault-pending">Loading documents&hellip;</div>' +
+        '</div>';
+      anchor.insertAdjacentElement('afterend', aside);
+      bindVaultStaticHandlers_();
+      // Single subscription to auth-state changes — re-loads vault when
+      // session transitions (sign-in / sign-out / token refresh).
+      window.addEventListener('dr-auth-state-changed', refreshDocumentVault_);
+    }
+    // Always (re-)load on inject so navigation back to a workspace page
+    // surfaces fresh state. refresh is a no-op until the body is mounted.
+    refreshDocumentVault_();
+  }
+
+  function bindVaultStaticHandlers_() {
+    var toggleBtn = document.querySelector('[data-vault-toggle]');
+    if (toggleBtn && !toggleBtn.dataset.bound) {
+      toggleBtn.dataset.bound = '1';
+      toggleBtn.addEventListener('click', function () {
+        var aside = document.getElementById('dr-document-vault');
+        if (!aside) return;
+        var nowCollapsed = aside.dataset.collapsed !== 'true' ? true : false;
+        aside.dataset.collapsed = nowCollapsed ? 'true' : 'false';
+        aside.classList.toggle('dr-vault-collapsed', nowCollapsed);
+        toggleBtn.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+        toggleBtn.textContent = nowCollapsed ? '▸' : '▾';
+      });
+    }
+  }
+
+  // ─── Vault data loader (REST per amended §4.4 Path I) ──────
+  async function callDealroomRest_(path, queryString) {
+    // queryString is pre-built (no leading '?'); caller controls encoding so
+    // PostgREST or=(...) and complex filters work without URLSearchParams
+    // mangling parens or commas.
+    var session = await getDealroomSession_();
+    if (!session) throw new Error('Not authenticated');
+    var url = SUPABASE_URL + '/rest/v1/' + path + (queryString ? '?' + queryString : '');
+    var res = await fetch(url, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + session.access_token,
+        Accept: 'application/json'
+      }
+    });
+    if (!res.ok) {
+      var errBody = '';
+      try { errBody = await res.text(); } catch (e) {}
+      var err = new Error('REST ' + path + ' failed: ' + res.status);
+      err.status = res.status;
+      err.body = errBody;
+      throw err;
+    }
+    return await res.json();
+  }
+
+  async function loadVaultData_() {
+    var clidParam = encodeURIComponent(CLID);
+    var catalogSelect = 'document_id,doc_code,clid,name,description,kind,available_from_phase,is_blocking_phase_advance,version_label,display_order,storage_path,file_size_bytes,mime_type';
+    var uploadsSelect = 'upload_id,document_id,version_number,status,uploaded_by_email,original_filename,mime_type,file_size_bytes,created_at,review_notes';
+    var clidsSelect = 'clid,counterparty_name,gate_state,is_simulation,is_launch_partner';
+
+    var results = await Promise.all([
+      callDealroomRest_('dealroom_documents_catalog',
+        'or=(clid.eq.' + clidParam + ',clid.is.null)' +
+        '&deleted_at=is.null' +
+        '&select=' + catalogSelect +
+        '&order=available_from_phase.asc,display_order.asc'),
+      callDealroomRest_('partner_clids',
+        'clid=eq.' + clidParam + '&select=' + clidsSelect),
+      callDealroomRest_('dealroom_uploads',
+        'clid=eq.' + clidParam +
+        '&deleted_at=is.null' +
+        '&status=neq.superseded' +
+        '&select=' + uploadsSelect +
+        '&order=document_id.asc,version_number.desc')
+    ]);
+
+    var catalog = results[0] || [];
+    var clidRow = (results[1] && results[1][0]) || null;
+    var uploadsRows = results[2] || [];
+
+    // Pick the highest-version live upload per (document_id). Rows are already
+    // ordered by document_id ASC then version_number DESC, so first occurrence wins.
+    var uploadsByDocId = Object.create(null);
+    for (var i = 0; i < uploadsRows.length; i++) {
+      var u = uploadsRows[i];
+      if (u && u.document_id != null && !uploadsByDocId[u.document_id]) {
+        uploadsByDocId[u.document_id] = u;
+      }
+    }
+
+    return { catalog: catalog, clidRow: clidRow, uploadsByDocId: uploadsByDocId, fetchedAt: Date.now() };
+  }
+
+  async function refreshDocumentVault_() {
+    var body = document.querySelector('[data-vault-body]');
+    if (!body) return;
+    var session = await getDealroomSession_();
+    if (!session) {
+      body.innerHTML =
+        '<div class="dr-vault-unauth">' +
+          '<p>Sign in to access your dealroom documents.</p>' +
+          '<button type="button" class="dr-btn-primary" data-vault-signin>Sign in</button>' +
+        '</div>';
+      var signinBtn = body.querySelector('[data-vault-signin]');
+      if (signinBtn) signinBtn.addEventListener('click', showAuthModal_);
+      return;
+    }
+    body.innerHTML = '<div class="dr-vault-pending">Loading documents&hellip;</div>';
+    try {
+      var data = await loadVaultData_();
+      // Cache for the phase tracker (commit 10) so it doesn't re-query.
+      window.__dealRoomVaultData = data;
+      renderVaultBody_(data);
+    } catch (err) {
+      console.error('[Phase 3] vault load failed:', err);
+      body.innerHTML =
+        '<div class="dr-vault-error" role="alert">' +
+          '<p>Could not load documents. ' + escapeHtml((err && err.message) || '') + '</p>' +
+          '<button type="button" class="dr-btn-secondary" data-vault-retry>Retry</button>' +
+        '</div>';
+      var retryBtn = body.querySelector('[data-vault-retry]');
+      if (retryBtn) retryBtn.addEventListener('click', refreshDocumentVault_);
+    }
+  }
+
+  function renderVaultBody_(data) {
+    var body = document.querySelector('[data-vault-body]');
+    if (!body) return;
+    var catalog = data.catalog || [];
+    var clidRow = data.clidRow;
+    var uploadsByDocId = data.uploadsByDocId || {};
+
+    if (catalog.length === 0) {
+      body.innerHTML = '<div class="dr-vault-empty">No documents associated with this engagement yet.</div>';
+      return;
+    }
+
+    var currentGateState = (clidRow && clidRow.gate_state) || 'phase_0';
+
+    // Partition: templates first; everything else by phase.
+    var templates = [];
+    var byPhase = Object.create(null);
+    for (var i = 0; i < catalog.length; i++) {
+      var row = catalog[i];
+      if (row.kind === 'template') {
+        templates.push(row);
+        continue;
+      }
+      var phase = row.available_from_phase || 'phase_0';
+      if (!byPhase[phase]) byPhase[phase] = [];
+      byPhase[phase].push(row);
+    }
+
+    var html = '';
+
+    // Templates section (always-visible, above phase groups)
+    if (templates.length > 0) {
+      html += '<section class="dr-vault-templates">' +
+                '<h3 class="dr-vault-section-title">Templates</h3>' +
+                '<p class="dr-vault-section-blurb">Reference documents available throughout your engagement.</p>' +
+                '<div class="dr-vault-template-tiles">' +
+                  templates.map(function (t) { return renderDocTile_(t, null, currentGateState); }).join('') +
+                '</div>' +
+              '</section>';
+    }
+
+    // Phase sections in canonical order
+    var phaseOrder = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f', 'all_phases'];
+    var phaseSections = '';
+    for (var p = 0; p < phaseOrder.length; p++) {
+      var phaseCode = phaseOrder[p];
+      var docs = byPhase[phaseCode];
+      if (!docs || docs.length === 0) continue;
+      var isCurrent = (phaseCode === currentGateState);
+      var rank = PHASE_RANK[phaseCode] != null ? PHASE_RANK[phaseCode] : 0;
+      var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+      var stateAttr = isCurrent ? 'current' : (rank < currentRank ? 'completed' : 'future');
+      phaseSections +=
+        '<section class="dr-vault-phase" data-phase="' + escapeHtml(phaseCode) + '" data-state="' + stateAttr + '">' +
+          '<h3 class="dr-vault-phase-title">' +
+            '<span class="dr-vault-phase-code">' + escapeHtml(phaseCode) + '</span> &mdash; ' +
+            escapeHtml(PHASE_LABELS[phaseCode] || phaseCode) +
+          '</h3>' +
+          '<div class="dr-vault-phase-docs">' +
+            docs.map(function (d) { return renderDocTile_(d, uploadsByDocId[d.document_id] || null, currentGateState); }).join('') +
+          '</div>' +
+        '</section>';
+    }
+    if (phaseSections) {
+      html += '<div class="dr-vault-phases">' + phaseSections + '</div>';
+    }
+
+    body.innerHTML = html;
+    bindDocTileHandlers_();
+  }
+
+  // Tile renderer + handlers — basic skeleton in this commit; commits 6-8
+  // populate kind-specific actions (release preview/download, template
+  // download, requirement upload/replace).
+  function renderDocTile_(catalogRow, uploadRow, currentGateState) {
+    var kind = catalogRow.kind || 'release';
+    var status = computeTileStatus_(catalogRow, uploadRow, currentGateState);
+    var statusLabel = tileStatusLabel_(status, uploadRow);
+    var versionTag = (uploadRow && uploadRow.version_number > 1) ? ' v' + uploadRow.version_number : '';
+    return '<article class="dr-doc-tile" data-document-id="' + escapeHtml(catalogRow.document_id) + '" ' +
+                  'data-kind="' + escapeHtml(kind) + '" ' +
+                  'data-status="' + escapeHtml(status) + '"' +
+                  (uploadRow ? ' data-upload-id="' + escapeHtml(uploadRow.upload_id) + '"' : '') + '>' +
+             '<header class="dr-doc-tile-header">' +
+               '<span class="dr-doc-tile-kind-badge" data-kind="' + escapeHtml(kind) + '">' + escapeHtml(kind) + '</span>' +
+               '<span class="dr-doc-tile-status-pill" data-status="' + escapeHtml(status) + '">' + escapeHtml(statusLabel + versionTag) + '</span>' +
+             '</header>' +
+             '<h4 class="dr-doc-tile-name">' + escapeHtml(catalogRow.name || catalogRow.doc_code || 'Document') + '</h4>' +
+             (catalogRow.description
+               ? '<p class="dr-doc-tile-description">' + escapeHtml(catalogRow.description) + '</p>'
+               : '') +
+             (kind === 'template' ? renderTemplateRelevanceCaption_(catalogRow, currentGateState) : '') +
+             '<footer class="dr-doc-tile-actions" data-tile-actions>' +
+               renderTileActionsPlaceholder_(kind, status) +
+             '</footer>' +
+           '</article>';
+  }
+
+  function computeTileStatus_(catalogRow, uploadRow, currentGateState) {
+    var kind = catalogRow.kind || 'release';
+    if (kind === 'template') return 'available';
+    if (kind === 'requirement') {
+      if (uploadRow && uploadRow.status) return uploadRow.status; // 'open' | 'submitted' | 'accepted' | 'declined'
+      return 'open';
+    }
+    // release: phase-gated
+    var requiredPhase = catalogRow.available_from_phase || 'phase_0';
+    var requiredRank = PHASE_RANK[requiredPhase] != null ? PHASE_RANK[requiredPhase] : 0;
+    var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+    return (currentRank >= requiredRank) ? 'available' : 'locked';
+  }
+
+  function tileStatusLabel_(status, uploadRow) {
+    switch (status) {
+      case 'open':       return 'Open — awaiting upload';
+      case 'submitted':  return 'Submitted — awaiting review';
+      case 'accepted':   return 'Accepted';
+      case 'declined':   return 'Declined — see notes';
+      case 'available':  return 'Available';
+      case 'locked':     return 'Locked';
+      default:           return status || '—';
+    }
+  }
+
+  function renderTileActionsPlaceholder_(kind, status) {
+    if (kind === 'release') {
+      if (status === 'available') {
+        return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="preview">Preview</button>' +
+               '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="download">Download</button>';
+      }
+      return '<span class="dr-doc-tile-locked-note">Unlocks at later phase</span>';
+    }
+    if (kind === 'template') {
+      // Templates: always available to authenticated partner_contacts (§10.3).
+      // Phase-gating is informational (caption only); Download is always enabled.
+      return '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="download">Download</button>';
+    }
+    if (kind === 'requirement') {
+      // Status-driven action set per brief §7.5.
+      switch (status) {
+        case 'open':
+          return '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="upload">Upload</button>';
+        case 'submitted':
+          return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="view">View submitted file</button>' +
+                 '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="replace">Replace</button>';
+        case 'accepted':
+          return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="view">View accepted file</button>';
+        case 'declined':
+          return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="view-notes">View Director notes</button>' +
+                 '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="upload">Re-upload</button>';
+      }
+      return '<span class="dr-doc-tile-locked-note">Status unknown</span>';
+    }
+    return '';
+  }
+
+  // Template tiles render an additional "Becomes relevant at phase_X" caption
+  // when available_from_phase is in the future relative to current gate_state.
+  // Mounted in renderDocTile_ via a separate branch when kind === 'template'.
+  function renderTemplateRelevanceCaption_(catalogRow, currentGateState) {
+    var availFrom = catalogRow.available_from_phase || 'phase_0';
+    var availRank = PHASE_RANK[availFrom] != null ? PHASE_RANK[availFrom] : 0;
+    var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+    if (availRank <= currentRank) return '';
+    var label = PHASE_LABELS[availFrom] || availFrom;
+    return '<p class="dr-doc-tile-relevance-caption">' +
+             'Becomes relevant at <strong>' + escapeHtml(availFrom) + '</strong> &mdash; ' + escapeHtml(label) +
+           '</p>';
+  }
+
+  function bindDocTileHandlers_() {
+    var actionBtns = document.querySelectorAll('.dr-doc-tile [data-doc-action]');
+    for (var i = 0; i < actionBtns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var tile = btn.closest('.dr-doc-tile');
+        if (!tile) return;
+        var action = btn.getAttribute('data-doc-action');
+        handleDocAction_(tile, action);
+      });
+    })(actionBtns[i]);
+  }
+
+  // ─── EF helpers (POST JSON with user JWT) ──────────────────
+  async function callDealroomEf_(slug, body) {
+    var session = await getDealroomSession_();
+    if (!session) throw new Error('Not authenticated');
+    var res = await fetch(SUPABASE_URL + '/functions/v1/' + slug, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify(body || {})
+    });
+    if (!res.ok) {
+      var errBody = '';
+      try { errBody = await res.text(); } catch (e) {}
+      var err = new Error(slug + ' failed: ' + res.status);
+      err.status = res.status;
+      err.body = errBody;
+      throw err;
+    }
+    return await res.json();
+  }
+
+  // ─── Tile action handlers ──────────────────────────────────
+  // Preview (5-min TTL signed URL → new tab) and Download (30-min TTL
+  // signed URL → forced download via anchor[download]).
+  async function handleDocAction_(tile, action) {
+    if (!tile || !action) return;
+    if (action === 'preview' || action === 'download') {
+      return handleFetchAction_(tile, action);
+    }
+    if (action === 'view') {
+      // Open the latest submitted/accepted upload in a preview tab.
+      return handleFetchAction_(tile, 'preview');
+    }
+    if (action === 'upload' || action === 'replace') {
+      return handleUploadAction_(tile);
+    }
+    if (action === 'view-notes') {
+      return handleViewNotesAction_(tile);
+    }
+    console.warn('[Phase 3] unhandled doc action:', action);
+  }
+
+  // Surfaces the Director's review_notes inline when a requirement was declined.
+  // Read from the cached vault data (window.__dealRoomVaultData) so we don't
+  // need an extra REST round-trip per click.
+  function handleViewNotesAction_(tile) {
+    var documentId = tile.getAttribute('data-document-id');
+    var cached = window.__dealRoomVaultData;
+    var uploadRow = cached && cached.uploadsByDocId ? cached.uploadsByDocId[documentId] : null;
+    var notesText = (uploadRow && uploadRow.review_notes) || '';
+    var existing = tile.querySelector('.dr-doc-tile-notes');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    var notesBlock = document.createElement('div');
+    notesBlock.className = 'dr-doc-tile-notes';
+    notesBlock.setAttribute('role', 'region');
+    notesBlock.setAttribute('aria-label', 'Director notes');
+    notesBlock.innerHTML =
+      '<h5 class="dr-doc-tile-notes-title">Director notes</h5>' +
+      '<p class="dr-doc-tile-notes-body">' + escapeHtml(notesText || 'No notes recorded.') + '</p>';
+    var actionsBox = tile.querySelector('[data-tile-actions]');
+    if (actionsBox) actionsBox.insertAdjacentElement('beforebegin', notesBlock);
+    else tile.appendChild(notesBlock);
+  }
+
+  // Stub upload handler — opens the OS file picker, validates client-side,
+  // and (in commit 9) issues the multipart-with-progress submission to
+  // dealroom-document-upload v1.
+  function handleUploadAction_(tile) {
+    var documentId = tile.getAttribute('data-document-id');
+    if (!documentId) return;
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      fileInput.remove();
+      if (!file) return;
+      submitRequirementUpload_(tile, file);
+    });
+    fileInput.click();
+  }
+
+  // ─── Upload flow (multipart + XHR progress + version UX) ───
+  var UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+  var UPLOAD_PROGRESS_THRESHOLD = 5 * 1024 * 1024; // show progress bar for files > 5 MB
+  var UPLOAD_ALLOWED_MIME = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'text/plain'
+  ];
+
+  function validateUploadFile_(file) {
+    if (!file) return { ok: false, error: 'No file selected.' };
+    if (file.size === 0) return { ok: false, error: 'Empty file.' };
+    if (file.size > UPLOAD_MAX_BYTES) {
+      return { ok: false, error: 'File too large (max 50 MB).' };
+    }
+    var mime = file.type || '';
+    if (UPLOAD_ALLOWED_MIME.indexOf(mime) === -1) {
+      return { ok: false, error: 'Unsupported file type. Use PDF, DOCX, DOC, or TXT.' };
+    }
+    return { ok: true };
+  }
+
+  function callDealroomUploadXhr_(formData, onProgress) {
+    return new Promise(async function (resolve, reject) {
+      var session;
+      try { session = await getDealroomSession_(); }
+      catch (e) { reject(e); return; }
+      if (!session) { reject(new Error('Not authenticated')); return; }
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', SUPABASE_URL + '/functions/v1/dealroom-document-upload');
+      xhr.setRequestHeader('Authorization', 'Bearer ' + session.access_token);
+      // Note: do NOT set Content-Type — the browser sets the multipart
+      // boundary header automatically when given a FormData body.
+      if (typeof onProgress === 'function' && xhr.upload) {
+        xhr.upload.addEventListener('progress', function (ev) {
+          if (ev.lengthComputable) {
+            onProgress(Math.round((ev.loaded / ev.total) * 100));
+          }
+        });
+      }
+      xhr.addEventListener('load', function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch (e) { reject(new Error('Invalid JSON from upload EF')); }
+        } else {
+          var msg = xhr.responseText || ('HTTP ' + xhr.status);
+          var err = new Error('upload failed: ' + msg);
+          err.status = xhr.status;
+          err.body = xhr.responseText;
+          reject(err);
+        }
+      });
+      xhr.addEventListener('error', function () { reject(new Error('Network error during upload')); });
+      xhr.addEventListener('abort', function () { reject(new Error('Upload aborted')); });
+      xhr.send(formData);
+    });
+  }
+
+  async function submitRequirementUpload_(tile, file) {
+    var documentId = tile.getAttribute('data-document-id');
+    if (!documentId) return;
+    var actionsBox = tile.querySelector('[data-tile-actions]');
+    var prevActionsHtml = actionsBox ? actionsBox.innerHTML : '';
+
+    // Client-side validation (server re-validates as authoritative gate)
+    var v = validateUploadFile_(file);
+    if (!v.ok) {
+      if (actionsBox) {
+        actionsBox.innerHTML = '<span class="dr-doc-tile-action-error">' + escapeHtml(v.error) + '</span>';
+        setTimeout(function () { actionsBox.innerHTML = prevActionsHtml; bindDocTileHandlers_(); }, 4000);
+      }
+      return;
+    }
+
+    var showProgressBar = file.size > UPLOAD_PROGRESS_THRESHOLD;
+    if (actionsBox) {
+      if (showProgressBar) {
+        actionsBox.innerHTML =
+          '<div class="dr-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
+            '<div class="dr-upload-progress-bar" data-upload-bar style="width:0%"></div>' +
+            '<span class="dr-upload-progress-label" data-upload-label>Uploading 0%</span>' +
+          '</div>';
+      } else {
+        actionsBox.innerHTML = '<span class="dr-doc-tile-actions-pending">Uploading&hellip;</span>';
+      }
+    }
+
+    var formData = new FormData();
+    formData.append('clid', CLID);
+    formData.append('catalog_document_id', documentId);
+    formData.append('file', file);
+
+    function onProgress(pct) {
+      if (!actionsBox) return;
+      var bar = actionsBox.querySelector('[data-upload-bar]');
+      var label = actionsBox.querySelector('[data-upload-label]');
+      if (bar) bar.style.width = pct + '%';
+      if (label) label.textContent = 'Uploading ' + pct + '%';
+      var progressEl = actionsBox.querySelector('.dr-upload-progress');
+      if (progressEl) progressEl.setAttribute('aria-valuenow', String(pct));
+    }
+
+    try {
+      var res = await callDealroomUploadXhr_(formData, showProgressBar ? onProgress : null);
+      try {
+        if (window.gtag) window.gtag('event', 'dealroom_document_upload', {
+          clid: CLID, document_id: documentId,
+          version_number: res && res.version_number,
+          status: res && res.status
+        });
+      } catch (e) {}
+      var versionTxt = (res && res.version_number > 1) ? 'v' + res.version_number : '';
+      showToast_('Upload received' + (versionTxt ? ' (' + versionTxt + ')' : '') + ' — Director will review.');
+      // Refresh the entire vault — this picks up the new upload's status pill
+      // (now 'submitted'), the new version_number tag, and any other tile that
+      // shifted state (e.g. previous version marked superseded server-side).
+      await refreshDocumentVault_();
+    } catch (err) {
+      console.error('[Phase 3] upload failed:', err);
+      var msg = (err && err.message) ? err.message : 'Upload failed.';
+      // Sanitize EF body if present for inline display
+      if (err && err.body && err.body.length < 200) msg = err.body;
+      if (actionsBox) {
+        actionsBox.innerHTML =
+          '<span class="dr-doc-tile-action-error">' + escapeHtml(msg) + '</span>' +
+          '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="upload">Retry</button>';
+        bindDocTileHandlers_();
+      }
+    }
+  }
+
+  // ─── Toast (lightweight, transient inline notifier) ────────
+  function showToast_(message, opts) {
+    opts = opts || {};
+    var ttlMs = opts.ttlMs || 3500;
+    var existing = document.getElementById('dr-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.id = 'dr-toast';
+    toast.className = 'dr-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    // Trigger CSS transition by adding class on next frame
+    requestAnimationFrame(function () { toast.classList.add('dr-toast-visible'); });
+    setTimeout(function () {
+      toast.classList.remove('dr-toast-visible');
+      setTimeout(function () { try { toast.remove(); } catch (e) {} }, 250);
+    }, ttlMs);
+  }
+
+  async function handleFetchAction_(tile, action) {
+    var documentId = tile.getAttribute('data-document-id');
+    var uploadId = tile.getAttribute('data-upload-id');
+    var actionsBox = tile.querySelector('[data-tile-actions]');
+    var prevActionsHtml = actionsBox ? actionsBox.innerHTML : '';
+    if (actionsBox) {
+      actionsBox.innerHTML = '<span class="dr-doc-tile-actions-pending">' +
+        (action === 'preview' ? 'Preparing preview&hellip;' : 'Preparing download&hellip;') +
+        '</span>';
+    }
+    try {
+      var body = { clid: CLID, action: action };
+      // For requirement uploads, the tile's data-upload-id is the live
+      // upload row; that's what dealroom-document-fetch keys off when both
+      // catalog_document_id and upload_id are mutually exclusive. Releases
+      // and templates use catalog_document_id.
+      var kind = tile.getAttribute('data-kind');
+      if (kind === 'requirement' && uploadId) {
+        body.upload_id = uploadId;
+      } else {
+        body.catalog_document_id = documentId;
+      }
+      var res = await callDealroomEf_('dealroom-document-fetch', body);
+      if (!res || !res.signed_url) {
+        throw new Error('No signed URL returned');
+      }
+      if (action === 'preview') {
+        try { window.open(res.signed_url, '_blank', 'noopener,noreferrer'); }
+        catch (e) { window.location.href = res.signed_url; }
+      } else { // download
+        var a = document.createElement('a');
+        a.href = res.signed_url;
+        a.download = res.filename || res.name || 'document';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // Restore action buttons after a short delay so the user sees the
+      // pending state momentarily.
+      setTimeout(function () {
+        if (actionsBox) actionsBox.innerHTML = prevActionsHtml;
+        bindDocTileHandlers_();
+      }, 250);
+      try {
+        if (window.gtag) window.gtag('event', 'dealroom_document_' + action, {
+          clid: CLID, document_id: documentId, kind: kind || 'release'
+        });
+      } catch (e) {}
+    } catch (err) {
+      console.error('[Phase 3] document fetch failed:', err);
+      if (actionsBox) {
+        actionsBox.innerHTML = '<span class="dr-doc-tile-action-error">' +
+          escapeHtml((err && err.message) || 'Could not fetch document.') +
+          '</span>';
+        // Restore the original buttons after a longer pause so user can read
+        // the error.
+        setTimeout(function () {
+          actionsBox.innerHTML = prevActionsHtml;
+          bindDocTileHandlers_();
+        }, 4000);
+      }
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {

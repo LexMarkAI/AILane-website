@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Supabase CDN FIRST — needed to handle the magic-link fragment params -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 Analytics (mandatory — G-NTNXWZN31C) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Signing in&hellip; — AI Lane &times; Dun &amp; Bradstreet Deal Room</title>
+  <meta name="description" content="Magic-link sign-in handler for the AI Lane &times; Dun &amp; Bradstreet pre-contractual workspace.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/partners/sim-2026/style.css">
+</head>
+<body class="dr-auth-callback">
+
+  <main class="dr-auth-callback-content" role="status" aria-live="polite">
+    <div class="dr-auth-callback-card">
+      <div class="dr-auth-callback-spinner" aria-hidden="true"></div>
+      <h1 class="dr-auth-callback-headline">Signing you in&hellip;</h1>
+      <p class="dr-auth-callback-status" id="dr-auth-callback-status">Verifying your magic link.</p>
+      <div class="dr-auth-callback-actions" id="dr-auth-callback-actions" hidden></div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+      var WORKSPACE_ROOT = '/partners/sim-2026/';
+
+      var statusEl = document.getElementById('dr-auth-callback-status');
+      var actionsEl = document.getElementById('dr-auth-callback-actions');
+
+      function setStatus(text, isError) {
+        if (!statusEl) return;
+        statusEl.textContent = text;
+        if (isError) statusEl.classList.add('dr-auth-callback-error');
+      }
+
+      function showReturnLink(href) {
+        if (!actionsEl) return;
+        actionsEl.hidden = false;
+        var a = document.createElement('a');
+        a.href = href || WORKSPACE_ROOT;
+        a.textContent = 'Return to dealroom';
+        a.className = 'dr-btn-secondary dr-auth-callback-link';
+        actionsEl.innerHTML = '';
+        actionsEl.appendChild(a);
+      }
+
+      (async function handleAuthCallback() {
+        if (!window.supabase || !window.supabase.createClient) {
+          setStatus('Workspace runtime did not load. Please refresh.', true);
+          showReturnLink(WORKSPACE_ROOT);
+          return;
+        }
+
+        var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // The Supabase JS client auto-detects fragment params (#access_token=...
+        // &refresh_token=...) and absorbs them into a session on construction.
+        // For PKCE-style code= flow on query string, the client also calls
+        // exchangeCodeForSession transparently. Allow a brief window for the
+        // session to settle, then read it back.
+        await new Promise(function (r) { setTimeout(r, 200); });
+
+        var session = null;
+        var lastErr = null;
+        try {
+          var r = await sb.auth.getSession();
+          session = (r && r.data) ? r.data.session : null;
+          if (r && r.error) lastErr = r.error;
+        } catch (e) {
+          lastErr = e;
+        }
+
+        if (!session) {
+          // One additional retry — supabase-js can take a moment on slow
+          // connections to absorb the URL fragment.
+          await new Promise(function (r) { setTimeout(r, 500); });
+          try {
+            var r2 = await sb.auth.getSession();
+            session = (r2 && r2.data) ? r2.data.session : null;
+            if (r2 && r2.error) lastErr = r2.error;
+          } catch (e) { lastErr = e; }
+        }
+
+        if (!session) {
+          setStatus(
+            'Sign-in failed.' + (lastErr && lastErr.message ? ' ' + lastErr.message : '') + ' The link may have expired or been used already.',
+            true
+          );
+          showReturnLink(WORKSPACE_ROOT);
+          try { if (window.gtag) window.gtag('event', 'dealroom_auth_callback_failed'); } catch (e) {}
+          return;
+        }
+
+        // Strip magic-link tokens from the URL for cosmetic + security reasons
+        try {
+          if (window.location.hash || window.location.search) {
+            history.replaceState(null, '', window.location.pathname);
+          }
+        } catch (e) { /* swallow */ }
+
+        var returnUrl = WORKSPACE_ROOT;
+        try {
+          var stashed = sessionStorage.getItem('dr_auth_return_url');
+          if (stashed) {
+            // Defensive: restrict to same-origin /partners/sim-2026/* only
+            var u = new URL(stashed, window.location.origin);
+            if (u.origin === window.location.origin && u.pathname.indexOf(WORKSPACE_ROOT) === 0) {
+              returnUrl = u.pathname + u.search + u.hash;
+            }
+          }
+          sessionStorage.removeItem('dr_auth_return_url');
+        } catch (e) { /* fall back to workspace root */ }
+
+        setStatus('Signed in. Redirecting…');
+        try { if (window.gtag) window.gtag('event', 'dealroom_auth_callback_succeeded'); } catch (e) {}
+        setTimeout(function () { window.location.href = returnUrl; }, 600);
+      })();
+    })();
+  </script>
+</body>
+</html>
