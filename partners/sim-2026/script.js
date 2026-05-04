@@ -429,6 +429,12 @@
     //   phaseTracker → after .dr-subpage-nav-section || .dr-hero
     //   documentVault → after #dr-phase-tracker (so they stack vertically)
     //   eileenPanel → after subpage-nav (Brief α wires content)
+    // ─── AMD-120 PHASE B STOP 1 — universal-skeleton injectors ───
+    // injectMenuBar runs first so injectSubPageNav (legacy two-card row)
+    // can short-circuit when the menu bar is present. mountAttributionBlock
+    // and populateWhatsHappening run after the page-content injectors so
+    // they slot in at the bottom of <main>. The injectors are idempotent.
+    injectMenuBar();
     injectSubPageNav();
     injectAuthChip();
     injectPhaseTracker();
@@ -436,6 +442,8 @@
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
+    mountAttributionBlock();
+    populateWhatsHappening();
     if (location.pathname.indexOf('/documents/') !== -1) {
       populateDocumentsCatalog(window.__dealRoomUser);
     } else if (location.pathname.indexOf('/configurator/') !== -1) {
@@ -2492,6 +2500,10 @@
   // consistency; adds one scoped CSS rule for the 2-card layout.
   // Idempotent — safe to call repeatedly.
   function injectSubPageNav() {
+    // AMD-120 Phase B STOP 1: short-circuit when the new universal menu bar
+    // is present. The 5-item menu replaces this two-card row as the unified
+    // sub-page navigation surface (Director ratification, 4 May 2026).
+    if (document.getElementById('dr-menu-bar')) return;
     var path = window.location.pathname;
     var current = null;
     if (path.indexOf('/documents/') >= 0) current = 'documents';
@@ -3626,6 +3638,279 @@
           bindDocTileHandlers_();
         }, 4000);
       }
+    }
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 1 — universal-skeleton helpers
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001
+  // Director ratification 4 May 2026:
+  //   • 5-item menu bar (slugs unchanged; labels per Director — Deal Creator
+  //     for /configurator/, Engagement for /status/)
+  //   • Eileen-explanation block + Data Source Attribution block (universal,
+  //     mounted by mountAttributionBlock; brief §5.5 verbatim text inside
+  //     the existing Fix-pack-002 .dr-attribution-block class — option α)
+  //   • "What's happening" snapshot (landing-only, four tiles, empty-state
+  //     copy in all three cases: localhost-no-auth, prod-zero-rows, prod-401)
+  // ============================================================
+
+  // ─── Menu bar (universal, sticky, 5 items) ──────────────────
+  function injectMenuBar() {
+    if (document.getElementById('dr-menu-bar')) return;
+    var header = document.querySelector('.dr-header');
+    if (!header) return;
+
+    var path = window.location.pathname.replace(/\/index\.html?$/, '/');
+    var workspaceRootStripped = WORKSPACE_ROOT.replace(/\/+$/, '');
+    var stripped = path.replace(/\/+$/, '');
+
+    var items = [
+      { slug: 'welcome',      label: 'Welcome',      href: WORKSPACE_ROOT,                     match: function () { return stripped === workspaceRootStripped; } },
+      { slug: 'documents',    label: 'Documents',    href: WORKSPACE_ROOT + 'documents/',      match: function () { return path.indexOf('/documents/') !== -1; } },
+      { slug: 'engagement',   label: 'Engagement',   href: WORKSPACE_ROOT + 'status/',         match: function () { return path.indexOf('/status/') !== -1; } },
+      { slug: 'deal-creator', label: 'Deal Creator', href: WORKSPACE_ROOT + 'configurator/',   match: function () { return path.indexOf('/configurator/') !== -1; } },
+      { slug: 'pathway',      label: 'Pathway',      href: WORKSPACE_ROOT + 'pathway/',        match: function () { return path.indexOf('/pathway/') !== -1; } }
+    ];
+
+    var inner = '';
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var current = it.match() ? ' is-current' : '';
+      inner += '<a class="dr-menu-item' + current + '" href="' + it.href + '" data-menu-slug="' + it.slug + '">' +
+                 escapeHtml(it.label) +
+               '</a>';
+    }
+
+    var nav = document.createElement('nav');
+    nav.id = 'dr-menu-bar';
+    nav.className = 'dr-menu-bar';
+    nav.setAttribute('aria-label', 'Deal-room navigation');
+    nav.innerHTML = '<div class="dr-menu-bar-inner">' + inner + '</div>';
+
+    header.insertAdjacentElement('afterend', nav);
+  }
+
+  // ─── Data Source Attribution block (universal — brief §5.5) ──
+  // Reuses the Fix-pack-002 .dr-attribution-block class library
+  // (style.css L1845-1899). Idempotent. Mounted before footer
+  // by injecting after the last <section> in .dr-container.
+  function mountAttributionBlock() {
+    if (document.getElementById('dr-attribution-block')) return;
+    var container = document.querySelector('.dr-main .dr-container');
+    if (!container) return;
+
+    var section = document.createElement('section');
+    section.id = 'dr-attribution-block';
+    section.className = 'dr-attribution-block';
+    section.innerHTML =
+      '<h3 class="dr-attribution-title">Data sources</h3>' +
+      '<p class="dr-attribution-intro">Eileen draws her answers from three layers maintained by AI Lane Limited:</p>' +
+      '<ol class="dr-attribution-list" style="list-style:decimal;">' +
+        '<li><strong>Statutory provisions</strong> &mdash; UK legislation under the Open Government Licence v3.0, sourced from legislation.gov.uk and consolidated in the AI Lane Knowledge Library.</li>' +
+        '<li><strong>Leading cases</strong> &mdash; Employment Tribunal, Employment Appeal Tribunal, Court of Appeal, and Supreme Court decisions, with held principle and significance maintained in the AI Lane Knowledge Library.</li>' +
+        '<li data-source="ailane-original"><strong>Institutional training corpus</strong> &mdash; Curated content from AI Lane Limited&rsquo;s own ratified specifications, governed by the master amendment register AILANE-AMD-REG-001.</li>' +
+      '</ol>' +
+      '<p class="dr-attribution-footer">Source attribution and version metadata are surfaced inline whenever Eileen quotes a specific provision, case, or specification. Forthcoming-change disclosures (e.g. DUAA 2025 multi-wave commencement) carry a Tier 5 forward disclaimer.</p>';
+
+    container.appendChild(section);
+  }
+
+  // ─── "What's happening" snapshot (landing-only) ──────────────
+  // Renders 4 tiles: current phase, latest counter-proposal,
+  // open FCRs (with shortest SLA), recent Director responses.
+  // Empty-state copy is truthful in all three observable cases:
+  //   (i)  localhost-without-auth  → 401 from RLS, render empty-state
+  //   (ii) production-with-zero-rows → render empty-state
+  //   (iii) production-with-rows → replace empty-state with live data
+  // Hard network failure (not 401) renders an unobtrusive "Unable to
+  // load — please refresh" inline. No console suppression.
+  function populateWhatsHappening() {
+    var anchor = document.getElementById('dr-whats-happening');
+    if (!anchor) return;   // Sub-pages don't render this section
+    if (anchor.dataset.populated === '1') return;
+    anchor.dataset.populated = '1';
+
+    // Render skeleton with empty-state defaults (production-with-zero-rows
+    // is the truthful baseline; live data replaces in place when present)
+    anchor.innerHTML =
+      '<h2 class="dr-whats-happening-title">What&rsquo;s happening in this deal-room</h2>' +
+      '<p class="dr-whats-happening-sub">Live snapshot of the engagement state visible to your team.</p>' +
+      '<div class="dr-wh-grid">' +
+        '<article class="dr-wh-tile" data-wh-tile="phase">' +
+          '<span class="dr-wh-tile-eyebrow">Current phase</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">Loading phase status&hellip;</div>' +
+          '</div>' +
+        '</article>' +
+        '<article class="dr-wh-tile" data-wh-tile="proposal">' +
+          '<span class="dr-wh-tile-eyebrow">Latest counter-proposal</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">No counter-proposals submitted yet. Once a configuration is submitted from Deal Creator, the most recent appears here.</div>' +
+          '</div>' +
+        '</article>' +
+        '<article class="dr-wh-tile" data-wh-tile="fcrs">' +
+          '<span class="dr-wh-tile-eyebrow">Open capability requests</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">No open capability requests. New off-estate requests Eileen lodges with the Director appear here while under review.</div>' +
+          '</div>' +
+        '</article>' +
+        '<article class="dr-wh-tile" data-wh-tile="responses">' +
+          '<span class="dr-wh-tile-eyebrow">Recent Director responses</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">No Director responses yet.</div>' +
+          '</div>' +
+        '</article>' +
+      '</div>';
+
+    // Async live-data fetches. Each tile updates independently; one tile's
+    // failure does not break the others.
+    fetchPhaseTile_();
+    fetchLatestProposalTile_();
+    fetchOpenFcrsTile_();
+    fetchRecentDirectorResponsesTile_();
+  }
+
+  function whTileBody_(tileSlug) {
+    var tile = document.querySelector('[data-wh-tile="' + tileSlug + '"] .dr-wh-tile-body');
+    return tile || null;
+  }
+
+  async function fetchPhaseTile_() {
+    var body = whTileBody_('phase');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      // Sandbox / no-auth: RLS will 401. Render the truthful empty-state.
+      body.innerHTML = '<div class="dr-wh-tile-empty">Phase status unavailable &mdash; sign in to view.</div>';
+      return;
+    }
+    try {
+      var phase = await fetchClidGateState(token, CLID);
+      var label = (phase === 'phase_0') ? 'Phase 0 — Pre-engagement'
+                : 'Phase ' + (GATE_DISPLAY[phase] || phase);
+      var human = (PHASE_LABELS[phase] || '').replace(/^./, function (c) { return c; });
+      body.innerHTML =
+        '<div class="dr-wh-tile-headline">' + escapeHtml(label) + '</div>' +
+        (human ? '<div class="dr-wh-tile-meta">' + escapeHtml(human) + '</div>' : '');
+    } catch (err) {
+      console.error('[STOP 1] phase tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchLatestProposalTile_() {
+    var body = whTileBody_('proposal');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) return;   // Empty-state already in DOM
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/partner_counter_proposals' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&select=submitted_at,config_summary,estimated_annual_value_min,estimated_annual_value_max,director_response_status,urgency_flag,eileen_evaluation_pending' +
+          '&order=submitted_at.desc&limit=1',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) return;
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+      var p = rows[0];
+      var dateStr = p.submitted_at ? new Date(p.submitted_at).toLocaleDateString('en-GB') : '';
+      var rangeStr = '';
+      if (p.estimated_annual_value_min != null && p.estimated_annual_value_max != null) {
+        rangeStr = '£' + Number(p.estimated_annual_value_min).toLocaleString('en-GB') +
+                   '–£' + Number(p.estimated_annual_value_max).toLocaleString('en-GB');
+      }
+      var statusStr = p.eileen_evaluation_pending
+        ? 'Eileen acknowledged; Director reviewing'
+        : (p.director_response_status || 'awaiting Director');
+      var summary = (p.config_summary || '').slice(0, 140);
+      body.innerHTML =
+        '<div class="dr-wh-tile-headline">' + escapeHtml(summary || '(no summary)') + '</div>' +
+        (rangeStr ? '<div class="dr-wh-tile-meta">' + escapeHtml(rangeStr) + ' /year &middot; ' + escapeHtml(statusStr) + '</div>'
+                  : '<div class="dr-wh-tile-meta">' + escapeHtml(statusStr) + '</div>') +
+        (dateStr ? '<div class="dr-wh-tile-meta">Submitted ' + escapeHtml(dateStr) + '</div>' : '');
+    } catch (err) {
+      console.error('[STOP 1] latest-proposal tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchOpenFcrsTile_() {
+    var body = whTileBody_('fcrs');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) return;
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=eq.pending' +
+          '&select=id,request_summary,submitted_at,sla_target_response_at' +
+          '&order=sla_target_response_at.asc',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) return;
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+      var count = rows.length;
+      var soonest = rows[0];
+      var slaStr = '';
+      if (soonest && soonest.sla_target_response_at) {
+        var msRemaining = new Date(soonest.sla_target_response_at).getTime() - Date.now();
+        var workingDays = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
+        slaStr = 'Director response due in ' + workingDays + ' day' + (workingDays === 1 ? '' : 's');
+      }
+      body.innerHTML =
+        '<div class="dr-wh-tile-headline">' + count + ' open</div>' +
+        (slaStr ? '<div class="dr-wh-tile-meta">' + escapeHtml(slaStr) + '</div>' : '');
+    } catch (err) {
+      console.error('[STOP 1] open-FCRs tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchRecentDirectorResponsesTile_() {
+    var body = whTileBody_('responses');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) return;
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=in.(accepted,declined,roadmapped)' +
+          '&select=id,request_summary,director_review_status,director_response_at' +
+          '&order=director_response_at.desc&limit=3',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) return;
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+      var items = rows.map(function (r) {
+        var when = r.director_response_at ? new Date(r.director_response_at).toLocaleDateString('en-GB') : '';
+        return '<li>' +
+                 '<strong>' + escapeHtml((r.request_summary || '').slice(0, 80)) + '</strong>' +
+                 '<span class="dr-wh-tile-list-meta">' + escapeHtml(r.director_review_status) + (when ? ' &middot; ' + when : '') + '</span>' +
+               '</li>';
+      }).join('');
+      body.innerHTML = '<ul class="dr-wh-tile-list">' + items + '</ul>';
+    } catch (err) {
+      console.error('[STOP 1] recent-responses tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
     }
   }
 
