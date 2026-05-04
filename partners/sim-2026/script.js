@@ -3229,9 +3229,157 @@
     fileInput.click();
   }
 
-  // Stub: actual submission lands in commit 9.
+  // ─── Upload flow (multipart + XHR progress + version UX) ───
+  var UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+  var UPLOAD_PROGRESS_THRESHOLD = 5 * 1024 * 1024; // show progress bar for files > 5 MB
+  var UPLOAD_ALLOWED_MIME = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'text/plain'
+  ];
+
+  function validateUploadFile_(file) {
+    if (!file) return { ok: false, error: 'No file selected.' };
+    if (file.size === 0) return { ok: false, error: 'Empty file.' };
+    if (file.size > UPLOAD_MAX_BYTES) {
+      return { ok: false, error: 'File too large (max 50 MB).' };
+    }
+    var mime = file.type || '';
+    if (UPLOAD_ALLOWED_MIME.indexOf(mime) === -1) {
+      return { ok: false, error: 'Unsupported file type. Use PDF, DOCX, DOC, or TXT.' };
+    }
+    return { ok: true };
+  }
+
+  function callDealroomUploadXhr_(formData, onProgress) {
+    return new Promise(async function (resolve, reject) {
+      var session;
+      try { session = await getDealroomSession_(); }
+      catch (e) { reject(e); return; }
+      if (!session) { reject(new Error('Not authenticated')); return; }
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', SUPABASE_URL + '/functions/v1/dealroom-document-upload');
+      xhr.setRequestHeader('Authorization', 'Bearer ' + session.access_token);
+      // Note: do NOT set Content-Type — the browser sets the multipart
+      // boundary header automatically when given a FormData body.
+      if (typeof onProgress === 'function' && xhr.upload) {
+        xhr.upload.addEventListener('progress', function (ev) {
+          if (ev.lengthComputable) {
+            onProgress(Math.round((ev.loaded / ev.total) * 100));
+          }
+        });
+      }
+      xhr.addEventListener('load', function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch (e) { reject(new Error('Invalid JSON from upload EF')); }
+        } else {
+          var msg = xhr.responseText || ('HTTP ' + xhr.status);
+          var err = new Error('upload failed: ' + msg);
+          err.status = xhr.status;
+          err.body = xhr.responseText;
+          reject(err);
+        }
+      });
+      xhr.addEventListener('error', function () { reject(new Error('Network error during upload')); });
+      xhr.addEventListener('abort', function () { reject(new Error('Upload aborted')); });
+      xhr.send(formData);
+    });
+  }
+
   async function submitRequirementUpload_(tile, file) {
-    console.warn('[Phase 3] requirement upload flow lands in commit 9; got file:', file && file.name);
+    var documentId = tile.getAttribute('data-document-id');
+    if (!documentId) return;
+    var actionsBox = tile.querySelector('[data-tile-actions]');
+    var prevActionsHtml = actionsBox ? actionsBox.innerHTML : '';
+
+    // Client-side validation (server re-validates as authoritative gate)
+    var v = validateUploadFile_(file);
+    if (!v.ok) {
+      if (actionsBox) {
+        actionsBox.innerHTML = '<span class="dr-doc-tile-action-error">' + escapeHtml(v.error) + '</span>';
+        setTimeout(function () { actionsBox.innerHTML = prevActionsHtml; bindDocTileHandlers_(); }, 4000);
+      }
+      return;
+    }
+
+    var showProgressBar = file.size > UPLOAD_PROGRESS_THRESHOLD;
+    if (actionsBox) {
+      if (showProgressBar) {
+        actionsBox.innerHTML =
+          '<div class="dr-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
+            '<div class="dr-upload-progress-bar" data-upload-bar style="width:0%"></div>' +
+            '<span class="dr-upload-progress-label" data-upload-label>Uploading 0%</span>' +
+          '</div>';
+      } else {
+        actionsBox.innerHTML = '<span class="dr-doc-tile-actions-pending">Uploading&hellip;</span>';
+      }
+    }
+
+    var formData = new FormData();
+    formData.append('clid', CLID);
+    formData.append('catalog_document_id', documentId);
+    formData.append('file', file);
+
+    function onProgress(pct) {
+      if (!actionsBox) return;
+      var bar = actionsBox.querySelector('[data-upload-bar]');
+      var label = actionsBox.querySelector('[data-upload-label]');
+      if (bar) bar.style.width = pct + '%';
+      if (label) label.textContent = 'Uploading ' + pct + '%';
+      var progressEl = actionsBox.querySelector('.dr-upload-progress');
+      if (progressEl) progressEl.setAttribute('aria-valuenow', String(pct));
+    }
+
+    try {
+      var res = await callDealroomUploadXhr_(formData, showProgressBar ? onProgress : null);
+      try {
+        if (window.gtag) window.gtag('event', 'dealroom_document_upload', {
+          clid: CLID, document_id: documentId,
+          version_number: res && res.version_number,
+          status: res && res.status
+        });
+      } catch (e) {}
+      var versionTxt = (res && res.version_number > 1) ? 'v' + res.version_number : '';
+      showToast_('Upload received' + (versionTxt ? ' (' + versionTxt + ')' : '') + ' — Director will review.');
+      // Refresh the entire vault — this picks up the new upload's status pill
+      // (now 'submitted'), the new version_number tag, and any other tile that
+      // shifted state (e.g. previous version marked superseded server-side).
+      await refreshDocumentVault_();
+    } catch (err) {
+      console.error('[Phase 3] upload failed:', err);
+      var msg = (err && err.message) ? err.message : 'Upload failed.';
+      // Sanitize EF body if present for inline display
+      if (err && err.body && err.body.length < 200) msg = err.body;
+      if (actionsBox) {
+        actionsBox.innerHTML =
+          '<span class="dr-doc-tile-action-error">' + escapeHtml(msg) + '</span>' +
+          '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="upload">Retry</button>';
+        bindDocTileHandlers_();
+      }
+    }
+  }
+
+  // ─── Toast (lightweight, transient inline notifier) ────────
+  function showToast_(message, opts) {
+    opts = opts || {};
+    var ttlMs = opts.ttlMs || 3500;
+    var existing = document.getElementById('dr-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.id = 'dr-toast';
+    toast.className = 'dr-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    // Trigger CSS transition by adding class on next frame
+    requestAnimationFrame(function () { toast.classList.add('dr-toast-visible'); });
+    setTimeout(function () {
+      toast.classList.remove('dr-toast-visible');
+      setTimeout(function () { try { toast.remove(); } catch (e) {} }, 250);
+    }, ttlMs);
   }
 
   async function handleFetchAction_(tile, action) {
