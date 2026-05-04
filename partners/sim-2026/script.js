@@ -3095,8 +3095,23 @@
       // Phase-gating is informational (caption only); Download is always enabled.
       return '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="download">Download</button>';
     }
-    // Requirements — populated in commit 8.
-    return '<span class="dr-doc-tile-actions-pending">Actions wiring up&hellip;</span>';
+    if (kind === 'requirement') {
+      // Status-driven action set per brief §7.5.
+      switch (status) {
+        case 'open':
+          return '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="upload">Upload</button>';
+        case 'submitted':
+          return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="view">View submitted file</button>' +
+                 '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="replace">Replace</button>';
+        case 'accepted':
+          return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="view">View accepted file</button>';
+        case 'declined':
+          return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="view-notes">View Director notes</button>' +
+                 '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="upload">Re-upload</button>';
+      }
+      return '<span class="dr-doc-tile-locked-note">Status unknown</span>';
+    }
+    return '';
   }
 
   // Template tiles render an additional "Becomes relevant at phase_X" caption
@@ -3156,8 +3171,67 @@
     if (action === 'preview' || action === 'download') {
       return handleFetchAction_(tile, action);
     }
-    // 'upload' / 'replace' / 'view' land in commits 7-8.
+    if (action === 'view') {
+      // Open the latest submitted/accepted upload in a preview tab.
+      return handleFetchAction_(tile, 'preview');
+    }
+    if (action === 'upload' || action === 'replace') {
+      return handleUploadAction_(tile);
+    }
+    if (action === 'view-notes') {
+      return handleViewNotesAction_(tile);
+    }
     console.warn('[Phase 3] unhandled doc action:', action);
+  }
+
+  // Surfaces the Director's review_notes inline when a requirement was declined.
+  // Read from the cached vault data (window.__dealRoomVaultData) so we don't
+  // need an extra REST round-trip per click.
+  function handleViewNotesAction_(tile) {
+    var documentId = tile.getAttribute('data-document-id');
+    var cached = window.__dealRoomVaultData;
+    var uploadRow = cached && cached.uploadsByDocId ? cached.uploadsByDocId[documentId] : null;
+    var notesText = (uploadRow && uploadRow.review_notes) || '';
+    var existing = tile.querySelector('.dr-doc-tile-notes');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    var notesBlock = document.createElement('div');
+    notesBlock.className = 'dr-doc-tile-notes';
+    notesBlock.setAttribute('role', 'region');
+    notesBlock.setAttribute('aria-label', 'Director notes');
+    notesBlock.innerHTML =
+      '<h5 class="dr-doc-tile-notes-title">Director notes</h5>' +
+      '<p class="dr-doc-tile-notes-body">' + escapeHtml(notesText || 'No notes recorded.') + '</p>';
+    var actionsBox = tile.querySelector('[data-tile-actions]');
+    if (actionsBox) actionsBox.insertAdjacentElement('beforebegin', notesBlock);
+    else tile.appendChild(notesBlock);
+  }
+
+  // Stub upload handler — opens the OS file picker, validates client-side,
+  // and (in commit 9) issues the multipart-with-progress submission to
+  // dealroom-document-upload v1.
+  function handleUploadAction_(tile) {
+    var documentId = tile.getAttribute('data-document-id');
+    if (!documentId) return;
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      fileInput.remove();
+      if (!file) return;
+      submitRequirementUpload_(tile, file);
+    });
+    fileInput.click();
+  }
+
+  // Stub: actual submission lands in commit 9.
+  async function submitRequirementUpload_(tile, file) {
+    console.warn('[Phase 3] requirement upload flow lands in commit 9; got file:', file && file.name);
   }
 
   async function handleFetchAction_(tile, action) {
