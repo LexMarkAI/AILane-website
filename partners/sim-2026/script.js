@@ -898,382 +898,118 @@
     }
   }
 
-  // ─── Configurator: state, presets, render, RPC, counter-proposal ───
-  // AMD-XXX §4.3(c). Live pricing_quote_function RPC (p_config_snapshot input,
-  // pence output). Penny-perfect reference matrix:
-  //   Pkg 2 → £1,448,696   (annual_pence: 144,869,585)  [AMD-110 nesting realignment]
-  //   Pkg 3 → £1,645,346   (annual_pence: 164,534,585)
-  //   Pkg 4 → £2,727,579   (annual_pence: 272,757,870)
-  // Counter-proposal INSERT to partner_counter_proposals (28-col schema verified).
-  // Reuses existing escapeHtml, fetchClidGateState, GATE_ORDER, GATE_DISPLAY.
-  // EIM-001 phrasing-memo binding: exclusivity copy is mechanical only.
-  // Fix 3 (Interpretation A) — Panel 1 = canonical 4-package selector.
-  // CONFIG_STATE.tier removed; ACTIVE_PRESET tracks UI is-selected state.
-  // Slider/modifier user input clears ACTIVE_PRESET (transitions to "custom").
-  var CONFIG_STATE = {
-    scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_segments: ['private', 'public', 'third'] },
-    rationale: '', timing: '', urgency: 'standard'
-  };
-  var ACTIVE_PRESET = null;  // 'pkg1' | 'pkg2' | 'pkg3' | 'pkg4' | null (custom or reset)
-  var LAST_QUOTE = null;
+  // ─── Configurator state (post-AMD-114 four-axis architecture) ─────
+  // CONFIG_STATE retained for rationale/timing/urgency only — these are
+  // counter-proposal form fields, orthogonal to the pricing scope/modifiers
+  // payload (which lives in SCOPE_STATE / MODIFIERS_STATE below).
+  // TIERS_META / MODIFIERS_META / FEATURE_FLAGS are populated from the
+  // preserved REST table fetches per brief §10.4; FEATURE_FLAGS gates the
+  // counter-proposal section in renderCounterProposalSection.
+  // Launch-partner truth is sourced from pricing_quote_function_v4.is_launch_partner_applied
+  // per AMD-118 Stage A (was: separate get_partner_launch_status RPC pre-AMD-114).
+  var CONFIG_STATE = { rationale: '', timing: '', urgency: 'standard' };
   var TIERS_META = [];
   var MODIFIERS_META = [];
   var FEATURE_FLAGS = {};
-  // AMD-110 — live ceilings populated by loadCeilings on mount; null pre-mount triggers
-  // 78699 fallback in computeEffectiveMax_. Module-scope so renderPanel2Scope_ re-renders
-  // consume the same source-of-truth (Director institutional concern: imperative el.max
-  // would be wiped on preset click / modifier toggle re-render).
-  var CEILINGS = null;
-  // AMD-111 — per-segment ceilings + modifier_pct populated by loadCeilings on mount from
-  // get_pricing_ceilings v2 segments object. Sum of identity_ceiling across segments is
-  // the unrestricted estate identity universe (78,699 baseline). Module-scope so the
-  // identity-slider clamp re-computes from a single source of truth on every checkbox
-  // change. Defensive v1 fallback (legacy array shape) leaves this null and
-  // getSectorAwareIdentityCeiling falls back to a hard-coded segment table.
-  var SEGMENT_CEILINGS = null;
-  // AMD-109 — launch-partner status loaded once on mount via get_partner_launch_status RPC.
-  // is_launch_partner=true → badge renders + CONFIG_STATE.modifiers.clid set for authoritative
-  // function-side discount. Silent on null/false per RRI v1.0 (system explains presence,
-  // never absence).
-  var LAUNCH_PARTNER_STATUS = null;
   var configRecomputeTimer = null;
 
-  // Canonical 4-package matrix verified against pricing_quote_function:
-  //   Pkg 1 → £550,893  / Pkg 2 → £1,448,696  / Pkg 3 → £1,645,346  / Pkg 4 → £2,727,579
-  var PKG1_PRESET = {
-    label: 'Pkg 1 — Identity',
-    scope: { identity: 78699, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-    modifiers: { duns_match: true, refresh: 'quarterly', exclusivity: 'none', term_years: 1 }
+  // ─── AMD-114 four-axis configurator state ──────────────────────────
+  // Source-of-truth for the new four-axis scope-builder payload sent to
+  // compute_scope_universe / pricing_quote_function_v4. Replaces the
+  // layered enrichment-stack CONFIG_STATE (kept above as transitional
+  // scaffolding for submitCounterProposal until the full v4 cutover).
+  var SCOPE_STATE = {
+    sector:       { l1: [], l2: [] },
+    geography:    { level: 'L1', values: [] },
+    industry:     { level: 'L1', values: [] },
+    intelligence: { acei: [], rri: [], cci: [] }
   };
-  var PKG2_PRESET = {
-    label: 'Pkg 2 — Tribunal Exposure + Outcome',
-    scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 0, premium: 0 },
-    modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 }
+  var MODIFIERS_STATE = {
+    tier:         'institutional',
+    refresh:      'quarterly',
+    exclusivity:  'none',
+    term_years:   1,
+    duns_match:   false
   };
-  var PKG3_PRESET = {
-    label: 'Pkg 3 — Premium Full-Stack',
-    scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 0 },
-    modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'none', term_years: 2 }
-  };
-  var PKG4_PRESET = {
-    label: 'Pkg 4 — Bespoke + Full UK Exclusivity',
-    scope: { identity: 78699, tribunal_exposure: 23000, outcome_intelligence: 23000, full_acei: 15000, full_enrichment: 6000, premium: 6000 },
-    modifiers: { duns_match: true, refresh: 'daily', exclusivity: 'full_uk', term_years: 3 }
-  };
-  var RESET_PRESET = {
-    label: 'Reset to defaults',
-    scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1 }
-  };
+  var LAST_UNIVERSE = null;     // most recent compute_scope_universe response
+  var LAST_QUOTE_V4 = null;     // most recent pricing_quote_function_v4 response
+  var EXPANDED_AXIS = null;     // 'sector' | 'geography' | 'industry' | 'intelligence' | null
+  var INTEL_TAB = 'acei';       // 'acei' | 'rri' | 'cci' (CCI deferred this build)
+  var CEILINGS_V3 = null;       // get_pricing_ceilings_v3 payload (loaded at mount)
+  var quoteRequestSeq = 0;      // monotonic guard for stale RPC results
 
-  function formatPence(pence) {
-    if (pence == null) return '—';
-    return '£' + Math.round(Number(pence) / 100).toLocaleString('en-GB');
-  }
-
-  // AMD-110 + AMD-111 — fetch live ceilings from get_pricing_ceilings RPC at mount time.
-  // Hard-coded fallback per CCI v1.0 binding (never silent-fail to unbounded sliders).
-  // v2 contract (AMD-111): RPC returns a single object { tiers: [...], segments: {private, public, third} }.
-  // v1 legacy: RPC returned an Array<{tier_code, real_ceiling}>. The defensive parser below
-  // accepts both shapes; the legacy branch logs a single console.warn so a staged-rollout
-  // regression is visible without breaking the surface. SEGMENT_CEILINGS is populated only
-  // on the v2 branch — under v1, getSectorAwareIdentityCeiling falls back to the table below.
-  async function loadCeilings(token) {
-    var tierFallback = {
-      identity: 78699, tribunal_exposure: 80124, outcome_intelligence: 80124,
-      full_acei: 18552, full_enrichment: 13588, premium: 6000
-    };
-    // AMD-111 segment-ceiling fallback table (sums to identity 78,699):
-    var segmentFallback = {
-      private: { identity_ceiling: 68742, modifier_pct: -2.0 },
-      public:  { identity_ceiling: 8956,  modifier_pct: 50.0 },
-      third:   { identity_ceiling: 1001,  modifier_pct: 25.0 }
-    };
-    function applyTierFallback(map) {
-      var T = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
-      for (var t = 0; t < T.length; t++) {
-        if (map[T[t]] == null) map[T[t]] = tierFallback[T[t]];
-      }
-      return map;
+  // ─── AMD-115 RPC helpers (raw fetch per RULE 26) ───────────────────
+  async function callRpcRaw_(fnName, params) {
+    var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+    var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fnName, {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify(params || {})
+    });
+    if (!res.ok) {
+      var errBody = '';
+      try { errBody = await res.text(); } catch (e) {}
+      var err = new Error('RPC ' + fnName + ' failed: ' + res.status);
+      err.status = res.status;
+      err.body = errBody;
+      err.fnName = fnName;
+      throw err;
     }
-    try {
-      var hdrs = { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' };
-      // Production: include Authorization. Sandbox (token == null): anon-only headers
-      // — the get_pricing_ceilings RPC is anon-accessible per Director.
-      if (token) hdrs['Authorization'] = 'Bearer ' + token;
-      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_pricing_ceilings', {
-        method: 'POST',
-        headers: hdrs,
-        body: '{}'
-      });
-      if (!res.ok) {
-        console.warn('[AMD-110/111] get_pricing_ceilings RPC returned ' + res.status + '; using full fallback');
-        SEGMENT_CEILINGS = segmentFallback;
-        return tierFallback;
-      }
-      var body = await res.json();
-
-      // v2 shape: object with `tiers` (array OR object keyed by tier_code) + `segments` object
-      if (body && !Array.isArray(body) && (body.tiers || body.segments)) {
-        var map2 = {};
-        if (Array.isArray(body.tiers)) {
-          for (var ti = 0; ti < body.tiers.length; ti++) {
-            var row = body.tiers[ti];
-            if (row && row.tier_code && row.real_ceiling != null) {
-              map2[row.tier_code] = Number(row.real_ceiling);
-            }
-          }
-        } else if (body.tiers && typeof body.tiers === 'object') {
-          // Defensive: tiers returned as object keyed by tier_code rather than array
-          var tk = Object.keys(body.tiers);
-          for (var tj = 0; tj < tk.length; tj++) {
-            var tv = body.tiers[tk[tj]];
-            var rc = (tv && tv.real_ceiling != null) ? tv.real_ceiling
-                   : (typeof tv === 'number' ? tv : null);
-            if (rc != null) map2[tk[tj]] = Number(rc);
-          }
-        }
-        if (body.segments && typeof body.segments === 'object') {
-          var seg = {};
-          var KEYS = ['private', 'public', 'third'];
-          for (var si = 0; si < KEYS.length; si++) {
-            var k = KEYS[si];
-            var s = body.segments[k];
-            if (s && s.identity_ceiling != null) {
-              seg[k] = {
-                identity_ceiling: Number(s.identity_ceiling),
-                modifier_pct: (s.modifier_pct != null) ? Number(s.modifier_pct) : segmentFallback[k].modifier_pct
-              };
-            } else {
-              seg[k] = segmentFallback[k];
-            }
-          }
-          SEGMENT_CEILINGS = seg;
-        } else {
-          SEGMENT_CEILINGS = segmentFallback;
-        }
-        return applyTierFallback(map2);
-      }
-
-      // v1 legacy shape: bare Array<{tier_code, real_ceiling}> — staged-rollout fallback
-      if (Array.isArray(body)) {
-        console.warn('[AMD-111] get_pricing_ceilings returned v1 array shape; segments fallback in use (staged-rollout detection).');
-        var map1 = {};
-        for (var i = 0; i < body.length; i++) {
-          if (body[i] && body[i].tier_code && body[i].real_ceiling != null) {
-            map1[body[i].tier_code] = Number(body[i].real_ceiling);
-          }
-        }
-        SEGMENT_CEILINGS = segmentFallback;
-        return applyTierFallback(map1);
-      }
-
-      // Unrecognised shape
-      console.warn('[AMD-110/111] get_pricing_ceilings response shape unrecognised; using full fallback');
-      SEGMENT_CEILINGS = segmentFallback;
-      return tierFallback;
-    } catch (err) {
-      console.warn('[AMD-110/111] loadCeilings error; using full fallback:', err);
-      SEGMENT_CEILINGS = segmentFallback;
-      return tierFallback;
-    }
+    return await res.json();
+  }
+  async function loadCeilingsV3_() { return await callRpcRaw_('get_pricing_ceilings_v3', {}); }
+  async function computeScopeUniverse_(scope) { return await callRpcRaw_('compute_scope_universe', { p_scope: scope }); }
+  async function quoteV4_(scope, modifiers) {
+    return await callRpcRaw_('pricing_quote_function_v4', {
+      p_config_snapshot: { scope: scope, modifiers: modifiers }
+    });
   }
 
-  // AMD-109 — fetch launch-partner status from get_partner_launch_status RPC.
-  // Returns { clid, is_launch_partner, window_start_date, window_end_date,
-  // discount_pct, amd_authority } or { is_launch_partner: false } if not flagged.
-  // Silent on RPC failure (no badge rendered, no clid passed to function).
-  async function loadLaunchPartnerStatus(token) {
-    try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_partner_launch_status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ p_clid: CLID })
-      });
-      if (!res.ok) {
-        console.warn('[AMD-109] get_partner_launch_status RPC returned ' + res.status + '; LP badge will not render');
-        return null;
-      }
-      var data = await res.json();
-      return data || null;
-    } catch (err) {
-      console.warn('[AMD-109] loadLaunchPartnerStatus error:', err);
-      return null;
-    }
-  }
-
-  // AMD-110 + AMD-111 — single source of truth for slider max calculation.
-  // Composes (1) real_ceiling per layer, (2) nested-depth cascading (parent
-  // layer count caps child), (3) sector-aware identity cap on the identity layer
-  // (sum of selected segments' identity_ceilings — supersedes the AMD-108
-  // public_only 521 short-circuit, which is removed under AMD-111 multi-select).
-  // Used by renderPanel2Scope_ (max attr at render time) AND applyAllCaps
-  // (state + DOM clamp post-input). Re-render-safe.
-  function computeEffectiveMax_(layer) {
-    if (!CEILINGS) return 78699;
-    var realCap = (CEILINGS[layer] != null) ? CEILINGS[layer] : 78699;
-    if (layer === 'identity') {
-      // AMD-111 — identity ceiling is the sum of selected-segment ceilings.
-      // Other layers cascade from this clamped identity value via the parentByLayer map below.
-      return Math.min(realCap, getSectorAwareIdentityCeiling());
-    }
-    var parentByLayer = {
-      tribunal_exposure: CONFIG_STATE.scope.identity,
-      outcome_intelligence: CONFIG_STATE.scope.tribunal_exposure,
-      full_acei: CONFIG_STATE.scope.outcome_intelligence,
-      full_enrichment: CONFIG_STATE.scope.full_acei,
-      premium: CONFIG_STATE.scope.full_enrichment
-    };
-    var parentVal = parentByLayer[layer];
-    if (parentVal == null) parentVal = realCap;
-    return Math.min(realCap, parentVal);
-  }
-
-  // AMD-111 — sector-aware identity ceiling = sum of identity_ceiling for each selected
-  // segment. SEGMENT_CEILINGS is populated by loadCeilings (v2 path) or its hard-coded
-  // fallback table (v1 path / RPC failure). Returns 78,699 baseline if no segment data is
-  // available at all (defensive — should never happen post-mount).
-  function getSectorAwareIdentityCeiling() {
-    var segs = (CONFIG_STATE.modifiers && CONFIG_STATE.modifiers.sector_segments) || [];
-    if (!SEGMENT_CEILINGS) return 78699;
-    var sum = 0;
-    for (var i = 0; i < segs.length; i++) {
-      var s = SEGMENT_CEILINGS[segs[i]];
-      if (s && s.identity_ceiling != null) sum += Number(s.identity_ceiling);
-    }
-    // No segment selected → treat as 0 (slider clamps to 0; pre-flight guard blocks submit
-    // and recompute via validateSegmentSelection).
-    return sum;
-  }
-
-  // AMD-111 — checked-segments helper. Used by validateSegmentSelection,
-  // updateComposedBadge, getSectorAwareIdentityCeiling indirectly (via CONFIG_STATE),
-  // and the checkbox-change handler. Reads DOM directly (not CONFIG_STATE) so it can be
-  // called mid-event before state is mutated.
-  function getSelectedSegments() {
-    var inputs = document.querySelectorAll('input[name="sector_segments"]:checked');
-    var out = [];
-    for (var i = 0; i < inputs.length; i++) out.push(inputs[i].value);
-    return out;
-  }
-
-  // AMD-111 — pre-flight guard for both submit AND live-pricing recompute paths.
-  // Surfaces inline error on the segment fieldset; returns false → caller short-circuits.
-  function validateSegmentSelection() {
-    var segs = (CONFIG_STATE.modifiers && CONFIG_STATE.modifiers.sector_segments) || [];
-    var fieldset = document.querySelector('[data-panel="sector-segments"]');
-    var errEl = fieldset ? fieldset.querySelector('[data-segment-error]') : null;
-    if (segs.length === 0) {
-      if (fieldset) fieldset.classList.add('dr-segment-error');
-      if (errEl) errEl.textContent = 'At least one segment must be selected.';
-      return false;
-    }
-    if (fieldset) fieldset.classList.remove('dr-segment-error');
-    if (errEl) errEl.textContent = '';
-    return true;
-  }
-
-  // AMD-111 — composed-modifier badge text. Single-segment + all-three cases use static
-  // labels per the brief §4.4 table; two-segment cases prefer the live sector_composed_pct
-  // from the latest pricing_quote_function response. Pair labels follow the brief table:
-  // Private+Public → "Mixed positioning"; Private+Third / Public+Third → explicit pair.
-  function updateComposedBadge() {
-    var valueEl = document.querySelector('[data-composed-value]');
-    if (!valueEl) return;
-    var segs = (CONFIG_STATE.modifiers && CONFIG_STATE.modifiers.sector_segments) || [];
-    var text;
-    if (segs.length === 0) {
-      text = '— select at least one segment —';
-    } else if (segs.length === 3) {
-      text = 'Baseline (all three selected)';
-    } else if (segs.length === 1) {
-      if (segs[0] === 'private') text = 'Private baseline (−2%)';
-      else if (segs[0] === 'public') text = 'Public specialty (+50%)';
-      else if (segs[0] === 'third') text = 'Third specialty (+25%)';
-      else text = 'Single segment';
-    } else {
-      var sorted = segs.slice().sort();
-      var hasP = sorted.indexOf('private') !== -1;
-      var hasU = sorted.indexOf('public') !== -1;
-      var hasT = sorted.indexOf('third') !== -1;
-      var pairLabel = (hasP && hasU) ? 'Mixed positioning'
-                    : (hasP && hasT) ? 'Private + Third'
-                    : (hasU && hasT) ? 'Public + Third'
-                    : 'Mixed positioning';
-      var composedPct = (LAST_QUOTE && LAST_QUOTE.sector_composed_pct != null) ? Number(LAST_QUOTE.sector_composed_pct) : null;
-      if (composedPct != null && !isNaN(composedPct)) {
-        var sign = composedPct > 0 ? '+' : (composedPct < 0 ? '−' : '');
-        text = pairLabel + ' (composed: ~' + sign + Math.abs(composedPct).toFixed(1) + '%)';
-      } else {
-        text = pairLabel + ' (composed positioning)';
-      }
-    }
-    valueEl.textContent = text;
-  }
-
-  // AMD-110 + AMD-108 — enforce computeEffectiveMax_ across CONFIG_STATE.scope
-  // (truth) and DOM slider input.max attributes (HTML constraint). Iterates
-  // parent → child so each layer's effective max sees clamped parent values.
-  // Called from: populateConfigurator (initial), applyPreset (post-preset),
-  // slider input handler (post-edit), sector_segments checkbox change (AMD-111).
-  function applyAllCaps() {
-    var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
-    for (var i = 0; i < TIERS.length; i++) {
-      var layer = TIERS[i];
-      var maxAllowed = computeEffectiveMax_(layer);
-      if (CONFIG_STATE.scope[layer] > maxAllowed) {
-        CONFIG_STATE.scope[layer] = maxAllowed;
-      }
-      var el = document.querySelector('.dr-config-scope-input[data-scope="' + layer + '"]');
-      if (el) {
-        el.max = String(maxAllowed);
-        var domVal = parseInt(el.value || '0', 10);
-        if (domVal > maxAllowed) el.value = String(maxAllowed);
-      }
-    }
-    // AMD-111 fixup-2 Issue 3 — keep visible max-hint readouts in sync with caps
-    if (typeof updateLayerMaxHints_ === 'function') updateLayerMaxHints_();
-  }
 
   async function populateConfigurator(user) {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
     // In production a token is required; in sandbox the configurator runs anon-only on
-    // pricing RPCs (Director: pricing_quote_function + get_pricing_ceilings are anon-
-    // accessible). Other auth-required REST calls below are skipped in sandbox.
+    // pricing RPCs (Director: pricing RPCs are anon-accessible). Other auth-required
+    // REST calls below are skipped in sandbox.
     if (!IS_SANDBOX && (!user || !user.token)) return;
 
-    CONFIG_STATE = {
-      scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-      modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_segments: ['private', 'public', 'third'] },
-      rationale: '', timing: '', urgency: 'standard'
+    // AMD-114 — initialise four-axis scope state (unconstrained baseline) and modifier
+    // defaults (Institutional tier, quarterly refresh, no exclusivity, 12-month term).
+    SCOPE_STATE = {
+      sector:       { l1: [], l2: [] },
+      geography:    { level: 'L1', values: [] },
+      industry:     { level: 'L1', values: [] },
+      intelligence: { acei: [], rri: [], cci: [] }
     };
-    ACTIVE_PRESET = null;
+    MODIFIERS_STATE = {
+      tier:         'institutional',
+      refresh:      'quarterly',
+      exclusivity:  'none',
+      term_years:   1,
+      duns_match:   false
+    };
+    LAST_UNIVERSE = null;
+    LAST_QUOTE_V4 = null;
+    EXPANDED_AXIS = null;
+    INTEL_TAB = 'acei';
+    // Counter-proposal form fields — orthogonal to the pricing payload.
+    CONFIG_STATE = { rationale: '', timing: '', urgency: 'standard' };
 
     try { if (window.gtag) window.gtag('event', 'configurator_open', { clid: CLID }); } catch (e) { /* swallow */ }
-    // Header preset chip strip retired (Fix 3 / Interpretation A) — Panel 1 binds at render time.
 
     try {
       var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
-      // In sandbox: skip auth-required RPCs (gate-state, LP status). Pricing RPCs and
-      // pricing-metadata REST queries either work anon (per Director) or degrade
-      // gracefully via the in-code fallback paths (TIERS_META → getTierData_ default,
-      // CEILINGS → loadCeilings hard-coded fallback, FEATURE_FLAGS → empty {} treated
-      // as enabled).
       var sandboxToken = IS_SANDBOX ? null : user.token;
+      // REST table fetches preserved per brief §10.4 (pricing_tier, pricing_modifier,
+      // dealroom_feature_flags). FEATURE_FLAGS in particular drives the counter-proposal
+      // section's gating in renderCounterProposalSection.
       var results = await Promise.all([
         fetch(SUPABASE_URL + '/rest/v1/pricing_tier?select=tier_code,display_name,delta_rate_pence,cumulative_rate_pence,is_enrichment_layer,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/pricing_modifier?select=modifier_code,modifier_type,display_name,value_pence,value_pct,applies_to,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/dealroom_feature_flags?select=feature_key,enabled', { headers: hdrs }),
         IS_SANDBOX ? Promise.resolve('phase_0') : fetchClidGateState(sandboxToken, CLID),
-        loadCeilings(sandboxToken),
-        IS_SANDBOX ? Promise.resolve(null) : loadLaunchPartnerStatus(sandboxToken)
+        loadCeilingsV3_()
       ]);
       if (results[0].ok) TIERS_META = await results[0].json();
       if (results[1].ok) MODIFIERS_META = await results[1].json();
@@ -1283,578 +1019,1230 @@
         for (var fi = 0; fi < flags.length; fi++) FEATURE_FLAGS[flags[fi].feature_key] = flags[fi].enabled;
       }
       var gateState = results[3] || 'phase_0';
-      CEILINGS = results[4];                       // AMD-110 — populated before first render
-      LAUNCH_PARTNER_STATUS = results[5];          // AMD-109 — populated before first render (null in sandbox)
-      // AMD-109 — pre-first-quote synchronisation: set clid in modifiers BEFORE computeQuote
-      // fires so the first quote already includes the LP discount (avoids £1,448,696 →
-      // £1,303,826 flicker). Silent on non-LP users — no clid sent, no LP path triggered.
-      if (LAUNCH_PARTNER_STATUS && LAUNCH_PARTNER_STATUS.is_launch_partner === true) {
-        CONFIG_STATE.modifiers.clid = CLID;
-      }
+      CEILINGS_V3 = results[4];
       renderConfigurator();
-      applyAllCaps();         // initial DOM input.max attrs
       renderCounterProposalSection(user, gateState);
-      computeQuote();
+      // Initial recompute — populates universe pill + per-record + annual on cold load.
+      recompute_();
     } catch (err) {
       console.error('populateConfigurator error:', err);
       anchor.innerHTML = '<div class="dr-config-empty-error">Configurator could not be loaded. Please refresh, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
     }
   }
 
-  // AMD-111 fixup-2 — preset-load-time clamp. The preset matrix is hard-coded (see
-  // PKG1–PKG4_PRESET) and may carry layer values that were valid when authored but exceed
-  // the LIVE real_ceiling now returned by get_pricing_ceilings. Without this clamp,
-  // applyPreset would write the preset-as-authored into CONFIG_STATE; applyAllCaps would
-  // then attempt a re-clamp via the parent cascade, but that cascade reads the parent's
-  // CURRENT (just-written, unclamped) value — so a parent that exceeds its own real_ceiling
-  // does not constrain the child. The fix: clamp every layer's preset value against
-  // MIN(real_ceiling, sector-aware identity ceiling for the identity layer specifically,
-  // parent's already-clamped value) BEFORE assignment. This is the load-bearing guard
-  // that prevents pricing_quote_function v3 from rejecting the payload.
-  function clampPresetScopeToCeilings_(presetSegs) {
-    // Per-segment-aware identity ceiling, computed from a temporary segments view rather
-    // than CONFIG_STATE (which is mid-rebuild during applyPreset).
-    var idCeilingFromSegs = (function () {
-      if (!SEGMENT_CEILINGS) return 78699;
-      var sum = 0;
-      for (var i = 0; i < presetSegs.length; i++) {
-        var s = SEGMENT_CEILINGS[presetSegs[i]];
-        if (s && s.identity_ceiling != null) sum += Number(s.identity_ceiling);
-      }
-      return sum;
-    })();
-    // Resolve real_ceiling per layer; CEILINGS may not yet be populated on very early calls.
-    function realCap(layer) {
-      if (CEILINGS && CEILINGS[layer] != null) return Number(CEILINGS[layer]);
-      var hard = { identity: 78699, tribunal_exposure: 80124, outcome_intelligence: 80124, full_acei: 18552, full_enrichment: 13588, premium: 6000 };
-      return hard[layer];
-    }
-    return function (preset) {
-      var s = preset.scope || {};
-      var clamped = {};
-      clamped.identity = Math.min(Number(s.identity || 0), realCap('identity'), idCeilingFromSegs);
-      clamped.tribunal_exposure = Math.min(Number(s.tribunal_exposure || 0), realCap('tribunal_exposure'), clamped.identity);
-      clamped.outcome_intelligence = Math.min(Number(s.outcome_intelligence || 0), realCap('outcome_intelligence'), clamped.tribunal_exposure);
-      clamped.full_acei = Math.min(Number(s.full_acei || 0), realCap('full_acei'), clamped.outcome_intelligence);
-      clamped.full_enrichment = Math.min(Number(s.full_enrichment || 0), realCap('full_enrichment'), clamped.full_acei);
-      clamped.premium = Math.min(Number(s.premium || 0), realCap('premium'), clamped.full_enrichment);
-      return clamped;
-    };
-  }
-
-  function applyPreset(preset, presetCode) {
-    // AMD-111 fixup-2 — sector_segments: resolve first so the identity-ceiling clamp can
-    // use the correct sector-aware sum.
-    var segs = (preset.modifiers.sector_segments && preset.modifiers.sector_segments.slice()) || ['private', 'public', 'third'];
-    // Preset-load-time clamp (Issue 1 §a) BEFORE writing to CONFIG_STATE.
-    var clampedScope = clampPresetScopeToCeilings_(segs)(preset);
-    CONFIG_STATE = {
-      scope: clampedScope,
-      modifiers: {
-        duns_match: preset.modifiers.duns_match, refresh: preset.modifiers.refresh,
-        exclusivity: preset.modifiers.exclusivity, term_years: preset.modifiers.term_years,
-        // AMD-111 — preset.modifiers.sector_segments falls back to all three (PRESETs are
-        // commercial-data, sector-neutral). Whole-array assignment so the reference is fresh
-        // (avoids accidentally aliasing the preset constant's array).
-        sector_segments: segs,
-        // AMD-109 — preserve clid through preset replacement (set on mount if user is launch partner;
-        // undefined for non-LP users → JSON.stringify omits it → function v2 skips LP path)
-        clid: CONFIG_STATE.modifiers.clid
-      },
-      rationale: '', timing: '', urgency: 'standard'
-    };
-    // presetCode null when user clicks Reset (no preset is selected after reset)
-    ACTIVE_PRESET = (presetCode === 'pkg1' || presetCode === 'pkg2' || presetCode === 'pkg3' || presetCode === 'pkg4') ? presetCode : null;
-    applyAllCaps();  // AMD-110 — belt-and-braces re-clamp after preset (idempotent on already-clamped state)
-    renderConfigurator();
-    computeQuote();
-    try { if (window.gtag) window.gtag('event', 'configurator_preset_applied', { clid: CLID, preset: presetCode || 'reset' }); } catch (e) { /* swallow */ }
-  }
-
   function renderConfigurator() {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
-    // Defensive: if any panel render throws, surface a visible error in the anchor
-    // (instead of silently rendering an incomplete panel set) and log the underlying
-    // exception to the console so a regression is diagnosable without a debugger.
+    // AMD-114 — three-panel architecture (scope-builder + modifiers + live quote)
+    // replaces the AMD-088/091/106/108/111-era four-panel surface. Defensive try
+    // surfaces render errors to the user rather than silently rendering an
+    // incomplete panel set; underlying exception is logged for diagnosis.
     try {
-      var html = renderPanel1Packages_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
+      var html = renderScopeBuilderPanel_() + renderModifiersPanel_() + renderLiveQuotePanel_();
       anchor.innerHTML = html;
-      bindConfiguratorRuntimeHandlers_();
+      bindScopeBuilderHandlers_();
     } catch (err) {
-      console.error('[AMD-111-113] renderConfigurator threw — panel set may be incomplete:', err);
+      console.error('[AMD-114] renderConfigurator threw — panel set may be incomplete:', err);
       anchor.innerHTML = '<div class="dr-config-empty-error">Configurator render error. Please refresh the page; if the issue persists, contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
     }
   }
 
-  function getTierData_() {
-    if (TIERS_META && TIERS_META.length > 0) return TIERS_META;
-    return [
-      { tier_code: 'identity',             display_name: 'Identity',             delta_rate_pence: 400 },
-      { tier_code: 'tribunal_exposure',    display_name: 'Tribunal Exposure',    delta_rate_pence: 1400 },
-      { tier_code: 'outcome_intelligence', display_name: 'Outcome Intelligence', delta_rate_pence: 1500 },
-      { tier_code: 'full_acei',            display_name: 'Full ACEI',            delta_rate_pence: 1200 },
-      { tier_code: 'full_enrichment',      display_name: 'Full Enrichment',      delta_rate_pence: 3000 },
-      { tier_code: 'premium',              display_name: 'Premium',              delta_rate_pence: 6500 }
-    ];
-  }
-
-  function renderPanel1Packages_() {
-    // Fix 3 / Interpretation A — Panel 1 is the canonical 4-package selector
-    // (replaces retired 6-tier display-floor + retired header preset chip strip).
-    var packages = [
-      { code: 'pkg1', label: 'Pkg 1 — Identity' },
-      { code: 'pkg2', label: 'Pkg 2 — Tribunal Exposure + Outcome' },
-      { code: 'pkg3', label: 'Pkg 3 — Premium Full-Stack' },
-      { code: 'pkg4', label: 'Pkg 4 — Bespoke + Full UK Exclusivity' }
-    ];
-    var buttons = '';
-    for (var i = 0; i < packages.length; i++) {
-      var p = packages[i];
-      var active = (ACTIVE_PRESET === p.code) ? ' is-active' : '';
-      buttons += '<button type="button" class="dr-tier-button' + active + '" data-package="' + escapeHtml(p.code) + '">' +
-                   escapeHtml(p.label) + '</button>';
-    }
-    buttons += '<button type="button" class="dr-tier-button dr-config-reset-btn" data-package="reset">Reset to defaults</button>';
-    return '<section class="dr-config-panel" aria-labelledby="dr-panel-pkg-h">' +
+  // ─── AMD-114 three-panel render scaffolding ────────────────────────
+  // Commit 1 stubs: each render function returns its panel skeleton with
+  // header + an empty content slot. Subsequent commits populate the
+  // axis-row content (Panel 1), modifier controls (Panel 2), and live
+  // quote display (Panel 3).
+  function renderScopeBuilderPanel_() {
+    return '<section class="dr-config-panel dr-scope-builder-panel" aria-labelledby="dr-panel-scope-h">' +
              '<header class="dr-config-panel-header">' +
                '<span class="dr-config-panel-number">Panel 1</span>' +
-               '<h2 id="dr-panel-pkg-h" class="dr-config-panel-title">Coverage package</h2>' +
+               '<h2 id="dr-panel-scope-h" class="dr-config-panel-title">Scope builder</h2>' +
+               '<button type="button" class="dr-scope-reset-btn" data-scope-reset>Reset all axes</button>' +
              '</header>' +
              '<p class="dr-config-panel-sub">' +
-               'Select a package to load preset coverage and modifiers. Adjust the scope and modifiers below as needed; the live quote updates after each change.' +
+               'Compose your scope across four axes &mdash; sector, geography, industry, intelligence. ' +
+               'The universe and per-record price update live as you narrow.' +
              '</p>' +
-             '<div class="dr-tier-grid">' + buttons + '</div>' +
+             '<div class="dr-axis-list" data-axis-list>' + renderAxisList_() + '</div>' +
            '</section>';
   }
 
-  function renderPanel2Scope_() {
-    // Fix 3 / Interpretation A — tier-floor disable logic retired. All 6 layer
-    // inputs always-enabled. getTierData_ now provides layer rate metadata only.
-    // AMD-111 fixup-2 Issue 3 — per-layer "max: N,NNN" hint reads live from
-    // computeEffectiveMax_ and updates reactively when sector segments change
-    // or parent layer values change (via updateLayerMaxHints_).
-    var tiers = getTierData_();
-    var inputs = '';
-    for (var i = 0; i < tiers.length; i++) {
-      var tier = tiers[i];
-      var rate = '+£' + Math.round(Number(tier.delta_rate_pence || 0) / 100) + '/employer-year';
-      var current = CONFIG_STATE.scope[tier.tier_code] || 0;
-      var effectiveMax = computeEffectiveMax_(tier.tier_code);
-      var maxHint = 'max: ' + Number(effectiveMax).toLocaleString('en-GB');
-      inputs += '<div class="dr-config-scope-row">' +
-                  '<label class="dr-config-scope-label">' +
-                    '<span class="dr-config-scope-name">' + escapeHtml(tier.display_name) + '</span>' +
-                    '<span class="dr-config-scope-rate">' + escapeHtml(rate) + '</span>' +
-                    '<span class="dr-config-scope-maxhint" data-scope-maxhint="' + escapeHtml(tier.tier_code) + '">' + escapeHtml(maxHint) + '</span>' +
-                  '</label>' +
-                  '<input type="number" min="0" max="' + effectiveMax + '" step="100" class="dr-config-scope-input"' +
-                    ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '"' +
-                    ' inputmode="numeric" autocomplete="off">' +
-                '</div>';
+  // ─── AMD-114 Panel 1 — axis row framework ──────────────────────────
+  function renderAxisList_() {
+    return renderSectorAxisRow_() +
+           renderGeographyAxisRow_() +
+           renderIndustryAxisRow_() +
+           renderIntelligenceAxisRow_();
+  }
+
+  function getAxisMeta_(axisCode) {
+    var ax = (CEILINGS_V3 && CEILINGS_V3.axes) ? CEILINGS_V3.axes[axisCode] : null;
+    if (!ax) return null;
+    var bumpPct = (ax.curation_bump_pct != null) ? Number(ax.curation_bump_pct) : null;
+    var bumpLabel = (bumpPct != null) ? '+' + bumpPct.toFixed(0) + '% bump' : '';
+    return { displayName: ax.display_name || axisCode, bumpLabel: bumpLabel, levels: ax.levels || {} };
+  }
+
+  function renderUniverseCountsLine_() {
+    var u = LAST_UNIVERSE;
+    if (!u) return '<span class="dr-axis-counts-loading">&mdash;</span>';
+    return 'Identity <strong>' + Number(u.identity_universe || 0).toLocaleString('en-GB') + '</strong> ' +
+           '&middot; Enriched <strong>' + Number(u.enriched_universe || 0).toLocaleString('en-GB') + '</strong>';
+  }
+
+  function renderAxisRowFrame_(opts) {
+    var expanded = (EXPANDED_AXIS === opts.code);
+    var expClass = expanded ? ' is-expanded' : '';
+    return '<article class="dr-axis-row' + expClass + '" data-axis="' + escapeHtml(opts.code) + '">' +
+             '<header class="dr-axis-row-header">' +
+               '<div class="dr-axis-row-name">' + escapeHtml(opts.displayName) + '</div>' +
+               (opts.bumpLabel ? '<div class="dr-axis-row-bump">' + escapeHtml(opts.bumpLabel) + '</div>' : '') +
+               '<button type="button" class="dr-axis-row-toggle" data-axis-toggle="' + escapeHtml(opts.code) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+                 (expanded ? 'Collapse' : 'Constrain') +
+               '</button>' +
+             '</header>' +
+             '<div class="dr-axis-row-summary">' + escapeHtml(opts.summary) + '</div>' +
+             '<div class="dr-axis-row-counts">' + renderUniverseCountsLine_() + '</div>' +
+             (expanded ? '<div class="dr-axis-row-expanded">' + (opts.expandedHtml || '') + '</div>' : '') +
+           '</article>';
+  }
+
+  // ─── Sector axis (L1 + L2 drill-down under Public) ─────────────────
+  var SECTOR_L1_LABELS = { private_sector: 'Private', public_body: 'Public', third_sector: 'Third' };
+
+  function humaniseSectorSummary_() {
+    var l1 = SCOPE_STATE.sector.l1 || [];
+    var l2 = SCOPE_STATE.sector.l2 || [];
+    if (l1.length === 0 || l1.length === 3) return 'All sectors (no constraint)';
+    if (l1.length === 1) {
+      var lbl = SECTOR_L1_LABELS[l1[0]] || l1[0];
+      if (l1[0] === 'public_body' && l2.length > 0) {
+        return 'Public + ' + l2.length + ' sub-segment' + (l2.length === 1 ? '' : 's');
+      }
+      return lbl + ' sector';
     }
-    return '<section class="dr-config-panel" aria-labelledby="dr-panel-scope-h">' +
+    return l1.map(function (c) { return SECTOR_L1_LABELS[c] || c; }).join(' + ');
+  }
+
+  function renderSectorAxisRow_() {
+    var meta = getAxisMeta_('sector') || { displayName: 'Sector', bumpLabel: '+5% bump', levels: {} };
+    var summary = humaniseSectorSummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'sector') ? renderSectorExpanded_(meta) : '';
+    return renderAxisRowFrame_({
+      code: 'sector', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
+    });
+  }
+
+  function renderSectorExpanded_(meta) {
+    var L1 = (meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+    var l1Boxes = '';
+    for (var i = 0; i < L1.length; i++) {
+      var v = L1[i];
+      var checked = (SCOPE_STATE.sector.l1.indexOf(v.value_code) !== -1) ? ' checked' : '';
+      var meta2 = (v.identity_count != null)
+        ? Number(v.identity_count).toLocaleString('en-GB') + ' employers'
+        : '';
+      l1Boxes += '<label class="dr-axis-checkbox">' +
+                   '<input type="checkbox" data-sector-l1-input value="' + escapeHtml(v.value_code) + '"' + checked + '>' +
+                   '<span class="dr-axis-checkbox-label">' + escapeHtml(v.display_label || v.value_code) + '</span>' +
+                   (meta2 ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(meta2) + '</span>' : '') +
+                 '</label>';
+    }
+    var notice = '';
+    if (SCOPE_STATE.sector.l1.length === 3) {
+      notice = '<div class="dr-axis-notice">All three sectors selected = unconstrained sector axis.</div>';
+    }
+    var l2Block = '';
+    if (SCOPE_STATE.sector.l1.length === 1 && SCOPE_STATE.sector.l1[0] === 'public_body') {
+      var L2all = (meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+      var L2 = [];
+      for (var pi = 0; pi < L2all.length; pi++) {
+        if (L2all[pi].parent_value_code === 'public_body') L2.push(L2all[pi]);
+      }
+      var l2Boxes = '';
+      for (var j = 0; j < L2.length; j++) {
+        var w = L2[j];
+        var c = (SCOPE_STATE.sector.l2.indexOf(w.value_code) !== -1) ? ' checked' : '';
+        var idC = (w.identity_count != null) ? Number(w.identity_count).toLocaleString('en-GB') : '—';
+        var enC = (w.enriched_count != null) ? Number(w.enriched_count).toLocaleString('en-GB') : '—';
+        l2Boxes += '<label class="dr-axis-checkbox dr-axis-checkbox-sub">' +
+                     '<input type="checkbox" data-sector-l2-input value="' + escapeHtml(w.value_code) + '"' + c + '>' +
+                     '<span class="dr-axis-checkbox-label">' + escapeHtml(w.display_label || w.value_code) + '</span>' +
+                     '<span class="dr-axis-checkbox-meta">Identity ' + idC + ' &middot; Enriched ' + enC + '</span>' +
+                   '</label>';
+      }
+      l2Block = '<fieldset class="dr-axis-fieldset dr-axis-fieldset-sub">' +
+                  '<legend>Public sub-segments</legend>' +
+                  '<div class="dr-axis-checkbox-grid">' + (l2Boxes || '<div class="dr-axis-empty">No L2 values returned.</div>') + '</div>' +
+                '</fieldset>';
+    }
+    return '<fieldset class="dr-axis-fieldset">' +
+             '<legend>Sector segments</legend>' +
+             '<div class="dr-axis-checkbox-grid">' + (l1Boxes || '<div class="dr-axis-empty">Sector L1 catalog unavailable.</div>') + '</div>' +
+             notice +
+           '</fieldset>' + l2Block;
+  }
+
+  // ─── Geography axis (L1 / L2 / L3 drill-down) ──────────────────────
+  var GEO_L2_LABELS = { england: 'England', scotland: 'Scotland', wales: 'Wales', ni: 'Northern Ireland' };
+  var GEO_L3_LABELS = {
+    london: 'London', south_east: 'South East', north_west: 'North West',
+    yorkshire_humber: 'Yorkshire and the Humber', west_midlands: 'West Midlands',
+    east_midlands: 'East Midlands', south_west: 'South West',
+    east_of_england: 'East of England', north_east: 'North East'
+  };
+
+  function humaniseGeographySummary_() {
+    var g = SCOPE_STATE.geography;
+    if (g.level === 'L1' || (g.values || []).length === 0) return 'All UK';
+    if (g.level === 'L2') {
+      if (g.values.length === 4) return 'All UK countries';
+      if (g.values.length === 1) return GEO_L2_LABELS[g.values[0]] || g.values[0];
+      return g.values.length + ' countries';
+    }
+    if (g.level === 'L3') {
+      if (g.values.length === 1) return GEO_L3_LABELS[g.values[0]] || g.values[0];
+      return 'England (' + g.values.length + ' region' + (g.values.length === 1 ? '' : 's') + ')';
+    }
+    return 'All UK';
+  }
+
+  function renderGeographyAxisRow_() {
+    var meta = getAxisMeta_('geography') || { displayName: 'Geography', bumpLabel: '+3% bump', levels: {} };
+    var summary = humaniseGeographySummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'geography') ? renderGeographyExpanded_(meta) : '';
+    return renderAxisRowFrame_({
+      code: 'geography', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
+    });
+  }
+
+  function renderGeographyExpanded_(meta) {
+    var g = SCOPE_STATE.geography;
+    var levelOpts = [
+      { code: 'L1', label: 'L1 — All UK' },
+      { code: 'L2', label: 'L2 — Country' },
+      { code: 'L3', label: 'L3 — Region (English ITL1)' }
+    ];
+    var levelChips = '';
+    for (var i = 0; i < levelOpts.length; i++) {
+      var act = (g.level === levelOpts[i].code) ? ' is-active' : '';
+      levelChips += '<button type="button" class="dr-axis-level-chip' + act + '" data-geo-level="' + levelOpts[i].code + '">' + escapeHtml(levelOpts[i].label) + '</button>';
+    }
+    levelChips += '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="Postcode area drill-down — by-request only">L4 — Coming soon</button>';
+    levelChips += '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="Postcode district drill-down — by-request only">L5 — Coming soon</button>';
+
+    var valuesBlock = '';
+    if (g.level === 'L2') {
+      var L2 = (meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+      var boxes = '';
+      for (var j = 0; j < L2.length; j++) {
+        var v = L2[j];
+        var ch = (g.values.indexOf(v.value_code) !== -1) ? ' checked' : '';
+        var idC = (v.identity_count != null) ? Number(v.identity_count).toLocaleString('en-GB') + ' employers' : '';
+        boxes += '<label class="dr-axis-checkbox">' +
+                   '<input type="checkbox" data-geo-l2-input value="' + escapeHtml(v.value_code) + '"' + ch + '>' +
+                   '<span class="dr-axis-checkbox-label">' + escapeHtml(v.display_label || v.value_code) + '</span>' +
+                   (idC ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(idC) + '</span>' : '') +
+                 '</label>';
+      }
+      valuesBlock = '<fieldset class="dr-axis-fieldset">' +
+                      '<legend>Country</legend>' +
+                      '<div class="dr-axis-checkbox-grid">' + (boxes || '<div class="dr-axis-empty">No L2 values returned.</div>') + '</div>' +
+                    '</fieldset>';
+    } else if (g.level === 'L3') {
+      var L3 = (meta.levels && meta.levels.L3) ? meta.levels.L3 : [];
+      var b = '';
+      for (var k = 0; k < L3.length; k++) {
+        var w = L3[k];
+        var ch2 = (g.values.indexOf(w.value_code) !== -1) ? ' checked' : '';
+        var idC2 = (w.identity_count != null) ? Number(w.identity_count).toLocaleString('en-GB') + ' employers' : '';
+        b += '<label class="dr-axis-checkbox">' +
+               '<input type="checkbox" data-geo-l3-input value="' + escapeHtml(w.value_code) + '"' + ch2 + '>' +
+               '<span class="dr-axis-checkbox-label">' + escapeHtml(w.display_label || w.value_code) + '</span>' +
+               (idC2 ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(idC2) + '</span>' : '') +
+             '</label>';
+      }
+      valuesBlock = '<fieldset class="dr-axis-fieldset">' +
+                      '<legend>Region (English ITL1)</legend>' +
+                      '<button type="button" class="dr-axis-back-link" data-geo-back-l2>« Back to country level</button>' +
+                      '<div class="dr-axis-checkbox-grid">' + (b || '<div class="dr-axis-empty">No L3 values returned.</div>') + '</div>' +
+                    '</fieldset>';
+    }
+
+    return '<div class="dr-axis-level-selector"><span class="dr-axis-level-label">Granularity:</span>' + levelChips + '</div>' + valuesBlock;
+  }
+  // ─── Industry axis (L1 UK SIC 2007 sections; L2-L4 deferred) ───────
+  function humaniseIndustrySummary_() {
+    var ind = SCOPE_STATE.industry;
+    var vals = ind.values || [];
+    if (vals.length === 0) return 'All industries';
+    if (vals.length === 1) return 'SIC Section ' + vals[0];
+    if (vals.length >= 21) return 'All SIC sections';
+    return vals.length + ' SIC sections';
+  }
+
+  function renderIndustryAxisRow_() {
+    var meta = getAxisMeta_('industry') || { displayName: 'Industry', bumpLabel: '+6% bump', levels: {} };
+    var summary = humaniseIndustrySummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'industry') ? renderIndustryExpanded_(meta) : '';
+    return renderAxisRowFrame_({
+      code: 'industry', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
+    });
+  }
+
+  function renderIndustryExpanded_(meta) {
+    var ind = SCOPE_STATE.industry;
+    var L1 = (meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+    // Order alphabetically by value_code (single-letter section A..U)
+    var sorted = L1.slice().sort(function (a, b) {
+      return String(a.value_code || '').localeCompare(String(b.value_code || ''));
+    });
+    var levelChips =
+      '<button type="button" class="dr-axis-level-chip is-active" disabled aria-disabled="true">L1 — SIC Section</button>' +
+      '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="SIC Division — Coming soon">L2 — Coming soon</button>' +
+      '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="SIC Group — Coming soon">L3 — Coming soon</button>' +
+      '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="SIC Class — Institutional tier only; Coming soon">L4 — Coming soon</button>';
+
+    var boxes = '';
+    for (var i = 0; i < sorted.length; i++) {
+      var v = sorted[i];
+      var ch = (ind.values.indexOf(v.value_code) !== -1) ? ' checked' : '';
+      var idC = (v.identity_count != null) ? Number(v.identity_count).toLocaleString('en-GB') + ' employers' : '';
+      var label = v.value_code + ' — ' + (v.display_label || v.value_code);
+      boxes += '<label class="dr-axis-checkbox dr-axis-checkbox-industry">' +
+                 '<input type="checkbox" data-industry-l1-input value="' + escapeHtml(v.value_code) + '"' + ch + '>' +
+                 '<span class="dr-axis-checkbox-label">' + escapeHtml(label) + '</span>' +
+                 (idC ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(idC) + '</span>' : '') +
+               '</label>';
+    }
+
+    return '<div class="dr-axis-level-selector"><span class="dr-axis-level-label">Granularity:</span>' + levelChips + '</div>' +
+           '<fieldset class="dr-axis-fieldset">' +
+             '<legend>UK SIC 2007 sections</legend>' +
+             '<div class="dr-axis-checkbox-grid dr-axis-checkbox-grid-industry">' + (boxes || '<div class="dr-axis-empty">No L1 values returned.</div>') + '</div>' +
+           '</fieldset>';
+  }
+  // ─── Intelligence axis (ACEI L1 / RRI L2 / CCI deferred) ───────────
+  function humaniseIntelligenceSummary_() {
+    var i = SCOPE_STATE.intelligence;
+    var acei = (i.acei || []), rri = (i.rri || []);
+    if (acei.length === 0 && rri.length === 0) return 'All matters';
+    var parts = [];
+    if (acei.length === 1) {
+      var label = aceiDisplayLabel_(acei[0]);
+      parts.push(label || acei[0]);
+    } else if (acei.length > 1) {
+      parts.push(acei.length + ' ACEI categor' + (acei.length === 1 ? 'y' : 'ies'));
+    }
+    if (rri.length === 1) {
+      parts.push(rriDisplayLabel_(rri[0]) || rri[0]);
+    } else if (rri.length > 1) {
+      parts.push(rri.length + ' RRI band' + (rri.length === 1 ? '' : 's'));
+    }
+    return parts.join(' + ');
+  }
+
+  function aceiDisplayLabel_(code) {
+    var meta = getAxisMeta_('intelligence');
+    var L1 = (meta && meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+    for (var i = 0; i < L1.length; i++) {
+      if (L1[i].value_code === code) return L1[i].display_label || code;
+    }
+    return code;
+  }
+  function rriDisplayLabel_(code) {
+    var meta = getAxisMeta_('intelligence');
+    var L2 = (meta && meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+    for (var i = 0; i < L2.length; i++) {
+      if (L2[i].value_code === code) return L2[i].display_label || code;
+    }
+    return code;
+  }
+
+  function renderIntelligenceAxisRow_() {
+    var meta = getAxisMeta_('intelligence') || { displayName: 'Intelligence', bumpLabel: '+8% bump', levels: {} };
+    var summary = humaniseIntelligenceSummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'intelligence') ? renderIntelligenceExpanded_(meta) : '';
+    return renderAxisRowFrame_({
+      code: 'intelligence', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
+    });
+  }
+
+  // ACEI numeric extraction: 'acei_1' → 1; used to bind --acei-N token swatches.
+  function aceiOrdinal_(code) {
+    var m = /^acei_(\d{1,2})$/.exec(code || '');
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  function renderIntelligenceExpanded_(meta) {
+    var rriDisabled = (MODIFIERS_STATE.tier === 'operational_readiness');
+    var tabs = [
+      { code: 'acei', label: 'ACEI', disabled: false, tip: 'ACEI categories — universal access.' },
+      { code: 'rri',  label: 'RRI',  disabled: rriDisabled, tip: rriDisabled ? 'RRI band selection requires Governance tier.' : 'RRI bands — Governance+ tier.' },
+      { code: 'cci',  label: 'CCI',  disabled: true,  tip: 'CCI category drill-down — Coming soon.' }
+    ];
+    var tabBtns = '';
+    for (var t = 0; t < tabs.length; t++) {
+      var tab = tabs[t];
+      var act = (INTEL_TAB === tab.code && !tab.disabled) ? ' is-active' : '';
+      var dis = tab.disabled ? ' is-disabled' : '';
+      tabBtns += '<button type="button" class="dr-axis-tab' + act + dis + '" data-intel-tab="' + escapeHtml(tab.code) + '"' +
+                  (tab.disabled ? ' disabled aria-disabled="true"' : '') +
+                  ' title="' + escapeHtml(tab.tip) + '">' + escapeHtml(tab.label) + '</button>';
+    }
+
+    var tabPanel = '';
+    var activeTab = (INTEL_TAB === 'rri' && rriDisabled) ? 'acei' : INTEL_TAB;
+    if (activeTab === 'acei') {
+      var L1 = (meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+      var boxes = '';
+      for (var i = 0; i < L1.length; i++) {
+        var v = L1[i];
+        var ch = (SCOPE_STATE.intelligence.acei.indexOf(v.value_code) !== -1) ? ' checked' : '';
+        var ord = aceiOrdinal_(v.value_code);
+        var swatch = (ord != null && ord >= 1 && ord <= 12)
+          ? '<span class="dr-axis-acei-swatch" style="background:var(--acei-' + ord + ')" aria-hidden="true"></span>'
+          : '';
+        var enC = (v.enriched_count != null) ? Number(v.enriched_count).toLocaleString('en-GB') : '—';
+        boxes += '<label class="dr-axis-checkbox dr-axis-checkbox-acei">' +
+                   '<input type="checkbox" data-intel-acei-input value="' + escapeHtml(v.value_code) + '"' + ch + '>' +
+                   swatch +
+                   '<span class="dr-axis-checkbox-label">' + escapeHtml(v.display_label || v.value_code) + '</span>' +
+                   '<span class="dr-axis-checkbox-meta">' + enC + ' enriched</span>' +
+                 '</label>';
+      }
+      tabPanel = '<fieldset class="dr-axis-fieldset">' +
+                   '<legend>ACEI categories</legend>' +
+                   '<div class="dr-axis-checkbox-grid dr-axis-checkbox-grid-acei">' + (boxes || '<div class="dr-axis-empty">No ACEI values returned.</div>') + '</div>' +
+                 '</fieldset>';
+    } else if (activeTab === 'rri') {
+      var L2 = (meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+      var rriBoxes = '';
+      for (var j = 0; j < L2.length; j++) {
+        var w = L2[j];
+        var ch2 = (SCOPE_STATE.intelligence.rri.indexOf(w.value_code) !== -1) ? ' checked' : '';
+        rriBoxes += '<label class="dr-axis-checkbox">' +
+                      '<input type="checkbox" data-intel-rri-input value="' + escapeHtml(w.value_code) + '"' + ch2 + '>' +
+                      '<span class="dr-axis-checkbox-label">' + escapeHtml(w.display_label || w.value_code) + '</span>' +
+                    '</label>';
+      }
+      tabPanel = '<fieldset class="dr-axis-fieldset">' +
+                   '<legend>RRI bands (Governance+)</legend>' +
+                   '<div class="dr-axis-checkbox-grid">' + (rriBoxes || '<div class="dr-axis-empty">No RRI values returned.</div>') + '</div>' +
+                 '</fieldset>';
+    } else if (activeTab === 'cci') {
+      tabPanel = '<div class="dr-axis-coming-soon">CCI category drill-down — Coming soon.</div>';
+    }
+
+    return '<div class="dr-axis-tab-row" role="tablist">' + tabBtns + '</div>' + tabPanel;
+  }
+
+  function renderAxisListDom_() {
+    var slot = document.querySelector('[data-axis-list]');
+    if (!slot) return;
+    slot.innerHTML = renderAxisList_();
+    bindAxisListHandlers_();
+  }
+
+  function renderModifiersPanel_() {
+    return '<section class="dr-config-panel dr-modifiers-panel" aria-labelledby="dr-panel-mods-h">' +
              '<header class="dr-config-panel-header">' +
                '<span class="dr-config-panel-number">Panel 2</span>' +
-               '<h2 id="dr-panel-scope-h" class="dr-config-panel-title">Coverage scope</h2>' +
+               '<h2 id="dr-panel-mods-h" class="dr-config-panel-title">Modifiers</h2>' +
+               renderClidLine_() +
              '</header>' +
-             '<p class="dr-config-panel-sub">' +
-               'Number of employers receiving each enrichment layer. Identity is the universe; each enrichment layer applies depth uplift on the layer above (Premium &sub; Full Enrichment &sub; Full ACEI &sub; Outcome Intelligence &sub; Tribunal Exposure &sub; Identity). Per AMD-110, configurations violating this nesting fail at compute time. Selecting a package preloads these values; manual adjustments transition to a custom configuration.' +
-             '</p>' +
-             '<div class="dr-config-scope-grid">' + inputs + '</div>' +
-             '<div class="dr-config-scope-total">' +
-               'Identity coverage: <strong>' + (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB') + '</strong> employers' +
-             '</div>' +
+             '<div class="dr-modifiers-content" data-modifiers-content>' + renderModifiersBody_() + '</div>' +
            '</section>';
   }
 
-  // AMD-111 fixup-2 Issue 3 — refresh visible "max: N,NNN" hints after any state change
-  // that affects the cap (segment selection, parent-layer typing). Lightweight DOM update
-  // — no full re-render — so the visible hint stays current without flicker.
-  function updateLayerMaxHints_() {
-    var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
-    for (var i = 0; i < TIERS.length; i++) {
-      var hint = document.querySelector('[data-scope-maxhint="' + TIERS[i] + '"]');
-      if (!hint) continue;
-      hint.textContent = 'max: ' + Number(computeEffectiveMax_(TIERS[i])).toLocaleString('en-GB');
-    }
+  function renderModifiersBody_() {
+    return renderTierSelector_() +
+           renderLaunchPartnerLine_() +
+           renderDunsToggle_() +
+           renderRefreshChips_() +
+           renderExclusivityChips_() +
+           renderTermChips_();
   }
 
-  function renderPanel3Modifiers_() {
+  function renderDunsToggle_() {
+    var checked = MODIFIERS_STATE.duns_match ? ' checked' : '';
+    var stateLabel = MODIFIERS_STATE.duns_match ? 'On' : 'Off';
+    return '<div class="dr-modifier-row">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">DUNS match additive</div>' +
+               '<div class="dr-modifier-meta">+£3 per identity-record-year. Coverage transparency declared per AMD-103.</div>' +
+             '</div>' +
+             '<label class="dr-config-toggle-label">' +
+               '<input type="checkbox" id="dr-config-duns" class="dr-config-toggle" data-modifier-duns' + checked + '>' +
+               '<span class="dr-config-toggle-state">' + stateLabel + '</span>' +
+             '</label>' +
+           '</div>';
+  }
+
+  function renderRefreshChips_() {
     var REFRESH = [
       { code: 'quarterly', label: 'Quarterly · baseline' },
       { code: 'daily',     label: 'Daily · +15%' },
       { code: 'realtime',  label: 'Real-time · +25%' }
     ];
-    // AMD-111-113 fixup-3 — shortened labels (the "on enrichment layers" qualifier is
-    // already in the row's .dr-modifier-meta description, no need to repeat per chip).
+    var chips = '';
+    for (var i = 0; i < REFRESH.length; i++) {
+      var o = REFRESH[i];
+      var act = (MODIFIERS_STATE.refresh === o.code) ? ' is-active' : '';
+      chips += '<button type="button" class="dr-radio-option' + act + '" data-refresh="' + escapeHtml(o.code) + '">' + escapeHtml(o.label) + '</button>';
+    }
+    return '<div class="dr-modifier-row">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Refresh cadence</div>' +
+               '<div class="dr-modifier-meta">Daily and real-time apply additive percentages on the per-record price.</div>' +
+             '</div>' +
+             '<div class="dr-radio-group">' + chips + '</div>' +
+           '</div>';
+  }
+
+  function renderExclusivityChips_() {
     var EXCL = [
       { code: 'none',     label: 'Non-exclusive' },
       { code: 'vertical', label: 'Vertical-Exclusive · +60%' },
       { code: 'full_uk',  label: 'Full UK Exclusivity · +60%' }
     ];
+    var chips = '';
+    for (var i = 0; i < EXCL.length; i++) {
+      var o = EXCL[i];
+      var act = (MODIFIERS_STATE.exclusivity === o.code) ? ' is-active' : '';
+      chips += '<button type="button" class="dr-radio-option' + act + '" data-exclusivity="' + escapeHtml(o.code) + '">' + escapeHtml(o.label) + '</button>';
+    }
+    return '<div class="dr-modifier-row">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Exclusivity</div>' +
+               '<div class="dr-modifier-meta">Vertical and full UK both apply +60% on the per-record price.</div>' +
+             '</div>' +
+             '<div class="dr-radio-group">' + chips + '</div>' +
+           '</div>';
+  }
+
+  function renderTermChips_() {
     var TERM = [
       { code: 1, label: '12 months' },
       { code: 2, label: '24 months · −5%' },
       { code: 3, label: '36 months · −10%' }
     ];
-    var refreshChips = '', exclChips = '', termChips = '';
-    for (var i = 0; i < REFRESH.length; i++) {
-      var o = REFRESH[i];
-      var act = (CONFIG_STATE.modifiers.refresh === o.code) ? ' is-active' : '';
-      refreshChips += '<button type="button" class="dr-radio-option' + act + '" data-refresh="' + escapeHtml(o.code) + '">' + escapeHtml(o.label) + '</button>';
+    var chips = '';
+    for (var i = 0; i < TERM.length; i++) {
+      var o = TERM[i];
+      var act = (MODIFIERS_STATE.term_years === o.code) ? ' is-active' : '';
+      chips += '<button type="button" class="dr-radio-option' + act + '" data-term="' + o.code + '">' + escapeHtml(o.label) + '</button>';
     }
-    for (var j = 0; j < EXCL.length; j++) {
-      var o2 = EXCL[j];
-      var act2 = (CONFIG_STATE.modifiers.exclusivity === o2.code) ? ' is-active' : '';
-      exclChips += '<button type="button" class="dr-radio-option' + act2 + '" data-exclusivity="' + escapeHtml(o2.code) + '">' + escapeHtml(o2.label) + '</button>';
-    }
-    for (var k = 0; k < TERM.length; k++) {
-      var o3 = TERM[k];
-      var act3 = (CONFIG_STATE.modifiers.term_years === o3.code) ? ' is-active' : '';
-      termChips += '<button type="button" class="dr-radio-option' + act3 + '" data-term="' + o3.code + '">' + escapeHtml(o3.label) + '</button>';
-    }
-    var dunsChecked = CONFIG_STATE.modifiers.duns_match ? ' checked' : '';
-    var dunsState = CONFIG_STATE.modifiers.duns_match ? 'On' : 'Off';
-
-    // AMD-111 — sector segments multi-select. Three checkboxes (Private / Public / Third)
-    // with per-segment ⓘ tooltip carrying the institutional rationale. Composed-modifier
-    // badge sits below the checkbox row (Director Q1 binding) to avoid visual crowding
-    // inside the modifiers panel context. Pre-flight validation in validateSegmentSelection
-    // requires at least one segment; the inline error renders into [data-segment-error].
-    var SEGMENTS = [
-      { code: 'private', label: 'Private', tip: 'Limited companies, partnerships, sole traders. Largest segment of the estate. Volume baseline.' },
-      { code: 'public',  label: 'Public',  tip: 'NHS trusts, local authorities, central government, agencies. Specialty premium reflects the harder-to-assemble data and Crown employer protections, statutory consultation, pension overlays.' },
-      { code: 'third',   label: 'Third',   tip: 'Registered charities, CICs, mutuals. Smaller addressable estate (~1,000 bodies) with distinct dynamics: volunteer-vs-employee classification, fundraising-employment overlaps, governance constraints on disciplinary process.' }
-    ];
-    var selectedSegs = (CONFIG_STATE.modifiers.sector_segments || []);
-    var segCheckboxes = '';
-    for (var sx = 0; sx < SEGMENTS.length; sx++) {
-      var seg = SEGMENTS[sx];
-      var checked = (selectedSegs.indexOf(seg.code) !== -1) ? ' checked' : '';
-      segCheckboxes +=
-        '<label class="dr-segment-checkbox" data-segment="' + escapeHtml(seg.code) + '">' +
-          '<input type="checkbox" name="sector_segments" value="' + escapeHtml(seg.code) + '"' + checked + '>' +
-          '<span class="dr-segment-label">' + escapeHtml(seg.label) + '</span>' +
-          '<span class="dr-segment-tooltip" tabindex="0" role="button" aria-label="' + escapeHtml(seg.label) + ' segment information" title="' + escapeHtml(seg.tip) + '" data-tip="' + escapeHtml(seg.tip) + '">ⓘ</span>' +
-        '</label>';
-    }
-
-    return '<section class="dr-config-panel" aria-labelledby="dr-panel-mods-h">' +
-             '<header class="dr-config-panel-header">' +
-               '<span class="dr-config-panel-number">Panel 3</span>' +
-               '<h2 id="dr-panel-mods-h" class="dr-config-panel-title">Modifiers</h2>' +
-             '</header>' +
-             '<p class="dr-config-panel-sub">' +
-               'Operational modifiers compose against the enrichment-layer subtotal. Term discount applies on aggregate.' +
-             '</p>' +
-             '<div class="dr-modifier-row">' +
-               '<div>' +
-                 '<div class="dr-modifier-label">DUNS match additive</div>' +
-                 '<div class="dr-modifier-meta">+£3 per matched employer-year. Coverage transparency declared per AMD-103.</div>' +
-               '</div>' +
-               '<label class="dr-config-toggle-label">' +
-                 '<input type="checkbox" id="dr-config-duns" class="dr-config-toggle"' + dunsChecked + '>' +
-                 '<span class="dr-config-toggle-state">' + dunsState + '</span>' +
-               '</label>' +
+    return '<div class="dr-modifier-row">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Term length</div>' +
+               '<div class="dr-modifier-meta">Multi-year discount applies on aggregate after layer + modifier composition.</div>' +
              '</div>' +
-             '<div class="dr-modifier-row">' +
-               '<div>' +
-                 '<div class="dr-modifier-label">Refresh cadence</div>' +
-                 '<div class="dr-modifier-meta">Daily and real-time apply additive percentages on enrichment layers.</div>' +
-               '</div>' +
-               '<div class="dr-radio-group">' + refreshChips + '</div>' +
-             '</div>' +
-             '<div class="dr-modifier-row">' +
-               '<div>' +
-                 '<div class="dr-modifier-label">Exclusivity</div>' +
-                 '<div class="dr-modifier-meta">Vertical and full UK both apply +60% on enrichment layers.</div>' +
-               '</div>' +
-               '<div class="dr-radio-group">' + exclChips + '</div>' +
-             '</div>' +
-             '<div class="dr-modifier-row">' +
-               '<div>' +
-                 '<div class="dr-modifier-label">Term length</div>' +
-                 '<div class="dr-modifier-meta">Multi-year discount applies on aggregate after layer + modifier composition.</div>' +
-               '</div>' +
-               '<div class="dr-radio-group">' + termChips + '</div>' +
-             '</div>' +
-             '<div class="dr-segment-fieldset" role="group" aria-labelledby="dr-segment-legend" data-panel="sector-segments">' +
-               '<div id="dr-segment-legend" class="dr-segment-legend">Sector segments</div>' +
-               '<p class="dr-segment-helper">Select any combination — at least one is required.</p>' +
-               '<div class="dr-segment-checkbox-row">' + segCheckboxes + '</div>' +
-               '<div class="dr-segment-error-text" data-segment-error aria-live="polite"></div>' +
-               '<div class="dr-segment-composed-badge" data-composed-badge>' +
-                 '<span class="dr-segment-composed-label">Composed positioning:</span> ' +
-                 '<span class="dr-segment-composed-value" data-composed-value>Baseline (all three selected)</span>' +
-               '</div>' +
-             '</div>' +
-           '</section>';
+             '<div class="dr-radio-group">' + chips + '</div>' +
+           '</div>';
   }
 
-  function renderPanel4Quote_() {
-    // AMD-109 — launch-partner badge above headline. Silent on null/false (RRI v1.0:
-    // system explains presence, never absence — no "potential launch partner" or
-    // "you are not a launch partner" copy). Teal palette per AMD-069 (gold reserved).
-    var launchPartnerBadge = (LAUNCH_PARTNER_STATUS && LAUNCH_PARTNER_STATUS.is_launch_partner === true)
-      ? '<div class="dr-launch-partner-badge" role="status" aria-label="Launch partner status">' +
-          '<span class="dr-launch-partner-icon" aria-hidden="true">&check;</span>' +
-          '<span class="dr-launch-partner-label">Launch Partner</span>' +
-          '<span class="dr-launch-partner-detail">&minus;10% sequential discount applied (post multi-year)</span>' +
-        '</div>'
-      : '';
-    return '<aside class="dr-quote-rail" id="dr-config-quote-rail" aria-live="polite" aria-labelledby="dr-panel-quote-h">' +
+  function renderModifiersDom_() {
+    var slot = document.querySelector('[data-modifiers-content]');
+    if (!slot) return;
+    slot.innerHTML = renderModifiersBody_();
+    bindModifiersHandlers_();
+  }
+
+  function renderClidLine_() {
+    return '<div class="dr-clid-line">Counter-party: <code>' + escapeHtml(CLID) + '</code></div>';
+  }
+
+  // ─── §6.1 Tier selector with PCIE wire-up ──────────────────────────
+  var TIER_RANK = { operational_readiness: 0, governance: 1, institutional: 2 };
+  function humaniseTier_(code) {
+    return ({ operational_readiness: 'Operational Readiness', governance: 'Governance', institutional: 'Institutional' })[code] || code;
+  }
+  function renderTierSelector_() {
+    var tiers = [
+      { code: 'operational_readiness', label: 'Operational Readiness' },
+      { code: 'governance',            label: 'Governance' },
+      { code: 'institutional',         label: 'Institutional' }
+    ];
+    var chips = '';
+    for (var i = 0; i < tiers.length; i++) {
+      var t = tiers[i];
+      var act = (MODIFIERS_STATE.tier === t.code) ? ' is-active' : '';
+      var instClass = (t.code === 'institutional') ? ' dr-tier-chip-institutional' : '';
+      chips += '<button type="button" class="dr-tier-chip' + act + instClass + '" data-tier-set="' + escapeHtml(t.code) + '" aria-pressed="' + (act ? 'true' : 'false') + '">' + escapeHtml(t.label) + '</button>';
+    }
+    return '<div class="dr-modifier-row dr-modifier-row-tier">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Tier</div>' +
+               '<div class="dr-modifier-meta">PCIE access posture. Governance unlocks RRI bands; Institutional unlocks ACEI + RRI cross-index.</div>' +
+             '</div>' +
+             '<div class="dr-tier-chip-group" role="group" aria-label="Tier selector">' + chips + '</div>' +
+           '</div>';
+  }
+
+  function renderLaunchPartnerLine_() {
+    var q = LAST_QUOTE_V4;
+    if (!q) {
+      return '<div class="dr-modifier-row dr-modifier-row-lp">' +
+               '<div class="dr-modifier-label-block">' +
+                 '<div class="dr-modifier-label">Launch partner</div>' +
+                 '<div class="dr-modifier-meta">Authoritatively resolved by pricing_quote_function_v4 against partner_clids.</div>' +
+               '</div>' +
+               '<div class="dr-lp-status dr-lp-status-pending">Computing first quote…</div>' +
+             '</div>';
+    }
+    var applied = (q.is_launch_partner_applied === true);
+    return '<div class="dr-modifier-row dr-modifier-row-lp' + (applied ? ' is-applied' : '') + '">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Launch partner</div>' +
+               (q.launch_partner_resolved_via ? '<div class="dr-modifier-meta">Resolved via <code>' + escapeHtml(q.launch_partner_resolved_via) + '</code></div>' : '') +
+             '</div>' +
+             '<div class="dr-lp-status">' +
+               (applied ? '<strong>Yes</strong> &middot; &minus;10% applied' : '<strong>No</strong>') +
+             '</div>' +
+           '</div>';
+  }
+
+  function findTierViolations_(newTier) {
+    var newRank = TIER_RANK[newTier];
+    if (newRank == null) newRank = 0;
+    var v = { rri: 0 };
+    if (newRank < TIER_RANK.governance) {
+      v.rri = (SCOPE_STATE.intelligence.rri || []).length;
+    }
+    return v;
+  }
+  function clearTierViolations_(newTier) {
+    var newRank = TIER_RANK[newTier];
+    if (newRank == null) newRank = 0;
+    if (newRank < TIER_RANK.governance) {
+      SCOPE_STATE.intelligence.rri = [];
+      if (INTEL_TAB === 'rri') INTEL_TAB = 'acei';
+    }
+  }
+  function applyTierChange_(newTier) {
+    MODIFIERS_STATE.tier = newTier;
+    renderModifiersDom_();
+    renderAxisListDom_();   // RRI tab gating + tier-gated drill-down rendering refresh
+    recomputeDebounced_();
+  }
+  function handleTierChange_(newTier) {
+    if (!newTier || newTier === MODIFIERS_STATE.tier) return;
+    var oldRank = TIER_RANK[MODIFIERS_STATE.tier] != null ? TIER_RANK[MODIFIERS_STATE.tier] : 0;
+    var newRank = TIER_RANK[newTier] != null ? TIER_RANK[newTier] : 0;
+    if (newRank >= oldRank) return applyTierChange_(newTier);   // upward — no clearing
+    var violations = findTierViolations_(newTier);
+    var total = violations.rri;
+    if (total === 0) return applyTierChange_(newTier);
+    showModalConfirm_({
+      title:         'Lower tier will clear selections',
+      bodyHtml:      'Lowering your tier from <strong>' + escapeHtml(humaniseTier_(MODIFIERS_STATE.tier)) + '</strong> to ' +
+                     '<strong>' + escapeHtml(humaniseTier_(newTier)) + '</strong> will clear ' +
+                     '<strong>' + total + '</strong> intelligence selection' + (total === 1 ? '' : 's') +
+                     ' that require Governance tier. Continue?',
+      continueLabel: 'Continue and clear',
+      cancelLabel:   'Cancel',
+      onContinue:    function () {
+        clearTierViolations_(newTier);
+        applyTierChange_(newTier);
+      }
+    });
+  }
+
+  function bindModifiersHandlers_() {
+    var tierBtns = document.querySelectorAll('[data-tier-set]');
+    for (var i = 0; i < tierBtns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        handleTierChange_(btn.getAttribute('data-tier-set'));
+      });
+    })(tierBtns[i]);
+
+    var dunsEl = document.querySelector('[data-modifier-duns]');
+    if (dunsEl) dunsEl.addEventListener('change', function () {
+      MODIFIERS_STATE.duns_match = !!dunsEl.checked;
+      renderModifiersDom_();
+      recomputeDebounced_();
+    });
+
+    var refreshBtns = document.querySelectorAll('.dr-radio-option[data-refresh]');
+    for (var r = 0; r < refreshBtns.length; r++) (function (btn) {
+      btn.addEventListener('click', function () {
+        MODIFIERS_STATE.refresh = btn.getAttribute('data-refresh');
+        renderModifiersDom_();
+        recomputeDebounced_();
+      });
+    })(refreshBtns[r]);
+
+    var exclBtns = document.querySelectorAll('.dr-radio-option[data-exclusivity]');
+    for (var e = 0; e < exclBtns.length; e++) (function (btn) {
+      btn.addEventListener('click', function () {
+        MODIFIERS_STATE.exclusivity = btn.getAttribute('data-exclusivity');
+        renderModifiersDom_();
+        recomputeDebounced_();
+      });
+    })(exclBtns[e]);
+
+    var termBtns = document.querySelectorAll('.dr-radio-option[data-term]');
+    for (var t = 0; t < termBtns.length; t++) (function (btn) {
+      btn.addEventListener('click', function () {
+        MODIFIERS_STATE.term_years = parseInt(btn.getAttribute('data-term'), 10) || 1;
+        renderModifiersDom_();
+        recomputeDebounced_();
+      });
+    })(termBtns[t]);
+  }
+
+  function renderLiveQuotePanel_() {
+    return '<aside class="dr-quote-rail dr-live-quote-panel" id="dr-config-quote-rail" aria-live="polite" aria-labelledby="dr-panel-quote-h">' +
              '<header class="dr-config-panel-header">' +
-               '<span class="dr-config-panel-number">Panel 4</span>' +
+               '<span class="dr-config-panel-number">Panel 3</span>' +
                '<h2 id="dr-panel-quote-h" class="dr-config-panel-title">Live quote</h2>' +
              '</header>' +
-             '<div class="dr-quote-breakdown" id="dr-quote-breakdown">' +
-               '<div class="dr-quote-empty">Configure a coverage to see the live breakdown.</div>' +
+             '<div class="dr-quote-content" data-quote-content>' +
+               '<div class="dr-quote-empty">Compose a scope to see the live quote.</div>' +
              '</div>' +
-             launchPartnerBadge +
-             '<div class="dr-quote-amount" id="dr-quote-amount">£0</div>' +
-             '<div class="dr-quote-band" id="dr-quote-band">&mdash;</div>' +
              '<div class="dr-quote-meta">' +
-               '<span class="dr-quote-amd-chip">AMD-088 + AMD-091 + AMD-103 + AMD-106</span>' +
+               '<span class="dr-quote-amd-chip" data-quote-amd-chip>AMD-114 + AMD-115</span>' +
                '<span class="dr-quote-validity">30 days; commitments require contract</span>' +
              '</div>' +
            '</aside>';
   }
 
-  function bindConfiguratorRuntimeHandlers_() {
-    // Fix 3 / Interpretation A — Panel 1 buttons use data-package attribute,
-    // each click applies the named preset. Reset clears ACTIVE_PRESET to null.
-    var pkgBtns = document.querySelectorAll('.dr-tier-button[data-package]');
-    for (var i = 0; i < pkgBtns.length; i++) (function (btn) {
+  function bindScopeBuilderHandlers_() {
+    bindAxisListHandlers_();
+    bindModifiersHandlers_();
+    var resetBtn = document.querySelector('[data-scope-reset]');
+    if (resetBtn) resetBtn.addEventListener('click', handleResetAllAxes_);
+  }
+
+  function bindAxisListHandlers_() {
+    // Axis row toggle (expand/collapse). Only one axis row expanded at a time.
+    var toggles = document.querySelectorAll('[data-axis-toggle]');
+    for (var i = 0; i < toggles.length; i++) (function (btn) {
       btn.addEventListener('click', function () {
-        var pkg = btn.getAttribute('data-package');
-        if (pkg === 'pkg1') applyPreset(PKG1_PRESET, 'pkg1');
-        else if (pkg === 'pkg2') applyPreset(PKG2_PRESET, 'pkg2');
-        else if (pkg === 'pkg3') applyPreset(PKG3_PRESET, 'pkg3');
-        else if (pkg === 'pkg4') applyPreset(PKG4_PRESET, 'pkg4');
-        else if (pkg === 'reset') applyPreset(RESET_PRESET, null);
+        var code = btn.getAttribute('data-axis-toggle');
+        EXPANDED_AXIS = (EXPANDED_AXIS === code) ? null : code;
+        renderAxisListDom_();
       });
-    })(pkgBtns[i]);
+    })(toggles[i]);
 
-    // Slider/modifier user input transitions to "custom" — clear ACTIVE_PRESET so the
-    // package buttons no longer show is-active indicator. Re-render reflects this.
-    var sInputs = document.querySelectorAll('.dr-config-scope-input[data-scope]');
-    for (var j = 0; j < sInputs.length; j++) (function (input) {
-      input.addEventListener('input', function () {
-        var k = input.getAttribute('data-scope');
-        var v = parseInt(input.value || '0', 10);
-        if (isNaN(v) || v < 0) v = 0;
-        // AMD-111 fixup-2 Issue 1 (c) — immediate snap-to-cap on every keystroke. Compute
-        // the layer's effective max NOW (against current parent state + segment-aware
-        // identity ceiling) and clamp before writing to CONFIG_STATE / DOM. Prevents the
-        // user from typing a value above the cap and seeing it persist visually before
-        // applyAllCaps catches up.
-        var layerMax = computeEffectiveMax_(k);
-        if (v > layerMax) {
-          v = layerMax;
-          input.value = String(v);
+    // Sector L1 multi-select
+    var l1Inputs = document.querySelectorAll('[data-sector-l1-input]');
+    for (var j = 0; j < l1Inputs.length; j++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.sector.l1.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.sector.l1 = arr;
+        // L2 only meaningful when L1 = exactly ['public_body']; clear otherwise.
+        if (!(arr.length === 1 && arr[0] === 'public_body')) {
+          SCOPE_STATE.sector.l2 = [];
         }
-        CONFIG_STATE.scope[k] = v;
-        ACTIVE_PRESET = null;
-        applyAllCaps();  // AMD-110 cascade-clamp dependent layers + sector-aware identity composition
-        // Update visible per-layer max-hint readouts (Issue 3 §c — reactive ceiling labels)
-        updateLayerMaxHints_();
-        var totalEl = document.querySelector('.dr-config-scope-total strong');
-        if (totalEl) totalEl.textContent = (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB');
-        // Clear is-active class on package buttons without full re-render (perf)
-        var btnsToClear = document.querySelectorAll('.dr-tier-button[data-package].is-active');
-        for (var c = 0; c < btnsToClear.length; c++) btnsToClear[c].classList.remove('is-active');
-        computeQuoteDebounced_();
+        renderAxisListDom_();
+        recomputeDebounced_();
       });
-    })(sInputs[j]);
+    })(l1Inputs[j]);
 
-    var dunsEl = document.getElementById('dr-config-duns');
-    if (dunsEl) dunsEl.addEventListener('change', function () {
-      CONFIG_STATE.modifiers.duns_match = dunsEl.checked;
-      ACTIVE_PRESET = null;
-      renderConfigurator();
-      computeQuoteDebounced_();
+    // Sector L2 multi-select (Public sub-segments)
+    var l2Inputs = document.querySelectorAll('[data-sector-l2-input]');
+    for (var k = 0; k < l2Inputs.length; k++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.sector.l2.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.sector.l2 = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(l2Inputs[k]);
+
+    // Geography level selector (L1 / L2 / L3)
+    var geoLevelBtns = document.querySelectorAll('[data-geo-level]');
+    for (var gl = 0; gl < geoLevelBtns.length; gl++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var lvl = btn.getAttribute('data-geo-level');
+        SCOPE_STATE.geography.level = lvl;
+        SCOPE_STATE.geography.values = [];
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(geoLevelBtns[gl]);
+
+    // Geography L2 country checkboxes
+    var geoL2 = document.querySelectorAll('[data-geo-l2-input]');
+    for (var g2 = 0; g2 < geoL2.length; g2++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.geography.values.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.geography.values = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(geoL2[g2]);
+
+    // Geography L3 region checkboxes
+    var geoL3 = document.querySelectorAll('[data-geo-l3-input]');
+    for (var g3 = 0; g3 < geoL3.length; g3++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.geography.values.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.geography.values = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(geoL3[g3]);
+
+    // Geography back-to-L2 affordance
+    var geoBack = document.querySelector('[data-geo-back-l2]');
+    if (geoBack) geoBack.addEventListener('click', function () {
+      SCOPE_STATE.geography.level = 'L2';
+      SCOPE_STATE.geography.values = [];
+      renderAxisListDom_();
+      recomputeDebounced_();
     });
 
-    var rBtns = document.querySelectorAll('.dr-radio-option[data-refresh]');
-    for (var r = 0; r < rBtns.length; r++) (function (btn) {
-      btn.addEventListener('click', function () {
-        CONFIG_STATE.modifiers.refresh = btn.getAttribute('data-refresh');
-        ACTIVE_PRESET = null;
-        renderConfigurator();
-        computeQuoteDebounced_();
+    // Industry L1 SIC section checkboxes
+    var indL1 = document.querySelectorAll('[data-industry-l1-input]');
+    for (var ii = 0; ii < indL1.length; ii++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.industry.values.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.industry.values = arr;
+        SCOPE_STATE.industry.level = 'L1';
+        renderAxisListDom_();
+        recomputeDebounced_();
       });
-    })(rBtns[r]);
+    })(indL1[ii]);
 
-    var eBtns = document.querySelectorAll('.dr-radio-option[data-exclusivity]');
-    for (var e2 = 0; e2 < eBtns.length; e2++) (function (btn) {
+    // Intelligence sub-axis tabs (ACEI / RRI / CCI)
+    var intelTabs = document.querySelectorAll('[data-intel-tab]');
+    for (var it = 0; it < intelTabs.length; it++) (function (btn) {
       btn.addEventListener('click', function () {
-        CONFIG_STATE.modifiers.exclusivity = btn.getAttribute('data-exclusivity');
-        ACTIVE_PRESET = null;
-        renderConfigurator();
-        computeQuoteDebounced_();
+        if (btn.disabled) return;
+        var code = btn.getAttribute('data-intel-tab');
+        if (code === 'cci') return;
+        if (code === 'rri' && MODIFIERS_STATE.tier === 'operational_readiness') return;
+        // §5.6 cross-index gate: switching to RRI while ACEI selections
+        // exist requires Institutional. Soft modal; user can clear ACEI
+        // and switch, or cancel. (Governance can hold RRI alone — but
+        // not ACEI + RRI on the same scope.)
+        if (code === 'rri' && MODIFIERS_STATE.tier !== 'institutional' && SCOPE_STATE.intelligence.acei.length > 0) {
+          showModalConfirm_({
+            title:         'Cross-index intelligence is Institutional',
+            bodyHtml:      'Cross-index intelligence selection (ACEI + RRI on the same scope) is an Institutional-tier feature. ' +
+                           'Upgrade to combine, or clear your ACEI selection to switch to RRI alone.',
+            continueLabel: 'Clear ACEI and switch to RRI',
+            cancelLabel:   'Cancel',
+            onContinue:    function () {
+              SCOPE_STATE.intelligence.acei = [];
+              INTEL_TAB = 'rri';
+              renderAxisListDom_();
+              recomputeDebounced_();
+            }
+          });
+          return;
+        }
+        INTEL_TAB = code;
+        renderAxisListDom_();
       });
-    })(eBtns[e2]);
+    })(intelTabs[it]);
 
-    var trBtns = document.querySelectorAll('.dr-radio-option[data-term]');
-    for (var tr = 0; tr < trBtns.length; tr++) (function (btn) {
-      btn.addEventListener('click', function () {
-        CONFIG_STATE.modifiers.term_years = parseInt(btn.getAttribute('data-term'), 10) || 1;
-        ACTIVE_PRESET = null;
-        renderConfigurator();
-        computeQuoteDebounced_();
+    // Intelligence ACEI checkboxes
+    var aceiInputs = document.querySelectorAll('[data-intel-acei-input]');
+    for (var ai = 0; ai < aceiInputs.length; ai++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.intelligence.acei.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.intelligence.acei = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
       });
-    })(trBtns[tr]);
+    })(aceiInputs[ai]);
 
-    // AMD-111 — sector segments checkbox handler (replaces AMD-108 single-select chip).
-    // Sequencing per Director design contract:
-    //   1) read DOM → CONFIG_STATE.modifiers.sector_segments
-    //   2) validateSegmentSelection (inline error if zero selected; pre-flight guard for
-    //      live-pricing recompute path AND submit path)
-    //   3) applyAllCaps (state clamp — identity now sums selected-segment ceilings; child
-    //      layers cascade from clamped identity)
-    //   4) updateComposedBadge (text update without full re-render to avoid flicker)
-    //   5) renderConfigurator (re-render Panel 2 max attrs from new effective ceilings)
-    //   6) computeQuoteDebounced (live re-pricing — skipped if validation failed)
-    var segCbs = document.querySelectorAll('input[name="sector_segments"]');
-    for (var sb = 0; sb < segCbs.length; sb++) (function (cb) {
-      cb.addEventListener('change', function () {
-        CONFIG_STATE.modifiers.sector_segments = getSelectedSegments();
-        ACTIVE_PRESET = null;
-        var ok = validateSegmentSelection();
-        applyAllCaps();
-        updateComposedBadge();
-        renderConfigurator();
-        if (ok) computeQuoteDebounced_();
+    // Intelligence RRI checkboxes (Governance+ tier — UI gates the tab; RPC will reject otherwise)
+    var rriInputs = document.querySelectorAll('[data-intel-rri-input]');
+    for (var ri = 0; ri < rriInputs.length; ri++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.intelligence.rri.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.intelligence.rri = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
       });
-    })(segCbs[sb]);
+    })(rriInputs[ri]);
   }
 
-  function computeQuoteDebounced_() {
-    clearTimeout(configRecomputeTimer);
-    configRecomputeTimer = setTimeout(computeQuote, 300);
+  function applyResetAllAxes_() {
+    SCOPE_STATE = {
+      sector:       { l1: [], l2: [] },
+      geography:    { level: 'L1', values: [] },
+      industry:     { level: 'L1', values: [] },
+      intelligence: { acei: [], rri: [], cci: [] }
+    };
+    EXPANDED_AXIS = null;
+    INTEL_TAB = 'acei';
+    renderAxisListDom_();
+    recomputeDebounced_();
   }
 
-  async function computeQuote() {
-    var user = window.__dealRoomUser;
-    // Production: token required. Sandbox: anon access; pricing_quote_function is
-    // anon-accessible per Director.
-    if (!IS_SANDBOX && (!user || !user.token)) return;
-    // AMD-111 — pre-flight guard: skip the RPC if no segment is selected. The function
-    // would reject an empty sector_segments array; the inline error already informs the
-    // user, and the badge already shows the "select at least one segment" hint.
-    if (!validateSegmentSelection()) {
-      LAST_QUOTE = null;
-      return;
-    }
+  // ─── §5.8 ratchet-down narrowing UX ────────────────────────────────
+  // When the user removes a constraint AND the current live identity
+  // universe is < 5,000 records, intercept with a soft confirmation
+  // modal that pre-shows the projected new universe + annual.
+  function constraintCount_(scope) {
+    var c = 0;
+    var l1 = scope.sector.l1 || [];
+    if (l1.length > 0 && l1.length < 3) c++;
+    if ((scope.sector.l2 || []).length > 0) c++;
+    if (scope.geography.level !== 'L1' && (scope.geography.values || []).length > 0) c++;
+    if ((scope.industry.values || []).length > 0) c++;
+    if ((scope.intelligence.acei || []).length > 0) c++;
+    if ((scope.intelligence.rri || []).length > 0) c++;
+    return c;
+  }
+
+  function shouldShowRatchetModal_(prospectiveScope) {
+    if (!LAST_UNIVERSE || LAST_UNIVERSE.identity_universe == null) return false;
+    if (Number(LAST_UNIVERSE.identity_universe) >= 5000) return false;
+    return constraintCount_(prospectiveScope) < constraintCount_(SCOPE_STATE);
+  }
+
+  async function precomputeProjection_(prospectiveScope) {
     try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/pricing_quote_function', {
-        method: 'POST',
-        headers: getAuthHeaders_({ 'Accept': 'application/json' }),
-        body: JSON.stringify({
-          p_config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers }
-        })
-      });
-      if (!res.ok) {
-        LAST_QUOTE = null;
-        renderQuoteError_(new Error('HTTP ' + res.status));
-        return;
+      var u = await computeScopeUniverse_(prospectiveScope);
+      var q = await quoteV4_(prospectiveScope, composeModifiersPayload_());
+      return { universe: u, quote: q };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function handleResetAllAxes_() {
+    var prospective = {
+      sector:       { l1: [], l2: [] },
+      geography:    { level: 'L1', values: [] },
+      industry:     { level: 'L1', values: [] },
+      intelligence: { acei: [], rri: [], cci: [] }
+    };
+    if (!shouldShowRatchetModal_(prospective)) {
+      return applyResetAllAxes_();
+    }
+    var fromU = LAST_UNIVERSE.identity_universe;
+    var fromAnnualFmt = LAST_QUOTE_V4
+      ? '£' + (LAST_QUOTE_V4.annual_pence / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '—';
+    showModalConfirm_({
+      title: 'Reset will broaden your scope',
+      bodyHtml: 'Reset will broaden your scope from <strong>' + Number(fromU).toLocaleString('en-GB') + '</strong> records ' +
+                '(annual <strong>' + escapeHtml(fromAnnualFmt) + '</strong>) to the unconstrained UK estate. ' +
+                'Computing projection…',
+      continueLabel: 'Continue & reset',
+      cancelLabel:   'Cancel',
+      onContinue:    applyResetAllAxes_
+    });
+    // Pre-call RPCs to refine the modal copy with concrete projection values.
+    var proj = await precomputeProjection_(prospective);
+    if (!proj) return;
+    var toU = proj.universe ? proj.universe.identity_universe : null;
+    var toAnnualFmt = proj.quote
+      ? '£' + (proj.quote.annual_pence / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '—';
+    var bodyEl = document.querySelector('[data-modal-body]');
+    if (bodyEl) {
+      bodyEl.innerHTML = 'Reset will broaden your scope from <strong>' + Number(fromU).toLocaleString('en-GB') + '</strong> records to ' +
+                         '<strong>(estimated) ' + (toU != null ? Number(toU).toLocaleString('en-GB') : '?') + '</strong> records, ' +
+                         'and the annual quote from <strong>' + escapeHtml(fromAnnualFmt) + '</strong> to ' +
+                         '<strong>(estimated) ' + escapeHtml(toAnnualFmt) + '</strong>. Continue?';
+    }
+  }
+
+  // ─── Generic soft confirmation modal ───────────────────────────────
+  // One overlay + card; backdrop click and Cancel both invoke onCancel
+  // (or simply close). Continue invokes onContinue then closes.
+  function ensureModalStyles_() {
+    if (document.getElementById('dr-modal-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'dr-modal-styles';
+    s.textContent =
+      '.dr-modal-overlay{position:fixed;inset:0;background:rgba(5,12,24,0.78);display:flex;align-items:center;justify-content:center;z-index:9998;padding:24px;font-family:var(--dr-font-body, "DM Sans", sans-serif);}' +
+      '.dr-modal-card{max-width:520px;width:100%;background:var(--dr-bg-card, #0c1525);border:1px solid var(--dr-border-medium, rgba(148,163,184,0.20));border-radius:var(--dr-radius, 12px);padding:28px 28px 22px;color:var(--dr-text, #E2E8F0);box-shadow:0 16px 64px rgba(0,0,0,0.55);}' +
+      '.dr-modal-title{font-family:var(--dr-font-display, "DM Serif Display", serif);font-size:20px;color:var(--dr-text-heading, #F1F5F9);margin:0 0 14px;line-height:1.3;}' +
+      '.dr-modal-body{font-size:14px;line-height:1.55;color:var(--dr-text-dim, #94A3B8);margin:0 0 20px;}' +
+      '.dr-modal-actions{display:flex;justify-content:flex-end;gap:10px;}' +
+      '.dr-modal-btn{font-family:var(--dr-font-body, sans-serif);font-size:14px;padding:9px 16px;border-radius:6px;border:1px solid var(--dr-border-medium);background:transparent;color:var(--dr-text);cursor:pointer;}' +
+      '.dr-modal-btn:hover{border-color:var(--dr-cyan, #0EA5E9);color:var(--dr-cyan-soft, #22d3ee);}' +
+      '.dr-modal-btn-primary{background:var(--dr-cyan, #0EA5E9);border-color:var(--dr-cyan);color:var(--dr-bg, #0a0e1a);font-weight:600;}' +
+      '.dr-modal-btn-primary:hover{background:var(--dr-cyan-soft, #22d3ee);color:var(--dr-bg, #0a0e1a);}';
+    document.head.appendChild(s);
+  }
+
+  function showModalConfirm_(opts) {
+    ensureModalStyles_();
+    var existing = document.getElementById('dr-modal-overlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-modal-overlay';
+    overlay.className = 'dr-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="dr-modal-card">' +
+        '<h3 class="dr-modal-title">' + escapeHtml(opts.title || 'Confirm') + '</h3>' +
+        '<div class="dr-modal-body" data-modal-body>' + (opts.bodyHtml || '') + '</div>' +
+        '<div class="dr-modal-actions">' +
+          '<button type="button" class="dr-modal-btn" data-modal-cancel>' + escapeHtml(opts.cancelLabel || 'Cancel') + '</button>' +
+          '<button type="button" class="dr-modal-btn dr-modal-btn-primary" data-modal-continue>' + escapeHtml(opts.continueLabel || 'Continue') + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target === overlay) {
+        close();
+        if (opts.onCancel) opts.onCancel();
       }
-      var quote = await res.json();
-      LAST_QUOTE = quote;
-      renderQuote(quote);
+    });
+    var cancelBtn = overlay.querySelector('[data-modal-cancel]');
+    if (cancelBtn) cancelBtn.addEventListener('click', function () {
+      close();
+      if (opts.onCancel) opts.onCancel();
+    });
+    var contBtn = overlay.querySelector('[data-modal-continue]');
+    if (contBtn) contBtn.addEventListener('click', function () {
+      close();
+      if (opts.onContinue) opts.onContinue();
+    });
+  }
+
+  // ─── AMD-114 §9 live recompute orchestrator ────────────────────────
+  // Sequence per brief §9.3:
+  //   1. show loading state on Panel 3
+  //   2. compute_scope_universe → universe pill update (axis rows + Panel 3)
+  //   3. pricing_quote_function_v4 → per-record + annual + dynamic AMD chip
+  //   4. clear loading state
+  // Sequence-number guard discards stale results.
+  function recomputeDebounced_() {
+    clearTimeout(configRecomputeTimer);
+    configRecomputeTimer = setTimeout(recompute_, 250);
+  }
+
+  async function recompute_() {
+    var seq = ++quoteRequestSeq;
+    setLiveQuoteLoading_(true);
+    try {
+      var universe = await computeScopeUniverse_(SCOPE_STATE);
+      if (seq !== quoteRequestSeq) return;
+      LAST_UNIVERSE = universe;
+      renderAxisListDom_();
+
+      var modPayload = composeModifiersPayload_();
+      var quote = await quoteV4_(SCOPE_STATE, modPayload);
+      if (seq !== quoteRequestSeq) return;
+      LAST_QUOTE_V4 = quote;
+      renderLiveQuoteContent_(quote);
+      renderModifiersDom_();   // refresh LP status from is_launch_partner_applied
     } catch (err) {
-      LAST_QUOTE = null;
-      renderQuoteError_(err);
-    }
-  }
-
-  function renderQuote(quote) {
-    var amountEl = document.getElementById('dr-quote-amount');
-    var bandEl = document.getElementById('dr-quote-band');
-    var breakdownEl = document.getElementById('dr-quote-breakdown');
-    if (!amountEl || !bandEl || !breakdownEl) return;
-    amountEl.textContent = formatPence(quote.annual_pence);
-    if (quote.annual_band_min_pence != null && quote.annual_band_max_pence != null) {
-      bandEl.textContent = 'Band: ' + formatPence(quote.annual_band_min_pence) + ' – ' + formatPence(quote.annual_band_max_pence);
-    } else {
-      bandEl.textContent = '—';
-    }
-    var rows = '';
-    var log = (quote.computation_log && Array.isArray(quote.computation_log)) ? quote.computation_log : [];
-    for (var i = 0; i < log.length; i++) {
-      var entry = log[i];
-      var label = '';
-      var rowClass = '';
-      var skipZero = false;
-      switch (entry.step) {
-        case 'identity_layer':
-          label = 'Identity (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
-        case 'tribunal_exposure_delta':
-          label = 'Tribunal Exposure (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
-        case 'outcome_intelligence_delta':
-          label = 'Outcome Intelligence (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
-        case 'full_acei_delta':
-          label = 'Full ACEI (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
-        case 'full_enrichment_delta':
-          label = 'Full Enrichment (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
-        case 'premium_delta':
-          label = 'Premium (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
-        case 'duns_additive':
-          if (!entry.enabled) continue;
-          label = 'DUNS match additive (' + (entry.count || 0).toLocaleString('en-GB') + ')'; skipZero = true; break;
-        case 'refresh_modifier':
-          if ((entry.pct || 0) === 0) continue;
-          label = 'Refresh ' + String(entry.code || '').replace('refresh_', '') + ' (+' + entry.pct + '%)';
-          rowClass = ' dr-quote-row-positive'; break;
-        case 'exclusivity_modifier':
-          if ((entry.pct || 0) === 0) continue;
-          label = 'Exclusivity ' + String(entry.code || '').replace('exclusivity_', '') + ' (+' + entry.pct + '%)';
-          rowClass = ' dr-quote-row-positive'; break;
-        case 'term_discount':
-          if ((entry.pct || 0) === 0) continue;
-          label = 'Term discount (−' + entry.pct + '%)';
-          rowClass = ' dr-quote-row-negative'; break;
-        case 'subtotal':
-        case 'enrichment_subtotal':
-        case 'pre_discount':
-        case 'annual':
-          continue;
-        default: continue;
+      if (seq !== quoteRequestSeq) return;
+      var bodyTxt = (err && err.body) ? String(err.body) : '';
+      if (bodyTxt.indexOf('zero records') !== -1) {
+        renderLiveQuoteZeroRecords_();
+      } else {
+        renderLiveQuoteError_(err);
       }
-      if (skipZero && (entry.value_pence == null || entry.value_pence === 0)) continue;
-      var sign = (rowClass === ' dr-quote-row-negative') ? '−' : '';
-      rows += '<div class="dr-quote-row' + rowClass + '">' +
-                '<span class="dr-quote-row-label">' + escapeHtml(label) + '</span>' +
-                '<span class="dr-quote-row-value">' + sign + escapeHtml(formatPence(entry.value_pence)) + '</span>' +
-              '</div>';
+      console.error('[AMD-114] recompute error:', err && err.message ? err.message : err);
+    } finally {
+      if (seq === quoteRequestSeq) setLiveQuoteLoading_(false);
     }
-    if (quote.subtotal_pence != null) {
-      rows += '<div class="dr-quote-row dr-quote-row-subtotal">' +
-                '<span class="dr-quote-row-label">Subtotal</span>' +
-                '<span class="dr-quote-row-value">' + escapeHtml(formatPence(quote.subtotal_pence)) + '</span>' +
-              '</div>';
-    }
-    if (quote.pre_discount_pence != null && quote.pre_discount_pence !== quote.subtotal_pence) {
-      rows += '<div class="dr-quote-row dr-quote-row-pre-discount">' +
-                '<span class="dr-quote-row-label">Pre-discount</span>' +
-                '<span class="dr-quote-row-value">' + escapeHtml(formatPence(quote.pre_discount_pence)) + '</span>' +
-              '</div>';
-    }
-    breakdownEl.innerHTML = (rows === '') ? '<div class="dr-quote-empty">Configure a coverage to see the live breakdown.</div>' : rows;
-    // AMD-111 — refresh badge text against the live sector_composed_pct from this quote.
-    updateComposedBadge();
   }
 
-  function renderQuoteError_(err) {
-    var amountEl = document.getElementById('dr-quote-amount');
-    var bandEl = document.getElementById('dr-quote-band');
-    var breakdownEl = document.getElementById('dr-quote-breakdown');
-    if (amountEl) amountEl.textContent = '—';
-    if (bandEl) bandEl.textContent = '';
-    if (breakdownEl) breakdownEl.innerHTML = '<div class="dr-config-empty-error">Quote unavailable. Please retry, or contact partnerships@ailane.ai.</div>';
-    console.error('computeQuote error:', err);
+  function composeModifiersPayload_() {
+    return {
+      tier:        MODIFIERS_STATE.tier,
+      refresh:     MODIFIERS_STATE.refresh,
+      exclusivity: MODIFIERS_STATE.exclusivity,
+      term_years:  MODIFIERS_STATE.term_years,
+      duns_match:  MODIFIERS_STATE.duns_match,
+      clid:        CLID
+    };
   }
+
+  function setLiveQuoteLoading_(isLoading) {
+    var rail = document.getElementById('dr-config-quote-rail');
+    if (!rail) return;
+    if (isLoading) rail.classList.add('is-loading');
+    else rail.classList.remove('is-loading');
+  }
+
+  function renderLiveQuoteContent_(quote) {
+    var slot = document.querySelector('[data-quote-content]');
+    if (!slot) return;
+    var perPence = Number(quote.per_record_pence || 0);
+    var annualPence = Number(quote.annual_pence || 0);
+    var bandMin = (quote.annual_band_min_pence != null) ? Number(quote.annual_band_min_pence) : null;
+    var bandMax = (quote.annual_band_max_pence != null) ? Number(quote.annual_band_max_pence) : null;
+    var perFmt = '£' + (perPence / 100).toFixed(2);
+    var annualFmt = '£' + (annualPence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var bandFmt = (bandMin != null && bandMax != null)
+      ? 'Band: £' + (bandMin / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 }) + ' – £' + (bandMax / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '';
+    var floorAnnotation = (quote.floor_applied === true) ? ' <span class="dr-quote-floor-annotation">(£750 floor applied)</span>' : '';
+
+    var lpBadge = (quote.is_launch_partner_applied === true)
+      ? '<div class="dr-launch-partner-badge" role="status" aria-label="Launch partner status">' +
+          '<span class="dr-launch-partner-icon" aria-hidden="true">&check;</span>' +
+          '<span class="dr-launch-partner-label">Launch Partner</span>' +
+          '<span class="dr-launch-partner-detail">&minus;10% applied</span>' +
+        '</div>'
+      : '';
+
+    slot.innerHTML =
+      '<div class="dr-quote-per-record"><strong>' + escapeHtml(perFmt) + '</strong> <span class="dr-quote-per-record-unit">per record-year</span></div>' +
+      '<div class="dr-quote-universe-ribbon">' +
+        '<span class="dr-quote-universe-pill"><span class="dr-quote-universe-label">Identity</span> <strong>' + Number(quote.scope_universe || 0).toLocaleString('en-GB') + '</strong></span>' +
+        '<span class="dr-quote-universe-pill"><span class="dr-quote-universe-label">Enriched</span> <strong>' + Number(quote.enriched_universe || 0).toLocaleString('en-GB') + '</strong></span>' +
+      '</div>' +
+      '<div class="dr-quote-annual"><strong>' + annualFmt + '</strong> <span class="dr-quote-annual-unit">/year</span>' + floorAnnotation + '</div>' +
+      (bandFmt ? '<div class="dr-quote-band">' + escapeHtml(bandFmt) + '</div>' : '') +
+      renderMultipliersRibbon_(quote) +
+      renderOverlaysRibbon_(quote) +
+      lpBadge +
+      renderComputationBreakdown_(quote);
+
+    var chipEl = document.querySelector('[data-quote-amd-chip]');
+    if (chipEl && quote.amd_authority) chipEl.textContent = quote.amd_authority;
+  }
+
+  // ─── §7.6 multipliers ribbon ───────────────────────────────────────
+  function renderMultipliersRibbon_(quote) {
+    var vs    = (quote.volume_scarcity_multiplier != null) ? Number(quote.volume_scarcity_multiplier).toFixed(4) : '—';
+    var ax    = (quote.axis_bumps_pct  != null) ? Number(quote.axis_bumps_pct)  : 0;
+    var depth = (quote.depth_bonus_pct != null) ? Number(quote.depth_bonus_pct) : 0;
+    var tier  = (quote.tier_multiplier != null) ? Number(quote.tier_multiplier).toFixed(2) : '—';
+    return '<div class="dr-quote-ribbon dr-quote-multipliers-ribbon">' +
+             'Volume scarcity &times;' + escapeHtml(String(vs)) +
+             ' &middot; Curation +' + ax + '% (axis) +' + depth + '% (depth)' +
+             ' &middot; Tier &times;' + escapeHtml(String(tier)) +
+           '</div>';
+  }
+
+  // ─── §7.7 overlays ribbon ──────────────────────────────────────────
+  function renderOverlaysRibbon_(quote) {
+    var refresh = (quote.refresh_adjustment_pct     != null) ? Number(quote.refresh_adjustment_pct)     : 0;
+    var excl    = (quote.exclusivity_adjustment_pct != null) ? Number(quote.exclusivity_adjustment_pct) : 0;
+    var term    = (quote.term_discount_pct          != null) ? Number(quote.term_discount_pct)          : 0;
+    var dunsTxt;
+    if (quote.duns_additive_pence != null && Number(quote.duns_additive_pence) > 0) {
+      dunsTxt = '£' + (Number(quote.duns_additive_pence) / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+    } else {
+      dunsTxt = '—';
+    }
+    var lpTxt = (quote.is_launch_partner_applied === true) ? '−10%' : '—';
+    return '<div class="dr-quote-ribbon dr-quote-overlays-ribbon">' +
+             'Refresh +' + refresh + '%' +
+             ' &middot; Exclusivity +' + excl + '%' +
+             ' &middot; Term &minus;' + term + '%' +
+             ' &middot; DUNS ' + escapeHtml(dunsTxt) +
+             ' &middot; Launch ' + escapeHtml(lpTxt) +
+           '</div>';
+  }
+
+  // ─── §7.4 computation breakdown (expandable accordion) ─────────────
+  function renderComputationBreakdown_(quote) {
+    var log = (quote.computation_log && Array.isArray(quote.computation_log)) ? quote.computation_log : [];
+    if (log.length === 0) return '';
+    var rows = '';
+    for (var i = 0; i < log.length; i++) rows += renderComputationStep_(log[i]);
+    return '<details class="dr-quote-breakdown">' +
+             '<summary class="dr-quote-breakdown-summary">How is this calculated?</summary>' +
+             '<div class="dr-quote-breakdown-body">' + rows + '</div>' +
+           '</details>';
+  }
+
+  function renderComputationStep_(entry) {
+    var step = entry.step || 'unknown';
+    var label = humaniseStepCode_(step);
+    var isDiscount = (step === 'term_discount' || step === 'launch_partner_discount');
+    var pairs = [];
+    for (var k in entry) {
+      if (!entry.hasOwnProperty(k) || k === 'step') continue;
+      pairs.push(escapeHtml(k) + ': ' + escapeHtml(formatStepField_(k, entry[k], isDiscount)));
+    }
+    return '<div class="dr-quote-step' + (isDiscount ? ' dr-quote-step-discount' : '') + '" data-step="' + escapeHtml(step) + '">' +
+             '<div class="dr-quote-step-label">' + (isDiscount ? '&minus; ' : '') + escapeHtml(label) + '</div>' +
+             '<div class="dr-quote-step-fields">' + pairs.join(' &middot; ') + '</div>' +
+           '</div>';
+  }
+
+  function humaniseStepCode_(step) {
+    return ({
+      universe_resolved:       'Universe resolved',
+      axes_applied:            'Axes applied',
+      volume_scarcity:         'Volume scarcity',
+      curation_premium:        'Curation premium',
+      tier_multiplier:         'Tier multiplier',
+      per_record:              'Per-record price',
+      scope_subtotal:          'Scope subtotal',
+      duns_additive:           'DUNS additive',
+      refresh_surcharge:       'Refresh surcharge',
+      exclusivity_surcharge:   'Exclusivity surcharge',
+      term_discount:           'Term discount',
+      launch_partner_discount: 'Launch partner discount',
+      floor_check:             'Floor check',
+      annual:                  'Annual'
+    })[step] || step;
+  }
+
+  function formatStepField_(k, v, isDiscount) {
+    if (v == null) return '—';
+    if (Array.isArray(v)) return '[' + v.length + ' item' + (v.length === 1 ? '' : 's') + ']';
+    if (typeof v === 'object') {
+      try { return JSON.stringify(v); } catch (e) { return '{…}'; }
+    }
+    if (typeof v === 'number') {
+      if (/_pence$/.test(k) || k === 'value_pence') {
+        var pounds = (v / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (isDiscount && v > 0 ? '−£' : '£') + pounds;
+      }
+      if (/_pct$/.test(k) || k === 'pct_magnitude' || k === 'pct') {
+        return (isDiscount && v > 0 ? '−' : '') + v + '%';
+      }
+      if (/multiplier$/.test(k))  return '×' + Number(v).toFixed(4);
+      if (/^count$/.test(k))      return Number(v).toLocaleString('en-GB');
+      return String(v);
+    }
+    if (typeof v === 'boolean') return v ? 'yes' : 'no';
+    return String(v);
+  }
+
+  function renderLiveQuoteError_(err) {
+    var slot = document.querySelector('[data-quote-content]');
+    if (!slot) return;
+    var msg = (err && err.message) ? err.message : 'Unknown error';
+    slot.innerHTML = '<div class="dr-quote-error">Could not compute pricing &mdash; ' + escapeHtml(msg) + '. Please try again.</div>';
+  }
+
+  function renderLiveQuoteZeroRecords_() {
+    var slot = document.querySelector('[data-quote-content]');
+    if (!slot) return;
+    slot.innerHTML = '<div class="dr-quote-zero">No records match this scope. Relax one constraint to continue.</div>';
+  }
+
 
   function renderCounterProposalSection(user, gateState) {
     var anchor = document.getElementById('dr-counter-proposal-section');
@@ -1939,41 +2327,36 @@
       if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">Not signed in.</div>';
       return;
     }
-    if (!LAST_QUOTE) {
+    if (!LAST_QUOTE_V4) {
       if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">Configure a quote before submitting.</div>';
-      return;
-    }
-    // AMD-111 — pre-flight guard for submit path (validateSegmentSelection also runs on
-    // every checkbox change; this is the belt-and-braces gate for direct keyboard-only
-    // submit attempts).
-    if (!validateSegmentSelection()) {
-      if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">At least one sector segment must be selected.</div>';
       return;
     }
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Submitting…'; }
     if (statusEl) statusEl.innerHTML = '';
-    var s = CONFIG_STATE.scope;
-    var m = CONFIG_STATE.modifiers;
-    var layers = [];
-    if (s.identity) layers.push(s.identity.toLocaleString('en-GB') + ' identity');
-    if (s.tribunal_exposure) layers.push(s.tribunal_exposure.toLocaleString('en-GB') + ' TE');
-    if (s.outcome_intelligence) layers.push(s.outcome_intelligence.toLocaleString('en-GB') + ' OI');
-    if (s.full_acei) layers.push(s.full_acei.toLocaleString('en-GB') + ' FA');
-    if (s.full_enrichment) layers.push(s.full_enrichment.toLocaleString('en-GB') + ' FE');
-    if (s.premium) layers.push(s.premium.toLocaleString('en-GB') + ' Premium');
-    var modSummary = (m.duns_match ? 'DUNS' : 'no-DUNS') + ' / ' + m.refresh + ' / ' +
-                     (m.exclusivity === 'none' ? 'non-exclusive' : m.exclusivity) + ' / ' +
-                     (m.term_years * 12) + ' months';
-    var configSummary = (ACTIVE_PRESET || 'custom') + ' · ' + (layers.length ? layers.join(' / ') : 'no coverage') + ' · ' + modSummary;
-    var minVal = (LAST_QUOTE.annual_band_min_pence != null) ? Math.round(Number(LAST_QUOTE.annual_band_min_pence) / 100) : null;
-    var maxVal = (LAST_QUOTE.annual_band_max_pence != null) ? Math.round(Number(LAST_QUOTE.annual_band_max_pence) / 100) : null;
+
+    // AMD-114 — four-axis config_snapshot. partner_counter_proposals.config_snapshot is
+    // jsonb NOT NULL with no shape-coupling CHECK constraint (verified via pg_constraint
+    // introspection 4 May 2026); the new payload is accepted as-is.
+    var summaryParts = [];
+    summaryParts.push(humaniseSectorSummary_());
+    summaryParts.push(humaniseGeographySummary_());
+    summaryParts.push(humaniseIndustrySummary_());
+    summaryParts.push(humaniseIntelligenceSummary_());
+    var modSummary = humaniseTier_(MODIFIERS_STATE.tier) + ' / ' +
+                     (MODIFIERS_STATE.duns_match ? 'DUNS' : 'no-DUNS') + ' / ' +
+                     MODIFIERS_STATE.refresh + ' / ' +
+                     (MODIFIERS_STATE.exclusivity === 'none' ? 'non-exclusive' : MODIFIERS_STATE.exclusivity) + ' / ' +
+                     (MODIFIERS_STATE.term_years * 12) + ' months';
+    var configSummary = summaryParts.join(' · ') + ' · ' + modSummary;
+    var minVal = (LAST_QUOTE_V4.annual_band_min_pence != null) ? Math.round(Number(LAST_QUOTE_V4.annual_band_min_pence) / 100) : null;
+    var maxVal = (LAST_QUOTE_V4.annual_band_max_pence != null) ? Math.round(Number(LAST_QUOTE_V4.annual_band_max_pence) / 100) : null;
     var payload = {
       clid: CLID,
       submitted_by_user_id: user.id,
       submitted_by_email: user.email,
       proposal_version: 1,
       parent_proposal_id: null,
-      config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers, preset: ACTIVE_PRESET || 'custom' },
+      config_snapshot: { scope: SCOPE_STATE, modifiers: composeModifiersPayload_() },
       config_summary: configSummary,
       eileen_evaluation: {},
       eileen_evaluation_text: '',
