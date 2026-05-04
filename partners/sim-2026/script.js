@@ -2807,33 +2807,287 @@
   }
 
   function injectDocumentVault(opts) {
-    if (document.getElementById('dr-document-vault')) return;
+    var alreadyExists = !!document.getElementById('dr-document-vault');
     opts = opts || {};
     var pathLandingRoot = (window.location.pathname.replace(/\/+$/, '') === WORKSPACE_ROOT.replace(/\/+$/, ''));
     var collapsedByDefault = (typeof opts.collapsedByDefault === 'boolean')
       ? opts.collapsedByDefault
       : !pathLandingRoot;
-    var anchor =
-      document.getElementById('dr-phase-tracker') ||
-      document.querySelector('.dr-subpage-nav-section') ||
-      document.querySelector('.dr-main .dr-container .dr-hero');
-    if (!anchor) return;
-    var aside = document.createElement('aside');
-    aside.id = 'dr-document-vault';
-    aside.className = 'dr-vault' + (collapsedByDefault ? ' dr-vault-collapsed' : '');
-    aside.dataset.collapsed = collapsedByDefault ? 'true' : 'false';
-    aside.setAttribute('aria-label', 'Document Vault');
-    aside.innerHTML =
-      '<header class="dr-vault-header">' +
-        '<h2 class="dr-vault-title">Document Vault</h2>' +
-        '<button type="button" class="dr-vault-toggle" data-vault-toggle aria-expanded="' + (collapsedByDefault ? 'false' : 'true') + '">' +
-          (collapsedByDefault ? '▸' : '▾') +
-        '</button>' +
-      '</header>' +
-      '<div class="dr-vault-body" data-vault-body>' +
-        '<div class="dr-vault-pending">Loading documents&hellip;</div>' +
-      '</div>';
-    anchor.insertAdjacentElement('afterend', aside);
+    if (!alreadyExists) {
+      var anchor =
+        document.getElementById('dr-phase-tracker') ||
+        document.querySelector('.dr-subpage-nav-section') ||
+        document.querySelector('.dr-main .dr-container .dr-hero');
+      if (!anchor) return;
+      var aside = document.createElement('aside');
+      aside.id = 'dr-document-vault';
+      aside.className = 'dr-vault' + (collapsedByDefault ? ' dr-vault-collapsed' : '');
+      aside.dataset.collapsed = collapsedByDefault ? 'true' : 'false';
+      aside.setAttribute('aria-label', 'Document Vault');
+      aside.innerHTML =
+        '<header class="dr-vault-header">' +
+          '<h2 class="dr-vault-title">Document Vault</h2>' +
+          '<button type="button" class="dr-vault-toggle" data-vault-toggle aria-expanded="' + (collapsedByDefault ? 'false' : 'true') + '">' +
+            (collapsedByDefault ? '▸' : '▾') +
+          '</button>' +
+        '</header>' +
+        '<div class="dr-vault-body" data-vault-body>' +
+          '<div class="dr-vault-pending">Loading documents&hellip;</div>' +
+        '</div>';
+      anchor.insertAdjacentElement('afterend', aside);
+      bindVaultStaticHandlers_();
+      // Single subscription to auth-state changes — re-loads vault when
+      // session transitions (sign-in / sign-out / token refresh).
+      window.addEventListener('dr-auth-state-changed', refreshDocumentVault_);
+    }
+    // Always (re-)load on inject so navigation back to a workspace page
+    // surfaces fresh state. refresh is a no-op until the body is mounted.
+    refreshDocumentVault_();
+  }
+
+  function bindVaultStaticHandlers_() {
+    var toggleBtn = document.querySelector('[data-vault-toggle]');
+    if (toggleBtn && !toggleBtn.dataset.bound) {
+      toggleBtn.dataset.bound = '1';
+      toggleBtn.addEventListener('click', function () {
+        var aside = document.getElementById('dr-document-vault');
+        if (!aside) return;
+        var nowCollapsed = aside.dataset.collapsed !== 'true' ? true : false;
+        aside.dataset.collapsed = nowCollapsed ? 'true' : 'false';
+        aside.classList.toggle('dr-vault-collapsed', nowCollapsed);
+        toggleBtn.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+        toggleBtn.textContent = nowCollapsed ? '▸' : '▾';
+      });
+    }
+  }
+
+  // ─── Vault data loader (REST per amended §4.4 Path I) ──────
+  async function callDealroomRest_(path, queryString) {
+    // queryString is pre-built (no leading '?'); caller controls encoding so
+    // PostgREST or=(...) and complex filters work without URLSearchParams
+    // mangling parens or commas.
+    var session = await getDealroomSession_();
+    if (!session) throw new Error('Not authenticated');
+    var url = SUPABASE_URL + '/rest/v1/' + path + (queryString ? '?' + queryString : '');
+    var res = await fetch(url, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + session.access_token,
+        Accept: 'application/json'
+      }
+    });
+    if (!res.ok) {
+      var errBody = '';
+      try { errBody = await res.text(); } catch (e) {}
+      var err = new Error('REST ' + path + ' failed: ' + res.status);
+      err.status = res.status;
+      err.body = errBody;
+      throw err;
+    }
+    return await res.json();
+  }
+
+  async function loadVaultData_() {
+    var clidParam = encodeURIComponent(CLID);
+    var catalogSelect = 'document_id,doc_code,clid,name,description,kind,available_from_phase,version_label,display_order,storage_path,file_size_bytes,mime_type';
+    var uploadsSelect = 'upload_id,document_id,version_number,status,uploaded_by_email,original_filename,mime_type,file_size_bytes,created_at,review_notes';
+    var clidsSelect = 'clid,counterparty_name,gate_state,is_simulation,is_launch_partner';
+
+    var results = await Promise.all([
+      callDealroomRest_('dealroom_documents_catalog',
+        'or=(clid.eq.' + clidParam + ',clid.is.null)' +
+        '&deleted_at=is.null' +
+        '&select=' + catalogSelect +
+        '&order=available_from_phase.asc,display_order.asc'),
+      callDealroomRest_('partner_clids',
+        'clid=eq.' + clidParam + '&select=' + clidsSelect),
+      callDealroomRest_('dealroom_uploads',
+        'clid=eq.' + clidParam +
+        '&deleted_at=is.null' +
+        '&status=neq.superseded' +
+        '&select=' + uploadsSelect +
+        '&order=document_id.asc,version_number.desc')
+    ]);
+
+    var catalog = results[0] || [];
+    var clidRow = (results[1] && results[1][0]) || null;
+    var uploadsRows = results[2] || [];
+
+    // Pick the highest-version live upload per (document_id). Rows are already
+    // ordered by document_id ASC then version_number DESC, so first occurrence wins.
+    var uploadsByDocId = Object.create(null);
+    for (var i = 0; i < uploadsRows.length; i++) {
+      var u = uploadsRows[i];
+      if (u && u.document_id != null && !uploadsByDocId[u.document_id]) {
+        uploadsByDocId[u.document_id] = u;
+      }
+    }
+
+    return { catalog: catalog, clidRow: clidRow, uploadsByDocId: uploadsByDocId, fetchedAt: Date.now() };
+  }
+
+  async function refreshDocumentVault_() {
+    var body = document.querySelector('[data-vault-body]');
+    if (!body) return;
+    var session = await getDealroomSession_();
+    if (!session) {
+      body.innerHTML =
+        '<div class="dr-vault-unauth">' +
+          '<p>Sign in to access your dealroom documents.</p>' +
+          '<button type="button" class="dr-btn-primary" data-vault-signin>Sign in</button>' +
+        '</div>';
+      var signinBtn = body.querySelector('[data-vault-signin]');
+      if (signinBtn) signinBtn.addEventListener('click', showAuthModal_);
+      return;
+    }
+    body.innerHTML = '<div class="dr-vault-pending">Loading documents&hellip;</div>';
+    try {
+      var data = await loadVaultData_();
+      // Cache for the phase tracker (commit 10) so it doesn't re-query.
+      window.__dealRoomVaultData = data;
+      renderVaultBody_(data);
+    } catch (err) {
+      console.error('[Phase 3] vault load failed:', err);
+      body.innerHTML =
+        '<div class="dr-vault-error" role="alert">' +
+          '<p>Could not load documents. ' + escapeHtml((err && err.message) || '') + '</p>' +
+          '<button type="button" class="dr-btn-secondary" data-vault-retry>Retry</button>' +
+        '</div>';
+      var retryBtn = body.querySelector('[data-vault-retry]');
+      if (retryBtn) retryBtn.addEventListener('click', refreshDocumentVault_);
+    }
+  }
+
+  function renderVaultBody_(data) {
+    var body = document.querySelector('[data-vault-body]');
+    if (!body) return;
+    var catalog = data.catalog || [];
+    var clidRow = data.clidRow;
+    var uploadsByDocId = data.uploadsByDocId || {};
+
+    if (catalog.length === 0) {
+      body.innerHTML = '<div class="dr-vault-empty">No documents associated with this engagement yet.</div>';
+      return;
+    }
+
+    var currentGateState = (clidRow && clidRow.gate_state) || 'phase_0';
+
+    // Partition: templates first; everything else by phase.
+    var templates = [];
+    var byPhase = Object.create(null);
+    for (var i = 0; i < catalog.length; i++) {
+      var row = catalog[i];
+      if (row.kind === 'template') {
+        templates.push(row);
+        continue;
+      }
+      var phase = row.available_from_phase || 'phase_0';
+      if (!byPhase[phase]) byPhase[phase] = [];
+      byPhase[phase].push(row);
+    }
+
+    var html = '';
+
+    // Templates section (always-visible, above phase groups)
+    if (templates.length > 0) {
+      html += '<section class="dr-vault-templates">' +
+                '<h3 class="dr-vault-section-title">Templates</h3>' +
+                '<p class="dr-vault-section-blurb">Reference documents available throughout your engagement.</p>' +
+                '<div class="dr-vault-template-tiles">' +
+                  templates.map(function (t) { return renderDocTile_(t, null, currentGateState); }).join('') +
+                '</div>' +
+              '</section>';
+    }
+
+    // Phase sections in canonical order
+    var phaseOrder = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f', 'all_phases'];
+    var phaseSections = '';
+    for (var p = 0; p < phaseOrder.length; p++) {
+      var phaseCode = phaseOrder[p];
+      var docs = byPhase[phaseCode];
+      if (!docs || docs.length === 0) continue;
+      var isCurrent = (phaseCode === currentGateState);
+      var rank = PHASE_RANK[phaseCode] != null ? PHASE_RANK[phaseCode] : 0;
+      var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+      var stateAttr = isCurrent ? 'current' : (rank < currentRank ? 'completed' : 'future');
+      phaseSections +=
+        '<section class="dr-vault-phase" data-phase="' + escapeHtml(phaseCode) + '" data-state="' + stateAttr + '">' +
+          '<h3 class="dr-vault-phase-title">' +
+            '<span class="dr-vault-phase-code">' + escapeHtml(phaseCode) + '</span> &mdash; ' +
+            escapeHtml(PHASE_LABELS[phaseCode] || phaseCode) +
+          '</h3>' +
+          '<div class="dr-vault-phase-docs">' +
+            docs.map(function (d) { return renderDocTile_(d, uploadsByDocId[d.document_id] || null, currentGateState); }).join('') +
+          '</div>' +
+        '</section>';
+    }
+    if (phaseSections) {
+      html += '<div class="dr-vault-phases">' + phaseSections + '</div>';
+    }
+
+    body.innerHTML = html;
+    bindDocTileHandlers_();
+  }
+
+  // Tile renderer + handlers — basic skeleton in this commit; commits 6-8
+  // populate kind-specific actions (release preview/download, template
+  // download, requirement upload/replace).
+  function renderDocTile_(catalogRow, uploadRow, currentGateState) {
+    var kind = catalogRow.kind || 'release';
+    var status = computeTileStatus_(catalogRow, uploadRow, currentGateState);
+    var statusLabel = tileStatusLabel_(status, uploadRow);
+    var versionTag = (uploadRow && uploadRow.version_number > 1) ? ' v' + uploadRow.version_number : '';
+    return '<article class="dr-doc-tile" data-document-id="' + escapeHtml(catalogRow.document_id) + '" ' +
+                  'data-kind="' + escapeHtml(kind) + '" ' +
+                  'data-status="' + escapeHtml(status) + '"' +
+                  (uploadRow ? ' data-upload-id="' + escapeHtml(uploadRow.upload_id) + '"' : '') + '>' +
+             '<header class="dr-doc-tile-header">' +
+               '<span class="dr-doc-tile-kind-badge" data-kind="' + escapeHtml(kind) + '">' + escapeHtml(kind) + '</span>' +
+               '<span class="dr-doc-tile-status-pill" data-status="' + escapeHtml(status) + '">' + escapeHtml(statusLabel + versionTag) + '</span>' +
+             '</header>' +
+             '<h4 class="dr-doc-tile-name">' + escapeHtml(catalogRow.name || catalogRow.doc_code || 'Document') + '</h4>' +
+             (catalogRow.description
+               ? '<p class="dr-doc-tile-description">' + escapeHtml(catalogRow.description) + '</p>'
+               : '') +
+             '<footer class="dr-doc-tile-actions" data-tile-actions>' +
+               renderTileActionsPlaceholder_(kind, status) +
+             '</footer>' +
+           '</article>';
+  }
+
+  function computeTileStatus_(catalogRow, uploadRow, currentGateState) {
+    var kind = catalogRow.kind || 'release';
+    if (kind === 'template') return 'available';
+    if (kind === 'requirement') {
+      if (uploadRow && uploadRow.status) return uploadRow.status; // 'open' | 'submitted' | 'accepted' | 'declined'
+      return 'open';
+    }
+    // release: phase-gated
+    var requiredPhase = catalogRow.available_from_phase || 'phase_0';
+    var requiredRank = PHASE_RANK[requiredPhase] != null ? PHASE_RANK[requiredPhase] : 0;
+    var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+    return (currentRank >= requiredRank) ? 'available' : 'locked';
+  }
+
+  function tileStatusLabel_(status, uploadRow) {
+    switch (status) {
+      case 'open':       return 'Open — awaiting upload';
+      case 'submitted':  return 'Submitted — awaiting review';
+      case 'accepted':   return 'Accepted';
+      case 'declined':   return 'Declined — see notes';
+      case 'available':  return 'Available';
+      case 'locked':     return 'Locked';
+      default:           return status || '—';
+    }
+  }
+
+  function renderTileActionsPlaceholder_(kind, status) {
+    // Placeholder — actual action buttons land in commits 6-8.
+    return '<span class="dr-doc-tile-actions-pending">Actions wiring up&hellip;</span>';
+  }
+
+  function bindDocTileHandlers_() {
+    // Stub — populated by commits 6-8.
   }
 
   document.addEventListener('DOMContentLoaded', function () {
