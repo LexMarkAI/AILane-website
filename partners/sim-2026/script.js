@@ -3049,6 +3049,7 @@
              (catalogRow.description
                ? '<p class="dr-doc-tile-description">' + escapeHtml(catalogRow.description) + '</p>'
                : '') +
+             (kind === 'template' ? renderTemplateRelevanceCaption_(catalogRow, currentGateState) : '') +
              '<footer class="dr-doc-tile-actions" data-tile-actions>' +
                renderTileActionsPlaceholder_(kind, status) +
              '</footer>' +
@@ -3087,11 +3088,29 @@
         return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="preview">Preview</button>' +
                '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="download">Download</button>';
       }
-      // Locked — no actions
       return '<span class="dr-doc-tile-locked-note">Unlocks at later phase</span>';
     }
-    // Templates / requirements — placeholders, populated in commits 7-8.
+    if (kind === 'template') {
+      // Templates: always available to authenticated partner_contacts (§10.3).
+      // Phase-gating is informational (caption only); Download is always enabled.
+      return '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="download">Download</button>';
+    }
+    // Requirements — populated in commit 8.
     return '<span class="dr-doc-tile-actions-pending">Actions wiring up&hellip;</span>';
+  }
+
+  // Template tiles render an additional "Becomes relevant at phase_X" caption
+  // when available_from_phase is in the future relative to current gate_state.
+  // Mounted in renderDocTile_ via a separate branch when kind === 'template'.
+  function renderTemplateRelevanceCaption_(catalogRow, currentGateState) {
+    var availFrom = catalogRow.available_from_phase || 'phase_0';
+    var availRank = PHASE_RANK[availFrom] != null ? PHASE_RANK[availFrom] : 0;
+    var currentRank = PHASE_RANK[currentGateState] != null ? PHASE_RANK[currentGateState] : 0;
+    if (availRank <= currentRank) return '';
+    var label = PHASE_LABELS[availFrom] || availFrom;
+    return '<p class="dr-doc-tile-relevance-caption">' +
+             'Becomes relevant at <strong>' + escapeHtml(availFrom) + '</strong> &mdash; ' + escapeHtml(label) +
+           '</p>';
   }
 
   function bindDocTileHandlers_() {
