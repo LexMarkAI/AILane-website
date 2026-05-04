@@ -2592,21 +2592,166 @@
     all_phases: 'Always available'
   };
 
-  // ─── Shell injection — commit 1 stubs ──────────────────────
-  // Each renders skeleton DOM only; data + behaviour wired in
-  // subsequent commits. Idempotent (safe to call repeatedly).
+  // ─── Auth helpers (magic-link via Supabase JS client) ─────
+  async function getDealroomSession_() {
+    if (!window.__dealRoomSb) return null;
+    try {
+      var result = await window.__dealRoomSb.auth.getSession();
+      return (result && result.data) ? result.data.session : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function startMagicLinkSignin_(email) {
+    if (!window.__dealRoomSb) throw new Error('Supabase client not ready');
+    try {
+      sessionStorage.setItem('dr_auth_return_url', window.location.href);
+    } catch (e) { /* sessionStorage may be unavailable; non-fatal */ }
+    var redirectTo = window.location.origin + WORKSPACE_ROOT + 'auth-callback/';
+    var result = await window.__dealRoomSb.auth.signInWithOtp({
+      email: email,
+      options: { emailRedirectTo: redirectTo }
+    });
+    if (result && result.error) {
+      throw new Error(result.error.message || 'Could not send magic link.');
+    }
+    return (result && result.data) || {};
+  }
+
+  async function signOutDealroom_() {
+    if (!window.__dealRoomSb) return;
+    try { await window.__dealRoomSb.auth.signOut(); } catch (e) { /* swallow; reload anyway */ }
+    try { sessionStorage.removeItem('dr_auth_return_url'); } catch (e) {}
+    window.__dealRoomUser = null;
+    window.location.reload();
+  }
+
+  function showAuthModal_() {
+    var existing = document.getElementById('dr-auth-modal-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-auth-modal-overlay';
+    overlay.className = 'dr-auth-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'dr-auth-modal-title');
+    overlay.innerHTML =
+      '<div class="dr-auth-modal-card">' +
+        '<h2 id="dr-auth-modal-title" class="dr-auth-modal-title">Sign in to your dealroom</h2>' +
+        '<p class="dr-auth-modal-lede">Enter the email associated with your engagement. We&rsquo;ll send you a magic link.</p>' +
+        '<form id="dr-auth-modal-form" class="dr-auth-modal-form" novalidate>' +
+          '<label for="dr-auth-modal-email" class="dr-auth-modal-label">Email</label>' +
+          '<input type="email" id="dr-auth-modal-email" class="dr-auth-modal-input" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" required>' +
+          '<div class="dr-auth-modal-actions">' +
+            '<button type="button" class="dr-btn-secondary" data-auth-modal-action="cancel">Cancel</button>' +
+            '<button type="submit" class="dr-btn-primary" data-auth-modal-submit>Send magic link</button>' +
+          '</div>' +
+        '</form>' +
+        '<div class="dr-auth-modal-status" data-auth-modal-status aria-live="polite"></div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    function close() { overlay.remove(); }
+
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target === overlay) close();
+    });
+    var cancelBtn = overlay.querySelector('[data-auth-modal-action="cancel"]');
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+
+    var form = overlay.querySelector('#dr-auth-modal-form');
+    var input = overlay.querySelector('#dr-auth-modal-email');
+    var submitBtn = overlay.querySelector('[data-auth-modal-submit]');
+    var statusEl = overlay.querySelector('[data-auth-modal-status]');
+
+    form.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      var email = (input.value || '').trim();
+      if (!email || email.indexOf('@') < 0) {
+        statusEl.innerHTML = '<span class="dr-auth-modal-error">Please enter a valid email address.</span>';
+        try { input.focus(); } catch (e) {}
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending…';
+      statusEl.innerHTML = '';
+      try {
+        await startMagicLinkSignin_(email);
+        statusEl.innerHTML = '<span class="dr-auth-modal-success">Check your email &mdash; link sent to <strong>' + escapeHtml(email) + '</strong>. Click the link to continue.</span>';
+        submitBtn.textContent = 'Resend magic link';
+        submitBtn.disabled = false;
+        input.disabled = true;
+        try { if (window.gtag) window.gtag('event', 'dealroom_magiclink_sent', { clid: CLID }); } catch (e) {}
+      } catch (err) {
+        statusEl.innerHTML = '<span class="dr-auth-modal-error">' + escapeHtml((err && err.message) || 'Could not send magic link.') + '</span>';
+        submitBtn.textContent = 'Send magic link';
+        submitBtn.disabled = false;
+      }
+    });
+
+    setTimeout(function () { try { input.focus(); } catch (e) {} }, 50);
+  }
+
+  // ─── Shell injection ────────────────────────────────────────
+  // Each renders skeleton DOM and (for the auth chip) live data;
+  // vault/tracker data fetch wired in later commits. Idempotent.
 
   function injectAuthChip() {
-    if (document.getElementById('dr-auth-chip')) return;
     var anchor = document.querySelector('.dr-header-right') || document.querySelector('.dr-header');
     if (!anchor) return;
-    var chip = document.createElement('div');
-    chip.id = 'dr-auth-chip';
-    chip.className = 'dr-auth-chip';
-    chip.setAttribute('aria-live', 'polite');
-    chip.innerHTML = '<span class="dr-auth-chip-pending">Loading&hellip;</span>';
-    anchor.appendChild(chip);
+    var chip = document.getElementById('dr-auth-chip');
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.id = 'dr-auth-chip';
+      chip.className = 'dr-auth-chip';
+      chip.setAttribute('aria-live', 'polite');
+      chip.innerHTML = '<span class="dr-auth-chip-pending">&hellip;</span>';
+      anchor.appendChild(chip);
+      // Hide legacy static auth UI (Phase-1B-era #dr-user-email + #dr-signout).
+      // The chip is the new canonical auth surface.
+      var legacyEmail = document.getElementById('dr-user-email');
+      if (legacyEmail) legacyEmail.style.display = 'none';
+      var legacySignout = document.getElementById('dr-signout');
+      if (legacySignout) legacySignout.style.display = 'none';
+    }
+    renderAuthChip_(chip);
   }
+
+  async function renderAuthChip_(chip) {
+    var session = await getDealroomSession_();
+    if (session) {
+      var email = (session.user && session.user.email) || 'signed in';
+      chip.classList.add('dr-auth-chip-signed-in');
+      chip.classList.remove('dr-auth-chip-signed-out');
+      chip.innerHTML =
+        '<span class="dr-auth-chip-email" title="' + escapeHtml(email) + '">' + escapeHtml(email) + '</span>' +
+        '<button type="button" class="dr-auth-chip-btn" data-auth-action="signout">Sign out</button>';
+    } else {
+      chip.classList.add('dr-auth-chip-signed-out');
+      chip.classList.remove('dr-auth-chip-signed-in');
+      chip.innerHTML =
+        '<button type="button" class="dr-auth-chip-btn dr-auth-chip-btn-primary" data-auth-action="signin">Sign in</button>';
+    }
+    var btn = chip.querySelector('[data-auth-action]');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        var action = btn.getAttribute('data-auth-action');
+        if (action === 'signin') showAuthModal_();
+        else if (action === 'signout') signOutDealroom_();
+      });
+    }
+  }
+
+  // Global accessor for vault/tracker (and Brief α Eileen panel) to
+  // consume current auth state without each module duplicating logic.
+  window.__dealRoomAuth = {
+    getSession: getDealroomSession_,
+    isSignedIn: async function () { return !!(await getDealroomSession_()); },
+    showSigninModal: showAuthModal_,
+    signOut: signOutDealroom_
+  };
 
   function injectPhaseTracker() {
     if (document.getElementById('dr-phase-tracker')) return;
