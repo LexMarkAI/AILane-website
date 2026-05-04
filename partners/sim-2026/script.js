@@ -1587,13 +1587,94 @@
            '</fieldset>' + l2Block;
   }
 
-  // ─── Stub axis rows for commits 3-5 ────────────────────────────────
+  // ─── Geography axis (L1 / L2 / L3 drill-down) ──────────────────────
+  var GEO_L2_LABELS = { england: 'England', scotland: 'Scotland', wales: 'Wales', ni: 'Northern Ireland' };
+  var GEO_L3_LABELS = {
+    london: 'London', south_east: 'South East', north_west: 'North West',
+    yorkshire_humber: 'Yorkshire and the Humber', west_midlands: 'West Midlands',
+    east_midlands: 'East Midlands', south_west: 'South West',
+    east_of_england: 'East of England', north_east: 'North East'
+  };
+
+  function humaniseGeographySummary_() {
+    var g = SCOPE_STATE.geography;
+    if (g.level === 'L1' || (g.values || []).length === 0) return 'All UK';
+    if (g.level === 'L2') {
+      if (g.values.length === 4) return 'All UK countries';
+      if (g.values.length === 1) return GEO_L2_LABELS[g.values[0]] || g.values[0];
+      return g.values.length + ' countries';
+    }
+    if (g.level === 'L3') {
+      if (g.values.length === 1) return GEO_L3_LABELS[g.values[0]] || g.values[0];
+      return 'England (' + g.values.length + ' region' + (g.values.length === 1 ? '' : 's') + ')';
+    }
+    return 'All UK';
+  }
+
   function renderGeographyAxisRow_() {
+    var meta = getAxisMeta_('geography') || { displayName: 'Geography', bumpLabel: '+3% bump', levels: {} };
+    var summary = humaniseGeographySummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'geography') ? renderGeographyExpanded_(meta) : '';
     return renderAxisRowFrame_({
-      code: 'geography', displayName: 'Geography', bumpLabel: '+3% bump',
-      summary: 'All UK',
-      expandedHtml: '<div class="dr-axis-coming-soon">Geography drill-down available in commit 3.</div>'
+      code: 'geography', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
     });
+  }
+
+  function renderGeographyExpanded_(meta) {
+    var g = SCOPE_STATE.geography;
+    var levelOpts = [
+      { code: 'L1', label: 'L1 — All UK' },
+      { code: 'L2', label: 'L2 — Country' },
+      { code: 'L3', label: 'L3 — Region (English ITL1)' }
+    ];
+    var levelChips = '';
+    for (var i = 0; i < levelOpts.length; i++) {
+      var act = (g.level === levelOpts[i].code) ? ' is-active' : '';
+      levelChips += '<button type="button" class="dr-axis-level-chip' + act + '" data-geo-level="' + levelOpts[i].code + '">' + escapeHtml(levelOpts[i].label) + '</button>';
+    }
+    levelChips += '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="Postcode area drill-down — by-request only">L4 — Coming soon</button>';
+    levelChips += '<button type="button" class="dr-axis-level-chip is-disabled" disabled aria-disabled="true" title="Postcode district drill-down — by-request only">L5 — Coming soon</button>';
+
+    var valuesBlock = '';
+    if (g.level === 'L2') {
+      var L2 = (meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+      var boxes = '';
+      for (var j = 0; j < L2.length; j++) {
+        var v = L2[j];
+        var ch = (g.values.indexOf(v.value_code) !== -1) ? ' checked' : '';
+        var idC = (v.identity_count != null) ? Number(v.identity_count).toLocaleString('en-GB') + ' employers' : '';
+        boxes += '<label class="dr-axis-checkbox">' +
+                   '<input type="checkbox" data-geo-l2-input value="' + escapeHtml(v.value_code) + '"' + ch + '>' +
+                   '<span class="dr-axis-checkbox-label">' + escapeHtml(v.display_label || v.value_code) + '</span>' +
+                   (idC ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(idC) + '</span>' : '') +
+                 '</label>';
+      }
+      valuesBlock = '<fieldset class="dr-axis-fieldset">' +
+                      '<legend>Country</legend>' +
+                      '<div class="dr-axis-checkbox-grid">' + (boxes || '<div class="dr-axis-empty">No L2 values returned.</div>') + '</div>' +
+                    '</fieldset>';
+    } else if (g.level === 'L3') {
+      var L3 = (meta.levels && meta.levels.L3) ? meta.levels.L3 : [];
+      var b = '';
+      for (var k = 0; k < L3.length; k++) {
+        var w = L3[k];
+        var ch2 = (g.values.indexOf(w.value_code) !== -1) ? ' checked' : '';
+        var idC2 = (w.identity_count != null) ? Number(w.identity_count).toLocaleString('en-GB') + ' employers' : '';
+        b += '<label class="dr-axis-checkbox">' +
+               '<input type="checkbox" data-geo-l3-input value="' + escapeHtml(w.value_code) + '"' + ch2 + '>' +
+               '<span class="dr-axis-checkbox-label">' + escapeHtml(w.display_label || w.value_code) + '</span>' +
+               (idC2 ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(idC2) + '</span>' : '') +
+             '</label>';
+      }
+      valuesBlock = '<fieldset class="dr-axis-fieldset">' +
+                      '<legend>Region (English ITL1)</legend>' +
+                      '<button type="button" class="dr-axis-back-link" data-geo-back-l2>« Back to country level</button>' +
+                      '<div class="dr-axis-checkbox-grid">' + (b || '<div class="dr-axis-empty">No L3 values returned.</div>') + '</div>' +
+                    '</fieldset>';
+    }
+
+    return '<div class="dr-axis-level-selector"><span class="dr-axis-level-label">Granularity:</span>' + levelChips + '</div>' + valuesBlock;
   }
   function renderIndustryAxisRow_() {
     return renderAxisRowFrame_({
@@ -1691,6 +1772,55 @@
         recomputeDebounced_();
       });
     })(l2Inputs[k]);
+
+    // Geography level selector (L1 / L2 / L3)
+    var geoLevelBtns = document.querySelectorAll('[data-geo-level]');
+    for (var gl = 0; gl < geoLevelBtns.length; gl++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var lvl = btn.getAttribute('data-geo-level');
+        SCOPE_STATE.geography.level = lvl;
+        SCOPE_STATE.geography.values = [];
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(geoLevelBtns[gl]);
+
+    // Geography L2 country checkboxes
+    var geoL2 = document.querySelectorAll('[data-geo-l2-input]');
+    for (var g2 = 0; g2 < geoL2.length; g2++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.geography.values.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.geography.values = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(geoL2[g2]);
+
+    // Geography L3 region checkboxes
+    var geoL3 = document.querySelectorAll('[data-geo-l3-input]');
+    for (var g3 = 0; g3 < geoL3.length; g3++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.geography.values.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.geography.values = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(geoL3[g3]);
+
+    // Geography back-to-L2 affordance
+    var geoBack = document.querySelector('[data-geo-back-l2]');
+    if (geoBack) geoBack.addEventListener('click', function () {
+      SCOPE_STATE.geography.level = 'L2';
+      SCOPE_STATE.geography.values = [];
+      renderAxisListDom_();
+      recomputeDebounced_();
+    });
   }
 
   function handleResetAllAxes_() {
