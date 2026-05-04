@@ -93,6 +93,29 @@
   var CLID = 'sim-2026-001';
   var WORKSPACE_ROOT = '/partners/sim-2026/';
 
+  // ─── Sandbox auth bypass (AMD-111-113 frontend) ─────────
+  // The sim-2026-001 surface is a public sandbox harness; pricing RPCs are anon-accessible
+  // and the configurator must render immediately on cold load with zero auth flow. Real
+  // deal-room CLIDs (any not in SANDBOX_CLIDS) retain the full magic-link auth gate.
+  // Auth-required UI (counter-proposal submit, pipeline modal, my-submissions) is hidden
+  // entirely in sandbox mode and replaced with a small "[disabled in sandbox]" note.
+  var SANDBOX_CLIDS = ['sim-2026-001'];
+  var IS_SANDBOX = SANDBOX_CLIDS.indexOf(CLID) !== -1;
+
+  // Helper: build Supabase request headers. In sandbox mode, returns apikey-only headers
+  // (no Authorization). In production mode, includes Authorization: Bearer <user.token>
+  // when the deal-room user has a token. Pass `extra` to merge additional headers
+  // (e.g. 'Accept', 'Prefer'); the helper always sets apikey + Content-Type.
+  function getAuthHeaders_(extra) {
+    var h = { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+    if (!IS_SANDBOX) {
+      var user = window.__dealRoomUser;
+      if (user && user.token) h['Authorization'] = 'Bearer ' + user.token;
+    }
+    if (extra) for (var k in extra) h[k] = extra[k];
+    return h;
+  }
+
   var GATE_ORDER = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
   var GATE_DISPLAY = {
     phase_0: 'pre-engagement',
@@ -374,8 +397,25 @@
   function revealPage() {
     var overlay = document.getElementById('dr-auth-overlay');
     if (overlay) overlay.remove();
-    var emailEl = document.getElementById('dr-user-email');
-    if (emailEl && window.__dealRoomUser) emailEl.textContent = window.__dealRoomUser.email;
+    if (IS_SANDBOX) {
+      // Sandbox: hide auth UI elements (email + sign-out) and surface a small
+      // "SANDBOX — no authentication required" badge in their place.
+      var emailEl = document.getElementById('dr-user-email');
+      if (emailEl) emailEl.style.display = 'none';
+      var signoutEl = document.getElementById('dr-signout');
+      if (signoutEl) signoutEl.style.display = 'none';
+      var headerRight = document.querySelector('.dr-header-right');
+      if (headerRight && !document.getElementById('dr-sandbox-badge')) {
+        var badge = document.createElement('span');
+        badge.id = 'dr-sandbox-badge';
+        badge.className = 'dr-sandbox-badge';
+        badge.textContent = 'SANDBOX — no authentication required';
+        headerRight.appendChild(badge);
+      }
+    } else {
+      var emailEl2 = document.getElementById('dr-user-email');
+      if (emailEl2 && window.__dealRoomUser) emailEl2.textContent = window.__dealRoomUser.email;
+    }
     document.body.style.visibility = 'visible';
     injectSubPageNav();
     injectEileenPanel();
@@ -389,6 +429,18 @@
   }
 
   function startGuard() {
+    // ─── SANDBOX AUTH BYPASS ─────────────────────────────
+    // Sandbox CLIDs (sim-2026-001) skip the magic-link gate entirely and render with
+    // anon-only Supabase access. Pricing RPCs are anon-accessible; auth-required surfaces
+    // (submit / pipeline / my-submissions) are hidden in sandbox via IS_SANDBOX checks.
+    if (IS_SANDBOX) {
+      if (window.supabase && window.supabase.createClient) {
+        window.__dealRoomSb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      window.__dealRoomUser = { id: null, email: null, tier: 'sandbox', token: null, role: 'sandbox', clid: CLID };
+      return revealPage();
+    }
+
     if (!window.supabase || !window.supabase.createClient) return showAuthPanel('init_error');
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window.__dealRoomSb = sb;
@@ -860,7 +912,7 @@
   // Slider/modifier user input clears ACTIVE_PRESET (transitions to "custom").
   var CONFIG_STATE = {
     scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_scope: 'mixed' },
+    modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_segments: ['private', 'public', 'third'] },
     rationale: '', timing: '', urgency: 'standard'
   };
   var ACTIVE_PRESET = null;  // 'pkg1' | 'pkg2' | 'pkg3' | 'pkg4' | null (custom or reset)
@@ -873,6 +925,13 @@
   // consume the same source-of-truth (Director institutional concern: imperative el.max
   // would be wiped on preset click / modifier toggle re-render).
   var CEILINGS = null;
+  // AMD-111 — per-segment ceilings + modifier_pct populated by loadCeilings on mount from
+  // get_pricing_ceilings v2 segments object. Sum of identity_ceiling across segments is
+  // the unrestricted estate identity universe (78,699 baseline). Module-scope so the
+  // identity-slider clamp re-computes from a single source of truth on every checkbox
+  // change. Defensive v1 fallback (legacy array shape) leaves this null and
+  // getSectorAwareIdentityCeiling falls back to a hard-coded segment table.
+  var SEGMENT_CEILINGS = null;
   // AMD-109 — launch-partner status loaded once on mount via get_partner_launch_status RPC.
   // is_launch_partner=true → badge renders + CONFIG_STATE.modifiers.clid set for authoritative
   // function-side discount. Silent on null/false per RRI v1.0 (system explains presence,
@@ -913,47 +972,111 @@
     return '£' + Math.round(Number(pence) / 100).toLocaleString('en-GB');
   }
 
-  // AMD-110 — fetch live ceilings from get_pricing_ceilings RPC at mount time.
+  // AMD-110 + AMD-111 — fetch live ceilings from get_pricing_ceilings RPC at mount time.
   // Hard-coded fallback per CCI v1.0 binding (never silent-fail to unbounded sliders).
+  // v2 contract (AMD-111): RPC returns a single object { tiers: [...], segments: {private, public, third} }.
+  // v1 legacy: RPC returned an Array<{tier_code, real_ceiling}>. The defensive parser below
+  // accepts both shapes; the legacy branch logs a single console.warn so a staged-rollout
+  // regression is visible without breaking the surface. SEGMENT_CEILINGS is populated only
+  // on the v2 branch — under v1, getSectorAwareIdentityCeiling falls back to the table below.
   async function loadCeilings(token) {
-    var fallback = {
+    var tierFallback = {
       identity: 78699, tribunal_exposure: 80124, outcome_intelligence: 80124,
       full_acei: 18552, full_enrichment: 13588, premium: 6000
     };
+    // AMD-111 segment-ceiling fallback table (sums to identity 78,699):
+    var segmentFallback = {
+      private: { identity_ceiling: 68742, modifier_pct: -2.0 },
+      public:  { identity_ceiling: 8956,  modifier_pct: 50.0 },
+      third:   { identity_ceiling: 1001,  modifier_pct: 25.0 }
+    };
+    function applyTierFallback(map) {
+      var T = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
+      for (var t = 0; t < T.length; t++) {
+        if (map[T[t]] == null) map[T[t]] = tierFallback[T[t]];
+      }
+      return map;
+    }
     try {
+      var hdrs = { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' };
+      // Production: include Authorization. Sandbox (token == null): anon-only headers
+      // — the get_pricing_ceilings RPC is anon-accessible per Director.
+      if (token) hdrs['Authorization'] = 'Bearer ' + token;
       var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_pricing_ceilings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/json'
-        },
+        headers: hdrs,
         body: '{}'
       });
       if (!res.ok) {
-        console.warn('[AMD-110] get_pricing_ceilings RPC returned ' + res.status + '; using fallback');
-        return fallback;
+        console.warn('[AMD-110/111] get_pricing_ceilings RPC returned ' + res.status + '; using full fallback');
+        SEGMENT_CEILINGS = segmentFallback;
+        return tierFallback;
       }
-      var rows = await res.json();
-      if (!Array.isArray(rows)) {
-        console.warn('[AMD-110] get_pricing_ceilings non-array response; using fallback');
-        return fallback;
-      }
-      var map = {};
-      for (var i = 0; i < rows.length; i++) {
-        if (rows[i] && rows[i].tier_code && rows[i].real_ceiling != null) {
-          map[rows[i].tier_code] = Number(rows[i].real_ceiling);
+      var body = await res.json();
+
+      // v2 shape: object with `tiers` (array OR object keyed by tier_code) + `segments` object
+      if (body && !Array.isArray(body) && (body.tiers || body.segments)) {
+        var map2 = {};
+        if (Array.isArray(body.tiers)) {
+          for (var ti = 0; ti < body.tiers.length; ti++) {
+            var row = body.tiers[ti];
+            if (row && row.tier_code && row.real_ceiling != null) {
+              map2[row.tier_code] = Number(row.real_ceiling);
+            }
+          }
+        } else if (body.tiers && typeof body.tiers === 'object') {
+          // Defensive: tiers returned as object keyed by tier_code rather than array
+          var tk = Object.keys(body.tiers);
+          for (var tj = 0; tj < tk.length; tj++) {
+            var tv = body.tiers[tk[tj]];
+            var rc = (tv && tv.real_ceiling != null) ? tv.real_ceiling
+                   : (typeof tv === 'number' ? tv : null);
+            if (rc != null) map2[tk[tj]] = Number(rc);
+          }
         }
+        if (body.segments && typeof body.segments === 'object') {
+          var seg = {};
+          var KEYS = ['private', 'public', 'third'];
+          for (var si = 0; si < KEYS.length; si++) {
+            var k = KEYS[si];
+            var s = body.segments[k];
+            if (s && s.identity_ceiling != null) {
+              seg[k] = {
+                identity_ceiling: Number(s.identity_ceiling),
+                modifier_pct: (s.modifier_pct != null) ? Number(s.modifier_pct) : segmentFallback[k].modifier_pct
+              };
+            } else {
+              seg[k] = segmentFallback[k];
+            }
+          }
+          SEGMENT_CEILINGS = seg;
+        } else {
+          SEGMENT_CEILINGS = segmentFallback;
+        }
+        return applyTierFallback(map2);
       }
-      var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
-      for (var t = 0; t < TIERS.length; t++) {
-        if (map[TIERS[t]] == null) map[TIERS[t]] = fallback[TIERS[t]];
+
+      // v1 legacy shape: bare Array<{tier_code, real_ceiling}> — staged-rollout fallback
+      if (Array.isArray(body)) {
+        console.warn('[AMD-111] get_pricing_ceilings returned v1 array shape; segments fallback in use (staged-rollout detection).');
+        var map1 = {};
+        for (var i = 0; i < body.length; i++) {
+          if (body[i] && body[i].tier_code && body[i].real_ceiling != null) {
+            map1[body[i].tier_code] = Number(body[i].real_ceiling);
+          }
+        }
+        SEGMENT_CEILINGS = segmentFallback;
+        return applyTierFallback(map1);
       }
-      return map;
+
+      // Unrecognised shape
+      console.warn('[AMD-110/111] get_pricing_ceilings response shape unrecognised; using full fallback');
+      SEGMENT_CEILINGS = segmentFallback;
+      return tierFallback;
     } catch (err) {
-      console.warn('[AMD-110] loadCeilings error; using fallback:', err);
-      return fallback;
+      console.warn('[AMD-110/111] loadCeilings error; using full fallback:', err);
+      SEGMENT_CEILINGS = segmentFallback;
+      return tierFallback;
     }
   }
 
@@ -985,15 +1108,21 @@
     }
   }
 
-  // AMD-110 + AMD-108 — single source of truth for slider max calculation.
+  // AMD-110 + AMD-111 — single source of truth for slider max calculation.
   // Composes (1) real_ceiling per layer, (2) nested-depth cascading (parent
-  // layer count caps child), (3) sector_public_only override (521 cap on
-  // enrichment layers). Used by renderPanel2Scope_ (max attr at render time)
-  // AND applyAllCaps (state + DOM clamp post-input). Re-render-safe.
+  // layer count caps child), (3) sector-aware identity cap on the identity layer
+  // (sum of selected segments' identity_ceilings — supersedes the AMD-108
+  // public_only 521 short-circuit, which is removed under AMD-111 multi-select).
+  // Used by renderPanel2Scope_ (max attr at render time) AND applyAllCaps
+  // (state + DOM clamp post-input). Re-render-safe.
   function computeEffectiveMax_(layer) {
     if (!CEILINGS) return 78699;
     var realCap = (CEILINGS[layer] != null) ? CEILINGS[layer] : 78699;
-    if (layer === 'identity') return realCap;          // identity excluded from sector cap (sector neutrality of baseline, AMD-108)
+    if (layer === 'identity') {
+      // AMD-111 — identity ceiling is the sum of selected-segment ceilings.
+      // Other layers cascade from this clamped identity value via the parentByLayer map below.
+      return Math.min(realCap, getSectorAwareIdentityCeiling());
+    }
     var parentByLayer = {
       tribunal_exposure: CONFIG_STATE.scope.identity,
       outcome_intelligence: CONFIG_STATE.scope.tribunal_exposure,
@@ -1003,21 +1132,96 @@
     };
     var parentVal = parentByLayer[layer];
     if (parentVal == null) parentVal = realCap;
-    var effectiveMax = Math.min(realCap, parentVal);
-    // AMD-108 — sector_public_only 521 cap COMPOSES with parent cascade + real_ceiling.
-    // Doctrine (Director, Fix-pack-004 pre-§6): modifier-driven caps compose, never replace.
-    // Earlier short-circuit pattern was self-corrected before §6 wiring exposed UI/RPC divergence.
-    if (CONFIG_STATE.modifiers.sector_scope === 'public_only') {
-      effectiveMax = Math.min(effectiveMax, 521);
+    return Math.min(realCap, parentVal);
+  }
+
+  // AMD-111 — sector-aware identity ceiling = sum of identity_ceiling for each selected
+  // segment. SEGMENT_CEILINGS is populated by loadCeilings (v2 path) or its hard-coded
+  // fallback table (v1 path / RPC failure). Returns 78,699 baseline if no segment data is
+  // available at all (defensive — should never happen post-mount).
+  function getSectorAwareIdentityCeiling() {
+    var segs = (CONFIG_STATE.modifiers && CONFIG_STATE.modifiers.sector_segments) || [];
+    if (!SEGMENT_CEILINGS) return 78699;
+    var sum = 0;
+    for (var i = 0; i < segs.length; i++) {
+      var s = SEGMENT_CEILINGS[segs[i]];
+      if (s && s.identity_ceiling != null) sum += Number(s.identity_ceiling);
     }
-    return effectiveMax;
+    // No segment selected → treat as 0 (slider clamps to 0; pre-flight guard blocks submit
+    // and recompute via validateSegmentSelection).
+    return sum;
+  }
+
+  // AMD-111 — checked-segments helper. Used by validateSegmentSelection,
+  // updateComposedBadge, getSectorAwareIdentityCeiling indirectly (via CONFIG_STATE),
+  // and the checkbox-change handler. Reads DOM directly (not CONFIG_STATE) so it can be
+  // called mid-event before state is mutated.
+  function getSelectedSegments() {
+    var inputs = document.querySelectorAll('input[name="sector_segments"]:checked');
+    var out = [];
+    for (var i = 0; i < inputs.length; i++) out.push(inputs[i].value);
+    return out;
+  }
+
+  // AMD-111 — pre-flight guard for both submit AND live-pricing recompute paths.
+  // Surfaces inline error on the segment fieldset; returns false → caller short-circuits.
+  function validateSegmentSelection() {
+    var segs = (CONFIG_STATE.modifiers && CONFIG_STATE.modifiers.sector_segments) || [];
+    var fieldset = document.querySelector('[data-panel="sector-segments"]');
+    var errEl = fieldset ? fieldset.querySelector('[data-segment-error]') : null;
+    if (segs.length === 0) {
+      if (fieldset) fieldset.classList.add('dr-segment-error');
+      if (errEl) errEl.textContent = 'At least one segment must be selected.';
+      return false;
+    }
+    if (fieldset) fieldset.classList.remove('dr-segment-error');
+    if (errEl) errEl.textContent = '';
+    return true;
+  }
+
+  // AMD-111 — composed-modifier badge text. Single-segment + all-three cases use static
+  // labels per the brief §4.4 table; two-segment cases prefer the live sector_composed_pct
+  // from the latest pricing_quote_function response. Pair labels follow the brief table:
+  // Private+Public → "Mixed positioning"; Private+Third / Public+Third → explicit pair.
+  function updateComposedBadge() {
+    var valueEl = document.querySelector('[data-composed-value]');
+    if (!valueEl) return;
+    var segs = (CONFIG_STATE.modifiers && CONFIG_STATE.modifiers.sector_segments) || [];
+    var text;
+    if (segs.length === 0) {
+      text = '— select at least one segment —';
+    } else if (segs.length === 3) {
+      text = 'Baseline (all three selected)';
+    } else if (segs.length === 1) {
+      if (segs[0] === 'private') text = 'Private baseline (−2%)';
+      else if (segs[0] === 'public') text = 'Public specialty (+50%)';
+      else if (segs[0] === 'third') text = 'Third specialty (+25%)';
+      else text = 'Single segment';
+    } else {
+      var sorted = segs.slice().sort();
+      var hasP = sorted.indexOf('private') !== -1;
+      var hasU = sorted.indexOf('public') !== -1;
+      var hasT = sorted.indexOf('third') !== -1;
+      var pairLabel = (hasP && hasU) ? 'Mixed positioning'
+                    : (hasP && hasT) ? 'Private + Third'
+                    : (hasU && hasT) ? 'Public + Third'
+                    : 'Mixed positioning';
+      var composedPct = (LAST_QUOTE && LAST_QUOTE.sector_composed_pct != null) ? Number(LAST_QUOTE.sector_composed_pct) : null;
+      if (composedPct != null && !isNaN(composedPct)) {
+        var sign = composedPct > 0 ? '+' : (composedPct < 0 ? '−' : '');
+        text = pairLabel + ' (composed: ~' + sign + Math.abs(composedPct).toFixed(1) + '%)';
+      } else {
+        text = pairLabel + ' (composed positioning)';
+      }
+    }
+    valueEl.textContent = text;
   }
 
   // AMD-110 + AMD-108 — enforce computeEffectiveMax_ across CONFIG_STATE.scope
   // (truth) and DOM slider input.max attributes (HTML constraint). Iterates
   // parent → child so each layer's effective max sees clamped parent values.
   // Called from: populateConfigurator (initial), applyPreset (post-preset),
-  // slider input handler (post-edit), sector_scope toggle (§6 — when added).
+  // slider input handler (post-edit), sector_segments checkbox change (AMD-111).
   function applyAllCaps() {
     var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
     for (var i = 0; i < TIERS.length; i++) {
@@ -1033,16 +1237,21 @@
         if (domVal > maxAllowed) el.value = String(maxAllowed);
       }
     }
+    // AMD-111 fixup-2 Issue 3 — keep visible max-hint readouts in sync with caps
+    if (typeof updateLayerMaxHints_ === 'function') updateLayerMaxHints_();
   }
 
   async function populateConfigurator(user) {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
-    if (!user || !user.token) return;
+    // In production a token is required; in sandbox the configurator runs anon-only on
+    // pricing RPCs (Director: pricing_quote_function + get_pricing_ceilings are anon-
+    // accessible). Other auth-required REST calls below are skipped in sandbox.
+    if (!IS_SANDBOX && (!user || !user.token)) return;
 
     CONFIG_STATE = {
       scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
-      modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_scope: 'mixed' },
+      modifiers: { duns_match: false, refresh: 'quarterly', exclusivity: 'none', term_years: 1, sector_segments: ['private', 'public', 'third'] },
       rationale: '', timing: '', urgency: 'standard'
     };
     ACTIVE_PRESET = null;
@@ -1051,14 +1260,20 @@
     // Header preset chip strip retired (Fix 3 / Interpretation A) — Panel 1 binds at render time.
 
     try {
-      var hdrs = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + user.token, 'Accept': 'application/json' };
+      var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+      // In sandbox: skip auth-required RPCs (gate-state, LP status). Pricing RPCs and
+      // pricing-metadata REST queries either work anon (per Director) or degrade
+      // gracefully via the in-code fallback paths (TIERS_META → getTierData_ default,
+      // CEILINGS → loadCeilings hard-coded fallback, FEATURE_FLAGS → empty {} treated
+      // as enabled).
+      var sandboxToken = IS_SANDBOX ? null : user.token;
       var results = await Promise.all([
         fetch(SUPABASE_URL + '/rest/v1/pricing_tier?select=tier_code,display_name,delta_rate_pence,cumulative_rate_pence,is_enrichment_layer,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/pricing_modifier?select=modifier_code,modifier_type,display_name,value_pence,value_pct,applies_to,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/dealroom_feature_flags?select=feature_key,enabled', { headers: hdrs }),
-        fetchClidGateState(user.token, CLID),
-        loadCeilings(user.token),
-        loadLaunchPartnerStatus(user.token)
+        IS_SANDBOX ? Promise.resolve('phase_0') : fetchClidGateState(sandboxToken, CLID),
+        loadCeilings(sandboxToken),
+        IS_SANDBOX ? Promise.resolve(null) : loadLaunchPartnerStatus(sandboxToken)
       ]);
       if (results[0].ok) TIERS_META = await results[0].json();
       if (results[1].ok) MODIFIERS_META = await results[1].json();
@@ -1069,7 +1284,7 @@
       }
       var gateState = results[3] || 'phase_0';
       CEILINGS = results[4];                       // AMD-110 — populated before first render
-      LAUNCH_PARTNER_STATUS = results[5];          // AMD-109 — populated before first render
+      LAUNCH_PARTNER_STATUS = results[5];          // AMD-109 — populated before first render (null in sandbox)
       // AMD-109 — pre-first-quote synchronisation: set clid in modifiers BEFORE computeQuote
       // fires so the first quote already includes the LP discount (avoids £1,448,696 →
       // £1,303,826 flicker). Silent on non-LP users — no clid sent, no LP path triggered.
@@ -1086,18 +1301,62 @@
     }
   }
 
+  // AMD-111 fixup-2 — preset-load-time clamp. The preset matrix is hard-coded (see
+  // PKG1–PKG4_PRESET) and may carry layer values that were valid when authored but exceed
+  // the LIVE real_ceiling now returned by get_pricing_ceilings. Without this clamp,
+  // applyPreset would write the preset-as-authored into CONFIG_STATE; applyAllCaps would
+  // then attempt a re-clamp via the parent cascade, but that cascade reads the parent's
+  // CURRENT (just-written, unclamped) value — so a parent that exceeds its own real_ceiling
+  // does not constrain the child. The fix: clamp every layer's preset value against
+  // MIN(real_ceiling, sector-aware identity ceiling for the identity layer specifically,
+  // parent's already-clamped value) BEFORE assignment. This is the load-bearing guard
+  // that prevents pricing_quote_function v3 from rejecting the payload.
+  function clampPresetScopeToCeilings_(presetSegs) {
+    // Per-segment-aware identity ceiling, computed from a temporary segments view rather
+    // than CONFIG_STATE (which is mid-rebuild during applyPreset).
+    var idCeilingFromSegs = (function () {
+      if (!SEGMENT_CEILINGS) return 78699;
+      var sum = 0;
+      for (var i = 0; i < presetSegs.length; i++) {
+        var s = SEGMENT_CEILINGS[presetSegs[i]];
+        if (s && s.identity_ceiling != null) sum += Number(s.identity_ceiling);
+      }
+      return sum;
+    })();
+    // Resolve real_ceiling per layer; CEILINGS may not yet be populated on very early calls.
+    function realCap(layer) {
+      if (CEILINGS && CEILINGS[layer] != null) return Number(CEILINGS[layer]);
+      var hard = { identity: 78699, tribunal_exposure: 80124, outcome_intelligence: 80124, full_acei: 18552, full_enrichment: 13588, premium: 6000 };
+      return hard[layer];
+    }
+    return function (preset) {
+      var s = preset.scope || {};
+      var clamped = {};
+      clamped.identity = Math.min(Number(s.identity || 0), realCap('identity'), idCeilingFromSegs);
+      clamped.tribunal_exposure = Math.min(Number(s.tribunal_exposure || 0), realCap('tribunal_exposure'), clamped.identity);
+      clamped.outcome_intelligence = Math.min(Number(s.outcome_intelligence || 0), realCap('outcome_intelligence'), clamped.tribunal_exposure);
+      clamped.full_acei = Math.min(Number(s.full_acei || 0), realCap('full_acei'), clamped.outcome_intelligence);
+      clamped.full_enrichment = Math.min(Number(s.full_enrichment || 0), realCap('full_enrichment'), clamped.full_acei);
+      clamped.premium = Math.min(Number(s.premium || 0), realCap('premium'), clamped.full_enrichment);
+      return clamped;
+    };
+  }
+
   function applyPreset(preset, presetCode) {
+    // AMD-111 fixup-2 — sector_segments: resolve first so the identity-ceiling clamp can
+    // use the correct sector-aware sum.
+    var segs = (preset.modifiers.sector_segments && preset.modifiers.sector_segments.slice()) || ['private', 'public', 'third'];
+    // Preset-load-time clamp (Issue 1 §a) BEFORE writing to CONFIG_STATE.
+    var clampedScope = clampPresetScopeToCeilings_(segs)(preset);
     CONFIG_STATE = {
-      scope: {
-        identity: preset.scope.identity, tribunal_exposure: preset.scope.tribunal_exposure,
-        outcome_intelligence: preset.scope.outcome_intelligence, full_acei: preset.scope.full_acei,
-        full_enrichment: preset.scope.full_enrichment, premium: preset.scope.premium
-      },
+      scope: clampedScope,
       modifiers: {
         duns_match: preset.modifiers.duns_match, refresh: preset.modifiers.refresh,
         exclusivity: preset.modifiers.exclusivity, term_years: preset.modifiers.term_years,
-        // AMD-108 — preset.modifiers.sector_scope falls back to 'mixed' (PRESETs are commercial-data, sector-neutral)
-        sector_scope: preset.modifiers.sector_scope || 'mixed',
+        // AMD-111 — preset.modifiers.sector_segments falls back to all three (PRESETs are
+        // commercial-data, sector-neutral). Whole-array assignment so the reference is fresh
+        // (avoids accidentally aliasing the preset constant's array).
+        sector_segments: segs,
         // AMD-109 — preserve clid through preset replacement (set on mount if user is launch partner;
         // undefined for non-LP users → JSON.stringify omits it → function v2 skips LP path)
         clid: CONFIG_STATE.modifiers.clid
@@ -1106,7 +1365,7 @@
     };
     // presetCode null when user clicks Reset (no preset is selected after reset)
     ACTIVE_PRESET = (presetCode === 'pkg1' || presetCode === 'pkg2' || presetCode === 'pkg3' || presetCode === 'pkg4') ? presetCode : null;
-    applyAllCaps();  // AMD-110 — defensive enforcement (presets respect ceilings, but cascade order matters if ceilings ever change)
+    applyAllCaps();  // AMD-110 — belt-and-braces re-clamp after preset (idempotent on already-clamped state)
     renderConfigurator();
     computeQuote();
     try { if (window.gtag) window.gtag('event', 'configurator_preset_applied', { clid: CLID, preset: presetCode || 'reset' }); } catch (e) { /* swallow */ }
@@ -1115,8 +1374,17 @@
   function renderConfigurator() {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
-    anchor.innerHTML = renderPanel1Packages_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
-    bindConfiguratorRuntimeHandlers_();
+    // Defensive: if any panel render throws, surface a visible error in the anchor
+    // (instead of silently rendering an incomplete panel set) and log the underlying
+    // exception to the console so a regression is diagnosable without a debugger.
+    try {
+      var html = renderPanel1Packages_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
+      anchor.innerHTML = html;
+      bindConfiguratorRuntimeHandlers_();
+    } catch (err) {
+      console.error('[AMD-111-113] renderConfigurator threw — panel set may be incomplete:', err);
+      anchor.innerHTML = '<div class="dr-config-empty-error">Configurator render error. Please refresh the page; if the issue persists, contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
+    }
   }
 
   function getTierData_() {
@@ -1163,22 +1431,26 @@
   function renderPanel2Scope_() {
     // Fix 3 / Interpretation A — tier-floor disable logic retired. All 6 layer
     // inputs always-enabled. getTierData_ now provides layer rate metadata only.
+    // AMD-111 fixup-2 Issue 3 — per-layer "max: N,NNN" hint reads live from
+    // computeEffectiveMax_ and updates reactively when sector segments change
+    // or parent layer values change (via updateLayerMaxHints_).
     var tiers = getTierData_();
     var inputs = '';
     for (var i = 0; i < tiers.length; i++) {
       var tier = tiers[i];
       var rate = '+£' + Math.round(Number(tier.delta_rate_pence || 0) / 100) + '/employer-year';
       var current = CONFIG_STATE.scope[tier.tier_code] || 0;
-      // AMD-110 + AMD-108 — max attribute consumed from CEILINGS via computeEffectiveMax_
-      // (re-render-safe: re-set on every render from module-scope CEILINGS, not imperative).
       var effectiveMax = computeEffectiveMax_(tier.tier_code);
+      var maxHint = 'max: ' + Number(effectiveMax).toLocaleString('en-GB');
       inputs += '<div class="dr-config-scope-row">' +
                   '<label class="dr-config-scope-label">' +
                     '<span class="dr-config-scope-name">' + escapeHtml(tier.display_name) + '</span>' +
                     '<span class="dr-config-scope-rate">' + escapeHtml(rate) + '</span>' +
+                    '<span class="dr-config-scope-maxhint" data-scope-maxhint="' + escapeHtml(tier.tier_code) + '">' + escapeHtml(maxHint) + '</span>' +
                   '</label>' +
                   '<input type="number" min="0" max="' + effectiveMax + '" step="100" class="dr-config-scope-input"' +
-                    ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '">' +
+                    ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '"' +
+                    ' inputmode="numeric" autocomplete="off">' +
                 '</div>';
     }
     return '<section class="dr-config-panel" aria-labelledby="dr-panel-scope-h">' +
@@ -1194,6 +1466,18 @@
                'Identity coverage: <strong>' + (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB') + '</strong> employers' +
              '</div>' +
            '</section>';
+  }
+
+  // AMD-111 fixup-2 Issue 3 — refresh visible "max: N,NNN" hints after any state change
+  // that affects the cap (segment selection, parent-layer typing). Lightweight DOM update
+  // — no full re-render — so the visible hint stays current without flicker.
+  function updateLayerMaxHints_() {
+    var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
+    for (var i = 0; i < TIERS.length; i++) {
+      var hint = document.querySelector('[data-scope-maxhint="' + TIERS[i] + '"]');
+      if (!hint) continue;
+      hint.textContent = 'max: ' + Number(computeEffectiveMax_(TIERS[i])).toLocaleString('en-GB');
+    }
   }
 
   function renderPanel3Modifiers_() {
@@ -1212,13 +1496,7 @@
       { code: 2, label: '24 months · −5%' },
       { code: 3, label: '36 months · −10%' }
     ];
-    // AMD-108 — sector_scope chips (3 codes match pricing_quote_function v2 contract)
-    var SECTOR = [
-      { code: 'mixed',        label: 'Mixed (default)' },
-      { code: 'private_only', label: 'Private only · −2%' },
-      { code: 'public_only',  label: 'Public only · +50%' }
-    ];
-    var refreshChips = '', exclChips = '', termChips = '', sectorChips = '';
+    var refreshChips = '', exclChips = '', termChips = '';
     for (var i = 0; i < REFRESH.length; i++) {
       var o = REFRESH[i];
       var act = (CONFIG_STATE.modifiers.refresh === o.code) ? ' is-active' : '';
@@ -1234,17 +1512,32 @@
       var act3 = (CONFIG_STATE.modifiers.term_years === o3.code) ? ' is-active' : '';
       termChips += '<button type="button" class="dr-radio-option' + act3 + '" data-term="' + o3.code + '">' + escapeHtml(o3.label) + '</button>';
     }
-    for (var sx = 0; sx < SECTOR.length; sx++) {
-      var o4 = SECTOR[sx];
-      var act4 = (CONFIG_STATE.modifiers.sector_scope === o4.code) ? ' is-active' : '';
-      sectorChips += '<button type="button" class="dr-radio-option' + act4 + '" data-sector-scope="' + escapeHtml(o4.code) + '">' + escapeHtml(o4.label) + '</button>';
-    }
     var dunsChecked = CONFIG_STATE.modifiers.duns_match ? ' checked' : '';
     var dunsState = CONFIG_STATE.modifiers.duns_match ? 'On' : 'Off';
-    // AMD-108 — public_only hint banner (verbatim per AMD-108 §3 estate-honesty discipline / Misrepresentation Act 1967 binding)
-    var sectorPublicHint = (CONFIG_STATE.modifiers.sector_scope === 'public_only')
-      ? '<div class="dr-modifier-meta">Public-sector segment: 521 unique enriched employers currently. Phase 2 expansion roadmapped.</div>'
-      : '';
+
+    // AMD-111 — sector segments multi-select. Three checkboxes (Private / Public / Third)
+    // with per-segment ⓘ tooltip carrying the institutional rationale. Composed-modifier
+    // badge sits below the checkbox row (Director Q1 binding) to avoid visual crowding
+    // inside the modifiers panel context. Pre-flight validation in validateSegmentSelection
+    // requires at least one segment; the inline error renders into [data-segment-error].
+    var SEGMENTS = [
+      { code: 'private', label: 'Private', tip: 'Limited companies, partnerships, sole traders. Largest segment of the estate. Volume baseline.' },
+      { code: 'public',  label: 'Public',  tip: 'NHS trusts, local authorities, central government, agencies. Specialty premium reflects the harder-to-assemble data and Crown employer protections, statutory consultation, pension overlays.' },
+      { code: 'third',   label: 'Third',   tip: 'Registered charities, CICs, mutuals. Smaller addressable estate (~1,000 bodies) with distinct dynamics: volunteer-vs-employee classification, fundraising-employment overlaps, governance constraints on disciplinary process.' }
+    ];
+    var selectedSegs = (CONFIG_STATE.modifiers.sector_segments || []);
+    var segCheckboxes = '';
+    for (var sx = 0; sx < SEGMENTS.length; sx++) {
+      var seg = SEGMENTS[sx];
+      var checked = (selectedSegs.indexOf(seg.code) !== -1) ? ' checked' : '';
+      segCheckboxes +=
+        '<label class="dr-segment-checkbox" data-segment="' + escapeHtml(seg.code) + '">' +
+          '<input type="checkbox" name="sector_segments" value="' + escapeHtml(seg.code) + '"' + checked + '>' +
+          '<span class="dr-segment-label">' + escapeHtml(seg.label) + '</span>' +
+          '<span class="dr-segment-tooltip" tabindex="0" role="button" aria-label="' + escapeHtml(seg.label) + ' segment information" title="' + escapeHtml(seg.tip) + '" data-tip="' + escapeHtml(seg.tip) + '">ⓘ</span>' +
+        '</label>';
+    }
+
     return '<section class="dr-config-panel" aria-labelledby="dr-panel-mods-h">' +
              '<header class="dr-config-panel-header">' +
                '<span class="dr-config-panel-number">Panel 3</span>' +
@@ -1284,14 +1577,16 @@
                '</div>' +
                '<div class="dr-radio-group">' + termChips + '</div>' +
              '</div>' +
-             '<div class="dr-modifier-row" data-modifier="sector_scope">' +
-               '<div>' +
-                 '<div class="dr-modifier-label">Sector scope</div>' +
-                 '<div class="dr-modifier-meta">AMD-108 binding. Mixed = whole estate; Private only = excludes NHS / public bodies; Public only = NHS / public bodies only (premium reflecting smaller specialty market).</div>' +
+             '<div class="dr-segment-fieldset" role="group" aria-labelledby="dr-segment-legend" data-panel="sector-segments">' +
+               '<div id="dr-segment-legend" class="dr-segment-legend">Sector segments</div>' +
+               '<p class="dr-segment-helper">Select any combination — at least one is required.</p>' +
+               '<div class="dr-segment-checkbox-row">' + segCheckboxes + '</div>' +
+               '<div class="dr-segment-error-text" data-segment-error aria-live="polite"></div>' +
+               '<div class="dr-segment-composed-badge" data-composed-badge>' +
+                 '<span class="dr-segment-composed-label">Composed positioning:</span> ' +
+                 '<span class="dr-segment-composed-value" data-composed-value>Baseline (all three selected)</span>' +
                '</div>' +
-               '<div class="dr-radio-group">' + sectorChips + '</div>' +
              '</div>' +
-             sectorPublicHint +
            '</section>';
   }
 
@@ -1346,9 +1641,22 @@
       input.addEventListener('input', function () {
         var k = input.getAttribute('data-scope');
         var v = parseInt(input.value || '0', 10);
-        CONFIG_STATE.scope[k] = isNaN(v) ? 0 : v;
+        if (isNaN(v) || v < 0) v = 0;
+        // AMD-111 fixup-2 Issue 1 (c) — immediate snap-to-cap on every keystroke. Compute
+        // the layer's effective max NOW (against current parent state + segment-aware
+        // identity ceiling) and clamp before writing to CONFIG_STATE / DOM. Prevents the
+        // user from typing a value above the cap and seeing it persist visually before
+        // applyAllCaps catches up.
+        var layerMax = computeEffectiveMax_(k);
+        if (v > layerMax) {
+          v = layerMax;
+          input.value = String(v);
+        }
+        CONFIG_STATE.scope[k] = v;
         ACTIVE_PRESET = null;
-        applyAllCaps();  // AMD-110 cascade-clamp dependent layers + AMD-108 sector override
+        applyAllCaps();  // AMD-110 cascade-clamp dependent layers + sector-aware identity composition
+        // Update visible per-layer max-hint readouts (Issue 3 §c — reactive ceiling labels)
+        updateLayerMaxHints_();
         var totalEl = document.querySelector('.dr-config-scope-total strong');
         if (totalEl) totalEl.textContent = (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB');
         // Clear is-active class on package buttons without full re-render (perf)
@@ -1396,19 +1704,28 @@
       });
     })(trBtns[tr]);
 
-    // AMD-108 — sector_scope chip handler. Sequencing per Director design contract:
-    //   1) state update  2) applyAllCaps (state clamp via composition rule)
-    //   3) renderConfigurator (re-render Panel 2 max attrs)  4) computeQuoteDebounced
-    var sBtns = document.querySelectorAll('.dr-radio-option[data-sector-scope]');
-    for (var sb = 0; sb < sBtns.length; sb++) (function (btn) {
-      btn.addEventListener('click', function () {
-        CONFIG_STATE.modifiers.sector_scope = btn.getAttribute('data-sector-scope');
+    // AMD-111 — sector segments checkbox handler (replaces AMD-108 single-select chip).
+    // Sequencing per Director design contract:
+    //   1) read DOM → CONFIG_STATE.modifiers.sector_segments
+    //   2) validateSegmentSelection (inline error if zero selected; pre-flight guard for
+    //      live-pricing recompute path AND submit path)
+    //   3) applyAllCaps (state clamp — identity now sums selected-segment ceilings; child
+    //      layers cascade from clamped identity)
+    //   4) updateComposedBadge (text update without full re-render to avoid flicker)
+    //   5) renderConfigurator (re-render Panel 2 max attrs from new effective ceilings)
+    //   6) computeQuoteDebounced (live re-pricing — skipped if validation failed)
+    var segCbs = document.querySelectorAll('input[name="sector_segments"]');
+    for (var sb = 0; sb < segCbs.length; sb++) (function (cb) {
+      cb.addEventListener('change', function () {
+        CONFIG_STATE.modifiers.sector_segments = getSelectedSegments();
         ACTIVE_PRESET = null;
+        var ok = validateSegmentSelection();
         applyAllCaps();
+        updateComposedBadge();
         renderConfigurator();
-        computeQuoteDebounced_();
+        if (ok) computeQuoteDebounced_();
       });
-    })(sBtns[sb]);
+    })(segCbs[sb]);
   }
 
   function computeQuoteDebounced_() {
@@ -1418,16 +1735,20 @@
 
   async function computeQuote() {
     var user = window.__dealRoomUser;
-    if (!user || !user.token) return;
+    // Production: token required. Sandbox: anon access; pricing_quote_function is
+    // anon-accessible per Director.
+    if (!IS_SANDBOX && (!user || !user.token)) return;
+    // AMD-111 — pre-flight guard: skip the RPC if no segment is selected. The function
+    // would reject an empty sector_segments array; the inline error already informs the
+    // user, and the badge already shows the "select at least one segment" hint.
+    if (!validateSegmentSelection()) {
+      LAST_QUOTE = null;
+      return;
+    }
     try {
       var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/pricing_quote_function', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + user.token,
-          'Accept': 'application/json'
-        },
+        headers: getAuthHeaders_({ 'Accept': 'application/json' }),
         body: JSON.stringify({
           p_config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers }
         })
@@ -1519,6 +1840,8 @@
               '</div>';
     }
     breakdownEl.innerHTML = (rows === '') ? '<div class="dr-quote-empty">Configure a coverage to see the live breakdown.</div>' : rows;
+    // AMD-111 — refresh badge text against the live sector_composed_pct from this quote.
+    updateComposedBadge();
   }
 
   function renderQuoteError_(err) {
@@ -1534,6 +1857,19 @@
   function renderCounterProposalSection(user, gateState) {
     var anchor = document.getElementById('dr-counter-proposal-section');
     if (!anchor) return;
+    // Sandbox: counter-proposal submit requires authenticated user + RLS-gated INSERT
+    // into partner_counter_proposals. Hide the entire section behind a small note.
+    if (IS_SANDBOX) {
+      anchor.innerHTML =
+        '<header class="dr-section-head">' +
+          '<h2>Counter-proposal</h2>' +
+        '</header>' +
+        '<div class="dr-counter-proposal-placeholder dr-counter-proposal-sandbox-disabled">' +
+          'Counter-proposal submission is <strong>disabled in sandbox</strong>. ' +
+          'Sign in to a real deal-room engagement to submit configurations.' +
+        '</div>';
+      return;
+    }
     var isDirector = (user && user.role === 'director');
     var currentIdx = GATE_ORDER.indexOf(gateState || 'phase_0');
     var phaseAIdx = GATE_ORDER.indexOf('phase_a');
@@ -1603,6 +1939,13 @@
     }
     if (!LAST_QUOTE) {
       if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">Configure a quote before submitting.</div>';
+      return;
+    }
+    // AMD-111 — pre-flight guard for submit path (validateSegmentSelection also runs on
+    // every checkbox change; this is the belt-and-braces gate for direct keyboard-only
+    // submit attempts).
+    if (!validateSegmentSelection()) {
+      if (statusEl) statusEl.innerHTML = '<div class="dr-cp-error">At least one sector segment must be selected.</div>';
       return;
     }
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Submitting…'; }
