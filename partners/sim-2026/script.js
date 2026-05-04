@@ -905,13 +905,12 @@
   // TIERS_META / MODIFIERS_META / FEATURE_FLAGS are populated from the
   // preserved REST table fetches per brief §10.4; FEATURE_FLAGS gates the
   // counter-proposal section in renderCounterProposalSection.
-  // LAUNCH_PARTNER_STATUS is preserved for commit 9 (RPC-migration cleanup);
-  // launch-partner truth is now sourced from pricing_quote_function_v4.is_launch_partner_applied.
+  // Launch-partner truth is sourced from pricing_quote_function_v4.is_launch_partner_applied
+  // per AMD-118 Stage A (was: separate get_partner_launch_status RPC pre-AMD-114).
   var CONFIG_STATE = { rationale: '', timing: '', urgency: 'standard' };
   var TIERS_META = [];
   var MODIFIERS_META = [];
   var FEATURE_FLAGS = {};
-  var LAUNCH_PARTNER_STATUS = null;
   var configRecomputeTimer = null;
 
   // ─── AMD-114 four-axis configurator state ──────────────────────────
@@ -966,141 +965,6 @@
     });
   }
 
-  // AMD-110 + AMD-111 — fetch live ceilings from get_pricing_ceilings RPC at mount time.
-  // Hard-coded fallback per CCI v1.0 binding (never silent-fail to unbounded sliders).
-  // v2 contract (AMD-111): RPC returns a single object { tiers: [...], segments: {private, public, third} }.
-  // v1 legacy: RPC returned an Array<{tier_code, real_ceiling}>. The defensive parser below
-  // accepts both shapes; the legacy branch logs a single console.warn so a staged-rollout
-  // regression is visible without breaking the surface. SEGMENT_CEILINGS is populated only
-  // on the v2 branch — under v1, getSectorAwareIdentityCeiling falls back to the table below.
-  async function loadCeilings(token) {
-    var tierFallback = {
-      identity: 78699, tribunal_exposure: 80124, outcome_intelligence: 80124,
-      full_acei: 18552, full_enrichment: 13588, premium: 6000
-    };
-    // AMD-111 segment-ceiling fallback table (sums to identity 78,699):
-    var segmentFallback = {
-      private: { identity_ceiling: 68742, modifier_pct: -2.0 },
-      public:  { identity_ceiling: 8956,  modifier_pct: 50.0 },
-      third:   { identity_ceiling: 1001,  modifier_pct: 25.0 }
-    };
-    function applyTierFallback(map) {
-      var T = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
-      for (var t = 0; t < T.length; t++) {
-        if (map[T[t]] == null) map[T[t]] = tierFallback[T[t]];
-      }
-      return map;
-    }
-    try {
-      var hdrs = { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' };
-      // Production: include Authorization. Sandbox (token == null): anon-only headers
-      // — the get_pricing_ceilings RPC is anon-accessible per Director.
-      if (token) hdrs['Authorization'] = 'Bearer ' + token;
-      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_pricing_ceilings', {
-        method: 'POST',
-        headers: hdrs,
-        body: '{}'
-      });
-      if (!res.ok) {
-        console.warn('[AMD-110/111] get_pricing_ceilings RPC returned ' + res.status + '; using full fallback');
-        SEGMENT_CEILINGS = segmentFallback;
-        return tierFallback;
-      }
-      var body = await res.json();
-
-      // v2 shape: object with `tiers` (array OR object keyed by tier_code) + `segments` object
-      if (body && !Array.isArray(body) && (body.tiers || body.segments)) {
-        var map2 = {};
-        if (Array.isArray(body.tiers)) {
-          for (var ti = 0; ti < body.tiers.length; ti++) {
-            var row = body.tiers[ti];
-            if (row && row.tier_code && row.real_ceiling != null) {
-              map2[row.tier_code] = Number(row.real_ceiling);
-            }
-          }
-        } else if (body.tiers && typeof body.tiers === 'object') {
-          // Defensive: tiers returned as object keyed by tier_code rather than array
-          var tk = Object.keys(body.tiers);
-          for (var tj = 0; tj < tk.length; tj++) {
-            var tv = body.tiers[tk[tj]];
-            var rc = (tv && tv.real_ceiling != null) ? tv.real_ceiling
-                   : (typeof tv === 'number' ? tv : null);
-            if (rc != null) map2[tk[tj]] = Number(rc);
-          }
-        }
-        if (body.segments && typeof body.segments === 'object') {
-          var seg = {};
-          var KEYS = ['private', 'public', 'third'];
-          for (var si = 0; si < KEYS.length; si++) {
-            var k = KEYS[si];
-            var s = body.segments[k];
-            if (s && s.identity_ceiling != null) {
-              seg[k] = {
-                identity_ceiling: Number(s.identity_ceiling),
-                modifier_pct: (s.modifier_pct != null) ? Number(s.modifier_pct) : segmentFallback[k].modifier_pct
-              };
-            } else {
-              seg[k] = segmentFallback[k];
-            }
-          }
-          SEGMENT_CEILINGS = seg;
-        } else {
-          SEGMENT_CEILINGS = segmentFallback;
-        }
-        return applyTierFallback(map2);
-      }
-
-      // v1 legacy shape: bare Array<{tier_code, real_ceiling}> — staged-rollout fallback
-      if (Array.isArray(body)) {
-        console.warn('[AMD-111] get_pricing_ceilings returned v1 array shape; segments fallback in use (staged-rollout detection).');
-        var map1 = {};
-        for (var i = 0; i < body.length; i++) {
-          if (body[i] && body[i].tier_code && body[i].real_ceiling != null) {
-            map1[body[i].tier_code] = Number(body[i].real_ceiling);
-          }
-        }
-        SEGMENT_CEILINGS = segmentFallback;
-        return applyTierFallback(map1);
-      }
-
-      // Unrecognised shape
-      console.warn('[AMD-110/111] get_pricing_ceilings response shape unrecognised; using full fallback');
-      SEGMENT_CEILINGS = segmentFallback;
-      return tierFallback;
-    } catch (err) {
-      console.warn('[AMD-110/111] loadCeilings error; using full fallback:', err);
-      SEGMENT_CEILINGS = segmentFallback;
-      return tierFallback;
-    }
-  }
-
-  // AMD-109 — fetch launch-partner status from get_partner_launch_status RPC.
-  // Returns { clid, is_launch_partner, window_start_date, window_end_date,
-  // discount_pct, amd_authority } or { is_launch_partner: false } if not flagged.
-  // Silent on RPC failure (no badge rendered, no clid passed to function).
-  async function loadLaunchPartnerStatus(token) {
-    try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_partner_launch_status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ p_clid: CLID })
-      });
-      if (!res.ok) {
-        console.warn('[AMD-109] get_partner_launch_status RPC returned ' + res.status + '; LP badge will not render');
-        return null;
-      }
-      var data = await res.json();
-      return data || null;
-    } catch (err) {
-      console.warn('[AMD-109] loadLaunchPartnerStatus error:', err);
-      return null;
-    }
-  }
 
   async function populateConfigurator(user) {
     var anchor = document.getElementById('dr-configurator-panels');
