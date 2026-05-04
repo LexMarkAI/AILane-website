@@ -1355,7 +1355,8 @@
       CEILINGS_V3 = results[4];
       renderConfigurator();
       renderCounterProposalSection(user, gateState);
-      // Initial recompute is wired in subsequent commits (axis handlers + tier selector).
+      // Initial recompute — populates universe pill + per-record + annual on cold load.
+      recompute_();
     } catch (err) {
       console.error('populateConfigurator error:', err);
       anchor.innerHTML = '<div class="dr-config-empty-error">Configurator could not be loaded. Please refresh, or contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
@@ -1465,8 +1466,155 @@
                'Compose your scope across four axes &mdash; sector, geography, industry, intelligence. ' +
                'The universe and per-record price update live as you narrow.' +
              '</p>' +
-             '<div class="dr-axis-list" data-axis-list></div>' +
+             '<div class="dr-axis-list" data-axis-list>' + renderAxisList_() + '</div>' +
            '</section>';
+  }
+
+  // ─── AMD-114 Panel 1 — axis row framework ──────────────────────────
+  function renderAxisList_() {
+    return renderSectorAxisRow_() +
+           renderGeographyAxisRow_() +
+           renderIndustryAxisRow_() +
+           renderIntelligenceAxisRow_();
+  }
+
+  function getAxisMeta_(axisCode) {
+    var ax = (CEILINGS_V3 && CEILINGS_V3.axes) ? CEILINGS_V3.axes[axisCode] : null;
+    if (!ax) return null;
+    var bumpPct = (ax.curation_bump_pct != null) ? Number(ax.curation_bump_pct) : null;
+    var bumpLabel = (bumpPct != null) ? '+' + bumpPct.toFixed(0) + '% bump' : '';
+    return { displayName: ax.display_name || axisCode, bumpLabel: bumpLabel, levels: ax.levels || {} };
+  }
+
+  function renderUniverseCountsLine_() {
+    var u = LAST_UNIVERSE;
+    if (!u) return '<span class="dr-axis-counts-loading">&mdash;</span>';
+    return 'Identity <strong>' + Number(u.identity_universe || 0).toLocaleString('en-GB') + '</strong> ' +
+           '&middot; Enriched <strong>' + Number(u.enriched_universe || 0).toLocaleString('en-GB') + '</strong>';
+  }
+
+  function renderAxisRowFrame_(opts) {
+    var expanded = (EXPANDED_AXIS === opts.code);
+    var expClass = expanded ? ' is-expanded' : '';
+    return '<article class="dr-axis-row' + expClass + '" data-axis="' + escapeHtml(opts.code) + '">' +
+             '<header class="dr-axis-row-header">' +
+               '<div class="dr-axis-row-name">' + escapeHtml(opts.displayName) + '</div>' +
+               (opts.bumpLabel ? '<div class="dr-axis-row-bump">' + escapeHtml(opts.bumpLabel) + '</div>' : '') +
+               '<button type="button" class="dr-axis-row-toggle" data-axis-toggle="' + escapeHtml(opts.code) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+                 (expanded ? 'Collapse' : 'Constrain') +
+               '</button>' +
+             '</header>' +
+             '<div class="dr-axis-row-summary">' + escapeHtml(opts.summary) + '</div>' +
+             '<div class="dr-axis-row-counts">' + renderUniverseCountsLine_() + '</div>' +
+             (expanded ? '<div class="dr-axis-row-expanded">' + (opts.expandedHtml || '') + '</div>' : '') +
+           '</article>';
+  }
+
+  // ─── Sector axis (L1 + L2 drill-down under Public) ─────────────────
+  var SECTOR_L1_LABELS = { private_sector: 'Private', public_body: 'Public', third_sector: 'Third' };
+
+  function humaniseSectorSummary_() {
+    var l1 = SCOPE_STATE.sector.l1 || [];
+    var l2 = SCOPE_STATE.sector.l2 || [];
+    if (l1.length === 0 || l1.length === 3) return 'All sectors (no constraint)';
+    if (l1.length === 1) {
+      var lbl = SECTOR_L1_LABELS[l1[0]] || l1[0];
+      if (l1[0] === 'public_body' && l2.length > 0) {
+        return 'Public + ' + l2.length + ' sub-segment' + (l2.length === 1 ? '' : 's');
+      }
+      return lbl + ' sector';
+    }
+    return l1.map(function (c) { return SECTOR_L1_LABELS[c] || c; }).join(' + ');
+  }
+
+  function renderSectorAxisRow_() {
+    var meta = getAxisMeta_('sector') || { displayName: 'Sector', bumpLabel: '+5% bump', levels: {} };
+    var summary = humaniseSectorSummary_();
+    var expandedHtml = (EXPANDED_AXIS === 'sector') ? renderSectorExpanded_(meta) : '';
+    return renderAxisRowFrame_({
+      code: 'sector', displayName: meta.displayName, bumpLabel: meta.bumpLabel,
+      summary: summary, expandedHtml: expandedHtml
+    });
+  }
+
+  function renderSectorExpanded_(meta) {
+    var L1 = (meta.levels && meta.levels.L1) ? meta.levels.L1 : [];
+    var l1Boxes = '';
+    for (var i = 0; i < L1.length; i++) {
+      var v = L1[i];
+      var checked = (SCOPE_STATE.sector.l1.indexOf(v.value_code) !== -1) ? ' checked' : '';
+      var meta2 = (v.identity_count != null)
+        ? Number(v.identity_count).toLocaleString('en-GB') + ' employers'
+        : '';
+      l1Boxes += '<label class="dr-axis-checkbox">' +
+                   '<input type="checkbox" data-sector-l1-input value="' + escapeHtml(v.value_code) + '"' + checked + '>' +
+                   '<span class="dr-axis-checkbox-label">' + escapeHtml(v.display_label || v.value_code) + '</span>' +
+                   (meta2 ? '<span class="dr-axis-checkbox-meta">' + escapeHtml(meta2) + '</span>' : '') +
+                 '</label>';
+    }
+    var notice = '';
+    if (SCOPE_STATE.sector.l1.length === 3) {
+      notice = '<div class="dr-axis-notice">All three sectors selected = unconstrained sector axis.</div>';
+    }
+    var l2Block = '';
+    if (SCOPE_STATE.sector.l1.length === 1 && SCOPE_STATE.sector.l1[0] === 'public_body') {
+      var L2all = (meta.levels && meta.levels.L2) ? meta.levels.L2 : [];
+      var L2 = [];
+      for (var pi = 0; pi < L2all.length; pi++) {
+        if (L2all[pi].parent_value_code === 'public_body') L2.push(L2all[pi]);
+      }
+      var l2Boxes = '';
+      for (var j = 0; j < L2.length; j++) {
+        var w = L2[j];
+        var c = (SCOPE_STATE.sector.l2.indexOf(w.value_code) !== -1) ? ' checked' : '';
+        var idC = (w.identity_count != null) ? Number(w.identity_count).toLocaleString('en-GB') : '—';
+        var enC = (w.enriched_count != null) ? Number(w.enriched_count).toLocaleString('en-GB') : '—';
+        l2Boxes += '<label class="dr-axis-checkbox dr-axis-checkbox-sub">' +
+                     '<input type="checkbox" data-sector-l2-input value="' + escapeHtml(w.value_code) + '"' + c + '>' +
+                     '<span class="dr-axis-checkbox-label">' + escapeHtml(w.display_label || w.value_code) + '</span>' +
+                     '<span class="dr-axis-checkbox-meta">Identity ' + idC + ' &middot; Enriched ' + enC + '</span>' +
+                   '</label>';
+      }
+      l2Block = '<fieldset class="dr-axis-fieldset dr-axis-fieldset-sub">' +
+                  '<legend>Public sub-segments</legend>' +
+                  '<div class="dr-axis-checkbox-grid">' + (l2Boxes || '<div class="dr-axis-empty">No L2 values returned.</div>') + '</div>' +
+                '</fieldset>';
+    }
+    return '<fieldset class="dr-axis-fieldset">' +
+             '<legend>Sector segments</legend>' +
+             '<div class="dr-axis-checkbox-grid">' + (l1Boxes || '<div class="dr-axis-empty">Sector L1 catalog unavailable.</div>') + '</div>' +
+             notice +
+           '</fieldset>' + l2Block;
+  }
+
+  // ─── Stub axis rows for commits 3-5 ────────────────────────────────
+  function renderGeographyAxisRow_() {
+    return renderAxisRowFrame_({
+      code: 'geography', displayName: 'Geography', bumpLabel: '+3% bump',
+      summary: 'All UK',
+      expandedHtml: '<div class="dr-axis-coming-soon">Geography drill-down available in commit 3.</div>'
+    });
+  }
+  function renderIndustryAxisRow_() {
+    return renderAxisRowFrame_({
+      code: 'industry', displayName: 'Industry', bumpLabel: '+6% bump',
+      summary: 'All industries',
+      expandedHtml: '<div class="dr-axis-coming-soon">Industry drill-down available in commit 4.</div>'
+    });
+  }
+  function renderIntelligenceAxisRow_() {
+    return renderAxisRowFrame_({
+      code: 'intelligence', displayName: 'Intelligence', bumpLabel: '+8% bump',
+      summary: 'All matters',
+      expandedHtml: '<div class="dr-axis-coming-soon">Intelligence drill-down available in commit 5.</div>'
+    });
+  }
+
+  function renderAxisListDom_() {
+    var slot = document.querySelector('[data-axis-list]');
+    if (!slot) return;
+    slot.innerHTML = renderAxisList_();
+    bindAxisListHandlers_();
   }
 
   function renderModifiersPanel_() {
@@ -1496,8 +1644,163 @@
   }
 
   function bindScopeBuilderHandlers_() {
-    // Commit 1 stub. Axis rows, tier selector, modifier controls, and
-    // live recompute are wired by subsequent commits.
+    bindAxisListHandlers_();
+    var resetBtn = document.querySelector('[data-scope-reset]');
+    if (resetBtn) resetBtn.addEventListener('click', handleResetAllAxes_);
+  }
+
+  function bindAxisListHandlers_() {
+    // Axis row toggle (expand/collapse). Only one axis row expanded at a time.
+    var toggles = document.querySelectorAll('[data-axis-toggle]');
+    for (var i = 0; i < toggles.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var code = btn.getAttribute('data-axis-toggle');
+        EXPANDED_AXIS = (EXPANDED_AXIS === code) ? null : code;
+        renderAxisListDom_();
+      });
+    })(toggles[i]);
+
+    // Sector L1 multi-select
+    var l1Inputs = document.querySelectorAll('[data-sector-l1-input]');
+    for (var j = 0; j < l1Inputs.length; j++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.sector.l1.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.sector.l1 = arr;
+        // L2 only meaningful when L1 = exactly ['public_body']; clear otherwise.
+        if (!(arr.length === 1 && arr[0] === 'public_body')) {
+          SCOPE_STATE.sector.l2 = [];
+        }
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(l1Inputs[j]);
+
+    // Sector L2 multi-select (Public sub-segments)
+    var l2Inputs = document.querySelectorAll('[data-sector-l2-input]');
+    for (var k = 0; k < l2Inputs.length; k++) (function (input) {
+      input.addEventListener('change', function () {
+        var v = input.value;
+        var arr = SCOPE_STATE.sector.l2.slice();
+        if (input.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
+        else { arr = arr.filter(function (x) { return x !== v; }); }
+        SCOPE_STATE.sector.l2 = arr;
+        renderAxisListDom_();
+        recomputeDebounced_();
+      });
+    })(l2Inputs[k]);
+  }
+
+  function handleResetAllAxes_() {
+    SCOPE_STATE = {
+      sector:       { l1: [], l2: [] },
+      geography:    { level: 'L1', values: [] },
+      industry:     { level: 'L1', values: [] },
+      intelligence: { acei: [], rri: [], cci: [] }
+    };
+    EXPANDED_AXIS = null;
+    INTEL_TAB = 'acei';
+    renderAxisListDom_();
+    recomputeDebounced_();
+  }
+
+  // ─── AMD-114 §9 live recompute orchestrator ────────────────────────
+  // Sequence per brief §9.3:
+  //   1. show loading state on Panel 3
+  //   2. compute_scope_universe → universe pill update (axis rows + Panel 3)
+  //   3. pricing_quote_function_v4 → per-record + annual + dynamic AMD chip
+  //   4. clear loading state
+  // Sequence-number guard discards stale results.
+  function recomputeDebounced_() {
+    clearTimeout(configRecomputeTimer);
+    configRecomputeTimer = setTimeout(recompute_, 250);
+  }
+
+  async function recompute_() {
+    var seq = ++quoteRequestSeq;
+    setLiveQuoteLoading_(true);
+    try {
+      var universe = await computeScopeUniverse_(SCOPE_STATE);
+      if (seq !== quoteRequestSeq) return;
+      LAST_UNIVERSE = universe;
+      renderAxisListDom_();
+
+      var modPayload = composeModifiersPayload_();
+      var quote = await quoteV4_(SCOPE_STATE, modPayload);
+      if (seq !== quoteRequestSeq) return;
+      LAST_QUOTE_V4 = quote;
+      renderLiveQuoteContent_(quote);
+    } catch (err) {
+      if (seq !== quoteRequestSeq) return;
+      var bodyTxt = (err && err.body) ? String(err.body) : '';
+      if (bodyTxt.indexOf('zero records') !== -1) {
+        renderLiveQuoteZeroRecords_();
+      } else {
+        renderLiveQuoteError_(err);
+      }
+      console.error('[AMD-114] recompute error:', err && err.message ? err.message : err);
+    } finally {
+      if (seq === quoteRequestSeq) setLiveQuoteLoading_(false);
+    }
+  }
+
+  function composeModifiersPayload_() {
+    return {
+      tier:        MODIFIERS_STATE.tier,
+      refresh:     MODIFIERS_STATE.refresh,
+      exclusivity: MODIFIERS_STATE.exclusivity,
+      term_years:  MODIFIERS_STATE.term_years,
+      duns_match:  MODIFIERS_STATE.duns_match,
+      clid:        CLID
+    };
+  }
+
+  function setLiveQuoteLoading_(isLoading) {
+    var rail = document.getElementById('dr-config-quote-rail');
+    if (!rail) return;
+    if (isLoading) rail.classList.add('is-loading');
+    else rail.classList.remove('is-loading');
+  }
+
+  function renderLiveQuoteContent_(quote) {
+    var slot = document.querySelector('[data-quote-content]');
+    if (!slot) return;
+    var perPence = Number(quote.per_record_pence || 0);
+    var annualPence = Number(quote.annual_pence || 0);
+    var bandMin = (quote.annual_band_min_pence != null) ? Number(quote.annual_band_min_pence) : null;
+    var bandMax = (quote.annual_band_max_pence != null) ? Number(quote.annual_band_max_pence) : null;
+    var perFmt = '£' + (perPence / 100).toFixed(2);
+    var annualFmt = '£' + (annualPence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var bandFmt = (bandMin != null && bandMax != null)
+      ? 'Band: £' + (bandMin / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 }) + ' – £' + (bandMax / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '';
+    var floorAnnotation = (quote.floor_applied === true) ? ' <span class="dr-quote-floor-annotation">(£750 floor applied)</span>' : '';
+    slot.innerHTML =
+      '<div class="dr-quote-per-record"><strong>' + escapeHtml(perFmt) + '</strong> <span class="dr-quote-per-record-unit">per record-year</span></div>' +
+      '<div class="dr-quote-universe-ribbon">' +
+        '<span class="dr-quote-universe-pill"><span class="dr-quote-universe-label">Identity</span> <strong>' + Number(quote.scope_universe || 0).toLocaleString('en-GB') + '</strong></span>' +
+        '<span class="dr-quote-universe-pill"><span class="dr-quote-universe-label">Enriched</span> <strong>' + Number(quote.enriched_universe || 0).toLocaleString('en-GB') + '</strong></span>' +
+      '</div>' +
+      '<div class="dr-quote-annual"><strong>' + annualFmt + '</strong> <span class="dr-quote-annual-unit">/year</span>' + floorAnnotation + '</div>' +
+      (bandFmt ? '<div class="dr-quote-band">' + escapeHtml(bandFmt) + '</div>' : '');
+
+    var chipEl = document.querySelector('[data-quote-amd-chip]');
+    if (chipEl && quote.amd_authority) chipEl.textContent = quote.amd_authority;
+  }
+
+  function renderLiveQuoteError_(err) {
+    var slot = document.querySelector('[data-quote-content]');
+    if (!slot) return;
+    var msg = (err && err.message) ? err.message : 'Unknown error';
+    slot.innerHTML = '<div class="dr-quote-error">Could not compute pricing &mdash; ' + escapeHtml(msg) + '. Please try again.</div>';
+  }
+
+  function renderLiveQuoteZeroRecords_() {
+    var slot = document.querySelector('[data-quote-content]');
+    if (!slot) return;
+    slot.innerHTML = '<div class="dr-quote-zero">No records match this scope. Relax one constraint to continue.</div>';
   }
 
   function getTierData_() {
