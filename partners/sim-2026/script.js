@@ -93,6 +93,29 @@
   var CLID = 'sim-2026-001';
   var WORKSPACE_ROOT = '/partners/sim-2026/';
 
+  // ─── Sandbox auth bypass (AMD-111-113 frontend) ─────────
+  // The sim-2026-001 surface is a public sandbox harness; pricing RPCs are anon-accessible
+  // and the configurator must render immediately on cold load with zero auth flow. Real
+  // deal-room CLIDs (any not in SANDBOX_CLIDS) retain the full magic-link auth gate.
+  // Auth-required UI (counter-proposal submit, pipeline modal, my-submissions) is hidden
+  // entirely in sandbox mode and replaced with a small "[disabled in sandbox]" note.
+  var SANDBOX_CLIDS = ['sim-2026-001'];
+  var IS_SANDBOX = SANDBOX_CLIDS.indexOf(CLID) !== -1;
+
+  // Helper: build Supabase request headers. In sandbox mode, returns apikey-only headers
+  // (no Authorization). In production mode, includes Authorization: Bearer <user.token>
+  // when the deal-room user has a token. Pass `extra` to merge additional headers
+  // (e.g. 'Accept', 'Prefer'); the helper always sets apikey + Content-Type.
+  function getAuthHeaders_(extra) {
+    var h = { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+    if (!IS_SANDBOX) {
+      var user = window.__dealRoomUser;
+      if (user && user.token) h['Authorization'] = 'Bearer ' + user.token;
+    }
+    if (extra) for (var k in extra) h[k] = extra[k];
+    return h;
+  }
+
   var GATE_ORDER = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
   var GATE_DISPLAY = {
     phase_0: 'pre-engagement',
@@ -374,8 +397,25 @@
   function revealPage() {
     var overlay = document.getElementById('dr-auth-overlay');
     if (overlay) overlay.remove();
-    var emailEl = document.getElementById('dr-user-email');
-    if (emailEl && window.__dealRoomUser) emailEl.textContent = window.__dealRoomUser.email;
+    if (IS_SANDBOX) {
+      // Sandbox: hide auth UI elements (email + sign-out) and surface a small
+      // "SANDBOX — no authentication required" badge in their place.
+      var emailEl = document.getElementById('dr-user-email');
+      if (emailEl) emailEl.style.display = 'none';
+      var signoutEl = document.getElementById('dr-signout');
+      if (signoutEl) signoutEl.style.display = 'none';
+      var headerRight = document.querySelector('.dr-header-right');
+      if (headerRight && !document.getElementById('dr-sandbox-badge')) {
+        var badge = document.createElement('span');
+        badge.id = 'dr-sandbox-badge';
+        badge.className = 'dr-sandbox-badge';
+        badge.textContent = 'SANDBOX — no authentication required';
+        headerRight.appendChild(badge);
+      }
+    } else {
+      var emailEl2 = document.getElementById('dr-user-email');
+      if (emailEl2 && window.__dealRoomUser) emailEl2.textContent = window.__dealRoomUser.email;
+    }
     document.body.style.visibility = 'visible';
     injectSubPageNav();
     injectEileenPanel();
@@ -389,6 +429,18 @@
   }
 
   function startGuard() {
+    // ─── SANDBOX AUTH BYPASS ─────────────────────────────
+    // Sandbox CLIDs (sim-2026-001) skip the magic-link gate entirely and render with
+    // anon-only Supabase access. Pricing RPCs are anon-accessible; auth-required surfaces
+    // (submit / pipeline / my-submissions) are hidden in sandbox via IS_SANDBOX checks.
+    if (IS_SANDBOX) {
+      if (window.supabase && window.supabase.createClient) {
+        window.__dealRoomSb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      window.__dealRoomUser = { id: null, email: null, tier: 'sandbox', token: null, role: 'sandbox', clid: CLID };
+      return revealPage();
+    }
+
     if (!window.supabase || !window.supabase.createClient) return showAuthPanel('init_error');
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window.__dealRoomSb = sb;
@@ -946,14 +998,13 @@
       return map;
     }
     try {
+      var hdrs = { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' };
+      // Production: include Authorization. Sandbox (token == null): anon-only headers
+      // — the get_pricing_ceilings RPC is anon-accessible per Director.
+      if (token) hdrs['Authorization'] = 'Bearer ' + token;
       var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_pricing_ceilings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/json'
-        },
+        headers: hdrs,
         body: '{}'
       });
       if (!res.ok) {
@@ -1193,7 +1244,10 @@
   async function populateConfigurator(user) {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
-    if (!user || !user.token) return;
+    // In production a token is required; in sandbox the configurator runs anon-only on
+    // pricing RPCs (Director: pricing_quote_function + get_pricing_ceilings are anon-
+    // accessible). Other auth-required REST calls below are skipped in sandbox.
+    if (!IS_SANDBOX && (!user || !user.token)) return;
 
     CONFIG_STATE = {
       scope: { identity: 0, tribunal_exposure: 0, outcome_intelligence: 0, full_acei: 0, full_enrichment: 0, premium: 0 },
@@ -1206,14 +1260,20 @@
     // Header preset chip strip retired (Fix 3 / Interpretation A) — Panel 1 binds at render time.
 
     try {
-      var hdrs = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + user.token, 'Accept': 'application/json' };
+      var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+      // In sandbox: skip auth-required RPCs (gate-state, LP status). Pricing RPCs and
+      // pricing-metadata REST queries either work anon (per Director) or degrade
+      // gracefully via the in-code fallback paths (TIERS_META → getTierData_ default,
+      // CEILINGS → loadCeilings hard-coded fallback, FEATURE_FLAGS → empty {} treated
+      // as enabled).
+      var sandboxToken = IS_SANDBOX ? null : user.token;
       var results = await Promise.all([
         fetch(SUPABASE_URL + '/rest/v1/pricing_tier?select=tier_code,display_name,delta_rate_pence,cumulative_rate_pence,is_enrichment_layer,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/pricing_modifier?select=modifier_code,modifier_type,display_name,value_pence,value_pct,applies_to,sort_order&order=sort_order.asc', { headers: hdrs }),
         fetch(SUPABASE_URL + '/rest/v1/dealroom_feature_flags?select=feature_key,enabled', { headers: hdrs }),
-        fetchClidGateState(user.token, CLID),
-        loadCeilings(user.token),
-        loadLaunchPartnerStatus(user.token)
+        IS_SANDBOX ? Promise.resolve('phase_0') : fetchClidGateState(sandboxToken, CLID),
+        loadCeilings(sandboxToken),
+        IS_SANDBOX ? Promise.resolve(null) : loadLaunchPartnerStatus(sandboxToken)
       ]);
       if (results[0].ok) TIERS_META = await results[0].json();
       if (results[1].ok) MODIFIERS_META = await results[1].json();
@@ -1224,7 +1284,7 @@
       }
       var gateState = results[3] || 'phase_0';
       CEILINGS = results[4];                       // AMD-110 — populated before first render
-      LAUNCH_PARTNER_STATUS = results[5];          // AMD-109 — populated before first render
+      LAUNCH_PARTNER_STATUS = results[5];          // AMD-109 — populated before first render (null in sandbox)
       // AMD-109 — pre-first-quote synchronisation: set clid in modifiers BEFORE computeQuote
       // fires so the first quote already includes the LP discount (avoids £1,448,696 →
       // £1,303,826 flicker). Silent on non-LP users — no clid sent, no LP path triggered.
@@ -1675,7 +1735,9 @@
 
   async function computeQuote() {
     var user = window.__dealRoomUser;
-    if (!user || !user.token) return;
+    // Production: token required. Sandbox: anon access; pricing_quote_function is
+    // anon-accessible per Director.
+    if (!IS_SANDBOX && (!user || !user.token)) return;
     // AMD-111 — pre-flight guard: skip the RPC if no segment is selected. The function
     // would reject an empty sector_segments array; the inline error already informs the
     // user, and the badge already shows the "select at least one segment" hint.
@@ -1686,12 +1748,7 @@
     try {
       var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/pricing_quote_function', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + user.token,
-          'Accept': 'application/json'
-        },
+        headers: getAuthHeaders_({ 'Accept': 'application/json' }),
         body: JSON.stringify({
           p_config_snapshot: { scope: CONFIG_STATE.scope, modifiers: CONFIG_STATE.modifiers }
         })
@@ -1800,6 +1857,19 @@
   function renderCounterProposalSection(user, gateState) {
     var anchor = document.getElementById('dr-counter-proposal-section');
     if (!anchor) return;
+    // Sandbox: counter-proposal submit requires authenticated user + RLS-gated INSERT
+    // into partner_counter_proposals. Hide the entire section behind a small note.
+    if (IS_SANDBOX) {
+      anchor.innerHTML =
+        '<header class="dr-section-head">' +
+          '<h2>Counter-proposal</h2>' +
+        '</header>' +
+        '<div class="dr-counter-proposal-placeholder dr-counter-proposal-sandbox-disabled">' +
+          'Counter-proposal submission is <strong>disabled in sandbox</strong>. ' +
+          'Sign in to a real deal-room engagement to submit configurations.' +
+        '</div>';
+      return;
+    }
     var isDirector = (user && user.role === 'director');
     var currentIdx = GATE_ORDER.indexOf(gateState || 'phase_0');
     var phaseAIdx = GATE_ORDER.indexOf('phase_a');
