@@ -417,6 +417,18 @@
       if (emailEl2 && window.__dealRoomUser) emailEl2.textContent = window.__dealRoomUser.email;
     }
     document.body.style.visibility = 'visible';
+    // ─── Workspace shell injection (Phase 3 brief β §6.4 ordering) ───
+    // revealPage is the central post-auth runtime hook called by every
+    // sim-2026 page (sandbox path + magic-link path). The five injects
+    // below propagate the workspace shell uniformly to every authenticated
+    // surface — index, configurator, documents, pathway, status, and the
+    // future auth-callback redirect target. Order matters because each
+    // anchor depends on the previous element being in the DOM:
+    //   subPageNav  → top of <main>
+    //   authChip    → .dr-header-right (replaces legacy static UI)
+    //   phaseTracker → after .dr-subpage-nav-section || .dr-hero
+    //   documentVault → after #dr-phase-tracker (so they stack vertically)
+    //   eileenPanel → after subpage-nav (Brief α wires content)
     injectSubPageNav();
     injectAuthChip();
     injectPhaseTracker();
@@ -2973,7 +2985,13 @@
   function injectDocumentVault(opts) {
     var alreadyExists = !!document.getElementById('dr-document-vault');
     opts = opts || {};
-    var pathLandingRoot = (window.location.pathname.replace(/\/+$/, '') === WORKSPACE_ROOT.replace(/\/+$/, ''));
+    // Landing-root match accepts both '/partners/sim-2026/' (GitHub Pages
+    // directory URL) AND '/partners/sim-2026/index.html' (direct file path).
+    // Sub-pages (configurator/, documents/, pathway/, status/, auth-callback/)
+    // get collapsed-by-default vault.
+    var rawPath = window.location.pathname;
+    var stripped = rawPath.replace(/\/index\.html?$/, '/').replace(/\/+$/, '');
+    var pathLandingRoot = (stripped === WORKSPACE_ROOT.replace(/\/+$/, ''));
     var collapsedByDefault = (typeof opts.collapsedByDefault === 'boolean')
       ? opts.collapsedByDefault
       : !pathLandingRoot;
