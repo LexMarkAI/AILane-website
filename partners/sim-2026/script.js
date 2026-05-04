@@ -2102,6 +2102,15 @@
       ? 'Band: £' + (bandMin / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 }) + ' – £' + (bandMax / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
       : '';
     var floorAnnotation = (quote.floor_applied === true) ? ' <span class="dr-quote-floor-annotation">(£750 floor applied)</span>' : '';
+
+    var lpBadge = (quote.is_launch_partner_applied === true)
+      ? '<div class="dr-launch-partner-badge" role="status" aria-label="Launch partner status">' +
+          '<span class="dr-launch-partner-icon" aria-hidden="true">&check;</span>' +
+          '<span class="dr-launch-partner-label">Launch Partner</span>' +
+          '<span class="dr-launch-partner-detail">&minus;10% applied</span>' +
+        '</div>'
+      : '';
+
     slot.innerHTML =
       '<div class="dr-quote-per-record"><strong>' + escapeHtml(perFmt) + '</strong> <span class="dr-quote-per-record-unit">per record-year</span></div>' +
       '<div class="dr-quote-universe-ribbon">' +
@@ -2109,10 +2118,116 @@
         '<span class="dr-quote-universe-pill"><span class="dr-quote-universe-label">Enriched</span> <strong>' + Number(quote.enriched_universe || 0).toLocaleString('en-GB') + '</strong></span>' +
       '</div>' +
       '<div class="dr-quote-annual"><strong>' + annualFmt + '</strong> <span class="dr-quote-annual-unit">/year</span>' + floorAnnotation + '</div>' +
-      (bandFmt ? '<div class="dr-quote-band">' + escapeHtml(bandFmt) + '</div>' : '');
+      (bandFmt ? '<div class="dr-quote-band">' + escapeHtml(bandFmt) + '</div>' : '') +
+      renderMultipliersRibbon_(quote) +
+      renderOverlaysRibbon_(quote) +
+      lpBadge +
+      renderComputationBreakdown_(quote);
 
     var chipEl = document.querySelector('[data-quote-amd-chip]');
     if (chipEl && quote.amd_authority) chipEl.textContent = quote.amd_authority;
+  }
+
+  // ─── §7.6 multipliers ribbon ───────────────────────────────────────
+  function renderMultipliersRibbon_(quote) {
+    var vs    = (quote.volume_scarcity_multiplier != null) ? Number(quote.volume_scarcity_multiplier).toFixed(4) : '—';
+    var ax    = (quote.axis_bumps_pct  != null) ? Number(quote.axis_bumps_pct)  : 0;
+    var depth = (quote.depth_bonus_pct != null) ? Number(quote.depth_bonus_pct) : 0;
+    var tier  = (quote.tier_multiplier != null) ? Number(quote.tier_multiplier).toFixed(2) : '—';
+    return '<div class="dr-quote-ribbon dr-quote-multipliers-ribbon">' +
+             'Volume scarcity &times;' + escapeHtml(String(vs)) +
+             ' &middot; Curation +' + ax + '% (axis) +' + depth + '% (depth)' +
+             ' &middot; Tier &times;' + escapeHtml(String(tier)) +
+           '</div>';
+  }
+
+  // ─── §7.7 overlays ribbon ──────────────────────────────────────────
+  function renderOverlaysRibbon_(quote) {
+    var refresh = (quote.refresh_adjustment_pct     != null) ? Number(quote.refresh_adjustment_pct)     : 0;
+    var excl    = (quote.exclusivity_adjustment_pct != null) ? Number(quote.exclusivity_adjustment_pct) : 0;
+    var term    = (quote.term_discount_pct          != null) ? Number(quote.term_discount_pct)          : 0;
+    var dunsTxt;
+    if (quote.duns_additive_pence != null && Number(quote.duns_additive_pence) > 0) {
+      dunsTxt = '£' + (Number(quote.duns_additive_pence) / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+    } else {
+      dunsTxt = '—';
+    }
+    var lpTxt = (quote.is_launch_partner_applied === true) ? '−10%' : '—';
+    return '<div class="dr-quote-ribbon dr-quote-overlays-ribbon">' +
+             'Refresh +' + refresh + '%' +
+             ' &middot; Exclusivity +' + excl + '%' +
+             ' &middot; Term &minus;' + term + '%' +
+             ' &middot; DUNS ' + escapeHtml(dunsTxt) +
+             ' &middot; Launch ' + escapeHtml(lpTxt) +
+           '</div>';
+  }
+
+  // ─── §7.4 computation breakdown (expandable accordion) ─────────────
+  function renderComputationBreakdown_(quote) {
+    var log = (quote.computation_log && Array.isArray(quote.computation_log)) ? quote.computation_log : [];
+    if (log.length === 0) return '';
+    var rows = '';
+    for (var i = 0; i < log.length; i++) rows += renderComputationStep_(log[i]);
+    return '<details class="dr-quote-breakdown">' +
+             '<summary class="dr-quote-breakdown-summary">How is this calculated?</summary>' +
+             '<div class="dr-quote-breakdown-body">' + rows + '</div>' +
+           '</details>';
+  }
+
+  function renderComputationStep_(entry) {
+    var step = entry.step || 'unknown';
+    var label = humaniseStepCode_(step);
+    var isDiscount = (step === 'term_discount' || step === 'launch_partner_discount');
+    var pairs = [];
+    for (var k in entry) {
+      if (!entry.hasOwnProperty(k) || k === 'step') continue;
+      pairs.push(escapeHtml(k) + ': ' + escapeHtml(formatStepField_(k, entry[k], isDiscount)));
+    }
+    return '<div class="dr-quote-step' + (isDiscount ? ' dr-quote-step-discount' : '') + '" data-step="' + escapeHtml(step) + '">' +
+             '<div class="dr-quote-step-label">' + (isDiscount ? '&minus; ' : '') + escapeHtml(label) + '</div>' +
+             '<div class="dr-quote-step-fields">' + pairs.join(' &middot; ') + '</div>' +
+           '</div>';
+  }
+
+  function humaniseStepCode_(step) {
+    return ({
+      universe_resolved:       'Universe resolved',
+      axes_applied:            'Axes applied',
+      volume_scarcity:         'Volume scarcity',
+      curation_premium:        'Curation premium',
+      tier_multiplier:         'Tier multiplier',
+      per_record:              'Per-record price',
+      scope_subtotal:          'Scope subtotal',
+      duns_additive:           'DUNS additive',
+      refresh_surcharge:       'Refresh surcharge',
+      exclusivity_surcharge:   'Exclusivity surcharge',
+      term_discount:           'Term discount',
+      launch_partner_discount: 'Launch partner discount',
+      floor_check:             'Floor check',
+      annual:                  'Annual'
+    })[step] || step;
+  }
+
+  function formatStepField_(k, v, isDiscount) {
+    if (v == null) return '—';
+    if (Array.isArray(v)) return '[' + v.length + ' item' + (v.length === 1 ? '' : 's') + ']';
+    if (typeof v === 'object') {
+      try { return JSON.stringify(v); } catch (e) { return '{…}'; }
+    }
+    if (typeof v === 'number') {
+      if (/_pence$/.test(k) || k === 'value_pence') {
+        var pounds = (v / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (isDiscount && v > 0 ? '−£' : '£') + pounds;
+      }
+      if (/_pct$/.test(k) || k === 'pct_magnitude' || k === 'pct') {
+        return (isDiscount && v > 0 ? '−' : '') + v + '%';
+      }
+      if (/multiplier$/.test(k))  return '×' + Number(v).toFixed(4);
+      if (/^count$/.test(k))      return Number(v).toLocaleString('en-GB');
+      return String(v);
+    }
+    if (typeof v === 'boolean') return v ? 'yes' : 'no';
+    return String(v);
   }
 
   function renderLiveQuoteError_(err) {
