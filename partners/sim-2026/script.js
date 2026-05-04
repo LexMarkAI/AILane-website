@@ -2716,6 +2716,7 @@
       var legacySignout = document.getElementById('dr-signout');
       if (legacySignout) legacySignout.style.display = 'none';
     }
+    setupAuthStateListener_();
     renderAuthChip_(chip);
   }
 
@@ -2752,6 +2753,38 @@
     showSigninModal: showAuthModal_,
     signOut: signOutDealroom_
   };
+
+  // ─── Auth state propagation ────────────────────────────────
+  // Single subscription to supabase.auth.onAuthStateChange. On every
+  // SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED / USER_UPDATED:
+  //   1. Re-render the auth chip in place
+  //   2. Emit a custom DOM event 'dr-auth-state-changed' on window so
+  //      the document vault and phase tracker (and Brief α Eileen
+  //      panel) can re-render without each module duplicating the
+  //      Supabase subscription.
+  // Idempotent — bails on second invocation.
+  var __authListenerInstalled = false;
+  function setupAuthStateListener_() {
+    if (__authListenerInstalled) return;
+    if (!window.__dealRoomSb || !window.__dealRoomSb.auth) return;
+    __authListenerInstalled = true;
+    try {
+      window.__dealRoomSb.auth.onAuthStateChange(function (event, session) {
+        // Re-render the chip if present
+        var chip = document.getElementById('dr-auth-chip');
+        if (chip) renderAuthChip_(chip);
+        // Notify other modules
+        try {
+          window.dispatchEvent(new CustomEvent('dr-auth-state-changed', {
+            detail: { event: event, session: session, isSignedIn: !!session }
+          }));
+        } catch (e) { /* CustomEvent unsupported on truly ancient browsers; non-fatal */ }
+      });
+    } catch (e) {
+      console.warn('[Phase 3] auth state listener setup failed:', e);
+      __authListenerInstalled = false;
+    }
+  }
 
   function injectPhaseTracker() {
     if (document.getElementById('dr-phase-tracker')) return;
