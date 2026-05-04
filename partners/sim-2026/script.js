@@ -1998,6 +1998,26 @@
         var code = btn.getAttribute('data-intel-tab');
         if (code === 'cci') return;
         if (code === 'rri' && MODIFIERS_STATE.tier === 'operational_readiness') return;
+        // §5.6 cross-index gate: switching to RRI while ACEI selections
+        // exist requires Institutional. Soft modal; user can clear ACEI
+        // and switch, or cancel. (Governance can hold RRI alone — but
+        // not ACEI + RRI on the same scope.)
+        if (code === 'rri' && MODIFIERS_STATE.tier !== 'institutional' && SCOPE_STATE.intelligence.acei.length > 0) {
+          showModalConfirm_({
+            title:         'Cross-index intelligence is Institutional',
+            bodyHtml:      'Cross-index intelligence selection (ACEI + RRI on the same scope) is an Institutional-tier feature. ' +
+                           'Upgrade to combine, or clear your ACEI selection to switch to RRI alone.',
+            continueLabel: 'Clear ACEI and switch to RRI',
+            cancelLabel:   'Cancel',
+            onContinue:    function () {
+              SCOPE_STATE.intelligence.acei = [];
+              INTEL_TAB = 'rri';
+              renderAxisListDom_();
+              recomputeDebounced_();
+            }
+          });
+          return;
+        }
         INTEL_TAB = code;
         renderAxisListDom_();
       });
@@ -2032,7 +2052,7 @@
     })(rriInputs[ri]);
   }
 
-  function handleResetAllAxes_() {
+  function applyResetAllAxes_() {
     SCOPE_STATE = {
       sector:       { l1: [], l2: [] },
       geography:    { level: 'L1', values: [] },
@@ -2043,6 +2063,135 @@
     INTEL_TAB = 'acei';
     renderAxisListDom_();
     recomputeDebounced_();
+  }
+
+  // ─── §5.8 ratchet-down narrowing UX ────────────────────────────────
+  // When the user removes a constraint AND the current live identity
+  // universe is < 5,000 records, intercept with a soft confirmation
+  // modal that pre-shows the projected new universe + annual.
+  function constraintCount_(scope) {
+    var c = 0;
+    var l1 = scope.sector.l1 || [];
+    if (l1.length > 0 && l1.length < 3) c++;
+    if ((scope.sector.l2 || []).length > 0) c++;
+    if (scope.geography.level !== 'L1' && (scope.geography.values || []).length > 0) c++;
+    if ((scope.industry.values || []).length > 0) c++;
+    if ((scope.intelligence.acei || []).length > 0) c++;
+    if ((scope.intelligence.rri || []).length > 0) c++;
+    return c;
+  }
+
+  function shouldShowRatchetModal_(prospectiveScope) {
+    if (!LAST_UNIVERSE || LAST_UNIVERSE.identity_universe == null) return false;
+    if (Number(LAST_UNIVERSE.identity_universe) >= 5000) return false;
+    return constraintCount_(prospectiveScope) < constraintCount_(SCOPE_STATE);
+  }
+
+  async function precomputeProjection_(prospectiveScope) {
+    try {
+      var u = await computeScopeUniverse_(prospectiveScope);
+      var q = await quoteV4_(prospectiveScope, composeModifiersPayload_());
+      return { universe: u, quote: q };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function handleResetAllAxes_() {
+    var prospective = {
+      sector:       { l1: [], l2: [] },
+      geography:    { level: 'L1', values: [] },
+      industry:     { level: 'L1', values: [] },
+      intelligence: { acei: [], rri: [], cci: [] }
+    };
+    if (!shouldShowRatchetModal_(prospective)) {
+      return applyResetAllAxes_();
+    }
+    var fromU = LAST_UNIVERSE.identity_universe;
+    var fromAnnualFmt = LAST_QUOTE_V4
+      ? '£' + (LAST_QUOTE_V4.annual_pence / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '—';
+    showModalConfirm_({
+      title: 'Reset will broaden your scope',
+      bodyHtml: 'Reset will broaden your scope from <strong>' + Number(fromU).toLocaleString('en-GB') + '</strong> records ' +
+                '(annual <strong>' + escapeHtml(fromAnnualFmt) + '</strong>) to the unconstrained UK estate. ' +
+                'Computing projection…',
+      continueLabel: 'Continue & reset',
+      cancelLabel:   'Cancel',
+      onContinue:    applyResetAllAxes_
+    });
+    // Pre-call RPCs to refine the modal copy with concrete projection values.
+    var proj = await precomputeProjection_(prospective);
+    if (!proj) return;
+    var toU = proj.universe ? proj.universe.identity_universe : null;
+    var toAnnualFmt = proj.quote
+      ? '£' + (proj.quote.annual_pence / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '—';
+    var bodyEl = document.querySelector('[data-modal-body]');
+    if (bodyEl) {
+      bodyEl.innerHTML = 'Reset will broaden your scope from <strong>' + Number(fromU).toLocaleString('en-GB') + '</strong> records to ' +
+                         '<strong>(estimated) ' + (toU != null ? Number(toU).toLocaleString('en-GB') : '?') + '</strong> records, ' +
+                         'and the annual quote from <strong>' + escapeHtml(fromAnnualFmt) + '</strong> to ' +
+                         '<strong>(estimated) ' + escapeHtml(toAnnualFmt) + '</strong>. Continue?';
+    }
+  }
+
+  // ─── Generic soft confirmation modal ───────────────────────────────
+  // One overlay + card; backdrop click and Cancel both invoke onCancel
+  // (or simply close). Continue invokes onContinue then closes.
+  function ensureModalStyles_() {
+    if (document.getElementById('dr-modal-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'dr-modal-styles';
+    s.textContent =
+      '.dr-modal-overlay{position:fixed;inset:0;background:rgba(5,12,24,0.78);display:flex;align-items:center;justify-content:center;z-index:9998;padding:24px;font-family:var(--dr-font-body, "DM Sans", sans-serif);}' +
+      '.dr-modal-card{max-width:520px;width:100%;background:var(--dr-bg-card, #0c1525);border:1px solid var(--dr-border-medium, rgba(148,163,184,0.20));border-radius:var(--dr-radius, 12px);padding:28px 28px 22px;color:var(--dr-text, #E2E8F0);box-shadow:0 16px 64px rgba(0,0,0,0.55);}' +
+      '.dr-modal-title{font-family:var(--dr-font-display, "DM Serif Display", serif);font-size:20px;color:var(--dr-text-heading, #F1F5F9);margin:0 0 14px;line-height:1.3;}' +
+      '.dr-modal-body{font-size:14px;line-height:1.55;color:var(--dr-text-dim, #94A3B8);margin:0 0 20px;}' +
+      '.dr-modal-actions{display:flex;justify-content:flex-end;gap:10px;}' +
+      '.dr-modal-btn{font-family:var(--dr-font-body, sans-serif);font-size:14px;padding:9px 16px;border-radius:6px;border:1px solid var(--dr-border-medium);background:transparent;color:var(--dr-text);cursor:pointer;}' +
+      '.dr-modal-btn:hover{border-color:var(--dr-cyan, #0EA5E9);color:var(--dr-cyan-soft, #22d3ee);}' +
+      '.dr-modal-btn-primary{background:var(--dr-cyan, #0EA5E9);border-color:var(--dr-cyan);color:var(--dr-bg, #0a0e1a);font-weight:600;}' +
+      '.dr-modal-btn-primary:hover{background:var(--dr-cyan-soft, #22d3ee);color:var(--dr-bg, #0a0e1a);}';
+    document.head.appendChild(s);
+  }
+
+  function showModalConfirm_(opts) {
+    ensureModalStyles_();
+    var existing = document.getElementById('dr-modal-overlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-modal-overlay';
+    overlay.className = 'dr-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="dr-modal-card">' +
+        '<h3 class="dr-modal-title">' + escapeHtml(opts.title || 'Confirm') + '</h3>' +
+        '<div class="dr-modal-body" data-modal-body>' + (opts.bodyHtml || '') + '</div>' +
+        '<div class="dr-modal-actions">' +
+          '<button type="button" class="dr-modal-btn" data-modal-cancel>' + escapeHtml(opts.cancelLabel || 'Cancel') + '</button>' +
+          '<button type="button" class="dr-modal-btn dr-modal-btn-primary" data-modal-continue>' + escapeHtml(opts.continueLabel || 'Continue') + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    overlay.addEventListener('click', function (ev) {
+      if (ev.target === overlay) {
+        close();
+        if (opts.onCancel) opts.onCancel();
+      }
+    });
+    var cancelBtn = overlay.querySelector('[data-modal-cancel]');
+    if (cancelBtn) cancelBtn.addEventListener('click', function () {
+      close();
+      if (opts.onCancel) opts.onCancel();
+    });
+    var contBtn = overlay.querySelector('[data-modal-continue]');
+    if (contBtn) contBtn.addEventListener('click', function () {
+      close();
+      if (opts.onContinue) opts.onContinue();
+    });
   }
 
   // ─── AMD-114 §9 live recompute orchestrator ────────────────────────
