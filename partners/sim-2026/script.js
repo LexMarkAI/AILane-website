@@ -1856,9 +1856,130 @@
              '<header class="dr-config-panel-header">' +
                '<span class="dr-config-panel-number">Panel 2</span>' +
                '<h2 id="dr-panel-mods-h" class="dr-config-panel-title">Modifiers</h2>' +
+               renderClidLine_() +
              '</header>' +
-             '<div class="dr-modifiers-content" data-modifiers-content></div>' +
+             '<div class="dr-modifiers-content" data-modifiers-content>' + renderModifiersBody_() + '</div>' +
            '</section>';
+  }
+
+  function renderModifiersBody_() {
+    return renderTierSelector_() + renderLaunchPartnerLine_();
+  }
+
+  function renderModifiersDom_() {
+    var slot = document.querySelector('[data-modifiers-content]');
+    if (!slot) return;
+    slot.innerHTML = renderModifiersBody_();
+    bindModifiersHandlers_();
+  }
+
+  function renderClidLine_() {
+    return '<div class="dr-clid-line">Counter-party: <code>' + escapeHtml(CLID) + '</code></div>';
+  }
+
+  // ─── §6.1 Tier selector with PCIE wire-up ──────────────────────────
+  var TIER_RANK = { operational_readiness: 0, governance: 1, institutional: 2 };
+  function humaniseTier_(code) {
+    return ({ operational_readiness: 'Operational Readiness', governance: 'Governance', institutional: 'Institutional' })[code] || code;
+  }
+  function renderTierSelector_() {
+    var tiers = [
+      { code: 'operational_readiness', label: 'Operational Readiness' },
+      { code: 'governance',            label: 'Governance' },
+      { code: 'institutional',         label: 'Institutional' }
+    ];
+    var chips = '';
+    for (var i = 0; i < tiers.length; i++) {
+      var t = tiers[i];
+      var act = (MODIFIERS_STATE.tier === t.code) ? ' is-active' : '';
+      var instClass = (t.code === 'institutional') ? ' dr-tier-chip-institutional' : '';
+      chips += '<button type="button" class="dr-tier-chip' + act + instClass + '" data-tier-set="' + escapeHtml(t.code) + '" aria-pressed="' + (act ? 'true' : 'false') + '">' + escapeHtml(t.label) + '</button>';
+    }
+    return '<div class="dr-modifier-row dr-modifier-row-tier">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Tier</div>' +
+               '<div class="dr-modifier-meta">PCIE access posture. Governance unlocks RRI bands; Institutional unlocks ACEI + RRI cross-index.</div>' +
+             '</div>' +
+             '<div class="dr-tier-chip-group" role="group" aria-label="Tier selector">' + chips + '</div>' +
+           '</div>';
+  }
+
+  function renderLaunchPartnerLine_() {
+    var q = LAST_QUOTE_V4;
+    if (!q) {
+      return '<div class="dr-modifier-row dr-modifier-row-lp">' +
+               '<div class="dr-modifier-label-block">' +
+                 '<div class="dr-modifier-label">Launch partner</div>' +
+                 '<div class="dr-modifier-meta">Authoritatively resolved by pricing_quote_function_v4 against partner_clids.</div>' +
+               '</div>' +
+               '<div class="dr-lp-status dr-lp-status-pending">Computing first quote…</div>' +
+             '</div>';
+    }
+    var applied = (q.is_launch_partner_applied === true);
+    return '<div class="dr-modifier-row dr-modifier-row-lp' + (applied ? ' is-applied' : '') + '">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Launch partner</div>' +
+               (q.launch_partner_resolved_via ? '<div class="dr-modifier-meta">Resolved via <code>' + escapeHtml(q.launch_partner_resolved_via) + '</code></div>' : '') +
+             '</div>' +
+             '<div class="dr-lp-status">' +
+               (applied ? '<strong>Yes</strong> &middot; &minus;10% applied' : '<strong>No</strong>') +
+             '</div>' +
+           '</div>';
+  }
+
+  function findTierViolations_(newTier) {
+    var newRank = TIER_RANK[newTier];
+    if (newRank == null) newRank = 0;
+    var v = { rri: 0 };
+    if (newRank < TIER_RANK.governance) {
+      v.rri = (SCOPE_STATE.intelligence.rri || []).length;
+    }
+    return v;
+  }
+  function clearTierViolations_(newTier) {
+    var newRank = TIER_RANK[newTier];
+    if (newRank == null) newRank = 0;
+    if (newRank < TIER_RANK.governance) {
+      SCOPE_STATE.intelligence.rri = [];
+      if (INTEL_TAB === 'rri') INTEL_TAB = 'acei';
+    }
+  }
+  function applyTierChange_(newTier) {
+    MODIFIERS_STATE.tier = newTier;
+    renderModifiersDom_();
+    renderAxisListDom_();   // RRI tab gating + tier-gated drill-down rendering refresh
+    recomputeDebounced_();
+  }
+  function handleTierChange_(newTier) {
+    if (!newTier || newTier === MODIFIERS_STATE.tier) return;
+    var oldRank = TIER_RANK[MODIFIERS_STATE.tier] != null ? TIER_RANK[MODIFIERS_STATE.tier] : 0;
+    var newRank = TIER_RANK[newTier] != null ? TIER_RANK[newTier] : 0;
+    if (newRank >= oldRank) return applyTierChange_(newTier);   // upward — no clearing
+    var violations = findTierViolations_(newTier);
+    var total = violations.rri;
+    if (total === 0) return applyTierChange_(newTier);
+    showModalConfirm_({
+      title:         'Lower tier will clear selections',
+      bodyHtml:      'Lowering your tier from <strong>' + escapeHtml(humaniseTier_(MODIFIERS_STATE.tier)) + '</strong> to ' +
+                     '<strong>' + escapeHtml(humaniseTier_(newTier)) + '</strong> will clear ' +
+                     '<strong>' + total + '</strong> intelligence selection' + (total === 1 ? '' : 's') +
+                     ' that require Governance tier. Continue?',
+      continueLabel: 'Continue and clear',
+      cancelLabel:   'Cancel',
+      onContinue:    function () {
+        clearTierViolations_(newTier);
+        applyTierChange_(newTier);
+      }
+    });
+  }
+
+  function bindModifiersHandlers_() {
+    var tierBtns = document.querySelectorAll('[data-tier-set]');
+    for (var i = 0; i < tierBtns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        handleTierChange_(btn.getAttribute('data-tier-set'));
+      });
+    })(tierBtns[i]);
   }
 
   function renderLiveQuotePanel_() {
@@ -1879,6 +2000,7 @@
 
   function bindScopeBuilderHandlers_() {
     bindAxisListHandlers_();
+    bindModifiersHandlers_();
     var resetBtn = document.querySelector('[data-scope-reset]');
     if (resetBtn) resetBtn.addEventListener('click', handleResetAllAxes_);
   }
@@ -2220,6 +2342,7 @@
       if (seq !== quoteRequestSeq) return;
       LAST_QUOTE_V4 = quote;
       renderLiveQuoteContent_(quote);
+      renderModifiersDom_();   // refresh LP status from is_launch_partner_applied
     } catch (err) {
       if (seq !== quoteRequestSeq) return;
       var bodyTxt = (err && err.body) ? String(err.body) : '';
