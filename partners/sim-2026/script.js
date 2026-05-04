@@ -2084,6 +2084,8 @@
       LAST_QUOTE_V4 = quote;
       renderLiveQuoteContent_(quote);
       renderModifiersDom_();   // refresh LP status from is_launch_partner_applied
+      // AMD-120 STOP 4: schedule Eileen-narrated pricing block update (debounced 800ms)
+      scheduleEileenPricingNarration_();
     } catch (err) {
       if (seq !== quoteRequestSeq) return;
       var bodyTxt = (err && err.body) ? String(err.body) : '';
@@ -4514,6 +4516,140 @@
       console.error('[STOP 3] recent-responses panel fetch failed:', err);
       body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
     }
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 4 — Deal Creator Eileen-narrated pricing
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §9
+  // Sits beneath the existing PR #173 three-panel configurator (which
+  // is preserved unmodified). On configurator state change, sends a
+  // synthetic message to /functions/v1/eileen-dealroom; v5 EF parses
+  // the [PRICE_QUOTE: configurator_state="..."] marker, resolves
+  // against pricing_quote_function, and returns price_quote_emitted +
+  // price_quote_result alongside the natural-language narration.
+  //
+  // The deterministic Live Quote rail (PR #173) renders the canonical
+  // figure from pricing_quote_function_v4 directly. The Eileen-narrated
+  // block adds the same figure with explanatory prose; the two MUST
+  // resolve to the same recommended value (brief §9.3 step 5 cross-
+  // checks them).
+  // ============================================================
+
+  var eileenPricingDebounceTimer = null;
+  var eileenPricingRequestSeq = 0;
+
+  function scheduleEileenPricingNarration_() {
+    // Only fires on /configurator/ pages where the block is mounted.
+    if (!document.getElementById('dr-eileen-pricing-block')) return;
+    clearTimeout(eileenPricingDebounceTimer);
+    eileenPricingDebounceTimer = setTimeout(triggerEileenPricingNarration_, 800);
+  }
+
+  async function triggerEileenPricingNarration_() {
+    var body = document.querySelector('[data-eileen-pricing-body]');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+
+    if (!token) {
+      // Sandbox / no-auth: Eileen EF requires JWT. Render placeholder.
+      body.innerHTML = '<div class="dr-eileen-pricing-empty">Sign in to view Eileen&rsquo;s narration of this configuration.</div>';
+      return;
+    }
+    if (!LAST_QUOTE_V4 || !SCOPE_STATE) {
+      body.innerHTML = '<div class="dr-eileen-pricing-empty">Compose a scope above to see Eileen&rsquo;s narration.</div>';
+      return;
+    }
+
+    var seq = ++eileenPricingRequestSeq;
+    body.innerHTML = '<div class="dr-eileen-pricing-pending">Eileen is reviewing the configuration&hellip;</div>';
+
+    var configState = { scope: SCOPE_STATE, modifiers: composeModifiersPayload_() };
+    var syntheticMsg = "What's the recommended price for this configuration: " + JSON.stringify(configState);
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/functions/v1/eileen-dealroom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'apikey': SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({
+          clid: CLID,
+          messages: [{ role: 'user', content: syntheticMsg }]
+        })
+      });
+      if (seq !== eileenPricingRequestSeq) return;   // stale response, drop
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-eileen-pricing-empty">Sign in to view Eileen&rsquo;s narration.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var data = await res.json();
+      if (seq !== eileenPricingRequestSeq) return;
+      renderEileenPricing_(data);
+    } catch (err) {
+      if (seq !== eileenPricingRequestSeq) return;
+      console.error('[STOP 4] Eileen pricing narration failed:', err);
+      body.innerHTML = '<div class="dr-eileen-pricing-error">Could not load Eileen&rsquo;s narration &mdash; please try again.</div>';
+    }
+  }
+
+  function renderEileenPricing_(data) {
+    var body = document.querySelector('[data-eileen-pricing-body]');
+    if (!body) return;
+
+    var pq = data && data.price_quote_result;
+    var narrative = (data && data.response) ? String(data.response) : '';
+
+    // Recommended price — primary headline. Pulls from price_quote_result.recommended
+    // (per brief §9.2 #1 wire-up). If the EF didn't emit a [PRICE_QUOTE: ...] marker
+    // (price_quote_emitted=false), we fall back to LAST_QUOTE_V4's annual_pence.
+    var recommendedPence = null;
+    if (pq && pq.recommended != null) {
+      recommendedPence = Number(pq.recommended);
+    } else if (LAST_QUOTE_V4 && LAST_QUOTE_V4.annual_pence != null) {
+      recommendedPence = Number(LAST_QUOTE_V4.annual_pence);
+    }
+    var recommendedFmt = (recommendedPence != null)
+      ? '£' + (recommendedPence / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '—';
+
+    // Headline driver — short inline label. Heuristic if the EF doesn't supply one.
+    var driver = (pq && pq.headline_driver) ? String(pq.headline_driver) : '';
+    if (!driver && LAST_QUOTE_V4) {
+      // Heuristic: dominant overlay
+      if (LAST_QUOTE_V4.is_launch_partner_applied) driver = 'Launch-partner discount applied (−10%)';
+      else if (Number(LAST_QUOTE_V4.exclusivity_adjustment_pct || 0) > 0) driver = 'Exclusivity surcharge';
+      else if (Number(LAST_QUOTE_V4.refresh_adjustment_pct || 0) > 0) driver = 'Refresh-cadence surcharge';
+      else if (Number(LAST_QUOTE_V4.term_discount_pct || 0) > 0) driver = 'Multi-year term discount';
+    }
+
+    // Methodology details (collapsed by default per brief §9.2 #1)
+    var floor = (pq && pq.floor != null) ? Number(pq.floor) : (LAST_QUOTE_V4 && LAST_QUOTE_V4.annual_band_min_pence);
+    var ceiling = (pq && pq.ceiling != null) ? Number(pq.ceiling) : (LAST_QUOTE_V4 && LAST_QUOTE_V4.annual_band_max_pence);
+    var floorFmt = (floor != null) ? '£' + (Number(floor) / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 }) : '—';
+    var ceilingFmt = (ceiling != null) ? '£' + (Number(ceiling) / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 }) : '—';
+
+    body.innerHTML =
+      '<div class="dr-eileen-pricing-recommended">' +
+        '<span class="dr-eileen-pricing-amount">' + escapeHtml(recommendedFmt) + '</span>' +
+        '<span class="dr-eileen-pricing-unit">recommended /year</span>' +
+      '</div>' +
+      (driver ? '<div class="dr-eileen-pricing-driver">Headline driver: ' + escapeHtml(driver) + '</div>' : '') +
+      '<details class="dr-eileen-pricing-methodology">' +
+        '<summary>Show methodology</summary>' +
+        '<div class="dr-eileen-pricing-methodology-body">' +
+          '<div>Floor: <strong>' + escapeHtml(floorFmt) + '</strong> &middot; Ceiling: <strong>' + escapeHtml(ceilingFmt) + '</strong></div>' +
+          (pq ? '<div class="dr-eileen-pricing-emitted">Eileen emitted [PRICE_QUOTE: …] marker; resolved against pricing_quote_function.</div>'
+              : '<div class="dr-eileen-pricing-emitted">No price-quote marker emitted on this turn; figure from deterministic live quote rail above.</div>') +
+        '</div>' +
+      '</details>' +
+      (narrative ? '<div class="dr-eileen-pricing-narrative">' + escapeHtml(narrative) + '</div>' : '') +
+      '<div class="dr-eileen-pricing-footnote">(price logged for variance tracking)</div>';
   }
 
   document.addEventListener('DOMContentLoaded', function () {
