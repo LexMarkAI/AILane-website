@@ -1950,3 +1950,491 @@ input[type=number] {
   border-style: solid;
   border-color: var(--dr-text-muted);
 }
+
+/* ============================================================
+   AMD-114 four-axis scope-builder configurator
+   AILANE-CC-BRIEF-CONFIGURATOR-PHASE-2-001 (this build)
+   Tokens: --dr-* (page-owned, this file L9-43); --acei-1..12
+   (global, /assets/css/tokens.css). Gold #F59E0B reserved for
+   Institutional tier + Nexus L1 core per AMD-069.
+   ============================================================ */
+
+/* ─── Panel chrome (three-panel architecture) ─────────────── */
+.dr-configurator-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+@media (max-width: 1024px) {
+  .dr-configurator-panels { grid-template-columns: 1fr; }
+}
+.dr-config-panel {
+  background: var(--dr-bg-card);
+  border: 1px solid var(--dr-border);
+  border-radius: var(--dr-radius);
+  padding: 22px;
+  position: relative;
+}
+.dr-config-panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.dr-config-panel-number {
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dr-text-muted);
+  padding: 2px 8px;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 4px;
+}
+.dr-config-panel-title {
+  font-family: var(--dr-font-display);
+  font-size: 22px;
+  color: var(--dr-text-heading);
+  margin: 0;
+  flex: 1 1 auto;
+}
+.dr-config-panel-sub {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--dr-text-dim);
+  margin: 0 0 18px;
+}
+.dr-clid-line {
+  width: 100%;
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  color: var(--dr-text-muted);
+}
+.dr-clid-line code {
+  font-family: var(--dr-font-mono);
+  color: var(--dr-cyan-soft);
+}
+
+/* ─── Reset button ─────────────────────────────────────────── */
+.dr-scope-reset-btn {
+  font-family: var(--dr-font-body);
+  font-size: 12px;
+  background: transparent;
+  border: 1px dashed var(--dr-border-medium);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--dr-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dr-scope-reset-btn:hover {
+  border-style: solid;
+  border-color: var(--dr-cyan-border);
+  color: var(--dr-cyan-soft);
+}
+
+/* ─── Axis rows ────────────────────────────────────────────── */
+.dr-axis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dr-axis-row {
+  background: var(--dr-bg-glass);
+  border: 1px solid var(--dr-border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  transition: border-color 0.18s, background 0.18s;
+}
+.dr-axis-row:hover { border-color: var(--dr-border-medium); }
+.dr-axis-row.is-expanded {
+  border-color: var(--dr-cyan-border);
+  background: var(--dr-bg-card);
+}
+.dr-axis-row-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.dr-axis-row-name {
+  font-family: var(--dr-font-display);
+  font-size: 16px;
+  color: var(--dr-text-heading);
+}
+.dr-axis-row-bump {
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  color: var(--dr-text-muted);
+  padding: 2px 6px;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 4px;
+}
+.dr-axis-row-toggle {
+  font-family: var(--dr-font-body);
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: var(--dr-text-dim);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dr-axis-row-toggle:hover {
+  border-color: var(--dr-cyan);
+  color: var(--dr-cyan-soft);
+}
+.dr-axis-row.is-expanded .dr-axis-row-toggle {
+  border-color: var(--dr-cyan);
+  color: var(--dr-cyan-soft);
+}
+.dr-axis-row-summary {
+  font-size: 13px;
+  color: var(--dr-text-dim);
+  margin-bottom: 4px;
+}
+.dr-axis-row-counts {
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  color: var(--dr-text-muted);
+  letter-spacing: 0.02em;
+}
+.dr-axis-row-counts strong {
+  color: var(--dr-text);
+  font-weight: 600;
+}
+.dr-axis-counts-loading { color: var(--dr-text-muted); }
+.dr-axis-row-expanded {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--dr-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ─── Axis fieldsets / checkboxes ──────────────────────────── */
+.dr-axis-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+.dr-axis-fieldset legend {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dr-text-muted);
+  margin-bottom: 8px;
+}
+.dr-axis-fieldset-sub { margin-top: 12px; }
+.dr-axis-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px 10px;
+}
+.dr-axis-checkbox-grid-industry {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.dr-axis-checkbox-grid-acei {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.dr-axis-checkbox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 6px 8px;
+  font-size: 13px;
+  color: var(--dr-text);
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dr-axis-checkbox:hover { background: var(--dr-bg-glass); }
+.dr-axis-checkbox input[type="checkbox"] { margin: 0; }
+.dr-axis-checkbox-label { line-height: 1.35; }
+.dr-axis-checkbox-meta {
+  grid-column: 2 / -1;
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  color: var(--dr-text-muted);
+}
+.dr-axis-checkbox-sub { padding-left: 14px; }
+.dr-axis-checkbox-acei { grid-template-columns: auto auto 1fr; }
+.dr-axis-checkbox-acei .dr-axis-checkbox-meta { grid-column: 3 / -1; }
+.dr-axis-acei-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--dr-border-medium);
+}
+.dr-axis-notice {
+  font-size: 12px;
+  color: var(--dr-text-muted);
+  font-style: italic;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--dr-border-medium);
+  background: var(--dr-bg-glass);
+}
+.dr-axis-empty, .dr-axis-coming-soon {
+  font-size: 12px;
+  color: var(--dr-text-muted);
+  font-style: italic;
+  padding: 8px;
+}
+
+/* ─── Geography / Industry level selector chips ────────────── */
+.dr-axis-level-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+.dr-axis-level-label {
+  color: var(--dr-text-muted);
+  margin-right: 4px;
+}
+.dr-axis-level-chip {
+  font-family: var(--dr-font-body);
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--dr-text-dim);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dr-axis-level-chip:hover:not(:disabled) {
+  border-color: var(--dr-cyan);
+  color: var(--dr-cyan-soft);
+}
+.dr-axis-level-chip.is-active {
+  border-color: var(--dr-cyan);
+  background: var(--dr-cyan-glow);
+  color: var(--dr-cyan-soft);
+}
+.dr-axis-level-chip.is-disabled, .dr-axis-level-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.dr-axis-back-link {
+  display: inline-block;
+  background: transparent;
+  border: none;
+  color: var(--dr-cyan);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 8px;
+}
+.dr-axis-back-link:hover { color: var(--dr-cyan-soft); text-decoration: underline; }
+
+/* ─── Intelligence sub-axis tabs ───────────────────────────── */
+.dr-axis-tab-row {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--dr-border);
+  margin-bottom: 12px;
+}
+.dr-axis-tab {
+  font-family: var(--dr-font-body);
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 6px 12px;
+  color: var(--dr-text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-bottom-color 0.15s;
+}
+.dr-axis-tab:hover:not(:disabled) { color: var(--dr-cyan-soft); }
+.dr-axis-tab.is-active {
+  color: var(--dr-cyan-soft);
+  border-bottom-color: var(--dr-cyan);
+}
+.dr-axis-tab.is-disabled, .dr-axis-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Panel 2 modifier rows ────────────────────────────────── */
+.dr-modifiers-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dr-modifier-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dr-border);
+}
+.dr-modifier-row:last-child { border-bottom: none; }
+.dr-modifier-label-block { display: flex; flex-direction: column; gap: 3px; }
+.dr-modifier-label {
+  font-size: 13px;
+  color: var(--dr-text);
+  font-weight: 500;
+}
+.dr-modifier-meta {
+  font-size: 11px;
+  color: var(--dr-text-muted);
+  line-height: 1.4;
+}
+
+/* Tier chips (segmented control). AMD-069: --dr-gold reserved for Institutional. */
+.dr-tier-chip-group { display: flex; gap: 4px; flex-wrap: wrap; }
+.dr-tier-chip {
+  font-family: var(--dr-font-body);
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--dr-text-dim);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.dr-tier-chip:hover { border-color: var(--dr-cyan); color: var(--dr-cyan-soft); }
+.dr-tier-chip.is-active {
+  border-color: var(--dr-cyan);
+  background: var(--dr-cyan-glow);
+  color: var(--dr-cyan-soft);
+}
+.dr-tier-chip-institutional.is-active {
+  border-color: var(--dr-gold);
+  background: var(--dr-gold-glow);
+  color: var(--dr-gold);
+}
+
+/* DUNS toggle / refresh / exclusivity / term: existing classes mostly styled
+   above (--dr-radio-option, --dr-config-toggle-label, etc.). LP status: */
+.dr-lp-status {
+  font-size: 12px;
+  color: var(--dr-text);
+  text-align: right;
+}
+.dr-lp-status-pending { color: var(--dr-text-muted); font-style: italic; }
+.dr-modifier-row-lp.is-applied .dr-lp-status { color: var(--dr-cyan-soft); }
+.dr-lp-resolved-via {
+  font-family: var(--dr-font-mono);
+  font-size: 10px;
+  color: var(--dr-text-muted);
+}
+
+/* ─── Panel 3 live quote ───────────────────────────────────── */
+.dr-quote-rail.is-loading { opacity: 0.6; transition: opacity 0.15s; }
+.dr-quote-content { display: flex; flex-direction: column; gap: 10px; }
+.dr-quote-per-record {
+  font-family: var(--dr-font-display);
+  font-size: 32px;
+  color: var(--dr-text-heading);
+  line-height: 1.1;
+}
+.dr-quote-per-record-unit {
+  font-family: var(--dr-font-body);
+  font-size: 12px;
+  color: var(--dr-text-muted);
+}
+.dr-quote-universe-ribbon { display: flex; gap: 8px; flex-wrap: wrap; }
+.dr-quote-universe-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--dr-bg-glass);
+}
+.dr-quote-universe-label { color: var(--dr-text-muted); }
+.dr-quote-universe-pill strong { color: var(--dr-text); font-family: var(--dr-font-mono); }
+.dr-quote-annual {
+  font-family: var(--dr-font-display);
+  font-size: 24px;
+  color: var(--dr-text-heading);
+  line-height: 1.2;
+}
+.dr-quote-annual-unit { font-size: 13px; color: var(--dr-text-muted); }
+.dr-quote-floor-annotation { font-size: 11px; color: var(--dr-text-muted); font-style: italic; }
+.dr-quote-band {
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  color: var(--dr-text-muted);
+}
+.dr-quote-ribbon {
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  color: var(--dr-text-muted);
+  line-height: 1.5;
+}
+.dr-quote-multipliers-ribbon, .dr-quote-overlays-ribbon {
+  padding: 6px 0;
+}
+.dr-quote-breakdown {
+  border-top: 1px solid var(--dr-border);
+  padding-top: 10px;
+}
+.dr-quote-breakdown-summary {
+  font-size: 12px;
+  color: var(--dr-cyan);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  padding: 4px 0;
+}
+.dr-quote-breakdown-summary::before { content: '▸ '; }
+.dr-quote-breakdown[open] .dr-quote-breakdown-summary::before { content: '▾ '; }
+.dr-quote-breakdown-summary:hover { color: var(--dr-cyan-soft); }
+.dr-quote-breakdown-body {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.dr-quote-step {
+  font-family: var(--dr-font-mono);
+  font-size: 11px;
+  padding: 4px 6px;
+  border-left: 2px solid var(--dr-border-medium);
+}
+.dr-quote-step-label { color: var(--dr-text); font-weight: 500; }
+.dr-quote-step-fields { color: var(--dr-text-muted); margin-top: 2px; }
+.dr-quote-step-discount { border-left-color: var(--dr-status-pending); }
+.dr-quote-step-discount .dr-quote-step-label { color: var(--dr-status-pending); }
+.dr-quote-error {
+  color: var(--dr-status-err, #EF4444);
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 4px;
+}
+.dr-quote-zero {
+  color: var(--dr-text-muted);
+  font-size: 12px;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+  border: 1px dashed var(--dr-border-medium);
+  border-radius: 4px;
+}
+
+/* ─── Footer architectural authority line (§8) ─────────────── */
+.dr-footer-amd-line {
+  font-family: var(--dr-font-body);
+  font-size: 11px;
+  color: var(--dr-text-muted);
+  margin: 0 0 6px;
+  opacity: 0.85;
+}
