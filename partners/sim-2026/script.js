@@ -452,6 +452,8 @@
       populateConfigurator(window.__dealRoomUser);
     } else if (location.pathname.indexOf('/status/') !== -1) {
       populateEngagementPanels();
+    } else if (location.pathname.indexOf('/pathway/') !== -1) {
+      populatePathway();
     }
   }
 
@@ -4257,41 +4259,60 @@
   // — hard-coded per brief §8.2 #1 ("hard-code the six descriptions in
   // dealroom.js as a constant"; here in script.js, single source of
   // truth, no per-page duplication).
+  // Phase content sourced from JIPA-GRD-001 §5 (Engagement phase progression
+  // and Eileen role). Per JIPA-GRD-001 §5: durations are NOT standardised;
+  // advancement is requirement-driven, not time-driven. Hence no `duration`
+  // field per phase — see brief §10.2 ("do not invent durations") + the
+  // page-level note rendered at the top of the Pathway page.
   var ENGAGEMENT_PHASE_META = {
     phase_0: {
       label: 'Phase 0 — Pre-engagement',
-      description: 'Initial introduction and context-setting before the formal engagement opens. Both parties get familiar with the workspace.',
-      needed: 'Director moves the engagement to Phase A when the parties are ready to formally open. No counterparty action required at this stage.'
+      description: 'Initial conversation and qualification before the formal engagement opens. Both parties get familiar with the workspace and Eileen.',
+      needed: 'Director moves the engagement to Phase A when the parties are ready to formally open. No counterparty action required at this stage.',
+      unlocks: 'Initial deal-room access; conversation with Eileen; orientation to the engagement protocol.',
+      requires: '(none — Phase 0 is the entry state)'
     },
     phase_a: {
-      label: 'Phase A — Engagement opened',
-      description: 'NDA and engagement framing executed; the deal-room is fully provisioned for substantive work.',
-      needed: 'Counterparty signs the mutual NDA and confirms named engagement contacts. Director executes the engagement-opening pack.'
+      label: 'Phase A — NDA execution',
+      description: 'Mutual NDA executed between both parties; Tier α deliverables become available for review.',
+      needed: 'Counterparty signs the mutual NDA. Director executes the corresponding signature pack and releases Tier α materials.',
+      unlocks: 'Tier α deliverables become available; substantive document estate opens for review.',
+      requires: 'Mutual NDA executed by both parties.'
     },
     phase_b: {
-      label: 'Phase B — Engagement signed',
-      description: 'Today configuration agreed; Tier-β sprint scope opens for delivery.',
-      needed: 'Counterparty signs the Today configuration and acknowledges the data field schedule. Director enables the Tier-β workspace surfaces.'
+      label: 'Phase B — Tier α delivery + Today Configuration handover',
+      description: 'Tier α deliverables hand over; the Today Configuration is agreed; the Tier β architectural sprint starts as a parallel critical path.',
+      needed: 'Counterparty agrees the Today Configuration. Director hands over Tier α delivery and opens the Tier β architectural sprint.',
+      unlocks: 'Tier β architectural sprint starts as parallel critical path; Today Configuration becomes the operating reference.',
+      requires: 'Today Configuration agreed and handed over.'
     },
     phase_c: {
-      label: 'Phase C — Active engagement (DPA + MSA)',
-      description: 'Data Processing Agreement and Master Services Agreement executed; substantive data exchange and collaboration active.',
-      needed: 'Counterparty signs the DPA addendum and MSA. Director executes the corresponding signature pack.'
+      label: 'Phase C — DPA + MSA negotiation',
+      description: 'Data Processing Agreement and Master Services Agreement negotiated; the contractual framework for substantive data exchange falls into place.',
+      needed: 'Counterparty engages on DPA and MSA terms. Director executes the corresponding signature pack.',
+      unlocks: 'Substantive data exchange framework; contractual basis for production delivery.',
+      requires: 'DPA addendum and MSA executed by both parties.'
     },
     phase_d: {
-      label: 'Phase D — Renewal (Full config + Tier β+ enabled)',
-      description: 'Full configuration committed; Tier β+ surfaces enabled; renewal cycle planning under way.',
-      needed: 'Counterparty signs the Full configuration; Director enables Tier β+ workspace surfaces.'
+      label: 'Phase D — Full Configuration activation',
+      description: 'Full Configuration is committed; Tier β / Tier β+ surfaces are enabled; production-grade engagement opens.',
+      needed: 'Counterparty signs the Full Configuration. Director enables Tier β / Tier β+ workspace surfaces.',
+      unlocks: 'Tier β / Tier β+ surfaces enabled; production-grade access to the analytical estate.',
+      requires: 'Full Configuration committed.'
     },
     phase_e: {
-      label: 'Phase E — Wind-down (commercial schedule)',
-      description: 'Commercial schedule executed; engagement winding down per agreed terms.',
-      needed: 'Counterparty acknowledges the commercial schedule. Director executes the wind-down pack.'
+      label: 'Phase E — Commercial schedule finalisation',
+      description: 'Commercial schedule is finalised; pricing, renewal cadence, and review windows are anchored.',
+      needed: 'Counterparty acknowledges the commercial schedule. Director executes the corresponding pack.',
+      unlocks: 'Commercial schedule operates; pricing and review cadence active.',
+      requires: 'Commercial schedule acknowledged.'
     },
     phase_f: {
-      label: 'Phase F — Closed (operational handover)',
-      description: 'Operational handover complete; engagement formally closed.',
-      needed: 'No further action required; the deal-room remains available as an audit-grade record.'
+      label: 'Phase F — Operational handover and ongoing support',
+      description: 'Operational handover completes; the engagement transitions to ongoing support; the deal-room remains available as an audit-grade record.',
+      needed: 'No further action required to enter Phase F; renewal and expansion conversations occur within ongoing support.',
+      unlocks: 'Ongoing support cadence; renewal and expansion conversations.',
+      requires: 'All prior phases complete.'
     }
   };
 
@@ -4650,6 +4671,116 @@
       '</details>' +
       (narrative ? '<div class="dr-eileen-pricing-narrative">' + escapeHtml(narrative) + '</div>' : '') +
       '<div class="dr-eileen-pricing-footnote">(price logged for variance tracking)</div>';
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 5 — Pathway page
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §10
+  // Renders the seven-phase JIPA-GRD-001 §5 protocol as:
+  //  - 7-chip visual phase strip with current-phase highlight
+  //    (gold #F59E0B for Institutional / Director per AMD-069;
+  //     cyan baseline #0EA5E9 otherwise)
+  //  - 7 stacked detail blocks (name+description, "what unlocks",
+  //    "what's required to enter") sourced from
+  //    ENGAGEMENT_PHASE_META (single source of truth, also used by
+  //    STOP 3 Engagement page Current Phase panel)
+  // Per JIPA-GRD-001 §5: per-phase durations are NOT documented;
+  // a page-level note in the HTML explains this rather than
+  // rendering invented durations (brief §10.2 "do not invent").
+  // ============================================================
+
+  var PATHWAY_PHASES = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+  var PATHWAY_CHIP_LABELS = {
+    phase_0: 'Phase 0',
+    phase_a: 'Phase A',
+    phase_b: 'Phase B',
+    phase_c: 'Phase C',
+    phase_d: 'Phase D',
+    phase_e: 'Phase E',
+    phase_f: 'Phase F'
+  };
+
+  async function populatePathway() {
+    var strip = document.getElementById('dr-pathway-strip');
+    var blocks = document.getElementById('dr-pathway-detail-blocks');
+    if (!strip || !blocks || strip.dataset.populated === '1') return;
+    strip.dataset.populated = '1';
+
+    // Determine current phase. In sandbox / no-auth, no highlight (we do
+    // not invent a phase); in production with auth, query partner_clids.
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    var currentPhase = null;
+    var goldHighlight = false;
+
+    // AMD-069: gold reserved for Institutional tier and Director identity.
+    if (user) {
+      if (user.email === DIRECTOR_EMAIL) goldHighlight = true;
+      else if (user.tier === ALLOWED_TIER /* 'institutional' */) goldHighlight = true;
+    }
+
+    if (token) {
+      try { currentPhase = await fetchClidGateState(token, CLID); }
+      catch (e) { currentPhase = null; }
+    }
+
+    renderPathwayStrip_(currentPhase, goldHighlight);
+    renderPathwayDetailBlocks_(currentPhase);
+  }
+
+  function renderPathwayStrip_(currentPhase, goldHighlight) {
+    var strip = document.getElementById('dr-pathway-strip');
+    if (!strip) return;
+    var html = '';
+    for (var i = 0; i < PATHWAY_PHASES.length; i++) {
+      var p = PATHWAY_PHASES[i];
+      var isCurrent = (p === currentPhase);
+      var chipClass = 'dr-pathway-chip' +
+                      (isCurrent ? ' is-current' : '') +
+                      (isCurrent && goldHighlight ? ' is-current-gold' : '') +
+                      (isCurrent && !goldHighlight ? ' is-current-cyan' : '');
+      var meta = ENGAGEMENT_PHASE_META[p] || { label: p };
+      var shortLabel = (meta.label || p).split('—')[1] ? meta.label.split('—')[1].trim() : meta.label;
+      html +=
+        '<li class="' + chipClass + '" data-pathway-chip="' + p + '">' +
+          '<span class="dr-pathway-chip-code">' + escapeHtml(PATHWAY_CHIP_LABELS[p] || p) + '</span>' +
+          '<span class="dr-pathway-chip-label">' + escapeHtml(shortLabel) + '</span>' +
+          (isCurrent ? '<span class="dr-pathway-chip-current-indicator" aria-label="Current phase">&#9679;</span>' : '') +
+        '</li>';
+    }
+    strip.innerHTML = html;
+  }
+
+  function renderPathwayDetailBlocks_(currentPhase) {
+    var anchor = document.getElementById('dr-pathway-detail-blocks');
+    if (!anchor) return;
+    var html = '';
+    for (var i = 0; i < PATHWAY_PHASES.length; i++) {
+      var p = PATHWAY_PHASES[i];
+      var meta = ENGAGEMENT_PHASE_META[p];
+      if (!meta) continue;
+      var isCurrent = (p === currentPhase);
+      html +=
+        '<article class="dr-pathway-block' + (isCurrent ? ' is-current' : '') + '" data-pathway-block="' + p + '">' +
+          '<header class="dr-pathway-block-header">' +
+            '<span class="dr-pathway-block-code">' + escapeHtml(PATHWAY_CHIP_LABELS[p] || p) + '</span>' +
+            '<h3 class="dr-pathway-block-title">' + escapeHtml(meta.label) + '</h3>' +
+            (isCurrent ? '<span class="dr-pathway-block-current-pill">Current phase</span>' : '') +
+          '</header>' +
+          '<p class="dr-pathway-block-desc">' + escapeHtml(meta.description) + '</p>' +
+          '<div class="dr-pathway-block-fields">' +
+            '<div class="dr-pathway-block-field">' +
+              '<h4 class="dr-pathway-block-fieldlabel">What unlocks here</h4>' +
+              '<p>' + escapeHtml(meta.unlocks || '') + '</p>' +
+            '</div>' +
+            '<div class="dr-pathway-block-field">' +
+              '<h4 class="dr-pathway-block-fieldlabel">What&rsquo;s required to enter</h4>' +
+              '<p>' + escapeHtml(meta.requires || '') + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</article>';
+    }
+    anchor.innerHTML = html;
   }
 
   document.addEventListener('DOMContentLoaded', function () {
