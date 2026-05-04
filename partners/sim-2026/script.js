@@ -437,6 +437,7 @@
     injectMenuBar();
     injectSubPageNav();
     injectAuthChip();
+    mountEileenExplanation();
     injectPhaseTracker();
     injectDocumentVault();
     injectEileenPanel();
@@ -446,6 +447,7 @@
     populateWhatsHappening();
     if (location.pathname.indexOf('/documents/') !== -1) {
       populateDocumentsCatalog(window.__dealRoomUser);
+      populateArtefactsView();
     } else if (location.pathname.indexOf('/configurator/') !== -1) {
       populateConfigurator(window.__dealRoomUser);
     }
@@ -3912,6 +3914,328 @@
       console.error('[STOP 1] recent-responses tile fetch failed:', err);
       body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
     }
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 2 — Documents page Artefacts view
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §7
+  // Universal Eileen-explanation injector (deploys to all sub-pages
+  // that don't already carry the static block — Welcome has it static).
+  // Filter bar + unified Artefacts list across 5 source tables.
+  // Specification clarification needed: brief §7.1 references
+  // dealroom_documents_catalog.category column which does not exist on
+  // the live schema; standalone counterparty-upload widget deferred
+  // accordingly. Existing PR #174 per-tile upload UX preserved.
+  // ============================================================
+
+  // ─── Universal Eileen-explanation injector (every sub-page) ──
+  // Welcome has the block as static HTML; sub-pages get it via injection.
+  // Idempotent (no-op when block already present).
+  function mountEileenExplanation() {
+    if (document.querySelector('.dr-eileen-explanation')) return;
+    var hero = document.querySelector('.dr-main .dr-container .dr-hero');
+    if (!hero) return;
+    var section = document.createElement('section');
+    section.className = 'dr-eileen-explanation';
+    section.setAttribute('aria-label', 'About Eileen');
+    section.innerHTML =
+      '<p>' +
+        'Eileen is Ailane&rsquo;s intelligence entity, named after the founder&rsquo;s mother Ellen. She draws on three layers ' +
+        '&mdash; UK statutory provisions, leading employment-law cases, and Ailane&rsquo;s own ratified specifications &mdash; ' +
+        'to give you regulatory and contractual context for any question you raise. She can produce draft template skeletons, ' +
+        'surface live pricing for configurations you propose, and triage off-estate requests to the Director with a 10 ' +
+        'UK-working-day SLA. She does not commit to commercial terms, give legal advice, or replace counsel; commitments ' +
+        'require a signed contract, and statutory advice requires regulated counsel.' +
+      '</p>';
+    hero.insertAdjacentElement('afterend', section);
+  }
+
+  // ─── Artefacts view (Documents page only) ─────────────────────
+  var ARTEFACT_CATEGORIES = [
+    { code: 'all',           label: 'All' },
+    { code: 'templates',     label: 'Templates' },
+    { code: 'proposals',     label: 'Counter-Proposals' },
+    { code: 'fcrs',          label: 'FCRs' },
+    { code: 'conversations', label: 'Eileen Conversations' },
+    { code: 'directorups',   label: 'Director Uploads' }
+  ];
+  var ARTEFACT_EMPTY_STATES = {
+    all:           'No artefacts in this deal-room yet. Templates appear when the Director makes them available; counter-proposals and capability requests appear once submitted; Eileen conversations are filed automatically as you talk to her.',
+    templates:     'No templates available for this engagement yet. Templates are reusable document skeletons the Director makes available throughout the engagement.',
+    proposals:     'No counter-proposals submitted yet. Compose a configuration in Deal Creator and submit it for Director review.',
+    fcrs:          'No capability requests yet. Eileen lodges off-estate requests with the Director when one comes up in conversation; Director responds within 10 UK working days.',
+    conversations: 'No saved conversations yet. Conversations with Eileen are filed automatically once the deal-room is signed in.',
+    directorups:   'No Director-released documents yet. Documents the Director places into the deal-room appear here, phase-gated.'
+  };
+  var ARTEFACTS_STATE = { filter: 'all', loaded: false, rows: [] };
+
+  function populateArtefactsView() {
+    var anchor = document.getElementById('dr-artefacts-list');
+    var bar = document.getElementById('dr-artefacts-filter-bar');
+    if (!anchor || !bar) return;
+    if (anchor.dataset.populated === '1') return;
+    anchor.dataset.populated = '1';
+
+    // Render filter bar (chips)
+    var chips = '';
+    for (var i = 0; i < ARTEFACT_CATEGORIES.length; i++) {
+      var c = ARTEFACT_CATEGORIES[i];
+      var active = (ARTEFACTS_STATE.filter === c.code) ? ' is-active' : '';
+      chips += '<button type="button" class="dr-artefact-chip' + active + '" role="tab" aria-selected="' + (active ? 'true' : 'false') + '" data-artefact-filter="' + c.code + '">' +
+                 escapeHtml(c.label) +
+               '</button>';
+    }
+    bar.innerHTML = chips;
+    bindArtefactFilterBar_();
+
+    fetchAllArtefacts_();
+  }
+
+  function bindArtefactFilterBar_() {
+    var btns = document.querySelectorAll('[data-artefact-filter]');
+    for (var i = 0; i < btns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var code = btn.getAttribute('data-artefact-filter');
+        if (!code || code === ARTEFACTS_STATE.filter) return;
+        ARTEFACTS_STATE.filter = code;
+        // Update chip active states
+        var allBtns = document.querySelectorAll('[data-artefact-filter]');
+        for (var j = 0; j < allBtns.length; j++) {
+          allBtns[j].classList.toggle('is-active', allBtns[j].getAttribute('data-artefact-filter') === code);
+          allBtns[j].setAttribute('aria-selected', allBtns[j].getAttribute('data-artefact-filter') === code ? 'true' : 'false');
+        }
+        renderArtefactsList_();
+      });
+    })(btns[i]);
+  }
+
+  async function fetchAllArtefacts_() {
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    var rows = [];
+
+    if (!token) {
+      // Sandbox / no-auth: render the same empty-state copy that authenticated
+      // zero-row users see. Truthful in all three observable cases per Chairman
+      // STOP 1 modification of deviation 3.
+      ARTEFACTS_STATE.loaded = true;
+      ARTEFACTS_STATE.rows = [];
+      renderArtefactsList_();
+      return;
+    }
+
+    var hdrs = { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' };
+    var clidParam = encodeURIComponent(CLID);
+
+    var fetches = [
+      // Templates — kind='template' across all clids (catalog is shared, but visibility is RLS-gated)
+      fetch(SUPABASE_URL + '/rest/v1/dealroom_documents_catalog?or=(clid.eq.' + clidParam + ',clid.is.null)&deleted_at=is.null&kind=eq.template&select=document_id,doc_code,name,description,version_label,storage_path,available_from_phase,created_at&order=display_order.asc', { headers: hdrs }),
+      // Director Uploads — kind='release' (Director-released catalog rows for this clid)
+      fetch(SUPABASE_URL + '/rest/v1/dealroom_documents_catalog?or=(clid.eq.' + clidParam + ',clid.is.null)&deleted_at=is.null&kind=eq.release&select=document_id,doc_code,name,description,version_label,storage_path,available_from_phase,created_at&order=display_order.asc', { headers: hdrs }),
+      // Counter-proposals
+      fetch(SUPABASE_URL + '/rest/v1/partner_counter_proposals?clid=eq.' + clidParam + '&select=id,config_summary,estimated_annual_value_min,estimated_annual_value_max,director_response_status,urgency_flag,eileen_evaluation_pending,submitted_at,submitted_by_email&order=submitted_at.desc', { headers: hdrs }),
+      // FCRs
+      fetch(SUPABASE_URL + '/rest/v1/feature_capability_requests?clid=eq.' + clidParam + '&select=id,request_summary,request_category,director_review_status,director_response_text,director_response_at,sla_target_response_at,submitted_at,requester_email&order=submitted_at.desc', { headers: hdrs }),
+      // Eileen conversations (RLS auto-filters by user_id)
+      fetch(SUPABASE_URL + '/rest/v1/dealroom_eileen_sessions?clid=eq.' + clidParam + '&select=session_id,message_count,prompt_version,created_at,updated_at&order=updated_at.desc', { headers: hdrs })
+    ];
+
+    try {
+      var responses = await Promise.all(fetches);
+      var [tpls, releases, props, fcrs, convs] = await Promise.all(responses.map(function (r) {
+        return r.ok ? r.json() : Promise.resolve([]);
+      }));
+
+      // Normalise into a unified row shape: { type, name, drafted_by, when, raw }
+      (tpls || []).forEach(function (r) {
+        rows.push({ type: 'templates', id: r.document_id, name: r.name || r.doc_code, drafted_by: 'Director',
+                    when: r.created_at, hasFile: !!r.storage_path, raw: r });
+      });
+      (releases || []).forEach(function (r) {
+        rows.push({ type: 'directorups', id: r.document_id, name: r.name || r.doc_code, drafted_by: 'Director',
+                    when: r.created_at, hasFile: !!r.storage_path, raw: r });
+      });
+      (props || []).forEach(function (r) {
+        rows.push({ type: 'proposals', id: r.id, name: r.config_summary || '(unnamed configuration)',
+                    drafted_by: 'Counterparty', when: r.submitted_at, hasFile: false, raw: r });
+      });
+      (fcrs || []).forEach(function (r) {
+        rows.push({ type: 'fcrs', id: r.id, name: r.request_summary || r.request_category || '(unnamed request)',
+                    drafted_by: 'Eileen', when: r.submitted_at, hasFile: false, raw: r });
+      });
+      (convs || []).forEach(function (r) {
+        var lbl = 'Eileen conversation — ' + (r.message_count || 0) + ' message' + ((r.message_count === 1) ? '' : 's');
+        rows.push({ type: 'conversations', id: r.session_id, name: lbl, drafted_by: 'Eileen',
+                    when: r.updated_at || r.created_at, hasFile: false, raw: r });
+      });
+
+      rows.sort(function (a, b) { return (b.when || '').localeCompare(a.when || ''); });
+
+      ARTEFACTS_STATE.loaded = true;
+      ARTEFACTS_STATE.rows = rows;
+      renderArtefactsList_();
+    } catch (err) {
+      console.error('[STOP 2] fetchAllArtefacts failed:', err);
+      var anchor = document.getElementById('dr-artefacts-list');
+      if (anchor) anchor.innerHTML = '<div class="dr-artefacts-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  function renderArtefactsList_() {
+    var anchor = document.getElementById('dr-artefacts-list');
+    if (!anchor) return;
+    var filter = ARTEFACTS_STATE.filter;
+    var filtered = (filter === 'all') ? ARTEFACTS_STATE.rows
+                                      : ARTEFACTS_STATE.rows.filter(function (r) { return r.type === filter; });
+    if (!ARTEFACTS_STATE.loaded) {
+      anchor.innerHTML = '<div class="dr-artefacts-pending">Loading artefacts&hellip;</div>';
+      return;
+    }
+    if (filtered.length === 0) {
+      anchor.innerHTML = '<div class="dr-artefacts-empty">' + escapeHtml(ARTEFACT_EMPTY_STATES[filter] || ARTEFACT_EMPTY_STATES.all) + '</div>';
+      return;
+    }
+    var rowsHtml = '';
+    for (var i = 0; i < filtered.length; i++) {
+      var r = filtered[i];
+      var dateStr = r.when ? new Date(r.when).toLocaleDateString('en-GB') : '';
+      var catLbl = (function (t) {
+        return ({ templates: 'Template', proposals: 'Counter-proposal', fcrs: 'FCR', conversations: 'Eileen conversation', directorups: 'Director upload' })[t] || t;
+      })(r.type);
+      var actionLabel = r.hasFile ? 'View' : 'Open';
+      rowsHtml +=
+        '<article class="dr-artefact-row" data-artefact-type="' + escapeHtml(r.type) + '" data-artefact-id="' + escapeHtml(String(r.id)) + '">' +
+          '<div class="dr-artefact-row-main">' +
+            '<div class="dr-artefact-row-name">' + escapeHtml(r.name) + '</div>' +
+            '<div class="dr-artefact-row-meta">' +
+              '<span class="dr-artefact-row-cat">' + escapeHtml(catLbl) + '</span>' +
+              '<span class="dr-artefact-row-by">Drafted by ' + escapeHtml(r.drafted_by) + '</span>' +
+              (dateStr ? '<span class="dr-artefact-row-date">' + escapeHtml(dateStr) + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="dr-artefact-row-actions">' +
+            '<button type="button" class="dr-btn-secondary dr-artefact-view-btn" data-artefact-view>' + actionLabel + '</button>' +
+          '</div>' +
+        '</article>';
+    }
+    anchor.innerHTML = rowsHtml;
+    bindArtefactRowHandlers_();
+  }
+
+  function bindArtefactRowHandlers_() {
+    var btns = document.querySelectorAll('[data-artefact-view]');
+    for (var i = 0; i < btns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.dr-artefact-row');
+        if (!row) return;
+        var type = row.getAttribute('data-artefact-type');
+        var id = row.getAttribute('data-artefact-id');
+        viewArtefact_(type, id);
+      });
+    })(btns[i]);
+  }
+
+  async function viewArtefact_(type, id) {
+    var artefact = ARTEFACTS_STATE.rows.find(function (r) { return r.type === type && String(r.id) === String(id); });
+    if (!artefact) return;
+    if (artefact.hasFile) {
+      // Catalog rows with storage_path → signed URL via dealroom-document-fetch EF
+      try {
+        var user = window.__dealRoomUser;
+        if (!user || !user.token) return;
+        var res = await fetch(SUPABASE_URL + '/functions/v1/dealroom-document-fetch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + user.token,
+            'apikey': SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ clid: CLID, catalog_document_id: id, action: 'preview' })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var data = await res.json();
+        if (data && data.signed_url) {
+          window.open(data.signed_url, '_blank', 'noopener,noreferrer');
+        } else {
+          alert('Document temporarily unavailable.');
+        }
+      } catch (err) {
+        console.error('[STOP 2] viewArtefact (file) failed:', err);
+        alert('Could not open document. Please try again or contact partnerships@ailane.ai.');
+      }
+      return;
+    }
+    // Non-file artefacts → details modal
+    var title = '', body = '';
+    if (type === 'proposals') {
+      var p = artefact.raw;
+      var range = (p.estimated_annual_value_min != null && p.estimated_annual_value_max != null)
+        ? '£' + Number(p.estimated_annual_value_min).toLocaleString('en-GB') + '–£' + Number(p.estimated_annual_value_max).toLocaleString('en-GB') + ' /year'
+        : 'Range not set';
+      title = 'Counter-proposal';
+      body = '<dl class="dr-artefact-detail-list">' +
+               '<dt>Configuration</dt><dd>' + escapeHtml(p.config_summary || '(no summary)') + '</dd>' +
+               '<dt>Estimated annual value</dt><dd>' + escapeHtml(range) + '</dd>' +
+               '<dt>Status</dt><dd>' + escapeHtml(p.eileen_evaluation_pending ? 'Eileen acknowledged; Director reviewing' : (p.director_response_status || 'awaiting Director')) + '</dd>' +
+               '<dt>Urgency</dt><dd>' + escapeHtml(p.urgency_flag || 'standard') + '</dd>' +
+               '<dt>Submitted</dt><dd>' + escapeHtml(p.submitted_at ? new Date(p.submitted_at).toLocaleString('en-GB') : '') + '</dd>' +
+               '<dt>Submitted by</dt><dd>' + escapeHtml(p.submitted_by_email || '') + '</dd>' +
+             '</dl>';
+    } else if (type === 'fcrs') {
+      var f = artefact.raw;
+      var sla = '';
+      if (f.sla_target_response_at) {
+        var msRem = new Date(f.sla_target_response_at).getTime() - Date.now();
+        var days = Math.ceil(msRem / (1000 * 60 * 60 * 24));
+        sla = (days >= 0) ? ('Director response due in ' + days + ' day' + (days === 1 ? '' : 's')) : 'SLA elapsed';
+      }
+      title = 'Feature / capability request';
+      body = '<dl class="dr-artefact-detail-list">' +
+               '<dt>Request</dt><dd>' + escapeHtml(f.request_summary || '(no summary)') + '</dd>' +
+               '<dt>Category</dt><dd>' + escapeHtml(f.request_category || '') + '</dd>' +
+               '<dt>Status</dt><dd>' + escapeHtml(f.director_review_status || '') + '</dd>' +
+               (sla ? '<dt>SLA</dt><dd>' + escapeHtml(sla) + '</dd>' : '') +
+               (f.director_response_text ? '<dt>Director response</dt><dd>' + escapeHtml(f.director_response_text) + '</dd>' : '') +
+               '<dt>Submitted</dt><dd>' + escapeHtml(f.submitted_at ? new Date(f.submitted_at).toLocaleString('en-GB') : '') + '</dd>' +
+             '</dl>';
+    } else if (type === 'conversations') {
+      var c = artefact.raw;
+      title = 'Eileen conversation';
+      body = '<dl class="dr-artefact-detail-list">' +
+               '<dt>Messages</dt><dd>' + escapeHtml(String(c.message_count || 0)) + '</dd>' +
+               '<dt>Eileen prompt version</dt><dd>' + escapeHtml(c.prompt_version || '') + '</dd>' +
+               '<dt>Started</dt><dd>' + escapeHtml(c.created_at ? new Date(c.created_at).toLocaleString('en-GB') : '') + '</dd>' +
+               '<dt>Updated</dt><dd>' + escapeHtml(c.updated_at ? new Date(c.updated_at).toLocaleString('en-GB') : '') + '</dd>' +
+             '</dl>' +
+             '<p class="dr-artefact-detail-note">Conversation transcript view is on the Eileen panel after the next session resumes.</p>';
+    } else {
+      title = 'Artefact';
+      body = '<p>No detail view configured for this artefact type.</p>';
+    }
+    showArtefactDetailsModal_(title, body);
+  }
+
+  function showArtefactDetailsModal_(title, bodyHtml) {
+    var existing = document.getElementById('dr-artefact-modal-overlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-artefact-modal-overlay';
+    overlay.className = 'dr-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="dr-modal-card">' +
+        '<h3 class="dr-modal-title">' + escapeHtml(title) + '</h3>' +
+        '<div class="dr-modal-body">' + bodyHtml + '</div>' +
+        '<div class="dr-modal-actions">' +
+          '<button type="button" class="dr-modal-btn dr-modal-btn-primary" data-modal-close>Close</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    overlay.addEventListener('click', function (ev) { if (ev.target === overlay) close(); });
+    var closeBtn = overlay.querySelector('[data-modal-close]');
+    if (closeBtn) closeBtn.addEventListener('click', close);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
