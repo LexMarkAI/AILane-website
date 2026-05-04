@@ -3082,12 +3082,128 @@
   }
 
   function renderTileActionsPlaceholder_(kind, status) {
-    // Placeholder — actual action buttons land in commits 6-8.
+    if (kind === 'release') {
+      if (status === 'available') {
+        return '<button type="button" class="dr-btn-secondary dr-doc-action" data-doc-action="preview">Preview</button>' +
+               '<button type="button" class="dr-btn-primary dr-doc-action" data-doc-action="download">Download</button>';
+      }
+      // Locked — no actions
+      return '<span class="dr-doc-tile-locked-note">Unlocks at later phase</span>';
+    }
+    // Templates / requirements — placeholders, populated in commits 7-8.
     return '<span class="dr-doc-tile-actions-pending">Actions wiring up&hellip;</span>';
   }
 
   function bindDocTileHandlers_() {
-    // Stub — populated by commits 6-8.
+    var actionBtns = document.querySelectorAll('.dr-doc-tile [data-doc-action]');
+    for (var i = 0; i < actionBtns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var tile = btn.closest('.dr-doc-tile');
+        if (!tile) return;
+        var action = btn.getAttribute('data-doc-action');
+        handleDocAction_(tile, action);
+      });
+    })(actionBtns[i]);
+  }
+
+  // ─── EF helpers (POST JSON with user JWT) ──────────────────
+  async function callDealroomEf_(slug, body) {
+    var session = await getDealroomSession_();
+    if (!session) throw new Error('Not authenticated');
+    var res = await fetch(SUPABASE_URL + '/functions/v1/' + slug, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify(body || {})
+    });
+    if (!res.ok) {
+      var errBody = '';
+      try { errBody = await res.text(); } catch (e) {}
+      var err = new Error(slug + ' failed: ' + res.status);
+      err.status = res.status;
+      err.body = errBody;
+      throw err;
+    }
+    return await res.json();
+  }
+
+  // ─── Tile action handlers ──────────────────────────────────
+  // Preview (5-min TTL signed URL → new tab) and Download (30-min TTL
+  // signed URL → forced download via anchor[download]).
+  async function handleDocAction_(tile, action) {
+    if (!tile || !action) return;
+    if (action === 'preview' || action === 'download') {
+      return handleFetchAction_(tile, action);
+    }
+    // 'upload' / 'replace' / 'view' land in commits 7-8.
+    console.warn('[Phase 3] unhandled doc action:', action);
+  }
+
+  async function handleFetchAction_(tile, action) {
+    var documentId = tile.getAttribute('data-document-id');
+    var uploadId = tile.getAttribute('data-upload-id');
+    var actionsBox = tile.querySelector('[data-tile-actions]');
+    var prevActionsHtml = actionsBox ? actionsBox.innerHTML : '';
+    if (actionsBox) {
+      actionsBox.innerHTML = '<span class="dr-doc-tile-actions-pending">' +
+        (action === 'preview' ? 'Preparing preview&hellip;' : 'Preparing download&hellip;') +
+        '</span>';
+    }
+    try {
+      var body = { clid: CLID, action: action };
+      // For requirement uploads, the tile's data-upload-id is the live
+      // upload row; that's what dealroom-document-fetch keys off when both
+      // catalog_document_id and upload_id are mutually exclusive. Releases
+      // and templates use catalog_document_id.
+      var kind = tile.getAttribute('data-kind');
+      if (kind === 'requirement' && uploadId) {
+        body.upload_id = uploadId;
+      } else {
+        body.catalog_document_id = documentId;
+      }
+      var res = await callDealroomEf_('dealroom-document-fetch', body);
+      if (!res || !res.signed_url) {
+        throw new Error('No signed URL returned');
+      }
+      if (action === 'preview') {
+        try { window.open(res.signed_url, '_blank', 'noopener,noreferrer'); }
+        catch (e) { window.location.href = res.signed_url; }
+      } else { // download
+        var a = document.createElement('a');
+        a.href = res.signed_url;
+        a.download = res.filename || res.name || 'document';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // Restore action buttons after a short delay so the user sees the
+      // pending state momentarily.
+      setTimeout(function () {
+        if (actionsBox) actionsBox.innerHTML = prevActionsHtml;
+        bindDocTileHandlers_();
+      }, 250);
+      try {
+        if (window.gtag) window.gtag('event', 'dealroom_document_' + action, {
+          clid: CLID, document_id: documentId, kind: kind || 'release'
+        });
+      } catch (e) {}
+    } catch (err) {
+      console.error('[Phase 3] document fetch failed:', err);
+      if (actionsBox) {
+        actionsBox.innerHTML = '<span class="dr-doc-tile-action-error">' +
+          escapeHtml((err && err.message) || 'Could not fetch document.') +
+          '</span>';
+        // Restore the original buttons after a longer pause so user can read
+        // the error.
+        setTimeout(function () {
+          actionsBox.innerHTML = prevActionsHtml;
+          bindDocTileHandlers_();
+        }, 4000);
+      }
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
