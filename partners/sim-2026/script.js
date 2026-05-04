@@ -429,17 +429,31 @@
     //   phaseTracker → after .dr-subpage-nav-section || .dr-hero
     //   documentVault → after #dr-phase-tracker (so they stack vertically)
     //   eileenPanel → after subpage-nav (Brief α wires content)
+    // ─── AMD-120 PHASE B STOP 1 — universal-skeleton injectors ───
+    // injectMenuBar runs first so injectSubPageNav (legacy two-card row)
+    // can short-circuit when the menu bar is present. mountAttributionBlock
+    // and populateWhatsHappening run after the page-content injectors so
+    // they slot in at the bottom of <main>. The injectors are idempotent.
+    injectMenuBar();
     injectSubPageNav();
     injectAuthChip();
+    mountEileenExplanation();
     injectPhaseTracker();
     injectDocumentVault();
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
+    mountAttributionBlock();
+    populateWhatsHappening();
     if (location.pathname.indexOf('/documents/') !== -1) {
       populateDocumentsCatalog(window.__dealRoomUser);
+      populateArtefactsView();
     } else if (location.pathname.indexOf('/configurator/') !== -1) {
       populateConfigurator(window.__dealRoomUser);
+    } else if (location.pathname.indexOf('/status/') !== -1) {
+      populateEngagementPanels();
+    } else if (location.pathname.indexOf('/pathway/') !== -1) {
+      populatePathway();
     }
   }
 
@@ -2072,6 +2086,8 @@
       LAST_QUOTE_V4 = quote;
       renderLiveQuoteContent_(quote);
       renderModifiersDom_();   // refresh LP status from is_launch_partner_applied
+      // AMD-120 STOP 4: schedule Eileen-narrated pricing block update (debounced 800ms)
+      scheduleEileenPricingNarration_();
     } catch (err) {
       if (seq !== quoteRequestSeq) return;
       var bodyTxt = (err && err.body) ? String(err.body) : '';
@@ -2492,6 +2508,10 @@
   // consistency; adds one scoped CSS rule for the 2-card layout.
   // Idempotent — safe to call repeatedly.
   function injectSubPageNav() {
+    // AMD-120 Phase B STOP 1: short-circuit when the new universal menu bar
+    // is present. The 5-item menu replaces this two-card row as the unified
+    // sub-page navigation surface (Director ratification, 4 May 2026).
+    if (document.getElementById('dr-menu-bar')) return;
     var path = window.location.pathname;
     var current = null;
     if (path.indexOf('/documents/') >= 0) current = 'documents';
@@ -3627,6 +3647,1140 @@
         }, 4000);
       }
     }
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 1 — universal-skeleton helpers
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001
+  // Director ratification 4 May 2026:
+  //   • 5-item menu bar (slugs unchanged; labels per Director — Deal Creator
+  //     for /configurator/, Engagement for /status/)
+  //   • Eileen-explanation block + Data Source Attribution block (universal,
+  //     mounted by mountAttributionBlock; brief §5.5 verbatim text inside
+  //     the existing Fix-pack-002 .dr-attribution-block class — option α)
+  //   • "What's happening" snapshot (landing-only, four tiles, empty-state
+  //     copy in all three cases: localhost-no-auth, prod-zero-rows, prod-401)
+  // ============================================================
+
+  // ─── Menu bar (universal, sticky, 5 items) ──────────────────
+  function injectMenuBar() {
+    if (document.getElementById('dr-menu-bar')) return;
+    var header = document.querySelector('.dr-header');
+    if (!header) return;
+
+    var path = window.location.pathname.replace(/\/index\.html?$/, '/');
+    var workspaceRootStripped = WORKSPACE_ROOT.replace(/\/+$/, '');
+    var stripped = path.replace(/\/+$/, '');
+
+    var items = [
+      { slug: 'welcome',      label: 'Welcome',      href: WORKSPACE_ROOT,                     match: function () { return stripped === workspaceRootStripped; } },
+      { slug: 'documents',    label: 'Documents',    href: WORKSPACE_ROOT + 'documents/',      match: function () { return path.indexOf('/documents/') !== -1; } },
+      { slug: 'engagement',   label: 'Engagement',   href: WORKSPACE_ROOT + 'status/',         match: function () { return path.indexOf('/status/') !== -1; } },
+      { slug: 'deal-creator', label: 'Deal Creator', href: WORKSPACE_ROOT + 'configurator/',   match: function () { return path.indexOf('/configurator/') !== -1; } },
+      { slug: 'pathway',      label: 'Pathway',      href: WORKSPACE_ROOT + 'pathway/',        match: function () { return path.indexOf('/pathway/') !== -1; } }
+    ];
+
+    var inner = '';
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var current = it.match() ? ' is-current' : '';
+      inner += '<a class="dr-menu-item' + current + '" href="' + it.href + '" data-menu-slug="' + it.slug + '">' +
+                 escapeHtml(it.label) +
+               '</a>';
+    }
+
+    var nav = document.createElement('nav');
+    nav.id = 'dr-menu-bar';
+    nav.className = 'dr-menu-bar';
+    nav.setAttribute('aria-label', 'Deal-room navigation');
+    nav.innerHTML = '<div class="dr-menu-bar-inner">' + inner + '</div>';
+
+    header.insertAdjacentElement('afterend', nav);
+  }
+
+  // ─── Data Source Attribution block (universal — brief §5.5) ──
+  // Reuses the Fix-pack-002 .dr-attribution-block class library
+  // (style.css L1845-1899). Idempotent. Mounted before footer
+  // by injecting after the last <section> in .dr-container.
+  function mountAttributionBlock() {
+    if (document.getElementById('dr-attribution-block')) return;
+    var container = document.querySelector('.dr-main .dr-container');
+    if (!container) return;
+
+    var section = document.createElement('section');
+    section.id = 'dr-attribution-block';
+    section.className = 'dr-attribution-block';
+    section.innerHTML =
+      '<h3 class="dr-attribution-title">Data sources</h3>' +
+      '<p class="dr-attribution-intro">Eileen draws her answers from three layers maintained by AI Lane Limited:</p>' +
+      '<ol class="dr-attribution-list" style="list-style:decimal;">' +
+        '<li><strong>Statutory provisions</strong> &mdash; UK legislation under the Open Government Licence v3.0, sourced from legislation.gov.uk and consolidated in the AI Lane Knowledge Library.</li>' +
+        '<li><strong>Leading cases</strong> &mdash; Employment Tribunal, Employment Appeal Tribunal, Court of Appeal, and Supreme Court decisions, with held principle and significance maintained in the AI Lane Knowledge Library.</li>' +
+        '<li data-source="ailane-original"><strong>Institutional training corpus</strong> &mdash; Curated content from AI Lane Limited&rsquo;s own ratified specifications, governed by the master amendment register AILANE-AMD-REG-001.</li>' +
+      '</ol>' +
+      '<p class="dr-attribution-footer">Source attribution and version metadata are surfaced inline whenever Eileen quotes a specific provision, case, or specification. Forthcoming-change disclosures (e.g. DUAA 2025 multi-wave commencement) carry a Tier 5 forward disclaimer.</p>';
+
+    container.appendChild(section);
+  }
+
+  // ─── "What's happening" snapshot (landing-only) ──────────────
+  // Renders 4 tiles: current phase, latest counter-proposal,
+  // open FCRs (with shortest SLA), recent Director responses.
+  // Empty-state copy is truthful in all three observable cases:
+  //   (i)  localhost-without-auth  → 401 from RLS, render empty-state
+  //   (ii) production-with-zero-rows → render empty-state
+  //   (iii) production-with-rows → replace empty-state with live data
+  // Hard network failure (not 401) renders an unobtrusive "Unable to
+  // load — please refresh" inline. No console suppression.
+  function populateWhatsHappening() {
+    var anchor = document.getElementById('dr-whats-happening');
+    if (!anchor) return;   // Sub-pages don't render this section
+    if (anchor.dataset.populated === '1') return;
+    anchor.dataset.populated = '1';
+
+    // Render skeleton with empty-state defaults (production-with-zero-rows
+    // is the truthful baseline; live data replaces in place when present)
+    anchor.innerHTML =
+      '<h2 class="dr-whats-happening-title">What&rsquo;s happening in this deal-room</h2>' +
+      '<p class="dr-whats-happening-sub">Live snapshot of the engagement state visible to your team.</p>' +
+      '<div class="dr-wh-grid">' +
+        '<article class="dr-wh-tile" data-wh-tile="phase">' +
+          '<span class="dr-wh-tile-eyebrow">Current phase</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">Loading phase status&hellip;</div>' +
+          '</div>' +
+        '</article>' +
+        '<article class="dr-wh-tile" data-wh-tile="proposal">' +
+          '<span class="dr-wh-tile-eyebrow">Latest counter-proposal</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">No counter-proposals submitted yet. Once a configuration is submitted from Deal Creator, the most recent appears here.</div>' +
+          '</div>' +
+        '</article>' +
+        '<article class="dr-wh-tile" data-wh-tile="fcrs">' +
+          '<span class="dr-wh-tile-eyebrow">Open capability requests</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">No open capability requests. New off-estate requests Eileen lodges with the Director appear here while under review.</div>' +
+          '</div>' +
+        '</article>' +
+        '<article class="dr-wh-tile" data-wh-tile="responses">' +
+          '<span class="dr-wh-tile-eyebrow">Recent Director responses</span>' +
+          '<div class="dr-wh-tile-body">' +
+            '<div class="dr-wh-tile-empty">No Director responses yet.</div>' +
+          '</div>' +
+        '</article>' +
+      '</div>';
+
+    // Async live-data fetches. Each tile updates independently; one tile's
+    // failure does not break the others.
+    fetchPhaseTile_();
+    fetchLatestProposalTile_();
+    fetchOpenFcrsTile_();
+    fetchRecentDirectorResponsesTile_();
+  }
+
+  function whTileBody_(tileSlug) {
+    var tile = document.querySelector('[data-wh-tile="' + tileSlug + '"] .dr-wh-tile-body');
+    return tile || null;
+  }
+
+  async function fetchPhaseTile_() {
+    var body = whTileBody_('phase');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      // Sandbox / no-auth: RLS will 401. Render the truthful empty-state.
+      body.innerHTML = '<div class="dr-wh-tile-empty">Phase status unavailable &mdash; sign in to view.</div>';
+      return;
+    }
+    try {
+      var phase = await fetchClidGateState(token, CLID);
+      var label = (phase === 'phase_0') ? 'Phase 0 — Pre-engagement'
+                : 'Phase ' + (GATE_DISPLAY[phase] || phase);
+      var human = (PHASE_LABELS[phase] || '').replace(/^./, function (c) { return c; });
+      body.innerHTML =
+        '<div class="dr-wh-tile-headline">' + escapeHtml(label) + '</div>' +
+        (human ? '<div class="dr-wh-tile-meta">' + escapeHtml(human) + '</div>' : '');
+    } catch (err) {
+      console.error('[STOP 1] phase tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchLatestProposalTile_() {
+    var body = whTileBody_('proposal');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) return;   // Empty-state already in DOM
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/partner_counter_proposals' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&select=submitted_at,config_summary,estimated_annual_value_min,estimated_annual_value_max,director_response_status,urgency_flag,eileen_evaluation_pending' +
+          '&order=submitted_at.desc&limit=1',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) return;
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+      var p = rows[0];
+      var dateStr = p.submitted_at ? new Date(p.submitted_at).toLocaleDateString('en-GB') : '';
+      var rangeStr = '';
+      if (p.estimated_annual_value_min != null && p.estimated_annual_value_max != null) {
+        rangeStr = '£' + Number(p.estimated_annual_value_min).toLocaleString('en-GB') +
+                   '–£' + Number(p.estimated_annual_value_max).toLocaleString('en-GB');
+      }
+      var statusStr = p.eileen_evaluation_pending
+        ? 'Eileen acknowledged; Director reviewing'
+        : (p.director_response_status || 'awaiting Director');
+      var summary = (p.config_summary || '').slice(0, 140);
+      body.innerHTML =
+        '<div class="dr-wh-tile-headline">' + escapeHtml(summary || '(no summary)') + '</div>' +
+        (rangeStr ? '<div class="dr-wh-tile-meta">' + escapeHtml(rangeStr) + ' /year &middot; ' + escapeHtml(statusStr) + '</div>'
+                  : '<div class="dr-wh-tile-meta">' + escapeHtml(statusStr) + '</div>') +
+        (dateStr ? '<div class="dr-wh-tile-meta">Submitted ' + escapeHtml(dateStr) + '</div>' : '');
+    } catch (err) {
+      console.error('[STOP 1] latest-proposal tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchOpenFcrsTile_() {
+    var body = whTileBody_('fcrs');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) return;
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=eq.pending' +
+          '&select=id,request_summary,submitted_at,sla_target_response_at' +
+          '&order=sla_target_response_at.asc',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) return;
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+      var count = rows.length;
+      var soonest = rows[0];
+      var slaStr = '';
+      if (soonest && soonest.sla_target_response_at) {
+        var msRemaining = new Date(soonest.sla_target_response_at).getTime() - Date.now();
+        var workingDays = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
+        slaStr = 'Director response due in ' + workingDays + ' day' + (workingDays === 1 ? '' : 's');
+      }
+      body.innerHTML =
+        '<div class="dr-wh-tile-headline">' + count + ' open</div>' +
+        (slaStr ? '<div class="dr-wh-tile-meta">' + escapeHtml(slaStr) + '</div>' : '');
+    } catch (err) {
+      console.error('[STOP 1] open-FCRs tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchRecentDirectorResponsesTile_() {
+    var body = whTileBody_('responses');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) return;
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=in.(accepted,declined,roadmapped)' +
+          '&select=id,request_summary,director_review_status,director_response_at' +
+          '&order=director_response_at.desc&limit=3',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) return;
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+      var items = rows.map(function (r) {
+        var when = r.director_response_at ? new Date(r.director_response_at).toLocaleDateString('en-GB') : '';
+        return '<li>' +
+                 '<strong>' + escapeHtml((r.request_summary || '').slice(0, 80)) + '</strong>' +
+                 '<span class="dr-wh-tile-list-meta">' + escapeHtml(r.director_review_status) + (when ? ' &middot; ' + when : '') + '</span>' +
+               '</li>';
+      }).join('');
+      body.innerHTML = '<ul class="dr-wh-tile-list">' + items + '</ul>';
+    } catch (err) {
+      console.error('[STOP 1] recent-responses tile fetch failed:', err);
+      body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 2 — Documents page Artefacts view
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §7
+  // Universal Eileen-explanation injector (deploys to all sub-pages
+  // that don't already carry the static block — Welcome has it static).
+  // Filter bar + unified Artefacts list across 5 source tables.
+  // Specification clarification needed: brief §7.1 references
+  // dealroom_documents_catalog.category column which does not exist on
+  // the live schema; standalone counterparty-upload widget deferred
+  // accordingly. Existing PR #174 per-tile upload UX preserved.
+  // ============================================================
+
+  // ─── Universal Eileen-explanation injector (every sub-page) ──
+  // Welcome has the block as static HTML; sub-pages get it via injection.
+  // Idempotent (no-op when block already present).
+  function mountEileenExplanation() {
+    if (document.querySelector('.dr-eileen-explanation')) return;
+    var hero = document.querySelector('.dr-main .dr-container .dr-hero');
+    if (!hero) return;
+    var section = document.createElement('section');
+    section.className = 'dr-eileen-explanation';
+    section.setAttribute('aria-label', 'About Eileen');
+    section.innerHTML =
+      '<p>' +
+        'Eileen is Ailane&rsquo;s intelligence entity, named after the founder&rsquo;s mother Ellen. She draws on three layers ' +
+        '&mdash; UK statutory provisions, leading employment-law cases, and Ailane&rsquo;s own ratified specifications &mdash; ' +
+        'to give you regulatory and contractual context for any question you raise. She can produce draft template skeletons, ' +
+        'surface live pricing for configurations you propose, and triage off-estate requests to the Director with a 10 ' +
+        'UK-working-day SLA. She does not commit to commercial terms, give legal advice, or replace counsel; commitments ' +
+        'require a signed contract, and statutory advice requires regulated counsel.' +
+      '</p>';
+    hero.insertAdjacentElement('afterend', section);
+  }
+
+  // ─── Artefacts view (Documents page only) ─────────────────────
+  var ARTEFACT_CATEGORIES = [
+    { code: 'all',           label: 'All' },
+    { code: 'templates',     label: 'Templates' },
+    { code: 'proposals',     label: 'Counter-Proposals' },
+    { code: 'fcrs',          label: 'FCRs' },
+    { code: 'conversations', label: 'Eileen Conversations' },
+    { code: 'directorups',   label: 'Director Uploads' }
+  ];
+  var ARTEFACT_EMPTY_STATES = {
+    all:           'No artefacts in this deal-room yet. Templates appear when the Director makes them available; counter-proposals and capability requests appear once submitted; Eileen conversations are filed automatically as you talk to her.',
+    templates:     'No templates available for this engagement yet. Templates are reusable document skeletons the Director makes available throughout the engagement.',
+    proposals:     'No counter-proposals submitted yet. Compose a configuration in Deal Creator and submit it for Director review.',
+    fcrs:          'No capability requests yet. Eileen lodges off-estate requests with the Director when one comes up in conversation; Director responds within 10 UK working days.',
+    conversations: 'No saved conversations yet. Conversations with Eileen are filed automatically once the deal-room is signed in.',
+    directorups:   'No Director-released documents yet. Documents the Director places into the deal-room appear here, phase-gated.'
+  };
+  var ARTEFACTS_STATE = { filter: 'all', loaded: false, rows: [] };
+
+  function populateArtefactsView() {
+    var anchor = document.getElementById('dr-artefacts-list');
+    var bar = document.getElementById('dr-artefacts-filter-bar');
+    if (!anchor || !bar) return;
+    if (anchor.dataset.populated === '1') return;
+    anchor.dataset.populated = '1';
+
+    // Render filter bar (chips)
+    var chips = '';
+    for (var i = 0; i < ARTEFACT_CATEGORIES.length; i++) {
+      var c = ARTEFACT_CATEGORIES[i];
+      var active = (ARTEFACTS_STATE.filter === c.code) ? ' is-active' : '';
+      chips += '<button type="button" class="dr-artefact-chip' + active + '" role="tab" aria-selected="' + (active ? 'true' : 'false') + '" data-artefact-filter="' + c.code + '">' +
+                 escapeHtml(c.label) +
+               '</button>';
+    }
+    bar.innerHTML = chips;
+    bindArtefactFilterBar_();
+
+    fetchAllArtefacts_();
+  }
+
+  function bindArtefactFilterBar_() {
+    var btns = document.querySelectorAll('[data-artefact-filter]');
+    for (var i = 0; i < btns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var code = btn.getAttribute('data-artefact-filter');
+        if (!code || code === ARTEFACTS_STATE.filter) return;
+        ARTEFACTS_STATE.filter = code;
+        // Update chip active states
+        var allBtns = document.querySelectorAll('[data-artefact-filter]');
+        for (var j = 0; j < allBtns.length; j++) {
+          allBtns[j].classList.toggle('is-active', allBtns[j].getAttribute('data-artefact-filter') === code);
+          allBtns[j].setAttribute('aria-selected', allBtns[j].getAttribute('data-artefact-filter') === code ? 'true' : 'false');
+        }
+        renderArtefactsList_();
+      });
+    })(btns[i]);
+  }
+
+  async function fetchAllArtefacts_() {
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    var rows = [];
+
+    if (!token) {
+      // Sandbox / no-auth: render the same empty-state copy that authenticated
+      // zero-row users see. Truthful in all three observable cases per Chairman
+      // STOP 1 modification of deviation 3.
+      ARTEFACTS_STATE.loaded = true;
+      ARTEFACTS_STATE.rows = [];
+      renderArtefactsList_();
+      return;
+    }
+
+    var hdrs = { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' };
+    var clidParam = encodeURIComponent(CLID);
+
+    var fetches = [
+      // Templates — kind='template' across all clids (catalog is shared, but visibility is RLS-gated)
+      fetch(SUPABASE_URL + '/rest/v1/dealroom_documents_catalog?or=(clid.eq.' + clidParam + ',clid.is.null)&deleted_at=is.null&kind=eq.template&select=document_id,doc_code,name,description,version_label,storage_path,available_from_phase,created_at&order=display_order.asc', { headers: hdrs }),
+      // Director Uploads — kind='release' (Director-released catalog rows for this clid)
+      fetch(SUPABASE_URL + '/rest/v1/dealroom_documents_catalog?or=(clid.eq.' + clidParam + ',clid.is.null)&deleted_at=is.null&kind=eq.release&select=document_id,doc_code,name,description,version_label,storage_path,available_from_phase,created_at&order=display_order.asc', { headers: hdrs }),
+      // Counter-proposals
+      fetch(SUPABASE_URL + '/rest/v1/partner_counter_proposals?clid=eq.' + clidParam + '&select=id,config_summary,estimated_annual_value_min,estimated_annual_value_max,director_response_status,urgency_flag,eileen_evaluation_pending,submitted_at,submitted_by_email&order=submitted_at.desc', { headers: hdrs }),
+      // FCRs
+      fetch(SUPABASE_URL + '/rest/v1/feature_capability_requests?clid=eq.' + clidParam + '&select=id,request_summary,request_category,director_review_status,director_response_text,director_response_at,sla_target_response_at,submitted_at,requester_email&order=submitted_at.desc', { headers: hdrs }),
+      // Eileen conversations (RLS auto-filters by user_id)
+      fetch(SUPABASE_URL + '/rest/v1/dealroom_eileen_sessions?clid=eq.' + clidParam + '&select=session_id,message_count,prompt_version,created_at,updated_at&order=updated_at.desc', { headers: hdrs })
+    ];
+
+    try {
+      var responses = await Promise.all(fetches);
+      var [tpls, releases, props, fcrs, convs] = await Promise.all(responses.map(function (r) {
+        return r.ok ? r.json() : Promise.resolve([]);
+      }));
+
+      // Normalise into a unified row shape: { type, name, drafted_by, when, raw }
+      (tpls || []).forEach(function (r) {
+        rows.push({ type: 'templates', id: r.document_id, name: r.name || r.doc_code, drafted_by: 'Director',
+                    when: r.created_at, hasFile: !!r.storage_path, raw: r });
+      });
+      (releases || []).forEach(function (r) {
+        rows.push({ type: 'directorups', id: r.document_id, name: r.name || r.doc_code, drafted_by: 'Director',
+                    when: r.created_at, hasFile: !!r.storage_path, raw: r });
+      });
+      (props || []).forEach(function (r) {
+        rows.push({ type: 'proposals', id: r.id, name: r.config_summary || '(unnamed configuration)',
+                    drafted_by: 'Counterparty', when: r.submitted_at, hasFile: false, raw: r });
+      });
+      (fcrs || []).forEach(function (r) {
+        rows.push({ type: 'fcrs', id: r.id, name: r.request_summary || r.request_category || '(unnamed request)',
+                    drafted_by: 'Eileen', when: r.submitted_at, hasFile: false, raw: r });
+      });
+      (convs || []).forEach(function (r) {
+        var lbl = 'Eileen conversation — ' + (r.message_count || 0) + ' message' + ((r.message_count === 1) ? '' : 's');
+        rows.push({ type: 'conversations', id: r.session_id, name: lbl, drafted_by: 'Eileen',
+                    when: r.updated_at || r.created_at, hasFile: false, raw: r });
+      });
+
+      rows.sort(function (a, b) { return (b.when || '').localeCompare(a.when || ''); });
+
+      ARTEFACTS_STATE.loaded = true;
+      ARTEFACTS_STATE.rows = rows;
+      renderArtefactsList_();
+    } catch (err) {
+      console.error('[STOP 2] fetchAllArtefacts failed:', err);
+      var anchor = document.getElementById('dr-artefacts-list');
+      if (anchor) anchor.innerHTML = '<div class="dr-artefacts-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  function renderArtefactsList_() {
+    var anchor = document.getElementById('dr-artefacts-list');
+    if (!anchor) return;
+    var filter = ARTEFACTS_STATE.filter;
+    var filtered = (filter === 'all') ? ARTEFACTS_STATE.rows
+                                      : ARTEFACTS_STATE.rows.filter(function (r) { return r.type === filter; });
+    if (!ARTEFACTS_STATE.loaded) {
+      anchor.innerHTML = '<div class="dr-artefacts-pending">Loading artefacts&hellip;</div>';
+      return;
+    }
+    if (filtered.length === 0) {
+      anchor.innerHTML = '<div class="dr-artefacts-empty">' + escapeHtml(ARTEFACT_EMPTY_STATES[filter] || ARTEFACT_EMPTY_STATES.all) + '</div>';
+      return;
+    }
+    var rowsHtml = '';
+    for (var i = 0; i < filtered.length; i++) {
+      var r = filtered[i];
+      var dateStr = r.when ? new Date(r.when).toLocaleDateString('en-GB') : '';
+      var catLbl = (function (t) {
+        return ({ templates: 'Template', proposals: 'Counter-proposal', fcrs: 'FCR', conversations: 'Eileen conversation', directorups: 'Director upload' })[t] || t;
+      })(r.type);
+      var actionLabel = r.hasFile ? 'View' : 'Open';
+      rowsHtml +=
+        '<article class="dr-artefact-row" data-artefact-type="' + escapeHtml(r.type) + '" data-artefact-id="' + escapeHtml(String(r.id)) + '">' +
+          '<div class="dr-artefact-row-main">' +
+            '<div class="dr-artefact-row-name">' + escapeHtml(r.name) + '</div>' +
+            '<div class="dr-artefact-row-meta">' +
+              '<span class="dr-artefact-row-cat">' + escapeHtml(catLbl) + '</span>' +
+              '<span class="dr-artefact-row-by">Drafted by ' + escapeHtml(r.drafted_by) + '</span>' +
+              (dateStr ? '<span class="dr-artefact-row-date">' + escapeHtml(dateStr) + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="dr-artefact-row-actions">' +
+            '<button type="button" class="dr-btn-secondary dr-artefact-view-btn" data-artefact-view>' + actionLabel + '</button>' +
+          '</div>' +
+        '</article>';
+    }
+    anchor.innerHTML = rowsHtml;
+    bindArtefactRowHandlers_();
+  }
+
+  function bindArtefactRowHandlers_() {
+    var btns = document.querySelectorAll('[data-artefact-view]');
+    for (var i = 0; i < btns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.dr-artefact-row');
+        if (!row) return;
+        var type = row.getAttribute('data-artefact-type');
+        var id = row.getAttribute('data-artefact-id');
+        viewArtefact_(type, id);
+      });
+    })(btns[i]);
+  }
+
+  async function viewArtefact_(type, id) {
+    var artefact = ARTEFACTS_STATE.rows.find(function (r) { return r.type === type && String(r.id) === String(id); });
+    if (!artefact) return;
+    if (artefact.hasFile) {
+      // Catalog rows with storage_path → signed URL via dealroom-document-fetch EF
+      try {
+        var user = window.__dealRoomUser;
+        if (!user || !user.token) return;
+        var res = await fetch(SUPABASE_URL + '/functions/v1/dealroom-document-fetch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + user.token,
+            'apikey': SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ clid: CLID, catalog_document_id: id, action: 'preview' })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var data = await res.json();
+        if (data && data.signed_url) {
+          window.open(data.signed_url, '_blank', 'noopener,noreferrer');
+        } else {
+          alert('Document temporarily unavailable.');
+        }
+      } catch (err) {
+        console.error('[STOP 2] viewArtefact (file) failed:', err);
+        alert('Could not open document. Please try again or contact partnerships@ailane.ai.');
+      }
+      return;
+    }
+    // Non-file artefacts → details modal
+    var title = '', body = '';
+    if (type === 'proposals') {
+      var p = artefact.raw;
+      var range = (p.estimated_annual_value_min != null && p.estimated_annual_value_max != null)
+        ? '£' + Number(p.estimated_annual_value_min).toLocaleString('en-GB') + '–£' + Number(p.estimated_annual_value_max).toLocaleString('en-GB') + ' /year'
+        : 'Range not set';
+      title = 'Counter-proposal';
+      body = '<dl class="dr-artefact-detail-list">' +
+               '<dt>Configuration</dt><dd>' + escapeHtml(p.config_summary || '(no summary)') + '</dd>' +
+               '<dt>Estimated annual value</dt><dd>' + escapeHtml(range) + '</dd>' +
+               '<dt>Status</dt><dd>' + escapeHtml(p.eileen_evaluation_pending ? 'Eileen acknowledged; Director reviewing' : (p.director_response_status || 'awaiting Director')) + '</dd>' +
+               '<dt>Urgency</dt><dd>' + escapeHtml(p.urgency_flag || 'standard') + '</dd>' +
+               '<dt>Submitted</dt><dd>' + escapeHtml(p.submitted_at ? new Date(p.submitted_at).toLocaleString('en-GB') : '') + '</dd>' +
+               '<dt>Submitted by</dt><dd>' + escapeHtml(p.submitted_by_email || '') + '</dd>' +
+             '</dl>';
+    } else if (type === 'fcrs') {
+      var f = artefact.raw;
+      var sla = '';
+      if (f.sla_target_response_at) {
+        var msRem = new Date(f.sla_target_response_at).getTime() - Date.now();
+        var days = Math.ceil(msRem / (1000 * 60 * 60 * 24));
+        sla = (days >= 0) ? ('Director response due in ' + days + ' day' + (days === 1 ? '' : 's')) : 'SLA elapsed';
+      }
+      title = 'Feature / capability request';
+      body = '<dl class="dr-artefact-detail-list">' +
+               '<dt>Request</dt><dd>' + escapeHtml(f.request_summary || '(no summary)') + '</dd>' +
+               '<dt>Category</dt><dd>' + escapeHtml(f.request_category || '') + '</dd>' +
+               '<dt>Status</dt><dd>' + escapeHtml(f.director_review_status || '') + '</dd>' +
+               (sla ? '<dt>SLA</dt><dd>' + escapeHtml(sla) + '</dd>' : '') +
+               (f.director_response_text ? '<dt>Director response</dt><dd>' + escapeHtml(f.director_response_text) + '</dd>' : '') +
+               '<dt>Submitted</dt><dd>' + escapeHtml(f.submitted_at ? new Date(f.submitted_at).toLocaleString('en-GB') : '') + '</dd>' +
+             '</dl>';
+    } else if (type === 'conversations') {
+      var c = artefact.raw;
+      title = 'Eileen conversation';
+      body = '<dl class="dr-artefact-detail-list">' +
+               '<dt>Messages</dt><dd>' + escapeHtml(String(c.message_count || 0)) + '</dd>' +
+               '<dt>Eileen prompt version</dt><dd>' + escapeHtml(c.prompt_version || '') + '</dd>' +
+               '<dt>Started</dt><dd>' + escapeHtml(c.created_at ? new Date(c.created_at).toLocaleString('en-GB') : '') + '</dd>' +
+               '<dt>Updated</dt><dd>' + escapeHtml(c.updated_at ? new Date(c.updated_at).toLocaleString('en-GB') : '') + '</dd>' +
+             '</dl>' +
+             '<p class="dr-artefact-detail-note">Conversation transcript view is on the Eileen panel after the next session resumes.</p>';
+    } else {
+      title = 'Artefact';
+      body = '<p>No detail view configured for this artefact type.</p>';
+    }
+    showArtefactDetailsModal_(title, body);
+  }
+
+  function showArtefactDetailsModal_(title, bodyHtml) {
+    var existing = document.getElementById('dr-artefact-modal-overlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-artefact-modal-overlay';
+    overlay.className = 'dr-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="dr-modal-card">' +
+        '<h3 class="dr-modal-title">' + escapeHtml(title) + '</h3>' +
+        '<div class="dr-modal-body">' + bodyHtml + '</div>' +
+        '<div class="dr-modal-actions">' +
+          '<button type="button" class="dr-modal-btn dr-modal-btn-primary" data-modal-close>Close</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    overlay.addEventListener('click', function (ev) { if (ev.target === overlay) close(); });
+    var closeBtn = overlay.querySelector('[data-modal-close]');
+    if (closeBtn) closeBtn.addEventListener('click', close);
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 3 — Engagement page (current state)
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §8
+  // Renders 4 panels at /status/: Current Phase, Open Capability
+  // Requests, Latest Counter-Proposal, Recent Director Responses.
+  // Brief §8.2 #2 eileen_triage_class chip is Director-only (visibility
+  // gated on userEmail === DIRECTOR_EMAIL). All panels degrade to
+  // truthful empty-state in the three observable cases (no-auth,
+  // zero-rows, prod-with-rows replaces in place).
+  // ============================================================
+
+  // JIPA-GRD-001 §5 phase descriptions + "what's needed to advance"
+  // — hard-coded per brief §8.2 #1 ("hard-code the six descriptions in
+  // dealroom.js as a constant"; here in script.js, single source of
+  // truth, no per-page duplication).
+  // Phase content sourced from JIPA-GRD-001 §5 (Engagement phase progression
+  // and Eileen role). Per JIPA-GRD-001 §5: durations are NOT standardised;
+  // advancement is requirement-driven, not time-driven. Hence no `duration`
+  // field per phase — see brief §10.2 ("do not invent durations") + the
+  // page-level note rendered at the top of the Pathway page.
+  var ENGAGEMENT_PHASE_META = {
+    phase_0: {
+      label: 'Phase 0 — Pre-engagement',
+      description: 'Initial conversation and qualification before the formal engagement opens. Both parties get familiar with the workspace and Eileen.',
+      needed: 'Director moves the engagement to Phase A when the parties are ready to formally open. No counterparty action required at this stage.',
+      unlocks: 'Initial deal-room access; conversation with Eileen; orientation to the engagement protocol.',
+      requires: '(none — Phase 0 is the entry state)'
+    },
+    phase_a: {
+      label: 'Phase A — NDA execution',
+      description: 'Mutual NDA executed between both parties; Tier α deliverables become available for review.',
+      needed: 'Counterparty signs the mutual NDA. Director executes the corresponding signature pack and releases Tier α materials.',
+      unlocks: 'Tier α deliverables become available; substantive document estate opens for review.',
+      requires: 'Mutual NDA executed by both parties.'
+    },
+    phase_b: {
+      label: 'Phase B — Tier α delivery + Today Configuration handover',
+      description: 'Tier α deliverables hand over; the Today Configuration is agreed; the Tier β architectural sprint starts as a parallel critical path.',
+      needed: 'Counterparty agrees the Today Configuration. Director hands over Tier α delivery and opens the Tier β architectural sprint.',
+      unlocks: 'Tier β architectural sprint starts as parallel critical path; Today Configuration becomes the operating reference.',
+      requires: 'Today Configuration agreed and handed over.'
+    },
+    phase_c: {
+      label: 'Phase C — DPA + MSA negotiation',
+      description: 'Data Processing Agreement and Master Services Agreement negotiated; the contractual framework for substantive data exchange falls into place.',
+      needed: 'Counterparty engages on DPA and MSA terms. Director executes the corresponding signature pack.',
+      unlocks: 'Substantive data exchange framework; contractual basis for production delivery.',
+      requires: 'DPA addendum and MSA executed by both parties.'
+    },
+    phase_d: {
+      label: 'Phase D — Full Configuration activation',
+      description: 'Full Configuration is committed; Tier β / Tier β+ surfaces are enabled; production-grade engagement opens.',
+      needed: 'Counterparty signs the Full Configuration. Director enables Tier β / Tier β+ workspace surfaces.',
+      unlocks: 'Tier β / Tier β+ surfaces enabled; production-grade access to the analytical estate.',
+      requires: 'Full Configuration committed.'
+    },
+    phase_e: {
+      label: 'Phase E — Commercial schedule finalisation',
+      description: 'Commercial schedule is finalised; pricing, renewal cadence, and review windows are anchored.',
+      needed: 'Counterparty acknowledges the commercial schedule. Director executes the corresponding pack.',
+      unlocks: 'Commercial schedule operates; pricing and review cadence active.',
+      requires: 'Commercial schedule acknowledged.'
+    },
+    phase_f: {
+      label: 'Phase F — Operational handover and ongoing support',
+      description: 'Operational handover completes; the engagement transitions to ongoing support; the deal-room remains available as an audit-grade record.',
+      needed: 'No further action required to enter Phase F; renewal and expansion conversations occur within ongoing support.',
+      unlocks: 'Ongoing support cadence; renewal and expansion conversations.',
+      requires: 'All prior phases complete.'
+    }
+  };
+
+  function populateEngagementPanels() {
+    var section = document.getElementById('dr-engagement-panels');
+    if (!section || section.dataset.populated === '1') return;
+    section.dataset.populated = '1';
+
+    fetchEngagementPhasePanel_();
+    fetchEngagementOpenFcrsPanel_();
+    fetchEngagementLatestProposalPanel_();
+    fetchEngagementRecentResponsesPanel_();
+  }
+
+  function engagementPanelBody_(slug) {
+    var el = document.querySelector('[data-engagement-panel="' + slug + '"] [data-engagement-body]');
+    return el || null;
+  }
+
+  // Business-day countdown helper. Counts working days (Mon–Fri) between
+  // now and the target. UK bank holidays are NOT subtracted client-side
+  // (the SQL function compute_uk_business_day_offset is the authority for
+  // generating sla_target_response_at server-side; this client display
+  // walks Mon–Fri to render a friendly "N working days" label that aligns
+  // with how the user would count). If days < 0 → "SLA elapsed".
+  function businessDaysRemaining_(targetIso) {
+    if (!targetIso) return null;
+    var target = new Date(targetIso);
+    var now = new Date();
+    if (isNaN(target.getTime())) return null;
+    if (target.getTime() <= now.getTime()) return 0;
+    var days = 0;
+    var cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var end = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    while (cursor < end) {
+      cursor.setDate(cursor.getDate() + 1);
+      var dow = cursor.getDay();
+      if (dow !== 0 && dow !== 6) days++;
+    }
+    return days;
+  }
+
+  async function fetchEngagementPhasePanel_() {
+    var body = engagementPanelBody_('phase');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view current phase status.</div>';
+      return;
+    }
+    try {
+      var phase = await fetchClidGateState(token, CLID);
+      var meta = ENGAGEMENT_PHASE_META[phase] || { label: phase, description: '', needed: '' };
+      body.innerHTML =
+        '<div class="dr-engagement-headline">' + escapeHtml(meta.label) + '</div>' +
+        (meta.description ? '<p class="dr-engagement-desc">' + escapeHtml(meta.description) + '</p>' : '') +
+        '<h4 class="dr-engagement-subhead">What&rsquo;s needed to advance</h4>' +
+        '<p class="dr-engagement-needed">' + escapeHtml(meta.needed || 'No advancement actions defined for this phase.') + '</p>';
+    } catch (err) {
+      console.error('[STOP 3] phase panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchEngagementOpenFcrsPanel_() {
+    var body = engagementPanelBody_('fcrs');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view open capability requests.</div>';
+      return;
+    }
+    var isDirector = !!(user && user.email && user.email === DIRECTOR_EMAIL);
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=eq.pending' +
+          '&select=id,request_summary,request_category,submitted_at,sla_target_response_at,eileen_triage_class' +
+          '&order=sla_target_response_at.asc',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-engagement-empty">No open capability requests visible to your account.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        body.innerHTML = '<div class="dr-engagement-empty">No open capability requests. New off-estate requests Eileen lodges with the Director appear here while under review.</div>';
+        return;
+      }
+      var items = rows.map(function (r) {
+        var title = (r.request_summary || r.request_category || '(no summary)').slice(0, 120);
+        var submitted = r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('en-GB') : '';
+        var days = businessDaysRemaining_(r.sla_target_response_at);
+        var slaStr;
+        if (days == null) slaStr = '';
+        else if (days === 0) slaStr = 'Director response due today';
+        else slaStr = 'Director response due in ' + days + ' working day' + (days === 1 ? '' : 's');
+        var triageChip = (isDirector && r.eileen_triage_class)
+          ? '<span class="dr-engagement-triage-chip" title="Eileen triage class (Director only)">' + escapeHtml(r.eileen_triage_class) + '</span>'
+          : '';
+        return '<li class="dr-engagement-fcr-item">' +
+                 '<div class="dr-engagement-fcr-title">' + escapeHtml(title) + triageChip + '</div>' +
+                 '<div class="dr-engagement-fcr-meta">' +
+                   (submitted ? '<span>Submitted ' + escapeHtml(submitted) + '</span>' : '') +
+                   (slaStr ? '<span class="dr-engagement-sla">' + escapeHtml(slaStr) + '</span>' : '') +
+                 '</div>' +
+               '</li>';
+      }).join('');
+      body.innerHTML = '<ul class="dr-engagement-fcr-list">' + items + '</ul>';
+    } catch (err) {
+      console.error('[STOP 3] open-FCRs panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchEngagementLatestProposalPanel_() {
+    var body = engagementPanelBody_('proposal');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view counter-proposal status.</div>';
+      return;
+    }
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/partner_counter_proposals' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&select=id,config_summary,estimated_annual_value_min,estimated_annual_value_max,director_response_status,director_response_text,urgency_flag,eileen_evaluation_pending,submitted_at' +
+          '&order=submitted_at.desc&limit=1',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-engagement-empty">No counter-proposals visible to your account.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        body.innerHTML = '<div class="dr-engagement-empty">No counter-proposals submitted yet. Compose a configuration in Deal Creator and submit it for Director review.</div>';
+        return;
+      }
+      var p = rows[0];
+      var range = (p.estimated_annual_value_min != null && p.estimated_annual_value_max != null)
+        ? '£' + Number(p.estimated_annual_value_min).toLocaleString('en-GB') + '–£' + Number(p.estimated_annual_value_max).toLocaleString('en-GB')
+        : 'range not set';
+      var statusLine;
+      if (p.eileen_evaluation_pending) {
+        statusLine = 'Eileen has acknowledged this submission; Director is reviewing.';
+      } else if (p.director_response_status && p.director_response_status !== 'pending') {
+        statusLine = 'Director response: ' + p.director_response_status + (p.director_response_text ? ' — "' + p.director_response_text + '"' : '');
+      } else {
+        statusLine = 'Awaiting Director response.';
+      }
+      body.innerHTML =
+        '<div class="dr-engagement-headline">' + escapeHtml(p.config_summary || '(no summary)') + '</div>' +
+        '<div class="dr-engagement-meta-row">' +
+          '<span><strong>' + escapeHtml(range) + '</strong> /year</span>' +
+          '<span>Urgency: ' + escapeHtml(p.urgency_flag || 'standard') + '</span>' +
+          (p.submitted_at ? '<span>Submitted ' + escapeHtml(new Date(p.submitted_at).toLocaleDateString('en-GB')) + '</span>' : '') +
+        '</div>' +
+        '<p class="dr-engagement-needed">' + escapeHtml(statusLine) + '</p>';
+    } catch (err) {
+      console.error('[STOP 3] latest-proposal panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  async function fetchEngagementRecentResponsesPanel_() {
+    var body = engagementPanelBody_('responses');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) {
+      body.innerHTML = '<div class="dr-engagement-empty">Sign in to view recent Director responses.</div>';
+      return;
+    }
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/feature_capability_requests' +
+          '?clid=eq.' + encodeURIComponent(CLID) +
+          '&director_review_status=in.(accepted,declined,roadmapped)' +
+          '&select=id,request_summary,director_review_status,director_response_text,director_response_at' +
+          '&order=director_response_at.desc&limit=3',
+        { headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+      );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-engagement-empty">No recent responses visible to your account.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        body.innerHTML = '<div class="dr-engagement-empty">No Director responses yet. Closed capability requests appear here as Director responds.</div>';
+        return;
+      }
+      var items = rows.map(function (r) {
+        var when = r.director_response_at ? new Date(r.director_response_at).toLocaleDateString('en-GB') : '';
+        var note = r.director_response_text ? '<div class="dr-engagement-response-note">' + escapeHtml(r.director_response_text) + '</div>' : '';
+        return '<li class="dr-engagement-response-item">' +
+                 '<div class="dr-engagement-response-title">' + escapeHtml((r.request_summary || '').slice(0, 120)) + '</div>' +
+                 '<div class="dr-engagement-response-meta">' +
+                   '<span class="dr-engagement-response-decision">' + escapeHtml(r.director_review_status) + '</span>' +
+                   (when ? '<span>' + escapeHtml(when) + '</span>' : '') +
+                 '</div>' +
+                 note +
+               '</li>';
+      }).join('');
+      body.innerHTML = '<ul class="dr-engagement-response-list">' + items + '</ul>';
+    } catch (err) {
+      console.error('[STOP 3] recent-responses panel fetch failed:', err);
+      body.innerHTML = '<div class="dr-engagement-error">Unable to load &mdash; please refresh.</div>';
+    }
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 4 — Deal Creator Eileen-narrated pricing
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §9
+  // Sits beneath the existing PR #173 three-panel configurator (which
+  // is preserved unmodified). On configurator state change, sends a
+  // synthetic message to /functions/v1/eileen-dealroom; v5 EF parses
+  // the [PRICE_QUOTE: configurator_state="..."] marker, resolves
+  // against pricing_quote_function, and returns price_quote_emitted +
+  // price_quote_result alongside the natural-language narration.
+  //
+  // The deterministic Live Quote rail (PR #173) renders the canonical
+  // figure from pricing_quote_function_v4 directly. The Eileen-narrated
+  // block adds the same figure with explanatory prose; the two MUST
+  // resolve to the same recommended value (brief §9.3 step 5 cross-
+  // checks them).
+  // ============================================================
+
+  var eileenPricingDebounceTimer = null;
+  var eileenPricingRequestSeq = 0;
+
+  function scheduleEileenPricingNarration_() {
+    // Only fires on /configurator/ pages where the block is mounted.
+    if (!document.getElementById('dr-eileen-pricing-block')) return;
+    clearTimeout(eileenPricingDebounceTimer);
+    eileenPricingDebounceTimer = setTimeout(triggerEileenPricingNarration_, 800);
+  }
+
+  async function triggerEileenPricingNarration_() {
+    var body = document.querySelector('[data-eileen-pricing-body]');
+    if (!body) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+
+    if (!token) {
+      // Sandbox / no-auth: Eileen EF requires JWT. Render placeholder.
+      body.innerHTML = '<div class="dr-eileen-pricing-empty">Sign in to view Eileen&rsquo;s narration of this configuration.</div>';
+      return;
+    }
+    if (!LAST_QUOTE_V4 || !SCOPE_STATE) {
+      body.innerHTML = '<div class="dr-eileen-pricing-empty">Compose a scope above to see Eileen&rsquo;s narration.</div>';
+      return;
+    }
+
+    var seq = ++eileenPricingRequestSeq;
+    body.innerHTML = '<div class="dr-eileen-pricing-pending">Eileen is reviewing the configuration&hellip;</div>';
+
+    var configState = { scope: SCOPE_STATE, modifiers: composeModifiersPayload_() };
+    var syntheticMsg = "What's the recommended price for this configuration: " + JSON.stringify(configState);
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/functions/v1/eileen-dealroom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'apikey': SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({
+          clid: CLID,
+          messages: [{ role: 'user', content: syntheticMsg }]
+        })
+      });
+      if (seq !== eileenPricingRequestSeq) return;   // stale response, drop
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          body.innerHTML = '<div class="dr-eileen-pricing-empty">Sign in to view Eileen&rsquo;s narration.</div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      var data = await res.json();
+      if (seq !== eileenPricingRequestSeq) return;
+      renderEileenPricing_(data);
+    } catch (err) {
+      if (seq !== eileenPricingRequestSeq) return;
+      console.error('[STOP 4] Eileen pricing narration failed:', err);
+      body.innerHTML = '<div class="dr-eileen-pricing-error">Could not load Eileen&rsquo;s narration &mdash; please try again.</div>';
+    }
+  }
+
+  function renderEileenPricing_(data) {
+    var body = document.querySelector('[data-eileen-pricing-body]');
+    if (!body) return;
+
+    var pq = data && data.price_quote_result;
+    var narrative = (data && data.response) ? String(data.response) : '';
+
+    // Recommended price — primary headline. Pulls from price_quote_result.recommended
+    // (per brief §9.2 #1 wire-up). If the EF didn't emit a [PRICE_QUOTE: ...] marker
+    // (price_quote_emitted=false), we fall back to LAST_QUOTE_V4's annual_pence.
+    var recommendedPence = null;
+    if (pq && pq.recommended != null) {
+      recommendedPence = Number(pq.recommended);
+    } else if (LAST_QUOTE_V4 && LAST_QUOTE_V4.annual_pence != null) {
+      recommendedPence = Number(LAST_QUOTE_V4.annual_pence);
+    }
+    var recommendedFmt = (recommendedPence != null)
+      ? '£' + (recommendedPence / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : '—';
+
+    // Headline driver — short inline label. Heuristic if the EF doesn't supply one.
+    var driver = (pq && pq.headline_driver) ? String(pq.headline_driver) : '';
+    if (!driver && LAST_QUOTE_V4) {
+      // Heuristic: dominant overlay
+      if (LAST_QUOTE_V4.is_launch_partner_applied) driver = 'Launch-partner discount applied (−10%)';
+      else if (Number(LAST_QUOTE_V4.exclusivity_adjustment_pct || 0) > 0) driver = 'Exclusivity surcharge';
+      else if (Number(LAST_QUOTE_V4.refresh_adjustment_pct || 0) > 0) driver = 'Refresh-cadence surcharge';
+      else if (Number(LAST_QUOTE_V4.term_discount_pct || 0) > 0) driver = 'Multi-year term discount';
+    }
+
+    // Methodology details (collapsed by default per brief §9.2 #1)
+    var floor = (pq && pq.floor != null) ? Number(pq.floor) : (LAST_QUOTE_V4 && LAST_QUOTE_V4.annual_band_min_pence);
+    var ceiling = (pq && pq.ceiling != null) ? Number(pq.ceiling) : (LAST_QUOTE_V4 && LAST_QUOTE_V4.annual_band_max_pence);
+    var floorFmt = (floor != null) ? '£' + (Number(floor) / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 }) : '—';
+    var ceilingFmt = (ceiling != null) ? '£' + (Number(ceiling) / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 }) : '—';
+
+    body.innerHTML =
+      '<div class="dr-eileen-pricing-recommended">' +
+        '<span class="dr-eileen-pricing-amount">' + escapeHtml(recommendedFmt) + '</span>' +
+        '<span class="dr-eileen-pricing-unit">recommended /year</span>' +
+      '</div>' +
+      (driver ? '<div class="dr-eileen-pricing-driver">Headline driver: ' + escapeHtml(driver) + '</div>' : '') +
+      '<details class="dr-eileen-pricing-methodology">' +
+        '<summary>Show methodology</summary>' +
+        '<div class="dr-eileen-pricing-methodology-body">' +
+          '<div>Floor: <strong>' + escapeHtml(floorFmt) + '</strong> &middot; Ceiling: <strong>' + escapeHtml(ceilingFmt) + '</strong></div>' +
+          (pq ? '<div class="dr-eileen-pricing-emitted">Eileen emitted [PRICE_QUOTE: …] marker; resolved against pricing_quote_function.</div>'
+              : '<div class="dr-eileen-pricing-emitted">No price-quote marker emitted on this turn; figure from deterministic live quote rail above.</div>') +
+        '</div>' +
+      '</details>' +
+      (narrative ? '<div class="dr-eileen-pricing-narrative">' + escapeHtml(narrative) + '</div>' : '') +
+      '<div class="dr-eileen-pricing-footnote">(price logged for variance tracking)</div>';
+  }
+
+  // ============================================================
+  // AMD-120 PHASE B STOP 5 — Pathway page
+  // AILANE-CC-BRIEF-DEALROOM-V7-PHASE-B-001 §10
+  // Renders the seven-phase JIPA-GRD-001 §5 protocol as:
+  //  - 7-chip visual phase strip with current-phase highlight
+  //    (gold #F59E0B for Institutional / Director per AMD-069;
+  //     cyan baseline #0EA5E9 otherwise)
+  //  - 7 stacked detail blocks (name+description, "what unlocks",
+  //    "what's required to enter") sourced from
+  //    ENGAGEMENT_PHASE_META (single source of truth, also used by
+  //    STOP 3 Engagement page Current Phase panel)
+  // Per JIPA-GRD-001 §5: per-phase durations are NOT documented;
+  // a page-level note in the HTML explains this rather than
+  // rendering invented durations (brief §10.2 "do not invent").
+  // ============================================================
+
+  var PATHWAY_PHASES = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+  var PATHWAY_CHIP_LABELS = {
+    phase_0: 'Phase 0',
+    phase_a: 'Phase A',
+    phase_b: 'Phase B',
+    phase_c: 'Phase C',
+    phase_d: 'Phase D',
+    phase_e: 'Phase E',
+    phase_f: 'Phase F'
+  };
+
+  async function populatePathway() {
+    var strip = document.getElementById('dr-pathway-strip');
+    var blocks = document.getElementById('dr-pathway-detail-blocks');
+    if (!strip || !blocks || strip.dataset.populated === '1') return;
+    strip.dataset.populated = '1';
+
+    // Determine current phase. In sandbox / no-auth, no highlight (we do
+    // not invent a phase); in production with auth, query partner_clids.
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    var currentPhase = null;
+    var goldHighlight = false;
+
+    // AMD-069: gold reserved for Institutional tier and Director identity.
+    if (user) {
+      if (user.email === DIRECTOR_EMAIL) goldHighlight = true;
+      else if (user.tier === ALLOWED_TIER /* 'institutional' */) goldHighlight = true;
+    }
+
+    if (token) {
+      try { currentPhase = await fetchClidGateState(token, CLID); }
+      catch (e) { currentPhase = null; }
+    }
+
+    renderPathwayStrip_(currentPhase, goldHighlight);
+    renderPathwayDetailBlocks_(currentPhase);
+  }
+
+  function renderPathwayStrip_(currentPhase, goldHighlight) {
+    var strip = document.getElementById('dr-pathway-strip');
+    if (!strip) return;
+    var html = '';
+    for (var i = 0; i < PATHWAY_PHASES.length; i++) {
+      var p = PATHWAY_PHASES[i];
+      var isCurrent = (p === currentPhase);
+      var chipClass = 'dr-pathway-chip' +
+                      (isCurrent ? ' is-current' : '') +
+                      (isCurrent && goldHighlight ? ' is-current-gold' : '') +
+                      (isCurrent && !goldHighlight ? ' is-current-cyan' : '');
+      var meta = ENGAGEMENT_PHASE_META[p] || { label: p };
+      var shortLabel = (meta.label || p).split('—')[1] ? meta.label.split('—')[1].trim() : meta.label;
+      html +=
+        '<li class="' + chipClass + '" data-pathway-chip="' + p + '">' +
+          '<span class="dr-pathway-chip-code">' + escapeHtml(PATHWAY_CHIP_LABELS[p] || p) + '</span>' +
+          '<span class="dr-pathway-chip-label">' + escapeHtml(shortLabel) + '</span>' +
+          (isCurrent ? '<span class="dr-pathway-chip-current-indicator" aria-label="Current phase">&#9679;</span>' : '') +
+        '</li>';
+    }
+    strip.innerHTML = html;
+  }
+
+  function renderPathwayDetailBlocks_(currentPhase) {
+    var anchor = document.getElementById('dr-pathway-detail-blocks');
+    if (!anchor) return;
+    var html = '';
+    for (var i = 0; i < PATHWAY_PHASES.length; i++) {
+      var p = PATHWAY_PHASES[i];
+      var meta = ENGAGEMENT_PHASE_META[p];
+      if (!meta) continue;
+      var isCurrent = (p === currentPhase);
+      html +=
+        '<article class="dr-pathway-block' + (isCurrent ? ' is-current' : '') + '" data-pathway-block="' + p + '">' +
+          '<header class="dr-pathway-block-header">' +
+            '<span class="dr-pathway-block-code">' + escapeHtml(PATHWAY_CHIP_LABELS[p] || p) + '</span>' +
+            '<h3 class="dr-pathway-block-title">' + escapeHtml(meta.label) + '</h3>' +
+            (isCurrent ? '<span class="dr-pathway-block-current-pill">Current phase</span>' : '') +
+          '</header>' +
+          '<p class="dr-pathway-block-desc">' + escapeHtml(meta.description) + '</p>' +
+          '<div class="dr-pathway-block-fields">' +
+            '<div class="dr-pathway-block-field">' +
+              '<h4 class="dr-pathway-block-fieldlabel">What unlocks here</h4>' +
+              '<p>' + escapeHtml(meta.unlocks || '') + '</p>' +
+            '</div>' +
+            '<div class="dr-pathway-block-field">' +
+              '<h4 class="dr-pathway-block-fieldlabel">What&rsquo;s required to enter</h4>' +
+              '<p>' + escapeHtml(meta.requires || '') + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</article>';
+    }
+    anchor.innerHTML = html;
   }
 
   document.addEventListener('DOMContentLoaded', function () {
