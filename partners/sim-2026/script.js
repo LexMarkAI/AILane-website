@@ -963,7 +963,7 @@
       }
       var body = await res.json();
 
-      // v2 shape: object with `tiers` array + `segments` object
+      // v2 shape: object with `tiers` (array OR object keyed by tier_code) + `segments` object
       if (body && !Array.isArray(body) && (body.tiers || body.segments)) {
         var map2 = {};
         if (Array.isArray(body.tiers)) {
@@ -972,6 +972,15 @@
             if (row && row.tier_code && row.real_ceiling != null) {
               map2[row.tier_code] = Number(row.real_ceiling);
             }
+          }
+        } else if (body.tiers && typeof body.tiers === 'object') {
+          // Defensive: tiers returned as object keyed by tier_code rather than array
+          var tk = Object.keys(body.tiers);
+          for (var tj = 0; tj < tk.length; tj++) {
+            var tv = body.tiers[tk[tj]];
+            var rc = (tv && tv.real_ceiling != null) ? tv.real_ceiling
+                   : (typeof tv === 'number' ? tv : null);
+            if (rc != null) map2[tk[tj]] = Number(rc);
           }
         }
         if (body.segments && typeof body.segments === 'object') {
@@ -1177,6 +1186,8 @@
         if (domVal > maxAllowed) el.value = String(maxAllowed);
       }
     }
+    // AMD-111 fixup-2 Issue 3 — keep visible max-hint readouts in sync with caps
+    if (typeof updateLayerMaxHints_ === 'function') updateLayerMaxHints_();
   }
 
   async function populateConfigurator(user) {
@@ -1230,20 +1241,62 @@
     }
   }
 
+  // AMD-111 fixup-2 — preset-load-time clamp. The preset matrix is hard-coded (see
+  // PKG1–PKG4_PRESET) and may carry layer values that were valid when authored but exceed
+  // the LIVE real_ceiling now returned by get_pricing_ceilings. Without this clamp,
+  // applyPreset would write the preset-as-authored into CONFIG_STATE; applyAllCaps would
+  // then attempt a re-clamp via the parent cascade, but that cascade reads the parent's
+  // CURRENT (just-written, unclamped) value — so a parent that exceeds its own real_ceiling
+  // does not constrain the child. The fix: clamp every layer's preset value against
+  // MIN(real_ceiling, sector-aware identity ceiling for the identity layer specifically,
+  // parent's already-clamped value) BEFORE assignment. This is the load-bearing guard
+  // that prevents pricing_quote_function v3 from rejecting the payload.
+  function clampPresetScopeToCeilings_(presetSegs) {
+    // Per-segment-aware identity ceiling, computed from a temporary segments view rather
+    // than CONFIG_STATE (which is mid-rebuild during applyPreset).
+    var idCeilingFromSegs = (function () {
+      if (!SEGMENT_CEILINGS) return 78699;
+      var sum = 0;
+      for (var i = 0; i < presetSegs.length; i++) {
+        var s = SEGMENT_CEILINGS[presetSegs[i]];
+        if (s && s.identity_ceiling != null) sum += Number(s.identity_ceiling);
+      }
+      return sum;
+    })();
+    // Resolve real_ceiling per layer; CEILINGS may not yet be populated on very early calls.
+    function realCap(layer) {
+      if (CEILINGS && CEILINGS[layer] != null) return Number(CEILINGS[layer]);
+      var hard = { identity: 78699, tribunal_exposure: 80124, outcome_intelligence: 80124, full_acei: 18552, full_enrichment: 13588, premium: 6000 };
+      return hard[layer];
+    }
+    return function (preset) {
+      var s = preset.scope || {};
+      var clamped = {};
+      clamped.identity = Math.min(Number(s.identity || 0), realCap('identity'), idCeilingFromSegs);
+      clamped.tribunal_exposure = Math.min(Number(s.tribunal_exposure || 0), realCap('tribunal_exposure'), clamped.identity);
+      clamped.outcome_intelligence = Math.min(Number(s.outcome_intelligence || 0), realCap('outcome_intelligence'), clamped.tribunal_exposure);
+      clamped.full_acei = Math.min(Number(s.full_acei || 0), realCap('full_acei'), clamped.outcome_intelligence);
+      clamped.full_enrichment = Math.min(Number(s.full_enrichment || 0), realCap('full_enrichment'), clamped.full_acei);
+      clamped.premium = Math.min(Number(s.premium || 0), realCap('premium'), clamped.full_enrichment);
+      return clamped;
+    };
+  }
+
   function applyPreset(preset, presetCode) {
+    // AMD-111 fixup-2 — sector_segments: resolve first so the identity-ceiling clamp can
+    // use the correct sector-aware sum.
+    var segs = (preset.modifiers.sector_segments && preset.modifiers.sector_segments.slice()) || ['private', 'public', 'third'];
+    // Preset-load-time clamp (Issue 1 §a) BEFORE writing to CONFIG_STATE.
+    var clampedScope = clampPresetScopeToCeilings_(segs)(preset);
     CONFIG_STATE = {
-      scope: {
-        identity: preset.scope.identity, tribunal_exposure: preset.scope.tribunal_exposure,
-        outcome_intelligence: preset.scope.outcome_intelligence, full_acei: preset.scope.full_acei,
-        full_enrichment: preset.scope.full_enrichment, premium: preset.scope.premium
-      },
+      scope: clampedScope,
       modifiers: {
         duns_match: preset.modifiers.duns_match, refresh: preset.modifiers.refresh,
         exclusivity: preset.modifiers.exclusivity, term_years: preset.modifiers.term_years,
         // AMD-111 — preset.modifiers.sector_segments falls back to all three (PRESETs are
         // commercial-data, sector-neutral). Whole-array assignment so the reference is fresh
         // (avoids accidentally aliasing the preset constant's array).
-        sector_segments: (preset.modifiers.sector_segments && preset.modifiers.sector_segments.slice()) || ['private', 'public', 'third'],
+        sector_segments: segs,
         // AMD-109 — preserve clid through preset replacement (set on mount if user is launch partner;
         // undefined for non-LP users → JSON.stringify omits it → function v2 skips LP path)
         clid: CONFIG_STATE.modifiers.clid
@@ -1252,7 +1305,7 @@
     };
     // presetCode null when user clicks Reset (no preset is selected after reset)
     ACTIVE_PRESET = (presetCode === 'pkg1' || presetCode === 'pkg2' || presetCode === 'pkg3' || presetCode === 'pkg4') ? presetCode : null;
-    applyAllCaps();  // AMD-110 — defensive enforcement (presets respect ceilings, but cascade order matters if ceilings ever change)
+    applyAllCaps();  // AMD-110 — belt-and-braces re-clamp after preset (idempotent on already-clamped state)
     renderConfigurator();
     computeQuote();
     try { if (window.gtag) window.gtag('event', 'configurator_preset_applied', { clid: CLID, preset: presetCode || 'reset' }); } catch (e) { /* swallow */ }
@@ -1261,8 +1314,17 @@
   function renderConfigurator() {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
-    anchor.innerHTML = renderPanel1Packages_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
-    bindConfiguratorRuntimeHandlers_();
+    // Defensive: if any panel render throws, surface a visible error in the anchor
+    // (instead of silently rendering an incomplete panel set) and log the underlying
+    // exception to the console so a regression is diagnosable without a debugger.
+    try {
+      var html = renderPanel1Packages_() + renderPanel2Scope_() + renderPanel3Modifiers_() + renderPanel4Quote_();
+      anchor.innerHTML = html;
+      bindConfiguratorRuntimeHandlers_();
+    } catch (err) {
+      console.error('[AMD-111-113] renderConfigurator threw — panel set may be incomplete:', err);
+      anchor.innerHTML = '<div class="dr-config-empty-error">Configurator render error. Please refresh the page; if the issue persists, contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.</div>';
+    }
   }
 
   function getTierData_() {
@@ -1309,22 +1371,26 @@
   function renderPanel2Scope_() {
     // Fix 3 / Interpretation A — tier-floor disable logic retired. All 6 layer
     // inputs always-enabled. getTierData_ now provides layer rate metadata only.
+    // AMD-111 fixup-2 Issue 3 — per-layer "max: N,NNN" hint reads live from
+    // computeEffectiveMax_ and updates reactively when sector segments change
+    // or parent layer values change (via updateLayerMaxHints_).
     var tiers = getTierData_();
     var inputs = '';
     for (var i = 0; i < tiers.length; i++) {
       var tier = tiers[i];
       var rate = '+£' + Math.round(Number(tier.delta_rate_pence || 0) / 100) + '/employer-year';
       var current = CONFIG_STATE.scope[tier.tier_code] || 0;
-      // AMD-110 + AMD-108 — max attribute consumed from CEILINGS via computeEffectiveMax_
-      // (re-render-safe: re-set on every render from module-scope CEILINGS, not imperative).
       var effectiveMax = computeEffectiveMax_(tier.tier_code);
+      var maxHint = 'max: ' + Number(effectiveMax).toLocaleString('en-GB');
       inputs += '<div class="dr-config-scope-row">' +
                   '<label class="dr-config-scope-label">' +
                     '<span class="dr-config-scope-name">' + escapeHtml(tier.display_name) + '</span>' +
                     '<span class="dr-config-scope-rate">' + escapeHtml(rate) + '</span>' +
+                    '<span class="dr-config-scope-maxhint" data-scope-maxhint="' + escapeHtml(tier.tier_code) + '">' + escapeHtml(maxHint) + '</span>' +
                   '</label>' +
                   '<input type="number" min="0" max="' + effectiveMax + '" step="100" class="dr-config-scope-input"' +
-                    ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '">' +
+                    ' data-scope="' + escapeHtml(tier.tier_code) + '" value="' + escapeHtml(String(current)) + '"' +
+                    ' inputmode="numeric" autocomplete="off">' +
                 '</div>';
     }
     return '<section class="dr-config-panel" aria-labelledby="dr-panel-scope-h">' +
@@ -1340,6 +1406,18 @@
                'Identity coverage: <strong>' + (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB') + '</strong> employers' +
              '</div>' +
            '</section>';
+  }
+
+  // AMD-111 fixup-2 Issue 3 — refresh visible "max: N,NNN" hints after any state change
+  // that affects the cap (segment selection, parent-layer typing). Lightweight DOM update
+  // — no full re-render — so the visible hint stays current without flicker.
+  function updateLayerMaxHints_() {
+    var TIERS = ['identity', 'tribunal_exposure', 'outcome_intelligence', 'full_acei', 'full_enrichment', 'premium'];
+    for (var i = 0; i < TIERS.length; i++) {
+      var hint = document.querySelector('[data-scope-maxhint="' + TIERS[i] + '"]');
+      if (!hint) continue;
+      hint.textContent = 'max: ' + Number(computeEffectiveMax_(TIERS[i])).toLocaleString('en-GB');
+    }
   }
 
   function renderPanel3Modifiers_() {
@@ -1439,8 +1517,8 @@
                '</div>' +
                '<div class="dr-radio-group">' + termChips + '</div>' +
              '</div>' +
-             '<fieldset class="dr-segment-fieldset" data-panel="sector-segments">' +
-               '<legend class="dr-segment-legend">Sector segments</legend>' +
+             '<div class="dr-segment-fieldset" role="group" aria-labelledby="dr-segment-legend" data-panel="sector-segments">' +
+               '<div id="dr-segment-legend" class="dr-segment-legend">Sector segments</div>' +
                '<p class="dr-segment-helper">Select any combination — at least one is required.</p>' +
                '<div class="dr-segment-checkbox-row">' + segCheckboxes + '</div>' +
                '<div class="dr-segment-error-text" data-segment-error aria-live="polite"></div>' +
@@ -1448,7 +1526,7 @@
                  '<span class="dr-segment-composed-label">Composed positioning:</span> ' +
                  '<span class="dr-segment-composed-value" data-composed-value>Baseline (all three selected)</span>' +
                '</div>' +
-             '</fieldset>' +
+             '</div>' +
            '</section>';
   }
 
@@ -1503,9 +1581,22 @@
       input.addEventListener('input', function () {
         var k = input.getAttribute('data-scope');
         var v = parseInt(input.value || '0', 10);
-        CONFIG_STATE.scope[k] = isNaN(v) ? 0 : v;
+        if (isNaN(v) || v < 0) v = 0;
+        // AMD-111 fixup-2 Issue 1 (c) — immediate snap-to-cap on every keystroke. Compute
+        // the layer's effective max NOW (against current parent state + segment-aware
+        // identity ceiling) and clamp before writing to CONFIG_STATE / DOM. Prevents the
+        // user from typing a value above the cap and seeing it persist visually before
+        // applyAllCaps catches up.
+        var layerMax = computeEffectiveMax_(k);
+        if (v > layerMax) {
+          v = layerMax;
+          input.value = String(v);
+        }
+        CONFIG_STATE.scope[k] = v;
         ACTIVE_PRESET = null;
-        applyAllCaps();  // AMD-110 cascade-clamp dependent layers + AMD-108 sector override
+        applyAllCaps();  // AMD-110 cascade-clamp dependent layers + sector-aware identity composition
+        // Update visible per-layer max-hint readouts (Issue 3 §c — reactive ceiling labels)
+        updateLayerMaxHints_();
         var totalEl = document.querySelector('.dr-config-scope-total strong');
         if (totalEl) totalEl.textContent = (CONFIG_STATE.scope.identity || 0).toLocaleString('en-GB');
         // Clear is-active class on package buttons without full re-render (perf)
