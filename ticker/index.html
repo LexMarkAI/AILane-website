@@ -68,7 +68,7 @@ const EVENT_TYPES = {
 const TIERS = {
   operational: { label: "Operational Readiness", price: "£199/mo", color: "#22d3ee" },
   governance: { label: "Governance", price: "£799/mo", color: "#a78bfa" },
-  institutional: { label: "Institutional", price: "Custom", color: "#f59e0b" },
+  enterprise: { label: "Enterprise", price: "Custom", color: "#f59e0b" },
 };
 
 // ─── API HELPER ─────────────────────────────────────────────────────────
@@ -155,7 +155,7 @@ function AilaneTicker() {
   const [authError, setAuthError] = useState("");
 
   // Tier demo selector
-  const [currentTier, setCurrentTier] = useState("institutional");
+  const [currentTier, setCurrentTier] = useState("enterprise");
 
   // Data
   const [events, setEvents] = useState([]);
@@ -364,7 +364,7 @@ function AilaneTicker() {
     return `EXECUTIVE SUMMARY\nEnforcement action: ${event._title}. Regulatory signalling event requiring monitoring.\n\nKEY FINDINGS\n• Source: ${event.source || "Regulatory body"}\n• Category: ${cat?.label || "Pending classification"}\n• Significance: ${event._significance}\n\nACTION REQUIRED\nMonitor for pattern development. Review internal compliance posture against enforcement criteria.`;
   };
 
-  // ─── PDF EXPORT (Institutional Briefing) ─────────────────────────
+  // ─── PDF EXPORT (Enterprise Briefing) ─────────────────────────
   const downloadBriefingPdf = (event, analysisText) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -432,7 +432,7 @@ function AilaneTicker() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(10, 14, 26);
-    doc.text("INSTITUTIONAL REGULATORY INTELLIGENCE BRIEFING", pw / 2, 61.5, { align: "center" });
+    doc.text("ENTERPRISE REGULATORY INTELLIGENCE BRIEFING", pw / 2, 61.5, { align: "center" });
 
     // Event title
     let y = 78;
@@ -516,7 +516,7 @@ function AilaneTicker() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(148, 163, 184);
-    doc.text("INSTITUTIONAL BRIEFING — AI ANALYSIS", mx + 30, 10);
+    doc.text("ENTERPRISE BRIEFING — AI ANALYSIS", mx + 30, 10);
     doc.text(dateStr, mxr, 10, { align: "right" });
 
     y = 25;
@@ -610,7 +610,7 @@ function AilaneTicker() {
     setSelectedEvent(event);
     setPanelOpen(true);
     setAiSummary(null);
-    // Auto-load cached briefing for governance/institutional
+    // Auto-load cached briefing for governance/enterprise
     if (currentTier !== "operational" && event.id) {
       loadCachedBriefing(event);
     }
@@ -726,8 +726,8 @@ function AilaneTicker() {
       <div style={{ marginTop: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: currentTier === "institutional" ? "#f59e0b" : "#a78bfa" }} />
-            {currentTier === "institutional" ? "Institutional AI Analysis" : "Governance AI Analysis"}
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: currentTier === "enterprise" ? "#f59e0b" : "#a78bfa" }} />
+            {currentTier === "enterprise" ? "Enterprise AI Analysis" : "Governance AI Analysis"}
           </div>
           {!aiSummary && !aiLoading && (
             <button onClick={() => generateAiSummary(selectedEvent)} style={{
@@ -764,7 +764,7 @@ function AilaneTicker() {
               return <div key={i} style={{ marginBottom: 10 }}>{block.trim()}</div>;
             })}
 
-            {currentTier === "institutional" && (
+            {currentTier === "enterprise" && (
               <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => downloadBriefingPdf(selectedEvent, aiSummary)} style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
@@ -778,9 +778,9 @@ function AilaneTicker() {
               </div>
             )}
 
-            {currentTier !== "institutional" && (
+            {currentTier !== "enterprise" && (
               <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 6, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)", fontSize: 11, color: "#f59e0b", textAlign: "center" }}>
-                🔒 Legal Firm Advisory Note and Bespoke Briefing available on Institutional tier
+                🔒 Legal Firm Advisory Note and Bespoke Briefing available on Enterprise tier
               </div>
             )}
           </div>
@@ -991,7 +991,7 @@ function AilaneTicker() {
           }}>
             <option value="operational">Operational</option>
             <option value="governance">Governance</option>
-            <option value="institutional">Institutional</option>
+            <option value="enterprise">Enterprise</option>
           </select>
 
           {/* Refresh */}
@@ -1061,7 +1061,7 @@ function AilaneTicker() {
             </div>
             {!isMobile && (
               <div style={{ fontSize: 10, color: "#475569" }}>
-                Click any event for details · {currentTier === "institutional" ? "Full AI analysis" : currentTier === "governance" ? "AI analysis available" : "Upgrade for AI"}
+                Click any event for details · {currentTier === "enterprise" ? "Full AI analysis" : currentTier === "governance" ? "AI analysis available" : "Upgrade for AI"}
               </div>
             )}
           </div>
