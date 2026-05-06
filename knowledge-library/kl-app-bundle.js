@@ -469,7 +469,7 @@
     return s.length > n ? s.substring(0, n - 1) + "\u2026" : s;
   }
   function tierPalette(tier) {
-    if (tier === "institutional") return ["#D4A017", "#F1C85B"];
+    if (tier === "enterprise" || tier === "institutional") return ["#D4A017", "#F1C85B"];
     if (tier === "governance") return ["#0EA5E9", "#8B5CF6"];
     if (tier === "operational_readiness") return ["#0EA5E9", "#10B981"];
     return ["#0EA5E9", "#38BDF8"];
@@ -2456,9 +2456,9 @@
       } else if (tier === "governance") {
         badgeLabel = "GOVERNANCE";
         badgeClass = "kl-badge-governance";
-      } else if (tier === "institutional") {
-        badgeLabel = "INSTITUTIONAL";
-        badgeClass = "kl-badge-institutional";
+      } else if (tier === "enterprise" || tier === "institutional") {
+        badgeLabel = "ENTERPRISE";
+        badgeClass = "kl-badge-enterprise";
       }
     } else if (accessType === "per_session") {
       badgeLabel = "PER-SESSION";
@@ -2535,7 +2535,8 @@
     kl_research_week: 0,
     operational_readiness: 1,
     governance: 2,
-    institutional: 3
+    enterprise: 3,
+    institutional: 3  /* AMD-123 G-4.1 transitional alias */
   };
   function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
     var userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0;
@@ -5825,7 +5826,7 @@
         });
         return;
       }
-      const isSubscription = window.__klAccessType === "subscription" || window.__klTier === "operational_readiness" || window.__klTier === "governance" || window.__klTier === "institutional";
+      const isSubscription = window.__klAccessType === "subscription" || window.__klTier === "operational_readiness" || window.__klTier === "governance" || window.__klTier === "enterprise" || window.__klTier === "institutional";
       const docRecord = {
         user_id: window.__klUserId,
         filename: file.name,
