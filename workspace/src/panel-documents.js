@@ -65,7 +65,7 @@ class AilaneDocumentsPanel {
     var user = window.__ailaneUser;
     if (!user) return 5;
     var tier = user.tier;
-    if (tier === 'governance' || tier === 'institutional') return Infinity;
+    if (tier === 'governance' || tier === 'enterprise' || tier === 'institutional') return Infinity;
     return 5; // operational_readiness / operational
   }
 

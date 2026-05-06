@@ -34,7 +34,7 @@ var WS_PANELS = [
   { id: 'eileen', name: 'Eileen', icon: 'eileen', sprint: 5 },
   { id: 'research', name: 'Research', icon: 'research', sprint: 5 },
   { id: 'planner', name: 'Contract Planner', icon: 'planner', sprint: 3,
-    tierGate: ['governance', 'institutional'] },
+    tierGate: ['governance', 'enterprise', 'institutional'] },
   { id: 'clipboard', name: 'Clipboard', icon: 'clipboard', sprint: 2 },
   { id: 'calendar', name: 'Calendar', icon: 'calendar', sprint: 2 }
 ];
@@ -43,7 +43,8 @@ var TIER_LABELS = {
   operational_readiness: 'Operational',
   operational: 'Operational',
   governance: 'Governance',
-  institutional: 'Institutional'
+  enterprise: 'Enterprise',
+  institutional: 'Enterprise'  // AMD-123 G-4.1 transitional alias — legacy tier value renders Enterprise label
 };
 
 var MAX_PANELS = 4;

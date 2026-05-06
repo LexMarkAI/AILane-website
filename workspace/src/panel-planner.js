@@ -1,6 +1,6 @@
 // panel-planner.js — Contract Planner Panel Orchestrator
 // Spec: KLUI-001 §3.6, KLWS-001 §4, PCIE-003-AM-001
-// Tier: governance, institutional ONLY
+// Tier: governance, enterprise ONLY
 
 import { renderDisclaimerGate, isDisclaimerAcknowledged } from './planner/planner-disclaimer.js';
 import { renderStep1, renderStep2, CONTRACT_TYPES } from './planner/planner-steps.js';
@@ -10,7 +10,7 @@ import { renderStep5 } from './planner/planner-gap-analysis.js';
 import { renderStep6 } from './planner/planner-export.js';
 
 var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-var TIER_GATE = ['governance', 'institutional'];
+var TIER_GATE = ['governance', 'enterprise', 'institutional'];  // 'institutional' AMD-123 G-4.1 transitional alias
 
 var TYPE_LABELS = {};
 CONTRACT_TYPES.forEach(function(ct) { TYPE_LABELS[ct.value] = ct.label; });

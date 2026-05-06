@@ -42,7 +42,7 @@ function _relativeTime(dateStr) {
 function _isRetained(session) {
   var user = window.__ailaneUser;
   if (!user) return true;
-  if (user.tier === 'governance' || user.tier === 'institutional') return true;
+  if (user.tier === 'governance' || user.tier === 'enterprise' || user.tier === 'institutional') return true;
   // Operational: 30-day retention
   var thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
   return new Date(session.updated_at).getTime() > thirtyDaysAgo;

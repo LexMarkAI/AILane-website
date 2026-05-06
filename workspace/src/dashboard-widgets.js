@@ -16,7 +16,8 @@ var TIER_HIERARCHY = {
   operational: 1,
   operational_readiness: 1,
   governance: 2,
-  institutional: 3
+  enterprise: 3,
+  institutional: 3  // AMD-123 G-4.1 transitional alias
 };
 
 // ============================================================================

@@ -421,7 +421,7 @@ function createRequirementViewer(container, item, bus) {
   // Pillar mapping (Governance+ only)
   if (item.pillar_mapping) {
     var user = window.__ailaneUser;
-    if (user && (user.tier === 'governance' || user.tier === 'institutional')) {
+    if (user && (user.tier === 'governance' || user.tier === 'enterprise' || user.tier === 'institutional')) {
       _renderSection(viewer, 'RRI Pillar Mapping', item.pillar_mapping);
     }
   }
