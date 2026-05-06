@@ -58,7 +58,8 @@
 
   function resolveRingPalette(tier) {
     switch (tier) {
-      case 'institutional':
+      case 'enterprise':
+      case 'institutional':  // AMD-123 transitional alias — accept legacy callers
       case 'ceo_command':
         return {
           active: NEXUS_RING_HIGH_ACCENT,

@@ -430,25 +430,25 @@ section h2 { margin-bottom: 20px; }
 .tier-operational .tier-name { color: var(--op-cyan); }
 .tier-governance { border-left: 3px solid var(--gov-purple); }
 .tier-governance .tier-name { color: var(--gov-purple); }
-.tier-institutional {
+.tier-enterprise {
   border-left: 4px solid var(--inst-gold);
   box-shadow: 0 0 60px rgba(245,158,11,0.12), 0 0 20px rgba(245,158,11,0.06);
   background: linear-gradient(135deg, rgba(245,158,11,0.04) 0%, rgba(15,23,42,0.95) 50%);
 }
-.tier-institutional .tier-name { color: var(--inst-gold); }
-.tier-institutional .tier-price {
+.tier-enterprise .tier-name { color: var(--inst-gold); }
+.tier-enterprise .tier-price {
   background: linear-gradient(135deg, #F59E0B, #D4A017);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
-.tier-institutional .tier-cta {
+.tier-enterprise .tier-cta {
   background: linear-gradient(135deg, #F59E0B, #D4A017);
   color: #1a1208;
   border: none;
 }
-.tier-institutional .tier-cta:hover {
+.tier-enterprise .tier-cta:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 24px rgba(245,158,11,0.3);
 }
@@ -507,10 +507,10 @@ section h2 { margin-bottom: 20px; }
   background: var(--cyan);
   opacity: 0.6;
 }
-.tier-institutional .tier-features li::before { background: var(--inst-gold); }
+.tier-enterprise .tier-features li::before { background: var(--inst-gold); }
 .tier-governance .tier-features li::before { background: var(--gov-purple); }
 
-/* ── Institutional enquiry form ─────────────── */
+/* ── Enterprise enquiry form ─────────────── */
 .inst-enquiry-form {
   margin-top: 16px;
   display: flex;
@@ -1127,8 +1127,8 @@ footer {
           <a href="/account/" class="btn-primary" data-i18n="subs.gov.cta">Start Governance</a>
         </div>
       </div>
-      <div class="tier-card tier-institutional" data-section="institutional">
-        <h3 class="tier-name" data-i18n="subs.inst.name">Institutional</h3>
+      <div class="tier-card tier-enterprise" data-section="enterprise">
+        <h3 class="tier-name" data-i18n="subs.inst.name">Enterprise</h3>
         <p class="tier-tagline" data-i18n="subs.inst.tag">Lead your sector.</p>
         <p class="tier-price" data-i18n="subs.inst.price">Custom</p>
         <span class="expand-trigger" data-expand="inst-detail">
@@ -1143,7 +1143,7 @@ footer {
             <li data-i18n="subs.inst.f4">Full intelligence estate access</li>
             <li data-i18n="subs.inst.f5">Custom integration</li>
           </ul>
-          <button type="button" class="btn-primary tier-cta" data-action="institutional-enquiry" data-i18n="subs.inst.cta">Talk to Eileen about Institutional</button>
+          <button type="button" class="btn-primary tier-cta" data-action="enterprise-enquiry" data-i18n="subs.inst.cta">Talk to Eileen about Enterprise</button>
           <form id="inst-enquiry-form" class="inst-enquiry-form" hidden novalidate>
             <p class="inst-enquiry-lede" data-i18n="subs.inst.enquiry.lede">Prefer to send your details directly? Eileen will route this to our team.</p>
             <label>
@@ -1166,7 +1166,7 @@ footer {
               <input type="text" name="sector" required autocomplete="off">
             </label>
             <label>
-              <span data-i18n="subs.inst.enquiry.detail">What would you like Institutional to do for you?</span>
+              <span data-i18n="subs.inst.enquiry.detail">What would you like Enterprise to do for you?</span>
               <textarea name="detail" rows="3" required></textarea>
             </label>
             <button type="submit" class="btn-primary" data-i18n="subs.inst.enquiry.submit">Send enquiry</button>
@@ -1231,7 +1231,7 @@ footer {
     <button id="eileen-close" aria-label="Minimise Eileen">×</button>
     <div id="eileen-name">EILEEN</div>
     <div id="eileen-context-bar" class="hidden">
-      <span id="eileen-context-label" data-i18n="eileen.context.label">Currently: Institutional enquiry</span>
+      <span id="eileen-context-label" data-i18n="eileen.context.label">Currently: Enterprise enquiry</span>
       <button type="button" id="eileen-context-exit" data-i18n="eileen.context.exit" aria-label="Exit enquiry mode and chat normally">✕ Exit</button>
     </div>
     <div id="eileen-commentary"></div>
@@ -1460,7 +1460,7 @@ var hoverMap = {
   governance: function(d) {
     return Number(d.distinct_judges).toLocaleString() + ' individual judges profiled. Outcome patterns. Hearing durations. No other platform has this.';
   },
-  institutional: function(d) {
+  enterprise: function(d) {
     return '200 contracts in the vault means 200 data points informing your sector exposure profile.';
   },
   intelligence: function(d) {
@@ -1568,7 +1568,7 @@ function initEileenCommentary() {
       'create-detail': 'create',
       'op-detail': 'operational',
       'gov-detail': 'governance',
-      'inst-detail': 'institutional',
+      'inst-detail': 'enterprise',
       'triad-exposure-detail': 'triad-exposure',
       'triad-readiness-detail': 'triad-readiness',
       'triad-conduct-detail': 'triad-conduct'
@@ -1588,7 +1588,7 @@ function initEileenCommentary() {
 
 /* ── Eileen LIVE CHAT HANDLER (LP-002 §4.2 — THE critical integration) ── */
 var chatMessages = [];
-var eileenContext = null;  /* set when a routed flow (e.g. institutional_enquiry) is active */
+var eileenContext = null;  /* set when a routed flow (e.g. enterprise_enquiry) is active */
 /* visitor_hash must be >= 16 chars per eileen-presales schema validation.
    Use crypto.randomUUID when available; fall back to timestamp+random. */
 var visitorHash = (function() {
@@ -1744,8 +1744,8 @@ function initEileenDrag() {
   });
 }
 
-function initInstitutionalEnquiry() {
-  var trigger = document.querySelector('[data-action="institutional-enquiry"]');
+function initEnterpriseEnquiry() {
+  var trigger = document.querySelector('[data-action="enterprise-enquiry"]');
   var form = document.getElementById('inst-enquiry-form');
   if (!trigger || !form) return;
 
@@ -1755,7 +1755,7 @@ function initInstitutionalEnquiry() {
   var commentary = document.getElementById('eileen-commentary');
   var body = document.getElementById('eileen-body');
 
-  var SEED_PROMPT = "Happy to talk about Institutional. To route this properly, could you share four things — your organisation, employee count, sector, and what you'd like Institutional to do for you? You can answer here or use the form below the button.";
+  var SEED_PROMPT = "Happy to talk about Enterprise. To route this properly, could you share four things — your organisation, employee count, sector, and what you'd like Enterprise to do for you? You can answer here or use the form below the button.";
 
   function setNote(text, state) {
     if (!note) return;
@@ -1765,7 +1765,7 @@ function initInstitutionalEnquiry() {
   }
 
   trigger.addEventListener('click', function() {
-    eileenContext = 'institutional_enquiry';
+    eileenContext = 'enterprise_enquiry';
     showEileenContextBar();
     if (body && body.classList.contains('hidden')) body.classList.remove('hidden');
     if (form.hidden) form.hidden = false;
@@ -1784,7 +1784,7 @@ function initInstitutionalEnquiry() {
     if (commentary) commentary.textContent = 'Routing this enquiry. I\'ll capture what we need and pass it on.';
 
     if (typeof gtag === 'function') {
-      gtag('event', 'institutional_enquiry_started', { section: 'subscriptions' });
+      gtag('event', 'enterprise_enquiry_started', { section: 'subscriptions' });
     }
   });
 
@@ -1811,20 +1811,20 @@ function initInstitutionalEnquiry() {
         body: JSON.stringify({
           page: 'main',
           section: 'subscriptions',
-          messages: [{ role: 'user', content: 'Institutional enquiry submission.' }],
+          messages: [{ role: 'user', content: 'Enterprise enquiry submission.' }],
           visitor_hash: visitorHash,
-          context: 'institutional_enquiry_submission',
+          context: 'enterprise_enquiry_submission',
           captured_fields: captured
         })
       });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       setNote('Thanks. We\'ll be in touch within one business day.', 'success');
       if (typeof gtag === 'function') {
-        gtag('event', 'institutional_enquiry_submitted', { section: 'subscriptions', via: 'form' });
+        gtag('event', 'enterprise_enquiry_submitted', { section: 'subscriptions', via: 'form' });
       }
     } catch (err) {
-      console.warn('[Institutional] submit failed', err);
-      var subj = encodeURIComponent('Institutional enquiry — ' + captured.org);
+      console.warn('[Enterprise] submit failed', err);
+      var subj = encodeURIComponent('Enterprise enquiry — ' + captured.org);
       var bodyTxt = encodeURIComponent(
         'Organisation: ' + captured.org + '\n' +
         'Employee count: ' + captured.count + '\n' +
@@ -1922,7 +1922,7 @@ function initEileenMinimise() {
 
 /* LP-V3-PUNCHLIST §3.4 — context exit mechanism */
 var CONTEXT_LABELS = {
-  'institutional_enquiry': 'Currently: Institutional enquiry'
+  'enterprise_enquiry': 'Currently: Enterprise enquiry'
 };
 
 function showEileenContextBar() {
@@ -1985,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   initHeroTertiary();
   initHeroChangesButton();
   initKLStartButton();
-  initInstitutionalEnquiry();
+  initEnterpriseEnquiry();
 
   // Render Nexus instances via window.AilaneNexus (assets/js/nexus.js).
   if (window.AilaneNexus && window.AilaneNexus.createNexus) {
