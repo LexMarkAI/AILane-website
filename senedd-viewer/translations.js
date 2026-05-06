@@ -272,7 +272,7 @@ const AILANE_TRANSLATIONS = {
       tier2Price: "£799",
       tier2Period: "y mis",
       tier2Cta: "Cychwyn",
-      tier3Name: "Sefydliadol",
+      tier3Name: "Mentrol",
       tier3Price: "Cymesur",
       tier3Period: "",
       tier3Cta: "Cysylltu",
@@ -362,11 +362,12 @@ const AILANE_TRANSLATIONS = {
       all: "Pob Haen",
       operational_readiness: "Parodrwydd Gweithredol",
       governance: "Llywodraethu",
-      // AMD-123 G-4.1: dispatch key renamed institutional → enterprise to match
-      // canonical machine-readable tier vocabulary. Welsh display value
-      // "Sefydliadol" preserved verbatim pending Director-approved Welsh
-      // translation of "Enterprise" (CC does not make translation calls).
-      enterprise: "Sefydliadol",
+      // AMD-123 G-4.2: Welsh translation of "Enterprise" confirmed as "Mentrol"
+      // by Director (6 May 2026). Mentrol stands as the canonical Welsh tier-3
+      // display string. Soft mutation (Mentrol → Fentrol) applies if preceded by
+      // y/r/i/dy in surrounding Welsh prose; no mutation triggered in this
+      // standalone-token context.
+      enterprise: "Mentrol",
     },
 
     ui: {
