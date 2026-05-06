@@ -140,7 +140,7 @@ class AilaneCalendarPanel {
       var uploads = await uploadsRes.json() || [];
 
       // Tier-based limit for document review events
-      var reviewLimit = (user.tier === 'governance' || user.tier === 'institutional') ? Infinity : 5;
+      var reviewLimit = (user.tier === 'governance' || user.tier === 'enterprise' || user.tier === 'institutional') ? Infinity : 5;
       var reviewCount = 0;
 
       var self = this;

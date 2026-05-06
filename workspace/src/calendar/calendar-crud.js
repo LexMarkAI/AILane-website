@@ -74,7 +74,7 @@ export function renderEventForm(container, user, existingEvent, onSave, onCancel
 
   // Visibility (Governance+ only)
   var tier = user.tier;
-  if (tier === 'governance' || tier === 'institutional') {
+  if (tier === 'governance' || tier === 'enterprise' || tier === 'institutional') {
     var visOptions = [
       { value: 'personal', label: 'Personal (only you)' },
       { value: 'org_shared', label: 'Organisation (visible to all members)' }

@@ -87,7 +87,7 @@ const AILANE_TRANSLATIONS = {
       tier2Price: "£799",
       tier2Period: "per month",
       tier2Cta: "Get Started",
-      tier3Name: "Institutional",
+      tier3Name: "Enterprise",
       tier3Price: "Custom",
       tier3Period: "",
       tier3Cta: "Contact Us",
@@ -184,7 +184,7 @@ const AILANE_TRANSLATIONS = {
       all: "All Tiers",
       operational_readiness: "Operational Readiness",
       governance: "Governance",
-      institutional: "Institutional",
+      enterprise: "Enterprise",
     },
 
     // General UI
@@ -362,7 +362,11 @@ const AILANE_TRANSLATIONS = {
       all: "Pob Haen",
       operational_readiness: "Parodrwydd Gweithredol",
       governance: "Llywodraethu",
-      institutional: "Sefydliadol",
+      // AMD-123 G-4.1: dispatch key renamed institutional → enterprise to match
+      // canonical machine-readable tier vocabulary. Welsh display value
+      // "Sefydliadol" preserved verbatim pending Director-approved Welsh
+      // translation of "Enterprise" (CC does not make translation calls).
+      enterprise: "Sefydliadol",
     },
 
     ui: {

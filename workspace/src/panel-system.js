@@ -160,7 +160,7 @@ var PANEL_TYPES = [
   // Intelligence group
   { id: 'research', name: 'Research', group: 'intelligence', icon: 'research', sprint: 5 },
   { id: 'planner', name: 'Contract Planner', group: 'intelligence', icon: 'planner', sprint: 3,
-    tierGate: ['governance', 'institutional'] },
+    tierGate: ['governance', 'enterprise', 'institutional'] },
   { id: 'clipboard', name: 'Clipboard', group: 'intelligence', icon: 'clipboard', sprint: 2 },
   { id: 'calendar', name: 'Calendar', group: 'intelligence', icon: 'calendar', sprint: 2 },
 ];
@@ -921,7 +921,7 @@ function initWorkspace() {
   }
 
   // Tier guard: only render for workspace-enabled tiers
-  var wsEnabledTiers = ['operational', 'operational_readiness', 'governance', 'institutional'];
+  var wsEnabledTiers = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
   if (!wsEnabledTiers.includes(window.__ailaneUser.tier)) {
     return;
   }
