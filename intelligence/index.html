@@ -568,7 +568,7 @@
       <div class="tier-selector">
         <button class="tier-btn active-op" data-tier="operational" onclick="setTier('operational')">Operational<br><span style="font-size:10px;font-weight:400;color:inherit;opacity:0.7">£199/mo</span></button>
         <button class="tier-btn" data-tier="governance" onclick="setTier('governance')">Governance<br><span style="font-size:10px;font-weight:400;color:inherit;opacity:0.7">£799/mo</span></button>
-        <button class="tier-btn" data-tier="institutional" onclick="setTier('institutional')">Institutional<br><span style="font-size:10px;font-weight:400;color:inherit;opacity:0.7">Custom</span></button>
+        <button class="tier-btn" data-tier="enterprise" onclick="setTier('enterprise')">Enterprise<br><span style="font-size:10px;font-weight:400;color:inherit;opacity:0.7">Custom</span></button>
       </div>
     </div>
   </div>
@@ -824,8 +824,8 @@ function lockedPanel(bodyHtml, lockTier, lockLabel) {
   const isGov = lockTier === 'governance';
   const btnClass = isGov ? 'lock-cta-gov' : 'lock-cta-inst';
   const iconClass = isGov ? 'lock-icon-gov' : 'lock-icon-inst';
-  const ctaText = isGov ? 'See Governance View →' : 'See Institutional View →';
-  const ctaAction = isGov ? "setTier('governance')" : "setTier('institutional')";
+  const ctaText = isGov ? 'See Governance View →' : 'See Enterprise View →';
+  const ctaAction = isGov ? "setTier('governance')" : "setTier('enterprise')";
   return `
     <div class="panel-locked">
       <div class="panel-body">${bodyHtml}</div>
@@ -1043,9 +1043,9 @@ function renderDashboard() {
     html += renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents);
   }
 
-  // ─── INSTITUTIONAL TIER ───────────────────────────────────────────────────────
-  if (currentTier === 'institutional') {
-    html += renderInstitutionalView(di, wdrs, cci, wcc, pillars, cciComponents);
+  // ─── ENTERPRISE TIER ──────────────────────────────────────────────────────────
+  if (currentTier === 'enterprise') {
+    html += renderEnterpriseView(di, wdrs, cci, wcc, pillars, cciComponents);
   }
 
   // Constitutional footer
@@ -1434,15 +1434,15 @@ function renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents) {
   html += '</div>'; // end cols-2
 
   // Locked: Intelligence Lab, Proximity Alert, Audit Pack
-  html += `<div class="tier-section-title">Institutional Tier Features</div>`;
+  html += `<div class="tier-section-title">Enterprise Tier Features</div>`;
   html += `<div class="section-grid cols-3" style="margin-bottom:16px">`;
 
   html += `<div class="panel">
     <div class="panel-header"><div class="panel-title">🔬 Intelligence Lab</div></div>
     ${lockedPanel(
       `<div style="height:120px;background:var(--navy-raised);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Trend Engine preview</div>`,
-      'institutional',
-      'Explore 130,000+ tribunal decisions. Benchmark against 240 sector peers. Institutional tier.'
+      'enterprise',
+      'Explore 130,000+ tribunal decisions. Benchmark against 240 sector peers. Enterprise tier.'
     )}
   </div>`;
 
@@ -1450,8 +1450,8 @@ function renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents) {
     <div class="panel-header"><div class="panel-title">📍 Proximity Alert</div></div>
     ${lockedPanel(
       `<div style="height:120px;background:var(--navy-raised);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Map preview</div>`,
-      'institutional',
-      'Know when HSE, ICO or EHRC enforcement activity is formally recorded in your sub-region. Institutional tier.'
+      'enterprise',
+      'Know when HSE, ICO or EHRC enforcement activity is formally recorded in your sub-region. Enterprise tier.'
     )}
   </div>`;
 
@@ -1459,27 +1459,27 @@ function renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents) {
     <div class="panel-header"><div class="panel-title">📑 Audit Pack Export</div></div>
     ${lockedPanel(
       `<div style="height:120px;background:var(--navy-raised);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-faint)">Export preview</div>`,
-      'institutional',
-      'Board-ready compliance report, constitutionally governed, exportable. Institutional tier.'
+      'enterprise',
+      'Board-ready compliance report, constitutionally governed, exportable. Enterprise tier.'
     )}
   </div>`;
 
   html += '</div>';
 
   html += `<div class="upsell-bar upsell-bar-inst">
-    <div class="upsell-bar-text">The <strong>Intelligence Lab</strong> gives your compliance director a professional analytical environment — trend engine, anomaly detection, peer benchmarking across 78,699 employer profiles. Institutional tier.</div>
-    <a href="/#pricing" class="upsell-bar-cta">Enquire — Institutional</a>
+    <div class="upsell-bar-text">The <strong>Intelligence Lab</strong> gives your compliance director a professional analytical environment — trend engine, anomaly detection, peer benchmarking across 78,699 employer profiles. Enterprise tier.</div>
+    <a href="/#pricing" class="upsell-bar-cta">Enquire — Enterprise</a>
   </div>`;
 
   return html;
 }
 
-// ─── INSTITUTIONAL VIEW ───────────────────────────────────────────────────────
-function renderInstitutionalView(di, wdrs, cci, wcc, pillars, cciComponents) {
+// ─── ENTERPRISE VIEW ──────────────────────────────────────────────────────────
+function renderEnterpriseView(di, wdrs, cci, wcc, pillars, cciComponents) {
   let html = renderGovernanceView(di, wdrs, cci, wcc, pillars, cciComponents);
 
   // Replace locked panels with Intelligence Lab content
-  html += `<div class="tier-section-title" style="color:var(--gold)">Intelligence Lab — Institutional</div>`;
+  html += `<div class="tier-section-title" style="color:var(--gold)">Intelligence Lab — Enterprise</div>`;
   html += `<div class="section-grid cols-2" style="margin-bottom:16px">`;
 
   // Trend Engine skeleton
@@ -1536,7 +1536,7 @@ function renderInstitutionalView(di, wdrs, cci, wcc, pillars, cciComponents) {
   html += '</div>';
 
   html += `<div class="upsell-bar upsell-bar-inst">
-    <div class="upsell-bar-text">You're seeing the full Institutional tier. <strong>Your ACEI: 66</strong> vs FM sector median of 58 — your exposure is above average. The Compliance Checker remediation roadmap is the fastest path to score improvement.</div>
+    <div class="upsell-bar-text">You're seeing the full Enterprise tier. <strong>Your ACEI: 66</strong> vs FM sector median of 58 — your exposure is above average. The Compliance Checker remediation roadmap is the fastest path to score improvement.</div>
     <a href="/#contact" class="upsell-bar-cta">Speak to the team</a>
   </div>`;
 
@@ -1554,7 +1554,7 @@ function renderRELForm(tier) {
     </div>`;
   }
 
-  const hasSubRegional = tier === 'governance' || tier === 'institutional';
+  const hasSubRegional = tier === 'governance' || tier === 'enterprise';
 
   return `<div class="panel">
     <div class="panel-header">
