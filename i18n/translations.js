@@ -87,7 +87,7 @@ const AILANE_TRANSLATIONS = {
       tier2Price: "£799",
       tier2Period: "per month",
       tier2Cta: "Get Started",
-      tier3Name: "Institutional",
+      tier3Name: "Enterprise",
       tier3Price: "Custom",
       tier3Period: "",
       tier3Cta: "Contact Us",
@@ -184,7 +184,7 @@ const AILANE_TRANSLATIONS = {
       all: "All Tiers",
       operational_readiness: "Operational Readiness",
       governance: "Governance",
-      institutional: "Institutional",
+      enterprise: "Enterprise",
     },
 
     // General UI
@@ -273,7 +273,7 @@ const AILANE_TRANSLATIONS = {
       tier2Price: "£799",
       tier2Period: "y mis",
       tier2Cta: "Cychwyn",
-      tier3Name: "Sefydliadol",
+      tier3Name: "Mentrol",
       tier3Price: "Cymesur",
       tier3Period: "",
       tier3Cta: "Cysylltu",
@@ -363,7 +363,7 @@ const AILANE_TRANSLATIONS = {
       all: "Pob Haen",
       operational_readiness: "Parodrwydd Gweithredol",
       governance: "Llywodraethu",
-      institutional: "Sefydliadol",
+      enterprise: "Mentrol",
     },
 
     ui: {
