@@ -470,14 +470,30 @@
     // can short-circuit when the menu bar is present. mountAttributionBlock
     // and populateWhatsHappening run after the page-content injectors so
     // they slot in at the bottom of <main>. The injectors are idempotent.
-    injectMenuBar();
-    injectSubPageNav();
+    // ─── Universal page skeleton order (NN-3 clarified, AILANE-CC-INSTRUCTION-PHASE1-LAYOUT-TWEAK-001) ───
+    // The injectors below propagate the workspace shell uniformly to every
+    // authenticated surface — index, deal-creator, configurator, documents,
+    // pathway, status. Order matters: each downstream injector anchors to
+    // the most recent upstream element so the rendered DOM order on every
+    // page is:
+    //   hero
+    //   eileen-explanation  (mountEileenExplanation)
+    //   tile-cards          (injectSubPageNav — sub-pages only; home ships static)
+    //   eileen-section      (injectEileenPanel — interactive Eileen v7 panel)
+    //   page-specific content (already in static markup)
+    //   document vault      (page-specific aside)
+    //   attribution         (mountAttributionBlock)
+    //   what's-happening    (populateWhatsHappening — home only)
+    // The left phase rail (injectPhaseTracker) is body-level fixed-position
+    // and outside this vertical chain.
+    injectMenuBar();              // retired no-op per P1.3
+    mountEileenExplanation();     // Eileen explainer right after hero
+    injectSubPageNav();           // four-card menu right after explainer
     injectAuthChip();
-    mountEileenExplanation();
-    injectPhaseTracker();
-    injectDocumentVault();
-    injectEileenPanel();
+    injectEileenPanel();          // interactive Eileen panel right after four-card menu
     bindEileenPanel();
+    injectPhaseTracker();         // body-level left rail
+    injectDocumentVault();        // page-specific aside, anchored after Eileen panel
     applyDocumentGating();
     mountAttributionBlock();
     populateWhatsHappening();
@@ -3021,9 +3037,14 @@
   function injectEileenPanel() {
     if (document.getElementById('dr-eileen-panel')) return;
 
-    var subnav = document.querySelector('.dr-subpage-nav-section');
-    var hero   = document.querySelector('.dr-main .dr-container .dr-hero');
-    var anchor = subnav || hero;
+    // Anchor: prefer .dr-tile-cards-section so the Eileen panel sits
+    // immediately after the four-card menu (NN-3 clarified order). Fall
+    // back to legacy .dr-subpage-nav-section, then explainer, then hero.
+    var tileCards = document.querySelector('.dr-tile-cards-section');
+    var subnav    = document.querySelector('.dr-subpage-nav-section');
+    var explainer = document.querySelector('.dr-eileen-explanation');
+    var hero      = document.querySelector('.dr-main .dr-container .dr-hero');
+    var anchor    = tileCards || subnav || explainer || hero;
     if (!anchor) return;
 
     var section = document.createElement('section');
@@ -3096,8 +3117,13 @@
         href: WORKSPACE_ROOT + 'pathway/' }
     ];
 
+    // Anchor: prefer .dr-eileen-explanation (so explainer sits between hero
+    // and tile-cards), fall back to hero. mountEileenExplanation MUST run
+    // before injectSubPageNav for this chain to work — see revealPage().
+    var explainer = document.querySelector('.dr-eileen-explanation');
     var hero = document.querySelector('.dr-hero');
-    if (!hero) return;
+    var anchor = explainer || hero;
+    if (!anchor) return;
 
     var section = document.createElement('section');
     section.className = 'dr-section dr-tile-cards-section';
@@ -3117,7 +3143,7 @@
       grid.appendChild(a);
     }
     section.appendChild(grid);
-    hero.insertAdjacentElement('afterend', section);
+    anchor.insertAdjacentElement('afterend', section);
   }
 
   // ============================================================
@@ -3676,7 +3702,13 @@
       ? opts.collapsedByDefault
       : !pathLandingRoot;
     if (!alreadyExists) {
+      // Anchor: prefer the Eileen panel section (NN-3 clarified) so the
+      // page-specific document vault aside sits in the page-content slot
+      // BELOW the interactive Eileen panel, not above it. Fall back to
+      // legacy phase-tracker (gone — left rail is body-level), legacy
+      // subpage-nav-section, then hero.
       var anchor =
+        document.querySelector('.dr-eileen-section') ||
         document.getElementById('dr-phase-tracker') ||
         document.querySelector('.dr-subpage-nav-section') ||
         document.querySelector('.dr-main .dr-container .dr-hero');
