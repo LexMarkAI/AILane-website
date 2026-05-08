@@ -127,6 +127,42 @@
     phase_f: 'F'
   };
 
+  // P1.13 — feature flags. Single source of truth populated at configurator
+  // mount from dealroom_feature_flags. Pilot fee + package shelf use these
+  // to gate save-draft, CPPP submit, FCR lodgement, configurator inputs.
+  // All three currently default true so the deal-room renders out of the
+  // box; Director can flip a flag without a frontend redeploy.
+  var DEALROOM_FLAGS = {
+    configurator_enabled:                true,
+    eileen_escalation_enabled:           true,
+    counter_proposal_submission_enabled: true
+  };
+  function getFeatureFlags() { return DEALROOM_FLAGS; }
+  async function refreshFeatureFlags_() {
+    try {
+      var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+      var res = await fetch(SUPABASE_URL + '/rest/v1/dealroom_feature_flags?select=feature_key,enabled', { headers: hdrs });
+      if (!res.ok) return;
+      var rows = await res.json();
+      if (!Array.isArray(rows)) return;
+      for (var i = 0; i < rows.length; i++) {
+        var k = rows[i].feature_key;
+        if (Object.prototype.hasOwnProperty.call(DEALROOM_FLAGS, k)) DEALROOM_FLAGS[k] = !!rows[i].enabled;
+      }
+    } catch (e) { /* swallow — defaults stand */ }
+  }
+
+  // AC-2 / P1.9 — three-stage Deal Creator visibility helpers.
+  //   gate_state='phase_0' → 'preview'  : configurator inputs disabled, CPPP / save-draft hidden
+  //   gate_state='phase_a' → 'full'     : configurator interactive, CPPP / save-draft / Eileen-compare active
+  //   gate_state='phase_d' → 'variation': all Full + Variation flow on existing MCA
+  function dealCreatorStage_(gateState) {
+    var idx = GATE_ORDER.indexOf(gateState || 'phase_0');
+    if (idx <= 0) return 'preview';
+    if (idx >= GATE_ORDER.indexOf('phase_d')) return 'variation';
+    return 'full';
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -448,8 +484,13 @@
     if (location.pathname.indexOf('/documents/') !== -1) {
       populateDocumentsCatalog(window.__dealRoomUser);
       populateArtefactsView();
-    } else if (location.pathname.indexOf('/configurator/') !== -1) {
+    } else if (
+      location.pathname.indexOf('/deal-creator/') !== -1 ||
+      location.pathname.indexOf('/configurator/') !== -1
+    ) {
       populateConfigurator(window.__dealRoomUser);
+      populatePilotFeeBox();
+      populatePackageShelf();
     } else if (location.pathname.indexOf('/status/') !== -1) {
       populateEngagementPanels();
     } else if (location.pathname.indexOf('/pathway/') !== -1) {
@@ -805,10 +846,7 @@
       // Update "Currently in ..." label using GATE_DISPLAY
       var phaseLabel = document.getElementById('dr-current-phase');
       if (phaseLabel) {
-        var letter = GATE_DISPLAY[currentPhase] || currentPhase;
-        phaseLabel.textContent = (currentPhase === 'phase_0')
-          ? 'Phase 0 — Pre-engagement'
-          : 'Phase ' + letter;
+        phaseLabel.textContent = PHASE_LABELS[currentPhase] || currentPhase;
       }
 
       grid.innerHTML = '';
@@ -958,7 +996,12 @@
     refresh:      'quarterly',
     exclusivity:  'none',
     term_years:   1,
-    duns_match:   false
+    duns_match:   false,
+    // P1.10 — Live Pipeline cadence as a modifier (third-place rendering of
+    // the Live Pipeline product, surfaced inside the configurator). Default
+    // is read from counterparty_profile.live_pipeline_default_cadence at
+    // populateConfigurator time; falls back to 'none' for sandbox CLIDs.
+    live_pipeline: 'none'
   };
   var LAST_UNIVERSE = null;     // most recent compute_scope_universe response
   var LAST_QUOTE_V4 = null;     // most recent pricing_quote_function_v4 response
@@ -995,6 +1038,249 @@
   }
 
 
+  // P1.9 — render the three-stage visibility banner above the configurator
+  // panels. Preview / Full / Variation copy explains where the surface is
+  // gated. The banner is surfaced regardless of feature_flag.configurator_enabled
+  // so the user always understands why the surface looks as it does.
+  function renderConfiguratorStageBanner_(stage) {
+    var anchor = document.getElementById('dr-configurator-stage-banner');
+    if (!anchor) return;
+    var copy;
+    if (stage === 'preview') {
+      copy = '<strong>Preview.</strong> Configurator inputs are read-only at Phase 0. Browse the four canonical Packages above; the £90,000 Pilot Demonstration is the recommended Phase B entry.';
+    } else if (stage === 'variation') {
+      copy = '<strong>Variation.</strong> Existing MCA in force. Sub-configuration adjustments propagate live; commercial commitment requires Director ratification.';
+    } else {
+      copy = '<strong>Full.</strong> Configurator is interactive. Counter-proposal submission, capability requests, save-draft, and Eileen-narrated comparisons are all live.';
+    }
+    anchor.innerHTML = '<p>' + copy + '</p>';
+    anchor.removeAttribute('hidden');
+    anchor.setAttribute('data-stage', stage);
+  }
+
+  // P1.7 — £90,000 Pilot Fee Entry Box. Reads the £-amount from
+  // counterparty_profile.pilot_fee_amount_pence at render time (NN-2 — never
+  // hardcode the figure). Layered Capability Demonstration descriptor and
+  // conversion-credit copy are static institutional positioning per AC-1.
+  async function populatePilotFeeBox() {
+    var anchor = document.getElementById('dr-pilot-fee-box');
+    if (!anchor) return;
+    var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+    var pilotPence = null;
+    try {
+      var res = await fetch(
+        SUPABASE_URL + '/rest/v1/counterparty_profile?clid=eq.' + encodeURIComponent(CLID) +
+        '&select=pilot_fee_amount_pence&limit=1',
+        { headers: hdrs }
+      );
+      if (res.ok) {
+        var rows = await res.json();
+        if (Array.isArray(rows) && rows[0] && rows[0].pilot_fee_amount_pence != null) {
+          pilotPence = Number(rows[0].pilot_fee_amount_pence);
+        }
+      }
+    } catch (e) { /* swallow — fallback below */ }
+    var amountFmt = (pilotPence != null && !isNaN(pilotPence))
+      ? '£' + (pilotPence / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })
+      : null;
+    if (amountFmt == null) {
+      anchor.innerHTML =
+        '<div class="dr-pilot-fee-empty">Pilot Fee not configured for this CLID. ' +
+        'Contact <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a> to surface a Pilot Demonstration.</div>';
+      return;
+    }
+    anchor.innerHTML =
+      '<header class="dr-pilot-fee-header">' +
+        '<span class="dr-pilot-fee-eyebrow">Phase B entry deal &middot; Pilot</span>' +
+        '<h2 class="dr-pilot-fee-headline">Pilot Demonstration</h2>' +
+        '<div class="dr-pilot-fee-amount">' +
+          '<span class="dr-pilot-fee-amount-label">Pilot Fee</span>' +
+          '<span class="dr-pilot-fee-amount-value">' + escapeHtml(amountFmt) + '</span>' +
+        '</div>' +
+      '</header>' +
+      '<div class="dr-pilot-fee-body">' +
+        '<h3 class="dr-pilot-fee-subhead">Layered Capability Demonstration</h3>' +
+        '<ul class="dr-pilot-fee-layers">' +
+          '<li><strong>L1:</strong> 10 SIC sections aggregated (Sector Risk Index)</li>' +
+          '<li><strong>L2:</strong> 250 named employers, CHN-keyed ' +
+              '<span class="dr-pilot-fee-fineprint">(counterparty performs identifier-match validation against their own registry)</span></li>' +
+          '<li><strong>L3:</strong> Same 250 employers, full ACEI 12-category scoring</li>' +
+          '<li><strong>L4:</strong> 10-section Live Pipeline forecast</li>' +
+        '</ul>' +
+        '<p class="dr-pilot-fee-credit">' +
+          '<strong>Conversion credit:</strong> fully credited against Year 1 Q1 invoice on MCA execution within 60 days of pilot delivery.' +
+        '</p>' +
+        '<p class="dr-pilot-fee-cta">' +
+          '<a class="dr-btn-primary dr-pilot-fee-link" href="' + WORKSPACE_ROOT + 'documents/?doc=PILOT_SOW" data-document-ref="PILOT_SOW">Read full Pilot SOW</a>' +
+        '</p>' +
+      '</div>';
+  }
+
+  // P1.8 — Four canonical Packages. Reads from package_catalogue at runtime
+  // ordered by counterparty_profile.four_surfaced_packages. Each box renders
+  // shape_name, £tier band, exclusivity (humanised), term_default_months;
+  // click-to-expand reveals atomic_unit_composition. AC-2 visibility:
+  //   gate_state='phase_0' → CTA "Add to Deal Creator" hidden (browse-only)
+  //   gate_state='phase_a'+ → CTA visible
+  // Adds Live Pipeline as a 5th tile (P1.10).
+  var EXCLUSIVITY_LABELS = {
+    none:              'Non-exclusive',
+    non_exclusive:     'Non-exclusive',
+    vertical:          'Vertical-exclusive',
+    vertical_exclusive:'Vertical-exclusive',
+    full_uk:           'Full UK-exclusive',
+    full_uk_exclusive: 'Full UK-exclusive'
+  };
+  async function populatePackageShelf() {
+    var grid = document.querySelector('[data-package-shelf-grid]');
+    if (!grid) return;
+    var hdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+    try {
+      // 1) Counterparty profile — surfaced package codes + gate
+      var profileRes = await fetch(
+        SUPABASE_URL + '/rest/v1/counterparty_profile?clid=eq.' + encodeURIComponent(CLID) +
+        '&select=four_surfaced_packages,live_pipeline_default_cadence&limit=1',
+        { headers: hdrs }
+      );
+      var profile = profileRes.ok ? (await profileRes.json())[0] : null;
+      var codes = (profile && Array.isArray(profile.four_surfaced_packages)) ? profile.four_surfaced_packages : [];
+
+      var pkgs = [];
+      if (codes.length > 0) {
+        var inList = codes.map(function (c) { return '"' + c.replace(/"/g, '\\"') + '"'; }).join(',');
+        var pkgRes = await fetch(
+          SUPABASE_URL + '/rest/v1/package_catalogue?catalogue_code=in.(' + inList + ')' +
+          '&select=catalogue_code,shape_name,tier_band_low_gbp,tier_band_high_gbp,exclusivity,term_default_months,atomic_unit_composition',
+          { headers: hdrs }
+        );
+        if (pkgRes.ok) {
+          var rows = await pkgRes.json();
+          if (Array.isArray(rows)) {
+            // Re-order by codes array so display matches counterparty profile
+            pkgs = codes.map(function (c) {
+              for (var i = 0; i < rows.length; i++) if (rows[i].catalogue_code === c) return rows[i];
+              return null;
+            }).filter(Boolean);
+          }
+        }
+      }
+
+      // 2) Phase / stage gating
+      var gate = 'phase_0';
+      var token = (window.__dealRoomUser && window.__dealRoomUser.token) || null;
+      if (token) { try { gate = await fetchClidGateState(token, CLID); } catch (e) {} }
+      var stage = dealCreatorStage_(gate);
+      var showCta = (stage !== 'preview');
+
+      if (pkgs.length === 0) {
+        grid.innerHTML = '<div class="dr-package-shelf-empty">No surfaced Packages configured for this CLID.</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < pkgs.length; i++) {
+        var p = pkgs[i];
+        var lo = (p.tier_band_low_gbp != null) ? Number(p.tier_band_low_gbp) : null;
+        var hi = (p.tier_band_high_gbp != null) ? Number(p.tier_band_high_gbp) : null;
+        var bandFmt = (lo != null && hi != null)
+          ? '£' + formatBandValue_(lo) + '–£' + formatBandValue_(hi)
+          : '—';
+        var exclLabel = EXCLUSIVITY_LABELS[p.exclusivity] || p.exclusivity || '—';
+        var term = (p.term_default_months != null) ? Number(p.term_default_months) + ' months' : '—';
+        var compHtml = renderAtomicComposition_(p.atomic_unit_composition);
+        html +=
+          '<article class="dr-package-tile" data-package-code="' + escapeHtml(p.catalogue_code || '') + '">' +
+            '<header class="dr-package-tile-header">' +
+              '<span class="dr-package-tile-code">' + escapeHtml(p.catalogue_code || '') + '</span>' +
+              '<h3 class="dr-package-tile-name">' + escapeHtml(p.shape_name || '—') + '</h3>' +
+            '</header>' +
+            '<dl class="dr-package-tile-spec">' +
+              '<dt>Tier band</dt><dd>' + escapeHtml(bandFmt) + '</dd>' +
+              '<dt>Exclusivity</dt><dd>' + escapeHtml(exclLabel) + '</dd>' +
+              '<dt>Term</dt><dd>' + escapeHtml(term) + '</dd>' +
+            '</dl>' +
+            '<details class="dr-package-tile-comp">' +
+              '<summary>Atomic unit composition</summary>' +
+              '<div class="dr-package-tile-comp-body">' + compHtml + '</div>' +
+            '</details>' +
+            (showCta
+              ? '<button type="button" class="dr-btn-primary dr-package-tile-cta" data-package-add="' + escapeHtml(p.catalogue_code || '') + '">Add to Deal Creator</button>'
+              : '<div class="dr-package-tile-preview-note">Browsable in Preview &mdash; package selection becomes interactive after NDA execution.</div>') +
+            '<details class="dr-package-tile-livepipe">' +
+              '<summary>Live Pipeline can layer onto this package</summary>' +
+              '<p>Live Pipeline is a Layered Product. Refresh cadence (none / quarterly / monthly / weekly / daily) is configurable in the configurator below.</p>' +
+            '</details>' +
+          '</article>';
+      }
+
+      // P1.10 — Live Pipeline 5th tile alongside the four canonical packages.
+      html +=
+        '<article class="dr-package-tile dr-package-tile-livepipe-card" data-package-code="LIVE-PIPELINE">' +
+          '<header class="dr-package-tile-header">' +
+            '<span class="dr-package-tile-tag">Layered Product</span>' +
+            '<h3 class="dr-package-tile-name">Live Pipeline</h3>' +
+          '</header>' +
+          '<dl class="dr-package-tile-spec">' +
+            '<dt>Tier band</dt><dd>£150K–£300K</dd>' +
+            '<dt>Layer</dt><dd>Modifier &mdash; layers onto any package</dd>' +
+            '<dt>Cadence</dt><dd>none / quarterly / monthly / weekly / daily</dd>' +
+          '</dl>' +
+          '<p class="dr-package-tile-livepipe-blurb">Live Pipeline produces a 10-section forecast refreshed at the configured cadence. It is not a standalone package — it layers onto one of the four canonical Packages.</p>' +
+          (showCta
+            ? '<button type="button" class="dr-btn-secondary dr-package-tile-cta" data-livepipe-add>Add as modifier</button>'
+            : '<div class="dr-package-tile-preview-note">Browsable in Preview &mdash; modifier selection becomes interactive after NDA execution.</div>') +
+        '</article>';
+
+      grid.innerHTML = html;
+      bindPackageShelfHandlers_();
+    } catch (err) {
+      console.error('populatePackageShelf error:', err);
+      grid.innerHTML = '<div class="dr-package-shelf-empty">Could not load packages. Please refresh.</div>';
+    }
+  }
+  function formatBandValue_(gbp) {
+    if (gbp >= 1000000) return (gbp / 1000000).toFixed(gbp % 1000000 === 0 ? 0 : 1) + 'M';
+    if (gbp >= 1000)    return Math.round(gbp / 1000) + 'K';
+    return Math.round(gbp).toLocaleString('en-GB');
+  }
+  function renderAtomicComposition_(comp) {
+    if (comp == null) return '<p class="dr-package-tile-empty">No composition recorded.</p>';
+    if (typeof comp === 'string') return '<p>' + escapeHtml(comp) + '</p>';
+    if (Array.isArray(comp)) {
+      return '<ul>' + comp.map(function (x) { return '<li>' + escapeHtml(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>'; }).join('') + '</ul>';
+    }
+    if (typeof comp === 'object') {
+      var rows = '';
+      for (var k in comp) if (Object.prototype.hasOwnProperty.call(comp, k)) {
+        var v = comp[k];
+        var vStr = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+        rows += '<dt>' + escapeHtml(k) + '</dt><dd>' + escapeHtml(vStr) + '</dd>';
+      }
+      return '<dl class="dr-package-tile-comp-list">' + rows + '</dl>';
+    }
+    return '<p>' + escapeHtml(String(comp)) + '</p>';
+  }
+  function bindPackageShelfHandlers_() {
+    var addBtns = document.querySelectorAll('[data-package-add]');
+    for (var i = 0; i < addBtns.length; i++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var code = btn.getAttribute('data-package-add');
+        try { if (window.gtag) window.gtag('event', 'package_add_clicked', { clid: CLID, package: code }); } catch (e) {}
+        // Scroll to the configurator panels and surface a hint toast.
+        var anchor = document.getElementById('dr-configurator-panels');
+        if (anchor) try { anchor.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+        showToast_('Package ' + code + ' added — refine in the configurator below.');
+      });
+    })(addBtns[i]);
+    var lpBtn = document.querySelector('[data-livepipe-add]');
+    if (lpBtn) lpBtn.addEventListener('click', function () {
+      try { if (window.gtag) window.gtag('event', 'livepipe_add_clicked', { clid: CLID }); } catch (e) {}
+      var anchor = document.getElementById('dr-configurator-panels');
+      if (anchor) try { anchor.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+      showToast_('Live Pipeline modifier highlighted in the configurator below.');
+    });
+  }
+
   async function populateConfigurator(user) {
     var anchor = document.getElementById('dr-configurator-panels');
     if (!anchor) return;
@@ -1002,6 +1288,36 @@
     // pricing RPCs (Director: pricing RPCs are anon-accessible). Other auth-required
     // REST calls below are skipped in sandbox.
     if (!IS_SANDBOX && (!user || !user.token)) return;
+    // P1.13 — refresh feature flags before rendering. Defaults stand on failure.
+    await refreshFeatureFlags_();
+    // P1.9 — three-stage visibility banner. Read gate, render banner, then
+    // gate the configurator render below if the surface is not enabled.
+    var gateState = 'phase_0';
+    var token = (user && user.token) || null;
+    if (token) { try { gateState = await fetchClidGateState(token, CLID); } catch (e) {} }
+    var stage = dealCreatorStage_(gateState);
+    renderConfiguratorStageBanner_(stage);
+    // If feature flag disables the configurator entirely, render nothing more.
+    if (DEALROOM_FLAGS.configurator_enabled === false) {
+      anchor.innerHTML = '<div class="dr-config-flag-disabled">The configurator is currently disabled by Director feature flag. The Pilot Fee and four Packages above remain available.</div>';
+      return;
+    }
+    // Stage = preview: render a read-only banner instead of the live panels.
+    if (stage === 'preview') {
+      anchor.innerHTML =
+        '<div class="dr-config-preview">' +
+          '<p>Configurator is in <strong>Preview</strong>. Browse the four canonical Packages above; the £90,000 Pilot Demonstration is the recommended Phase B entry. The configurator becomes interactive after NDA execution.</p>' +
+        '</div>';
+      // Remove the Eileen-narrated pricing block while in preview (no live quote yet).
+      var ep = document.getElementById('dr-eileen-pricing-block');
+      if (ep) ep.style.display = 'none';
+      // Render a Phase-0 counter-proposal placeholder (no submit, no draft).
+      renderCounterProposalSection(user, gateState);
+      return;
+    }
+    // Make sure Eileen pricing block is visible for full / variation stages.
+    var ep2 = document.getElementById('dr-eileen-pricing-block');
+    if (ep2) ep2.style.display = '';
 
     // AMD-114 — initialise four-axis scope state (unconstrained baseline) and modifier
     // defaults (Institutional tier, quarterly refresh, no exclusivity, 12-month term).
@@ -1016,8 +1332,26 @@
       refresh:      'quarterly',
       exclusivity:  'none',
       term_years:   1,
-      duns_match:   false
+      duns_match:   false,
+      live_pipeline: 'none'
     };
+    // P1.10 — Live Pipeline default cadence read from counterparty_profile.
+    // Sim defaults to 'none' (sandbox); dnb-2026 defaults to 'monthly' if
+    // configured server-side. Never hardcode the per-CLID default.
+    try {
+      var lpHdrs = getAuthHeaders_({ 'Accept': 'application/json' });
+      var lpRes = await fetch(
+        SUPABASE_URL + '/rest/v1/counterparty_profile?clid=eq.' + encodeURIComponent(CLID) +
+        '&select=live_pipeline_default_cadence&limit=1',
+        { headers: lpHdrs }
+      );
+      if (lpRes.ok) {
+        var lpRows = await lpRes.json();
+        if (Array.isArray(lpRows) && lpRows[0] && lpRows[0].live_pipeline_default_cadence) {
+          MODIFIERS_STATE.live_pipeline = String(lpRows[0].live_pipeline_default_cadence);
+        }
+      }
+    } catch (e) { /* swallow — default 'none' stands */ }
     LAST_UNIVERSE = null;
     LAST_QUOTE_V4 = null;
     EXPANDED_AXIS = null;
@@ -1494,7 +1828,34 @@
            renderDunsToggle_() +
            renderRefreshChips_() +
            renderExclusivityChips_() +
-           renderTermChips_();
+           renderTermChips_() +
+           renderLivePipelineChips_();
+  }
+
+  // P1.10 — Live Pipeline cadence as a configurator modifier. Sits below
+  // existing modifiers (refresh / exclusivity / term). Selecting a cadence
+  // other than 'none' triggers a re-quote (existing recomputeDebounced_).
+  function renderLivePipelineChips_() {
+    var LP = [
+      { code: 'none',      label: 'None' },
+      { code: 'quarterly', label: 'Quarterly' },
+      { code: 'monthly',   label: 'Monthly' },
+      { code: 'weekly',    label: 'Weekly' },
+      { code: 'daily',     label: 'Daily' }
+    ];
+    var chips = '';
+    for (var i = 0; i < LP.length; i++) {
+      var o = LP[i];
+      var act = (MODIFIERS_STATE.live_pipeline === o.code) ? ' is-active' : '';
+      chips += '<button type="button" class="dr-radio-option' + act + '" data-livepipe-cadence="' + escapeHtml(o.code) + '">' + escapeHtml(o.label) + '</button>';
+    }
+    return '<div class="dr-modifier-row">' +
+             '<div class="dr-modifier-label-block">' +
+               '<div class="dr-modifier-label">Live Pipeline cadence</div>' +
+               '<div class="dr-modifier-meta">Live Pipeline is a Layered Product. Cadence drives the refresh frequency of the 10-section forecast. Selecting <em>none</em> excludes Live Pipeline from this configuration.</div>' +
+             '</div>' +
+             '<div class="dr-radio-group">' + chips + '</div>' +
+           '</div>';
   }
 
   function renderDunsToggle_() {
@@ -1723,6 +2084,15 @@
         recomputeDebounced_();
       });
     })(termBtns[t]);
+
+    var lpBtns = document.querySelectorAll('.dr-radio-option[data-livepipe-cadence]');
+    for (var lp = 0; lp < lpBtns.length; lp++) (function (btn) {
+      btn.addEventListener('click', function () {
+        MODIFIERS_STATE.live_pipeline = btn.getAttribute('data-livepipe-cadence') || 'none';
+        renderModifiersDom_();
+        recomputeDebounced_();
+      });
+    })(lpBtns[lp]);
   }
 
   function renderLiveQuotePanel_() {
@@ -2104,12 +2474,13 @@
 
   function composeModifiersPayload_() {
     return {
-      tier:        MODIFIERS_STATE.tier,
-      refresh:     MODIFIERS_STATE.refresh,
-      exclusivity: MODIFIERS_STATE.exclusivity,
-      term_years:  MODIFIERS_STATE.term_years,
-      duns_match:  MODIFIERS_STATE.duns_match,
-      clid:        CLID
+      tier:          MODIFIERS_STATE.tier,
+      refresh:       MODIFIERS_STATE.refresh,
+      exclusivity:   MODIFIERS_STATE.exclusivity,
+      term_years:    MODIFIERS_STATE.term_years,
+      duns_match:    MODIFIERS_STATE.duns_match,
+      live_pipeline: MODIFIERS_STATE.live_pipeline || 'none',
+      clid:          CLID
     };
   }
 
@@ -2312,6 +2683,19 @@
                'Counter-proposal submission temporarily disabled. Please engage with Eileen to continue the conversation.' +
              '</div>';
     } else {
+      // P1.11 + P1.12 — full submission surface. Order: rationale / timing /
+      // urgency form, then a four-button action row:
+      //   1. Submit counter-proposal       (P1.11 — existing CPPP)
+      //   2. Lodge Future Capability Request (P1.11 — opens FCR modal)
+      //   3. Save draft proposal           (P1.12 — persists to dealroom_proposal_drafts in Phase 2)
+      //   4. Ask Eileen to compare         (P1.12 — opens Eileen panel pre-filled)
+      // Save-draft and ask-Eileen-to-compare share the same Full-stage gate
+      // as CPPP (canSubmit). FCR lodgement is gated by
+      // DEALROOM_FLAGS.eileen_escalation_enabled which currently defaults true.
+      var fcrFlag = (DEALROOM_FLAGS.eileen_escalation_enabled !== false);
+      var fcrBtnHtml = fcrFlag
+        ? '<button type="button" id="dr-fcr-open" class="dr-cp-secondary-btn">Lodge Future Capability Request</button>'
+        : '';
       html = '<header class="dr-section-head">' +
                '<h2>Counter-proposal</h2>' +
                '<p class="dr-section-sub">Submit your configuration for Director review. Eileen evaluates against the constitutional framework when you next engage her.</p>' +
@@ -2333,7 +2717,12 @@
                    '<option value="urgent">Urgent</option>' +
                  '</select>' +
                '</label>' +
-               '<button type="button" id="dr-cp-submit" class="dr-cp-submit-btn">Submit counter-proposal</button>' +
+               '<div class="dr-cp-action-row">' +
+                 '<button type="button" id="dr-cp-submit" class="dr-cp-submit-btn">Submit counter-proposal</button>' +
+                 fcrBtnHtml +
+                 '<button type="button" id="dr-cp-savedraft" class="dr-cp-secondary-btn">Save draft proposal</button>' +
+                 '<button type="button" id="dr-cp-askcompare" class="dr-cp-secondary-btn">Ask Eileen to compare</button>' +
+               '</div>' +
                '<div id="dr-cp-status" class="dr-cp-status" aria-live="polite"></div>' +
              '</div>';
     }
@@ -2347,7 +2736,171 @@
       if (timEl) timEl.addEventListener('input', function () { CONFIG_STATE.timing = timEl.value; });
       if (urgEl) urgEl.addEventListener('change', function () { CONFIG_STATE.urgency = urgEl.value; });
       if (btnEl) btnEl.addEventListener('click', function () { submitCounterProposal(); });
+
+      var fcrEl = document.getElementById('dr-fcr-open');
+      if (fcrEl) fcrEl.addEventListener('click', function () { openFcrModal_(); });
+
+      var saveEl = document.getElementById('dr-cp-savedraft');
+      if (saveEl) saveEl.addEventListener('click', function () { saveDraftProposal_(); });
+
+      var askEl = document.getElementById('dr-cp-askcompare');
+      if (askEl) askEl.addEventListener('click', function () { askEileenToCompare_(); });
     }
+  }
+
+  // P1.11 — Lodge Future Capability Request (FCR) modal. POSTs to the
+  // existing fcr-lodge Edge Function with capability description, expected
+  // use case, and optional priority. The EF authoritatively persists the
+  // FCR row and returns { id }; we surface a toast.
+  function openFcrModal_() {
+    if (DEALROOM_FLAGS.eileen_escalation_enabled === false) {
+      showToast_('Capability requests are temporarily disabled by Director feature flag.');
+      return;
+    }
+    var existing = document.getElementById('dr-fcr-modal-overlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'dr-fcr-modal-overlay';
+    overlay.className = 'dr-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div class="dr-modal-card">' +
+        '<h3 class="dr-modal-title">Lodge Future Capability Request</h3>' +
+        '<p class="dr-modal-body">Off-estate capabilities go to the Director with a 10 UK-working-day SLA. Describe the capability, the use case, and (optionally) the priority.</p>' +
+        '<form id="dr-fcr-form" class="dr-fcr-form" novalidate>' +
+          '<label class="dr-cp-label">' +
+            '<span>Capability description (required)</span>' +
+            '<textarea id="dr-fcr-summary" class="dr-cp-textarea" maxlength="2000" required placeholder="What capability is needed?"></textarea>' +
+          '</label>' +
+          '<label class="dr-cp-label">' +
+            '<span>Expected use case</span>' +
+            '<textarea id="dr-fcr-usecase" class="dr-cp-textarea" maxlength="2000" placeholder="How would your team use this capability?"></textarea>' +
+          '</label>' +
+          '<label class="dr-cp-label">' +
+            '<span>Priority</span>' +
+            '<select id="dr-fcr-priority" class="dr-cp-select">' +
+              '<option value="standard">Standard</option>' +
+              '<option value="time-sensitive">Time-sensitive</option>' +
+              '<option value="strategic">Strategic</option>' +
+            '</select>' +
+          '</label>' +
+          '<div class="dr-modal-actions">' +
+            '<button type="button" class="dr-modal-btn" data-fcr-cancel>Cancel</button>' +
+            '<button type="submit" class="dr-modal-btn dr-modal-btn-primary" id="dr-fcr-submit">Lodge</button>' +
+          '</div>' +
+          '<div id="dr-fcr-status" class="dr-cp-status" aria-live="polite"></div>' +
+        '</form>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    function close() { overlay.remove(); }
+    overlay.addEventListener('click', function (ev) { if (ev.target === overlay) close(); });
+    var cancelBtn = overlay.querySelector('[data-fcr-cancel]');
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+    var form = overlay.querySelector('#dr-fcr-form');
+    var statusEl = overlay.querySelector('#dr-fcr-status');
+    form.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      var summary = (document.getElementById('dr-fcr-summary').value || '').trim();
+      if (!summary) { statusEl.textContent = 'Capability description is required.'; return; }
+      var usecase = (document.getElementById('dr-fcr-usecase').value || '').trim();
+      var priority = document.getElementById('dr-fcr-priority').value;
+      var btn = overlay.querySelector('#dr-fcr-submit');
+      btn.disabled = true; btn.textContent = 'Lodging…';
+      try {
+        var user = window.__dealRoomUser;
+        var token = (user && user.token) || null;
+        var res = await fetch(SUPABASE_URL + '/functions/v1/fcr-lodge', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': token ? ('Bearer ' + token) : ('Bearer ' + SUPABASE_ANON_KEY)
+          },
+          body: JSON.stringify({ clid: CLID, summary: summary, use_case: usecase, priority: priority })
+        });
+        if (!res.ok) {
+          var t = await res.text();
+          throw new Error('HTTP ' + res.status + ' ' + t);
+        }
+        var data = await res.json();
+        try { if (window.gtag) window.gtag('event', 'fcr_lodged', { clid: CLID, fcr_id: data && data.id, priority: priority }); } catch (e) {}
+        close();
+        showToast_('Capability request lodged. Director responds within 10 UK working days.');
+      } catch (err) {
+        console.error('FCR lodge failed:', err);
+        statusEl.textContent = 'Could not lodge — please try again or email partnerships@ailane.ai.';
+        btn.disabled = false; btn.textContent = 'Lodge';
+      }
+    });
+  }
+
+  // P1.12 — Save draft proposal. Persists current scope + modifiers to the
+  // dealroom_proposal_drafts table (Chairman-applied between Phase 1 and
+  // Phase 2). Phase 1 implementation gracefully handles the table not yet
+  // existing: 404/405 from PostgREST surfaces a "table coming soon" toast
+  // rather than an error. The label defaults to a timestamp; the user can
+  // be prompted via window.prompt for a custom label.
+  async function saveDraftProposal_() {
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    if (!token) { showToast_('Sign in to save drafts.'); return; }
+    if (!LAST_QUOTE_V4) { showToast_('Compose a configuration before saving a draft.'); return; }
+    var label = '';
+    try { label = window.prompt('Label for this draft proposal', 'Draft ' + new Date().toLocaleString('en-GB')) || ''; } catch (e) {}
+    if (!label) return;
+    var payload = {
+      clid: CLID,
+      user_id: user.id,
+      configuration: { scope: SCOPE_STATE, modifiers: composeModifiersPayload_() },
+      draft_label: label
+    };
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/dealroom_proposal_drafts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + token,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        try { if (window.gtag) window.gtag('event', 'proposal_draft_saved', { clid: CLID }); } catch (e) {}
+        showToast_('Draft saved.');
+        return;
+      }
+      // Table not yet created — Chairman applies the migration between
+      // Phase 1 merge and Phase 2 start. Surface the truthful state.
+      if (res.status === 404 || res.status === 406 || res.status === 405) {
+        showToast_('Draft persistence is provisioned for Phase 2 (dealroom_proposal_drafts table coming soon).');
+        return;
+      }
+      throw new Error('HTTP ' + res.status);
+    } catch (err) {
+      console.error('saveDraftProposal failed:', err);
+      showToast_('Could not save draft — please try again.');
+    }
+  }
+
+  // P1.12 — Ask Eileen to compare. Pre-fills the Eileen panel with a
+  // compare-against-canonical-Packages prompt and dispatches a send. The
+  // Eileen v7 prompt already handles this rhetorical mode; no EF change.
+  function askEileenToCompare_() {
+    var input = document.getElementById('dr-eileen-input');
+    var sendBtn = document.getElementById('dr-eileen-send');
+    if (!input || !sendBtn) {
+      showToast_('Eileen panel not present on this page.');
+      return;
+    }
+    input.value = 'Compare my current configuration against the four canonical Packages, narrate trade-offs. Configuration: ' +
+                  JSON.stringify({ scope: SCOPE_STATE, modifiers: composeModifiersPayload_() });
+    try { input.focus(); } catch (e) {}
+    try { sendBtn.click(); } catch (e) {}
+    // Scroll Eileen into view so the user sees the response stream.
+    var panel = document.getElementById('dr-eileen-panel');
+    if (panel) { try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
   }
 
   async function submitCounterProposal() {
@@ -2507,86 +3060,62 @@
   // existing .dr-nav-card / .dr-nav-grid styles for visual
   // consistency; adds one scoped CSS rule for the 2-card layout.
   // Idempotent — safe to call repeatedly.
+  // P1.3 — Universal four-tile-card row injected directly under the warm
+  // intro on every sub-page. The home index.html ships the row as static
+  // markup; sub-pages get the same four cards via this injector. Current-
+  // page card carries the .is-current class so it is visually distinguished
+  // but remains clickable (the card is a no-op self-link).
   function injectSubPageNav() {
-    // AMD-120 Phase B STOP 1: short-circuit when the new universal menu bar
-    // is present. The 5-item menu replaces this two-card row as the unified
-    // sub-page navigation surface (Director ratification, 4 May 2026).
-    if (document.getElementById('dr-menu-bar')) return;
-    var path = window.location.pathname;
+    var path = window.location.pathname.replace(/\/index\.html?$/, '/');
+    var workspaceRootStripped = WORKSPACE_ROOT.replace(/\/+$/, '');
+    var stripped = path.replace(/\/+$/, '');
+    var atHome = (stripped === workspaceRootStripped);
+    // Home page already carries the four-card row as static markup.
+    if (atHome) return;
+    if (document.querySelector('.dr-tile-cards-section')) return;
+
     var current = null;
-    if (path.indexOf('/documents/') >= 0) current = 'documents';
-    else if (path.indexOf('/configurator/') >= 0) current = 'configurator';
-    else if (path.indexOf('/status/') >= 0) current = 'status';
-    else if (path.indexOf('/pathway/') >= 0) current = 'pathway';
-    if (!current) return;
+    if (path.indexOf('/documents/') >= 0)         current = 'documents';
+    else if (path.indexOf('/deal-creator/') >= 0)  current = 'deal-creator';
+    else if (path.indexOf('/configurator/') >= 0)  current = 'deal-creator';
+    else if (path.indexOf('/status/') >= 0)        current = 'engagement';
+    else if (path.indexOf('/pathway/') >= 0)       current = 'pathway';
 
-    if (document.querySelector('.dr-subpage-nav-section')) return;
-
-    var pages = {
-      documents: {
-        icon: 'D',
-        title: 'Documents',
-        desc: 'Engagement roadmap, commercial proposal, Legal &amp; Audit pack overview.',
-        meta: 'Phase 0 · Pre-engagement release',
-        href: WORKSPACE_ROOT + 'documents/'
-      },
-      configurator: {
-        icon: 'C',
-        title: 'Configurator',
-        desc: 'Compose pricing configurations across the six data-estate layers and four modifiers. Live deterministic quote; non-binding indications.',
-        meta: 'Live pricing · counter-proposal at Phase A',
-        href: WORKSPACE_ROOT + 'configurator/'
-      },
-      status: {
-        icon: 'S',
-        title: 'Engagement Status',
-        desc: 'Six-phase progression and Legal &amp; Audit gate status for this engagement.',
-        meta: 'Phase A — In progress',
-        href: WORKSPACE_ROOT + 'status/'
-      },
-      pathway: {
-        icon: 'P',
-        title: 'Pathway',
-        desc: 'Engagement pathway summary, three asynchronous next-step paths, and the full diagram.',
-        meta: 'A → F · Pre-engagement to renewal',
-        href: WORKSPACE_ROOT + 'pathway/'
-      }
-    };
+    var cards = [
+      { slug: 'documents',    icon: 'D', title: 'Documents',
+        desc: 'All artefacts filed against this engagement &mdash; templates, proposals, capability requests, Eileen conversations, Director-released documents.',
+        href: WORKSPACE_ROOT + 'documents/' },
+      { slug: 'engagement',   icon: 'E', title: 'Engagement',
+        desc: 'Where this engagement is now &mdash; current phase, open items, what is outstanding from each side.',
+        href: WORKSPACE_ROOT + 'status/' },
+      { slug: 'deal-creator', icon: 'C', title: 'Deal Creator',
+        desc: '£90K Pilot Fee, four canonical Packages, configurator with live deterministic pricing. Non-binding indications.',
+        href: WORKSPACE_ROOT + 'deal-creator/' },
+      { slug: 'pathway',      icon: 'P', title: 'Pathway',
+        desc: 'The full seven-phase engagement journey from pre-engagement through to operational launch and the renewal cycle.',
+        href: WORKSPACE_ROOT + 'pathway/' }
+    ];
 
     var hero = document.querySelector('.dr-hero');
     if (!hero) return;
 
-    if (!document.getElementById('dr-subpage-nav-styles')) {
-      var style = document.createElement('style');
-      style.id = 'dr-subpage-nav-styles';
-      style.textContent =
-        '.dr-subpage-nav-section{margin-bottom:32px;}' +
-        '.dr-subpage-nav-section .dr-nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}';
-      document.head.appendChild(style);
-    }
-
     var section = document.createElement('section');
-    section.className = 'dr-section dr-subpage-nav-section';
-
+    section.className = 'dr-section dr-tile-cards-section';
     var grid = document.createElement('div');
     grid.className = 'dr-nav-grid';
 
-    var order = ['documents', 'configurator', 'status', 'pathway'];
-    for (var i = 0; i < order.length; i++) {
-      var slug = order[i];
-      if (slug === current) continue;
-      var p = pages[slug];
-      var card = document.createElement('a');
-      card.className = 'dr-nav-card';
-      card.href = p.href;
-      card.innerHTML =
-        '<div class="dr-nav-card-icon">' + p.icon + '</div>' +
-        '<div class="dr-nav-card-title">' + p.title + '</div>' +
-        '<div class="dr-nav-card-desc">' + p.desc + '</div>' +
-        '<div class="dr-nav-card-meta">' + p.meta + '</div>';
-      grid.appendChild(card);
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
+      var a = document.createElement('a');
+      a.className = 'dr-nav-card' + (c.slug === current ? ' is-current' : '');
+      a.href = c.href;
+      a.setAttribute('data-tile-slug', c.slug);
+      a.innerHTML =
+        '<div class="dr-nav-card-icon">' + c.icon + '</div>' +
+        '<div class="dr-nav-card-title">' + c.title + '</div>' +
+        '<div class="dr-nav-card-desc">' + c.desc + '</div>';
+      grid.appendChild(a);
     }
-
     section.appendChild(grid);
     hero.insertAdjacentElement('afterend', section);
   }
@@ -2613,15 +3142,66 @@
     phase_0: 0, phase_a: 1, phase_b: 2, phase_c: 3,
     phase_d: 4, phase_e: 5, phase_f: 6, all_phases: 0
   };
+  // P1.1 — Canonical phase enum → human label mapping. The single source of
+  // truth used by every client-facing rendering of phase state across the
+  // deal-room. AC-3 phase rail, P1.4 expand panels, P2.4 phase blockers,
+  // and the Engagement / Pathway pages all read from this map.
   var PHASE_LABELS = {
-    phase_0: 'Pre-engagement',
-    phase_a: 'Engagement opened',
-    phase_b: 'Engagement signed',
-    phase_c: 'Active engagement',
-    phase_d: 'Renewal',
-    phase_e: 'Wind-down',
-    phase_f: 'Closed',
-    all_phases: 'Always available'
+    pre_engagement: 'Phase 0 — Pre-engagement',
+    phase_0:        'Phase 0 — Pre-engagement',
+    phase_a:        'Phase A — Initial engagement',
+    phase_b:        'Phase B — Pilot',
+    phase_c:        'Phase C — Pilot delivery',
+    phase_d:        'Phase D — Commercial commitment',
+    phase_e:        'Phase E — Operational launch',
+    phase_f:        'Phase F — Steady state, renewal cycle',
+    all_phases:     'Always available'
+  };
+
+  // AC-3 — per-phase document links surfaced in the left phase rail expand
+  // panels. Each phase chip click reveals a description plus relevant
+  // document links. Templates land on /documents/?doc={doc_code}.
+  var PHASE_RAIL_META = {
+    phase_0: {
+      description: 'Pre-engagement orientation. The Director shares the workspace, the proposal, the engagement roadmap, and the Legal & Audit pack overview. No counterparty action required to remain in Phase 0.',
+      docs: [
+        { code: 'PROPOSAL',        label: 'Commercial proposal' },
+        { code: 'ROADMAP',         label: 'Engagement roadmap' },
+        { code: 'LAP-OVERVIEW',    label: 'Legal & Audit pack overview' }
+      ]
+    },
+    phase_a: {
+      description: 'Initial engagement opens with mutual NDA execution. Both parties countersign, Tier α materials become available, and substantive document estate opens for review.',
+      docs: [
+        { code: 'NDA-TEMPLATE',    label: 'NDA template' }
+      ]
+    },
+    phase_b: {
+      description: 'Pilot phase. The £90,000 Pilot Demonstration is the recommended Phase B entry — four-layer capability proof at fixed scope and cost, fully credited against Year 1 Q1 invoice on MCA execution within 60 days of pilot delivery.',
+      docs: [
+        { code: 'PILOT_SOW',       label: 'Pilot Statement of Work (£90K disclosure)' }
+      ]
+    },
+    phase_c: {
+      description: 'Pilot delivery. Ailane executes against the agreed Pilot SOW; counterparty performs identifier-match validation against their own registry; deliverables are surfaced in this workspace.',
+      docs: []
+    },
+    phase_d: {
+      description: 'Commercial commitment. Master Commercial Agreement, Data Processing Agreement, and Data Sharing Agreement negotiated; substantive data-exchange framework executed.',
+      docs: [
+        { code: 'MCA',             label: 'Master Commercial Agreement (templates Phase D)' },
+        { code: 'DPA',             label: 'Data Processing Agreement (templates Phase D)' },
+        { code: 'DSA',             label: 'Data Sharing Agreement (templates Phase D)' }
+      ]
+    },
+    phase_e: {
+      description: 'Operational launch. Production-grade access opens; commercial schedule operates; the engagement enters live operation.',
+      docs: []
+    },
+    phase_f: {
+      description: 'Steady state with renewal cycle. The engagement runs in production; renewal and expansion conversations occur within ongoing support; the deal-room remains available as an audit-grade record.',
+      docs: []
+    }
   };
 
   // ─── Auth helpers (magic-link via Supabase JS client) ─────
@@ -2818,64 +3398,139 @@
     }
   }
 
+  // P1.4 — Permanent LEFT phase rail with click-to-expand panels.
+  // Fixed-position 240px sidebar on desktop; off-canvas with toggle on
+  // mobile. Seven phase chips top-to-bottom (Phase 0 → Phase F via
+  // PHASE_LABELS). Phases up to and including current carry the
+  // "completed/current" frame; click-to-expand reveals
+  // PHASE_RAIL_META[phase].description + links to relevant documents.
+  // Document links route to /partners/{clid}/documents/?doc={doc_code}.
   function injectPhaseTracker() {
-    var alreadyExists = !!document.getElementById('dr-phase-tracker');
-    if (!alreadyExists) {
-      var anchor =
-        document.querySelector('.dr-subpage-nav-section') ||
-        document.querySelector('.dr-main .dr-container .dr-hero');
-      if (!anchor) return;
-      var section = document.createElement('aside');
-      section.id = 'dr-phase-tracker';
-      section.className = 'dr-phase-tracker';
-      section.setAttribute('aria-label', 'Engagement phase progression');
-      section.innerHTML =
-        '<header class="dr-phase-tracker-header">' +
-          '<h2 class="dr-phase-tracker-title">Engagement Phase</h2>' +
-        '</header>' +
-        '<div class="dr-phase-tracker-body" data-phase-tracker-body>' +
-          '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>' +
-        '</div>';
-      anchor.insertAdjacentElement('afterend', section);
-      window.addEventListener('dr-auth-state-changed', refreshPhaseTracker_);
+    if (document.getElementById('dr-phase-rail')) {
+      refreshPhaseTracker_();
+      return;
     }
+    var body = document.body;
+    if (!body) return;
+
+    // Mobile-only off-canvas toggle button (sits in header right area)
+    if (!document.getElementById('dr-phase-rail-toggle')) {
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.id = 'dr-phase-rail-toggle';
+      toggle.className = 'dr-phase-rail-toggle';
+      toggle.setAttribute('aria-label', 'Toggle phase rail');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.innerHTML = '<span aria-hidden="true">☰</span>';
+      var headerRight = document.querySelector('.dr-header-right');
+      if (headerRight) headerRight.insertBefore(toggle, headerRight.firstChild);
+      toggle.addEventListener('click', function () {
+        var rail = document.getElementById('dr-phase-rail');
+        if (!rail) return;
+        var open = rail.classList.toggle('is-open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+
+    var rail = document.createElement('aside');
+    rail.id = 'dr-phase-rail';
+    rail.className = 'dr-phase-rail';
+    rail.setAttribute('aria-label', 'Engagement phase progression');
+    rail.innerHTML =
+      '<header class="dr-phase-rail-header">' +
+        '<h2 class="dr-phase-rail-title">Engagement Phase</h2>' +
+      '</header>' +
+      '<ol class="dr-phase-rail-list" data-phase-rail-list>' +
+        '<li class="dr-phase-rail-pending">Loading phase status&hellip;</li>' +
+      '</ol>';
+    body.appendChild(rail);
+    body.classList.add('dr-has-phase-rail');
+    window.addEventListener('dr-auth-state-changed', refreshPhaseTracker_);
+
     refreshPhaseTracker_();
   }
 
-  // Refresh the tracker. Reuses window.__dealRoomVaultData when populated
-  // within the freshness window (30s) so we don't hit the catalog twice
-  // on simultaneous vault+tracker render.
+  // P1.4 — Refresh the left rail. Reads gate_state from partner_clids
+  // (sandbox path returns 'phase_0' without a token; production path
+  // requires authenticated session). Renders the seven phase chips with
+  // current/completed/future framing and click-to-expand bodies.
   async function refreshPhaseTracker_() {
-    var body = document.querySelector('[data-phase-tracker-body]');
-    if (!body) return;
-    var session = await getDealroomSession_();
-    if (!session) {
-      body.innerHTML = '<div class="dr-phase-tracker-unauth"><p>Sign in to view phase status.</p></div>';
-      return;
+    var list = document.querySelector('[data-phase-rail-list]');
+    if (!list) return;
+    var user = window.__dealRoomUser;
+    var token = (user && user.token) || null;
+    var currentPhase = 'phase_0';
+    if (token) {
+      try { currentPhase = await fetchClidGateState(token, CLID); }
+      catch (e) { currentPhase = 'phase_0'; }
     }
-    body.innerHTML = '<div class="dr-phase-tracker-pending">Loading phase status&hellip;</div>';
-    try {
-      var cached = window.__dealRoomVaultData;
-      var fresh = (cached && (Date.now() - (cached.fetchedAt || 0)) < 30000);
-      var data = fresh ? cached : await loadVaultData_();
-      if (!fresh) window.__dealRoomVaultData = data;
-      renderTrackerBody_(data);
-    } catch (err) {
-      console.error('[Phase 3] tracker load failed:', err);
-      body.innerHTML =
-        '<div class="dr-phase-tracker-error" role="alert">' +
-          '<p>Could not load phase status. ' + escapeHtml((err && err.message) || '') + '</p>' +
-          '<button type="button" class="dr-btn-secondary" data-tracker-retry>Retry</button>' +
-        '</div>';
-      var retryBtn = body.querySelector('[data-tracker-retry]');
-      if (retryBtn) retryBtn.addEventListener('click', refreshPhaseTracker_);
+    renderPhaseRailList_(currentPhase);
+  }
+
+  function renderPhaseRailList_(currentPhase) {
+    var list = document.querySelector('[data-phase-rail-list]');
+    if (!list) return;
+    var phases = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+    var currentIdx = phases.indexOf(currentPhase);
+    if (currentIdx === -1) currentIdx = 0;
+    var html = '';
+    for (var i = 0; i < phases.length; i++) {
+      var p = phases[i];
+      var label = PHASE_LABELS[p] || p;
+      var meta = PHASE_RAIL_META[p] || { description: '', docs: [] };
+      var state = (i < currentIdx) ? 'completed' : (i === currentIdx) ? 'current' : 'future';
+      var docLinks = '';
+      if (meta.docs && meta.docs.length > 0) {
+        docLinks = '<ul class="dr-phase-rail-doc-list">';
+        for (var d = 0; d < meta.docs.length; d++) {
+          var doc = meta.docs[d];
+          docLinks += '<li><a class="dr-phase-rail-doc-link" href="' +
+                      WORKSPACE_ROOT + 'documents/?doc=' + encodeURIComponent(doc.code) +
+                      '" data-document-ref="' + escapeHtml(doc.code) + '">' +
+                      escapeHtml(doc.label) + '</a></li>';
+        }
+        docLinks += '</ul>';
+      }
+      html +=
+        '<li class="dr-phase-rail-item is-' + state + '" data-phase="' + p + '">' +
+          '<button type="button" class="dr-phase-rail-chip" aria-expanded="false" data-phase-toggle="' + p + '">' +
+            '<span class="dr-phase-rail-chip-state" aria-hidden="true">' +
+              (state === 'completed' ? '✓' : state === 'current' ? '●' : '○') +
+            '</span>' +
+            '<span class="dr-phase-rail-chip-label">' + escapeHtml(label) + '</span>' +
+          '</button>' +
+          '<div class="dr-phase-rail-expanded" hidden>' +
+            '<p class="dr-phase-rail-desc">' + escapeHtml(meta.description) + '</p>' +
+            (docLinks || '<p class="dr-phase-rail-no-docs">No phase-specific documents to link at this stage.</p>') +
+          '</div>' +
+        '</li>';
     }
+    list.innerHTML = html;
+
+    var toggles = list.querySelectorAll('[data-phase-toggle]');
+    for (var t = 0; t < toggles.length; t++) (function (btn) {
+      btn.addEventListener('click', function () {
+        var li = btn.closest('.dr-phase-rail-item');
+        if (!li) return;
+        var panel = li.querySelector('.dr-phase-rail-expanded');
+        if (!panel) return;
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        if (open) {
+          btn.setAttribute('aria-expanded', 'false');
+          panel.setAttribute('hidden', '');
+          li.classList.remove('is-expanded');
+        } else {
+          btn.setAttribute('aria-expanded', 'true');
+          panel.removeAttribute('hidden');
+          li.classList.add('is-expanded');
+        }
+      });
+    })(toggles[t]);
   }
 
   // Determine the next phase that gates advance (lowest rank > current
-  // among phases that contain blocking-requirement rows). Skips phases
-  // with no blockers (e.g. phase_0 → phase_b in the seed catalog —
-  // phase_a has no docs).
+  // among phases that contain blocking-requirement rows). Phase 2 P2.4
+  // surfaces this on the Documents page via dealroom_phase_blockers.
   function findNextBlockingPhase_(catalog, currentRank) {
     var ranks = [];
     for (var i = 0; i < catalog.length; i++) {
@@ -2895,7 +3550,12 @@
     return keys[rank] || null;
   }
 
+  // Legacy horizontal phase tracker body renderer — orphaned by the P1.4
+  // left-rail refactor. Retained as no-op behind feature gate so callers
+  // that may still reference it (vault link blockers, sub-page blockers
+  // wired in Phase 2) do not throw.
   function renderTrackerBody_(data) {
+    if (!data) return;
     var body = document.querySelector('[data-phase-tracker-body]');
     if (!body) return;
     var clidRow = data.clidRow;
@@ -3662,41 +4322,11 @@
   //     copy in all three cases: localhost-no-auth, prod-zero-rows, prod-401)
   // ============================================================
 
-  // ─── Menu bar (universal, sticky, 5 items) ──────────────────
-  function injectMenuBar() {
-    if (document.getElementById('dr-menu-bar')) return;
-    var header = document.querySelector('.dr-header');
-    if (!header) return;
-
-    var path = window.location.pathname.replace(/\/index\.html?$/, '/');
-    var workspaceRootStripped = WORKSPACE_ROOT.replace(/\/+$/, '');
-    var stripped = path.replace(/\/+$/, '');
-
-    var items = [
-      { slug: 'welcome',      label: 'Welcome',      href: WORKSPACE_ROOT,                     match: function () { return stripped === workspaceRootStripped; } },
-      { slug: 'documents',    label: 'Documents',    href: WORKSPACE_ROOT + 'documents/',      match: function () { return path.indexOf('/documents/') !== -1; } },
-      { slug: 'engagement',   label: 'Engagement',   href: WORKSPACE_ROOT + 'status/',         match: function () { return path.indexOf('/status/') !== -1; } },
-      { slug: 'deal-creator', label: 'Deal Creator', href: WORKSPACE_ROOT + 'configurator/',   match: function () { return path.indexOf('/configurator/') !== -1; } },
-      { slug: 'pathway',      label: 'Pathway',      href: WORKSPACE_ROOT + 'pathway/',        match: function () { return path.indexOf('/pathway/') !== -1; } }
-    ];
-
-    var inner = '';
-    for (var i = 0; i < items.length; i++) {
-      var it = items[i];
-      var current = it.match() ? ' is-current' : '';
-      inner += '<a class="dr-menu-item' + current + '" href="' + it.href + '" data-menu-slug="' + it.slug + '">' +
-                 escapeHtml(it.label) +
-               '</a>';
-    }
-
-    var nav = document.createElement('nav');
-    nav.id = 'dr-menu-bar';
-    nav.className = 'dr-menu-bar';
-    nav.setAttribute('aria-label', 'Deal-room navigation');
-    nav.innerHTML = '<div class="dr-menu-bar-inner">' + inner + '</div>';
-
-    header.insertAdjacentElement('afterend', nav);
-  }
+  // P1.3 — Sticky horizontal menu bar retired; replaced by the four
+  // tile-cards row (.dr-tile-cards-section) injected directly under the
+  // warm intro on every page. injectMenuBar is preserved as a no-op so
+  // historical call sites remain valid (revealPage calls it).
+  function injectMenuBar() { /* retired per P1.3 */ }
 
   // ─── Data Source Attribution block (universal — brief §5.5) ──
   // Reuses the Fix-pack-002 .dr-attribution-block class library
@@ -3795,12 +4425,9 @@
     }
     try {
       var phase = await fetchClidGateState(token, CLID);
-      var label = (phase === 'phase_0') ? 'Phase 0 — Pre-engagement'
-                : 'Phase ' + (GATE_DISPLAY[phase] || phase);
-      var human = (PHASE_LABELS[phase] || '').replace(/^./, function (c) { return c; });
+      var label = PHASE_LABELS[phase] || phase;
       body.innerHTML =
-        '<div class="dr-wh-tile-headline">' + escapeHtml(label) + '</div>' +
-        (human ? '<div class="dr-wh-tile-meta">' + escapeHtml(human) + '</div>' : '');
+        '<div class="dr-wh-tile-headline">' + escapeHtml(label) + '</div>';
     } catch (err) {
       console.error('[STOP 1] phase tile fetch failed:', err);
       body.innerHTML = '<div class="dr-wh-tile-error">Unable to load &mdash; please refresh.</div>';
@@ -3944,14 +4571,16 @@
     var section = document.createElement('section');
     section.className = 'dr-eileen-explanation';
     section.setAttribute('aria-label', 'About Eileen');
+    // P1.5 — Eileen explanation paragraph (verbatim from brief). NN-8 compliant.
     section.innerHTML =
       '<p>' +
-        'Eileen is Ailane&rsquo;s intelligence entity, named after the founder&rsquo;s mother Ellen. She draws on three layers ' +
-        '&mdash; UK statutory provisions, leading employment-law cases, and Ailane&rsquo;s own ratified specifications &mdash; ' +
-        'to give you regulatory and contractual context for any question you raise. She can produce draft template skeletons, ' +
-        'surface live pricing for configurations you propose, and triage off-estate requests to the Director with a 10 ' +
-        'UK-working-day SLA. She does not commit to commercial terms, give legal advice, or replace counsel; commitments ' +
-        'require a signed contract, and statutory advice requires regulated counsel.' +
+        'Eileen is Ailane&rsquo;s intelligence entity. She speaks to UK employment law, the regulatory landscape, ' +
+        'and the contractual structure of this engagement, drawing from a three-layer corpus: statutory ' +
+        'provisions under the Open Government Licence, leading tribunal and appellate decisions, and ' +
+        'Ailane&rsquo;s curated training corpus governed by AILANE-AMD-REG-001. Her question scope covers ' +
+        'regulatory intelligence, package configuration, pricing methodology, and engagement-progression ' +
+        'questions. She produces intelligence &mdash; not legal advice. For commercially binding decisions, ' +
+        'the Director responds personally.' +
       '</p>';
     hero.insertAdjacentElement('afterend', section);
   }
@@ -4266,50 +4895,50 @@
   // page-level note rendered at the top of the Pathway page.
   var ENGAGEMENT_PHASE_META = {
     phase_0: {
-      label: 'Phase 0 — Pre-engagement',
-      description: 'Initial conversation and qualification before the formal engagement opens. Both parties get familiar with the workspace and Eileen.',
+      label: PHASE_LABELS.phase_0,
+      description: 'Pre-engagement orientation. The Director shares the workspace, the proposal, the engagement roadmap, and the Legal & Audit pack overview. No counterparty action required to remain in Phase 0.',
       needed: 'Director moves the engagement to Phase A when the parties are ready to formally open. No counterparty action required at this stage.',
       unlocks: 'Initial deal-room access; conversation with Eileen; orientation to the engagement protocol.',
       requires: '(none — Phase 0 is the entry state)'
     },
     phase_a: {
-      label: 'Phase A — NDA execution',
-      description: 'Mutual NDA executed between both parties; Tier α deliverables become available for review.',
+      label: PHASE_LABELS.phase_a,
+      description: 'Initial engagement opens with mutual NDA execution. Both parties countersign, Tier α materials become available, and substantive document estate opens for review.',
       needed: 'Counterparty signs the mutual NDA. Director executes the corresponding signature pack and releases Tier α materials.',
-      unlocks: 'Tier α deliverables become available; substantive document estate opens for review.',
+      unlocks: 'Tier α deliverables become available; substantive document estate opens for review; Deal Creator becomes interactive.',
       requires: 'Mutual NDA executed by both parties.'
     },
     phase_b: {
-      label: 'Phase B — Tier α delivery + Today Configuration handover',
-      description: 'Tier α deliverables hand over; the Today Configuration is agreed; the Tier β architectural sprint starts as a parallel critical path.',
-      needed: 'Counterparty agrees the Today Configuration. Director hands over Tier α delivery and opens the Tier β architectural sprint.',
-      unlocks: 'Tier β architectural sprint starts as parallel critical path; Today Configuration becomes the operating reference.',
-      requires: 'Today Configuration agreed and handed over.'
+      label: PHASE_LABELS.phase_b,
+      description: 'Pilot phase. The £90,000 Pilot Demonstration is the recommended Phase B entry — four-layer capability proof at fixed scope and cost.',
+      needed: 'Counterparty signs the Pilot Statement of Work; pilot fee invoice issued; Ailane begins delivery.',
+      unlocks: 'Pilot delivery commences; Layered Capability Demonstration produces the four artefacts (Sector Risk Index aggregate, 250 named CHN-keyed employers, full ACEI 12-cat scoring, Live Pipeline forecast).',
+      requires: 'Pilot SOW executed by both parties.'
     },
     phase_c: {
-      label: 'Phase C — DPA + MSA negotiation',
-      description: 'Data Processing Agreement and Master Services Agreement negotiated; the contractual framework for substantive data exchange falls into place.',
-      needed: 'Counterparty engages on DPA and MSA terms. Director executes the corresponding signature pack.',
-      unlocks: 'Substantive data exchange framework; contractual basis for production delivery.',
-      requires: 'DPA addendum and MSA executed by both parties.'
+      label: PHASE_LABELS.phase_c,
+      description: 'Pilot delivery. Ailane executes against the agreed Pilot SOW; counterparty performs identifier-match validation against their own registry; deliverables are surfaced in this workspace.',
+      needed: 'Director delivers pilot artefacts; counterparty reviews and validates outputs.',
+      unlocks: 'Pilot artefacts delivered; counterparty has the evidence base required to commit to Phase D.',
+      requires: 'Pilot SOW executed; pilot fee paid.'
     },
     phase_d: {
-      label: 'Phase D — Full Configuration activation',
-      description: 'Full Configuration is committed; Tier β / Tier β+ surfaces are enabled; production-grade engagement opens.',
-      needed: 'Counterparty signs the Full Configuration. Director enables Tier β / Tier β+ workspace surfaces.',
-      unlocks: 'Tier β / Tier β+ surfaces enabled; production-grade access to the analytical estate.',
-      requires: 'Full Configuration committed.'
+      label: PHASE_LABELS.phase_d,
+      description: 'Commercial commitment. MCA, DPA, and DSA negotiated; the contractual framework for substantive data exchange executes.',
+      needed: 'Counterparty engages on MCA / DPA / DSA terms. Director executes the corresponding signature pack.',
+      unlocks: 'Substantive data exchange framework; contractual basis for production delivery; Variation flow opens for sub-configuration adjustments live on existing MCA.',
+      requires: 'MCA, DPA, and DSA executed by both parties; pilot fee credited against Year 1 Q1 invoice if MCA executes within 60 days of pilot delivery.'
     },
     phase_e: {
-      label: 'Phase E — Commercial schedule finalisation',
-      description: 'Commercial schedule is finalised; pricing, renewal cadence, and review windows are anchored.',
-      needed: 'Counterparty acknowledges the commercial schedule. Director executes the corresponding pack.',
-      unlocks: 'Commercial schedule operates; pricing and review cadence active.',
-      requires: 'Commercial schedule acknowledged.'
+      label: PHASE_LABELS.phase_e,
+      description: 'Operational launch. Production-grade access opens; commercial schedule operates; the engagement enters live operation.',
+      needed: 'Director enables production surfaces; commercial schedule activates.',
+      unlocks: 'Production-grade access to the analytical estate; commercial schedule operates; pricing and review cadence active.',
+      requires: 'MCA executed; production environment ready.'
     },
     phase_f: {
-      label: 'Phase F — Operational handover and ongoing support',
-      description: 'Operational handover completes; the engagement transitions to ongoing support; the deal-room remains available as an audit-grade record.',
+      label: PHASE_LABELS.phase_f,
+      description: 'Steady state with renewal cycle. The engagement runs in production; renewal and expansion conversations occur within ongoing support; the deal-room remains available as an audit-grade record.',
       needed: 'No further action required to enter Phase F; renewal and expansion conversations occur within ongoing support.',
       unlocks: 'Ongoing support cadence; renewal and expansion conversations.',
       requires: 'All prior phases complete.'

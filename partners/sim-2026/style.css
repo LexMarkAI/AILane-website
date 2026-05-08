@@ -3798,3 +3798,339 @@ body.dr-auth-callback {
   line-height: 1.55;
   margin: 0;
 }
+
+/* ============================================================
+   AILANE-CC-BRIEF-DNB-DEALROOM-FINAL-001 — Phase 1
+   ============================================================ */
+
+/* P1.3 — Four tile-cards under intro. Active card is current page. */
+.dr-tile-cards-section { margin-bottom: 32px; }
+.dr-tile-cards-section .dr-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.dr-tile-cards-section .dr-nav-card.is-current {
+  border-color: var(--dr-cyan-border);
+  box-shadow: 0 0 0 1px var(--dr-cyan-border) inset;
+}
+.dr-tile-cards-section .dr-nav-card.is-current .dr-nav-card-title { color: var(--dr-cyan-soft); }
+@media (max-width: 920px) {
+  .dr-tile-cards-section .dr-nav-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .dr-tile-cards-section .dr-nav-grid { grid-template-columns: 1fr; }
+}
+
+/* P1.4 — Permanent left phase rail (240px desktop, off-canvas mobile). */
+body.dr-has-phase-rail .dr-main { margin-left: 240px; }
+body.dr-has-phase-rail .dr-header,
+body.dr-has-phase-rail .dr-footer { margin-left: 240px; }
+.dr-phase-rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 240px;
+  height: 100vh;
+  background: var(--dr-bg-deep);
+  border-right: 1px solid var(--dr-border-medium);
+  padding: 80px 16px 32px;
+  overflow-y: auto;
+  z-index: 800;
+  font-size: 0.92rem;
+}
+.dr-phase-rail-header { margin-bottom: 16px; }
+.dr-phase-rail-title {
+  font-family: var(--dr-font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dr-text-dim);
+}
+.dr-phase-rail-list { list-style: none; }
+.dr-phase-rail-pending { color: var(--dr-text-muted); padding: 8px 0; }
+.dr-phase-rail-item { margin-bottom: 4px; }
+.dr-phase-rail-chip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid var(--dr-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--dr-text-dim);
+  font-family: var(--dr-font-body);
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dr-phase-rail-chip:hover { border-color: var(--dr-cyan-border); color: var(--dr-text); }
+.dr-phase-rail-item.is-completed .dr-phase-rail-chip {
+  border-color: var(--dr-status-complete);
+  color: var(--dr-text);
+}
+.dr-phase-rail-item.is-current .dr-phase-rail-chip {
+  background: var(--dr-cyan-glow);
+  border-color: var(--dr-cyan);
+  color: var(--dr-cyan-soft);
+  font-weight: 500;
+}
+.dr-phase-rail-item.is-future .dr-phase-rail-chip { opacity: 0.7; }
+.dr-phase-rail-chip-state {
+  width: 18px;
+  text-align: center;
+  font-weight: 600;
+}
+.dr-phase-rail-chip-label { flex: 1; }
+.dr-phase-rail-expanded {
+  margin-top: 4px;
+  padding: 8px 12px 10px;
+  border-left: 2px solid var(--dr-border-medium);
+  margin-left: 12px;
+  font-size: 0.85rem;
+}
+.dr-phase-rail-desc { color: var(--dr-text-dim); margin-bottom: 8px; }
+.dr-phase-rail-doc-list { list-style: none; padding-left: 0; }
+.dr-phase-rail-doc-list li { margin-bottom: 4px; }
+.dr-phase-rail-doc-link {
+  color: var(--dr-cyan);
+  font-size: 0.85rem;
+}
+.dr-phase-rail-no-docs { color: var(--dr-text-muted); font-size: 0.8rem; font-style: italic; }
+.dr-phase-rail-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 6px;
+  color: var(--dr-text);
+  padding: 4px 10px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+@media (max-width: 1024px) {
+  body.dr-has-phase-rail .dr-main,
+  body.dr-has-phase-rail .dr-header,
+  body.dr-has-phase-rail .dr-footer { margin-left: 0; }
+  .dr-phase-rail {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .dr-phase-rail.is-open { transform: translateX(0); }
+  .dr-phase-rail-toggle { display: inline-block; margin-right: 12px; }
+}
+
+/* P1.7 — £90,000 Pilot Fee Entry Box */
+.dr-pilot-fee-box {
+  background: linear-gradient(135deg, rgba(14,165,233,0.08), rgba(14,165,233,0.03));
+  border: 1px solid var(--dr-cyan-border);
+  border-radius: var(--dr-radius);
+  padding: 32px;
+  margin-bottom: 32px;
+}
+.dr-pilot-fee-loading,
+.dr-pilot-fee-empty { color: var(--dr-text-dim); padding: 12px 0; }
+.dr-pilot-fee-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--dr-border-medium);
+}
+.dr-pilot-fee-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dr-cyan-soft);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+.dr-pilot-fee-headline {
+  font-family: var(--dr-font-display);
+  font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+  margin: 0;
+}
+.dr-pilot-fee-amount { text-align: right; }
+.dr-pilot-fee-amount-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dr-text-dim);
+  margin-bottom: 4px;
+}
+.dr-pilot-fee-amount-value {
+  font-family: var(--dr-font-display);
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  color: var(--dr-cyan-soft);
+  font-weight: 400;
+}
+.dr-pilot-fee-subhead {
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--dr-text-heading);
+}
+.dr-pilot-fee-layers {
+  list-style: none;
+  margin-bottom: 16px;
+}
+.dr-pilot-fee-layers li {
+  padding: 6px 0;
+  color: var(--dr-text);
+}
+.dr-pilot-fee-fineprint { color: var(--dr-text-muted); font-size: 0.85rem; }
+.dr-pilot-fee-credit {
+  background: var(--dr-bg-card);
+  border: 1px solid var(--dr-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: var(--dr-text);
+}
+.dr-pilot-fee-link {
+  display: inline-block;
+  background: var(--dr-cyan);
+  color: var(--dr-bg);
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.dr-pilot-fee-link:hover { background: var(--dr-cyan-soft); color: var(--dr-bg); }
+
+/* P1.8 / P1.10 — Four canonical Packages shelf + Live Pipeline 5th tile */
+.dr-package-shelf { margin-bottom: 32px; }
+.dr-package-shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.dr-package-shelf-loading,
+.dr-package-shelf-empty { color: var(--dr-text-dim); padding: 16px; }
+.dr-package-tile {
+  background: var(--dr-bg-card);
+  border: 1px solid var(--dr-border);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dr-package-tile-header { border-bottom: 1px solid var(--dr-border); padding-bottom: 10px; }
+.dr-package-tile-code {
+  display: inline-block;
+  font-family: var(--dr-font-mono);
+  font-size: 0.78rem;
+  color: var(--dr-cyan-soft);
+  margin-bottom: 4px;
+}
+.dr-package-tile-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dr-cyan-soft);
+  margin-bottom: 4px;
+}
+.dr-package-tile-name {
+  font-family: var(--dr-font-display);
+  font-size: 1.1rem;
+  margin: 0;
+}
+.dr-package-tile-spec { font-size: 0.88rem; }
+.dr-package-tile-spec dt {
+  color: var(--dr-text-dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.dr-package-tile-spec dd { color: var(--dr-text); margin-bottom: 4px; }
+.dr-package-tile-comp summary,
+.dr-package-tile-livepipe summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--dr-cyan);
+  padding: 4px 0;
+}
+.dr-package-tile-comp-body,
+.dr-package-tile-livepipe p {
+  font-size: 0.82rem;
+  color: var(--dr-text-dim);
+  padding: 6px 0;
+}
+.dr-package-tile-comp-list dt {
+  font-weight: 600;
+  color: var(--dr-text);
+  font-size: 0.78rem;
+}
+.dr-package-tile-comp-list dd { margin-bottom: 4px; }
+.dr-package-tile-cta {
+  align-self: flex-start;
+}
+.dr-package-tile-preview-note {
+  font-size: 0.82rem;
+  color: var(--dr-text-muted);
+  font-style: italic;
+}
+.dr-package-tile-livepipe-card {
+  border-color: var(--dr-cyan-border);
+}
+
+/* P1.9 — Configurator stage banner */
+.dr-configurator-stage-banner {
+  background: var(--dr-cyan-glow);
+  border: 1px solid var(--dr-cyan-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 0.92rem;
+  color: var(--dr-text);
+}
+.dr-configurator-stage-banner[data-stage="preview"]    { border-color: var(--dr-status-omitted); background: rgba(148,163,184,0.05); }
+.dr-configurator-stage-banner[data-stage="full"]       { border-color: var(--dr-cyan-border); background: var(--dr-cyan-glow); }
+.dr-configurator-stage-banner[data-stage="variation"]  { border-color: var(--dr-gold); background: var(--dr-gold-glow); }
+.dr-config-preview {
+  background: var(--dr-bg-card);
+  border: 1px dashed var(--dr-border-medium);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--dr-text-dim);
+}
+.dr-config-flag-disabled {
+  background: var(--dr-bg-card);
+  border: 1px solid var(--dr-border-medium);
+  border-radius: 8px;
+  padding: 16px 20px;
+  color: var(--dr-text-dim);
+}
+
+/* P1.11 / P1.12 — CPPP action row (CPPP / FCR / save draft / ask compare) */
+.dr-cp-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dr-cp-secondary-btn {
+  background: transparent;
+  border: 1px solid var(--dr-border-medium);
+  color: var(--dr-text);
+  padding: 9px 14px;
+  border-radius: 6px;
+  font-family: var(--dr-font-body);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dr-cp-secondary-btn:hover {
+  border-color: var(--dr-cyan-border);
+  color: var(--dr-cyan-soft);
+}
+.dr-fcr-form .dr-cp-label { display: block; margin-bottom: 12px; }
