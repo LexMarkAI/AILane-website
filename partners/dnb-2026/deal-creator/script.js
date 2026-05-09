@@ -562,6 +562,8 @@
     if (pane) pane.innerHTML = '<p class="dc-quote-empty">Select a tier to begin a configuration.</p>';
     var saveBtn = document.getElementById('save-configuration');
     if (saveBtn) saveBtn.disabled = true;
+    var explainEl = document.getElementById('dc-save-explanation');
+    if (explainEl) explainEl.hidden = true;
   }
 
   function renderQuoteUnavailable_(snapshot, reasonClass) {
@@ -572,6 +574,8 @@
     }
     var saveBtn = document.getElementById('save-configuration');
     if (saveBtn) saveBtn.disabled = true;
+    var explainEl = document.getElementById('dc-save-explanation');
+    if (explainEl) explainEl.hidden = true;
     try {
       if (window.gtag) {
         window.gtag('event', 'deal_creator_quote_unavailable', {
@@ -634,8 +638,11 @@
     var countEl = document.getElementById('universe-count');
     if (countEl) countEl.textContent = universe;
 
-    var saveBtn = document.getElementById('save-configuration');
-    if (saveBtn) saveBtn.disabled = false;
+    // Save Configuration is gate-state-gated per PROP-DMSP-001 §10.1
+    // (Stage 0 = browse-only). Save unlocks at gate_state='phase_b' or
+    // higher; until then the button stays disabled and the inline
+    // explanation renders below the action row.
+    applySaveButtonState_(snapshot);
 
     try {
       if (window.gtag) {
@@ -648,6 +655,101 @@
         });
       }
     } catch (e) { /* swallow */ }
+  }
+
+  // ─── Save Configuration gating (Stage 0 = disabled-with-explanation) ─
+  // PROP-DMSP-001 §10.1 anchors Stage 0 (gate_state='phase_0') as
+  // browse-only — counterparty INSERTs to partner_counter_proposals are
+  // RLS-blocked at this gate state by design. The Save Configuration UX
+  // therefore stays disabled with an inline R-9 §3 explanation. When a
+  // counterparty progresses to phase_b or beyond, Director-side wiring
+  // (separate successor brief AILANE-CC-BRIEF-DEALROOM-DEAL-CREATOR-
+  // STAGE-1-001) will activate the cppp-submit-proposal flow.
+  var STAGE_1_GATES = ['phase_a', 'phase_b', 'phase_1', 'phase_2', 'phase_f'];
+  var _saveAttemptFiredForSession = false;
+
+  function applySaveButtonState_(snapshot) {
+    var saveBtn = document.getElementById('save-configuration');
+    var explainEl = document.getElementById('dc-save-explanation');
+    if (!saveBtn) return;
+
+    loadWorkspaceMeta_().then(function (meta) {
+      var gateState = meta && meta.gate_state;
+      var stage1Reached = gateState && STAGE_1_GATES.indexOf(gateState) !== -1;
+
+      if (stage1Reached) {
+        // Phase B+ — enable Save when a valid quote is rendered. Hide
+        // the Stage 0 explanation. (Forward-compatible — the Stage 1
+        // submit-and-receipt flow itself is wired in a successor brief.)
+        saveBtn.disabled = false;
+        if (explainEl) explainEl.hidden = true;
+      } else {
+        // Stage 0 — Save stays disabled; explanation visible whenever a
+        // tier is selected (i.e., whenever this function is reached after
+        // a renderQuote_).
+        saveBtn.disabled = true;
+        if (explainEl) explainEl.hidden = false;
+
+        // Fire deal_creator_save_attempt once per session — captures the
+        // Stage 0 save-intent signal for Director analytics even when the
+        // action itself is inert.
+        if (!_saveAttemptFiredForSession) {
+          _saveAttemptFiredForSession = true;
+          try {
+            if (window.gtag) {
+              window.gtag('event', 'deal_creator_save_attempt', {
+                clid: CLID,
+                tier: snapshot.modifiers.tier,
+                reason: 'stage_0_pre_nda'
+              });
+            }
+          } catch (e) { /* swallow */ }
+        }
+      }
+    });
+  }
+
+  // ─── Discuss with Eileen — page-local context-passing (path iii) ───
+  // Director STOP 1 ack item 2 (Path iii): keep parent script.js untouched.
+  // On click, pre-fill the Eileen input with a brief Deal-Creator context
+  // header so the user's first turn is contextualised. User reviews + edits
+  // before sending. Pre-fill happens once per session (or when the input
+  // is empty) so repeat clicks don't stack context.
+  var _eileenContextProvided = false;
+
+  function bindDiscussWithEileen_() {
+    var btn = document.getElementById('discuss-with-eileen');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var snapshot = buildConfigSnapshot_();
+      var input = document.getElementById('dr-eileen-input');
+
+      if (input && (!_eileenContextProvided || !input.value || input.value.trim() === '')) {
+        var summary = snapshot.modifiers.tier
+          ? buildConfigSummary_(snapshot)
+          : 'No tier selected yet — please pick an access tier above so Eileen can speak to a concrete configuration.';
+        input.value = 'About this Deal Creator configuration:\n' + summary + '\n\n';
+        _eileenContextProvided = true;
+      }
+
+      if (input) {
+        try { input.focus(); } catch (e) { /* swallow */ }
+      }
+
+      var panel = document.getElementById('dr-eileen-panel');
+      if (panel) {
+        try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* swallow */ }
+      }
+
+      try {
+        if (window.gtag) {
+          window.gtag('event', 'deal_creator_eileen_opened', {
+            clid: CLID,
+            from_panel: 'deal_creator_quote_pane'
+          });
+        }
+      } catch (e) { /* swallow */ }
+    });
   }
 
   // ─── Recompute pipeline (debounced 250ms per §3.4) ──────
@@ -814,8 +916,9 @@
     renderPanel1Tier_();
     renderPanel3Overlays_();
     renderLaunchPartnerBadge_();
-    loadCeilings_();  // begin loading in the background; tier-change awaits.
-    // STOP 6-8 wire quote pane recompute, submit and Eileen context-passing.
+    bindDiscussWithEileen_();
+    loadCeilings_();        // begin loading in the background; tier-change awaits.
+    loadWorkspaceMeta_();   // begin loading workspace meta (gate_state + launch-partner).
 
     try {
       if (window.gtag) {
