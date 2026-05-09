@@ -49,6 +49,57 @@
     intel_cci:     'CCI (Constitutional Compliance Intelligence) is unlocked at NDA execution and Enterprise tier (Phase B+).'
   };
 
+  // ─── Panel 3 — Overlay definitions (§3.3 + §4.4) ────────
+  // Each overlay renders its options inline. Stage 0 NDA-gated options
+  // (locked: <reason>) render with a disabled radio + lock-icon + small
+  // explanation text, per §7.3 styling.
+  var OVERLAY_DEFINITIONS = [
+    {
+      key: 'refresh',
+      type: 'radio',
+      name: 'refresh',
+      options: [
+        { value: 'quarterly', label: 'Quarterly', defaultChecked: true },
+        { value: 'daily',     label: 'Daily' },
+        { value: 'real_time', label: 'Real-time (+25%)',
+          locked: 'Real-time refresh is unlocked at NDA execution (Phase B).' }
+      ]
+    },
+    {
+      key: 'exclusivity',
+      type: 'radio',
+      name: 'exclusivity',
+      options: [
+        { value: 'none',     label: 'None', defaultChecked: true },
+        { value: 'vertical', label: 'Vertical (+60%)',
+          locked: 'Vertical exclusivity is unlocked at NDA execution (Phase B).' },
+        { value: 'full_uk',  label: 'Full-UK',
+          locked: 'Full-UK exclusivity is unlocked at NDA execution and Enterprise tier (Phase B+).' }
+      ]
+    },
+    {
+      key: 'term',
+      type: 'radio',
+      name: 'term',
+      options: [
+        { value: '12', label: '12 months' },
+        { value: '24', label: '24 months', defaultChecked: true },
+        { value: '36', label: '36 months' },
+        { value: '60', label: '60 months',
+          locked: 'The 60-month closing concession is available at MCA negotiation closing (Phase D).' }
+      ]
+    },
+    {
+      key: 'duns',
+      type: 'checkbox',
+      name: 'duns',
+      description: 'Adds the DUNS unique identifier to enriched records. Applies +£3 per employer per year when enabled.',
+      options: [
+        { value: 'on', label: 'Enable DUNS enrichment' }
+      ]
+    }
+  ];
+
   // ─── Panel 1 — Tier definitions ─────────────────────────
   // RULE 11: form value attributes ARE the canonical DB tier strings —
   // operational_readiness / governance / institutional. AMD-123 display
@@ -380,24 +431,131 @@
     }, 250);
   }
 
+  // ─── Panel 3 — Commercial overlays renderer (§4.4) ──────
+  function renderOverlay_(overlayDef) {
+    var content = document.querySelector('.dc-overlay[data-overlay="' + overlayDef.key + '"] .dc-overlay-content');
+    if (!content) return;
+    var html = '';
+    if (overlayDef.description) {
+      html += '<p class="dc-overlay-desc">' + escapeHtml_(overlayDef.description) + '</p>';
+    }
+    overlayDef.options.forEach(function (opt) {
+      var inputId = 'dc-overlay-' + overlayDef.name + '-' + opt.value;
+      var checked = opt.defaultChecked ? ' checked' : '';
+      var disabled = opt.locked ? ' disabled' : '';
+      var labelClass = opt.locked ? ' class="locked"' : '';
+      html += '<label' + labelClass + ' for="' + inputId + '">' +
+        '<input type="' + overlayDef.type + '" id="' + inputId + '" name="' + overlayDef.name + '" value="' + escapeHtml_(opt.value) + '"' + checked + disabled + ' />' +
+        '<span>' + escapeHtml_(opt.label) + '</span>';
+      if (opt.locked) {
+        html += ' <span class="lock-icon" aria-label="NDA-gated">🔒</span>' +
+          '<small>' + escapeHtml_(opt.locked) + '</small>';
+      }
+      html += '</label>';
+    });
+    content.innerHTML = html;
+  }
+
+  function renderPanel3Overlays_() {
+    OVERLAY_DEFINITIONS.forEach(renderOverlay_);
+    bindOverlayChangeHandlers_();
+  }
+
+  function bindOverlayChangeHandlers_() {
+    var panel = document.getElementById('panel-3-overlays');
+    if (!panel || panel.dataset.bound === '1') return;
+    panel.dataset.bound = '1';
+    panel.addEventListener('change', function (ev) {
+      if (!ev.target || !ev.target.name) return;
+      var value = (ev.target.type === 'checkbox')
+        ? (ev.target.checked ? 'on' : 'off')
+        : ev.target.value;
+      onOverlayChange_(ev.target.name, value);
+    });
+  }
+
+  function onOverlayChange_(overlay, value) {
+    try {
+      if (window.gtag) {
+        window.gtag('event', 'deal_creator_overlay_changed', {
+          clid: CLID, overlay: overlay, value: value
+        });
+      }
+    } catch (e) { /* swallow */ }
+    // STOP 6 will trigger recomputeQuote_ here. Overlays do NOT affect
+    // universe count (commercial terms only); only the price changes.
+  }
+
+  // ─── Workspace meta cache (partner_clids row) ───────────
+  // Used for the launch-partner discount badge (§4.4) and any future
+  // workspace-meta-driven UI. RLS allows authenticated reads of the row
+  // belonging to the user's CLID; anon read is also permitted on
+  // gate_state and is_launch_partner per AMD-126 RLS hardening.
+  var _workspaceMeta = null;
+  var _workspaceMetaPromise = null;
+  function loadWorkspaceMeta_() {
+    if (_workspaceMeta) return Promise.resolve(_workspaceMeta);
+    if (_workspaceMetaPromise) return _workspaceMetaPromise;
+    var token = (window.__dealRoomUser && window.__dealRoomUser.token) || SUPABASE_ANON_KEY;
+    _workspaceMetaPromise = fetch(
+      SUPABASE_URL + '/rest/v1/partner_clids?clid=eq.' + encodeURIComponent(CLID) +
+      '&select=is_launch_partner,gate_state',
+      {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'apikey': SUPABASE_ANON_KEY,
+          'Accept': 'application/json'
+        }
+      }
+    ).then(function (r) {
+      if (!r.ok) throw new Error('partner_clids_load_failed_' + r.status);
+      return r.json();
+    }).then(function (rows) {
+      _workspaceMeta = (rows && rows.length > 0) ? rows[0] : null;
+      return _workspaceMeta;
+    }).catch(function (e) {
+      _workspaceMetaPromise = null;
+      console.error('[deal-creator] workspace meta load failed:', e);
+      return null;
+    });
+    return _workspaceMetaPromise;
+  }
+
+  function renderLaunchPartnerBadge_() {
+    loadWorkspaceMeta_().then(function (meta) {
+      if (!meta || meta.is_launch_partner !== true) return;
+      var panel = document.getElementById('panel-3-overlays');
+      if (!panel) return;
+      if (panel.querySelector('.dc-launch-partner-badge')) return;  // idempotent
+      var heading = panel.querySelector('h2');
+      if (!heading) return;
+      var badge = document.createElement('span');
+      badge.className = 'dc-launch-partner-badge';
+      badge.textContent = 'Launch-partner — discount applies automatically';
+      heading.insertAdjacentElement('afterend', badge);
+    });
+  }
+
   // ─── Tier-gating refresh ────────────────────────────────
-  // Renders Panel 2 (and at STOP 5, Panel 3) per the current tier and the
-  // §3.3 Stage 0 visibility table. At Stage 0 (gate_state='phase_0' for
-  // both dnb-2026-001 and sim-2026-001), tier-gating governs which axes
-  // are accessible at all; locked rows render for higher levels with
-  // NDA-unlock prompts referencing Phase B.
+  // Renders Panel 2 per the current tier and the §3.3 Stage 0 visibility
+  // table. At Stage 0 (gate_state='phase_0' for both dnb-2026-001 and
+  // sim-2026-001), tier-gating governs which scope axes are accessible
+  // at all; locked rows render for higher levels with NDA-unlock prompts
+  // referencing Phase B. Panel 3 (overlays) is not tier-dependent — its
+  // visibility rules are Stage-0-driven only — so it renders on init.
   function applyTierGating_(_tier) {
     loadCeilings_().then(function () {
       renderPanel2Scope_();
-      // STOP 5 will add Panel 3 overlay rendering here.
       recomputeUniverse_();
     });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     renderPanel1Tier_();
+    renderPanel3Overlays_();
+    renderLaunchPartnerBadge_();
     loadCeilings_();  // begin loading in the background; tier-change awaits.
-    // STOP 5-8 wire overlays, quote pane, submit and Eileen context-passing.
+    // STOP 6-8 wire quote pane recompute, submit and Eileen context-passing.
 
     try {
       if (window.gtag) {
