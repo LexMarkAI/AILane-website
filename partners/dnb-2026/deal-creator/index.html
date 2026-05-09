@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Supabase CDN FIRST (protected page — RULE 26 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 Analytics (mandatory — G-NTNXWZN31C) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Deal Creator — AI Lane &times; Dun &amp; Bradstreet Deal Room</title>
+  <meta name="description" content="Compose pricing configurations across tier, scope, and commercial overlays. Live deterministic quote.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/partners/dnb-2026/style.css">
+  <link rel="stylesheet" href="/partners/dnb-2026/deal-creator/style.css">
+</head>
+<body style="visibility:hidden">
+
+  <header class="dr-header">
+    <div class="dr-header-inner">
+      <a href="/partners/dnb-2026/" class="dr-brand">
+        <span class="dr-brand-mark">Ai<em>lane</em></span>
+        <span class="dr-workspace-label">Dun &amp; Bradstreet &times; AI Lane Deal Room</span>
+      </a>
+      <div class="dr-header-right">
+        <span class="dr-user-email" id="dr-user-email"></span>
+        <a href="#" class="dr-signout" id="dr-signout">Sign out</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="dr-main">
+    <div class="dr-container deal-creator-page">
+
+      <section class="dr-hero">
+        <div class="dr-eyebrow">Deal Creator</div>
+        <h1>Deal Creator</h1>
+        <p class="dr-hero-lede">
+          Compose pricing configurations across tier, scope, and commercial overlays. Configurations are operative against the current ratification version; quotes recompute on each change.
+        </p>
+      </section>
+
+      <section id="panel-1-tier" class="dc-panel" data-panel="1" aria-labelledby="panel-1-heading">
+        <h2 id="panel-1-heading">Tier</h2>
+        <div class="dc-tier-cards" role="radiogroup" aria-label="Tier selection">
+          <!-- Three tier cards rendered by deal-creator/script.js renderPanel1Tier_() at STOP 3. -->
+        </div>
+      </section>
+
+      <section id="panel-2-scope" class="dc-panel" data-panel="2" aria-labelledby="panel-2-heading">
+        <h2 id="panel-2-heading">Scope</h2>
+        <div class="dc-scope-axes">
+          <div class="dc-axis" data-axis="sector">
+            <h3>Sector</h3>
+            <div class="dc-axis-content"></div>
+          </div>
+          <div class="dc-axis" data-axis="geography">
+            <h3>Geography</h3>
+            <div class="dc-axis-content"></div>
+          </div>
+          <div class="dc-axis" data-axis="industry">
+            <h3>Industry</h3>
+            <div class="dc-axis-content"></div>
+          </div>
+          <div class="dc-axis" data-axis="intelligence">
+            <h3>Intelligence</h3>
+            <div class="dc-axis-content"></div>
+          </div>
+        </div>
+        <p class="dc-universe-count">Universe: <span id="universe-count">&mdash;</span> employers</p>
+      </section>
+
+      <section id="panel-3-overlays" class="dc-panel" data-panel="3" aria-labelledby="panel-3-heading">
+        <h2 id="panel-3-heading">Commercial Overlays</h2>
+        <div class="dc-overlay-rows">
+          <div class="dc-overlay" data-overlay="refresh">
+            <h3>Refresh cadence</h3>
+            <div class="dc-overlay-content"></div>
+          </div>
+          <div class="dc-overlay" data-overlay="exclusivity">
+            <h3>Exclusivity</h3>
+            <div class="dc-overlay-content"></div>
+          </div>
+          <div class="dc-overlay" data-overlay="term">
+            <h3>Term length</h3>
+            <div class="dc-overlay-content"></div>
+          </div>
+          <div class="dc-overlay" data-overlay="duns">
+            <h3>DUNS enrichment</h3>
+            <div class="dc-overlay-content"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="quote-pane" class="dc-quote" aria-live="polite">
+        <p class="dc-quote-empty">Select a tier to begin a configuration.</p>
+      </section>
+
+      <section id="dc-actions" class="dc-actions">
+        <button id="save-configuration" class="dc-btn-primary" type="button" disabled>Save Configuration</button>
+        <button id="discuss-with-eileen" class="dc-btn-secondary" type="button">Discuss with Eileen</button>
+      </section>
+      <p id="dc-save-explanation" class="dc-save-explanation" hidden>
+        Save Configuration unlocks at NDA execution (Phase B). At Stage 0, configurations can be composed and discussed freely without commitment. The Director reviews live through your conversation with Eileen.
+      </p>
+
+      <section class="dr-eileen-section" aria-label="Eileen intelligence entity">
+        <div class="dr-eileen-header">
+          <h2>Eileen</h2>
+          <p class="dr-eileen-subtitle">
+            Ailane intelligence entity &middot; counterparty mode &middot; commercial terms route via
+            <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.
+          </p>
+        </div>
+        <div id="dr-eileen-panel" class="dr-eileen-panel">
+          <div id="dr-eileen-transcript" class="dr-eileen-transcript" aria-live="polite">
+            <div class="dr-eileen-empty">Ask about the configuration, the pricing surface, the ACEI taxonomy, the engagement pathway, or the underlying UK employment law.</div>
+          </div>
+          <div class="dr-eileen-input-row">
+            <textarea id="dr-eileen-input" class="dr-eileen-input" rows="2"
+              placeholder="Ask Eileen about the configuration, the pricing surface, the engagement pathway, or UK employment law..."></textarea>
+            <button id="dr-eileen-send" class="dr-eileen-send" type="button">Send</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="dr-footer">
+    <div class="dr-container">
+      <div class="dr-footer-row">
+        <div>
+          <strong>AI Lane Limited</strong><br>
+          Company No. 17035654 &middot; ICO Reg. 00013389720
+        </div>
+        <div>
+          <a href="mailto:mark@ailane.ai">mark@ailane.ai</a> &middot;
+          <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>
+        </div>
+      </div>
+      <div class="dr-footer-attribution">
+        Source: UK case law and tribunal decisions accessed via The National Archives
+        (caselaw.nationalarchives.gov.uk) and HMCTS public registers. Ailane provides
+        regulatory intelligence. Findings are intelligence about the law and Ailane&apos;s
+        commercial posture, not legal advice.
+      </div>
+      <div class="dr-footer-confidential">
+        Confidential &mdash; Pre-Contractual workspace; not for further distribution beyond Dun &amp; Bradstreet without written consent.
+      </div>
+    </div>
+  </footer>
+
+  <!-- 1. Parent shared deal-room controller (auth, sign-out, GA4, Eileen panel mount) -->
+  <script src="/partners/dnb-2026/script.js"></script>
+  <!-- 2. Page-local Deal Creator controller (panel renderers, recompute, submit) -->
+  <script src="/partners/dnb-2026/deal-creator/script.js"></script>
+</body>
+</html>
