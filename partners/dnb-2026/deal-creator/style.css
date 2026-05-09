@@ -1,0 +1,243 @@
+/* ============================================================
+   AI LANE × DUN & BRADSTREET DEAL ROOM — DEAL CREATOR PAGE
+   ------------------------------------------------------------
+   Page-local stylesheet. Extends parent /partners/dnb-2026/style.css
+   (which itself extends /assets/css/tokens.css). Foundational
+   layout for the three-panel structure, locked-row UX, number-input
+   discipline, and tier colour discipline (cyan + green Operational,
+   cyan + purple Governance, gold Enterprise per AMD-123 / §7.4).
+   Dark-theme palette inherited from parent (--dr-bg, --dr-text, etc).
+
+   Brief: AILANE-CC-BRIEF-DEALROOM-DEAL-CREATOR-BUILD-001 v1.0 §7
+   ============================================================ */
+
+/* ─── Three-panel layout (§7.1) ─────────────────────────── */
+.deal-creator-page .dc-panel {
+  border: 1px solid var(--dr-border-medium);
+  border-radius: var(--dr-radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  background: var(--dr-bg-card);
+}
+.deal-creator-page .dc-panel h2 {
+  margin: 0 0 1rem 0;
+}
+.deal-creator-page .dc-panel h3 {
+  margin: 0.5rem 0;
+}
+
+/* ─── Number input + focus discipline (§7.2 verbatim) ──── */
+.deal-creator-page input[type=number]::-webkit-inner-spin-button,
+.deal-creator-page input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.deal-creator-page input[type=number] {
+  -moz-appearance: textfield;
+}
+.deal-creator-page input[type=number]:focus,
+.deal-creator-page input[type=text]:focus,
+.deal-creator-page select:focus {
+  outline: 2px solid var(--dr-cyan);
+  outline-offset: 2px;
+}
+.deal-creator-page .input-max-hint {
+  font-size: 0.75rem;
+  color: var(--dr-text-muted);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* ─── Locked rows (Stage 0 NDA-gated items) (§7.3) ──────── */
+.deal-creator-page label.locked,
+.deal-creator-page .dc-overlay-locked {
+  background: var(--dr-bg-glass);
+  opacity: 0.65;
+  cursor: not-allowed;
+  border-left: 3px solid var(--dr-text-muted);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin: 0.25rem 0;
+  display: block;
+}
+.deal-creator-page label.locked .lock-icon {
+  margin-left: 0.5rem;
+}
+.deal-creator-page label.locked small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--dr-text-muted);
+  margin-top: 0.25rem;
+}
+
+/* ─── Tier colour discipline (§7.4 — AMD-123) ───────────── */
+/* Operational Readiness — cyan border + green accents */
+.deal-creator-page .dc-tier-card[data-tier="operational_readiness"] {
+  border-left: 4px solid var(--dr-cyan);
+}
+.deal-creator-page .dc-tier-card[data-tier="operational_readiness"] .dc-tier-accent {
+  color: #10B981;
+}
+/* Governance — cyan border + purple accents */
+.deal-creator-page .dc-tier-card[data-tier="governance"] {
+  border-left: 4px solid var(--dr-cyan);
+}
+.deal-creator-page .dc-tier-card[data-tier="governance"] .dc-tier-accent {
+  color: var(--tier-governance);
+}
+/* Enterprise — gold border + gold accent (RESERVED for Enterprise tier ONLY per §7.4) */
+.deal-creator-page .dc-tier-card[data-tier="institutional"] {
+  border-left: 4px solid var(--dr-gold);
+}
+.deal-creator-page .dc-tier-card[data-tier="institutional"] .dc-tier-accent {
+  color: var(--dr-gold);
+}
+
+/* ─── Tier card layout ──────────────────────────────────── */
+.deal-creator-page .dc-tier-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.deal-creator-page .dc-tier-card {
+  background: var(--dr-bg-glass);
+  border: 1px solid var(--dr-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.deal-creator-page .dc-tier-card:hover {
+  background: var(--dr-bg-card);
+}
+.deal-creator-page .dc-tier-card.is-selected {
+  background: var(--dr-bg-card);
+  border-color: var(--dr-cyan);
+}
+
+/* ─── Scope axes ────────────────────────────────────────── */
+.deal-creator-page .dc-scope-axes {
+  display: grid;
+  gap: 0.75rem;
+}
+.deal-creator-page .dc-axis {
+  border: 1px solid var(--dr-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: var(--dr-bg-glass);
+}
+.deal-creator-page .dc-universe-count {
+  margin: 1rem 0 0 0;
+  font-family: var(--dr-font-mono);
+  color: var(--dr-text-dim);
+}
+.deal-creator-page #universe-count {
+  color: var(--dr-cyan);
+  font-weight: 500;
+}
+
+/* ─── Commercial overlays ───────────────────────────────── */
+.deal-creator-page .dc-overlay-rows {
+  display: grid;
+  gap: 0.75rem;
+}
+.deal-creator-page .dc-overlay {
+  border: 1px solid var(--dr-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: var(--dr-bg-glass);
+}
+
+/* ─── Quote pane (§7.5 — raised treatment) ──────────────── */
+.deal-creator-page .dc-quote {
+  border: 1px solid var(--dr-cyan-border);
+  border-radius: var(--dr-radius);
+  padding: 1.5rem;
+  margin: 1rem 0;
+  background: var(--dr-bg-card);
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.06);
+}
+.deal-creator-page .dc-quote-empty {
+  margin: 0;
+  color: var(--dr-text-muted);
+  font-style: italic;
+}
+.deal-creator-page .dc-quote-figure {
+  font-family: var(--dr-font-display);
+  font-size: clamp(1.5rem, 2.4vw, 1.85rem);
+  color: var(--dr-text-heading);
+  letter-spacing: -0.01em;
+}
+.deal-creator-page .dc-quote-label {
+  font-size: 0.8rem;
+  color: var(--dr-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ─── Action buttons ────────────────────────────────────── */
+.deal-creator-page .dc-actions {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+.deal-creator-page .dc-btn-primary {
+  background: var(--dr-cyan);
+  color: var(--dr-bg-deep);
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, opacity 0.15s;
+}
+.deal-creator-page .dc-btn-primary:hover:not(:disabled) {
+  background: var(--dr-cyan-soft);
+}
+.deal-creator-page .dc-btn-primary:disabled {
+  background: var(--dr-text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.deal-creator-page .dc-btn-secondary {
+  background: transparent;
+  color: var(--dr-cyan);
+  border: 1px solid var(--dr-cyan);
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.deal-creator-page .dc-btn-secondary:hover {
+  background: var(--dr-cyan-glow);
+}
+
+/* ─── Footer R-9 §3 attribution (canonical, BAILII-free) ─ */
+.dr-footer .dr-footer-attribution {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--dr-text-muted);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--dr-border);
+}
+
+/* ─── Mobile (full-width panels) ────────────────────────── */
+@media (max-width: 768px) {
+  .deal-creator-page .dc-panel {
+    padding: 1rem;
+  }
+  .deal-creator-page .dc-actions {
+    flex-direction: column;
+  }
+  .deal-creator-page .dc-btn-primary,
+  .deal-creator-page .dc-btn-secondary {
+    width: 100%;
+  }
+}
