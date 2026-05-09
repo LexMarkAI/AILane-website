@@ -383,8 +383,8 @@
     applyDocumentGating();
     if (location.pathname.indexOf('/documents/') !== -1) {
       populateDocumentsCatalog(window.__dealRoomUser);
-    } else if (location.pathname.indexOf('/configurator/') !== -1) {
-      populateConfigurator(window.__dealRoomUser);
+    } else if (location.pathname.indexOf('/deal-creator/') !== -1) {
+      populateDealCreator(window.__dealRoomUser);
     }
   }
 
@@ -738,7 +738,7 @@
     var path = window.location.pathname;
     var current = null;
     if (path.indexOf('/documents/') >= 0) current = 'documents';
-    else if (path.indexOf('/configurator/') >= 0) current = 'configurator';
+    else if (path.indexOf('/deal-creator/') >= 0) current = 'deal-creator';
     else if (path.indexOf('/status/') >= 0) current = 'status';
     else if (path.indexOf('/pathway/') >= 0) current = 'pathway';
     if (!current) return;
@@ -753,12 +753,12 @@
         meta: 'Phase 0 · Pre-engagement release',
         href: WORKSPACE_ROOT + 'documents/'
       },
-      configurator: {
+      'deal-creator': {
         icon: 'C',
-        title: 'Configurator',
+        title: 'Deal Creator',
         desc: 'Compose pricing configurations across the six data-estate layers and four modifiers. Live deterministic quote; non-binding indications.',
         meta: 'Live pricing · counter-proposal at Phase A',
-        href: WORKSPACE_ROOT + 'configurator/'
+        href: WORKSPACE_ROOT + 'deal-creator/'
       },
       status: {
         icon: 'S',
@@ -794,7 +794,7 @@
     var grid = document.createElement('div');
     grid.className = 'dr-nav-grid';
 
-    var order = ['documents', 'configurator', 'status', 'pathway'];
+    var order = ['documents', 'deal-creator', 'status', 'pathway'];
     for (var i = 0; i < order.length; i++) {
       var slug = order[i];
       if (slug === current) continue;
