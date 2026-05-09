@@ -28,6 +28,30 @@
 (function () {
   var CLID = 'dnb-2026-001';
 
+  // ─── Panel 1 — Tier definitions ─────────────────────────
+  // RULE 11: form value attributes ARE the canonical DB tier strings —
+  // operational_readiness / governance / institutional. AMD-123 display
+  // rename ("Institutional" → "Enterprise") applies to the visible label
+  // ONLY; the DB string stays "institutional" for backwards compatibility
+  // with kl-access and the wider tier-resolution pathway.
+  var TIER_DEFINITIONS = [
+    {
+      code: 'operational_readiness',
+      label: 'Operational Readiness',
+      description: 'Operational-depth access across sector, geography, industry, and the ACEI intelligence layer.'
+    },
+    {
+      code: 'governance',
+      label: 'Governance',
+      description: 'Operational depth plus governance-depth scope and the RRI intelligence layer.'
+    },
+    {
+      code: 'institutional',
+      label: 'Enterprise',
+      description: 'Full estate access including the CCI intelligence layer; postcode-level geography on request.'
+    }
+  ];
+
   // Window-level dispatch shim. Director STOP 1 acknowledgement, item 3
   // (Path A): after the §6 / STOP 9 slug rename, parent script.js's
   // revealPage() will dispatch `populateDealCreator(window.__dealRoomUser)`
@@ -39,8 +63,75 @@
     /* no-op — page self-initialises via DOMContentLoaded below. */
   };
 
+  // ─── HTML escape (mirrors parent script.js pattern) ─────
+  function escapeHtml_(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ─── Panel 1 — render tier radio cards (§4.2) ───────────
+  function renderPanel1Tier_() {
+    var container = document.querySelector('#panel-1-tier .dc-tier-cards');
+    if (!container) return;
+
+    var html = TIER_DEFINITIONS.map(function (t) {
+      var inputId = 'dc-tier-' + t.code;
+      return (
+        '<label class="dc-tier-card" data-tier="' + t.code + '" for="' + inputId + '">' +
+          '<div class="dc-tier-card-row">' +
+            '<input type="radio" id="' + inputId + '" name="tier" value="' + t.code + '" />' +
+            '<div class="dc-tier-card-content">' +
+              '<h3>' +
+                '<span class="dc-tier-accent" aria-hidden="true">●</span>' +
+                escapeHtml_(t.label) +
+              '</h3>' +
+              '<p class="dc-tier-card-desc">' + escapeHtml_(t.description) + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</label>'
+      );
+    }).join('');
+
+    container.innerHTML = html;
+
+    container.addEventListener('change', function (ev) {
+      if (!ev.target || ev.target.name !== 'tier') return;
+      onTierChange_(ev.target.value);
+    });
+  }
+
+  function onTierChange_(tier) {
+    var cards = document.querySelectorAll('.dc-tier-card');
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute('data-tier') === tier) {
+        cards[i].classList.add('is-selected');
+      } else {
+        cards[i].classList.remove('is-selected');
+      }
+    }
+
+    try {
+      if (window.gtag) {
+        window.gtag('event', 'deal_creator_tier_selected', { clid: CLID, tier: tier });
+      }
+    } catch (e) { /* swallow */ }
+
+    applyTierGating_(tier);
+  }
+
+  // ─── Tier-gating refresh stub ───────────────────────────
+  // STOPs 4 (Panel 2 scope content) and 5 (Panel 3 overlay content) flesh
+  // this out per the §3.3 Stage 0 visibility table. At STOP 3 Panel 2 and
+  // Panel 3 contain only structural placeholders, so there is nothing to
+  // gate yet — the function exists so onTierChange_ has a stable callee.
+  function applyTierGating_(_tier) {
+    /* no-op at STOP 3 — Panel 2/3 content lands at STOPs 4-5. */
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
-    // STOP 3-8 wire panel renderers, recompute pipeline, submit and
+    renderPanel1Tier_();
+    // STOP 4-8 wire scope panel, overlays, recompute pipeline, submit and
     // Eileen context-passing flows here.
 
     try {
