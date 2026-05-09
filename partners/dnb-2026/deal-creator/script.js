@@ -457,6 +457,25 @@
     return code;
   }
 
+  // Display labels in get_pricing_ceilings_v3 follow "<prefix> — <description>"
+  // (em-dash separator) for ACEI and Industry SIC sections. shortLabel_ returns
+  // just the prefix ("K", "ACEI 1") for use in the configuration summary line
+  // when ≥3 items are selected (Director STOP 6 ack item 2: codes only ≥3,
+  // full labels ≤2). Other axes (Sector / Geography) use the full label
+  // unconditionally because their display labels are already short.
+  function shortLabel_(displayLabel) {
+    if (!displayLabel) return displayLabel;
+    var idx = displayLabel.indexOf(' — ');
+    return (idx > 0) ? displayLabel.substring(0, idx) : displayLabel;
+  }
+
+  function labelListContextSensitive_(axis, level, codes) {
+    if (codes.length === 0) return '';
+    var fullLabels = codes.map(function (c) { return ceilingLabel_(axis, level, c); });
+    if (codes.length <= 2) return fullLabels.join(', ');
+    return fullLabels.map(shortLabel_).join(', ');
+  }
+
   function buildConfigSummary_(snapshot) {
     var parts = [TIER_LABEL_MAP[snapshot.modifiers.tier] || snapshot.modifiers.tier];
     var s = snapshot.scope;
@@ -472,10 +491,10 @@
     }
     if (s.industry.values && s.industry.values.length > 0) {
       parts.push('Industry ' + s.industry.level + ': ' +
-        s.industry.values.map(function (c) { return ceilingLabel_('industry', s.industry.level, c); }).join(', '));
+        labelListContextSensitive_('industry', s.industry.level, s.industry.values));
     }
     if (s.intelligence.acei.length > 0) {
-      parts.push('ACEI: ' + s.intelligence.acei.map(function (c) { return ceilingLabel_('intelligence', 'L1', c); }).join(', '));
+      parts.push('ACEI: ' + labelListContextSensitive_('intelligence', 'L1', s.intelligence.acei));
     }
     return parts.join(' · ');
   }
@@ -508,7 +527,14 @@
 
   function launchPartnerLine_(applied) {
     if (!applied) return null;
-    return 'Launch-partner discount: applied — the configured 10% reduction is reflected in the annual figure above.';
+    // Decision 1 (Director STOP 6 ack): the launch-partner percentage is a
+    // backend constant (pricing_modifier table). Rendering a hardcoded "10%"
+    // here would silently lie if the constant ever changes. The discount IS
+    // already mathematically reflected in the annual figure the counterparty
+    // sees; abstraction is institutional safety, not opacity. Forward backend
+    // note for Cycle 4: extend pricing_quote_function_v4 response to include
+    // launch_partner_discount_pct so future surfaces can render dynamically.
+    return 'Launch-partner discount: applied — the configured reduction is reflected in the annual figure above.';
   }
 
   function floorLine_(applied) {
