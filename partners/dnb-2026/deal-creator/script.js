@@ -364,7 +364,7 @@
         });
       }
     } catch (e) { /* swallow */ }
-    recomputeUniverse_();
+    recompute_();
   }
 
   // ─── Build p_scope from current Panel 2 selections (§4.5) ───────
@@ -399,34 +399,269 @@
     };
   }
 
-  // ─── Universe recompute (debounced 250ms per §3.4) ──────
+  // ─── Build full p_config_snapshot from Panel 1/2/3 state (§4.5) ─
+  function getCurrentTier_() {
+    var el = document.querySelector('input[name="tier"]:checked');
+    return el ? el.value : null;
+  }
+
+  function getCurrentOverlays_() {
+    var refresh = document.querySelector('input[name="refresh"]:checked');
+    var exclusivity = document.querySelector('input[name="exclusivity"]:checked');
+    var term = document.querySelector('input[name="term"]:checked');
+    var duns = document.querySelector('input[name="duns"]');
+    var termMonths = term ? Number(term.value) : 24;
+    return {
+      refresh: refresh ? refresh.value : 'quarterly',
+      exclusivity: exclusivity ? exclusivity.value : 'none',
+      term_months: termMonths,
+      term_years: Math.round(termMonths / 12),  // function expects years (1/2/3/5)
+      duns_match: !!(duns && duns.checked)
+    };
+  }
+
+  function buildConfigSnapshot_() {
+    var tier = getCurrentTier_();
+    var scope = getCurrentScope_();
+    var overlays = getCurrentOverlays_();
+    return {
+      scope: scope,
+      modifiers: {
+        tier: tier,
+        refresh: overlays.refresh,
+        exclusivity: overlays.exclusivity,
+        term_years: overlays.term_years,
+        duns_match: overlays.duns_match,
+        clid: CLID
+      }
+    };
+  }
+
+  // ─── Quote pane copy helpers (R-9 §3 binding via §5 worked example) ─
+  // Each helper returns a single factual string. No urgency, no commitment,
+  // no quasi-legal advice. The phrasing tracks AILANE-LEGAL-MEMO-EIM-001-
+  // PHRASING-001 §3 and the §5.3 binding worked example in the brief.
+  var TIER_LABEL_MAP = {
+    operational_readiness: 'Operational Readiness',
+    governance: 'Governance',
+    institutional: 'Enterprise'  // AMD-123 display rename; DB string preserved per RULE 11
+  };
+
+  function ceilingLabel_(axis, level, code) {
+    if (!_ceilings || !_ceilings.axes || !_ceilings.axes[axis]) return code;
+    var lvl = _ceilings.axes[axis].levels && _ceilings.axes[axis].levels[level];
+    if (!lvl) return code;
+    for (var i = 0; i < lvl.length; i++) {
+      if (lvl[i].value_code === code) return lvl[i].display_label || code;
+    }
+    return code;
+  }
+
+  function buildConfigSummary_(snapshot) {
+    var parts = [TIER_LABEL_MAP[snapshot.modifiers.tier] || snapshot.modifiers.tier];
+    var s = snapshot.scope;
+    if (s.sector.l1.length > 0) {
+      parts.push('Sector: ' + s.sector.l1.map(function (c) { return ceilingLabel_('sector', 'L1', c); }).join(', '));
+    }
+    if (s.sector.l2.length > 0) {
+      parts.push('Segments: ' + s.sector.l2.map(function (c) { return ceilingLabel_('sector', 'L2', c); }).join(', '));
+    }
+    if (s.geography.values && s.geography.values.length > 0) {
+      parts.push('Geography ' + s.geography.level + ': ' +
+        s.geography.values.map(function (c) { return ceilingLabel_('geography', s.geography.level, c); }).join(', '));
+    }
+    if (s.industry.values && s.industry.values.length > 0) {
+      parts.push('Industry ' + s.industry.level + ': ' +
+        s.industry.values.map(function (c) { return ceilingLabel_('industry', s.industry.level, c); }).join(', '));
+    }
+    if (s.intelligence.acei.length > 0) {
+      parts.push('ACEI: ' + s.intelligence.acei.map(function (c) { return ceilingLabel_('intelligence', 'L1', c); }).join(', '));
+    }
+    return parts.join(' · ');
+  }
+
+  function refreshLine_(value) {
+    var label = (value === 'daily') ? 'Daily'
+              : (value === 'real_time') ? 'Real-time'
+              : 'Quarterly';
+    return 'Refresh cadence: ' + label + '.';
+  }
+
+  function exclusivityLine_(value) {
+    if (value === 'vertical') {
+      return 'Exclusivity: Vertical — binds the platform from offering equivalent commercial terms to competitors in the same sub-vertical and region for the duration of the engagement.';
+    }
+    if (value === 'full_uk') {
+      return 'Exclusivity: Full-UK — binds the platform from offering equivalent commercial terms to competitors in the United Kingdom for the duration of the engagement.';
+    }
+    return 'Exclusivity: not elected at this configuration.';
+  }
+
+  function termLine_(months) {
+    return 'Term: ' + months + ' months.';
+  }
+
+  function dunsLine_(enabled) {
+    return enabled ? 'DUNS enrichment: enabled (+£3 per employer per year).'
+                   : 'DUNS enrichment: not enabled.';
+  }
+
+  function launchPartnerLine_(applied) {
+    if (!applied) return null;
+    return 'Launch-partner discount: applied — the configured 10% reduction is reflected in the annual figure above.';
+  }
+
+  function floorLine_(applied) {
+    if (!applied) return null;
+    return 'Pricing floor: the minimum annual fee threshold has been applied at this configuration.';
+  }
+
+  function fmtPounds_(pence) {
+    if (typeof pence !== 'number') return '—';
+    return '£' + Math.round(pence / 100).toLocaleString('en-GB');
+  }
+
+  function fmtPoundsPerRecord_(pence) {
+    if (typeof pence !== 'number') return '—';
+    var pounds = pence / 100;
+    if (pounds >= 100 || pounds === Math.round(pounds)) {
+      return '£' + Math.round(pounds).toLocaleString('en-GB');
+    }
+    return '£' + pounds.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+  }
+
+  // ─── Quote pane render ──────────────────────────────────
+  function renderQuoteSelectTier_() {
+    var pane = document.getElementById('quote-pane');
+    if (pane) pane.innerHTML = '<p class="dc-quote-empty">Select a tier to begin a configuration.</p>';
+    var saveBtn = document.getElementById('save-configuration');
+    if (saveBtn) saveBtn.disabled = true;
+  }
+
+  function renderQuoteUnavailable_(snapshot, reasonClass) {
+    var pane = document.getElementById('quote-pane');
+    if (pane) {
+      pane.innerHTML =
+        '<p class="dc-quote-empty">Configuration not yet priced. Adjust your selections to produce a priceable scope.</p>';
+    }
+    var saveBtn = document.getElementById('save-configuration');
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+      if (window.gtag) {
+        window.gtag('event', 'deal_creator_quote_unavailable', {
+          clid: CLID,
+          tier: snapshot && snapshot.modifiers && snapshot.modifiers.tier,
+          error_class: reasonClass || 'rpc_error'
+        });
+      }
+    } catch (e) { /* swallow */ }
+  }
+
+  function renderQuote_(quote, snapshot) {
+    var pane = document.getElementById('quote-pane');
+    if (!pane) return;
+
+    var summary = buildConfigSummary_(snapshot);
+    var perRecord = fmtPoundsPerRecord_(quote.per_record_pence);
+    var universe = (typeof quote.scope_universe === 'number')
+      ? quote.scope_universe.toLocaleString('en-GB')
+      : '—';
+    var annual = fmtPounds_(quote.annual_pence);
+    var overlays = snapshot.modifiers;
+
+    var metaLines = [
+      'Pricing schedule: escalation at the next ratification milestone trigger.',
+      exclusivityLine_(overlays.exclusivity),
+      refreshLine_(overlays.refresh),
+      termLine_(getCurrentOverlays_().term_months),
+      dunsLine_(overlays.duns_match)
+    ];
+    var lp = launchPartnerLine_(quote.is_launch_partner_applied);
+    if (lp) metaLines.push(lp);
+    var fl = floorLine_(quote.floor_applied);
+    if (fl) metaLines.push(fl);
+
+    var html = '<div class="dc-quote-summary">' +
+      '<div class="dc-quote-config">' + escapeHtml_(summary) + '</div>' +
+      '<dl class="dc-quote-figures">' +
+        '<div class="dc-quote-row">' +
+          '<dt class="dc-quote-label">Universe</dt>' +
+          '<dd class="dc-quote-figure">' + escapeHtml_(universe) + ' employers</dd>' +
+        '</div>' +
+        '<div class="dc-quote-row">' +
+          '<dt class="dc-quote-label">Per record</dt>' +
+          '<dd class="dc-quote-figure">' + escapeHtml_(perRecord) + '</dd>' +
+        '</div>' +
+        '<div class="dc-quote-row">' +
+          '<dt class="dc-quote-label">Annual</dt>' +
+          '<dd class="dc-quote-figure">' + escapeHtml_(annual) + '</dd>' +
+        '</div>' +
+      '</dl>' +
+      '<div class="dc-quote-meta">' +
+        metaLines.map(function (l) { return '<p>' + escapeHtml_(l) + '</p>'; }).join('') +
+      '</div>' +
+    '</div>';
+
+    pane.innerHTML = html;
+
+    // Mirror universe count into Panel 2 footer too.
+    var countEl = document.getElementById('universe-count');
+    if (countEl) countEl.textContent = universe;
+
+    var saveBtn = document.getElementById('save-configuration');
+    if (saveBtn) saveBtn.disabled = false;
+
+    try {
+      if (window.gtag) {
+        window.gtag('event', 'deal_creator_quote_returned', {
+          clid: CLID,
+          tier: snapshot.modifiers.tier,
+          per_record_pence: quote.per_record_pence,
+          annual_pence: quote.annual_pence,
+          universe_count: quote.scope_universe
+        });
+      }
+    } catch (e) { /* swallow */ }
+  }
+
+  // ─── Recompute pipeline (debounced 250ms per §3.4) ──────
   var _recomputeTimer = null;
-  function recomputeUniverse_() {
+  function recompute_() {
     clearTimeout(_recomputeTimer);
     _recomputeTimer = setTimeout(function () {
-      var scope = getCurrentScope_();
-      var token = (window.__dealRoomUser && window.__dealRoomUser.token) || SUPABASE_ANON_KEY;
-      var countEl = document.getElementById('universe-count');
+      var snapshot = buildConfigSnapshot_();
 
-      fetch(SUPABASE_URL + '/rest/v1/rpc/compute_scope_universe', {
+      if (!snapshot.modifiers.tier) {
+        renderQuoteSelectTier_();
+        var countEl = document.getElementById('universe-count');
+        if (countEl) countEl.textContent = '—';
+        return;
+      }
+
+      var token = (window.__dealRoomUser && window.__dealRoomUser.token) || SUPABASE_ANON_KEY;
+
+      fetch(SUPABASE_URL + '/rest/v1/rpc/pricing_quote_function_v4', {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + token,
           'apikey': SUPABASE_ANON_KEY,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ p_scope: scope })
+        body: JSON.stringify({ p_config_snapshot: snapshot })
       }).then(function (r) {
-        if (!r.ok) throw new Error('compute_scope_universe_' + r.status);
-        return r.json();
-      }).then(function (data) {
-        var n = data && data.identity_universe;
-        if (countEl) {
-          countEl.textContent = (typeof n === 'number') ? n.toLocaleString() : '—';
+        return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data }; });
+      }).then(function (result) {
+        if (!result.ok || !result.data || typeof result.data.annual_pence !== 'number') {
+          var reason = (result.data && (result.data.code === 'P0001' || /zero records/i.test(result.data.message || '')))
+            ? 'zero_scope'
+            : 'rpc_error';
+          renderQuoteUnavailable_(snapshot, reason);
+          return;
         }
+        renderQuote_(result.data, snapshot);
       }).catch(function (e) {
-        console.error('[deal-creator] universe recompute failed:', e);
-        if (countEl) countEl.textContent = '—';
+        console.error('[deal-creator] quote recompute failed:', e);
+        renderQuoteUnavailable_(snapshot, 'network_error');
       });
     }, 250);
   }
@@ -482,8 +717,7 @@
         });
       }
     } catch (e) { /* swallow */ }
-    // STOP 6 will trigger recomputeQuote_ here. Overlays do NOT affect
-    // universe count (commercial terms only); only the price changes.
+    recompute_();
   }
 
   // ─── Workspace meta cache (partner_clids row) ───────────
@@ -546,7 +780,7 @@
   function applyTierGating_(_tier) {
     loadCeilings_().then(function () {
       renderPanel2Scope_();
-      recomputeUniverse_();
+      recompute_();
     });
   }
 
