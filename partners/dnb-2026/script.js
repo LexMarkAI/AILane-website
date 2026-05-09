@@ -175,6 +175,42 @@
     }
   }
 
+  // ─── Engagement phase meta (HOTFIX-001 §4.2 B-narrow) ───
+  // The Engagement Status nav card meta line was previously a static
+  // literal that asserted Phase A as in-progress — institutionally
+  // inaccurate when backend partner_clids.gate_state was 'phase_0'. The
+  // helper below resolves a gate_state to the Director-approved factual
+  // phase string, and updateEngagementPhaseMeta_ applies it to every
+  // DOM node carrying [data-meta-source="engagement_phase"] (Welcome
+  // page nav card + sub-page injected nav card both use the same marker).
+  // All six strings are R-9 §3 conformant — factual current-state
+  // descriptions, no urgency, no commitment language, no quasi-legal
+  // advice.
+  function getEngagementMetaForGateState_(gateState) {
+    var map = {
+      phase_0: 'Phase 0 · Pre-engagement workspace open',
+      phase_a: 'Phase A · Roadmap & routing',
+      phase_b: 'Phase B · Pilot SOW lifecycle',
+      phase_1: 'Phase 1 · Live engagement',
+      phase_2: 'Phase 2 · Variation & scaling',
+      phase_f: 'Phase F · Renewal cascade'
+    };
+    return map[gateState] || map.phase_0;
+  }
+
+  async function updateEngagementPhaseMeta_(token, clid) {
+    try {
+      var state = await fetchClidGateState(token, clid);
+      var meta = getEngagementMetaForGateState_(state);
+      var nodes = document.querySelectorAll('[data-meta-source="engagement_phase"]');
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].textContent = meta;
+      }
+    } catch (e) {
+      /* swallow — placeholder phase_0 default text remains */
+    }
+  }
+
   // ─── Inline magic-link auth panel ───────────────────────
   function injectAuthStyles() {
     if (document.getElementById('dr-auth-styles')) return;
@@ -381,6 +417,15 @@
     injectEileenPanel();
     bindEileenPanel();
     applyDocumentGating();
+
+    // HOTFIX-001 §4 B-narrow: replace the placeholder Engagement Status nav
+    // card meta line on this page (Welcome card + sub-page injected card)
+    // with the live phase string from partner_clids.gate_state. Both nodes
+    // carry [data-meta-source="engagement_phase"]; one query updates both.
+    if (window.__dealRoomUser && window.__dealRoomUser.token) {
+      updateEngagementPhaseMeta_(window.__dealRoomUser.token, CLID);
+    }
+
     if (location.pathname.indexOf('/documents/') !== -1) {
       populateDocumentsCatalog(window.__dealRoomUser);
     } else if (location.pathname.indexOf('/deal-creator/') !== -1) {
@@ -764,7 +809,8 @@
         icon: 'S',
         title: 'Engagement Status',
         desc: 'Six-phase progression and Legal &amp; Audit gate status for this engagement.',
-        meta: 'Phase A — In progress',
+        meta: getEngagementMetaForGateState_('phase_0'),  // safe default; updateEngagementPhaseMeta_ overwrites post-fetch
+        metaAttr: ' data-meta-source="engagement_phase"',
         href: WORKSPACE_ROOT + 'status/'
       },
       pathway: {
@@ -806,7 +852,7 @@
         '<div class="dr-nav-card-icon">' + p.icon + '</div>' +
         '<div class="dr-nav-card-title">' + p.title + '</div>' +
         '<div class="dr-nav-card-desc">' + p.desc + '</div>' +
-        '<div class="dr-nav-card-meta">' + p.meta + '</div>';
+        '<div class="dr-nav-card-meta"' + (p.metaAttr || '') + '>' + p.meta + '</div>';
       grid.appendChild(card);
     }
 
