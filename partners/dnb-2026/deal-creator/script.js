@@ -88,15 +88,6 @@
         { value: '60', label: '60 months',
           locked: 'The 60-month closing concession is available at MCA negotiation closing (Phase D).' }
       ]
-    },
-    {
-      key: 'duns',
-      type: 'checkbox',
-      name: 'duns',
-      description: 'Adds the DUNS unique identifier to enriched records. Applies +£3 per employer per year when enabled.',
-      options: [
-        { value: 'on', label: 'Enable DUNS enrichment' }
-      ]
     }
   ];
 
@@ -465,14 +456,12 @@
     var refresh = document.querySelector('input[name="refresh"]:checked');
     var exclusivity = document.querySelector('input[name="exclusivity"]:checked');
     var term = document.querySelector('input[name="term"]:checked');
-    var duns = document.querySelector('input[name="duns"]');
     var termMonths = term ? Number(term.value) : 24;
     return {
       refresh: refresh ? refresh.value : 'quarterly',
       exclusivity: exclusivity ? exclusivity.value : 'none',
       term_months: termMonths,
-      term_years: Math.round(termMonths / 12),  // function expects years (1/2/3/5)
-      duns_match: !!(duns && duns.checked)
+      term_years: Math.round(termMonths / 12)  // function expects years (1/2/3/5)
     };
   }
 
@@ -489,7 +478,6 @@
         refresh: overlays.refresh,
         exclusivity: overlays.exclusivity,
         term_years: overlays.term_years,
-        duns_match: overlays.duns_match,
         clid: CLID
       }
     };
@@ -585,11 +573,6 @@
     return 'Term: ' + months + ' months.';
   }
 
-  function dunsLine_(enabled) {
-    return enabled ? 'DUNS enrichment: enabled (+£3 per employer per year).'
-                   : 'DUNS enrichment: not enabled.';
-  }
-
   function launchPartnerLine_(applied) {
     if (!applied) return null;
     // Decision 1 (Director STOP 6 ack): the launch-partner percentage is a
@@ -668,8 +651,7 @@
       'Pricing schedule: escalation at the next ratification milestone trigger.',
       exclusivityLine_(overlays.exclusivity),
       refreshLine_(overlays.refresh),
-      termLine_(getCurrentOverlays_().term_months),
-      dunsLine_(overlays.duns_match)
+      termLine_(getCurrentOverlays_().term_months)
     ];
     var lp = launchPartnerLine_(quote.is_launch_partner_applied);
     if (lp) metaLines.push(lp);
