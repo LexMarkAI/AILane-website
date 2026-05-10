@@ -88,41 +88,77 @@
         { value: '60', label: '60 months',
           locked: 'The 60-month closing concession is available at MCA negotiation closing (Phase D).' }
       ]
-    },
-    {
-      key: 'duns',
-      type: 'checkbox',
-      name: 'duns',
-      description: 'Adds the DUNS unique identifier to enriched records. Applies +£3 per employer per year when enabled.',
-      options: [
-        { value: 'on', label: 'Enable DUNS enrichment' }
-      ]
     }
   ];
 
-  // ─── Panel 1 — Tier definitions ─────────────────────────
-  // RULE 11: form value attributes ARE the canonical DB tier strings —
-  // operational_readiness / governance / institutional. AMD-123 display
-  // rename ("Institutional" → "Enterprise") applies to the visible label
-  // ONLY; the DB string stays "institutional" for backwards compatibility
-  // with kl-access and the wider tier-resolution pathway.
+  // ─── Panel 1 — Field-set tier definitions (HOTFIX-001 §3) ─────────
+  // PROP-DMSP-001 §10.2 governs Deal Room Panel 1 — field-set tier choice
+  // (data depth the counterparty buys), not subscription tier (KL/Contract-
+  // Check semantics). Stage 0 visible: Identity / Tribunal Exposure /
+  // Outcome Intelligence. Stage 1+ NDA-gated: Full ACEI / Full Enrichment /
+  // Premium. Each tier is cumulative: a higher tier includes everything
+  // below it. Per-record price tags from DATAFEED-001 §6.
   var TIER_DEFINITIONS = [
     {
-      code: 'operational_readiness',
-      label: 'Operational Readiness',
-      description: 'Operational-depth access across sector, geography, industry, and the ACEI intelligence layer.'
+      code: 'identity',
+      label: 'Identity',
+      price: '£4 per employer per year',
+      description: 'Core entity record: name, registered address, current status, sector classification, employee count band, Companies House Number cross-reference where available.',
+      locked: false
     },
     {
-      code: 'governance',
-      label: 'Governance',
-      description: 'Operational depth plus governance-depth scope and the RRI intelligence layer.'
+      code: 'tribunal_exposure',
+      label: 'Tribunal Exposure',
+      price: '£18 per employer per year',
+      description: 'Identity + binary tribunal-decision indicator + counts, dates, jurisdictional summary. Includes the no-adverse-signal declaration with coverage transparency.',
+      locked: false
     },
     {
-      code: 'institutional',
-      label: 'Enterprise',
-      description: 'Full estate access including the CCI intelligence layer; postcode-level geography on request.'
+      code: 'outcome_intelligence',
+      label: 'Outcome Intelligence',
+      price: '£33 per employer per year',
+      description: 'Tribunal Exposure + outcome-classified data (claim outcomes, awards, ACEI sector base rates, peer-percentile context).',
+      locked: false
+    },
+    {
+      code: 'full_acei',
+      label: 'Full ACEI',
+      price: '£45 per employer per year',
+      description: 'Outcome Intelligence + 12-category ACEI scoring with severity-weighted signals and sector-multiplier overlay.',
+      locked: true
+    },
+    {
+      code: 'full_enrichment',
+      label: 'Full Enrichment',
+      price: '£90 per employer per year',
+      description: 'Full ACEI + complete 171-column enrichment estate (representative profiles, hearing-day metrics, judge-canonical fields, citation authority).',
+      locked: true
+    },
+    {
+      code: 'premium',
+      label: 'Premium',
+      price: '£140 per employer per year',
+      description: 'Full Enrichment + cross-domain regulatory signal (HSE prosecutions, coroner PFD, corporate-relationship rollup).',
+      locked: true
     }
   ];
+
+  // Field-set tier → internal subscription tier mapping (HOTFIX §3.4).
+  // The deployed pricing_quote_function_v4 uses Model A (subscription tier
+  // × scope-axis depth) and accepts ONLY operational_readiness / governance /
+  // enterprise (raises EXCEPTION on any other value). The hotfix preserves
+  // that contract: field-set tier is a display-layer concept that maps to
+  // internal subscription tier before the RPC submit. field_set_tier is
+  // also forwarded in modifiers for forward compatibility once the backend
+  // pricing model harmonises to Model B.
+  var FIELD_SET_TO_INTERNAL_TIER = {
+    identity:             'operational_readiness',
+    tribunal_exposure:    'operational_readiness',
+    outcome_intelligence: 'operational_readiness',
+    full_acei:            'governance',
+    full_enrichment:      'enterprise',
+    premium:              'enterprise'
+  };
 
   // Window-level dispatch shim. Director STOP 1 acknowledgement, item 3
   // (Path A): after the §6 / STOP 9 slug rename, parent script.js's
@@ -142,25 +178,31 @@
     });
   }
 
-  // ─── Panel 1 — render tier radio cards (§4.2) ───────────
+  // ─── Panel 1 — render field-set tier radio cards (HOTFIX §3.2) ─
   function renderPanel1Tier_() {
     var container = document.querySelector('#panel-1-tier .dc-tier-cards');
     if (!container) return;
 
     var html = TIER_DEFINITIONS.map(function (t) {
       var inputId = 'dc-tier-' + t.code;
+      var disabledAttr = t.locked ? ' disabled' : '';
+      var lockedClass = t.locked ? ' dc-tier-card-locked' : '';
+      var lockIcon = t.locked
+        ? '<span class="dc-tier-card-lock" aria-label="NDA-gated">&#x1F512;</span>'
+        : '';
+      var lockExplanation = t.locked
+        ? '<p class="dc-tier-card-lock-explanation">Unlocks at NDA execution (Phase B).</p>'
+        : '';
       return (
-        '<label class="dc-tier-card" data-tier="' + t.code + '" for="' + inputId + '">' +
-          '<div class="dc-tier-card-row">' +
-            '<input type="radio" id="' + inputId + '" name="tier" value="' + t.code + '" />' +
-            '<div class="dc-tier-card-content">' +
-              '<h3>' +
-                '<span class="dc-tier-accent" aria-hidden="true">●</span>' +
-                escapeHtml_(t.label) +
-              '</h3>' +
-              '<p class="dc-tier-card-desc">' + escapeHtml_(t.description) + '</p>' +
-            '</div>' +
+        '<label class="dc-tier-card' + lockedClass + '" data-tier="' + t.code + '" for="' + inputId + '">' +
+          '<input type="radio" id="' + inputId + '" name="field_set_tier" value="' + t.code + '"' + disabledAttr + ' />' +
+          '<div class="dc-tier-card-header">' +
+            '<span class="dc-tier-card-title">' + escapeHtml_(t.label) + '</span>' +
+            '<span class="dc-tier-card-price">' + escapeHtml_(t.price) + '</span>' +
+            lockIcon +
           '</div>' +
+          '<p class="dc-tier-card-description">' + escapeHtml_(t.description) + '</p>' +
+          lockExplanation +
         '</label>'
       );
     }).join('');
@@ -168,7 +210,7 @@
     container.innerHTML = html;
 
     container.addEventListener('change', function (ev) {
-      if (!ev.target || ev.target.name !== 'tier') return;
+      if (!ev.target || ev.target.name !== 'field_set_tier') return;
       onTierChange_(ev.target.value);
     });
   }
@@ -400,8 +442,13 @@
   }
 
   // ─── Build full p_config_snapshot from Panel 1/2/3 state (§4.5) ─
+  // getCurrentTier_ returns the FIELD-SET tier code (identity / tribunal_exposure
+  // / outcome_intelligence / full_acei / full_enrichment / premium) per
+  // HOTFIX §3.4 architecture. buildConfigSnapshot_ maps it to the internal
+  // subscription tier string for the pricing function and forwards the
+  // field-set tier as field_set_tier for forward compatibility.
   function getCurrentTier_() {
-    var el = document.querySelector('input[name="tier"]:checked');
+    var el = document.querySelector('input[name="field_set_tier"]:checked');
     return el ? el.value : null;
   }
 
@@ -409,29 +456,28 @@
     var refresh = document.querySelector('input[name="refresh"]:checked');
     var exclusivity = document.querySelector('input[name="exclusivity"]:checked');
     var term = document.querySelector('input[name="term"]:checked');
-    var duns = document.querySelector('input[name="duns"]');
     var termMonths = term ? Number(term.value) : 24;
     return {
       refresh: refresh ? refresh.value : 'quarterly',
       exclusivity: exclusivity ? exclusivity.value : 'none',
       term_months: termMonths,
-      term_years: Math.round(termMonths / 12),  // function expects years (1/2/3/5)
-      duns_match: !!(duns && duns.checked)
+      term_years: Math.round(termMonths / 12)  // function expects years (1/2/3/5)
     };
   }
 
   function buildConfigSnapshot_() {
-    var tier = getCurrentTier_();
+    var fieldSetTier = getCurrentTier_();
+    var internalTier = fieldSetTier ? FIELD_SET_TO_INTERNAL_TIER[fieldSetTier] : null;
     var scope = getCurrentScope_();
     var overlays = getCurrentOverlays_();
     return {
       scope: scope,
       modifiers: {
-        tier: tier,
+        tier: internalTier,            // pricing function expects subscription tier
+        field_set_tier: fieldSetTier,  // HOTFIX §3.4 forward-compat (function ignores)
         refresh: overlays.refresh,
         exclusivity: overlays.exclusivity,
         term_years: overlays.term_years,
-        duns_match: overlays.duns_match,
         clid: CLID
       }
     };
@@ -441,10 +487,17 @@
   // Each helper returns a single factual string. No urgency, no commitment,
   // no quasi-legal advice. The phrasing tracks AILANE-LEGAL-MEMO-EIM-001-
   // PHRASING-001 §3 and the §5.3 binding worked example in the brief.
+  // TIER_LABEL_MAP maps the FIELD-SET tier code (HOTFIX §3) to its display
+  // label. Used in buildConfigSummary_ to render the configuration summary
+  // line on the quote pane. Field-set tier is the deal-room semantic;
+  // subscription tier is internal-only.
   var TIER_LABEL_MAP = {
-    operational_readiness: 'Operational Readiness',
-    governance: 'Governance',
-    institutional: 'Enterprise'  // AMD-123 display rename; DB string preserved per RULE 11
+    identity:             'Identity',
+    tribunal_exposure:    'Tribunal Exposure',
+    outcome_intelligence: 'Outcome Intelligence',
+    full_acei:            'Full ACEI',
+    full_enrichment:      'Full Enrichment',
+    premium:              'Premium'
   };
 
   function ceilingLabel_(axis, level, code) {
@@ -477,7 +530,7 @@
   }
 
   function buildConfigSummary_(snapshot) {
-    var parts = [TIER_LABEL_MAP[snapshot.modifiers.tier] || snapshot.modifiers.tier];
+    var parts = [TIER_LABEL_MAP[snapshot.modifiers.field_set_tier] || snapshot.modifiers.field_set_tier];
     var s = snapshot.scope;
     if (s.sector.l1.length > 0) {
       parts.push('Sector: ' + s.sector.l1.map(function (c) { return ceilingLabel_('sector', 'L1', c); }).join(', '));
@@ -518,11 +571,6 @@
 
   function termLine_(months) {
     return 'Term: ' + months + ' months.';
-  }
-
-  function dunsLine_(enabled) {
-    return enabled ? 'DUNS enrichment: enabled (+£3 per employer per year).'
-                   : 'DUNS enrichment: not enabled.';
   }
 
   function launchPartnerLine_(applied) {
@@ -580,7 +628,7 @@
       if (window.gtag) {
         window.gtag('event', 'deal_creator_quote_unavailable', {
           clid: CLID,
-          tier: snapshot && snapshot.modifiers && snapshot.modifiers.tier,
+          tier: snapshot && snapshot.modifiers && snapshot.modifiers.field_set_tier,
           error_class: reasonClass || 'rpc_error'
         });
       }
@@ -603,8 +651,7 @@
       'Pricing schedule: escalation at the next ratification milestone trigger.',
       exclusivityLine_(overlays.exclusivity),
       refreshLine_(overlays.refresh),
-      termLine_(getCurrentOverlays_().term_months),
-      dunsLine_(overlays.duns_match)
+      termLine_(getCurrentOverlays_().term_months)
     ];
     var lp = launchPartnerLine_(quote.is_launch_partner_applied);
     if (lp) metaLines.push(lp);
@@ -648,7 +695,7 @@
       if (window.gtag) {
         window.gtag('event', 'deal_creator_quote_returned', {
           clid: CLID,
-          tier: snapshot.modifiers.tier,
+          tier: snapshot.modifiers.field_set_tier,
           per_record_pence: quote.per_record_pence,
           annual_pence: quote.annual_pence,
           universe_count: quote.scope_universe
@@ -699,7 +746,7 @@
             if (window.gtag) {
               window.gtag('event', 'deal_creator_save_attempt', {
                 clid: CLID,
-                tier: snapshot.modifiers.tier,
+                tier: snapshot.modifiers.field_set_tier,
                 reason: 'stage_0_pre_nda'
               });
             }

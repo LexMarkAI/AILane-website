@@ -81,82 +81,139 @@
   font-size: 0.85rem;
 }
 
-/* ─── Tier colour discipline (§7.4 — AMD-123) ───────────── */
-/* Operational Readiness — cyan border + green accents */
-.deal-creator-page .dc-tier-card[data-tier="operational_readiness"] {
-  border-left: 4px solid var(--dr-cyan);
+/* ─── Identifier baseline panel (HOTFIX §4) ────────────── */
+.deal-creator-page .dc-identifier-baseline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--dr-cyan-glow);
+  border: 1px solid var(--dr-cyan-border);
+  border-left: 3px solid var(--dr-cyan);
+  border-radius: var(--dr-radius);
+  margin-bottom: 1.5rem;
 }
-.deal-creator-page .dc-tier-card[data-tier="operational_readiness"] .dc-tier-accent {
-  color: #10B981;
+.deal-creator-page .dc-identifier-baseline-icon {
+  font-size: 1.25rem;
+  color: var(--dr-cyan);
+  line-height: 1;
+  margin-top: 0.125rem;
 }
-/* Governance — cyan border + purple accents */
-.deal-creator-page .dc-tier-card[data-tier="governance"] {
-  border-left: 4px solid var(--dr-cyan);
-}
-.deal-creator-page .dc-tier-card[data-tier="governance"] .dc-tier-accent {
-  color: var(--tier-governance);
-}
-/* Enterprise — gold border + gold accent (RESERVED for Enterprise tier ONLY per §7.4) */
-.deal-creator-page .dc-tier-card[data-tier="institutional"] {
-  border-left: 4px solid var(--dr-gold);
-}
-.deal-creator-page .dc-tier-card[data-tier="institutional"] .dc-tier-accent {
-  color: var(--dr-gold);
+.deal-creator-page .dc-identifier-baseline-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--dr-text-dim);
+  line-height: 1.55;
 }
 
-/* ─── Tier card layout ──────────────────────────────────── */
+/* ─── Field-set tier card grid + base card (HOTFIX §3.2) ─ */
+/* All Stage 0 visible tiers carry a uniform cyan border-left;
+   Stage 1+ NDA-gated tiers use the .dc-tier-card-locked muted treatment.
+   Gold (#F59E0B / --dr-gold) is intentionally NOT applied here — gold is
+   reserved for the KL Enterprise subscription tier per AMD-123 and would
+   create cross-product visual confusion if used on a Deal Creator field-
+   set tier card. */
 .deal-creator-page .dc-tier-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 .deal-creator-page .dc-tier-card {
+  position: relative;
+  display: block;
   background: var(--dr-bg-glass);
   border: 1px solid var(--dr-border);
+  border-left: 4px solid var(--dr-cyan);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: background 0.15s, box-shadow 0.15s;
 }
-.deal-creator-page .dc-tier-card:hover {
+.deal-creator-page .dc-tier-card:hover:not(.dc-tier-card-locked) {
   background: var(--dr-bg-card);
 }
 .deal-creator-page .dc-tier-card.is-selected {
   background: var(--dr-bg-card);
   box-shadow: 0 0 0 1px var(--dr-cyan), 0 0 0 4px var(--dr-cyan-glow);
 }
-/* Note: the tier-specific border-left (cyan / cyan / gold) is intentionally
-   preserved on .is-selected — selection is conveyed via box-shadow ring
-   so the gold-discipline border for Enterprise is never visually overridden. */
-.deal-creator-page .dc-tier-card-row {
+.deal-creator-page .dc-tier-card:focus-within {
+  outline: 2px solid var(--dr-cyan);
+  outline-offset: 2px;
+}
+.deal-creator-page .dc-tier-card > input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── Field-set tier card content (HOTFIX §3.2) ─────────── */
+.deal-creator-page .dc-tier-card-header {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
 }
-.deal-creator-page .dc-tier-card input[type="radio"] {
-  margin-top: 0.4rem;
-  accent-color: var(--dr-cyan);
-  flex-shrink: 0;
-}
-.deal-creator-page .dc-tier-card-content {
+.deal-creator-page .dc-tier-card-title {
+  font-family: var(--dr-font-display);
+  font-size: 1.1rem;
+  color: var(--dr-text-heading);
+  letter-spacing: -0.01em;
   flex: 1;
   min-width: 0;
 }
-.deal-creator-page .dc-tier-card-content h3 {
-  margin: 0 0 0.25rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.deal-creator-page .dc-tier-card-price {
+  font-family: var(--dr-font-mono);
+  font-size: 0.75rem;
+  color: var(--dr-cyan);
+  background: var(--dr-cyan-glow);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
 }
-.deal-creator-page .dc-tier-card-desc {
+.deal-creator-page .dc-tier-card-lock {
+  font-size: 0.85em;
+  opacity: 0.7;
+  line-height: 1;
+}
+.deal-creator-page .dc-tier-card-description {
   margin: 0;
   font-size: 0.85rem;
   color: var(--dr-text-dim);
-  line-height: 1.5;
+  line-height: 1.55;
 }
-.deal-creator-page .dc-tier-accent {
-  font-size: 0.7em;
-  line-height: 1;
+.deal-creator-page .dc-tier-card-lock-explanation {
+  margin: 0.6rem 0 0 0;
+  font-size: 0.75rem;
+  color: var(--dr-text-muted);
+  font-style: italic;
+}
+
+/* ─── Locked tier card treatment (Stage 0 NDA-gated) ──── */
+.deal-creator-page .dc-tier-card-locked {
+  background: var(--dr-bg-glass);
+  opacity: 0.7;
+  cursor: not-allowed;
+  border-left-color: var(--dr-text-muted);
+}
+.deal-creator-page .dc-tier-card-locked:hover,
+.deal-creator-page .dc-tier-card-locked.is-selected {
+  background: var(--dr-bg-glass);
+  box-shadow: none;
+}
+.deal-creator-page .dc-tier-card-locked .dc-tier-card-price {
+  color: var(--dr-text-muted);
+  background: var(--dr-bg-card);
+}
+.deal-creator-page .dc-tier-card-locked .dc-tier-card-title,
+.deal-creator-page .dc-tier-card-locked .dc-tier-card-description {
+  color: var(--dr-text-muted);
 }
 
 /* ─── Scope axes ────────────────────────────────────────── */
