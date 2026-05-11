@@ -51,39 +51,40 @@ W4.1 establishes the CPL-001 v1.0 substrate: 13 new tables (6 reference + 1 core
 | cohort_decision_log anon DELETE priv | false | false | PASS |
 | cohort_decision_log service_role UPDATE priv | true | true | PASS |
 
-### AC-CPL-001-09 — Aggregations (§2.4)
+## AC-CPL-001-09 — §2.4 Aggregations (Chairman Path A pre-applied)
 
-§2.4 pre-applied by Chairman via AAD v1.0 Path A at 2026-05-11 00:00:10 UTC.
-CC skipped apply_migration per Director adjudication.
+**Status:** PASS
+**Apply method:** Chairman pre-application via AAD v1.0 Path A (CC application not invoked)
+**Apply timestamp:** 2026-05-11 00:00:10 UTC
+**Migration version:** 20260511000010
+**Migration name:** cycle4_cpl_001_step4_aggregations
+**Source file SHA-256:** 238f073ddfabd35a0eb70d25be1f221b05960c8d89789ab652baf6f3c4d62465
+**Source file path:** supabase/migrations/20260511000010_cycle4_cpl_001_step4_aggregations.sql
 
-Production state at handoff (verified by CC 2026-05-11 via execute_sql):
+### Chairman adjudication of brief defect
 
-| Probe | Expected | Actual | Result |
-|---|---|---|---|
-| v_employer_tribunal_exposure exists | 1 matview | 1 | PASS |
-| v_employer_tribunal_exposure row count | 74,322 canonical employer_master rows | 74,322 | PASS |
-| cohort_league_state exists | 1 table | 1 | PASS |
-| refresh_v_employer_tribunal_exposure exists | 1 function (SECURITY DEFINER) | 1 | PASS |
+The v1.1 brief §2.4 SQL inherited CPL-001 v1.0 §7.1 narrative substrate without verifying against deployed schema. Four schema mismatches identified at CC execution:
 
-**DEF-CPL-04 — deferred to Cycle 5:** the v_employer_tribunal_exposure matview is currently a degenerate stub (returns canonical_name placeholder values: tribunal_count=0, severity_weighted=0, exposure_band='zero'). The CPL-001 §7.1 spec references `tribunal_decisions.employer_master_id` and `tribunal_enrichment.severity_weighted_score` which do not exist in current schema. Substantive matview body requires Cycle 5 schema amendments (either an `employer_master_id` FK on tribunal_decisions, a `tribunal_employer_link` resolution table, or a fuzzy-match query against `respondent_name`/`extracted_respondent`), plus a `severity_weighted_score` enrichment column or composite expression. Surface contract preserved; renderer EF + refresh function work correctly against the stub.
+1. `em.canonical_name` — column does not exist in `employer_master`
+2. `td.employer_master_id` — no FK from `tribunal_decisions` to `employer_master`
+3. `te.tribunal_decision_id` — actual FK column is `te.decision_id`
+4. `te.severity_weighted_score` — column does not exist in `tribunal_enrichment`
 
-**Source file commit deferred:** the §2.4 source file at `supabase/migrations/20260511000010_cycle4_cpl_001_step4_aggregations.sql` is **NOT yet committed** in this PR. Director's adjudication specified SHA-256 target `238f073ddfabd35a0eb70d25be1f221b05960c8d89789ab652baf6f3c4d62465` against the canonical SQL body. CC does not have the byte-exact canonical text; the matview definition currently in production is captured below from `pg_matviews` introspection for reference, but the full canonical migration body (which presumably also includes cohort_league_state DDL + refresh function CREATE) is pending Director re-issue. Once received, CC commits the file as a follow-up.
+Chairman introspected deployed schemas via `Supabase:execute_sql` and adjudicated a Cycle 4 stub matview matching CSCE-001 §7.1 column shape per `is_canonical=true` employer_master rows with all-zero exposure metrics. Refresh wrapper contract preserved. Real linkage design deferred to Cycle 5 as DEF-CPL-04.
 
-Live matview definition (read from `pg_matviews` 2026-05-11):
+### Verification
 
-```sql
-SELECT id AS employer_master_id,
-    normalised_name AS employer_name,
-    0 AS tribunal_count,
-    (0)::numeric(12,2) AS severity_weighted,
-    'zero'::text AS exposure_band,
-    'none'::text AS derivative_basis,
-    false AS is_repeat_respondent,
-    NULL::date AS most_recent_decision_date,
-    now() AS computed_at
-   FROM employer_master em
-  WHERE (is_canonical = true);
-```
+- matview_exists = 1 ✓
+- stub_row_count = canonical_employer_count = 74,322 ✓
+- matview_index_count = 3 ✓
+- refresh_fn_security_definer = true ✓
+- refresh_fn_volatility = 'v' (VOLATILE) ✓
+- cls_col_count = 19 ✓
+- cls_check_count = 3 ✓
+- cls_index_count = 5 ✓
+- cls_rls_enabled = true ✓
+- cls_policy_count = 2 ✓
+- Refresh function execution: SUCCESS (CONCURRENTLY refresh; computed_at = 2026-05-11 00:00:35.340834 UTC)
 
 ### AC-CPL-001-10 — eim_check_grant_binding (§2.5)
 
@@ -201,7 +202,6 @@ Per Director Option 4 blanket pre-auth (10 May 2026) for the seven mechanical PG
 
 ## Outstanding items at PR submission
 
-1. **§2.4 source file commit pending** — Director must provide canonical SQL body matching SHA-256 `238f073ddfabd35a0eb70d25be1f221b05960c8d89789ab652baf6f3c4d62465` before this can be committed.
-2. **DEF-CPL-04** — v_employer_tribunal_exposure substantive body deferred to Cycle 5 pending tribunal_decisions↔employer_master link resolution.
-3. **DEF-CPL-05** — uk_canonical_regions_aliases (1,048 mapping rows) deferred to Cycle 5 per packet §2.1 NOTE TO CC option (a).
-4. **DEF-CPL-06** — uk_jurisdiction_canonicalisation_lookup population deferred to Cycle 5.
+1. **DEF-CPL-04** — v_employer_tribunal_exposure substantive body deferred to Cycle 5 pending tribunal_decisions↔employer_master link resolution. See `docs/cycle-4/AC-CYCLE-4-DEFERRED.md`.
+2. **DEF-CPL-05** — uk_canonical_regions_aliases (1,048 mapping rows) deferred to Cycle 5 per packet §2.1 NOTE TO CC option (a).
+3. **DEF-CPL-06** — uk_jurisdiction_canonicalisation_lookup population deferred to Cycle 5.
