@@ -755,13 +755,23 @@
       var oldErr = td.querySelector('.preview-err');
       if(oldErr) td.removeChild(oldErr);
       try{
-        var resp = await sb.storage.from('dealroom-documents').createSignedUrl(storagePath, 60);
+        var resp = await sb.functions.invoke('dealroom-document-sign', {
+          body: { storage_path: storagePath, ttl_seconds: 60 }
+        });
         if(resp && resp.error){
-          showPreviewError(td, resp.error.message || 'createSignedUrl failed');
-        } else if(resp && resp.data && resp.data.signedUrl){
-          window.open(resp.data.signedUrl, '_blank', 'noopener,noreferrer');
+          var msg = resp.error.message || 'sign request failed';
+          if(resp.error.context && resp.error.context.body){
+            try {
+              var parsedErr = typeof resp.error.context.body === 'string'
+                ? JSON.parse(resp.error.context.body) : resp.error.context.body;
+              if(parsedErr.error) msg = parsedErr.error + (parsedErr.detail ? ': '+parsedErr.detail : '');
+            } catch(_){}
+          }
+          showPreviewError(td, msg);
+        } else if(resp && resp.data && resp.data.signed_url){
+          window.open(resp.data.signed_url, '_blank', 'noopener,noreferrer');
         } else {
-          showPreviewError(td, 'No signed URL returned');
+          showPreviewError(td, 'No signed_url in response');
         }
       }catch(e){
         showPreviewError(td, (e && e.message) || String(e));
