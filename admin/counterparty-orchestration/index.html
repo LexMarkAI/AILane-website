@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Counterparty Orchestration &mdash; Ailane Admin</title>
+
+  <!-- Supabase CDN FIRST (protected page) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!--
+    CSP — tightened for /admin/ per S6-D brief §3:
+    no GA4, no Stripe, no cdnjs. Only Supabase + Google Fonts.
+    The standard ailane.ai CSP is in CLAUDE.md; this is the admin-locked subset.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg-base:#000000;
+      --bg-panel:#0a0a0a;
+      --bg-elevated:#111111;
+      --bg-input:#070707;
+      --border-subtle:rgba(255,255,255,0.06);
+      --border-default:rgba(255,255,255,0.1);
+      --border-strong:rgba(255,255,255,0.18);
+      --text-primary:#E5E7EB;
+      --text-secondary:#9CA3AF;
+      --text-muted:#6B7280;
+      --gold:#F59E0B;
+      --gold-dim:rgba(245,158,11,0.15);
+      --gold-strong:rgba(245,158,11,0.5);
+      --cyan:#0EA5E9;
+      --cyan-dim:rgba(14,165,233,0.15);
+      --red:#EF4444;
+      --red-dim:rgba(239,68,68,0.12);
+      --green:#10B981;
+      --green-dim:rgba(16,185,129,0.12);
+      --font-display:'Outfit',sans-serif;
+      --font-body:'IBM Plex Sans',sans-serif;
+      --font-mono:'IBM Plex Mono',monospace;
+    }
+
+    html{font-size:15px;-webkit-font-smoothing:antialiased}
+    body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-body);min-height:100vh}
+
+    /* ─── Auth gate (visible until reveal) ─── */
+    #auth-gate{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg-base);z-index:9999}
+    #auth-gate .brand{font-family:var(--font-display);font-weight:800;letter-spacing:0.15em;color:var(--gold);font-size:1.1rem}
+    #auth-gate .spinner{width:36px;height:36px;border:2px solid var(--gold-dim);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
+    #auth-gate .msg{color:var(--text-muted);font-size:0.8rem;font-family:var(--font-mono)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ─── Top bar ─── */
+    .top-bar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border-subtle);background:rgba(10,10,10,0.85);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
+    .top-bar-left{display:flex;align-items:center;gap:16px}
+    .brand-mark{font-family:var(--font-display);font-weight:800;font-size:1rem;letter-spacing:0.12em}
+    .brand-mark span{color:var(--gold)}
+    .brand-divider{width:1px;height:18px;background:var(--border-strong)}
+    .brand-sub{font-family:var(--font-mono);font-size:0.72rem;color:var(--text-secondary);letter-spacing:0.06em;text-transform:uppercase}
+    .top-bar-right{display:flex;align-items:center;gap:12px}
+    .user-pill{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-secondary);padding:6px 10px;border:1px solid var(--border-subtle);border-radius:6px}
+    .btn-link{padding:7px 12px;border:1px solid var(--border-default);background:transparent;color:var(--text-secondary);font-family:var(--font-body);font-size:0.78rem;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+    .btn-link:hover{border-color:var(--border-strong);color:var(--text-primary)}
+
+    /* ─── Layout ─── */
+    .container{max-width:1100px;margin:0 auto;padding:32px 28px 80px}
+    .page-header{margin-bottom:28px}
+    .page-header h1{font-family:var(--font-display);font-weight:700;font-size:1.5rem;color:var(--text-primary);letter-spacing:-0.01em}
+    .page-header .sub{font-family:var(--font-body);font-size:0.85rem;color:var(--text-secondary);margin-top:6px}
+    .page-header .authority{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-top:8px;letter-spacing:0.04em}
+
+    .panel{background:var(--bg-panel);border:1px solid var(--border-subtle);border-radius:10px;padding:22px;margin-bottom:18px}
+    .panel-title{font-family:var(--font-display);font-size:0.78rem;font-weight:600;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px}
+
+    /* ─── Form controls ─── */
+    .field{margin-bottom:14px}
+    .field-label{display:block;font-family:var(--font-body);font-size:0.78rem;color:var(--text-secondary);margin-bottom:6px;font-weight:500}
+    .field-hint{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);margin-top:4px;line-height:1.5}
+    select,input[type="text"]{width:100%;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);font-family:var(--font-body);font-size:0.85rem;outline:none;transition:border-color 0.15s}
+    select:focus,input[type="text"]:focus{border-color:var(--gold-strong)}
+    select option{background:var(--bg-input);color:var(--text-primary)}
+
+    .checkbox-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0}
+    .checkbox-row input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1px solid var(--border-strong);border-radius:3px;background:var(--bg-input);cursor:pointer;position:relative;flex-shrink:0;margin-top:2px}
+    .checkbox-row input[type="checkbox"]:checked{background:var(--gold);border-color:var(--gold)}
+    .checkbox-row input[type="checkbox"]:checked::after{content:'';position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #000;border-width:0 2px 2px 0;transform:rotate(45deg)}
+    .checkbox-label{font-family:var(--font-body);font-size:0.84rem;color:var(--text-primary);cursor:pointer;line-height:1.4}
+    .checkbox-sub{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-top:3px;line-height:1.5}
+
+    /* ─── Run button ─── */
+    .run-row{display:flex;align-items:center;gap:14px;margin-top:18px;padding-top:18px;border-top:1px solid var(--border-subtle)}
+    .btn-run{padding:11px 22px;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:var(--font-body);font-size:0.88rem;font-weight:600;cursor:pointer;letter-spacing:0.02em;transition:opacity 0.15s,transform 0.05s;display:inline-flex;align-items:center;gap:8px}
+    .btn-run:hover:not(:disabled){opacity:0.9}
+    .btn-run:active:not(:disabled){transform:translateY(1px)}
+    .btn-run:disabled{opacity:0.4;cursor:not-allowed}
+    .run-status{font-family:var(--font-mono);font-size:0.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:8px}
+    .run-status .spinner-small{width:14px;height:14px;border:2px solid var(--gold-dim);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
+
+    /* ─── Result panel ─── */
+    .result-banner{padding:14px 18px;border-radius:6px;margin-bottom:16px;font-family:var(--font-body);font-size:0.9rem;display:flex;align-items:center;gap:12px;font-weight:500}
+    .result-banner.pass{background:var(--green-dim);border:1px solid var(--green);color:var(--green)}
+    .result-banner.partial{background:rgba(245,158,11,0.08);border:1px solid var(--gold);color:var(--gold)}
+    .result-banner.error{background:var(--red-dim);border:1px solid var(--red);color:var(--red)}
+    .result-banner .badge{padding:3px 9px;border-radius:3px;background:rgba(0,0,0,0.5);font-family:var(--font-mono);font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase}
+    .result-summary{font-family:var(--font-mono);font-size:0.78rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.7}
+    .result-info-note{padding:10px 14px;background:var(--cyan-dim);border-left:3px solid var(--cyan);border-radius:4px;font-family:var(--font-body);font-size:0.8rem;color:var(--text-primary);margin-bottom:14px}
+    .result-error-detail{padding:10px 14px;background:var(--red-dim);border-left:3px solid var(--red);border-radius:4px;font-family:var(--font-mono);font-size:0.78rem;color:var(--text-primary);margin-bottom:14px;word-break:break-word;white-space:pre-wrap}
+    .result-footer{padding-top:12px;border-top:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);margin-top:10px}
+    .result-footer .ok{color:var(--green)}
+    .result-footer .bad{color:var(--red)}
+
+    /* ─── Tables ─── */
+    .tbl-wrap{overflow-x:auto;border:1px solid var(--border-subtle);border-radius:6px}
+    table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:0.74rem}
+    th{text-align:left;padding:10px 12px;background:var(--bg-elevated);color:var(--text-secondary);font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:0.66rem;border-bottom:1px solid var(--border-default);white-space:nowrap}
+    td{padding:9px 12px;border-bottom:1px solid var(--border-subtle);color:var(--text-primary);vertical-align:top}
+    tr:last-child td{border-bottom:none}
+    tr.row-error td{background:rgba(239,68,68,0.04)}
+    td.err{color:var(--red);font-weight:500;max-width:300px}
+    td.mono-dim{color:var(--text-muted)}
+    td.truncate{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    .log-meta{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-top:10px;text-align:right}
+
+    /* ─── Wrong user ─── */
+    #wrong-user-panel{display:none;max-width:480px;margin:80px auto;text-align:center;padding:32px}
+    #wrong-user-panel h2{font-family:var(--font-display);font-size:1.1rem;color:var(--red);margin-bottom:10px}
+    #wrong-user-panel p{font-family:var(--font-body);font-size:0.85rem;color:var(--text-secondary);margin-bottom:20px;line-height:1.6}
+
+    .hidden{display:none !important}
+
+    /* ─── Anchor for keyboard users / accessibility on long log ─── */
+    a.inline-link{color:var(--cyan);text-decoration:none}
+    a.inline-link:hover{text-decoration:underline}
+  </style>
+</head>
+
+<body style="visibility:hidden">
+
+  <!-- ═════════════ AUTH GATE ═════════════ -->
+  <div id="auth-gate">
+    <div class="brand">AILANE&nbsp;&middot;&nbsp;ADMIN</div>
+    <div class="spinner"></div>
+    <div class="msg" id="auth-msg">Verifying credentials&hellip;</div>
+  </div>
+
+  <!-- ═════════════ WRONG USER ═════════════ -->
+  <div id="wrong-user-panel">
+    <h2>Director-only endpoint</h2>
+    <p>This surface is restricted. You will be signed out and returned to the login page.</p>
+    <button class="btn-link" id="wrong-user-signout">Sign out</button>
+  </div>
+
+  <!-- ═════════════ APP SHELL ═════════════ -->
+  <div id="app" class="hidden">
+
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <div class="brand-mark">AI<span>LANE</span></div>
+        <div class="brand-divider"></div>
+        <div class="brand-sub">Admin &middot; Counterparty Orchestration</div>
+      </div>
+      <div class="top-bar-right">
+        <div class="user-pill" id="user-pill">&mdash;</div>
+        <a href="/AiLaneCEO/" class="btn-link">CEO Command Centre</a>
+        <button class="btn-link" id="signout-btn">Sign out</button>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <div class="page-header">
+        <h1>Counterparty Orchestration &mdash; Document Population</h1>
+        <div class="sub">Materialise rendered documents for a counterparty workspace per AMD-145 &sect;3.3.</div>
+        <div class="authority">Authority: AMD-145-AM-002 &sect;3.5.1' &middot; AMD-146 &sect;11 next-action 5 &middot; Director-only</div>
+      </div>
+
+      <!-- ─── Selector + options panel ─── -->
+      <div class="panel">
+        <div class="panel-title">Dispatch parameters</div>
+
+        <div class="field">
+          <label class="field-label" for="cp-select">Counterparty</label>
+          <select id="cp-select">
+            <option value="">Loading counterparties&hellip;</option>
+          </select>
+          <div class="field-hint" id="cp-hint">Operative counterparties only (clid set). Sorted by short_code.</div>
+        </div>
+
+        <div id="options-panel" class="hidden">
+          <div class="checkbox-row">
+            <input type="checkbox" id="opt-bdr">
+            <label class="checkbox-label" for="opt-bdr">
+              Compute BDR envelope (<code style="font-family:var(--font-mono);color:var(--text-muted)">compute_bdr_envelope</code>)
+              <div class="checkbox-sub">Only applies to BDR pricing cohort. Non-BDR counterparties return <code>envelope_action: 'skipped_non_bdr'</code>.</div>
+            </label>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="opt-overwrite">
+            <label class="checkbox-label" for="opt-overwrite">
+              Overwrite existing renders (<code style="font-family:var(--font-mono);color:var(--text-muted)">overwrite_existing</code>)
+              <div class="checkbox-sub">If unchecked, hand-curated catalog rows (no template_key) are preserved. If checked, all matching templates are re-rendered and prior renders superseded.</div>
+            </label>
+          </div>
+
+          <div class="field" style="margin-top:8px">
+            <label class="field-label" for="opt-keys">Specific template_keys</label>
+            <input type="text" id="opt-keys" placeholder="e.g. PROP, NDA, PILOT_SOW">
+            <div class="field-hint">Comma-separated. Leave blank to process all operative templates.</div>
+          </div>
+
+          <div class="run-row">
+            <button class="btn-run" id="run-btn" disabled>Run Orchestrator</button>
+            <div class="run-status" id="run-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Result panel ─── -->
+      <div class="panel hidden" id="result-panel">
+        <div class="panel-title">Invocation result</div>
+        <div id="result-body"></div>
+      </div>
+
+      <!-- ─── Recent invocations log ─── -->
+      <div class="panel">
+        <div class="panel-title">Recent invocations (last 10)</div>
+        <div id="log-body">
+          <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)">Loading&hellip;</div>
+        </div>
+        <div class="log-meta">Showing 10 most recent &mdash; full log via Supabase Studio</div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+  'use strict';
+
+  /* ─────────────────────────────────────────────
+     CONFIG
+     ───────────────────────────────────────────── */
+  var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  var DIRECTOR_EMAIL = 'mark@ailane.ai';
+  var EF_PATH = '/functions/v1/populate-counterparty-documents';
+  var EF_TIMEOUT_MS = 300000; // 5-minute synchronous wait per brief §2.7
+  var DISPATCHER_SOURCE = 'frontend_dispatcher_v1_amd_146_s6d';
+  var ADMIN_RETURN = '/admin/counterparty-orchestration/';
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var session = null;
+  var currentToken = null;
+
+  /* ─────────────────────────────────────────────
+     UTILITIES
+     ───────────────────────────────────────────── */
+  function $(id){return document.getElementById(id)}
+  function el(tag, attrs, text){
+    var node = document.createElement(tag);
+    if(attrs){
+      for(var k in attrs){
+        if(k==='class') node.className = attrs[k];
+        else if(k==='style') node.setAttribute('style', attrs[k]);
+        else node.setAttribute(k, attrs[k]);
+      }
+    }
+    if(text != null) node.textContent = String(text);
+    return node;
+  }
+  function clear(node){ while(node.firstChild) node.removeChild(node.firstChild); }
+  function fmtBytes(b){
+    if(b == null || isNaN(Number(b))) return '—';
+    var n = Number(b);
+    if(n < 1024) return n + ' B';
+    if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+    return (n/(1024*1024)).toFixed(2) + ' MB';
+  }
+  function lastSeg(path){
+    if(!path) return '—';
+    var p = String(path);
+    var parts = p.split('/');
+    return parts[parts.length-1] || p;
+  }
+  function fmtTs(iso){
+    if(!iso) return '—';
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+  function decodeEmailFromJwt(token){
+    try{
+      var p = JSON.parse(atob(token.split('.')[1]));
+      return p && p.email ? String(p.email).toLowerCase() : null;
+    }catch(e){ return null; }
+  }
+
+  /* ─────────────────────────────────────────────
+     AUTH GATE (CLAUDE.md guard pattern)
+     ───────────────────────────────────────────── */
+  function showApp(){
+    $('auth-gate').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    document.body.style.visibility = 'visible';
+  }
+  function showWrongUser(){
+    $('auth-gate').classList.add('hidden');
+    $('wrong-user-panel').style.display = 'block';
+    document.body.style.visibility = 'visible';
+  }
+  function redirectLogin(){
+    window.location.replace('/login/?returnTo=' + encodeURIComponent(ADMIN_RETURN));
+  }
+  function redirectHome(){
+    // Brief AC-S6D-B: non-Director sees 404 or home redirect.
+    // GitHub Pages can't return 404 client-side; redirect to home is closest.
+    window.location.replace('/');
+  }
+
+  async function gate(){
+    var msgEl = $('auth-msg');
+    msgEl.textContent = 'Verifying credentials…';
+
+    var got = null;
+    try{
+      var r = await sb.auth.getSession();
+      if(r && r.data && r.data.session) got = r.data.session;
+    }catch(e){}
+
+    if(!got){
+      // Fallback listener with 6s timeout per CLAUDE.md auth guard pattern
+      got = await new Promise(function(resolve){
+        var done = false;
+        var sub = sb.auth.onAuthStateChange(function(evt, s){
+          if(s && !done){ done = true; resolve(s); }
+        });
+        setTimeout(function(){
+          if(!done){ done = true; try{ sub.data.subscription.unsubscribe(); }catch(e){} resolve(null); }
+        }, 6000);
+      });
+    }
+
+    if(!got){ redirectLogin(); return; }
+
+    session = got;
+    currentToken = got.access_token;
+    var email = decodeEmailFromJwt(currentToken);
+    if(!email){ redirectLogin(); return; }
+
+    if(email !== DIRECTOR_EMAIL){
+      // Per brief §2.1 visibility rule: non-Director sees no nav entry and 404 if direct.
+      // Show a brief notice, then redirect home.
+      showWrongUser();
+      $('wrong-user-signout').addEventListener('click', async function(){
+        try{ await sb.auth.signOut(); }catch(e){}
+        redirectHome();
+      });
+      setTimeout(redirectHome, 3500);
+      return;
+    }
+
+    $('user-pill').textContent = email;
+    showApp();
+    bootstrap();
+  }
+
+  /* ─────────────────────────────────────────────
+     SIGN OUT
+     ───────────────────────────────────────────── */
+  function wireSignOut(){
+    $('signout-btn').addEventListener('click', async function(){
+      try{ await sb.auth.signOut(); }catch(e){}
+      window.location.replace('/login/');
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     COUNTERPARTY LIST
+     ───────────────────────────────────────────── */
+  async function loadCounterparties(){
+    var sel = $('cp-select');
+    var hint = $('cp-hint');
+    clear(sel);
+    sel.appendChild(el('option', { value:'' }, 'Loading counterparties…'));
+    sel.disabled = true;
+
+    var resp = await sb
+      .from('counterparty_profile')
+      .select('counterparty_short_code,counterparty_legal_name,pricing_cohort_family,clid')
+      .order('counterparty_short_code', { ascending: true });
+
+    if(resp.error){
+      clear(sel);
+      sel.appendChild(el('option', { value:'' }, 'Failed to load counterparties'));
+      hint.textContent = 'Error: ' + (resp.error.message || 'unknown');
+      hint.style.color = 'var(--red)';
+      return;
+    }
+
+    var rows = (resp.data || []).filter(function(r){ return r && r.clid; });
+
+    clear(sel);
+    sel.appendChild(el('option', { value:'' }, 'Select a counterparty…'));
+    rows.forEach(function(r){
+      var label = r.counterparty_short_code + ' — ' + (r.counterparty_legal_name || '(no legal name)');
+      var opt = el('option', { value: r.counterparty_short_code }, label);
+      opt.dataset.cohort = r.pricing_cohort_family || '';
+      sel.appendChild(opt);
+    });
+    sel.disabled = false;
+    hint.textContent = rows.length + ' operative counterpart' + (rows.length===1?'y':'ies') + ' (clid set).';
+    hint.style.color = 'var(--text-muted)';
+  }
+
+  function wireSelector(){
+    var sel = $('cp-select');
+    sel.addEventListener('change', function(){
+      var has = !!sel.value;
+      var opts = $('options-panel');
+      var btn = $('run-btn');
+      if(has){ opts.classList.remove('hidden'); btn.disabled = false; }
+      else{ opts.classList.add('hidden'); btn.disabled = true; }
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     RECENT LOG
+     ───────────────────────────────────────────── */
+  async function loadRecentLog(){
+    var body = $('log-body');
+    var resp = await sb
+      .from('counterparty_auto_population_log')
+      .select('counterparty_short_code,trigger_event,created_at,amd_authority,notes')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    clear(body);
+
+    if(resp.error){
+      body.appendChild(el('div', { style:'font-family:var(--font-mono);font-size:0.78rem;color:var(--red)' },
+        'Failed to load log: ' + (resp.error.message || 'unknown')));
+      return;
+    }
+
+    var rows = resp.data || [];
+    if(rows.length === 0){
+      body.appendChild(el('div', { style:'font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)' },
+        'No invocations on record yet.'));
+      return;
+    }
+
+    var wrap = el('div', { class:'tbl-wrap' });
+    var tbl = el('table');
+    var thead = el('thead');
+    var hr = el('tr');
+    ['counterparty_short_code','trigger_event','created_at','amd_authority','notes'].forEach(function(h){
+      hr.appendChild(el('th', null, h));
+    });
+    thead.appendChild(hr);
+    tbl.appendChild(thead);
+    var tbody = el('tbody');
+    rows.forEach(function(r){
+      var tr = el('tr');
+      tr.appendChild(el('td', null, r.counterparty_short_code || '—'));
+      tr.appendChild(el('td', null, r.trigger_event || '—'));
+      tr.appendChild(el('td', null, fmtTs(r.created_at)));
+      tr.appendChild(el('td', null, r.amd_authority || '—'));
+      var notesTd = el('td', { class:'truncate', title: r.notes || '' }, r.notes || '—');
+      tr.appendChild(notesTd);
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    body.appendChild(wrap);
+  }
+
+  /* ─────────────────────────────────────────────
+     ORCHESTRATOR INVOCATION
+     ───────────────────────────────────────────── */
+  function parseTemplateKeys(raw){
+    if(!raw) return null;
+    var arr = String(raw).split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    return arr.length ? arr : null;
+  }
+
+  async function runOrchestrator(){
+    var sel = $('cp-select');
+    var short = sel.value;
+    if(!short) return;
+
+    var bdr = $('opt-bdr').checked;
+    var overwrite = $('opt-overwrite').checked;
+    var keys = parseTemplateKeys($('opt-keys').value);
+
+    var btn = $('run-btn');
+    var status = $('run-status');
+    btn.disabled = true;
+    sel.disabled = true;
+    clear(status);
+    status.appendChild(el('div', { class:'spinner-small' }));
+    status.appendChild(el('span', null, 'Running… (this may take 60–180 seconds depending on template count)'));
+
+    var resultPanel = $('result-panel');
+    var resultBody = $('result-body');
+    resultPanel.classList.add('hidden');
+    clear(resultBody);
+
+    var payload = {
+      counterparty_short_code: short,
+      compute_bdr_envelope: bdr,
+      overwrite_existing: overwrite,
+      template_keys: keys,
+      source: DISPATCHER_SOURCE
+    };
+
+    // Refresh token in case the session is near expiry — 5-minute wait could span a refresh window
+    var fresh = await sb.auth.getSession();
+    if(fresh && fresh.data && fresh.data.session) currentToken = fresh.data.session.access_token;
+
+    var controller = new AbortController();
+    var timer = setTimeout(function(){ controller.abort(); }, EF_TIMEOUT_MS);
+
+    var httpStatus = 0;
+    var bodyJson = null;
+    var raw = '';
+    var networkErr = null;
+    try{
+      var res = await fetch(SUPABASE_URL + EF_PATH, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + currentToken,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      httpStatus = res.status;
+      raw = await res.text();
+      try{ bodyJson = raw ? JSON.parse(raw) : null; }catch(e){ bodyJson = null; }
+    }catch(e){
+      networkErr = e;
+    }finally{
+      clearTimeout(timer);
+    }
+
+    btn.disabled = false;
+    sel.disabled = false;
+    clear(status);
+
+    renderResult(httpStatus, bodyJson, raw, networkErr, payload);
+
+    // Refresh log so the new row shows immediately (AC-S6D-G)
+    try{ await loadRecentLog(); }catch(e){}
+  }
+
+  function wireRun(){
+    $('run-btn').addEventListener('click', runOrchestrator);
+  }
+
+  /* ─────────────────────────────────────────────
+     RESULT RENDERING
+     ───────────────────────────────────────────── */
+  function renderResult(httpStatus, body, raw, networkErr, payload){
+    var panel = $('result-panel');
+    var rb = $('result-body');
+    panel.classList.remove('hidden');
+    clear(rb);
+
+    // ─── Network / timeout / abort ───
+    if(networkErr){
+      var isTimeout = networkErr && (networkErr.name === 'AbortError');
+      rb.appendChild(banner('error', 'ERROR', isTimeout
+        ? 'Orchestrator did not respond within 5 minutes.'
+        : 'Network error contacting orchestrator.'));
+      var d = el('div', { class:'result-error-detail' }, isTimeout
+        ? 'The Edge Function timed out client-side. The server-side invocation may still complete; check the Recent invocations log in a minute, then retry only if the row does not appear.'
+        : ('Detail: ' + (networkErr.message || String(networkErr))));
+      rb.appendChild(d);
+      return;
+    }
+
+    // ─── HTTP code routing per brief §2.3 + §2.8 ───
+    if(httpStatus === 401){
+      rb.appendChild(banner('error', 'AUTH', 'Session expired. Redirecting to login…'));
+      setTimeout(redirectLogin, 1500);
+      return;
+    }
+
+    if(httpStatus === 403){
+      rb.appendChild(banner('error', 'FORBIDDEN', 'Director-only endpoint. The orchestrator rejected this caller at the gateway.'));
+      var sob = el('button', { class:'btn-link' }, 'Sign out and switch account');
+      sob.addEventListener('click', async function(){
+        try{ await sb.auth.signOut(); }catch(e){}
+        window.location.replace('/login/');
+      });
+      var wrap = el('div', { style:'margin-top:14px' });
+      wrap.appendChild(sob);
+      rb.appendChild(wrap);
+      return;
+    }
+
+    if(httpStatus === 404){
+      // Brief §2.8: 404 may mean counterparty_short_code not found OR no operative templates match
+      var detail = (body && (body.detail || body.error || body.message)) || raw || '';
+      var msg = 'Not found.';
+      if(/template/i.test(String(detail))){
+        msg = 'No operative templates match the requested template_keys. Verify template_pack status.';
+      } else if(/counterparty/i.test(String(detail)) || /short_code/i.test(String(detail))){
+        msg = 'counterparty_short_code not found. Try refreshing the counterparty list.';
+      }
+      rb.appendChild(banner('error', '404', msg));
+      if(detail) rb.appendChild(el('div', { class:'result-error-detail' }, 'Detail: ' + String(detail).slice(0, 2000)));
+      return;
+    }
+
+    if(httpStatus === 412){
+      var d412 = (body && (body.detail || body.error || body.message)) || 'Pre-condition failed.';
+      rb.appendChild(banner('error', '412', 'Counterparty profile is missing CLID. Resolve in Supabase Studio first.'));
+      rb.appendChild(el('div', { class:'result-error-detail' }, 'Detail: ' + String(d412).slice(0, 2000)));
+      return;
+    }
+
+    if(httpStatus === 500 || httpStatus === 502 || httpStatus === 503 || httpStatus === 504){
+      var d5 = (body && (body.detail || body.error || body.message)) || raw || ('HTTP ' + httpStatus);
+      rb.appendChild(banner('error', 'HTTP ' + httpStatus, 'Infrastructure error.'));
+      rb.appendChild(el('div', { class:'result-error-detail' }, 'Detail: ' + String(d5).slice(0, 4000)));
+      var retry = el('button', { class:'btn-run', style:'margin-top:12px' }, 'Retry');
+      retry.addEventListener('click', runOrchestrator);
+      rb.appendChild(retry);
+      return;
+    }
+
+    if(httpStatus !== 200 && httpStatus !== 207){
+      var dx = (body && (body.detail || body.error || body.message)) || raw || ('HTTP ' + httpStatus);
+      rb.appendChild(banner('error', 'HTTP ' + httpStatus, 'Unexpected response.'));
+      rb.appendChild(el('div', { class:'result-error-detail' }, 'Detail: ' + String(dx).slice(0, 4000)));
+      return;
+    }
+
+    // ─── PASS / PARTIAL (200 / 207) ───
+    body = body || {};
+    var partial = (httpStatus === 207);
+    var templates = Array.isArray(body.templates) ? body.templates
+                  : Array.isArray(body.results) ? body.results
+                  : Array.isArray(body.template_results) ? body.template_results : [];
+    var processed = (body.templates_processed != null) ? body.templates_processed : templates.length;
+    var withErrors = (body.templates_with_errors != null) ? body.templates_with_errors :
+                     templates.filter(function(t){ return t && t.error; }).length;
+    var envelopeAction = body.envelope_action || (body.envelope && body.envelope.action) || '—';
+    var auditLogged = (body.audit_logged != null) ? !!body.audit_logged :
+                      (body.audit && body.audit.logged === true);
+
+    if(partial || withErrors > 0){
+      rb.appendChild(banner('partial', 'PARTIAL', 'One or more templates errored.'));
+    } else {
+      rb.appendChild(banner('pass', 'PASS', 'All templates processed without error.'));
+    }
+
+    rb.appendChild(el('div', { class:'result-summary' },
+      'Processed ' + processed + ' template' + (processed===1?'':'s') +
+      ' · ' + withErrors + ' with errors' +
+      ' · Envelope: ' + envelopeAction
+    ));
+
+    // ─── Brief §2.8: BDR envelope skip note ───
+    if(payload.compute_bdr_envelope && envelopeAction === 'skipped_non_bdr'){
+      rb.appendChild(el('div', { class:'result-info-note' },
+        'compute_bdr_envelope was requested, but this counterparty is not in the BDR pricing cohort. No envelope was written.'));
+    }
+
+    // ─── Template results table ───
+    if(templates.length > 0){
+      var wrap = el('div', { class:'tbl-wrap' });
+      var tbl = el('table');
+      var thead = el('thead');
+      var hr = el('tr');
+      ['template_key','action','rendered_doc_code','catalog_doc_code','storage_path','file_size','error'].forEach(function(h){
+        hr.appendChild(el('th', null, h));
+      });
+      thead.appendChild(hr);
+      tbl.appendChild(thead);
+      var tbody = el('tbody');
+      templates.forEach(function(t){
+        t = t || {};
+        var hasErr = !!t.error;
+        var tr = el('tr', hasErr ? { class:'row-error' } : null);
+        tr.appendChild(el('td', null, t.template_key || '—'));
+        tr.appendChild(el('td', null, t.action || '—'));
+        tr.appendChild(el('td', null, t.rendered_doc_code || '—'));
+        tr.appendChild(el('td', null, t.catalog_doc_code || '—'));
+        var spTd = el('td', { class:'mono-dim', title: t.storage_path || '' }, lastSeg(t.storage_path));
+        tr.appendChild(spTd);
+        tr.appendChild(el('td', null, fmtBytes(t.file_size_bytes)));
+        var errTd = el('td', hasErr ? { class:'err' } : { class:'mono-dim' }, hasErr ? String(t.error) : '—');
+        tr.appendChild(errTd);
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      wrap.appendChild(tbl);
+      rb.appendChild(wrap);
+    } else {
+      rb.appendChild(el('div', { class:'result-summary' }, 'No per-template result rows returned.'));
+    }
+
+    // ─── Audit footer ───
+    var footer = el('div', { class:'result-footer' });
+    if(auditLogged){
+      footer.appendChild(el('span', { class:'ok' }, '✓ audit_logged'));
+    } else {
+      footer.appendChild(el('span', { class:'bad' }, '✗ audit_logged — see logs'));
+    }
+    rb.appendChild(footer);
+  }
+
+  function banner(kind, badge, text){
+    var b = el('div', { class:'result-banner ' + kind });
+    b.appendChild(el('span', { class:'badge' }, badge));
+    b.appendChild(el('span', null, text));
+    return b;
+  }
+
+  /* ─────────────────────────────────────────────
+     BOOTSTRAP
+     ───────────────────────────────────────────── */
+  async function bootstrap(){
+    wireSignOut();
+    wireSelector();
+    wireRun();
+    await loadCounterparties();
+    await loadRecentLog();
+  }
+
+  // Kick off the auth gate
+  gate();
+  </script>
+
+</body>
+</html>
