@@ -128,6 +128,12 @@
     td.mono-dim{color:var(--text-muted)}
     td.truncate{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+    /* ─── Per-row preview button (cyan info colour) ─── */
+    .btn-preview{padding:4px 10px;border:1px solid var(--cyan);background:var(--cyan-dim);color:var(--cyan);font-family:var(--font-mono);font-size:0.7rem;font-weight:500;border-radius:4px;cursor:pointer;letter-spacing:0.04em;transition:background 0.15s}
+    .btn-preview:hover:not(:disabled){background:rgba(14,165,233,0.28)}
+    .btn-preview:disabled{opacity:0.35;cursor:not-allowed;border-color:var(--border-default);background:transparent;color:var(--text-muted)}
+    .preview-err{display:block;color:var(--red);font-family:var(--font-mono);font-size:0.66rem;margin-top:4px;max-width:220px;word-break:break-word}
+
     .log-meta{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-top:10px;text-align:right}
 
     /* ─── Wrong user ─── */
@@ -439,8 +445,8 @@
     var body = $('log-body');
     var resp = await sb
       .from('counterparty_auto_population_log')
-      .select('counterparty_short_code,trigger_event,created_at,amd_authority,notes')
-      .order('created_at', { ascending: false })
+      .select('counterparty_short_code,trigger_event,fired_at,amd_authority,notes')
+      .order('fired_at', { ascending: false })
       .limit(10);
 
     clear(body);
@@ -462,7 +468,7 @@
     var tbl = el('table');
     var thead = el('thead');
     var hr = el('tr');
-    ['counterparty_short_code','trigger_event','created_at','amd_authority','notes'].forEach(function(h){
+    ['counterparty_short_code','trigger_event','fired_at','amd_authority','notes'].forEach(function(h){
       hr.appendChild(el('th', null, h));
     });
     thead.appendChild(hr);
@@ -472,7 +478,7 @@
       var tr = el('tr');
       tr.appendChild(el('td', null, r.counterparty_short_code || '—'));
       tr.appendChild(el('td', null, r.trigger_event || '—'));
-      tr.appendChild(el('td', null, fmtTs(r.created_at)));
+      tr.appendChild(el('td', null, fmtTs(r.fired_at)));
       tr.appendChild(el('td', null, r.amd_authority || '—'));
       var notesTd = el('td', { class:'truncate', title: r.notes || '' }, r.notes || '—');
       tr.appendChild(notesTd);
@@ -684,7 +690,7 @@
       var tbl = el('table');
       var thead = el('thead');
       var hr = el('tr');
-      ['template_key','action','rendered_doc_code','catalog_doc_code','storage_path','file_size','error'].forEach(function(h){
+      ['template_key','action','rendered_doc_code','catalog_doc_code','storage_path','file_size','preview','error'].forEach(function(h){
         hr.appendChild(el('th', null, h));
       });
       thead.appendChild(hr);
@@ -701,6 +707,8 @@
         var spTd = el('td', { class:'mono-dim', title: t.storage_path || '' }, lastSeg(t.storage_path));
         tr.appendChild(spTd);
         tr.appendChild(el('td', null, fmtBytes(t.file_size_bytes)));
+        tr.appendChild(el('td', null));
+        renderPreviewCell(tr.lastChild, t.storage_path);
         var errTd = el('td', hasErr ? { class:'err' } : { class:'mono-dim' }, hasErr ? String(t.error) : '—');
         tr.appendChild(errTd);
         tbody.appendChild(tr);
@@ -727,6 +735,48 @@
     b.appendChild(el('span', { class:'badge' }, badge));
     b.appendChild(el('span', null, text));
     return b;
+  }
+
+  // Per-row PDF preview cell (AMD-145-AM-002 §3.5.2' forward extension).
+  // Signed URL TTL: 60s — short-lived per Director anonymity doctrine.
+  function renderPreviewCell(td, storagePath){
+    var btn = el('button', { class:'btn-preview', type:'button' }, 'View PDF');
+    if(!storagePath){
+      btn.disabled = true;
+      btn.title = 'No storage_path for this row';
+      td.appendChild(btn);
+      return;
+    }
+    btn.addEventListener('click', async function(){
+      var prevText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Signing…';
+      // Clear any prior error message in this cell
+      var oldErr = td.querySelector('.preview-err');
+      if(oldErr) td.removeChild(oldErr);
+      try{
+        var resp = await sb.storage.from('dealroom-documents').createSignedUrl(storagePath, 60);
+        if(resp && resp.error){
+          showPreviewError(td, resp.error.message || 'createSignedUrl failed');
+        } else if(resp && resp.data && resp.data.signedUrl){
+          window.open(resp.data.signedUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          showPreviewError(td, 'No signed URL returned');
+        }
+      }catch(e){
+        showPreviewError(td, (e && e.message) || String(e));
+      }finally{
+        btn.disabled = false;
+        btn.textContent = prevText;
+      }
+    });
+    td.appendChild(btn);
+  }
+
+  function showPreviewError(td, msg){
+    var prior = td.querySelector('.preview-err');
+    if(prior) td.removeChild(prior);
+    td.appendChild(el('span', { class:'preview-err' }, msg));
   }
 
   /* ─────────────────────────────────────────────
