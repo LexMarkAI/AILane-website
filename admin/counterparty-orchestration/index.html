@@ -6,14 +6,8 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Counterparty Orchestration &mdash; Ailane Admin</title>
 
-  <!-- Supabase CDN FIRST (protected page) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <!--
-    CSP — tightened for /admin/ per S6-D brief §3:
-    no GA4, no Stripe, no cdnjs. Only Supabase + Google Fonts.
-    The standard ailane.ai CSP is in CLAUDE.md; this is the admin-locked subset.
-  -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,14 +45,12 @@
     html{font-size:15px;-webkit-font-smoothing:antialiased}
     body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-body);min-height:100vh}
 
-    /* ─── Auth gate (visible until reveal) ─── */
     #auth-gate{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg-base);z-index:9999}
     #auth-gate .brand{font-family:var(--font-display);font-weight:800;letter-spacing:0.15em;color:var(--gold);font-size:1.1rem}
     #auth-gate .spinner{width:36px;height:36px;border:2px solid var(--gold-dim);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
     #auth-gate .msg{color:var(--text-muted);font-size:0.8rem;font-family:var(--font-mono)}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* ─── Top bar ─── */
     .top-bar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border-subtle);background:rgba(10,10,10,0.85);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
     .top-bar-left{display:flex;align-items:center;gap:16px}
     .brand-mark{font-family:var(--font-display);font-weight:800;font-size:1rem;letter-spacing:0.12em}
@@ -70,7 +62,6 @@
     .btn-link{padding:7px 12px;border:1px solid var(--border-default);background:transparent;color:var(--text-secondary);font-family:var(--font-body);font-size:0.78rem;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
     .btn-link:hover{border-color:var(--border-strong);color:var(--text-primary)}
 
-    /* ─── Layout ─── */
     .container{max-width:1100px;margin:0 auto;padding:32px 28px 80px}
     .page-header{margin-bottom:28px}
     .page-header h1{font-family:var(--font-display);font-weight:700;font-size:1.5rem;color:var(--text-primary);letter-spacing:-0.01em}
@@ -78,15 +69,16 @@
     .page-header .authority{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-top:8px;letter-spacing:0.04em}
 
     .panel{background:var(--bg-panel);border:1px solid var(--border-subtle);border-radius:10px;padding:22px;margin-bottom:18px}
-    .panel-title{font-family:var(--font-display);font-size:0.78rem;font-weight:600;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px}
+    .panel-title{font-family:var(--font-display);font-size:0.78rem;font-weight:600;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .panel-title .count-pill{font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);background:var(--bg-input);border:1px solid var(--border-default);border-radius:10px;padding:2px 8px;letter-spacing:0.06em;text-transform:none}
 
-    /* ─── Form controls ─── */
     .field{margin-bottom:14px}
     .field-label{display:block;font-family:var(--font-body);font-size:0.78rem;color:var(--text-secondary);margin-bottom:6px;font-weight:500}
     .field-hint{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);margin-top:4px;line-height:1.5}
-    select,input[type="text"]{width:100%;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);font-family:var(--font-body);font-size:0.85rem;outline:none;transition:border-color 0.15s}
-    select:focus,input[type="text"]:focus{border-color:var(--gold-strong)}
+    select,input[type="text"],textarea{width:100%;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);font-family:var(--font-body);font-size:0.85rem;outline:none;transition:border-color 0.15s}
+    select:focus,input[type="text"]:focus,textarea:focus{border-color:var(--gold-strong)}
     select option{background:var(--bg-input);color:var(--text-primary)}
+    textarea{resize:vertical;min-height:80px;font-family:var(--font-mono);font-size:0.8rem}
 
     .checkbox-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0}
     .checkbox-row input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1px solid var(--border-strong);border-radius:3px;background:var(--bg-input);cursor:pointer;position:relative;flex-shrink:0;margin-top:2px}
@@ -95,7 +87,6 @@
     .checkbox-label{font-family:var(--font-body);font-size:0.84rem;color:var(--text-primary);cursor:pointer;line-height:1.4}
     .checkbox-sub{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-top:3px;line-height:1.5}
 
-    /* ─── Run button ─── */
     .run-row{display:flex;align-items:center;gap:14px;margin-top:18px;padding-top:18px;border-top:1px solid var(--border-subtle)}
     .btn-run{padding:11px 22px;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:var(--font-body);font-size:0.88rem;font-weight:600;cursor:pointer;letter-spacing:0.02em;transition:opacity 0.15s,transform 0.05s;display:inline-flex;align-items:center;gap:8px}
     .btn-run:hover:not(:disabled){opacity:0.9}
@@ -104,7 +95,6 @@
     .run-status{font-family:var(--font-mono);font-size:0.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:8px}
     .run-status .spinner-small{width:14px;height:14px;border:2px solid var(--gold-dim);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite}
 
-    /* ─── Result panel ─── */
     .result-banner{padding:14px 18px;border-radius:6px;margin-bottom:16px;font-family:var(--font-body);font-size:0.9rem;display:flex;align-items:center;gap:12px;font-weight:500}
     .result-banner.pass{background:var(--green-dim);border:1px solid var(--green);color:var(--green)}
     .result-banner.partial{background:rgba(245,158,11,0.08);border:1px solid var(--gold);color:var(--gold)}
@@ -117,7 +107,6 @@
     .result-footer .ok{color:var(--green)}
     .result-footer .bad{color:var(--red)}
 
-    /* ─── Tables ─── */
     .tbl-wrap{overflow-x:auto;border:1px solid var(--border-subtle);border-radius:6px}
     table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:0.74rem}
     th{text-align:left;padding:10px 12px;background:var(--bg-elevated);color:var(--text-secondary);font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:0.66rem;border-bottom:1px solid var(--border-default);white-space:nowrap}
@@ -128,13 +117,38 @@
     td.mono-dim{color:var(--text-muted)}
     td.truncate{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* ─── Per-row preview button (cyan info colour) ─── */
     .btn-preview{padding:4px 10px;border:1px solid var(--cyan);background:var(--cyan-dim);color:var(--cyan);font-family:var(--font-mono);font-size:0.7rem;font-weight:500;border-radius:4px;cursor:pointer;letter-spacing:0.04em;transition:background 0.15s}
     .btn-preview:hover:not(:disabled){background:rgba(14,165,233,0.28)}
     .btn-preview:disabled{opacity:0.35;cursor:not-allowed;border-color:var(--border-default);background:transparent;color:var(--text-muted)}
     .preview-err{display:block;color:var(--red);font-family:var(--font-mono);font-size:0.66rem;margin-top:4px;max-width:220px;word-break:break-word}
 
+    /* ─── Release Gate buttons (gold = released; muted = pending) ─── */
+    .btn-release{padding:4px 10px;border:1px solid var(--gold);background:var(--gold-dim);color:var(--gold);font-family:var(--font-mono);font-size:0.7rem;font-weight:500;border-radius:4px;cursor:pointer;letter-spacing:0.04em;transition:background 0.15s;white-space:nowrap}
+    .btn-release:hover:not(:disabled){background:rgba(245,158,11,0.28)}
+    .btn-release:disabled{opacity:0.4;cursor:not-allowed}
+    .pill-released{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--green);background:var(--green-dim);color:var(--green);font-family:var(--font-mono);font-size:0.65rem;font-weight:500;border-radius:10px;letter-spacing:0.04em}
+    .pill-pending{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--border-default);background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-size:0.65rem;font-weight:500;border-radius:10px;letter-spacing:0.04em}
+
     .log-meta{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-top:10px;text-align:right}
+
+    /* ─── Workspace header (counterparty key facts) ─── */
+    .ws-header-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-top:6px}
+    .ws-cell{padding:12px 14px;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:6px}
+    .ws-cell-label{font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px}
+    .ws-cell-value{font-family:var(--font-body);font-size:0.9rem;color:var(--text-primary);font-weight:500;line-height:1.3;word-break:break-word}
+    .ws-cell-value.mono{font-family:var(--font-mono);font-size:0.78rem}
+    .ws-cell-value .sub{display:block;font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);margin-top:3px;font-weight:400}
+
+    /* ─── Panel empty state ─── */
+    .ws-empty{font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);padding:14px;text-align:center;border:1px dashed var(--border-subtle);border-radius:6px}
+
+    /* ─── Notes textarea + save row ─── */
+    .ws-notes-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;max-height:300px;overflow-y:auto}
+    .ws-note{padding:10px 12px;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:6px}
+    .ws-note-meta{font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);letter-spacing:0.04em;margin-bottom:4px}
+    .ws-note-body{font-family:var(--font-body);font-size:0.84rem;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;word-break:break-word}
+    .ws-notes-input-row{display:flex;flex-direction:column;gap:8px}
+    .ws-notes-input-row .row-actions{display:flex;justify-content:flex-end;gap:10px}
 
     /* ─── Wrong user ─── */
     #wrong-user-panel{display:none;max-width:480px;margin:80px auto;text-align:center;padding:32px}
@@ -143,7 +157,6 @@
 
     .hidden{display:none !important}
 
-    /* ─── Anchor for keyboard users / accessibility on long log ─── */
     a.inline-link{color:var(--cyan);text-decoration:none}
     a.inline-link:hover{text-decoration:underline}
   </style>
@@ -172,7 +185,7 @@
       <div class="top-bar-left">
         <div class="brand-mark">AI<span>LANE</span></div>
         <div class="brand-divider"></div>
-        <div class="brand-sub">Admin &middot; Counterparty Orchestration</div>
+        <div class="brand-sub">Admin &middot; Counterparty Operations</div>
       </div>
       <div class="top-bar-right">
         <div class="user-pill" id="user-pill">&mdash;</div>
@@ -184,14 +197,14 @@
     <div class="container">
 
       <div class="page-header">
-        <h1>Counterparty Orchestration &mdash; Document Population</h1>
-        <div class="sub">Materialise rendered documents for a counterparty workspace per AMD-145 &sect;3.3.</div>
-        <div class="authority">Authority: AMD-145-AM-002 &sect;3.5.1' &middot; AMD-146 &sect;11 next-action 5 &middot; Director-only</div>
+        <h1>Counterparty Operations Centre</h1>
+        <div class="sub">Per-counterparty workspace, orchestrator dispatch, and audit trail.</div>
+        <div class="authority">Authority: AMD-145 &middot; AMD-146 &middot; AMD-145-AM-002 &sect;3.5.1'</div>
       </div>
 
-      <!-- ─── Selector + options panel ─── -->
+      <!-- ─── Counterparty selector + dispatch options ─── -->
       <div class="panel">
-        <div class="panel-title">Dispatch parameters</div>
+        <div class="panel-title">Select counterparty</div>
 
         <div class="field">
           <label class="field-label" for="cp-select">Counterparty</label>
@@ -202,6 +215,9 @@
         </div>
 
         <div id="options-panel" class="hidden">
+          <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:8px;margin-bottom:8px">
+            <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">Orchestrator dispatch</div>
+          </div>
           <div class="checkbox-row">
             <input type="checkbox" id="opt-bdr">
             <label class="checkbox-label" for="opt-bdr">
@@ -231,15 +247,66 @@
         </div>
       </div>
 
-      <!-- ─── Result panel ─── -->
+      <!-- ─── Workspace header (counterparty key facts) ─── -->
+      <div class="panel hidden" id="ws-header-panel">
+        <div class="panel-title">
+          <span id="ws-header-name">Workspace</span>
+          <span class="count-pill" id="ws-header-phase">&mdash;</span>
+        </div>
+        <div class="ws-header-grid" id="ws-header-grid"></div>
+      </div>
+
+      <!-- ─── Documents Released (with Release Gate) ─── -->
+      <div class="panel hidden" id="ws-released-panel">
+        <div class="panel-title">
+          Documents Released to Counterparty
+          <span class="count-pill" id="ws-released-count">&mdash;</span>
+        </div>
+        <div id="ws-released-body"><div class="ws-empty">Loading&hellip;</div></div>
+      </div>
+
+      <!-- ─── Documents Received from Counterparty ─── -->
+      <div class="panel hidden" id="ws-received-panel">
+        <div class="panel-title">
+          Documents Received from Counterparty
+          <span class="count-pill" id="ws-received-count">&mdash;</span>
+        </div>
+        <div id="ws-received-body"><div class="ws-empty">Loading&hellip;</div></div>
+      </div>
+
+      <!-- ─── Proposals & FCRs ─── -->
+      <div class="panel hidden" id="ws-proposals-panel">
+        <div class="panel-title">
+          Counter-Proposals &amp; FCRs
+          <span class="count-pill" id="ws-proposals-count">&mdash;</span>
+        </div>
+        <div id="ws-proposals-body"><div class="ws-empty">Loading&hellip;</div></div>
+      </div>
+
+      <!-- ─── Director's Engagement Notes ─── -->
+      <div class="panel hidden" id="ws-notes-panel">
+        <div class="panel-title">
+          Engagement Notes (Director-only)
+          <span class="count-pill" id="ws-notes-count">&mdash;</span>
+        </div>
+        <div id="ws-notes-list" class="ws-notes-list"></div>
+        <div class="ws-notes-input-row">
+          <textarea id="ws-notes-input" placeholder="Add a note about this counterparty&hellip;"></textarea>
+          <div class="row-actions">
+            <button class="btn-run" id="ws-notes-save" style="padding:8px 16px;font-size:0.78rem" disabled>Save Note</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Orchestrator Invocation Result ─── -->
       <div class="panel hidden" id="result-panel">
-        <div class="panel-title">Invocation result</div>
+        <div class="panel-title">Last orchestrator invocation</div>
         <div id="result-body"></div>
       </div>
 
-      <!-- ─── Recent invocations log ─── -->
+      <!-- ─── Recent invocations log (last 10 across all counterparties) ─── -->
       <div class="panel">
-        <div class="panel-title">Recent invocations (last 10)</div>
+        <div class="panel-title">Recent orchestrator invocations (last 10)</div>
         <div id="log-body">
           <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted)">Loading&hellip;</div>
         </div>
@@ -259,13 +326,16 @@
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   var DIRECTOR_EMAIL = 'mark@ailane.ai';
   var EF_PATH = '/functions/v1/populate-counterparty-documents';
-  var EF_TIMEOUT_MS = 300000; // 5-minute synchronous wait per brief §2.7
-  var DISPATCHER_SOURCE = 'frontend_dispatcher_v1_amd_146_s6d';
+  var DEALROOM_SIGN_EF = '/functions/v1/dealroom-document-sign';
+  var EF_TIMEOUT_MS = 300000;
+  var DISPATCHER_SOURCE = 'frontend_dispatcher_v2_per_cp_workspace';
   var ADMIN_RETURN = '/admin/counterparty-orchestration/';
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var session = null;
   var currentToken = null;
+  var currentDirectorEmail = null;
+  var currentCounterparty = null; // {short_code, legal_name, clid, ...}
 
   /* ─────────────────────────────────────────────
      UTILITIES
@@ -303,15 +373,45 @@
     if(isNaN(d.getTime())) return String(iso);
     return d.toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
   }
+  function fmtTsShort(iso){
+    if(!iso) return '—';
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  function fmtPence(p){
+    if(p == null || isNaN(Number(p))) return '—';
+    var v = Number(p) / 100;
+    return '£' + v.toLocaleString('en-GB', { maximumFractionDigits: 0 });
+  }
   function decodeEmailFromJwt(token){
     try{
       var p = JSON.parse(atob(token.split('.')[1]));
       return p && p.email ? String(p.email).toLowerCase() : null;
     }catch(e){ return null; }
   }
+  function phaseLabel(g){
+    var m = {
+      pre_engagement: 'Phase 0 — Pre-engagement',
+      A: 'Phase A — NDA executed',
+      B: 'Phase B — Pilot SOW',
+      C: 'Phase C — Pilot delivery',
+      D: 'Phase D — MCA executed',
+      E: 'Phase E — Operational launch',
+      F: 'Phase F — Steady state'
+    };
+    return m[g] || g || '—';
+  }
+  function dispatchLabel(d){
+    var m = {
+      branch_1_published: 'Published Schedule',
+      branch_2_bdr: 'Bespoke Dispatch (BDR)'
+    };
+    return m[d] || d || '—';
+  }
 
   /* ─────────────────────────────────────────────
-     AUTH GATE (CLAUDE.md guard pattern)
+     AUTH GATE
      ───────────────────────────────────────────── */
   function showApp(){
     $('auth-gate').classList.add('hidden');
@@ -327,8 +427,6 @@
     window.location.replace('/login/?returnTo=' + encodeURIComponent(ADMIN_RETURN));
   }
   function redirectHome(){
-    // Brief AC-S6D-B: non-Director sees 404 or home redirect.
-    // GitHub Pages can't return 404 client-side; redirect to home is closest.
     window.location.replace('/');
   }
 
@@ -343,7 +441,6 @@
     }catch(e){}
 
     if(!got){
-      // Fallback listener with 6s timeout per CLAUDE.md auth guard pattern
       got = await new Promise(function(resolve){
         var done = false;
         var sub = sb.auth.onAuthStateChange(function(evt, s){
@@ -363,8 +460,6 @@
     if(!email){ redirectLogin(); return; }
 
     if(email !== DIRECTOR_EMAIL){
-      // Per brief §2.1 visibility rule: non-Director sees no nav entry and 404 if direct.
-      // Show a brief notice, then redirect home.
       showWrongUser();
       $('wrong-user-signout').addEventListener('click', async function(){
         try{ await sb.auth.signOut(); }catch(e){}
@@ -374,6 +469,7 @@
       return;
     }
 
+    currentDirectorEmail = email;
     $('user-pill').textContent = email;
     showApp();
     bootstrap();
@@ -392,6 +488,8 @@
   /* ─────────────────────────────────────────────
      COUNTERPARTY LIST
      ───────────────────────────────────────────── */
+  var allCounterparties = []; // cached for selector lookups
+
   async function loadCounterparties(){
     var sel = $('cp-select');
     var hint = $('cp-hint');
@@ -401,7 +499,7 @@
 
     var resp = await sb
       .from('counterparty_profile')
-      .select('counterparty_short_code,counterparty_legal_name,pricing_cohort_family,clid')
+      .select('counterparty_short_code,counterparty_legal_name,counterparty_legal_name_formal,counterparty_legal_name_formal_registration,counterparty_short_name,counterparty_type,pricing_cohort_family,clid,gate_state,primary_identifier_system,dispatch_branch,envelope_floor_pence,envelope_target_pence,envelope_ceiling_pence,envelope_computed_at,envelope_quote_id,exclusivity_appetite,mca_template_variant,pilot_fee_amount_pence,geographic_scope')
       .order('counterparty_short_code', { ascending: true });
 
     if(resp.error){
@@ -413,6 +511,7 @@
     }
 
     var rows = (resp.data || []).filter(function(r){ return r && r.clid; });
+    allCounterparties = rows;
 
     clear(sel);
     sel.appendChild(el('option', { value:'' }, 'Select a counterparty…'));
@@ -429,17 +528,398 @@
 
   function wireSelector(){
     var sel = $('cp-select');
-    sel.addEventListener('change', function(){
-      var has = !!sel.value;
+    sel.addEventListener('change', async function(){
+      var v = sel.value;
       var opts = $('options-panel');
       var btn = $('run-btn');
-      if(has){ opts.classList.remove('hidden'); btn.disabled = false; }
-      else{ opts.classList.add('hidden'); btn.disabled = true; }
+
+      if(!v){
+        opts.classList.add('hidden');
+        btn.disabled = true;
+        currentCounterparty = null;
+        hideWorkspace();
+        return;
+      }
+
+      opts.classList.remove('hidden');
+      btn.disabled = false;
+      var match = allCounterparties.find(function(r){ return r.counterparty_short_code === v; });
+      currentCounterparty = match || null;
+      await loadWorkspace(v);
     });
   }
 
   /* ─────────────────────────────────────────────
-     RECENT LOG
+     WORKSPACE — show/hide
+     ───────────────────────────────────────────── */
+  function hideWorkspace(){
+    ['ws-header-panel','ws-released-panel','ws-received-panel','ws-proposals-panel','ws-notes-panel'].forEach(function(id){
+      $(id).classList.add('hidden');
+    });
+  }
+  function showWorkspace(){
+    ['ws-header-panel','ws-released-panel','ws-received-panel','ws-proposals-panel','ws-notes-panel'].forEach(function(id){
+      $(id).classList.remove('hidden');
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     WORKSPACE — load all five panels in parallel
+     ───────────────────────────────────────────── */
+  async function loadWorkspace(shortCode){
+    if(!currentCounterparty){ return; }
+    showWorkspace();
+    renderWorkspaceHeader(currentCounterparty);
+
+    // Parallel loads — each renders into its own panel
+    await Promise.all([
+      loadDocumentsReleased(currentCounterparty.clid),
+      loadDocumentsReceived(currentCounterparty.clid),
+      loadProposalsAndFcrs(currentCounterparty.clid),
+      loadEngagementNotes(currentCounterparty.clid)
+    ]);
+  }
+
+  /* ─────────────────────────────────────────────
+     WORKSPACE — Header (key facts)
+     ───────────────────────────────────────────── */
+  function renderWorkspaceHeader(cp){
+    $('ws-header-name').textContent = cp.counterparty_short_code + ' — ' + (cp.counterparty_legal_name || '(no name)');
+    $('ws-header-phase').textContent = phaseLabel(cp.gate_state);
+
+    var grid = $('ws-header-grid');
+    clear(grid);
+
+    function cell(label, value, sub, mono){
+      var c = el('div', { class:'ws-cell' });
+      c.appendChild(el('div', { class:'ws-cell-label' }, label));
+      var v = el('div', { class:'ws-cell-value' + (mono?' mono':'') });
+      v.appendChild(document.createTextNode(value || '—'));
+      if(sub){
+        var s = el('span', { class:'sub' }, sub);
+        v.appendChild(s);
+      }
+      c.appendChild(v);
+      grid.appendChild(c);
+    }
+
+    cell('Contracting entity', cp.counterparty_legal_name_formal || cp.counterparty_legal_name, cp.counterparty_legal_name_formal_registration || '');
+    cell('CLID', cp.clid, '', true);
+    cell('Type', cp.counterparty_type, '', false);
+    cell('Identifier', cp.primary_identifier_system, '', true);
+    cell('Pricing cohort', cp.pricing_cohort_family, '', true);
+    cell('Dispatch branch', dispatchLabel(cp.dispatch_branch), '', false);
+    cell('Geographic scope', cp.geographic_scope || '—', '', true);
+    cell('Exclusivity', cp.exclusivity_appetite || 'none', '', false);
+    cell('MCA variant', cp.mca_template_variant || 'standard', '', false);
+
+    if(cp.envelope_target_pence != null){
+      cell('Envelope (F / T / C)',
+        fmtPence(cp.envelope_floor_pence) + ' / ' + fmtPence(cp.envelope_target_pence) + ' / ' + fmtPence(cp.envelope_ceiling_pence),
+        cp.envelope_computed_at ? 'Computed ' + fmtTsShort(cp.envelope_computed_at) : '');
+    } else if(cp.pilot_fee_amount_pence != null){
+      cell('Pilot fee', fmtPence(cp.pilot_fee_amount_pence), '');
+    } else {
+      cell('Pricing', 'Static (package bands)', '');
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     WORKSPACE — Documents Released (with Release Gate)
+     ───────────────────────────────────────────── */
+  async function loadDocumentsReleased(clid){
+    var body = $('ws-released-body');
+    var countPill = $('ws-released-count');
+    clear(body);
+    countPill.textContent = '—';
+
+    var resp = await sb
+      .from('dealroom_documents_catalog')
+      .select('document_id,doc_code,name,kind,phase,template_key,version_label,storage_path,file_size_bytes,director_approved_at,director_approved_by,director_approval_notes,is_blocking_phase_advance,updated_at')
+      .eq('clid', clid)
+      .eq('kind', 'release')
+      .is('deleted_at', null)
+      .order('phase', { ascending: true })
+      .order('display_order', { ascending: true });
+
+    if(resp.error){
+      body.appendChild(el('div', { class:'result-error-detail' }, 'Failed to load released documents: ' + (resp.error.message || 'unknown')));
+      return;
+    }
+
+    var rows = resp.data || [];
+    countPill.textContent = rows.length + ' doc' + (rows.length===1?'':'s');
+
+    if(rows.length === 0){
+      body.appendChild(el('div', { class:'ws-empty' }, 'No documents released to this counterparty yet. Run the orchestrator above to populate.'));
+      return;
+    }
+
+    var wrap = el('div', { class:'tbl-wrap' });
+    var tbl = el('table');
+    var thead = el('thead');
+    var hr = el('tr');
+    ['doc_code','name','phase','version','size','release status','preview','release action'].forEach(function(h){
+      hr.appendChild(el('th', null, h));
+    });
+    thead.appendChild(hr);
+    tbl.appendChild(thead);
+    var tbody = el('tbody');
+
+    rows.forEach(function(r){
+      var tr = el('tr');
+      tr.appendChild(el('td', null, r.doc_code || '—'));
+      tr.appendChild(el('td', { class:'truncate', title: r.name || '' }, r.name || '—'));
+      tr.appendChild(el('td', null, r.phase || '—'));
+      tr.appendChild(el('td', null, r.version_label || '—'));
+      tr.appendChild(el('td', null, fmtBytes(r.file_size_bytes)));
+
+      var statusTd = el('td');
+      if(r.director_approved_at){
+        var pill = el('span', { class:'pill-released', title: 'Released ' + fmtTs(r.director_approved_at) + ' by ' + (r.director_approved_by || '—') }, '● Released');
+        statusTd.appendChild(pill);
+      } else {
+        var pillP = el('span', { class:'pill-pending' }, '○ Pending release');
+        statusTd.appendChild(pillP);
+      }
+      tr.appendChild(statusTd);
+
+      var previewTd = el('td');
+      renderPreviewCell(previewTd, r.storage_path);
+      tr.appendChild(previewTd);
+
+      var actionTd = el('td');
+      if(r.director_approved_at){
+        var btnRevoke = el('button', { class:'btn-link', style:'padding:4px 10px;font-size:0.7rem' }, 'Revoke');
+        btnRevoke.addEventListener('click', function(){ revokeRelease(r.document_id); });
+        actionTd.appendChild(btnRevoke);
+      } else {
+        var btnRel = el('button', { class:'btn-release', type:'button' }, 'Release');
+        btnRel.addEventListener('click', function(){ releaseDocument(r.document_id, r.doc_code); });
+        actionTd.appendChild(btnRel);
+      }
+      tr.appendChild(actionTd);
+
+      tbody.appendChild(tr);
+    });
+
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    body.appendChild(wrap);
+  }
+
+  async function releaseDocument(documentId, docCode){
+    var notes = prompt('Optional release notes for ' + docCode + ' (leave blank for none):', '');
+    if(notes === null) return; // user cancelled
+    var resp = await sb
+      .from('dealroom_documents_catalog')
+      .update({
+        director_approved_at: new Date().toISOString(),
+        director_approved_by: currentDirectorEmail,
+        director_approval_notes: notes || null
+      })
+      .eq('document_id', documentId)
+      .select();
+    if(resp.error){
+      alert('Release failed: ' + (resp.error.message || 'unknown'));
+      return;
+    }
+    if(currentCounterparty) await loadDocumentsReleased(currentCounterparty.clid);
+  }
+
+  async function revokeRelease(documentId){
+    if(!confirm('Revoke release? The counterparty will no longer be able to access this document via release-gated EFs.')) return;
+    var resp = await sb
+      .from('dealroom_documents_catalog')
+      .update({
+        director_approved_at: null,
+        director_approved_by: null,
+        director_approval_notes: null
+      })
+      .eq('document_id', documentId)
+      .select();
+    if(resp.error){
+      alert('Revoke failed: ' + (resp.error.message || 'unknown'));
+      return;
+    }
+    if(currentCounterparty) await loadDocumentsReleased(currentCounterparty.clid);
+  }
+
+  /* ─────────────────────────────────────────────
+     WORKSPACE — Documents Received (counterparty uploads)
+     ───────────────────────────────────────────── */
+  async function loadDocumentsReceived(clid){
+    var body = $('ws-received-body');
+    var countPill = $('ws-received-count');
+    clear(body);
+    countPill.textContent = '—';
+
+    var resp = await sb
+      .from('dealroom_uploads')
+      .select('upload_id,document_id,storage_path,original_filename,file_size_bytes,mime_type,status,review_notes,reviewed_at,reviewed_by_email,created_at,uploaded_by_email')
+      .eq('clid', clid)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if(resp.error){
+      body.appendChild(el('div', { class:'result-error-detail' }, 'Failed to load uploads: ' + (resp.error.message || 'unknown')));
+      return;
+    }
+
+    var rows = resp.data || [];
+    countPill.textContent = rows.length + ' upload' + (rows.length===1?'':'s');
+
+    if(rows.length === 0){
+      body.appendChild(el('div', { class:'ws-empty' }, 'No documents received from this counterparty yet.'));
+      return;
+    }
+
+    var wrap = el('div', { class:'tbl-wrap' });
+    var tbl = el('table');
+    var thead = el('thead');
+    var hr = el('tr');
+    ['filename','size','review status','uploaded by','uploaded at','preview'].forEach(function(h){
+      hr.appendChild(el('th', null, h));
+    });
+    thead.appendChild(hr);
+    tbl.appendChild(thead);
+    var tbody = el('tbody');
+
+    rows.forEach(function(r){
+      var tr = el('tr');
+      tr.appendChild(el('td', { class:'truncate', title: r.original_filename || '' }, r.original_filename || lastSeg(r.storage_path)));
+      tr.appendChild(el('td', null, fmtBytes(r.file_size_bytes)));
+      tr.appendChild(el('td', null, r.status || 'submitted'));
+      tr.appendChild(el('td', { class:'truncate', title: r.uploaded_by_email || '' }, r.uploaded_by_email || '—'));
+      tr.appendChild(el('td', null, fmtTsShort(r.created_at)));
+      var prevTd = el('td');
+      renderPreviewCell(prevTd, r.storage_path);
+      tr.appendChild(prevTd);
+      tbody.appendChild(tr);
+    });
+
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    body.appendChild(wrap);
+  }
+
+  /* ─────────────────────────────────────────────
+     WORKSPACE — Counter-Proposals & FCRs
+     ───────────────────────────────────────────── */
+  async function loadProposalsAndFcrs(clid){
+    var body = $('ws-proposals-body');
+    var countPill = $('ws-proposals-count');
+    clear(body);
+    countPill.textContent = '—';
+
+    var resp = await sb
+      .from('partner_counter_proposals')
+      .select('id,clid,proposal_version,director_response_status,submitted_at,submitted_by_email,config_summary,director_response_text,is_simulation,urgency_flag,estimated_annual_value_min,estimated_annual_value_max')
+      .eq('clid', clid)
+      .order('submitted_at', { ascending: false });
+
+    if(resp.error){
+      body.appendChild(el('div', { class:'result-error-detail' }, 'Failed to load proposals: ' + (resp.error.message || 'unknown')));
+      return;
+    }
+
+    var rows = resp.data || [];
+    countPill.textContent = rows.length + ' proposal' + (rows.length===1?'':'s');
+
+    if(rows.length === 0){
+      body.appendChild(el('div', { class:'ws-empty' }, 'No counter-proposals or FCRs lodged by this counterparty.'));
+      return;
+    }
+
+    var wrap = el('div', { class:'tbl-wrap' });
+    var tbl = el('table');
+    var thead = el('thead');
+    var hr = el('tr');
+    ['kind','version','status','submitted by','submitted at','decision summary'].forEach(function(h){
+      hr.appendChild(el('th', null, h));
+    });
+    thead.appendChild(hr);
+    tbl.appendChild(thead);
+    var tbody = el('tbody');
+
+    rows.forEach(function(r){
+      var tr = el('tr');
+      tr.appendChild(el('td', null, r.is_simulation ? 'Simulation' : 'CPPP'));
+      tr.appendChild(el('td', null, r.proposal_version != null ? String(r.proposal_version) : '—'));
+      tr.appendChild(el('td', null, r.director_response_status || 'pending'));
+      tr.appendChild(el('td', { class:'truncate', title: r.submitted_by_email || '' }, r.submitted_by_email || '—'));
+      tr.appendChild(el('td', null, fmtTsShort(r.submitted_at)));
+      var summary = r.director_response_text || r.config_summary || '—';
+      tr.appendChild(el('td', { class:'truncate', title: summary }, summary));
+      tbody.appendChild(tr);
+    });
+
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    body.appendChild(wrap);
+  }
+
+  /* ─────────────────────────────────────────────
+     WORKSPACE — Engagement Notes (Director-only)
+     ───────────────────────────────────────────── */
+  async function loadEngagementNotes(clid){
+    var listEl = $('ws-notes-list');
+    var countPill = $('ws-notes-count');
+    var saveBtn = $('ws-notes-save');
+    var inputEl = $('ws-notes-input');
+    clear(listEl);
+    countPill.textContent = '—';
+
+    var resp = await sb
+      .from('dealroom_notes')
+      .select('id,clid,user_id,note_text,created_at,updated_at')
+      .eq('clid', clid)
+      .order('created_at', { ascending: false });
+
+    if(resp.error){
+      listEl.appendChild(el('div', { class:'result-error-detail' }, 'Failed to load notes: ' + (resp.error.message || 'unknown')));
+      return;
+    }
+
+    var rows = resp.data || [];
+    countPill.textContent = rows.length + ' note' + (rows.length===1?'':'s');
+
+    if(rows.length === 0){
+      listEl.appendChild(el('div', { class:'ws-empty' }, 'No engagement notes yet. Add the first below.'));
+    } else {
+      rows.forEach(function(r){
+        var n = el('div', { class:'ws-note' });
+        var meta = el('div', { class:'ws-note-meta' }, 'Director · ' + fmtTs(r.created_at) + (r.updated_at && r.updated_at !== r.created_at ? ' · edited ' + fmtTs(r.updated_at) : ''));
+        n.appendChild(meta);
+        n.appendChild(el('div', { class:'ws-note-body' }, r.note_text || ''));
+        listEl.appendChild(n);
+      });
+    }
+
+    inputEl.value = '';
+    saveBtn.disabled = false;
+    saveBtn.onclick = async function(){
+      var text = (inputEl.value || '').trim();
+      if(!text){ inputEl.focus(); return; }
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+      var ins = await sb.from('dealroom_notes').insert({
+        clid: clid,
+        note_text: text,
+        user_id: session && session.user ? session.user.id : null
+      }).select();
+      saveBtn.textContent = 'Save Note';
+      if(ins.error){
+        alert('Save failed: ' + (ins.error.message || 'unknown'));
+        saveBtn.disabled = false;
+        return;
+      }
+      await loadEngagementNotes(clid);
+    };
+  }
+
+  /* ─────────────────────────────────────────────
+     RECENT LOG (all counterparties)
      ───────────────────────────────────────────── */
   async function loadRecentLog(){
     var body = $('log-body');
@@ -528,7 +1008,6 @@
       source: DISPATCHER_SOURCE
     };
 
-    // Refresh token in case the session is near expiry — 5-minute wait could span a refresh window
     var fresh = await sb.auth.getSession();
     if(fresh && fresh.data && fresh.data.session) currentToken = fresh.data.session.access_token;
 
@@ -565,8 +1044,11 @@
 
     renderResult(httpStatus, bodyJson, raw, networkErr, payload);
 
-    // Refresh log so the new row shows immediately (AC-S6D-G)
+    // Refresh log + the released-documents panel (new snapshots will appear)
     try{ await loadRecentLog(); }catch(e){}
+    if(currentCounterparty){
+      try{ await loadDocumentsReleased(currentCounterparty.clid); }catch(e){}
+    }
   }
 
   function wireRun(){
@@ -582,7 +1064,6 @@
     panel.classList.remove('hidden');
     clear(rb);
 
-    // ─── Network / timeout / abort ───
     if(networkErr){
       var isTimeout = networkErr && (networkErr.name === 'AbortError');
       rb.appendChild(banner('error', 'ERROR', isTimeout
@@ -595,7 +1076,6 @@
       return;
     }
 
-    // ─── HTTP code routing per brief §2.3 + §2.8 ───
     if(httpStatus === 401){
       rb.appendChild(banner('error', 'AUTH', 'Session expired. Redirecting to login…'));
       setTimeout(redirectLogin, 1500);
@@ -616,7 +1096,6 @@
     }
 
     if(httpStatus === 404){
-      // Brief §2.8: 404 may mean counterparty_short_code not found OR no operative templates match
       var detail = (body && (body.detail || body.error || body.message)) || raw || '';
       var msg = 'Not found.';
       if(/template/i.test(String(detail))){
@@ -653,7 +1132,6 @@
       return;
     }
 
-    // ─── PASS / PARTIAL (200 / 207) ───
     body = body || {};
     var partial = (httpStatus === 207);
     var templates = Array.isArray(body.templates) ? body.templates
@@ -678,13 +1156,11 @@
       ' · Envelope: ' + envelopeAction
     ));
 
-    // ─── Brief §2.8: BDR envelope skip note ───
     if(payload.compute_bdr_envelope && envelopeAction === 'skipped_non_bdr'){
       rb.appendChild(el('div', { class:'result-info-note' },
         'compute_bdr_envelope was requested, but this counterparty is not in the BDR pricing cohort. No envelope was written.'));
     }
 
-    // ─── Template results table ───
     if(templates.length > 0){
       var wrap = el('div', { class:'tbl-wrap' });
       var tbl = el('table');
@@ -720,7 +1196,6 @@
       rb.appendChild(el('div', { class:'result-summary' }, 'No per-template result rows returned.'));
     }
 
-    // ─── Audit footer ───
     var footer = el('div', { class:'result-footer' });
     if(auditLogged){
       footer.appendChild(el('span', { class:'ok' }, '✓ audit_logged'));
@@ -737,8 +1212,6 @@
     return b;
   }
 
-  // Per-row PDF preview cell (AMD-145-AM-002 §3.5.2' forward extension).
-  // Signed URL TTL: 60s — short-lived per Director anonymity doctrine.
   function renderPreviewCell(td, storagePath){
     var btn = el('button', { class:'btn-preview', type:'button' }, 'View PDF');
     if(!storagePath){
@@ -751,27 +1224,16 @@
       var prevText = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Signing…';
-      // Clear any prior error message in this cell
       var oldErr = td.querySelector('.preview-err');
       if(oldErr) td.removeChild(oldErr);
       try{
-        var resp = await sb.functions.invoke('dealroom-document-sign', {
-          body: { storage_path: storagePath, ttl_seconds: 60 }
-        });
+        var resp = await sb.storage.from('dealroom-documents').createSignedUrl(storagePath, 60);
         if(resp && resp.error){
-          var msg = resp.error.message || 'sign request failed';
-          if(resp.error.context && resp.error.context.body){
-            try {
-              var parsedErr = typeof resp.error.context.body === 'string'
-                ? JSON.parse(resp.error.context.body) : resp.error.context.body;
-              if(parsedErr.error) msg = parsedErr.error + (parsedErr.detail ? ': '+parsedErr.detail : '');
-            } catch(_){}
-          }
-          showPreviewError(td, msg);
-        } else if(resp && resp.data && resp.data.signed_url){
-          window.open(resp.data.signed_url, '_blank', 'noopener,noreferrer');
+          showPreviewError(td, resp.error.message || 'createSignedUrl failed');
+        } else if(resp && resp.data && resp.data.signedUrl){
+          window.open(resp.data.signedUrl, '_blank', 'noopener,noreferrer');
         } else {
-          showPreviewError(td, 'No signed_url in response');
+          showPreviewError(td, 'No signed URL returned');
         }
       }catch(e){
         showPreviewError(td, (e && e.message) || String(e));
@@ -800,7 +1262,6 @@
     await loadRecentLog();
   }
 
-  // Kick off the auth gate
   gate();
   </script>
 
