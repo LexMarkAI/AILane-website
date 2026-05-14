@@ -226,6 +226,20 @@
             </label>
           </div>
 
+          <!-- BDR L2 economics inputs — Director-attested per AMD-144 §3.2 STATE B -->
+          <div id="bdr-inputs" class="hidden" style="margin-left:26px;padding:10px 14px;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:6px;margin-bottom:8px">
+            <div class="field" style="margin-bottom:10px">
+              <label class="field-label" for="opt-strategic-value">Strategic value (GBP)</label>
+              <input type="text" id="opt-strategic-value" placeholder="e.g. 500000">
+              <div class="field-hint">Director-attested per AMD-144 STATE B. D&amp;B verified at £500,000 (yields £125k/£225k/£350k envelope).</div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="opt-cif">Competitive intensity factor</label>
+              <input type="text" id="opt-cif" placeholder="1.0 (default)" value="1.0">
+              <div class="field-hint">PRICE-001 v1.1 modifier. 1.0 = standard; raise for high-competition deals.</div>
+            </div>
+          </div>
+
           <div class="checkbox-row">
             <input type="checkbox" id="opt-overwrite">
             <label class="checkbox-label" for="opt-overwrite">
@@ -499,7 +513,7 @@
 
     var resp = await sb
       .from('counterparty_profile')
-      .select('counterparty_short_code,counterparty_legal_name,counterparty_legal_name_formal,counterparty_legal_name_formal_registration,counterparty_short_name,counterparty_type,pricing_cohort_family,clid,gate_state,primary_identifier_system,dispatch_branch,envelope_floor_pence,envelope_target_pence,envelope_ceiling_pence,envelope_computed_at,envelope_quote_id,exclusivity_appetite,mca_template_variant,pilot_fee_amount_pence,geographic_scope')
+      .select('counterparty_short_code,counterparty_legal_name,counterparty_legal_name_formal,counterparty_legal_name_formal_registration,counterparty_short_name,counterparty_type,pricing_cohort_family,pricing_package_id,pricing_vector,pricing_exclusivity_tier,pricing_term_months,clid,gate_state,canonical_alin,dispatch_branch,envelope_floor_pence,envelope_target_pence,envelope_ceiling_pence,envelope_computed_at,envelope_quote_id,exclusivity_appetite,mca_template_variant,pilot_fee_amount_pence,geographic_scope')
       .order('counterparty_short_code', { ascending: true });
 
     if(resp.error){
@@ -547,6 +561,17 @@
       currentCounterparty = match || null;
       await loadWorkspace(v);
     });
+
+    // BDR L2 inputs reveal/hide
+    var bdrCheckbox = $('opt-bdr');
+    if(bdrCheckbox){
+      bdrCheckbox.addEventListener('change', function(){
+        var panel = $('bdr-inputs');
+        if(!panel) return;
+        if(bdrCheckbox.checked){ panel.classList.remove('hidden'); }
+        else { panel.classList.add('hidden'); }
+      });
+    }
   }
 
   /* ─────────────────────────────────────────────
@@ -605,12 +630,13 @@
 
     cell('Contracting entity', cp.counterparty_legal_name_formal || cp.counterparty_legal_name, cp.counterparty_legal_name_formal_registration || '');
     cell('CLID', cp.clid, '', true);
+    cell('Identifier (ALIN)', cp.canonical_alin || '—', 'Ailane proprietary identifier; CHN cross-reference where available', true);
     cell('Type', cp.counterparty_type, '', false);
-    cell('Identifier', cp.primary_identifier_system, '', true);
     cell('Pricing cohort', cp.pricing_cohort_family, '', true);
     cell('Dispatch branch', dispatchLabel(cp.dispatch_branch), '', false);
+    cell('Pricing tier', (cp.pricing_exclusivity_tier || '—') + ' · ' + (cp.pricing_vector || '—') + ' · ' + (cp.pricing_term_months != null ? cp.pricing_term_months + 'mo' : '—'), 'Exclusivity · Vector · Term', true);
     cell('Geographic scope', cp.geographic_scope || '—', '', true);
-    cell('Exclusivity', cp.exclusivity_appetite || 'none', '', false);
+    cell('Exclusivity appetite', cp.exclusivity_appetite || 'none', '', false);
     cell('MCA variant', cp.mca_template_variant || 'standard', '', false);
 
     if(cp.envelope_target_pence != null){
@@ -987,6 +1013,12 @@
     var overwrite = $('opt-overwrite').checked;
     var keys = parseTemplateKeys($('opt-keys').value);
 
+    // BDR L2 economics (Director-attested per AMD-144 STATE B)
+    var strategicValueRaw = $('opt-strategic-value').value.trim();
+    var cifRaw = $('opt-cif').value.trim();
+    var strategicValue = strategicValueRaw ? Number(strategicValueRaw.replace(/[,£\s]/g, '')) : null;
+    var cif = cifRaw ? Number(cifRaw) : null;
+
     var btn = $('run-btn');
     var status = $('run-status');
     btn.disabled = true;
@@ -1007,6 +1039,12 @@
       template_keys: keys,
       source: DISPATCHER_SOURCE
     };
+    if(bdr && strategicValue != null && !isNaN(strategicValue)){
+      payload.strategic_value_gbp = strategicValue;
+    }
+    if(bdr && cif != null && !isNaN(cif)){
+      payload.competitive_intensity_factor = cif;
+    }
 
     var fresh = await sb.auth.getSession();
     if(fresh && fresh.data && fresh.data.session) currentToken = fresh.data.session.access_token;
@@ -1155,6 +1193,21 @@
       ' · ' + withErrors + ' with errors' +
       ' · Envelope: ' + envelopeAction
     ));
+
+    // ─── Surface freshly-computed BDR envelope (PRICE-001 v1.1) ───
+    if(envelopeAction === 'computed_fresh' && body.envelope_floor_pence != null){
+      var envBox = el('div', { class:'result-info-note' });
+      envBox.appendChild(el('strong', null, 'BDR envelope computed: '));
+      var fmt = function(p){ return '£' + (Number(p)/100).toLocaleString('en-GB', { maximumFractionDigits: 0 }); };
+      envBox.appendChild(document.createTextNode(
+        'Floor ' + fmt(body.envelope_floor_pence) +
+        ' · Target ' + fmt(body.envelope_target_pence) +
+        ' · Ceiling ' + fmt(body.envelope_ceiling_pence) +
+        ' · Quote ' + (body.envelope_quote_id ? body.envelope_quote_id.slice(0,8) : '—') +
+        ' (PRICE-001 v1.1 + AMD-144)'
+      ));
+      rb.appendChild(envBox);
+    }
 
     if(payload.compute_bdr_envelope && envelopeAction === 'skipped_non_bdr'){
       rb.appendChild(el('div', { class:'result-info-note' },
