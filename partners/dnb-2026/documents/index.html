@@ -16,6 +16,9 @@
   <!-- Deal-room shared layer -->
   <script src="../shared/auth.js"></script>
   <script src="../shared/api.js"></script>
+  <!-- AMD-145 §3.6 / AMD-146 — Eileen drawer + latency-line pool -->
+  <script src="/assets/dealroom/eileen-latency.js"></script>
+  <script src="../shared/eileen-panel.js"></script>
 
   <script>
     // =========================================================================
@@ -36,6 +39,7 @@
     let SESSION = null;
     let DOCS = [];
     let UPLOADS = {};
+    let SAVED_CONVERSATIONS = [];  // AMD-145 §3.6 / AMD-146 — counterparty-named conversations
 
     document.addEventListener('DOMContentLoaded', () => {
       window.dealroomAuth.guard({ onReady: bootstrap });
@@ -45,7 +49,25 @@
       SESSION = session;
       mountShell();
       await loadCatalog();
+      await loadSavedConversations();
       render();
+
+      // Initialise Eileen drawer once auth is resolved and CLID is known.
+      // Director without a specific CLID treats dnb-2026-001 as the surface CLID for testing.
+      const targetClid = SESSION.clid || (SESSION.is_director ? 'dnb-2026-001' : null);
+      if (targetClid && window.dealroomEileen) {
+        window.dealroomEileen.init({
+          clid: targetClid,
+          counterparty_name: SESSION.counterparty_name || '',
+        });
+      }
+
+      // Expose a refresh hook so the drawer's "Save conversation" success can
+      // re-render the Saved Conversations list on this page.
+      window.dealroomEileenRefreshSavedList = async () => {
+        await loadSavedConversations();
+        render();
+      };
     }
 
     async function loadCatalog() {
@@ -62,6 +84,20 @@
         console.error('[documents] catalog load error:', e);
         DOCS = [];
         UPLOADS = {};
+      }
+    }
+
+    async function loadSavedConversations() {
+      try {
+        const targetClid = SESSION.clid || (SESSION.is_director ? 'dnb-2026-001' : null);
+        if (!targetClid) {
+          SAVED_CONVERSATIONS = [];
+          return;
+        }
+        SAVED_CONVERSATIONS = await window.dealroomApi.listConversations(targetClid);
+      } catch (e) {
+        console.error('[documents] saved-conversations load error:', e);
+        SAVED_CONVERSATIONS = [];
       }
     }
 
@@ -126,7 +162,7 @@
       const listEl = document.getElementById('drDocList');
 
       if (!DOCS.length) {
-        listEl.innerHTML = `<div class="dr-empty">No documents catalogued for this CLID yet.</div>`;
+        listEl.innerHTML = `<div class="dr-empty">No documents catalogued for this workspace yet.</div>`;
         return;
       }
 
@@ -135,6 +171,9 @@
       const requirements = DOCS.filter(d => d.kind === 'requirement');
 
       let html = '';
+
+      // ----- Saved Conversations (AMD-145 §3.6 / AMD-146 — counterparty-named) -----
+      html += renderSavedConversations();
 
       // ----- Releases section -----
       if (releases.length) {
@@ -174,6 +213,47 @@
           <div style="font-size:18px; font-weight:600; color:var(--dr-text-primary); margin-bottom:4px;">${esc(title)}</div>
           <div style="font-size:13px; color:var(--dr-text-secondary);">${esc(subtitle)}</div>
         </div>
+      `;
+    }
+
+    function renderSavedConversations() {
+      const list = SAVED_CONVERSATIONS;
+      const subtitle = list.length
+        ? 'Conversations you have saved with Eileen. Open one to continue where you left off.'
+        : 'Conversations you save with Eileen will appear here. Use the "Ask Eileen" button on any document, or the floating prompt, to begin.';
+
+      let items = '';
+      if (!list.length) {
+        items = `<div class="dr-savedconv-empty">No saved conversations yet.</div>`;
+      } else {
+        items = `<div class="dr-savedconv-list">` + list.map((c) => {
+          const updated = c.updated_at ? new Date(c.updated_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+          const msgCount = c.message_count != null ? `${c.message_count} message${c.message_count === 1 ? '' : 's'}` : '';
+          const metaRow = [msgCount, updated].filter(Boolean).join(' · ');
+          return `
+            <div class="dr-savedconv-item">
+              <div class="dr-savedconv-meta" data-conv-open data-conv-id="${esc(c.conversation_id)}" role="button" tabindex="0">
+                <div class="dr-savedconv-meta-name">${esc(c.conversation_name)}</div>
+                <div class="dr-savedconv-meta-row">${esc(metaRow)}</div>
+              </div>
+              <div class="dr-savedconv-actions">
+                <button class="dr-btn dr-btn-ghost dr-btn-sm" data-conv-delete data-conv-id="${esc(c.conversation_id)}" aria-label="Delete conversation">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('') + `</div>`;
+      }
+
+      return `
+        <section class="dr-savedconv-section">
+          <div class="dr-savedconv-header">
+            <div>
+              <div class="dr-savedconv-title">Saved conversations</div>
+              <div class="dr-savedconv-subtitle">${esc(subtitle)}</div>
+            </div>
+          </div>
+          ${items}
+        </section>
       `;
     }
 
@@ -261,6 +341,7 @@
             ${versionText}
           </div>
           <div class="dr-doc-card-actions">${actions}</div>
+          <button class="dr-askeileen-link" data-action="ask-eileen" data-doc="${esc(doc.document_id)}">Ask Eileen about this</button>
         </article>
       `;
     }
@@ -273,8 +354,78 @@
           if (action === 'preview') return openPreview(docId);
           if (action === 'download') return triggerDownload(docId);
           if (action === 'upload') return openUploadModal(docId);
+          if (action === 'ask-eileen') return openEileenForDoc(docId);
         });
       });
+
+      // AMD-145 §3.6 / AMD-146 — saved-conversation row handlers
+      document.querySelectorAll('[data-conv-open]').forEach((el) => {
+        el.addEventListener('click', () => openSavedConversation(el.getAttribute('data-conv-id')));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openSavedConversation(el.getAttribute('data-conv-id'));
+          }
+        });
+      });
+      document.querySelectorAll('[data-conv-delete]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteSavedConversation(btn.getAttribute('data-conv-id'));
+        });
+      });
+    }
+
+    // ---------- AMD-145 §3.6 / AMD-146 — Eileen integration ----------
+    function openEileenForDoc(documentId) {
+      if (!window.dealroomEileen) {
+        console.warn('[documents] Eileen panel not initialised');
+        return;
+      }
+      const doc = DOCS.find(d => d.document_id === documentId);
+      if (!doc) return;
+      window.dealroomEileen.open({
+        document_context: {
+          doc_code: doc.doc_code,
+          name: doc.name,
+          kind: doc.kind,
+        },
+      });
+    }
+
+    async function openSavedConversation(conversationId) {
+      if (!window.dealroomEileen) return;
+      try {
+        const conv = await window.dealroomApi.fetchConversation(conversationId);
+        if (!conv) {
+          alert('Conversation not found.');
+          return;
+        }
+        window.dealroomEileen.open({
+          restore: {
+            conversation_id: conv.conversation_id,
+            eileen_session_id: conv.eileen_session_id,
+            messages: Array.isArray(conv.messages) ? conv.messages : [],
+          },
+        });
+      } catch (e) {
+        console.error('[documents] fetch saved conversation failed:', e);
+        alert('Could not open conversation: ' + (e?.message || 'Unknown error'));
+      }
+    }
+
+    async function deleteSavedConversation(conversationId) {
+      const conv = SAVED_CONVERSATIONS.find(c => c.conversation_id === conversationId);
+      const label = conv ? conv.conversation_name : 'this conversation';
+      if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+      try {
+        await window.dealroomApi.softDeleteConversation(conversationId);
+        await loadSavedConversations();
+        render();
+      } catch (e) {
+        console.error('[documents] delete saved conversation failed:', e);
+        alert('Delete failed: ' + (e?.message || 'Unknown error'));
+      }
     }
 
     // ---------- Preview modal ----------
