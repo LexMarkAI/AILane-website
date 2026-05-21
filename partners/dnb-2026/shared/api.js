@@ -197,6 +197,103 @@
   }
 
   // ============================================================
+  // Eileen v9 — deal-room conversational interface
+  // Calls eileen-dealroom Edge Function v9 (verify_jwt=true).
+  // Returns: { response, session_id, ef_version: 'v9', document_context_*: ..., ... }
+  // ============================================================
+  async function askEileen({ clid, messages }) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
+    if (!clid) throw new Error('clid required');
+    if (!Array.isArray(messages) || messages.length === 0) {
+      throw new Error('messages must be a non-empty array of {role, content}');
+    }
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/eileen-dealroom`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ clid, messages }),
+    });
+
+    let payload;
+    try { payload = await response.json(); } catch (e) { payload = { error: 'Invalid response' }; }
+
+    if (!response.ok) {
+      const err = new Error(payload?.error || `HTTP ${response.status}`);
+      err.detail = payload?.detail || payload?.reason;
+      err.status = response.status;
+      throw err;
+    }
+    return payload;
+  }
+
+  // ============================================================
+  // Counterparty-named conversations — dealroom-conversation-save v1
+  // Actions: save | update | list | fetch | soft_delete
+  // ============================================================
+  async function _callConversationSave(body) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/dealroom-conversation-save`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+
+    let payload;
+    try { payload = await response.json(); } catch (e) { payload = { error: 'Invalid response', ok: false }; }
+
+    if (!response.ok || payload.ok === false) {
+      const err = new Error(payload?.error || `HTTP ${response.status}`);
+      err.detail = payload?.details;
+      err.status = response.status;
+      throw err;
+    }
+    return payload;
+  }
+
+  async function saveConversation({ clid, conversation_name, messages, topic_signals, eileen_session_id, conversation_metadata }) {
+    if (!clid) throw new Error('clid required');
+    if (!conversation_name || typeof conversation_name !== 'string') throw new Error('conversation_name required');
+    if (!Array.isArray(messages)) throw new Error('messages must be an array');
+    return _callConversationSave({
+      action: 'save',
+      clid,
+      conversation_name: conversation_name.trim(),
+      messages,
+      topic_signals: topic_signals || [],
+      eileen_session_id: eileen_session_id || null,
+      conversation_metadata: conversation_metadata || {},
+    });
+  }
+
+  async function listConversations(clid) {
+    if (!clid) throw new Error('clid required');
+    const result = await _callConversationSave({ action: 'list', clid });
+    return result.conversations || [];
+  }
+
+  async function fetchConversation(conversation_id) {
+    if (!conversation_id) throw new Error('conversation_id required');
+    const result = await _callConversationSave({ action: 'fetch', conversation_id });
+    return result.conversation;
+  }
+
+  async function softDeleteConversation(conversation_id) {
+    if (!conversation_id) throw new Error('conversation_id required');
+    return _callConversationSave({ action: 'soft_delete', conversation_id });
+  }
+
+  // ============================================================
   // Phase-gating helpers
   // ============================================================
   function classifyDocument(doc, currentPhase) {
@@ -233,6 +330,11 @@
     computeQuote,
     submitCounterProposal,
     listMyCounterProposals,
+    askEileen,
+    saveConversation,
+    listConversations,
+    fetchConversation,
+    softDeleteConversation,
     classifyDocument,
     formatPence,
     formatPenceFull,
