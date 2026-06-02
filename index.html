@@ -1509,13 +1509,30 @@ var TICKER_FALLBACK = [
   { label: 'EAT Amendment Rules 2026 — in force 18 Feb 2026', source: 'EAT', when: '2026-02-18', kind: 'instrument' }
 ];
 
+// Defence-in-depth: operational/internal corpus-watch events must never reach the
+// public ticker. The server-side guard in eileen-landing-intel v5 is primary; this is
+// belt-and-braces against a future server regression or a new event source.
+function isPublicSafeEvent(e) {
+  if (!e || typeof e.label !== 'string') return false;
+  var src = (e.source || '').toString().toLowerCase();
+  if (src.indexOf('corpus_watch') === 0 || src.indexOf('corpus-watch') === 0) return false;
+  var hay = (e.label + ' ' + (e.kind || '') + ' ' + (e.alert_type || '')).toLowerCase();
+  var BLOCK = ['fetch failed','fetch_failed','licence terms changed','licence_terms_changed',
+    'signal lost','signal_lost','re-verification','re_verification','verification inconclusive',
+    'verification_inconclusive','page change detected','pending_assessment','sla_deadline'];
+  for (var i = 0; i < BLOCK.length; i++) { if (hay.indexOf(BLOCK[i]) !== -1) return false; }
+  return true;
+}
 function renderTicker() {
   var track = document.getElementById('ticker-track');
   if (!track) return;
-  var events = (liveData && Array.isArray(liveData.recent_events) && liveData.recent_events.length)
+  var source = (liveData && Array.isArray(liveData.recent_events) && liveData.recent_events.length)
     ? liveData.recent_events
     : TICKER_FALLBACK;
-
+  // Apply the public-safety guard. If filtering empties the list, fall back to the curated
+  // static set so the strip is never blank.
+  var events = source.filter(isPublicSafeEvent);
+  if (!events.length) events = TICKER_FALLBACK;
   while (track.firstChild) track.removeChild(track.firstChild);
   events.forEach(function(e) {
     if (!e || typeof e.label !== 'string') return;
