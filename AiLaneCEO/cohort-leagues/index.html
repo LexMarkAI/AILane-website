@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Cohort Leagues</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#7A8BA8;--text-muted:#4A5568;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:15px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}
+.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}
+.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+.top-bar-left{display:flex;align-items:center;gap:12px;}
+.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}
+.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-cyan);}
+.top-bar-right{display:flex;align-items:center;gap:10px;}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}
+.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}
+.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}
+.kpi-card .label{font-size:0.6rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
+.kpi-card .value{font-family:var(--font-mono);font-size:1.4rem;font-weight:600;line-height:1.2;}
+.kpi-card .sub{font-size:0.6rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}
+.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;color:var(--text-primary);}
+.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}
+.card-body{padding:12px 18px 16px;}
+.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:8px 0 2px;}
+.skeleton{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--bg-hover) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm);}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){.kpi-strip{grid-template-columns:1fr 1fr;}}
+
+/* ═══════ COHORT LEAGUES ═══════ */
+.banner{display:flex;align-items:flex-start;gap:10px;padding:11px 15px;border-radius:var(--radius-md);font-size:0.72rem;line-height:1.5;}
+.banner .bicon{flex-shrink:0;margin-top:1px;}
+.banner.warn{background:var(--accent-amber-dim);color:var(--accent-amber);border:1px solid rgba(245,158,11,0.28);}
+.banner.note{background:var(--accent-purple-dim);color:#B794F6;border:1px solid rgba(139,92,246,0.22);}
+.refresh-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-muted);font-family:var(--font-body);font-size:0.68rem;cursor:not-allowed;opacity:0.55;}
+.lg-table-wrap{overflow-x:auto;}
+.lg-table{width:100%;border-collapse:collapse;min-width:760px;}
+.lg-table th{text-align:left;font-family:var(--font-display);font-size:0.58rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;padding:8px 10px;border-bottom:1px solid var(--border-default);white-space:nowrap;}
+.lg-table td{padding:11px 10px;border-bottom:1px solid var(--border-subtle);font-size:0.72rem;vertical-align:middle;}
+.lg-row{cursor:pointer;transition:background 0.15s;}
+.lg-row:hover{background:var(--bg-hover);}
+.lg-row.sel{background:var(--accent-cyan-dim);}
+.fam-name{font-family:var(--font-display);font-weight:700;color:var(--text-primary);font-size:0.86rem;letter-spacing:0.02em;}
+.fam-sub{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);margin-top:2px;}
+.cluster{display:flex;gap:10px;font-family:var(--font-mono);font-size:0.68rem;align-items:baseline;}
+.cluster .ct{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.cluster .ct b{font-size:0.8rem;font-weight:600;}
+.cluster .ct small{font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;}
+.tier-chip{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:6px;margin:0 4px 0 0;}
+.tier-chip.s{background:var(--accent-amber-dim);color:var(--accent-amber);border:1px solid rgba(245,158,11,0.3);}
+.tier-chip.p{background:var(--accent-cyan-dim);color:var(--accent-cyan);border:1px solid rgba(14,165,233,0.25);}
+.tier-chip.d{background:rgba(122,139,168,0.12);color:var(--text-secondary);border:1px solid var(--border-default);}
+.tier-none{font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);}
+.excl{font-family:var(--font-mono);font-size:0.7rem;}
+.excl b{color:var(--accent-amber);}
+.alloc-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:0.6rem;font-weight:600;font-family:var(--font-mono);white-space:nowrap;}
+.alloc-pill .dot2{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.alloc-pill.tiered{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}
+.alloc-pill.populated{background:var(--accent-cyan-dim);color:var(--accent-cyan);border:1px solid rgba(14,165,233,0.2);}
+.alloc-pill.awaiting{background:rgba(122,139,168,0.1);color:var(--text-secondary);border:1px solid var(--border-default);}
+.chev{transition:transform 0.2s;color:var(--text-muted);}
+.lg-row.sel .chev{transform:rotate(90deg);color:var(--accent-cyan);}
+.meta-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:0.62rem;color:var(--text-secondary);background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:6px;padding:3px 9px;}
+.meta-chip b{color:var(--text-primary);}
+.ent-table{width:100%;border-collapse:collapse;min-width:820px;}
+.ent-table th{text-align:left;font-family:var(--font-display);font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;padding:7px 9px;border-bottom:1px solid var(--border-default);white-space:nowrap;}
+.ent-table td{padding:8px 9px;border-bottom:1px solid var(--border-subtle);font-size:0.68rem;vertical-align:middle;}
+.ent-name{font-weight:500;color:var(--text-primary);}
+.mono{font-family:var(--font-mono);}
+.mini-tier{display:inline-block;font-family:var(--font-mono);font-size:0.58rem;font-weight:600;padding:1px 6px;border-radius:4px;}
+.mini-tier.S{background:var(--accent-amber-dim);color:var(--accent-amber);}
+.mini-tier.P{background:var(--accent-cyan-dim);color:var(--accent-cyan);}
+.mini-tier.D{background:rgba(122,139,168,0.12);color:var(--text-secondary);}
+.repeat-flag{font-size:0.55rem;font-weight:600;color:var(--accent-red);background:var(--accent-red-dim);border:1px solid rgba(239,68,68,0.2);border-radius:4px;padding:1px 6px;font-family:var(--font-mono);}
+.empty-note{color:var(--text-muted);font-size:0.74rem;padding:16px 0;text-align:center;}
+
+/* ═══════ EILEEN INTELLIGENCE ENTITY ═══════ */
+.eileen-orb{position:fixed;bottom:28px;right:28px;z-index:500;width:64px;height:64px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(212,160,23,0.15),rgba(14,165,233,0.05));border:1px solid rgba(212,160,23,0.25);transition:all 0.3s ease;box-shadow:0 0 30px rgba(212,160,23,0.12),0 0 60px rgba(14,165,233,0.06);}
+.eileen-orb:hover{transform:scale(1.08);border-color:rgba(212,160,23,0.45);box-shadow:0 0 40px rgba(212,160,23,0.2),0 0 80px rgba(14,165,233,0.1);}
+.eileen-panel{position:fixed;bottom:28px;right:28px;z-index:501;width:420px;max-width:calc(100vw - 56px);height:560px;max-height:calc(100vh - 100px);background:var(--bg-surface);border:1px solid rgba(212,160,23,0.2);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;animation:eileenUp 0.3s ease-out;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(212,160,23,0.08);}
+@keyframes eileenUp{from{opacity:0;transform:translateY(20px) scale(0.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+.eileen-header{display:flex;align-items:center;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(212,160,23,0.1);background:linear-gradient(135deg,rgba(212,160,23,0.04),rgba(139,92,246,0.02));}
+.eileen-header-name{font-family:var(--font-display);font-size:0.88rem;font-weight:700;color:#D4A017;}
+.eileen-header-status{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);}
+.eileen-close{width:28px;height:28px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-muted);font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.eileen-close:hover{border-color:rgba(212,160,23,0.3);color:#D4A017;}
+.eileen-messages{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+.eileen-msg{max-width:88%;padding:10px 14px;border-radius:14px;font-size:0.76rem;line-height:1.6;}
+.eileen-msg.user{align-self:flex-end;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.15);color:var(--text-primary);}
+.eileen-msg.eileen{align-self:flex-start;background:rgba(212,160,23,0.06);border:1px solid rgba(212,160,23,0.1);color:var(--text-secondary);}
+.eileen-input-bar{display:flex;gap:8px;padding:12px 18px 16px;border-top:1px solid var(--border-subtle);}
+.eileen-input{flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-primary);font-size:0.78rem;font-family:var(--font-body);outline:none;transition:border-color 0.2s;}
+.eileen-input:focus{border-color:rgba(212,160,23,0.4);}
+.eileen-input::placeholder{color:var(--text-muted);}
+.eileen-send{padding:10px 16px;border-radius:12px;border:1px solid rgba(212,160,23,0.25);background:rgba(212,160,23,0.1);color:#D4A017;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.2s;}
+.eileen-send:hover{background:rgba(212,160,23,0.18);border-color:rgba(212,160,23,0.4);}
+.eileen-typing{display:flex;gap:4px;padding:10px 14px;align-self:flex-start;}
+.eileen-typing-dot{width:6px;height:6px;border-radius:50%;background:#D4A017;animation:eBounce 1.4s ease-in-out infinite;}
+.eileen-typing-dot:nth-child(2){animation-delay:0.2s;}
+.eileen-typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes eBounce{0%,80%,100%{opacity:0.3;transform:translateY(0);}40%{opacity:1;transform:translateY(-4px);}}
+
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL = 'mark@ailane.ai';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function num(n){if(n==null) return '0';return Number(n).toLocaleString('en-GB');}
+function shortDate(d){if(!d) return '—';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function friendly(s){if(s==null||s==='') return '—';return String(s).replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());}
+
+function App() {
+  const [auth, setAuth] = useState('checking');
+  const [token, setToken] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [eileenOpen, setEileenOpen] = useState(false);
+
+  // ─── Auth gate (CEO-only; identical pattern to module pages) ───
+  useEffect(() => {
+    (async()=>{
+      const {data:{session}}=await sb.auth.getSession();
+      if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}
+      const t=setTimeout(()=>{window.location.href='/AiLaneCEO/';},5000);
+      sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/AiLaneCEO/';}});
+    })();
+  }, []);
+
+  // ─── Live data from ceo-portfolio-data ───
+  useEffect(() => {
+    if(auth!=='ok'||!token) return;
+    (async()=>{
+      setLoading(true);
+      try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=cohort_leagues`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+      if(r.ok){const j=await r.json();setData(j.sections?.cohort_leagues||null);}else{console.error('ceo-portfolio-data',r.status);}}catch(e){console.error(e);}
+      setLoading(false);
+    })();
+  }, [auth, token]);
+
+  if(auth==='checking') return <div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Verifying clearance…</div></div>;
+
+  const d = data || {};
+  const summary = d.summary || {};
+  const families = Array.isArray(d.families) ? d.families : [];
+  const entities = Array.isArray(d.entities) ? d.entities : [];
+  const staleDays = d.snapshot_stale_days;
+  const junctionRows = summary.membership_junction_rows;
+
+  // Status classification per family
+  function statusOf(f){
+    const s = Number(f.super_league_tier_s_count||0)+Number(f.super_league_tier_p_count||0)+Number(f.super_league_tier_d_count||0);
+    if(s>0) return {cls:'tiered',label:'Tier-allocated'};
+    if(Number(f.entity_count_total||0)>0) return {cls:'populated',label:'Populated · untiered'};
+    return {cls:'awaiting',label:'Awaiting allocation'};
+  }
+  // Populated families first, by total entities desc; awaiting families last (alphabetical)
+  const ordered = [...families].sort((a,b)=>{
+    const at=Number(a.entity_count_total||0), bt=Number(b.entity_count_total||0);
+    if((at>0)!==(bt>0)) return at>0?-1:1;
+    if(bt!==at) return bt-at;
+    return String(a.cohort_family||'').localeCompare(String(b.cohort_family||''));
+  });
+
+  const selFam = selected ? families.find(f=>f.cohort_family===selected) : null;
+  const selEntities = selected ? entities.filter(e=>e.cohort_family===selected) : [];
+
+  return (
+    <div>
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a>
+          <div className="page-title">Cohort <span>Leagues</span></div>
+        </div>
+        <div className="top-bar-right">
+          <div className="status-pill live"><div className="dot"/>LIVE</div>
+          <div className="ts">Snapshot {shortDate(d.snapshot_at)}</div>
+        </div>
+      </div>
+
+      <div className="main">
+        {loading ? (
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div className="kpi-strip">{[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}</div>
+            <div className="skeleton" style={{height:360}}/>
+          </div>
+        ) : !data ? (
+          <div className="card"><div className="card-body"><div className="empty-note">Unable to load cohort league data. The portfolio service returned no payload for this session.</div></div></div>
+        ) : (
+          <>
+            {/* KPI STRIP */}
+            <div className="kpi-strip">
+              <div className="kpi-card">
+                <div className="label">League Families</div>
+                <div className="value" style={{color:'var(--accent-cyan)'}}>{num(summary.family_count)}</div>
+                <div className="sub">cohort registry</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Active</div>
+                <div className="value" style={{color:'var(--accent-green)'}}>{num(summary.families_active)}</div>
+                <div className="sub">populated families</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Awaiting</div>
+                <div className="value" style={{color:'var(--text-secondary)'}}>{num(summary.families_awaiting)}</div>
+                <div className="sub">unallocated</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Register Entities</div>
+                <div className="value" style={{color:'var(--accent-purple)'}}>{num(summary.entities_total)}</div>
+                <div className="sub">{num(summary.entities_in_register)} in register</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Snapshot Age</div>
+                <div className="value" style={{color:(staleDays!=null&&staleDays>7)?'var(--accent-amber)':'var(--text-primary)'}}>{staleDays==null?'—':staleDays+'d'}</div>
+                <div className="sub">{shortDate(d.snapshot_at)}</div>
+              </div>
+            </div>
+
+            {/* DATA-INTEGRITY FLAGS */}
+            {staleDays!=null && staleDays>7 && (
+              <div className="banner warn">
+                <svg className="bicon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div><strong>Snapshot is {staleDays} days old</strong> (threshold 7). League figures may be stale — a scheduled rebuild is pending under AMD-153.</div>
+              </div>
+            )}
+            {junctionRows!=null && Number(junctionRows)===0 && (
+              <div className="banner note">
+                <svg className="bicon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <div><strong>Multi-family membership not yet populated</strong> (membership junction rows = 0). Each register entity currently maps to a single cohort family; cross-family membership is a follow-up.</div>
+              </div>
+            )}
+
+            {/* LEAGUE TABLE */}
+            <div className="card">
+              <div className="card-head">
+                <div className="card-head-title">League Table</div>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div className="card-head-badge">{families.length} families · populated first</div>
+                  <button className="refresh-btn" disabled title="Scheduled refresh pending (AMD-153 follow-up)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Refresh snapshot
+                  </button>
+                </div>
+              </div>
+              <div className="card-body">
+                <div className="lg-table-wrap">
+                  <table className="lg-table">
+                    <thead>
+                      <tr>
+                        <th style={{width:24}}></th>
+                        <th>Family</th>
+                        <th>Entities (T / A / L / D)</th>
+                        <th>Super-League Tiers</th>
+                        <th>Exclusivity (held / avail)</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ordered.map((f,i)=>{
+                        const st = statusOf(f);
+                        const sC=Number(f.super_league_tier_s_count||0), pC=Number(f.super_league_tier_p_count||0), dC=Number(f.super_league_tier_d_count||0);
+                        const isSel = selected===f.cohort_family;
+                        return (
+                          <tr key={i} className={'lg-row'+(isSel?' sel':'')} onClick={()=>setSelected(isSel?null:f.cohort_family)}>
+                            <td>
+                              <svg className="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                            </td>
+                            <td>
+                              <div className="fam-name">{f.cohort_family}</div>
+                              <div className="fam-sub">{num(f.entity_count_total)} entities</div>
+                            </td>
+                            <td>
+                              <div className="cluster">
+                                <div className="ct"><b style={{color:'var(--text-primary)'}}>{num(f.entity_count_total)}</b><small>total</small></div>
+                                <div className="ct"><b style={{color:'var(--accent-green)'}}>{num(f.entity_count_active)}</b><small>active</small></div>
+                                <div className="ct"><b style={{color:'var(--accent-amber)'}}>{num(f.entity_count_lapsed)}</b><small>lapsed</small></div>
+                                <div className="ct"><b style={{color:'var(--text-muted)'}}>{num(f.entity_count_dissolved)}</b><small>diss.</small></div>
+                              </div>
+                            </td>
+                            <td>
+                              {(sC+pC+dC)>0 ? (
+                                <span>
+                                  {sC>0 && <span className="tier-chip s">S · {sC}</span>}
+                                  {pC>0 && <span className="tier-chip p">P · {pC}</span>}
+                                  {dC>0 && <span className="tier-chip d">D · {dC}</span>}
+                                </span>
+                              ) : <span className="tier-none">untiered</span>}
+                            </td>
+                            <td>
+                              <span className="excl"><b>{num(f.exclusivity_held_count)}</b> / {num(f.exclusivity_available_count)}</span>
+                            </td>
+                            <td>
+                              <span className={'alloc-pill '+st.cls}><span className="dot2"/>{st.label}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {ordered.length===0 && <tr><td colSpan="6"><div className="empty-note">No league families in the current snapshot.</div></td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* DRILL: FAMILY ENTITIES */}
+            {selFam && (
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-head-title">Family {selFam.cohort_family} — Register Entities</div>
+                  <div className="card-head-badge">{selEntities.length} of {num(selFam.entity_count_total)}</div>
+                </div>
+                <div className="card-body">
+                  <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
+                    <span className="meta-chip">Active <b>{num(selFam.entity_count_active)}</b></span>
+                    <span className="meta-chip">Lapsed <b>{num(selFam.entity_count_lapsed)}</b></span>
+                    <span className="meta-chip">Dissolved <b>{num(selFam.entity_count_dissolved)}</b></span>
+                    <span className="meta-chip">Exclusivity held <b>{num(selFam.exclusivity_held_count)}</b> / {num(selFam.exclusivity_available_count)}</span>
+                    {selFam.league_table_position && <span className="meta-chip">League rank <b>{selFam.league_table_position.position||selFam.league_table_position.rank||JSON.stringify(selFam.league_table_position)}</b></span>}
+                    {selFam.size_band_distribution && Object.keys(selFam.size_band_distribution).length>0 && Object.entries(selFam.size_band_distribution).map(([k,v])=>(
+                      <span className="meta-chip" key={k}>{friendly(k)} <b>{num(v)}</b></span>
+                    ))}
+                  </div>
+                  {selEntities.length>0 ? (
+                    <div className="lg-table-wrap">
+                      <table className="ent-table">
+                        <thead>
+                          <tr>
+                            <th>ALIN</th><th>Company</th><th>CHN</th><th>Tier</th><th>Size</th><th>Exposure</th><th>Tribunals</th><th>Sev.Wtd</th><th>Allocation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selEntities.map((e,i)=>(
+                            <tr key={i}>
+                              <td className="mono" style={{color:'var(--accent-cyan)'}}>{e.alin||'—'}</td>
+                              <td>
+                                <div className="ent-name">{e.company_name||'—'}</div>
+                                {e.is_repeat_respondent && <span className="repeat-flag" style={{marginTop:3,display:'inline-block'}}>repeat respondent</span>}
+                              </td>
+                              <td className="mono" style={{color:'var(--text-muted)'}}>{e.companies_house_number||'—'}</td>
+                              <td>{e.super_league_tier ? <span className={'mini-tier '+String(e.super_league_tier).toUpperCase().charAt(0)}>{e.super_league_tier}</span> : '—'}</td>
+                              <td>{friendly(e.size_band)}</td>
+                              <td>{friendly(e.exposure_band)}</td>
+                              <td className="mono">{num(e.tribunal_count)}</td>
+                              <td className="mono">{e.severity_weighted!=null?Number(e.severity_weighted).toLocaleString('en-GB',{maximumFractionDigits:1}):'—'}</td>
+                              <td>{friendly(e.allocation_status)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="empty-note">No individual register entities returned for this family in the current snapshot.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!selFam && (
+              <div style={{fontSize:'0.7rem',color:'var(--text-muted)',textAlign:'center',padding:'2px 0 8px'}}>Select a family row to drill into its register entities.</div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* EILEEN */}
+      {!eileenOpen&&<div className="eileen-orb" onClick={()=>setEileenOpen(true)}><EileenNexus active={false} size={44}/></div>}
+      {eileenOpen&&<EileenChat token={token} onClose={()=>setEileenOpen(false)}/>}
+    </div>
+  );
+}
+
+// ═══════ EILEEN INTELLIGENCE ENTITY ═══════
+function EileenNexus({active,size}){
+  const canvasRef=React.useRef(null);const frameRef=React.useRef(0);const timeRef=React.useRef(0);
+  React.useEffect(()=>{
+    const canvas=canvasRef.current;if(!canvas)return;const ctx=canvas.getContext('2d');
+    const w=size*2,h=size*2;canvas.width=w;canvas.height=h;const cx=w/2,cy=h/2;
+    const nodes=[];const nc=active?18:12;
+    for(let i=0;i<nc;i++){const ring=i<5?0.2:i<11?0.55:0.82;const angle=(i/nc)*Math.PI*2+Math.random()*0.5;const r=ring*(w*0.38);
+      nodes.push({x:cx+Math.cos(angle)*r,y:cy+Math.sin(angle)*r,bx:cx+Math.cos(angle)*r,by:cy+Math.sin(angle)*r,r:2+Math.random()*3,sp:0.3+Math.random()*0.7,ph:Math.random()*Math.PI*2});}
+    function draw(){
+      timeRef.current+=active?0.025:0.012;const t=timeRef.current;ctx.clearRect(0,0,w,h);
+      const cs=active?28:18;const grd=ctx.createRadialGradient(cx,cy,0,cx,cy,cs*3);
+      grd.addColorStop(0,active?'rgba(212,160,23,0.5)':'rgba(212,160,23,0.25)');
+      grd.addColorStop(0.4,active?'rgba(139,92,246,0.15)':'rgba(14,165,233,0.08)');grd.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(cx,cy,cs*3,0,Math.PI*2);ctx.fill();
+      const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,cs);cg.addColorStop(0,'rgba(255,255,255,0.95)');
+      cg.addColorStop(0.25,'#D4A017');cg.addColorStop(0.6,active?'#8B5CF6':'rgba(212,160,23,0.5)');
+      cg.addColorStop(1,'rgba(212,160,23,0)');ctx.fillStyle=cg;
+      ctx.beginPath();ctx.arc(cx,cy,cs*(1+Math.sin(t*1.5)*0.1),0,Math.PI*2);ctx.fill();
+      nodes.forEach(n=>{const dr=active?8:3;n.x=n.bx+Math.sin(t*n.sp+n.ph)*dr;n.y=n.by+Math.cos(t*n.sp*0.7+n.ph)*dr;});
+      nodes.forEach((a,i)=>{nodes.forEach((b,j)=>{if(j<=i)return;const dx=a.x-b.x,dy=a.y-b.y;const dist=Math.sqrt(dx*dx+dy*dy);const mx=active?w*0.45:w*0.35;
+        if(dist<mx){const al=(1-dist/mx)*(active?0.35:0.15);const pu=0.5+Math.sin(t*2+i*0.3)*0.5;
+          ctx.strokeStyle='rgba(212,160,23,'+(al*pu)+')';ctx.lineWidth=active?1.2:0.6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}});});
+      nodes.forEach(n=>{const pu=0.7+Math.sin(t*2+n.ph)*0.3;const na=active?0.9:0.5;
+        ctx.fillStyle='rgba(212,160,23,'+(na*pu)+')';ctx.beginPath();ctx.arc(n.x,n.y,n.r*pu,0,Math.PI*2);ctx.fill();});
+      frameRef.current=requestAnimationFrame(draw);}
+    draw();return()=>cancelAnimationFrame(frameRef.current);
+  },[active,size]);
+  return React.createElement('canvas',{ref:canvasRef,style:{width:size,height:size}});
+}
+
+function EileenChat({token,onClose}){
+  const[msgs,setMsgs]=useState([{role:'eileen',text:'Good evening. I have full Gold Clearance access to the cohort league registry and portfolio intelligence. What would you like to know?'}]);
+  const[input,setInput]=useState('');const[thinking,setThinking]=useState(false);const endRef=React.useRef(null);
+  useEffect(()=>{if(endRef.current)endRef.current.scrollIntoView({behavior:'smooth'});},[msgs,thinking]);
+  async function send(){if(!input.trim()||thinking)return;const q=input.trim();setInput('');setMsgs(m=>[...m,{role:'user',text:q}]);setThinking(true);
+    try{const r=await fetch(SUPABASE_URL+'/functions/v1/ceo-assistant',{method:'POST',headers:{'Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({message:q})});
+      if(r.ok){const d=await r.json();setMsgs(m=>[...m,{role:'eileen',text:d.response||d.content||'Response received.'}]);}
+      else{setMsgs(m=>[...m,{role:'eileen',text:'I encountered a '+r.status+' response. Try again.'}]);}}
+    catch(e){setMsgs(m=>[...m,{role:'eileen',text:'Connection interrupted. Please try again.'}]);}setThinking(false);}
+  return React.createElement('div',{className:'eileen-panel'},
+    React.createElement('div',{className:'eileen-header'},
+      React.createElement(EileenNexus,{active:thinking,size:40}),
+      React.createElement('div',{style:{flex:1}},
+        React.createElement('div',{className:'eileen-header-name'},'Eileen'),
+        React.createElement('div',{className:'eileen-header-status'},thinking?'Processing intelligence...':'CEO Command · Gold Clearance')),
+      React.createElement('button',{className:'eileen-close',onClick:onClose},'×')),
+    React.createElement('div',{className:'eileen-messages'},
+      msgs.map((m,i)=>React.createElement('div',{key:i,className:'eileen-msg '+m.role},m.text)),
+      thinking&&React.createElement('div',{className:'eileen-typing'},
+        React.createElement('div',{className:'eileen-typing-dot'}),React.createElement('div',{className:'eileen-typing-dot'}),React.createElement('div',{className:'eileen-typing-dot'})),
+      React.createElement('div',{ref:endRef})),
+    React.createElement('div',{className:'eileen-input-bar'},
+      React.createElement('input',{className:'eileen-input',value:input,onChange:e=>setInput(e.target.value),onKeyDown:e=>e.key==='Enter'&&send(),placeholder:'Ask Eileen anything...'}),
+      React.createElement('button',{className:'eileen-send',onClick:send},'Send')));
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
