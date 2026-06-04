@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Data Deal Rooms</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#7A8BA8;--text-muted:#4A5568;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:15px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}
+.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}
+.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}
+.top-bar-left{display:flex;align-items:center;gap:12px;}
+.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}
+.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-cyan);}
+.top-bar-right{display:flex;align-items:center;gap:10px;}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}
+.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}
+.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}
+.kpi-card .label{font-size:0.6rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
+.kpi-card .value{font-family:var(--font-mono);font-size:1.4rem;font-weight:600;line-height:1.2;}
+.kpi-card .sub{font-size:0.6rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}
+.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;color:var(--text-primary);}
+.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}
+.card-body{padding:12px 18px 16px;}
+.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:6px 0 2px;display:flex;align-items:center;gap:8px;}
+.skeleton{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--bg-hover) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm);}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){.kpi-strip{grid-template-columns:1fr 1fr;}}
+.empty-note{color:var(--text-muted);font-size:0.74rem;padding:16px 0;text-align:center;}
+
+/* ═══════ DEAL ROOMS ═══════ */
+.cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px;}
+@media(max-width:700px){.cp-grid{grid-template-columns:1fr;}}
+.cp-card{background:var(--bg-surface);border:1px solid var(--border-default);border-left:3px solid var(--accent-cyan);border-radius:var(--radius-lg);padding:16px 18px;display:flex;flex-direction:column;gap:13px;}
+.cp-card.inst{border-left-color:var(--accent-amber);}
+.cp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.cp-name{font-family:var(--font-display);font-size:0.95rem;font-weight:700;color:var(--text-primary);line-height:1.25;}
+.cp-clid{font-family:var(--font-mono);font-size:0.62rem;color:var(--accent-cyan);margin-top:4px;}
+.cp-card.inst .cp-clid{color:var(--accent-amber);}
+.cp-badges{display:flex;flex-wrap:wrap;gap:6px;}
+.badge{font-family:var(--font-mono);font-size:0.56rem;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-secondary);white-space:nowrap;}
+.badge.gold{background:var(--accent-amber-dim);color:var(--accent-amber);border-color:rgba(245,158,11,0.3);}
+.badge.lp{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.2);}
+.badge.type{background:var(--accent-cyan-dim);color:var(--accent-cyan);border-color:rgba(14,165,233,0.2);}
+.cp-card.inst .badge.type{background:var(--accent-amber-dim);color:var(--accent-amber);border-color:rgba(245,158,11,0.25);}
+.pkg-row{display:flex;flex-wrap:wrap;gap:5px;}
+.pkg-chip{font-family:var(--font-mono);font-size:0.58rem;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(122,139,168,0.1);color:var(--text-secondary);border:1px solid var(--border-default);}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+.kv .k{font-size:0.53rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:2px;}
+.kv .v{font-size:0.74rem;color:var(--text-primary);font-weight:500;word-break:break-word;}
+.kv .v.mono{font-family:var(--font-mono);font-size:0.72rem;}
+.subhead{font-family:var(--font-display);font-size:0.58rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;}
+.gate-axes{display:flex;gap:8px;align-items:stretch;}
+.gate-box{flex:1;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:8px 10px;}
+.gate-box .gk{font-size:0.5rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);}
+.gate-box .gv{font-family:var(--font-mono);font-size:0.72rem;color:var(--text-primary);margin-top:3px;}
+.axes-differ{display:inline-flex;align-items:center;gap:4px;font-size:0.54rem;font-weight:600;color:var(--accent-amber);font-family:var(--font-mono);background:var(--accent-amber-dim);border:1px solid rgba(245,158,11,0.25);border-radius:5px;padding:2px 7px;}
+.axes-match{display:inline-flex;align-items:center;gap:4px;font-size:0.54rem;font-weight:600;color:var(--accent-green);font-family:var(--font-mono);}
+.env-track{position:relative;height:9px;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:100px;margin-top:4px;}
+.env-fill{position:absolute;left:0;top:0;bottom:0;border-radius:100px;background:linear-gradient(90deg,rgba(14,165,233,0.2),var(--accent-cyan));}
+.cp-card.inst .env-fill{background:linear-gradient(90deg,rgba(245,158,11,0.2),var(--accent-amber));}
+.env-marker{position:absolute;top:-4px;width:2px;height:17px;background:var(--text-primary);border-radius:2px;}
+.env-labels{display:flex;justify-content:space-between;margin-top:9px;gap:8px;}
+.env-labels .el{display:flex;flex-direction:column;}
+.env-labels .el.tgt{align-items:center;}
+.env-labels .el.cl{align-items:flex-end;}
+.env-labels .el .elk{font-size:0.5rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.06em;}
+.env-labels .el .elv{font-family:var(--font-mono);font-size:0.74rem;font-weight:600;color:var(--text-primary);margin-top:2px;}
+.env-labels .el.tgt .elv{color:var(--accent-cyan);}
+.cp-card.inst .env-labels .el.tgt .elv{color:var(--accent-amber);}
+.cp-links{display:flex;gap:8px;flex-wrap:wrap;}
+.cp-link{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-secondary);font-size:0.66rem;text-decoration:none;transition:all 0.2s;}
+.cp-link:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.divline{height:1px;background:var(--border-subtle);margin:1px 0;}
+.sandbox-section{background:rgba(139,92,246,0.04);border:1px dashed rgba(139,92,246,0.35);border-radius:var(--radius-lg);padding:14px 18px 16px;}
+.sandbox-banner{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:0.62rem;font-weight:700;color:var(--accent-purple);text-transform:uppercase;letter-spacing:0.1em;}
+.sb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px;margin-top:12px;}
+@media(max-width:700px){.sb-grid{grid-template-columns:1fr;}}
+.sb-card{background:var(--bg-surface);border:1px solid rgba(139,92,246,0.25);border-radius:var(--radius-md);padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.sb-name{font-family:var(--font-display);font-size:0.84rem;font-weight:600;color:var(--text-primary);}
+.sb-clid{font-family:var(--font-mono);font-size:0.6rem;color:var(--accent-purple);margin-top:3px;}
+.sb-tag{font-family:var(--font-mono);font-size:0.55rem;font-weight:600;padding:2px 8px;border-radius:5px;background:var(--accent-purple-dim);color:#B794F6;border:1px solid rgba(139,92,246,0.25);}
+.doc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-subtle);gap:10px;}
+.doc-row:last-child{border-bottom:none;}
+.doc-code{font-family:var(--font-mono);font-size:0.66rem;color:var(--text-primary);font-weight:500;}
+.doc-meta{font-size:0.56rem;color:var(--text-muted);font-family:var(--font-mono);}
+.doc-auth{font-family:var(--font-mono);font-size:0.55rem;color:var(--accent-cyan);background:var(--accent-cyan-dim);border:1px solid rgba(14,165,233,0.18);border-radius:5px;padding:2px 7px;white-space:nowrap;}
+.dbc-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);}
+.dbc-row:last-child{border-bottom:none;}
+.docs-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;}
+@media(max-width:800px){.docs-grid{grid-template-columns:1fr;}}
+
+/* ═══════ EILEEN INTELLIGENCE ENTITY ═══════ */
+.eileen-orb{position:fixed;bottom:28px;right:28px;z-index:500;width:64px;height:64px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(212,160,23,0.15),rgba(14,165,233,0.05));border:1px solid rgba(212,160,23,0.25);transition:all 0.3s ease;box-shadow:0 0 30px rgba(212,160,23,0.12),0 0 60px rgba(14,165,233,0.06);}
+.eileen-orb:hover{transform:scale(1.08);border-color:rgba(212,160,23,0.45);box-shadow:0 0 40px rgba(212,160,23,0.2),0 0 80px rgba(14,165,233,0.1);}
+.eileen-panel{position:fixed;bottom:28px;right:28px;z-index:501;width:420px;max-width:calc(100vw - 56px);height:560px;max-height:calc(100vh - 100px);background:var(--bg-surface);border:1px solid rgba(212,160,23,0.2);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;animation:eileenUp 0.3s ease-out;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(212,160,23,0.08);}
+@keyframes eileenUp{from{opacity:0;transform:translateY(20px) scale(0.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+.eileen-header{display:flex;align-items:center;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(212,160,23,0.1);background:linear-gradient(135deg,rgba(212,160,23,0.04),rgba(139,92,246,0.02));}
+.eileen-header-name{font-family:var(--font-display);font-size:0.88rem;font-weight:700;color:#D4A017;}
+.eileen-header-status{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);}
+.eileen-close{width:28px;height:28px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-muted);font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.eileen-close:hover{border-color:rgba(212,160,23,0.3);color:#D4A017;}
+.eileen-messages{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+.eileen-msg{max-width:88%;padding:10px 14px;border-radius:14px;font-size:0.76rem;line-height:1.6;}
+.eileen-msg.user{align-self:flex-end;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.15);color:var(--text-primary);}
+.eileen-msg.eileen{align-self:flex-start;background:rgba(212,160,23,0.06);border:1px solid rgba(212,160,23,0.1);color:var(--text-secondary);}
+.eileen-input-bar{display:flex;gap:8px;padding:12px 18px 16px;border-top:1px solid var(--border-subtle);}
+.eileen-input{flex:1;padding:10px 14px;border-radius:12px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-primary);font-size:0.78rem;font-family:var(--font-body);outline:none;transition:border-color 0.2s;}
+.eileen-input:focus{border-color:rgba(212,160,23,0.4);}
+.eileen-input::placeholder{color:var(--text-muted);}
+.eileen-send{padding:10px 16px;border-radius:12px;border:1px solid rgba(212,160,23,0.25);background:rgba(212,160,23,0.1);color:#D4A017;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.2s;}
+.eileen-send:hover{background:rgba(212,160,23,0.18);border-color:rgba(212,160,23,0.4);}
+.eileen-typing{display:flex;gap:4px;padding:10px 14px;align-self:flex-start;}
+.eileen-typing-dot{width:6px;height:6px;border-radius:50%;background:#D4A017;animation:eBounce 1.4s ease-in-out infinite;}
+.eileen-typing-dot:nth-child(2){animation-delay:0.2s;}
+.eileen-typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes eBounce{0%,80%,100%{opacity:0.3;transform:translateY(0);}40%{opacity:1;transform:translateY(-4px);}}
+
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL = 'mark@ailane.ai';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function num(n){if(n==null) return '0';return Number(n).toLocaleString('en-GB');}
+function shortDate(d){if(!d) return '—';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function friendly(s){if(s==null||s==='') return '—';return String(s).replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());}
+// envelope_*_pence are raw integers in pence — divide by 100 for £
+function penceGBP(p){if(p==null) return '—';const v=Number(p)/100;return '£'+v.toLocaleString('en-GB',{maximumFractionDigits:0});}
+// Gold (#F59E0B) reserved EXCLUSIVELY for Enterprise / institutional-equivalent (AMD-069 / NN-11)
+function isInstitutional(cp){
+  const hay=[cp.counterparty_type,cp.pricing_exclusivity_tier,cp.exclusivity_appetite,cp.pricing_cohort_family,cp.mca_template_variant].map(x=>String(x||'').toLowerCase()).join(' ');
+  return /institution|enterprise|sovereign|anchor|full_uk_exclusive|strategic/.test(hay);
+}
+
+function App() {
+  const [auth, setAuth] = useState('checking');
+  const [token, setToken] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [eileenOpen, setEileenOpen] = useState(false);
+
+  // ─── Auth gate (CEO-only; identical pattern to module pages) ───
+  useEffect(() => {
+    (async()=>{
+      const {data:{session}}=await sb.auth.getSession();
+      if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}
+      const t=setTimeout(()=>{window.location.href='/AiLaneCEO/';},5000);
+      sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/AiLaneCEO/';}});
+    })();
+  }, []);
+
+  // ─── Live data from ceo-portfolio-data ───
+  useEffect(() => {
+    if(auth!=='ok'||!token) return;
+    (async()=>{
+      setLoading(true);
+      try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealrooms`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+      if(r.ok){const j=await r.json();setData(j.sections?.dealrooms||null);}else{console.error('ceo-portfolio-data',r.status);}}catch(e){console.error(e);}
+      setLoading(false);
+    })();
+  }, [auth, token]);
+
+  if(auth==='checking') return <div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Verifying clearance…</div></div>;
+
+  const d = data || {};
+  const summary = d.summary || {};
+  const clids = Array.isArray(d.clids) ? d.clids : [];
+  const counterparties = Array.isArray(d.counterparties) ? d.counterparties : [];
+  const documents = Array.isArray(d.documents) ? d.documents : [];
+  const docsByCp = Array.isArray(d.documents_by_counterparty) ? d.documents_by_counterparty : [];
+
+  const clidMap = {};
+  clids.forEach(c=>{ if(c.clid) clidMap[c.clid]=c; });
+  const sandboxClids = clids.filter(c=>c.is_simulation===true);
+
+  function docCountFor(code){const r=docsByCp.find(x=>x.counterparty===code);return r?r.count:0;}
+
+  return (
+    <div>
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a>
+          <div className="page-title">Data <span>Deal Rooms</span></div>
+        </div>
+        <div className="top-bar-right">
+          <div className="status-pill live"><div className="dot"/>LIVE</div>
+          <a href="/admin/counterparty-orchestration/" className="back-btn" style={{textDecoration:'none'}}>Orchestration ↗</a>
+        </div>
+      </div>
+
+      <div className="main">
+        {loading ? (
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div className="kpi-strip">{[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}</div>
+            <div className="cp-grid">{[1,2,3].map(i=><div key={i} className="skeleton" style={{height:320}}/>)}</div>
+          </div>
+        ) : !data ? (
+          <div className="card"><div className="card-body"><div className="empty-note">Unable to load deal-room data. The portfolio service returned no payload for this session.</div></div></div>
+        ) : (
+          <>
+            {/* KPI STRIP */}
+            <div className="kpi-strip">
+              <div className="kpi-card">
+                <div className="label">Live CLIDs</div>
+                <div className="value" style={{color:'var(--accent-green)'}}>{num(summary.clids_live)}</div>
+                <div className="sub">{num(summary.clids_total)} total · {num(summary.clids_simulation)} sim</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Launch Partners</div>
+                <div className="value" style={{color:'var(--accent-amber)'}}>{num(summary.launch_partners)}</div>
+                <div className="sub">flagged</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Counterparties</div>
+                <div className="value" style={{color:'var(--accent-cyan)'}}>{num(summary.counterparties_total)}</div>
+                <div className="sub">commercial profiles</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Documents</div>
+                <div className="value" style={{color:'var(--accent-purple)'}}>{num(summary.documents_current)}</div>
+                <div className="sub">current snapshots</div>
+              </div>
+              <div className="kpi-card">
+                <div className="label">Eileen Sessions</div>
+                <div className="value" style={{color:'var(--text-primary)'}}>{num(d.eileen_sessions_total)}</div>
+                <div className="sub">dealroom total</div>
+              </div>
+            </div>
+
+            {/* LIVE COUNTERPARTIES */}
+            <div className="section-label">Live Counterparties</div>
+            {counterparties.length>0 ? (
+              <div className="cp-grid">
+                {counterparties.map((cp,i)=>{
+                  const inst = isInstitutional(cp);
+                  const linked = cp.clid ? clidMap[cp.clid] : null;
+                  const wsGate = linked ? linked.gate_state : null;        // workspace axis (partner_clids)
+                  const comGate = cp.gate_state;                            // commercial axis (counterparty_profile)
+                  const differ = wsGate!=null && comGate!=null && String(wsGate)!==String(comGate);
+                  const pkgs = Array.isArray(cp.four_surfaced_packages) ? cp.four_surfaced_packages : [];
+                  const fl=cp.envelope_floor_pence, tg=cp.envelope_target_pence, cl=cp.envelope_ceiling_pence;
+                  const hasEnv = fl!=null && cl!=null && Number(cl)>Number(fl);
+                  const tgtPct = hasEnv && tg!=null ? Math.max(2,Math.min(98,(Number(tg)-Number(fl))/(Number(cl)-Number(fl))*100)) : null;
+                  const wsPath = linked ? linked.workspace_path : null;
+                  const isLP = linked ? linked.is_launch_partner===true : false;
+                  const name = cp.counterparty_legal_name_formal || cp.counterparty_legal_name || cp.counterparty_short_name || cp.counterparty_short_code || 'Counterparty';
+                  return (
+                    <div key={i} className={'cp-card'+(inst?' inst':'')}>
+                      <div className="cp-head">
+                        <div>
+                          <div className="cp-name">{name}</div>
+                          <div className="cp-clid">{cp.clid || cp.counterparty_short_code || '—'}</div>
+                        </div>
+                        <div className="cp-badges">
+                          {cp.counterparty_type && <span className="badge type">{friendly(cp.counterparty_type)}</span>}
+                          {inst && <span className="badge gold">Institutional</span>}
+                          {isLP && <span className="badge lp">Launch Partner</span>}
+                        </div>
+                      </div>
+
+                      {pkgs.length>0 && (
+                        <div>
+                          <div className="subhead" style={{marginBottom:5}}>Surfaced Packages</div>
+                          <div className="pkg-row">{pkgs.map((p,j)=><span key={j} className="pkg-chip">{p}</span>)}</div>
+                        </div>
+                      )}
+
+                      <div className="kv-grid">
+                        <div className="kv"><div className="k">MCA Variant</div><div className="v mono">{cp.mca_template_variant||'—'}</div></div>
+                        <div className="kv"><div className="k">Pricing Family</div><div className="v mono">{cp.pricing_cohort_family||'—'}</div></div>
+                        <div className="kv"><div className="k">Exclusivity</div><div className="v">{friendly(cp.exclusivity_appetite)}{cp.pricing_exclusivity_tier?' · '+friendly(cp.pricing_exclusivity_tier):''}</div></div>
+                        <div className="kv"><div className="k">Geo Scope</div><div className="v">{friendly(cp.geographic_scope)}</div></div>
+                      </div>
+
+                      {/* GATE RECONCILIATION — two axes side by side */}
+                      <div>
+                        <div className="subhead" style={{marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span>Gate State</span>
+                          {differ ? <span className="axes-differ"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><circle cx="12" cy="12" r="10"/></svg>axes differ</span>
+                                  : (wsGate!=null&&comGate!=null) ? <span className="axes-match">aligned</span> : null}
+                        </div>
+                        <div className="gate-axes">
+                          <div className="gate-box"><div className="gk">Workspace</div><div className="gv">{wsGate!=null?friendly(wsGate):'—'}</div></div>
+                          <div className="gate-box"><div className="gk">Commercial</div><div className="gv">{comGate!=null?friendly(comGate):'—'}</div></div>
+                        </div>
+                      </div>
+
+                      {/* COMMERCIAL ENVELOPE */}
+                      {hasEnv && (
+                        <div>
+                          <div className="subhead" style={{marginBottom:2}}>Commercial Envelope</div>
+                          <div className="env-track">
+                            <div className="env-fill" style={{width:(tgtPct!=null?tgtPct:50)+'%'}}/>
+                            {tgtPct!=null && <div className="env-marker" style={{left:'calc('+tgtPct+'% - 1px)'}}/>}
+                          </div>
+                          <div className="env-labels">
+                            <div className="el"><span className="elk">Floor</span><span className="elv">{penceGBP(fl)}</span></div>
+                            <div className="el tgt"><span className="elk">Target</span><span className="elv">{penceGBP(tg)}</span></div>
+                            <div className="el cl"><span className="elk">Ceiling</span><span className="elv">{penceGBP(cl)}</span></div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="divline"/>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                        <span className="doc-meta">{num(docCountFor(cp.counterparty_short_code))} document{docCountFor(cp.counterparty_short_code)===1?'':'s'} · updated {shortDate(cp.updated_at)}</span>
+                        <div className="cp-links">
+                          {wsPath && <a className="cp-link" href={wsPath} target="_blank" rel="noopener">Workspace ↗</a>}
+                          <a className="cp-link" href="/admin/counterparty-orchestration/" target="_blank" rel="noopener">Orchestration ↗</a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="card"><div className="card-body"><div className="empty-note">No live counterparty profiles in the current dataset.</div></div></div>
+            )}
+
+            {/* SANDBOX / SIMULATION */}
+            {sandboxClids.length>0 && (
+              <div className="sandbox-section">
+                <div className="sandbox-banner"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg>Sandbox · Simulation — not production deals</div>
+                <div className="sb-grid">
+                  {sandboxClids.map((c,i)=>(
+                    <div key={i} className="sb-card">
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
+                        <div>
+                          <div className="sb-name">{c.counterparty_name||c.clid}</div>
+                          <div className="sb-clid">{c.clid}</div>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:5,alignItems:'flex-end'}}>
+                          <span className="sb-tag">Simulation</span>
+                          {c.is_launch_partner && <span className="sb-tag">Launch Partner</span>}
+                        </div>
+                      </div>
+                      <div className="kv-grid">
+                        <div className="kv"><div className="k">Gate State</div><div className="v mono">{friendly(c.gate_state)}</div></div>
+                        <div className="kv"><div className="k">Workspace Year</div><div className="v mono">{c.workspace_year||'—'}</div></div>
+                        <div className="kv"><div className="k">Package</div><div className="v mono">{c.package_selection||'—'}</div></div>
+                        <div className="kv"><div className="k">Director</div><div className="v mono" style={{fontSize:'0.62rem'}}>{c.director_email||'—'}</div></div>
+                      </div>
+                      {c.launch_partner_rationale && <div style={{fontSize:'0.66rem',color:'var(--text-secondary)',lineHeight:1.5}}>{c.launch_partner_rationale}</div>}
+                      {c.notes && <div style={{fontSize:'0.62rem',color:'var(--text-muted)',lineHeight:1.5,fontStyle:'italic'}}>{c.notes}</div>}
+                      {c.workspace_path && <div><a className="cp-link" href={c.workspace_path} target="_blank" rel="noopener">Sandbox Workspace ↗</a></div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* DOCUMENTS */}
+            <div className="docs-grid">
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-head-title">Documents by Counterparty</div>
+                  <div className="card-head-badge">{num(summary.documents_current)} current</div>
+                </div>
+                <div className="card-body">
+                  {docsByCp.length>0 ? docsByCp.map((x,i)=>(
+                    <div key={i} className="dbc-row">
+                      <span className="doc-code">{x.counterparty}</span>
+                      <span className="mono" style={{fontFamily:'var(--font-mono)',fontSize:'0.74rem',color:'var(--accent-cyan)'}}>{num(x.count)}</span>
+                    </div>
+                  )) : <div className="empty-note">No documents recorded.</div>}
+                </div>
+              </div>
+              <div className="card">
+                <div className="card-head">
+                  <div className="card-head-title">Current Document Snapshots</div>
+                  <div className="card-head-badge">{documents.length} rendered</div>
+                </div>
+                <div className="card-body">
+                  {documents.length>0 ? documents.map((doc,i)=>(
+                    <div key={i} className="doc-row">
+                      <div style={{minWidth:0,flex:1}}>
+                        <div className="doc-code">{doc.doc_code}</div>
+                        <div className="doc-meta">{doc.counterparty_short_code} · {doc.template_key} v{doc.template_version} · {num(doc.rendered_chars)} chars · {shortDate(doc.snapshotted_at)}</div>
+                      </div>
+                      {doc.amd_authority && <span className="doc-auth">{doc.amd_authority}</span>}
+                    </div>
+                  )) : <div className="empty-note">No rendered document snapshots in the current dataset.</div>}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* EILEEN */}
+      {!eileenOpen&&<div className="eileen-orb" onClick={()=>setEileenOpen(true)}><EileenNexus active={false} size={44}/></div>}
+      {eileenOpen&&<EileenChat token={token} onClose={()=>setEileenOpen(false)}/>}
+    </div>
+  );
+}
+
+// ═══════ EILEEN INTELLIGENCE ENTITY ═══════
+function EileenNexus({active,size}){
+  const canvasRef=React.useRef(null);const frameRef=React.useRef(0);const timeRef=React.useRef(0);
+  React.useEffect(()=>{
+    const canvas=canvasRef.current;if(!canvas)return;const ctx=canvas.getContext('2d');
+    const w=size*2,h=size*2;canvas.width=w;canvas.height=h;const cx=w/2,cy=h/2;
+    const nodes=[];const nc=active?18:12;
+    for(let i=0;i<nc;i++){const ring=i<5?0.2:i<11?0.55:0.82;const angle=(i/nc)*Math.PI*2+Math.random()*0.5;const r=ring*(w*0.38);
+      nodes.push({x:cx+Math.cos(angle)*r,y:cy+Math.sin(angle)*r,bx:cx+Math.cos(angle)*r,by:cy+Math.sin(angle)*r,r:2+Math.random()*3,sp:0.3+Math.random()*0.7,ph:Math.random()*Math.PI*2});}
+    function draw(){
+      timeRef.current+=active?0.025:0.012;const t=timeRef.current;ctx.clearRect(0,0,w,h);
+      const cs=active?28:18;const grd=ctx.createRadialGradient(cx,cy,0,cx,cy,cs*3);
+      grd.addColorStop(0,active?'rgba(212,160,23,0.5)':'rgba(212,160,23,0.25)');
+      grd.addColorStop(0.4,active?'rgba(139,92,246,0.15)':'rgba(14,165,233,0.08)');grd.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(cx,cy,cs*3,0,Math.PI*2);ctx.fill();
+      const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,cs);cg.addColorStop(0,'rgba(255,255,255,0.95)');
+      cg.addColorStop(0.25,'#D4A017');cg.addColorStop(0.6,active?'#8B5CF6':'rgba(212,160,23,0.5)');
+      cg.addColorStop(1,'rgba(212,160,23,0)');ctx.fillStyle=cg;
+      ctx.beginPath();ctx.arc(cx,cy,cs*(1+Math.sin(t*1.5)*0.1),0,Math.PI*2);ctx.fill();
+      nodes.forEach(n=>{const dr=active?8:3;n.x=n.bx+Math.sin(t*n.sp+n.ph)*dr;n.y=n.by+Math.cos(t*n.sp*0.7+n.ph)*dr;});
+      nodes.forEach((a,i)=>{nodes.forEach((b,j)=>{if(j<=i)return;const dx=a.x-b.x,dy=a.y-b.y;const dist=Math.sqrt(dx*dx+dy*dy);const mx=active?w*0.45:w*0.35;
+        if(dist<mx){const al=(1-dist/mx)*(active?0.35:0.15);const pu=0.5+Math.sin(t*2+i*0.3)*0.5;
+          ctx.strokeStyle='rgba(212,160,23,'+(al*pu)+')';ctx.lineWidth=active?1.2:0.6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}});});
+      nodes.forEach(n=>{const pu=0.7+Math.sin(t*2+n.ph)*0.3;const na=active?0.9:0.5;
+        ctx.fillStyle='rgba(212,160,23,'+(na*pu)+')';ctx.beginPath();ctx.arc(n.x,n.y,n.r*pu,0,Math.PI*2);ctx.fill();});
+      frameRef.current=requestAnimationFrame(draw);}
+    draw();return()=>cancelAnimationFrame(frameRef.current);
+  },[active,size]);
+  return React.createElement('canvas',{ref:canvasRef,style:{width:size,height:size}});
+}
+
+function EileenChat({token,onClose}){
+  const[msgs,setMsgs]=useState([{role:'eileen',text:'Good evening. I have full Gold Clearance access to the deal-room registry and counterparty intelligence. What would you like to know?'}]);
+  const[input,setInput]=useState('');const[thinking,setThinking]=useState(false);const endRef=React.useRef(null);
+  useEffect(()=>{if(endRef.current)endRef.current.scrollIntoView({behavior:'smooth'});},[msgs,thinking]);
+  async function send(){if(!input.trim()||thinking)return;const q=input.trim();setInput('');setMsgs(m=>[...m,{role:'user',text:q}]);setThinking(true);
+    try{const r=await fetch(SUPABASE_URL+'/functions/v1/ceo-assistant',{method:'POST',headers:{'Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({message:q})});
+      if(r.ok){const d=await r.json();setMsgs(m=>[...m,{role:'eileen',text:d.response||d.content||'Response received.'}]);}
+      else{setMsgs(m=>[...m,{role:'eileen',text:'I encountered a '+r.status+' response. Try again.'}]);}}
+    catch(e){setMsgs(m=>[...m,{role:'eileen',text:'Connection interrupted. Please try again.'}]);}setThinking(false);}
+  return React.createElement('div',{className:'eileen-panel'},
+    React.createElement('div',{className:'eileen-header'},
+      React.createElement(EileenNexus,{active:thinking,size:40}),
+      React.createElement('div',{style:{flex:1}},
+        React.createElement('div',{className:'eileen-header-name'},'Eileen'),
+        React.createElement('div',{className:'eileen-header-status'},thinking?'Processing intelligence...':'CEO Command · Gold Clearance')),
+      React.createElement('button',{className:'eileen-close',onClick:onClose},'×')),
+    React.createElement('div',{className:'eileen-messages'},
+      msgs.map((m,i)=>React.createElement('div',{key:i,className:'eileen-msg '+m.role},m.text)),
+      thinking&&React.createElement('div',{className:'eileen-typing'},
+        React.createElement('div',{className:'eileen-typing-dot'}),React.createElement('div',{className:'eileen-typing-dot'}),React.createElement('div',{className:'eileen-typing-dot'})),
+      React.createElement('div',{ref:endRef})),
+    React.createElement('div',{className:'eileen-input-bar'},
+      React.createElement('input',{className:'eileen-input',value:input,onChange:e=>setInput(e.target.value),onKeyDown:e=>e.key==='Enter'&&send(),placeholder:'Ask Eileen anything...'}),
+      React.createElement('button',{className:'eileen-send',onClick:send},'Send')));
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
