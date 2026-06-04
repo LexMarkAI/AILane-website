@@ -115,6 +115,32 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .repeat-flag{font-size:0.55rem;font-weight:600;color:var(--accent-red);background:var(--accent-red-dim);border:1px solid rgba(239,68,68,0.2);border-radius:4px;padding:1px 6px;font-family:var(--font-mono);}
 .empty-note{color:var(--text-muted);font-size:0.74rem;padding:16px 0;text-align:center;}
 
+/* ═══════ ENTITY DRILL-DOWN PANEL ═══════ */
+.ent-row{cursor:pointer;transition:background 0.15s;}
+.ent-row:hover{background:var(--bg-hover);}
+.dd-overlay{position:fixed;inset:0;background:rgba(3,6,12,0.66);z-index:600;backdrop-filter:blur(2px);animation:ddFade 0.2s ease;}
+@keyframes ddFade{from{opacity:0;}to{opacity:1;}}
+.dd-drawer{position:fixed;top:0;right:0;bottom:0;width:600px;max-width:96vw;background:var(--bg-base);border-left:1px solid var(--border-strong);z-index:601;display:flex;flex-direction:column;animation:ddSlide 0.26s cubic-bezier(0.16,1,0.3,1);box-shadow:-24px 0 70px rgba(0,0,0,0.5);}
+@keyframes ddSlide{from{transform:translateX(60px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.dd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 22px 14px;border-bottom:1px solid var(--border-default);background:var(--bg-glass);backdrop-filter:blur(20px);}
+.dd-head h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--text-primary);line-height:1.25;}
+.dd-head .dd-sub{font-family:var(--font-mono);font-size:0.62rem;color:var(--accent-cyan);margin-top:4px;}
+.dd-close{width:30px;height:30px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-secondary);font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;}
+.dd-close:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.dd-body{flex:1;overflow-y:auto;padding:18px 22px 44px;display:flex;flex-direction:column;gap:18px;}
+.dd-sec{display:flex;flex-direction:column;gap:10px;}
+.dd-sec-title{font-family:var(--font-display);font-size:0.62rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid var(--border-subtle);padding-bottom:6px;}
+.dd-kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;}
+.dd-kv{display:flex;flex-direction:column;gap:2px;}
+.dd-kv .k{font-size:0.53rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);}
+.dd-kv .v{font-size:0.76rem;color:var(--text-primary);font-weight:500;word-break:break-word;}
+.dd-kv .v.mono{font-family:var(--font-mono);font-size:0.72rem;}
+.dd-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:70px 0;}
+.dd-muted{color:var(--text-muted);font-size:0.72rem;}
+.chip-wrap{display:flex;flex-wrap:wrap;gap:5px;}
+.ent-chip{font-family:var(--font-mono);font-size:0.6rem;padding:2px 8px;border-radius:6px;background:var(--bg-base);border:1px solid var(--border-default);color:var(--text-secondary);}
+@media(max-width:700px){.dd-kv-grid{grid-template-columns:1fr;}}
+
 /* ═══════ EILEEN INTELLIGENCE ENTITY ═══════ */
 .eileen-orb{position:fixed;bottom:28px;right:28px;z-index:500;width:64px;height:64px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(212,160,23,0.15),rgba(14,165,233,0.05));border:1px solid rgba(212,160,23,0.25);transition:all 0.3s ease;box-shadow:0 0 30px rgba(212,160,23,0.12),0 0 60px rgba(14,165,233,0.06);}
 .eileen-orb:hover{transform:scale(1.08);border-color:rgba(212,160,23,0.45);box-shadow:0 0 40px rgba(212,160,23,0.2),0 0 80px rgba(14,165,233,0.1);}
@@ -165,6 +191,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [eileenOpen, setEileenOpen] = useState(false);
+  const [entAlin, setEntAlin] = useState(null);
+  const openEntity = (alin) => { if(alin) setEntAlin(alin); };
 
   // ─── Auth gate (CEO-only; identical pattern to module pages) ───
   useEffect(() => {
@@ -380,7 +408,7 @@ function App() {
                         </thead>
                         <tbody>
                           {selEntities.map((e,i)=>(
-                            <tr key={i}>
+                            <tr key={i} className={e.alin?'ent-row':undefined} onClick={e.alin?()=>openEntity(e.alin):undefined} style={e.alin?{cursor:'pointer'}:undefined} title={e.alin?'Open entity record':undefined}>
                               <td className="mono" style={{color:'var(--accent-cyan)'}}>{e.alin||'—'}</td>
                               <td>
                                 <div className="ent-name">{e.company_name||'—'}</div>
@@ -412,9 +440,112 @@ function App() {
         )}
       </div>
 
+      {/* ENTITY DRILL-DOWN PANEL */}
+      {entAlin&&<EntityPanel alin={entAlin} token={token} onClose={()=>setEntAlin(null)}/>}
+
       {/* EILEEN */}
       {!eileenOpen&&<div className="eileen-orb" onClick={()=>setEileenOpen(true)}><EileenNexus active={false} size={44}/></div>}
       {eileenOpen&&<EileenChat token={token} onClose={()=>setEileenOpen(false)}/>}
+    </div>
+  );
+}
+
+// ═══════ COHORT ENTITY DRILL-DOWN PANEL (read-only) ═══════
+function EntityPanel({alin, token, onClose}){
+  const [loading,setLoading]=useState(true);
+  const [ent,setEnt]=useState(null);
+  const [err,setErr]=useState(null);
+  useEffect(()=>{
+    let alive=true;
+    (async()=>{
+      setLoading(true);setErr(null);setEnt(null);
+      try{
+        const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=cohort_entity_detail&alin=${encodeURIComponent(alin)}`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+        const j=await r.json();
+        if(!alive) return;
+        const ee=j?.sections?.cohort_entity_detail;
+        if(!ee){ setErr('No entity detail returned.'); }
+        else if(ee.error){ setErr(ee.error==='entity_not_found'?'Entity not found for this ALIN.':friendly(ee.error)); }
+        else setEnt(ee);
+      }catch(e){ if(alive){ console.error(e); setErr('Network error loading entity record.'); } }
+      if(alive) setLoading(false);
+    })();
+    return ()=>{alive=false;};
+  },[alin]);
+
+  function chips(arr){
+    const a = Array.isArray(arr)?arr:(arr&&typeof arr==='object'?Object.values(arr):[]);
+    if(!a||a.length===0) return <span className="dd-muted">—</span>;
+    return <div className="chip-wrap">{a.map((x,i)=><span key={i} className="ent-chip">{typeof x==='object'?JSON.stringify(x):String(x)}</span>)}</div>;
+  }
+
+  const en = ent||{};
+  return (
+    <div>
+      <div className="dd-overlay" onClick={onClose}/>
+      <div className="dd-drawer" role="dialog" aria-modal="true">
+        <div className="dd-head">
+          <div>
+            <h2>{loading?'Loading…':(en.company_name||alin)}</h2>
+            <div className="dd-sub">{alin}{en.companies_house_number?' · CHN '+en.companies_house_number:''}</div>
+          </div>
+          <button className="dd-close" onClick={onClose}>×</button>
+        </div>
+        <div className="dd-body">
+          {loading ? (
+            <div className="dd-loading"><div className="pulse-ring"/><div className="ts">Loading entity record…</div></div>
+          ) : err ? (
+            <div className="empty-note">{err}</div>
+          ) : (
+            <>
+              <div className="dd-sec">
+                <div className="dd-sec-title">Classification</div>
+                <div className="dd-kv-grid">
+                  <div className="dd-kv"><div className="k">Cohort Family</div><div className="v">{en.cohort_family||'—'}</div></div>
+                  <div className="dd-kv"><div className="k">Membership Kind</div><div className="v">{friendly(en.cohort_membership_kind)}</div></div>
+                  <div className="dd-kv"><div className="k">Super-League Tier</div><div className="v">{en.super_league_tier?<span className={'mini-tier '+String(en.super_league_tier).toUpperCase().charAt(0)}>{en.super_league_tier}</span>:'—'}</div></div>
+                  <div className="dd-kv"><div className="k">Allocation Status</div><div className="v">{friendly(en.allocation_status)}</div></div>
+                </div>
+                {en.super_league_tier_basis && <div className="dd-kv"><div className="k">Tier Basis</div><div className="v" style={{fontWeight:400}}>{en.super_league_tier_basis}</div></div>}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Scale & Exposure</div>
+                <div className="dd-kv-grid">
+                  <div className="dd-kv"><div className="k">Size Band</div><div className="v">{friendly(en.size_band)}</div></div>
+                  <div className="dd-kv"><div className="k">Exposure Band</div><div className="v">{friendly(en.exposure_band)}</div></div>
+                  <div className="dd-kv"><div className="k">Tribunal Count</div><div className="v mono">{num(en.tribunal_count)}</div></div>
+                  <div className="dd-kv"><div className="k">Severity Weighted</div><div className="v mono">{en.severity_weighted!=null?Number(en.severity_weighted).toLocaleString('en-GB',{maximumFractionDigits:1}):'—'}</div></div>
+                  <div className="dd-kv"><div className="k">Repeat Respondent</div><div className="v">{en.is_repeat_respondent?'Yes':'No'}</div></div>
+                  <div className="dd-kv"><div className="k">Derivative Basis</div><div className="v">{friendly(en.derivative_basis)}</div></div>
+                </div>
+                {en.size_band_evidence_basis && <div className="dd-kv"><div className="k">Size Band Evidence</div><div className="v" style={{fontWeight:400}}>{en.size_band_evidence_basis}</div></div>}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Footprint</div>
+                <div className="dd-kv"><div className="k">Operating Regions</div>{chips(en.operating_regions)}</div>
+                <div className="dd-kv"><div className="k">Market Segments</div>{chips(en.market_segments)}</div>
+                <div className="dd-kv"><div className="k">SIC Codes</div>{chips(en.sic_codes)}</div>
+                {en.regulatory_profile && (typeof en.regulatory_profile==='object'
+                  ? <div className="dd-kv"><div className="k">Regulatory Profile</div><div className="chip-wrap">{Object.entries(en.regulatory_profile).map(([k,v],i)=><span key={i} className="ent-chip">{friendly(k)}: {typeof v==='object'?JSON.stringify(v):String(v)}</span>)}</div></div>
+                  : <div className="dd-kv"><div className="k">Regulatory Profile</div><div className="v" style={{fontWeight:400}}>{friendly(en.regulatory_profile)}</div></div>)}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Provenance</div>
+                <div className="dd-kv-grid">
+                  <div className="dd-kv"><div className="k">Evidence Tier</div><div className="v">{friendly(en.evidence_tier)}</div></div>
+                  <div className="dd-kv"><div className="k">Source Authority</div><div className="v">{friendly(en.evidence_source_authority)}</div></div>
+                  <div className="dd-kv"><div className="k">Ratification</div><div className="v mono">{en.ratification_amd_ref||'—'}</div></div>
+                  <div className="dd-kv"><div className="k">Recorded</div><div className="v mono">{shortDate(en.recorded_at)}</div></div>
+                </div>
+                {en.notes && <div className="dd-kv"><div className="k">Notes</div><div className="v" style={{fontWeight:400}}>{en.notes}</div></div>}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
