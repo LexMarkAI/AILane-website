@@ -131,6 +131,62 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .docs-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;}
 @media(max-width:800px){.docs-grid{grid-template-columns:1fr;}}
 
+/* ═══════ DRILL-DOWN DRAWER + DOC MODAL ═══════ */
+.dd-overlay{position:fixed;inset:0;background:rgba(3,6,12,0.66);z-index:600;backdrop-filter:blur(2px);animation:ddFade 0.2s ease;}
+@keyframes ddFade{from{opacity:0;}to{opacity:1;}}
+.dd-drawer{position:fixed;top:0;right:0;bottom:0;width:620px;max-width:96vw;background:var(--bg-base);border-left:1px solid var(--border-strong);z-index:601;display:flex;flex-direction:column;animation:ddSlide 0.26s cubic-bezier(0.16,1,0.3,1);box-shadow:-24px 0 70px rgba(0,0,0,0.5);}
+@keyframes ddSlide{from{transform:translateX(60px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.dd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 22px 14px;border-bottom:1px solid var(--border-default);background:var(--bg-glass);backdrop-filter:blur(20px);}
+.dd-head h2{font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--text-primary);line-height:1.25;}
+.dd-head .dd-sub{font-family:var(--font-mono);font-size:0.62rem;color:var(--accent-cyan);margin-top:4px;}
+.dd-close{width:30px;height:30px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-secondary);font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;}
+.dd-close:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.dd-body{flex:1;overflow-y:auto;padding:18px 22px 44px;display:flex;flex-direction:column;gap:18px;}
+.dd-sec{display:flex;flex-direction:column;gap:10px;}
+.dd-sec-title{font-family:var(--font-display);font-size:0.62rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid var(--border-subtle);padding-bottom:6px;}
+.dd-kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;}
+.dd-kv .k{font-size:0.53rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:2px;}
+.dd-kv .v{font-size:0.76rem;color:var(--text-primary);font-weight:500;word-break:break-word;}
+.dd-kv .v.mono{font-family:var(--font-mono);font-size:0.72rem;}
+.dd-badges{display:flex;flex-wrap:wrap;gap:6px;}
+.ladder{display:flex;flex-direction:column;}
+.ladder-step{display:flex;align-items:center;gap:12px;padding:6px 0;}
+.ladder-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border-strong);background:var(--bg-surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-mono);font-size:0.55rem;font-weight:600;color:var(--text-muted);}
+.ladder-step.done .ladder-dot{border-color:var(--accent-green);background:var(--accent-green-dim);color:var(--accent-green);}
+.ladder-step.current .ladder-dot{border-color:var(--accent-cyan);background:var(--accent-cyan);color:#021018;box-shadow:0 0 0 4px var(--accent-cyan-dim);}
+.ladder-label{font-size:0.74rem;color:var(--text-secondary);}
+.ladder-step.current .ladder-label{color:var(--text-primary);font-weight:600;}
+.ladder-step.future .ladder-label{color:var(--text-muted);}
+.dd-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.dd-count{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:8px 10px;}
+.dd-count .n{font-family:var(--font-mono);font-size:1rem;font-weight:600;color:var(--text-primary);}
+.dd-count .l{font-size:0.52rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-top:1px;}
+.dd-phase-group{margin-bottom:4px;}
+.dd-phase-label{font-family:var(--font-mono);font-size:0.58rem;font-weight:600;color:var(--accent-cyan);text-transform:uppercase;letter-spacing:0.06em;margin:8px 0 5px;}
+.dd-doc{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:7px;}
+.dd-doc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.dd-doc-name{font-size:0.74rem;color:var(--text-primary);font-weight:500;line-height:1.35;}
+.dd-doc-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:center;}
+.dchip{font-family:var(--font-mono);font-size:0.54rem;font-weight:600;padding:2px 7px;border-radius:5px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-secondary);white-space:nowrap;}
+.dchip.rel{background:var(--accent-cyan-dim);color:var(--accent-cyan);border-color:rgba(14,165,233,0.2);}
+.dchip.req{background:var(--accent-purple-dim);color:#B794F6;border-color:rgba(139,92,246,0.2);}
+.dchip.block{background:var(--accent-red-dim);color:var(--accent-red);border-color:rgba(239,68,68,0.25);}
+.dchip.ok{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.2);}
+.dchip.wait{background:rgba(122,139,168,0.1);color:var(--text-secondary);border-color:var(--border-default);}
+.dd-view-btn{font-family:var(--font-body);font-size:0.62rem;font-weight:600;padding:4px 11px;border-radius:6px;border:1px solid var(--border-accent);background:var(--accent-cyan-dim);color:var(--accent-cyan);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
+.dd-view-btn:hover{background:rgba(14,165,233,0.22);}
+.dd-list-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-subtle);font-size:0.7rem;}
+.dd-list-row:last-child{border-bottom:none;}
+.dd-muted{color:var(--text-muted);font-size:0.72rem;}
+.dd-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:70px 0;}
+.dm-overlay{position:fixed;inset:0;background:rgba(3,6,12,0.78);z-index:700;display:flex;align-items:center;justify-content:center;padding:40px;animation:ddFade 0.2s ease;}
+.dm-modal{background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);width:860px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,0.6);}
+.dm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-default);}
+.dm-title{font-family:var(--font-mono);font-size:0.8rem;font-weight:600;color:var(--text-primary);}
+.dm-cap{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);margin-top:3px;}
+.dm-body{flex:1;overflow-y:auto;padding:22px 26px;white-space:pre-wrap;font-family:var(--font-body);font-size:0.8rem;line-height:1.75;color:var(--text-secondary);}
+@media(max-width:700px){.dd-kv-grid{grid-template-columns:1fr;}.dd-counts{grid-template-columns:1fr 1fr;}}
+
 /* ═══════ EILEEN INTELLIGENCE ENTITY ═══════ */
 .eileen-orb{position:fixed;bottom:28px;right:28px;z-index:500;width:64px;height:64px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(212,160,23,0.15),rgba(14,165,233,0.05));border:1px solid rgba(212,160,23,0.25);transition:all 0.3s ease;box-shadow:0 0 30px rgba(212,160,23,0.12),0 0 60px rgba(14,165,233,0.06);}
 .eileen-orb:hover{transform:scale(1.08);border-color:rgba(212,160,23,0.45);box-shadow:0 0 40px rgba(212,160,23,0.2),0 0 80px rgba(14,165,233,0.1);}
@@ -180,6 +236,28 @@ function isInstitutional(cp){
   const hay=[cp.counterparty_type,cp.pricing_exclusivity_tier,cp.exclusivity_appetite,cp.pricing_cohort_family,cp.mca_template_variant].map(x=>String(x||'').toLowerCase()).join(' ');
   return /institution|enterprise|sovereign|anchor|full_uk_exclusive|strategic/.test(hay);
 }
+// Canonical phase ladder (gate_state lifecycle position) — see brief §3.4
+const PHASE_LADDER = [
+  ['phase_0','Phase 0 — Commercial pre-engagement'],
+  ['phase_a','Phase A — Initial commercial framing'],
+  ['phase_b','Phase B — Negotiation & scoping'],
+  ['phase_c','Phase C — Execution'],
+  ['phase_d','Phase D — Operational'],
+  ['phase_e','Phase E — Renewal / expansion'],
+  ['phase_f','Phase F — Wind-down'],
+];
+const PHASE_LABEL = Object.fromEntries(PHASE_LADDER);
+const PHASE_ORDER = PHASE_LADDER.map(p=>p[0]);
+function uploadStatusLabel(s){
+  if(!s) return 'Awaiting';
+  const k=String(s).toLowerCase();
+  if(k.includes('not_uploaded')||k.includes('awaiting')||k.includes('pending')) return 'Awaiting';
+  if(k.includes('under_review')||k.includes('review')) return 'Under review';
+  if(k.includes('uploaded')) return 'Uploaded';
+  if(k.includes('approved')) return 'Approved';
+  if(k.includes('reject')) return 'Rejected';
+  return friendly(s);
+}
 
 function App() {
   const [auth, setAuth] = useState('checking');
@@ -187,6 +265,8 @@ function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [eileenOpen, setEileenOpen] = useState(false);
+  const [drawerClid, setDrawerClid] = useState(null);
+  const openDealroom = (clid) => { if(clid) setDrawerClid(clid); };
 
   // ─── Auth gate (CEO-only; identical pattern to module pages) ───
   useEffect(() => {
@@ -294,7 +374,7 @@ function App() {
                   const isLP = linked ? linked.is_launch_partner===true : false;
                   const name = cp.counterparty_legal_name_formal || cp.counterparty_legal_name || cp.counterparty_short_name || cp.counterparty_short_code || 'Counterparty';
                   return (
-                    <div key={i} className={'cp-card'+(inst?' inst':'')}>
+                    <div key={i} className={'cp-card'+(inst?' inst':'')} onClick={cp.clid?()=>openDealroom(cp.clid):undefined} style={cp.clid?{cursor:'pointer'}:undefined} title={cp.clid?'Open deal room':undefined}>
                       <div className="cp-head">
                         <div>
                           <div className="cp-name">{name}</div>
@@ -353,7 +433,7 @@ function App() {
                       <div className="divline"/>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
                         <span className="doc-meta">{num(docCountFor(cp.counterparty_short_code))} document{docCountFor(cp.counterparty_short_code)===1?'':'s'} · updated {shortDate(cp.updated_at)}</span>
-                        <div className="cp-links">
+                        <div className="cp-links" onClick={e=>e.stopPropagation()}>
                           {wsPath && <a className="cp-link" href={wsPath} target="_blank" rel="noopener">Workspace ↗</a>}
                           <a className="cp-link" href="/admin/counterparty-orchestration/" target="_blank" rel="noopener">Orchestration ↗</a>
                         </div>
@@ -372,7 +452,7 @@ function App() {
                 <div className="sandbox-banner"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg>Sandbox · Simulation — not production deals</div>
                 <div className="sb-grid">
                   {sandboxClids.map((c,i)=>(
-                    <div key={i} className="sb-card">
+                    <div key={i} className="sb-card" onClick={c.clid?()=>openDealroom(c.clid):undefined} style={c.clid?{cursor:'pointer'}:undefined} title={c.clid?'Open deal room':undefined}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
                         <div>
                           <div className="sb-name">{c.counterparty_name||c.clid}</div>
@@ -391,7 +471,7 @@ function App() {
                       </div>
                       {c.launch_partner_rationale && <div style={{fontSize:'0.66rem',color:'var(--text-secondary)',lineHeight:1.5}}>{c.launch_partner_rationale}</div>}
                       {c.notes && <div style={{fontSize:'0.62rem',color:'var(--text-muted)',lineHeight:1.5,fontStyle:'italic'}}>{c.notes}</div>}
-                      {c.workspace_path && <div><a className="cp-link" href={c.workspace_path} target="_blank" rel="noopener">Sandbox Workspace ↗</a></div>}
+                      {c.workspace_path && <div onClick={e=>e.stopPropagation()}><a className="cp-link" href={c.workspace_path} target="_blank" rel="noopener">Sandbox Workspace ↗</a></div>}
                     </div>
                   ))}
                 </div>
@@ -436,9 +516,244 @@ function App() {
         )}
       </div>
 
+      {/* DRILL-DOWN DRAWER */}
+      {drawerClid&&<DealroomDrawer clid={drawerClid} token={token} onClose={()=>setDrawerClid(null)}/>}
+
       {/* EILEEN */}
       {!eileenOpen&&<div className="eileen-orb" onClick={()=>setEileenOpen(true)}><EileenNexus active={false} size={44}/></div>}
       {eileenOpen&&<EileenChat token={token} onClose={()=>setEileenOpen(false)}/>}
+    </div>
+  );
+}
+
+// ═══════ DEAL-ROOM DRILL-DOWN DRAWER (read-only) ═══════
+function DealroomDrawer({clid, token, onClose}){
+  const [loading,setLoading]=useState(true);
+  const [detail,setDetail]=useState(null);
+  const [err,setErr]=useState(null);
+  const [viewDoc,setViewDoc]=useState(null);
+  useEffect(()=>{
+    let alive=true;
+    (async()=>{
+      setLoading(true);setErr(null);setDetail(null);
+      try{
+        const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealroom_detail&clid=${encodeURIComponent(clid)}`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+        const j=await r.json();
+        if(!alive) return;
+        const dd=j?.sections?.dealroom_detail;
+        if(!dd){ setErr('No detail returned for this deal room.'); }
+        else if(dd.error){ setErr(dd.error==='clid_not_found'?'Deal room not found for this CLID.':friendly(dd.error)); }
+        else setDetail(dd);
+      }catch(e){ if(alive){ console.error(e); setErr('Network error loading deal room.'); } }
+      if(alive) setLoading(false);
+    })();
+    return ()=>{alive=false;};
+  },[clid]);
+
+  const h = detail?.header || {};
+  const docs = Array.isArray(detail?.documents)?detail.documents:[];
+  const uploads = Array.isArray(detail?.uploads)?detail.uploads:[];
+  const nextActions = Array.isArray(detail?.next_actions)?detail.next_actions:[];
+  const sessions = Array.isArray(detail?.eileen_sessions)?detail.eileen_sessions:[];
+  const accessLog = Array.isArray(detail?.access_log)?detail.access_log:[];
+  const notes = Array.isArray(detail?.notes)?detail.notes:[];
+  const sum = detail?.summary || {};
+  const curIdx = PHASE_ORDER.indexOf(h.gate_state);
+
+  // Resolve a per-document upload status: uploads.status preferred, then blockers/next_actions.upload_status
+  const upStatus={};
+  uploads.forEach(u=>{ if(u.document_id && upStatus[u.document_id]==null) upStatus[u.document_id]=u.status; });
+  (Array.isArray(detail?.blockers)?detail.blockers:[]).concat(nextActions).forEach(b=>{ if(b.document_id && upStatus[b.document_id]==null) upStatus[b.document_id]=b.upload_status; });
+
+  // Group documents by phase (fixed order), then by display_order
+  const byPhase={};
+  docs.forEach(dc=>{ const ph=dc.phase||'phase_0'; (byPhase[ph]=byPhase[ph]||[]).push(dc); });
+  Object.values(byPhase).forEach(arr=>arr.sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0)));
+
+  return (
+    <div>
+      <div className="dd-overlay" onClick={onClose}/>
+      <div className="dd-drawer" role="dialog" aria-modal="true">
+        <div className="dd-head">
+          <div>
+            <h2>{loading?'Loading…':(h.counterparty_name||clid)}</h2>
+            <div className="dd-sub">{clid}{h.gate_label?' · '+h.gate_label:''}</div>
+          </div>
+          <button className="dd-close" onClick={onClose}>×</button>
+        </div>
+        <div className="dd-body">
+          {loading ? (
+            <div className="dd-loading"><div className="pulse-ring"/><div className="ts">Loading deal room…</div></div>
+          ) : err ? (
+            <div className="empty-note">{err}</div>
+          ) : (
+            <>
+              <div className="dd-sec">
+                <div className="dd-badges">
+                  {h.counterparty_type && <span className="badge type">{friendly(h.counterparty_type)}</span>}
+                  {h.is_launch_partner && <span className="badge lp">Launch Partner</span>}
+                  {h.is_simulation && <span className="sb-tag">Simulation</span>}
+                  {h.pkg4_eligible && <span className="badge">Pkg-4 eligible</span>}
+                </div>
+                <div className="dd-kv-grid">
+                  <div className="dd-kv"><div className="k">Counterparty Type</div><div className="v">{friendly(h.counterparty_type)}</div></div>
+                  <div className="dd-kv"><div className="k">MCA Variant</div><div className="v mono">{h.mca_template_variant||'—'}</div></div>
+                  <div className="dd-kv"><div className="k">Exclusivity</div><div className="v">{friendly(h.exclusivity_appetite)}</div></div>
+                  <div className="dd-kv"><div className="k">Geographic Scope</div><div className="v">{friendly(h.geographic_scope)}</div></div>
+                  <div className="dd-kv"><div className="k">Dispatch Branch</div><div className="v mono">{h.dispatch_branch||'—'}</div></div>
+                  <div className="dd-kv"><div className="k">Director</div><div className="v mono" style={{fontSize:'0.64rem'}}>{h.director_email||'—'}</div></div>
+                </div>
+                {h.workspace_path && <div><a className="cp-link" href={h.workspace_path} target="_blank" rel="noopener">Open Workspace ↗</a></div>}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Commercial</div>
+                <div className="dd-kv-grid">
+                  <div className="dd-kv"><div className="k">Envelope Floor</div><div className="v mono">{penceGBP(h.envelope_floor_pence)}</div></div>
+                  <div className="dd-kv"><div className="k">Envelope Target</div><div className="v mono">{penceGBP(h.envelope_target_pence)}</div></div>
+                  <div className="dd-kv"><div className="k">Envelope Ceiling</div><div className="v mono">{penceGBP(h.envelope_ceiling_pence)}</div></div>
+                  <div className="dd-kv"><div className="k">Pilot Fee</div><div className="v mono">{penceGBP(h.pilot_fee_amount_pence)}</div></div>
+                  <div className="dd-kv"><div className="k">Pricing Package</div><div className="v mono">{h.pricing_package_id||'—'}</div></div>
+                  <div className="dd-kv"><div className="k">Term (months)</div><div className="v mono">{h.pricing_term_months!=null?h.pricing_term_months:'—'}</div></div>
+                </div>
+                {Array.isArray(h.four_surfaced_packages)&&h.four_surfaced_packages.length>0 && (
+                  <div className="pkg-row">{h.four_surfaced_packages.map((p,j)=><span key={j} className="pkg-chip">{p}</span>)}</div>
+                )}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Lifecycle</div>
+                <div className="ladder">
+                  {PHASE_LADDER.map(([val,label],idx)=>{
+                    const cls = curIdx<0 ? 'future' : idx<curIdx?'done':idx===curIdx?'current':'future';
+                    return (
+                      <div key={val} className={'ladder-step '+cls}>
+                        <div className="ladder-dot">{idx<curIdx?'✓':idx+1}</div>
+                        <div className="ladder-label">{label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="dd-counts">
+                  <div className="dd-count"><div className="n">{num(sum.documents_total)}</div><div className="l">Documents</div></div>
+                  <div className="dd-count"><div className="n">{num(sum.releases)}</div><div className="l">Releases</div></div>
+                  <div className="dd-count"><div className="n">{num(sum.requirements)}</div><div className="l">Requirements</div></div>
+                  <div className="dd-count"><div className="n" style={{color:Number(sum.currently_blocking)>0?'var(--accent-red)':'var(--text-primary)'}}>{num(sum.currently_blocking)}</div><div className="l">Blocking</div></div>
+                  <div className="dd-count"><div className="n">{num(sum.documents_rendered)}</div><div className="l">Rendered</div></div>
+                  <div className="dd-count"><div className="n">{num(sum.documents_director_approved)}</div><div className="l">Approved</div></div>
+                </div>
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Next Actions</div>
+                {nextActions.length>0 ? nextActions.map((a,i)=>{
+                  const s=uploadStatusLabel(a.upload_status);
+                  return (
+                    <div key={i} className="dd-list-row">
+                      <div><span className="dchip req">{friendly(a.phase)}</span> <span style={{color:'var(--text-primary)'}}>{a.name}</span></div>
+                      <span className="dd-muted">{s==='Awaiting'?'Awaiting counterparty upload':s}</span>
+                    </div>
+                  );
+                }) : <div className="dd-muted">No blocking items at the current gate.</div>}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Documents</div>
+                {docs.length>0 ? PHASE_ORDER.filter(ph=>byPhase[ph]).map(ph=>(
+                  <div key={ph} className="dd-phase-group">
+                    <div className="dd-phase-label">{PHASE_LABEL[ph]||friendly(ph)}</div>
+                    {byPhase[ph].map((dc,i)=>{
+                      const isReq = dc.kind==='requirement';
+                      const isRel = dc.kind==='release';
+                      let statusChip=null;
+                      if(isReq){ const s=uploadStatusLabel(upStatus[dc.document_id]); statusChip=<span className={'dchip '+((s==='Uploaded'||s==='Approved')?'ok':s==='Under review'?'rel':'wait')}>{s}</span>; }
+                      else if(isRel){ statusChip = dc.is_rendered?<span className="dchip ok">Rendered</span>:dc.has_file?<span className="dchip rel">File</span>:<span className="dchip wait">Pending render</span>; }
+                      return (
+                        <div key={i} className="dd-doc">
+                          <div className="dd-doc-top">
+                            <div className="dd-doc-name">{dc.name}</div>
+                            {dc.is_rendered && <button className="dd-view-btn" onClick={()=>setViewDoc(dc.doc_code)}>View</button>}
+                          </div>
+                          <div className="dd-doc-chips">
+                            <span className={'dchip '+(isRel?'rel':isReq?'req':'')}>{isRel?'Ailane → counterparty':isReq?'Counterparty → Ailane':friendly(dc.kind)}</span>
+                            {dc.is_blocking_phase_advance && <span className="dchip block">Blocking</span>}
+                            {statusChip}
+                            <span className={'dchip '+(dc.director_approved?'ok':'wait')}>{dc.director_approved?'Approved':'Not approved'}</span>
+                            {dc.version_label && <span className="dchip">{dc.version_label}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )) : <div className="dd-muted">No documents in this deal room.</div>}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Engagement</div>
+                <div className="dd-kv"><div className="k">Eileen Sessions</div><div className="v">{num(sessions.length)}{sum.eileen_messages!=null?' · '+num(sum.eileen_messages)+' messages':''}</div></div>
+                {sessions.map((s,i)=>(
+                  <div key={i} className="dd-list-row">
+                    <span className="dd-muted">{s.message_count!=null?num(s.message_count)+' msgs':'—'} · {s.prompt_version||'—'}</span>
+                    <span className="dd-muted">{shortDate(s.updated_at)}</span>
+                  </div>
+                ))}
+                <div className="dd-kv" style={{marginTop:8}}><div className="k">Recent Activity</div></div>
+                {accessLog.length>0 ? accessLog.slice(0,15).map((a,i)=>(
+                  <div key={i} className="dd-list-row">
+                    <span style={{color:'var(--text-secondary)'}}>{friendly(a.action)}{a.user_email?' · '+a.user_email:''}</span>
+                    <span className="dd-muted">{a.outcome?friendly(a.outcome)+' · ':''}{shortDate(a.created_at)}</span>
+                  </div>
+                )) : <div className="dd-muted">No recorded activity.</div>}
+                <div className="dd-kv" style={{marginTop:8}}><div className="k">Notes</div></div>
+                {notes.length>0 ? notes.map((n,i)=>(
+                  <div key={i} style={{fontSize:'0.72rem',color:'var(--text-secondary)',lineHeight:1.5,padding:'5px 0',borderBottom:'1px solid var(--border-subtle)'}}>{n.note_text}<span className="dd-muted" style={{display:'block',fontSize:'0.56rem',marginTop:2}}>{shortDate(n.created_at)}</span></div>
+                )) : <div className="dd-muted">No notes yet.</div>}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      {viewDoc && <DocModal clid={clid} docCode={viewDoc} token={token} onClose={()=>setViewDoc(null)}/>}
+    </div>
+  );
+}
+
+// ═══════ RENDERED DOCUMENT MODAL (read-only) ═══════
+function DocModal({clid, docCode, token, onClose}){
+  const [loading,setLoading]=useState(true);
+  const [doc,setDoc]=useState(null);
+  const [err,setErr]=useState(null);
+  useEffect(()=>{
+    let alive=true;
+    (async()=>{
+      setLoading(true);setErr(null);
+      try{
+        const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealroom_document&clid=${encodeURIComponent(clid)}&doc_code=${encodeURIComponent(docCode)}`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+        const j=await r.json();
+        if(!alive) return;
+        const dv=j?.sections?.dealroom_document;
+        if(!dv){ setErr('No document returned.'); }
+        else if(dv.error){ setErr(dv.error==='document_not_rendered'?'This document has not been rendered yet.':friendly(dv.error)); }
+        else setDoc(dv);
+      }catch(e){ if(alive){ console.error(e); setErr('Network error loading document.'); } }
+      if(alive) setLoading(false);
+    })();
+    return ()=>{alive=false;};
+  },[clid,docCode]);
+  return (
+    <div className="dm-overlay" onClick={onClose}>
+      <div className="dm-modal" onClick={e=>e.stopPropagation()}>
+        <div className="dm-head">
+          <div>
+            <div className="dm-title">{doc?.doc_code||docCode}</div>
+            <div className="dm-cap">{doc?('v'+(doc.template_version||'?')+' · '+shortDate(doc.snapshotted_at)+(doc.amd_authority?' · '+doc.amd_authority:'')):''}</div>
+          </div>
+          <button className="dd-close" onClick={onClose}>×</button>
+        </div>
+        <div className="dm-body">
+          {loading?'Loading document…':err?err:(doc?.rendered_body||'No content returned for this document.')}
+        </div>
+      </div>
     </div>
   );
 }
