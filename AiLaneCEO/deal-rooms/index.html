@@ -179,6 +179,15 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .dd-list-row:last-child{border-bottom:none;}
 .dd-muted{color:var(--text-muted);font-size:0.72rem;}
 .dd-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:70px 0;}
+.dd-contact{padding:9px 0;border-bottom:1px solid var(--border-subtle);}
+.dd-contact:last-child{border-bottom:none;}
+.dd-contact-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.dd-contact-name{font-size:0.76rem;font-weight:600;color:var(--text-primary);}
+.dd-contact-role{font-size:0.66rem;color:var(--text-secondary);}
+.dd-contact-email{margin-top:4px;font-family:var(--font-mono);font-size:0.68rem;}
+.dd-contact-email a{color:var(--accent-cyan);text-decoration:none;}
+.dd-contact-email a:hover{text-decoration:underline;}
+.dd-contact-source{margin-top:3px;font-size:0.58rem;color:var(--text-muted);}
 .dm-overlay{position:fixed;inset:0;background:rgba(3,6,12,0.78);z-index:700;display:flex;align-items:center;justify-content:center;padding:40px;animation:ddFade 0.2s ease;}
 .dm-modal{background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);width:860px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,0.6);}
 .dm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-default);}
@@ -248,6 +257,16 @@ const PHASE_LADDER = [
 ];
 const PHASE_LABEL = Object.fromEntries(PHASE_LADDER);
 const PHASE_ORDER = PHASE_LADDER.map(p=>p[0]);
+// Counterparty contact kinds → neutral/cyan badge labels (no gold — brief §3.2 / AMD-069)
+const CONTACT_KIND = {
+  primary_commercial:{label:'Primary',cls:'rel'},
+  escalation:{label:'Escalation',cls:'wait'},
+  technical:{label:'Technical',cls:''},
+  legal:{label:'Legal',cls:''},
+  procurement:{label:'Procurement',cls:''},
+  other:{label:'Contact',cls:''},
+};
+function contactKind(k){ return CONTACT_KIND[k] || {label:'Contact',cls:''}; }
 function uploadStatusLabel(s){
   if(!s) return 'Awaiting';
   const k=String(s).toLowerCase();
@@ -558,6 +577,7 @@ function DealroomDrawer({clid, token, onClose}){
   const accessLog = Array.isArray(detail?.access_log)?detail.access_log:[];
   const notes = Array.isArray(detail?.notes)?detail.notes:[];
   const sum = detail?.summary || {};
+  const contacts = Array.isArray(detail?.public_contacts)?detail.public_contacts:[];
   const curIdx = PHASE_ORDER.indexOf(h.gate_state);
 
   // Resolve a per-document upload status: uploads.status preferred, then blockers/next_actions.upload_status
@@ -619,6 +639,24 @@ function DealroomDrawer({clid, token, onClose}){
                 {Array.isArray(h.four_surfaced_packages)&&h.four_surfaced_packages.length>0 && (
                   <div className="pkg-row">{h.four_surfaced_packages.map((p,j)=><span key={j} className="pkg-chip">{p}</span>)}</div>
                 )}
+              </div>
+
+              <div className="dd-sec">
+                <div className="dd-sec-title">Contacts</div>
+                {contacts.length>0 ? contacts.map((c,i)=>{
+                  const k=contactKind(c.contact_kind);
+                  return (
+                    <div key={c.contact_id||i} className="dd-contact">
+                      <div className="dd-contact-line">
+                        <span className="dd-contact-name">{c.full_name}</span>
+                        {c.role_title && <span className="dd-contact-role">{c.role_title}</span>}
+                        <span className={'dchip '+k.cls}>{k.label}</span>
+                      </div>
+                      <div className="dd-contact-email">{c.email ? <a href={'mailto:'+c.email}>{c.email}</a> : <span className="dd-muted">—</span>}</div>
+                      {c.source && <div className="dd-contact-source">{c.source}</div>}
+                    </div>
+                  );
+                }) : <div className="dd-muted">No contacts recorded yet.</div>}
               </div>
 
               <div className="dd-sec">
