@@ -4,9 +4,10 @@
   <!-- Supabase CDN FIRST (protected page — RULE 26 auth guard) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <!-- GA4 Analytics (mandatory — G-NTNXWZN31C) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+  <!-- GA4 Analytics (mandatory — G-NTNXWZN31C) — consent-gated per AMD-156 §2D.
+       The shim defines window.dataLayer/gtag immediately; the GA4 tag loads only
+       after the visitor grants consent (strip shown after the §2C clickwrap gate). -->
+  <script src="/assets/js/ailane-cookie-consent.js"></script>
 
   <!-- CSP Meta Tag (SEC-001 §3.2) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
@@ -155,6 +156,11 @@
           <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>
         </div>
       </div>
+      <div class="dr-footer-legal">
+        <a href="/legal/deal-room-privacy/">Privacy Notice &amp; Workspace Terms</a><br>
+        <strong>Ailane&reg;</strong> is a registered trademark of AI Lane Limited. Regulatory intelligence, not legal advice.<br>
+        Operated by AI Lane Limited (Co. 17035654 &middot; ICO 00013389720).
+      </div>
       <div class="dr-footer-attribution">
         Source: UK case law and tribunal decisions accessed via The National Archives
         (caselaw.nationalarchives.gov.uk) and HMCTS public registers. Ailane provides
@@ -167,6 +173,8 @@
     </div>
   </footer>
 
+  <!-- AMD-156 §2C clickwrap terms gate — loaded before the page controller -->
+  <script src="/partners/dnb-2026/shared/dealroom-terms-gate.js"></script>
   <!-- 1. Parent shared deal-room controller (auth, sign-out, GA4, Eileen panel mount) -->
   <script src="/partners/dnb-2026/script.js"></script>
   <!-- 2. Page-local Deal Creator controller (panel renderers, recompute, submit) -->

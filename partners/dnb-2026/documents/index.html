@@ -7,6 +7,10 @@
   <meta name="description" content="Ailane partnership deal-room — document workspace.">
   <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="../shared/dealroom.css">
+  <!-- GA4 (mandatory — G-NTNXWZN31C) consent-gated per AMD-156 §2D.
+       Defines window.dataLayer/gtag; the GA4 tag loads only after consent
+       (strip shown after the §2C clickwrap gate). -->
+  <script src="/assets/js/ailane-cookie-consent.js"></script>
 </head>
 <body>
   <div id="drApp"></div>
@@ -16,6 +20,8 @@
   <!-- Deal-room shared layer -->
   <script src="../shared/auth.js"></script>
   <script src="../shared/api.js"></script>
+  <!-- AMD-156 §2C clickwrap terms gate -->
+  <script src="../shared/dealroom-terms-gate.js"></script>
   <!-- AMD-145 §3.6 / AMD-146 — Eileen drawer + latency-line pool -->
   <script src="/assets/dealroom/eileen-latency.js"></script>
   <script src="../shared/eileen-panel.js"></script>
@@ -42,8 +48,22 @@
     let SAVED_CONVERSATIONS = [];  // AMD-145 §3.6 / AMD-146 — counterparty-named conversations
 
     document.addEventListener('DOMContentLoaded', () => {
-      window.dealroomAuth.guard({ onReady: bootstrap });
+      window.dealroomAuth.guard({ onReady: gateThenBootstrap });
     });
+
+    // AMD-156 §2C — run the clickwrap terms gate after auth resolves, before the
+    // workspace renders. The Director is an administrator, not a counterparty, so
+    // bypasses the gate and is never recorded as an acceptance. The gate module
+    // surfaces the §2D cookie-consent strip once acceptance is confirmed.
+    function gateThenBootstrap(session) {
+      const clid = session.clid || (session.is_director ? 'dnb-2026-001' : null);
+      if (window.dealroomTermsGate && !session.is_director) {
+        window.dealroomTermsGate.guard({ clid: clid, onAccepted: () => bootstrap(session) });
+      } else {
+        bootstrap(session);
+        if (window.ailaneConsent && window.ailaneConsent.present) window.ailaneConsent.present();
+      }
+    }
 
     async function bootstrap(session) {
       SESSION = session;
@@ -146,6 +166,11 @@
           <footer class="dr-footer">
             <div class="dr-footer-strong">AI Lane Limited (trading as Ailane)</div>
             Company No. 17035654 · ICO Reg. 00013389720 · UK Trademark UK00004347220
+            <div class="dr-footer-legal">
+              <a href="/legal/deal-room-privacy/">Privacy Notice &amp; Workspace Terms</a><br>
+              <strong>Ailane&reg;</strong> is a registered trademark of AI Lane Limited. Regulatory intelligence, not legal advice.<br>
+              Operated by AI Lane Limited (Co. 17035654 · ICO 00013389720).
+            </div>
           </footer>
         </div>
         <div id="drModalRoot"></div>
