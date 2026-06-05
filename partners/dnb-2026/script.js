@@ -412,6 +412,23 @@
     if (overlay) overlay.remove();
     var emailEl = document.getElementById('dr-user-email');
     if (emailEl && window.__dealRoomUser) emailEl.textContent = window.__dealRoomUser.email;
+
+    // AMD-156 §2C — clickwrap terms gate (precedes content reveal). The workspace
+    // is not revealed until the counterparty has accepted the Privacy Notice &
+    // Workspace Terms, recorded server-side by dealroom-accept-terms. The gate
+    // module itself surfaces the cookie-consent strip (§2D) once accepted. The
+    // Director is an administrator, not a counterparty, so is never gated or
+    // recorded as an acceptance.
+    var isDirector = window.__dealRoomUser && window.__dealRoomUser.role === 'director';
+    if (window.dealroomTermsGate && !isDirector) {
+      window.dealroomTermsGate.guard({ clid: CLID, onAccepted: revealWorkspace });
+    } else {
+      revealWorkspace();
+      if (window.ailaneConsent && window.ailaneConsent.present) window.ailaneConsent.present();
+    }
+  }
+
+  function revealWorkspace() {
     document.body.style.visibility = 'visible';
     injectSubPageNav();
     injectEileenPanel();
