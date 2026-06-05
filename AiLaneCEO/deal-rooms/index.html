@@ -188,6 +188,27 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .dd-contact-email a{color:var(--accent-cyan);text-decoration:none;}
 .dd-contact-email a:hover{text-decoration:underline;}
 .dd-contact-source{margin-top:3px;font-size:0.58rem;color:var(--text-muted);}
+.dd-mini-btn{font-family:var(--font-body);font-size:0.62rem;font-weight:600;padding:3px 11px;border-radius:6px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-secondary);cursor:pointer;transition:all 0.2s;}
+.dd-mini-btn:hover:not(:disabled){border-color:var(--border-accent);color:var(--text-accent);}
+.dd-mini-btn.primary{border-color:var(--border-accent);background:var(--accent-cyan-dim);color:var(--accent-cyan);}
+.dd-mini-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.dd-doc-actions{display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap;}
+.dd-btn{font-family:var(--font-body);font-size:0.7rem;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-secondary);cursor:pointer;transition:all 0.2s;}
+.dd-btn:hover:not(:disabled){border-color:var(--border-accent);color:var(--text-accent);}
+.dd-btn.primary{border-color:var(--border-accent);background:var(--accent-cyan-dim);color:var(--accent-cyan);}
+.dd-btn.primary:hover:not(:disabled){background:rgba(14,165,233,0.22);}
+.dd-btn.caution{border-color:var(--border-strong);background:var(--bg-elevated);color:var(--text-secondary);}
+.dd-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.dd-gate-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.dd-setgate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.dd-select{font-family:var(--font-body);font-size:0.66rem;padding:6px 9px;border-radius:7px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-primary);cursor:pointer;max-width:240px;}
+.dd-blocked{margin-top:10px;border:1px solid rgba(239,68,68,0.25);background:var(--accent-red-dim);border-radius:var(--radius-sm);padding:10px 12px;}
+.dd-blocked-title{font-family:var(--font-display);font-size:0.62rem;font-weight:700;color:var(--accent-red);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.dd-act-err{font-size:0.64rem;color:var(--accent-red);}
+.dd-act-note{font-size:0.66rem;color:var(--text-secondary);margin-top:8px;}
+.dd-note-add{margin-top:12px;}
+.dd-textarea{width:100%;font-family:var(--font-body);font-size:0.72rem;padding:8px 10px;border-radius:8px;border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-primary);resize:vertical;outline:none;}
+.dd-textarea:focus{border-color:var(--border-accent);}
 .dm-overlay{position:fixed;inset:0;background:rgba(3,6,12,0.78);z-index:700;display:flex;align-items:center;justify-content:center;padding:40px;animation:ddFade 0.2s ease;}
 .dm-modal{background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);width:860px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,0.6);}
 .dm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-default);}
@@ -551,23 +572,94 @@ function DealroomDrawer({clid, token, onClose}){
   const [detail,setDetail]=useState(null);
   const [err,setErr]=useState(null);
   const [viewDoc,setViewDoc]=useState(null);
-  useEffect(()=>{
-    let alive=true;
-    (async()=>{
-      setLoading(true);setErr(null);setDetail(null);
-      try{
-        const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealroom_detail&clid=${encodeURIComponent(clid)}`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
-        const j=await r.json();
-        if(!alive) return;
-        const dd=j?.sections?.dealroom_detail;
-        if(!dd){ setErr('No detail returned for this deal room.'); }
-        else if(dd.error){ setErr(dd.error==='clid_not_found'?'Deal room not found for this CLID.':friendly(dd.error)); }
-        else setDetail(dd);
-      }catch(e){ if(alive){ console.error(e); setErr('Network error loading deal room.'); } }
-      if(alive) setLoading(false);
-    })();
-    return ()=>{alive=false;};
-  },[clid]);
+  const [busy,setBusy]=useState(null);            // key of the action in flight — blocks concurrent writes
+  const [docMsg,setDocMsg]=useState({});           // per-document inline action error
+  const [gate,setGate]=useState({state:null,blocking:[],text:''});
+  const [targetPhase,setTargetPhase]=useState('');
+  const [noteText,setNoteText]=useState('');
+  const [noteMsg,setNoteMsg]=useState(null);
+  const mounted=React.useRef(true);
+  useEffect(()=>()=>{mounted.current=false;},[]);
+
+  // Single fetch path — used on open (with spinner) and silently after each write (no flash, scroll preserved).
+  async function loadDetail(silent){
+    if(!silent) setLoading(true);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealroom_detail&clid=${encodeURIComponent(clid)}`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+      const j=await r.json();
+      if(!mounted.current) return;
+      const dd=j?.sections?.dealroom_detail;
+      if(!dd){ setErr('No detail returned for this deal room.'); }
+      else if(dd.error){ setErr(dd.error==='clid_not_found'?'Deal room not found for this CLID.':friendly(dd.error)); }
+      else { setDetail(dd); setErr(null); }
+    }catch(e){ if(mounted.current){ console.error(e); setErr('Network error loading deal room.'); } }
+    if(!silent && mounted.current) setLoading(false);
+  }
+  useEffect(()=>{ setDetail(null);setErr(null);setGate({state:null,blocking:[],text:''});setDocMsg({});setNoteMsg(null); loadDetail(false); },[clid]);
+
+  // All writes go ONLY through ceo-dealroom-action, reusing the drawer's CEO session token + anon apikey.
+  async function postAction(body){
+    const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dealroom-action`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return await r.json();
+  }
+  function actionErr(j){ if(!j) return 'No response — not applied.'; if(j.outcome==='noop') return j.detail||'No change.'; return j.error||j.detail||('Failed'+(j.code?' ('+j.code+')':'')); }
+  function cpName(){ return (detail&&detail.header&&detail.header.counterparty_name)||clid; }
+
+  async function onApprove(doc){
+    if(busy) return;
+    if(!window.confirm('Mark "'+doc.name+'" as Director-approved?')) return;
+    setBusy('doc:'+doc.document_id); setDocMsg(m=>({...m,[doc.document_id]:null}));
+    try{ const j=await postAction({action:'approve_release', clid, document_id:doc.document_id});
+      if(j&&j.ok){ await loadDetail(true); } else if(mounted.current){ setDocMsg(m=>({...m,[doc.document_id]:actionErr(j)})); }
+    }catch(e){ if(mounted.current){ console.error(e); setDocMsg(m=>({...m,[doc.document_id]:'Network error — not applied.'})); } }
+    finally{ if(mounted.current) setBusy(null); }
+  }
+  async function onClearApproval(doc){
+    if(busy) return;
+    if(!window.confirm('Clear Director approval for "'+doc.name+'"?')) return;
+    setBusy('doc:'+doc.document_id); setDocMsg(m=>({...m,[doc.document_id]:null}));
+    try{ const j=await postAction({action:'unapprove_release', clid, document_id:doc.document_id});
+      if(j&&j.ok){ await loadDetail(true); } else if(mounted.current){ setDocMsg(m=>({...m,[doc.document_id]:actionErr(j)})); }
+    }catch(e){ if(mounted.current){ console.error(e); setDocMsg(m=>({...m,[doc.document_id]:'Network error — not applied.'})); } }
+    finally{ if(mounted.current) setBusy(null); }
+  }
+  async function onAdvance(){
+    if(busy) return;
+    if(!window.confirm('Advance '+cpName()+' to the next phase?')) return;
+    setBusy('advance'); setGate({state:null,blocking:[],text:''});
+    try{ const j=await postAction({action:'advance_gate', clid});
+      if(!mounted.current) return;
+      if(j&&j.ok){ await loadDetail(true); setGate({state:null,blocking:[],text:''}); }
+      else if(j&&j.outcome==='blocked'){ setGate({state:'blocked',blocking:Array.isArray(j.blocking)?j.blocking:[],text:j.detail||''}); }
+      else if(j&&j.outcome==='noop'){ setGate({state:'noop',blocking:[],text:j.detail||'No further phase.'}); }
+      else { setGate({state:'error',blocking:[],text:actionErr(j)}); }
+    }catch(e){ if(mounted.current){ console.error(e); setGate({state:'error',blocking:[],text:'Network error — not applied.'}); } }
+    finally{ if(mounted.current) setBusy(null); }
+  }
+  async function onSetGate(){
+    if(busy) return;
+    const tp=targetPhase||(detail&&detail.header&&detail.header.gate_state)||'phase_0';
+    const label=PHASE_LABEL[tp]||tp;
+    if(!window.confirm('Override: set '+cpName()+' to '+label+'? This bypasses the requirement guard.')) return;
+    setBusy('setgate'); setGate({state:null,blocking:[],text:''});
+    try{ const j=await postAction({action:'set_gate', clid, target_phase:tp});
+      if(!mounted.current) return;
+      if(j&&j.ok){ await loadDetail(true); setGate({state:null,blocking:[],text:''}); }
+      else { setGate({state:'error',blocking:[],text:actionErr(j)}); }
+    }catch(e){ if(mounted.current){ console.error(e); setGate({state:'error',blocking:[],text:'Network error — not applied.'}); } }
+    finally{ if(mounted.current) setBusy(null); }
+  }
+  async function onAddNote(){
+    if(busy) return;
+    const t=noteText.trim(); if(!t) return;
+    if(!window.confirm('Add this note to the deal room?')) return;
+    setBusy('note'); setNoteMsg(null);
+    try{ const j=await postAction({action:'add_note', clid, note_text:t});
+      if(j&&j.ok){ if(mounted.current) setNoteText(''); await loadDetail(true); }
+      else if(mounted.current){ setNoteMsg(actionErr(j)); }
+    }catch(e){ if(mounted.current){ console.error(e); setNoteMsg('Network error — not applied.'); } }
+    finally{ if(mounted.current) setBusy(null); }
+  }
 
   const h = detail?.header || {};
   const docs = Array.isArray(detail?.documents)?detail.documents:[];
@@ -680,6 +772,25 @@ function DealroomDrawer({clid, token, onClose}){
                   <div className="dd-count"><div className="n">{num(sum.documents_rendered)}</div><div className="l">Rendered</div></div>
                   <div className="dd-count"><div className="n">{num(sum.documents_director_approved)}</div><div className="l">Approved</div></div>
                 </div>
+                <div className="dd-gate-controls">
+                  <button className="dd-btn primary" disabled={!!busy} onClick={onAdvance}>{busy==='advance'?'Advancing…':'Advance to next phase'}</button>
+                  <div className="dd-setgate">
+                    <select className="dd-select" value={targetPhase||h.gate_state||'phase_0'} onChange={ev=>setTargetPhase(ev.target.value)} disabled={!!busy}>
+                      {PHASE_LADDER.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                    </select>
+                    <button className="dd-btn caution" disabled={!!busy} onClick={onSetGate}>{busy==='setgate'?'Setting…':'Set phase'}</button>
+                  </div>
+                </div>
+                {gate.state==='blocked' && (
+                  <div className="dd-blocked">
+                    <div className="dd-blocked-title">Blocked — outstanding requirements</div>
+                    {gate.blocking.length>0 ? gate.blocking.map((b,i)=>(
+                      <div key={i} className="dd-list-row"><span style={{color:'var(--text-primary)'}}>{b.name}</span><span className="dd-muted">{friendly(b.status)}</span></div>
+                    )) : <div className="dd-muted">{gate.text||'Outstanding requirements remain.'}</div>}
+                  </div>
+                )}
+                {gate.state==='noop' && <div className="dd-act-note">{gate.text}</div>}
+                {gate.state==='error' && <div className="dd-act-err" style={{marginTop:8,display:'block'}}>{gate.text}</div>}
               </div>
 
               <div className="dd-sec">
@@ -719,6 +830,14 @@ function DealroomDrawer({clid, token, onClose}){
                             <span className={'dchip '+(dc.director_approved?'ok':'wait')}>{dc.director_approved?'Approved':'Not approved'}</span>
                             {dc.version_label && <span className="dchip">{dc.version_label}</span>}
                           </div>
+                          {isRel && (
+                            <div className="dd-doc-actions">
+                              {dc.director_approved
+                                ? <button className="dd-mini-btn" disabled={!!busy} onClick={()=>onClearApproval(dc)}>{busy==='doc:'+dc.document_id?'…':'Clear approval'}</button>
+                                : <button className="dd-mini-btn primary" disabled={!!busy} onClick={()=>onApprove(dc)}>{busy==='doc:'+dc.document_id?'…':'Approve'}</button>}
+                              {docMsg[dc.document_id] && <span className="dd-act-err">{docMsg[dc.document_id]}</span>}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -746,6 +865,13 @@ function DealroomDrawer({clid, token, onClose}){
                 {notes.length>0 ? notes.map((n,i)=>(
                   <div key={i} style={{fontSize:'0.72rem',color:'var(--text-secondary)',lineHeight:1.5,padding:'5px 0',borderBottom:'1px solid var(--border-subtle)'}}>{n.note_text}<span className="dd-muted" style={{display:'block',fontSize:'0.56rem',marginTop:2}}>{shortDate(n.created_at)}</span></div>
                 )) : <div className="dd-muted">No notes yet.</div>}
+                <div className="dd-note-add">
+                  <textarea className="dd-textarea" rows="2" value={noteText} onChange={ev=>setNoteText(ev.target.value)} placeholder="Add a note…" disabled={busy==='note'}/>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
+                    <button className="dd-btn primary" disabled={!!busy||!noteText.trim()} onClick={onAddNote}>{busy==='note'?'Adding…':'Add note'}</button>
+                    {noteMsg && <span className="dd-act-err">{noteMsg}</span>}
+                  </div>
+                </div>
               </div>
             </>
           )}
