@@ -91,6 +91,42 @@
     .linklike:hover { color: var(--white); }
     footer { border-top: 1px solid var(--grey-border); background: var(--navy-mid); padding: 1.5rem 2rem; text-align: center; }
     .footer-legal { font-size: 0.78rem; color: var(--grey-text); line-height: 1.7; }
+
+    /* Read-only W9 obligations checklist (LOVR P1a §4) */
+    .card.workspace { max-width: 760px; }
+    .checklist { margin-top: 1.5rem; }
+    .checklist-empty { margin-top: 1.5rem; padding: 1rem 1.1rem; border-left: 3px solid var(--grey-border);
+      background: rgba(148,163,184,0.06); border-radius: 0 8px 8px 0; font-size: 0.88rem; color: var(--grey-text); }
+    .cl-group { margin-bottom: 1.5rem; }
+    .cl-group:last-child { margin-bottom: 0; }
+    .cl-group-title { font-size: 0.74rem; font-weight: 700; color: var(--grey-text); text-transform: uppercase;
+      letter-spacing: 0.1em; margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--grey-border); }
+    .cl-row { background: var(--navy); border: 1px solid var(--grey-border); border-radius: 8px;
+      padding: 0.7rem 0.85rem; margin-bottom: 0.5rem; }
+    .cl-row:last-child { margin-bottom: 0; }
+    .cl-row.has-desc { cursor: pointer; }
+    .cl-row.has-desc:hover { border-color: var(--teal); }
+    .cl-row.has-desc:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    .cl-row-head { display: flex; align-items: center; gap: 0.7rem; }
+    .cl-code { flex: 0 0 auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.8rem; font-weight: 700;
+      color: var(--off-white); min-width: 3.2rem; }
+    .cl-title { flex: 1 1 auto; font-size: 0.9rem; color: var(--white); }
+    .cl-chevron { flex: 0 0 auto; color: var(--grey-text); font-size: 0.7rem; transition: transform 0.15s; }
+    .cl-row.open .cl-chevron { transform: rotate(90deg); }
+    .cl-badge { flex: 0 0 auto; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 0.2rem 0.55rem; border-radius: 20px; white-space: nowrap; border: 1px solid transparent; }
+    .cl-badge-open { color: var(--grey-text); background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.3); }
+    .cl-badge-in-progress { color: #FBBF24; background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
+    .cl-badge-satisfied { color: var(--success); background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+    .cl-badge-blocked { color: var(--danger); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
+    .cl-badge-not-applicable { color: var(--grey-text); background: transparent; border-color: var(--grey-border); }
+    .cl-desc { display: none; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--grey-border);
+      font-size: 0.85rem; color: var(--body-text); }
+    .cl-row.open .cl-desc { display: block; }
+    @media (max-width: 540px) {
+      .cl-row-head { flex-wrap: wrap; }
+      .cl-title { flex: 1 1 100%; order: 3; }
+    }
   </style>
 </head>
 <body>
@@ -155,16 +191,102 @@
     });
   }
 
-  function renderWorkspace(firm, isAdmin){
+  // Category grouping for the read-only W9 obligations checklist (LOVR P1a §4).
+  var CHECKLIST_GROUPS = [
+    { label: 'W9 Questions',   cats: ['w9-question'] },
+    { label: 'Conditions',     cats: ['build', 'live-activation', 'licence-compliance'] },
+    { label: 'Folded Tier-1',  cats: ['tier-1-folded'] }
+  ];
+
+  function statusLabel(s){
+    switch(s){
+      case 'open':           return 'Open';
+      case 'in-progress':    return 'In progress';
+      case 'satisfied':      return 'Satisfied';
+      case 'blocked':        return 'Blocked';
+      case 'not-applicable': return 'Not applicable';
+      default:               return s || 'Open';
+    }
+  }
+
+  function renderChecklistRow(row){
+    var st = row.status || 'open';
+    var hasDesc = !!(row.description && String(row.description).trim());
+    var attrs = hasDesc ? ' tabindex="0" role="button" aria-expanded="false"' : '';
+    return '<div class="cl-row' + (hasDesc ? ' has-desc' : '') + '"' + attrs + '>' +
+        '<div class="cl-row-head">' +
+          '<span class="cl-code">' + esc(row.code) + '</span>' +
+          '<span class="cl-title">' + esc(row.title) + '</span>' +
+          (hasDesc ? '<span class="cl-chevron" aria-hidden="true">&#9656;</span>' : '') +
+          '<span class="cl-badge cl-badge-' + esc(st) + '">' + esc(statusLabel(st)) + '</span>' +
+        '</div>' +
+        (hasDesc ? '<div class="cl-desc">' + esc(row.description) + '</div>' : '') +
+      '</div>';
+  }
+
+  // Returns the grouped section markup injected into the #checklist container (itself the .checklist element).
+  function renderChecklist(rows){
+    var html = '';
+    CHECKLIST_GROUPS.forEach(function(group){
+      var groupRows = rows.filter(function(r){ return group.cats.indexOf(r.category) !== -1; });
+      if(groupRows.length === 0){ return; }
+      html += '<section class="cl-group"><h2 class="cl-group-title">' + esc(group.label) + '</h2>';
+      groupRows.forEach(function(r){ html += renderChecklistRow(r); });
+      html += '</section>';
+    });
+    return html;
+  }
+
+  function wireChecklistExpanders(container){
+    function toggle(rowEl){
+      var open = rowEl.classList.toggle('open');
+      rowEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    container.addEventListener('click', function(e){
+      var rowEl = e.target.closest('.cl-row.has-desc');
+      if(rowEl){ toggle(rowEl); }
+    });
+    container.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar'){ return; }
+      var rowEl = e.target.closest('.cl-row.has-desc');
+      if(rowEl){ e.preventDefault(); toggle(rowEl); }
+    });
+  }
+
+  // Read-only checklist fetch — reuses the page's session-bearer PostgREST pattern (RLS-scoped, anon key + access
+  // token). No write path; no service key. Empty results or any fetch failure show the neutral "being populated"
+  // line rather than an error (the Chairman seeds the checklist post-apply, §5).
+  function loadChecklist(token){
+    var el = document.getElementById('checklist');
+    if(!el){ return; }
+    var neutral = '<div class="checklist-empty">The W9 obligations checklist is being populated.</div>';
+    fetch(SB_URL + '/rest/v1/lovr_obligation_checklist?select=obligation_id,code,title,description,category,status,display_order&order=display_order.asc,code.asc', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+    }).then(function(r){
+      if(!r.ok){ throw new Error('checklist fetch ' + r.status); }
+      return r.json();
+    }).then(function(rows){
+      if(!Array.isArray(rows) || rows.length === 0){ el.innerHTML = neutral; return; }
+      el.innerHTML = renderChecklist(rows);
+      wireChecklistExpanders(el);
+    }).catch(function(err){
+      if(window.console && console.warn){ console.warn('LOVR checklist unavailable:', err); }
+      el.innerHTML = neutral;
+    });
+  }
+
+  function renderWorkspace(firm, isAdmin, token){
+    root.classList.add('workspace');
     root.innerHTML =
       '<div class="shell-status' + (isAdmin?' admin':'') + '"><span class="dot"></span>' + (isAdmin?'Administrator':'Authenticated') + '</div>' +
       '<h1>Legal Oversight Room</h1>' +
       '<p class="sub">' + esc(firm) + '</p>' +
-      '<div class="shell-note">Your workspace is being prepared. The artefact vault and review surfaces arrive in subsequent phases.</div>' +
+      '<div id="checklist" class="checklist"><p class="msg info">Loading the W9 obligations checklist&hellip;</p></div>' +
       '<button type="button" class="linklike" id="out">Sign out</button>';
     document.getElementById('out').addEventListener('click', function(){
       sb.auth.signOut().then(function(){ window.location.reload(); });
     });
+    loadChecklist(token);
   }
 
   (async function(){
@@ -185,8 +307,8 @@
         if(r.ok){ var rows = await r.json(); if(Array.isArray(rows) && rows.length>0){ isReviewer = true; firm = rows[0].firm_name; } }
       }catch(e){}
 
-      if(isReviewer){ renderWorkspace(firm || 'Your firm', false); return; }
-      if(email === DIRECTOR_EMAIL){ renderWorkspace('Director access — administrator view', true); return; }
+      if(isReviewer){ renderWorkspace(firm || 'Your firm', false, session.access_token); return; }
+      if(email === DIRECTOR_EMAIL){ renderWorkspace('Director access — administrator view', true, session.access_token); return; }
       // Authenticated but neither a reviewer nor the Director.
       window.location.replace('/');
     }catch(e){
