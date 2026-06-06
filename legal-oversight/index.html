@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Legal Oversight Room | Ailane</title>
-  <meta name="description" content="Restricted access for verified legal reviewers." />
+  <meta name="description" content="Restricted workspace for verified legal reviewers." />
 
-  <!-- Not indexed — restricted room (LOVR §2.3) -->
+  <!-- Not indexed — restricted room (LOVR §6) -->
   <meta name="robots" content="noindex,nofollow" />
 
   <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
@@ -20,6 +20,9 @@
 
   <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase JS (anon client only — RULE 27: no auth logic/secrets beyond the public anon key) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,86 +42,55 @@
     html, body { height: 100%; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--navy);
-      color: var(--body-text);
-      line-height: 1.7;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
+      background: var(--navy); color: var(--body-text);
+      line-height: 1.7; display: flex; flex-direction: column; min-height: 100vh;
     }
-    nav {
-      background: rgba(15, 27, 53, 0.97);
-      border-bottom: 1px solid var(--grey-border);
-      padding: 0 2rem;
-    }
-    .nav-inner {
-      max-width: 1100px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between; height: 64px;
-    }
+    nav { background: rgba(15,27,53,0.97); border-bottom: 1px solid var(--grey-border); padding: 0 2rem; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .nav-logo { font-size: 1.4rem; font-weight: 800; color: var(--white); text-decoration: none; letter-spacing: -0.03em; }
     .nav-logo span { color: var(--teal); }
     .nav-tag { font-size: 0.78rem; color: var(--grey-text); text-transform: uppercase; letter-spacing: 0.1em; }
 
     main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
-
     .card {
-      width: 100%; max-width: 440px;
+      width: 100%; max-width: 460px;
       background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy-light) 100%);
-      border: 1px solid var(--grey-border);
-      border-radius: 14px;
-      padding: 2.5rem 2rem;
+      border: 1px solid var(--grey-border); border-radius: 14px; padding: 2.5rem 2rem;
       box-shadow: 0 18px 50px rgba(0,0,0,0.35);
     }
-    .badge {
-      display: inline-block; font-size: 0.72rem; font-weight: 700; color: var(--teal);
-      text-transform: uppercase; letter-spacing: 0.1em;
-      background: rgba(14,165,233,0.1); border: 1px solid rgba(14,165,233,0.25);
-      padding: 0.25rem 0.7rem; border-radius: 20px; margin-bottom: 1rem;
-    }
+    .badge { display: inline-block; font-size: 0.72rem; font-weight: 700; color: var(--teal);
+      text-transform: uppercase; letter-spacing: 0.1em; background: rgba(14,165,233,0.1);
+      border: 1px solid rgba(14,165,233,0.25); padding: 0.25rem 0.7rem; border-radius: 20px; margin-bottom: 1rem; }
     h1 { font-size: 1.5rem; color: var(--white); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
     .sub { font-size: 0.92rem; color: var(--grey-text); margin-bottom: 1.75rem; }
-
     label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--off-white); margin-bottom: 0.5rem; }
-    input[type="text"], input[type="password"] {
-      width: 100%; padding: 0.8rem 0.9rem; font-size: 0.95rem;
-      background: var(--navy); color: var(--white);
-      border: 1px solid var(--grey-border); border-radius: 8px;
-      font-family: 'Courier New', monospace; letter-spacing: 0.04em;
+    input[type="email"] {
+      width: 100%; padding: 0.8rem 0.9rem; font-size: 0.95rem; background: var(--navy);
+      color: var(--white); border: 1px solid var(--grey-border); border-radius: 8px;
     }
     input:focus { outline: none; border-color: var(--teal); }
-    button {
-      width: 100%; margin-top: 1.1rem; padding: 0.85rem;
-      background: var(--teal); color: var(--white); font-size: 0.95rem; font-weight: 700;
-      border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
+    button.primary {
+      width: 100%; margin-top: 1.1rem; padding: 0.85rem; background: var(--teal); color: var(--white);
+      font-size: 0.95rem; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
-    button:hover { opacity: 0.92; }
-    button:disabled { opacity: 0.55; cursor: default; }
-
+    button.primary:hover { opacity: 0.92; }
+    button.primary:disabled { opacity: 0.55; cursor: default; }
     .msg { margin-top: 1rem; font-size: 0.85rem; min-height: 1.2em; }
     .msg.error { color: var(--danger); }
+    .msg.ok { color: var(--success); }
     .msg.info { color: var(--grey-text); }
-
-    .shell-status {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      font-size: 0.78rem; font-weight: 600; color: var(--success);
-      background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
-      padding: 0.3rem 0.8rem; border-radius: 20px; margin-bottom: 1.25rem;
-    }
-    .shell-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
-    .shell-note {
-      margin-top: 1.25rem; padding: 1rem 1.1rem;
-      border-left: 3px solid var(--teal); background: rgba(14,165,233,0.06);
-      border-radius: 0 8px 8px 0; font-size: 0.88rem; color: var(--body-text);
-    }
-    .linklike {
-      margin-top: 1.5rem; background: none; border: none; color: var(--grey-text);
-      font-size: 0.82rem; width: auto; padding: 0; text-decoration: underline; cursor: pointer;
-    }
+    .shell-status { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; font-weight: 600;
+      color: var(--success); background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+      padding: 0.3rem 0.8rem; border-radius: 20px; margin-bottom: 1.25rem; }
+    .shell-status.admin { color: var(--teal); background: rgba(14,165,233,0.1); border-color: rgba(14,165,233,0.3); }
+    .shell-status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .shell-note { margin-top: 1.25rem; padding: 1rem 1.1rem; border-left: 3px solid var(--teal);
+      background: rgba(14,165,233,0.06); border-radius: 0 8px 8px 0; font-size: 0.88rem; color: var(--body-text); }
+    .linklike { margin-top: 1.5rem; background: none; border: none; color: var(--grey-text); font-size: 0.82rem;
+      width: auto; padding: 0; text-decoration: underline; cursor: pointer; }
     .linklike:hover { color: var(--white); }
-
     footer { border-top: 1px solid var(--grey-border); background: var(--navy-mid); padding: 1.5rem 2rem; text-align: center; }
     .footer-legal { font-size: 0.78rem; color: var(--grey-text); line-height: 1.7; }
-    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -130,32 +102,7 @@
   </div>
 </nav>
 
-<main>
-  <!-- ── PRE-AUTH: credential entry only (reveals nothing else) ────── -->
-  <section class="card" id="gate">
-    <span class="badge">Restricted Access</span>
-    <h1>Legal Oversight Room</h1>
-    <p class="sub">Access is limited to verified legal reviewers. Enter your credential token to continue.</p>
-
-    <form id="gate-form" autocomplete="off">
-      <label for="token">Credential token</label>
-      <input type="password" id="token" name="token" placeholder="Paste your token" spellcheck="false" autocomplete="off" />
-      <button type="submit" id="submit-btn">Enter Room</button>
-    </form>
-    <p class="msg info" id="gate-msg"></p>
-  </section>
-
-  <!-- ── POST-AUTH: minimal authenticated shell ───────────────────── -->
-  <section class="card hidden" id="shell">
-    <div class="shell-status"><span class="dot"></span> Authenticated</div>
-    <h1>Legal Oversight Room</h1>
-    <p class="sub" id="shell-identity">Authenticated reviewer.</p>
-    <div class="shell-note">
-      Your session is active. The artefact vault and review surfaces arrive in subsequent phases.
-    </div>
-    <button type="button" class="linklike" id="signout-btn">Sign out</button>
-  </section>
-</main>
+<main><div id="root" class="card"></div></main>
 
 <footer>
   <p class="footer-legal">
@@ -165,90 +112,87 @@
 </footer>
 
 <script>
-  // Thin client only — no auth logic, no secrets (RULE 27 / LOVR §2.3).
-  // Verification + session minting happen server-side in the legal-reviewer-auth function.
-  var FN_URL = "https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/legal-reviewer-auth";
-  var SS_TOKEN = "lovr_session_token";
-  var SS_FIRM = "lovr_firm_name";
-  var SS_REVIEWER = "lovr_reviewer_name";
-
-  var gate = document.getElementById("gate");
-  var shell = document.getElementById("shell");
-  var form = document.getElementById("gate-form");
-  var tokenInput = document.getElementById("token");
-  var submitBtn = document.getElementById("submit-btn");
-  var msg = document.getElementById("gate-msg");
-  var identity = document.getElementById("shell-identity");
-
-  function setMsg(text, kind) {
-    msg.textContent = text || "";
-    msg.className = "msg " + (kind || "info");
-  }
-
-  function showShell() {
-    var firm = sessionStorage.getItem(SS_FIRM) || "your firm";
-    var reviewer = sessionStorage.getItem(SS_REVIEWER);
-    identity.textContent = reviewer
-      ? ("Authenticated as " + reviewer + " — " + firm + ".")
-      : ("Authenticated as " + firm + ".");
-    gate.classList.add("hidden");
-    shell.classList.remove("hidden");
-  }
-
-  function showGate() {
-    shell.classList.add("hidden");
-    gate.classList.remove("hidden");
-  }
-
-  // On load: if a session token is already held, render the shell; otherwise the gate.
-  if (sessionStorage.getItem(SS_TOKEN)) {
-    showShell();
-  } else {
-    showGate();
-  }
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var token = (tokenInput.value || "").trim();
-    if (!token) { setMsg("Enter your credential token.", "error"); return; }
-
-    submitBtn.disabled = true;
-    setMsg("Verifying…", "info");
-
-    fetch(FN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-      body: JSON.stringify({ token: token })
-    })
-      .then(function (res) {
-        if (res.ok) return res.json();
-        if (res.status === 429) throw new Error("Too many attempts. Please wait and try again.");
-        throw new Error("Credential not recognised.");
-      })
-      .then(function (data) {
-        if (!data || !data.session_token) throw new Error("Credential not recognised.");
-        sessionStorage.setItem(SS_TOKEN, data.session_token);
-        if (data.firm_name) sessionStorage.setItem(SS_FIRM, data.firm_name);
-        if (data.reviewer_name) sessionStorage.setItem(SS_REVIEWER, data.reviewer_name);
-        tokenInput.value = "";
-        setMsg("", "info");
-        showShell();
-      })
-      .catch(function (err) {
-        setMsg(err && err.message ? err.message : "Unable to verify right now.", "error");
-      })
-      .finally(function () {
-        submitBtn.disabled = false;
-      });
+  // Thin client — anon Supabase client only; no secrets, no auth logic beyond the public anon key
+  // (RULE 27). Mirrors the deal-room auth.js guard. Reviewers sign in by magic link routed through
+  // /auth/callback/ (the central post-auth router), which then redirects active reviewers here.
+  var SB_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  var DIRECTOR_EMAIL = 'mark@ailane.ai';
+  var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
+  var root = document.getElementById('root');
 
-  document.getElementById("signout-btn").addEventListener("click", function () {
-    sessionStorage.removeItem(SS_TOKEN);
-    sessionStorage.removeItem(SS_FIRM);
-    sessionStorage.removeItem(SS_REVIEWER);
-    setMsg("", "info");
-    showGate();
-  });
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function renderSignIn(){
+    root.innerHTML =
+      '<span class="badge">Restricted Access</span>' +
+      '<h1>Legal Oversight Room</h1>' +
+      '<p class="sub">Sign in to continue. A magic link will be sent to your registered email. Access is limited to invited legal reviewers.</p>' +
+      '<form id="f" autocomplete="off">' +
+        '<label for="email">Registered email</label>' +
+        '<input id="email" type="email" required placeholder="you@firm.example" autocomplete="off" />' +
+        '<button class="primary" id="btn" type="submit">Send magic link</button>' +
+      '</form>' +
+      '<p class="msg info" id="m"></p>';
+    var form = document.getElementById('f');
+    var btn = document.getElementById('btn');
+    var m = document.getElementById('m');
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var email = (document.getElementById('email').value || '').trim().toLowerCase();
+      if(!email){ m.className='msg error'; m.textContent='Enter your email.'; return; }
+      btn.disabled = true; m.className='msg info'; m.textContent='Sending…';
+      sb.auth.signInWithOtp({
+        email: email,
+        options: { shouldCreateUser: false, emailRedirectTo: 'https://ailane.ai/auth/callback/' }
+      }).then(function(res){
+        btn.disabled = false;
+        if(res.error){ m.className='msg error'; m.textContent = res.error.message || 'Sign-in failed. Check the address and try again.'; }
+        else { m.className='msg ok'; m.textContent = 'Magic link sent. Check your inbox at ' + email + ' and follow the link to sign in.'; }
+      }).catch(function(){ btn.disabled=false; m.className='msg error'; m.textContent='Unable to send right now. Please try again.'; });
+    });
+  }
+
+  function renderWorkspace(firm, isAdmin){
+    root.innerHTML =
+      '<div class="shell-status' + (isAdmin?' admin':'') + '"><span class="dot"></span>' + (isAdmin?'Administrator':'Authenticated') + '</div>' +
+      '<h1>Legal Oversight Room</h1>' +
+      '<p class="sub">' + esc(firm) + '</p>' +
+      '<div class="shell-note">Your workspace is being prepared. The artefact vault and review surfaces arrive in subsequent phases.</div>' +
+      '<button type="button" class="linklike" id="out">Sign out</button>';
+    document.getElementById('out').addEventListener('click', function(){
+      sb.auth.signOut().then(function(){ window.location.reload(); });
+    });
+  }
+
+  (async function(){
+    try{
+      var g = await sb.auth.getSession();
+      var session = g && g.data ? g.data.session : null;
+      if(!session){ renderSignIn(); return; }
+
+      var email = (session.user && session.user.email ? session.user.email : '').toLowerCase();
+      var uid = session.user ? session.user.id : null;
+
+      // Own-row allowlist check (raw fetch; anon key + the user's access token — RLS permits own row).
+      var firm = null, isReviewer = false;
+      try{
+        var r = await fetch(SB_URL + '/rest/v1/legal_reviewer_contacts?user_id=eq.' + uid + '&status=eq.active&select=contact_id,firm_name', {
+          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' }
+        });
+        if(r.ok){ var rows = await r.json(); if(Array.isArray(rows) && rows.length>0){ isReviewer = true; firm = rows[0].firm_name; } }
+      }catch(e){}
+
+      if(isReviewer){ renderWorkspace(firm || 'Your firm', false); return; }
+      if(email === DIRECTOR_EMAIL){ renderWorkspace('Director access — administrator view', true); return; }
+      // Authenticated but neither a reviewer nor the Director.
+      window.location.replace('/');
+    }catch(e){
+      renderSignIn();
+    }
+  })();
 </script>
 
 </body>

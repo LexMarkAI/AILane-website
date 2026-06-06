@@ -100,6 +100,7 @@ function App(){
     <div>
       <div className="top-bar"><div className="top-bar-left"><a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a><div className="page-title">Legal & <span>Governance</span></div></div><div className="top-bar-right"><div className="status-pill live"><div className="dot"/>LIVE</div><div className="ts">Legal Operations Centre</div></div></div>
       <div className="main">
+        <LegalOversightRoomCard token={token}/>
         {loading?<div style={{display:'flex',flexDirection:'column',gap:16}}><div className="kpi-strip">{[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}</div><div className="skeleton" style={{height:400}}/></div>:(
         <>
         {/* KPI STRIP */}
@@ -326,6 +327,52 @@ function EileenChat({token,onClose}){
     React.createElement('div',{className:'eileen-input-bar'},
       React.createElement('input',{className:'eileen-input',value:input,onChange:e=>setInput(e.target.value),onKeyDown:e=>e.key==='Enter'&&send(),placeholder:'Ask Eileen anything...'}),
       React.createElement('button',{className:'eileen-send',onClick:send},'Send')));
+}
+
+// ═══════ LEGAL OVERSIGHT ROOM — reviewer invite + enter (LOVR P0 §7) ═══════
+function LegalOversightRoomCard({token}){
+  const[f,setF]=useState({email:'',full_name:'',firm_name:'',sra_id:'',firm_entity_id:''});
+  const[busy,setBusy]=useState(false);const[msg,setMsg]=useState(null);
+  function upd(k,v){setF(s=>({...s,[k]:v}));}
+  async function invite(e){
+    e.preventDefault();
+    if(!f.email.trim()||!f.firm_name.trim()){setMsg({k:'err',t:'Reviewer email and firm name are required.'});return;}
+    setBusy(true);setMsg(null);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/legal-reviewer-invite`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify(f)});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.ok){setMsg({k:'ok',t:`Invitation sent to ${f.email.trim().toLowerCase()}.`});setF({email:'',full_name:'',firm_name:'',sra_id:'',firm_entity_id:''});}
+      else{setMsg({k:'err',t:(d.error||`Invite failed (${r.status}).`)});}
+    }catch(err){setMsg({k:'err',t:'Network error. Please try again.'});}
+    setBusy(false);
+  }
+  const inp={width:'100%',padding:'8px 10px',marginTop:3,background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:'0.72rem',fontFamily:'var(--font-body)',outline:'none'};
+  const lbl={fontSize:'0.58rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em'};
+  const field=(label,key,type,ph)=>React.createElement('div',{key},React.createElement('div',{style:lbl},label),React.createElement('input',{style:inp,type:type||'text',value:f[key],onChange:e=>upd(key,e.target.value),placeholder:ph||''}));
+  return(
+    <div className="card" style={{borderColor:'var(--border-accent)'}}>
+      <div className="card-head"><div className="card-head-title" style={{color:'var(--accent-cyan)'}}>Legal Oversight Room</div><div className="card-head-badge">Reviewer access</div></div>
+      <div className="card-body">
+        <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginBottom:12,lineHeight:1.5}}>
+          Invite an external legal reviewer by email. They receive a magic-link invitation, sign in, and reach their workspace at <span style={{fontFamily:'var(--font-mono)',color:'var(--text-accent)'}}>/legal-oversight/</span>. Reviewers see only their own workspace — never counterparty or deal-room data.
+        </div>
+        <form onSubmit={invite}>
+          <div className="two-col" style={{gap:10}}>
+            {field('Reviewer email *','email','email','reviewer@firm.example')}
+            {field('Full name','full_name','text','Jane Smith')}
+            {field('Firm name *','firm_name','text','Firm LLP')}
+            {field('SRA ID','sra_id','text','optional')}
+            {field('Firm entity ID','firm_entity_id','text','optional')}
+          </div>
+          <div style={{display:'flex',gap:10,marginTop:14,alignItems:'center',flexWrap:'wrap'}}>
+            <button type="submit" disabled={busy} style={{padding:'9px 16px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-accent)',background:'var(--accent-cyan-dim)',color:'var(--accent-cyan)',fontSize:'0.72rem',fontWeight:600,cursor:busy?'default':'pointer',fontFamily:'var(--font-body)',opacity:busy?0.6:1}}>{busy?'Sending…':'Send invitation'}</button>
+            <a href="/legal-oversight/" style={{padding:'9px 16px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-default)',background:'var(--bg-elevated)',color:'var(--text-primary)',fontSize:'0.72rem',fontWeight:600,textDecoration:'none'}}>Enter the Room →</a>
+            {msg&&<span style={{fontSize:'0.66rem',color:msg.k==='ok'?'var(--accent-green)':'var(--accent-red)'}}>{msg.t}</span>}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);

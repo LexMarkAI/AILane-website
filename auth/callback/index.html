@@ -61,6 +61,16 @@
       }
       if(!session){for(var i=0;i<8;i++){var g=await sb.auth.getSession();if(g.data&&g.data.session){session=g.data.session;break}if(i<7)await sleep(500)}}
       if(!session){window.location.replace('/login/');return}
+      // LOVR P0 — reviewer routing: an active legal reviewer enters the Legal Oversight Room.
+      // RULE 2: JWT decode + raw fetch only (never sb.from() at the callback). Additive — on any
+      // miss/error this falls through to the existing tier routing below, untouched.
+      try{
+        var rvSub=JSON.parse(atob(session.access_token.split('.')[1])).sub;
+        var rvRes=await fetch(SB_URL+'/rest/v1/legal_reviewer_contacts?user_id=eq.'+rvSub+'&status=eq.active&select=contact_id',{
+          headers:{'apikey':SB_KEY,'Authorization':'Bearer '+session.access_token,'Accept':'application/json'}
+        });
+        if(rvRes.ok){var rvRows=await rvRes.json();if(Array.isArray(rvRows)&&rvRows.length>0){window.location.replace('/legal-oversight/');return}}
+      }catch(e){}
       st('Loading your dashboard...');
       var tier=await getTier(session.access_token);
       var d=dest(tier);
