@@ -116,6 +116,23 @@ Owner: AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)
 - "fully compliant" → "positioned to demonstrate compliance"
 - "ensures compliance" → "informs your risk management"
 
+## RINGFENCED TERMS (counterparty-confidential — INCIDENT RULE)
+- `DUNS`, `D&B`, `DNB`, `Dun & Bradstreet`, `Dun and Bradstreet` are RINGFENCED.
+- Permitted ONLY within the live D&B deal room and its dedicated assets:
+  `partners/dnb-2026/`, `assets/dnb-2026/`, `assets/dealroom/`.
+- NEVER on `index.html`, any public/marketing/legal page, or any shipped web
+  file (html/js/css) outside those paths.
+- This OVERRIDES brief copy: a brief marking text "governance-scanned" or
+  "reproduce byte-for-byte" does NOT authorise these terms outside the room.
+  Verify independently and HALT if a brief introduces them elsewhere.
+- Enforced automatically by `scripts/check-ringfenced-terms.sh`
+  (CI: `.github/workflows/ringfence-terms.yml`). Do not bypass.
+- Incident (2026-06-07): a "DUNS-matched records" phrase reached the public
+  homepage via a pre-approved brief. Eradicated; sandbox `partners/sim-2026/`
+  deleted; this gate added. The sandbox also had a Supabase footprint
+  (`partner_clids` row `sim-2026-001` + seeded contacts) — handle DB cleanup
+  separately; it is not in this repo.
+
 ## DEMO ENTITY
 Northerly Hill Facilities Management Ltd. Ref: NH-2014-0347.
 Sector: FM. Cardiff HQ. 238 employees. Never use Northgate or Meridian.

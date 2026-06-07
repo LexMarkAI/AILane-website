@@ -1,0 +1,19 @@
+name: Ringfence gate
+
+# Fails any change that introduces ringfenced counterparty terminology
+# (DUNS / D&B / Dun & Bradstreet) onto a public surface or any shipped web file
+# outside the sanctioned D&B deal-room paths. See scripts/check-ringfenced-terms.sh
+# and CLAUDE.md -> RINGFENCED TERMS.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ringfence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check ringfenced terms (DUNS / D&B)
+        run: bash scripts/check-ringfenced-terms.sh
