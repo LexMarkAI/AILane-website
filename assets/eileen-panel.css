@@ -1,0 +1,348 @@
+/* =============================================================================
+ * AILANE — Eileen Cross-Platform Panel
+ * AILANE-CC-BRIEF-EILEEN-XPLATFORM-001
+ *
+ * Self-contained styling for the Eileen launcher + slide-over chat. Does not
+ * depend on any page-level stylesheet or token file being present.
+ *
+ * Gold (#F59E0B) is Eileen's Nexus identity core ONLY — it is never used here
+ * as a tier signal or as a status/alert colour.
+ * ============================================================================= */
+
+.eilx-launcher,
+.eilx-portal,
+.eilx-portal * {
+  box-sizing: border-box;
+}
+
+:root {
+  --eilx-gold: #F59E0B;            /* Eileen Nexus identity core */
+  --eilx-gold-soft: rgba(245, 158, 11, 0.18);
+  --eilx-gold-line: rgba(245, 158, 11, 0.30);
+  --eilx-surface: #0c1525;
+  --eilx-surface-2: #0a0e1a;
+  --eilx-raised: rgba(15, 23, 42, 0.92);
+  --eilx-line: rgba(148, 163, 184, 0.18);
+  --eilx-text: #E2E8F0;
+  --eilx-text-dim: #94A3B8;
+  --eilx-text-mute: #64748B;
+  --eilx-user: rgba(245, 158, 11, 0.12);
+  --eilx-err: #F87171;
+  --eilx-font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --eilx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ----------------------------------------------------------------- Launcher */
+.eilx-launcher {
+  position: fixed;
+  bottom: 26px;
+  right: 26px;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--eilx-gold-line);
+  background: radial-gradient(circle at 50% 45%, #14203a 0%, #0a0e1a 100%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 22px var(--eilx-gold-soft);
+  cursor: pointer;
+  z-index: 99998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.eilx-launcher:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 0 30px rgba(245, 158, 11, 0.28); }
+.eilx-launcher:focus-visible { outline: 2px solid var(--eilx-gold); outline-offset: 3px; }
+.eilx-launcher-mark { width: 56px; height: 56px; pointer-events: none; }
+.eilx-launcher-fallback { display: none; }
+/* Fallback mark when the Nexus module is unavailable. */
+.eilx-launcher.eilx-nofx .eilx-launcher-mark { display: none; }
+.eilx-launcher.eilx-nofx .eilx-launcher-fallback {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--eilx-gold) 0%, rgba(245, 158, 11, 0.25) 70%, transparent 100%);
+}
+
+/* ------------------------------------------------------------------- Portal */
+.eilx-portal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  visibility: hidden;
+}
+.eilx-portal.eilx-portal-open { visibility: visible; pointer-events: auto; }
+
+.eilx-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 16, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.eilx-portal-open .eilx-backdrop { opacity: 1; }
+
+/* --------------------------------------------------------------- The panel */
+.eilx-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 420px;
+  max-width: 100vw;
+  background: var(--eilx-surface);
+  border-left: 1px solid var(--eilx-gold-line);
+  box-shadow: -24px 0 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(102%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  font-family: var(--eilx-font);
+  color: var(--eilx-text);
+}
+.eilx-portal-open .eilx-panel { transform: translateX(0); }
+
+/* ------------------------------------------------------------------ Header */
+.eilx-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--eilx-line);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), transparent);
+}
+.eilx-header-mark { width: 40px; height: 40px; flex: 0 0 auto; }
+.eilx-header-text { flex: 1 1 auto; min-width: 0; }
+.eilx-name {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 19px;
+  line-height: 1.1;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+.eilx-status { font-size: 11.5px; color: var(--eilx-text-mute); margin-top: 2px; }
+.eilx-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--eilx-line);
+  background: transparent;
+  color: var(--eilx-text-dim);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.eilx-close:hover { background: rgba(148, 163, 184, 0.12); color: #fff; }
+.eilx-close:focus-visible { outline: 2px solid var(--eilx-gold); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- Messages */
+.eilx-messages {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+.eilx-messages::-webkit-scrollbar { width: 8px; }
+.eilx-messages::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 8px; }
+
+.eilx-msg { max-width: 92%; }
+.eilx-msg-eileen { align-self: flex-start; }
+.eilx-msg-user { align-self: flex-end; text-align: left; }
+
+.eilx-msg-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--eilx-text-mute);
+  margin-bottom: 4px;
+}
+.eilx-msg-user .eilx-msg-label { color: var(--eilx-gold); text-align: right; }
+
+.eilx-msg-body {
+  background: var(--eilx-raised);
+  border: 1px solid var(--eilx-line);
+  border-radius: 14px;
+  padding: 10px 13px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--eilx-text);
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.eilx-msg-user .eilx-msg-body {
+  background: var(--eilx-user);
+  border-color: var(--eilx-gold-line);
+}
+
+/* Transient error/notice row (not part of the transcript). */
+.eilx-notice {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+  color: #fecaca;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.eilx-notice .eilx-a { color: #fcd34d; }
+
+.eilx-ctx {
+  font-size: 11px;
+  color: var(--eilx-text-mute);
+  font-style: italic;
+  margin-bottom: 4px;
+  text-align: right;
+}
+.eilx-tools {
+  font-size: 11px;
+  color: var(--eilx-text-mute);
+  margin-top: 5px;
+  padding-left: 2px;
+}
+
+/* Markdown elements inside Eileen's replies. */
+.eilx-msg-body p { margin: 0 0 8px; }
+.eilx-msg-body p:last-child { margin-bottom: 0; }
+.eilx-msg-body .eilx-h { margin: 10px 0 6px; line-height: 1.3; color: #fff; }
+.eilx-msg-body .eilx-h1 { font-size: 17px; }
+.eilx-msg-body .eilx-h2 { font-size: 15.5px; }
+.eilx-msg-body .eilx-h3, .eilx-msg-body .eilx-h4, .eilx-msg-body .eilx-h5, .eilx-msg-body .eilx-h6 { font-size: 14px; }
+.eilx-msg-body .eilx-ul, .eilx-msg-body .eilx-ol { margin: 4px 0 8px; padding-left: 20px; }
+.eilx-msg-body li { margin: 2px 0; }
+.eilx-msg-body .eilx-a { color: var(--eilx-gold); text-decoration: underline; text-underline-offset: 2px; }
+.eilx-msg-body .eilx-a:hover { color: #fcd34d; }
+.eilx-msg-body .eilx-code {
+  font-family: var(--eilx-mono);
+  font-size: 12.5px;
+  background: rgba(148, 163, 184, 0.14);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.eilx-msg-body .eilx-pre {
+  background: var(--eilx-surface-2);
+  border: 1px solid var(--eilx-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 6px 0 8px;
+}
+.eilx-msg-body .eilx-pre code { font-family: var(--eilx-mono); font-size: 12.5px; color: #cbd5e1; }
+.eilx-msg-body .eilx-bq {
+  margin: 6px 0;
+  padding: 4px 12px;
+  border-left: 3px solid var(--eilx-gold-line);
+  color: var(--eilx-text-dim);
+}
+.eilx-msg-body .eilx-hr { border: none; border-top: 1px solid var(--eilx-line); margin: 10px 0; }
+
+.eilx-retry {
+  align-self: flex-end;
+  margin-top: -6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--eilx-gold-line);
+  background: var(--eilx-gold-soft);
+  color: #fcd34d;
+  font-family: var(--eilx-font);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.eilx-retry:hover { background: rgba(245, 158, 11, 0.26); }
+.eilx-retry:focus-visible { outline: 2px solid var(--eilx-gold); outline-offset: 2px; }
+
+/* ----------------------------------------------------------- Working state */
+.eilx-working {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 18px 2px;
+}
+.eilx-working[hidden] { display: none; }
+.eilx-working-label { font-size: 12px; color: var(--eilx-text-dim); margin-left: 4px; }
+.eilx-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--eilx-gold);
+  opacity: 0.5;
+  animation: eilx-bounce 1.2s infinite ease-in-out;
+}
+.eilx-dot:nth-child(2) { animation-delay: 0.16s; }
+.eilx-dot:nth-child(3) { animation-delay: 0.32s; }
+@keyframes eilx-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-4px); opacity: 1; } }
+
+/* -------------------------------------------------------------- Input bar */
+.eilx-inputbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--eilx-line);
+  background: var(--eilx-surface-2);
+}
+.eilx-input {
+  flex: 1 1 auto;
+  resize: none;
+  max-height: 140px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--eilx-line);
+  background: var(--eilx-surface);
+  color: var(--eilx-text);
+  font-family: var(--eilx-font);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.eilx-input::placeholder { color: var(--eilx-text-mute); }
+.eilx-input:focus { outline: none; border-color: var(--eilx-gold-line); box-shadow: 0 0 0 2px var(--eilx-gold-soft); }
+.eilx-input:disabled { opacity: 0.6; }
+.eilx-send {
+  flex: 0 0 auto;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid var(--eilx-gold-line);
+  background: var(--eilx-gold);
+  color: #1a1205;
+  font-family: var(--eilx-font);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.eilx-send:hover { filter: brightness(1.08); }
+.eilx-send:disabled { opacity: 0.5; cursor: default; }
+.eilx-send:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* ------------------------------------------------------------- Responsive */
+@media (max-width: 640px) {
+  .eilx-launcher { bottom: 18px; right: 18px; width: 54px; height: 54px; }
+  .eilx-panel {
+    width: 100vw;
+    height: 100%;
+    border-left: none;
+    transform: translateY(102%);
+  }
+  .eilx-portal-open .eilx-panel { transform: translateY(0); }
+}
+
+/* --------------------------------------------------- Reduced-motion respect */
+@media (prefers-reduced-motion: reduce) {
+  .eilx-panel,
+  .eilx-backdrop,
+  .eilx-launcher { transition: none; }
+  .eilx-dot { animation: none; opacity: 0.7; }
+}
