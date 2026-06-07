@@ -1,624 +1,478 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Legal Oversight Room | Ailane</title>
-  <meta name="description" content="Restricted workspace for verified legal reviewers." />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Legal Oversight &amp; Vault Room · Ailane</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co; img-src 'self' data: https://cnbsxwtvazfvzmltkuvx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 
-  <!-- Not indexed — restricted room (LOVR §6) -->
-  <meta name="robots" content="noindex,nofollow" />
+<!-- Google Analytics 4 (G-NTNXWZN31C) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C', { anonymize_ip: true });
+</script>
 
-  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-NTNXWZN31C');
-  </script>
+<style>
+  :root{
+    --ink:#0A0F1A; --panel:#111A2B; --panel-2:#0E1626; --line:#1E293B; --line-soft:#172033;
+    --text:#E6EDF6; --muted:#93A1B5; --muted-2:#6B7A90;
+    --gold:#F59E0B; --gold-soft:rgba(245,158,11,.12); --cyan:#0EA5E9; --cyan-soft:rgba(14,165,233,.12);
+    --green:#34D399; --green-soft:rgba(52,211,153,.12); --red:#F87171; --red-soft:rgba(248,113,113,.12);
+    --grey:#94A3B8; --grey-soft:rgba(148,163,184,.12);
+    --radius:14px; --radius-sm:10px; --shadow:0 10px 30px rgba(0,0,0,.35);
+    --serif:"Iowan Old Style",Palatino,"Palatino Linotype","Book Antiqua",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--text);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;line-height:1.5;font-size:15px}
+  a{color:var(--cyan);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
 
-  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2).
-       P1c change vs P1a: frame-src adds 'self' to permit the sandboxed srcdoc iframe that renders
-       Mode B inline licence-capture content (lovr-artefact-url v3). The iframe carries sandbox=""
-       (no allow-scripts), so returned HTML is rendered inert. No other directive is altered. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+  header.topbar{position:sticky;top:0;z-index:30;background:rgba(10,15,26,.86);
+    backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line)}
+  .topbar .row{display:flex;align-items:center;gap:14px;height:62px}
+  .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .brand .name{font-weight:600;letter-spacing:.2px}
+  .brand .sub{color:var(--muted);font-size:12.5px;border-left:1px solid var(--line);padding-left:11px;margin-left:3px}
+  .spacer{flex:1}
+  .who{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+  .who .email{color:var(--text)}
+  .btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);
+    padding:8px 13px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:inherit;
+    transition:border-color .15s,background .15s}
+  .btn:hover{border-color:#2b3a52;background:#142036}
+  .btn.gold{background:var(--gold);color:#1a1205;border-color:var(--gold);font-weight:600}
+  .btn.gold:hover{filter:brightness(1.05);background:var(--gold)}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:6px 10px;font-size:12.5px}
+  .btn:disabled{opacity:.55;cursor:default}
 
-  <!-- Supabase JS (anon client only — RULE 27: no auth logic/secrets beyond the public anon key) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  .context{border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--panel-2),transparent)}
+  .context .row{padding:16px 0 18px}
+  .context h1{font-family:var(--serif);font-weight:600;font-size:22px;margin:0 0 4px;letter-spacing:.2px}
+  .context p{margin:0;color:var(--muted);font-size:13.5px;max-width:880px}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--panel)}
+  .tag b{color:var(--text);font-weight:600}
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --navy: #0F1B35;
-      --navy-mid: #1B2A4A;
-      --navy-light: #243356;
-      --teal: #0EA5E9;
-      --white: #FFFFFF;
-      --off-white: #F0F4FA;
-      --grey-text: #94A3B8;
-      --grey-border: #2A3A5C;
-      --body-text: #CBD5E1;
-      --danger: #EF4444;
-      --success: #10B981;
-      --amber: #FBBF24;
-    }
-    html, body { height: 100%; }
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--navy); color: var(--body-text);
-      line-height: 1.7; display: flex; flex-direction: column; min-height: 100vh;
-    }
-    nav { background: rgba(15,27,53,0.97); border-bottom: 1px solid var(--grey-border); padding: 0 2rem; }
-    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
-    .nav-logo { font-size: 1.4rem; font-weight: 800; color: var(--white); text-decoration: none; letter-spacing: -0.03em; }
-    .nav-logo span { color: var(--teal); }
-    .nav-tag { font-size: 0.78rem; color: var(--grey-text); text-transform: uppercase; letter-spacing: 0.1em; }
+  .main{display:grid;grid-template-columns:340px 1fr;gap:26px;padding:26px 0 60px;align-items:start}
+  @media (max-width:980px){.main{grid-template-columns:1fr}}
 
-    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
-    .card {
-      width: 100%; max-width: 460px;
-      background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy-light) 100%);
-      border: 1px solid var(--grey-border); border-radius: 14px; padding: 2.5rem 2rem;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
-    }
-    .badge { display: inline-block; font-size: 0.72rem; font-weight: 700; color: var(--teal);
-      text-transform: uppercase; letter-spacing: 0.1em; background: rgba(14,165,233,0.1);
-      border: 1px solid rgba(14,165,233,0.25); padding: 0.25rem 0.7rem; border-radius: 20px; margin-bottom: 1rem; }
-    h1 { font-size: 1.5rem; color: var(--white); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-    .sub { font-size: 0.92rem; color: var(--grey-text); margin-bottom: 1.75rem; }
-    label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--off-white); margin-bottom: 0.5rem; }
-    input[type="email"] {
-      width: 100%; padding: 0.8rem 0.9rem; font-size: 0.95rem; background: var(--navy);
-      color: var(--white); border: 1px solid var(--grey-border); border-radius: 8px;
-    }
-    input:focus { outline: none; border-color: var(--teal); }
-    button.primary {
-      width: 100%; margin-top: 1.1rem; padding: 0.85rem; background: var(--teal); color: var(--white);
-      font-size: 0.95rem; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
-    }
-    button.primary:hover { opacity: 0.92; }
-    button.primary:disabled { opacity: 0.55; cursor: default; }
-    .msg { margin-top: 1rem; font-size: 0.85rem; min-height: 1.2em; }
-    .msg.error { color: var(--danger); }
-    .msg.ok { color: var(--success); }
-    .msg.info { color: var(--grey-text); }
-    .shell-status { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; font-weight: 600;
-      color: var(--success); background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
-      padding: 0.3rem 0.8rem; border-radius: 20px; margin-bottom: 1.25rem; }
-    .shell-status.admin { color: var(--teal); background: rgba(14,165,233,0.1); border-color: rgba(14,165,233,0.3); }
-    .shell-status.pending { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
-    .shell-status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-    .shell-note { margin-top: 1.25rem; padding: 1rem 1.1rem; border-left: 3px solid var(--teal);
-      background: rgba(14,165,233,0.06); border-radius: 0 8px 8px 0; font-size: 0.88rem; color: var(--body-text); }
-    .linklike { margin-top: 1.5rem; background: none; border: none; color: var(--grey-text); font-size: 0.82rem;
-      width: auto; padding: 0; text-decoration: underline; cursor: pointer; }
-    .linklike:hover { color: var(--white); }
-    footer { border-top: 1px solid var(--grey-border); background: var(--navy-mid); padding: 1.5rem 2rem; text-align: center; }
-    .footer-legal { font-size: 0.78rem; color: var(--grey-text); line-height: 1.7; }
+  .rail{position:sticky;top:78px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--panel);overflow:hidden}
+  @media (max-width:980px){.rail{position:static}}
+  .rail .head{padding:14px 16px;border-bottom:1px solid var(--line)}
+  .rail .head .t{font-weight:600;font-size:14px}
+  .rail .head .s{color:var(--muted);font-size:12px;margin-top:2px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;padding:11px 16px;border-bottom:1px solid var(--line-soft)}
+  .rail .group{border-bottom:1px solid var(--line-soft)}
+  .rail .group:last-child{border-bottom:none}
+  .rail .gh{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 16px;
+    cursor:pointer;user-select:none}
+  .rail .gh:hover{background:var(--panel-2)}
+  .rail .gh .gt{font-size:12px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
+  .rail .gh .ct{font-size:11px;color:var(--muted-2)}
+  .rail .items{padding:2px 10px 10px}
+  .rail .items.collapsed{display:none}
+  .obl{display:flex;gap:9px;align-items:flex-start;padding:8px 8px;border-radius:8px}
+  .obl:hover{background:var(--panel-2)}
+  .obl .meta{min-width:0}
+  .obl .ot{font-size:12.8px;line-height:1.35}
+  .obl .ow{font-size:11px;color:var(--muted-2);margin-top:2px}
 
-    /* Read-only W9 obligations checklist (LOVR P1a §4) */
-    .card.workspace { max-width: 860px; }
-    .checklist { margin-top: 0; }
-    .checklist-empty, .room-empty { margin-top: 0.5rem; padding: 1rem 1.1rem; border-left: 3px solid var(--grey-border);
-      background: rgba(148,163,184,0.06); border-radius: 0 8px 8px 0; font-size: 0.88rem; color: var(--grey-text); }
-    .cl-group { margin-bottom: 1.5rem; }
-    .cl-group:last-child { margin-bottom: 0; }
-    .cl-group-title { font-size: 0.74rem; font-weight: 700; color: var(--grey-text); text-transform: uppercase;
-      letter-spacing: 0.1em; margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--grey-border); }
-    .cl-row { background: var(--navy); border: 1px solid var(--grey-border); border-radius: 8px;
-      padding: 0.7rem 0.85rem; margin-bottom: 0.5rem; }
-    .cl-row:last-child { margin-bottom: 0; }
-    .cl-row.has-desc { cursor: pointer; }
-    .cl-row.has-desc:hover { border-color: var(--teal); }
-    .cl-row.has-desc:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-    .cl-row-head { display: flex; align-items: center; gap: 0.7rem; }
-    .cl-code { flex: 0 0 auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.8rem; font-weight: 700;
-      color: var(--off-white); min-width: 3.2rem; }
-    .cl-title { flex: 1 1 auto; font-size: 0.9rem; color: var(--white); }
-    .cl-chevron { flex: 0 0 auto; color: var(--grey-text); font-size: 0.7rem; transition: transform 0.15s; }
-    .cl-row.open .cl-chevron { transform: rotate(90deg); }
-    .cl-badge { flex: 0 0 auto; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-      padding: 0.2rem 0.55rem; border-radius: 20px; white-space: nowrap; border: 1px solid transparent; }
-    .cl-badge-open { color: var(--grey-text); background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.3); }
-    .cl-badge-in-progress { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
-    .cl-badge-satisfied { color: var(--success); background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
-    .cl-badge-blocked { color: var(--danger); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
-    .cl-badge-not-applicable { color: var(--grey-text); background: transparent; border-color: var(--grey-border); }
-    .cl-desc { display: none; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--grey-border);
-      font-size: 0.85rem; color: var(--body-text); }
-    .cl-row.open .cl-desc { display: block; }
+  .pill{flex:none;font-size:10.5px;font-weight:600;letter-spacing:.2px;padding:3px 8px;border-radius:999px;
+    border:1px solid transparent;white-space:nowrap;text-transform:capitalize}
+  .pill.dot{padding:3px 8px 3px 7px;display:inline-flex;align-items:center;gap:6px}
+  .pill.dot::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.9}
+  .st-satisfied{color:var(--green);background:var(--green-soft);border-color:rgba(52,211,153,.3)}
+  .st-open{color:var(--gold);background:var(--gold-soft);border-color:rgba(245,158,11,.3)}
+  .st-in-progress{color:var(--cyan);background:var(--cyan-soft);border-color:rgba(14,165,233,.3)}
+  .st-blocked{color:var(--red);background:var(--red-soft);border-color:rgba(248,113,113,.3)}
+  .st-not-applicable{color:var(--grey);background:var(--grey-soft);border-color:rgba(148,163,184,.3)}
 
-    /* Room sections — the six display groups (LOVR P1c §11/§14) */
-    .admin-banner { margin: 0 0 1.5rem; padding: 0.9rem 1.05rem; border-left: 3px solid var(--teal);
-      background: rgba(14,165,233,0.07); border-radius: 0 8px 8px 0; font-size: 0.84rem; color: var(--body-text); }
-    .admin-banner strong { color: var(--amber); }
-    .room-group { margin-bottom: 1.9rem; }
-    .room-group:last-of-type { margin-bottom: 0; }
-    .room-group-title { display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem; font-weight: 800;
-      color: var(--white); letter-spacing: -0.01em; margin-bottom: 0.85rem; padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--grey-border); }
-    .room-count { font-size: 0.7rem; font-weight: 700; color: var(--grey-text); background: rgba(148,163,184,0.12);
-      border: 1px solid var(--grey-border); border-radius: 20px; padding: 0.1rem 0.55rem; }
+  .vault .vh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 2px 14px}
+  .vault .vh .t{font-family:var(--serif);font-size:18px;font-weight:600}
+  .vault .vh .c{color:var(--muted);font-size:12.5px}
+  .section{margin-bottom:26px}
+  .section > .sh{display:flex;align-items:center;gap:10px;margin:0 2px 11px}
+  .section > .sh .bar{width:3px;height:16px;border-radius:2px;background:var(--gold)}
+  .section.w9 > .sh .bar{background:var(--cyan)}
+  .section > .sh .st{font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text)}
+  .section > .sh .sc{font-size:11.5px;color:var(--muted-2)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .card{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);
+    padding:14px 14px 12px;display:flex;flex-direction:column;gap:9px;transition:border-color .15s}
+  .card:hover{border-color:#2b3a52}
+  .card .ct{font-weight:600;font-size:14px;line-height:1.3}
+  .card .cd{color:var(--muted);font-size:12.5px;line-height:1.45;flex:1}
+  .card .cf{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
+  .chip{font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 8px;
+    display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .chip .vd{color:var(--muted-2)}
+  .card .actions{display:flex;gap:7px}
 
-    /* Evidence artefact rows */
-    .art-row { background: var(--navy); border: 1px solid var(--grey-border); border-radius: 8px;
-      padding: 0.7rem 0.85rem; margin-bottom: 0.5rem; cursor: pointer; }
-    .art-row:last-child { margin-bottom: 0; }
-    .art-row:hover { border-color: var(--teal); }
-    .art-row:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-    .art-row-head { display: flex; align-items: center; gap: 0.6rem; }
-    .art-icon { flex: 0 0 auto; color: var(--grey-text); font-size: 0.95rem; }
-    .art-name { flex: 1 1 auto; font-size: 0.9rem; color: var(--white); }
-    .art-ver { font-size: 0.7rem; color: var(--grey-text); font-weight: 600; }
-    .art-badge { flex: 0 0 auto; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-      padding: 0.18rem 0.5rem; border-radius: 20px; white-space: nowrap; border: 1px solid transparent; }
-    .art-badge.pending { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
-    .art-open { flex: 0 0 auto; font-size: 0.74rem; font-weight: 700; color: var(--teal); }
-    .art-desc { margin-top: 0.45rem; font-size: 0.83rem; color: var(--grey-text); }
+  .gate{min-height:64vh;display:flex;align-items:center;justify-content:center;padding:40px 0}
+  .signin{width:100%;max-width:400px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--panel);box-shadow:var(--shadow);overflow:hidden}
+  .signin .sh{padding:22px 24px 6px;text-align:center}
+  .signin .sh .nx{margin:0 auto 12px}
+  .signin .sh h2{font-family:var(--serif);font-size:19px;margin:0 0 4px}
+  .signin .sh p{color:var(--muted);font-size:12.8px;margin:0}
+  .signin form{padding:18px 24px 8px;display:flex;flex-direction:column;gap:11px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .field input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;font-family:inherit}
+  .field input:focus{outline:none;border-color:var(--cyan)}
+  .signin .foot{padding:6px 24px 22px;color:var(--muted-2);font-size:11.5px;text-align:center}
+  .msg{font-size:12.5px;padding:9px 12px;border-radius:var(--radius-sm);display:none}
+  .msg.err{display:block;color:var(--red);background:var(--red-soft);border:1px solid rgba(248,113,113,.3)}
+  .msg.info{display:block;color:var(--muted);background:var(--panel-2);border:1px solid var(--line)}
 
-    /* Rectification rows */
-    .rect-row { background: var(--navy); border: 1px solid var(--grey-border); border-radius: 8px;
-      padding: 0.7rem 0.85rem; margin-bottom: 0.5rem; }
-    .rect-row:last-child { margin-bottom: 0; }
-    .rect-head { display: flex; align-items: center; gap: 0.6rem; }
-    .rect-commitment { flex: 1 1 auto; font-size: 0.9rem; color: var(--white); }
-    .rect-meta { margin-top: 0.3rem; font-size: 0.8rem; color: var(--grey-text); }
-    .rect-badge-open { color: var(--grey-text); background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.3); }
-    .rect-badge-in-progress { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
-    .rect-badge-complete { color: var(--success); background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
-    .rect-badge-overdue { color: var(--danger); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
+  .state{border:1px dashed var(--line);border-radius:var(--radius);padding:40px 24px;text-align:center;color:var(--muted)}
+  .state .big{font-size:15px;color:var(--text);margin-bottom:6px;font-weight:600}
+  .spin{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--cyan);border-radius:50%;
+    display:inline-block;animation:sp .8s linear infinite;vertical-align:-3px;margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
 
-    /* Artefact viewer modal (Mode B inline content via sandboxed iframe) */
-    .art-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
-      padding: 1.5rem; background: rgba(7,12,24,0.78); }
-    .art-modal[hidden] { display: none; }
-    .art-modal-card { width: 100%; max-width: 920px; max-height: 90vh; display: flex; flex-direction: column;
-      background: var(--navy-mid); border: 1px solid var(--grey-border); border-radius: 12px; overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
-    .art-modal-head { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.2rem;
-      border-bottom: 1px solid var(--grey-border); }
-    .art-modal-meta { flex: 1 1 auto; min-width: 0; }
-    .art-modal-title { font-size: 0.98rem; font-weight: 700; color: var(--white); margin-bottom: 0.25rem; word-break: break-word; }
-    .art-modal-sub { font-size: 0.74rem; color: var(--grey-text); word-break: break-all; }
-    .art-modal-sub a { color: var(--teal); text-decoration: none; }
-    .art-modal-sub a:hover { text-decoration: underline; }
-    .art-modal-close { flex: 0 0 auto; background: var(--navy); color: var(--off-white); border: 1px solid var(--grey-border);
-      border-radius: 8px; padding: 0.45rem 0.9rem; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
-    .art-modal-close:hover { border-color: var(--teal); color: var(--white); }
-    .art-modal-body { flex: 1 1 auto; overflow: auto; background: var(--white); }
-    .art-modal-body .pad { padding: 1.2rem; color: var(--navy); }
-    .art-modal-body iframe { width: 100%; min-height: 60vh; border: 0; background: var(--white); display: block; }
-    .art-modal-loading, .art-modal-error { padding: 2rem 1.2rem; font-size: 0.88rem; }
-    .art-modal-loading { color: var(--grey-text); background: var(--navy-mid); }
-    .art-modal-error { color: var(--danger); background: var(--navy-mid); }
+  .scrim{position:fixed;inset:0;background:rgba(4,8,15,.66);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .viewer{position:fixed;top:0;right:0;height:100%;width:min(860px,94vw);background:var(--panel-2);
+    z-index:41;border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(100%);
+    transition:transform .24s ease;display:flex;flex-direction:column}
+  .viewer.open{transform:translateX(0)}
+  .viewer .vbar{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .viewer .vbar .vt{font-family:var(--serif);font-size:16px;font-weight:600;line-height:1.3}
+  .viewer .vbar .vm{font-size:11.5px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+  .viewer .vbody{flex:1;min-height:0;overflow:auto;background:var(--ink)}
+  .viewer .vactions{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+  .viewer .vactions:empty{display:none}
+  .viewer iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+  .docframe{width:100%;height:100%;border:0;display:block}
+  .vpad{padding:26px 28px;color:var(--muted)}
+  .vpad .big{font-size:15px;color:var(--text);font-weight:600;margin-bottom:8px}
+  .disclaimer{font-size:11px;color:var(--muted-2);padding:9px 18px;border-top:1px solid var(--line-soft)}
 
-    @media (max-width: 540px) {
-      .cl-row-head { flex-wrap: wrap; }
-      .cl-title { flex: 1 1 100%; order: 3; }
-      .art-row-head { flex-wrap: wrap; }
-      .art-name { flex: 1 1 100%; order: 3; }
-    }
-  </style>
+  footer{border-top:1px solid var(--line);background:var(--panel-2)}
+  footer .row{padding:22px 0 30px;color:var(--muted-2);font-size:12px;display:flex;flex-direction:column;gap:6px}
+  footer .row .l1{color:var(--muted)}
+  .hidden{display:none!important}
+</style>
 </head>
 <body>
 
-<nav>
-  <div class="nav-inner">
-    <a href="https://ailane.ai/" class="nav-logo">AIL<span>ANE</span></a>
-    <span class="nav-tag">Legal Oversight Room</span>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="nexus" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="11" fill="none" stroke="#0EA5E9" stroke-width="1.2" opacity=".55"/>
+    <line x1="20" y1="20" x2="31" y2="11" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="9"  y2="13" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="28" y2="31" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <circle cx="31" cy="11" r="1.8" fill="#0EA5E9"/>
+    <circle cx="9"  cy="13" r="1.8" fill="#0EA5E9"/>
+    <circle cx="28" cy="31" r="1.8" fill="#0EA5E9"/>
+    <circle cx="20" cy="20" r="4.4" fill="#F59E0B"/>
+  </symbol>
+</svg>
+
+<div id="app"></div>
+
+<div class="scrim" id="scrim" onclick="LOVR.closeViewer()"></div>
+<aside class="viewer" id="viewer" aria-hidden="true">
+  <div class="vbar">
+    <svg width="30" height="30" aria-hidden="true"><use href="#nexus"/></svg>
+    <div style="flex:1;min-width:0">
+      <div class="vt" id="v-title">—</div>
+      <div class="vm" id="v-meta"></div>
+    </div>
+    <button class="btn ghost sm" onclick="LOVR.closeViewer()" aria-label="Close">Close ✕</button>
   </div>
-</nav>
+  <div class="vbody" id="v-body"></div>
+  <div class="vactions" id="v-actions"></div>
+  <div class="disclaimer">This material is provided for professional review under the Reviewer Access Agreement. It is regulatory intelligence, not legal advice, and is confidential to AI Lane Limited.</div>
+</aside>
 
-<main><div id="root" class="card"></div></main>
-
-<footer>
-  <p class="footer-legal">
-    &copy; 2026 AI Lane Limited &nbsp;&middot;&nbsp; Company No. 17035654 &nbsp;&middot;&nbsp; ICO Reg. No. 00013389720<br/>
-    Ailane is a trading name of AI Lane Limited.
-  </p>
-</footer>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script>
-  // Thin client — anon Supabase client only; no secrets, no auth logic beyond the public anon key
-  // (RULE 27). Mirrors the deal-room auth.js guard. Reviewers sign in by magic link routed through
-  // /auth/callback/ (the central post-auth router), which then redirects active reviewers here.
-  var SB_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-  var DIRECTOR_EMAIL = 'mark@ailane.ai';
-  var FN_ARTEFACT_URL = SB_URL + '/functions/v1/lovr-artefact-url';
-  var sb = window.supabase.createClient(SB_URL, SB_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+(function(){
+  "use strict";
+
+  // Public client values. SUPABASE_URL is the stable project URL.
+  // CC: replace __AILANE_SUPABASE_ANON_KEY__ with the anon key already present
+  // in the live deployed legal-oversight/index.html (do not invent one).
+  const SUPABASE_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+  const RESOLVE_FN = "lovr-vault-resolve";
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true }
   });
-  var root = document.getElementById('root');
 
-  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  const GROUPS = [
+    { key:"baseline",                label:"Baseline — foundational documents", w9:false },
+    { key:"w9a",                     label:"W9(a) — Anonymisation sufficiency", w9:true },
+    { key:"w9b",                     label:"W9(b) — Article 14 transparency", w9:true },
+    { key:"w9c",                     label:"W9(c) — Computational-analysis licence", w9:true },
+    { key:"commercial-instruments",  label:"Commercial & data-processing instruments", w9:false },
+    { key:"public-facing",           label:"Public-facing documents", w9:false },
+    { key:"room-instrument",         label:"Room instruments", w9:false },
+  ];
+  const CHK_GROUPS = [
+    { key:"w9-question",        label:"W9 questions for counsel" },
+    { key:"build",             label:"Build controls" },
+    { key:"live-activation",   label:"Live-activation conditions" },
+    { key:"licence-compliance",label:"Licence compliance" },
+    { key:"tier-1-folded",     label:"Folded Tier-1 questions" },
+  ];
+  const SOURCE_CHIP = {
+    "content-store":"In-room note", "template-pack":"Operative template",
+    "live-url":"Published page", "external-url":"External", "storage":"Document",
+    "dealroom-render":"Rendered", "document-estate":"Estate"
+  };
+  const STATUS_LABEL = { "satisfied":"Satisfied","open":"Open","in-progress":"In progress","blocked":"Blocked","not-applicable":"N/A" };
 
-  function renderSignIn(){
-    root.innerHTML =
-      '<span class="badge">Restricted Access</span>' +
-      '<h1>Legal Oversight Room</h1>' +
-      '<p class="sub">Sign in to continue. A magic link will be sent to your registered email. Access is limited to invited legal reviewers.</p>' +
-      '<form id="f" autocomplete="off">' +
-        '<label for="email">Registered email</label>' +
-        '<input id="email" type="email" required placeholder="you@firm.example" autocomplete="off" />' +
-        '<button class="primary" id="btn" type="submit">Send magic link</button>' +
-      '</form>' +
-      '<p class="msg info" id="m"></p>';
-    var form = document.getElementById('f');
-    var btn = document.getElementById('btn');
-    var m = document.getElementById('m');
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      var email = (document.getElementById('email').value || '').trim().toLowerCase();
-      if(!email){ m.className='msg error'; m.textContent='Enter your email.'; return; }
-      btn.disabled = true; m.className='msg info'; m.textContent='Sending…';
-      sb.auth.signInWithOtp({
-        email: email,
-        options: { shouldCreateUser: false, emailRedirectTo: 'https://ailane.ai/auth/callback/' }
-      }).then(function(res){
-        btn.disabled = false;
-        if(res.error){ m.className='msg error'; m.textContent = res.error.message || 'Sign-in failed. Check the address and try again.'; }
-        else { m.className='msg ok'; m.textContent = 'Magic link sent. Check your inbox at ' + email + ' and follow the link to sign in.'; }
-      }).catch(function(){ btn.disabled=false; m.className='msg error'; m.textContent='Unable to send right now. Please try again.'; });
-    });
+  const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const $ = (id) => document.getElementById(id);
+
+  function renderGate(prefillInfo){
+    $("app").innerHTML = `
+      <header class="topbar"><div class="wrap"><div class="row">
+        <div class="brand"><svg width="26" height="26"><use href="#nexus"/></svg>
+          <span class="name">Ailane</span>
+          <span class="sub">Legal Oversight &amp; Vault Room</span></div>
+      </div></div></header>
+      <div class="wrap"><div class="gate"><div class="signin">
+        <div class="sh">
+          <svg class="nx" width="46" height="46"><use href="#nexus"/></svg>
+          <h2>Restricted access</h2>
+          <p>Verified reviewers and the Director only.</p>
+        </div>
+        <form id="signin-form" autocomplete="on">
+          <div class="msg ${prefillInfo?"info":""}" id="signin-msg">${prefillInfo?esc(prefillInfo):""}</div>
+          <div class="field"><label for="em">Email</label>
+            <input id="em" type="email" inputmode="email" autocomplete="username" required /></div>
+          <div class="field"><label for="pw">Password</label>
+            <input id="pw" type="password" autocomplete="current-password" required /></div>
+          <button class="btn gold" id="signin-btn" type="submit" style="width:100%;margin-top:4px">Sign in</button>
+        </form>
+        <div class="foot">Access is by invitation. This room is confidential to AI Lane Limited and governed by AILANE-AMD-REG-001.</div>
+      </div></div></div>`;
+    $("signin-form").addEventListener("submit", onSignIn);
   }
 
-  // ===========================================================================
-  // W9 obligations checklist (LOVR P1a §4) — preserved verbatim.
-  // ===========================================================================
-  var CHECKLIST_GROUPS = [
-    { label: 'W9 Questions',   cats: ['w9-question'] },
-    { label: 'Conditions',     cats: ['build', 'live-activation', 'licence-compliance'] },
-    { label: 'Folded Tier-1',  cats: ['tier-1-folded'] }
-  ];
-
-  function statusLabel(s){
-    switch(s){
-      case 'open':           return 'Open';
-      case 'in-progress':    return 'In progress';
-      case 'satisfied':      return 'Satisfied';
-      case 'blocked':        return 'Blocked';
-      case 'not-applicable': return 'Not applicable';
-      default:               return s || 'Open';
+  async function onSignIn(e){
+    e.preventDefault();
+    const btn = $("signin-btn"), msg = $("signin-msg");
+    const email = $("em").value.trim(), password = $("pw").value;
+    btn.disabled = true; btn.textContent = "Signing in…"; msg.className="msg";
+    try{
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if(error){ msg.className="msg err"; msg.textContent = "Sign-in failed: "+error.message; btn.disabled=false; btn.textContent="Sign in"; return; }
+      gtag('event','lovr_sign_in');
+      boot();
+    }catch(err){
+      msg.className="msg err"; msg.textContent="Unexpected error. Please try again."; btn.disabled=false; btn.textContent="Sign in";
     }
   }
 
-  function renderChecklistRow(row){
-    var st = row.status || 'open';
-    var hasDesc = !!(row.description && String(row.description).trim());
-    var attrs = hasDesc ? ' tabindex="0" role="button" aria-expanded="false"' : '';
-    return '<div class="cl-row' + (hasDesc ? ' has-desc' : '') + '"' + attrs + '>' +
-        '<div class="cl-row-head">' +
-          '<span class="cl-code">' + esc(row.code) + '</span>' +
-          '<span class="cl-title">' + esc(row.title) + '</span>' +
-          (hasDesc ? '<span class="cl-chevron" aria-hidden="true">&#9656;</span>' : '') +
-          '<span class="cl-badge cl-badge-' + esc(st) + '">' + esc(statusLabel(st)) + '</span>' +
-        '</div>' +
-        (hasDesc ? '<div class="cl-desc">' + esc(row.description) + '</div>' : '') +
-      '</div>';
+  function shell(email){
+    $("app").innerHTML = `
+      <header class="topbar"><div class="wrap"><div class="row">
+        <div class="brand"><svg width="26" height="26"><use href="#nexus"/></svg>
+          <span class="name">Ailane</span><span class="sub">Legal Oversight &amp; Vault Room</span></div>
+        <div class="spacer"></div>
+        <div class="who"><span class="email">${esc(email)}</span>
+          <button class="btn sm ghost" id="signout">Sign out</button></div>
+      </div></div></header>
+      <section class="context"><div class="wrap"><div class="row">
+        <h1>W9 review &amp; document vault</h1>
+        <p>This room gives the reviewing solicitor the documents and the open questions for the descoped W9 review of Engine 2 (institutional data licensing). The room <b>captures</b> your review and sign-off; it does not certify. All material is regulatory intelligence, not legal advice.</p>
+        <div class="pills">
+          <span class="tag"><b>Entity</b> AI Lane Limited · 17035654</span>
+          <span class="tag"><b>ICO</b> 00013389720</span>
+          <span class="tag"><b>Scope</b> W9(a) anonymisation · W9(b) Article 14 · W9(c) licence</span>
+          <span class="tag"><b>Basis</b> AMD-159 · three-track model</span>
+        </div>
+      </div></div></section>
+      <div class="wrap"><div class="main">
+        <aside class="rail" id="rail"><div class="head"><div class="t">W9 review checklist</div>
+          <div class="s"><span class="spin"></span>Loading…</div></div></aside>
+        <div class="vault" id="vault"><div class="state"><span class="spin"></span>Loading the document vault…</div></div>
+      </div></div>
+      <footer><div class="wrap"><div class="row">
+        <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+        <span>Governed by AILANE-AMD-REG-001. Confidential. Provided to verified reviewers under the Reviewer Access Agreement. Regulatory intelligence, not legal advice.</span>
+      </div></div></footer>`;
+    $("signout").addEventListener("click", async ()=>{ await sb.auth.signOut(); location.reload(); });
+  }
+
+  async function boot(){
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ renderGate(); return; }
+    shell(session.user.email || "Signed in");
+    try{
+      const [reg, chk] = await Promise.all([
+        sb.from("lovr_artefact_registry").select("artefact_id,doc_code,title,summary,category,constitutional_domain,content_source,version_label,disclaimer_tier,display_order,status").eq("status","active").order("display_order",{ascending:true}),
+        sb.from("lovr_obligation_checklist").select("obligation_id,code,title,description,category,status,owner,display_order").order("display_order",{ascending:true})
+      ]);
+      if(reg.error) throw reg.error;
+      renderChecklist(chk.error?[]:(chk.data||[]));
+      renderVault(reg.data||[]);
+    }catch(err){
+      $("vault").innerHTML = `<div class="state"><div class="big">Unable to load the vault</div>
+        <div>${esc(err.message||"Error")}. If your reviewer access is still being verified, it will appear here once confirmed.</div></div>`;
+      $("rail").innerHTML = `<div class="head"><div class="t">W9 review checklist</div><div class="s">Unavailable</div></div>`;
+    }
+  }
+
+  function statusPill(status){
+    const cls = "st-"+String(status||"open").replace(/\s+/g,"-");
+    return `<span class="pill dot ${cls}">${esc(STATUS_LABEL[status]||status||"—")}</span>`;
   }
 
   function renderChecklist(rows){
-    var html = '';
-    CHECKLIST_GROUPS.forEach(function(group){
-      var groupRows = rows.filter(function(r){ return group.cats.indexOf(r.category) !== -1; });
-      if(groupRows.length === 0){ return; }
-      html += '<section class="cl-group"><h3 class="cl-group-title">' + esc(group.label) + '</h3>';
-      groupRows.forEach(function(r){ html += renderChecklistRow(r); });
-      html += '</section>';
+    const counts = rows.reduce((a,r)=>{a[r.status]=(a[r.status]||0)+1;return a;},{});
+    const total = rows.length, sat = counts["satisfied"]||0;
+    let html = `<div class="head"><div class="t">W9 review checklist</div>
+      <div class="s">${total} obligations · ${sat} satisfied · ${total-sat} outstanding</div></div>
+      <div class="legend">
+        <span class="pill dot st-satisfied">Satisfied</span>
+        <span class="pill dot st-open">Open</span>
+        <span class="pill dot st-blocked">Blocked</span>
+        <span class="pill dot st-not-applicable">N/A</span>
+      </div>`;
+    CHK_GROUPS.forEach((g,gi)=>{
+      const items = rows.filter(r=>r.category===g.key);
+      if(!items.length) return;
+      const gid = "cg-"+gi;
+      html += `<div class="group">
+        <div class="gh" onclick="LOVR.toggle('${gid}')">
+          <span class="gt">${esc(g.label)}</span><span class="ct">${items.length}</span></div>
+        <div class="items" id="${gid}">` +
+        items.map(it=>`<div class="obl">${statusPill(it.status)}
+          <div class="meta"><div class="ot">${esc(it.title||it.code)}</div>
+          <div class="ow">${esc(it.owner||"")}</div></div></div>`).join("") +
+        `</div></div>`;
     });
-    return html;
+    $("rail").innerHTML = html;
   }
 
-  function wireChecklistExpanders(container){
-    function toggle(rowEl){
-      var open = rowEl.classList.toggle('open');
-      rowEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+  function renderVault(rows){
+    const total = rows.length;
+    let html = `<div class="vh"><div class="t">Document vault</div><div class="c">${total} artefacts</div></div>`;
+    let shown = 0;
+    GROUPS.forEach(g=>{
+      const items = rows.filter(r=>r.category===g.key);
+      if(!items.length) return;
+      shown++;
+      html += `<div class="section ${g.w9?"w9":""}">
+        <div class="sh"><span class="bar"></span><span class="st">${esc(g.label)}</span>
+          <span class="sc">${items.length}</span></div>
+        <div class="cards">` +
+        items.map(cardHtml).join("") + `</div></div>`;
+    });
+    if(!shown){
+      html += `<div class="state"><div class="big">No documents available</div>
+        <div>If your reviewer access is still being verified, the vault will populate once confirmed.</div></div>`;
     }
-    container.addEventListener('click', function(e){
-      var rowEl = e.target.closest('.cl-row.has-desc');
-      if(rowEl){ toggle(rowEl); }
-    });
-    container.addEventListener('keydown', function(e){
-      if(e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar'){ return; }
-      var rowEl = e.target.closest('.cl-row.has-desc');
-      if(rowEl){ e.preventDefault(); toggle(rowEl); }
-    });
+    $("vault").innerHTML = html;
   }
 
-  // ===========================================================================
-  // P1c — Evidence library (artefacts) and rectification register.
-  // Six display groups: (1) W9 checklist [above], (2) Baseline, (3) W9(a),
-  // (4) W9(b), (5) W9(c), (6) Rectification. Artefacts map to a group by their
-  // linked W9 obligation code; everything unlinked is Baseline.
-  // ===========================================================================
-  var W9_GROUPS = [
-    { key: 'baseline', label: 'Baseline Evidence',               match: function(code){ return code !== 'W9-A' && code !== 'W9-B' && code !== 'W9-C'; } },
-    { key: 'w9a',      label: 'W9(a) — Anonymisation',           match: function(code){ return code === 'W9-A'; } },
-    { key: 'w9b',      label: 'W9(b) — Article 14 Transparency', match: function(code){ return code === 'W9-B'; } },
-    { key: 'w9c',      label: 'W9(c) — Licence Scope',           match: function(code){ return code === 'W9-C'; } }
-  ];
-
-  function rectStatusLabel(s){
-    switch(s){
-      case 'open':        return 'Open';
-      case 'in-progress': return 'In progress';
-      case 'complete':    return 'Complete';
-      case 'overdue':     return 'Overdue';
-      default:            return s || 'Open';
-    }
+  function cardHtml(r){
+    const isDoc = r.content_source==="storage";
+    const isUrl = r.content_source==="live-url"||r.content_source==="external-url";
+    const verb = isUrl ? "Open page" : "Open";
+    let actions = `<button class="btn gold sm" onclick="LOVR.open('${r.artefact_id}','preview')">${verb}</button>`;
+    if(isDoc) actions += `<button class="btn sm" onclick="LOVR.open('${r.artefact_id}','download')">Download</button>`;
+    return `<div class="card">
+      <div class="ct">${esc(r.title)}</div>
+      <div class="cd">${esc(r.summary||"")}</div>
+      <div class="cf">
+        <span class="chip">${esc(SOURCE_CHIP[r.content_source]||r.content_source)}${r.version_label?` · <span class="vd">${esc(r.version_label)}</span>`:""}</span>
+        <span class="actions">${actions}</span>
+      </div></div>`;
   }
 
-  function jget(url, token){
-    return fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
-      .then(function(r){ if(!r.ok){ throw new Error('fetch ' + r.status + ' ' + url); } return r.json(); });
-  }
-  // Fail-soft per group: a failure in one fetch must not blank the whole room.
-  function safe(p){ return p.catch(function(e){ if(window.console && console.warn){ console.warn('LOVR fetch issue:', e); } return []; }); }
+  function openViewer(){ $("scrim").classList.add("open"); $("viewer").classList.add("open"); $("viewer").setAttribute("aria-hidden","false"); }
+  function closeViewer(){ $("scrim").classList.remove("open"); $("viewer").classList.remove("open"); $("viewer").setAttribute("aria-hidden","true"); $("v-body").innerHTML=""; $("v-actions").innerHTML=""; }
+  function toggle(id){ const el=$(id); if(el) el.classList.toggle("collapsed"); }
 
-  function renderArtefactRow(a, isAdmin){
-    var pending = !a.director_approved_at;
-    var inlineMode = !a.storage_path; // Mode B (inline content) vs Mode A (bucket file)
-    var icon = inlineMode ? '&#9112;' : '&#128196;'; // captured page vs file
-    return '<div class="art-row" tabindex="0" role="button" data-id="' + esc(a.artefact_id) + '" data-name="' + esc(a.name) + '">' +
-        '<div class="art-row-head">' +
-          '<span class="art-icon" aria-hidden="true">' + icon + '</span>' +
-          '<span class="art-name">' + esc(a.name) + (a.version_label ? ' <span class="art-ver">' + esc(a.version_label) + '</span>' : '') + '</span>' +
-          (isAdmin && pending ? '<span class="art-badge pending">Pending release</span>' : '') +
-          '<span class="art-open" aria-hidden="true">Open &rarr;</span>' +
-        '</div>' +
-        (a.description ? '<div class="art-desc">' + esc(a.description) + '</div>' : '') +
-      '</div>';
-  }
-
-  function renderEvidenceLibrary(artefacts, obById, isAdmin){
-    var html = '';
-    W9_GROUPS.forEach(function(g){
-      var rows = artefacts.filter(function(a){
-        var code = (a.linked_obligation_id && obById[a.linked_obligation_id]) ? obById[a.linked_obligation_id].code : null;
-        return g.match(code);
-      });
-      html += '<section class="room-group"><h2 class="room-group-title">' + esc(g.label) +
-        ' <span class="room-count">' + rows.length + '</span></h2>';
-      if(rows.length === 0){
-        html += '<div class="room-empty">No evidence in this group yet.</div>';
-      } else {
-        rows.forEach(function(a){ html += renderArtefactRow(a, isAdmin); });
-      }
-      html += '</section>';
-    });
-    return html;
+  function mdFrame(markdown){
+    const inner = window.marked.parse(markdown||"");
+    const doc = `<!doctype html><html><head><meta charset="utf-8">
+      <style>
+        body{margin:0;padding:30px 34px;background:#fff;color:#1f2733;
+          font:15px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;max-width:760px}
+        h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:#0f1722;line-height:1.25;margin:1.4em 0 .5em}
+        h1{font-size:24px;border-bottom:1px solid #e6e9ef;padding-bottom:.3em}
+        h2{font-size:19px} h3{font-size:16px}
+        p,li{font-size:15px} code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f3f5f8;padding:.1em .35em;border-radius:4px;font-size:13px}
+        table{border-collapse:collapse;width:100%;margin:1em 0;font-size:13.5px}
+        th,td{border:1px solid #dfe3ea;padding:7px 10px;text-align:left;vertical-align:top}
+        th{background:#f6f8fb} hr{border:none;border-top:1px solid #e6e9ef;margin:1.6em 0}
+        blockquote{border-left:3px solid #d8a23a;margin:1em 0;padding:.2em 0 .2em 14px;color:#5b6470}
+        a{color:#0b69b8} em{color:#4a5568}
+      </style></head><body>${inner}</body></html>`;
+    return `<iframe sandbox srcdoc="${esc(doc)}" title="Document"></iframe>`;
   }
 
-  function renderRectifications(rows){
-    var html = '';
-    rows.forEach(function(r){
-      var st = r.completion_status || 'open';
-      html += '<div class="rect-row">' +
-          '<div class="rect-head">' +
-            '<span class="rect-commitment">' + esc(r.commitment) + '</span>' +
-            '<span class="cl-badge rect-badge-' + esc(st) + '">' + esc(rectStatusLabel(st)) + '</span>' +
-          '</div>' +
-          (r.anticipated_change   ? '<div class="rect-meta">Anticipated change: ' + esc(r.anticipated_change) + '</div>' : '') +
-          (r.tracked_instrument_ref ? '<div class="rect-meta">Tracked instrument: ' + esc(r.tracked_instrument_ref) + '</div>' : '') +
-          (r.due_date             ? '<div class="rect-meta">Due: ' + esc(r.due_date) + '</div>' : '') +
-          (r.owner                ? '<div class="rect-meta">Owner: ' + esc(r.owner) + '</div>' : '') +
-        '</div>';
-    });
-    return html;
-  }
-
-  // ---- Artefact viewer modal ----
-  var lastFocusEl = null;
-  function modalEls(){
-    return { wrap: document.getElementById('artModal'), body: document.getElementById('artBody'),
-             title: document.getElementById('artTitle'), sub: document.getElementById('artSub') };
-  }
-  function openModalShell(name){
-    var e = modalEls(); if(!e.wrap){ return; }
-    lastFocusEl = document.activeElement;
-    e.title.textContent = name || 'Artefact';
-    e.sub.innerHTML = '';
-    e.body.innerHTML = '<div class="art-modal-loading">Loading artefact&hellip;</div>';
-    e.wrap.hidden = false;
-    var closeBtn = document.getElementById('artClose');
-    if(closeBtn){ closeBtn.focus(); }
-  }
-  function closeModal(){
-    var e = modalEls(); if(!e.wrap){ return; }
-    e.wrap.hidden = true; e.body.innerHTML = ''; e.sub.innerHTML = '';
-    if(lastFocusEl && lastFocusEl.focus){ lastFocusEl.focus(); }
-  }
-  function modalError(msg){
-    var e = modalEls(); if(!e.body){ return; }
-    e.body.innerHTML = '<div class="art-modal-error">' + esc(msg) + '</div>';
-  }
-  function modalInline(payload){
-    var e = modalEls(); if(!e.body){ return; }
-    // Metadata line (source URL, capture time, content hash).
-    var sub = '';
-    if(payload.source_url){ sub += 'Source: <a href="' + esc(payload.source_url) + '" target="_blank" rel="noopener noreferrer">' + esc(payload.source_url) + '</a>'; }
-    if(payload.captured_at){ sub += (sub ? ' &middot; ' : '') + 'Captured: ' + esc(payload.captured_at); }
-    if(payload.content_hash_sha256){ sub += (sub ? ' &middot; ' : '') + 'SHA-256: ' + esc(String(payload.content_hash_sha256).slice(0,16)) + '…'; }
-    e.sub.innerHTML = sub;
-    // Inert render: sandboxed iframe, no allow-scripts (lovr-artefact-url v3 mandate). srcdoc set
-    // via the DOM property so there is no attribute-string injection surface.
-    e.body.innerHTML = '';
-    var iframe = document.createElement('iframe');
-    iframe.setAttribute('sandbox', '');
-    iframe.setAttribute('referrerpolicy', 'no-referrer');
-    iframe.setAttribute('title', 'Captured artefact (sandboxed, read-only)');
-    if(payload.content_html){
-      iframe.srcdoc = payload.content_html;
-    } else if(payload.content_text){
-      var pre = '<pre style="white-space:pre-wrap;word-break:break-word;font-family:Consolas,monospace;padding:1rem;margin:0;color:#0F1B35">' +
-        esc(payload.content_text) + '</pre>';
-      iframe.srcdoc = pre;
-    } else {
-      modalError('This artefact has no displayable content.');
-      return;
-    }
-    e.body.appendChild(iframe);
-  }
-
-  function openArtefact(id, name, token){
-    openModalShell(name);
-    fetch(FN_ARTEFACT_URL, {
-      method: 'POST',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ artefact_id: id, action: 'preview' })
-    }).then(function(r){
-      return r.json().then(function(j){ return { ok: r.ok, status: r.status, body: j }; })
-        .catch(function(){ return { ok: r.ok, status: r.status, body: {} }; });
-    }).then(function(res){
-      if(!res.ok){
-        var d = res.body && (res.body.detail || res.body.error) ? (res.body.detail || res.body.error) : ('Request failed (' + res.status + ').');
-        modalError(d);
-        return;
-      }
-      var b = res.body || {};
-      if(b.content_mode === 'inline'){ modalInline(b); return; }
-      if(b.signed_url){ window.open(b.signed_url, '_blank', 'noopener,noreferrer'); closeModal(); return; }
-      modalError('Artefact content is unavailable.');
-    }).catch(function(){
-      modalError('Unable to load this artefact right now. Please try again.');
-    });
-  }
-
-  function wireArtefactOpeners(container, token){
-    function open(rowEl){ openArtefact(rowEl.getAttribute('data-id'), rowEl.getAttribute('data-name'), token); }
-    container.addEventListener('click', function(e){
-      var rowEl = e.target.closest('.art-row');
-      if(rowEl){ open(rowEl); }
-    });
-    container.addEventListener('keydown', function(e){
-      if(e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar'){ return; }
-      var rowEl = e.target.closest('.art-row');
-      if(rowEl){ e.preventDefault(); open(rowEl); }
-    });
-  }
-
-  function wireModal(){
-    var wrap = document.getElementById('artModal');
-    var closeBtn = document.getElementById('artClose');
-    if(closeBtn){ closeBtn.addEventListener('click', closeModal); }
-    if(wrap){ wrap.addEventListener('click', function(e){ if(e.target === wrap){ closeModal(); } }); }
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape' && wrap && !wrap.hidden){ closeModal(); }
-    });
-  }
-
-  // ---- Room loader: assembles all six display groups under the reviewer/Director session ----
-  function loadRoom(token, isAdmin){
-    var el = document.getElementById('room');
-    if(!el){ return; }
-    Promise.all([
-      safe(jget(SB_URL + '/rest/v1/lovr_obligation_checklist?select=obligation_id,code,title,description,category,status,display_order&order=display_order.asc,code.asc', token)),
-      safe(jget(SB_URL + '/rest/v1/lovr_artefact_catalog?deleted_at=is.null&select=artefact_id,doc_code,name,description,category,version_label,source_ref,storage_path,mime_type,linked_obligation_id,status,director_approved_at,display_order&order=display_order.asc', token)),
-      safe(jget(SB_URL + '/rest/v1/lovr_rectification_obligation?select=rectification_id,commitment,anticipated_change,tracked_instrument_ref,owner,due_date,completion_status&order=created_at.asc', token))
-    ]).then(function(results){
-      var obligations = Array.isArray(results[0]) ? results[0] : [];
-      var artefacts   = Array.isArray(results[1]) ? results[1] : [];
-      var rects       = Array.isArray(results[2]) ? results[2] : [];
-      var obById = {}; obligations.forEach(function(o){ obById[o.obligation_id] = o; });
-
-      var html = '';
-      // (1) W9 obligations checklist — the spine.
-      html += '<section class="room-group"><h2 class="room-group-title">W9 Obligations Checklist <span class="room-count">' + obligations.length + '</span></h2>';
-      html += (obligations.length ? renderChecklist(obligations) : '<div class="room-empty">The W9 obligations checklist is being populated.</div>');
-      html += '</section>';
-      // (2)–(5) Evidence library mapped to W9 questions.
-      html += renderEvidenceLibrary(artefacts, obById, isAdmin);
-      // (6) Rectification obligations register.
-      html += '<section class="room-group"><h2 class="room-group-title">Rectification Obligations <span class="room-count">' + rects.length + '</span></h2>';
-      html += (rects.length ? renderRectifications(rects) : '<div class="room-empty">No rectification obligations recorded.</div>');
-      html += '</section>';
-
-      el.innerHTML = html;
-      wireChecklistExpanders(el);
-      wireArtefactOpeners(el, token);
-    }).catch(function(err){
-      if(window.console && console.warn){ console.warn('LOVR room load issue:', err); }
-      el.innerHTML = '<div class="room-empty">The oversight room is being prepared.</div>';
-    });
-  }
-
-  function renderWorkspace(firm, isAdmin, token){
-    root.classList.add('workspace');
-    root.innerHTML =
-      '<div class="shell-status' + (isAdmin?' admin':'') + '"><span class="dot"></span>' + (isAdmin?'Administrator':'Authenticated') + '</div>' +
-      '<h1>Legal Oversight Room</h1>' +
-      '<p class="sub">' + esc(firm) + '</p>' +
-      (isAdmin ? '<div class="admin-banner">Administrator preview — this is the reviewer\u2019s view of the room. You additionally see artefacts still pending release (marked <strong>Pending release</strong>); a reviewer never sees those. No reviewer has been invited, so nothing is exposed externally.</div>' : '') +
-      '<div id="room"><p class="msg info">Loading the oversight room&hellip;</p></div>' +
-      '<button type="button" class="linklike" id="out">Sign out</button>' +
-      // Artefact viewer modal (hidden until an artefact is opened).
-      '<div id="artModal" class="art-modal" role="dialog" aria-modal="true" aria-labelledby="artTitle" hidden>' +
-        '<div class="art-modal-card">' +
-          '<div class="art-modal-head">' +
-            '<div class="art-modal-meta"><div class="art-modal-title" id="artTitle"></div><div class="art-modal-sub" id="artSub"></div></div>' +
-            '<button type="button" class="art-modal-close" id="artClose">Close</button>' +
-          '</div>' +
-          '<div class="art-modal-body" id="artBody"></div>' +
-        '</div>' +
-      '</div>';
-    document.getElementById('out').addEventListener('click', function(){
-      sb.auth.signOut().then(function(){ window.location.reload(); });
-    });
-    wireModal();
-    loadRoom(token, isAdmin);
-  }
-
-  // Active reviewer whose SRA verification is not yet confirmed: legitimately in the allowlist,
-  // but the evidence library is fail-closed at the data layer (RLS requires verified). Show a
-  // neutral holding state rather than the room or an abrupt bounce.
-  function renderVerificationPending(firm){
-    root.classList.add('workspace');
-    root.innerHTML =
-      '<div class="shell-status pending"><span class="dot"></span>Verification in progress</div>' +
-      '<h1>Legal Oversight Room</h1>' +
-      '<p class="sub">' + esc(firm) + '</p>' +
-      '<div class="shell-note">Your access is being finalised. Once your SRA registration has been confirmed, the W9 obligations checklist and evidence library will appear here. You can close this window — you will not need a new sign-in link.</div>' +
-      '<button type="button" class="linklike" id="out">Sign out</button>';
-    document.getElementById('out').addEventListener('click', function(){
-      sb.auth.signOut().then(function(){ window.location.reload(); });
-    });
-  }
-
-  (async function(){
+  async function open(artefactId, action){
+    openViewer();
+    $("v-title").textContent = "Opening…";
+    $("v-meta").innerHTML = "";
+    $("v-body").innerHTML = `<div class="vpad"><span class="spin"></span>Resolving artefact…</div>`;
+    $("v-actions").innerHTML = "";
     try{
-      var g = await sb.auth.getSession();
-      var session = g && g.data ? g.data.session : null;
-      if(!session){ renderSignIn(); return; }
-
-      var email = (session.user && session.user.email ? session.user.email : '').toLowerCase();
-      var uid = session.user ? session.user.id : null;
-
-      // Own-row allowlist check (raw fetch; anon key + the user's access token — RLS permits own row).
-      // P1c: also read verification_status so the page state matches the verified data gate (lockstep
-      // with requester_is_active_reviewer() and lovr-artefact-url v3).
-      var firm = null, isReviewer = false, verification = null;
-      try{
-        var r = await fetch(SB_URL + '/rest/v1/legal_reviewer_contacts?user_id=eq.' + uid + '&status=eq.active&select=contact_id,firm_name,verification_status', {
-          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' }
-        });
-        if(r.ok){ var rows = await r.json(); if(Array.isArray(rows) && rows.length>0){ isReviewer = true; firm = rows[0].firm_name; verification = rows[0].verification_status; } }
-      }catch(e){}
-
-      if(isReviewer){
-        if(verification === 'verified'){ renderWorkspace(firm || 'Your firm', false, session.access_token); }
-        else { renderVerificationPending(firm || 'Your firm'); }
+      const { data, error } = await sb.functions.invoke(RESOLVE_FN, { body:{ artefact_id:artefactId, action:action||"preview" } });
+      if(error){
+        let detail = error.message||"Error";
+        try{ const ctx = await error.context?.json?.(); if(ctx&&(ctx.error||ctx.detail)) detail = (ctx.error||"")+(ctx.detail?" — "+ctx.detail:""); }catch(_e){}
+        $("v-title").textContent = "Unable to open";
+        $("v-body").innerHTML = `<div class="vpad"><div class="big">This artefact could not be opened</div><div>${esc(detail)}</div></div>`;
         return;
       }
-      if(email === DIRECTOR_EMAIL){ renderWorkspace('Director access — administrator view', true, session.access_token); return; }
-      // Authenticated but neither a reviewer nor the Director.
-      window.location.replace('/');
-    }catch(e){
-      renderSignIn();
-    }
-  })();
-</script>
+      gtag('event','lovr_open_artefact',{ doc_code:data.doc_code, content_mode:data.content_mode });
+      $("v-title").textContent = data.name || data.doc_code || "Artefact";
+      const meta = [];
+      if(data.version_label) meta.push(esc(data.version_label));
+      if(data.content_source) meta.push(esc(SOURCE_CHIP[data.content_source]||data.content_source));
+      if(data.doc_code) meta.push(`<span style="color:var(--muted-2)">${esc(data.doc_code)}</span>`);
+      $("v-meta").innerHTML = meta.join(" · ");
 
+      if(data.content_mode==="inline"){
+        $("v-body").innerHTML = mdFrame(data.body_markdown);
+      } else if(data.content_mode==="signed_url"){
+        $("v-body").innerHTML = `<iframe class="docframe" src="${esc(data.signed_url)}" title="Document"></iframe>`;
+        $("v-actions").innerHTML =
+          `<button class="btn sm" onclick="window.open('${esc(data.signed_url)}','_blank','noopener')">Open in new tab</button>
+           <button class="btn sm" onclick="LOVR.open('${esc(artefactId)}','download')">Download</button>`;
+      } else if(data.content_mode==="url"){
+        $("v-body").innerHTML = `<div class="vpad"><div class="big">${esc(data.name||"Published page")}</div>
+          <div>This is a published page. It opens in a new browser tab.</div></div>`;
+        $("v-actions").innerHTML = `<button class="btn gold sm" onclick="window.open('${esc(data.url)}','_blank','noopener')">Open page ↗</button>`;
+      } else if(data.content_mode==="pending"){
+        $("v-body").innerHTML = `<div class="vpad"><div class="big">Document pending upload</div>
+          <div>${esc(data.detail||"The authoritative file for this artefact has not yet been uploaded to the vault.")}</div></div>`;
+      } else {
+        $("v-body").innerHTML = `<div class="vpad"><div class="big">Unsupported</div><div>${esc(String(JSON.stringify(data)).slice(0,300))}</div></div>`;
+      }
+    }catch(err){
+      $("v-title").textContent = "Unable to open";
+      $("v-body").innerHTML = `<div class="vpad"><div class="big">Unexpected error</div><div>${esc(err.message||"Error")}</div></div>`;
+    }
+  }
+
+  window.LOVR = { open, openViewer, closeViewer, toggle };
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeViewer(); });
+  boot();
+})();
+</script>
 </body>
 </html>
