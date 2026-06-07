@@ -18,8 +18,11 @@
     gtag('config', 'G-NTNXWZN31C');
   </script>
 
-  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2).
+       P1c change vs P1a: frame-src adds 'self' to permit the sandboxed srcdoc iframe that renders
+       Mode B inline licence-capture content (lovr-artefact-url v3). The iframe carries sandbox=""
+       (no allow-scripts), so returned HTML is rendered inert. No other directive is altered. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 
   <!-- Supabase JS (anon client only — RULE 27: no auth logic/secrets beyond the public anon key) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -38,6 +41,7 @@
       --body-text: #CBD5E1;
       --danger: #EF4444;
       --success: #10B981;
+      --amber: #FBBF24;
     }
     html, body { height: 100%; }
     body {
@@ -83,6 +87,7 @@
       color: var(--success); background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
       padding: 0.3rem 0.8rem; border-radius: 20px; margin-bottom: 1.25rem; }
     .shell-status.admin { color: var(--teal); background: rgba(14,165,233,0.1); border-color: rgba(14,165,233,0.3); }
+    .shell-status.pending { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
     .shell-status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
     .shell-note { margin-top: 1.25rem; padding: 1rem 1.1rem; border-left: 3px solid var(--teal);
       background: rgba(14,165,233,0.06); border-radius: 0 8px 8px 0; font-size: 0.88rem; color: var(--body-text); }
@@ -93,9 +98,9 @@
     .footer-legal { font-size: 0.78rem; color: var(--grey-text); line-height: 1.7; }
 
     /* Read-only W9 obligations checklist (LOVR P1a §4) */
-    .card.workspace { max-width: 760px; }
-    .checklist { margin-top: 1.5rem; }
-    .checklist-empty { margin-top: 1.5rem; padding: 1rem 1.1rem; border-left: 3px solid var(--grey-border);
+    .card.workspace { max-width: 860px; }
+    .checklist { margin-top: 0; }
+    .checklist-empty, .room-empty { margin-top: 0.5rem; padding: 1rem 1.1rem; border-left: 3px solid var(--grey-border);
       background: rgba(148,163,184,0.06); border-radius: 0 8px 8px 0; font-size: 0.88rem; color: var(--grey-text); }
     .cl-group { margin-bottom: 1.5rem; }
     .cl-group:last-child { margin-bottom: 0; }
@@ -116,16 +121,83 @@
     .cl-badge { flex: 0 0 auto; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
       padding: 0.2rem 0.55rem; border-radius: 20px; white-space: nowrap; border: 1px solid transparent; }
     .cl-badge-open { color: var(--grey-text); background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.3); }
-    .cl-badge-in-progress { color: #FBBF24; background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
+    .cl-badge-in-progress { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
     .cl-badge-satisfied { color: var(--success); background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
     .cl-badge-blocked { color: var(--danger); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
     .cl-badge-not-applicable { color: var(--grey-text); background: transparent; border-color: var(--grey-border); }
     .cl-desc { display: none; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--grey-border);
       font-size: 0.85rem; color: var(--body-text); }
     .cl-row.open .cl-desc { display: block; }
+
+    /* Room sections — the six display groups (LOVR P1c §11/§14) */
+    .admin-banner { margin: 0 0 1.5rem; padding: 0.9rem 1.05rem; border-left: 3px solid var(--teal);
+      background: rgba(14,165,233,0.07); border-radius: 0 8px 8px 0; font-size: 0.84rem; color: var(--body-text); }
+    .admin-banner strong { color: var(--amber); }
+    .room-group { margin-bottom: 1.9rem; }
+    .room-group:last-of-type { margin-bottom: 0; }
+    .room-group-title { display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem; font-weight: 800;
+      color: var(--white); letter-spacing: -0.01em; margin-bottom: 0.85rem; padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--grey-border); }
+    .room-count { font-size: 0.7rem; font-weight: 700; color: var(--grey-text); background: rgba(148,163,184,0.12);
+      border: 1px solid var(--grey-border); border-radius: 20px; padding: 0.1rem 0.55rem; }
+
+    /* Evidence artefact rows */
+    .art-row { background: var(--navy); border: 1px solid var(--grey-border); border-radius: 8px;
+      padding: 0.7rem 0.85rem; margin-bottom: 0.5rem; cursor: pointer; }
+    .art-row:last-child { margin-bottom: 0; }
+    .art-row:hover { border-color: var(--teal); }
+    .art-row:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    .art-row-head { display: flex; align-items: center; gap: 0.6rem; }
+    .art-icon { flex: 0 0 auto; color: var(--grey-text); font-size: 0.95rem; }
+    .art-name { flex: 1 1 auto; font-size: 0.9rem; color: var(--white); }
+    .art-ver { font-size: 0.7rem; color: var(--grey-text); font-weight: 600; }
+    .art-badge { flex: 0 0 auto; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 0.18rem 0.5rem; border-radius: 20px; white-space: nowrap; border: 1px solid transparent; }
+    .art-badge.pending { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
+    .art-open { flex: 0 0 auto; font-size: 0.74rem; font-weight: 700; color: var(--teal); }
+    .art-desc { margin-top: 0.45rem; font-size: 0.83rem; color: var(--grey-text); }
+
+    /* Rectification rows */
+    .rect-row { background: var(--navy); border: 1px solid var(--grey-border); border-radius: 8px;
+      padding: 0.7rem 0.85rem; margin-bottom: 0.5rem; }
+    .rect-row:last-child { margin-bottom: 0; }
+    .rect-head { display: flex; align-items: center; gap: 0.6rem; }
+    .rect-commitment { flex: 1 1 auto; font-size: 0.9rem; color: var(--white); }
+    .rect-meta { margin-top: 0.3rem; font-size: 0.8rem; color: var(--grey-text); }
+    .rect-badge-open { color: var(--grey-text); background: rgba(148,163,184,0.12); border-color: rgba(148,163,184,0.3); }
+    .rect-badge-in-progress { color: var(--amber); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3); }
+    .rect-badge-complete { color: var(--success); background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+    .rect-badge-overdue { color: var(--danger); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
+
+    /* Artefact viewer modal (Mode B inline content via sandboxed iframe) */
+    .art-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem; background: rgba(7,12,24,0.78); }
+    .art-modal[hidden] { display: none; }
+    .art-modal-card { width: 100%; max-width: 920px; max-height: 90vh; display: flex; flex-direction: column;
+      background: var(--navy-mid); border: 1px solid var(--grey-border); border-radius: 12px; overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+    .art-modal-head { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--grey-border); }
+    .art-modal-meta { flex: 1 1 auto; min-width: 0; }
+    .art-modal-title { font-size: 0.98rem; font-weight: 700; color: var(--white); margin-bottom: 0.25rem; word-break: break-word; }
+    .art-modal-sub { font-size: 0.74rem; color: var(--grey-text); word-break: break-all; }
+    .art-modal-sub a { color: var(--teal); text-decoration: none; }
+    .art-modal-sub a:hover { text-decoration: underline; }
+    .art-modal-close { flex: 0 0 auto; background: var(--navy); color: var(--off-white); border: 1px solid var(--grey-border);
+      border-radius: 8px; padding: 0.45rem 0.9rem; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+    .art-modal-close:hover { border-color: var(--teal); color: var(--white); }
+    .art-modal-body { flex: 1 1 auto; overflow: auto; background: var(--white); }
+    .art-modal-body .pad { padding: 1.2rem; color: var(--navy); }
+    .art-modal-body iframe { width: 100%; min-height: 60vh; border: 0; background: var(--white); display: block; }
+    .art-modal-loading, .art-modal-error { padding: 2rem 1.2rem; font-size: 0.88rem; }
+    .art-modal-loading { color: var(--grey-text); background: var(--navy-mid); }
+    .art-modal-error { color: var(--danger); background: var(--navy-mid); }
+
     @media (max-width: 540px) {
       .cl-row-head { flex-wrap: wrap; }
       .cl-title { flex: 1 1 100%; order: 3; }
+      .art-row-head { flex-wrap: wrap; }
+      .art-name { flex: 1 1 100%; order: 3; }
     }
   </style>
 </head>
@@ -154,6 +226,7 @@
   var SB_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
   var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
   var DIRECTOR_EMAIL = 'mark@ailane.ai';
+  var FN_ARTEFACT_URL = SB_URL + '/functions/v1/lovr-artefact-url';
   var sb = window.supabase.createClient(SB_URL, SB_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
@@ -191,7 +264,9 @@
     });
   }
 
-  // Category grouping for the read-only W9 obligations checklist (LOVR P1a §4).
+  // ===========================================================================
+  // W9 obligations checklist (LOVR P1a §4) — preserved verbatim.
+  // ===========================================================================
   var CHECKLIST_GROUPS = [
     { label: 'W9 Questions',   cats: ['w9-question'] },
     { label: 'Conditions',     cats: ['build', 'live-activation', 'licence-compliance'] },
@@ -224,13 +299,12 @@
       '</div>';
   }
 
-  // Returns the grouped section markup injected into the #checklist container (itself the .checklist element).
   function renderChecklist(rows){
     var html = '';
     CHECKLIST_GROUPS.forEach(function(group){
       var groupRows = rows.filter(function(r){ return group.cats.indexOf(r.category) !== -1; });
       if(groupRows.length === 0){ return; }
-      html += '<section class="cl-group"><h2 class="cl-group-title">' + esc(group.label) + '</h2>';
+      html += '<section class="cl-group"><h3 class="cl-group-title">' + esc(group.label) + '</h3>';
       groupRows.forEach(function(r){ html += renderChecklistRow(r); });
       html += '</section>';
     });
@@ -253,25 +327,220 @@
     });
   }
 
-  // Read-only checklist fetch — reuses the page's session-bearer PostgREST pattern (RLS-scoped, anon key + access
-  // token). No write path; no service key. Empty results or any fetch failure show the neutral "being populated"
-  // line rather than an error (the Chairman seeds the checklist post-apply, §5).
-  function loadChecklist(token){
-    var el = document.getElementById('checklist');
-    if(!el){ return; }
-    var neutral = '<div class="checklist-empty">The W9 obligations checklist is being populated.</div>';
-    fetch(SB_URL + '/rest/v1/lovr_obligation_checklist?select=obligation_id,code,title,description,category,status,display_order&order=display_order.asc,code.asc', {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+  // ===========================================================================
+  // P1c — Evidence library (artefacts) and rectification register.
+  // Six display groups: (1) W9 checklist [above], (2) Baseline, (3) W9(a),
+  // (4) W9(b), (5) W9(c), (6) Rectification. Artefacts map to a group by their
+  // linked W9 obligation code; everything unlinked is Baseline.
+  // ===========================================================================
+  var W9_GROUPS = [
+    { key: 'baseline', label: 'Baseline Evidence',               match: function(code){ return code !== 'W9-A' && code !== 'W9-B' && code !== 'W9-C'; } },
+    { key: 'w9a',      label: 'W9(a) — Anonymisation',           match: function(code){ return code === 'W9-A'; } },
+    { key: 'w9b',      label: 'W9(b) — Article 14 Transparency', match: function(code){ return code === 'W9-B'; } },
+    { key: 'w9c',      label: 'W9(c) — Licence Scope',           match: function(code){ return code === 'W9-C'; } }
+  ];
+
+  function rectStatusLabel(s){
+    switch(s){
+      case 'open':        return 'Open';
+      case 'in-progress': return 'In progress';
+      case 'complete':    return 'Complete';
+      case 'overdue':     return 'Overdue';
+      default:            return s || 'Open';
+    }
+  }
+
+  function jget(url, token){
+    return fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+      .then(function(r){ if(!r.ok){ throw new Error('fetch ' + r.status + ' ' + url); } return r.json(); });
+  }
+  // Fail-soft per group: a failure in one fetch must not blank the whole room.
+  function safe(p){ return p.catch(function(e){ if(window.console && console.warn){ console.warn('LOVR fetch issue:', e); } return []; }); }
+
+  function renderArtefactRow(a, isAdmin){
+    var pending = !a.director_approved_at;
+    var inlineMode = !a.storage_path; // Mode B (inline content) vs Mode A (bucket file)
+    var icon = inlineMode ? '&#9112;' : '&#128196;'; // captured page vs file
+    return '<div class="art-row" tabindex="0" role="button" data-id="' + esc(a.artefact_id) + '" data-name="' + esc(a.name) + '">' +
+        '<div class="art-row-head">' +
+          '<span class="art-icon" aria-hidden="true">' + icon + '</span>' +
+          '<span class="art-name">' + esc(a.name) + (a.version_label ? ' <span class="art-ver">' + esc(a.version_label) + '</span>' : '') + '</span>' +
+          (isAdmin && pending ? '<span class="art-badge pending">Pending release</span>' : '') +
+          '<span class="art-open" aria-hidden="true">Open &rarr;</span>' +
+        '</div>' +
+        (a.description ? '<div class="art-desc">' + esc(a.description) + '</div>' : '') +
+      '</div>';
+  }
+
+  function renderEvidenceLibrary(artefacts, obById, isAdmin){
+    var html = '';
+    W9_GROUPS.forEach(function(g){
+      var rows = artefacts.filter(function(a){
+        var code = (a.linked_obligation_id && obById[a.linked_obligation_id]) ? obById[a.linked_obligation_id].code : null;
+        return g.match(code);
+      });
+      html += '<section class="room-group"><h2 class="room-group-title">' + esc(g.label) +
+        ' <span class="room-count">' + rows.length + '</span></h2>';
+      if(rows.length === 0){
+        html += '<div class="room-empty">No evidence in this group yet.</div>';
+      } else {
+        rows.forEach(function(a){ html += renderArtefactRow(a, isAdmin); });
+      }
+      html += '</section>';
+    });
+    return html;
+  }
+
+  function renderRectifications(rows){
+    var html = '';
+    rows.forEach(function(r){
+      var st = r.completion_status || 'open';
+      html += '<div class="rect-row">' +
+          '<div class="rect-head">' +
+            '<span class="rect-commitment">' + esc(r.commitment) + '</span>' +
+            '<span class="cl-badge rect-badge-' + esc(st) + '">' + esc(rectStatusLabel(st)) + '</span>' +
+          '</div>' +
+          (r.anticipated_change   ? '<div class="rect-meta">Anticipated change: ' + esc(r.anticipated_change) + '</div>' : '') +
+          (r.tracked_instrument_ref ? '<div class="rect-meta">Tracked instrument: ' + esc(r.tracked_instrument_ref) + '</div>' : '') +
+          (r.due_date             ? '<div class="rect-meta">Due: ' + esc(r.due_date) + '</div>' : '') +
+          (r.owner                ? '<div class="rect-meta">Owner: ' + esc(r.owner) + '</div>' : '') +
+        '</div>';
+    });
+    return html;
+  }
+
+  // ---- Artefact viewer modal ----
+  var lastFocusEl = null;
+  function modalEls(){
+    return { wrap: document.getElementById('artModal'), body: document.getElementById('artBody'),
+             title: document.getElementById('artTitle'), sub: document.getElementById('artSub') };
+  }
+  function openModalShell(name){
+    var e = modalEls(); if(!e.wrap){ return; }
+    lastFocusEl = document.activeElement;
+    e.title.textContent = name || 'Artefact';
+    e.sub.innerHTML = '';
+    e.body.innerHTML = '<div class="art-modal-loading">Loading artefact&hellip;</div>';
+    e.wrap.hidden = false;
+    var closeBtn = document.getElementById('artClose');
+    if(closeBtn){ closeBtn.focus(); }
+  }
+  function closeModal(){
+    var e = modalEls(); if(!e.wrap){ return; }
+    e.wrap.hidden = true; e.body.innerHTML = ''; e.sub.innerHTML = '';
+    if(lastFocusEl && lastFocusEl.focus){ lastFocusEl.focus(); }
+  }
+  function modalError(msg){
+    var e = modalEls(); if(!e.body){ return; }
+    e.body.innerHTML = '<div class="art-modal-error">' + esc(msg) + '</div>';
+  }
+  function modalInline(payload){
+    var e = modalEls(); if(!e.body){ return; }
+    // Metadata line (source URL, capture time, content hash).
+    var sub = '';
+    if(payload.source_url){ sub += 'Source: <a href="' + esc(payload.source_url) + '" target="_blank" rel="noopener noreferrer">' + esc(payload.source_url) + '</a>'; }
+    if(payload.captured_at){ sub += (sub ? ' &middot; ' : '') + 'Captured: ' + esc(payload.captured_at); }
+    if(payload.content_hash_sha256){ sub += (sub ? ' &middot; ' : '') + 'SHA-256: ' + esc(String(payload.content_hash_sha256).slice(0,16)) + '…'; }
+    e.sub.innerHTML = sub;
+    // Inert render: sandboxed iframe, no allow-scripts (lovr-artefact-url v3 mandate). srcdoc set
+    // via the DOM property so there is no attribute-string injection surface.
+    e.body.innerHTML = '';
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('sandbox', '');
+    iframe.setAttribute('referrerpolicy', 'no-referrer');
+    iframe.setAttribute('title', 'Captured artefact (sandboxed, read-only)');
+    if(payload.content_html){
+      iframe.srcdoc = payload.content_html;
+    } else if(payload.content_text){
+      var pre = '<pre style="white-space:pre-wrap;word-break:break-word;font-family:Consolas,monospace;padding:1rem;margin:0;color:#0F1B35">' +
+        esc(payload.content_text) + '</pre>';
+      iframe.srcdoc = pre;
+    } else {
+      modalError('This artefact has no displayable content.');
+      return;
+    }
+    e.body.appendChild(iframe);
+  }
+
+  function openArtefact(id, name, token){
+    openModalShell(name);
+    fetch(FN_ARTEFACT_URL, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artefact_id: id, action: 'preview' })
     }).then(function(r){
-      if(!r.ok){ throw new Error('checklist fetch ' + r.status); }
-      return r.json();
-    }).then(function(rows){
-      if(!Array.isArray(rows) || rows.length === 0){ el.innerHTML = neutral; return; }
-      el.innerHTML = renderChecklist(rows);
+      return r.json().then(function(j){ return { ok: r.ok, status: r.status, body: j }; })
+        .catch(function(){ return { ok: r.ok, status: r.status, body: {} }; });
+    }).then(function(res){
+      if(!res.ok){
+        var d = res.body && (res.body.detail || res.body.error) ? (res.body.detail || res.body.error) : ('Request failed (' + res.status + ').');
+        modalError(d);
+        return;
+      }
+      var b = res.body || {};
+      if(b.content_mode === 'inline'){ modalInline(b); return; }
+      if(b.signed_url){ window.open(b.signed_url, '_blank', 'noopener,noreferrer'); closeModal(); return; }
+      modalError('Artefact content is unavailable.');
+    }).catch(function(){
+      modalError('Unable to load this artefact right now. Please try again.');
+    });
+  }
+
+  function wireArtefactOpeners(container, token){
+    function open(rowEl){ openArtefact(rowEl.getAttribute('data-id'), rowEl.getAttribute('data-name'), token); }
+    container.addEventListener('click', function(e){
+      var rowEl = e.target.closest('.art-row');
+      if(rowEl){ open(rowEl); }
+    });
+    container.addEventListener('keydown', function(e){
+      if(e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar'){ return; }
+      var rowEl = e.target.closest('.art-row');
+      if(rowEl){ e.preventDefault(); open(rowEl); }
+    });
+  }
+
+  function wireModal(){
+    var wrap = document.getElementById('artModal');
+    var closeBtn = document.getElementById('artClose');
+    if(closeBtn){ closeBtn.addEventListener('click', closeModal); }
+    if(wrap){ wrap.addEventListener('click', function(e){ if(e.target === wrap){ closeModal(); } }); }
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && wrap && !wrap.hidden){ closeModal(); }
+    });
+  }
+
+  // ---- Room loader: assembles all six display groups under the reviewer/Director session ----
+  function loadRoom(token, isAdmin){
+    var el = document.getElementById('room');
+    if(!el){ return; }
+    Promise.all([
+      safe(jget(SB_URL + '/rest/v1/lovr_obligation_checklist?select=obligation_id,code,title,description,category,status,display_order&order=display_order.asc,code.asc', token)),
+      safe(jget(SB_URL + '/rest/v1/lovr_artefact_catalog?deleted_at=is.null&select=artefact_id,doc_code,name,description,category,version_label,source_ref,storage_path,mime_type,linked_obligation_id,status,director_approved_at,display_order&order=display_order.asc', token)),
+      safe(jget(SB_URL + '/rest/v1/lovr_rectification_obligation?select=rectification_id,commitment,anticipated_change,tracked_instrument_ref,owner,due_date,completion_status&order=created_at.asc', token))
+    ]).then(function(results){
+      var obligations = Array.isArray(results[0]) ? results[0] : [];
+      var artefacts   = Array.isArray(results[1]) ? results[1] : [];
+      var rects       = Array.isArray(results[2]) ? results[2] : [];
+      var obById = {}; obligations.forEach(function(o){ obById[o.obligation_id] = o; });
+
+      var html = '';
+      // (1) W9 obligations checklist — the spine.
+      html += '<section class="room-group"><h2 class="room-group-title">W9 Obligations Checklist <span class="room-count">' + obligations.length + '</span></h2>';
+      html += (obligations.length ? renderChecklist(obligations) : '<div class="room-empty">The W9 obligations checklist is being populated.</div>');
+      html += '</section>';
+      // (2)–(5) Evidence library mapped to W9 questions.
+      html += renderEvidenceLibrary(artefacts, obById, isAdmin);
+      // (6) Rectification obligations register.
+      html += '<section class="room-group"><h2 class="room-group-title">Rectification Obligations <span class="room-count">' + rects.length + '</span></h2>';
+      html += (rects.length ? renderRectifications(rects) : '<div class="room-empty">No rectification obligations recorded.</div>');
+      html += '</section>';
+
+      el.innerHTML = html;
       wireChecklistExpanders(el);
+      wireArtefactOpeners(el, token);
     }).catch(function(err){
-      if(window.console && console.warn){ console.warn('LOVR checklist unavailable:', err); }
-      el.innerHTML = neutral;
+      if(window.console && console.warn){ console.warn('LOVR room load issue:', err); }
+      el.innerHTML = '<div class="room-empty">The oversight room is being prepared.</div>';
     });
   }
 
@@ -281,12 +550,40 @@
       '<div class="shell-status' + (isAdmin?' admin':'') + '"><span class="dot"></span>' + (isAdmin?'Administrator':'Authenticated') + '</div>' +
       '<h1>Legal Oversight Room</h1>' +
       '<p class="sub">' + esc(firm) + '</p>' +
-      '<div id="checklist" class="checklist"><p class="msg info">Loading the W9 obligations checklist&hellip;</p></div>' +
+      (isAdmin ? '<div class="admin-banner">Administrator preview — this is the reviewer\u2019s view of the room. You additionally see artefacts still pending release (marked <strong>Pending release</strong>); a reviewer never sees those. No reviewer has been invited, so nothing is exposed externally.</div>' : '') +
+      '<div id="room"><p class="msg info">Loading the oversight room&hellip;</p></div>' +
+      '<button type="button" class="linklike" id="out">Sign out</button>' +
+      // Artefact viewer modal (hidden until an artefact is opened).
+      '<div id="artModal" class="art-modal" role="dialog" aria-modal="true" aria-labelledby="artTitle" hidden>' +
+        '<div class="art-modal-card">' +
+          '<div class="art-modal-head">' +
+            '<div class="art-modal-meta"><div class="art-modal-title" id="artTitle"></div><div class="art-modal-sub" id="artSub"></div></div>' +
+            '<button type="button" class="art-modal-close" id="artClose">Close</button>' +
+          '</div>' +
+          '<div class="art-modal-body" id="artBody"></div>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('out').addEventListener('click', function(){
+      sb.auth.signOut().then(function(){ window.location.reload(); });
+    });
+    wireModal();
+    loadRoom(token, isAdmin);
+  }
+
+  // Active reviewer whose SRA verification is not yet confirmed: legitimately in the allowlist,
+  // but the evidence library is fail-closed at the data layer (RLS requires verified). Show a
+  // neutral holding state rather than the room or an abrupt bounce.
+  function renderVerificationPending(firm){
+    root.classList.add('workspace');
+    root.innerHTML =
+      '<div class="shell-status pending"><span class="dot"></span>Verification in progress</div>' +
+      '<h1>Legal Oversight Room</h1>' +
+      '<p class="sub">' + esc(firm) + '</p>' +
+      '<div class="shell-note">Your access is being finalised. Once your SRA registration has been confirmed, the W9 obligations checklist and evidence library will appear here. You can close this window — you will not need a new sign-in link.</div>' +
       '<button type="button" class="linklike" id="out">Sign out</button>';
     document.getElementById('out').addEventListener('click', function(){
       sb.auth.signOut().then(function(){ window.location.reload(); });
     });
-    loadChecklist(token);
   }
 
   (async function(){
@@ -299,15 +596,21 @@
       var uid = session.user ? session.user.id : null;
 
       // Own-row allowlist check (raw fetch; anon key + the user's access token — RLS permits own row).
-      var firm = null, isReviewer = false;
+      // P1c: also read verification_status so the page state matches the verified data gate (lockstep
+      // with requester_is_active_reviewer() and lovr-artefact-url v3).
+      var firm = null, isReviewer = false, verification = null;
       try{
-        var r = await fetch(SB_URL + '/rest/v1/legal_reviewer_contacts?user_id=eq.' + uid + '&status=eq.active&select=contact_id,firm_name', {
+        var r = await fetch(SB_URL + '/rest/v1/legal_reviewer_contacts?user_id=eq.' + uid + '&status=eq.active&select=contact_id,firm_name,verification_status', {
           headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' }
         });
-        if(r.ok){ var rows = await r.json(); if(Array.isArray(rows) && rows.length>0){ isReviewer = true; firm = rows[0].firm_name; } }
+        if(r.ok){ var rows = await r.json(); if(Array.isArray(rows) && rows.length>0){ isReviewer = true; firm = rows[0].firm_name; verification = rows[0].verification_status; } }
       }catch(e){}
 
-      if(isReviewer){ renderWorkspace(firm || 'Your firm', false, session.access_token); return; }
+      if(isReviewer){
+        if(verification === 'verified'){ renderWorkspace(firm || 'Your firm', false, session.access_token); }
+        else { renderVerificationPending(firm || 'Your firm'); }
+        return;
+      }
       if(email === DIRECTOR_EMAIL){ renderWorkspace('Director access — administrator view', true, session.access_token); return; }
       // Authenticated but neither a reviewer nor the Director.
       window.location.replace('/');
