@@ -50,6 +50,23 @@ p.body b{color:var(--txt);font-weight:600}
 .raise .sub{color:var(--mut);font-size:14px;margin-top:8px}
 .contact{margin-top:14px;font-size:15px}
 .contact a{color:var(--acc);text-decoration:none;border-bottom:1px solid rgba(103,232,249,.35)}
+.eileen{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-top:14px}
+.eileen .intro{color:var(--mut);font-size:14px;margin-bottom:14px;max-width:680px}
+.eileen-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.eileen-chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:12.5px;color:var(--acc);cursor:pointer;font-family:inherit}
+.eileen-chip:hover{border-color:var(--acc2);color:var(--acc2)}
+.eileen-history{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin-bottom:10px}
+.eileen-history:empty{display:none}
+.chat-user,.chat-eileen{font-size:14.5px;line-height:1.6;padding:11px 14px;border-radius:12px;max-width:88%;white-space:pre-wrap}
+.chat-user{align-self:flex-end;background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+.chat-eileen{align-self:flex-start;background:rgba(34,211,238,.06);border:1px solid rgba(103,232,249,.25);color:var(--txt)}
+.eileen-status{font-size:12.5px;color:var(--dim);min-height:16px;margin-bottom:8px}
+.eileen-input-row{display:flex;gap:8px}
+.eileen-input-row input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--txt);font:inherit;font-size:14.5px}
+.eileen-input-row input:focus{outline:none;border-color:var(--acc2)}
+.eileen-input-row button{background:var(--acc2);border:none;border-radius:10px;padding:0 18px;color:#04141a;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit}
+.eileen-input-row button:disabled{opacity:.5;cursor:default}
+.eileen-disc{font-size:11.5px;color:var(--dim);margin-top:12px}
 footer{margin-top:46px;border-top:1px solid var(--line);padding-top:16px;font-size:12.5px;color:var(--dim)}
 footer a{color:var(--dim)}
 @media(max-width:560px){.wrap{padding:32px 18px}.tile b{font-size:26px}}
@@ -78,6 +95,23 @@ footer a{color:var(--dim)}
   <p class="gov">Governed by three ratified constitutions · full UK GDPR processing chain (DPIA, LIA, ROPA) · ICO-registered · regulatory intelligence, not legal advice</p>
   <h2>Beyond the corpus</h2>
   <p class="body">A <b>live legislative intelligence layer</b> streams Hansard, parliamentary Bills and Committees, BBC Parliament, GOV.UK, and Senedd full-text — with Welsh translation in production and horizon functions tracking new Bills and statutory instruments before enactment. <b>Eileen</b>, the platform's constitutionally-governed AI analyst, operates across the product — including a <b>Deal Room</b> with end-to-end contract execution: signing, release, email, and conversation capture. A <b>Knowledge Library</b> is fed live by the same pipelines.</p>
+  <h2>Ask Eileen</h2>
+  <div class="eileen">
+    <p class="intro">Eileen is the platform's constitutionally-governed analyst. Ask her about the estate — the data, the governance, or the surfaces. She provides information only.</p>
+    <div class="eileen-chips" id="eileen-chips">
+      <button type="button" class="eileen-chip">What's in the corpus?</button>
+      <button type="button" class="eileen-chip">How is the platform governed?</button>
+      <button type="button" class="eileen-chip">What are the four surfaces?</button>
+      <button type="button" class="eileen-chip">How was this built so fast?</button>
+    </div>
+    <div class="eileen-history" id="eileen-history" aria-live="polite"></div>
+    <div class="eileen-status" id="eileen-status"></div>
+    <div class="eileen-input-row">
+      <input id="eileen-input" type="text" placeholder="Ask Eileen about the estate…" autocomplete="off" aria-label="Ask Eileen about the estate">
+      <button id="eileen-send" type="button">Ask</button>
+    </div>
+    <p class="eileen-disc">Eileen provides regulatory intelligence, not legal advice · Information only — not a financial promotion.</p>
+  </div>
   <h2>Velocity and traction</h2>
   <div class="cards">
     <div class="card"><h3>Velocity</h3><p>Incorporated 16 February 2026. Sixteen weeks later: a production data platform (400+ migrations, 320 tables, 40 scheduled jobs), four product surfaces, and a 126-entry governance register — founder-led, at roughly $500/month total compute.</p></div>
@@ -93,5 +127,98 @@ footer a{color:var(--dim)}
   </div>
   <footer>AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720 · Wales, UK · Ailane provides regulatory intelligence, not legal advice · Information only — not a financial promotion · <a href="https://ailane.ai/terms/">Terms</a> · Figures as at 7 June 2026 from live production queries.</footer>
 </div>
+<script>
+(function(){
+  var ENDPOINT = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-presales';
+  var chatMessages = [];
+  /* visitor_hash must be >= 16 chars per eileen-presales schema validation. */
+  var visitorHash = (function(){
+    try {
+      if (window.crypto && typeof crypto.randomUUID === 'function') {
+        return 'v_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+      }
+    } catch (e) {}
+    return 'v_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+  })();
+
+  var historyEl = document.getElementById('eileen-history');
+  var statusEl = document.getElementById('eileen-status');
+  var input = document.getElementById('eileen-input');
+  var sendBtn = document.getElementById('eileen-send');
+  var chips = document.getElementById('eileen-chips');
+
+  function bubble(role, text){
+    var el = document.createElement('div');
+    el.className = role === 'user' ? 'chat-user' : 'chat-eileen';
+    el.textContent = text;
+    historyEl.appendChild(el);
+    historyEl.scrollTop = historyEl.scrollHeight;
+  }
+
+  async function sendToEileen(text){
+    bubble('user', text);
+    chatMessages.push({ role: 'user', content: text });
+    statusEl.textContent = 'Eileen is thinking…';
+    sendBtn.disabled = true;
+    input.disabled = true;
+
+    if (typeof gtag === 'function') {
+      gtag('event', 'eileen_message', { section: 'anthology-estate', message_count: chatMessages.length });
+    }
+
+    try {
+      var r = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: 'anthology',
+          section: 'estate-briefing',
+          messages: chatMessages,
+          visitor_hash: visitorHash
+        })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var data = await r.json();
+      if (!data.response) throw new Error('No response payload');
+
+      chatMessages.push({ role: 'assistant', content: data.response });
+      bubble('eileen', data.response);
+      statusEl.textContent = '';
+
+      if (data.rate_limited) {
+        input.disabled = true;
+        sendBtn.disabled = true;
+        input.placeholder = 'Session limit reached.';
+      } else {
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    } catch (err) {
+      console.warn('[Eileen] Chat failed', err);
+      statusEl.textContent = 'Eileen is briefly offline — please try again shortly.';
+      input.disabled = false;
+      sendBtn.disabled = false;
+    }
+  }
+
+  function submit(){
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    sendToEileen(text);
+  }
+
+  sendBtn.addEventListener('click', submit);
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+  });
+  if (chips) chips.addEventListener('click', function(e){
+    var b = e.target.closest('.eileen-chip');
+    if (!b || input.disabled) return;
+    sendToEileen(b.textContent.trim());
+  });
+})();
+</script>
 </body>
 </html>
