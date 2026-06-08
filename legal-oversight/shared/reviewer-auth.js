@@ -12,7 +12,7 @@
  *
  * Load order on each Experience page:
  *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
- *   <script src="../shared/reviewer-auth.js"></script>   // THIS (replaces dnb auth.js)
+ *   <script src="../shared/reviewer-auth.js"></script>   // THIS (the reviewer adapter)
  *   <script src="../shared/api.js"></script>
  *   <script src="../shared/eileen-panel.js"></script>
  * ============================================================================= */
