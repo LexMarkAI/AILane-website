@@ -770,6 +770,61 @@ body::after {
 .notice-impact { font-size: 0.72rem; color: var(--text-secondary); line-height: 1.5; margin-top: 6px; }
 .notice-source { display: inline-block; margin-top: 7px; font-size: 0.64rem; color: var(--accent-cyan); text-decoration: none; }
 .notice-source:hover { text-decoration: underline; }
+
+/* ═══ COMMAND TILES — menu of tiles that open windows (BRIEF CEO-DASH-IA-001 §2) ═══ */
+.section-band { display: flex; align-items: center; gap: 12px; padding: 10px 0 2px; }
+.section-band .section-label { padding: 0; }
+.section-band .band-rule { flex: 1; height: 1px; background: var(--border-subtle); }
+.command-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tile {
+  background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+  padding: 16px 18px; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: 10px; min-height: 128px;
+}
+.tile::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--card-accent, var(--accent-cyan)), transparent); opacity: 0; transition: opacity 0.3s ease; }
+.tile:hover { border-color: var(--border-strong); background: var(--bg-elevated); box-shadow: var(--shadow-card); transform: translateY(-1px); }
+.tile:hover::before { opacity: 1; }
+.tile-head { display: flex; align-items: center; justify-content: space-between; }
+.tile-headline { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; flex: 1; }
+.tile-headline strong { color: var(--text-primary); font-weight: 600; }
+.tile-foot { display: flex; flex-wrap: wrap; gap: 6px; }
+.tile-statusdot { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.04em; display: flex; align-items: center; gap: 5px; }
+.tile-statusdot .d { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.cert-chip { font-family: var(--font-mono); font-size: 0.58rem; font-weight: 600; padding: 2px 7px; border-radius: 5px; border: 1px solid; display: inline-flex; gap: 4px; align-items: center; }
+.cert-chip.certified { background: var(--accent-green-dim); color: var(--accent-green); border-color: rgba(16,185,129,0.25); }
+.cert-chip.in_progress, .cert-chip.submitted { background: var(--accent-cyan-dim); color: var(--accent-cyan); border-color: rgba(14,165,233,0.25); }
+.cert-chip.planned { background: var(--bg-hover); color: var(--text-muted); border-color: var(--border-subtle); }
+.cert-chip.blocked { background: var(--accent-red-dim); color: var(--accent-red); border-color: rgba(239,68,68,0.25); }
+
+/* ═══ MODAL — detail windows for briefs / boards / alerts (DD-2) ═══ */
+.modal-overlay { position: fixed; inset: 0; background: rgba(3,6,14,0.72); backdrop-filter: blur(6px); z-index: 300; display: flex; align-items: flex-start; justify-content: center; padding: 48px 20px; overflow-y: auto; animation: fade-in 0.2s ease; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); width: 100%; max-width: 760px; box-shadow: 0 24px 64px rgba(0,0,0,0.5); animation: modal-in 0.25s ease; }
+@keyframes modal-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--border-subtle); position: sticky; top: 0; background: var(--bg-surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.modal-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.02em; }
+.modal-close { width: 30px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border-default); background: var(--bg-elevated); color: var(--text-secondary); cursor: pointer; font-size: 0.8rem; flex-shrink: 0; }
+.modal-close:hover { color: var(--accent-red); border-color: rgba(239,68,68,0.3); }
+.modal-body { padding: 20px 22px 26px; }
+.alert-item { background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; }
+.alert-item.breached { border-color: rgba(239,68,68,0.3); }
+.alert-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.alert-class { font-family: var(--font-mono); font-size: 0.58rem; font-weight: 600; padding: 2px 7px; border-radius: 5px; }
+
+/* ═══ QTAiLane dormant footer (RULE 14) ═══ */
+.qtailane-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 12px 18px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: rgba(12,18,32,0.5); opacity: 0.72; transition: opacity 0.2s ease; }
+.qtailane-footer:hover { opacity: 1; }
+.qtf-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qtf-mark { font-family: var(--font-mono); font-weight: 700; font-size: 0.7rem; color: var(--text-muted); border: 1px solid var(--border-default); border-radius: 5px; padding: 2px 7px; }
+.qtf-title { font-family: var(--font-display); font-weight: 600; font-size: 0.8rem; color: var(--text-secondary); letter-spacing: 0.04em; }
+.qtf-dormant { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); }
+.qtf-note { font-size: 0.68rem; color: var(--text-muted); }
+.qtf-link { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-secondary); text-decoration: none; border: 1px solid var(--border-default); border-radius: 6px; padding: 5px 10px; }
+.qtf-link:hover { color: var(--accent-cyan); border-color: var(--border-accent); }
+
+@media (max-width: 900px) { .command-grid { grid-template-columns: 1fr; } }
+@media (min-width: 901px) and (max-width: 1200px) { .command-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 
 </head>
@@ -891,55 +946,8 @@ function SkeletonCard() {
   );
 }
 
-// ─── Portfolio Oversight: Data Deal Rooms ───
-function DealRoomsCard() {
-  return (
-    <div className="card" style={{'--card-accent': 'var(--accent-amber)'}} onClick={() => window.location.href='/AiLaneCEO/deal-rooms/'}>
-      <div className="card-header">
-        <div className="card-title-group">
-          <div className="card-icon amber"><Icons.box /></div>
-          <div className="card-title">Data Deal Rooms</div>
-        </div>
-        <span className="card-arrow"><Icons.arrow /></span>
-      </div>
-      <div className="card-body">
-        <div style={{fontSize:'0.78rem',color:'var(--text-secondary)',lineHeight:1.55}}>
-          Counterparty deal rooms · documents, gate progress, next actions.
-        </div>
-        <div style={{display:'flex',gap:'6px',flexWrap:'wrap',marginTop:'12px'}}>
-          <span className="chip amber">Counterparties</span>
-          <span className="chip amber">Commercial envelopes</span>
-          <span className="chip amber">Lifecycle ladder</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Portfolio Oversight: Cohort Leagues ───
-function CohortLeaguesCard() {
-  return (
-    <div className="card" style={{'--card-accent': 'var(--accent-cyan)'}} onClick={() => window.location.href='/AiLaneCEO/cohort-leagues/'}>
-      <div className="card-header">
-        <div className="card-title-group">
-          <div className="card-icon cyan"><Icons.chart /></div>
-          <div className="card-title">Cohort Leagues</div>
-        </div>
-        <span className="card-arrow"><Icons.arrow /></span>
-      </div>
-      <div className="card-body">
-        <div style={{fontSize:'0.78rem',color:'var(--text-secondary)',lineHeight:1.55}}>
-          Cohort families · entity register · league standings.
-        </div>
-        <div style={{display:'flex',gap:'6px',flexWrap:'wrap',marginTop:'12px'}}>
-          <span className="chip cyan">Families</span>
-          <span className="chip cyan">Entity register</span>
-          <span className="chip purple">Standings</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─── Deal Rooms & Cohort Leagues are now surfaced via the §2 "Deal Rooms" command
+//     tile (cohort-origination workspace), superseding the old Portfolio Oversight cards. ───
 
 // ─── Card 1: Business & Accounts ───
 function AccountsCard({ financial }) {
@@ -1204,44 +1212,8 @@ function FeedbackBar() {
   );
 }
 
-// ─── Card 6: Legal & Governance ───
-function LegalCard({ platform }) {
-  return (
-    <div className="card" style={{'--card-accent': '#10B981'}} onClick={() => window.location.href='/AiLaneCEO/legal/'}>
-      <div className="card-header">
-        <div className="card-title-group">
-          <div className="card-icon green"><Icons.shield /></div>
-          <div className="card-title">Legal & Governance</div>
-        </div>
-        <span className="card-arrow"><Icons.arrow /></span>
-      </div>
-      <div className="card-body">
-        <div className="timeline">
-          <div className="timeline-item">
-            <div className="timeline-date">AMD-019</div>
-            <div className="timeline-content">Current amendment sequence · <span className="highlight">AILANE-AMD-REG-001</span></div>
-          </div>
-          <div className="timeline-item">
-            <div className="timeline-date">26 Feb 26</div>
-            <div className="timeline-content">Three founding constitutions ratified — <span className="highlight">ACEI · RRI · CCI</span></div>
-          </div>
-          <div className="timeline-item">
-            <div className="timeline-date">Trademark</div>
-            <div className="timeline-content">UK00004347220 — Accepted for publication · Opposition window open</div>
-          </div>
-          <div className="timeline-item">
-            <div className="timeline-date">ICO</div>
-            <div className="timeline-content">Registered · No. 00013389720 · £52 paid</div>
-          </div>
-          <div className="timeline-item">
-            <div className="timeline-date">Company</div>
-            <div className="timeline-content">AI Lane Limited · No. 17035654 · Incorporated 16 Feb 2026</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─── Legal & Governance is now the §2 "Legal & Compliance" command tile
+//     (compliance-led sub-route at /AiLaneCEO/legal/), superseding this landing card. ───
 
 // ─── Card 7: Calendar & Deadlines ───
 function CalendarCard() {
@@ -1282,43 +1254,7 @@ function CalendarCard() {
   );
 }
 
-// ─── Card 8: QSYS Trading Terminal ───
-function QSYSCard() {
-  return (
-    <div className="card" style={{borderLeft: '3px solid #22d3ee', '--card-accent': '#22d3ee'}} onClick={() => window.location.href='/AiLaneCEO/trading/'}>
-      <div className="card-header">
-        <div className="card-title-group">
-          <div className="card-icon cyan" style={{fontFamily:'var(--font-mono)',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.08em'}}>Q</div>
-          <div className="card-title">QSYS Trading</div>
-        </div>
-        <span id="qsysStatus" style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',letterSpacing:'0.06em',color:'#22d3ee'}}>● LIVE</span>
-      </div>
-      <div className="card-body">
-        <div className="kpi-row">
-          <div className="kpi">
-            <div className="kpi-label">Equity</div>
-            <div className="kpi-value" id="qsysEquity" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
-          </div>
-          <div className="kpi">
-            <div className="kpi-label">Running PnL</div>
-            <div className="kpi-value" id="qsysPnl" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
-          </div>
-        </div>
-        <div className="kpi-row">
-          <div className="kpi">
-            <div className="kpi-label">Positions</div>
-            <div className="kpi-value" id="qsysPositions" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
-          </div>
-          <div className="kpi">
-            <div className="kpi-label">Mode</div>
-            <div className="kpi-value" id="qsysMode" style={{fontFamily:"'JetBrains Mono',monospace"}}>—</div>
-          </div>
-        </div>
-        <a href="/AiLaneCEO/trading/" onClick={e => e.stopPropagation()} style={{display:'block',textAlign:'center',padding:'8px',background:'rgba(34,211,238,0.08)',border:'1px solid rgba(34,211,238,0.19)',borderRadius:'6px',color:'#22d3ee',textDecoration:'none',fontFamily:'var(--font-mono)',fontSize:'0.65rem',letterSpacing:'0.1em'}}>OPEN TERMINAL →</a>
-      </div>
-    </div>
-  );
-}
+// ─── QSYS/QTAiLane card removed — demoted to a dormant footer (QTAiLaneFooter, RULE 14). ───
 
 // ═══════════════════════════════════════════════
 // TOAST SYSTEM
@@ -1379,126 +1315,317 @@ function renderMarkdown(md) {
 }
 function regDateTime(s) { if (!s) return '—'; try { return new Date(s).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); } catch (e) { return String(s); } }
 
-function RegIntelSection({ token }) {
-  const [loading, setLoading] = React.useState(true);
-  const [data, setData] = React.useState(null);
-  const [err, setErr] = React.useState(null);
+// ═══════════════════════════════════════════════
+// COMMAND CENTRE — menu of tiles that open windows (BRIEF CEO-DASH-IA-001 §2)
+// DD-1 tile order: Deal Rooms · Legal & Compliance · Daily Brief · Notice Board ·
+// Knowledge Library/Estate · Governance Alerts. DD-2 windows: modal for
+// briefs/boards/alerts; sub-route for Legal & the Deal Rooms workspace.
+// Gold (#F59E0B) is reserved for Institutional tier — tiles use cyan/green/purple/red.
+// Daily Brief + Notice Board read ceo-reg-intel (service-role EF; ceo_daily_brief
+// is RLS-locked to service_role so cannot be read directly from the browser).
+// ═══════════════════════════════════════════════
+
+function Tile({ iconClass, accent, icon, title, status, onClick, children }) {
+  return (
+    <div className="tile" style={{ '--card-accent': accent }} onClick={onClick}>
+      <div className="tile-head">
+        <div className="card-title-group">
+          <div className={'card-icon ' + iconClass}>{icon}</div>
+          <div className="card-title">{title}</div>
+        </div>
+        {status || <span className="card-arrow"><Icons.arrow /></span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function StatusDot({ color, label }) {
+  return <span className="tile-statusdot" style={{ color }}><span className="d" />{label}</span>;
+}
+
+function Modal({ title, icon, onClose, headRight, children }) {
+  React.useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, []);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <div className="card-title-group"><div className="card-icon cyan">{icon}</div><div className="modal-title">{title}</div></div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>{headRight}<button className="modal-close" onClick={onClose} aria-label="Close">✕</button></div>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// Certification status → chip (gold avoided; in_progress/submitted shown cyan)
+function CertChips({ certs }) {
+  if (certs == null) return <div className="tile-foot"><span className="reg-muted" style={{ fontSize: '0.7rem' }}>Loading…</span></div>;
+  if (certs.length === 0) return <div className="tile-foot"><span className="reg-muted" style={{ fontSize: '0.7rem' }}>No tracks recorded.</span></div>;
+  return (
+    <div className="tile-foot">
+      {certs.map((c, i) => (
+        <span key={i} className={'cert-chip ' + String(c.status || 'planned')} title={(c.standard || '') + (c.next_milestone ? ' · next: ' + c.next_milestone : '')}>
+          {c.track}{c.progress_pct != null ? ' ' + c.progress_pct + '%' : ''}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function BriefModalBody({ brief, generatedAt, genBusy, genMsg }) {
+  return (
+    <div>
+      {brief ? (
+        <div>
+          {brief.headline && <div className="md-h1">{brief.headline}</div>}
+          <div className="md-body">{renderMarkdown(brief.body_markdown)}</div>
+          <div className="reg-meta">Generated {regDateTime(generatedAt || brief.generated_at)}{brief.model ? ' · ' + brief.model : ''} · source: ceo_daily_brief</div>
+          {Array.isArray(brief.sources) && brief.sources.length > 0 && (
+            <div className="reg-sources">
+              {brief.sources.map((s, i) => <a key={i} className="reg-source-chip" href={s.url} target="_blank" rel="noopener">{s.title || s.domain || s.url}</a>)}
+            </div>
+          )}
+          <div className="reg-meta" style={{ marginTop: 12 }}><a className="reg-source-chip" href="/AiLaneCEO/briefs/">Open full brief archive →</a></div>
+        </div>
+      ) : <div className="reg-muted">No brief yet today.</div>}
+      {genBusy && <div className="reg-meta" style={{ marginTop: 10 }}>Eileen is composing the brief — this can take 15–25 seconds…</div>}
+      {genMsg && <div className="reg-err">{genMsg}</div>}
+    </div>
+  );
+}
+
+function NoticesModalBody({ data, err }) {
+  const devs = (data && Array.isArray(data.developments)) ? data.developments : [];
+  const grouped = {}; devs.forEach(d => { const s = String(d.impact_severity || 'informational').toLowerCase(); (grouped[s] = grouped[s] || []).push(d); });
+  const extraKeys = Object.keys(grouped).filter(k => !SEVERITIES.some(s => s[0] === k));
+  const NoticeItem = (d, i) => (
+    <div className="notice-item" key={i}>
+      <div className="notice-title">{d.title}</div>
+      <div className="notice-badges">
+        {d.domain && <span className="notice-badge">{d.domain}</span>}
+        {d.jurisdiction && <span className="notice-badge">{d.jurisdiction}</span>}
+        {d.instrument_type && <span className="notice-badge ghost">{d.instrument_type}</span>}
+        {(d.status || d.stage || d.expected_date) && <span className="notice-status">{[d.status, d.stage].filter(Boolean).join(' · ')}{d.expected_date ? ((d.status || d.stage) ? ' — ' : '') + 'expected ' + d.expected_date : ''}</span>}
+      </div>
+      {d.deal_room_impact && <div className="notice-impact">{d.deal_room_impact}</div>}
+      {d.source_url && <a className="notice-source" href={d.source_url} target="_blank" rel="noopener">Source ↗</a>}
+    </div>
+  );
+  if (err) return <div className="reg-err">{err}</div>;
+  if (devs.length === 0) return <div className="reg-muted">No regulatory developments.</div>;
+  return (
+    <div>
+      {SEVERITIES.map(([key, label, color]) => grouped[key] && grouped[key].length > 0 && (
+        <div className="notice-group" key={key}>
+          <div className="notice-group-head"><span className="notice-dot" style={{ background: color }} /><span style={{ color }}>{label}</span><span className="notice-group-count">{grouped[key].length}</span></div>
+          {grouped[key].map((d, i) => NoticeItem(d, key + i))}
+        </div>
+      ))}
+      {extraKeys.map(key => (
+        <div className="notice-group" key={key}>
+          <div className="notice-group-head"><span className="notice-dot" style={{ background: '#94A3B8' }} /><span style={{ color: '#94A3B8' }}>{key.charAt(0).toUpperCase() + key.slice(1)}</span><span className="notice-group-count">{grouped[key].length}</span></div>
+          {grouped[key].map((d, i) => NoticeItem(d, key + i))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AlertsModalBody({ alerts }) {
+  if (alerts == null) return <div className="reg-muted">Loading…</div>;
+  if (alerts.length === 0) return <div className="reg-muted">No open governance alerts.</div>;
+  const classColor = c => c === 1 ? '#DC2626' : c === 2 ? '#F59E0B' : '#64748B';
+  return (
+    <div>
+      {alerts.map((a, i) => (
+        <div className={'alert-item' + (a.sla_breached ? ' breached' : '')} key={a.alert_id || i}>
+          <div className="notice-title">{a.title}</div>
+          {a.summary && <div className="notice-impact">{a.summary}</div>}
+          <div className="alert-row">
+            <span className="alert-class" style={{ background: 'rgba(148,163,184,0.12)', color: classColor(a.alert_class) }}>Class {a.alert_class}</span>
+            {a.alert_type && <span className="notice-badge ghost">{a.alert_type}</span>}
+            {a.status && <span className="notice-status">{a.status}</span>}
+            {a.age_hours != null && <span className="notice-status">{Math.round(Number(a.age_hours))}h old</span>}
+            {a.sla_breached && <span className="cert-chip blocked">SLA breached</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// QTAiLane demoted to a slim dormant footer (RULE 14 — minimal, no detail)
+function QTAiLaneFooter() {
+  return (
+    <div className="qtailane-footer" title="Dormant — separate product line and infrastructure">
+      <div className="qtf-left">
+        <span className="qtf-mark">Q</span>
+        <span className="qtf-title">QTAiLane</span>
+        <span className="qtf-dormant">● dormant</span>
+        <span className="qtf-note">Quantitative trading line · separate infrastructure · not an active Ailane surface</span>
+      </div>
+      <a href="/AiLaneCEO/trading/" className="qtf-link">Terminal →</a>
+    </div>
+  );
+}
+
+function CommandCentre({ token, sections }) {
+  const H = { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+  const [modal, setModal] = React.useState(null);            // 'brief' | 'notices' | 'alerts'
+  const [intel, setIntel] = React.useState(null);            // { brief, developments, developments_summary, generated_at }
+  const [intelErr, setIntelErr] = React.useState(null);
   const [genBusy, setGenBusy] = React.useState(false);
   const [genMsg, setGenMsg] = React.useState(null);
+  const [alerts, setAlerts] = React.useState(null);
+  const [certs, setCerts] = React.useState(null);
+  const [rooms, setRooms] = React.useState(null);
   const mounted = React.useRef(true);
   React.useEffect(() => () => { mounted.current = false; }, []);
 
-  async function loadAll() {
-    setLoading(true); setErr(null);
-    try {
-      const r = await fetch(`${SUPABASE_URL}/functions/v1/ceo-reg-intel?section=all`, { headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' } });
-      if (!mounted.current) return;
-      if (!r.ok) { setErr('Unable to load regulatory intelligence (' + r.status + ').'); }
-      else { const j = await r.json(); if (mounted.current) setData(j); }
-    } catch (e) { if (mounted.current) { console.error('ceo-reg-intel', e); setErr('Network error loading regulatory intelligence.'); } }
-    if (mounted.current) setLoading(false);
-  }
-  React.useEffect(() => { if (token) loadAll(); }, [token]);
+  const rest = (path) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: H });
 
-  async function generate() {
-    if (genBusy) return;
-    setGenBusy(true); setGenMsg(null);
+  async function loadIntel() {
     try {
-      const r = await fetch(`${SUPABASE_URL}/functions/v1/ceo-eileen-brief`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-      if (!mounted.current) return;
-      if (!r.ok) { setGenMsg('Generation failed (' + r.status + ').'); }
-      else {
-        const r2 = await fetch(`${SUPABASE_URL}/functions/v1/ceo-reg-intel?section=brief`, { headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' } });
-        if (!mounted.current) return;
-        if (r2.ok) { const j2 = await r2.json(); if (mounted.current) setData(d => ({ ...(d || {}), brief: j2.brief, generated_at: j2.generated_at || (d && d.generated_at) })); }
-        else setGenMsg('Brief refresh failed (' + r2.status + ').');
-      }
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/ceo-reg-intel?section=all`, { headers: H });
+      if (!r.ok) { if (mounted.current) setIntelErr('Unable to load regulatory intelligence (' + r.status + ').'); return; }
+      const j = await r.json(); if (mounted.current) { setIntel(j); setIntelErr(null); }
+    } catch (e) { if (mounted.current) { console.error('ceo-reg-intel', e); setIntelErr('Network error loading regulatory intelligence.'); } }
+  }
+  async function loadAlerts() {
+    try {
+      const r = await rest('vw_ceo_governance_alerts?select=*&order=detected_at.desc&limit=50');
+      if (r.ok) { const j = await r.json(); if (mounted.current) setAlerts(Array.isArray(j) ? j : []); }
+    } catch (e) { console.error('vw_ceo_governance_alerts', e); }
+  }
+  async function loadCerts() {
+    try {
+      const r = await rest('compliance_certification_tracker?select=track,standard,status,progress_pct,next_milestone&order=track.asc');
+      if (r.ok) { const j = await r.json(); if (mounted.current) setCerts(Array.isArray(j) ? j : []); }
+    } catch (e) { console.error('compliance_certification_tracker', e); }
+  }
+  async function loadRooms() {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealrooms`, { headers: H });
+      if (r.ok) { const j = await r.json(); if (mounted.current) setRooms(j); }
+    } catch (e) { console.error('ceo-portfolio-data dealrooms', e); }
+  }
+  React.useEffect(() => { if (token) { loadIntel(); loadAlerts(); loadCerts(); loadRooms(); } }, [token]);
+
+  async function generateBrief() {
+    if (genBusy) return; setGenBusy(true); setGenMsg(null);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/ceo-eileen-brief`, { method: 'POST', headers: H, body: JSON.stringify({}) });
+      if (!r.ok) { if (mounted.current) setGenMsg('Generation failed (' + r.status + ').'); }
+      else { await loadIntel(); }
     } catch (e) { if (mounted.current) { console.error('ceo-eileen-brief', e); setGenMsg('Network error during generation.'); } }
     if (mounted.current) setGenBusy(false);
   }
 
-  const brief = data && data.brief;
-  const devs = (data && Array.isArray(data.developments)) ? data.developments : [];
-  const grouped = {}; devs.forEach(d => { const s = String(d.impact_severity || 'informational').toLowerCase(); (grouped[s] = grouped[s] || []).push(d); });
-  const extraKeys = Object.keys(grouped).filter(k => !SEVERITIES.some(s => s[0] === k));
-
-  function NoticeItem(d, i) {
-    return (
-      <div className="notice-item" key={i}>
-        <div className="notice-title">{d.title}</div>
-        <div className="notice-badges">
-          {d.domain && <span className="notice-badge">{d.domain}</span>}
-          {d.jurisdiction && <span className="notice-badge">{d.jurisdiction}</span>}
-          {d.instrument_type && <span className="notice-badge ghost">{d.instrument_type}</span>}
-          {(d.status || d.stage || d.expected_date) && <span className="notice-status">{[d.status, d.stage].filter(Boolean).join(' · ')}{d.expected_date ? ((d.status || d.stage) ? ' — ' : '') + 'expected ' + d.expected_date : ''}</span>}
-        </div>
-        {d.deal_room_impact && <div className="notice-impact">{d.deal_room_impact}</div>}
-        {d.source_url && <a className="notice-source" href={d.source_url} target="_blank" rel="noopener">Source ↗</a>}
-      </div>
-    );
-  }
+  // ── Teaser-derived values ──
+  const brief = intel && intel.brief;
+  const generatedAt = intel && intel.generated_at;
+  const devs = (intel && Array.isArray(intel.developments)) ? intel.developments : [];
+  const noticeTotal = (intel && intel.developments_summary && intel.developments_summary.total != null) ? intel.developments_summary.total : devs.length;
+  const openAlerts = alerts ? alerts.length : null;
+  const breached = alerts ? alerts.filter(a => a.sla_breached).length : 0;
+  const estate = (sections && sections.platform && sections.platform.data_estate) || [];
+  const employers = (estate.find(e => e.entity === 'employer_master') || {}).count;
+  const tribunals = (estate.find(e => e.entity === 'tribunal_decisions') || {}).count;
+  const roomArr = rooms ? (rooms.dealrooms || rooms.rooms || rooms.data || (rooms.sections && rooms.sections.dealrooms) || (Array.isArray(rooms) ? rooms : null)) : null;
+  const roomCount = Array.isArray(roomArr) ? roomArr.length : null;
+  const today = new Date().toISOString().slice(0, 10);
+  const briefDate = (brief && brief.generated_at) ? new Date(brief.generated_at) : (generatedAt ? new Date(generatedAt) : null);
+  const briefIsToday = briefDate && !isNaN(briefDate) && briefDate.toISOString().slice(0, 10) === today;
+  const briefDateStr = (briefDate && !isNaN(briefDate)) ? briefDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
 
   return (
-    <div className="grid-row two-col">
-      {/* PANEL A — DAILY BRIEF */}
-      <div className="card reg-panel" style={{ '--card-accent': 'var(--accent-cyan)' }}>
-        <div className="card-header">
-          <div className="card-title-group">
-            <div className="card-icon cyan"><Icons.msg /></div>
-            <div className="card-title">Daily Brief from Eileen</div>
+    <div>
+      <div className="section-band"><div className="section-label">Command</div><div className="band-rule" /></div>
+      <div className="command-grid">
+
+        {/* 1 — DEAL ROOMS (cohort-origination workspace) → sub-route */}
+        <Tile iconClass="purple" accent="var(--accent-purple)" icon={<Icons.box />} title="Deal Rooms"
+          onClick={() => window.location.href = '/AiLaneCEO/deal-rooms/'}>
+          <div className="tile-headline">
+            {roomCount != null ? <span><strong>{roomCount} active room{roomCount === 1 ? '' : 's'}</strong> · </span> : <strong>Cohort origination · </strong>}
+            research a cohort and spin up a bespoke room.
           </div>
-          <button className="reg-gen-btn" disabled={genBusy} onClick={generate}>{genBusy ? 'Generating…' : 'Generate brief now'}</button>
-        </div>
-        <div className="card-body">
-          {loading ? <div className="reg-muted">Loading…</div>
-            : brief ? (
-              <div>
-                {brief.headline && <div className="md-h1">{brief.headline}</div>}
-                <div className="md-body">{renderMarkdown(brief.body_markdown)}</div>
-                <div className="reg-meta">Generated {regDateTime(data.generated_at || brief.generated_at)}{brief.model ? ' · ' + brief.model : ''}</div>
-                {Array.isArray(brief.sources) && brief.sources.length > 0 && (
-                  <div className="reg-sources">
-                    {brief.sources.map((s, i) => <a key={i} className="reg-source-chip" href={s.url} target="_blank" rel="noopener">{s.title || s.domain || s.url}</a>)}
-                  </div>
-                )}
-              </div>
-            ) : <div className="reg-muted">No brief yet today.</div>}
-          {genBusy && <div className="reg-meta" style={{ marginTop: 8 }}>Eileen is composing the brief — this can take 15–25 seconds…</div>}
-          {genMsg && <div className="reg-err">{genMsg}</div>}
-        </div>
+          <div className="tile-foot">
+            <span className="chip purple">Cohort leagues</span>
+            <span className="chip purple">Research → room</span>
+          </div>
+        </Tile>
+
+        {/* 2 — LEGAL & COMPLIANCE → sub-route */}
+        <Tile iconClass="green" accent="var(--accent-green)" icon={<Icons.shield />} title="Legal & Compliance"
+          onClick={() => window.location.href = '/AiLaneCEO/legal/'}>
+          <div className="tile-headline">Certification tracker, live compliance oversight &amp; legal responsibilities.</div>
+          <CertChips certs={certs} />
+        </Tile>
+
+        {/* 3 — DAILY BRIEF → modal */}
+        <Tile iconClass="cyan" accent="var(--accent-cyan)" icon={<Icons.msg />} title="Daily Brief"
+          status={<StatusDot color={briefIsToday ? 'var(--accent-green)' : 'var(--text-muted)'} label={briefIsToday ? 'today' : 'review'} />}
+          onClick={() => setModal('brief')}>
+          <div className="tile-headline">
+            {brief && brief.headline ? <span><strong>{briefDateStr}</strong> — {brief.headline}</span> : 'No brief yet today.'}
+          </div>
+        </Tile>
+
+        {/* 4 — REGULATORY NOTICE BOARD → modal */}
+        <Tile iconClass="cyan" accent="var(--accent-cyan)" icon={<Icons.shield />} title="Regulatory Notice Board"
+          status={noticeTotal != null ? <StatusDot color="var(--accent-cyan)" label={String(noticeTotal)} /> : null}
+          onClick={() => setModal('notices')}>
+          <div className="tile-headline">
+            {devs.length > 0 ? <span><strong>{noticeTotal} live</strong> — {devs[0].title}</span> : (intelErr ? 'Notice board unavailable.' : 'No regulatory developments.')}
+          </div>
+        </Tile>
+
+        {/* 5 — KNOWLEDGE LIBRARY / ESTATE → existing surface */}
+        <Tile iconClass="cyan" accent="var(--accent-cyan)" icon={<Icons.box />} title="Knowledge Library / Estate"
+          onClick={() => window.location.href = '/knowledge-library-preview/'}>
+          <div className="tile-headline">
+            <strong>{employers != null ? formatNum(employers) : '—'}</strong> employers · <strong>{tribunals != null ? formatNum(tribunals) : '—'}</strong> tribunal decisions indexed.
+          </div>
+          <div className="tile-foot"><span className="chip cyan">Knowledge Library</span><span className="chip cyan">Data estate</span></div>
+        </Tile>
+
+        {/* 6 — GOVERNANCE ALERTS → modal */}
+        <Tile iconClass={breached > 0 ? 'red' : 'cyan'} accent={breached > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)'} icon={<Icons.zap />} title="Governance Alerts"
+          status={openAlerts != null ? <StatusDot color={breached > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)'} label={String(openAlerts)} /> : null}
+          onClick={() => setModal('alerts')}>
+          <div className="tile-headline">
+            {openAlerts != null ? <span><strong>{openAlerts} open</strong>{breached > 0 ? ' · ' + breached + ' SLA-breached' : ''}</span> : 'Loading…'}
+          </div>
+        </Tile>
+
       </div>
 
-      {/* PANEL B — REGULATORY NOTICE BOARD */}
-      <div className="card reg-panel" style={{ '--card-accent': 'var(--accent-cyan)' }}>
-        <div className="card-header">
-          <div className="card-title-group">
-            <div className="card-icon cyan"><Icons.shield /></div>
-            <div className="card-title">Regulatory Notice Board</div>
-          </div>
-          {data && data.developments_summary && data.developments_summary.total != null && <span className="reg-count">{data.developments_summary.total}</span>}
-        </div>
-        <div className="card-body">
-          {loading ? <div className="reg-muted">Loading…</div>
-            : err ? <div className="reg-err">{err}</div>
-            : devs.length === 0 ? <div className="reg-muted">No regulatory developments.</div>
-            : (
-              <div>
-                {SEVERITIES.map(([key, label, color]) => grouped[key] && grouped[key].length > 0 && (
-                  <div className="notice-group" key={key}>
-                    <div className="notice-group-head"><span className="notice-dot" style={{ background: color }} /><span style={{ color }}>{label}</span><span className="notice-group-count">{grouped[key].length}</span></div>
-                    {grouped[key].map((d, i) => NoticeItem(d, key + i))}
-                  </div>
-                ))}
-                {extraKeys.map(key => (
-                  <div className="notice-group" key={key}>
-                    <div className="notice-group-head"><span className="notice-dot" style={{ background: '#94A3B8' }} /><span style={{ color: '#94A3B8' }}>{key.charAt(0).toUpperCase() + key.slice(1)}</span><span className="notice-group-count">{grouped[key].length}</span></div>
-                    {grouped[key].map((d, i) => NoticeItem(d, key + i))}
-                  </div>
-                ))}
-              </div>
-            )}
-        </div>
-      </div>
+      {modal === 'brief' && (
+        <Modal title="Daily Brief from Eileen" icon={<Icons.msg />} onClose={() => setModal(null)}
+          headRight={<button className="reg-gen-btn" disabled={genBusy} onClick={generateBrief}>{genBusy ? 'Generating…' : 'Generate brief now'}</button>}>
+          <BriefModalBody brief={brief} generatedAt={generatedAt} genBusy={genBusy} genMsg={genMsg} />
+        </Modal>
+      )}
+      {modal === 'notices' && (
+        <Modal title="Regulatory Notice Board" icon={<Icons.shield />} onClose={() => setModal(null)}
+          headRight={noticeTotal != null ? <span className="reg-count">{noticeTotal}</span> : null}>
+          <NoticesModalBody data={intel} err={intelErr} />
+        </Modal>
+      )}
+      {modal === 'alerts' && (
+        <Modal title="Governance Alerts" icon={<Icons.zap />} onClose={() => setModal(null)}
+          headRight={openAlerts != null ? <span className="reg-count">{openAlerts}</span> : null}>
+          <AlertsModalBody alerts={alerts} />
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1812,42 +1939,32 @@ function App() {
       {/* ═══ DASHBOARD GRID ═══ */}
       <div className="dashboard">
 
-        {/* Row 0: Regulatory Intelligence — Daily Brief + Notice Board */}
-        <RegIntelSection token={token} />
+        {/* Command tiles — BRIEF CEO-DASH-IA-001 §2 (Deal Rooms · Legal · Brief · Notices · KL/Estate · Alerts) */}
+        <CommandCentre token={token} sections={sections} />
 
-        {/* Row 1: Business & Clients */}
+        {/* Business operations — retained beneath the command tiles (Director: keep, do not remove) */}
+        <div className="section-band"><div className="section-label">Business Operations</div><div className="band-rule" /></div>
+
         <div className="grid-row two-col">
           {loading ? <SkeletonCard /> : <AccountsCard financial={sections.financial} />}
           {loading ? <SkeletonCard /> : <ClientsCard platform={sections.platform} />}
         </div>
 
-        {/* Row 2: Analytics & Products */}
         <div className="grid-row two-col">
           {loading ? <SkeletonCard /> : <AnalyticsCard pipeline={sections.pipeline} />}
           {loading ? <SkeletonCard /> : <ProductsCard financial={sections.financial} compliance={sections.compliance} />}
         </div>
 
-        {/* Row 3: Feedback (full width) */}
         <div className="grid-row full">
           <FeedbackBar />
         </div>
 
-        {/* Row 4: Legal & Calendar */}
         <div className="grid-row two-col">
-          <LegalCard platform={sections.platform} />
           <CalendarCard />
         </div>
 
-        {/* Row 5: QSYS Trading */}
-        <div className="grid-row two-col">
-          <QSYSCard />
-        </div>
-
-        {/* Row 6: Portfolio Oversight */}
-        <div className="grid-row two-col">
-          <DealRoomsCard />
-          <CohortLeaguesCard />
-        </div>
+        {/* QTAiLane — demoted to a dormant footer (RULE 14) */}
+        <QTAiLaneFooter />
 
       </div>
 
@@ -1864,34 +1981,7 @@ function App() {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 
-<script>
-(function(){
-  async function loadQSYS(){
-    try{
-      const r=await fetch('https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/trading-engine/positions');
-      if(!r.ok)throw new Error(r.status);
-      const d=await r.json();
-      const eq=d.account?.balance||0;
-      const pnl=d.account?.profitLoss||0;
-      const pos=d.positions?.length||0;
-      const mode=d.mode||'paper';
-      document.getElementById('qsysEquity').textContent='£'+eq.toLocaleString();
-      const pnlEl=document.getElementById('qsysPnl');
-      pnlEl.textContent=(pnl>=0?'£+':'£')+pnl.toFixed(2);
-      pnlEl.style.color=pnl>=0?'#34d399':'#f87171';
-      document.getElementById('qsysPositions').textContent=pos;
-      document.getElementById('qsysMode').textContent=mode.toUpperCase();
-      document.getElementById('qsysStatus').textContent='● CONNECTED';
-      document.getElementById('qsysStatus').style.color='#34d399';
-    }catch(e){
-      document.getElementById('qsysStatus').textContent='● OFFLINE';
-      document.getElementById('qsysStatus').style.color='#f87171';
-    }
-  }
-  loadQSYS();
-  setInterval(loadQSYS,60000);
-})();
-</script>
+<!-- QTAiLane/QSYS live polling removed — demoted to a dormant footer (BRIEF CEO-DASH-IA-001 §2, RULE 14). -->
 
 </body>
 </html>
