@@ -1,149 +1,623 @@
-<!DOCTYPE html>
-<html lang="en-GB">
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="robots" content="noindex, nofollow" />
-<title>Deal Documents · Legal Oversight Room · Ailane</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co; img-src 'self' data: https://cnbsxwtvazfvzmltkuvx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
-
-<!-- Google Analytics 4 (G-NTNXWZN31C) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-NTNXWZN31C', { anonymize_ip: true });
-</script>
-<link rel="stylesheet" href="/legal-oversight/shared/lovr-room.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deal Documents · Legal Oversight Room · Ailane</title>
+  <meta name="description" content="Counterparty Deal-Room Experience — Deal Documents (synthetic demonstration).">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co; img-src 'self' data: https://cnbsxwtvazfvzmltkuvx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <link rel="stylesheet" href="../shared/dealroom.css">
+  <!-- Google Analytics 4 (G-NTNXWZN31C) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C', { anonymize_ip: true });
+  </script>
 </head>
-<body style="visibility:hidden">
+<body>
+  <div id="drApp"></div>
 
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="nexus" viewBox="0 0 40 40">
-    <circle cx="20" cy="20" r="11" fill="none" stroke="#0EA5E9" stroke-width="1.2" opacity=".55"/>
-    <line x1="20" y1="20" x2="31" y2="11" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
-    <line x1="20" y1="20" x2="9"  y2="13" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
-    <line x1="20" y1="20" x2="28" y2="31" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
-    <circle cx="31" cy="11" r="1.8" fill="#0EA5E9"/>
-    <circle cx="9"  cy="13" r="1.8" fill="#0EA5E9"/>
-    <circle cx="28" cy="31" r="1.8" fill="#0EA5E9"/>
-    <circle cx="20" cy="20" r="4.4" fill="#F59E0B"/>
-  </symbol>
-</svg>
+  <!-- Supabase JS UMD bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- Deal-room shared layer — reviewer-context adapter pins to the synthetic counterparty -->
+  <script src="../shared/reviewer-auth.js"></script>
+  <script src="../shared/api.js"></script>
+  <!-- Deal-room Eileen drawer + latency-line pool -->
+  <script src="/assets/dealroom/eileen-latency.js"></script>
+  <script src="../shared/eileen-panel.js"></script>
 
-<header class="topbar"><div class="wrap"><div class="row">
-  <a class="brand" href="/legal-oversight/">
-    <svg width="26" height="26"><use href="#nexus"/></svg>
-    <span class="name">Ailane</span><span class="sub">Legal Oversight Room</span></a>
-  <div class="spacer"></div>
-  <div class="who"><span class="email" id="who-email"></span>
-    <button class="btn sm ghost" id="signout">Sign out</button></div>
-</div></div></header>
+  <script>
+    // =========================================================================
+    // Legal Oversight Room — Deal Documents (synthetic Counterparty Deal-Room Experience)
+    // AILANE-CC-BRIEF-LOVR-PARITY-002 §3.1 — established deal-room Documents page,
+    // reused verbatim and pinned to the synthetic counterparty rnd-sim-2026-001 via
+    // the reviewer-context adapter. Read-only demonstration: counterparty uploads are
+    // shown as indicators (no writes). Preview/Download via dealroom-document-fetch.
+    // =========================================================================
 
-<nav class="crumbbar"><div class="wrap"><div class="row">
-  <a class="crumb" href="../deal-room/"><span class="arrow">&larr;</span> Deal-Room Experience</a>
-  <a class="crumb" href="/legal-oversight/#vault">Document Vault</a>
-  <span class="crumb-here">Deal Documents</span>
-</div></div></nav>
+    const esc = window.dealroomAuth.escapeHtml;
+    const { PHASE_LABEL, PHASE_RANK, isPhaseUnlocked } = window.dealroomAuth;
 
-<div class="wrap"><div class="page">
-  <section class="context" style="border:none;background:none"><div class="row" style="padding:6px 0 18px">
-    <div class="eyebrow">Walkthrough view</div>
-    <h1>Deal Documents</h1>
-    <p>Every artefact released into this room, grouped as it appears in the Vault. This is the walkthrough list; the Vault on the room hub remains the authoritative register and capture surface. Open any document to read it inline or download the authoritative file. Regulatory intelligence, not legal advice.</p>
-  </div></section>
-  <div id="docs"><div class="state"><span class="spin"></span>Loading documents…</div></div>
-</div></div>
+    let SESSION = null;
+    let DOCS = [];
+    let UPLOADS = {};
+    let SAVED_CONVERSATIONS = [];  // AMD-145 §3.6 / AMD-146 — counterparty-named conversations
 
-<div class="scrim" id="scrim" onclick="LOVR.closeViewer()"></div>
-<aside class="viewer" id="viewer" aria-hidden="true">
-  <div class="vbar">
-    <svg width="30" height="30" aria-hidden="true"><use href="#nexus"/></svg>
-    <div style="flex:1;min-width:0">
-      <div class="vt" id="v-title">—</div>
-      <div class="vm" id="v-meta"></div>
-    </div>
-    <button class="btn ghost sm" onclick="LOVR.closeViewer()" aria-label="Close">Close ✕</button>
-  </div>
-  <div class="vbody" id="v-body"></div>
-  <div class="vactions" id="v-actions"></div>
-  <div class="disclaimer">This material is provided for professional review under the Reviewer Access Agreement. It is regulatory intelligence, not legal advice, and is confidential to AI Lane Limited.</div>
-</aside>
-
-<footer><div class="wrap"><div class="row">
-  <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
-  <span>Governed by AILANE-AMD-REG-001. Confidential. Provided to verified reviewers under the Reviewer Access Agreement. Regulatory intelligence, not legal advice.</span>
-</div></div></footer>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-<script src="/legal-oversight/shared/lovr-shared.js"></script>
-<script>
-(function(){
-  "use strict";
-  const { sb, esc, $, SOURCE_CHIP } = window.LOVR;
-
-  // Vault grouping — Constitutional-led order (Option B). Mirrors the hub.
-  const GROUPS = [
-    { key:"constitutional",         label:"Constitutional & founding documents", consti:true },
-    { key:"baseline",               label:"Baseline compliance instruments" },
-    { key:"w9a",                    label:"W9(a) — Anonymisation sufficiency", w9:true },
-    { key:"w9b",                    label:"W9(b) — Article 14 transparency", w9:true },
-    { key:"w9c",                    label:"W9(c) — Computational-analysis licence", w9:true },
-    { key:"room-instrument",        label:"Room instruments" },
-    { key:"commercial-instruments", label:"Commercial & data-processing instruments" },
-    { key:"public-facing",          label:"Public-facing documents" },
-  ];
-
-  function cardHtml(r){
-    const isDoc = r.content_source==="storage";
-    const isUrl = r.content_source==="live-url"||r.content_source==="external-url";
-    const verb = isUrl ? "Open page" : "Open";
-    let actions = `<button class="btn gold sm" onclick="LOVR.openArtefact('${r.artefact_id}','preview')">${verb}</button>`;
-    if(isDoc) actions += `<button class="btn sm" onclick="LOVR.openArtefact('${r.artefact_id}','download')">Download</button>`;
-    return `<div class="card">
-      <div class="ct">${esc(r.title)}</div>
-      <div class="cd">${esc(r.summary||"")}</div>
-      <div class="cf">
-        <span class="chip">${esc(SOURCE_CHIP[r.content_source]||r.content_source)}${r.version_label?` · <span class="vd">${esc(r.version_label)}</span>`:""}</span>
-        <span class="actions">${actions}</span>
-      </div></div>`;
-  }
-
-  function render(rows){
-    let html = "", shown = 0;
-    GROUPS.forEach(g=>{
-      const items = rows.filter(r=>r.category===g.key);
-      if(!items.length) return;
-      shown++;
-      html += `<div class="section ${g.consti?"consti":(g.w9?"w9":"")}">
-        <div class="sh"><span class="bar"></span><span class="st">${esc(g.label)}</span>
-          <span class="sc">${items.length}</span></div>
-        <div class="cards">` + items.map(cardHtml).join("") + `</div></div>`;
+    document.addEventListener('DOMContentLoaded', () => {
+      window.dealroomAuth.guard({ onReady: gateThenBootstrap });
     });
-    if(!shown){
-      html = `<div class="state"><div class="big">No documents available</div>
-        <div>If your reviewer access is still being verified, the documents will populate once confirmed.</div></div>`;
-    }
-    $("docs").innerHTML = html;
-  }
 
-  async function loadDocs(){
-    try{
-      const reg = await sb.from("lovr_artefact_registry")
-        .select("artefact_id,doc_code,title,summary,category,content_source,version_label,display_order,status")
-        .eq("status","active").order("display_order",{ascending:true});
-      if(reg.error) throw reg.error;
-      render(reg.data||[]);
-    }catch(err){
-      $("docs").innerHTML = `<div class="state"><div class="big">Unable to load documents</div>
-        <div>${esc(err.message||"Error")}. If your reviewer access is still being verified, the documents will appear once confirmed.</div></div>`;
+    // AMD-156 §2C — run the clickwrap terms gate after auth resolves, before the
+    // workspace renders. The Director is an administrator, not a counterparty, so
+    // bypasses the gate and is never recorded as an acceptance. The gate module
+    // surfaces the §2D cookie-consent strip once acceptance is confirmed.
+    // Reviewers already passed the room's entry acknowledgement gate; no counterparty
+    // clickwrap here. Straight to bootstrap.
+    function gateThenBootstrap(session) {
+      bootstrap(session);
     }
-  }
 
-  window.LOVR.guard(loadDocs);
-})();
-</script>
+    async function bootstrap(session) {
+      SESSION = session;
+      mountShell();
+      await loadCatalog();
+      await loadSavedConversations();
+      render();
+
+      // Initialise Eileen drawer once auth is resolved and CLID is known.
+      // The reviewer adapter always supplies the synthetic clid; this is the fallback.
+      const targetClid = SESSION.clid || (SESSION.is_director ? 'rnd-sim-2026-001' : null);
+      if (targetClid && window.dealroomEileen) {
+        window.dealroomEileen.init({
+          clid: targetClid,
+          counterparty_name: SESSION.counterparty_name || '',
+        });
+      }
+
+      // Expose a refresh hook so the drawer's "Save conversation" success can
+      // re-render the Saved Conversations list on this page.
+      window.dealroomEileenRefreshSavedList = async () => {
+        await loadSavedConversations();
+        render();
+      };
+    }
+
+    async function loadCatalog() {
+      try {
+        if (SESSION.is_director && !SESSION.clid) {
+          // Director without a specific CLID — show all CLID 'rnd-sim-2026-001' as preview surface
+          DOCS = await window.dealroomApi.listCatalogDocuments('rnd-sim-2026-001');
+          UPLOADS = await window.dealroomApi.getLatestUploads('rnd-sim-2026-001');
+        } else {
+          DOCS = await window.dealroomApi.listCatalogDocuments(SESSION.clid);
+          UPLOADS = await window.dealroomApi.getLatestUploads(SESSION.clid);
+        }
+      } catch (e) {
+        console.error('[documents] catalog load error:', e);
+        DOCS = [];
+        UPLOADS = {};
+      }
+    }
+
+    async function loadSavedConversations() {
+      try {
+        const targetClid = SESSION.clid || (SESSION.is_director ? 'rnd-sim-2026-001' : null);
+        if (!targetClid) {
+          SAVED_CONVERSATIONS = [];
+          return;
+        }
+        SAVED_CONVERSATIONS = await window.dealroomApi.listConversations(targetClid);
+      } catch (e) {
+        console.error('[documents] saved-conversations load error:', e);
+        SAVED_CONVERSATIONS = [];
+      }
+    }
+
+    function mountShell() {
+      const counterparty = SESSION.counterparty_name || 'Partner';
+      const userEmail = SESSION.user?.email || '';
+      const contactName = SESSION.contact?.full_name || '';
+      const phase = SESSION.gate_state || 'phase_0';
+      const phaseChip = `<span class="dr-chip dr-chip-${phase}">${esc(phase.replace('phase_', 'Phase '))}</span>`;
+
+      document.getElementById('drApp').innerHTML = `
+        <div class="dr-shell">
+          <header class="dr-header">
+            <div class="dr-header-brand">
+              <div class="dr-header-brand-mark">AL</div>
+              <div>
+                <div class="dr-header-title">Ailane × ${esc(counterparty)}</div>
+                <div class="dr-header-subtitle">Deal-Room · ${esc(PHASE_LABEL[phase] || phase)}</div>
+              </div>
+            </div>
+            <div class="dr-header-meta">
+              ${phaseChip}
+              <div class="dr-header-user">
+                <div class="dr-header-user-name">${esc(contactName || userEmail)}</div>
+                <div class="dr-header-user-email">${esc(userEmail)}</div>
+              </div>
+              <button id="drSignOutBtn" class="dr-btn dr-btn-ghost dr-btn-sm">Sign out</button>
+            </div>
+          </header>
+
+          <nav class="dr-nav">
+            <a href="../" class="dr-nav-link">&larr; Experience</a>
+            <a href="../documents/" class="dr-nav-link active">Deal Documents</a>
+            <a href="../deal-creator/" class="dr-nav-link">Deal Creator</a>
+            <a href="../status/" class="dr-nav-link">Engagement Status</a>
+            <a href="../pathway/" class="dr-nav-link">Pathway</a>
+            <a href="/legal-oversight/#vault" class="dr-nav-link">Document Vault</a>
+          </nav>
+
+          <main class="dr-main">
+            <div class="dr-page-header">
+              <div class="dr-page-title">Deal Documents</div>
+              <div class="dr-page-subtitle"><strong>Demonstration — synthetic counterparty (${esc(counterparty)}).</strong> The deal documents a counterparty is presented with, plus their upload requirements (shown read-only). Phase-gated documents indicate where they unlock as the engagement advances. Regulatory intelligence, not legal advice.</div>
+            </div>
+
+            <div id="drNotice"></div>
+            <div id="drDocList"></div>
+          </main>
+
+          <footer class="dr-footer">
+            <div class="dr-footer-strong">AI Lane Limited (trading as Ailane)</div>
+            Company No. 17035654 · ICO Reg. 00013389720 · UK Trademark UK00004347220
+            <div class="dr-footer-legal">
+              <a href="/legal/deal-room-privacy/">Privacy Notice &amp; Workspace Terms</a><br>
+              <strong>Ailane&reg;</strong> is a registered trademark of AI Lane Limited. Regulatory intelligence, not legal advice.<br>
+              Operated by AI Lane Limited (Co. 17035654 · ICO 00013389720).
+            </div>
+          </footer>
+        </div>
+        <div id="drModalRoot"></div>
+      `;
+
+      document.getElementById('drSignOutBtn').addEventListener('click', async () => {
+        await window.dealroomAuth.signOut();
+        window.location.reload();
+      });
+    }
+
+    function render() {
+      const noticeEl = document.getElementById('drNotice');
+      const listEl = document.getElementById('drDocList');
+
+      if (!DOCS.length) {
+        listEl.innerHTML = `<div class="dr-empty">No documents catalogued for this workspace yet.</div>`;
+        return;
+      }
+
+      // Group: releases first, then requirements. Within each, group by phase.
+      const releases = DOCS.filter(d => d.kind === 'release');
+      const requirements = DOCS.filter(d => d.kind === 'requirement');
+
+      let html = '';
+
+      // ----- Saved Conversations (AMD-145 §3.6 / AMD-146 — counterparty-named) -----
+      html += renderSavedConversations();
+
+      // ----- Releases section -----
+      if (releases.length) {
+        const grouped = groupByPhase(releases);
+        html += renderSectionHeader('Releases', 'Documents Ailane delivers to you. Click any unlocked document to preview inline; download for your records.');
+        for (const phase of Object.keys(grouped)) {
+          html += renderPhaseGroup(phase, grouped[phase], 'release');
+        }
+      }
+
+      // ----- Requirements section -----
+      if (requirements.length) {
+        html += renderSectionHeader('Counterparty requirements', 'Documents you upload. Status reflects the latest version received.');
+        const groupedReq = groupByPhase(requirements);
+        for (const phase of Object.keys(groupedReq)) {
+          html += renderPhaseGroup(phase, groupedReq[phase], 'requirement');
+        }
+      }
+
+      listEl.innerHTML = html;
+      attachCardHandlers();
+
+      // Top-of-page notice for blocking phase advancement
+      const blockers = requirements.filter(d => d.is_blocking_phase_advance && (UPLOADS[d.document_id]?.status !== 'accepted'));
+      if (blockers.length && !SESSION.is_director) {
+        noticeEl.innerHTML = `<div class="dr-notice dr-notice-warning">
+          <strong>${blockers.length}</strong> outstanding upload${blockers.length === 1 ? '' : 's'} blocking phase advancement.
+        </div>`;
+      } else {
+        noticeEl.innerHTML = '';
+      }
+    }
+
+    function renderSectionHeader(title, subtitle) {
+      return `
+        <div style="margin: 32px 0 16px;">
+          <div style="font-size:18px; font-weight:600; color:var(--dr-text-primary); margin-bottom:4px;">${esc(title)}</div>
+          <div style="font-size:13px; color:var(--dr-text-secondary);">${esc(subtitle)}</div>
+        </div>
+      `;
+    }
+
+    function renderSavedConversations() {
+      const list = SAVED_CONVERSATIONS;
+      const subtitle = list.length
+        ? 'Conversations you have saved with Eileen. Open one to continue where you left off.'
+        : 'Conversations you save with Eileen will appear here. Use the "Ask Eileen" button on any document, or the floating prompt, to begin.';
+
+      let items = '';
+      if (!list.length) {
+        items = `<div class="dr-savedconv-empty">No saved conversations yet.</div>`;
+      } else {
+        items = `<div class="dr-savedconv-list">` + list.map((c) => {
+          const updated = c.updated_at ? new Date(c.updated_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+          const msgCount = c.message_count != null ? `${c.message_count} message${c.message_count === 1 ? '' : 's'}` : '';
+          const metaRow = [msgCount, updated].filter(Boolean).join(' · ');
+          return `
+            <div class="dr-savedconv-item">
+              <div class="dr-savedconv-meta" data-conv-open data-conv-id="${esc(c.conversation_id)}" role="button" tabindex="0">
+                <div class="dr-savedconv-meta-name">${esc(c.conversation_name)}</div>
+                <div class="dr-savedconv-meta-row">${esc(metaRow)}</div>
+              </div>
+              <div class="dr-savedconv-actions">
+                <button class="dr-btn dr-btn-ghost dr-btn-sm" data-conv-delete data-conv-id="${esc(c.conversation_id)}" aria-label="Delete conversation">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('') + `</div>`;
+      }
+
+      return `
+        <section class="dr-savedconv-section">
+          <div class="dr-savedconv-header">
+            <div>
+              <div class="dr-savedconv-title">Saved conversations</div>
+              <div class="dr-savedconv-subtitle">${esc(subtitle)}</div>
+            </div>
+          </div>
+          ${items}
+        </section>
+      `;
+    }
+
+    function groupByPhase(docs) {
+      const out = {};
+      const order = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f', 'all_phases'];
+      for (const p of order) {
+        const filtered = docs.filter(d => (d.available_from_phase || 'phase_0') === p);
+        if (filtered.length) out[p] = filtered;
+      }
+      return out;
+    }
+
+    function renderPhaseGroup(phase, docs, kind) {
+      const unlocked = isPhaseUnlocked(SESSION.gate_state, phase);
+      const phaseChip = `<span class="dr-chip dr-chip-${phase}">${esc(phase.replace('phase_', 'Phase ').replace('_', ' '))}</span>`;
+      const lockMeta = unlocked ? '' : `<span style="color:var(--dr-text-muted); font-size:12px;">Locked — unlocks at ${esc(PHASE_LABEL[phase] || phase)}</span>`;
+
+      let html = `
+        <div style="margin-top: 18px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            ${phaseChip}
+            ${lockMeta}
+          </div>
+          <div class="dr-doc-grid">
+      `;
+
+      for (const doc of docs) {
+        html += renderDocCard(doc, unlocked, kind);
+      }
+
+      html += `</div></div>`;
+      return html;
+    }
+
+    function renderDocCard(doc, unlocked, kind) {
+      const sizeText = doc.file_size_bytes
+        ? formatBytes(doc.file_size_bytes)
+        : (doc.kind === 'requirement' ? 'Awaiting upload' : 'Pending publication');
+
+      const versionText = doc.version_label
+        ? `<span style="color:var(--dr-text-muted);">${esc(doc.version_label)}</span>`
+        : '';
+
+      const codeText = doc.doc_code
+        ? `<div class="dr-doc-card-code">${esc(doc.doc_code)}</div>`
+        : '';
+
+      let actions = '';
+      if (kind === 'release') {
+        if (!unlocked && !SESSION.is_director) {
+          actions = `<button class="dr-btn dr-btn-secondary dr-btn-sm" disabled>Locked</button>`;
+        } else if (!doc.storage_path) {
+          actions = `<button class="dr-btn dr-btn-secondary dr-btn-sm" disabled>Pending publication</button>`;
+        } else {
+          actions = `
+            <button class="dr-btn dr-btn-primary dr-btn-sm" data-action="preview" data-doc="${esc(doc.document_id)}">Preview</button>
+            <button class="dr-btn dr-btn-secondary dr-btn-sm" data-action="download" data-doc="${esc(doc.document_id)}">Download</button>
+          `;
+        }
+      } else if (kind === 'requirement') {
+        // Read-only observation: counterparty upload requirements are INDICATED,
+        // never enforced or writable in this synthetic room (§3.1.5).
+        const upload = UPLOADS[doc.document_id];
+        if (upload) {
+          const chipClass = upload.status === 'accepted' ? 'uploaded' : (upload.status === 'rejected' ? 'rejected' : 'pending');
+          actions = `<span class="dr-chip dr-chip-status-${chipClass}">${esc(upload.status)}</span>
+            <span class="dr-chip">Counterparty upload — indicator</span>`;
+        } else if (!unlocked) {
+          actions = `<span class="dr-chip">Counterparty upload — unlocks at ${esc(PHASE_LABEL[doc.available_from_phase] || doc.available_from_phase || 'a later phase')}</span>`;
+        } else {
+          actions = `<span class="dr-chip">Counterparty upload — awaited</span>`;
+        }
+      }
+
+      return `
+        <article class="dr-doc-card">
+          <div class="dr-doc-card-header">
+            <div class="dr-doc-card-title">${esc(doc.name)}</div>
+          </div>
+          ${codeText}
+          <div class="dr-doc-card-description">${esc(doc.description || '—')}</div>
+          <div class="dr-doc-card-meta">
+            <span>${sizeText}</span>
+            ${versionText}
+          </div>
+          <div class="dr-doc-card-actions">${actions}</div>
+          <button class="dr-askeileen-link" data-action="ask-eileen" data-doc="${esc(doc.document_id)}">Ask Eileen about this</button>
+        </article>
+      `;
+    }
+
+    function attachCardHandlers() {
+      document.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const action = btn.getAttribute('data-action');
+          const docId = btn.getAttribute('data-doc');
+          if (action === 'preview') return openPreview(docId);
+          if (action === 'download') return triggerDownload(docId);
+          if (action === 'upload') return openUploadModal(docId);
+          if (action === 'ask-eileen') return openEileenForDoc(docId);
+        });
+      });
+
+      // AMD-145 §3.6 / AMD-146 — saved-conversation row handlers
+      document.querySelectorAll('[data-conv-open]').forEach((el) => {
+        el.addEventListener('click', () => openSavedConversation(el.getAttribute('data-conv-id')));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openSavedConversation(el.getAttribute('data-conv-id'));
+          }
+        });
+      });
+      document.querySelectorAll('[data-conv-delete]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteSavedConversation(btn.getAttribute('data-conv-id'));
+        });
+      });
+    }
+
+    // ---------- AMD-145 §3.6 / AMD-146 — Eileen integration ----------
+    function openEileenForDoc(documentId) {
+      if (!window.dealroomEileen) {
+        console.warn('[documents] Eileen panel not initialised');
+        return;
+      }
+      const doc = DOCS.find(d => d.document_id === documentId);
+      if (!doc) return;
+      window.dealroomEileen.open({
+        document_context: {
+          doc_code: doc.doc_code,
+          name: doc.name,
+          kind: doc.kind,
+        },
+      });
+    }
+
+    async function openSavedConversation(conversationId) {
+      if (!window.dealroomEileen) return;
+      try {
+        const conv = await window.dealroomApi.fetchConversation(conversationId);
+        if (!conv) {
+          alert('Conversation not found.');
+          return;
+        }
+        window.dealroomEileen.open({
+          restore: {
+            conversation_id: conv.conversation_id,
+            eileen_session_id: conv.eileen_session_id,
+            messages: Array.isArray(conv.messages) ? conv.messages : [],
+          },
+        });
+      } catch (e) {
+        console.error('[documents] fetch saved conversation failed:', e);
+        alert('Could not open conversation: ' + (e?.message || 'Unknown error'));
+      }
+    }
+
+    async function deleteSavedConversation(conversationId) {
+      const conv = SAVED_CONVERSATIONS.find(c => c.conversation_id === conversationId);
+      const label = conv ? conv.conversation_name : 'this conversation';
+      if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+      try {
+        await window.dealroomApi.softDeleteConversation(conversationId);
+        await loadSavedConversations();
+        render();
+      } catch (e) {
+        console.error('[documents] delete saved conversation failed:', e);
+        alert('Delete failed: ' + (e?.message || 'Unknown error'));
+      }
+    }
+
+    // ---------- Preview modal ----------
+    async function openPreview(documentId) {
+      const doc = DOCS.find(d => d.document_id === documentId);
+      if (!doc) return;
+      const root = document.getElementById('drModalRoot');
+      const targetClid = SESSION.clid || (SESSION.is_director ? 'rnd-sim-2026-001' : null);
+      root.innerHTML = `
+        <div class="dr-modal-backdrop" id="drModalBackdrop">
+          <div class="dr-modal" onclick="event.stopPropagation()">
+            <div class="dr-modal-header">
+              <div>
+                <div class="dr-modal-title">${esc(doc.name)}</div>
+                <div class="dr-modal-meta">${esc(doc.version_label || '')} ${doc.file_size_bytes ? '· ' + formatBytes(doc.file_size_bytes) : ''}</div>
+              </div>
+              <button class="dr-btn dr-btn-ghost dr-btn-sm" id="drModalClose">Close ✕</button>
+            </div>
+            <div class="dr-modal-body">
+              <div class="dr-pdf-viewer" id="drPdfViewer">
+                <div class="dr-loading"><span class="dr-spinner"></span> Generating signed URL…</div>
+              </div>
+            </div>
+            <div class="dr-modal-footer">
+              <button class="dr-btn dr-btn-secondary" id="drModalDownload">Download</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('drModalClose').addEventListener('click', closeModal);
+      document.getElementById('drModalBackdrop').addEventListener('click', closeModal);
+      document.getElementById('drModalDownload').addEventListener('click', () => triggerDownload(documentId));
+
+      try {
+        const result = await window.dealroomApi.fetchDocumentSignedUrl({
+          clid: targetClid,
+          catalog_document_id: documentId,
+          action: 'preview',
+        });
+        document.getElementById('drPdfViewer').innerHTML = `
+          <iframe src="${esc(result.signed_url)}" title="PDF preview" allowfullscreen></iframe>
+        `;
+      } catch (e) {
+        document.getElementById('drPdfViewer').innerHTML = `
+          <div style="padding:32px; text-align:center;">
+            <div class="dr-notice dr-notice-danger" style="text-align:left;">
+              <strong>Preview not available.</strong><br>
+              ${esc(e.message || 'Unknown error')}<br>
+              ${e.detail ? esc(e.detail) : ''}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('drModalRoot').innerHTML = '';
+    }
+
+    // ---------- Download ----------
+    async function triggerDownload(documentId) {
+      const targetClid = SESSION.clid || (SESSION.is_director ? 'rnd-sim-2026-001' : null);
+      try {
+        const result = await window.dealroomApi.fetchDocumentSignedUrl({
+          clid: targetClid,
+          catalog_document_id: documentId,
+          action: 'download',
+        });
+        // Trigger browser download
+        const a = document.createElement('a');
+        a.href = result.signed_url;
+        a.download = result.filename || 'document.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (e) {
+        alert('Download failed: ' + (e.message || 'Unknown error') + (e.detail ? '\n' + e.detail : ''));
+      }
+    }
+
+    // ---------- Upload modal (counterparty requirements) ----------
+    function openUploadModal(documentId) {
+      const doc = DOCS.find(d => d.document_id === documentId);
+      if (!doc) return;
+      const root = document.getElementById('drModalRoot');
+      root.innerHTML = `
+        <div class="dr-modal-backdrop" id="drModalBackdrop">
+          <div class="dr-modal" style="max-width:560px;" onclick="event.stopPropagation()">
+            <div class="dr-modal-header">
+              <div>
+                <div class="dr-modal-title">Upload — ${esc(doc.name)}</div>
+                <div class="dr-modal-meta">PDF / DOCX / DOC / TXT · max 50 MB</div>
+              </div>
+              <button class="dr-btn dr-btn-ghost dr-btn-sm" id="drModalClose">Close ✕</button>
+            </div>
+            <div class="dr-modal-body">
+              <p style="font-size:13.5px; color:var(--dr-text-secondary); margin-bottom:18px;">${esc(doc.description || '')}</p>
+              <div class="dr-form-group">
+                <label class="dr-label">Select file</label>
+                <input type="file" id="drFileInput" class="dr-input" accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+              </div>
+              <div id="drUploadStatus"></div>
+            </div>
+            <div class="dr-modal-footer">
+              <button class="dr-btn dr-btn-ghost" id="drUploadCancel">Cancel</button>
+              <button class="dr-btn dr-btn-primary" id="drUploadSubmit">Upload</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('drModalClose').addEventListener('click', closeModal);
+      document.getElementById('drModalBackdrop').addEventListener('click', closeModal);
+      document.getElementById('drUploadCancel').addEventListener('click', closeModal);
+      document.getElementById('drUploadSubmit').addEventListener('click', () => performUpload(documentId));
+    }
+
+    async function performUpload(documentId) {
+      const fileInput = document.getElementById('drFileInput');
+      const status = document.getElementById('drUploadStatus');
+      const file = fileInput.files[0];
+      if (!file) {
+        status.innerHTML = `<div class="dr-notice dr-notice-warning">Select a file first.</div>`;
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        status.innerHTML = `<div class="dr-notice dr-notice-danger">File exceeds 50 MB cap.</div>`;
+        return;
+      }
+
+      status.innerHTML = `<div class="dr-notice dr-notice-info"><span class="dr-spinner"></span> Uploading…</div>`;
+
+      const { data: { session } } = await window.dealroomSupabase.auth.getSession();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('document_id', documentId);
+      formData.append('clid', SESSION.clid);
+
+      try {
+        const response = await fetch(`${window.dealroomConfig.SUPABASE_URL}/functions/v1/dealroom-document-upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': window.dealroomConfig.SUPABASE_ANON_KEY,
+          },
+          body: formData,
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
+
+        status.innerHTML = `<div class="dr-notice dr-notice-success">Upload received. Status: <strong>${esc(payload.status || 'pending review')}</strong>.</div>`;
+        setTimeout(async () => {
+          closeModal();
+          await loadCatalog();
+          render();
+        }, 1200);
+      } catch (e) {
+        status.innerHTML = `<div class="dr-notice dr-notice-danger">Upload failed: ${esc(e.message || 'Unknown error')}</div>`;
+      }
+    }
+
+    // ---------- Utilities ----------
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+  </script>
 </body>
 </html>
