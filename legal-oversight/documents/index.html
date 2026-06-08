@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Documents · Legal Oversight Document Room · Ailane</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co; img-src 'self' data: https://cnbsxwtvazfvzmltkuvx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+
+<!-- Google Analytics 4 (G-NTNXWZN31C) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C', { anonymize_ip: true });
+</script>
+<link rel="stylesheet" href="/legal-oversight/shared/lovr-room.css" />
+</head>
+<body style="visibility:hidden">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="nexus" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="11" fill="none" stroke="#0EA5E9" stroke-width="1.2" opacity=".55"/>
+    <line x1="20" y1="20" x2="31" y2="11" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="9"  y2="13" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="28" y2="31" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <circle cx="31" cy="11" r="1.8" fill="#0EA5E9"/>
+    <circle cx="9"  cy="13" r="1.8" fill="#0EA5E9"/>
+    <circle cx="28" cy="31" r="1.8" fill="#0EA5E9"/>
+    <circle cx="20" cy="20" r="4.4" fill="#F59E0B"/>
+  </symbol>
+</svg>
+
+<header class="topbar"><div class="wrap"><div class="row">
+  <a class="brand" href="/legal-oversight/">
+    <svg width="26" height="26"><use href="#nexus"/></svg>
+    <span class="name">Ailane</span><span class="sub">Legal Oversight Document Room</span></a>
+  <div class="spacer"></div>
+  <div class="who"><span class="email" id="who-email"></span>
+    <button class="btn sm ghost" id="signout">Sign out</button></div>
+</div></div></header>
+
+<nav class="crumbbar"><div class="wrap"><div class="row">
+  <a class="crumb" href="/legal-oversight/"><span class="arrow">&larr;</span> Back to the Vault</a>
+  <span class="crumb-here">Documents</span>
+</div></div></nav>
+
+<div class="wrap"><div class="page">
+  <section class="context" style="border:none;background:none"><div class="row" style="padding:6px 0 18px">
+    <div class="eyebrow">Walkthrough view</div>
+    <h1>Documents</h1>
+    <p>Every artefact released into this room, grouped as it appears in the Vault. This is the walkthrough list; the Vault on the room hub remains the authoritative register and capture surface. Open any document to read it inline or download the authoritative file. Regulatory intelligence, not legal advice.</p>
+  </div></section>
+  <div id="docs"><div class="state"><span class="spin"></span>Loading documents…</div></div>
+</div></div>
+
+<div class="scrim" id="scrim" onclick="LOVR.closeViewer()"></div>
+<aside class="viewer" id="viewer" aria-hidden="true">
+  <div class="vbar">
+    <svg width="30" height="30" aria-hidden="true"><use href="#nexus"/></svg>
+    <div style="flex:1;min-width:0">
+      <div class="vt" id="v-title">—</div>
+      <div class="vm" id="v-meta"></div>
+    </div>
+    <button class="btn ghost sm" onclick="LOVR.closeViewer()" aria-label="Close">Close ✕</button>
+  </div>
+  <div class="vbody" id="v-body"></div>
+  <div class="vactions" id="v-actions"></div>
+  <div class="disclaimer">This material is provided for professional review under the Reviewer Access Agreement. It is regulatory intelligence, not legal advice, and is confidential to AI Lane Limited.</div>
+</aside>
+
+<footer><div class="wrap"><div class="row">
+  <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+  <span>Governed by AILANE-AMD-REG-001. Confidential. Provided to verified reviewers under the Reviewer Access Agreement. Regulatory intelligence, not legal advice.</span>
+</div></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="/legal-oversight/shared/lovr-shared.js"></script>
+<script>
+(function(){
+  "use strict";
+  const { sb, esc, $, SOURCE_CHIP } = window.LOVR;
+
+  // Vault grouping — Constitutional-led order (Option B). Mirrors the hub.
+  const GROUPS = [
+    { key:"constitutional",         label:"Constitutional & founding documents", consti:true },
+    { key:"baseline",               label:"Baseline compliance instruments" },
+    { key:"w9a",                    label:"W9(a) — Anonymisation sufficiency", w9:true },
+    { key:"w9b",                    label:"W9(b) — Article 14 transparency", w9:true },
+    { key:"w9c",                    label:"W9(c) — Computational-analysis licence", w9:true },
+    { key:"room-instrument",        label:"Room instruments" },
+    { key:"commercial-instruments", label:"Commercial & data-processing instruments" },
+    { key:"public-facing",          label:"Public-facing documents" },
+  ];
+
+  function cardHtml(r){
+    const isDoc = r.content_source==="storage";
+    const isUrl = r.content_source==="live-url"||r.content_source==="external-url";
+    const verb = isUrl ? "Open page" : "Open";
+    let actions = `<button class="btn gold sm" onclick="LOVR.openArtefact('${r.artefact_id}','preview')">${verb}</button>`;
+    if(isDoc) actions += `<button class="btn sm" onclick="LOVR.openArtefact('${r.artefact_id}','download')">Download</button>`;
+    return `<div class="card">
+      <div class="ct">${esc(r.title)}</div>
+      <div class="cd">${esc(r.summary||"")}</div>
+      <div class="cf">
+        <span class="chip">${esc(SOURCE_CHIP[r.content_source]||r.content_source)}${r.version_label?` · <span class="vd">${esc(r.version_label)}</span>`:""}</span>
+        <span class="actions">${actions}</span>
+      </div></div>`;
+  }
+
+  function render(rows){
+    let html = "", shown = 0;
+    GROUPS.forEach(g=>{
+      const items = rows.filter(r=>r.category===g.key);
+      if(!items.length) return;
+      shown++;
+      html += `<div class="section ${g.consti?"consti":(g.w9?"w9":"")}">
+        <div class="sh"><span class="bar"></span><span class="st">${esc(g.label)}</span>
+          <span class="sc">${items.length}</span></div>
+        <div class="cards">` + items.map(cardHtml).join("") + `</div></div>`;
+    });
+    if(!shown){
+      html = `<div class="state"><div class="big">No documents available</div>
+        <div>If your reviewer access is still being verified, the documents will populate once confirmed.</div></div>`;
+    }
+    $("docs").innerHTML = html;
+  }
+
+  async function loadDocs(){
+    try{
+      const reg = await sb.from("lovr_artefact_registry")
+        .select("artefact_id,doc_code,title,summary,category,content_source,version_label,display_order,status")
+        .eq("status","active").order("display_order",{ascending:true});
+      if(reg.error) throw reg.error;
+      render(reg.data||[]);
+    }catch(err){
+      $("docs").innerHTML = `<div class="state"><div class="big">Unable to load documents</div>
+        <div>${esc(err.message||"Error")}. If your reviewer access is still being verified, the documents will appear once confirmed.</div></div>`;
+    }
+  }
+
+  window.LOVR.guard(loadDocs);
+})();
+</script>
+</body>
+</html>
