@@ -120,6 +120,12 @@ Deno.serve(async (req) => {
   const findingId = `cohort-research-${entity.alin || entity.id}-${Date.now()}`;
   const { error: insErr } = await sb.from("research_finding_register").insert({
     finding_id: findingId,
+    // research_finding_register has NOT-NULL columns without defaults — these four are required
+    // (mirrors the deployed v2 fix; their absence was failing the insert silently).
+    deliverable_ref: "AILANE-CC-BRIEF-CEO-DASH-IA-FOLLOWON-001",
+    deliverable_version: "v1.2",
+    deliverable_section: "cohort_research:" + (entity.alin || entity.id),
+    evidence_fetched_at: new Date().toISOString(),
     finding_type: "cohort_research_dossier",
     finding_text: dossier.headline || ("Cohort research — " + (entity.company_name || entity.alin)),
     evidence_tier: entity.evidence_tier || "tier_3_derived",
