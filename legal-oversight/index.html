@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
-<title>Legal Oversight &amp; Vault Room · Ailane</title>
+<title>Legal Oversight Room · Ailane</title>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co; img-src 'self' data: https://cnbsxwtvazfvzmltkuvx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 
 <!-- Google Analytics 4 (G-NTNXWZN31C) -->
@@ -78,6 +78,30 @@
   .nav-card .nt{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text)}
   .nav-card .nd{font-size:12.5px;color:var(--muted);line-height:1.5;flex:1}
   .nav-card .nm{font-family:var(--mono);font-size:11px;color:var(--muted-2);letter-spacing:.03em}
+
+  /* Single portal card into the synthetic Counterparty Deal-Room Experience */
+  .portal-card{display:flex;align-items:center;gap:18px;border:1px solid rgba(245,158,11,.4);border-radius:var(--radius);
+    background:linear-gradient(180deg,var(--gold-soft),transparent),var(--panel);padding:20px 22px;text-decoration:none;color:var(--text);
+    transition:border-color .18s,transform .18s,box-shadow .18s}
+  .portal-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 14px 30px rgba(245,158,11,.12);text-decoration:none}
+  .portal-card .ico{width:42px;height:42px;flex:none;border-radius:11px;background:var(--gold-soft);border:1px solid rgba(245,158,11,.4);
+    color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:20px}
+  .portal-card .pc-body{flex:1;min-width:0}
+  .portal-card .pc-t{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--text)}
+  .portal-card .pc-d{font-size:13px;color:var(--muted);line-height:1.5;margin-top:3px}
+  .portal-card .pc-go{flex:none;color:var(--gold);font-weight:600;font-size:13.5px;white-space:nowrap}
+  @media (max-width:560px){.portal-card{flex-wrap:wrap}.portal-card .pc-go{width:100%}}
+
+  /* Director-bypass note + entry acknowledgement gate */
+  .dir-note{margin:0 2px 16px;padding:9px 13px;border:1px solid rgba(14,165,233,.3);background:var(--cyan-soft);
+    border-radius:var(--radius-sm);color:var(--cyan);font-size:12.5px}
+  .gate-read{height:52vh;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--ink)}
+  .gate-read iframe{width:100%;height:100%;border:0;display:block}
+  .gate-act{margin:12px 2px 4px}
+  .ackrow{margin:-2px 0 2px}
+  .ackbadge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .ackbadge.ok{color:var(--green);background:var(--green-soft);border:1px solid rgba(52,211,153,.3)}
+  .ackbadge.req{color:var(--gold);background:var(--gold-soft);border:1px solid rgba(245,158,11,.3)}
 
   .main{display:grid;grid-template-columns:340px 1fr;gap:26px;padding:26px 0 60px;align-items:start}
   @media (max-width:980px){.main{grid-template-columns:1fr}}
@@ -368,19 +392,26 @@
 
   // Room state — the authed landing surface IS the Vault hub (no tab bar).
   let roomMounted = false, vaultCache = null;
+  // Acknowledgement-gate state (§3.4).
+  let currentEmail = "", directorBypass = false, ackState = {}, gateInstruments = [], gateConfirmed = {};
+  const INSTRUMENTS = ["AILANE-LOVR-PRIVACY-001","AILANE-LOVR-RAA-001"];
+  const sameInstant = (a,b)=> a!=null && b!=null && new Date(a).getTime()===new Date(b).getTime();
+  const fmtDate = (s)=>{ try{ return new Date(s).toLocaleDateString("en-GB",{year:"numeric",month:"short",day:"numeric"}); }catch(_e){ return ""; } };
   // Ask Eileen chat — full conversation kept in-memory only (no localStorage/sessionStorage).
   let eileenMessages = [], eileenBusy = false, eileenError = null;
 
   // Vault grouping — Constitutional-led order (§4 Option B / §7-D2). The
   // 'constitutional' category is created by the Option B migration; until those
   // rows are re-categorised the group is simply empty and skipped by renderVault.
+  // Vault grouping (§3.1.3) — the two relationship instruments lead the vault as
+  // "Reviewer Access & Privacy" (room-instrument), then the established order.
   const GROUPS = [
+    { key:"room-instrument",         label:"Reviewer Access & Privacy", w9:false },
     { key:"constitutional",          label:"Constitutional & founding documents", w9:false, consti:true },
     { key:"baseline",                label:"Baseline compliance instruments", w9:false },
     { key:"w9a",                     label:"W9(a) — Anonymisation sufficiency", w9:true },
     { key:"w9b",                     label:"W9(b) — Article 14 transparency", w9:true },
     { key:"w9c",                     label:"W9(c) — Computational-analysis licence", w9:true },
-    { key:"room-instrument",         label:"Room instruments", w9:false },
     { key:"commercial-instruments",  label:"Commercial & data-processing instruments", w9:false },
     { key:"public-facing",           label:"Public-facing documents", w9:false },
   ];
@@ -406,7 +437,7 @@
       <header class="topbar"><div class="wrap"><div class="row">
         <div class="brand"><svg width="26" height="26"><use href="#nexus"/></svg>
           <span class="name">Ailane</span>
-          <span class="sub">Legal Oversight &amp; Vault Room</span></div>
+          <span class="sub">Legal Oversight Room</span></div>
       </div></div></header>
       <div class="wrap"><div class="gate"><div class="signin">
         <div class="sh">
@@ -456,7 +487,7 @@
     $("app").innerHTML = `
       <header class="topbar"><div class="wrap"><div class="row">
         <div class="brand"><svg width="26" height="26"><use href="#nexus"/></svg>
-          <span class="name">Ailane</span><span class="sub">Legal Oversight &amp; Vault Room</span></div>
+          <span class="name">Ailane</span><span class="sub">Legal Oversight Room</span></div>
         <div class="spacer"></div>
         <div class="who"><span class="email">${esc(email)}</span>
           <button class="btn sm ghost" id="signout">Sign out</button></div>
@@ -472,9 +503,97 @@
   function showRoom(email){
     if(roomMounted) return;
     roomMounted = true;
+    currentEmail = email;
     shell(email);
-    renderVaultHub();
-    eileenReveal(true);
+    mountSurface();
+  }
+
+  // ── Entry acknowledgement gate (§3.4) — after auth, before the room ────────
+  async function isDirector(){
+    try{ const { data, error } = await sb.rpc("requester_is_director"); return !error && data===true; }
+    catch(_e){ return false; }
+  }
+  async function mountSurface(){
+    directorBypass = await isDirector();
+    if(directorBypass){ eileenReveal(true); renderVaultHub(); return; }
+    try{
+      const [iq, aq] = await Promise.all([
+        sb.from("lovr_artefact_registry").select("artefact_id,doc_code,title,summary,version_label,content_source,updated_at,display_order").in("doc_code",INSTRUMENTS).eq("status","active").order("display_order",{ascending:true}),
+        sb.from("lovr_instrument_acknowledgement").select("doc_code,artefact_updated_at,acknowledged_at")
+      ]);
+      if(iq.error) throw iq.error;
+      const instruments = iq.data||[], acks = aq.error?[]:(aq.data||[]);
+      const pending = instruments.filter(i=> !acks.some(a=> a.doc_code===i.doc_code && sameInstant(a.artefact_updated_at, i.updated_at)));
+      if(pending.length===0){ eileenReveal(true); renderVaultHub(); }
+      else { eileenReveal(false); renderEntryGate(instruments); }
+    }catch(err){
+      // Fail safe — never silently unlock the room.
+      eileenReveal(false);
+      $("surface").innerHTML = `<div class="wrap"><div class="page"><div class="state">
+        <div class="big">Entry instruments unavailable</div>
+        <div>${esc(err.message||"Error")}. Please refresh; if your reviewer access is still being verified, the room will open once confirmed.</div></div></div></div>`;
+    }
+  }
+  function renderEntryGate(instruments){
+    gateInstruments = instruments; gateConfirmed = {};
+    const blocks = instruments.map((inst,i)=>`
+      <section class="section" id="gi-${i}">
+        <div class="sh"><span class="bar"></span><span class="st">${esc(inst.title)}</span>
+          <span class="sc">${esc(inst.version_label||"")}</span></div>
+        <div class="gate-read" id="gr-${i}"><div class="vpad"><span class="spin"></span>Loading…</div></div>
+        <div class="gate-act" id="ga-${i}">
+          <button class="btn gold" data-ack="${i}">I confirm I have read and understood this document.</button>
+        </div>
+      </section>`).join("");
+    $("surface").innerHTML = `
+      <section class="context"><div class="wrap"><div class="row">
+        <div class="eyebrow">Entry — acknowledgement required</div>
+        <h1>Before you enter the Legal Oversight Room</h1>
+        <p>Please read both instruments below and confirm each. The rest of the room opens once both are acknowledged; these two instruments remain readable in the Document Vault at any time. Regulatory intelligence, not legal advice.</p>
+      </div></div></section>
+      <div class="wrap"><div class="page" id="gate">${blocks}</div></div>`;
+    instruments.forEach((inst,i)=> loadInstrumentInto(i, inst));
+    document.querySelectorAll("#gate button[data-ack]").forEach(b=>
+      b.addEventListener("click", ()=> confirmAck(parseInt(b.getAttribute("data-ack"),10))));
+  }
+  async function loadInstrumentInto(i, inst){
+    const box = $("gr-"+i); if(!box) return;
+    try{
+      const { data, error } = await sb.functions.invoke(RESOLVE_FN, { body:{ artefact_id:inst.artefact_id, action:"preview" } });
+      if(error) throw new Error(error.message||"resolve error");
+      if(data.content_mode==="inline"){ box.innerHTML = mdFrame(data.body_markdown); }
+      else if(data.content_mode==="signed_url"){ box.innerHTML = `<iframe class="docframe" src="${esc(data.signed_url)}" title="${esc(inst.title)}"></iframe>`; }
+      else { box.innerHTML = `<div class="vpad">${esc(data.detail||"This instrument is not currently displayable.")}</div>`; }
+    }catch(err){
+      box.innerHTML = `<div class="vpad">Unable to load this instrument (${esc(err.message||"error")}). Please refresh to try again.</div>`;
+    }
+  }
+  async function confirmAck(i){
+    const inst = gateInstruments[i]; if(!inst) return;
+    const ga = $("ga-"+i), btn = ga && ga.querySelector("button[data-ack]");
+    if(btn){ btn.disabled = true; btn.textContent = "Recording…"; }
+    try{
+      const { error } = await sb.from("lovr_instrument_acknowledgement").insert({
+        artefact_id: inst.artefact_id, doc_code: inst.doc_code,
+        version_label: inst.version_label, artefact_updated_at: inst.updated_at,
+        reviewer_identity_snapshot: { email: currentEmail }
+      });
+      if(error) throw error;
+      gateConfirmed[inst.doc_code] = true;
+      try{ gtag('event','lovr_instrument_acknowledged',{ doc_code:inst.doc_code }); }catch(_e){}
+      if(ga) ga.innerHTML = `<span class="ackbadge ok">Acknowledged &#10003;</span>`;
+      if(gateInstruments.every(x=> gateConfirmed[x.doc_code])){
+        vaultCache = null; ackState = {}; eileenReveal(true); renderVaultHub();
+      }
+    }catch(err){
+      if(btn){ btn.disabled = false; btn.textContent = "I confirm I have read and understood this document."; }
+      if(ga && !ga.querySelector(".ack-err")){
+        const e = document.createElement("div"); e.className = "ack-err";
+        e.style.cssText = "color:var(--red);font-size:12px;margin-top:8px";
+        e.textContent = "Could not record your acknowledgement ("+(err.message||"error")+"). Please try again.";
+        ga.appendChild(e);
+      }
+    }
   }
   function showGate(){
     roomMounted = false; vaultCache = null;
@@ -488,24 +607,25 @@
   // then the four-card nav grid (cards ABOVE the register, §7-D1), then the
   // document vault + W9 review checklist (loader behaviour unchanged).
   // ===========================================================================
-  function navGrid(){
-    const cards = [
-      ["documents","D","Documents","Every artefact in the room, grouped as in the Vault. Open inline or download.","Registry-driven · walkthrough view"],
-      ["deal-creator","C","Deal Creator","Compose the demonstration configuration and read its deterministic indicative envelope.","Synthetic demonstration · no live quote"],
-      ["status","S","Engagement Status","Phase and gate progression for the demonstration engagement.","Synthetic demonstration · read-only"],
-      ["pathway","P","Pathway","The engagement pathway summary and interactive diagram.","Phase by phase"]
-    ];
-    return `<div class="nav-grid">`+ cards.map(([slug,ico,t,d,m])=>
-      `<a class="nav-card" href="/legal-oversight/${esc(slug)}/">
-        <div class="ico">${esc(ico)}</div><div class="nt">${esc(t)}</div>
-        <div class="nd">${esc(d)}</div><div class="nm">${esc(m)}</div></a>`).join("") +`</div>`;
+  // One portal into the synthetic counterparty experience (§3.1.2). The four
+  // destinations are a menu INSIDE legal-oversight/deal-room/.
+  function portalCard(){
+    return `<a class="portal-card" href="/legal-oversight/deal-room/">
+      <div class="ico">&#9673;</div>
+      <div class="pc-body">
+        <div class="pc-t">Counterparty Deal-Room Experience</div>
+        <div class="pc-d">Walk the deal room a counterparty walks — documents, deal creator, engagement status and pathway, in synthetic demonstration.</div>
+      </div>
+      <div class="pc-go">Enter &rarr;</div></a>`;
   }
 
   function renderVaultHub(){
+    const dnote = directorBypass
+      ? `<div class="dir-note">Director view — acknowledgement gate not applied.</div>` : "";
     $("surface").innerHTML = `
       <section class="context"><div class="wrap"><div class="row">
         <div class="eyebrow">Reviewer workspace</div>
-        <h1>Legal Oversight Document Room</h1>
+        <h1>Legal Oversight Room</h1>
         <p>This room gives the reviewing solicitor the documents and the open questions for the descoped W9 review of Engine 2 (institutional data licensing). The room <b>captures</b> your review and sign-off; it does not certify. All material is regulatory intelligence, not legal advice.</p>
         <div class="pills">
           <span class="tag"><b>Entity</b> AI Lane Limited · 17035654</span>
@@ -515,25 +635,29 @@
         </div>
       </div></div></section>
       <div class="wrap">
-        <section class="navsec">${navGrid()}</section>
+        ${dnote}
+        <section class="navsec">${portalCard()}</section>
         <div class="main">
         <aside class="rail" id="rail"><div class="head"><div class="t">W9 review checklist</div>
           <div class="s"><span class="spin"></span>Loading…</div></div></aside>
-        <div class="vault" id="vault"><div class="state"><span class="spin"></span>Loading the document vault…</div></div>
+        <div class="vault" id="vault"><div class="state"><span class="spin"></span>Loading the Document Vault…</div></div>
       </div></div>`;
     loadVault();
+    if(location.hash==="#vault"){ setTimeout(()=>{ const el=$("vault"); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); }, 350); }
   }
 
   async function loadVault(){
-    if(vaultCache){ renderChecklist(vaultCache.chk); renderVault(vaultCache.reg); return; }
+    if(vaultCache){ ackState = vaultCache.ack||{}; renderChecklist(vaultCache.chk); renderVault(vaultCache.reg); return; }
     try{
-      const [reg, chk] = await Promise.all([
-        sb.from("lovr_artefact_registry").select("artefact_id,doc_code,title,summary,category,constitutional_domain,content_source,version_label,disclaimer_tier,display_order,status").eq("status","active").order("display_order",{ascending:true}),
-        sb.from("lovr_obligation_checklist").select("obligation_id,code,title,description,category,status,owner,display_order").order("display_order",{ascending:true})
+      const [reg, chk, ack] = await Promise.all([
+        sb.from("lovr_artefact_registry").select("artefact_id,doc_code,title,summary,category,constitutional_domain,content_source,version_label,disclaimer_tier,display_order,updated_at,status").eq("status","active").order("display_order",{ascending:true}),
+        sb.from("lovr_obligation_checklist").select("obligation_id,code,title,description,category,status,owner,display_order").order("display_order",{ascending:true}),
+        sb.from("lovr_instrument_acknowledgement").select("doc_code,artefact_updated_at,acknowledged_at")
       ]);
       if(reg.error) throw reg.error;
       const regRows = reg.data||[], chkRows = chk.error?[]:(chk.data||[]);
-      vaultCache = { reg: regRows, chk: chkRows };
+      ackState = buildAckState(regRows, ack.error?[]:(ack.data||[]));
+      vaultCache = { reg: regRows, chk: chkRows, ack: ackState };
       renderChecklist(chkRows);
       renderVault(regRows);
     }catch(err){
@@ -541,6 +665,16 @@
         <div>${esc(err.message||"Error")}. If your reviewer access is still being verified, it will appear here once confirmed.</div></div>`;
       $("rail").innerHTML = `<div class="head"><div class="t">W9 review checklist</div><div class="s">Unavailable</div></div>`;
     }
+  }
+  function buildAckState(regRows, ackRows){
+    const out = {};
+    INSTRUMENTS.forEach(code=>{
+      const rr = regRows.find(r=>r.doc_code===code); if(!rr) return;
+      const m = ackRows.filter(a=> a.doc_code===code && sameInstant(a.artefact_updated_at, rr.updated_at))
+                       .sort((a,b)=> new Date(b.acknowledged_at)-new Date(a.acknowledged_at));
+      if(m.length) out[code] = m[0];
+    });
+    return out;
   }
 
   // ===========================================================================
@@ -585,7 +719,7 @@
 
   function renderVault(rows){
     const total = rows.length;
-    let html = `<div class="vh"><div class="t">Document vault</div><div class="c">${total} artefacts</div></div>`;
+    let html = `<div class="vh"><div class="t">Document Vault</div><div class="c">${total} artefacts</div></div>`;
     let shown = 0;
     GROUPS.forEach(g=>{
       const items = rows.filter(r=>r.category===g.key);
@@ -610,9 +744,15 @@
     const verb = isUrl ? "Open page" : "Open";
     let actions = `<button class="btn gold sm" onclick="LOVR.open('${r.artefact_id}','preview')">${verb}</button>`;
     if(isDoc) actions += `<button class="btn sm" onclick="LOVR.open('${r.artefact_id}','download')">Download</button>`;
+    const ackChip = INSTRUMENTS.includes(r.doc_code)
+      ? (ackState[r.doc_code]
+          ? `<div class="ackrow"><span class="ackbadge ok">Acknowledged ${esc(fmtDate(ackState[r.doc_code].acknowledged_at))}</span></div>`
+          : `<div class="ackrow"><span class="ackbadge req">Acknowledgement required</span></div>`)
+      : "";
     return `<div class="card">
       <div class="ct">${esc(r.title)}</div>
       <div class="cd">${esc(r.summary||"")}</div>
+      ${ackChip}
       <div class="cf">
         <span class="chip">${esc(SOURCE_CHIP[r.content_source]||r.content_source)}${r.version_label?` · <span class="vd">${esc(r.version_label)}</span>`:""}</span>
         <span class="actions">${actions}</span>
