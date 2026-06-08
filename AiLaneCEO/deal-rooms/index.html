@@ -249,7 +249,11 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .orig-stage{font-family:var(--font-mono);font-size:0.52rem;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);white-space:nowrap;}
 .orig-stage.gated{background:var(--accent-purple-dim);color:var(--accent-purple);border-color:rgba(139,92,246,0.25);}
 .orig-act-d{font-size:0.66rem;color:var(--text-secondary);line-height:1.5;}
-.orig-btn{margin-top:10px;padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-muted);font-family:var(--font-body);font-size:0.7rem;font-weight:600;cursor:not-allowed;opacity:0.7;}
+.orig-btn{margin-top:10px;padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-secondary);font-family:var(--font-body);font-size:0.7rem;font-weight:600;cursor:pointer;}
+.orig-btn:disabled{color:var(--text-muted);opacity:0.65;cursor:not-allowed;}
+.orig-btn.live{color:var(--accent-cyan);border-color:var(--border-accent);background:var(--accent-cyan-dim);}
+.orig-btn.live:hover:not(:disabled){background:rgba(14,165,233,0.22);}
+.ent-row{cursor:pointer;transition:background 0.15s;}.ent-row:hover{background:var(--bg-hover);}.ent-row.sel{background:var(--bg-elevated);}
 .orig-note{margin-top:8px;font-size:0.58rem;color:var(--text-muted);line-height:1.5;font-style:italic;}
 @media(max-width:700px){.orig-actions{grid-template-columns:1fr;}}
 
@@ -331,11 +335,168 @@ function cohortStatus(f){
   return {cls:'',label:'populated'};
 }
 
+// Research dossier modal (reuses the page's .dm-* modal classes)
+function ResearchModal({ entity, res, onClose }){
+  useEffect(()=>{ const k=e=>{ if(e.key==='Escape') onClose(); }; document.addEventListener('keydown',k); return ()=>document.removeEventListener('keydown',k); },[]);
+  const secs=res.sections||{};
+  const labels=[['potential_fit','Counterparty potential & fit'],['synergies','Synergies & estate-benefit'],['prospects','Business prospects'],['forward_watch','Forward-event / M&A watch'],['best_fit_signal','Best-fit signal (observation, not advice)']];
+  return (
+    <div className="dm-overlay" onClick={onClose}>
+      <div className="dm-modal" onClick={e=>e.stopPropagation()}>
+        <div className="dm-head">
+          <div><div className="dm-title">Research dossier — {entity.company_name||entity.alin}</div><div className="dm-cap">{entity.cohort_family||''}{res.dossier_finding_id?' · '+res.dossier_finding_id:''}</div></div>
+          <button className="dd-btn" onClick={onClose}>Close</button>
+        </div>
+        <div className="dm-body" style={{whiteSpace:'normal'}}>
+          {res.headline && <div style={{fontFamily:'var(--font-display)',fontSize:'0.92rem',fontWeight:700,color:'var(--text-primary)',marginBottom:12}}>{res.headline}</div>}
+          {labels.map(([k,label])=> secs[k] ? (
+            <div key={k} style={{marginBottom:14}}>
+              <div style={{fontSize:'0.62rem',fontWeight:700,color:'var(--accent-cyan)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>{label}</div>
+              <div style={{fontSize:'0.78rem',color:'var(--text-secondary)',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{secs[k]}</div>
+            </div>
+          ) : null)}
+          {Array.isArray(res.sources)&&res.sources.length>0 && (
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:'0.62rem',fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Sources</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{res.sources.map((s,i)=><a key={i} href={s.url} target="_blank" rel="noopener" style={{fontSize:'0.62rem',color:'var(--accent-cyan)',textDecoration:'none',border:'1px solid var(--border-default)',borderRadius:5,padding:'3px 8px'}}>{s.title||s.url}</a>)}</div>
+            </div>
+          )}
+          <div style={{marginTop:14,fontSize:'0.6rem',color:'var(--text-muted)',fontStyle:'italic',lineHeight:1.5}}>{res.disclaimer||'Intelligence, not advice (PLUGIN-001 Art XIV §14.2).'}</div>
+          {Array.isArray(res.warnings)&&res.warnings.length>0 && <div style={{marginTop:8,fontSize:'0.58rem',color:'var(--accent-red)'}}>{res.warnings.join(' · ')}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Director-confirm Create modal (Action 2). Calls ceo-cohort-instantiate, which orchestrates the
+// verified Director-only instantiate_counterparty_from_cohort RPC (it surfaces the cohort-family
+// packages + prices the envelope internally; the room is created at phase_0). The optional config
+// (vector/tier/term/package) only drives the envelope — blanks defer it (BDR auto-prices). Never
+// auto-fired: creation requires the explicit Confirm here. EF deploy is Path A (held per DD-W5);
+// the call degrades gracefully (clear message) until deployed.
+function CreateRoomModal({ entity, dossierFindingId, token, onClose }){
+  useEffect(()=>{ const k=e=>{ if(e.key==='Escape') onClose(); }; document.addEventListener('keydown',k); return ()=>document.removeEventListener('keydown',k); },[]);
+  const [vector,setVector]=useState('');
+  const [tier,setTier]=useState('');
+  const [term,setTerm]=useState(12);
+  const [pkg,setPkg]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [res,setRes]=useState(null);
+  const [err,setErr]=useState(null);
+  async function create(){
+    if(busy) return;
+    setBusy(true); setErr(null);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-cohort-instantiate`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({entity_id:entity.id||null,alin:entity.alin,confirm:true,vector:vector||null,exclusivity_tier:tier||null,term_months:Number(term)||12,package_id:pkg||null,dossier_finding_id:dossierFindingId||null})});
+      if(r.status===404){ setErr('Create service not deployed yet — ceo-cohort-instantiate is Path A (held per DD-W5; pending Chairman deploy).'); }
+      else if(!r.ok){ const t=await r.text().catch(()=>''); setErr('Create failed ('+r.status+'). '+t.slice(0,200)); }
+      else { const j=await r.json(); setRes(j); }
+    }catch(e){ console.error('ceo-cohort-instantiate',e); setErr('Network error creating deal room.'); }
+    setBusy(false);
+  }
+  const fld={padding:'7px 10px',background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:'0.72rem',fontFamily:'var(--font-body)',outline:'none',width:'100%'};
+  const lbl={fontSize:'0.56rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3};
+  return (
+    <div className="dm-overlay" onClick={onClose}>
+      <div className="dm-modal" onClick={e=>e.stopPropagation()} style={{width:660}}>
+        <div className="dm-head">
+          <div><div className="dm-title">Create deal room — {entity.company_name||entity.alin}</div><div className="dm-cap">{entity.cohort_family||''} · Director-gated origination (CBI-001 / AMD-147)</div></div>
+          <button className="dd-btn" onClick={onClose}>Close</button>
+        </div>
+        <div className="dm-body" style={{whiteSpace:'normal'}}>
+          {!res ? (
+            <div>
+              <div style={{fontSize:'0.7rem',color:'var(--text-secondary)',lineHeight:1.55,marginBottom:14}}>
+                Invokes the verified CBI-001 instantiation. It creates a counterparty + deal room at <b>phase_0</b>, surfaces the cohort-family packages and prices the envelope internally. {dossierFindingId?'The Action 1 research dossier will be attached as room context.':'No research dossier selected — run Action 1 first if you want one attached.'} Live data delivery stays gated (DDX-001 §5).
+              </div>
+              <div style={{fontSize:'0.62rem',color:'var(--text-muted)',marginBottom:10}}>Pricing config (optional — drives the envelope; family BDR auto-prices from size band; leave blank to defer):</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+                <div><div style={lbl}>Vector</div><select style={fld} value={vector} onChange={e=>setVector(e.target.value)}><option value="">— (defer)</option><option>A</option><option>B</option><option>C</option></select></div>
+                <div><div style={lbl}>Exclusivity tier</div><select style={fld} value={tier} onChange={e=>setTier(e.target.value)}><option value="">— (defer)</option><option>T1</option><option>T2</option><option>T3</option><option>T4</option></select></div>
+                <div><div style={lbl}>Term (months)</div><input style={fld} type="number" min="1" max="120" value={term} onChange={e=>setTerm(e.target.value)}/></div>
+                <div><div style={lbl}>Flagship package id</div><input style={fld} value={pkg} onChange={e=>setPkg(e.target.value)} placeholder="optional — drives family-A envelope"/></div>
+              </div>
+              {err && <div className="dd-act-err" style={{marginBottom:10}}>{err}</div>}
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <button className="orig-btn live" onClick={create} disabled={busy} style={{marginTop:0}}>{busy?'Creating…':'Confirm — create deal room'}</button>
+                <button className="dd-btn" onClick={onClose} disabled={busy}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:'0.9rem',fontWeight:700,color:'var(--accent-green)',marginBottom:10}}>{res.outcome==='already_instantiated'?'Already instantiated':'Deal room created'}</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
+                <span className="meta-chip">CLID <b>{res.clid||'—'}</b></span>
+                <span className="meta-chip">Short code <b>{res.counterparty_short_code||'—'}</b></span>
+                {res.cohort_family&&<span className="meta-chip">Family <b>{res.cohort_family}</b></span>}
+                {res.envelope&&res.envelope.ceiling_pence!=null&&<span className="meta-chip">Ceiling <b>{penceGBP(res.envelope.ceiling_pence)}</b></span>}
+                {res.pilot_fee_pence!=null&&<span className="meta-chip">Pilot fee <b>{penceGBP(res.pilot_fee_pence)}</b></span>}
+                <span className="meta-chip">Dossier <b>{res.dossier_attached?'attached':'—'}</b></span>
+              </div>
+              {Array.isArray(res.four_surfaced_packages)&&res.four_surfaced_packages.length>0 && <div style={{marginBottom:10}}><div style={lbl}>Surfaced packages</div><div className="pkg-row">{res.four_surfaced_packages.map((p,i)=><span key={i} className="pkg-chip">{p}</span>)}</div></div>}
+              <div style={{fontSize:'0.62rem',color:'var(--text-muted)',lineHeight:1.5}}>{res.delivery_note||''}</div>
+              {Array.isArray(res.warnings)&&res.warnings.length>0&&<div style={{marginTop:8,fontSize:'0.6rem',color:'var(--accent-red)'}}>{res.warnings.join(' · ')}</div>}
+              <div style={{marginTop:14}}><button className="dd-btn primary" onClick={()=>window.location.reload()}>Done — reload deal rooms</button></div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Per-entity origination actions. Action 1 (Research) -> ceo-cohort-research (FOLLOWON-001 §1);
+// Action 2 (Create) -> ceo-cohort-instantiate via a Director-confirm modal (§2). Both EFs are
+// Path A (research deploy now per DD-W1; create deploy held per DD-W5) and degrade gracefully
+// (clear message) until deployed.
+function EntityActions({ entity, token }){
+  const [busy,setBusy]=useState(false);
+  const [res,setRes]=useState(null);
+  const [err,setErr]=useState(null);
+  const [open,setOpen]=useState(false);
+  const [createOpen,setCreateOpen]=useState(false);
+  async function research(){
+    if(busy) return;
+    setBusy(true); setErr(null);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-cohort-research`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({entity_id:entity.id||null,alin:entity.alin})});
+      if(r.status===404){ setErr('Research service not deployed yet — ceo-cohort-research is Path A (pending Chairman deploy).'); }
+      else if(!r.ok){ const t=await r.text().catch(()=>''); setErr('Research failed ('+r.status+'). '+t.slice(0,160)); }
+      else { const j=await r.json(); setRes(j); setOpen(true); }
+    }catch(e){ console.error('ceo-cohort-research',e); setErr('Network error running research.'); }
+    setBusy(false);
+  }
+  return (
+    <div className="orig-actions" style={{marginTop:16}}>
+      <div className="orig-act">
+        <div className="orig-act-head"><span className="orig-act-n">1</span><span className="orig-act-t">Research {entity.company_name||entity.alin}</span>{res?<span className="orig-stage" style={{background:'var(--accent-green-dim)',color:'var(--accent-green)',borderColor:'rgba(16,185,129,0.25)'}}>dossier ready</span>:<span className="orig-stage">read-only</span>}</div>
+        <div className="orig-act-d">Eileen + live RAG over the estate and live sources — counterparty potential &amp; fit, synergies, business prospects, forward-event / M&amp;A watch. Captured as a dated dossier (research_finding_register). Intelligence, not advice (PLUGIN-001 Art XIV §14.2).</div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <button className="orig-btn live" onClick={research} disabled={busy}>{busy?'Researching…':(res?'Re-run research':'Research entity →')}</button>
+          {res && <button className="orig-btn live" onClick={()=>setOpen(true)}>View dossier →</button>}
+        </div>
+        {err && <div className="orig-note" style={{color:'var(--accent-red)'}}>{err}</div>}
+      </div>
+      <div className="orig-act">
+        <div className="orig-act-head"><span className="orig-act-n">2</span><span className="orig-act-t">Create a bespoke deal room</span><span className="orig-stage gated">Director-gated</span></div>
+        <div className="orig-act-d">CBI-001 instantiate (counterparty_profile + room at phase_0) — packages surfaced and the envelope priced internally; the Action&nbsp;1 dossier attaches as room context. Live data delivery stays gated (DDX-001 §5).</div>
+        <button className="orig-btn live" onClick={()=>setCreateOpen(true)}>Create deal room →</button>
+        <div className="orig-note">Consequential — opens a Director-confirm step; never auto-fired. {res?'A research dossier is ready and will be attached.':'Tip: run Action 1 first to attach a research dossier.'} EF deploy is Path A (held per DD-W5).</div>
+      </div>
+      {open && res && <ResearchModal entity={entity} res={res} onClose={()=>setOpen(false)}/>}
+      {createOpen && <CreateRoomModal entity={entity} dossierFindingId={res&&res.dossier_finding_id} token={token} onClose={()=>setCreateOpen(false)}/>}
+    </div>
+  );
+}
+
 function CohortOrigination({ token }){
   const [cohort,setCohort]=useState(null);
   const [loading,setLoading]=useState(true);
   const [err,setErr]=useState(null);
   const [selected,setSelected]=useState(null);
+  const [selEntityAlin,setSelEntityAlin]=useState(null);
+  useEffect(()=>{ setSelEntityAlin(null); },[selected]);
   useEffect(()=>{ if(!token) return; (async()=>{
     setLoading(true); setErr(null);
     try{
@@ -353,6 +514,7 @@ function CohortOrigination({ token }){
   const ordered=families.slice().sort((a,b)=>Number(b.entity_count_total||0)-Number(a.entity_count_total||0));
   const selFam=selected?families.find(f=>f.cohort_family===selected):null;
   const selEntities=selected?entities.filter(e=>e.cohort_family===selected):[];
+  const selEntity=selEntityAlin?selEntities.find(e=>e.alin===selEntityAlin):null;
 
   return (
     <div style={{marginTop:18}}>
@@ -408,22 +570,10 @@ function CohortOrigination({ token }){
             <div className="card-head-badge">{selEntities.length} of {num(selFam.entity_count_total)} entities</div>
           </div>
           <div className="card-body">
-            <div className="orig-actions">
-              <div className="orig-act">
-                <div className="orig-act-head"><span className="orig-act-n">1</span><span className="orig-act-t">Research this cohort</span><span className="orig-stage">staged</span></div>
-                <div className="orig-act-d">Eileen + live RAG over the estate and live sources — counterparty potential &amp; fit, synergies, business prospects, forward-event / M&amp;A watch. Output captured as a dated cohort research dossier (research_finding_register) to feed the room.</div>
-                <button className="orig-btn" disabled title="Wiring pending follow-on build brief">Research cohort →</button>
-                <div className="orig-note">Intelligence, not advice (PLUGIN-001 Art XIV §14.2). Read-only RAG + dossier capture are not yet wired — research_finding_register has no browser write and the eileen-intelligence cohort-research contract is undefined; see the follow-on build brief.</div>
-              </div>
-              <div className="orig-act">
-                <div className="orig-act-head"><span className="orig-act-n">2</span><span className="orig-act-t">Create a bespoke deal room</span><span className="orig-stage gated">Director-gated</span></div>
-                <div className="orig-act-d">Initiated via the existing CBI-001 instantiation (writes counterparty_profile). The Action&nbsp;1 dossier attaches as room context; the "best offering" is resolved at creation by the existing pricing arc (pricing-quote over package_catalogue / pricing_tier / pricing_modifier).</div>
-                <button className="orig-btn" disabled title="Deferred to follow-on build brief">Create deal room →</button>
-                <div className="orig-note">Consequential, never auto-fired. Deferred to the follow-on build brief (the CBI-001 + pricing-quote create path is not exposed to this surface). No logic fabricated (brief §6.3).</div>
-              </div>
+            <div style={{fontSize:'0.66rem',color:'var(--text-secondary)',lineHeight:1.5,marginBottom:10}}>
+              Select a register entity to research it (Action&nbsp;1) and originate a bespoke deal room (Action&nbsp;2, Director-gated).
             </div>
-
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,margin:'14px 0'}}>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
               <span className="meta-chip">Active <b>{num(selFam.entity_count_active)}</b></span>
               <span className="meta-chip">Lapsed <b>{num(selFam.entity_count_lapsed)}</b></span>
               <span className="meta-chip">Dissolved <b>{num(selFam.entity_count_dissolved)}</b></span>
@@ -434,21 +584,26 @@ function CohortOrigination({ token }){
                 <table className="ent-table">
                   <thead><tr><th>ALIN</th><th>Company</th><th>Tier</th><th>Size</th><th>Exposure</th><th>Tribunals</th><th>Sev.Wtd</th></tr></thead>
                   <tbody>
-                    {selEntities.map((e,i)=>(
-                      <tr key={i}>
-                        <td className="mono" style={{color:'var(--accent-cyan)'}}>{e.alin||'—'}</td>
-                        <td><div className="ent-name">{e.company_name||'—'}</div>{e.is_repeat_respondent&&<span className="repeat-flag" style={{marginTop:3,display:'inline-block'}}>repeat respondent</span>}</td>
-                        <td>{e.super_league_tier?<span className={'mini-tier '+String(e.super_league_tier).toUpperCase().charAt(0)}>{e.super_league_tier}</span>:'—'}</td>
-                        <td>{friendly(e.size_band)}</td>
-                        <td>{friendly(e.exposure_band)}</td>
-                        <td className="mono">{num(e.tribunal_count)}</td>
-                        <td className="mono">{e.severity_weighted!=null?Number(e.severity_weighted).toLocaleString('en-GB',{maximumFractionDigits:1}):'—'}</td>
-                      </tr>
-                    ))}
+                    {selEntities.map((e,i)=>{
+                      const isSelEnt=selEntityAlin===e.alin;
+                      return (
+                        <tr key={i} className={(e.alin?'ent-row':'')+(isSelEnt?' sel':'')} onClick={e.alin?()=>setSelEntityAlin(isSelEnt?null:e.alin):undefined} style={e.alin?{cursor:'pointer'}:undefined} title={e.alin?'Select for origination':undefined}>
+                          <td className="mono" style={{color:'var(--accent-cyan)'}}>{e.alin||'—'}</td>
+                          <td><div className="ent-name">{e.company_name||'—'}</div>{e.is_repeat_respondent&&<span className="repeat-flag" style={{marginTop:3,display:'inline-block'}}>repeat respondent</span>}</td>
+                          <td>{e.super_league_tier?<span className={'mini-tier '+String(e.super_league_tier).toUpperCase().charAt(0)}>{e.super_league_tier}</span>:'—'}</td>
+                          <td>{friendly(e.size_band)}</td>
+                          <td>{friendly(e.exposure_band)}</td>
+                          <td className="mono">{num(e.tribunal_count)}</td>
+                          <td className="mono">{e.severity_weighted!=null?Number(e.severity_weighted).toLocaleString('en-GB',{maximumFractionDigits:1}):'—'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             ) : <div className="empty-note">No individual register entities for this family in the snapshot.</div>}
+
+            {selEntity && <EntityActions key={selEntity.alin} entity={selEntity} token={token}/>}
           </div>
         </div>
       )}
