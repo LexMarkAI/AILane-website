@@ -369,14 +369,93 @@ function ResearchModal({ entity, res, onClose }){
   );
 }
 
-// Per-entity origination actions. Action 1 (Research) is wired to ceo-cohort-research
-// (FOLLOWON-001 §1; Path A EF — degrades gracefully if not yet deployed). Action 2 (Create)
-// stays Director-gated/held per DD-W5 until ceo-cohort-instantiate is authorised + deployed.
+// Director-confirm Create modal (Action 2). Calls ceo-cohort-instantiate, which orchestrates the
+// verified Director-only instantiate_counterparty_from_cohort RPC (it surfaces the cohort-family
+// packages + prices the envelope internally; the room is created at phase_0). The optional config
+// (vector/tier/term/package) only drives the envelope — blanks defer it (BDR auto-prices). Never
+// auto-fired: creation requires the explicit Confirm here. EF deploy is Path A (held per DD-W5);
+// the call degrades gracefully (clear message) until deployed.
+function CreateRoomModal({ entity, dossierFindingId, token, onClose }){
+  useEffect(()=>{ const k=e=>{ if(e.key==='Escape') onClose(); }; document.addEventListener('keydown',k); return ()=>document.removeEventListener('keydown',k); },[]);
+  const [vector,setVector]=useState('');
+  const [tier,setTier]=useState('');
+  const [term,setTerm]=useState(12);
+  const [pkg,setPkg]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [res,setRes]=useState(null);
+  const [err,setErr]=useState(null);
+  async function create(){
+    if(busy) return;
+    setBusy(true); setErr(null);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-cohort-instantiate`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({entity_id:entity.id||null,alin:entity.alin,confirm:true,vector:vector||null,exclusivity_tier:tier||null,term_months:Number(term)||12,package_id:pkg||null,dossier_finding_id:dossierFindingId||null})});
+      if(r.status===404){ setErr('Create service not deployed yet — ceo-cohort-instantiate is Path A (held per DD-W5; pending Chairman deploy).'); }
+      else if(!r.ok){ const t=await r.text().catch(()=>''); setErr('Create failed ('+r.status+'). '+t.slice(0,200)); }
+      else { const j=await r.json(); setRes(j); }
+    }catch(e){ console.error('ceo-cohort-instantiate',e); setErr('Network error creating deal room.'); }
+    setBusy(false);
+  }
+  const fld={padding:'7px 10px',background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:'0.72rem',fontFamily:'var(--font-body)',outline:'none',width:'100%'};
+  const lbl={fontSize:'0.56rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3};
+  return (
+    <div className="dm-overlay" onClick={onClose}>
+      <div className="dm-modal" onClick={e=>e.stopPropagation()} style={{width:660}}>
+        <div className="dm-head">
+          <div><div className="dm-title">Create deal room — {entity.company_name||entity.alin}</div><div className="dm-cap">{entity.cohort_family||''} · Director-gated origination (CBI-001 / AMD-147)</div></div>
+          <button className="dd-btn" onClick={onClose}>Close</button>
+        </div>
+        <div className="dm-body" style={{whiteSpace:'normal'}}>
+          {!res ? (
+            <div>
+              <div style={{fontSize:'0.7rem',color:'var(--text-secondary)',lineHeight:1.55,marginBottom:14}}>
+                Invokes the verified CBI-001 instantiation. It creates a counterparty + deal room at <b>phase_0</b>, surfaces the cohort-family packages and prices the envelope internally. {dossierFindingId?'The Action 1 research dossier will be attached as room context.':'No research dossier selected — run Action 1 first if you want one attached.'} Live data delivery stays gated (DDX-001 §5).
+              </div>
+              <div style={{fontSize:'0.62rem',color:'var(--text-muted)',marginBottom:10}}>Pricing config (optional — drives the envelope; family BDR auto-prices from size band; leave blank to defer):</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+                <div><div style={lbl}>Vector</div><select style={fld} value={vector} onChange={e=>setVector(e.target.value)}><option value="">— (defer)</option><option>A</option><option>B</option><option>C</option></select></div>
+                <div><div style={lbl}>Exclusivity tier</div><select style={fld} value={tier} onChange={e=>setTier(e.target.value)}><option value="">— (defer)</option><option>T1</option><option>T2</option><option>T3</option><option>T4</option></select></div>
+                <div><div style={lbl}>Term (months)</div><input style={fld} type="number" min="1" max="120" value={term} onChange={e=>setTerm(e.target.value)}/></div>
+                <div><div style={lbl}>Flagship package id</div><input style={fld} value={pkg} onChange={e=>setPkg(e.target.value)} placeholder="optional — drives family-A envelope"/></div>
+              </div>
+              {err && <div className="dd-act-err" style={{marginBottom:10}}>{err}</div>}
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <button className="orig-btn live" onClick={create} disabled={busy} style={{marginTop:0}}>{busy?'Creating…':'Confirm — create deal room'}</button>
+                <button className="dd-btn" onClick={onClose} disabled={busy}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:'0.9rem',fontWeight:700,color:'var(--accent-green)',marginBottom:10}}>{res.outcome==='already_instantiated'?'Already instantiated':'Deal room created'}</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
+                <span className="meta-chip">CLID <b>{res.clid||'—'}</b></span>
+                <span className="meta-chip">Short code <b>{res.counterparty_short_code||'—'}</b></span>
+                {res.cohort_family&&<span className="meta-chip">Family <b>{res.cohort_family}</b></span>}
+                {res.envelope&&res.envelope.ceiling_pence!=null&&<span className="meta-chip">Ceiling <b>{penceGBP(res.envelope.ceiling_pence)}</b></span>}
+                {res.pilot_fee_pence!=null&&<span className="meta-chip">Pilot fee <b>{penceGBP(res.pilot_fee_pence)}</b></span>}
+                <span className="meta-chip">Dossier <b>{res.dossier_attached?'attached':'—'}</b></span>
+              </div>
+              {Array.isArray(res.four_surfaced_packages)&&res.four_surfaced_packages.length>0 && <div style={{marginBottom:10}}><div style={lbl}>Surfaced packages</div><div className="pkg-row">{res.four_surfaced_packages.map((p,i)=><span key={i} className="pkg-chip">{p}</span>)}</div></div>}
+              <div style={{fontSize:'0.62rem',color:'var(--text-muted)',lineHeight:1.5}}>{res.delivery_note||''}</div>
+              {Array.isArray(res.warnings)&&res.warnings.length>0&&<div style={{marginTop:8,fontSize:'0.6rem',color:'var(--accent-red)'}}>{res.warnings.join(' · ')}</div>}
+              <div style={{marginTop:14}}><button className="dd-btn primary" onClick={()=>window.location.reload()}>Done — reload deal rooms</button></div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Per-entity origination actions. Action 1 (Research) -> ceo-cohort-research (FOLLOWON-001 §1);
+// Action 2 (Create) -> ceo-cohort-instantiate via a Director-confirm modal (§2). Both EFs are
+// Path A (research deploy now per DD-W1; create deploy held per DD-W5) and degrade gracefully
+// (clear message) until deployed.
 function EntityActions({ entity, token }){
   const [busy,setBusy]=useState(false);
   const [res,setRes]=useState(null);
   const [err,setErr]=useState(null);
   const [open,setOpen]=useState(false);
+  const [createOpen,setCreateOpen]=useState(false);
   async function research(){
     if(busy) return;
     setBusy(true); setErr(null);
@@ -401,11 +480,12 @@ function EntityActions({ entity, token }){
       </div>
       <div className="orig-act">
         <div className="orig-act-head"><span className="orig-act-n">2</span><span className="orig-act-t">Create a bespoke deal room</span><span className="orig-stage gated">Director-gated</span></div>
-        <div className="orig-act-d">CBI-001 instantiate (counterparty_profile) with the pricing-quote best offering at creation and the Action&nbsp;1 dossier as room context; the new room opens at draft / phase_0 — live data delivery stays gated (DDX-001 §5).</div>
-        <button className="orig-btn" disabled title="Held pending Director authorisation (DD-W5) + ceo-cohort-instantiate deploy (Path A)">Create deal room →</button>
-        <div className="orig-note">Consequential, never auto-fired. Held per FOLLOWON-001 DD-W5 until Action&nbsp;1 is confirmed working and EF2 (ceo-cohort-instantiate) is authorised &amp; deployed.</div>
+        <div className="orig-act-d">CBI-001 instantiate (counterparty_profile + room at phase_0) — packages surfaced and the envelope priced internally; the Action&nbsp;1 dossier attaches as room context. Live data delivery stays gated (DDX-001 §5).</div>
+        <button className="orig-btn live" onClick={()=>setCreateOpen(true)}>Create deal room →</button>
+        <div className="orig-note">Consequential — opens a Director-confirm step; never auto-fired. {res?'A research dossier is ready and will be attached.':'Tip: run Action 1 first to attach a research dossier.'} EF deploy is Path A (held per DD-W5).</div>
       </div>
       {open && res && <ResearchModal entity={entity} res={res} onClose={()=>setOpen(false)}/>}
+      {createOpen && <CreateRoomModal entity={entity} dossierFindingId={res&&res.dossier_finding_id} token={token} onClose={()=>setCreateOpen(false)}/>}
     </div>
   );
 }
