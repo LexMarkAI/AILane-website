@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Pathway · Legal Oversight Document Room · Ailane</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co; img-src 'self' data: https://cnbsxwtvazfvzmltkuvx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+
+<!-- Google Analytics 4 (G-NTNXWZN31C) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C', { anonymize_ip: true });
+</script>
+<link rel="stylesheet" href="/legal-oversight/shared/lovr-room.css" />
+</head>
+<body style="visibility:hidden">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="nexus" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="11" fill="none" stroke="#0EA5E9" stroke-width="1.2" opacity=".55"/>
+    <line x1="20" y1="20" x2="31" y2="11" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="9"  y2="13" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="28" y2="31" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <circle cx="31" cy="11" r="1.8" fill="#0EA5E9"/>
+    <circle cx="9"  cy="13" r="1.8" fill="#0EA5E9"/>
+    <circle cx="28" cy="31" r="1.8" fill="#0EA5E9"/>
+    <circle cx="20" cy="20" r="4.4" fill="#F59E0B"/>
+  </symbol>
+</svg>
+
+<header class="topbar"><div class="wrap"><div class="row">
+  <a class="brand" href="/legal-oversight/">
+    <svg width="26" height="26"><use href="#nexus"/></svg>
+    <span class="name">Ailane</span><span class="sub">Legal Oversight Document Room</span></a>
+  <div class="spacer"></div>
+  <div class="who"><span class="email" id="who-email"></span>
+    <button class="btn sm ghost" id="signout">Sign out</button></div>
+</div></div></header>
+
+<nav class="crumbbar"><div class="wrap"><div class="row">
+  <a class="crumb" href="/legal-oversight/"><span class="arrow">&larr;</span> Back to the Vault</a>
+  <span class="crumb-here">Pathway</span>
+</div></div></nav>
+
+<div class="wrap"><div class="page">
+  <section class="context" style="border:none;background:none"><div class="row" style="padding:6px 0 18px">
+    <div class="eyebrow">Engagement pathway</div>
+    <h1>Pathway</h1>
+    <p>The demonstration deal-room pathway, phase by phase, with the documents and outstanding gate items at each step. Synthetic data (R&amp;D Simulation Ltd); no real counterparty, no live data. Regulatory intelligence, not legal advice.</p>
+  </div></section>
+  <div id="pw"><div class="state"><span class="spin"></span>Loading the pathway…</div></div>
+</div></div>
+
+<footer><div class="wrap"><div class="row">
+  <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+  <span>Governed by AILANE-AMD-REG-001. Confidential. Provided to verified reviewers under the Reviewer Access Agreement. Regulatory intelligence, not legal advice.</span>
+</div></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/legal-oversight/shared/lovr-shared.js"></script>
+<script>
+(function(){
+  "use strict";
+  const { esc, $, observe } = window.LOVR;
+  let PHASES = [];
+
+  function summaryHtml(list){
+    if(!list.length) return `<div class="state">No phases defined.</div>`;
+    return list.map((ph,i)=>{
+      const out = Number(ph.blockers_outstanding||0), tot = Number(ph.blockers_total||0);
+      const prog = tot===0 ? "No gate items" : `${tot-out} of ${tot} gate items cleared`;
+      const dcount = (ph.documents||[]).length;
+      return `<div class="phase-summary">
+        <h3>${esc(String.fromCharCode(65+i))} — ${esc(ph.label||ph.phase)}</h3>
+        <p>${esc(prog)}${dcount?` · ${dcount} document${dcount===1?"":"s"} in this phase`:""}.</p>
+      </div>`;
+    }).join("");
+  }
+
+  function buildSvg(list){
+    const n = list.length, bw = 120, gap = 52, x0 = 40, top = 24, bh = 78;
+    const W = x0*2 + n*bw + (n-1)*gap, H = 200;
+    let parts = [];
+    for(let i=0;i<n;i++){
+      const x = x0 + i*(bw+gap), cx = x + bw/2;
+      const ph = list[i], out = Number(ph.blockers_outstanding||0), tot = Number(ph.blockers_total||0);
+      const stat = tot===0 ? "No gates" : (out===0 ? "Cleared" : out+" open");
+      if(i<n-1){ parts.push(`<line x1="${x+bw}" y1="${top+bh/2}" x2="${x+bw+gap}" y2="${top+bh/2}" class="pw-conn" />`); }
+      parts.push(`<g class="pw-phase" data-i="${i}" tabindex="0" role="button" aria-label="Phase ${esc(String.fromCharCode(65+i))} — ${esc(ph.label||ph.phase)}">
+        <rect x="${x}" y="${top}" width="${bw}" height="${bh}" rx="8" class="pw-box"/>
+        <text x="${cx}" y="${top+34}" class="pw-letter">${esc(String.fromCharCode(65+i))}</text>
+        <text x="${cx}" y="${top+58}" class="pw-title">${esc((ph.label||ph.phase||"").slice(0,18))}</text>
+      </g>`);
+      parts.push(`<line x1="${cx}" y1="${top+bh}" x2="${cx}" y2="${top+bh+20}" class="pw-conn" />`);
+      parts.push(`<text x="${cx}" y="${top+bh+40}" class="pw-title">${esc(stat)}</text>`);
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" class="pathway-svg" role="img" aria-label="Engagement pathway diagram, ${n} phases">${parts.join("")}</svg>`;
+  }
+
+  function showDetail(i){
+    const ph = PHASES[i]; if(!ph) return;
+    const out = Number(ph.blockers_outstanding||0), tot = Number(ph.blockers_total||0);
+    const docs = (ph.documents||[]);
+    const dl = docs.length ? `<ul style="margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.6">`+
+      docs.map(d=>`<li>${esc(d.name||d.doc_code)}${d.blocking?` <span class="tagb block">Blocking</span>`:""}</li>`).join("")+`</ul>` : "";
+    $("pw-detail").innerHTML = `<div class="pdt">${esc(String.fromCharCode(65+i))} — ${esc(ph.label||ph.phase)}</div>
+      <div class="pdm">${tot===0?"No gate items":`${tot-out} of ${tot} gate items cleared`} · ${docs.length} document${docs.length===1?"":"s"}</div>
+      <div class="pdd">${tot===0?"This phase has no blocking gate items in the demonstration dataset.":(out===0?"All gate items for this phase are cleared in the demonstration dataset.":`${out} gate item${out===1?"":"s"} outstanding in the demonstration dataset.`)}</div>${dl}`;
+    document.querySelectorAll(".pw-phase").forEach(el=> el.classList.toggle("is-selected", el.getAttribute("data-i")===String(i)));
+    try{ gtag('event','lovr_pathway_phase',{ phase:i }); }catch(_e){}
+  }
+
+  function paint(data){
+    PHASES = data.phases||[];
+    const html = `
+      <div class="section"><div class="sh"><span class="bar"></span><span class="st">Phase summary</span><span class="sc">${PHASES.length} phases</span></div>
+        ${summaryHtml(PHASES)}</div>
+      <div class="section"><div class="sh"><span class="bar"></span><span class="st">Pathway diagram</span><span class="sc">Click any phase for detail</span></div>
+        <div class="pathway-svg-container">
+          ${PHASES.length?buildSvg(PHASES):`<div class="state">No phases to diagram.</div>`}
+          <div class="pw-detail" id="pw-detail"><p class="prompt">Click any phase above to see its detail.</p></div>
+          <div class="diagram-caption">Figure 1 — Demonstration engagement pathway. Synthetic data via lovr-dealroom-observe.</div>
+        </div></div>`;
+    $("pw").innerHTML = html;
+    document.querySelectorAll(".pw-phase").forEach(el=>{
+      const i = parseInt(el.getAttribute("data-i"),10);
+      el.addEventListener("click", ()=>showDetail(i));
+      el.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); showDetail(i); } });
+    });
+  }
+
+  async function load(){
+    try{ paint(await observe({ action:"overview" })); }
+    catch(err){
+      $("pw").innerHTML = `<div class="state"><div class="big">Unable to load the pathway</div>
+        <div>${esc(err.message||"Error")}. If your reviewer access is still being verified, it will appear once confirmed.</div></div>`;
+    }
+  }
+
+  window.LOVR.guard(load);
+})();
+</script>
+</body>
+</html>

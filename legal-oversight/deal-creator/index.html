@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Deal Creator · Legal Oversight Document Room · Ailane</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; frame-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co; img-src 'self' data: https://cnbsxwtvazfvzmltkuvx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+
+<!-- Google Analytics 4 (G-NTNXWZN31C) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C', { anonymize_ip: true });
+</script>
+<link rel="stylesheet" href="/legal-oversight/shared/lovr-room.css" />
+</head>
+<body style="visibility:hidden">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="nexus" viewBox="0 0 40 40">
+    <circle cx="20" cy="20" r="11" fill="none" stroke="#0EA5E9" stroke-width="1.2" opacity=".55"/>
+    <line x1="20" y1="20" x2="31" y2="11" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="9"  y2="13" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <line x1="20" y1="20" x2="28" y2="31" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+    <circle cx="31" cy="11" r="1.8" fill="#0EA5E9"/>
+    <circle cx="9"  cy="13" r="1.8" fill="#0EA5E9"/>
+    <circle cx="28" cy="31" r="1.8" fill="#0EA5E9"/>
+    <circle cx="20" cy="20" r="4.4" fill="#F59E0B"/>
+  </symbol>
+</svg>
+
+<header class="topbar"><div class="wrap"><div class="row">
+  <a class="brand" href="/legal-oversight/">
+    <svg width="26" height="26"><use href="#nexus"/></svg>
+    <span class="name">Ailane</span><span class="sub">Legal Oversight Document Room</span></a>
+  <div class="spacer"></div>
+  <div class="who"><span class="email" id="who-email"></span>
+    <button class="btn sm ghost" id="signout">Sign out</button></div>
+</div></div></header>
+
+<nav class="crumbbar"><div class="wrap"><div class="row">
+  <a class="crumb" href="/legal-oversight/"><span class="arrow">&larr;</span> Back to the Vault</a>
+  <span class="crumb-here">Deal Creator</span>
+</div></div></nav>
+
+<div class="wrap"><div class="page" id="dc">
+  <div class="synthetic-banner"><span aria-hidden="true">&#9888;</span>
+    <div><b>Demonstration — synthetic data.</b> This is a simulated deal room (R&amp;D Simulation Ltd). No real counterparty, and no live data, is shown. The live-delivery gate is OFF.</div></div>
+  <div class="state"><span class="spin"></span>Loading the deal creator…</div>
+</div></div>
+
+<div class="scrim" id="scrim" onclick="LOVR.closeViewer()"></div>
+<aside class="viewer" id="viewer" aria-hidden="true">
+  <div class="vbar">
+    <svg width="30" height="30" aria-hidden="true"><use href="#nexus"/></svg>
+    <div style="flex:1;min-width:0">
+      <div class="vt" id="v-title">—</div>
+      <div class="vm" id="v-meta"></div>
+    </div>
+    <button class="btn ghost sm" onclick="LOVR.closeViewer()" aria-label="Close">Close ✕</button>
+  </div>
+  <div class="vbody" id="v-body"></div>
+  <div class="vactions" id="v-actions"></div>
+  <div class="disclaimer">This material is provided for professional review under the Reviewer Access Agreement. It is regulatory intelligence, not legal advice, and is confidential to AI Lane Limited.</div>
+</aside>
+
+<footer><div class="wrap"><div class="row">
+  <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+  <span>Governed by AILANE-AMD-REG-001. Confidential. Provided to verified reviewers under the Reviewer Access Agreement. Regulatory intelligence, not legal advice.</span>
+</div></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="/legal-oversight/shared/lovr-shared.js"></script>
+<script>
+(function(){
+  "use strict";
+  const { esc, $, gbp, observe } = window.LOVR;
+
+  function banner(){
+    return `<div class="synthetic-banner"><span aria-hidden="true">&#9888;</span>
+      <div><b>Demonstration — synthetic data.</b> This is a simulated deal room (R&amp;D Simulation Ltd). No real counterparty, and no live data, is shown. The live-delivery gate is OFF.</div></div>`;
+  }
+  function sec(title, inner){
+    return `<div class="section"><div class="sh"><span class="bar"></span><span class="st">${esc(title)}</span></div>${inner}</div>`;
+  }
+
+  function overview(p){
+    const kv = [
+      ["Type", p.type],["MCA variant", p.mca_variant],["Geographic scope", p.geographic_scope],
+      ["Packages", (p.packages||[]).join(", ")],["Exclusivity appetite", p.exclusivity_appetite],
+      ["Exclusivity tier", p.exclusivity_tier],["Term", p.term_months!=null ? p.term_months+" months" : null],
+      ["Gate state", p.gate_state]
+    ];
+    return sec("Configuration overview",
+      `<div class="card" style="gap:14px">
+        <div class="ct" style="font-size:16px">${esc(p.legal_name||"—")}${p.short_code?` <span style="color:var(--muted-2);font-weight:400;font-size:12px">· ${esc(p.short_code)}</span>`:""}</div>
+        <div class="kv">`+ kv.map(([k,v])=>`<div><div class="k">${esc(k)}</div><div class="v">${esc(v==null||v===""?"—":v)}</div></div>`).join("") +`</div></div>`);
+  }
+
+  function pricing(p, pr){
+    const tiers = (pr&&pr.tiers)||[], mods = (pr&&pr.modifiers)||[];
+    const table = `<table class="ladder"><thead><tr><th>Enrichment tier</th><th class="num">Cumulative · per record / yr</th></tr></thead><tbody>`+
+      tiers.map(t=>`<tr><td>${esc(t.name||t.code)}${t.enrichment_layer?`<span class="enrich">enrichment</span>`:""}${t.description?`<div class="md">${esc(t.description)}</div>`:""}</td><td class="num">${gbp(t.cumulative_pence)}</td></tr>`).join("")+
+      `</tbody></table>`;
+    const modlist = mods.length ? `<ul class="mods">`+mods.map(m=>{
+        const val = m.value_pence!=null ? gbp(m.value_pence) : (m.value_pct!=null ? m.value_pct+"%" : "—");
+        return `<li><div><div class="mn">${esc(m.name||m.code)}</div>${m.description?`<div class="md">${esc(m.description)}</div>`:""}</div><div class="mv">${esc(val)}</div></li>`;
+      }).join("")+`</ul>` : "";
+    const env = `<div class="envelope">
+        <div class="env-cell"><div class="k">Floor</div><div class="v">${gbp(p.envelope_floor_pence)}</div></div>
+        <div class="env-cell target"><div class="k">Target</div><div class="v">${gbp(p.envelope_target_pence)}</div></div>
+        <div class="env-cell"><div class="k">Ceiling</div><div class="v">${gbp(p.envelope_ceiling_pence)}</div></div>
+        <div class="env-cell"><div class="k">Pilot fee</div><div class="v">${gbp(p.pilot_fee_pence)}</div></div>
+      </div>
+      <div class="note-line">This indicative envelope is computed from the data scope and these modifiers as a deterministic demonstration; the Director sets final terms. No live quote is produced on this surface.</div>`;
+    return sec("How the indicative price is produced", table + modlist + env);
+  }
+
+  function phases(list){
+    const inner = (list||[]).map(ph=>{
+      const docs = (ph.documents||[]).map(d=>{
+        const clickable = !!d.has_content;
+        const tag = d.blocking ? `<span class="tagb block">Blocking</span>` : "";
+        return `<div class="s1-doc${clickable?" clickable":""}"${clickable?` data-doc="${esc(d.doc_code)}" data-name="${esc(d.name||d.doc_code)}" tabindex="0" role="button"`:""}>
+            <span class="dn">${esc(d.name||d.doc_code)}${d.kind?` <span class="dk">${esc(d.kind)}</span>`:""}</span>
+            ${tag}${clickable?`<span class="arrow">Open &rarr;</span>`:`<span class="dk">—</span>`}
+          </div>`;
+      }).join("");
+      return `<div class="phase">
+          <div class="phase-head"><span class="pl">${esc(ph.label||ph.phase)}</span>
+            <span class="po">outstanding: ${esc(ph.blockers_outstanding)} of ${esc(ph.blockers_total)}</span></div>
+          <div class="phase-docs">${docs||`<div class="s1-doc"><span class="dn" style="color:var(--muted-2)">No documents in this phase.</span></div>`}</div>
+        </div>`;
+    }).join("");
+    return sec("Engagement pathway", inner || `<div class="state">No phases defined.</div>`);
+  }
+
+  function eileenBlock(e){
+    return sec("Eileen in the deal room",
+      `<div class="eileen-inline"><svg width="34" height="34" aria-hidden="true"><use href="#nexus"/></svg>
+        <div><div class="ename">Eileen</div><div class="erole">${esc((e&&e.role)||"—")}</div></div></div>`);
+  }
+  function creator(dc){
+    return sec("How a deal room is created",`<div class="creator-note">${esc((dc&&dc.note)||"—")}</div>`);
+  }
+
+  function paint(data){
+    const p = data.profile||{};
+    $("dc").innerHTML = banner() + overview(p) + pricing(p, data.pricing||{}) + phases(data.phases||[]) + eileenBlock(data.eileen||{}) + creator(data.deal_creator||{});
+    $("dc").querySelectorAll(".s1-doc.clickable").forEach(el=>{
+      const go = ()=> LOVR.openDealDoc(el.getAttribute("data-doc"), el.getAttribute("data-name"));
+      el.addEventListener("click", go);
+      el.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+    });
+  }
+
+  async function load(){
+    try{
+      const data = await observe({ action:"overview" });
+      paint(data);
+    }catch(err){
+      $("dc").innerHTML = banner()+`<div class="state"><div class="big">Unable to load the deal creator</div>
+        <div>${esc(err.message||"Error")}. If your reviewer access is still being verified, it will appear once confirmed.</div></div>`;
+    }
+  }
+
+  window.LOVR.guard(load);
+})();
+</script>
+</body>
+</html>

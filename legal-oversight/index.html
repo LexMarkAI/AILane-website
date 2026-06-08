@@ -62,6 +62,22 @@
   .tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);
     border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--panel)}
   .tag b{color:var(--text);font-weight:600}
+  .context .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);font-weight:700;margin-bottom:9px}
+
+  /* Four-card nav grid (Documents / Deal Creator / Engagement Status / Pathway) */
+  .navsec{padding:22px 0 4px}
+  .nav-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  @media (max-width:1100px){.nav-grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.nav-grid{grid-template-columns:1fr}}
+  .nav-card{display:flex;flex-direction:column;gap:9px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--panel);padding:18px 18px 16px;text-decoration:none;color:var(--text);
+    transition:border-color .18s,transform .18s,box-shadow .18s}
+  .nav-card:hover{border-color:rgba(14,165,233,.4);transform:translateY(-2px);box-shadow:0 12px 28px rgba(14,165,233,.10);text-decoration:none}
+  .nav-card .ico{width:34px;height:34px;border-radius:9px;background:var(--cyan-soft);border:1px solid rgba(14,165,233,.3);
+    color:var(--cyan);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:15px}
+  .nav-card .nt{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text)}
+  .nav-card .nd{font-size:12.5px;color:var(--muted);line-height:1.5;flex:1}
+  .nav-card .nm{font-family:var(--mono);font-size:11px;color:var(--muted-2);letter-spacing:.03em}
 
   .main{display:grid;grid-template-columns:340px 1fr;gap:26px;padding:26px 0 60px;align-items:start}
   @media (max-width:980px){.main{grid-template-columns:1fr}}
@@ -105,6 +121,7 @@
   .section > .sh{display:flex;align-items:center;gap:10px;margin:0 2px 11px}
   .section > .sh .bar{width:3px;height:16px;border-radius:2px;background:var(--gold)}
   .section.w9 > .sh .bar{background:var(--cyan)}
+  .section.consti > .sh .bar{background:var(--green)}
   .section > .sh .st{font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text)}
   .section > .sh .sc{font-size:11.5px;color:var(--muted-2)}
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
@@ -165,13 +182,7 @@
   footer .row .l1{color:var(--muted)}
   .hidden{display:none!important}
 
-  /* ---- Surface tabs + Deal Room (Surface 1) ---- */
-  .tabbar{border-bottom:1px solid var(--line);background:var(--panel-2)}
-  .tabbar .wrap{display:flex;gap:4px}
-  .tab{appearance:none;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);
-    font-family:inherit;font-size:13.5px;font-weight:600;padding:14px 16px;cursor:pointer}
-  .tab:hover{color:var(--text)}
-  .tab.active{color:var(--text);border-bottom-color:var(--gold)}
+  /* ---- Deal-room demonstration primitives (now rendered on the sub-pages) ---- */
   .s1{padding:24px 0 60px}
   .synthetic-banner{position:sticky;top:62px;z-index:20;display:flex;gap:10px;align-items:flex-start;
     margin:0 0 22px;padding:12px 16px;border:1px solid rgba(245,158,11,.45);
@@ -355,19 +366,23 @@
     auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
   });
 
-  // Surface state — Deal Room (Surface 1) is the default tab; Vault is Surface 2 (unchanged).
-  let roomMounted = false, activeTab = "dealroom", vaultCache = null, dealCache = null;
+  // Room state — the authed landing surface IS the Vault hub (no tab bar).
+  let roomMounted = false, vaultCache = null;
   // Ask Eileen chat — full conversation kept in-memory only (no localStorage/sessionStorage).
   let eileenMessages = [], eileenBusy = false, eileenError = null;
 
+  // Vault grouping — Constitutional-led order (§4 Option B / §7-D2). The
+  // 'constitutional' category is created by the Option B migration; until those
+  // rows are re-categorised the group is simply empty and skipped by renderVault.
   const GROUPS = [
-    { key:"baseline",                label:"Baseline — foundational documents", w9:false },
+    { key:"constitutional",          label:"Constitutional & founding documents", w9:false, consti:true },
+    { key:"baseline",                label:"Baseline compliance instruments", w9:false },
     { key:"w9a",                     label:"W9(a) — Anonymisation sufficiency", w9:true },
     { key:"w9b",                     label:"W9(b) — Article 14 transparency", w9:true },
     { key:"w9c",                     label:"W9(c) — Computational-analysis licence", w9:true },
+    { key:"room-instrument",         label:"Room instruments", w9:false },
     { key:"commercial-instruments",  label:"Commercial & data-processing instruments", w9:false },
     { key:"public-facing",           label:"Public-facing documents", w9:false },
-    { key:"room-instrument",         label:"Room instruments", w9:false },
   ];
   const CHK_GROUPS = [
     { key:"w9-question",        label:"W9 questions for counsel" },
@@ -446,59 +461,51 @@
         <div class="who"><span class="email">${esc(email)}</span>
           <button class="btn sm ghost" id="signout">Sign out</button></div>
       </div></div></header>
-      <nav class="tabbar"><div class="wrap">
-        <button class="tab" data-tab="dealroom">Deal Room</button>
-        <button class="tab" data-tab="vault">Vault</button>
-      </div></nav>
       <div id="surface"></div>
       <footer><div class="wrap"><div class="row">
         <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
         <span>Governed by AILANE-AMD-REG-001. Confidential. Provided to verified reviewers under the Reviewer Access Agreement. Regulatory intelligence, not legal advice.</span>
       </div></div></footer>`;
     $("signout").addEventListener("click", signOut);
-    document.querySelectorAll(".tab").forEach(b=> b.addEventListener("click", ()=> switchTab(b.getAttribute("data-tab"))));
   }
 
   function showRoom(email){
     if(roomMounted) return;
     roomMounted = true;
     shell(email);
-    switchTab(activeTab);
+    renderVaultHub();
     eileenReveal(true);
   }
   function showGate(){
-    roomMounted = false; vaultCache = null; dealCache = null;
+    roomMounted = false; vaultCache = null;
     eileenReset();
     renderGate();
   }
   async function signOut(){ try{ await sb.auth.signOut(); }catch(_e){} showGate(); }
 
-  function switchTab(tab){
-    activeTab = tab;
-    document.querySelectorAll(".tab").forEach(b=> b.classList.toggle("active", b.getAttribute("data-tab")===tab));
-    if(tab==="vault") renderVaultSurface(); else renderDealRoomSurface();
+  // ===========================================================================
+  // Vault hub — the authed landing surface (no tab bar). Hero + W9 context,
+  // then the four-card nav grid (cards ABOVE the register, §7-D1), then the
+  // document vault + W9 review checklist (loader behaviour unchanged).
+  // ===========================================================================
+  function navGrid(){
+    const cards = [
+      ["documents","D","Documents","Every artefact in the room, grouped as in the Vault. Open inline or download.","Registry-driven · walkthrough view"],
+      ["deal-creator","C","Deal Creator","Compose the demonstration configuration and read its deterministic indicative envelope.","Synthetic demonstration · no live quote"],
+      ["status","S","Engagement Status","Phase and gate progression for the demonstration engagement.","Synthetic demonstration · read-only"],
+      ["pathway","P","Pathway","The engagement pathway summary and interactive diagram.","Phase by phase"]
+    ];
+    return `<div class="nav-grid">`+ cards.map(([slug,ico,t,d,m])=>
+      `<a class="nav-card" href="/legal-oversight/${esc(slug)}/">
+        <div class="ico">${esc(ico)}</div><div class="nt">${esc(t)}</div>
+        <div class="nd">${esc(d)}</div><div class="nm">${esc(m)}</div></a>`).join("") +`</div>`;
   }
 
-  // ---- Authed Surface 1 fetch + money formatter (pence → GBP) ----
-  async function observe(payload){
-    const { data:{ session } } = await sb.auth.getSession();
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/${DEALROOM_FN}`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json", "apikey":SUPABASE_ANON_KEY, "Authorization":`Bearer ${session ? session.access_token : ""}` },
-      body: JSON.stringify(payload)
-    });
-    if(!r.ok) throw new Error("observe "+r.status);
-    return r.json();
-  }
-  const gbp = (p) => p==null ? "—" : (p>=100000000 ? "£"+(p/100/1e6).toFixed(2)+"M" : "£"+(p/100).toLocaleString("en-GB",{minimumFractionDigits:2}));
-
-  // ===========================================================================
-  // Surface 2 — Vault (behaviour unchanged; relocated under the Vault tab).
-  // ===========================================================================
-  function renderVaultSurface(){
+  function renderVaultHub(){
     $("surface").innerHTML = `
       <section class="context"><div class="wrap"><div class="row">
-        <h1>W9 review &amp; document vault</h1>
+        <div class="eyebrow">Reviewer workspace</div>
+        <h1>Legal Oversight Document Room</h1>
         <p>This room gives the reviewing solicitor the documents and the open questions for the descoped W9 review of Engine 2 (institutional data licensing). The room <b>captures</b> your review and sign-off; it does not certify. All material is regulatory intelligence, not legal advice.</p>
         <div class="pills">
           <span class="tag"><b>Entity</b> AI Lane Limited · 17035654</span>
@@ -507,7 +514,9 @@
           <span class="tag"><b>Basis</b> AMD-159 · three-track model</span>
         </div>
       </div></div></section>
-      <div class="wrap"><div class="main">
+      <div class="wrap">
+        <section class="navsec">${navGrid()}</section>
+        <div class="main">
         <aside class="rail" id="rail"><div class="head"><div class="t">W9 review checklist</div>
           <div class="s"><span class="spin"></span>Loading…</div></div></aside>
         <div class="vault" id="vault"><div class="state"><span class="spin"></span>Loading the document vault…</div></div>
@@ -535,140 +544,12 @@
   }
 
   // ===========================================================================
-  // Surface 1 — Deal Room (synthetic demonstration via lovr-dealroom-observe).
-  // Read-only: nothing on this surface writes, signs, or changes state.
+  // Deal-room demonstration renderers migrated to the sub-pages (§3.4):
+  //   deal-creator/  — composer overview + indicative pricing + Eileen note
+  //   status/        — engagement overview + phase & gate board
+  //   pathway/       — pathway summary + interactive diagram
+  // The hub renders no deal surface; the Vault is the authoritative register.
   // ===========================================================================
-  function dealBanner(){
-    return `<div class="synthetic-banner"><span aria-hidden="true">&#9888;</span>
-      <div><b>Demonstration — synthetic data.</b> This is a simulated deal room (R&amp;D Simulation Ltd). No real counterparty, and no live data, is shown. The live-delivery gate is OFF.</div></div>`;
-  }
-  function s1Section(title, inner){
-    return `<div class="section"><div class="sh"><span class="bar"></span><span class="st">${esc(title)}</span></div>${inner}</div>`;
-  }
-
-  function s1Overview(p){
-    const kv = [
-      ["Type", p.type],
-      ["MCA variant", p.mca_variant],
-      ["Geographic scope", p.geographic_scope],
-      ["Packages", (p.packages||[]).join(", ")],
-      ["Exclusivity appetite", p.exclusivity_appetite],
-      ["Exclusivity tier", p.exclusivity_tier],
-      ["Term", p.term_months!=null ? p.term_months+" months" : null],
-      ["Gate state", p.gate_state]
-    ];
-    return s1Section("Counterparty overview",
-      `<div class="card" style="gap:14px">
-        <div class="ct" style="font-size:16px">${esc(p.legal_name||"—")}${p.short_code?` <span style="color:var(--muted-2);font-weight:400;font-size:12px">· ${esc(p.short_code)}</span>`:""}</div>
-        <div class="kv">`+
-        kv.map(([k,v])=>`<div><div class="k">${esc(k)}</div><div class="v">${esc(v==null||v===""?"—":v)}</div></div>`).join("")+
-        `</div></div>`);
-  }
-
-  function s1Pricing(p, pricing){
-    const tiers = (pricing&&pricing.tiers)||[];
-    const mods  = (pricing&&pricing.modifiers)||[];
-    const table = `<table class="ladder"><thead><tr><th>Enrichment tier</th><th class="num">Cumulative · per record / yr</th></tr></thead><tbody>`+
-      tiers.map(t=>`<tr><td>${esc(t.name||t.code)}${t.enrichment_layer?`<span class="enrich">enrichment</span>`:""}${t.description?`<div class="md">${esc(t.description)}</div>`:""}</td><td class="num">${gbp(t.cumulative_pence)}</td></tr>`).join("")+
-      `</tbody></table>`;
-    const modlist = mods.length ? `<ul class="mods">`+mods.map(m=>{
-        const val = m.value_pence!=null ? gbp(m.value_pence) : (m.value_pct!=null ? m.value_pct+"%" : "—");
-        return `<li><div><div class="mn">${esc(m.name||m.code)}</div>${m.description?`<div class="md">${esc(m.description)}</div>`:""}</div><div class="mv">${esc(val)}</div></li>`;
-      }).join("")+`</ul>` : "";
-    const env = `<div class="envelope">
-        <div class="env-cell"><div class="k">Floor</div><div class="v">${gbp(p.envelope_floor_pence)}</div></div>
-        <div class="env-cell target"><div class="k">Target</div><div class="v">${gbp(p.envelope_target_pence)}</div></div>
-        <div class="env-cell"><div class="k">Ceiling</div><div class="v">${gbp(p.envelope_ceiling_pence)}</div></div>
-        <div class="env-cell"><div class="k">Pilot fee</div><div class="v">${gbp(p.pilot_fee_pence)}</div></div>
-      </div>
-      <div class="note-line">Eileen computes the indicative envelope from the data scope and these modifiers; the Director sets final terms.</div>`;
-    return s1Section("How the price is produced", table + modlist + env);
-  }
-
-  function s1Phases(phases){
-    const inner = (phases||[]).map(ph=>{
-      const docs = (ph.documents||[]).map(d=>{
-        const clickable = !!d.has_content;
-        const tag = d.blocking ? `<span class="tagb block">Blocking</span>` : "";
-        return `<div class="s1-doc${clickable?" clickable":""}"${clickable?` data-doc="${esc(d.doc_code)}" data-name="${esc(d.name||d.doc_code)}" tabindex="0" role="button"`:""}>
-            <span class="dn">${esc(d.name||d.doc_code)}${d.kind?` <span class="dk">${esc(d.kind)}</span>`:""}</span>
-            ${tag}
-            ${clickable?`<span class="arrow">Open &rarr;</span>`:`<span class="dk">—</span>`}
-          </div>`;
-      }).join("");
-      return `<div class="phase">
-          <div class="phase-head"><span class="pl">${esc(ph.label||ph.phase)}</span>
-            <span class="po">outstanding: ${esc(ph.blockers_outstanding)} of ${esc(ph.blockers_total)}</span></div>
-          <div class="phase-docs">${docs||`<div class="s1-doc"><span class="dn" style="color:var(--muted-2)">No documents in this phase.</span></div>`}</div>
-        </div>`;
-    }).join("");
-    return s1Section("Engagement pathway", inner || `<div class="state">No phases defined.</div>`);
-  }
-
-  function s1Eileen(eileen){
-    return s1Section("Eileen in the deal room",
-      `<div class="eileen"><svg width="34" height="34" aria-hidden="true"><use href="#nexus"/></svg>
-        <div><div class="ename">Eileen</div><div class="erole">${esc((eileen&&eileen.role)||"—")}</div></div></div>`);
-  }
-
-  function s1Creator(dc){
-    return s1Section("How a deal room is created",
-      `<div class="creator-note">${esc((dc&&dc.note)||"—")}</div>`);
-  }
-
-  function paintDealRoom(data){
-    const s1 = $("s1"); if(!s1) return;
-    const p = data.profile||{};
-    s1.innerHTML = dealBanner()
-      + s1Overview(p)
-      + s1Pricing(p, data.pricing||{})
-      + s1Phases(data.phases||[])
-      + s1Eileen(data.eileen||{})
-      + s1Creator(data.deal_creator||{});
-    s1.querySelectorAll(".s1-doc.clickable").forEach(el=>{
-      const go = ()=> openDealDoc(el.getAttribute("data-doc"), el.getAttribute("data-name"));
-      el.addEventListener("click", go);
-      el.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
-    });
-  }
-
-  async function renderDealRoomSurface(){
-    $("surface").innerHTML = `<div class="wrap"><div class="s1" id="s1">${dealBanner()}<div class="state"><span class="spin"></span>Loading the deal room…</div></div></div>`;
-    if(dealCache){ paintDealRoom(dealCache); return; }
-    try{
-      dealCache = await observe({ action:"overview" });
-      paintDealRoom(dealCache);
-    }catch(err){
-      const s1 = $("s1");
-      if(s1) s1.innerHTML = dealBanner()+`<div class="state"><div class="big">Unable to load the deal room</div>
-        <div>${esc(err.message||"Error")}. If your reviewer access is still being verified, it will appear once confirmed.</div></div>`;
-    }
-  }
-
-  // Deal-room documents reuse the Surface 2 viewer (sandboxed markdown render).
-  async function openDealDoc(docCode, name){
-    openViewer();
-    $("v-title").textContent = name || docCode || "Document";
-    $("v-meta").innerHTML = docCode ? `<span style="color:var(--muted-2)">${esc(docCode)}</span>` : "";
-    $("v-body").innerHTML = `<div class="vpad"><span class="spin"></span>Resolving document…</div>`;
-    $("v-actions").innerHTML = "";
-    try{
-      const data = await observe({ action:"document", doc_code:docCode });
-      gtag('event','lovr_dealroom_document',{ doc_code:docCode });
-      if(data && data.content_mode==="pending"){
-        $("v-body").innerHTML = `<div class="vpad"><div class="big">Document pending</div>
-          <div>${esc(data.detail||"This document is not yet available in the deal room.")}</div></div>`;
-      } else if(data && data.body_markdown!=null){
-        if(data.name) $("v-title").textContent = data.name;
-        $("v-body").innerHTML = mdFrame(data.body_markdown);
-      } else {
-        $("v-body").innerHTML = `<div class="vpad"><div class="big">Unavailable</div><div>This document has no displayable content.</div></div>`;
-      }
-    }catch(err){
-      $("v-title").textContent = "Unable to open";
-      $("v-body").innerHTML = `<div class="vpad"><div class="big">Unexpected error</div><div>${esc(err.message||"Error")}</div></div>`;
-    }
-  }
 
   function statusPill(status){
     const cls = "st-"+String(status||"open").replace(/\s+/g,"-");
@@ -710,7 +591,7 @@
       const items = rows.filter(r=>r.category===g.key);
       if(!items.length) return;
       shown++;
-      html += `<div class="section ${g.w9?"w9":""}">
+      html += `<div class="section ${g.consti?"consti":(g.w9?"w9":"")}">
         <div class="sh"><span class="bar"></span><span class="st">${esc(g.label)}</span>
           <span class="sc">${items.length}</span></div>
         <div class="cards">` +
@@ -946,7 +827,7 @@
   })();
   window.EILEEN = { open: eileenOpen, close: eileenCloseP, send: eileenSend };
 
-  window.LOVR = { open, openViewer, closeViewer, toggle, openDealDoc };
+  window.LOVR = { open, openViewer, closeViewer, toggle };
   document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeViewer(); });
 
   // Gate on load: session present → room; absent → sign-in. Also react to magic-link return.
