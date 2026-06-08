@@ -19,10 +19,13 @@ deployed **before** the panel goes live or `page:"anthology"` calls return HTTP 
   it cannot run on a public page.
 - The existing `eileen-presales` persona is an **employment-law** pre-sales assistant; it
   does not explain the platform estate.
-- `/anthology/` is a **Layer-1, information-only / non-financial-promotion** surface
-  (enforced by the AM-002 patch). The persona must therefore **refuse** investment / raise
-  / valuation / returns / forecast questions. A new, scoped persona on the existing safety
-  stack (rate limit, PII redaction, output verification, auto-rollback) is the lowest-risk fit.
+- The **Eileen persona** on `/anthology/` is **information-only by design**: it must
+  **refuse** investment / raise / valuation / returns / forecast questions and deflect to
+  mark@ailane.ai. (Note: as of AM-003 the *page itself* carries the raise ask again under the
+  Art 19 / Art 12 FPO exemptions — a Director decision — but Eileen's output stays
+  information-only, since static raise copy is human-reviewed and LLM output is not.) A
+  scoped persona on the existing safety stack (rate limit, PII redaction, output
+  verification, auto-rollback) is the lowest-risk fit.
 
 ---
 
