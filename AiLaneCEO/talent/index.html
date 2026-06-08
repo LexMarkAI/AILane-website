@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Talent Pipeline</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#7A8BA8;--text-muted:#4A5568;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:15px;-webkit-font-smoothing:antialiased;}body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}.top-bar-left{display:flex;align-items:center;gap:12px;}.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-purple);}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;gap:10px;flex-wrap:wrap;}.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;}.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}.card-body{padding:12px 18px 16px;}.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:8px 0 2px;}
+
+/* KPI / stats strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}.kpi-card.alarm{border-color:rgba(239,68,68,0.3);background:linear-gradient(180deg,rgba(239,68,68,0.06),var(--bg-surface));}.kpi-card .label{font-size:0.56rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}.kpi-card .value{font-family:var(--font-mono);font-size:1.3rem;font-weight:600;line-height:1.2;}.kpi-card .sub{font-size:0.56rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+
+/* sec head */
+.sec-head{display:flex;align-items:center;gap:10px;padding:6px 0 2px;}.sec-head .t{font-family:var(--font-display);font-size:0.92rem;font-weight:700;color:var(--text-primary);letter-spacing:0.02em;}.sec-head .rule{flex:1;height:1px;background:var(--border-subtle);}
+
+/* filters + buttons */
+.toolbar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;}
+.fld{display:flex;flex-direction:column;gap:3px;}.fld .l{font-size:0.56rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;}
+select,input,textarea{background:var(--bg-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.72rem;font-family:var(--font-body);padding:7px 10px;outline:none;transition:border-color 0.2s;}
+select:focus,input:focus,textarea:focus{border-color:var(--border-accent);}
+textarea{resize:vertical;min-height:64px;line-height:1.5;}
+.btn{padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-primary);font-size:0.72rem;font-weight:600;font-family:var(--font-body);cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{border-color:var(--border-accent);color:var(--text-accent);}
+.btn.primary{background:var(--accent-cyan-dim);border-color:var(--border-accent);color:var(--accent-cyan);}.btn.primary:hover{background:rgba(14,165,233,0.22);}
+.btn.danger{background:var(--accent-red-dim);border-color:rgba(239,68,68,0.3);color:var(--accent-red);}.btn.danger:hover{background:rgba(239,68,68,0.22);}
+.btn:disabled{opacity:0.55;cursor:not-allowed;}
+.btn.sm{padding:5px 10px;font-size:0.66rem;}
+
+/* table */
+.tbl-wrap{overflow-x:auto;}
+table.reg{width:100%;border-collapse:collapse;font-size:0.72rem;}
+table.reg th{text-align:left;font-family:var(--font-mono);font-size:0.56rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border-default);white-space:nowrap;}
+table.reg td{padding:9px 10px;border-bottom:1px solid var(--border-subtle);vertical-align:top;}
+table.reg tr.row{cursor:pointer;transition:background 0.15s;}
+table.reg tr.row:hover{background:var(--bg-hover);}
+table.reg tr.quarantined{opacity:0.62;}
+table.reg tr.quarantined:hover{opacity:0.85;}
+.name-cell{font-weight:600;color:var(--text-primary);}
+.head-cell{font-size:0.64rem;color:var(--text-muted);margin-top:2px;max-width:240px;}
+
+/* chips */
+.tchip{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:0.56rem;font-weight:600;padding:2px 8px;border-radius:100px;border:1px solid;white-space:nowrap;}
+.tchip.cyan{background:var(--accent-cyan-dim);color:var(--accent-cyan);border-color:rgba(14,165,233,0.25);}
+.tchip.green{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.25);}
+.tchip.amber{background:var(--accent-amber-dim);color:var(--accent-amber);border-color:rgba(245,158,11,0.25);}
+.tchip.red{background:var(--accent-red-dim);color:var(--accent-red);border-color:rgba(239,68,68,0.25);}
+.tchip.purple{background:var(--accent-purple-dim);color:var(--accent-purple);border-color:rgba(139,92,246,0.25);}
+.tchip.muted{background:var(--bg-hover);color:var(--text-muted);border-color:var(--border-subtle);}
+.screened-chip{background:var(--accent-red-dim);color:var(--accent-red);border:1px solid rgba(239,68,68,0.4);font-family:var(--font-mono);font-size:0.54rem;font-weight:700;letter-spacing:0.06em;padding:2px 8px;border-radius:5px;}
+.flag-pill{display:inline-flex;font-family:var(--font-mono);font-size:0.54rem;padding:2px 7px;border-radius:5px;background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.25);margin:0 4px 4px 0;}
+
+.muted-note{font-size:0.64rem;color:var(--text-muted);line-height:1.5;margin-top:8px;}
+.empty{padding:18px 6px;color:var(--text-muted);font-size:0.74rem;text-align:center;}
+.err{color:var(--accent-red);font-size:0.7rem;margin-top:8px;font-family:var(--font-mono);}
+.ok{color:var(--accent-green);font-size:0.7rem;font-family:var(--font-mono);}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(3,6,14,0.72);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto;}
+.modal{background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius-lg);width:100%;max-width:780px;box-shadow:0 24px 64px rgba(0,0,0,0.5);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-subtle);position:sticky;top:0;background:var(--bg-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;z-index:1;}
+.modal-title{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--text-primary);}
+.modal-sub{font-size:0.62rem;color:var(--text-muted);margin-top:2px;}
+.modal-close{width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-secondary);cursor:pointer;font-size:0.8rem;flex-shrink:0;}
+.modal-close:hover{color:var(--accent-red);border-color:rgba(239,68,68,0.3);}
+.modal-body{padding:18px 20px 24px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid .full{grid-column:1 / -1;}
+.fg{display:flex;flex-direction:column;gap:3px;}.fg .l{font-size:0.56rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;}
+.flag-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.flag-opt{display:flex;align-items:center;gap:7px;font-size:0.68rem;color:var(--text-secondary);padding:6px 8px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--bg-base);cursor:pointer;}
+.flag-opt input{width:auto;}
+.subcard{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 16px;}
+.act-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-subtle);}.act-row:last-child{border-bottom:none;}
+.act-when{font-family:var(--font-mono);font-size:0.6rem;color:var(--text-muted);min-width:96px;flex-shrink:0;}
+.act-what{font-size:0.7rem;color:var(--text-secondary);line-height:1.4;}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-subtle);}.kv:last-child{border-bottom:none;}
+.kv .k{font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;}
+.kv .v{font-size:0.72rem;color:var(--text-primary);text-align:right;}
+.tabbar{display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--border-subtle);}
+.tabbar button{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:var(--font-body);font-size:0.72rem;font-weight:600;padding:8px 10px;cursor:pointer;}
+.tabbar button.active{color:var(--text-primary);border-bottom-color:var(--accent-cyan);}
+.disclaimer{background:var(--bg-base);border:1px solid var(--border-subtle);border-left:3px solid var(--accent-purple);border-radius:var(--radius-sm);padding:11px 14px;font-size:0.64rem;color:var(--text-secondary);line-height:1.55;}
+
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.form-grid{grid-template-columns:1fr;}.flag-grid{grid-template-columns:1fr;}}
+@media(max-width:640px){.kpi-strip{grid-template-columns:1fr 1fr;}}
+</style>
+
+<!-- Eileen cross-platform panel — AILANE-CC-BRIEF-EILEEN-XPLATFORM-001 -->
+<link rel="stylesheet" href="/assets/eileen-panel.css">
+<script>window.EILEEN_CONTEXT = { page: "talent", label: "Talent Pipeline" };</script>
+<script defer src="/assets/eileen-panel.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef} = React;
+
+// ─── Canonical config (RULE 2: raw fetch + Bearer + apikey) ───
+const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL='mark@ailane.ai';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+window.eileenSupabase = sb;   // reused by the Eileen cross-platform panel
+
+// CEO Talent Pipeline (People of Interest). AILANE-CC-BRIEF-CEO-TALENT-001 (Track 1).
+// Reads ceo-talent-data?section=all; mutates via ceo-talent-action (service-role EFs,
+// verify_jwt=true, CEO-gated). The two tables are RLS service-role-only, so the browser
+// never reads them directly — everything goes through the two Edge Functions.
+
+// ─── Enum vocabularies (mirror the §3 CHECK constraints) ───
+const RELATIONSHIP_TYPES=['prospective_hire','contractor','collaborator','advisor','investor','partner','referrer','other'];
+const SENIORITIES=['junior','mid','senior','lead','exec','unknown'];
+const SOURCES=['inbound_email','referral','outbound','event','linkedin','other'];
+const TIERS=['A','B','C','watch'];
+const FUNDING_RELEVANCE=['now','seed','series_a','later','na'];
+const STATUSES=['lead','screening','shortlisted','contacted','engaged','on_hold','rejected','screened_out_fraud'];
+const VERIFICATION_STATUSES=['unverified','identity_verified','vetted','flagged_fraud'];
+const IDENTITY_CONSISTENCY=['consistent','mismatch','unknown'];
+const SCREENING_FLAGS=['name_email_mismatch','sender_signature_mismatch','no_online_presence','generic_cv','unverifiable_employers','other'];
+
+// ─── Formatting helpers ───
+function labelize(s){if(s==null||s==='')return '—';return String(s).replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());}
+function fmtDateTime(s){if(!s)return '—';try{return new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return String(s);}}
+function fmtDate(s){if(!s)return '—';try{return new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return String(s);}}
+
+function statusColor(s){
+  if(s==='engaged'||s==='shortlisted'||s==='contacted')return 'green';
+  if(s==='lead'||s==='screening')return 'cyan';
+  if(s==='on_hold')return 'amber';
+  if(s==='rejected')return 'muted';
+  if(s==='screened_out_fraud')return 'red';
+  return 'muted';
+}
+function verColor(v){
+  if(v==='vetted')return 'green';
+  if(v==='identity_verified')return 'cyan';
+  if(v==='flagged_fraud')return 'red';
+  return 'muted';
+}
+function consistencyColor(c){return c==='consistent'?'green':c==='mismatch'?'red':'muted';}
+function tierColor(t){return t==='A'?'green':t==='B'?'cyan':t==='C'?'amber':t==='watch'?'muted':'muted';}
+
+function Chip({color,children}){return <span className={'tchip '+(color||'muted')}>{children}</span>;}
+
+// ─── API layer ───
+function authHeaders(token,withJson){
+  const h={'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY};
+  if(withJson)h['Content-Type']='application/json';
+  return h;
+}
+async function apiGet(token,qs){
+  const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-talent-data?${qs}`,{headers:authHeaders(token)});
+  if(!r.ok){const t=await r.text().catch(()=>'');throw new Error(`Read failed (${r.status})`+(t?': '+t.slice(0,140):''));}
+  return r.json();
+}
+async function apiAction(token,body){
+  const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-talent-action`,{method:'POST',headers:authHeaders(token,true),body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.ok===false)throw new Error(d.error||`Action failed (${r.status})`);
+  return d;
+}
+
+// ═══════════════════════════════════════════════
+// STATS STRIP
+// ═══════════════════════════════════════════════
+function StatsStrip({stats}){
+  const total=stats?stats.total:null;
+  const flagged=stats?stats.flagged_fraud:null;
+  const tierCount=(t)=>{const r=(stats&&stats.by_tier||[]).find(x=>x.key===t);return r?r.count:0;};
+  const statusCount=(s)=>{const r=(stats&&stats.by_status||[]).find(x=>x.key===s);return r?r.count:0;};
+  const live=total!=null?(total-(flagged||0)):null;
+  return(
+    <div className="kpi-strip">
+      <div className="kpi-card"><div className="label">People of Interest</div><div className="value" style={{color:'var(--accent-cyan)'}}>{total!=null?total:'—'}</div><div className="sub">total tracked</div></div>
+      <div className="kpi-card"><div className="label">Live Prospects</div><div className="value" style={{color:'var(--accent-green)'}}>{live!=null?live:'—'}</div><div className="sub">engaged {statusCount('engaged')} · shortlisted {statusCount('shortlisted')}</div></div>
+      <div className="kpi-card"><div className="label">Tier A / B</div><div className="value" style={{color:'var(--accent-green)'}}>{tierCount('A')} / {tierCount('B')}</div><div className="sub">C {tierCount('C')} · watch {tierCount('watch')}</div></div>
+      <div className="kpi-card"><div className="label">In Screening</div><div className="value" style={{color:'var(--accent-amber)'}}>{statusCount('screening')}</div><div className="sub">awaiting identity check</div></div>
+      <div className="kpi-card"><div className="label">Vetted</div><div className="value" style={{color:'var(--accent-cyan)'}}>{(stats&&stats.by_verification_status||[]).filter(x=>x.key==='vetted'||x.key==='identity_verified').reduce((a,x)=>a+x.count,0)}</div><div className="sub">identity confirmed</div></div>
+      <div className={'kpi-card'+((flagged||0)>0?' alarm':'')}><div className="label">Screened Out (Fraud)</div><div className="value" style={{color:(flagged||0)>0?'var(--accent-red)':'var(--text-muted)'}}>{flagged!=null?flagged:'—'}</div><div className="sub">quarantined</div></div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// REGISTER TABLE
+// ═══════════════════════════════════════════════
+function RegisterRow({row,onSelect,quarantined}){
+  return(
+    <tr className={'row'+(quarantined?' quarantined':'')} onClick={()=>onSelect(row)}>
+      <td>
+        <div className="name-cell">{row.full_name}{quarantined&&<span style={{marginLeft:8}} className="screened-chip">SCREENED OUT</span>}</div>
+        {row.headline&&<div className="head-cell">{row.headline}</div>}
+      </td>
+      <td><Chip color="purple">{labelize(row.relationship_type)}</Chip></td>
+      <td>{row.tier?<Chip color={tierColor(row.tier)}>{row.tier==='watch'?'Watch':'Tier '+row.tier}</Chip>:<span className="ts">—</span>}</td>
+      <td><span className="ts">{labelize(row.funding_stage_relevance)}</span></td>
+      <td><Chip color={statusColor(row.status)}>{labelize(row.status)}</Chip></td>
+      <td><Chip color={verColor(row.verification_status)}>{labelize(row.verification_status)}</Chip></td>
+      <td><Chip color={consistencyColor(row.identity_consistency)}>{labelize(row.identity_consistency)}</Chip></td>
+      <td><span className="ts">{labelize(row.source)}</span></td>
+      <td><span className="ts">{fmtDate(row.updated_at)}</span></td>
+    </tr>
+  );
+}
+
+function RegisterTable({rows,onSelect}){
+  const live=rows.filter(r=>r.verification_status!=='flagged_fraud');
+  const quarantined=rows.filter(r=>r.verification_status==='flagged_fraud');
+  const Head=()=>(
+    <thead><tr>
+      <th>Person</th><th>Relationship</th><th>Tier</th><th>Funding</th><th>Status</th>
+      <th>Verification</th><th>Identity</th><th>Source</th><th>Updated</th>
+    </tr></thead>
+  );
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+      <div className="card">
+        <div className="card-head"><div className="card-head-title">Live Register</div><div className="card-head-badge">{live.length} prospect{live.length===1?'':'s'}</div></div>
+        <div className="card-body">
+          {live.length===0?<div className="empty">No live prospects match the current filters.</div>:(
+            <div className="tbl-wrap"><table className="reg"><Head/><tbody>
+              {live.map(r=><RegisterRow key={r.id} row={r} onSelect={onSelect} quarantined={false}/>)}
+            </tbody></table></div>
+          )}
+        </div>
+      </div>
+
+      {quarantined.length>0&&(
+        <div className="card" style={{borderColor:'rgba(239,68,68,0.2)'}}>
+          <div className="card-head"><div className="card-head-title" style={{color:'var(--accent-red)'}}>Screened Out — Quarantined</div><div className="card-head-badge">{quarantined.length} record{quarantined.length===1?'':'s'}</div></div>
+          <div className="card-body">
+            <div className="muted-note" style={{marginTop:0,marginBottom:8}}>Approaches whose identity could not be reconciled (mismatched sender, signature, CV name or contact address). Retained as evidence — never counted as live prospects.</div>
+            <div className="tbl-wrap"><table className="reg"><Head/><tbody>
+              {quarantined.map(r=><RegisterRow key={r.id} row={r} onSelect={onSelect} quarantined={true}/>)}
+            </tbody></table></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// FILTER TOOLBAR
+// ═══════════════════════════════════════════════
+function FilterBar({filters,setFilters,onAdd,onRefresh,count}){
+  const set=(k,v)=>setFilters(f=>({...f,[k]:v}));
+  const sel=(k,opts,allLabel)=>(
+    <div className="fld">
+      <span className="l">{allLabel}</span>
+      <select value={filters[k]} onChange={e=>set(k,e.target.value)}>
+        <option value="">All</option>
+        {opts.map(o=><option key={o} value={o}>{labelize(o)}</option>)}
+      </select>
+    </div>
+  );
+  return(
+    <div className="card"><div className="card-body">
+      <div className="toolbar">
+        {sel('status',STATUSES,'Status')}
+        {sel('relationship_type',RELATIONSHIP_TYPES,'Relationship')}
+        {sel('tier',TIERS,'Tier')}
+        {sel('verification_status',VERIFICATION_STATUSES,'Verification')}
+        <div className="fld"><span className="l">Search</span><input type="text" placeholder="name / headline / email" value={filters.q} onChange={e=>set('q',e.target.value)} style={{minWidth:180}}/></div>
+        <div style={{flex:1}}/>
+        <div className="fld"><span className="l">&nbsp;</span><button className="btn sm" onClick={onRefresh}>↻ Refresh</button></div>
+        <div className="fld"><span className="l">&nbsp;</span><button className="btn primary" onClick={onAdd}>+ Add person</button></div>
+      </div>
+      <div className="muted-note">{count!=null?count+' record'+(count===1?'':'s')+' shown after filters.':''}</div>
+    </div></div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// MODAL SHELL
+// ═══════════════════════════════════════════════
+function Modal({title,sub,onClose,children,wide}){
+  useEffect(()=>{
+    const onKey=e=>{if(e.key==='Escape')onClose();};
+    document.addEventListener('keydown',onKey);
+    const prev=document.body.style.overflow;document.body.style.overflow='hidden';
+    return()=>{document.removeEventListener('keydown',onKey);document.body.style.overflow=prev;};
+  },[]);
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={wide?{maxWidth:880}:null} onClick={e=>e.stopPropagation()}>
+        <div className="modal-head">
+          <div><div className="modal-title">{title}</div>{sub&&<div className="modal-sub">{sub}</div>}</div>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// reusable form field helpers
+function Field({label,children,full}){return <div className={'fg'+(full?' full':'')}><span className="l">{label}</span>{children}</div>;}
+function SelectField({label,value,onChange,opts,allowBlank,blankLabel,full}){
+  return <Field label={label} full={full}><select value={value==null?'':value} onChange={e=>onChange(e.target.value||null)}>
+    {allowBlank&&<option value="">{blankLabel||'— none —'}</option>}
+    {opts.map(o=><option key={o} value={o}>{labelize(o)}</option>)}
+  </select></Field>;
+}
+function TextField({label,value,onChange,placeholder,full,type}){
+  return <Field label={label} full={full}><input type={type||'text'} value={value||''} placeholder={placeholder||''} onChange={e=>onChange(e.target.value)}/></Field>;
+}
+
+// ═══════════════════════════════════════════════
+// ADD PERSON
+// ═══════════════════════════════════════════════
+function AddPersonModal({token,onClose,onSaved}){
+  const[f,setF]=useState({full_name:'',headline:'',relationship_type:'prospective_hire',discipline:'',seniority:'unknown',location:'',email:'',phone:'',source:'other',source_detail:'',tier:null,funding_stage_relevance:'na',status:'lead',notes:''});
+  const[busy,setBusy]=useState(false);const[err,setErr]=useState(null);
+  const upd=(k,v)=>setF(s=>({...s,[k]:v}));
+  async function save(){
+    if(!f.full_name.trim()){setErr('Full name is required.');return;}
+    setBusy(true);setErr(null);
+    try{
+      const payload={...f,full_name:f.full_name.trim()};
+      Object.keys(payload).forEach(k=>{if(payload[k]===''||payload[k]==null)delete payload[k];});
+      await apiAction(token,{action:'create',payload});
+      onSaved();
+    }catch(e){setErr(e.message);setBusy(false);}
+  }
+  return(
+    <Modal title="Add person of interest" sub="A new entry starts as a lead. Identity screening fields default to unverified." onClose={onClose}>
+      <div className="form-grid">
+        <TextField label="Full name *" value={f.full_name} onChange={v=>upd('full_name',v)} placeholder="Name as presented"/>
+        <TextField label="Headline" value={f.headline} onChange={v=>upd('headline',v)} placeholder="e.g. Senior Full-Stack Engineer"/>
+        <SelectField label="Relationship" value={f.relationship_type} onChange={v=>upd('relationship_type',v)} opts={RELATIONSHIP_TYPES}/>
+        <TextField label="Discipline" value={f.discipline} onChange={v=>upd('discipline',v)} placeholder="engineering / legal / sales"/>
+        <SelectField label="Seniority" value={f.seniority} onChange={v=>upd('seniority',v)} opts={SENIORITIES}/>
+        <TextField label="Location" value={f.location} onChange={v=>upd('location',v)}/>
+        <TextField label="Email" value={f.email} onChange={v=>upd('email',v)} type="email"/>
+        <TextField label="Phone" value={f.phone} onChange={v=>upd('phone',v)}/>
+        <SelectField label="Source" value={f.source} onChange={v=>upd('source',v)} opts={SOURCES}/>
+        <SelectField label="Tier" value={f.tier} onChange={v=>upd('tier',v)} opts={TIERS} allowBlank blankLabel="— not assessed —"/>
+        <SelectField label="Funding relevance" value={f.funding_stage_relevance} onChange={v=>upd('funding_stage_relevance',v)} opts={FUNDING_RELEVANCE}/>
+        <SelectField label="Status" value={f.status} onChange={v=>upd('status',v)} opts={STATUSES}/>
+        <TextField label="Source detail" value={f.source_detail} onChange={v=>upd('source_detail',v)} placeholder="e.g. cold email 29 May 2026, subject …" full/>
+        <Field label="Notes" full><textarea value={f.notes} onChange={e=>upd('notes',e.target.value)} placeholder="Context, rationale, who introduced them…"/></Field>
+      </div>
+      {err&&<div className="err">{err}</div>}
+      <div style={{display:'flex',gap:10,marginTop:16}}>
+        <button className="btn primary" disabled={busy} onClick={save}>{busy?'Saving…':'Add to pipeline'}</button>
+        <button className="btn" onClick={onClose}>Cancel</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// SCREEN OUT (FRAUD)
+// ═══════════════════════════════════════════════
+function ScreenOutPanel({token,row,onDone}){
+  const[flags,setFlags]=useState(Array.isArray(row.screening_flags)?row.screening_flags.filter(x=>SCREENING_FLAGS.includes(x)):[]);
+  const[reason,setReason]=useState('');
+  const[busy,setBusy]=useState(false);const[err,setErr]=useState(null);
+  const toggle=(fl)=>setFlags(s=>s.includes(fl)?s.filter(x=>x!==fl):[...s,fl]);
+  async function run(){
+    setBusy(true);setErr(null);
+    try{
+      await apiAction(token,{action:'screen_out',id:row.id,payload:{screening_flags:flags,reason:reason||null}});
+      onDone();
+    }catch(e){setErr(e.message);setBusy(false);}
+  }
+  return(
+    <div className="subcard" style={{borderColor:'rgba(239,68,68,0.3)'}}>
+      <div style={{fontSize:'0.74rem',fontWeight:600,color:'var(--accent-red)',marginBottom:4}}>Screen out as fraudulent / unverifiable</div>
+      <div className="muted-note" style={{marginTop:0,marginBottom:10}}>This sets status to <strong>Screened out</strong>, verification to <strong>flagged fraud</strong>, and identity consistency to <strong>mismatch</strong>. The record is quarantined and retained as evidence.</div>
+      <div className="flag-grid">
+        {SCREENING_FLAGS.map(fl=>(
+          <label className="flag-opt" key={fl}><input type="checkbox" checked={flags.includes(fl)} onChange={()=>toggle(fl)}/>{labelize(fl)}</label>
+        ))}
+      </div>
+      <div style={{marginTop:10}}><textarea placeholder="Reason / evidence (optional) — e.g. four non-matching identities across one approach" value={reason} onChange={e=>setReason(e.target.value)} style={{width:'100%'}}/></div>
+      {err&&<div className="err">{err}</div>}
+      <div style={{marginTop:10}}><button className="btn danger" disabled={busy} onClick={run}>{busy?'Quarantining…':'Quarantine this approach'}</button></div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// DETAIL / EDIT PANEL (modal)
+// ═══════════════════════════════════════════════
+const EDITABLE_TEXT=['full_name','headline','discipline','location','email','phone','source_detail'];
+
+function linksToText(links){return (Array.isArray(links)?links:[]).map(l=>(l.label?l.label+' | ':'')+(l.url||'')).join('\n');}
+function textToLinks(t){return String(t||'').split('\n').map(s=>s.trim()).filter(Boolean).map(line=>{const i=line.indexOf('|');return i>=0?{label:line.slice(0,i).trim(),url:line.slice(i+1).trim()}:{label:'',url:line};});}
+function skillsToText(sk){return (Array.isArray(sk)?sk:[]).join(', ');}
+function textToSkills(t){return String(t||'').split(',').map(s=>s.trim()).filter(Boolean);}
+
+function DetailModal({token,row,onClose,onChanged}){
+  const[tab,setTab]=useState('edit');
+  const[f,setF]=useState(()=>({
+    full_name:row.full_name||'',headline:row.headline||'',relationship_type:row.relationship_type||'prospective_hire',
+    discipline:row.discipline||'',seniority:row.seniority||'unknown',location:row.location||'',email:row.email||'',phone:row.phone||'',
+    source:row.source||'other',source_detail:row.source_detail||'',tier:row.tier||null,funding_stage_relevance:row.funding_stage_relevance||'na',
+    status:row.status||'lead',rating:row.rating||null,verification_status:row.verification_status||'unverified',
+    identity_consistency:row.identity_consistency||'unknown',notes:row.notes||'',
+    linksText:linksToText(row.links),skillsText:skillsToText(row.skills),
+    screening_flags:Array.isArray(row.screening_flags)?row.screening_flags:[]
+  }));
+  const[note,setNote]=useState('');
+  const[busy,setBusy]=useState(false);const[msg,setMsg]=useState(null);
+  const[activity,setActivity]=useState(null);
+  const upd=(k,v)=>setF(s=>({...s,[k]:v}));
+
+  const loadActivity=useCallback(async()=>{
+    try{const j=await apiGet(token,`section=activity&talent_id=${row.id}&limit=100`);setActivity((j.sections&&j.sections.activity&&j.sections.activity.rows)||[]);}
+    catch(e){setActivity([]);}
+  },[token,row.id]);
+  useEffect(()=>{if(tab==='activity'&&activity==null)loadActivity();},[tab]);
+
+  async function saveEdits(){
+    setBusy(true);setMsg(null);
+    try{
+      const payload={
+        full_name:f.full_name.trim(),headline:f.headline,relationship_type:f.relationship_type,discipline:f.discipline,
+        seniority:f.seniority,location:f.location,email:f.email,phone:f.phone,source:f.source,source_detail:f.source_detail,
+        tier:f.tier,funding_stage_relevance:f.funding_stage_relevance,status:f.status,
+        rating:f.rating?Number(f.rating):null,verification_status:f.verification_status,identity_consistency:f.identity_consistency,
+        notes:f.notes,links:textToLinks(f.linksText),skills:textToSkills(f.skillsText),screening_flags:f.screening_flags
+      };
+      const d=await apiAction(token,{action:'update',id:row.id,payload});
+      setMsg({k:'ok',t:'Saved.'});onChanged(d.row);setBusy(false);
+    }catch(e){setMsg({k:'err',t:e.message});setBusy(false);}
+  }
+  async function quickStatus(status){
+    setBusy(true);setMsg(null);
+    try{const d=await apiAction(token,{action:'set_status',id:row.id,payload:{status}});upd('status',status);setMsg({k:'ok',t:'Status updated.'});onChanged(d.row);setBusy(false);}
+    catch(e){setMsg({k:'err',t:e.message});setBusy(false);}
+  }
+  async function addNote(){
+    if(!note.trim())return;
+    setBusy(true);setMsg(null);
+    try{await apiAction(token,{action:'add_note',id:row.id,payload:{note:note.trim()}});setNote('');setMsg({k:'ok',t:'Note added.'});if(tab==='activity')loadActivity();setBusy(false);}
+    catch(e){setMsg({k:'err',t:e.message});setBusy(false);}
+  }
+  const toggleEditFlag=(fl)=>upd('screening_flags',f.screening_flags.includes(fl)?f.screening_flags.filter(x=>x!==fl):[...f.screening_flags,fl]);
+
+  return(
+    <Modal wide title={row.full_name} sub={[labelize(row.relationship_type),row.headline].filter(Boolean).join(' · ')} onClose={onClose}>
+      <div className="tabbar">
+        <button className={tab==='edit'?'active':''} onClick={()=>setTab('edit')}>Edit</button>
+        <button className={tab==='screen'?'active':''} onClick={()=>setTab('screen')}>Screen out</button>
+        <button className={tab==='activity'?'active':''} onClick={()=>setTab('activity')}>Activity</button>
+      </div>
+
+      {tab==='edit'&&(
+        <div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
+            <Chip color={statusColor(row.status)}>{labelize(row.status)}</Chip>
+            <Chip color={verColor(row.verification_status)}>{labelize(row.verification_status)}</Chip>
+            <Chip color={consistencyColor(row.identity_consistency)}>{labelize(row.identity_consistency)}</Chip>
+            {row.tier&&<Chip color={tierColor(row.tier)}>{row.tier==='watch'?'Watch':'Tier '+row.tier}</Chip>}
+            <span className="ts" style={{alignSelf:'center'}}>Updated {fmtDateTime(row.updated_at)}</span>
+          </div>
+
+          <div className="form-grid">
+            <TextField label="Full name *" value={f.full_name} onChange={v=>upd('full_name',v)}/>
+            <TextField label="Headline" value={f.headline} onChange={v=>upd('headline',v)}/>
+            <SelectField label="Relationship" value={f.relationship_type} onChange={v=>upd('relationship_type',v)} opts={RELATIONSHIP_TYPES}/>
+            <TextField label="Discipline" value={f.discipline} onChange={v=>upd('discipline',v)}/>
+            <SelectField label="Seniority" value={f.seniority} onChange={v=>upd('seniority',v)} opts={SENIORITIES}/>
+            <TextField label="Location" value={f.location} onChange={v=>upd('location',v)}/>
+            <TextField label="Email" value={f.email} onChange={v=>upd('email',v)} type="email"/>
+            <TextField label="Phone" value={f.phone} onChange={v=>upd('phone',v)}/>
+            <SelectField label="Source" value={f.source} onChange={v=>upd('source',v)} opts={SOURCES}/>
+            <SelectField label="Tier" value={f.tier} onChange={v=>upd('tier',v)} opts={TIERS} allowBlank blankLabel="— not assessed —"/>
+            <SelectField label="Funding relevance" value={f.funding_stage_relevance} onChange={v=>upd('funding_stage_relevance',v)} opts={FUNDING_RELEVANCE}/>
+            <SelectField label="Status" value={f.status} onChange={v=>upd('status',v)} opts={STATUSES}/>
+            <SelectField label="Verification" value={f.verification_status} onChange={v=>upd('verification_status',v)} opts={VERIFICATION_STATUSES}/>
+            <SelectField label="Identity consistency" value={f.identity_consistency} onChange={v=>upd('identity_consistency',v)} opts={IDENTITY_CONSISTENCY}/>
+            <SelectField label="Rating (1–5)" value={f.rating} onChange={v=>upd('rating',v)} opts={['1','2','3','4','5']} allowBlank blankLabel="— none —"/>
+            <TextField label="Source detail" value={f.source_detail} onChange={v=>upd('source_detail',v)} full/>
+            <Field label="Links (one per line: label | url)" full><textarea value={f.linksText} onChange={e=>upd('linksText',e.target.value)} placeholder="GitHub | https://github.com/…"/></Field>
+            <TextField label="Skills (comma-separated)" value={f.skillsText} onChange={v=>upd('skillsText',v)} full/>
+            <Field label="Screening flags" full>
+              <div className="flag-grid">
+                {SCREENING_FLAGS.map(fl=>(<label className="flag-opt" key={fl}><input type="checkbox" checked={f.screening_flags.includes(fl)} onChange={()=>toggleEditFlag(fl)}/>{labelize(fl)}</label>))}
+              </div>
+            </Field>
+            <Field label="Notes" full><textarea value={f.notes} onChange={e=>upd('notes',e.target.value)}/></Field>
+          </div>
+
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:14,alignItems:'center'}}>
+            <button className="btn primary" disabled={busy} onClick={saveEdits}>{busy?'Saving…':'Save changes'}</button>
+            <span className="ts">Quick status:</span>
+            {['screening','shortlisted','contacted','engaged','on_hold','rejected'].map(s=>(
+              <button key={s} className="btn sm" disabled={busy} onClick={()=>quickStatus(s)}>{labelize(s)}</button>
+            ))}
+            {msg&&<span className={msg.k==='ok'?'ok':'err'}>{msg.t}</span>}
+          </div>
+
+          <div className="section-label" style={{marginTop:18}}>Add a note</div>
+          <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+            <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Append a timestamped note to the activity log…" style={{flex:1}}/>
+            <button className="btn" disabled={busy||!note.trim()} onClick={addNote}>Add note</button>
+          </div>
+        </div>
+      )}
+
+      {tab==='screen'&&(
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          <div className="subcard">
+            <div className="section-label" style={{paddingTop:0}}>Current identity screening</div>
+            <div className="kv"><span className="k">Verification</span><span className="v"><Chip color={verColor(row.verification_status)}>{labelize(row.verification_status)}</Chip></span></div>
+            <div className="kv"><span className="k">Identity consistency</span><span className="v"><Chip color={consistencyColor(row.identity_consistency)}>{labelize(row.identity_consistency)}</Chip></span></div>
+            <div className="kv"><span className="k">Flags</span><span className="v">{(Array.isArray(row.screening_flags)&&row.screening_flags.length>0)?row.screening_flags.map((fl,i)=><span className="flag-pill" key={i}>{labelize(fl)}</span>):<span className="ts">none</span>}</span></div>
+          </div>
+          {row.verification_status==='flagged_fraud'
+            ?<div className="disclaimer">This record is already quarantined. To reinstate, change Verification away from “Flagged fraud” on the Edit tab.</div>
+            :<ScreenOutPanel token={token} row={row} onDone={onChanged}/>}
+        </div>
+      )}
+
+      {tab==='activity'&&(
+        <div>
+          <div className="section-label" style={{paddingTop:0}}>Activity log</div>
+          {activity==null&&<div className="ts">Loading activity…</div>}
+          {activity!=null&&activity.length===0&&<div className="empty">No activity recorded yet.</div>}
+          {activity!=null&&activity.map((a,i)=>(
+            <div className="act-row" key={a.id||i}>
+              <div className="act-when">{fmtDateTime(a.created_at)}</div>
+              <div className="act-what">
+                <Chip color={a.action==='screen_out'?'red':a.action==='create'?'green':'cyan'}>{labelize(a.action)}</Chip>
+                <span style={{marginLeft:8}}>{a.actor_email}</span>
+                {a.detail&&a.detail.note&&<div style={{marginTop:4}}>{a.detail.note}</div>}
+                {a.detail&&a.detail.status&&<div style={{marginTop:4}}>→ {labelize(a.detail.status)}{a.detail.reason?' · '+a.detail.reason:''}</div>}
+                {a.detail&&a.detail.reason&&!a.detail.status&&!a.detail.note&&<div style={{marginTop:4}}>{a.detail.reason}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// APP
+// ═══════════════════════════════════════════════
+function App(){
+  const[auth,setAuth]=useState('checking');const[token,setToken]=useState(null);
+  const[rows,setRows]=useState(null);const[stats,setStats]=useState(null);
+  const[err,setErr]=useState(null);const[loading,setLoading]=useState(true);
+  const[selected,setSelected]=useState(null);const[adding,setAdding]=useState(false);
+  const[filters,setFilters]=useState({status:'',relationship_type:'',tier:'',verification_status:'',q:''});
+
+  // Auth guard — mirrors the established AiLaneCEO room pattern (getSession → JWT email
+  // check → else redirect to the hub; onAuthStateChange fallback). Never shows error UI.
+  useEffect(()=>{(async()=>{
+    const{data:{session}}=await sb.auth.getSession();
+    if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}
+    const t=setTimeout(()=>{window.location.href='/AiLaneCEO/';},3000);
+    sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/AiLaneCEO/';}});
+  })();},[]);
+
+  const load=useCallback(async()=>{
+    if(!token)return;
+    setLoading(true);setErr(null);
+    try{
+      const j=await apiGet(token,'section=all');
+      const s=j.sections||{};
+      setRows((s.pipeline&&s.pipeline.rows)||[]);
+      setStats(s.stats||null);
+    }catch(e){setErr(e.message);setRows([]);}
+    setLoading(false);
+  },[token]);
+  useEffect(()=>{if(auth==='ok'&&token)load();},[auth,token,load]);
+
+  if(auth==='checking')return<div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Loading talent pipeline…</div></div>;
+
+  const filtered=(rows||[]).filter(r=>{
+    if(filters.status&&r.status!==filters.status)return false;
+    if(filters.relationship_type&&r.relationship_type!==filters.relationship_type)return false;
+    if(filters.tier&&r.tier!==filters.tier)return false;
+    if(filters.verification_status&&r.verification_status!==filters.verification_status)return false;
+    if(filters.q){const q=filters.q.toLowerCase();const hay=[r.full_name,r.headline,r.email,r.discipline].filter(Boolean).join(' ').toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  });
+
+  function onChanged(){setSelected(null);load();}
+
+  return(
+    <div>
+      <div className="top-bar">
+        <div className="top-bar-left">
+          <a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a>
+          <div className="page-title">Talent <span>Pipeline</span></div>
+        </div>
+        <div className="top-bar-right">
+          <div className="status-pill live"><div className="dot"/>LIVE</div>
+          <div className="ts">People of Interest · curated for funding</div>
+        </div>
+      </div>
+
+      <div className="main">
+        <StatsStrip stats={stats}/>
+
+        <div className="sec-head"><div className="t">People of Interest</div><div className="rule"/></div>
+
+        <FilterBar filters={filters} setFilters={setFilters} onAdd={()=>setAdding(true)} onRefresh={load} count={filtered.length}/>
+
+        {err&&<div className="card"><div className="card-body"><div className="err">{err}</div><div className="muted-note">If the screening service has not yet been deployed (Track 2), the register will populate once <span style={{fontFamily:'var(--font-mono)'}}>ceo-talent-data</span> / <span style={{fontFamily:'var(--font-mono)'}}>ceo-talent-action</span> are live.</div></div></div>}
+
+        {loading?<div className="card"><div className="card-body"><div className="ts">Loading register…</div></div></div>
+          :!err&&<RegisterTable rows={filtered} onSelect={setSelected}/>}
+
+        <div className="disclaimer" style={{marginTop:4}}>
+          Curated register of prospective hires, collaborators, advisors and introductions to revisit when funding lands —
+          with identity screening built in. Approaches whose sender, signature, CV name and contact address do not reconcile
+          are quarantined as evidence, never tracked as live prospects. Internal governance tooling; not a credit, vetting or
+          background-check service.
+        </div>
+      </div>
+
+      {selected&&<DetailModal token={token} row={selected} onClose={()=>setSelected(null)} onChanged={onChanged}/>}
+      {adding&&<AddPersonModal token={token} onClose={()=>setAdding(false)} onSaved={()=>{setAdding(false);load();}}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>
