@@ -1055,7 +1055,9 @@ const DC_TIERS = [
 ];
 const DC_FIELDSET_TO_INTERNAL = { identity: 'operational_readiness', tribunal_exposure: 'operational_readiness', outcome_intelligence: 'operational_readiness', full_acei: 'governance', full_enrichment: 'enterprise', premium: 'enterprise' };
 const DC_TIER_LABEL = { identity: 'Identity', tribunal_exposure: 'Tribunal Exposure', outcome_intelligence: 'Outcome Intelligence', full_acei: 'Full ACEI', full_enrichment: 'Full Enrichment', premium: 'Premium' };
-const DC_STAGE_1_GATES = ['phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+// BF-4: Save unlocks at NDA execution (Phase B), matching the on-screen copy.
+// Derived from the single canonical ladder (PHASE_RANK) via isPhaseUnlocked — no
+// standalone phase list, and only canonical phase_0..phase_f keys.
 
 function renderDealCreator(app, ctx) {
   const main = `
@@ -1348,8 +1350,8 @@ function initDealCreator(ctx) {
     const saveBtn = document.getElementById('save-configuration');
     const explain = document.getElementById('dc-save-explanation');
     if (!saveBtn) return;
-    const stage1 = DC_STAGE_1_GATES.indexOf(ctx.room.gate_state) !== -1;
-    if (stage1) { saveBtn.disabled = false; if (explain) explain.hidden = true; }
+    const saveUnlocked = isPhaseUnlocked(ctx.room.gate_state, 'phase_b');
+    if (saveUnlocked) { saveBtn.disabled = false; if (explain) explain.hidden = true; }
     else { saveBtn.disabled = true; if (explain) explain.hidden = false; }
   }
 
