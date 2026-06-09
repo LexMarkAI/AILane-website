@@ -1,0 +1,48 @@
+name: Deal-room serving readiness (Layer B)
+
+# AILANE-SPEC-DRPS-001 §9 — the workspace is served under HTTP 404 by design,
+# so readiness is asserted on rendered DOM by a headless runner, NOT on HTTP
+# status. This is a post-deploy monitor: it runs on a schedule and on demand,
+# against the LIVE site, never on push/PR (the shell isn't deployed pre-merge).
+# Consistent with AILANE-SPEC-DDX-001 §14.2 Layer B and dependency D-7.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to assert against"
+        required: false
+        default: "https://ailane.ai"
+      room_slugs:
+        description: "Comma-separated room slugs"
+        required: false
+        default: "ncino-global-2026,experian-ltd-2026,anthropic-li-2026,dsit-sov-2026,rnd-sim-2026"
+  schedule:
+    - cron: "17 7 * * *"   # daily 07:17 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install runner deps
+        run: npm install --no-save playwright @supabase/supabase-js
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Assert serving readiness
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || 'https://ailane.ai' }}
+          ROOM_SLUGS: ${{ github.event.inputs.room_slugs || 'ncino-global-2026,experian-ltd-2026,anthropic-li-2026,dsit-sov-2026,rnd-sim-2026' }}
+          SUPABASE_URL: https://cnbsxwtvazfvzmltkuvx.supabase.co
+          # Deep (authenticated) checks run only if these repo secrets are set:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DEALROOM_TEST_EMAIL: ${{ secrets.DEALROOM_TEST_EMAIL }}
+          DEALROOM_TEST_SLUG: ${{ secrets.DEALROOM_TEST_SLUG }}
+        run: node scripts/dealroom-readiness.mjs
