@@ -1180,7 +1180,44 @@ function ProductsCard({ financial, compliance }) {
 }
 
 // ─── Card 5: Voice of Client (full-width) ───
-function FeedbackBar() {
+function FeedbackBar({ voice }) {
+  if (!voice) {
+    return (
+      <div className="card" style={{'--card-accent': 'var(--accent-cyan)', cursor:'default'}}>
+        <div className="card-header">
+          <div className="card-title-group">
+            <div className="card-icon cyan"><Icons.msg /></div>
+            <div className="card-title">Voice of Client</div>
+          </div>
+          <span className="card-badge">Pre-Revenue</span>
+        </div>
+        <div className="feedback-strip">
+          <div className="feedback-metric">
+            <div className="feedback-metric-icon">📊</div>
+            <div className="feedback-metric-text"><strong>CSAT</strong> — No data yet</div>
+          </div>
+          <div className="feedback-metric">
+            <div className="feedback-metric-icon">💬</div>
+            <div className="feedback-metric-text"><strong>Feedback signals</strong> — Awaiting first client</div>
+          </div>
+          <div className="feedback-metric">
+            <div className="feedback-metric-icon">🎯</div>
+            <div className="feedback-metric-text"><strong>Feature requests</strong> — Internal roadmap active</div>
+          </div>
+          <div className="feedback-metric">
+            <div className="feedback-metric-icon">⚡</div>
+            <div className="feedback-metric-text"><strong>Compliance checks run</strong> — 41 test scans</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const complaints = voice.dp_complaints || {};
+  const latestComplaints = (complaints.latest || []).slice(0, 3);
+  const feedbackSignals = ((voice.finding_feedback && voice.finding_feedback.total) || 0)
+    + ((voice.lovr_feedback && voice.lovr_feedback.total) || 0);
+
   return (
     <div className="card" style={{'--card-accent': 'var(--accent-cyan)', cursor:'default'}}>
       <div className="card-header">
@@ -1188,26 +1225,52 @@ function FeedbackBar() {
           <div className="card-icon cyan"><Icons.msg /></div>
           <div className="card-title">Voice of Client</div>
         </div>
-        <span className="card-badge">Pre-Revenue</span>
+        {voice.voice_status === 'live'
+          ? <span className="card-badge" style={{color:'var(--accent-cyan)'}}>LIVE</span>
+          : <span className="card-badge">Pre-Revenue</span>}
       </div>
       <div className="feedback-strip">
         <div className="feedback-metric">
-          <div className="feedback-metric-icon">📊</div>
-          <div className="feedback-metric-text"><strong>CSAT</strong> — No data yet</div>
+          <div className="feedback-metric-icon">🛡️</div>
+          <div className="feedback-metric-text">
+            <strong>Data protection complaints</strong> — {complaints.total || 0} total · {complaints.open || 0} open
+            {complaints.ack_due_within_7d > 0 && (
+              <span className="chip amber" style={{marginLeft:'8px'}}>{complaints.ack_due_within_7d} ack due ≤7d</span>
+            )}
+          </div>
         </div>
         <div className="feedback-metric">
           <div className="feedback-metric-icon">💬</div>
-          <div className="feedback-metric-text"><strong>Feedback signals</strong> — Awaiting first client</div>
+          <div className="feedback-metric-text">
+            <strong>Feedback signals</strong> — {feedbackSignals === 0 ? '0 — awaiting first client' : feedbackSignals}
+          </div>
         </div>
         <div className="feedback-metric">
-          <div className="feedback-metric-icon">🎯</div>
-          <div className="feedback-metric-text"><strong>Feature requests</strong> — Internal roadmap active</div>
+          <div className="feedback-metric-icon">📊</div>
+          <div className="feedback-metric-text"><strong>CSAT</strong> — {voice.csat === null ? 'No instrument yet' : voice.csat}</div>
         </div>
         <div className="feedback-metric">
           <div className="feedback-metric-icon">⚡</div>
-          <div className="feedback-metric-text"><strong>Compliance checks run</strong> — 41 test scans</div>
+          <div className="feedback-metric-text"><strong>Compliance checks run</strong> — {voice.compliance_checks_run}</div>
         </div>
       </div>
+      {latestComplaints.length > 0 && (
+        <div className="card-body" style={{paddingTop:0}}>
+          <div className="tx-list">
+            {latestComplaints.map((c, i) => (
+              <div className="tx-row" key={c.reference || i} style={{cursor:'pointer'}} title={c.complainant_name || ''}
+                onClick={() => window.location.href='/AiLaneCEO/legal/'}>
+                <div className="tx-left">
+                  <span className="tx-name">{c.reference}</span>
+                  <span className="tx-time">{c.complaint_category}</span>
+                  <span className="tx-time">{c.status}</span>
+                </div>
+                <span className="tx-time">ack due {c.ack_due_date}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1963,7 +2026,7 @@ function App() {
         </div>
 
         <div className="grid-row full">
-          <FeedbackBar />
+          {loading ? <SkeletonCard /> : <FeedbackBar voice={sections.voice} />}
         </div>
 
         <div className="grid-row two-col">
