@@ -377,6 +377,102 @@
     ].join("\n");
     document.head.appendChild(style);
   })();
+  (function() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("eileen-nexus-001-styles")) return;
+    const style = document.createElement("style");
+    style.id = "eileen-nexus-001-styles";
+    style.textContent = [
+      ".kl-nexus-host { position: relative; display: block; border-radius: 50%; }",
+      ".kl-nexus-host .kl-nexus-canvas { display: block; }",
+      ".kl-nexus-halo { transition: box-shadow 0.3s ease; }",
+      ".kl-nexus-halo--dormant { box-shadow: 0 0 8px rgba(14,165,233,0.1); }",
+      ".kl-nexus-halo--ready { box-shadow: 0 0 12px rgba(14,165,233,0.2); }",
+      ".kl-nexus-halo--processing { box-shadow: 0 0 20px rgba(14,165,233,0.4); animation: klNexusHaloPulse 1.5s ease-in-out infinite; }",
+      ".kl-nexus-halo--presenting { box-shadow: 0 0 24px rgba(14,165,233,0.5); }",
+      "@keyframes klNexusHaloPulse {",
+      "  0%, 100% { box-shadow: 0 0 20px rgba(14,165,233,0.4); }",
+      "  50% { box-shadow: 0 0 28px rgba(14,165,233,0.55); }",
+      "}",
+      "@media (prefers-reduced-motion: reduce) {",
+      "  .kl-nexus-halo--processing { animation: none; }",
+      "}"
+    ].join("\n");
+    document.head.appendChild(style);
+  })();
+  var __nexusModulePromise = null;
+  function loadNexusModule() {
+    if (typeof document === "undefined") return Promise.resolve(false);
+    if (window.AilaneNexus && window.AilaneNexus.createNexus) {
+      startNexusPoll();
+      return Promise.resolve(true);
+    }
+    if (__nexusModulePromise) return __nexusModulePromise;
+    __nexusModulePromise = new Promise(function(resolve) {
+      var s = document.createElement("script");
+      s.src = "/assets/js/nexus.js";
+      s.onload = function() {
+        var ok = !!(window.AilaneNexus && window.AilaneNexus.createNexus);
+        if (ok) startNexusPoll();
+        resolve(ok);
+      };
+      s.onerror = function() {
+        resolve(false);
+      };
+      document.head.appendChild(s);
+    });
+    return __nexusModulePromise;
+  }
+  var NEXUS_URL = "https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-nexus-intel";
+  async function fetchNexus() {
+    var ctrl = new AbortController();
+    var timeoutId = setTimeout(function() {
+      ctrl.abort();
+    }, 6e3);
+    try {
+      var r = await fetch(NEXUS_URL, { signal: ctrl.signal });
+      clearTimeout(timeoutId);
+      if (!r.ok) {
+        console.warn("[Nexus] HTTP " + r.status);
+        return;
+      }
+      var data = await r.json();
+      if (data.version !== "v3") {
+        console.warn("[Nexus] contract drift: expected v3, got " + data.version);
+        return;
+      }
+      if (!Array.isArray(data.categories) || data.categories.length === 0) {
+        return;
+      }
+      var categories = data.categories.map(function(c) {
+        return {
+          id: c.id,
+          label: typeof c.label === "string" ? c.label.replace(/_/g, " ").replace(/\b\w/g, function(ch) {
+            return ch.toUpperCase();
+          }) : c.id,
+          claim_frequency: c.claim_frequency,
+          provision_count: c.provision_count
+        };
+      });
+      if (window.AilaneNexus && window.AilaneNexus.updateLive) {
+        window.AilaneNexus.updateLive({
+          categories,
+          relationships: Array.isArray(data.relationships) ? data.relationships : [],
+          instruments: Array.isArray(data.instruments) ? data.instruments : [],
+          snapshotAt: data.snapshotAt || null
+        });
+      }
+    } catch (e) {
+      clearTimeout(timeoutId);
+      console.warn("[Nexus] fetch failed, retaining seed weights");
+    }
+  }
+  var __nexusPollTimer = null;
+  function startNexusPoll() {
+    if (__nexusPollTimer) return;
+    fetchNexus();
+    __nexusPollTimer = setInterval(fetchNexus, 5 * 60 * 1e3);
+  }
   var ALLOWED_EXTENSIONS = [".pdf", ".docx", ".doc", ".txt"];
   var MAX_FILE_SIZE = 10 * 1024 * 1024;
   function formatFileSize(bytes) {
@@ -593,211 +689,59 @@
     if (!s) return "";
     return s.length > n ? s.substring(0, n - 1) + "\u2026" : s;
   }
-  function tierPalette(tier) {
-    if (tier === "enterprise" || tier === "institutional") return ["#D4A017", "#F1C85B"];
-    if (tier === "governance") return ["#0EA5E9", "#8B5CF6"];
-    if (tier === "operational_readiness") return ["#0EA5E9", "#10B981"];
-    return ["#0EA5E9", "#38BDF8"];
-  }
-  function NexusCanvas({ tier, size, nexusState, prefersReducedMotion }) {
-    const canvasRef = useRef(null);
-    const rafRef = useRef(null);
-    const stateRef = useRef(nexusState || "dormant");
-    const lerpFromRef = useRef(null);
-    const stateChangeTimeRef = useRef(0);
-    const dataPulsesRef = useRef([]);
-    const lastPulseSpawnRef = useRef(0);
-    const renderedRef = useRef(null);
+  function CanonicalNexus({ size, interactive, showRelationships, nexusState }) {
+    const hostRef = useRef(null);
+    const px = size || 180;
     useEffect(() => {
-      const incoming = nexusState || "dormant";
-      if (stateRef.current !== incoming) {
-        if (renderedRef.current) lerpFromRef.current = Object.assign({}, renderedRef.current);
-        stateRef.current = incoming;
-        stateChangeTimeRef.current = performance.now();
-        if (incoming !== "processing") dataPulsesRef.current = [];
-      }
-    }, [nexusState]);
-    useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dpr = window.devicePixelRatio || 1;
-      const canvasSize = size || 280;
-      canvas.width = canvasSize * dpr;
-      canvas.height = canvasSize * dpr;
-      canvas.style.width = canvasSize + "px";
-      canvas.style.height = canvasSize + "px";
-      const ctx = canvas.getContext("2d");
-      ctx.scale(dpr, dpr);
-      const [colorA, colorB] = tierPalette(tier);
-      const cx = canvasSize / 2;
-      const cy = canvasSize / 2;
-      const sc = canvasSize / 280;
-      const nodes = [];
-      const rings = [
-        { count: 6, radius: 28 * sc },
-        { count: 8, radius: 68 * sc },
-        { count: 10, radius: 110 * sc }
-      ];
-      rings.forEach(function(ring, ri) {
-        for (var i2 = 0; i2 < ring.count; i2++) {
-          var angle = i2 / ring.count * Math.PI * 2 + ri * 0.4;
-          nodes.push({
-            baseAngle: angle,
-            radius: ring.radius,
-            baseX: cx + Math.cos(angle) * ring.radius,
-            baseY: cy + Math.sin(angle) * ring.radius,
-            phase: Math.random() * Math.PI * 2,
-            ring: ri
-          });
-        }
-      });
-      var allConns = [];
-      for (var i = 0; i < nodes.length; i++) {
-        for (var j = i + 1; j < nodes.length; j++) {
-          var dx = nodes[i].baseX - nodes[j].baseX;
-          var dy = nodes[i].baseY - nodes[j].baseY;
-          var d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 100 * sc) allConns.push({ a: i, b: j, dist: d });
-        }
-      }
-      allConns.sort(function(a, b) {
-        return a.dist - b.dist;
-      });
-      var CONFIGS = {
-        dormant: { nOp: 0.3, cPct: 0.3, cOp: 0.15, pMin: 0.97, pMax: 1.03, pCyc: 4e3, orb: 0.3 },
-        ready: { nOp: 0.6, cPct: 0.5, cOp: 0.3, pMin: 0.95, pMax: 1.05, pCyc: 2500, orb: 0.5 },
-        processing: { nOp: 1, cPct: 0.8, cOp: 0.5, pMin: 0.9, pMax: 1.1, pCyc: 1500, orb: 1 },
-        presenting: { nOp: 1, cPct: 1, cOp: 0.7, pMin: 1, pMax: 1.05, pCyc: 600, orb: 0.5 }
-      };
-      function lv(a, b, t) {
-        return a + (b - a) * t;
-      }
-      var initCfg = CONFIGS[stateRef.current] || CONFIGS.dormant;
-      var rd = { nOp: initCfg.nOp, cPct: initCfg.cPct, cOp: initCfg.cOp, pMin: initCfg.pMin, pMax: initCfg.pMax, pCyc: initCfg.pCyc, orb: initCfg.orb };
-      if (!lerpFromRef.current) lerpFromRef.current = Object.assign({}, rd);
-      renderedRef.current = Object.assign({}, rd);
-      var start = performance.now();
-      if (!stateChangeTimeRef.current) stateChangeTimeRef.current = start;
-      function draw(now) {
-        var t = (now - start) / 1e3;
-        var curState = stateRef.current;
-        var tgt = CONFIGS[curState] || CONFIGS.dormant;
-        var from = lerpFromRef.current;
-        var elapsed = now - stateChangeTimeRef.current;
-        var lt = Math.min(1, elapsed / 300);
-        rd.nOp = lv(from.nOp, tgt.nOp, lt);
-        rd.cPct = lv(from.cPct, tgt.cPct, lt);
-        rd.cOp = lv(from.cOp, tgt.cOp, lt);
-        rd.pMin = lv(from.pMin, tgt.pMin, lt);
-        rd.pMax = lv(from.pMax, tgt.pMax, lt);
-        rd.pCyc = lv(from.pCyc, tgt.pCyc, lt);
-        rd.orb = lv(from.orb, tgt.orb, lt);
-        if (lt >= 1) lerpFromRef.current = Object.assign({}, rd);
-        renderedRef.current = Object.assign({}, rd);
-        ctx.clearRect(0, 0, canvasSize, canvasSize);
-        if (prefersReducedMotion) {
-          var scc = Math.floor(allConns.length * rd.cPct);
-          ctx.lineWidth = 1;
-          for (var ci = 0; ci < scc; ci++) {
-            var cn = allConns[ci];
-            ctx.strokeStyle = "rgba(14,165,233," + rd.cOp.toFixed(3) + ")";
-            ctx.beginPath();
-            ctx.moveTo(nodes[cn.a].baseX, nodes[cn.a].baseY);
-            ctx.lineTo(nodes[cn.b].baseX, nodes[cn.b].baseY);
-            ctx.stroke();
-          }
-          nodes.forEach(function(n2) {
-            var color = n2.ring === 0 ? colorA : n2.ring === 2 ? colorB : colorA;
-            ctx.beginPath();
-            ctx.arc(n2.baseX, n2.baseY, 3 * sc, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.globalAlpha = rd.nOp;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-          });
-          rafRef.current = requestAnimationFrame(draw);
-          return;
-        }
-        var orbitRad = rd.orb * Math.PI / 3;
-        var pos = [];
-        for (var ni = 0; ni < nodes.length; ni++) {
-          var n = nodes[ni];
-          pos.push({
-            x: cx + Math.cos(n.baseAngle + t * orbitRad) * n.radius,
-            y: cy + Math.sin(n.baseAngle + t * orbitRad) * n.radius
-          });
-        }
-        var pPeriod = rd.pCyc / 1e3;
-        var pPhase = pPeriod > 0 ? t % pPeriod / pPeriod * Math.PI * 2 : 0;
-        var pFactor = rd.pMin + (rd.pMax - rd.pMin) * (0.5 + 0.5 * Math.sin(pPhase));
-        var coreR = 14 * sc * pFactor;
-        var coreG = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
-        coreG.addColorStop(0, "rgba(14,165,233," + (0.12 * rd.nOp).toFixed(3) + ")");
-        coreG.addColorStop(1, "rgba(14,165,233,0)");
-        ctx.fillStyle = coreG;
-        ctx.beginPath();
-        ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
-        ctx.fill();
-        var cc = Math.floor(allConns.length * rd.cPct);
-        ctx.lineWidth = 1;
-        for (var ci = 0; ci < cc; ci++) {
-          var cn = allConns[ci];
-          var distFactor = 1 - cn.dist / (100 * sc);
-          var alpha = distFactor * rd.cOp;
-          ctx.strokeStyle = "rgba(14,165,233," + alpha.toFixed(3) + ")";
-          ctx.beginPath();
-          ctx.moveTo(pos[cn.a].x, pos[cn.a].y);
-          ctx.lineTo(pos[cn.b].x, pos[cn.b].y);
-          ctx.stroke();
-        }
-        if (curState === "processing" && cc > 0) {
-          if (now - lastPulseSpawnRef.current > 1e3) {
-            lastPulseSpawnRef.current = now;
-            var spawnCount = 2 + Math.floor(Math.random() * 2);
-            for (var k = 0; k < spawnCount; k++) {
-              dataPulsesRef.current.push({ ci: Math.floor(Math.random() * cc), st: now });
-            }
-          }
-        }
-        dataPulsesRef.current = dataPulsesRef.current.filter(function(p) {
-          var prog = (now - p.st) / 800;
-          if (prog > 1) return false;
-          var cn2 = allConns[p.ci];
-          if (!cn2) return false;
-          var px = pos[cn2.a].x + (pos[cn2.b].x - pos[cn2.a].x) * prog;
-          var py = pos[cn2.a].y + (pos[cn2.b].y - pos[cn2.a].y) * prog;
-          var a = prog < 0.2 ? prog / 0.2 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
-          ctx.beginPath();
-          ctx.arc(px, py, Math.max(1, 2 * sc), 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(14,165,233," + a.toFixed(3) + ")";
-          ctx.fill();
-          return true;
+      const host = hostRef.current;
+      if (!host) return;
+      let instance = null;
+      let cancelled = false;
+      loadNexusModule().then(function(ok) {
+        if (!ok || cancelled) return;
+        const canvas = document.createElement("canvas");
+        canvas.className = "kl-nexus-canvas";
+        canvas.setAttribute("aria-hidden", "true");
+        host.appendChild(canvas);
+        instance = window.AilaneNexus.createNexus(canvas, {
+          pageTier: "landing",
+          size: px,
+          interactive: interactive === true,
+          showRelationships: showRelationships !== false,
+          dataSource: "eileen-nexus-intel"
         });
-        var flashM = 1;
-        if (curState === "presenting" && elapsed < 600) {
-          var ft = elapsed / 600;
-          flashM = ft < 0.5 ? 1 + 0.4 * ft * 2 : 1 + 0.4 * (1 - (ft - 0.5) * 2);
-        }
-        nodes.forEach(function(n2, i2) {
-          var p = pos[i2];
-          var pulse = 0.5 + 0.5 * Math.sin(t * 2 + n2.phase);
-          var r = (2 + pulse * 2.2) * sc;
-          var color = n2.ring === 0 ? colorA : n2.ring === 2 ? colorB : i2 % 2 ? colorA : colorB;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, r * flashM, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.globalAlpha = Math.min(1, rd.nOp * flashM);
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        });
-        rafRef.current = requestAnimationFrame(draw);
-      }
-      rafRef.current = requestAnimationFrame(draw);
+      });
       return function() {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        cancelled = true;
+        if (instance) instance.destroy();
+        while (host.firstChild) host.removeChild(host.firstChild);
       };
-    }, [tier, size, prefersReducedMotion]);
-    return /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef, className: "kl-nexus-canvas" });
+    }, [px, interactive, showRelationships]);
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        ref: hostRef,
+        className: "kl-nexus-host kl-nexus-halo kl-nexus-halo--" + (nexusState || "dormant"),
+        style: { width: px + "px", height: px + "px" }
+      }
+    );
+  }
+  function EileenStaticDot() {
+    return /* @__PURE__ */ React.createElement(
+      "span",
+      {
+        "aria-hidden": "true",
+        style: {
+          width: "8px",
+          height: "8px",
+          borderRadius: "50%",
+          background: "#0EA5E9",
+          boxShadow: "0 0 6px rgba(14,165,233,0.5)",
+          flexShrink: 0,
+          display: "inline-block"
+        }
+      }
+    );
   }
   function EileenSenderLabel() {
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ React.createElement(
@@ -1106,7 +1050,7 @@
         React.createElement(
           "div",
           { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" } },
-          React.createElement(NexusCanvas, { size: 16, nexusState: "ready", tier: "kl", prefersReducedMotion }),
+          React.createElement(EileenStaticDot, null),
           React.createElement("span", { style: { color: "#0EA5E9", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, flex: 1 } }, "Eileen"),
           React.createElement("button", {
             type: "button",
@@ -1221,11 +1165,11 @@
             transition: "box-shadow 0.3s"
           }
         },
-        React.createElement(NexusCanvas, {
+        React.createElement(CanonicalNexus, {
           size: 52,
-          nexusState: nearDomain ? "ready" : nexusState || "dormant",
-          tier: "kl",
-          prefersReducedMotion
+          interactive: false,
+          showRelationships: false,
+          nexusState: nearDomain ? "ready" : nexusState || "dormant"
         })
       )
     );
@@ -1237,6 +1181,7 @@
       {
         onClick,
         disabled,
+        className: "kl-nexus-halo kl-nexus-halo--" + (disabled ? "dormant" : nexusState || "dormant"),
         style: {
           width: s + "px",
           height: s + "px",
@@ -1255,15 +1200,6 @@
         },
         "aria-label": "Send message to Eileen"
       },
-      /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, opacity: 0.4 } }, /* @__PURE__ */ React.createElement(
-        NexusCanvas,
-        {
-          size: s,
-          nexusState: disabled ? "dormant" : nexusState,
-          tier: tier || "kl",
-          prefersReducedMotion
-        }
-      )),
       /* @__PURE__ */ React.createElement(
         "svg",
         {
@@ -2403,7 +2339,7 @@
         onDrop
       },
       dragOverlay,
-      /* @__PURE__ */ React.createElement("div", { className: "kl-content-container" }, /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-nexus" }, /* @__PURE__ */ React.createElement(NexusCanvas, { tier, nexusState, prefersReducedMotion })), /* @__PURE__ */ React.createElement("h1", { className: "kl-welcome-greeting" }, "What can I help you with today?"), /* @__PURE__ */ React.createElement("div", { className: "kl-eileen-subtitle", style: {
+      /* @__PURE__ */ React.createElement("div", { className: "kl-content-container" }, /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-nexus" }, /* @__PURE__ */ React.createElement(CanonicalNexus, { size: 180, interactive: true, nexusState })), /* @__PURE__ */ React.createElement("h1", { className: "kl-welcome-greeting" }, "What can I help you with today?"), /* @__PURE__ */ React.createElement("div", { className: "kl-eileen-subtitle", style: {
         fontSize: "12px",
         color: "#64748B",
         fontFamily: "'DM Mono', monospace",
@@ -2462,9 +2398,8 @@
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 0 12px rgba(14,165,233,0.2)",
         pointerEvents: "none"
-      } }, /* @__PURE__ */ React.createElement(NexusCanvas, { size: 52, nexusState, tier, prefersReducedMotion })),
+      } }, /* @__PURE__ */ React.createElement(CanonicalNexus, { size: 52, interactive: false, showRelationships: false, nexusState })),
       /* @__PURE__ */ React.createElement("div", { className: "kl-messages", ref: scrollRef, role: "log", "aria-live": "polite", onClick: function(e) {
         var target = e.target;
         if (target && target.classList && target.classList.contains("kl-ref-link")) {
@@ -2613,7 +2548,7 @@
         {
           style: { display: "flex", alignItems: "center", gap: "8px", padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }
         },
-        React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || "dormant", tier: "kl", prefersReducedMotion }),
+        React.createElement(EileenStaticDot, null),
         React.createElement("span", {
           style: { color: "#94A3B8", fontSize: "11px", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }
         }, "Eileen")
@@ -6658,7 +6593,7 @@
           {
             style: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }
           },
-          React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || "dormant", tier: tier || "kl", prefersReducedMotion }),
+          React.createElement(EileenStaticDot, null),
           React.createElement("span", {
             style: { color: "#94A3B8", fontSize: "13px", fontFamily: "'DM Sans', sans-serif" }
           }, domain.eileenGreeting)

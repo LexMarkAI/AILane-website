@@ -9,6 +9,8 @@
 <title>Ailane Governance — Your Organisation</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+<!-- Canonical Nexus renderer (EILEEN-NEXUS-001 §1.3) — window.AilaneNexus -->
+<script src="/assets/js/nexus.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -493,6 +495,8 @@ async function handleLogout() {
   <div class="logo">AI<span>lane</span></div>
   <div class="tier-badge">Governance</div>
   <div class="hdr-sep"></div>
+  <!-- EILEEN-NEXUS-001 §1.3: 52px canonical Nexus orb (governance ring, Gold core) -->
+  <canvas id="eileen-nexus" width="52" height="52" aria-label="Eileen" style="flex-shrink:0;"></canvas>
   <div class="hdr-entity">
     <div class="hdr-entity-name">Your Organisation</div>
     <div class="hdr-entity-sub">NH-2014-0347 · Cardiff & 3 Depots · 238 employees</div>
@@ -1844,6 +1848,73 @@ b.style.width=‘0%’;
 setTimeout(()=>{b.style.width=w;},100);
 });
 },400);
+</script>
+
+<!-- ═══ EILEEN-NEXUS-001 §1.3: canonical Nexus consumer ═══
+     Renderer: /assets/js/nexus.js (window.AilaneNexus). Embedded beneath the
+     auth guard (RULE 26) — no guard logic touched. Canonical v3 contract per
+     the landing page reference implementation: 6s abort timeout; verify
+     version === 'v3'; on contract drift / non-200 / network failure retain
+     seed weights silently (console.warn only). ONE shared poll per page. -->
+<script>
+var NEXUS_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-nexus-intel';
+async function fetchNexus() {
+  var ctrl = new AbortController();
+  var timeoutId = setTimeout(function () { ctrl.abort(); }, 6000);
+  try {
+    var r = await fetch(NEXUS_URL, { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    if (!r.ok) { console.warn('[Nexus] HTTP ' + r.status); return; }
+    var data = await r.json();
+    if (data.version !== 'v3') {
+      console.warn('[Nexus] contract drift: expected v3, got ' + data.version);
+      return;
+    }
+    if (!Array.isArray(data.categories) || data.categories.length === 0) {
+      return;
+    }
+    var categories = data.categories.map(function (c) {
+      return {
+        id: c.id,
+        label: typeof c.label === 'string'
+          ? c.label.replace(/_/g, ' ').replace(/\b\w/g, function (ch) { return ch.toUpperCase(); })
+          : c.id,
+        claim_frequency: c.claim_frequency,
+        provision_count: c.provision_count
+      };
+    });
+    if (window.AilaneNexus && window.AilaneNexus.updateLive) {
+      window.AilaneNexus.updateLive({
+        categories: categories,
+        relationships: Array.isArray(data.relationships) ? data.relationships : [],
+        instruments: Array.isArray(data.instruments) ? data.instruments : [],
+        snapshotAt: data.snapshotAt || null
+      });
+    }
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.warn('[Nexus] fetch failed, retaining seed weights');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Render the header orb via window.AilaneNexus (assets/js/nexus.js).
+  // Tier ring resolution happens ONLY via pageTier — never raw colours.
+  if (window.AilaneNexus && window.AilaneNexus.createNexus) {
+    var orbCanvas = document.getElementById('eileen-nexus');
+    if (orbCanvas) {
+      window.AilaneNexus.createNexus(orbCanvas, {
+        pageTier: 'governance',
+        size: 52,
+        interactive: false,
+        showRelationships: false,
+        dataSource: 'eileen-nexus-intel'
+      });
+    }
+  }
+  fetchNexus();
+  setInterval(fetchNexus, 5 * 60 * 1000);
+});
 </script>
 
 </body>
