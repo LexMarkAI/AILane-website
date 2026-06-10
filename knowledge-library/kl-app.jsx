@@ -483,6 +483,78 @@ function hasContractIntent(text) {
   document.head.appendChild(style);
 })();
 
+// ─── KL-LIVE-002 styles (§W-F D1/D2/D4/D5/D6/D7 + §W-G D3) ───
+// Injected at module load like the kl-live-001 block above — index.html is
+// out of scope, so every rule ships inside the bundle. This block is appended
+// after the index.html <style> block and the kl-live-001 block, so it wins
+// the cascade at equal specificity.
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('kl-live-002-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'kl-live-002-styles';
+  style.textContent = [
+    /* D6: one viewport-height scroll architecture. dvh (not vh) so mobile
+       browser chrome cannot open a phantom page scrollbar behind the app —
+       the main column owns exactly one scroll context per view. */
+    'html { height: 100%; overflow: hidden; }',
+    'body { height: 100dvh; }',
+    '#kl-root { height: 100dvh; }',
+    '.kl-main { overflow: hidden; }',
+    '.kl-panel-drawer-body { overflow-y: auto; overflow-x: hidden; }',
+
+    /* D1: single centred content container for the welcome column —
+       hero, research-area grid, and shelf all inherit from it. */
+    '.kl-content-container { width: 100%; max-width: 1260px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }',
+    '.kl-forward-rail-note { max-width: none; }',
+
+    /* D4: hero clears the top-bar height on scroll — the layout consumes
+       the existing --kl-topbar-height variable. */
+    '.kl-welcome { scroll-padding-top: calc(var(--kl-topbar-height, 56px) + 8px); }',
+    '.kl-welcome-greeting { scroll-margin-top: calc(var(--kl-topbar-height, 56px) + 8px); }',
+
+    /* D2: research-area card grid (replaces the .kl-domain-compact rows).
+       2 columns from 768px up; single column below. */
+    '.kl-domain-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; }',
+    '.kl-domain-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-height: 132px; padding: 16px 18px; background: var(--kl-surface, #0F1D32); border: 1px solid var(--kl-border, #1E3A5F); border-radius: 10px; cursor: pointer; text-align: left; width: 100%; font-family: var(--kl-font-sans, sans-serif); color: var(--kl-text, #F1F5F9); transition: background 0.2s, border-color 0.2s; }',
+    '.kl-domain-card:hover { background: var(--kl-surface-hover, #162440); border-color: var(--kl-cyan, #0EA5E9); }',
+    '.kl-domain-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }',
+    '.kl-domain-card-name { font-weight: 600; font-size: 15px; min-width: 0; }',
+    '.kl-domain-card-count { font-size: 10px; font-family: var(--kl-font-mono, monospace); color: var(--kl-cyan, #0EA5E9); background: rgba(14,165,233,0.1); border: 1px solid rgba(14,165,233,0.25); border-radius: 10px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }',
+    '.kl-domain-card-desc { font-size: 13px; color: var(--kl-text-muted, #94A3B8); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }',
+    '.kl-domain-card-explore { margin-top: auto; font-size: 12px; font-weight: 500; color: var(--kl-cyan, #0EA5E9); }',
+
+    /* D5: fixed book-spine width; title clamps inside the spine. */
+    '.kl-book { flex: 0 0 100px; }',
+    '.kl-book-title { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; min-width: 0; }',
+
+    /* D3: Saved Items / Notes drawer — fixed-width overlay above page
+       content, internal scroll only. z-index sits above the mobile sidebar
+       (40) and below the modal layer (ExpiredModal 100, vault dialog 1000). */
+    '.kl-panel-drawer { top: 0; right: 0; width: 400px; height: 100dvh; z-index: 60; }',
+    '.kl-notes-editor-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; background: var(--kl-bg, #0A1628); border-bottom: 1px solid var(--kl-border, #1E3A5F); flex-shrink: 0; }',
+
+    /* D7: compact help chip (mobile replacement for the floating card). */
+    '.kl-eileen-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 14px; border-radius: 22px; background: rgba(10, 22, 40, 0.9); border: 1px solid rgba(14, 165, 233, 0.3); color: var(--kl-cyan, #0EA5E9); font-size: 12px; font-weight: 500; font-family: var(--kl-font-sans, sans-serif); cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }',
+
+    '@media (max-width: 767px) {',
+    '  .kl-domain-card-grid { grid-template-columns: 1fr; }',
+    '  .kl-domain-card { min-height: 44px; }',
+    /* D5: shelf becomes a horizontal scroll-snap row — no wrap-shrink.
+       !important needed to beat the inline flex styles and the 540px
+       80px-shrink rule in index.html. */
+    '  .kl-shelf { flex-wrap: nowrap !important; overflow-x: auto !important; justify-content: flex-start !important; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }',
+    '  .kl-book { flex: 0 0 100px !important; width: 100px !important; height: 130px !important; scroll-snap-align: start; }',
+    '  .kl-book > div:nth-child(2) { font-size: 10px !important; }',
+    /* D3: drawer becomes a full-screen sheet; action bar buttons stay
+       tappable (≥44px). */
+    '  .kl-panel-drawer { width: 100%; }',
+    '  .kl-notes-editor-bar button { min-height: 44px; }',
+    '}',
+  ].join('\n');
+  document.head.appendChild(style);
+})();
+
 // ─── Upload constants (KL File Upload Widget, Stage A) ───
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -1322,20 +1394,42 @@ var ADVISOR_TIPS = {
 // Replaces the chat-panel FloatingNexus on the welcome state.
 // Shows contextual domain tooltip when user hovers near domain cards.
 
-function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, onProximityDomain }) {
+// KL-LIVE-002 §W-F D7: generic helper line shown when no proximity tip is
+// active (same copy as FloatingNexusPanel — no new product copy).
+var ADVISOR_GENERIC_TIP = "I'm here whenever you need me. Ask a question or upload a contract for analysis.";
+
+function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, onProximityDomain, dismissed, onDismiss }) {
   var _show = useState(false);
   var showTooltip = _show[0];
   var setShowTooltip = _show[1];
   var tip = nearDomain ? ADVISOR_TIPS[nearDomain] : null;
 
+  // §W-F D7: below 768px the floating card is suppressed entirely and a
+  // compact help chip renders instead.
+  var _mobileVp = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+  var isMobileVp = _mobileVp[0];
+  var setIsMobileVp = _mobileVp[1];
   useEffect(function() {
-    if (tip) {
+    function onResize() { setIsMobileVp(window.innerWidth < 768); }
+    window.addEventListener('resize', onResize);
+    return function() { window.removeEventListener('resize', onResize); };
+  }, []);
+
+  useEffect(function() {
+    // §W-F D7: dismissal suppresses proximity auto-show (persisted via
+    // KLUI-001 prefs); manual open via the chip/orb stays available.
+    if (tip && !dismissed) {
       setShowTooltip(true);
-    } else {
+    } else if (!tip) {
       var t = setTimeout(function() { setShowTooltip(false); }, 300);
       return function() { clearTimeout(t); };
     }
-  }, [tip]);
+  }, [tip, dismissed]);
+
+  function handleDismissCard() {
+    setShowTooltip(false);
+    if (typeof onDismiss === 'function') onDismiss();
+  }
 
   // KLUX-001-AM-002 §3: Drag state. null x/y = default bottom-right anchor.
   var _pos = useState({ x: null, y: null });
@@ -1434,34 +1528,83 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
     };
   }, []);
 
-  // alignItems is kept 'flex-end' in both branches so the tooltip stays
-  // right-anchored relative to the orb after a drag — preventing the
-  // misalignment where the tooltip would jump left when the anchor flipped.
-  var posStyle = pos.x !== null
-    ? { position: 'fixed', left: pos.x + 'px', top: pos.y + 'px', zIndex: 1000,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
-        cursor: dragging.current ? 'grabbing' : 'grab' }
-    : { position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
-        cursor: dragging.current ? 'grabbing' : 'grab' };
-
-  return React.createElement('div', { style: posStyle },
-    // Advisor tooltip
-    showTooltip && tip ? React.createElement('div', {
+  // §W-F D7: shared tooltip card — header carries a dismiss control.
+  function renderTipCard(text) {
+    return React.createElement('div', {
       style: {
         background: '#0F172A', border: '1px solid #1E293B', borderRadius: '12px',
         padding: '14px 18px', maxWidth: '300px',
-        opacity: tip ? 1 : 0, transform: tip ? 'translateY(0)' : 'translateY(8px)',
         transition: 'opacity 0.3s, transform 0.3s',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
       },
     },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' } },
         React.createElement(NexusCanvas, { size: 16, nexusState: 'ready', tier: 'kl', prefersReducedMotion: prefersReducedMotion }),
-        React.createElement('span', { style: { color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600 } }, 'Eileen')
+        React.createElement('span', { style: { color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, flex: 1 } }, 'Eileen'),
+        React.createElement('button', {
+          type: 'button',
+          onClick: handleDismissCard,
+          'aria-label': 'Dismiss Eileen helper',
+          style: {
+            background: 'none', border: 'none', color: '#64748B',
+            fontSize: '16px', cursor: 'pointer', padding: '0 0 0 8px', lineHeight: 1,
+            flexShrink: 0,
+          },
+        }, '×')
       ),
-      React.createElement('p', { style: { color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 } }, tip)
-    ) : null,
+      React.createElement('p', { style: { color: '#CBD5E1', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 } }, text)
+    );
+  }
+
+  // §W-F D7: mobile (<768px) — no floating card; a compact help chip with
+  // safe-area margin toggles the tip instead.
+  if (isMobileVp) {
+    return React.createElement('div', {
+      style: {
+        position: 'fixed',
+        bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+        // z-index 50: above page content, below the panel drawer (60) so the
+        // full-screen sheet covers the chip on mobile (§W-G.3).
+        right: '16px', zIndex: 50,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
+      },
+    },
+      showTooltip ? renderTipCard(tip || ADVISOR_GENERIC_TIP) : null,
+      React.createElement('button', {
+        type: 'button',
+        className: 'kl-eileen-chip',
+        'aria-label': showTooltip ? 'Hide Eileen helper' : 'Show Eileen helper',
+        'aria-expanded': showTooltip,
+        onClick: function() { setShowTooltip(function(v) { return !v; }); },
+      },
+        React.createElement('span', {
+          'aria-hidden': 'true',
+          style: {
+            width: '8px', height: '8px', borderRadius: '50%',
+            background: '#0EA5E9', boxShadow: '0 0 6px rgba(14,165,233,0.5)',
+            flexShrink: 0,
+          },
+        }),
+        'Eileen'
+      )
+    );
+  }
+
+  // alignItems is kept 'flex-end' in both branches so the tooltip stays
+  // right-anchored relative to the orb after a drag — preventing the
+  // misalignment where the tooltip would jump left when the anchor flipped.
+  // §W-F D7: default anchor carries a safe-area margin.
+  var posStyle = pos.x !== null
+    ? { position: 'fixed', left: pos.x + 'px', top: pos.y + 'px', zIndex: 1000,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
+        cursor: dragging.current ? 'grabbing' : 'grab' }
+    : { position: 'fixed', bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))', right: '24px', zIndex: 1000,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px',
+        cursor: dragging.current ? 'grabbing' : 'grab' };
+
+  return React.createElement('div', { style: posStyle },
+    // Advisor tooltip
+    showTooltip && tip ? renderTipCard(tip) : null,
     // Nexus orb (draggable)
     React.createElement('div', {
       onMouseDown: handleMouseDown,
@@ -2746,59 +2889,67 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           onDrop={onDrop}
         >
           {dragOverlay}
-          <div className="kl-welcome-nexus">
-            <NexusCanvas tier={tier} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
+          {/* KL-LIVE-002 §W-F D1: single centred content container — hero,
+              research-area grid, and shelf all inherit from it. */}
+          <div className="kl-content-container">
+            <div className="kl-welcome-nexus">
+              <NexusCanvas tier={tier} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
+            </div>
+            <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
+            <div className="kl-eileen-subtitle" style={{
+              fontSize: '12px',
+              color: '#64748B',
+              fontFamily: "'DM Mono', monospace",
+              letterSpacing: '0.06em',
+              marginBottom: '24px',
+              textAlign: 'center',
+            }}>
+              Eileen &middot; UK Employment Law Intelligence
+            </div>
+            <div className="kl-welcome-input">
+              <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
+            </div>
+            <HorizonAlert />
+            {/* KL-LIVE-001 §W-C: Coming-into-force rail (live feed, date-sorted) */}
+            <ForwardRail />
+            {/* KL-LIVE-002 §W-F D2: research-area card grid — title,
+                2-line-clamped description, topic-count badge, Explore
+                affordance. Whole card is the tap target. data-domain-slug
+                and hover handlers feed FloatingNexusAdvisor proximity. */}
+            <div className="kl-domain-card-grid">
+              {DOMAINS.map(function(domain) {
+                var navToDomain = function() { window.location.hash = '/domain/' + domain.slug; };
+                return (
+                  <button
+                    key={domain.id}
+                    type="button"
+                    className="kl-domain-card"
+                    data-domain-slug={domain.slug}
+                    aria-label={'Explore ' + domain.name}
+                    onClick={navToDomain}
+                    onMouseEnter={function() { if (typeof onDomainHover === 'function') onDomainHover(domain.slug); }}
+                    onMouseLeave={function() { if (typeof onDomainLeave === 'function') onDomainLeave(); }}
+                  >
+                    <span className="kl-domain-card-head">
+                      <span className="kl-domain-card-name">{domain.name}</span>
+                      <span className="kl-domain-card-count">{domain.subAreas.length} topics</span>
+                    </span>
+                    <span className="kl-domain-card-desc">{domain.orientation}</span>
+                    <span className="kl-domain-card-explore">Explore <span aria-hidden="true">&rarr;</span></span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Sprint H §3.2: BookShelf replaces the Sprint G accent-line button.
+                Renders up to 15 instruments as leather-textured book covers. */}
+            <BookShelf onOpenBook={function(book) {
+              if (typeof window.__klOpenPanel === 'function') {
+                window.__klOpenPanel('research');
+                window.__klPendingInstrument = book.id;
+                window.dispatchEvent(new CustomEvent('kl-open-instrument', { detail: { id: book.id } }));
+              }
+            }} />
           </div>
-          <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
-          <div className="kl-eileen-subtitle" style={{
-            fontSize: '12px',
-            color: '#64748B',
-            fontFamily: "'DM Mono', monospace",
-            letterSpacing: '0.06em',
-            marginBottom: '24px',
-            textAlign: 'center',
-          }}>
-            Eileen &middot; UK Employment Law Intelligence
-          </div>
-          <div className="kl-welcome-input">
-            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
-          </div>
-          <HorizonAlert />
-          {/* KL-LIVE-001 §W-C: Coming-into-force rail (live feed, date-sorted) */}
-          <ForwardRail />
-          {/* AMD-045 §3.2 (revised Brief 5): Compact domain list — one row
-              per domain, name + one-line orientation + arrow. Two columns on
-              desktop, single column on mobile via .kl-domain-compact-grid. */}
-          <div className="kl-domain-compact-grid">
-            {DOMAINS.map(function(domain) {
-              var navToDomain = function() { window.location.hash = '/domain/' + domain.slug; };
-              return (
-                <button
-                  key={domain.id}
-                  type="button"
-                  className="kl-domain-compact"
-                  data-domain-slug={domain.slug}
-                  aria-label={'Explore ' + domain.name}
-                  onClick={navToDomain}
-                  onMouseEnter={function() { if (typeof onDomainHover === 'function') onDomainHover(domain.slug); }}
-                  onMouseLeave={function() { if (typeof onDomainLeave === 'function') onDomainLeave(); }}
-                >
-                  <span className="kl-domain-compact-name">{domain.name}</span>
-                  <span className="kl-domain-compact-orient">{domain.orientation}</span>
-                  <span className="kl-domain-compact-arrow" aria-hidden="true">&rarr;</span>
-                </button>
-              );
-            })}
-          </div>
-          {/* Sprint H §3.2: BookShelf replaces the Sprint G accent-line button.
-              Renders up to 15 instruments as leather-textured book covers. */}
-          <BookShelf onOpenBook={function(book) {
-            if (typeof window.__klOpenPanel === 'function') {
-              window.__klOpenPanel('research');
-              window.__klPendingInstrument = book.id;
-              window.dispatchEvent(new CustomEvent('kl-open-instrument', { detail: { id: book.id } }));
-            }
-          }} />
           {/* F-1: FloatingNexusAdvisor is rendered at App level so it remains
               visible even when Welcome is not the active view. See App render. */}
         </div>
@@ -3643,12 +3794,12 @@ function NotesPanel() {
   var filterChips = ['all', 'note', 'clip', 'eileen'];
   var filterLabels = { all: 'All', note: 'Notes', clip: 'Clips', eileen: 'Eileen' };
 
-  // ─── Note list pane (left) ───
-  var noteListPane = React.createElement('div', {
+  // ─── Note list view (KL-LIVE-002 §W-G: stacked navigation, full width —
+  // the editor replaces the list inside the drawer; never side-by-side) ───
+  var noteListView = React.createElement('div', {
     style: {
       width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0,
-      borderRight: activeId ? '1px solid rgba(255,255,255,0.06)' : 'none',
-      flex: activeId ? '0 0 200px' : '1',
+      flex: 1,
     },
   },
     // Filter chips row
@@ -3761,127 +3912,127 @@ function NotesPanel() {
     )
   ) : null;
 
-  // ─── Editor pane (right) ───
-  var editorPane = null;
+  // ─── Editor view (KL-LIVE-002 §W-G: stacked INSIDE the drawer with a
+  // sticky action bar — Back · note title · Download — reachable at every
+  // supported width; the textarea is the only scrolling region) ───
+  var editorView = null;
   if (activeId && activeNote) {
     var isReadOnly = (activeNote.note_type === 'clip' || activeNote.note_type === 'eileen_response') && !editable;
 
-    editorPane = React.createElement('div', {
-      style: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, paddingLeft: '12px' },
+    editorView = React.createElement('div', {
+      className: 'kl-notes-editor',
+      style: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
     },
-      // Toolbar: Download + Email
-      React.createElement('div', {
-        style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexShrink: 0 },
-      },
-        // Back button (mobile-friendly)
+      // §W-G sticky action bar: Back · note title · Download
+      React.createElement('div', { className: 'kl-notes-editor-bar' },
         React.createElement('button', {
           type: 'button',
           onClick: function() { setActiveId(null); setActiveNote(null); setDownloadOpen(false); },
           style: {
-            background: 'none', border: 'none', color: '#0EA5E9', fontSize: '11px', cursor: 'pointer',
-            padding: '0', fontFamily: "'DM Sans', sans-serif",
+            background: 'none', border: 'none', color: '#0EA5E9', fontSize: '12px', cursor: 'pointer',
+            padding: '4px 6px 4px 0', fontFamily: "'DM Sans', sans-serif", flexShrink: 0,
           },
         }, '\u2190 Back'),
-        // Action buttons
-        React.createElement('div', { style: { display: 'flex', gap: '4px', position: 'relative' } },
-          // Download button with dropdown
-          React.createElement('div', { style: { position: 'relative' } },
-            React.createElement('button', {
-              type: 'button',
-              onClick: function() { setDownloadOpen(!downloadOpen); },
-              className: 'kl-action-btn',
-              title: 'Download',
-              style: { fontSize: '11px', padding: '3px 8px' },
-            }, '\u2B07 Download'),
-            downloadOpen ? React.createElement('div', {
-              style: {
-                position: 'absolute', top: '100%', right: 0, marginTop: '4px',
-                background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '6px',
-                padding: '4px 0', zIndex: 20, minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-              },
-            },
-              React.createElement('button', {
-                type: 'button',
-                onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'md'); setDownloadOpen(false); },
-                style: {
-                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
-                  border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                },
-              }, 'Download as Markdown (.md)'),
-              React.createElement('button', {
-                type: 'button',
-                onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'txt'); setDownloadOpen(false); },
-                style: {
-                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
-                  border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                },
-              }, 'Download as Text (.txt)'),
-              React.createElement('div', { style: { height: '1px', background: '#1E3A5F', margin: '4px 0' } }),
-              React.createElement('button', {
-                type: 'button',
-                disabled: true,
-                title: 'Coming soon \u2014 requires server-side export',
-                style: {
-                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
-                  border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
-                  cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
-                },
-              }, 'Download as PDF (.pdf)'),
-              React.createElement('button', {
-                type: 'button',
-                disabled: true,
-                title: 'Coming soon \u2014 requires server-side export',
-                style: {
-                  display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
-                  border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
-                  cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
-                },
-              }, 'Download as DOCX (.docx)')
-            ) : null
-          ),
-          // Email to self (greyed out)
+        // Note title — editable input, flexes between Back and Download
+        React.createElement('input', {
+          className: 'kl-notes-title',
+          type: 'text',
+          value: title,
+          readOnly: isReadOnly,
+          onChange: function(e) {
+            if (isReadOnly) return;
+            var v = e.target.value;
+            setTitle(v);
+            scheduleSave(v, body);
+          },
+          placeholder: 'Untitled Note',
+          style: Object.assign({ flex: 1, minWidth: 0 }, isReadOnly ? { opacity: 0.8 } : {}),
+        }),
+        // Download button with dropdown
+        React.createElement('div', { style: { position: 'relative', flexShrink: 0 } },
           React.createElement('button', {
             type: 'button',
-            disabled: true,
+            onClick: function() { setDownloadOpen(!downloadOpen); },
             className: 'kl-action-btn',
-            title: 'Coming soon \u2014 requires server-side export',
-            style: { fontSize: '11px', padding: '3px 8px', opacity: 0.4, cursor: 'not-allowed' },
-          }, '\u2709 Email')
+            title: 'Download',
+            style: { fontSize: '11px', padding: '3px 8px' },
+          }, '\u2B07 Download'),
+          downloadOpen ? React.createElement('div', {
+            style: {
+              position: 'absolute', top: '100%', right: 0, marginTop: '4px',
+              background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '6px',
+              padding: '4px 0', zIndex: 20, minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            },
+          },
+            React.createElement('button', {
+              type: 'button',
+              onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'md'); setDownloadOpen(false); },
+              style: {
+                display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+              },
+            }, 'Download as Markdown (.md)'),
+            React.createElement('button', {
+              type: 'button',
+              onClick: function() { downloadNoteFile({ title: title, content_plain: body }, 'txt'); setDownloadOpen(false); },
+              style: {
+                display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                border: 'none', color: '#E2E8F0', fontSize: '12px', textAlign: 'left', cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+              },
+            }, 'Download as Text (.txt)'),
+            React.createElement('div', { style: { height: '1px', background: '#1E3A5F', margin: '4px 0' } }),
+            React.createElement('button', {
+              type: 'button',
+              disabled: true,
+              title: 'Coming soon \u2014 requires server-side export',
+              style: {
+                display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
+                cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
+              },
+            }, 'Download as PDF (.pdf)'),
+            React.createElement('button', {
+              type: 'button',
+              disabled: true,
+              title: 'Coming soon \u2014 requires server-side export',
+              style: {
+                display: 'block', width: '100%', padding: '6px 12px', background: 'transparent',
+                border: 'none', color: '#64748B', fontSize: '12px', textAlign: 'left',
+                cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", opacity: 0.5,
+              },
+            }, 'Download as DOCX (.docx)')
+          ) : null
         )
       ),
       // Source attribution (for clips / eileen responses)
       activeNote.source_attribution ? React.createElement('div', {
-        style: { color: '#64748B', fontSize: '11px', fontStyle: 'italic', marginBottom: '6px', fontFamily: "'DM Mono', monospace" },
+        style: { color: '#64748B', fontSize: '11px', fontStyle: 'italic', margin: '6px 0 0', fontFamily: "'DM Mono', monospace", flexShrink: 0 },
       }, activeNote.source_attribution) : null,
-      // Title input
-      React.createElement('input', {
-        className: 'kl-notes-title',
-        type: 'text',
-        value: title,
-        readOnly: isReadOnly,
-        onChange: function(e) {
-          if (isReadOnly) return;
-          var v = e.target.value;
-          setTitle(v);
-          scheduleSave(v, body);
-        },
-        placeholder: 'Untitled Note',
-        style: isReadOnly ? { opacity: 0.8 } : {},
-      }),
-      // Status indicator
+      // Status indicator + Email (greyed out) row
       React.createElement('div', {
-        style: { fontSize: '10px', color: statusColor, marginBottom: '6px', fontFamily: "'DM Mono', monospace" },
-      }, statusLabel),
+        style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', margin: '6px 0', flexShrink: 0 },
+      },
+        React.createElement('span', {
+          style: { fontSize: '10px', color: statusColor, fontFamily: "'DM Mono', monospace" },
+        }, statusLabel),
+        React.createElement('button', {
+          type: 'button',
+          disabled: true,
+          className: 'kl-action-btn',
+          title: 'Coming soon \u2014 requires server-side export',
+          style: { fontSize: '11px', padding: '3px 8px', opacity: 0.4, cursor: 'not-allowed' },
+        }, '\u2709 Email')
+      ),
       // Edit button for read-only notes
       isReadOnly ? React.createElement('button', {
         type: 'button',
         onClick: function() { setEditable(true); },
         className: 'kl-action-btn',
-        style: { fontSize: '11px', padding: '3px 8px', marginBottom: '6px', alignSelf: 'flex-start' },
+        style: { fontSize: '11px', padding: '3px 8px', marginBottom: '6px', alignSelf: 'flex-start', flexShrink: 0 },
       }, '\u270E Edit') : null,
-      // Body editor / reader
+      // Body editor / reader — internal scroll only
       React.createElement('textarea', {
         className: 'kl-notes-body',
         value: body,
@@ -3893,24 +4044,18 @@ function NotesPanel() {
           scheduleSave(title, v);
         },
         placeholder: 'Take notes during your research...',
-        style: Object.assign({ flex: 1 }, isReadOnly ? { opacity: 0.85 } : {}),
+        style: Object.assign({ flex: 1, minHeight: 0 }, isReadOnly ? { opacity: 0.85 } : {}),
       })
-    );
-  } else {
-    // No note selected — show prompt
-    editorPane = React.createElement('div', {
-      style: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '12px' },
-    },
-      React.createElement('p', { style: { color: '#64748B', fontSize: '13px', textAlign: 'center' } }, 'Select a note or create a new one')
     );
   }
 
+  // §W-G: stacked navigation — the editor REPLACES the list inside the
+  // drawer (never a side-by-side nested column).
   return React.createElement('div', {
     className: 'kl-notes-panel',
-    style: { display: 'flex', flexDirection: 'row', height: '100%', position: 'relative', minHeight: 0 },
+    style: { display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', minHeight: 0 },
   },
-    noteListPane,
-    editorPane,
+    editorView ? editorView : noteListView,
     deleteDialog
   );
 }
@@ -4667,7 +4812,8 @@ function ForwardRail() {
 
   return React.createElement('div', {
     className: 'kl-forward-rail-wrap',
-    style: { width: '100%', maxWidth: '820px', marginBottom: '20px' },
+    // §W-F D1: width inherited from .kl-content-container (no per-section cap)
+    style: { width: '100%', marginBottom: '20px' },
   },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' } },
       React.createElement('span', {
@@ -6449,7 +6595,8 @@ function BookShelf({ onOpenBook }) {
 
   return React.createElement('div', {
     className: 'kl-bookshelf',
-    style: { width: '100%', maxWidth: '820px', marginTop: '32px' },
+    // §W-F D1: width inherited from .kl-content-container (no per-section cap)
+    style: { width: '100%', marginTop: '32px' },
   },
     React.createElement('div', {
       style: {
@@ -6524,8 +6671,12 @@ function BookShelf({ onOpenBook }) {
               flex: 1,
               display: 'flex',
               alignItems: 'center',
+              minWidth: 0,
             },
-          }, shortTitle),
+          },
+            // §W-F D5: clamp the title inside the spine (kl-book-title)
+            React.createElement('span', { className: 'kl-book-title' }, shortTitle)
+          ),
           React.createElement('div', {
             style: {
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
@@ -6871,6 +7022,52 @@ function UpsellCard({ productType, minutesRemaining, onDismiss }) {
   );
 }
 
+// ─── KLUI-001 preference write helper (KL-LIVE-002 §W-F D7 / §W-G.4) ───
+// Merge-writes one or more keys into kl_user_preferences.preferences using
+// the same GET-then-PATCH(merge)/POST pattern as handleUserTypeSelect (§5.3).
+async function saveKlPreferences(partial) {
+  if (!window.__klToken || !window.__klUserId) return;
+  try {
+    var checkResp = await fetch(
+      SUPABASE_URL + '/rest/v1/kl_user_preferences?user_id=eq.' + window.__klUserId + '&select=id,preferences',
+      { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+    );
+    var existing = await checkResp.json();
+    if (Array.isArray(existing) && existing.length > 0) {
+      var merged = Object.assign({}, existing[0].preferences, partial);
+      await fetch(
+        SUPABASE_URL + '/rest/v1/kl_user_preferences?id=eq.' + existing[0].id,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ preferences: merged, updated_at: new Date().toISOString() }),
+        }
+      );
+    } else {
+      await fetch(
+        SUPABASE_URL + '/rest/v1/kl_user_preferences',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ user_id: window.__klUserId, preferences: partial }),
+        }
+      );
+    }
+  } catch (err) {
+    console.error('Failed to save preferences:', err);
+  }
+}
+
 // ─── App ───
 
 function App() {
@@ -6879,7 +7076,33 @@ function App() {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' ? true : window.innerWidth > 768);
-  const [activePanel, setActivePanel] = useState(null);
+  // §W-G.4: drawer open-state persists via KLUI-001 prefs. localStorage
+  // mirror restores synchronously at boot; the DB value (cross-device) is
+  // applied in loadUserPreferences only when no local entry exists. Only
+  // ungated panels are restored — tier is unknown at boot.
+  const [activePanel, setActivePanel] = useState(function() {
+    try {
+      var saved = localStorage.getItem('ailane_kl_active_panel');
+      return (saved === 'notes' || saved === 'research') ? saved : null;
+    } catch(e) { return null; }
+  });
+  function handleSelectPanel(panelId) {
+    setActivePanel(panelId);
+    try {
+      if (panelId) localStorage.setItem('ailane_kl_active_panel', panelId);
+      else localStorage.setItem('ailane_kl_active_panel', '');
+    } catch(e) { /* silent */ }
+    saveKlPreferences({ active_panel: panelId || null });
+  }
+  // §W-F D7: Eileen helper dismissal — persisted via KLUI-001 prefs.
+  const [helperDismissed, setHelperDismissed] = useState(function() {
+    try { return localStorage.getItem('ailane_kl_helper_dismissed') === '1'; } catch(e) { return false; }
+  });
+  function handleHelperDismiss() {
+    setHelperDismissed(true);
+    try { localStorage.setItem('ailane_kl_helper_dismissed', '1'); } catch(e) { /* silent */ }
+    saveKlPreferences({ helper_dismissed: true });
+  }
   const [accessType, setAccessType] = useState(window.__klAccessType || null);
   const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
@@ -7019,6 +7242,18 @@ function App() {
           setUserType(prefs.user_type);
           try { localStorage.setItem('ailane_kl_user_type', prefs.user_type); } catch(e) { /* silent */ }
         }
+        // §W-F D7: helper dismissal (KLUI-001 prefs)
+        if (prefs.helper_dismissed) {
+          setHelperDismissed(true);
+          try { localStorage.setItem('ailane_kl_helper_dismissed', '1'); } catch(e) { /* silent */ }
+        }
+        // §W-G.4: drawer open-state — DB value applies only when this device
+        // has no local entry; ungated panels only (tier loads async).
+        var hasLocalPanel = false;
+        try { hasLocalPanel = localStorage.getItem('ailane_kl_active_panel') !== null; } catch(e) { /* silent */ }
+        if (!hasLocalPanel && (prefs.active_panel === 'notes' || prefs.active_panel === 'research')) {
+          setActivePanel(prefs.active_panel);
+        }
       }
     } catch (err) {
       console.error('Failed to load user preferences:', err);
@@ -7091,12 +7326,10 @@ function App() {
     if (el) el.classList.toggle('sidebar-collapsed', !sidebarOpen);
   }, [sidebarOpen]);
 
-  // Toggle drawer-open class on the real #kl-root (layout signal only;
-  // the drawer itself is positioned fixed — this class is reserved for future push mode).
-  useEffect(() => {
-    const el = document.getElementById('kl-root');
-    if (el) el.classList.toggle('drawer-open', !!activePanel);
-  }, [activePanel]);
+  // KL-LIVE-002 §W-G.1: the drawer is a fixed-width OVERLAY above page
+  // content. The former drawer-open class toggle is removed — it drove the
+  // index.html push-mode grid rule (third column widened to 468px), which
+  // squeezed the main column whenever a panel was open.
 
   // Upsell ladder: minute-precision countdown used by UpsellCard only.
   // Runs in parallel with SessionCountdown (which is second-precision for display).
@@ -7283,8 +7516,9 @@ function App() {
   };
   // Sprint G §2.8: Expose the panel opener so the welcome-state
   // "Browse the Library" button can open the Research Panel.
+  // §W-G.4: routes through handleSelectPanel so open-state persists.
   window.__klOpenPanel = function(panelId) {
-    setActivePanel(panelId);
+    handleSelectPanel(panelId);
   };
   // Sprint H §5.1: Expose handleFileSelect so the VaultPanel upload button
   // can invoke the App-level upload flow without prop drilling.
@@ -7854,18 +8088,20 @@ function App() {
           nexusState={nexusState}
           prefersReducedMotion={prefersReducedMotion.current}
           onProximityDomain={function(slug) { if (slug) handleDomainHover(slug); else handleDomainLeave(); }}
+          dismissed={helperDismissed}
+          onDismiss={handleHelperDismiss}
         />
       )}
       <PanelRail
         activePanel={activePanel}
-        onSelectPanel={setActivePanel}
+        onSelectPanel={handleSelectPanel}
         accessType={accessType}
         tier={tier}
       />
       <AdvisoryBanner />
       {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
       {activePanel && (
-        <PanelDrawer panelId={activePanel} onClose={() => setActivePanel(null)} lang={lang} />
+        <PanelDrawer panelId={activePanel} onClose={() => handleSelectPanel(null)} lang={lang} />
       )}
       {!upsellDismissed && !sessionExpired && upsellGraceElapsed && (
         <UpsellCard
