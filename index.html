@@ -905,7 +905,7 @@ footer {
       <span data-i18n="hero.strip.enriched"><span data-live-stat="enrichment_records">34,440</span> deeply enriched</span>
       <span data-i18n="hero.strip.judges"><span data-live-stat="judges">1,556</span> judges profiled</span>
       <span data-i18n="hero.strip.provisions"><span data-live-stat="provisions">570</span> statutory provisions</span>
-      <span id="strip-date">Updated <span data-bind="latest_scrape_date" data-live-stat="as_at">10 Jun 2026</span></span>
+      <span id="strip-date">Updated <span data-bind="latest_scrape_date">10 Jun 2026</span></span>
     </div>
   </div>
 </section>
@@ -1530,14 +1530,14 @@ var hoverMap = {
       Number(d.total_enriched).toLocaleString() + ' deeply enriched. Patterns by sector, by claim type, by judge.';
   },
   'triad-readiness': function(d) {
-    return d.kl_provisions + ' statutory provisions across 69 instruments. The Forward Intelligence Layer surfaces what is coming, not just what is.';
+    return d.kl_provisions + ' statutory provisions across ' + Number(d.kl_instruments || 79) + ' instruments. The Forward Intelligence Layer surfaces what is coming, not just what is.';
   },
   'triad-conduct': function(d) {
     return 'Every clause traced to its statutory basis. Every gap surfaced. Every finding cited.';
   },
   /* LP-V3-PUNCHLIST §3.6 — KL hover commentary */
   'knowledge-library': function(d) {
-    return Number(d.total_decisions || 131820).toLocaleString() + ' decisions, ' + Number(d.kl_provisions || 401) + ' provisions, 69 instruments. All conversational through Eileen.';
+    return Number(d.total_decisions || 133679).toLocaleString() + ' decisions, ' + Number(d.kl_provisions || 570) + ' provisions, ' + Number(d.kl_instruments || 79) + ' instruments. All conversational through Eileen.';
   },
   'kl-search': function(d) {
     return 'Filter by claim type, sector, judge, year, outcome. Citation chain preserved on every result.';
@@ -2050,7 +2050,7 @@ function initKLStartButton() {
     if (history && history.children.length === 0) {
       var msg = document.createElement('div');
       msg.className = 'chat-eileen';
-      msg.textContent = "The Knowledge Library is where I work most closely with you — searching across 131,820 tribunal decisions, citing statutes inline, checking your contracts against current law. What's the question that brought you here today?";
+      msg.textContent = "The Knowledge Library is where I work most closely with you — searching across " + Number(liveData.total_decisions || 133679).toLocaleString() + " tribunal decisions, citing statutes inline, checking your contracts against current law. What's the question that brought you here today?";
       history.appendChild(msg);
       chatMessages.push({ role: 'assistant', content: msg.textContent });
       updateEileenChatActiveClass();
