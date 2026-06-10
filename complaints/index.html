@@ -19,6 +19,10 @@
     gtag('config', 'G-NTNXWZN31C');
   </script>
 
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -110,6 +114,19 @@
     .step-content strong { color: var(--white); display: block; margin-bottom: 0.2rem; font-size: 0.95rem; }
     .step-content p { margin: 0; font-size: 0.9rem; }
 
+    .dp-form { background: var(--navy-mid); border: 1px solid var(--grey-border); border-radius: 12px; padding: 1.75rem; margin-top: 1.5rem; }
+    .dp-field { margin-bottom: 1.25rem; }
+    .dp-field label { display: block; font-size: 0.88rem; font-weight: 600; color: var(--white); margin-bottom: 0.4rem; }
+    .dp-field input, .dp-field select, .dp-field textarea { width: 100%; background: var(--navy); border: 1px solid var(--grey-border); border-radius: 8px; color: var(--body-text); font-family: inherit; font-size: 0.92rem; padding: 0.6rem 0.75rem; }
+    .dp-field input:focus, .dp-field select:focus, .dp-field textarea:focus { outline: none; border-color: var(--teal); }
+    .dp-field select option { background: var(--navy-mid); color: var(--body-text); }
+    .dp-hint { font-size: 0.78rem; color: var(--grey-text); margin-top: 0.3rem; margin-bottom: 0 !important; }
+    .dp-hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+    .dp-error { color: var(--danger); font-size: 0.9rem; margin-bottom: 1rem; }
+    .dp-submit { background: var(--teal); color: var(--white); border: none; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; padding: 0.7rem 1.5rem; cursor: pointer; transition: opacity 0.2s; }
+    .dp-submit:hover { opacity: 0.9; }
+    .dp-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
     footer { background: var(--navy-mid); border-top: 1px solid var(--grey-border); padding: 2.5rem 2rem; text-align: center; }
     .footer-inner { max-width: 1100px; margin: 0 auto; }
     .footer-links { display: flex; justify-content: center; gap: 2rem; list-style: none; margin-bottom: 1.25rem; flex-wrap: wrap; }
@@ -143,7 +160,7 @@
 </nav>
 
 <div class="page-header">
-  <div class="version-badge">Version 1.0 — 13 March 2026</div>
+  <div class="version-badge">Version 1.1 — 10 June 2026</div>
   <h1>Complaint Handling Policy</h1>
   <p class="meta">AI Lane Limited &nbsp;·&nbsp; Company No. 17035654 &nbsp;·&nbsp; ICO Reg. No. 00013389720</p>
 
@@ -204,6 +221,7 @@
   <h3>2.1 Submission Channels</h3>
   <p><strong>Primary:</strong> <a href="mailto:support@ailane.ai">support@ailane.ai</a> — include your account email address, a description of the issue, and any supporting information.</p>
   <p><strong>Dashboard:</strong> Via the Support &amp; Disputes panel in your client dashboard (where available).</p>
+  <p><strong>Data protection complaints (s.164A DPA 2018):</strong> use the <a href="#data-protection-form">online form</a> below or email <a href="mailto:privacy@ailane.ai">privacy@ailane.ai</a>.</p>
 
   <h3>2.2 Required Information</h3>
   <p>To be valid, a complaint must include:</p>
@@ -218,6 +236,58 @@
   <div class="callout callout-warning">
     <p>If you have initiated or intend to initiate legal proceedings citing any Ailane platform output, please inform us immediately at <a href="mailto:support@ailane.ai">support@ailane.ai</a>. Your complaint will be suspended pending legal resolution and referred for appropriate handling.</p>
   </div>
+</section>
+
+<section id="data-protection-form">
+  <div class="section-badge">§2A</div>
+  <h2>Data Protection Complaints — Online Form</h2>
+  <p>Under section 164A of the Data Protection Act 2018 you may complain to us directly about our processing of your personal data. Use the form below or email <a href="mailto:privacy@ailane.ai">privacy@ailane.ai</a>. We will acknowledge your complaint within 30 days and respond without undue delay. You may also complain to the ICO at any time (see <a href="#escalation">§8.2</a>).</p>
+
+  <form id="dp-complaint-form" class="dp-form" novalidate>
+    <div class="dp-field">
+      <label for="dp-name">Full name *</label>
+      <input type="text" id="dp-name" name="name" maxlength="200" required autocomplete="name" />
+    </div>
+    <div class="dp-field">
+      <label for="dp-email">Email address *</label>
+      <input type="email" id="dp-email" name="email" required autocomplete="email" />
+    </div>
+    <div class="dp-field">
+      <label for="dp-relationship">Your relationship to the personal data</label>
+      <select id="dp-relationship" name="relationship">
+        <option value="data_subject" selected>Data subject</option>
+        <option value="representative">Representative</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="dp-field">
+      <label for="dp-category">Complaint category</label>
+      <select id="dp-category" name="category">
+        <option value="data_protection" selected>Data protection — general</option>
+        <option value="subject_access">Subject access</option>
+        <option value="erasure">Erasure</option>
+        <option value="rectification">Rectification</option>
+        <option value="objection">Objection</option>
+        <option value="automated_decision">Automated decision-making</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="dp-field">
+      <label for="dp-subject">Subject *</label>
+      <input type="text" id="dp-subject" name="subject" maxlength="300" required />
+    </div>
+    <div class="dp-field">
+      <label for="dp-details">Details *</label>
+      <textarea id="dp-details" name="details" rows="8" minlength="20" maxlength="10000" required></textarea>
+      <p class="dp-hint">Please provide between 20 and 10,000 characters.</p>
+    </div>
+    <div class="dp-hp" aria-hidden="true">
+      <label for="dp-website">Website</label>
+      <input type="text" id="dp-website" name="website" tabindex="-1" autocomplete="off" />
+    </div>
+    <p id="dp-error" class="dp-error" role="alert" hidden></p>
+    <button type="submit" id="dp-submit" class="dp-submit">Submit complaint</button>
+  </form>
 </section>
 
 <section id="classification">
@@ -655,7 +725,7 @@
     <p style="margin-bottom: 0.25rem;"><strong style="color: var(--white);">AI Lane Limited</strong></p>
     <p style="margin-bottom: 0.25rem; font-size: 0.9rem;">Company No. 17035654 &nbsp;·&nbsp; ICO Reg. No. 00013389720</p>
     <p style="margin-bottom: 0; font-size: 0.9rem;">UK Trademark No. UK00004347220 &nbsp;·&nbsp; <a href="https://ailane.ai/">ailane.ai</a></p>
-    <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--grey-text);">This Policy is governed by AILANE-AMD-REG-001 (Ailane Master Amendment Register) and reviewed annually or on material change to the complaint handling architecture. Current version: 1.0 — 13 March 2026.</p>
+    <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--grey-text);">This Policy is governed by AILANE-AMD-REG-001 (Ailane Master Amendment Register) and reviewed annually or on material change to the complaint handling architecture. Current version: 1.1 — 10 June 2026. v1.1 adds the s.164A DPA 2018 online data protection complaints facility.</p>
   </div>
 </section>
 ```
@@ -679,6 +749,95 @@
     </p>
   </div>
 </footer>
+
+<script>
+(function () {
+  var ENDPOINT = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/controller-complaints';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
+  var form = document.getElementById('dp-complaint-form');
+  if (!form) return;
+
+  var errorEl = document.getElementById('dp-error');
+  var submitBtn = document.getElementById('dp-submit');
+  var FALLBACK = ' You can also email privacy@ailane.ai.';
+
+  function showError(message, withFallback) {
+    errorEl.textContent = withFallback ? message + FALLBACK : message;
+    errorEl.hidden = false;
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errorEl.hidden = true;
+
+    var name = document.getElementById('dp-name').value.trim();
+    var email = document.getElementById('dp-email').value.trim();
+    var subject = document.getElementById('dp-subject').value.trim();
+    var details = document.getElementById('dp-details').value.trim();
+
+    if (!name || name.length > 200) { showError('Please enter your full name (maximum 200 characters).', false); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Please enter a valid email address.', false); return; }
+    if (!subject || subject.length > 300) { showError('Please enter a subject (maximum 300 characters).', false); return; }
+    if (details.length < 20 || details.length > 10000) { showError('Please provide details of between 20 and 10,000 characters.', false); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+
+    fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + ANON_KEY,
+        'apikey': ANON_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: name,
+        email: email,
+        relationship: document.getElementById('dp-relationship').value,
+        category: document.getElementById('dp-category').value,
+        subject: subject,
+        details: details,
+        website: document.getElementById('dp-website').value
+      })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) {
+          var serverMsg = data && (data.error || data.message);
+          throw new Error(serverMsg ? String(serverMsg) : 'Your complaint could not be submitted (HTTP ' + res.status + ').');
+        }
+        return data;
+      });
+    }).then(function (data) {
+      var panel = document.createElement('div');
+      panel.className = 'callout callout-success';
+
+      var refLine = document.createElement('p');
+      var lead = document.createElement('strong');
+      lead.textContent = 'Complaint received.';
+      refLine.appendChild(lead);
+      refLine.appendChild(document.createTextNode(' Your reference: '));
+      var refValue = document.createElement('strong');
+      refValue.textContent = data.reference || '';
+      refLine.appendChild(refValue);
+      panel.appendChild(refLine);
+
+      if (data.message) {
+        var msgLine = document.createElement('p');
+        msgLine.style.marginTop = '0.5rem';
+        msgLine.textContent = data.message;
+        panel.appendChild(msgLine);
+      }
+
+      form.parentNode.replaceChild(panel, form);
+    }).catch(function (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit complaint';
+      showError(err && err.message ? err.message : 'Your complaint could not be submitted.', true);
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
