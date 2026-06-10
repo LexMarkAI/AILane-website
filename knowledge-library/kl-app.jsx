@@ -90,6 +90,92 @@ var INSTRUMENT_NAMES = {
   'DPA 2018': 'Data Protection Act 2018',
 };
 
+// ─── KL Live Feed client (KL-LIVE-001) ───
+// Single authenticated client for the kl-live-feed Edge Function.
+// Sections: calendar | instruments | topic_tiles | forward_rail.
+// Every consumer degrades gracefully across three states:
+//   'loading' → 'live' | 'unavailable' (feed not yet live).
+// Live responses are cached for the session; unavailable results are NOT
+// cached so a backend deploy mid-session is picked up on next mount.
+
+var __klLiveFeedCache = {};
+var __klLiveFeedPending = {};
+
+// Liberal shape handling — the EF may return a bare array or wrap rows.
+function __klLiveFeedRows(data) {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.rows)) return data.rows;
+  if (data && Array.isArray(data.items)) return data.items;
+  if (data && Array.isArray(data.data)) return data.data;
+  return null;
+}
+
+function fetchLiveFeedSection(section) {
+  if (__klLiveFeedCache[section]) return Promise.resolve(__klLiveFeedCache[section]);
+  if (__klLiveFeedPending[section]) return __klLiveFeedPending[section];
+  var p = (function() {
+    if (!window.__klToken) return Promise.resolve({ state: 'unavailable' });
+    return fetch(
+      SUPABASE_URL + '/functions/v1/kl-live-feed?section=' + encodeURIComponent(section),
+      { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+    ).then(function(resp) {
+      if (!resp.ok) return { state: 'unavailable' };
+      return resp.json().then(function(data) {
+        if (!data || data.error) return { state: 'unavailable' };
+        var result = {
+          state: 'live',
+          data: data,
+          generatedAt: data.generated_at || data.generatedAt || null,
+        };
+        __klLiveFeedCache[section] = result;
+        return result;
+      }).catch(function() { return { state: 'unavailable' }; });
+    }).catch(function() {
+      return { state: 'unavailable' };
+    }).then(function(result) {
+      delete __klLiveFeedPending[section];
+      return result;
+    });
+  })();
+  __klLiveFeedPending[section] = p;
+  return p;
+}
+
+// §W-B: instruments map — fetched once per session, exposed on window so
+// non-React renderers (renderMarkdown) can resolve display titles too.
+function ensureInstrumentsMap() {
+  return fetchLiveFeedSection('instruments').then(function(result) {
+    if (result.state !== 'live') return window.__klInstrumentsMap || null;
+    var d = result.data;
+    var map = null;
+    if (d && d.instruments && typeof d.instruments === 'object' && !Array.isArray(d.instruments)) map = d.instruments;
+    else if (d && d.map && typeof d.map === 'object' && !Array.isArray(d.map)) map = d.map;
+    else if (d && typeof d === 'object' && !Array.isArray(d)) map = d;
+    if (map) window.__klInstrumentsMap = map;
+    return window.__klInstrumentsMap || null;
+  });
+}
+
+function instrumentEntry(instId) {
+  var m = (typeof window !== 'undefined' && window.__klInstrumentsMap) || null;
+  if (!m || !instId) return null;
+  var entry = m[instId] || m[String(instId).toLowerCase()];
+  return (entry && typeof entry === 'object') ? entry : null;
+}
+
+// §W-B: display title for an instrument code. Live-feed map first, then the
+// static INSTRUMENT_NAMES map, then the raw code unchanged (mandated fallback).
+function instrumentDisplayTitle(instId) {
+  var entry = instrumentEntry(instId);
+  if (entry && entry.display_title) return entry.display_title;
+  return INSTRUMENT_NAMES[instId] || instId;
+}
+
+function instrumentShortCitation(instId) {
+  var entry = instrumentEntry(instId);
+  return (entry && entry.short_citation) || null;
+}
+
 const TOPIC_DOMAINS = [
   {
     label: 'Dismissal and disciplinary',
@@ -347,6 +433,56 @@ function hasContractIntent(text) {
   document.head.appendChild(style);
 })();
 
+// ─── KL-LIVE-001 styles (§W-A calendar, §W-C rail/strip, §W-E responsive) ───
+// Injected at module load — index.html is out of scope for this relay, so all
+// new rules ship inside the bundle (same pattern as kl-r1b-keyframes above).
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('kl-live-001-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'kl-live-001-styles';
+  style.textContent = [
+    /* §W-C: Coming-into-force rail (horizontal scroll by design) */
+    '.kl-forward-rail { display: flex; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }',
+    '.kl-forward-rail-note { width: 100%; max-width: 820px; margin-bottom: 16px; font-size: 11px; color: #475569; font-family: "DM Mono", monospace; text-align: center; }',
+    '.kl-forward-card { flex: 0 0 230px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 12px; min-width: 0; }',
+    /* §W-A: live calendar */
+    '.kl-live-chip { border-radius: 14px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: "DM Sans", sans-serif; white-space: nowrap; transition: all 0.15s; }',
+    '.kl-cal-viewbtn { border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer; font-family: "DM Sans", sans-serif; }',
+    '.kl-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }',
+    '.kl-cal-cell { min-height: 44px; border-radius: 4px; padding: 3px 4px; border: 1px solid transparent; }',
+    '.kl-cal-cell.has-events { cursor: pointer; background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); }',
+    '.kl-cal-cell.selected { border-color: #0EA5E9; background: rgba(14,165,233,0.08); }',
+    '.kl-topic-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }',
+    /* §W-C: per-topic currency strip */
+    '.kl-currency-strip { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); margin-bottom: 28px; max-width: 720px; }',
+    /* §W-E: mobile pass. The first four rules re-assert index.html mobile
+       rules that are cascade-dead there (the base .kl-panelrail /
+       .kl-topbar-title / padding rules appear LATER in its <style> block at
+       equal specificity, so the early max-width:767px block never wins —
+       the rail was being auto-placed into an implicit grid row on phones,
+       crushing the main column). Injected last, these win the cascade. */
+    '@media (max-width: 767px) {',
+    '  .kl-panelrail { display: none !important; }',
+    '  .kl-topbar-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }',
+    '  .kl-messages { padding: 16px; }',
+    '  .kl-conversation-input { padding: 12px 16px; }',
+    '  .kl-welcome { padding: 32px 16px; }',
+    '  .kl-topic-chip-row, .kl-domain-selector { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }',
+    '  .kl-live-chip, .kl-cal-viewbtn { min-height: 44px; display: inline-flex; align-items: center; }',
+    '  .kl-cal-cell { min-height: 48px; }',
+    '  .kl-forward-card { flex-basis: 200px; }',
+    '  .kl-currency-strip { flex-direction: column; align-items: flex-start; gap: 8px; }',
+    /* §W-E: Eileen markdown data tables → stacked rows */
+    '  .eileen-response-content table, .eileen-response-content tbody, .eileen-response-content tr, .eileen-response-content td, .eileen-response-content th { display: block; width: 100%; box-sizing: border-box; }',
+    '  .eileen-response-content thead { display: none; }',
+    '  .eileen-response-content tr { border-bottom: 1px solid #1E293B; padding: 6px 0; }',
+    '  .eileen-response-content td { border-bottom: none !important; }',
+    '}',
+  ].join('\n');
+  document.head.appendChild(style);
+})();
+
 // ─── Upload constants (KL File Upload Widget, Stage A) ───
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -411,9 +547,15 @@ function renderMarkdown(text) {
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code style="background:#1E293B;padding:2px 6px;border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;color:#0EA5E9">$1</code>')
     // Sprint H §2: Link library references like (acas-bm §17–25), (era1996 s.94).
+    // KL-LIVE-001 §W-B: render the live-feed display_title for mapped codes;
+    // unmapped codes fall back to the raw instrument id unchanged.
     .replace(/\(([a-z][a-z0-9-]+)\s+(§|s\.)([^)]+)\)/gi, function(match, instId, prefix, sectionRef) {
       var lowerInstId = instId.toLowerCase();
-      return '<span class="kl-ref-link" data-inst="' + escapeHtml(lowerInstId) + '" data-section="' + escapeHtml(prefix + sectionRef) + '" title="Open in Library: ' + escapeHtml(instId) + ' ' + escapeHtml(prefix + sectionRef) + '">' + escapeHtml(instId + ' ' + prefix + sectionRef) + '</span>';
+      var display = instId;
+      var liveMap = (typeof window !== 'undefined' && window.__klInstrumentsMap) || null;
+      var entry = liveMap && (liveMap[lowerInstId] || liveMap[instId]);
+      if (entry && entry.display_title) display = entry.display_title;
+      return '<span class="kl-ref-link" data-inst="' + escapeHtml(lowerInstId) + '" data-section="' + escapeHtml(prefix + sectionRef) + '" title="Open in Library: ' + escapeHtml(display) + ' ' + escapeHtml(prefix + sectionRef) + '">' + escapeHtml(display + ' ' + prefix + sectionRef) + '</span>';
     });
 
   // --- Line-level parsing ---
@@ -607,7 +749,7 @@ function truncate(s, n) {
 }
 
 function tierPalette(tier) {
-  if (tier === 'institutional') return ['#D4A017', '#F1C85B'];
+  if (tier === 'enterprise' || tier === 'institutional') return ['#D4A017', '#F1C85B'];
   if (tier === 'governance') return ['#0EA5E9', '#8B5CF6'];
   if (tier === 'operational_readiness') return ['#0EA5E9', '#10B981'];
   return ['#0EA5E9', '#38BDF8'];
@@ -2622,6 +2764,8 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
           </div>
           <HorizonAlert />
+          {/* KL-LIVE-001 §W-C: Coming-into-force rail (live feed, date-sorted) */}
+          <ForwardRail />
           {/* AMD-045 §3.2 (revised Brief 5): Compact domain list — one row
               per domain, name + one-line orientation + arrow. Two columns on
               desktop, single column on mobile via .kl-domain-compact-grid. */}
@@ -3127,7 +3271,7 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
   if (accessType === 'subscription') {
     if (tier === 'operational_readiness') { badgeLabel = 'OPERATIONAL'; badgeClass = 'kl-badge-operational'; }
     else if (tier === 'governance') { badgeLabel = 'GOVERNANCE'; badgeClass = 'kl-badge-governance'; }
-    else if (tier === 'institutional') { badgeLabel = 'INSTITUTIONAL'; badgeClass = 'kl-badge-institutional'; }
+    else if (tier === 'enterprise' || tier === 'institutional') { badgeLabel = 'ENTERPRISE'; badgeClass = 'kl-badge-enterprise'; }
   } else if (accessType === 'per_session') {
     badgeLabel = 'PER-SESSION';
   }
@@ -3244,7 +3388,8 @@ const TIER_RANK = {
   kl_research_week: 0,
   operational_readiness: 1,
   governance: 2,
-  institutional: 3,
+  enterprise: 3,
+  institutional: 3  /* AMD-123 G-4.1 transitional alias */
 };
 
 function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
@@ -4403,6 +4548,281 @@ function VaultPanel() {
   );
 }
 
+// ─── LiveIndicator (KL-LIVE-001 §W-A) ───
+// Small "Live" pill showing the feed generated_at timestamp.
+
+function LiveIndicator({ generatedAt }) {
+  var label = 'Live';
+  if (generatedAt) {
+    var d = new Date(generatedAt);
+    if (!isNaN(d.getTime())) {
+      label = 'Live · ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
+        ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+  return React.createElement('span', {
+    title: 'Data from the live Knowledge Library feed',
+    style: {
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      fontSize: '10px', fontFamily: "'DM Mono', monospace",
+      color: '#10B981', background: 'rgba(16,185,129,0.08)',
+      border: '1px solid rgba(16,185,129,0.25)',
+      borderRadius: '10px', padding: '1px 8px', whiteSpace: 'nowrap',
+    },
+  },
+    React.createElement('span', {
+      'aria-hidden': 'true',
+      style: { width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', flexShrink: 0 },
+    }),
+    label
+  );
+}
+
+// ─── FreshnessBadge (KL-LIVE-001 §W-D) ───
+// "Verified current — {date}" within 90 days of last_verified; beyond 90
+// days a calm amber state notes that re-verification is scheduled.
+
+function FreshnessBadge({ lastVerified, style }) {
+  if (!lastVerified) return null;
+  var d = new Date(lastVerified);
+  if (isNaN(d.getTime())) return null;
+  var days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  var dateLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  var stale = days > 90;
+  // AMD-050: warm amber #D97706 — brand gold is Institutional tier only.
+  var color = stale ? '#D97706' : '#10B981';
+  return React.createElement('span', {
+    className: 'kl-freshness-badge',
+    title: stale
+      ? 'Last verified ' + dateLabel + ' — re-verification scheduled'
+      : 'Verified current as of ' + dateLabel,
+    style: Object.assign({
+      fontSize: '10px', padding: '1px 6px', borderRadius: '3px', display: 'inline-block',
+      background: color + '15', color: color, whiteSpace: 'nowrap',
+    }, style || {}),
+  }, stale
+    ? 'Verified ' + dateLabel + ' — re-verification scheduled'
+    : 'Verified current — ' + dateLabel);
+}
+
+// Feed-type colour map shared by the rail and the live calendar.
+// horizon uses warm amber #D97706 per AMD-050 (brand gold is tier-reserved).
+var LIVE_FEED_COLOURS = {
+  regulatory: '#0EA5E9',
+  rates: '#10B981',
+  horizon: '#D97706',
+  client: '#8B5CF6',
+};
+var LIVE_FEED_LABELS = {
+  regulatory: 'Regulatory',
+  rates: 'Rates & limits',
+  horizon: 'Horizon',
+  client: 'My events',
+};
+
+// ─── ForwardRail (KL-LIVE-001 §W-C) ───
+// "Coming into force" rail on the welcome state, fed by
+// kl-live-feed?section=forward_rail. Date-sorted ascending.
+// Three states: loading / feed not yet live / live.
+
+function ForwardRail() {
+  var _state = useState('loading');
+  var railState = _state[0];
+  var setRailState = _state[1];
+  var _rows = useState([]);
+  var rows = _rows[0];
+  var setRows = _rows[1];
+  var _gen = useState(null);
+  var generatedAt = _gen[0];
+  var setGeneratedAt = _gen[1];
+
+  useEffect(function() {
+    var cancelled = false;
+    fetchLiveFeedSection('forward_rail').then(function(result) {
+      if (cancelled) return;
+      if (result.state !== 'live') { setRailState('unavailable'); return; }
+      var data = __klLiveFeedRows(result.data) || [];
+      var sorted = data.slice().sort(function(a, b) {
+        return new Date(a.event_date || a.date || a.effective_from || 0) -
+               new Date(b.event_date || b.date || b.effective_from || 0);
+      });
+      setRows(sorted);
+      setGeneratedAt(result.generatedAt);
+      setRailState('live');
+    });
+    return function() { cancelled = true; };
+  }, []);
+
+  if (railState === 'loading') {
+    return React.createElement('div', { className: 'kl-forward-rail-note' }, 'Loading coming-into-force feed…');
+  }
+  if (railState === 'unavailable') {
+    return React.createElement('div', { className: 'kl-forward-rail-note' },
+      'Coming into force — live feed not yet available');
+  }
+  if (rows.length === 0) {
+    return React.createElement('div', { className: 'kl-forward-rail-note' },
+      'Coming into force — no upcoming items');
+  }
+
+  return React.createElement('div', {
+    className: 'kl-forward-rail-wrap',
+    style: { width: '100%', maxWidth: '820px', marginBottom: '20px' },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' } },
+      React.createElement('span', {
+        style: {
+          fontSize: '10px', fontWeight: 500, color: '#475569', textTransform: 'uppercase',
+          letterSpacing: '0.1em', fontFamily: "'DM Mono', monospace",
+        },
+      }, 'Coming into force'),
+      React.createElement(LiveIndicator, { generatedAt: generatedAt })
+    ),
+    React.createElement('div', { className: 'kl-forward-rail' },
+      rows.slice(0, 12).map(function(row, i) {
+        var dt = new Date(row.event_date || row.date || row.effective_from);
+        var hasDate = !isNaN(dt.getTime());
+        var colour = LIVE_FEED_COLOURS[row.feed] || LIVE_FEED_COLOURS.regulatory;
+        var title = row.title || row.requirement_name || 'Untitled item';
+        return React.createElement('div', { key: row.ref_id || i, className: 'kl-forward-card' },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' } },
+            React.createElement('span', {
+              'aria-hidden': 'true',
+              style: { width: '6px', height: '6px', borderRadius: '50%', background: colour, flexShrink: 0 },
+            }),
+            React.createElement('span', {
+              style: { color: colour, fontSize: '10px', fontFamily: "'DM Mono', monospace", whiteSpace: 'nowrap' },
+            }, hasDate ? dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBC')
+          ),
+          React.createElement('div', {
+            style: { color: '#E2E8F0', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 500, lineHeight: 1.4 },
+          }, truncate(title, 90)),
+          row.detail ? React.createElement('div', {
+            style: { color: '#64748B', fontSize: '11px', lineHeight: 1.4, marginTop: '4px' },
+          }, truncate(row.detail, 100)) : null,
+          row.url ? React.createElement('a', {
+            href: row.url, target: '_blank', rel: 'noopener noreferrer',
+            style: { fontSize: '10px', color: '#0EA5E9', textDecoration: 'none', marginTop: '6px', display: 'inline-block' },
+          }, '↗ Source') : null
+        );
+      })
+    )
+  );
+}
+
+// ─── TopicCurrencyStrip (KL-LIVE-001 §W-C) ───
+// Per-topic currency strip on domain sub-pages, fed by
+// kl-live-feed?section=topic_tiles (keyed per ACEI category). Shows the
+// latest relevant news title + date (plain link), the provisions
+// verified-current range, and the open horizon count.
+
+// Maps the 8 problem domains onto likely ACEI category keys. Matching is
+// normalised (lowercase, alphanumeric only); unmatched domains render
+// nothing in the live state.
+var DOMAIN_ACEI_HINTS = {
+  'dismissal': ['Dismissal Procedures', 'Unfair Dismissal', 'Redundancy'],
+  'discrimination': ['Discrimination'],
+  'contracts': ['Working Arrangements', 'Employment Documentation', 'Pay & Compensation'],
+  'family-leave': ['Family Leave'],
+  'transfers': ['TUPE & Business Transfers'],
+  'health-safety': ['Health & Safety'],
+  'whistleblowing': ['Whistleblowing'],
+  'data-monitoring': ['Data Protection', 'Data Protection & Monitoring'],
+};
+
+function __klNormKey(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findTopicTile(tiles, domain) {
+  if (!tiles || typeof tiles !== 'object' || Array.isArray(tiles) || !domain) return null;
+  var candidates = [domain.id, domain.slug, domain.name].concat(DOMAIN_ACEI_HINTS[domain.id] || []);
+  var normCandidates = [];
+  candidates.forEach(function(c) { var n = __klNormKey(c); if (n) normCandidates.push(n); });
+  var keys = Object.keys(tiles);
+  for (var i = 0; i < keys.length; i++) {
+    if (normCandidates.indexOf(__klNormKey(keys[i])) !== -1) return tiles[keys[i]];
+  }
+  return null;
+}
+
+function TopicCurrencyStrip({ domain }) {
+  var _state = useState('loading');
+  var stripState = _state[0];
+  var setStripState = _state[1];
+  var _tile = useState(null);
+  var tile = _tile[0];
+  var setTile = _tile[1];
+  var _gen = useState(null);
+  var generatedAt = _gen[0];
+  var setGeneratedAt = _gen[1];
+
+  useEffect(function() {
+    var cancelled = false;
+    setStripState('loading');
+    setTile(null);
+    fetchLiveFeedSection('topic_tiles').then(function(result) {
+      if (cancelled) return;
+      if (result.state !== 'live') { setStripState('unavailable'); return; }
+      var d = result.data;
+      var tiles = (d && (d.topic_tiles || d.tiles)) || d;
+      setTile(findTopicTile(tiles, domain));
+      setGeneratedAt(result.generatedAt);
+      setStripState('live');
+    });
+    return function() { cancelled = true; };
+  }, [domain && domain.id]);
+
+  var noteStyle = {
+    fontSize: '11px', color: '#475569', fontFamily: "'DM Mono', monospace",
+    margin: '0 0 28px',
+  };
+  if (stripState === 'loading') {
+    return React.createElement('div', { className: 'kl-currency-note', style: noteStyle }, 'Loading currency data…');
+  }
+  if (stripState === 'unavailable') {
+    return React.createElement('div', { className: 'kl-currency-note', style: noteStyle },
+      'Live currency data not yet available for this area');
+  }
+  if (!tile) return null;
+
+  var news = tile.latest_news || null;
+  var range = tile.verified_range || null;
+  var horizonOpen = tile.horizon_open;
+
+  function fmtDate(v) {
+    if (!v) return null;
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  var rangeMin = range && fmtDate(range.min);
+  var rangeMax = range && fmtDate(range.max);
+
+  return React.createElement('div', { className: 'kl-currency-strip' },
+    React.createElement(LiveIndicator, { generatedAt: generatedAt }),
+    news && news.title ? React.createElement('span', {
+      style: { fontSize: '12px', color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", minWidth: 0 },
+    },
+      news.url
+        ? React.createElement('a', {
+            href: news.url, target: '_blank', rel: 'noopener noreferrer',
+            style: { color: '#0EA5E9', textDecoration: 'none' },
+          }, truncate(news.title, 80))
+        : truncate(news.title, 80),
+      news.published_date && fmtDate(news.published_date)
+        ? React.createElement('span', { style: { color: '#64748B', fontSize: '11px' } }, ' · ' + fmtDate(news.published_date))
+        : null
+    ) : null,
+    rangeMin && rangeMax ? React.createElement('span', {
+      style: { fontSize: '11px', color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' },
+    }, 'Provisions verified ' + rangeMin + ' – ' + rangeMax) : null,
+    horizonOpen != null ? React.createElement('span', {
+      style: { fontSize: '11px', color: '#D97706', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' },
+    }, horizonOpen + ' open horizon item' + (horizonOpen === 1 ? '' : 's')) : null
+  );
+}
+
 // ─── CalendarPanel (regulatory_requirements, month-grouped, date-prominent) ───
 // KLUX-001-AM-002 §4: Replaces flat list with month-grouped layout and
 // prominent day-number date badges. Each event is expandable and offers a
@@ -4422,10 +4842,39 @@ function CalendarPanel() {
   var expanded = _expanded[0];
   var setExpanded = _expanded[1];
 
+  // ── KL-LIVE-001 §W-A: live feed state ──
+  var _liveState = useState('loading'); // 'loading' | 'live' | 'unavailable'
+  var liveState = _liveState[0];
+  var setLiveState = _liveState[1];
+  var _liveRows = useState([]);
+  var liveRows = _liveRows[0];
+  var setLiveRows = _liveRows[1];
+  var _generatedAt = useState(null);
+  var generatedAt = _generatedAt[0];
+  var setGeneratedAt = _generatedAt[1];
+  var _view = useState('list'); // 'month' | 'list'
+  var view = _view[0];
+  var setView = _view[1];
+  var _monthCursor = useState(function() {
+    var n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1);
+  });
+  var monthCursor = _monthCursor[0];
+  var setMonthCursor = _monthCursor[1];
+  var _feedsOn = useState({ regulatory: true, rates: true, horizon: true, client: true });
+  var feedsOn = _feedsOn[0];
+  var setFeedsOn = _feedsOn[1];
+  var _selectedDay = useState(null);
+  var selectedDay = _selectedDay[0];
+  var setSelectedDay = _selectedDay[1];
+
+  // §W-A: try the live feed first; fall back to the direct
+  // regulatory_requirements query when the feed is not yet live.
   useEffect(function() {
     var cancelled = false;
-    async function load() {
-      if (!window.__klToken) { setLoading(false); return; }
+
+    async function loadLegacy() {
+      if (!window.__klToken) { if (!cancelled) setLoading(false); return; }
       try {
         var resp = await fetch(
           SUPABASE_URL + '/rest/v1/regulatory_requirements' +
@@ -4439,9 +4888,355 @@ function CalendarPanel() {
       } catch (e) { console.error('Calendar load failed:', e); }
       finally { if (!cancelled) setLoading(false); }
     }
-    load();
+
+    fetchLiveFeedSection('calendar').then(function(result) {
+      if (cancelled) return;
+      if (result.state === 'live') {
+        var rows = __klLiveFeedRows(result.data) || [];
+        setLiveRows(rows);
+        setGeneratedAt(result.generatedAt);
+        setLiveState('live');
+        setLoading(false);
+      } else {
+        setLiveState('unavailable');
+        loadLegacy();
+      }
+    });
     return function() { cancelled = true; };
   }, []);
+
+  // ── §W-A live helpers ──
+
+  // Date key without timezone shift: prefer the literal YYYY-MM-DD prefix.
+  function evDateKey(value) {
+    var s = String(value || '');
+    var m = s.match(/^\d{4}-\d{2}-\d{2}/);
+    if (m) return m[0];
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return null;
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function feedKeyOf(row) {
+    return LIVE_FEED_COLOURS[row.feed] ? row.feed : 'regulatory';
+  }
+
+  function fmtDayLabel(key) {
+    var d = new Date(key + 'T00:00:00');
+    if (isNaN(d.getTime())) return key;
+    return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  var filteredLive = liveRows.filter(function(r) {
+    return feedsOn[feedKeyOf(r)] && evDateKey(r.event_date || r.date);
+  });
+
+  function toggleFeed(key) {
+    setFeedsOn(function(prev) {
+      var next = {};
+      for (var k in prev) next[k] = prev[k];
+      next[key] = !prev[key];
+      return next;
+    });
+    setSelectedDay(null);
+  }
+
+  // ── §W-A live row card (shared by list view and selected-day view) ──
+  function renderLiveRow(row, idx) {
+    var key = 'live-' + (row.ref_id || idx) + '-' + idx;
+    var isExpanded = !!expanded[key];
+    var fk = feedKeyOf(row);
+    var colour = LIVE_FEED_COLOURS[fk];
+    var dateKey = evDateKey(row.event_date || row.date);
+    var d = dateKey ? new Date(dateKey + 'T00:00:00') : null;
+    var endKey = row.end_date ? evDateKey(row.end_date) : null;
+
+    return (
+      <div
+        key={key}
+        onClick={function() { toggleExpand(key); }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(key); } }}
+        aria-expanded={isExpanded}
+        style={{
+          display: 'flex', gap: '12px', padding: '10px 0',
+          borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer',
+        }}
+      >
+        <div style={{
+          minWidth: '44px', height: '44px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          background: colour + '15', borderRadius: '8px', flexShrink: 0,
+        }}>
+          <span style={{
+            color: colour, fontSize: '18px', fontWeight: 700,
+            fontFamily: "'DM Sans', sans-serif", lineHeight: 1,
+          }}>{d ? d.getDate() : '–'}</span>
+          <span style={{
+            color: colour, fontSize: '9px',
+            fontFamily: "'DM Mono', monospace", textTransform: 'uppercase',
+          }}>{d ? d.toLocaleDateString('en-GB', { month: 'short' }) : ''}</span>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            color: '#E2E8F0', fontSize: '12px',
+            fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+          }}>{row.title || 'Untitled event'}</div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+            <span style={{
+              color: colour, fontSize: '9px', fontFamily: "'DM Mono', monospace",
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+            }}>{LIVE_FEED_LABELS[fk]}</span>
+            {endKey && endKey !== dateKey && (
+              <span style={{ color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace" }}>
+                {'until ' + new Date(endKey + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            )}
+          </div>
+
+          {isExpanded && (
+            <div style={{ marginTop: '8px' }}>
+              {row.detail && (
+                <p style={{
+                  color: '#CBD5E1', fontSize: '11px', lineHeight: 1.5,
+                  margin: '0 0 8px', fontFamily: "'DM Sans', sans-serif",
+                }}>{row.detail}</p>
+              )}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {row.url && (
+                  <a
+                    href={row.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={function(e) { e.stopPropagation(); }}
+                    style={{ fontSize: '11px', color: '#0EA5E9', textDecoration: 'none' }}
+                  >↗ View source</a>
+                )}
+                {row.ref_id && (
+                  <span style={{ fontSize: '10px', color: '#475569', fontFamily: "'DM Mono', monospace" }}>{row.ref_id}</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── §W-A month grid view ──
+  function renderMonthView() {
+    var year = monthCursor.getFullYear();
+    var month = monthCursor.getMonth();
+    var firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // Monday-first
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var todayKey = evDateKey(new Date().toISOString());
+
+    var byDay = {};
+    filteredLive.forEach(function(r) {
+      var k = evDateKey(r.event_date || r.date);
+      if (!k) return;
+      if (!byDay[k]) byDay[k] = [];
+      byDay[k].push(r);
+    });
+
+    var cells = [];
+    for (var b = 0; b < firstWeekday; b++) cells.push(null);
+    for (var day = 1; day <= daysInMonth; day++) cells.push(day);
+
+    var monthLabel = monthCursor.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+    function navBtnStyle() {
+      return {
+        background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '6px', color: '#94A3B8', fontSize: '12px',
+        padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit',
+        minHeight: '32px',
+      };
+    }
+
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <button
+            type="button"
+            className="kl-cal-viewbtn"
+            aria-label="Previous month"
+            onClick={function() { setMonthCursor(new Date(year, month - 1, 1)); setSelectedDay(null); }}
+            style={navBtnStyle()}
+          >‹</button>
+          <span style={{ color: '#E2E8F0', fontSize: '13px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{monthLabel}</span>
+          <button
+            type="button"
+            className="kl-cal-viewbtn"
+            aria-label="Next month"
+            onClick={function() { setMonthCursor(new Date(year, month + 1, 1)); setSelectedDay(null); }}
+            style={navBtnStyle()}
+          >›</button>
+        </div>
+
+        <div className="kl-cal-grid" style={{ marginBottom: '4px' }}>
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(function(wd) {
+            return (
+              <div key={wd} style={{
+                textAlign: 'center', color: '#475569', fontSize: '9px',
+                fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', padding: '2px 0',
+              }}>{wd}</div>
+            );
+          })}
+        </div>
+
+        <div className="kl-cal-grid">
+          {cells.map(function(day, i) {
+            if (day === null) return <div key={'b' + i} className="kl-cal-cell" aria-hidden="true"></div>;
+            var key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+            var events = byDay[key] || [];
+            var feedsHere = [];
+            events.forEach(function(r) {
+              var fk = feedKeyOf(r);
+              if (feedsHere.indexOf(fk) === -1) feedsHere.push(fk);
+            });
+            var isToday = key === todayKey;
+            var isSelected = key === selectedDay;
+            return (
+              <div
+                key={key}
+                className={'kl-cal-cell' + (events.length ? ' has-events' : '') + (isSelected ? ' selected' : '')}
+                role={events.length ? 'button' : undefined}
+                tabIndex={events.length ? 0 : undefined}
+                aria-label={events.length ? fmtDayLabel(key) + ' — ' + events.length + ' event' + (events.length === 1 ? '' : 's') : undefined}
+                onClick={events.length ? function() { setSelectedDay(isSelected ? null : key); } : undefined}
+                onKeyDown={events.length ? function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDay(isSelected ? null : key); } } : undefined}
+              >
+                <div style={{
+                  fontSize: '11px',
+                  color: isToday ? '#0EA5E9' : events.length ? '#E2E8F0' : '#64748B',
+                  fontWeight: isToday ? 700 : 400,
+                  fontFamily: "'DM Sans', sans-serif",
+                }}>{day}</div>
+                {feedsHere.length > 0 && (
+                  <div style={{ display: 'flex', gap: '2px', marginTop: '2px', flexWrap: 'wrap' }}>
+                    {feedsHere.slice(0, 4).map(function(fk) {
+                      return (
+                        <span key={fk} aria-hidden="true" style={{
+                          width: '5px', height: '5px', borderRadius: '50%',
+                          background: LIVE_FEED_COLOURS[fk], display: 'inline-block',
+                        }}></span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {selectedDay && (
+          <div style={{ marginTop: '12px' }}>
+            <div style={{
+              color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 600, padding: '6px 0', borderBottom: '1px solid #1E293B',
+            }}>{fmtDayLabel(selectedDay)}</div>
+            {(byDay[selectedDay] || []).map(renderLiveRow)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── §W-A list view (month-grouped, date-sorted) ──
+  function renderListView() {
+    var sorted = filteredLive.slice().sort(function(a, b) {
+      return String(evDateKey(a.event_date || a.date)).localeCompare(String(evDateKey(b.event_date || b.date)));
+    });
+    var groupedLive = {};
+    sorted.forEach(function(r) {
+      var k = evDateKey(r.event_date || r.date);
+      var monthKey = k.slice(0, 7);
+      if (!groupedLive[monthKey]) {
+        var d = new Date(k + 'T00:00:00');
+        groupedLive[monthKey] = {
+          label: d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
+          items: [],
+        };
+      }
+      groupedLive[monthKey].items.push(r);
+    });
+    var monthKeys = Object.keys(groupedLive).sort();
+
+    if (monthKeys.length === 0) {
+      return <div style={{ color: '#64748B', fontSize: '12px', padding: '8px 4px' }}>No events match the selected feeds.</div>;
+    }
+    return monthKeys.map(function(mk) {
+      var g = groupedLive[mk];
+      return (
+        <div key={mk} style={{ marginBottom: '20px' }}>
+          <div style={{
+            color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 600, padding: '8px 0', borderBottom: '1px solid #1E293B',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span>{g.label}</span>
+            <span style={{ fontSize: '11px', color: '#475569' }}>{g.items.length} event{g.items.length === 1 ? '' : 's'}</span>
+          </div>
+          {g.items.map(renderLiveRow)}
+        </div>
+      );
+    });
+  }
+
+  // ── §W-A live calendar shell ──
+  function renderLiveCalendar() {
+    return (
+      <div style={{ padding: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+          <LiveIndicator generatedAt={generatedAt} />
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {[{ id: 'month', label: 'Month' }, { id: 'list', label: 'List' }].map(function(v) {
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  className="kl-cal-viewbtn"
+                  aria-pressed={view === v.id}
+                  onClick={function() { setView(v.id); setSelectedDay(null); }}
+                  style={{
+                    border: view === v.id ? '1px solid #0EA5E9' : '1px solid rgba(255,255,255,0.1)',
+                    background: view === v.id ? 'rgba(14,165,233,0.15)' : 'transparent',
+                    color: view === v.id ? '#0EA5E9' : '#94A3B8',
+                  }}
+                >{v.label}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="kl-topic-chip-row" style={{ marginBottom: '14px' }}>
+          {['regulatory', 'rates', 'horizon', 'client'].map(function(fk) {
+            var on = feedsOn[fk];
+            var colour = LIVE_FEED_COLOURS[fk];
+            return (
+              <button
+                key={fk}
+                type="button"
+                className="kl-live-chip"
+                aria-pressed={on}
+                onClick={function() { toggleFeed(fk); }}
+                style={{
+                  border: '1px solid ' + (on ? colour : 'rgba(255,255,255,0.1)'),
+                  background: on ? colour + '15' : 'transparent',
+                  color: on ? colour : '#64748B',
+                }}
+              >{LIVE_FEED_LABELS[fk]}</button>
+            );
+          })}
+        </div>
+
+        {view === 'month' ? renderMonthView() : renderListView()}
+      </div>
+    );
+  }
 
   function toggleExpand(id) {
     setExpanded(function(prev) {
@@ -4462,6 +5257,14 @@ function CalendarPanel() {
     } else if (typeof window.__klSendMessage === 'function') {
       window.__klSendMessage(seed);
     }
+  }
+
+  // §W-A state routing: loading → live → not-yet-live (legacy fallback).
+  if (liveState === 'loading') {
+    return <div style={{ color: '#94A3B8', fontSize: '13px', padding: '12px' }}>Connecting to the live calendar feed&hellip;</div>;
+  }
+  if (liveState === 'live') {
+    return renderLiveCalendar();
   }
 
   if (loading) {
@@ -4495,6 +5298,11 @@ function CalendarPanel() {
 
   return (
     <div style={{ padding: '12px' }}>
+      {/* §W-A: not-yet-live state — calm note above the legacy calendar */}
+      <div style={{
+        fontSize: '10px', color: '#475569', fontFamily: "'DM Mono', monospace",
+        marginBottom: '10px',
+      }}>Live calendar feed not yet available — showing regulatory requirements</div>
       <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
         {filterButtons.map(function(f) {
           return (
@@ -4641,6 +5449,18 @@ function ResearchPanel({ lang }) {
   var _detailLoading = useState(false);
   var detailLoading = _detailLoading[0];
   var setDetailLoading = _detailLoading[1];
+  // §W-B: bump when the live instruments map arrives so group headers
+  // re-render with display titles. The fetch itself is session-cached.
+  var _instMapReady = useState(!!(typeof window !== 'undefined' && window.__klInstrumentsMap));
+  var setInstMapReady = _instMapReady[1];
+
+  useEffect(function() {
+    var cancelled = false;
+    ensureInstrumentsMap().then(function(map) {
+      if (!cancelled && map) setInstMapReady(true);
+    });
+    return function() { cancelled = true; };
+  }, []);
 
   useEffect(function() {
     // Sprint F §3.4: Library tab is handled by its own useEffect below.
@@ -4650,12 +5470,19 @@ function ResearchPanel({ lang }) {
       if (!window.__klToken) { setLoading(false); return; }
       setLoading(true);
       try {
+        // §W-D: include last_verified for freshness badges. If the column is
+        // ever absent PostgREST rejects the whole select, so retry without it.
         var path = tab === 'provisions'
-          ? '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=500'
+          ? '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025,last_verified&order=instrument_id,section_num&limit=500'
           : '/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100';
-        var resp = await fetch(SUPABASE_URL + path, {
-          headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY },
-        });
+        var headers = { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY };
+        var resp = await fetch(SUPABASE_URL + path, { headers: headers });
+        if (tab === 'provisions' && !resp.ok) {
+          resp = await fetch(
+            SUPABASE_URL + '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=500',
+            { headers: headers }
+          );
+        }
         var d = await resp.json();
         if (cancelled) return;
         setData(Array.isArray(d) ? d : []);
@@ -4809,7 +5636,14 @@ function ResearchPanel({ lang }) {
             color: '#E2E8F0', fontSize: '12px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
           },
         },
-          React.createElement('span', null, INSTRUMENT_NAMES[instId] || instId),
+          // \u00A7W-B: live-feed display_title (+ short_citation where present);
+          // unmapped codes fall back to the raw instrument_id unchanged.
+          React.createElement('span', { style: { minWidth: 0 } },
+            instrumentDisplayTitle(instId),
+            instrumentShortCitation(instId) && React.createElement('span', {
+              style: { fontSize: '10px', color: '#64748B', fontFamily: "'DM Mono', monospace", marginLeft: '6px' },
+            }, instrumentShortCitation(instId))
+          ),
           React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
             React.createElement('span', { style: { fontSize: '10px', color: '#0EA5E9', fontFamily: "'DM Mono', monospace" } }, items.length + ' provisions'),
             React.createElement('span', { style: { fontSize: '10px', color: '#64748B', transition: 'transform 0.15s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' } }, '\u25BC')
@@ -4825,7 +5659,8 @@ function ResearchPanel({ lang }) {
                 cursor: 'pointer',
               },
               onClick: function() {
-                var seedMsg = 'Tell me about ' + item.title + (item.instrument_id ? ' under the ' + item.instrument_id : '');
+                // §W-B: seed Eileen with the display title, never the raw code.
+                var seedMsg = 'Tell me about ' + item.title + (item.instrument_id ? ' under the ' + instrumentDisplayTitle(item.instrument_id) : '');
                 if (window.__klSendMessage) window.__klSendMessage(seedMsg);
               },
               title: 'Ask Eileen about this provision',
@@ -4840,7 +5675,9 @@ function ResearchPanel({ lang }) {
                 }, 'ERA 2025'),
                 React.createElement('span', { style: { color: item.in_force ? '#10B981' : '#94A3B8', fontSize: '10px' } },
                   item.in_force ? 'In force' : 'Not yet'
-                )
+                ),
+                // §W-D: freshness badge from kl_provisions.last_verified
+                React.createElement(FreshnessBadge, { lastVerified: item.last_verified })
               )
             );
           })
@@ -5100,6 +5937,10 @@ function ResearchPanel({ lang }) {
       React.createElement('div', { style: { fontSize: '12px', color: '#64748B', marginBottom: '4px', fontFamily: "'DM Mono', monospace" } },
         (inst.type || '') + (inst.jurisdiction ? ' \u00B7 ' + inst.jurisdiction : '')
       ),
+      // \u00A7W-D: freshness badge when the manifest carries lastVerified
+      (inst.lastVerified || inst.last_verified) && React.createElement('div', { style: { marginBottom: '8px' } },
+        React.createElement(FreshnessBadge, { lastVerified: inst.lastVerified || inst.last_verified, style: { padding: '2px 6px', borderRadius: '4px' } })
+      ),
       inst.chapters && React.createElement('div', { style: { fontSize: '12px', color: '#94A3B8', marginBottom: '12px', lineHeight: 1.5 } }, inst.chapters),
       summaryWarm && React.createElement('div', {
         style: {
@@ -5157,6 +5998,12 @@ function ResearchPanel({ lang }) {
     var inForce = detail.isInForce != null
       ? detail.isInForce
       : (activeInstrument && activeInstrument.isInForce);
+    // §W-D: instrument-level verification timestamp (content schema carries
+    // lastVerified as an ISO date on 64 of the content files).
+    var lastVerified = detail.lastVerified
+      || detail.last_verified
+      || (activeInstrument && (activeInstrument.lastVerified || activeInstrument.last_verified))
+      || null;
 
     // Normalise provisions across both schemas.
     // Sprint H §6.2: Pass ACAS / guidance part labels through
@@ -5212,13 +6059,17 @@ function ResearchPanel({ lang }) {
           [displayType, displayJurisdiction, detail.currentAsOf && ('Verified ' + detail.currentAsOf)].filter(Boolean).join(' \u00B7 ')
         ),
         detail.chapters && React.createElement('div', { style: { fontSize: '11px', color: '#94A3B8', marginBottom: '8px' } }, detail.chapters),
-        React.createElement('span', {
-          style: {
-            fontSize: '10px', padding: '2px 6px', borderRadius: '4px', display: 'inline-block',
-            background: inForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-            color: inForce ? '#10B981' : '#F59E0B',
-          },
-        }, inForce ? 'In force' : 'Not yet commenced')
+        React.createElement('div', { style: { display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' } },
+          React.createElement('span', {
+            style: {
+              fontSize: '10px', padding: '2px 6px', borderRadius: '4px', display: 'inline-block',
+              background: inForce ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+              color: inForce ? '#10B981' : '#F59E0B',
+            },
+          }, inForce ? 'In force' : 'Not yet commenced'),
+          // §W-D: freshness badge alongside the in-force state
+          React.createElement(FreshnessBadge, { lastVerified: lastVerified, style: { padding: '2px 6px', borderRadius: '4px' } })
+        )
       ),
 
       description && React.createElement('div', {
@@ -5754,8 +6605,11 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
       }, domain.name)
     ),
 
-    // §4.3 Domain selector — compact horizontal tabs
+    // §4.3 Domain selector — compact horizontal tabs.
+    // KL-LIVE-001 §W-E: className activates the index.html mobile rule
+    // (.kl-domain-selector → horizontal scroll, no wrap, under 768px).
     React.createElement('div', {
+      className: 'kl-domain-selector',
       style: {
         padding: '8px 24px', display: 'flex', gap: '8px', overflowX: 'auto',
         borderBottom: '1px solid #1E3A5F', background: '#0F1D32', flexShrink: 0,
@@ -5798,9 +6652,12 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
       React.createElement('p', {
         style: {
           color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '15px',
-          lineHeight: 1.7, maxWidth: '720px', margin: '0 0 32px',
+          lineHeight: 1.7, maxWidth: '720px', margin: '0 0 16px',
         },
       }, domain.orientation),
+
+      // KL-LIVE-001 §W-C: per-topic currency strip (topic_tiles live feed)
+      React.createElement(TopicCurrencyStrip, { domain: domain }),
 
       // §4.5 Sub-Area Grid
       React.createElement('h2', {
@@ -5809,7 +6666,10 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
           margin: '0 0 16px', fontWeight: 600,
         },
       }, 'Topics in this area'),
+      // KL-LIVE-001 §W-E: className activates the index.html mobile rule
+      // (.kl-domain-subarea-grid → single column under 768px).
       React.createElement('div', {
+        className: 'kl-domain-subarea-grid',
         style: {
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
           gap: '12px', marginBottom: '32px',
@@ -6182,6 +7042,12 @@ function App() {
     return () => window.removeEventListener('ailane-kl-ready', onReady);
   }, [loadSessionHistory]);
 
+  // KL-LIVE-001 §W-B: warm the instruments map once per session so display
+  // titles resolve in Eileen reference links and the Research panel.
+  useEffect(function() {
+    if (window.__klToken) ensureInstrumentsMap();
+  }, []);
+
   // §4.3: Track viewport width for responsive rendering
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   // §5.5: Respect prefers-reduced-motion
@@ -6523,6 +7389,7 @@ function App() {
       window.__klAccessType === 'subscription' ||
       window.__klTier === 'operational_readiness' ||
       window.__klTier === 'governance' ||
+      window.__klTier === 'enterprise' ||
       window.__klTier === 'institutional'
     );
     const docRecord = {
