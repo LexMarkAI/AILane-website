@@ -155,6 +155,10 @@ function App(){
         <div className="sec-head"><div className="t">Live Compliance Oversight</div><div className="rule"/></div>
         <ComplianceOversight vendors={vendors} isms={isms} findings={findings}/>
 
+        {/* SECTION 2a — Governance Alerts (GOV-ALERTS-WEBSITE-001 §W-3) */}
+        <div className="sec-head"><div className="t">Governance Alerts</div><div className="rule"/></div>
+        <GovernanceAlertsPanel token={token}/>
+
         {/* SECTION 3 — Legal responsibilities & oversight */}
         <div className="sec-head"><div className="t">Legal Responsibilities &amp; Oversight</div><div className="rule"/></div>
         <LegalResponsibilities reviewers={reviewers}/>
@@ -254,6 +258,86 @@ function ComplianceOversight({vendors,isms,findings}){
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION 2a — GOVERNANCE ALERTS (GOV-ALERTS-WEBSITE-001 §W-3) ──
+// Fed by ceo-legal-data?section=governance_alerts — all sources, including
+// parliamentary horizon signals. Degrades to an inline empty state while the
+// backend section is not yet deployed (HTTP 400/error): never a broken panel.
+const GOV_MATERIALITY_COLOR={material:'var(--accent-red)',uncertain:'var(--accent-amber)',non_material:'var(--text-muted)'};
+const GOV_ACTIONS=[['ratify','Ratify'],['reject','Reject'],['defer','Defer'],['reassess','Re-assess']];
+function govAge(a){if(a.age_hours!=null)return Math.round(Number(a.age_hours));const t=a.detected_at||a.created_at;if(!t)return null;const h=(Date.now()-new Date(t).getTime())/3600000;return isNaN(h)?null:Math.round(h);}
+function GovernanceAlertsPanel({token}){
+  const[gov,setGov]=useState(null);const[busy,setBusy]=useState(null);
+  const H={'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY};
+  async function load(){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-legal-data?section=governance_alerts`,{headers:H});
+      if(!r.ok){setGov({live:false});return;}
+      const j=await r.json();
+      setGov({live:true,alerts:Array.isArray(j.alerts)?j.alerts:[],recentlyClosed:Array.isArray(j.recently_closed)?j.recently_closed:[],summary:j.summary||{}});
+    }catch(e){setGov({live:false});}
+  }
+  useEffect(()=>{if(token)load();},[token]);
+  async function act(action,alertId){
+    if(busy)return;setBusy(String(alertId)+':'+action);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-governance-action`,{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({action,alert_id:alertId})});
+      if(r.ok)await load();
+    }catch(e){console.error('ceo-governance-action',e);}
+    setBusy(null);
+  }
+  const open=(gov&&gov.live&&gov.alerts)||[];
+  const closed=(gov&&gov.live&&gov.recentlyClosed)||[];
+  const sum=(gov&&gov.live&&gov.summary)||{};
+  const btn={padding:'4px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-default)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontFamily:'var(--font-mono)',fontSize:'0.58rem',fontWeight:600,cursor:busy?'default':'pointer',opacity:busy?0.5:1};
+  return(
+    <div className="card">
+      <div className="card-head"><div className="card-head-title">Assessment Feed</div><div className="card-head-badge">{gov&&gov.live?(sum.awaiting_director!=null?sum.awaiting_director:open.length)+' awaiting director':'ceo-legal-data'}</div></div>
+      <div className="card-body">
+        {gov==null&&<div className="ts">Loading assessment feed…</div>}
+        {gov!=null&&!gov.live&&<div className="ts">Assessment feed not yet live.</div>}
+        {gov!=null&&gov.live&&open.length===0&&<div className="ts">No open governance alerts.</div>}
+        {open.map((a,i)=>{
+          const m=a.acei_impact&&a.acei_impact.materiality;
+          const age=govAge(a);
+          return(
+            <div className="leg-row" key={a.alert_id||i}>
+              <div className="leg-title">{a.title}</div>
+              {a.eileen_summary&&<div className="leg-summary" style={{WebkitLineClamp:3}}>{a.eileen_summary}</div>}
+              <div className="leg-meta">
+                {m&&<span className="leg-tag" style={{color:GOV_MATERIALITY_COLOR[String(m).toLowerCase()]||'var(--accent-cyan)'}}>{String(m).replace(/_/g,' ')}</span>}
+                {a.source&&<span className="leg-tag">{a.source}</span>}
+                {a.alert_type&&<span className="leg-tag">{a.alert_type}</span>}
+                {a.status&&<span style={{fontSize:'0.58rem',fontFamily:'var(--font-mono)',color:'var(--text-secondary)'}}>{String(a.status).replace(/_/g,' ')}</span>}
+                {age!=null&&<span className="ts">{age}h old{a.sla_hours!=null?' · SLA '+a.sla_hours+'h':''}</span>}
+                {a.sla_breached&&<span className="leg-tag" style={{color:'var(--accent-red)',background:'var(--accent-red-dim)'}}>SLA breached</span>}
+              </div>
+              {a.status==='assessment_complete'&&(
+                <div style={{display:'flex',gap:8,marginTop:7,flexWrap:'wrap'}}>
+                  {GOV_ACTIONS.map(([action,label])=>(
+                    <button key={action} style={btn} disabled={!!busy} onClick={()=>act(action,a.alert_id)}>{label}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {closed.length>0&&(
+          <div style={{marginTop:12}}>
+            <div className="section-label">Recently closed</div>
+            {closed.map((c,i)=>(
+              <div key={i} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'6px 0',borderBottom:i<closed.length-1?'1px solid var(--border-subtle)':'none'}}>
+                <div style={{fontSize:'0.7rem',color:'var(--text-secondary)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.title}</div>
+                <div className="ts" style={{flexShrink:0}}>{String(c.status||'').replace(/_/g,' ')}{c.closed_at?' · '+shortDate(c.closed_at):''}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {gov!=null&&gov.live&&<div className="muted-note">Auto-closed (non-material) last 7 days: {sum.auto_ratified_7d!=null?sum.auto_ratified_7d:0}</div>}
       </div>
     </div>
   );
