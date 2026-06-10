@@ -1504,25 +1504,68 @@ function NoticesModalBody({ data, err }) {
   );
 }
 
-function AlertsModalBody({ alerts }) {
-  if (alerts == null) return <div className="reg-muted">Loading…</div>;
-  if (alerts.length === 0) return <div className="reg-muted">No open governance alerts.</div>;
-  const classColor = c => c === 1 ? '#DC2626' : c === 2 ? '#2563EB' : '#64748B';
+// Governance Alerts assessment feed (GOV-ALERTS-WEBSITE-001 §W-2).
+// Fed by ceo-legal-data?section=governance_alerts; degrades to an inline
+// empty state when the backend section is not yet deployed (HTTP 400/error).
+const MATERIALITY_COLORS = { material: '#DC2626', uncertain: '#F59E0B', non_material: '#64748B' };
+function materialityChip(a, key) {
+  const m = a.acei_impact && a.acei_impact.materiality;
+  if (!m) return null;
+  const c = MATERIALITY_COLORS[String(m).toLowerCase()] || '#0EA5E9';
+  return <span key={key} className="alert-class" style={{ background: 'rgba(148,163,184,0.12)', color: c }}>{String(m).replace(/_/g, ' ')}</span>;
+}
+function alertAgeHours(a) {
+  if (a.age_hours != null) return Math.round(Number(a.age_hours));
+  const t = a.detected_at || a.created_at;
+  if (!t) return null;
+  const h = (Date.now() - new Date(t).getTime()) / 3600000;
+  return isNaN(h) ? null : Math.round(h);
+}
+const GOV_ACTIONS = [['ratify', 'Ratify'], ['reject', 'Reject'], ['defer', 'Defer'], ['reassess', 'Re-assess']];
+function GovAlertActions({ alert, busy, onAction }) {
+  if (alert.status !== 'assessment_complete') return null;
+  const btn = {
+    padding: '4px 12px', borderRadius: '6px', border: '1px solid rgba(148,163,184,0.25)',
+    background: 'rgba(148,163,184,0.08)', color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)', fontSize: '0.6rem', fontWeight: 600,
+    cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
+  };
+  return (
+    <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+      {GOV_ACTIONS.map(([action, label]) => (
+        <button key={action} style={btn} disabled={!!busy} onClick={() => onAction(action, alert.alert_id)}>{label}</button>
+      ))}
+    </div>
+  );
+}
+function GovAlertItem({ a, i, busy, onAction }) {
+  const age = alertAgeHours(a);
+  return (
+    <div className={'alert-item' + (a.sla_breached ? ' breached' : '')} key={a.alert_id || i}>
+      <div className="notice-title">{a.title}</div>
+      {a.eileen_summary && <div className="notice-impact">{a.eileen_summary}</div>}
+      <div className="alert-row">
+        {materialityChip(a, 'm')}
+        {a.alert_type && <span className="notice-badge ghost">{a.alert_type}</span>}
+        {a.source && <span className="notice-badge ghost">{a.source}</span>}
+        {a.status && <span className="notice-status">{String(a.status).replace(/_/g, ' ')}</span>}
+        {age != null && <span className="notice-status">{age}h old{a.sla_hours != null ? ' · SLA ' + a.sla_hours + 'h' : ''}</span>}
+        {a.sla_breached && <span className="cert-chip blocked">SLA breached</span>}
+      </div>
+      <GovAlertActions alert={a} busy={busy} onAction={onAction} />
+    </div>
+  );
+}
+function AlertsModalBody({ gov, busy, onAction }) {
+  if (gov == null) return <div className="reg-muted">Loading…</div>;
+  if (!gov.live) return <div className="reg-muted">Assessment feed not yet live.</div>;
+  const open = gov.alerts || [];
+  const autoClosed = gov.summary && gov.summary.auto_ratified_7d;
   return (
     <div>
-      {alerts.map((a, i) => (
-        <div className={'alert-item' + (a.sla_breached ? ' breached' : '')} key={a.alert_id || i}>
-          <div className="notice-title">{a.title}</div>
-          {a.summary && <div className="notice-impact">{a.summary}</div>}
-          <div className="alert-row">
-            <span className="alert-class" style={{ background: 'rgba(148,163,184,0.12)', color: classColor(a.alert_class) }}>Class {a.alert_class}</span>
-            {a.alert_type && <span className="notice-badge ghost">{a.alert_type}</span>}
-            {a.status && <span className="notice-status">{a.status}</span>}
-            {a.age_hours != null && <span className="notice-status">{Math.round(Number(a.age_hours))}h old</span>}
-            {a.sla_breached && <span className="cert-chip blocked">SLA breached</span>}
-          </div>
-        </div>
-      ))}
+      {open.length === 0 && <div className="reg-muted">No open governance alerts.</div>}
+      {open.map((a, i) => <GovAlertItem key={a.alert_id || i} a={a} i={i} busy={busy} onAction={onAction} />)}
+      <div className="reg-meta" style={{ marginTop: 12 }}>Auto-closed (non-material) last 7 days: {autoClosed != null ? autoClosed : 0}</div>
     </div>
   );
 }
@@ -1549,7 +1592,8 @@ function CommandCentre({ token, sections }) {
   const [intelErr, setIntelErr] = React.useState(null);
   const [genBusy, setGenBusy] = React.useState(false);
   const [genMsg, setGenMsg] = React.useState(null);
-  const [alerts, setAlerts] = React.useState(null);
+  const [alerts, setAlerts] = React.useState(null);   // { live, alerts, recentlyClosed, summary } | { live: false }
+  const [actBusy, setActBusy] = React.useState(null); // 'alert_id:action' while a governance action posts
   const [certs, setCerts] = React.useState(null);
   const [rooms, setRooms] = React.useState(null);
   const mounted = React.useRef(true);
@@ -1565,10 +1609,31 @@ function CommandCentre({ token, sections }) {
     } catch (e) { if (mounted.current) { console.error('ceo-reg-intel', e); setIntelErr('Network error loading regulatory intelligence.'); } }
   }
   async function loadAlerts() {
+    // Assessment feed (GOV-ALERTS-WEBSITE-001 §W-2). A 400 means the
+    // governance_alerts section is not yet deployed — render the inline
+    // "not yet live" empty state, never a broken widget.
     try {
-      const r = await rest('vw_ceo_governance_alerts?select=*&order=detected_at.desc&limit=50');
-      if (r.ok) { const j = await r.json(); if (mounted.current) setAlerts(Array.isArray(j) ? j : []); }
-    } catch (e) { console.error('vw_ceo_governance_alerts', e); }
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/ceo-legal-data?section=governance_alerts`, { headers: H });
+      if (!r.ok) { if (mounted.current) setAlerts({ live: false }); return; }
+      const j = await r.json();
+      if (mounted.current) setAlerts({
+        live: true,
+        alerts: Array.isArray(j.alerts) ? j.alerts : [],
+        recentlyClosed: Array.isArray(j.recently_closed) ? j.recently_closed : [],
+        summary: j.summary || {},
+      });
+    } catch (e) { console.error('ceo-legal-data governance_alerts', e); if (mounted.current) setAlerts({ live: false }); }
+  }
+  async function govAction(action, alertId) {
+    if (actBusy) return;
+    setActBusy(String(alertId) + ':' + action);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/ceo-governance-action`, {
+        method: 'POST', headers: H, body: JSON.stringify({ action, alert_id: alertId }),
+      });
+      if (r.ok) await loadAlerts();
+    } catch (e) { console.error('ceo-governance-action', e); }
+    if (mounted.current) setActBusy(null);
   }
   async function loadCerts() {
     try {
@@ -1599,8 +1664,11 @@ function CommandCentre({ token, sections }) {
   const generatedAt = intel && intel.generated_at;
   const devs = (intel && Array.isArray(intel.developments)) ? intel.developments : [];
   const noticeTotal = (intel && intel.developments_summary && intel.developments_summary.total != null) ? intel.developments_summary.total : devs.length;
-  const openAlerts = alerts ? alerts.length : null;
-  const breached = alerts ? alerts.filter(a => a.sla_breached).length : 0;
+  const govLive = !!(alerts && alerts.live);
+  const govOpen = govLive ? alerts.alerts : [];
+  const awaitingDirector = (govLive && alerts.summary && alerts.summary.awaiting_director != null)
+    ? Number(alerts.summary.awaiting_director) : (govLive ? govOpen.length : null);
+  const breached = govOpen.filter(a => a.sla_breached).length;
   const estate = (sections && sections.platform && sections.platform.data_estate) || [];
   const employers = (estate.find(e => e.entity === 'employer_master') || {}).count;
   const tribunals = (estate.find(e => e.entity === 'tribunal_decisions') || {}).count;
@@ -1663,19 +1731,20 @@ function CommandCentre({ token, sections }) {
 
         {/* 5 — KNOWLEDGE LIBRARY / ESTATE → existing surface */}
         <Tile iconClass="cyan" accent="var(--accent-cyan)" icon={<Icons.box />} title="Knowledge Library / Estate"
-          onClick={() => window.location.href = '/knowledge-library-preview/'}>
+          onClick={() => window.location.href = '/knowledge-library/'}>
           <div className="tile-headline">
             <strong>{employers != null ? formatNum(employers) : '—'}</strong> employers · <strong>{tribunals != null ? formatNum(tribunals) : '—'}</strong> tribunal decisions indexed.
           </div>
           <div className="tile-foot"><span className="chip cyan">Knowledge Library</span><span className="chip cyan">Data estate</span></div>
         </Tile>
 
-        {/* 6 — GOVERNANCE ALERTS → modal */}
+        {/* 6 — GOVERNANCE ALERTS → modal (assessment feed, GOV-ALERTS-WEBSITE-001 §W-2) */}
         <Tile iconClass={breached > 0 ? 'red' : 'cyan'} accent={breached > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)'} icon={<Icons.zap />} title="Governance Alerts"
-          status={openAlerts != null ? <StatusDot color={breached > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)'} label={String(openAlerts)} /> : null}
+          status={awaitingDirector != null ? <StatusDot color={breached > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)'} label={String(awaitingDirector)} /> : null}
           onClick={() => setModal('alerts')}>
           <div className="tile-headline">
-            {openAlerts != null ? <span><strong>{openAlerts} open</strong>{breached > 0 ? ' · ' + breached + ' SLA-breached' : ''}</span> : 'Loading…'}
+            {alerts == null ? 'Loading…' : (!govLive ? 'Assessment feed not yet live.'
+              : <span><strong>{awaitingDirector} awaiting director</strong>{breached > 0 ? ' · ' + breached + ' SLA-breached' : ''}</span>)}
           </div>
         </Tile>
 
@@ -1695,8 +1764,8 @@ function CommandCentre({ token, sections }) {
       )}
       {modal === 'alerts' && (
         <Modal title="Governance Alerts" icon={<Icons.zap />} onClose={() => setModal(null)}
-          headRight={openAlerts != null ? <span className="reg-count">{openAlerts}</span> : null}>
-          <AlertsModalBody alerts={alerts} />
+          headRight={awaitingDirector != null ? <span className="reg-count">{awaitingDirector}</span> : null}>
+          <AlertsModalBody gov={alerts} busy={actBusy} onAction={govAction} />
         </Modal>
       )}
     </div>
@@ -2005,7 +2074,7 @@ function App() {
         <a href="https://analytics.google.com" target="_blank" rel="noopener" className="qa-btn">📈 GA4</a>
         <a href="https://cnbsxwtvazfvzmltkuvx.supabase.co" target="_blank" rel="noopener" className="qa-btn">🗄️ Supabase</a>
         <a href="/ticker/" className="qa-btn">📰 Ticker</a>
-        <a href="/knowledge-library-preview/" className="qa-btn">📚 Knowledge Library</a>
+        <a href="/knowledge-library/" className="qa-btn">📚 Knowledge Library</a>
         <a href="/AiLaneCEO/infrastructure/" className="qa-btn" style={{borderColor:'rgba(14,165,233,0.3)',color:'var(--accent-cyan)'}}>⚙️ Infrastructure</a>
       </div>
 

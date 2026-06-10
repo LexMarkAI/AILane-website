@@ -732,12 +732,24 @@
 
           // Load tier ASYNC via Supabase client (handles token refresh automatically)
           sb.from('kl_account_profiles')
-            .select('subscription_tier')
+            .select('subscription_tier, role_type')
             .eq('user_id', userId)
             .limit(1)
             .then(function(result) {
               if (result.data && result.data[0]) {
                 var tier = result.data[0].subscription_tier;
+                // Director entitlement (GOV-ALERTS-WEBSITE-001 §W-1): role_type
+                // is a role flag, never a tier value. Directors get the full
+                // governance feature map and must bypass every per-session
+                // downgrade or purchase/upgrade path. Tier global is set
+                // BEFORE any dispatch so no downgrade branch can run first.
+                if (result.data[0].role_type === 'director') {
+                  window.__klIsDirector = true;
+                  tier = 'governance';
+                  window.__klSessionExpiry = null;
+                  window.__klProductType = null;
+                  window.__ailaneSession = null;
+                }
                 window.__klTier = tier;
                 window.__klAccessType = 'subscription';
                 window.__ailaneUser.tier = tier;
@@ -758,7 +770,9 @@
             .order('expires_at', { ascending: false })
             .limit(1)
             .then(function(result) {
-              if (result.data && result.data[0]) {
+              // Directors are never downgraded to per-session access
+              // (GOV-ALERTS-WEBSITE-001 §W-1).
+              if (result.data && result.data[0] && window.__klIsDirector !== true) {
                 window.__klAccessType = 'per_session';
                 window.__klSessionExpiry = result.data[0].expires_at;
                 window.__klProductType = result.data[0].product_type;
