@@ -164,6 +164,9 @@ function App(){
         <div className="sec-head"><div className="t" style={{color:'var(--text-secondary)'}}>Competitive &amp; Legislative Watch</div><div className="rule"/></div>
         <CompetitorWatch legal={legal} loading={loading}/>
 
+        {/* SECTION 5 — s.164A Data Protection Complaints Register (BRIEF VOC-DRILLDOWN-002) */}
+        <ComplaintsRegister legal={legal}/>
+
       </div>
       {/* Eileen mounted globally via /assets/eileen-panel.js */}
     </div>
@@ -408,6 +411,57 @@ function CompetitorWatch({legal,loading}){
         </div>
       </div>
     </details>
+  );
+}
+
+// ── s.164A DATA PROTECTION COMPLAINTS REGISTER (BRIEF VOC-DRILLDOWN-002) ──
+const COMPLAINT_STATUS_COLOR={received:'var(--accent-amber)',acknowledged:'var(--accent-cyan)',investigating:'var(--accent-cyan)',resolved:'var(--accent-green)',rejected:'var(--text-muted)',escalated_ico:'var(--accent-red)'};
+function ComplaintsRegister({legal}){
+  const[openRef,setOpenRef]=useState(null);
+  const rows=(legal&&legal.dp_complaints)||[];
+  const sum=legal&&legal.dp_summary;
+  const today=new Date().toISOString().slice(0,10);
+  const truncate=s=>{const t=String(s||'');return t.length>60?t.slice(0,60)+'…':t;};
+  return(
+    <div className="card" id="complaints">
+      <div className="card-head"><div className="card-head-title">Data Protection Complaints — s.164A Register</div><div className="card-head-badge">{sum?sum.total+' total · '+sum.open+' open':'—'}</div></div>
+      <div className="card-body">
+        {sum&&sum.ack_due_within_7d>0&&<div style={{marginBottom:10}}><span className="leg-tag partial" style={{fontSize:'0.62rem',padding:'3px 9px'}}>{sum.ack_due_within_7d} acknowledgment due ≤7 days</span></div>}
+        {legal==null&&<div className="ts">Loading register…</div>}
+        {legal!=null&&rows.length===0&&<div className="ts">No complaints on the register.</div>}
+        {rows.map((c,i)=>{
+          const key=c.reference||i;
+          const open=openRef===key;
+          const ackOverdue=c.ack_due_date&&!c.acknowledged_at&&String(c.ack_due_date).slice(0,10)<today;
+          return(
+            <div key={key} style={{borderBottom:i<rows.length-1?'1px solid var(--border-subtle)':'none'}}>
+              <div onClick={()=>setOpenRef(open?null:key)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 0',cursor:'pointer',flexWrap:'wrap'}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <span style={{fontFamily:'var(--font-mono)',fontSize:'0.7rem',color:'var(--text-accent)'}}>{c.reference}</span>
+                    <span className="case-cat">{friendlyCat(c.complaint_category)}</span>
+                  </div>
+                  <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginTop:3}} title={c.subject||''}>{truncate(c.subject)}</div>
+                </div>
+                <div style={{display:'flex',gap:12,alignItems:'center',flexShrink:0}}>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',color:COMPLAINT_STATUS_COLOR[c.status]||'var(--text-muted)'}}>{String(c.status||'').replace(/_/g,' ')}</span>
+                  <span className="ts">rec {shortDate(c.received_at)}</span>
+                  <span className="ts" style={ackOverdue?{color:'var(--accent-red)'}:null}>ack due {shortDate(c.ack_due_date)}</span>
+                </div>
+              </div>
+              {open&&(
+                <div style={{background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:'var(--radius-sm)',padding:'10px 12px',margin:'0 0 10px',fontSize:'0.68rem',color:'var(--text-secondary)',lineHeight:1.55}}>
+                  <div><strong style={{color:'var(--text-primary)'}}>{c.complainant_name||'(name not given)'}</strong>{c.complainant_email?' · '+c.complainant_email:''}{c.received_via?' · via '+String(c.received_via).replace(/_/g,' '):''}</div>
+                  {c.details&&<div style={{marginTop:6,whiteSpace:'pre-wrap'}}>{c.details}</div>}
+                  {c.outcome&&<div style={{marginTop:6}}><span style={{color:'var(--text-muted)',textTransform:'uppercase',fontSize:'0.56rem',letterSpacing:'0.06em'}}>Outcome</span><div>{c.outcome}</div></div>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="muted-note">s.164A DPA 2018 — acknowledge within 30 days; respond without undue delay. Intake: ailane.ai/complaints/#data-protection-form</div>
+      </div>
+    </div>
   );
 }
 
