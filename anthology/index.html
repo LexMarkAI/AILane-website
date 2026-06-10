@@ -78,22 +78,23 @@ footer a{color:var(--dim)}
   <div class="brand"><a href="https://ailane.ai/">Ailane</a><span class="tag">Investor overview · June 2026</span></div>
   <p class="kicker">UK legal-risk intelligence · built on Claude</p>
   <h1>The UK's employment-tribunal record, turned into institutional-grade risk intelligence.</h1>
-  <p class="lede">One proprietary dataset — built, governed, and operated end-to-end on Claude. Every figure on this page is live-queried from the production database (7 June 2026).</p>
+  <p class="lede">One proprietary dataset — built, governed, and operated end-to-end on Claude. Every figure on this page is live-queried from the production database<span id="stats-asat"></span>.</p>
   <div class="tiles">
-    <div class="tile"><b>131,820</b><span>tribunal decisions ingested</span></div>
-    <div class="tile"><b>78,699</b><span>employer profiles — tribunal, HSE enforcement, coroner records</span></div>
+    <div class="tile"><b id="stat-decisions">131,820</b><span>tribunal decisions ingested</span></div>
+    <div class="tile"><b id="stat-employers">78,699</b><span>employer profiles — tribunal, HSE enforcement, coroner records</span></div>
     <div class="tile"><b>171</b><span>enrichment fields per decision</span></div>
-    <div class="tile"><b>106</b><span>production Edge Functions</span></div>
+    <div class="tile"><b>110</b><span>production Edge Functions</span></div>
   </div>
-  <p class="strip"><i>1,555</i> judges profiled · <i>401</i> statutory provisions across <i>69</i> instruments · <i>34</i> intelligence sources · <i>40</i> scheduled jobs · continuous statutory-currency monitoring</p>
+  <p class="strip"><i>1,555</i> judges profiled · <i>401</i> statutory provisions across <i>69</i> instruments · <i>34</i> intelligence sources · <i id="stat-jobs">43</i> scheduled jobs · continuous statutory-currency monitoring</p>
   <h2>The estate, end to end</h2>
   <div class="flow">
     <div class="step"><b>Public record</b><span>131,820 judgments — public but unstructured until now</span></div>
-    <div class="step"><b>Claude enrichment</b><span>Haiku Batch extraction · Sonnet verification · 171-field schema</span></div>
+    <div class="step"><b>Claude enrichment</b><span>Haiku Batch extraction · Fable 5 verification — adopted June 2026 under constitutional gate · 171-field schema</span></div>
     <div class="step"><b>Intelligence triad</b><span>Exposure history · regulatory readiness · conduct</span></div>
     <div class="step"><b>Four surfaces</b><span>Nexus · Eileen · Contract Compliance Check · Deal Room</span></div>
   </div>
   <p class="gov">Governed by three ratified constitutions · full UK GDPR processing chain (DPIA, LIA, ROPA) · ICO-registered · regulatory intelligence, not legal advice</p>
+  <p class="gov">Operated end-to-end by a governed multi-agent architecture on Claude — Haiku batch-extraction agents, Fable 5 frontier verification, Eileen product intelligence, automated dispute resolution, regulatory horizon scanning, and build agents — every production change passing a ratified human-decision gate.</p>
   <h2>Beyond the corpus</h2>
   <p class="body">A <b>live legislative intelligence layer</b> streams Hansard, parliamentary Bills and Committees, BBC Parliament, GOV.UK, and Senedd full-text — with Welsh translation in production and horizon functions tracking new Bills and statutory instruments before enactment. <b>Eileen</b>, the platform's constitutionally-governed AI analyst, operates across the product — including a <b>Deal Room</b> with end-to-end contract execution: signing, release, email, and conversation capture. A <b>Knowledge Library</b> is fed live by the same pipelines.</p>
   <h2>Ask Eileen</h2>
@@ -115,7 +116,7 @@ footer a{color:var(--dim)}
   </div>
   <h2>Velocity and traction</h2>
   <div class="cards">
-    <div class="card"><h3>Velocity</h3><p>Incorporated 16 February 2026. Sixteen weeks later: a production data platform (400+ migrations, 320 tables, 40 scheduled jobs), four product surfaces, and a 126-entry governance register — founder-led, at roughly $500/month total compute.</p></div>
+    <div class="card"><h3>Velocity</h3><p>Incorporated 16 February 2026. Sixteen weeks later: a production data platform (400+ migrations, 320 tables, 40 scheduled jobs), four product surfaces, and a 165-amendment governance register — founder-led, at roughly $500/month total compute.</p></div>
     <div class="card"><h3>Traction</h3><p>A £90,000 pilot in contract progression with a global commercial-data leader, under NDA with a structured roadmap and legal &amp; audit pack. Deal-room and contract-execution infrastructure already live.</p></div>
     <div class="card"><h3>Why now</h3><p>Employment disputes are a measurable, recurring enterprise risk — and the public record behind them has never been structured at scale. The Employment Rights Act 2025 compounds the urgency: the platform tracks 535 legislative changes, flagging forthcoming requirements before commencement. Insurers, data vendors, and employers are actively investing in employment-risk inputs.</p></div>
     <div class="card"><h3>Why it holds</h3><p>Replication is rate-limited by court publication cadence, not budget — estimated at £150K–£300K and 12–18 months. The corpus, the governance estate, and the operating model compound daily.</p></div>
@@ -127,8 +128,26 @@ footer a{color:var(--dim)}
     <p class="contact"><a href="mailto:mark@ailane.ai">mark@ailane.ai</a> &nbsp;·&nbsp; <a href="https://ailane.ai/">ailane.ai</a></p>
     <p class="legend">This communication is directed only at persons who are investment professionals within Article 19 of the FSMA 2000 (Financial Promotion) Order 2005, and/or persons outside the United Kingdom (Article 12). It is intended only for institutional and professional recipients to whom it has been directly provided and must not be acted or relied upon by anyone else.</p>
   </div>
-  <footer>AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720 · Wales, UK · Ailane provides regulatory intelligence, not legal advice · <a href="https://ailane.ai/terms/">Terms</a> · Figures as at 7 June 2026 from live production queries.</footer>
+  <footer>AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720 · Wales, UK · Ailane provides regulatory intelligence, not legal advice · <a href="https://ailane.ai/terms/">Terms</a> · <span id="stats-footer">Figures as at 10 June 2026 from live production queries.</span></footer>
 </div>
+<script>
+(function(){
+  var STATS = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/anthology-live-stats';
+  function fmt(n){ try { return Number(n).toLocaleString('en-GB'); } catch(e){ return n; } }
+  function setText(id, v){ var el = document.getElementById(id); if (el && v != null) el.textContent = v; }
+  fetch(STATS).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(d){
+    setText('stat-decisions', fmt(d.decisions));
+    setText('stat-employers', fmt(d.employers));
+    setText('stat-jobs', fmt(d.active_jobs));
+    if (d.as_at) {
+      var dt = new Date(d.as_at);
+      var stamp = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      setText('stats-asat', ' (live, ' + stamp + ')');
+      setText('stats-footer', 'Figures live-queried from the production database, ' + stamp + '.');
+    }
+  }).catch(function(){ /* static fallbacks remain authoritative */ });
+})();
+</script>
 <script>
 (function(){
   var ENDPOINT = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-presales';
