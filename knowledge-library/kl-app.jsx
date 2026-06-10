@@ -555,6 +555,117 @@ function hasContractIntent(text) {
   document.head.appendChild(style);
 })();
 
+// ─── EILEEN-NEXUS-001 styles ───
+// Wrapper-level rules for the canonical Nexus consumer below. The halo
+// classes carry the retired Sprint A state machine's visual triggers
+// (dormant/ready/processing/presenting) on the HOST container — glow values
+// mirror the legacy FloatingNexus glowMap, so the trigger semantics survive
+// the renderer swap without touching module internals or palette.
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('eileen-nexus-001-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'eileen-nexus-001-styles';
+  style.textContent = [
+    '.kl-nexus-host { position: relative; display: block; border-radius: 50%; }',
+    '.kl-nexus-host .kl-nexus-canvas { display: block; }',
+    '.kl-nexus-halo { transition: box-shadow 0.3s ease; }',
+    '.kl-nexus-halo--dormant { box-shadow: 0 0 8px rgba(14,165,233,0.1); }',
+    '.kl-nexus-halo--ready { box-shadow: 0 0 12px rgba(14,165,233,0.2); }',
+    '.kl-nexus-halo--processing { box-shadow: 0 0 20px rgba(14,165,233,0.4); animation: klNexusHaloPulse 1.5s ease-in-out infinite; }',
+    '.kl-nexus-halo--presenting { box-shadow: 0 0 24px rgba(14,165,233,0.5); }',
+    '@keyframes klNexusHaloPulse {',
+    '  0%, 100% { box-shadow: 0 0 20px rgba(14,165,233,0.4); }',
+    '  50% { box-shadow: 0 0 28px rgba(14,165,233,0.55); }',
+    '}',
+    '@media (prefers-reduced-motion: reduce) {',
+    '  .kl-nexus-halo--processing { animation: none; }',
+    '}',
+  ].join('\n');
+  document.head.appendChild(style);
+})();
+
+// ─── EILEEN-NEXUS-001: canonical Nexus module + shared live v3 feed ───
+// One-time dynamic load of the canonical renderer (assets/js/nexus.js,
+// window.AilaneNexus). The KL gate (index.html) is out of scope, so the
+// module is injected from inside the bundle — same philosophy as the
+// injected style blocks above. Resolves true once window.AilaneNexus is
+// available; false on load failure (every consumer no-ops — the page never
+// breaks on module absence).
+var __nexusModulePromise = null;
+function loadNexusModule() {
+  if (typeof document === 'undefined') return Promise.resolve(false);
+  if (window.AilaneNexus && window.AilaneNexus.createNexus) {
+    startNexusPoll();
+    return Promise.resolve(true);
+  }
+  if (__nexusModulePromise) return __nexusModulePromise;
+  __nexusModulePromise = new Promise(function (resolve) {
+    var s = document.createElement('script');
+    s.src = '/assets/js/nexus.js';
+    s.onload = function () {
+      var ok = !!(window.AilaneNexus && window.AilaneNexus.createNexus);
+      if (ok) startNexusPoll();
+      resolve(ok);
+    };
+    s.onerror = function () { resolve(false); };
+    document.head.appendChild(s);
+  });
+  return __nexusModulePromise;
+}
+
+// Canonical v3 consumer — same contract as the landing page reference
+// implementation (index.html fetchNexus, AMD-058 Art. 13.1): 6s abort
+// timeout; verify version === 'v3'; on contract drift / non-200 / network
+// failure retain seed weights silently (console.warn only). ONE shared poll
+// per page feeds every attached instance via window.AilaneNexus.updateLive.
+var NEXUS_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-nexus-intel';
+async function fetchNexus() {
+  var ctrl = new AbortController();
+  var timeoutId = setTimeout(function () { ctrl.abort(); }, 6000);
+  try {
+    var r = await fetch(NEXUS_URL, { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    if (!r.ok) { console.warn('[Nexus] HTTP ' + r.status); return; }
+    var data = await r.json();
+    if (data.version !== 'v3') {
+      console.warn('[Nexus] contract drift: expected v3, got ' + data.version);
+      return;
+    }
+    if (!Array.isArray(data.categories) || data.categories.length === 0) {
+      return;
+    }
+    var categories = data.categories.map(function (c) {
+      return {
+        id: c.id,
+        label: typeof c.label === 'string'
+          ? c.label.replace(/_/g, ' ').replace(/\b\w/g, function (ch) { return ch.toUpperCase(); })
+          : c.id,
+        claim_frequency: c.claim_frequency,
+        provision_count: c.provision_count
+      };
+    });
+    if (window.AilaneNexus && window.AilaneNexus.updateLive) {
+      window.AilaneNexus.updateLive({
+        categories: categories,
+        relationships: Array.isArray(data.relationships) ? data.relationships : [],
+        instruments: Array.isArray(data.instruments) ? data.instruments : [],
+        snapshotAt: data.snapshotAt || null
+      });
+    }
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.warn('[Nexus] fetch failed, retaining seed weights');
+  }
+}
+
+var __nexusPollTimer = null;
+function startNexusPoll() {
+  if (__nexusPollTimer) return;
+  fetchNexus();
+  __nexusPollTimer = setInterval(fetchNexus, 5 * 60 * 1000);
+}
+
 // ─── Upload constants (KL File Upload Widget, Stage A) ───
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -820,252 +931,85 @@ function truncate(s, n) {
   return s.length > n ? s.substring(0, n - 1) + '…' : s;
 }
 
-function tierPalette(tier) {
-  if (tier === 'enterprise' || tier === 'institutional') return ['#D4A017', '#F1C85B'];
-  if (tier === 'governance') return ['#0EA5E9', '#8B5CF6'];
-  if (tier === 'operational_readiness') return ['#0EA5E9', '#10B981'];
-  return ['#0EA5E9', '#38BDF8'];
-}
-
-// ─── NexusCanvas (Sprint A — 4-state visual engine, EILEEN-002 §7.1) ───
-
-function NexusCanvas({ tier, size, nexusState, prefersReducedMotion }) {
-  const canvasRef = useRef(null);
-  const rafRef = useRef(null);
-  const stateRef = useRef(nexusState || 'dormant');
-  const lerpFromRef = useRef(null);
-  const stateChangeTimeRef = useRef(0);
-  const dataPulsesRef = useRef([]);
-  const lastPulseSpawnRef = useRef(0);
-  const renderedRef = useRef(null);
-
-  // Track nexusState changes — snapshot rendered values for smooth lerp
-  useEffect(() => {
-    const incoming = nexusState || 'dormant';
-    if (stateRef.current !== incoming) {
-      if (renderedRef.current) lerpFromRef.current = Object.assign({}, renderedRef.current);
-      stateRef.current = incoming;
-      stateChangeTimeRef.current = performance.now();
-      if (incoming !== 'processing') dataPulsesRef.current = [];
-    }
-  }, [nexusState]);
+// ─── CanonicalNexus (EILEEN-NEXUS-001 §1.1) ───
+// Consumer wrapper for the canonical Nexus renderer (assets/js/nexus.js,
+// window.AilaneNexus — AMD-069 palette, Gold core constancy, live v3
+// weights). Replaces the retired Sprint A NexusCanvas fork (spec §8
+// prohibits renderer forks). Tier ring resolution happens ONLY via
+// pageTier — 'landing' gives the KL its cyan baseline ring. The Sprint A
+// nexusState trigger semantics are preserved on the host wrapper as a halo
+// class only (see #eileen-nexus-001-styles).
+function CanonicalNexus({ size, interactive, showRelationships, nexusState }) {
+  const hostRef = useRef(null);
+  const px = size || 180;
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const canvasSize = size || 280;
-    canvas.width = canvasSize * dpr;
-    canvas.height = canvasSize * dpr;
-    canvas.style.width = canvasSize + 'px';
-    canvas.style.height = canvasSize + 'px';
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-
-    const [colorA, colorB] = tierPalette(tier);
-    const cx = canvasSize / 2;
-    const cy = canvasSize / 2;
-    const sc = canvasSize / 280;
-
-    // Build nodes with base angles for orbital movement
-    const nodes = [];
-    const rings = [
-      { count: 6, radius: 28 * sc },
-      { count: 8, radius: 68 * sc },
-      { count: 10, radius: 110 * sc },
-    ];
-    rings.forEach(function(ring, ri) {
-      for (var i = 0; i < ring.count; i++) {
-        var angle = (i / ring.count) * Math.PI * 2 + ri * 0.4;
-        nodes.push({
-          baseAngle: angle,
-          radius: ring.radius,
-          baseX: cx + Math.cos(angle) * ring.radius,
-          baseY: cy + Math.sin(angle) * ring.radius,
-          phase: Math.random() * Math.PI * 2,
-          ring: ri,
-        });
-      }
+    const host = hostRef.current;
+    if (!host) return;
+    let instance = null;
+    let cancelled = false;
+    loadNexusModule().then(function (ok) {
+      if (!ok || cancelled) return;
+      const canvas = document.createElement('canvas');
+      canvas.className = 'kl-nexus-canvas';
+      canvas.setAttribute('aria-hidden', 'true');
+      host.appendChild(canvas);
+      instance = window.AilaneNexus.createNexus(canvas, {
+        pageTier: 'landing',
+        size: px,
+        interactive: interactive === true,
+        showRelationships: showRelationships !== false,
+        dataSource: 'eileen-nexus-intel'
+      });
     });
-
-    // Pre-compute all connections sorted by distance (closest first)
-    var allConns = [];
-    for (var i = 0; i < nodes.length; i++) {
-      for (var j = i + 1; j < nodes.length; j++) {
-        var dx = nodes[i].baseX - nodes[j].baseX;
-        var dy = nodes[i].baseY - nodes[j].baseY;
-        var d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 100 * sc) allConns.push({ a: i, b: j, dist: d });
-      }
-    }
-    allConns.sort(function(a, b) { return a.dist - b.dist; });
-
-    // §2.4 — Four-state config table
-    var CONFIGS = {
-      dormant:    { nOp: 0.3, cPct: 0.3, cOp: 0.15, pMin: 0.97, pMax: 1.03, pCyc: 4000, orb: 0.3 },
-      ready:      { nOp: 0.6, cPct: 0.5, cOp: 0.3,  pMin: 0.95, pMax: 1.05, pCyc: 2500, orb: 0.5 },
-      processing: { nOp: 1.0, cPct: 0.8, cOp: 0.5,  pMin: 0.9,  pMax: 1.1,  pCyc: 1500, orb: 1.0 },
-      presenting: { nOp: 1.0, cPct: 1.0, cOp: 0.7,  pMin: 1.0,  pMax: 1.05, pCyc: 600,  orb: 0.5 },
+    return function () {
+      cancelled = true;
+      if (instance) instance.destroy();
+      while (host.firstChild) host.removeChild(host.firstChild);
     };
+  }, [px, interactive, showRelationships]);
 
-    function lv(a, b, t) { return a + (b - a) * t; }
-
-    // Initialise rendered values
-    var initCfg = CONFIGS[stateRef.current] || CONFIGS.dormant;
-    var rd = { nOp: initCfg.nOp, cPct: initCfg.cPct, cOp: initCfg.cOp, pMin: initCfg.pMin, pMax: initCfg.pMax, pCyc: initCfg.pCyc, orb: initCfg.orb };
-    if (!lerpFromRef.current) lerpFromRef.current = Object.assign({}, rd);
-    renderedRef.current = Object.assign({}, rd);
-
-    var start = performance.now();
-    if (!stateChangeTimeRef.current) stateChangeTimeRef.current = start;
-
-    function draw(now) {
-      var t = (now - start) / 1000;
-      var curState = stateRef.current;
-      var tgt = CONFIGS[curState] || CONFIGS.dormant;
-      var from = lerpFromRef.current;
-      var elapsed = now - stateChangeTimeRef.current;
-      var lt = Math.min(1, elapsed / 300);
-
-      // §2.5 — Lerp all values over 300ms
-      rd.nOp  = lv(from.nOp,  tgt.nOp,  lt);
-      rd.cPct = lv(from.cPct, tgt.cPct, lt);
-      rd.cOp  = lv(from.cOp,  tgt.cOp,  lt);
-      rd.pMin = lv(from.pMin, tgt.pMin, lt);
-      rd.pMax = lv(from.pMax, tgt.pMax, lt);
-      rd.pCyc = lv(from.pCyc, tgt.pCyc, lt);
-      rd.orb  = lv(from.orb,  tgt.orb,  lt);
-
-      if (lt >= 1) lerpFromRef.current = Object.assign({}, rd);
-      renderedRef.current = Object.assign({}, rd);
-
-      ctx.clearRect(0, 0, canvasSize, canvasSize);
-
-      // §2.7 — prefers-reduced-motion: static render, opacity-only state changes
-      if (prefersReducedMotion) {
-        var scc = Math.floor(allConns.length * rd.cPct);
-        ctx.lineWidth = 1;
-        for (var ci = 0; ci < scc; ci++) {
-          var cn = allConns[ci];
-          ctx.strokeStyle = 'rgba(14,165,233,' + rd.cOp.toFixed(3) + ')';
-          ctx.beginPath();
-          ctx.moveTo(nodes[cn.a].baseX, nodes[cn.a].baseY);
-          ctx.lineTo(nodes[cn.b].baseX, nodes[cn.b].baseY);
-          ctx.stroke();
-        }
-        nodes.forEach(function(n) {
-          var color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : colorA);
-          ctx.beginPath();
-          ctx.arc(n.baseX, n.baseY, 3 * sc, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.globalAlpha = rd.nOp;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        });
-        rafRef.current = requestAnimationFrame(draw);
-        return;
-      }
-
-      // Orbital node positions
-      var orbitRad = rd.orb * Math.PI / 3; // deg/frame@60fps → rad/s
-      var pos = [];
-      for (var ni = 0; ni < nodes.length; ni++) {
-        var n = nodes[ni];
-        pos.push({
-          x: cx + Math.cos(n.baseAngle + t * orbitRad) * n.radius,
-          y: cy + Math.sin(n.baseAngle + t * orbitRad) * n.radius,
-        });
-      }
-
-      // Core pulse — subtle centre glow
-      var pPeriod = rd.pCyc / 1000;
-      var pPhase = pPeriod > 0 ? (t % pPeriod) / pPeriod * Math.PI * 2 : 0;
-      var pFactor = rd.pMin + (rd.pMax - rd.pMin) * (0.5 + 0.5 * Math.sin(pPhase));
-      var coreR = 14 * sc * pFactor;
-      var coreG = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
-      coreG.addColorStop(0, 'rgba(14,165,233,' + (0.12 * rd.nOp).toFixed(3) + ')');
-      coreG.addColorStop(1, 'rgba(14,165,233,0)');
-      ctx.fillStyle = coreG;
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Connections — percentage-based visibility
-      var cc = Math.floor(allConns.length * rd.cPct);
-      ctx.lineWidth = 1;
-      for (var ci = 0; ci < cc; ci++) {
-        var cn = allConns[ci];
-        var distFactor = 1 - cn.dist / (100 * sc);
-        var alpha = distFactor * rd.cOp;
-        ctx.strokeStyle = 'rgba(14,165,233,' + alpha.toFixed(3) + ')';
-        ctx.beginPath();
-        ctx.moveTo(pos[cn.a].x, pos[cn.a].y);
-        ctx.lineTo(pos[cn.b].x, pos[cn.b].y);
-        ctx.stroke();
-      }
-
-      // §2.6 — Data pulse dots (processing state only)
-      if (curState === 'processing' && cc > 0) {
-        if (now - lastPulseSpawnRef.current > 1000) {
-          lastPulseSpawnRef.current = now;
-          var spawnCount = 2 + Math.floor(Math.random() * 2);
-          for (var k = 0; k < spawnCount; k++) {
-            dataPulsesRef.current.push({ ci: Math.floor(Math.random() * cc), st: now });
-          }
-        }
-      }
-      dataPulsesRef.current = dataPulsesRef.current.filter(function(p) {
-        var prog = (now - p.st) / 800;
-        if (prog > 1) return false;
-        var cn = allConns[p.ci];
-        if (!cn) return false;
-        var px = pos[cn.a].x + (pos[cn.b].x - pos[cn.a].x) * prog;
-        var py = pos[cn.a].y + (pos[cn.b].y - pos[cn.a].y) * prog;
-        var a = prog < 0.2 ? prog / 0.2 : prog > 0.8 ? (1 - prog) / 0.2 : 1;
-        ctx.beginPath();
-        ctx.arc(px, py, Math.max(1, 2 * sc), 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(14,165,233,' + a.toFixed(3) + ')';
-        ctx.fill();
-        return true;
-      });
-
-      // Presenting flash — brightness burst over 600ms
-      var flashM = 1;
-      if (curState === 'presenting' && elapsed < 600) {
-        var ft = elapsed / 600;
-        flashM = ft < 0.5 ? 1 + 0.4 * ft * 2 : 1 + 0.4 * (1 - (ft - 0.5) * 2);
-      }
-
-      // Nodes
-      nodes.forEach(function(n, i) {
-        var p = pos[i];
-        var pulse = 0.5 + 0.5 * Math.sin(t * 2 + n.phase);
-        var r = (2 + pulse * 2.2) * sc;
-        var color = n.ring === 0 ? colorA : (n.ring === 2 ? colorB : (i % 2 ? colorA : colorB));
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r * flashM, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = Math.min(1, rd.nOp * flashM);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      });
-
-      rafRef.current = requestAnimationFrame(draw);
-    }
-
-    rafRef.current = requestAnimationFrame(draw);
-    return function() { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [tier, size, prefersReducedMotion]);
-
-  return <canvas ref={canvasRef} className="kl-nexus-canvas" />;
+  return (
+    <div
+      ref={hostRef}
+      className={'kl-nexus-host kl-nexus-halo kl-nexus-halo--' + (nexusState || 'dormant')}
+      style={{ width: px + 'px', height: px + 'px' }}
+    />
+  );
 }
+
+// ─── EileenStaticDot ───
+// 8px static cyan dot for the micro identity moments that previously ran a
+// 16–20px NexusCanvas instance (advisor tip card, sidebar, domain panel).
+// Same label-not-renderer rationale as EileenSenderLabel below; keeps each
+// page within the spec §9 canonical-instance budget (≤3 per page).
+function EileenStaticDot() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        background: '#0EA5E9',
+        boxShadow: '0 0 6px rgba(14,165,233,0.5)',
+        flexShrink: 0,
+        display: 'inline-block',
+      }}
+    ></span>
+  );
+}
+
+// Retired by EILEEN-NEXUS-001 §1.0: the Sprint A NexusCanvas fork
+// (4-state visual engine, EILEEN-002 §7.1) and its tierPalette helper were
+// removed here — the canonical module above is the only renderer.
 
 // ─── EileenSenderLabel ───
 // Static cyan "Nexus" dot + "Eileen" label, rendered on every Eileen message
 // bubble to restore Eileen's visual identity throughout the conversation
 // (KLUX-001 Art. 13 §13.2, Art. 19 §19.1(a)). Option B of the R1-A brief:
-// static dot rather than a per-message NexusCanvas instance, because NexusCanvas
-// has no size prop and each instance runs its own rAF loop (O(n²) per frame).
+// a label, not a renderer — kept as-is by EILEEN-NEXUS-001 §1.0; its cyan
+// aligns with the canonical ring baseline.
 
 function EileenSenderLabel() {
   return (
@@ -1245,138 +1189,10 @@ function TypingIndicator() {
   );
 }
 
-// ─── FloatingNexus (EILEEN-001 §3–4, KLUX-001 Art. 13 §13.2) ───
-// Persistent Eileen presence during conversation state. 52px Nexus
-// anchored bottom-right. Four visual states driven by nexusState prop.
-
-function FloatingNexus({ tier, nexusState, isExpanded, onToggle, prefersReducedMotion }) {
-  // §3.3 — Per-state glow effect
-  var glowMap = {
-    dormant:    '0 0 8px rgba(14,165,233,0.1)',
-    ready:      '0 0 12px rgba(14,165,233,0.2)',
-    processing: '0 0 20px rgba(14,165,233,0.4)',
-    presenting: '0 0 24px rgba(14,165,233,0.5)',
-  };
-  var glow = glowMap[nexusState] || glowMap.dormant;
-
-  return (
-    <div
-      className="kl-floating-nexus-container"
-      style={{
-        position: 'absolute',
-        bottom: window.innerWidth <= 768 ? '100px' : '80px',
-        right: '24px',
-        zIndex: 30,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: '8px',
-        pointerEvents: 'auto',
-        maxWidth: 'calc(100vw - 48px)',
-      }}
-    >
-      {isExpanded && (
-        <FloatingNexusPanel tier={tier} onClose={onToggle} />
-      )}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={isExpanded ? 'Close Eileen panel' : 'Open Eileen panel'}
-        title="Eileen"
-        style={{
-          width: '52px',
-          height: '52px',
-          borderRadius: '50%',
-          background: 'rgba(10, 22, 40, 0.85)',
-          border: '1px solid rgba(14, 165, 233, 0.3)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 0,
-          boxShadow: glow + ', 0 4px 16px rgba(0,0,0,0.3)',
-          transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-        }}
-      >
-        <NexusCanvas tier={tier} size={36} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
-      </button>
-    </div>
-  );
-}
-
-// ─── FloatingNexusPanel ───
-// Expands above the FloatingNexus button. Quick actions + status.
-
-function FloatingNexusPanel({ tier, onClose }) {
-  const tierLabel = {
-    governance: 'Governance',
-    operational_readiness: 'Operational',
-    institutional: 'Institutional',
-  }[tier] || 'Knowledge Library';
-
-  return (
-    <div
-      className="kl-floating-panel"
-      style={{
-        width: '240px',
-        maxWidth: 'calc(100vw - 48px)',
-        background: 'rgba(15, 29, 50, 0.95)',
-        border: '1px solid rgba(14, 165, 233, 0.2)',
-        borderRadius: '12px',
-        padding: '16px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        fontFamily: "'DM Sans', sans-serif",
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-        <div
-          style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: '#0EA5E9',
-            boxShadow: '0 0 6px rgba(14,165,233,0.5)',
-          }}
-        ></div>
-        <span style={{ color: '#0EA5E9', fontSize: '12px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'DM Mono', monospace" }}>
-          Eileen
-        </span>
-        <span style={{ flex: 1 }}></span>
-        <span style={{ color: '#64748B', fontSize: '11px' }}>{tierLabel}</span>
-      </div>
-
-      <div style={{ color: '#CBD5E1', fontSize: '13px', lineHeight: 1.5, marginBottom: '12px' }}>
-        I'm here whenever you need me. Ask a question or upload a contract for analysis.
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <button
-          type="button"
-          onClick={() => { onClose(); window.scrollTo(0, 0); }}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            background: 'rgba(14, 165, 233, 0.08)',
-            border: '1px solid rgba(14, 165, 233, 0.2)',
-            borderRadius: '8px',
-            color: '#0EA5E9',
-            fontSize: '12px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          Ask a question
-        </button>
-      </div>
-    </div>
-  );
-}
+// Retired by EILEEN-NEXUS-001 §1.0: FloatingNexus and FloatingNexusPanel
+// (EILEEN-001 §3–4) were dead code — superseded by FloatingNexusAdvisor
+// (Hotfix H-5) — and rendered the retired NexusCanvas fork, so both were
+// removed with it.
 
 // ─── Advisor Tips (Hotfix H-5 §6.3) ───
 var ADVISOR_TIPS = {
@@ -1391,11 +1207,11 @@ var ADVISOR_TIPS = {
 };
 
 // ─── FloatingNexusAdvisor (Hotfix H-5 §6.5) ───
-// Replaces the chat-panel FloatingNexus on the welcome state.
+// Replaces the chat-panel FloatingNexus (retired) on the welcome state.
 // Shows contextual domain tooltip when user hovers near domain cards.
 
 // KL-LIVE-002 §W-F D7: generic helper line shown when no proximity tip is
-// active (same copy as FloatingNexusPanel — no new product copy).
+// active (same copy as the retired FloatingNexusPanel — no new product copy).
 var ADVISOR_GENERIC_TIP = "I'm here whenever you need me. Ask a question or upload a contract for analysis.";
 
 function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, onProximityDomain, dismissed, onDismiss }) {
@@ -1539,7 +1355,7 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
       },
     },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' } },
-        React.createElement(NexusCanvas, { size: 16, nexusState: 'ready', tier: 'kl', prefersReducedMotion: prefersReducedMotion }),
+        React.createElement(EileenStaticDot, null),
         React.createElement('span', { style: { color: '#0EA5E9', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, flex: 1 } }, 'Eileen'),
         React.createElement('button', {
           type: 'button',
@@ -1621,17 +1437,19 @@ function FloatingNexusAdvisor({ nearDomain, nexusState, prefersReducedMotion, on
         transition: 'box-shadow 0.3s',
       },
     },
-      React.createElement(NexusCanvas, {
-        size: 52, nexusState: nearDomain ? 'ready' : (nexusState || 'dormant'),
-        tier: 'kl', prefersReducedMotion: prefersReducedMotion,
+      React.createElement(CanonicalNexus, {
+        size: 52, interactive: false, showRelationships: false,
+        nexusState: nearDomain ? 'ready' : (nexusState || 'dormant'),
       })
     )
   );
 }
 
 // ─── NexusSendButton (EILEEN-002 §7.2, Sprint A §4) ───
-// 38px Nexus replaces flat send arrow. Dormant when disabled,
-// reflects nexusState when active. IS the send action.
+// 38px circular send action. Dormant when disabled, reflects nexusState
+// when active. EILEEN-NEXUS-001 §1.0/§1.1: the atmospheric NexusCanvas
+// backdrop was retired with the fork; the nexusState trigger semantics now
+// live on the button's halo class (#eileen-nexus-001-styles).
 
 function NexusSendButton({ size, nexusState, disabled, onClick, prefersReducedMotion, tier }) {
   var s = size || 38;
@@ -1639,6 +1457,7 @@ function NexusSendButton({ size, nexusState, disabled, onClick, prefersReducedMo
     <button
       onClick={onClick}
       disabled={disabled}
+      className={'kl-nexus-halo kl-nexus-halo--' + (disabled ? 'dormant' : (nexusState || 'dormant'))}
       style={{
         width: s + 'px',
         height: s + 'px',
@@ -1657,15 +1476,6 @@ function NexusSendButton({ size, nexusState, disabled, onClick, prefersReducedMo
       }}
       aria-label="Send message to Eileen"
     >
-      {/* NexusCanvas renders behind the arrow as atmospheric effect */}
-      <div style={{ position: 'absolute', inset: 0, opacity: 0.4 }}>
-        <NexusCanvas
-          size={s}
-          nexusState={disabled ? 'dormant' : nexusState}
-          tier={tier || 'kl'}
-          prefersReducedMotion={prefersReducedMotion}
-        />
-      </div>
       {/* Visible send arrow */}
       <svg
         width={Math.round(s * 0.45)}
@@ -2893,7 +2703,9 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               research-area grid, and shelf all inherit from it. */}
           <div className="kl-content-container">
             <div className="kl-welcome-nexus">
-              <NexusCanvas tier={tier} nexusState={nexusState} prefersReducedMotion={prefersReducedMotion} />
+              {/* EILEEN-NEXUS-001 §1.1: the one interactive ≤180px canonical
+                  instance — Eileen hero mount, cyan baseline ring. */}
+              <CanonicalNexus size={180} interactive={true} nexusState={nexusState} />
             </div>
             <h1 className="kl-welcome-greeting">What can I help you with today?</h1>
             <div className="kl-eileen-subtitle" style={{
@@ -2962,14 +2774,16 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           onDrop={onDrop}
         >
           {dragOverlay}
-          {/* H-5: Conversation state — simple Nexus state indicator, no panel */}
+          {/* H-5: Conversation state — simple Nexus state indicator, no panel.
+              EILEEN-NEXUS-001: canonical 52px orb; the state glow moved from
+              this container onto the orb's halo class. */}
           <div style={{
             position: 'absolute', bottom: window.innerWidth <= 768 ? '100px' : '80px', right: '24px', zIndex: 30,
             width: '52px', height: '52px', borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 12px rgba(14,165,233,0.2)', pointerEvents: 'none',
+            pointerEvents: 'none',
           }}>
-            <NexusCanvas size={52} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
+            <CanonicalNexus size={52} interactive={false} showRelationships={false} nexusState={nexusState} />
           </div>
           <div className="kl-messages" ref={scrollRef} role="log" aria-live="polite" onClick={function(e) {
             var target = e.target;
@@ -3212,7 +3026,7 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
     React.createElement('div', {
       style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' },
     },
-      React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || 'dormant', tier: 'kl', prefersReducedMotion: prefersReducedMotion }),
+      React.createElement(EileenStaticDot, null),
       React.createElement('span', {
         style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' },
       }, 'Eileen')
@@ -6924,7 +6738,7 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
       React.createElement('div', {
         style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' },
       },
-        React.createElement(NexusCanvas, { size: 20, nexusState: nexusState || 'dormant', tier: tier || 'kl', prefersReducedMotion: prefersReducedMotion }),
+        React.createElement(EileenStaticDot, null),
         React.createElement('span', {
           style: { color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
         }, domain.eileenGreeting)
