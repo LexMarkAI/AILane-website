@@ -1104,7 +1104,7 @@ footer {
           <div class="trust-label">Classified UK Employment Tribunal decisions</div>
         </div>
         <div class="trust-item">
-          <div class="trust-num">78,699+</div>
+          <div class="trust-num"><span data-live-stat="employers">78,699</span>+</div>
           <div class="trust-label">UK employer profiles mapped</div>
         </div>
         <div class="trust-item">
@@ -1321,7 +1321,7 @@ footer {
           <a href="https://ailane.ai/account/" class="btn-tier btn-tier-premium">Explore Governance →</a>
         </div>
       </div>
-      <div class="tier-credibility">131,600+ tribunal decisions · 78,699+ employer profiles · 69 legislative instruments · ERA 2025 in force</div>
+      <div class="tier-credibility">131,600+ tribunal decisions · <span data-live-stat="employers">78,699</span>+ employer profiles · 69 legislative instruments · ERA 2025 in force</div>
     </div>
   </div>
 
@@ -1801,6 +1801,35 @@ async function submitFindingFeedback(btn) {
       .forEach(b => { b.disabled = false; });
   }
 }
+</script>
+
+<!-- Live tribunal-estate stats — anthology-live-stats EF (AMD-166 estate; additive RPC extension 10 Jun 2026).
+     Silent fallback: baked values remain if fetch fails. No auth, no Supabase client (RULE 27). -->
+<script>
+(function () {
+  var EP = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/anthology-live-stats';
+  fetch(EP)
+    .then(function (r) { if (!r.ok) { throw new Error('stats_unavailable'); } return r.json(); })
+    .then(function (s) {
+      var nodes = document.querySelectorAll('[data-live-stat]');
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        var k = el.getAttribute('data-live-stat');
+        if (k === 'as_at') {
+          var d = new Date(s.as_at);
+          if (!isNaN(d.getTime())) {
+            el.textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+          continue;
+        }
+        var v = s[k];
+        if (typeof v === 'number' && isFinite(v) && v > 0) {
+          el.textContent = v.toLocaleString('en-GB');
+        }
+      }
+    })
+    .catch(function () { /* baked fallback values remain — intentionally silent */ });
+})();
 </script>
 
 </body>
