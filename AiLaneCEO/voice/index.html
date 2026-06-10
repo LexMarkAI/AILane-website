@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice of Client — CEO Command Centre</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#AEBACE;--text-muted:#8390A6;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:18px;-webkit-font-smoothing:antialiased;}body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}.top-bar-left{display:flex;align-items:center;gap:12px;}.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-cyan);}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1400px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}.kpi-card .label{font-size:0.58rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}.kpi-card .value{font-family:var(--font-mono);font-size:1.3rem;font-weight:600;line-height:1.2;}.kpi-card .sub{font-size:0.58rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}.card-head-title{font-family:var(--font-display);font-size:0.82rem;font-weight:600;}.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}.card-body{padding:12px 18px 16px;}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:8px 0 2px;}
+.leg-tag{font-size:0.55rem;padding:2px 7px;border-radius:100px;border:1px solid var(--border-subtle);}.leg-tag.partial{background:var(--accent-amber-dim);color:var(--accent-amber);}
+.case-cat{font-size:0.55rem;padding:2px 7px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);margin-top:3px;display:inline-block;}
+.muted-note{font-size:0.62rem;color:var(--text-muted);line-height:1.5;margin-top:8px;}
+.sec-head{display:flex;align-items:center;gap:10px;padding:6px 0 2px;}.sec-head .t{font-family:var(--font-display);font-size:0.92rem;font-weight:700;color:var(--text-primary);letter-spacing:0.02em;}.sec-head .rule{flex:1;height:1px;background:var(--border-subtle);}
+.skeleton{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--bg-hover) 50%,var(--bg-elevated) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm);}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--bg-elevated);border:1px solid var(--border-accent);border-radius:var(--radius-md);padding:12px 16px;font-size:0.78rem;color:var(--text-primary);box-shadow:0 8px 32px rgba(0,0,0,0.4);animation:toast-in 0.3s ease;display:flex;align-items:center;gap:8px;max-width:360px;}
+@keyframes toast-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}@media(max-width:700px){.kpi-strip{grid-template-columns:1fr 1fr;}.two-col{grid-template-columns:1fr;}}
+</style>
+
+<!-- Eileen cross-platform panel — AILANE-CC-BRIEF-EILEEN-XPLATFORM-001 -->
+<link rel="stylesheet" href="/assets/eileen-panel.css">
+<script>window.EILEEN_CONTEXT = { page: "voice", label: "Voice of Client" };</script>
+<script defer src="/assets/eileen-panel.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const{useState,useEffect}=React;
+const SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+const CEO_EMAIL='mark@ailane.ai';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+window.eileenSupabase = sb;   // reused by the Eileen cross-platform panel
+function shortDate(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function friendlyCat(c){if(!c)return'';return c.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());}
+
+// Voice of Client room v1 (BRIEF VOC-ROOM-003). Consumes ceo-dashboard-data
+// section=legal_detail (dp_complaints + dp_summary) — to be renamed voice_detail
+// in a future EF version; the rename is the one `D =` line in load().
+// Complaint actions POST to controller-complaints v3 (CEO-gated; each action
+// emails the complainant via Resend and writes complaint_events).
+
+const COMPLAINT_STATUS_COLOR={received:'var(--accent-amber)',acknowledged:'var(--accent-cyan)',investigating:'var(--accent-cyan)',resolved:'var(--accent-green)',rejected:'var(--text-muted)',escalated_ico:'var(--accent-red)'};
+const CLOSED_STATUSES=['resolved','rejected'];
+
+function ToastContainer({toasts}){
+  return(
+    <div className="toast-container">
+      {toasts.map((t,i)=>(<div className="toast" key={i}><span>⚡</span><span>{t}</span></div>))}
+    </div>
+  );
+}
+
+// ── Complaint actions (acknowledge / resolve / reject via controller-complaints v3) ──
+function ComplaintActions({c,token,onDone,onToast}){
+  const[mode,setMode]=useState(null);   // null | 'resolve' | 'reject'
+  const[outcome,setOutcome]=useState('');
+  const[busy,setBusy]=useState(false);
+  const[err,setErr]=useState(null);
+  const isOpen=!CLOSED_STATUSES.includes(c.status);
+  async function post(body,okMsg){
+    setBusy(true);setErr(null);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/controller-complaints`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.ok){onToast(okMsg);setMode(null);setOutcome('');await onDone();}
+      else setErr(d.error||`Action failed (${r.status}).`);
+    }catch(e){setErr('Network error. Please try again.');}
+    setBusy(false);
+  }
+  if(!isOpen)return null;
+  const btn={padding:'7px 14px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-accent)',background:'var(--accent-cyan-dim)',color:'var(--accent-cyan)',fontSize:'0.68rem',fontWeight:600,cursor:busy?'default':'pointer',fontFamily:'var(--font-body)',opacity:busy?0.6:1};
+  const ghost={...btn,border:'1px solid var(--border-default)',background:'var(--bg-hover)',color:'var(--text-secondary)'};
+  const short=outcome.trim().length<20;
+  return(
+    <div style={{marginTop:10}}>
+      {!mode&&(
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {c.status==='received'&&<button disabled={busy} style={btn} onClick={()=>post({action:'acknowledge',reference:c.reference},'Acknowledgment emailed to complainant')}>{busy?'Working…':'Acknowledge'}</button>}
+          <button disabled={busy} style={{...btn,border:'1px solid rgba(16,185,129,0.3)',background:'var(--accent-green-dim)',color:'var(--accent-green)'}} onClick={()=>{setMode('resolve');setErr(null);}}>Resolve</button>
+          <button disabled={busy} style={ghost} onClick={()=>{setMode('reject');setErr(null);}}>Reject</button>
+        </div>
+      )}
+      {mode&&(
+        <div>
+          <div style={{fontSize:'0.6rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>{mode==='resolve'?'Resolution':'Rejection'} outcome — emailed to the complainant (min 20 characters)</div>
+          <textarea value={outcome} onChange={e=>setOutcome(e.target.value)} rows={4} style={{width:'100%',padding:'8px 10px',background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:'0.7rem',fontFamily:'var(--font-body)',outline:'none',resize:'vertical'}}/>
+          <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center',flexWrap:'wrap'}}>
+            <button disabled={busy||short} style={{...btn,opacity:(busy||short)?0.5:1,cursor:(busy||short)?'default':'pointer'}} onClick={()=>post({action:mode,reference:c.reference,outcome:outcome.trim()},'Outcome emailed to complainant')}>{busy?'Sending…':'Confirm '+mode}</button>
+            <button disabled={busy} style={ghost} onClick={()=>{setMode(null);setErr(null);}}>Cancel</button>
+            {short&&outcome.length>0&&<span className="ts">{20-outcome.trim().length} more characters needed</span>}
+          </div>
+        </div>
+      )}
+      {err&&<div style={{marginTop:8,fontSize:'0.66rem',color:'var(--accent-red)'}}>{err}</div>}
+    </div>
+  );
+}
+
+// ── s.164A register (structure from VOC-DRILLDOWN-002, plus lifecycle actions) ──
+function ComplaintsRegister({data,token,onRefetch,onToast}){
+  const[openRef,setOpenRef]=useState(null);
+  const rows=(data&&data.dp_complaints)||[];
+  const sum=data&&data.dp_summary;
+  const today=new Date().toISOString().slice(0,10);
+  const truncate=s=>{const t=String(s||'');return t.length>60?t.slice(0,60)+'…':t;};
+  return(
+    <div className="card" id="complaints">
+      <div className="card-head"><div className="card-head-title">Data Protection Complaints — s.164A Register</div><div className="card-head-badge">{sum?sum.total+' total · '+sum.open+' open':'—'}</div></div>
+      <div className="card-body">
+        {sum&&sum.ack_due_within_7d>0&&<div style={{marginBottom:10}}><span className="leg-tag partial" style={{fontSize:'0.62rem',padding:'3px 9px'}}>{sum.ack_due_within_7d} acknowledgment due ≤7 days</span></div>}
+        {data==null&&<div className="ts">Loading register…</div>}
+        {data!=null&&rows.length===0&&<div className="ts">No complaints on the register.</div>}
+        {rows.map((c,i)=>{
+          const key=c.reference||i;
+          const open=openRef===key;
+          const ackOverdue=c.ack_due_date&&!c.acknowledged_at&&String(c.ack_due_date).slice(0,10)<today;
+          return(
+            <div key={key} style={{borderBottom:i<rows.length-1?'1px solid var(--border-subtle)':'none'}}>
+              <div onClick={()=>setOpenRef(open?null:key)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 0',cursor:'pointer',flexWrap:'wrap'}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <span style={{fontFamily:'var(--font-mono)',fontSize:'0.7rem',color:'var(--text-accent)'}}>{c.reference}</span>
+                    <span className="case-cat">{friendlyCat(c.complaint_category)}</span>
+                  </div>
+                  <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginTop:3}} title={c.subject||''}>{truncate(c.subject)}</div>
+                </div>
+                <div style={{display:'flex',gap:12,alignItems:'center',flexShrink:0}}>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',color:COMPLAINT_STATUS_COLOR[c.status]||'var(--text-muted)'}}>{String(c.status||'').replace(/_/g,' ')}</span>
+                  <span className="ts">rec {shortDate(c.received_at)}</span>
+                  <span className="ts" style={ackOverdue?{color:'var(--accent-red)'}:null}>ack due {shortDate(c.ack_due_date)}</span>
+                </div>
+              </div>
+              {open&&(
+                <div style={{background:'var(--bg-base)',border:'1px solid var(--border-subtle)',borderRadius:'var(--radius-sm)',padding:'10px 12px',margin:'0 0 10px',fontSize:'0.68rem',color:'var(--text-secondary)',lineHeight:1.55}}>
+                  <div><strong style={{color:'var(--text-primary)'}}>{c.complainant_name||'(name not given)'}</strong>{c.complainant_email?' · '+c.complainant_email:''}{c.received_via?' · via '+String(c.received_via).replace(/_/g,' '):''}</div>
+                  {c.details&&<div style={{marginTop:6,whiteSpace:'pre-wrap'}}>{c.details}</div>}
+                  {c.outcome&&<div style={{marginTop:6}}><span style={{color:'var(--text-muted)',textTransform:'uppercase',fontSize:'0.56rem',letterSpacing:'0.06em'}}>Outcome</span><div>{c.outcome}</div></div>}
+                  <ComplaintActions c={c} token={token} onDone={onRefetch} onToast={onToast}/>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="muted-note">s.164A DPA 2018 — acknowledge within 30 days; respond without undue delay. Intake: ailane.ai/complaints/#data-protection-form</div>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const[auth,setAuth]=useState('checking');const[token,setToken]=useState(null);
+  const[data,setData]=useState(null);      // legal_detail (future: voice_detail) — dp_complaints + dp_summary
+  const[toasts,setToasts]=useState([]);
+
+  useEffect(()=>{(async()=>{const{data:{session}}=await sb.auth.getSession();if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}const t=setTimeout(()=>{window.location.href='/';},3000);sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/';}});})();},[]);
+
+  async function load(tk){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dashboard-data?section=legal_detail`,{headers:{'Authorization':`Bearer ${tk}`,'apikey':SUPABASE_ANON_KEY}});
+      if(r.ok){const j=await r.json();const D=j.sections?.legal_detail||{};setData(D);}
+      else setData({});
+    }catch(e){setData({});}
+  }
+  useEffect(()=>{if(auth==='ok'&&token)load(token);},[auth,token]);
+
+  function addToast(m){setToasts(p=>[...p,m]);setTimeout(()=>setToasts(p=>p.slice(1)),4000);}
+
+  if(auth==='checking')return<div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Loading Voice of Client...</div></div>;
+
+  const sum=data&&data.dp_summary;
+  const ackDue=sum?Number(sum.ack_due_within_7d||0):null;
+
+  return(
+    <div>
+      <div className="top-bar"><div className="top-bar-left"><a href="/AiLaneCEO/" className="back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Hub</a><div className="page-title">Voice of <span>Client</span></div></div><div className="top-bar-right"><div className="status-pill live"><div className="dot"/>LIVE</div><div className="ts">Client Signals &amp; Complaints</div></div></div>
+      <div className="main">
+
+        {/* HEADER STRIP — dp_summary */}
+        <div className="kpi-strip" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
+          <div className="kpi-card"><div className="label">Complaints Total</div><div className="value" style={{color:'var(--accent-cyan)'}}>{sum?sum.total:'—'}</div><div className="sub">s.164A register</div></div>
+          <div className="kpi-card"><div className="label">Open</div><div className="value" style={{color:'var(--accent-amber)'}}>{sum?sum.open:'—'}</div><div className="sub">awaiting outcome</div></div>
+          <div className="kpi-card"><div className="label">Ack Due ≤7 Days</div><div className="value" style={{color:ackDue>0?'var(--accent-amber)':'var(--text-muted)'}}>{ackDue!=null?ackDue:'—'}</div><div className="sub">30-day statutory clock</div></div>
+        </div>
+
+        {/* SECTION 1 — s.164A complaints register with lifecycle actions */}
+        <div className="sec-head"><div className="t">Data Protection Complaints</div><div className="rule"/></div>
+        <ComplaintsRegister data={data} token={token} onRefetch={()=>load(token)} onToast={addToast}/>
+
+        {/* SECTION 2 — feedback estates (static-honest until voice_detail ships them) */}
+        <div className="sec-head"><div className="t">Client Feedback</div><div className="rule"/></div>
+        <div className="two-col">
+          <div className="card">
+            <div className="card-head"><div className="card-head-title">Feedback Signals</div><div className="card-head-badge">pre-revenue</div></div>
+            <div className="card-body">
+              <div style={{fontSize:'0.74rem',color:'var(--text-secondary)'}}>Finding feedback 0 · LOVR feedback 0 — awaiting first client</div>
+              <div className="muted-note">Live wiring lands when voice_detail ships these estates.</div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-head"><div className="card-head-title">CSAT</div><div className="card-head-badge">not instrumented</div></div>
+            <div className="card-body">
+              <div style={{fontSize:'0.74rem',color:'var(--text-secondary)'}}>No instrument yet — instrumentation under VOC-001.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <ToastContainer toasts={toasts}/>
+      {/* Eileen mounted globally via /assets/eileen-panel.js */}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>
