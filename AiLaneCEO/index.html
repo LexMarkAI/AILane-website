@@ -1320,6 +1320,58 @@ function CalendarCard() {
   );
 }
 
+// ─── Card 8: Ingestion Health (AILANE-CC-BRIEF-INGEST-CEO-TILE-001 §B2) ───
+// Binds data.ingestion_health from ceo-dashboard-data?section=all. Absence of
+// the block is an expected state (reconciliation feed runs daily 12:00 UTC),
+// not an error — render the awaiting message; this card must never throw.
+const INGEST_DOMAIN_LABELS = { et_govuk: 'Employment Tribunal', eat: 'EAT', coroner_pfd: 'Coroner PFD', hse: 'HSE' };
+const INGEST_STATUS_COLORS = {
+  ok: 'var(--accent-green)',
+  drift: 'var(--accent-red)', stale: 'var(--accent-red)', error: 'var(--accent-red)',
+  no_pipeline: 'var(--accent-amber)',
+};
+
+function IngestionHealthCard({ ingestion }) {
+  const rows = Array.isArray(ingestion) ? ingestion : [];
+  return (
+    <div className="card" style={{'--card-accent': 'var(--accent-cyan)', cursor:'default'}}>
+      <div className="card-header">
+        <div className="card-title-group">
+          <div className="card-icon cyan"><Icons.zap /></div>
+          <div className="card-title">Ingestion Health</div>
+        </div>
+        <span className="card-badge">Reconciliation</span>
+      </div>
+      <div className="card-body">
+        {rows.length === 0 ? (
+          <div className="reg-muted">Awaiting reconciliation feed (daily 12:00 UTC)</div>
+        ) : (
+          <div className="tx-list">
+            {rows.map((r, i) => {
+              const status = String((r && r.status) || 'unknown');
+              const color = INGEST_STATUS_COLORS[status] || 'var(--text-muted)';
+              return (
+                <div className="tx-row" key={(r && r.domain) || i}>
+                  <div className="tx-left">
+                    <div className="tx-indicator" style={{background: color}} />
+                    <span className="tx-name">{INGEST_DOMAIN_LABELS[r && r.domain] || (r && r.domain) || 'Unknown'}</span>
+                    {r && r.checked_at ? <span className="tx-time">{timeAgo(r.checked_at)}</span> : null}
+                  </div>
+                  <span className="tx-amount" style={{color, fontSize:'0.7rem'}}>
+                    {status.replace(/_/g, ' ')}
+                    {r && r.drift_count != null ? ' · drift ' + r.drift_count : ''}
+                    {r && r.staleness_hours != null ? ' · ' + r.staleness_hours + 'h' : ''}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── QSYS/QTAiLane card removed — demoted to a dormant footer (QTAiLaneFooter, RULE 14). ───
 
 // ═══════════════════════════════════════════════
@@ -2103,6 +2155,7 @@ function App() {
 
         <div className="grid-row two-col">
           <CalendarCard />
+          <IngestionHealthCard ingestion={data?.ingestion_health} />
         </div>
 
         {/* QTAiLane — demoted to a dormant footer (RULE 14) */}
