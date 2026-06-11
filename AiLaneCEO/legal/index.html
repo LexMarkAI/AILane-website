@@ -159,6 +159,10 @@ function App(){
         <div className="sec-head"><div className="t">Governance Alerts</div><div className="rule"/></div>
         <GovernanceAlertsPanel token={token}/>
 
+        {/* SECTION 2b — ACGE Compliance Gating (AILANE-CC-BRIEF-CEO-ACGE-TILE-001) */}
+        <div className="sec-head"><div className="t">ACGE — Compliance Gating</div><div className="rule"/></div>
+        <AcgePanel token={token}/>
+
         {/* SECTION 3 — Legal responsibilities & oversight */}
         <div className="sec-head"><div className="t">Legal Responsibilities &amp; Oversight</div><div className="rule"/></div>
         <LegalResponsibilities reviewers={reviewers}/>
@@ -338,6 +342,130 @@ function GovernanceAlertsPanel({token}){
           </div>
         )}
         {gov!=null&&gov.live&&<div className="muted-note">Auto-closed (non-material) last 7 days: {sum.auto_ratified_7d!=null?sum.auto_ratified_7d:0}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION 2b — ACGE COMPLIANCE GATING (AILANE-CC-BRIEF-CEO-ACGE-TILE-001) ──
+// Oversight of the Autonomous Compliance Gating Engine, fed by the CEO-only
+// acge-ceo-oversight Edge Function (verify_jwt + mark@ailane.ai gate).
+// Refreshes every 5 minutes; on fetch failure renders a single fallback line.
+// Permission gates can only render "open" with a non-null ratified_ref — an
+// open gate without one (DB-forbidden) renders INVARIANT BREACH + alarm.
+const ACGE_STATE_STYLE={closed:['var(--accent-amber)','🔒'],armed:['var(--accent-cyan)','👁'],open:['var(--accent-green)','✓']};
+async function fetchAcgeOversight(token){
+  try{
+    var r=await fetch('https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/acge-ceo-oversight',{
+      headers:{'Authorization':'Bearer '+token}
+    });
+    if(!r.ok)return null;
+    return await r.json();
+  }catch(e){return null;}
+}
+function acgeHours(ts){if(!ts)return null;const h=(Date.now()-new Date(ts).getTime())/3600000;return isNaN(h)?null:h;}
+function acgeHbColor(h){return h==null?'var(--text-muted)':h>48?'var(--accent-red)':h>24?'var(--accent-amber)':'var(--accent-green)';}
+function acgeDateTime(s){if(!s)return'—';try{return new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return String(s);}}
+function AcgePanel({token}){
+  const[acge,setAcge]=useState(undefined);   // undefined=loading · null=unavailable · object=payload
+  const warned=React.useRef(false);
+  useEffect(()=>{
+    if(!token)return;
+    let active=true;
+    async function load(){
+      const d=await fetchAcgeOversight(token);
+      if(!active)return;
+      if(d==null&&!warned.current){warned.current=true;console.warn('acge-ceo-oversight unavailable');}
+      setAcge(d);
+    }
+    load();
+    const id=setInterval(load,300000);
+    return()=>{active=false;clearInterval(id);};
+  },[token]);
+
+  if(acge===undefined)return(<div className="card"><div className="card-body"><div className="ts">Loading ACGE oversight…</div></div></div>);
+  if(acge===null)return(<div className="card"><div className="card-body"><div className="ts">ACGE oversight unavailable — check acge-ceo-oversight EF</div></div></div>);
+
+  const gates=Array.isArray(acge.gates)?acge.gates:[];
+  const watch=Array.isArray(acge.watch_items)?acge.watch_items:[];
+  const txs=(Array.isArray(acge.recent_transitions)?acge.recent_transitions.slice():[])
+    .sort((a,b)=>String(b.transitioned_at||b.created_at||b.at||'').localeCompare(String(a.transitioned_at||a.created_at||a.at||'')));
+  const hb=acge.sensor_heartbeats||{};
+  const ver=acge.last_verification;
+  const verified=!!(ver&&ver.all_passed===true);
+  const breach=gates.some(g=>String(g.state)==='open'&&g.ratified_ref==null);
+  const alarm=!verified||breach;
+  const notif=Number(acge.unacknowledged_acge_notifications)||0;
+  const hHor=acgeHours(hb.horizon_last),hCor=acgeHours(hb.corpus_watch_last);
+
+  return(
+    <div className="card" style={alarm?{borderColor:'var(--accent-red)'}:null}>
+      <div className="card-head" style={alarm?{background:'var(--accent-red-dim)'}:null}>
+        <div className="card-head-title" style={alarm?{color:'var(--accent-red)'}:null}>ACGE — Compliance Gating</div>
+        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          {notif>0&&<span className="card-head-badge" style={{color:'var(--accent-amber)',borderColor:'rgba(245,158,11,0.25)',background:'var(--accent-amber-dim)'}}>{notif} unacknowledged</span>}
+          <span className="card-head-badge" style={verified?{color:'var(--accent-green)',borderColor:'rgba(16,185,129,0.25)',background:'var(--accent-green-dim)'}:{color:'var(--accent-red)',borderColor:'rgba(239,68,68,0.25)',background:'var(--accent-red-dim)'}}>{verified?'✓ VERIFIED '+shortDate(ver.run_at):'VERIFICATION FAILURE'}</span>
+          <span className="ts">as at {acgeDateTime(acge.as_at)}</span>
+        </div>
+      </div>
+      <div className="card-body">
+
+        {/* Gate register */}
+        <div className="section-label">Gate register</div>
+        {gates.length===0&&<div className="ts">No gates in register.</div>}
+        {gates.map((g,i)=>{
+          const state=String(g.state||'').toLowerCase();
+          const gBreach=state==='open'&&g.ratified_ref==null;
+          const style=gBreach?['var(--accent-red)','✕']:(ACGE_STATE_STYLE[state]||['var(--text-muted)','·']);
+          return(
+            <div className="leg-row" key={g.gate_id||i}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+                <div style={{display:'flex',gap:8,alignItems:'center',minWidth:0}}>
+                  <span style={{color:style[0],flexShrink:0}}>{style[1]}</span>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:'0.66rem',color:'var(--text-accent)'}}>{g.gate_id}</span>
+                  <span className="leg-title">{g.name}</span>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
+                  <span className="leg-tag">{g.type}</span>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',fontWeight:600,color:style[0]}}>{gBreach?'INVARIANT BREACH':state.toUpperCase()}</span>
+                  {state==='open'&&g.ratified_ref!=null&&<span className="ts">{g.ratified_ref}</span>}
+                </div>
+              </div>
+              {g.opening_authority&&<div className="ts" style={{marginTop:3}} title={g.opening_authority}>Opening authority: {g.opening_authority}</div>}
+            </div>
+          );
+        })}
+
+        {/* Watch items */}
+        <div className="section-label" style={{marginTop:12}}>Watch items</div>
+        {watch.length===0&&<div className="ts">No watch items.</div>}
+        {watch.map((w,i)=>(
+          <div key={i} style={{display:'flex',gap:10,alignItems:'baseline',padding:'5px 0',borderBottom:i<watch.length-1?'1px solid var(--border-subtle)':'none'}}>
+            <span style={{fontFamily:'var(--font-mono)',fontSize:'0.64rem',color:'var(--text-primary)',flexShrink:0}}>{w.key}</span>
+            <span style={{fontSize:'0.66rem',color:'var(--text-secondary)',flexShrink:0}}>{String(w.value)}</span>
+            <span className="ts" style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={w.note||''}>{w.note||''}</span>
+          </div>
+        ))}
+
+        {/* Sensor heartbeats */}
+        <div className="section-label" style={{marginTop:12}}>Sensor heartbeats</div>
+        <div style={{display:'flex',gap:16,flexWrap:'wrap',padding:'4px 0'}}>
+          <span style={{fontSize:'0.66rem',color:'var(--text-secondary)'}}>Horizon: <span style={{fontFamily:'var(--font-mono)',color:acgeHbColor(hHor)}}>{hHor==null?'no signal':Math.round(hHor)+' hours ago'}</span></span>
+          <span style={{fontSize:'0.66rem',color:'var(--text-secondary)'}}>Corpus watch: <span style={{fontFamily:'var(--font-mono)',color:acgeHbColor(hCor)}}>{hCor==null?'no signal':Math.round(hCor)+' hours ago'}</span></span>
+          <span style={{fontSize:'0.66rem',color:'var(--text-secondary)'}}>Pipeline runs (48h): <span style={{fontFamily:'var(--font-mono)',color:'var(--text-primary)'}}>{hb.pipeline_runs_48h!=null?hb.pipeline_runs_48h:'—'}</span></span>
+        </div>
+
+        {/* Recent transitions */}
+        <div className="section-label" style={{marginTop:12}}>Recent transitions</div>
+        {txs.length===0&&<div className="ts">No transitions — all gates in seeded state</div>}
+        {txs.map((t,i)=>(
+          <div key={i} style={{display:'flex',gap:10,alignItems:'center',padding:'5px 0',borderBottom:i<txs.length-1?'1px solid var(--border-subtle)':'none',flexWrap:'wrap'}}>
+            <span style={{fontFamily:'var(--font-mono)',fontSize:'0.64rem',color:'var(--text-accent)'}}>{t.gate_id}</span>
+            <span style={{fontSize:'0.66rem',color:'var(--text-primary)'}}>{(t.old_state||'—')+' → '+(t.new_state||'—')}</span>
+            <span className="ts">{acgeDateTime(t.transitioned_at||t.created_at||t.at)}</span>
+            <span className="ts">{t.actor||''}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
