@@ -905,7 +905,7 @@ footer {
       <span data-i18n="hero.strip.enriched"><span data-live-stat="enrichment_records">34,440</span> deeply enriched</span>
       <span data-i18n="hero.strip.judges"><span data-live-stat="judges">1,556</span> judges profiled</span>
       <span data-i18n="hero.strip.provisions"><span data-live-stat="provisions">570</span> statutory provisions</span>
-      <span id="strip-date">Updated <span data-bind="latest_scrape_date">10 Jun 2026</span></span>
+      <span id="strip-date">Updated <span data-bind="latest_scrape_date">Wednesday, 10th June ’26</span></span>
     </div>
   </div>
 </section>
@@ -1422,20 +1422,28 @@ async function fetchIntel() {
   }
 }
 
-function formatScrapeDate(iso) {
+/* Institutional UK date style — "Thursday, 11th June ’26". */
+function formatEstateDate(iso) {
   var parts = String(iso).split('-');
   if (parts.length !== 3) return iso;
-  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var d = parseInt(parts[2], 10);
+  var y = parseInt(parts[0], 10);
   var m = parseInt(parts[1], 10) - 1;
-  if (isNaN(d) || isNaN(m) || m < 0 || m > 11) return iso;
-  return d + ' ' + months[m] + ' ' + parts[0];
+  var d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d) || m < 0 || m > 11) return iso;
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var suffix = (d % 10 === 1 && d !== 11) ? 'st'
+    : (d % 10 === 2 && d !== 12) ? 'nd'
+    : (d % 10 === 3 && d !== 13) ? 'rd'
+    : 'th';
+  return days[new Date(Date.UTC(y, m, d)).getUTCDay()] + ', ' + d + suffix + ' ' + months[m] + ' ’' + String(y).slice(-2);
 }
 
 function applyLiveStripData() {
+  /* latest_scrape_date is the upstream eileen-landing-intel payload field name — do not rename. */
   var dateEl = document.querySelector('[data-bind="latest_scrape_date"]');
   if (dateEl && liveData && liveData.latest_scrape_date) {
-    dateEl.textContent = formatScrapeDate(liveData.latest_scrape_date);
+    dateEl.textContent = formatEstateDate(liveData.latest_scrape_date);
   }
 }
 
@@ -1485,45 +1493,57 @@ async function fetchNexus() {
 }
 
 /* Hover commentary map — each entry injects live data values.
-   NOT static text. (LP-002 §4.3) */
+   NOT static text. (LP-002 §4.3)
+   Voice: warm, institutional, first-person Eileen. Every figure must come from
+   the live intel payload or from copy already published on this page — no new
+   claims here without a verifiable source. */
 var hoverMap = {
   hero: function(d) {
-    return 'ERA 2025 received Royal Assent 18 December 2025. I\'m tracking every commencement order.';
+    return 'Welcome — I\'m Eileen. The Employment Rights Act 2025 received Royal Assent on 18 December 2025, and I\'m following every commencement order as it arrives. If you\'re wondering what it means for you, just ask.';
   },
   'eileen-section': function(d) {
-    return d.kl_provisions + ' provisions. ' + d.kl_cases + ' cases. ' +
-      Number(d.total_decisions).toLocaleString() + ' tribunal decisions. I cite every source.';
+    return 'Everything I tell you is cited. ' + d.kl_provisions + ' statutory provisions, ' + d.kl_cases + ' leading cases and ' +
+      Number(d.total_decisions).toLocaleString() + ' tribunal decisions stand behind every answer I give.';
+  },
+  products: function(d) {
+    return 'Three ways I can help: check a contract, research the law, or assemble the requirements for a new agreement. Every finding traces back to statute. If you\'re unsure where to begin, ask me.';
   },
   check: function(d) {
-    return 'The Forward Intelligence Layer flags what will be wrong when the next ERA 2025 provision commences.';
+    return 'Send me a contract and I\'ll read it clause by clause. The Forward Intelligence Layer also flags what will need attention when the next ERA 2025 provision commences — so you\'re ahead of the change, not behind it.';
   },
   research: function(d) {
-    return '69 statutory instruments. ' + d.kl_cases + ' leading cases. Every answer grounded in statute.';
+    return 'Ask me in plain English. I work from ' + Number(d.kl_instruments || 79) + ' statutory instruments and ' + d.kl_cases + ' leading cases — and I cite the source for every answer I give.';
   },
   create: function(d) {
-    return '71 base requirements plus ' + d.kl_provisions + ' provisions via RAG. Sector and jurisdiction aware.';
+    return 'Tell me your sector and jurisdiction and I\'ll assemble what your contract needs — 71 base requirements plus the full ' + d.kl_provisions + '-provision estate. Your solicitor drafts the clauses; I surface the requirements.';
+  },
+  subscriptions: function(d) {
+    return 'Operational from £199 a month, Governance at £799, Enterprise by conversation. And if you\'re a registered charity or non-profit, do say so — ask me about our third-sector terms. Supporting the people who support others matters to us.';
   },
   operational: function(d) {
-    return 'NLW went to £' + d.nlw_rate + '/hr on 1 April. Every Operational client\'s pay clauses were auto-rescanned that day.';
+    return 'The National Living Wage moved to £' + d.nlw_rate + '/hr on 1 April. Every Operational client\'s pay clauses were automatically re-checked that same day. That is what continuous monitoring means.';
   },
   governance: function(d) {
-    return Number(d.distinct_judges).toLocaleString() + ' individual judges profiled. Outcome patterns. Hearing durations. No other platform has this.';
+    return Number(d.distinct_judges).toLocaleString() + ' individual judges profiled — outcome patterns, hearing durations, the texture of the tribunal itself. No other platform offers this.';
   },
   enterprise: function(d) {
-    return '200 contracts in the vault means 200 data points informing your sector exposure profile.';
+    return 'Enterprise is a conversation, not a checkout. 200 contracts in your vault means 200 data points informing your sector exposure profile. Tell me what you need and I\'ll route it to the right people.';
+  },
+  partnerships: function(d) {
+    return 'Our employer intelligence estate is available under structured licence — sector indexes, governed deal rooms, and a legal and audit pack with every engagement. I sit inside the room for counterparty diligence. Ask me how it works.';
   },
   intelligence: function(d) {
-    return '34 intelligence sources. ' + d.legislative_changes + ' legislative changes tracked. My scraper ran on ' + d.latest_scrape_date + '.';
+    return '34 intelligence sources. ' + d.legislative_changes + ' legislative changes tracked. Our RAG-enabled augmented edge functions refreshed this estate on ' + formatEstateDate(d.latest_scrape_date) + '.';
   },
   employers: function(d) {
     return Number(d.total_employers).toLocaleString() + ' employer profiles. ' +
-      Number(d.hse_notices).toLocaleString() + ' HSE enforcement notices. £462.7M in fines mapped.';
+      Number(d.hse_notices).toLocaleString() + ' HSE enforcement notices. £462.7M in fines mapped. If it\'s on the public record, it\'s in the estate.';
   },
   cta: function(d) {
-    return 'Every contract in your organisation was written under the law as it was. The law has changed.';
+    return 'Every contract in your organisation was written under the law as it was. The law has changed. Whenever you\'re ready, I\'m here — a single contract check starts at £19.';
   },
   triad: function(d) {
-    return 'Three lenses on the same evidence. Exposure history, regulatory readiness, conduct. Each one independent.';
+    return 'Three lenses on the same evidence — exposure history, regulatory readiness, conduct. Each one independent. Together, the picture you actually need.';
   },
   'triad-exposure': function(d) {
     return Number(d.total_decisions).toLocaleString() + ' tribunal decisions. ' +
@@ -1537,16 +1557,16 @@ var hoverMap = {
   },
   /* LP-V3-PUNCHLIST §3.6 — KL hover commentary */
   'knowledge-library': function(d) {
-    return Number(d.total_decisions || 133679).toLocaleString() + ' decisions, ' + Number(d.kl_provisions || 570) + ' provisions, ' + Number(d.kl_instruments || 79) + ' instruments. All conversational through Eileen.';
+    return 'Our Knowledge Library will assist you across ' + Number(d.total_decisions || 133679).toLocaleString() + ' tribunal decisions, ' + Number(d.kl_provisions || 570) + ' statutory provisions and ' + Number(d.kl_instruments || 79) + ' instruments — all conversational, all cited. Ask me anything.';
   },
   'kl-search': function(d) {
-    return 'Filter by claim type, sector, judge, year, outcome. Citation chain preserved on every result.';
+    return 'Filter by claim type, sector, judge, year or outcome. The citation chain stays attached to every result, so you can always see where an answer came from.';
   },
   'kl-ask': function(d) {
-    return 'Plain English in. Cited statutory paraphrase out. Every reference traces to source.';
+    return 'Plain English in, a cited statutory answer out. Every reference traces to its origin — nothing invented, nothing inflated.';
   },
   'kl-check': function(d) {
-    return 'Clause-level findings. Current statute + ERA 2025 forthcoming changes. Every flag cited.';
+    return 'Clause-level findings against current statute, with ERA 2025 forthcoming changes flagged. Every finding carries its citation.';
   }
 };
 
@@ -1635,6 +1655,7 @@ function initEileenCommentary() {
       'op-detail': 'operational',
       'gov-detail': 'governance',
       'inst-detail': 'enterprise',
+      'dp-detail': 'partnerships',
       'triad-exposure-detail': 'triad-exposure',
       'triad-readiness-detail': 'triad-readiness',
       'triad-conduct-detail': 'triad-conduct'
@@ -1683,7 +1704,7 @@ async function sendToEileen(userText) {
   chatMessages.push({ role: 'user', content: userText });
 
   // Loading state
-  if (commentary) commentary.textContent = 'Thinking...';
+  if (commentary) commentary.textContent = 'Let me have a look at that for you...';
   sendBtn.disabled = true;
 
   // GA4
@@ -1736,7 +1757,7 @@ async function sendToEileen(userText) {
     }
   } catch (err) {
     console.warn('[Eileen] Chat failed', err);
-    if (commentary) commentary.textContent = 'I\'m having trouble connecting. Please try again.';
+    if (commentary) commentary.textContent = 'I\'m having a little trouble connecting just now. Please try again in a moment.';
     sendBtn.disabled = false;
   }
 }
@@ -2050,7 +2071,7 @@ function initKLStartButton() {
     if (history && history.children.length === 0) {
       var msg = document.createElement('div');
       msg.className = 'chat-eileen';
-      msg.textContent = "The Knowledge Library is where I work most closely with you — searching across " + Number(liveData.total_decisions || 133679).toLocaleString() + " tribunal decisions, citing statutes inline, checking your contracts against current law. What's the question that brought you here today?";
+      msg.textContent = "Our Knowledge Library is where I work most closely with you — searching across " + Number(liveData.total_decisions || 133679).toLocaleString() + " tribunal decisions, citing statutes inline, checking your contracts against current law. I'd be glad to help — what's the question that brought you here today?";
       history.appendChild(msg);
       chatMessages.push({ role: 'assistant', content: msg.textContent });
       updateEileenChatActiveClass();
