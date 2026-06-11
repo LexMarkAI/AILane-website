@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+
+  <!-- Supabase CDN FIRST (protected page — RULE 26 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 (RULE 10) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <title>Feedback · Charity Onboarding Room · Ailane</title>
+  <link rel="stylesheet" href="/charities/rwf-2026/shared/room.css">
+</head>
+<body style="visibility:hidden">
+
+  <header class="topbar"><div class="wrap"><div class="row">
+    <a class="brand" href="/charities/rwf-2026/">
+      <span class="name">Ai<em>lane</em></span>
+      <span class="sub">Charity Onboarding Room</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="who"><span class="email" id="room-email"></span>
+      <a href="#" class="btn sm" id="room-signout">Sign out</a></div>
+  </div></div></header>
+
+  <div class="wrap page">
+
+    <div class="synthetic-banner"><b>Demonstration content.</b>
+      This room opens with seed content for The Rudolph Walker Foundation.
+      Live records, document files and Eileen attach at provisioning.</div>
+    <span class="chip gold hidden" id="room-mode-chip"></span>
+
+    <section class="hero">
+      <div class="eyebrow">Feedback</div>
+      <h1>Tell us what to fix or improve</h1>
+      <p>Spotted something wrong? Wish the room did something it does not?
+        One message here goes straight to the team.</p>
+    </section>
+
+    <div class="panel">
+      <form id="fb-form">
+        <div class="field">
+          <label for="fb-type">What kind of feedback is this?</label>
+          <select id="fb-type">
+            <option value="defect">Something is wrong</option>
+            <option value="feature">An idea or request</option>
+            <option value="general" selected>General comment</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fb-message">Your message</label>
+          <textarea id="fb-message" required placeholder="Tell us in your own words…"></textarea>
+        </div>
+        <div class="field">
+          <label for="fb-context">Where did you see it? (optional)</label>
+          <input id="fb-context" type="text" placeholder="e.g. Documents page, NDA row">
+        </div>
+        <button class="btn gold" id="fb-send" type="submit">Send feedback</button>
+        <div class="msg hidden" id="fb-msg" aria-live="polite"></div>
+      </form>
+    </div>
+
+    <div class="section">
+      <div class="sh"><span class="bar"></span><span class="st">Your previous feedback</span></div>
+      <div class="row-list" id="fb-history">
+        <div class="state"><div class="big">Nothing here yet</div>
+          <div>What you send appears here once the room is provisioned.</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="roomfoot"><div class="wrap"><div class="row">
+    <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+    <span>Regulatory intelligence, not legal advice. Confidential to AI Lane Limited and The Rudolph Walker Foundation.
+      Questions: <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a></span>
+  </div></div></footer>
+
+  <script src="/charities/rwf-2026/shared/config.js"></script>
+  <script src="/charities/rwf-2026/shared/api.js"></script>
+  <script src="/charities/rwf-2026/shared/entry-gate.js"></script>
+  <script src="/charities/rwf-2026/shared/auth.js"></script>
+  <script src="/charities/rwf-2026/shared/eileen.js"></script>
+  <script src="/charities/rwf-2026/shared/room.js"></script>
+  <script>
+  CharityRoom.boot(async function (state) {
+    var api = window.charityRoomApi;
+    var esc = api.esc;
+    var TYPE_LABEL = { defect: 'Something is wrong', feature: 'An idea or request', general: 'General comment' };
+
+    async function loadHistory() {
+      if (state.mode !== 'live') return;
+      try {
+        var rows = await api.getFeedback(state);
+        if (!rows || !rows.length) return;
+        var html = '';
+        rows.forEach(function (r) {
+          html += '<div class="item-row">' +
+            '<div class="im"><span class="chip cyan">' + esc(TYPE_LABEL[r.feedback_type] || r.feedback_type) + '</span>' +
+            (r.created_at ? '<span class="chip">' + esc(api.fmtDate(r.created_at)) + '</span>' : '') +
+            (r.context_ref ? '<span class="chip">' + esc(r.context_ref) + '</span>' : '') + '</div>' +
+            '<div class="id">' + esc(r.message) + '</div></div>';
+        });
+        document.getElementById('fb-history').innerHTML = html;
+      } catch (e) { /* table absent / RLS pending — the static state stands */ }
+    }
+    loadHistory();
+
+    document.getElementById('fb-form').addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      var btn = document.getElementById('fb-send');
+      var msg = document.getElementById('fb-msg');
+      var message = (document.getElementById('fb-message').value || '').trim();
+      if (!message) return;
+
+      if (state.mode !== 'live') {
+        msg.className = 'msg info';
+        msg.innerHTML = '<b>Feedback opens at provisioning.</b> Until then, you can write to ' +
+          '<a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      msg.className = 'msg hidden';
+      try {
+        await api.postFeedback(state,
+          document.getElementById('fb-type').value,
+          message,
+          (document.getElementById('fb-context').value || '').trim() || null);
+        try { if (window.gtag) window.gtag('event', 'charity_room_feedback_sent'); } catch (e2) {}
+        msg.className = 'msg ok';
+        msg.textContent = 'Thank you — your feedback has been recorded.';
+        document.getElementById('fb-message').value = '';
+        document.getElementById('fb-context').value = '';
+        loadHistory();
+      } catch (e) {
+        /* Table absent / RLS not yet provisioned — completion state, not an error */
+        msg.className = 'msg info';
+        msg.innerHTML = '<b>Feedback opens at provisioning.</b> Until then, you can write to ' +
+          '<a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a>.';
+      }
+      btn.disabled = false;
+      btn.textContent = 'Send feedback';
+    });
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+
+  <!-- Supabase CDN FIRST (protected page — RULE 26 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 (RULE 10) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <title>Progression · Charity Onboarding Room · Ailane</title>
+  <link rel="stylesheet" href="/charities/rwf-2026/shared/room.css">
+</head>
+<body style="visibility:hidden">
+
+  <header class="topbar"><div class="wrap"><div class="row">
+    <a class="brand" href="/charities/rwf-2026/">
+      <span class="name">Ai<em>lane</em></span>
+      <span class="sub">Charity Onboarding Room</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="who"><span class="email" id="room-email"></span>
+      <a href="#" class="btn sm" id="room-signout">Sign out</a></div>
+  </div></div></header>
+
+  <div class="wrap page">
+
+    <div class="synthetic-banner"><b>Demonstration content.</b>
+      This room opens with seed content for The Rudolph Walker Foundation.
+      Live records, document files and Eileen attach at provisioning.</div>
+    <span class="chip gold hidden" id="room-mode-chip"></span>
+
+    <section class="hero">
+      <div class="eyebrow">Progression</div>
+      <h1>Where you are on the path</h1>
+      <p>Nine steps take this engagement from "room opened" to "up and running".
+        Each one says who does it and what finishes it.</p>
+      <div class="pills">
+        <span class="gate-badge" id="gate-badge">Phase 0 — Awaiting counterparty</span>
+      </div>
+    </section>
+
+    <div class="panel" id="steps">
+      <div class="state"><div class="big">Loading the nine steps…</div></div>
+    </div>
+
+  </div>
+
+  <footer class="roomfoot"><div class="wrap"><div class="row">
+    <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+    <span>Regulatory intelligence, not legal advice. Confidential to AI Lane Limited and The Rudolph Walker Foundation.
+      Questions: <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a></span>
+  </div></div></footer>
+
+  <script src="/charities/rwf-2026/shared/config.js"></script>
+  <script src="/charities/rwf-2026/shared/api.js"></script>
+  <script src="/charities/rwf-2026/shared/entry-gate.js"></script>
+  <script src="/charities/rwf-2026/shared/auth.js"></script>
+  <script src="/charities/rwf-2026/shared/eileen.js"></script>
+  <script src="/charities/rwf-2026/shared/room.js"></script>
+  <script>
+  CharityRoom.boot(async function (state) {
+    var CFG = window.CHARITY_ROOM;
+    var api = window.charityRoomApi;
+    var esc = api.esc;
+
+    /* Live gate badge — partner_clids REST read, else static Phase 0 text */
+    if (state.mode === 'live') {
+      try {
+        var rows = await api.getGateState(state);
+        if (rows && rows.length && rows[0].gate_state) {
+          document.getElementById('gate-badge').textContent =
+            CFG.PHASE_LABEL[rows[0].gate_state] || rows[0].gate_state;
+        }
+      } catch (e) { /* static "Phase 0 — Awaiting counterparty" stands */ }
+    }
+
+    /* O-1 → O-9 from shared/progression.json */
+    var box = document.getElementById('steps');
+    try {
+      var res = await fetch('/charities/rwf-2026/shared/progression.json');
+      var data = await res.json();
+      var html = '';
+      (data.steps || []).forEach(function (s) {
+        html += '<div class="step">' +
+          '<div class="dot">' + esc(s.id) + '</div>' +
+          '<div class="meta">' +
+            '<div class="stt">' + esc(s.title) + '</div>' +
+            '<div class="sto">Who: ' + esc(s.owner) + '</div>' +
+            '<div class="ste">Done when: ' + esc(s.exit) + '</div>' +
+          '</div></div>';
+      });
+      box.innerHTML = html || '<div class="state"><div class="big">Steps unavailable</div></div>';
+    } catch (e) {
+      box.innerHTML = '<div class="state"><div class="big">Steps unavailable</div>' +
+        '<div>Please refresh to try again.</div></div>';
+    }
+  });
+  </script>
+</body>
+</html>

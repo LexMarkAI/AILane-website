@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+
+  <!-- Supabase CDN FIRST (protected page — RULE 26 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 (RULE 10) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <title>Documents · Charity Onboarding Room · Ailane</title>
+  <link rel="stylesheet" href="/charities/rwf-2026/shared/room.css">
+</head>
+<body style="visibility:hidden">
+
+  <header class="topbar"><div class="wrap"><div class="row">
+    <a class="brand" href="/charities/rwf-2026/">
+      <span class="name">Ai<em>lane</em></span>
+      <span class="sub">Charity Onboarding Room</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="who"><span class="email" id="room-email"></span>
+      <a href="#" class="btn sm" id="room-signout">Sign out</a></div>
+  </div></div></header>
+
+  <div class="wrap page">
+
+    <div class="synthetic-banner"><b>Demonstration content.</b>
+      This room opens with seed content for The Rudolph Walker Foundation.
+      Live records, document files and Eileen attach at provisioning.</div>
+    <span class="chip gold hidden" id="room-mode-chip"></span>
+
+    <section class="hero">
+      <div class="eyebrow">Documents</div>
+      <h1>The papers for this engagement</h1>
+      <p>Everything we share with you lives here, grouped by phase. Where a document
+        needs your acceptance, one tap records it. Where a file is not attached yet,
+        the row says so plainly.</p>
+    </section>
+
+    <div id="docs">
+      <div class="state"><div class="big">Loading documents…</div></div>
+    </div>
+
+  </div>
+
+  <footer class="roomfoot"><div class="wrap"><div class="row">
+    <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+    <span>Regulatory intelligence, not legal advice. Confidential to AI Lane Limited and The Rudolph Walker Foundation.
+      Questions: <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a></span>
+  </div></div></footer>
+
+  <script src="/charities/rwf-2026/shared/config.js"></script>
+  <script src="/charities/rwf-2026/shared/api.js"></script>
+  <script src="/charities/rwf-2026/shared/entry-gate.js"></script>
+  <script src="/charities/rwf-2026/shared/auth.js"></script>
+  <script src="/charities/rwf-2026/shared/eileen.js"></script>
+  <script src="/charities/rwf-2026/shared/room.js"></script>
+  <script>
+  CharityRoom.boot(async function (state) {
+    var CFG = window.CHARITY_ROOM;
+    var api = window.charityRoomApi;
+    var esc = api.esc;
+    var root = document.getElementById('docs');
+
+    var rows = null;            /* live catalog rows, when reachable */
+    var acceptances = {};       /* terms_version → accepted_at */
+    var links = {};             /* document_id → { has_pdf, ... } from the Eileen EF */
+
+    if (state.mode === 'live') {
+      try { rows = await api.getCatalog(state); } catch (e) { rows = null; }
+      try {
+        (await api.getDocAcceptances(state)).forEach(function (r) { acceptances[r.terms_version] = r.accepted_at; });
+      } catch (e) { /* acceptance history unavailable — buttons still offer */ }
+      try {
+        var lr = await api.getDocumentLinks(state);
+        ((lr && lr.links) || []).forEach(function (l) { if (l && l.document_id) links[l.document_id] = l; });
+      } catch (e) { /* Eileen document-link route unavailable — no Open buttons */ }
+    }
+
+    if (rows && rows.length) { renderCatalog(rows); }
+    else { renderSeed(); }
+
+    /* ── Static Phase 0 seed (catalog unreachable / pre-provisioning) ── */
+    function renderSeed() {
+      var html = '<div class="section"><div class="sh"><span class="bar"></span>' +
+        '<span class="st">' + esc(CFG.PHASE_LABEL.phase_0) + '</span>' +
+        '<span class="sc">seed list — live catalog attaches at provisioning</span></div><div class="row-list">';
+      CFG.PHASE0_DOCS.forEach(function (d) {
+        html += '<div class="item-row">' +
+          '<div class="it">' + esc(d.name) + '</div>' +
+          '<div class="id">' + esc(d.description) + '</div>' +
+          '<div class="im"><span class="chip">' + esc(d.doc_code) + '</span>' +
+          '<span class="chip">' + esc(d.version_label) + '</span>' +
+          (d.acceptance ? '<span class="chip gold">Acceptance opens at provisioning</span>' : '') +
+          (!d.href && !d.acceptance ? '<span class="chip">Not yet uploaded</span>' : '') +
+          '</div>' +
+          (d.href ? '<div class="actions"><a class="btn sm" href="' + esc(d.href) + '">Read</a></div>' : '') +
+          '</div>';
+      });
+      html += '</div></div>';
+      root.innerHTML = html;
+    }
+
+    /* ── Live catalog, grouped by phase ── */
+    function renderCatalog(items) {
+      var phases = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
+      var byPhase = {};
+      items.forEach(function (d) {
+        var ph = d.available_from_phase || 'phase_0';
+        (byPhase[ph] = byPhase[ph] || []).push(d);
+      });
+      var html = '';
+      phases.forEach(function (ph) {
+        var group = byPhase[ph];
+        if (!group || !group.length) return;
+        html += '<div class="section"><div class="sh"><span class="bar"></span>' +
+          '<span class="st">' + esc(CFG.PHASE_LABEL[ph] || ph) + '</span>' +
+          '<span class="sc">' + group.length + ' document' + (group.length === 1 ? '' : 's') + '</span></div><div class="row-list">';
+        group.forEach(function (d) { html += docRow(d); });
+        html += '</div></div>';
+      });
+      root.innerHTML = html || '<div class="state"><div class="big">No documents yet</div>' +
+        '<div>Documents appear here as they are released into the room.</div></div>';
+      wireActions(items);
+    }
+
+    function docRow(d) {
+      var kind = String(d.kind || '').toLowerCase();
+      var isAcceptance = kind === 'release' && CFG.ACCEPTANCE_DOC_CODES.indexOf(d.doc_code) !== -1;
+      var link = links[d.document_id];
+      var acceptedAt = acceptances[d.doc_code + '@' + (d.version_label || 'v1')];
+
+      var chips = '<span class="chip">' + esc(d.doc_code || '') + '</span>';
+      if (d.version_label) chips += '<span class="chip">' + esc(d.version_label) + '</span>';
+      if (kind === 'requirement') chips += '<span class="chip cyan">For the charity to provide</span>';
+      if (kind === 'template') chips += '<span class="chip">Template</span>';
+      if (isAcceptance) {
+        chips += acceptedAt
+          ? '<span class="chip green">Accepted ' + esc(api.fmtDate(acceptedAt)) + '</span>'
+          : '<span class="chip gold">Your acceptance needed</span>';
+      }
+      if (kind === 'release' && !(link && link.has_pdf)) chips += '<span class="chip">Not yet uploaded</span>';
+
+      var actions = '';
+      if (link && link.has_pdf) {
+        actions += '<button class="btn sm" type="button" data-open="' + esc(d.document_id) + '">Open</button>';
+      }
+      if (isAcceptance && !acceptedAt) {
+        actions += '<button class="btn gold sm" type="button" data-accept="' + esc(d.document_id) + '" ' +
+          'data-code="' + esc(d.doc_code) + '" data-version="' + esc(d.version_label || 'v1') + '">' +
+          'I have read this — record my acceptance</button>';
+      }
+
+      return '<div class="item-row" id="doc-' + esc(d.document_id) + '">' +
+        '<div class="it">' + esc(d.name || d.doc_code) + '</div>' +
+        (d.description ? '<div class="id">' + esc(d.description) + '</div>' : '') +
+        '<div class="im">' + chips + '</div>' +
+        (actions ? '<div class="actions">' + actions + '</div>' : '') +
+        '</div>';
+    }
+
+    function wireActions(items) {
+      root.querySelectorAll('button[data-open]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          b.disabled = true;
+          try {
+            var r = await api.getDocumentLink(state, b.getAttribute('data-open'));
+            var url = r && (r.signed_url || r.url);
+            if (url) window.open(url, '_blank', 'noopener');
+          } catch (e) { /* link route unavailable — leave the row as-is */ }
+          b.disabled = false;
+        });
+      });
+      root.querySelectorAll('button[data-accept]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          b.disabled = true;
+          b.textContent = 'Recording…';
+          var row = document.getElementById('doc-' + b.getAttribute('data-accept'));
+          try {
+            await api.postDocAcceptance(state, b.getAttribute('data-code'), b.getAttribute('data-version'));
+            try { if (window.gtag) window.gtag('event', 'charity_room_doc_accepted', { doc_code: b.getAttribute('data-code') }); } catch (e2) {}
+            b.outerHTML = '<span class="chip green">Accepted just now</span>';
+          } catch (e) {
+            /* RLS not yet provisioned — completion state, not an error */
+            b.outerHTML = '<span class="chip gold">Acceptance opens at provisioning</span>';
+          }
+          if (row) row.scrollIntoView({ block: 'nearest' });
+        });
+      });
+    }
+  });
+  </script>
+</body>
+</html>
