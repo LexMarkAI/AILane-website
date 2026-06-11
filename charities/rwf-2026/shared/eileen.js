@@ -136,5 +136,18 @@
     render();
   }
 
-  window.CharityEileen = { mount: mount, open: open, close: close };
+  /* WEB-004 §2 — programmatic ask: open the widget with the question
+   * pre-filled and sent. Pre-provisioning / EF-unavailable degrade is
+   * unchanged: send() renders the "joins at provisioning" note. */
+  function ask(text) {
+    mount();
+    open();
+    var ta = el('ce-text');
+    if (ta) ta.value = String(text || '');
+    send();
+  }
+
+  window.CharityEileen = { mount: mount, open: open, close: close, ask: ask };
+  /* Brief-named alias (AILANE-CC-BRIEF-CSO-ROOM-WEB-004 §2) */
+  window.AilaneEileen = window.CharityEileen;
 })();
