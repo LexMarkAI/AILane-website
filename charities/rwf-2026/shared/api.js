@@ -121,6 +121,42 @@
     });
   }
 
+  /* ── Contract Vault (charity_contract_vault + charity-vault bucket) ──
+   * Tables/policies arrive via BACKEND-002 + provisioning; every caller
+   * treats failure as the "vault opens at provisioning" degrade state.
+   * select=* and client-side sorting keep the reads schema-tolerant. */
+  function getVault(state) {
+    return restGet(state, 'charity_contract_vault?select=*&clid=eq.' + encodeURIComponent(CFG.CLID));
+  }
+
+  function postVaultRow(state, row) {
+    return restPost(state, 'charity_contract_vault', Object.assign({ clid: CFG.CLID }, row));
+  }
+
+  async function uploadVaultFile(state, filename, file) {
+    var res = await fetch(CFG.SUPABASE_URL + '/storage/v1/object/' + CFG.VAULT_BUCKET + '/' +
+      encodeURIComponent(CFG.CLID) + '/' + encodeURIComponent(filename), {
+      method: 'PUT',
+      headers: {
+        'apikey': CFG.SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + ((state && state.token) || CFG.SUPABASE_ANON_KEY),
+        'Content-Type': (file && file.type) || 'application/octet-stream'
+      },
+      body: file
+    });
+    if (!res.ok) {
+      var e = new Error('storage ' + res.status);
+      e.status = res.status;
+      throw e;
+    }
+    return true;
+  }
+
+  /* ── Statute alerts (charity_statute_alerts — BACKEND-002) ── */
+  function getStatuteAlerts(state) {
+    return restGet(state, 'charity_statute_alerts?select=*&clid=eq.' + encodeURIComponent(CFG.CLID));
+  }
+
   /* ── Eileen EF (eileen-charityroom) — may not be deployed yet ── */
   async function eileenCall(state, body) {
     var res = await fetch(CFG.EILEEN_EF_URL, {
@@ -154,6 +190,30 @@
     } catch (e) { return String(iso); }
   }
 
+  /* Statute alert card (charity_statute_alerts) — schema-tolerant mapping;
+   * Tier 5 wording on commencement-class alerts (WEB-002 §6/§7). */
+  function alertCardHtml(r) {
+    var classification = r.classification || r.alert_class || r.category || '';
+    var headline = r.headline || r.title || r.summary || '';
+    var date = r.alert_date || r.effective_date || r.commencement_date || r.created_at || null;
+    var source = r.source_citation || r.citation || r.source || r.provenance || '';
+    var state = String(r.state || r.status || '').toLowerCase();
+    var isCommencement = String(classification).toLowerCase().indexOf('commencement') !== -1;
+    var stateCls = state === 'acknowledged' ? 'green' : (state === 'seen' ? 'cyan' : 'gold');
+
+    var chips = '';
+    if (classification) chips += '<span class="chip gold">' + esc(classification) + '</span>';
+    if (date) chips += '<span class="chip">' + esc(fmtDate(date)) + '</span>';
+    if (state) chips += '<span class="chip ' + stateCls + '">' + esc(state) + '</span>';
+
+    return '<div class="alert-card">' +
+      (headline ? '<div class="ah">' + esc(headline) + '</div>' : '') +
+      (chips ? '<div class="im">' + chips + '</div>' : '') +
+      (source ? '<div class="as">' + esc(source) + '</div>' : '') +
+      (isCommencement ? '<div class="as">Subject to change before commencement.</div>' : '') +
+      '</div>';
+  }
+
   /* Countdown chip text — computed client-side from a YYYY-MM-DD due date */
   function countdown(dueIso) {
     if (!dueIso) return { text: 'Date set at provisioning', cls: '' };
@@ -177,11 +237,16 @@
     getGateState: getGateState,
     getFeedback: getFeedback,
     postFeedback: postFeedback,
+    getVault: getVault,
+    postVaultRow: postVaultRow,
+    uploadVaultFile: uploadVaultFile,
+    getStatuteAlerts: getStatuteAlerts,
     askEileen: askEileen,
     getDocumentLinks: getDocumentLinks,
     getDocumentLink: getDocumentLink,
     esc: esc,
     fmtDate: fmtDate,
-    countdown: countdown
+    countdown: countdown,
+    alertCardHtml: alertCardHtml
   };
 })();

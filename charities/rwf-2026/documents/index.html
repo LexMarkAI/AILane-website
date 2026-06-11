@@ -40,13 +40,27 @@
     <section class="hero">
       <div class="eyebrow">Documents</div>
       <h1>The papers for this engagement</h1>
-      <p>Everything we share with you lives here, grouped by phase. Where a document
-        needs your acceptance, one tap records it. Where a file is not attached yet,
-        the row says so plainly.</p>
+      <p>Everything we share with you lives here, grouped by phase. Each document opens
+        in this room — read it, and where it needs your acceptance, one tap records it
+        as your signature.</p>
+      <div class="pills">
+        <span class="gate-badge hidden" id="phase-a-badge">Phase A — First conversations · unlocked</span>
+      </div>
     </section>
 
     <div id="docs">
       <div class="state"><div class="big">Loading documents…</div></div>
+    </div>
+
+    <!-- WEB-002 §5 — sixth Documents-page card: Contract Compliance Check entry -->
+    <div class="card-grid">
+      <a class="room-card" href="/employers/check/">
+        <div class="ico">C</div>
+        <div class="ct">Check a contract</div>
+        <div class="cd">Run any existing contract through the Contract Compliance Check —
+          it reads the document against current UK employment law and reports what it finds.</div>
+        <div class="cm">Contract Compliance Check · opens the check entry page</div>
+      </a>
     </div>
 
   </div>
@@ -72,6 +86,7 @@
 
     var rows = null;            /* live catalog rows, when reachable */
     var acceptances = {};       /* terms_version → accepted_at */
+    var entryAcceptedAt = null; /* entry-gate acceptance (Terms + Privacy) */
     var links = {};             /* document_id → { has_pdf, ... } from the Eileen EF */
 
     if (state.mode === 'live') {
@@ -80,47 +95,66 @@
         (await api.getDocAcceptances(state)).forEach(function (r) { acceptances[r.terms_version] = r.accepted_at; });
       } catch (e) { /* acceptance history unavailable — buttons still offer */ }
       try {
+        var er = await api.getEntryAcceptance(state);
+        if (er && er.length) entryAcceptedAt = er[0].accepted_at;
+      } catch (e) { /* entry row unreadable — summary shows the gate text only */ }
+      try {
         var lr = await api.getDocumentLinks(state);
         ((lr && lr.links) || []).forEach(function (l) { if (l && l.document_id) links[l.document_id] = l; });
       } catch (e) { /* Eileen document-link route unavailable — no Open buttons */ }
     }
 
-    if (rows && rows.length) { renderCatalog(rows); }
-    else { renderSeed(); }
+    function isBlockingCode(code) { return CFG.ACCEPTANCE_DOC_CODES.indexOf(code) !== -1; }
+    function acceptedAtFor(code, versionLabel) { return acceptances[code + '@' + (versionLabel || 'v1')]; }
+    function acceptedText(at) { return 'Accepted by ' + (state.email || 'you') + ' on ' + api.fmtDate(at); }
 
-    /* ── Static Phase 0 seed (catalog unreachable / pre-provisioning) ── */
+    /* §3 — NDA acceptance unlocks the phase_a badge client-side (display only;
+     * gate_state advance is an Ailane-side act) */
+    function refreshPhaseABadge() {
+      var nda = CFG.PHASE0_DOCS.filter(function (d) { return d.doc_code === 'AILANE-NDA-RWF-001'; })[0];
+      var at = acceptedAtFor('AILANE-NDA-RWF-001', (nda && nda.version_label) || 'v1.0');
+      var badge = document.getElementById('phase-a-badge');
+      if (badge && at) badge.classList.remove('hidden');
+    }
+
+    if (rows && rows.length) { renderCatalog(rows); } else { renderSeed(); }
+    refreshPhaseABadge();
+
+    /* ── Seed list, mirroring the live catalog (catalog unreachable / RLS pending) ── */
     function renderSeed() {
-      var html = '<div class="section"><div class="sh"><span class="bar"></span>' +
-        '<span class="st">' + esc(CFG.PHASE_LABEL.phase_0) + '</span>' +
-        '<span class="sc">seed list — live catalog attaches at provisioning</span></div><div class="row-list">';
+      var byPhase = {};
       CFG.PHASE0_DOCS.forEach(function (d) {
-        html += '<div class="item-row">' +
-          '<div class="it">' + esc(d.name) + '</div>' +
-          '<div class="id">' + esc(d.description) + '</div>' +
-          '<div class="im"><span class="chip">' + esc(d.doc_code) + '</span>' +
-          '<span class="chip">' + esc(d.version_label) + '</span>' +
-          (d.acceptance ? '<span class="chip gold">Acceptance opens at provisioning</span>' : '') +
-          (!d.href && !d.acceptance ? '<span class="chip">Not yet uploaded</span>' : '') +
-          '</div>' +
-          (d.href ? '<div class="actions"><a class="btn sm" href="' + esc(d.href) + '">Read</a></div>' : '') +
-          '</div>';
+        (byPhase[d.phase || 'phase_0'] = byPhase[d.phase || 'phase_0'] || []).push({
+          document_id: 'seed-' + d.doc_code,
+          kind: d.acceptance ? 'blocking' : 'release',
+          doc_code: d.doc_code,
+          name: d.name,
+          description: d.description,
+          available_from_phase: d.phase || 'phase_0',
+          version_label: d.version_label
+        });
       });
-      html += '</div></div>';
-      root.innerHTML = html;
+      renderGroups(byPhase);
     }
 
     /* ── Live catalog, grouped by phase ── */
     function renderCatalog(items) {
-      var phases = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
       var byPhase = {};
       items.forEach(function (d) {
         var ph = d.available_from_phase || 'phase_0';
         (byPhase[ph] = byPhase[ph] || []).push(d);
       });
+      renderGroups(byPhase);
+    }
+
+    function renderGroups(byPhase) {
+      var phases = ['phase_0', 'phase_a', 'phase_b', 'phase_c', 'phase_d', 'phase_e', 'phase_f'];
       var html = '';
+      var all = [];
       phases.forEach(function (ph) {
         var group = byPhase[ph];
         if (!group || !group.length) return;
+        all = all.concat(group);
         html += '<div class="section"><div class="sh"><span class="bar"></span>' +
           '<span class="st">' + esc(CFG.PHASE_LABEL[ph] || ph) + '</span>' +
           '<span class="sc">' + group.length + ' document' + (group.length === 1 ? '' : 's') + '</span></div><div class="row-list">';
@@ -129,34 +163,40 @@
       });
       root.innerHTML = html || '<div class="state"><div class="big">No documents yet</div>' +
         '<div>Documents appear here as they are released into the room.</div></div>';
-      wireActions(items);
+      wireActions(all);
     }
 
     function docRow(d) {
       var kind = String(d.kind || '').toLowerCase();
-      var isAcceptance = kind === 'release' && CFG.ACCEPTANCE_DOC_CODES.indexOf(d.doc_code) !== -1;
+      var view = CFG.DOC_VIEWS[d.doc_code];
+      var isAcceptance = kind === 'blocking' || isBlockingCode(d.doc_code);
       var link = links[d.document_id];
-      var acceptedAt = acceptances[d.doc_code + '@' + (d.version_label || 'v1')];
+      var acceptedAt = acceptedAtFor(d.doc_code, d.version_label);
 
       var chips = '<span class="chip">' + esc(d.doc_code || '') + '</span>';
       if (d.version_label) chips += '<span class="chip">' + esc(d.version_label) + '</span>';
       if (kind === 'requirement') chips += '<span class="chip cyan">For the charity to provide</span>';
       if (kind === 'template') chips += '<span class="chip">Template</span>';
+      if (view && view.type === 'summary') {
+        chips += entryAcceptedAt
+          ? '<span class="chip green">' + esc('Accepted at entry by ' + (state.email || 'you') + ' on ' + api.fmtDate(entryAcceptedAt)) + '</span>'
+          : '<span class="chip cyan">Accepted at the entry gate</span>';
+      }
       if (isAcceptance) {
         chips += acceptedAt
-          ? '<span class="chip green">Accepted ' + esc(api.fmtDate(acceptedAt)) + '</span>'
-          : '<span class="chip gold">Your acceptance needed</span>';
+          ? '<span class="chip green">' + esc(acceptedText(acceptedAt)) + '</span>'
+          : '<span class="chip gold">Your acceptance needed — read it in this room</span>';
       }
-      if (kind === 'release' && !(link && link.has_pdf)) chips += '<span class="chip">Not yet uploaded</span>';
 
       var actions = '';
-      if (link && link.has_pdf) {
-        actions += '<button class="btn sm" type="button" data-open="' + esc(d.document_id) + '">Open</button>';
+      if (view) {
+        actions += '<button class="btn sm" type="button" data-view="' + esc(d.doc_code) + '" ' +
+          'data-docid="' + esc(d.document_id) + '" data-version="' + esc(d.version_label || 'v1') + '" ' +
+          'data-name="' + esc(d.name || d.doc_code) + '">' +
+          (isAcceptance && !acceptedAt ? 'Read &amp; accept in this room' : 'Read in this room') + '</button>';
       }
-      if (isAcceptance && !acceptedAt) {
-        actions += '<button class="btn gold sm" type="button" data-accept="' + esc(d.document_id) + '" ' +
-          'data-code="' + esc(d.doc_code) + '" data-version="' + esc(d.version_label || 'v1') + '">' +
-          'I have read this — record my acceptance</button>';
+      if (link && link.has_pdf) {
+        actions += '<button class="btn sm" type="button" data-open="' + esc(d.document_id) + '">Open file</button>';
       }
 
       return '<div class="item-row" id="doc-' + esc(d.document_id) + '">' +
@@ -168,6 +208,15 @@
     }
 
     function wireActions(items) {
+      root.querySelectorAll('button[data-view]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          openViewer({
+            doc_code: b.getAttribute('data-view'),
+            version_label: b.getAttribute('data-version'),
+            name: b.getAttribute('data-name')
+          });
+        });
+      });
       root.querySelectorAll('button[data-open]').forEach(function (b) {
         b.addEventListener('click', async function () {
           b.disabled = true;
@@ -179,21 +228,101 @@
           b.disabled = false;
         });
       });
-      root.querySelectorAll('button[data-accept]').forEach(function (b) {
-        b.addEventListener('click', async function () {
-          b.disabled = true;
-          b.textContent = 'Recording…';
-          var row = document.getElementById('doc-' + b.getAttribute('data-accept'));
-          try {
-            await api.postDocAcceptance(state, b.getAttribute('data-code'), b.getAttribute('data-version'));
-            try { if (window.gtag) window.gtag('event', 'charity_room_doc_accepted', { doc_code: b.getAttribute('data-code') }); } catch (e2) {}
-            b.outerHTML = '<span class="chip green">Accepted just now</span>';
-          } catch (e) {
-            /* RLS not yet provisioned — completion state, not an error */
-            b.outerHTML = '<span class="chip gold">Acceptance opens at provisioning</span>';
-          }
-          if (row) row.scrollIntoView({ block: 'nearest' });
-        });
+    }
+
+    /* ── §3 in-room viewer: modal with the document text and, for blocking
+     *    docs, the acceptance action beneath ── */
+    function closeViewer() {
+      var o = document.getElementById('doc-overlay');
+      if (o) o.remove();
+    }
+
+    async function openViewer(d) {
+      closeViewer();
+      var view = CFG.DOC_VIEWS[d.doc_code];
+      if (!view) return;
+      var isAcceptance = isBlockingCode(d.doc_code);
+      var acceptedAt = acceptedAtFor(d.doc_code, d.version_label);
+
+      var overlay = document.createElement('div');
+      overlay.id = 'doc-overlay';
+      overlay.className = 'doc-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', d.name || d.doc_code);
+      overlay.innerHTML =
+        '<div class="doc-card" role="document">' +
+          '<div class="doc-head"><div><div class="dt">' + esc(d.name || d.doc_code) + '</div>' +
+            '<div class="dm">' + esc(d.doc_code) + ' · ' + esc(d.version_label || '') + '</div></div>' +
+            '<button class="doc-close" id="doc-close" type="button" aria-label="Close">&#10005;</button></div>' +
+          '<div class="doc-body" id="doc-body"><p class="muted">Loading the document…</p></div>' +
+          '<div class="doc-foot" id="doc-foot"></div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      document.getElementById('doc-close').addEventListener('click', closeViewer);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) closeViewer(); });
+      try { if (window.gtag) window.gtag('event', 'charity_room_doc_viewed', { doc_code: d.doc_code }); } catch (e) {}
+
+      var body = document.getElementById('doc-body');
+      var foot = document.getElementById('doc-foot');
+
+      if (view.type === 'summary') {
+        body.innerHTML = '<p>' + esc(view.summary) + '</p>' +
+          '<p><a href="' + esc(view.href) + '" target="_blank" rel="noopener">' + esc(view.link_label) + '</a></p>';
+        foot.innerHTML = entryAcceptedAt
+          ? '<span class="chip green">' + esc('Accepted at entry by ' + (state.email || 'you') + ' on ' + api.fmtDate(entryAcceptedAt)) + '</span>'
+          : '<span class="chip cyan">Acceptance is captured at the room entry gate</span>';
+        return;
+      }
+
+      /* Fragment documents — shared/docs/<doc_code>.html is the v1 rendering */
+      try {
+        var res = await fetch('/charities/rwf-2026/shared/docs/' + encodeURIComponent(d.doc_code) + '.html');
+        if (!res.ok) throw new Error('fragment ' + res.status);
+        body.innerHTML = await res.text();
+      } catch (e) {
+        body.innerHTML = '<p class="muted">This document could not be loaded just now. Please refresh and try again.</p>';
+        return;
+      }
+
+      if (!isAcceptance) {
+        foot.innerHTML = '<span class="chip cyan">Released to the room — no acceptance needed</span>';
+        return;
+      }
+
+      if (acceptedAt) {
+        foot.innerHTML = '<span class="chip green">' + esc(acceptedText(acceptedAt)) + '</span>';
+        return;
+      }
+
+      if (state.mode !== 'live') {
+        foot.innerHTML = '<span class="chip gold">Acceptance opens at provisioning</span>';
+        return;
+      }
+
+      foot.innerHTML =
+        '<div class="msg info" style="margin-top:0">Your acceptance is recorded as your signature — ' +
+        'a simple electronic signature under the law of England and Wales.</div>' +
+        '<button class="btn gold" id="doc-accept" type="button" style="width:100%">' +
+        'I have read this — record my acceptance</button>';
+
+      document.getElementById('doc-accept').addEventListener('click', async function () {
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Recording…';
+        try {
+          await api.postDocAcceptance(state, d.doc_code, d.version_label);
+          var nowIso = new Date().toISOString();
+          acceptances[d.doc_code + '@' + (d.version_label || 'v1')] = nowIso;
+          try { if (window.gtag) window.gtag('event', 'charity_room_doc_accepted', { doc_code: d.doc_code }); } catch (e2) {}
+          foot.innerHTML = '<span class="chip green">' + esc(acceptedText(nowIso)) + '</span>';
+          refreshPhaseABadge();
+          /* refresh the row chips behind the modal */
+          if (rows && rows.length) { renderCatalog(rows); } else { renderSeed(); }
+        } catch (e) {
+          /* RLS not yet provisioned — completion state, not an error */
+          foot.innerHTML = '<span class="chip gold">Acceptance opens at provisioning</span>';
+        }
       });
     }
   });
