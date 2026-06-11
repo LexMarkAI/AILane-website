@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+
+  <!-- Supabase CDN FIRST (protected page — RULE 26 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 (RULE 10) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <title>Contract Vault · Charity Onboarding Room · Ailane</title>
+  <link rel="stylesheet" href="/charities/rwf-2026/shared/room.css">
+</head>
+<body style="visibility:hidden">
+
+  <header class="topbar"><div class="wrap"><div class="row">
+    <a class="brand" href="/charities/rwf-2026/">
+      <span class="name">Ai<em>lane</em></span>
+      <span class="sub">Charity Onboarding Room</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="who"><span class="email" id="room-email"></span>
+      <a href="#" class="btn sm" id="room-signout">Sign out</a></div>
+  </div></div></header>
+
+  <div class="wrap page">
+
+    <div class="synthetic-banner"><b>Demonstration content.</b>
+      This room opens with seed content for The Rudolph Walker Foundation.
+      Live records, document files and Eileen attach at provisioning.</div>
+    <span class="chip gold hidden" id="room-mode-chip"></span>
+
+    <section class="hero">
+      <div class="eyebrow">Contract Vault</div>
+      <h1>Your contracts, watched</h1>
+      <p>Store the Foundation's contracts here. When a watched law changes, alerts land
+        here and against any stored contract they touch.</p>
+    </section>
+
+    <div class="section">
+      <div class="sh"><span class="bar"></span><span class="st">Add a contract</span></div>
+      <div class="panel">
+        <form id="vault-form">
+          <div class="field">
+            <label for="vault-file">Contract file</label>
+            <input id="vault-file" type="file" required>
+          </div>
+          <div class="field">
+            <label for="vault-type">What kind of contract is this?</label>
+            <select id="vault-type">
+              <option value="employment" selected>Employment</option>
+              <option value="volunteer_agreement">Volunteer agreement</option>
+              <option value="supplier">Supplier</option>
+              <option value="venue_hire">Venue hire</option>
+              <option value="funding">Funding</option>
+              <option value="insurance">Insurance</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="vault-tags">Tags (optional, comma-separated)</label>
+            <input id="vault-tags" type="text" placeholder="e.g. events, 2026 season">
+          </div>
+          <button class="btn gold" id="vault-send" type="submit">Store in the vault</button>
+          <div class="msg hidden" id="vault-msg" aria-live="polite"></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sh"><span class="bar"></span><span class="st">In the vault</span></div>
+      <div class="row-list" id="vault-list">
+        <div class="state"><div class="big">The vault opens at provisioning</div>
+          <div>Contracts you store appear here once the room is switched on.</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sh"><span class="bar"></span><span class="st">Alerts</span></div>
+      <div class="row-list" id="vault-alerts">
+        <div class="state"><div class="big">No alerts yet</div>
+          <div>When a watched law changes, alerts land here and against any stored
+            contract they touch.</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="roomfoot"><div class="wrap"><div class="row">
+    <span class="l1">AI Lane Limited · trading as Ailane · Company No. 17035654 · ICO Reg. No. 00013389720 · England &amp; Wales</span>
+    <span>Regulatory intelligence, not legal advice. Confidential to AI Lane Limited and The Rudolph Walker Foundation.
+      Questions: <a href="mailto:partnerships@ailane.ai">partnerships@ailane.ai</a></span>
+  </div></div></footer>
+
+  <script src="/charities/rwf-2026/shared/config.js"></script>
+  <script src="/charities/rwf-2026/shared/api.js"></script>
+  <script src="/charities/rwf-2026/shared/entry-gate.js"></script>
+  <script src="/charities/rwf-2026/shared/auth.js"></script>
+  <script src="/charities/rwf-2026/shared/eileen.js"></script>
+  <script src="/charities/rwf-2026/shared/room.js"></script>
+  <script>
+  CharityRoom.boot(async function (state) {
+    var CFG = window.CHARITY_ROOM;
+    var api = window.charityRoomApi;
+    var esc = api.esc;
+    var TYPE_LABEL = {
+      employment: 'Employment', volunteer_agreement: 'Volunteer agreement', supplier: 'Supplier',
+      venue_hire: 'Venue hire', funding: 'Funding', insurance: 'Insurance', other: 'Other'
+    };
+
+    function degradeMsg(msg) {
+      msg.className = 'msg info';
+      msg.innerHTML = '<b>The vault opens at provisioning.</b> Nothing was stored just now; ' +
+        'this page switches on with the rest of the room.';
+    }
+
+    /* ── Vault list (charity_contract_vault — degrade silently to the static state) ── */
+    async function loadVault() {
+      if (state.mode !== 'live') return;
+      try {
+        var rows = await api.getVault(state);
+        if (!rows || !rows.length) {
+          document.getElementById('vault-list').innerHTML =
+            '<div class="state"><div class="big">Nothing in the vault yet</div>' +
+            '<div>Store your first contract with the form above.</div></div>';
+          return;
+        }
+        rows.sort(function (a, b) { return String(b.created_at || '').localeCompare(String(a.created_at || '')); });
+        var html = '';
+        rows.forEach(function (r) {
+          var tags = r.tags;
+          if (typeof tags === 'string') tags = tags ? tags.split(',') : [];
+          html += '<div class="item-row">' +
+            '<div class="it">' + esc(r.filename || r.storage_path || 'Contract') + '</div>' +
+            '<div class="im">' +
+              (r.contract_type ? '<span class="chip cyan">' + esc(TYPE_LABEL[r.contract_type] || r.contract_type) + '</span>' : '') +
+              (r.created_at ? '<span class="chip">Stored ' + esc(api.fmtDate(r.created_at)) + '</span>' : '') +
+              (Array.isArray(tags) ? tags.map(function (t) {
+                return '<span class="chip">' + esc(String(t).trim()) + '</span>';
+              }).join('') : '') +
+            '</div></div>';
+        });
+        document.getElementById('vault-list').innerHTML = html;
+      } catch (e) { /* table absent / RLS pending — the provisioning state stands */ }
+    }
+
+    /* ── Alerts panel (charity_statute_alerts — degrade silently) ── */
+    async function loadAlerts() {
+      if (state.mode !== 'live') return;
+      try {
+        var rows = await api.getStatuteAlerts(state);
+        if (!rows || !rows.length) return;
+        document.getElementById('vault-alerts').innerHTML =
+          rows.map(api.alertCardHtml).join('');
+      } catch (e) { /* table arrives via BACKEND-002 — the static state stands */ }
+    }
+
+    loadVault();
+    loadAlerts();
+
+    /* ── Upload: PUT to storage charity-vault/rwf-2026/<filename>, then the
+     *    metadata row. Every failure path is the provisioning state. ── */
+    document.getElementById('vault-form').addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      var btn = document.getElementById('vault-send');
+      var msg = document.getElementById('vault-msg');
+      var input = document.getElementById('vault-file');
+      var file = input.files && input.files[0];
+      if (!file) return;
+
+      if (state.mode !== 'live') { degradeMsg(msg); return; }
+
+      /* keep the stored name simple and safe; the original name stays in metadata */
+      var filename = String(file.name || 'contract').replace(/[^A-Za-z0-9._-]+/g, '_');
+
+      btn.disabled = true;
+      btn.textContent = 'Storing…';
+      msg.className = 'msg hidden';
+      try {
+        await api.uploadVaultFile(state, filename, file);
+        var tagsRaw = (document.getElementById('vault-tags').value || '').trim();
+        var row = {
+          filename: file.name,
+          storage_path: CFG.VAULT_BUCKET + '/' + CFG.CLID + '/' + filename,
+          contract_type: document.getElementById('vault-type').value
+        };
+        if (tagsRaw) {
+          row.tags = tagsRaw.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+        }
+        await api.postVaultRow(state, row);
+        try { if (window.gtag) window.gtag('event', 'charity_room_vault_upload', { contract_type: row.contract_type }); } catch (e2) {}
+        msg.className = 'msg ok';
+        msg.textContent = 'Stored. When a watched law changes, alerts land against this contract.';
+        input.value = '';
+        document.getElementById('vault-tags').value = '';
+        loadVault();
+      } catch (e) {
+        /* bucket policy absent / table absent / RLS pending — completion state */
+        degradeMsg(msg);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Store in the vault';
+    });
+  });
+  </script>
+</body>
+</html>

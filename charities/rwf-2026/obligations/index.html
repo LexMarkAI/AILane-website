@@ -45,6 +45,10 @@
         Dates marked "set at provisioning" are confirmed from your own records.</p>
     </section>
 
+    <!-- WEB-002 §7 — statute alert strip; populated only when
+         charity_statute_alerts is reachable, otherwise silently absent -->
+    <div class="row-list hidden" id="alert-strip" style="margin-bottom:14px"></div>
+
     <div class="row-list" id="register">
       <div class="state"><div class="big">Loading the register…</div></div>
     </div>
@@ -64,10 +68,23 @@
   <script src="/charities/rwf-2026/shared/eileen.js"></script>
   <script src="/charities/rwf-2026/shared/room.js"></script>
   <script>
-  CharityRoom.boot(async function () {
+  CharityRoom.boot(async function (state) {
     var api = window.charityRoomApi;
     var esc = api.esc;
     var box = document.getElementById('register');
+
+    /* §7 exception cards — graceful degrade: silently absent if unreachable */
+    if (state.mode === 'live') {
+      (async function () {
+        try {
+          var alerts = await api.getStatuteAlerts(state);
+          if (!alerts || !alerts.length) return;
+          var strip = document.getElementById('alert-strip');
+          strip.innerHTML = alerts.map(api.alertCardHtml).join('');
+          strip.classList.remove('hidden');
+        } catch (e) { /* table arrives via BACKEND-002 — strip stays absent */ }
+      })();
+    }
     try {
       var res = await fetch('/charities/rwf-2026/shared/obligations-seed.json');
       var data = await res.json();
