@@ -154,6 +154,7 @@ function App(){
         {/* SECTION 2 — Live compliance oversight */}
         <div className="sec-head"><div className="t">Live Compliance Oversight</div><div className="rule"/></div>
         <ComplianceOversight vendors={vendors} isms={isms} findings={findings}/>
+        <LegalPagesGovernance token={token}/>
 
         {/* SECTION 2a — Governance Alerts (GOV-ALERTS-WEBSITE-001 §W-3) */}
         <div className="sec-head"><div className="t">Governance Alerts</div><div className="rule"/></div>
@@ -261,6 +262,84 @@ function ComplianceOversight({vendors,isms,findings}){
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── LEGAL PAGES — GOVERNANCE (AILANE-CC-BRIEF-LEGAL-GOV-CEO-TILE-001) ──
+// Surfaces ceo-dashboard-data?section=legal_compliance: per-page displayed
+// version, open governed dues (badge, highlighted when > 0) and an unresolved-
+// drift marker, plus a summary line with total dues and a status pill
+// (current → green / dues_open → amber / drift → red). Non-200 or malformed
+// JSON renders "Governance feed unavailable" with the HTTP status — never
+// blank, never throws into the sibling tiles. Uses the page's existing
+// Bearer-token + apikey fetch convention (legal_detail precedent above).
+const LEGAL_GOV_STATUS={
+  current:{c:'var(--accent-green)',bg:'var(--accent-green-dim)',bd:'rgba(16,185,129,0.25)',label:'current'},
+  dues_open:{c:'var(--accent-amber)',bg:'var(--accent-amber-dim)',bd:'rgba(245,158,11,0.25)',label:'dues open'},
+  drift:{c:'var(--accent-red)',bg:'var(--accent-red-dim)',bd:'rgba(239,68,68,0.25)',label:'drift'},
+};
+function LegalPagesGovernance({token}){
+  const[state,setState]=useState({phase:'loading'});   // loading | ok | error
+  useEffect(()=>{
+    if(!token)return;let active=true;
+    (async()=>{
+      try{
+        const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dashboard-data?section=legal_compliance`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+        if(!r.ok){if(active)setState({phase:'error',status:r.status});return;}
+        let j;try{j=await r.json();}catch(e){if(active)setState({phase:'error',status:'malformed JSON'});return;}
+        const sec=j&&j.sections&&j.sections.legal_compliance;
+        if(!sec){if(active)setState({phase:'error',status:'malformed JSON'});return;}
+        if(active)setState({phase:'ok',pages:Array.isArray(sec.pages)?sec.pages:[],summary:sec.summary||{}});
+      }catch(e){if(active)setState({phase:'error',status:'network error'});}
+    })();
+    return()=>{active=false;};
+  },[token]);
+
+  if(state.phase==='error'){
+    return(
+      <div className="card">
+        <div className="card-head"><div className="card-head-title">Legal Pages — Governance</div><div className="card-head-badge">legal_compliance</div></div>
+        <div className="card-body"><div className="ts">Governance feed unavailable — {String(state.status)}</div></div>
+      </div>
+    );
+  }
+  const pages=(state.phase==='ok'&&state.pages)||[];
+  const summary=(state.phase==='ok'&&state.summary)||{};
+  const st=LEGAL_GOV_STATUS[String(summary.status||'').toLowerCase()]||{c:'var(--text-muted)',bg:'var(--bg-hover)',bd:'var(--border-subtle)',label:String(summary.status||'—').replace(/_/g,' ')};
+  const totalDues=summary.open_governed_dues!=null?summary.open_governed_dues:pages.reduce((a,p)=>a+(Number(p.open_governed_dues)||0),0);
+  return(
+    <div className="card">
+      <div className="card-head"><div className="card-head-title">Legal Pages — Governance</div><div className="card-head-badge">{summary.pages!=null?summary.pages+' pages':'legal_compliance'}</div></div>
+      <div className="card-body">
+        {state.phase==='loading'&&<div className="ts">Loading legal page governance…</div>}
+        {state.phase==='ok'&&pages.length===0&&<div className="ts">No governed legal pages recorded.</div>}
+        {pages.map((p,i)=>{
+          const dues=Number(p.open_governed_dues)||0;
+          return(
+            <div className="leg-row" key={p.page_slug||i}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+                <div style={{minWidth:0}}>
+                  {p.page_url
+                    ?<a className="leg-title" href={p.page_url} target="_blank" rel="noopener" style={{color:'var(--text-accent)',textDecoration:'none'}}>{p.page_title||p.page_slug}</a>
+                    :<span className="leg-title">{p.page_title||p.page_slug||'(untitled page)'}</span>}
+                  <div className="leg-meta">
+                    {p.displayed_version&&<span style={{fontFamily:'var(--font-mono)',fontSize:'0.6rem',color:'var(--text-muted)'}}>{p.displayed_version}</span>}
+                    {p.unresolved_drift&&<span className="leg-tag" style={{color:'var(--accent-red)',background:'var(--accent-red-dim)',borderColor:'rgba(239,68,68,0.25)'}}>drift</span>}
+                  </div>
+                </div>
+                <span className="cstat" style={dues>0
+                  ?{color:'var(--accent-amber)',background:'var(--accent-amber-dim)',borderColor:'rgba(245,158,11,0.25)'}
+                  :{color:'var(--text-muted)',background:'var(--bg-hover)',borderColor:'var(--border-subtle)'}}>{dues} due{dues===1?'':'s'}</span>
+              </div>
+            </div>
+          );
+        })}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:10,flexWrap:'wrap'}}>
+          <div className="muted-note" style={{marginTop:0}}>Total open governed dues: <strong style={{color:totalDues>0?'var(--accent-amber)':'var(--text-secondary)'}}>{totalDues}</strong></div>
+          <span className="cstat" style={{color:st.c,background:st.bg,borderColor:st.bd}}>{st.label}</span>
         </div>
       </div>
     </div>
