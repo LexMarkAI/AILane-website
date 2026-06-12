@@ -976,6 +976,63 @@
     session ? showRoom(session.user.email || "Signed in") : showGate();
   }
   sb.auth.onAuthStateChange((_e, session)=>{ setTimeout(()=>{ session ? showRoom(session.user.email || "Signed in") : showGate(); }, 0); });
+  /* === Assurance & Certifications — reviewer-room section (12 Jun 2026) ===
+     Feed: security-definer fn legal_oversight_assurance() — aggregates only, no personal data. */
+  const ASSURANCE_POSTURE_LABELS = { operating:"Operating", in_progress:"In progress", planned:"Planned", aspirational:"Aspirational" };
+  async function renderAssurance(){
+    let host = document.getElementById("assurance");
+    if(!host){
+      const v = document.getElementById("vault");
+      if(!v) return;
+      host = document.createElement("div");
+      host.id = "assurance";
+      v.insertAdjacentElement("afterend", host);
+    }
+    const { data, error } = await sb.rpc("legal_oversight_assurance");
+    if(error || !data){ host.innerHTML = ""; return; }
+    const progs = data.programmes || [];
+    const counsel = data.counsel_instructions || [];
+    const c2 = data.c2_art14_cohort || null;
+    const ev = data.isms_evidence || null;
+    const progCards = progs.map(p => `
+      <div class="card">
+        <div class="ct">${esc(p.programme||"")}</div>
+        <div class="cd">${esc(ASSURANCE_POSTURE_LABELS[p.posture]||esc(p.posture||""))}${p.framework_body?` · ${esc(p.framework_body)}`:""}</div>
+        <div class="cd">${esc(p.posture_note||"")}</div>
+      </div>`).join("");
+    const counselCards = counsel.map(ci => `
+      <div class="card">
+        <div class="ct">${esc(ci.instruction_ref||"")} — ${esc(ci.title||"")}</div>
+        <div class="cd">Status: ${esc((ci.status||"").replace(/_/g," "))}${ci.due_date?` · due ${esc(ci.due_date)}`:""}</div>
+        <div class="cd">${esc(ci.scope_summary||"")}</div>
+      </div>`).join("");
+    const c2Line = c2 ? `
+      <div class="card">
+        <div class="ct">HSE Article 14 cohort — verification state</div>
+        <div class="cd">${Number(c2.candidate_rows||0)} candidates · ${Number(c2.identified_cohort||0)} identified natural persons · ${Number(c2.confirmed_non_natural||0)} non-natural · ${Number(c2.unresolvable||0)} unresolvable</div>
+        <div class="cd">Addresses captured: ${Number(c2.addresses_captured||0)} · notices prepared: ${Number(c2.notices_prepared||0)} · notices dispatched: ${Number(c2.notices_dispatched||0)}</div>
+      </div>` : "";
+    const evLine = ev ? `
+      <div class="card">
+        <div class="ct">ISMS evidence collection</div>
+        <div class="cd">${Number(ev.evidence_items||0)} evidence items · ${Number(ev.automated_items||0)} automated · ${Number(ev.controls_with_evidence||0)} control refs</div>
+        <div class="cd">Latest collection: ${esc(ev.latest_collected_at||"—")}</div>
+      </div>` : "";
+    host.innerHTML = `
+      <div class="section">
+        <div class="sh"><span class="bar"></span><span class="st">Assurance &amp; Certifications</span><span class="sc">${progs.length}</span></div>
+        <div class="cards">${progCards}</div>
+        <div class="sh"><span class="bar"></span><span class="st">External counsel — instructions</span><span class="sc">${counsel.length}</span></div>
+        <div class="cards">${counselCards}${c2Line}${evLine}</div>
+        <p class="cd" style="opacity:.7;margin-top:8px">Postures shown are programme states, not certification claims. Statuses update live from the governance estate.</p>
+      </div>`;
+  }
+  const __rvhOriginal = renderVaultHub;
+  renderVaultHub = async function(){
+    await __rvhOriginal.apply(this, arguments);
+    try { await renderAssurance(); } catch(e){ console.error("assurance section", e); }
+  };
+
   boot();
 })();
 </script>
