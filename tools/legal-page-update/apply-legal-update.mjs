@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // apply-legal-update.mjs
-// Governed legal-page write-automation applier (LPU v1.0).
+// Governed legal-page write-automation applier (LPU v1.1).
 // Dependency-free, Node >= 18 (ESM). Applies a reviewable JSON edit-spec to a
 // single legal page deterministically, keeping all version stamps in sync.
 //
@@ -165,7 +165,8 @@ function replaceFooterStamp(text, newLabel, changelogAppend) {
 
   // Otherwise: the last header-style stamp that is NOT the header badge.
   const matches = [...text.matchAll(HEADER_STAMP)];
-  if (matches.length >= 2) {
+  // v1.1: footer fallback only when unambiguous (badge + exactly one other stamp). More candidates (e.g. changelog entries) => skip; explicit spec edits govern the footer. Defect 12 Jun 2026: AMD-094 historical changelog stamp clobbered on tribunal-privacy; caught pre-push by brief §3.2.
+  if (matches.length === 2) {
     const target = matches[matches.length - 1];
     const before = text.slice(0, target.index);
     let mid = newLabel;
