@@ -184,7 +184,7 @@ body.static-mode .page{animation:deal .01s forwards}
     <canvas id="rain"></canvas>
     <div class="s1wrap">
       <div class="kicker rise">The record</div>
-      <h1 class="rise d1"><span class="hl">131,820 judgments.</span><br>Decades of employer risk signal —<br>public, and unreadable at scale.</h1>
+      <h1 class="rise d1"><span class="hl"><span id="stat-s1-decisions">133,720</span> judgments.</span><br>Decades of employer risk signal —<br>public, and unreadable at scale.</h1>
       <p class="sub rise d2">Until now.</p>
     </div>
   </section>
@@ -194,12 +194,12 @@ body.static-mode .page{animation:deal .01s forwards}
     <div class="kicker rise">The asset</div>
     <h1 class="rise d1">One proprietary dataset, <span class="gd">live-counted.</span></h1>
     <div class="grid rise d2">
-      <div class="stat"><div class="n live" data-count data-live="decisions" data-static="131820">0</div><div class="l">tribunal decisions ingested</div></div>
+      <div class="stat"><div class="n live" data-count data-live="decisions" data-static="133720">0</div><div class="l">tribunal decisions ingested</div></div>
       <div class="stat"><div class="n live" data-count data-live="employers" data-static="78699">0</div><div class="l">employer profiles — tribunal, HSE, coroner</div></div>
       <div class="stat"><div class="n" data-count data-static="171">0</div><div class="l">intelligence fields per decision</div></div>
-      <div class="stat"><div class="n live" data-count data-live="enrichment_records" data-static="34393">0</div><div class="l">decisions deeply enriched — compounding daily</div></div>
-      <div class="stat"><div class="n" data-count data-static="1555">0</div><div class="l">judges profiled</div></div>
-      <div class="stat"><div class="n" data-count data-static="401">0</div><div class="l">statutory provisions · 69 instruments</div></div>
+      <div class="stat"><div class="n live" data-count data-live="enrichment_records" data-static="34531">0</div><div class="l">decisions deeply enriched — compounding daily</div></div>
+      <div class="stat"><div class="n live" data-count data-live="judges" data-static="1561">0</div><div class="l">judges profiled</div></div>
+      <div class="stat"><div class="n live" data-count data-live="provisions" data-static="570">0</div><div class="l">statutory provisions · <span id="stat-s2-instruments">79</span> instruments</div></div>
     </div>
     <div class="asat rise d3"><span class="dot"></span><span id="asat">live production query</span></div>
   </section>
@@ -226,7 +226,7 @@ body.static-mode .page{animation:deal .01s forwards}
       </div>
       <div class="alertcard">
         <div class="alert rise d3"><div class="at">FORWARD ALERT</div><p><b>535 legislative changes</b> monitored across the Employment Rights Act 2025 — flagged <b>before commencement</b>, not after enforcement.</p></div>
-        <div class="alert rise d4" style="border-left-color:var(--cyan)"><div class="at" style="color:var(--cyan)">CONTINUOUS</div><p>Clause-level analysis against <b>401 statutory provisions</b> and the live tribunal signal of 131,820 decisions.</p></div>
+        <div class="alert rise d4" style="border-left-color:var(--cyan)"><div class="at" style="color:var(--cyan)">CONTINUOUS</div><p>Clause-level analysis against <b><span id="stat-s4-provisions">570</span> statutory provisions</b> and the live tribunal signal of <span id="stat-s4-decisions">133,720</span> decisions.</p></div>
       </div>
     </div>
   </section>
@@ -373,6 +373,11 @@ fetch("https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/anthology-live-stats")
         Number(j.enrichment_records).toLocaleString("en-GB") + "</b> deeply enriched · <b>" +
         Number(j.active_jobs).toLocaleString("en-GB") + "</b> scheduled jobs running";
     }
+    function setLive(id,v){ var el=document.getElementById(id); if(el&&v!=null) el.textContent=Number(v).toLocaleString("en-GB"); }
+    setLive("stat-s1-decisions", j.decisions);
+    setLive("stat-s2-instruments", j.instruments);
+    setLive("stat-s4-provisions", j.provisions);
+    setLive("stat-s4-decisions", j.decisions);
   }).catch(function(){ /* static fallbacks remain */ });
 
 /* ============ DIRECTOR ============ */
@@ -472,13 +477,19 @@ function runCounters(scope){
 /* ============ S3 SCRIPTED EXCHANGE (estate-verified copy) ============ */
 var chatScript=[
   {role:"q",text:"What's an employer's tribunal history telling me?"},
-  {role:"a",text:"Across <b>131,820 decisions</b> I can read an employer's pattern — outcomes, awards, representation, procedure — structured into <b>171 fields</b> and joined to HSE and coroner records across <b>78,699 profiles</b>."},
+  {role:"a",text:"Across <b>{D} decisions</b> I can read an employer's pattern — outcomes, awards, representation, procedure — structured into <b>171 fields</b> and joined to HSE and coroner records across <b>{E} profiles</b>."},
   {role:"q",text:"How is the platform governed?"},
-  {role:"a",text:"Three ratified constitutions govern scoring; a <b>168-amendment register</b> governs change. No AI model writes an index — and I'm governed too: information only, never advice."}
+  {role:"a",text:"Three ratified constitutions govern scoring; a <b>{R}-amendment register</b> governs change. No AI model writes an index — and I'm governed too: information only, never advice."}
 ];
 var chatStarted=false;
 function runChat(){
   if(chatStarted) return; chatStarted=true;
+  var fmtN=function(v,fb){ return (LIVE&&v!=null)?Number(v).toLocaleString("en-GB"):fb; };
+  chatScript.forEach(function(m){
+    m.text=m.text.replace("{D}",fmtN(LIVE&&LIVE.decisions,"133,720"))
+                 .replace("{E}",fmtN(LIVE&&LIVE.employers,"78,699"))
+                 .replace("{R}",fmtN(LIVE&&LIVE.amd_register_max,"168"));
+  });
   var box=document.getElementById("chatbox"), i=0;
   function nextMsg(){
     if(i>=chatScript.length) return;
