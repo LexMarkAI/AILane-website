@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trademark Observation — Ai Lane CEO</title>
+<meta name="robots" content="noindex, nofollow">
+<!-- GA4 — REQUIRED ON EVERY PAGE -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+<!-- CSP (SEC-001 §3.2) — RULE 22 canonical, extended with unpkg.com + 'unsafe-eval' in script-src,
+     which this Babel-Standalone React page requires (React/ReactDOM load from unpkg; the Babel
+     runtime evaluates the inline text/babel bundle). Strict superset of the canonical value;
+     matches the established AiLaneCEO precedent in /AiLaneCEO/deal-rooms/index.html. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<style>
+  :root{--bg:#0b0f1a;--panel:#121826;--border-subtle:#243044;--text-primary:#e8edf6;--text-secondary:#aab4c5;--text-muted:#6b7689;--accent-green:#34d399;--accent-amber:#f59e0b;--accent-red:#f87171;--accent-cyan:#22d3ee;--font-mono:ui-monospace,Menlo,monospace}
+  body{margin:0;background:var(--bg);color:var(--text-primary);font-family:Inter,system-ui,sans-serif;visibility:hidden}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
+  .banner{padding:16px 20px;border-radius:12px;border:1px solid var(--border-subtle);display:flex;align-items:center;gap:16px;margin-bottom:20px}
+  .dot{width:16px;height:16px;border-radius:50%}
+  .card{background:var(--panel);border:1px solid var(--border-subtle);border-radius:12px;padding:16px;margin-bottom:12px}
+  .pill{font-family:var(--font-mono);font-size:.62rem;padding:2px 8px;border-radius:20px;border:1px solid var(--border-subtle)}
+  .muted{color:var(--text-muted);font-size:.62rem}
+  .disc{margin-top:24px;font-size:.6rem;color:var(--text-muted);line-height:1.5;border-top:1px solid var(--border-subtle);padding-top:12px}
+  button{cursor:pointer;background:#1c2638;color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:8px;padding:6px 10px;font-size:.65rem}
+  a{color:var(--accent-cyan)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const SUPABASE_URL="https://cnbsxwtvazfvzmltkuvx.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
+const EF="https://cnbsxwtvazfvzmltkuvx.functions.supabase.co";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const COLOR={green:'var(--accent-green)',amber:'var(--accent-amber)',red:'var(--accent-red)'};
+const LABEL={green:'Clear',amber:'Noteworthy — take a look',red:'Action required'};
+
+function App(){
+  const [tok,setTok]=React.useState(null);
+  const [data,setData]=React.useState(null);
+  const [err,setErr]=React.useState(null);
+  React.useEffect(()=>{(async()=>{
+    // Auth guard (RULE 26): mark@ailane.ai only
+    let {data:{session}}=await sb.auth.getSession();
+    if(!session){await new Promise(r=>{const t=setTimeout(r,6000);sb.auth.onAuthStateChange((_e,s)=>{if(s){clearTimeout(t);session=s;r();}});});}
+    const token=session?.access_token;
+    if(!token){location.replace('/');return;}
+    const email=JSON.parse(atob(token.split('.')[1])).email;
+    if(email!=='mark@ailane.ai'){location.replace('/');return;}
+    setTok(token);document.body.style.visibility='visible';
+    try{
+      const r=await fetch(EF+'/tmw-observation',{headers:{Authorization:'Bearer '+token,apikey:SUPABASE_ANON_KEY}});
+      setData(await r.json());
+    }catch(e){setErr('Awaiting first watch run.');}
+  })();},[]);
+  if(err) return <div className="wrap"><p className="muted">{err}</p></div>;
+  if(!data) return <div className="wrap"><p className="muted">Loading…</p></div>;
+  const st=data.state||{status:'green'};
+  return (<div className="wrap">
+    <h1 style={{fontSize:'1.2rem'}}>Trademark Observation</h1>
+    <div className="banner" style={{borderColor:COLOR[st.status]}}>
+      <div className="dot" style={{background:COLOR[st.status]}}></div>
+      <div><div style={{fontWeight:600}}>{LABEL[st.status]}</div>
+      <div className="muted">{st.reason} · coverage {st.coverage_pct??'—'}% · {st.last_run_finished?('last run '+new Date(st.last_run_finished).toLocaleString()):'no run yet'}</div></div>
+    </div>
+    {(data.candidates||[]).length===0 && <div className="card"><div className="muted">No conflicts or misuse signals above threshold this cycle.</div></div>}
+    {(data.candidates||[]).map((c,i)=>(
+      <div className="card" key={i} style={{borderColor:COLOR[c.observation_status]}}>
+        <div style={{display:'flex',justifyContent:'space-between'}}>
+          <div><strong>{c.mark_text}</strong> <span className="pill">{c.signal_type}</span> <span className="pill">{c.jurisdiction}</span> {(c.classes||[]).map(cl=><span key={cl} className="pill">cl.{cl}</span>)}</div>
+          <div className="pill" style={{color:COLOR[c.observation_status]}}>CPS {c.cps_score}</div>
+        </div>
+        <div className="muted">{c.applicant||'—'} {c.opposition_deadline?(' · opposition closes '+c.opposition_deadline):''}</div>
+        {c.rag_summary && <div style={{fontSize:'.72rem',marginTop:8}}>{c.rag_summary}</div>}
+        <div style={{marginTop:8,display:'flex',gap:8}}>
+          <button onClick={()=>askEileen(c)}>Ask Eileen</button>
+          <button onClick={()=>triage(c,'acknowledged')}>Acknowledge</button>
+          <button onClick={()=>triage(c,'escalated_counsel')}>Escalate to counsel</button>
+        </div>
+        <div id={'eileen-'+i} style={{marginTop:8,fontSize:'.72rem',color:'var(--text-secondary)'}}></div>
+      </div>
+    ))}
+    <div className="disc">Ai Lane Limited (Company No. 17035654; ICO Reg. No. 00013389720). This Observation surface provides brand-protection intelligence, not legal advice. Eileen's analysis is grounded in cited sources and is designed to support your risk management; it is not a substitute for a qualified trade mark attorney or solicitor. See ailane.ai/terms/.</div>
+  </div>);
+
+  async function askEileen(c){
+    const el=document.getElementById('eileen-'+(data.candidates.indexOf(c)));el.textContent='Eileen is reviewing the cited sources…';
+    const r=await fetch(EF+'/tmw-rag-agent',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({candidate_id:c.id})});
+    const j=await r.json();
+    el.textContent=j.abstained?('Eileen: I can only answer from cited sources and do not have sufficient grounding here — '+(j.signpost||'consider a CITMA-registered attorney.')):(j.answer+(j.citations?(' ['+j.citations.join('; ')+']'):''));
+  }
+  async function triage(c,action){
+    await fetch(EF+'/tmw-observation',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({action,candidate_id:c.id})});
+    alert('Recorded: '+action);
+  }
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

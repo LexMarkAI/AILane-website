@@ -289,6 +289,8 @@ function AilaneCEO() {
   const [intelLoading, setIntelLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  // Trademark Observation RAG colour (AILANE-CC-BRIEF-TMW-SITE-001 §3) — default amber until loaded
+  const [obsColor, setObsColor] = useState("#f59e0b");
 
   // Auth state
   const [authEmail, setAuthEmail] = useState("mark@ailane.ai");
@@ -339,6 +341,26 @@ function AilaneCEO() {
       setLoading(false);
     }
   }, []);
+
+  // Trademark Observation status colour (AILANE-CC-BRIEF-TMW-SITE-001 §3).
+  // Degrades silently to the default amber if the tmw-observation EF is not yet deployed.
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    (async () => {
+      try {
+        const r = await fetch(`${SB_URL}/functions/v1/tmw-observation`, {
+          headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` }
+        });
+        if (!r.ok) return;
+        const j = await r.json();
+        const s = j && j.state && j.state.status;
+        const map = { green: "#34d399", amber: "#f59e0b", red: "#f87171" };
+        if (active && map[s]) setObsColor(map[s]);
+      } catch (e) { /* keep default amber */ }
+    })();
+    return () => { active = false; };
+  }, [token]);
 
   // Login handler
   const handleLogin = async (e) => {
@@ -978,7 +1000,10 @@ function AilaneCEO() {
         <StatCard label="Funding" value="£75,000" sub="Innovation Wales — Secured" accent="#22d3ee" icon="💰" />
         <StatCard label="Current MRR" value="£0" sub="Pre-launch" accent="#64748b" icon="📊" />
         <StatCard label="Target ARR" value="£250k" sub="Year 1 objective" accent="#f59e0b" icon="🎯" />
-        <StatCard label="Trademark" value="Filed" sub="UK00004347220" accent="#a78bfa" icon="™️" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <StatCard label="Trademark" value="Filed" sub="UK00004347220" accent="#a78bfa" icon="™️" />
+          <a href="/AiLaneCEO/legal/trademark-observation/" style={{ display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", padding: "2px 9px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", color: obsColor, textDecoration: "none" }} title="Open the Trademark Observation surface">● Observation</a>
+        </div>
         <StatCard label="Innovation Panel" value="April" sub="£75k presentation" accent="#f472b6" icon="📅" />
       </div>
 
