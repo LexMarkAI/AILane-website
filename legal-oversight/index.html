@@ -159,6 +159,20 @@
     display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   .chip .vd{color:var(--muted-2)}
   .card .actions{display:flex;gap:7px}
+  /* Action badge on every Vault card (§1.3) — reuses .pill geometry; light text, never --ink */
+  .cbadge{text-transform:none;color:var(--text)}
+  .cbadge.sign{background:var(--gold-soft);border-color:rgba(245,158,11,.4)}
+  .cbadge.ack{background:var(--cyan-soft);border-color:rgba(14,165,233,.4)}
+  .cbadge.ref{background:var(--grey-soft);border-color:rgba(148,163,184,.35)}
+  .cbadgerow{margin:-2px 0 1px}
+  .obl-link{cursor:pointer}
+  .obl-link:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  /* Compliance & certification tracker (§1.6) — mirrors the CEO-dash spine */
+  .trk-bar{height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin:5px 0 2px}
+  .trk-fill{height:100%;background:var(--cyan);border-radius:999px}
+  .trk-docs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .trk-docs .chip{cursor:pointer;color:var(--cyan);border-color:rgba(14,165,233,.3)}
+  .trk-docs .chip:hover{background:var(--cyan-soft);text-decoration:none}
 
   .gate{min-height:64vh;display:flex;align-items:center;justify-content:center;padding:40px 0}
   .signin{width:100%;max-width:400px;border:1px solid var(--line);border-radius:var(--radius);
@@ -333,7 +347,7 @@
 <!-- Context disclosure — collapsed assurance/status block below Vault (AILANE-CC-BRIEF-LOVR-DEDRIFT-SITE-001). Additive; ctx- prefix scoped. -->
 <style>
 .ctx-block{border:1px solid var(--line,#22304a);border-radius:12px;margin:18px 0;background:rgba(255,255,255,.015)}
-.ctx-summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:600;color:var(--ink,#e6edf6);font-size:15px}
+.ctx-summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:600;color:var(--text,#e6edf6);font-size:15px}
 .ctx-summary::-webkit-details-marker{display:none}
 .ctx-summary::before{content:"\25B8 ";color:var(--mut,#9fb0c7)}
 details[open] .ctx-summary::before{content:"\25BE "}
@@ -437,8 +451,10 @@ details[open] .ctx-summary::before{content:"\25BE "}
     { key:"w9a",                     label:"W9(a) — Anonymisation sufficiency", w9:true },
     { key:"w9b",                     label:"W9(b) — Article 14 transparency", w9:true },
     { key:"w9c",                     label:"W9(c) — Computational-analysis licence", w9:true },
+    { key:"counsel-instruction",     label:"External counsel — instructions", w9:false },
     { key:"commercial-instruments",  label:"Commercial & data-processing instruments", w9:false },
     { key:"public-facing",           label:"Public-facing documents", w9:false },
+    { key:"assurance",               label:"Assurance & certification roadmap", w9:false },
   ];
   const CHK_GROUPS = [
     { key:"w9-question",        label:"W9 questions for counsel" },
@@ -715,6 +731,18 @@ details[open] .ctx-summary::before{content:"\25BE "}
     return `<span class="pill dot ${cls}">${esc(STATUS_LABEL[status]||status||"—")}</span>`;
   }
 
+  // Map an obligation row to the Vault section it scrolls to (§1.5 — W1 section-scroll;
+  // per-row artefact open is W2 via linked_artefact_ids). Deterministic by code, then category.
+  function oblTarget(it){
+    const code = String(it.code||"").toUpperCase();
+    if(code.indexOf("W9-A")===0) return "sec-w9a";
+    if(code.indexOf("W9-B")===0) return "sec-w9b";
+    if(code.indexOf("W9-C")===0) return "sec-w9c";
+    if(code==="C-3"||code==="C-4"||code.indexOf("T1-")===0) return "sec-counsel-instruction";
+    if(it.category==="w9-question") return "sec-w9a";
+    return "sec-baseline";   // build / licence-compliance / live-activation / default
+  }
+
   function renderChecklist(rows){
     const counts = rows.reduce((a,r)=>{a[r.status]=(a[r.status]||0)+1;return a;},{});
     const total = rows.length, sat = counts["satisfied"]||0;
@@ -734,7 +762,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
         <div class="gh" onclick="LOVR.toggle('${gid}')">
           <span class="gt">${esc(g.label)}</span><span class="ct">${items.length}</span></div>
         <div class="items collapsed" id="${gid}">` +
-        items.map(it=>`<div class="obl">${statusPill(it.status)}
+        items.map(it=>`<div class="obl obl-link" role="link" tabindex="0" title="Open the related Vault section" onclick="LOVR.railScroll('${oblTarget(it)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();LOVR.railScroll('${oblTarget(it)}')}">${statusPill(it.status)}
           <div class="meta"><div class="ot">${esc(it.title||it.code)}</div>
           <div class="ow">${esc(it.owner||"")}</div></div></div>`).join("") +
         `</div></div>`;
@@ -750,7 +778,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
       const items = rows.filter(r=>r.category===g.key);
       if(!items.length) return;
       shown++;
-      html += `<div class="section ${g.consti?"consti":(g.w9?"w9":"")}">
+      html += `<div class="section ${g.consti?"consti":(g.w9?"w9":"")}" id="sec-${esc(g.key)}">
         <div class="sh"><span class="bar"></span><span class="st">${esc(g.label)}</span>
           <span class="sc">${items.length}</span></div>
         <div class="cards">` +
@@ -761,6 +789,17 @@ details[open] .ctx-summary::before{content:"\25BE "}
         <div>If your reviewer access is still being verified, the vault will populate once confirmed.</div></div>`;
     }
     $("vault").innerHTML = html;
+  }
+
+  // Action badge derived from the artefact's category (§1.3). W2 will hang the
+  // sign-off / acknowledge / upload controls off these same categories.
+  function cardBadge(r){
+    const c = r.category;
+    if(c==="w9a"||c==="w9b"||c==="w9c"||c==="counsel-instruction")
+      return `<span class="pill cbadge sign">Sign-off required</span>`;
+    if(c==="room-instrument")
+      return `<span class="pill cbadge ack">Acknowledge required</span>`;
+    return `<span class="pill cbadge ref">Reference</span>`;
   }
 
   function cardHtml(r){
@@ -777,6 +816,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
     return `<div class="card">
       <div class="ct">${esc(r.title)}</div>
       <div class="cd">${esc(r.summary||"")}</div>
+      <div class="cbadgerow">${cardBadge(r)}</div>
       ${ackChip}
       <div class="cf">
         <span class="chip">${esc(SOURCE_CHIP[r.content_source]||r.content_source)}${r.version_label?` · <span class="vd">${esc(r.version_label)}</span>`:""}</span>
@@ -787,6 +827,9 @@ details[open] .ctx-summary::before{content:"\25BE "}
   function openViewer(){ $("scrim").classList.add("open"); $("viewer").classList.add("open"); $("viewer").setAttribute("aria-hidden","false"); }
   function closeViewer(){ $("scrim").classList.remove("open"); $("viewer").classList.remove("open"); $("viewer").setAttribute("aria-hidden","true"); $("v-body").innerHTML=""; $("v-actions").innerHTML=""; }
   function toggle(id){ const el=$(id); if(el) el.classList.toggle("collapsed"); }
+  // Rail → Vault section-scroll (§1.5, W1). Falls back to the vault top if the
+  // target section is not present (e.g. that category has no active artefacts).
+  function railScroll(id){ const el=$(id)||$("vault"); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); }
 
   function mdFrame(markdown){
     const inner = window.marked.parse(markdown||"");
@@ -992,7 +1035,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
   })();
   window.EILEEN = { open: eileenOpen, close: eileenCloseP, send: eileenSend };
 
-  window.LOVR = { open, openViewer, closeViewer, toggle };
+  window.LOVR = { open, openViewer, closeViewer, toggle, railScroll };
   document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeViewer(); });
 
   // Gate on load: session present → room; absent → sign-in. Also react to magic-link return.
@@ -1017,16 +1060,68 @@ details[open] .ctx-summary::before{content:"\25BE "}
     const { data, error } = await sb.rpc("legal_oversight_assurance");
     if(error || !data){ host.innerHTML = ""; return; }
     const progs = data.programmes || [];
-    const counsel = data.counsel_instructions || [];
     const c2 = data.c2_art14_cohort || null;
     const ev = data.isms_evidence || null;
-    const progCards = progs.map(p => `
-      <div class="card">
-        <div class="ct">${esc(p.programme||"")}</div>
-        <div class="cd">${esc(ASSURANCE_POSTURE_LABELS[p.posture]||esc(p.posture||""))}${p.framework_body?` · ${esc(p.framework_body)}`:""}</div>
-        <div class="cd">${esc(p.posture_note||"")}</div>
-      </div>`).join("");
-    const counselCards = counsel.map(counselCard).join("");
+    // Compliance & certification tracker (§1.6) — render the live spine the CEO-dash
+    // uses (data.certification_tracker), replacing the flat programmes cards.
+    const tracker = Array.isArray(data.certification_tracker) ? data.certification_tracker : [];
+    // doc_code → artefact_id from the rows the Vault already fetched, so a track's linked
+    // spec opens the exact Vault card. Defensive: if the cache is not yet populated, doc
+    // chips fall back to a scroll into #sec-assurance — never a dead link.
+    const __reg = (vaultCache && Array.isArray(vaultCache.reg)) ? vaultCache.reg : [];
+    const docMap = {};
+    __reg.forEach(r => { if(r && r.doc_code) docMap[r.doc_code] = r.artefact_id; });
+    const trackPill = (s) => {
+      const v = String(s||"").toLowerCase().replace(/\s+/g,"_");
+      let cls = "st-not-applicable";                                          // planned / unknown → neutral
+      if(v==="in_progress") cls = "st-open";                                   // amber
+      else if(v==="complete"||v==="operating") cls = "st-satisfied";          // green
+      else if(v==="blocked") cls = "st-blocked";                              // red
+      const label = (String(s||"").replace(/_/g," ")) || "—";
+      return `<span class="pill ${cls}">${esc(label)}</span>`;
+    };
+    const trackDocCodes = (t) => {
+      const out = [];
+      const add = (v) => {
+        if(v==null) return;
+        if(Array.isArray(v)){ v.forEach(add); return; }
+        const s = String(v).trim();
+        if(/^AILANE-[A-Z0-9._-]+$/i.test(s) && out.indexOf(s)<0) out.push(s);
+      };
+      add(t.linked_spec_ids); add(t.evidence_uri);
+      return out;
+    };
+    const docChip = (code) => {
+      const aid = docMap[code];
+      return aid
+        ? `<a class="chip" href="#" title="Open ${esc(code)}" onclick="LOVR.open('${aid}','preview');return false;">${esc(code)}</a>`
+        : `<a class="chip" href="#sec-assurance" title="${esc(code)} — open in the Assurance section" onclick="LOVR.railScroll('sec-assurance');return false;">${esc(code)}</a>`;
+    };
+    const trackCards = tracker.map(t => {
+      const pct = (t.progress_pct==null) ? null : Math.max(0, Math.min(100, Number(t.progress_pct)||0));
+      const prog = (pct==null) ? "" :
+        `<div class="trk-bar"><div class="trk-fill" style="width:${pct}%"></div></div><div class="cd">${pct}%</div>`;
+      const codes = trackDocCodes(t);
+      const docs = codes.length ? `<div class="trk-docs">${codes.map(docChip).join("")}</div>` : "";
+      const notes = t.notes ? `<div class="cd" style="opacity:.85;color:var(--text)">${esc(t.notes)}</div>` : "";
+      return `<div class="card">
+        <div class="ct">${esc(t.track||"")}${t.standard?` — ${esc(t.standard)}`:""} ${trackPill(t.status)}</div>
+        ${prog}
+        <div class="cd">Next: ${esc(t.next_milestone||"—")}${t.owner?` · Owner: ${esc(t.owner)}`:""}</div>
+        ${docs}${notes}
+      </div>`;
+    }).join("");
+    // Programmes not represented in the tracker — one compact line so none of the
+    // programme rows is lost. Match on significant tokens (standard numbers /
+    // distinctive words), biased to inclusion so nothing is dropped silently.
+    const __sig = (s) => (String(s||"").toLowerCase().match(/[a-z]{3,}|\d{3,}/g)||[]);
+    const __signif = (x) => /\d/.test(x) || x.length>=4;
+    const __share = (a,b) => { const A=__sig(a), B=__sig(b); return A.some(x => __signif(x) && B.indexOf(x)>=0); };
+    const __inTracker = (p) => tracker.some(t => __share(p.programme,t.standard) || __share(p.programme,t.track) || __share(p.framework_body,t.standard));
+    const alsoTracked = progs.filter(p => !__inTracker(p));
+    const alsoLine = alsoTracked.length
+      ? `<p class="cd" style="opacity:.85;color:var(--text);margin-top:8px">Also tracked: ${alsoTracked.map(p=>`${esc(p.programme||"")}${p.posture?` — ${esc(ASSURANCE_POSTURE_LABELS[p.posture]||p.posture)}`:""}`).join("; ")}</p>`
+      : "";
     const c2Line = c2 ? `
       <div class="card">
         <div class="ct">HSE Article 14 cohort — verification state</div>
@@ -1039,33 +1134,10 @@ details[open] .ctx-summary::before{content:"\25BE "}
         <div class="cd">${Number(ev.evidence_items||0)} evidence items · ${Number(ev.automated_items||0)} automated · ${Number(ev.controls_with_evidence||0)} control refs</div>
         <div class="cd">Latest collection: ${esc(ev.latest_collected_at||"—")}</div>
       </div>` : "";
-    // ── Solicitor-actions / currency / gate renderers (LOVR-SOLICITOR-PANEL-SITE-001) ──
-    // Card-class note: this page's Vault cards use card/ct/cd (no cm/cs), so the brief's
-    // cm/cs slots are rendered with the page's own `cd` class throughout.
-    // Counsel matter + linked instruction. sa-doc is a non-clickable labelled reference:
-    // the Vault open path is keyed by artefact_id, not doc_code, so no doc_code open
-    // mechanism exists to reuse and no new vault-resolve call is authored here.
-    function counselCard(ci){
-      const doc = ci.artefact_doc_code
-        ? `<div class="cd"><span class="sa-doc" data-doc="${esc(ci.artefact_doc_code)}">Instruction: ${esc(ci.artefact_doc_code)}</span></div>` : "";
-      return `<div class="card">
-        <div class="ct">${esc(ci.instruction_ref||"")} — ${esc(ci.title||"")}</div>
-        <div class="cd">Status: ${esc((ci.status||"").replace(/_/g," "))}${ci.due_date?` · due ${esc(ci.due_date)}`:""}</div>
-        <div class="cd">${esc(ci.matter_plain || ci.scope_summary || "")}</div>${doc}
-      </div>`;
-    }
-    function currencyCards(rows){
-      if(!Array.isArray(rows) || !rows.length) return "";
-      return rows.map(p => {
-        const stale = p.last_event && p.last_event !== "director_approved_update" && p.last_event !== "baseline";
-        const flag = (p.last_event === "baseline")
-          ? `<span class="sa-pill sa-grey">Baseline — review currency</span>`
-          : (stale ? `<span class="sa-pill sa-amber">${esc(p.last_event.replace(/_/g," "))}</span>`
-                   : `<span class="sa-pill sa-green">Current</span>`);
-        return `<div class="card"><div class="ct">${esc(p.title||p.page||"")}</div>
-          <div class="cd">${esc(p.version||"")}</div><div class="cd">${flag}</div></div>`;
-      }).join("");
-    }
+    // ── Context renderers (gate / KL / governance / charity) ──
+    // Counsel instructions and public-page currency now render as Vault cards
+    // (counsel-instruction / public-facing categories, §1.1/§1.4), so their former
+    // dashboard renderers were removed here to keep the room de-duplicated (§1.2).
     function gateCards(rows){
       if(!Array.isArray(rows) || !rows.length) return "";
       const cls = s => s==="met"?"sa-green":(s==="not_run"?"sa-grey":(s==="unmet"?"sa-amber":"sa-grey"));
@@ -1096,7 +1168,6 @@ details[open] .ctx-summary::before{content:"\25BE "}
         <div class="cd">Contracts in vault: ${Number(c.contract_vault_count||0)} · open statute alerts: ${Number(c.statute_alerts_open||0)}</div>
         <div class="cd" style="opacity:.7">Charity law / Charity Commission regime — distinct from the data-protection estate.</div></div></div>`;
     }
-    const currCards = currencyCards(data.currency);
     const gateBlk = gateCards(data.gates);
     const klBlk = klCard(data.knowledge_library);
     const eileenBlk = eileenCard(data.eileen_governance);
@@ -1105,12 +1176,12 @@ details[open] .ctx-summary::before{content:"\25BE "}
       <summary class="ctx-summary">AI Lane assurance posture &amp; status — context (click to expand)</summary>
       <div class="ctx-body">
       <div class="section">
-        <div class="sh"><span class="bar"></span><span class="st">Assurance &amp; Certifications</span><span class="sc">${progs.length}</span></div>
-        <div class="cards">${progCards}</div>
-        <div class="sh"><span class="bar"></span><span class="st">External counsel — instructions</span><span class="sc">${counsel.length}</span></div>
-        <div class="cards">${counselCards}${c2Line}${evLine}</div>
-        ${currCards ? `<div class="sh"><span class="bar"></span><span class="st">Public-page currency</span><span class="sc">${(data.currency||[]).length}</span></div>
-        <div class="cards">${currCards}</div>` : ""}
+        <div class="sh"><span class="bar"></span><span class="st">Compliance &amp; certification tracker</span><span class="sc">${tracker.length}</span></div>
+        <div class="cards">${trackCards || `<div class="card"><div class="cd">No certification tracks are currently published.</div></div>`}</div>
+        ${evLine ? `<div class="cards" style="margin-top:12px">${evLine}</div>` : ""}
+        ${alsoLine}
+        ${c2Line ? `<div class="sh"><span class="bar"></span><span class="st">Verification &amp; evidence</span></div>
+        <div class="cards">${c2Line}</div>` : ""}
         ${gateBlk ? `<div class="cards" style="margin-top:14px">${gateBlk}</div>` : ""}
         ${(klBlk||eileenBlk) ? `<div class="sh"><span class="bar"></span><span class="st">Knowledge Library &amp; AI governance</span></div>
         <div class="cards">${klBlk}${eileenBlk}</div>` : ""}
