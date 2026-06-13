@@ -1002,6 +1002,7 @@
       if(!v) return;
       host = document.createElement("div");
       host.id = "assurance";
+      host.style.gridColumn = "1 / -1";
       v.insertAdjacentElement("afterend", host);
     }
     const { data, error } = await sb.rpc("legal_oversight_assurance");
@@ -1034,6 +1035,7 @@
     // cm/cs slots are rendered with the page's own `cd` class throughout.
     const SA_LABEL = { amber:"Awaiting instruction", blue:"Instructed — awaiting opinion", purple:"Acknowledgement required", indigo:"Sign-off required", green:"Returned / received", red:"Overdue / rectification", grey:"Planned" };
     const SA_RANK = { red:0, amber:1, blue:2, purple:3, indigo:4, grey:5, green:6 };
+    const SA_KIND = { counsel_instruction:"Counsel instruction", counsel_obligation:"Counsel obligation", rectification:"Rectification" };
     // Counsel matter + linked instruction. sa-doc is a non-clickable labelled reference:
     // the Vault open path is keyed by artefact_id, not doc_code, so no doc_code open
     // mechanism exists to reuse and no new vault-resolve call is authored here.
@@ -1054,7 +1056,7 @@
         <div class="sa-row">
           <div class="sa-main">
             <div class="sa-name">${esc(a.title||a.ref||"")}</div>
-            <div class="sa-sub">${esc(a.plain_summary||"")}${a.due_date?` · due ${esc(a.due_date)}`:""}</div>
+            <div class="sa-sub">${esc(SA_KIND[a.kind]||a.kind||"")}${a.ref?` · ${esc(a.ref)}`:""}${a.due_date?` · due ${esc(a.due_date)}`:""}</div>
           </div>
           <span class="sa-pill sa-${esc(a.colour||"grey")}">${esc(SA_LABEL[a.colour]||a.state||"")}</span>
         </div>`).join("");
@@ -1083,9 +1085,35 @@
       return `<div class="card"><div class="ct">HSE deal-gate status</div>
         <div class="cd" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${items}</div></div>`;
     }
+    function klCard(kl){
+      if(!kl) return "";
+      const lr = kl.licence_register||{}, cr = kl.content_review||{};
+      return `<div class="card"><div class="ct">Knowledge Library — licensing & content posture</div>
+        <div class="cd">Licence register: ${Number(lr.verified||0)}/${Number(lr.total||0)} verified${lr.pending?` · ${Number(lr.pending)} pending`:""}${lr.rejected?` · ${Number(lr.rejected)} rejected`:""}</div>
+        <div class="cd">Content reviews: ${Number(cr.total||0)} · latest ${esc(cr.latest||"—")} · consent records: ${Number(kl.consent_records||0)}</div></div>`;
+    }
+    function eileenCard(eg){
+      if(!eg) return "";
+      const bt = eg.by_failure_type ? Object.entries(eg.by_failure_type).map(([k,v])=>`${esc(String(k).replace(/_/g," "))}: ${Number(v)}`).join(" · ") : "";
+      return `<div class="card"><div class="ct">Eileen — AI governance (advice-boundary guardrail)</div>
+        <div class="cd">Constitutional Compliance Engine catches: ${Number(eg.guardrail_events_total||0)} total${bt?` · ${bt}`:""}</div>
+        <div class="cd">Latest: ${esc(eg.latest_event||"—")} · evidences the intelligence-not-advice gate is enforced.</div></div>`;
+    }
+    function charitySection(c){
+      if(!c) return "";
+      const bs = c.obligations_by_status ? Object.entries(c.obligations_by_status).map(([k,v])=>`${esc(String(k))}: ${Number(v)}`).join(" · ") : "";
+      return `<div class="sh"><span class="bar"></span><span class="st">Charity estate — separate regime</span><span class="sc">${Number(c.obligations_total||0)}</span></div>
+        <div class="cards"><div class="card"><div class="ct">Charity obligations</div>
+        <div class="cd">${Number(c.obligations_total||0)} obligations${bs?` (${bs})`:""} · next due ${esc(c.next_due||"—")}</div>
+        <div class="cd">Contracts in vault: ${Number(c.contract_vault_count||0)} · open statute alerts: ${Number(c.statute_alerts_open||0)}</div>
+        <div class="cd" style="opacity:.7">Charity law / Charity Commission regime — distinct from the data-protection estate.</div></div></div>`;
+    }
     const saHtml = saPanel(data.solicitor_actions);
     const currCards = currencyCards(data.currency);
     const gateBlk = gateCards(data.gates);
+    const klBlk = klCard(data.knowledge_library);
+    const eileenBlk = eileenCard(data.eileen_governance);
+    const charityBlk = charitySection(data.charity);
     host.innerHTML = `
       ${saHtml}
       <div class="section">
@@ -1096,6 +1124,9 @@
         ${currCards ? `<div class="sh"><span class="bar"></span><span class="st">Public-page currency</span><span class="sc">${(data.currency||[]).length}</span></div>
         <div class="cards">${currCards}</div>` : ""}
         ${gateBlk ? `<div class="cards" style="margin-top:14px">${gateBlk}</div>` : ""}
+        ${(klBlk||eileenBlk) ? `<div class="sh"><span class="bar"></span><span class="st">Knowledge Library &amp; AI governance</span></div>
+        <div class="cards">${klBlk}${eileenBlk}</div>` : ""}
+        ${charityBlk}
         <p class="cd" style="opacity:.7;margin-top:8px">Postures shown are programme states, not certification claims. Statuses update live from the governance estate.</p>
       </div>`;
   }
