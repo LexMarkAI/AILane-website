@@ -330,6 +330,15 @@
 .sa-green{background:#dcfce7;color:#166534}.sa-red{background:#fee2e2;color:#991b1b}
 .sa-grey{background:#e5e7eb;color:#374151}
 </style>
+<!-- Context disclosure — collapsed assurance/status block below Vault (AILANE-CC-BRIEF-LOVR-DEDRIFT-SITE-001). Additive; ctx- prefix scoped. -->
+<style>
+.ctx-block{border:1px solid var(--line,#22304a);border-radius:12px;margin:18px 0;background:rgba(255,255,255,.015)}
+.ctx-summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:600;color:var(--ink,#e6edf6);font-size:15px}
+.ctx-summary::-webkit-details-marker{display:none}
+.ctx-summary::before{content:"\25B8 ";color:var(--mut,#9fb0c7)}
+details[open] .ctx-summary::before{content:"\25BE "}
+.ctx-body{padding:0 16px 14px}
+</style>
 </head>
 <body>
 
@@ -724,7 +733,7 @@
       html += `<div class="group">
         <div class="gh" onclick="LOVR.toggle('${gid}')">
           <span class="gt">${esc(g.label)}</span><span class="ct">${items.length}</span></div>
-        <div class="items" id="${gid}">` +
+        <div class="items collapsed" id="${gid}">` +
         items.map(it=>`<div class="obl">${statusPill(it.status)}
           <div class="meta"><div class="ot">${esc(it.title||it.code)}</div>
           <div class="ow">${esc(it.owner||"")}</div></div></div>`).join("") +
@@ -1033,9 +1042,6 @@
     // ── Solicitor-actions / currency / gate renderers (LOVR-SOLICITOR-PANEL-SITE-001) ──
     // Card-class note: this page's Vault cards use card/ct/cd (no cm/cs), so the brief's
     // cm/cs slots are rendered with the page's own `cd` class throughout.
-    const SA_LABEL = { amber:"Awaiting instruction", blue:"Instructed — awaiting opinion", purple:"Acknowledgement required", indigo:"Sign-off required", green:"Returned / received", red:"Overdue / rectification", grey:"Planned" };
-    const SA_RANK = { red:0, amber:1, blue:2, purple:3, indigo:4, grey:5, green:6 };
-    const SA_KIND = { counsel_instruction:"Counsel instruction", counsel_obligation:"Counsel obligation", rectification:"Rectification" };
     // Counsel matter + linked instruction. sa-doc is a non-clickable labelled reference:
     // the Vault open path is keyed by artefact_id, not doc_code, so no doc_code open
     // mechanism exists to reuse and no new vault-resolve call is authored here.
@@ -1046,24 +1052,6 @@
         <div class="ct">${esc(ci.instruction_ref||"")} — ${esc(ci.title||"")}</div>
         <div class="cd">Status: ${esc((ci.status||"").replace(/_/g," "))}${ci.due_date?` · due ${esc(ci.due_date)}`:""}</div>
         <div class="cd">${esc(ci.matter_plain || ci.scope_summary || "")}</div>${doc}
-      </div>`;
-    }
-    function saPanel(actions){
-      if(!Array.isArray(actions) || !actions.length) return "";
-      const open = actions.filter(a => a.colour !== "green");
-      const topColour = open.sort((a,b)=>(SA_RANK[a.colour]??9)-(SA_RANK[b.colour]??9))[0]?.colour || "green";
-      const rows = actions.map(a => `
-        <div class="sa-row">
-          <div class="sa-main">
-            <div class="sa-name">${esc(a.title||a.ref||"")}</div>
-            <div class="sa-sub">${esc(SA_KIND[a.kind]||a.kind||"")}${a.ref?` · ${esc(a.ref)}`:""}${a.due_date?` · due ${esc(a.due_date)}`:""}</div>
-          </div>
-          <span class="sa-pill sa-${esc(a.colour||"grey")}">${esc(SA_LABEL[a.colour]||a.state||"")}</span>
-        </div>`).join("");
-      return `<div class="sa-panel">
-        <div class="sa-hd" style="border-bottom-color:${({amber:'#f59e0b',blue:'#2563eb',purple:'#7c3aed',indigo:'#4f46e5',red:'#dc2626',green:'#16a34a',grey:'#9ca3af'})[topColour]||'#9ca3af'}">
-          Solicitor actions <span class="sa-count">${open.length} open</span>
-        </div>${rows}
       </div>`;
     }
     function currencyCards(rows){
@@ -1108,14 +1096,14 @@
         <div class="cd">Contracts in vault: ${Number(c.contract_vault_count||0)} · open statute alerts: ${Number(c.statute_alerts_open||0)}</div>
         <div class="cd" style="opacity:.7">Charity law / Charity Commission regime — distinct from the data-protection estate.</div></div></div>`;
     }
-    const saHtml = saPanel(data.solicitor_actions);
     const currCards = currencyCards(data.currency);
     const gateBlk = gateCards(data.gates);
     const klBlk = klCard(data.knowledge_library);
     const eileenBlk = eileenCard(data.eileen_governance);
     const charityBlk = charitySection(data.charity);
-    host.innerHTML = `
-      ${saHtml}
+    host.innerHTML = `<details class="ctx-block">
+      <summary class="ctx-summary">AI Lane assurance posture &amp; status — context (click to expand)</summary>
+      <div class="ctx-body">
       <div class="section">
         <div class="sh"><span class="bar"></span><span class="st">Assurance &amp; Certifications</span><span class="sc">${progs.length}</span></div>
         <div class="cards">${progCards}</div>
@@ -1128,7 +1116,8 @@
         <div class="cards">${klBlk}${eileenBlk}</div>` : ""}
         ${charityBlk}
         <p class="cd" style="opacity:.7;margin-top:8px">Postures shown are programme states, not certification claims. Statuses update live from the governance estate.</p>
-      </div>`;
+      </div></div>
+    </details>`;
   }
   const __rvhOriginal = renderVaultHub;
   renderVaultHub = async function(){
