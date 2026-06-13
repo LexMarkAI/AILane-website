@@ -167,12 +167,6 @@
   .cbadgerow{margin:-2px 0 1px}
   .obl-link{cursor:pointer}
   .obl-link:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-  /* Compliance & certification tracker (§1.6) — mirrors the CEO-dash spine */
-  .trk-bar{height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin:5px 0 2px}
-  .trk-fill{height:100%;background:var(--cyan);border-radius:999px}
-  .trk-docs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-  .trk-docs .chip{cursor:pointer;color:var(--cyan);border-color:rgba(14,165,233,.3)}
-  .trk-docs .chip:hover{background:var(--cyan-soft);text-decoration:none}
 
   .gate{min-height:64vh;display:flex;align-items:center;justify-content:center;padding:40px 0}
   .signin{width:100%;max-width:400px;border:1px solid var(--line);border-radius:var(--radius);
@@ -1062,66 +1056,13 @@ details[open] .ctx-summary::before{content:"\25BE "}
     const progs = data.programmes || [];
     const c2 = data.c2_art14_cohort || null;
     const ev = data.isms_evidence || null;
-    // Compliance & certification tracker (§1.6) — render the live spine the CEO-dash
-    // uses (data.certification_tracker), replacing the flat programmes cards.
-    const tracker = Array.isArray(data.certification_tracker) ? data.certification_tracker : [];
-    // doc_code → artefact_id from the rows the Vault already fetched, so a track's linked
-    // spec opens the exact Vault card. Defensive: if the cache is not yet populated, doc
-    // chips fall back to a scroll into #sec-assurance — never a dead link.
-    const __reg = (vaultCache && Array.isArray(vaultCache.reg)) ? vaultCache.reg : [];
-    const docMap = {};
-    __reg.forEach(r => { if(r && r.doc_code) docMap[r.doc_code] = r.artefact_id; });
-    const trackPill = (s) => {
-      const v = String(s||"").toLowerCase().replace(/\s+/g,"_");
-      let cls = "st-not-applicable";                                          // planned / unknown → neutral
-      if(v==="in_progress") cls = "st-open";                                   // amber
-      else if(v==="complete"||v==="operating") cls = "st-satisfied";          // green
-      else if(v==="blocked") cls = "st-blocked";                              // red
-      const label = (String(s||"").replace(/_/g," ")) || "—";
-      return `<span class="pill ${cls}">${esc(label)}</span>`;
-    };
-    const trackDocCodes = (t) => {
-      const out = [];
-      const add = (v) => {
-        if(v==null) return;
-        if(Array.isArray(v)){ v.forEach(add); return; }
-        const s = String(v).trim();
-        if(/^AILANE-[A-Z0-9._-]+$/i.test(s) && out.indexOf(s)<0) out.push(s);
-      };
-      add(t.linked_spec_ids); add(t.evidence_uri);
-      return out;
-    };
-    const docChip = (code) => {
-      const aid = docMap[code];
-      return aid
-        ? `<a class="chip" href="#" title="Open ${esc(code)}" onclick="LOVR.open('${aid}','preview');return false;">${esc(code)}</a>`
-        : `<a class="chip" href="#sec-assurance" title="${esc(code)} — open in the Assurance section" onclick="LOVR.railScroll('sec-assurance');return false;">${esc(code)}</a>`;
-    };
-    const trackCards = tracker.map(t => {
-      const pct = (t.progress_pct==null) ? null : Math.max(0, Math.min(100, Number(t.progress_pct)||0));
-      const prog = (pct==null) ? "" :
-        `<div class="trk-bar"><div class="trk-fill" style="width:${pct}%"></div></div><div class="cd">${pct}%</div>`;
-      const codes = trackDocCodes(t);
-      const docs = codes.length ? `<div class="trk-docs">${codes.map(docChip).join("")}</div>` : "";
-      const notes = t.notes ? `<div class="cd" style="opacity:.85;color:var(--text)">${esc(t.notes)}</div>` : "";
-      return `<div class="card">
-        <div class="ct">${esc(t.track||"")}${t.standard?` — ${esc(t.standard)}`:""} ${trackPill(t.status)}</div>
-        ${prog}
-        <div class="cd">Next: ${esc(t.next_milestone||"—")}${t.owner?` · Owner: ${esc(t.owner)}`:""}</div>
-        ${docs}${notes}
-      </div>`;
-    }).join("");
-    // Programmes not represented in the tracker — one compact line so none of the
-    // programme rows is lost. Match on significant tokens (standard numbers /
-    // distinctive words), biased to inclusion so nothing is dropped silently.
-    const __sig = (s) => (String(s||"").toLowerCase().match(/[a-z]{3,}|\d{3,}/g)||[]);
-    const __signif = (x) => /\d/.test(x) || x.length>=4;
-    const __share = (a,b) => { const A=__sig(a), B=__sig(b); return A.some(x => __signif(x) && B.indexOf(x)>=0); };
-    const __inTracker = (p) => tracker.some(t => __share(p.programme,t.standard) || __share(p.programme,t.track) || __share(p.framework_body,t.standard));
-    const alsoTracked = progs.filter(p => !__inTracker(p));
-    const alsoLine = alsoTracked.length
-      ? `<p class="cd" style="opacity:.85;color:var(--text);margin-top:8px">Also tracked: ${alsoTracked.map(p=>`${esc(p.programme||"")}${p.posture?` — ${esc(ASSURANCE_POSTURE_LABELS[p.posture]||p.posture)}`:""}`).join("; ")}</p>`
-      : "";
+    const progCards = progs.map(p => `
+      <div class="card">
+        <div class="ct">${esc(p.programme||"")}</div>
+        <div class="cd">${esc(ASSURANCE_POSTURE_LABELS[p.posture]||esc(p.posture||""))}${p.framework_body?` · ${esc(p.framework_body)}`:""}</div>
+        <div class="cd">${esc(p.posture_note||"")}</div>
+        <div class="cf"><a class="chip" href="#sec-assurance" onclick="LOVR.railScroll('sec-assurance');return false;">Open the assurance roadmap &rarr;</a></div>
+      </div>`).join("");
     const c2Line = c2 ? `
       <div class="card">
         <div class="ct">HSE Article 14 cohort — verification state</div>
@@ -1176,12 +1117,10 @@ details[open] .ctx-summary::before{content:"\25BE "}
       <summary class="ctx-summary">AI Lane assurance posture &amp; status — context (click to expand)</summary>
       <div class="ctx-body">
       <div class="section">
-        <div class="sh"><span class="bar"></span><span class="st">Compliance &amp; certification tracker</span><span class="sc">${tracker.length}</span></div>
-        <div class="cards">${trackCards || `<div class="card"><div class="cd">No certification tracks are currently published.</div></div>`}</div>
-        ${evLine ? `<div class="cards" style="margin-top:12px">${evLine}</div>` : ""}
-        ${alsoLine}
-        ${c2Line ? `<div class="sh"><span class="bar"></span><span class="st">Verification &amp; evidence</span></div>
-        <div class="cards">${c2Line}</div>` : ""}
+        <div class="sh"><span class="bar"></span><span class="st">Assurance &amp; Certifications</span><span class="sc">${progs.length}</span></div>
+        <div class="cards">${progCards}</div>
+        ${(c2Line||evLine) ? `<div class="sh"><span class="bar"></span><span class="st">Verification &amp; evidence</span></div>
+        <div class="cards">${c2Line}${evLine}</div>` : ""}
         ${gateBlk ? `<div class="cards" style="margin-top:14px">${gateBlk}</div>` : ""}
         ${(klBlk||eileenBlk) ? `<div class="sh"><span class="bar"></span><span class="st">Knowledge Library &amp; AI governance</span></div>
         <div class="cards">${klBlk}${eileenBlk}</div>` : ""}
