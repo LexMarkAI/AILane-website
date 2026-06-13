@@ -166,7 +166,7 @@ function App(){
 
         {/* SECTION 3 — Legal responsibilities & oversight */}
         <div className="sec-head"><div className="t">Legal Responsibilities &amp; Oversight</div><div className="rule"/></div>
-        <LegalResponsibilities reviewers={reviewers}/>
+        <LegalResponsibilities reviewers={reviewers} token={token}/>
         <LegalOversightRoomCard token={token}/>
 
         {/* SECTION 4 — Competitive & legislative watch (DEMOTED, collapsed) */}
@@ -551,12 +551,15 @@ function AcgePanel({token}){
 }
 
 // ── SECTION 3 ──
-function LegalResponsibilities({reviewers}){
+function LegalResponsibilities({reviewers,token}){
   const rv=reviewers||[];
+  // Observation pill colour from the live trademark watch (TMW-SITE-001-AM-001) — independent of the green registration status; defaults green until loaded
+  const[obsColor,setObsColor]=useState('var(--accent-green)');
+  useEffect(()=>{if(!token)return;let active=true;(async()=>{try{const r=await fetch(`${SUPABASE_URL}/functions/v1/tmw-observation`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});if(!r.ok)return;const j=await r.json();const s=j&&j.state&&j.state.status;const map={green:'#34d399',amber:'#f59e0b',red:'#f87171'};if(active&&map[s])setObsColor(map[s]);}catch(e){}})();return()=>{active=false;};},[token]);
   const posture=[
     {area:'Company Formation',status:'Complete',detail:'17035654, incorporated 16 Feb 2026',color:'var(--accent-green)'},
     {area:'ICO Registration',status:'Active',detail:'00013389720, renewal Feb 2027',color:'var(--accent-green)'},
-    {area:'UK Trademark',status:'Registered',detail:'UK00004347220 (Ai Lane), entered in register 22 May 2026 — renewal due 28 Feb 2036',color:'var(--accent-green)'},
+    {area:'UK Trademark',status:'Registered',detail:'UK00004347220 (Ai Lane), entered in register 22 May 2026 — renewal due 28 Feb 2036',color:'var(--accent-green)',observation:true},
     {area:'Terms of Service',status:'Live',detail:'ailane.ai/terms/ — ToS checkbox consent',color:'var(--accent-green)'},
     {area:'Privacy Policy',status:'Live',detail:'ailane.ai/privacy/ — UK GDPR',color:'var(--accent-green)'},
     {area:'Professional Indemnity',status:'Required',detail:'PI insurance needed before Governance tier goes live',color:'var(--accent-red)'},
@@ -570,7 +573,7 @@ function LegalResponsibilities({reviewers}){
             {posture.map((l,i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:i<posture.length-1?'1px solid var(--border-subtle)':'none'}}>
                 <div><div style={{fontSize:'0.74rem',color:'var(--text-primary)',fontWeight:500}}>{l.area}</div><div style={{fontSize:'0.58rem',color:'var(--text-muted)'}}>{l.detail}</div></div>
-                <span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',color:l.color}}>{l.status}</span>
+                <span style={{display:'inline-flex',alignItems:'center'}}><span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',color:l.color}}>{l.status}</span>{l.observation && <a href="/AiLaneCEO/legal/trademark-observation/" style={{marginLeft:8,fontSize:'0.58rem',fontFamily:'var(--font-mono)',padding:'1px 7px',borderRadius:'12px',border:'1px solid var(--border-subtle)',color:obsColor,textDecoration:'none'}}>● Observation</a>}</span>
               </div>
             ))}
           </div>
