@@ -85,6 +85,13 @@
     var esc = api.esc;
     var root = document.getElementById('docs');
 
+    /* §3 — static document downloads, keyed by doc_code. Only documents with a
+     * committed PDF under /charities/rwf-2026/docs/ appear here; the rest keep
+     * their existing in-room rendering until their source PDF is added. */
+    var DOWNLOADS = {
+      'AILANE-SAFEGUARDING-DATA-001': '/charities/rwf-2026/docs/AILANE-SAFEGUARDING-DATA-001.pdf'
+    };
+
     var rows = null;            /* live catalog rows, when reachable */
     var acceptances = {};       /* terms_version → accepted_at */
     var entryAcceptedAt = null; /* entry-gate acceptance (Terms + Privacy) */
@@ -199,6 +206,10 @@
       if (link && link.has_pdf) {
         actions += '<button class="btn sm" type="button" data-open="' + esc(d.document_id) + '">Open file</button>';
       }
+      if (DOWNLOADS[d.doc_code]) {
+        actions += '<a class="btn sm" href="' + esc(DOWNLOADS[d.doc_code]) + '" download ' +
+          'type="application/pdf">Download PDF</a>';
+      }
 
       return '<div class="item-row" id="doc-' + esc(d.document_id) + '">' +
         '<div class="it">' + esc(d.name || d.doc_code) + '</div>' +
@@ -244,6 +255,9 @@
       if (!view) return;
       var isAcceptance = isBlockingCode(d.doc_code);
       var acceptedAt = acceptedAtFor(d.doc_code, d.version_label);
+      var dlBtn = DOWNLOADS[d.doc_code]
+        ? '<a class="btn sm" href="' + esc(DOWNLOADS[d.doc_code]) + '" download type="application/pdf">Download PDF</a>'
+        : '';
 
       var overlay = document.createElement('div');
       overlay.id = 'doc-overlay';
@@ -287,7 +301,7 @@
       }
 
       if (!isAcceptance) {
-        foot.innerHTML = '<span class="chip cyan">Released to the room — no acceptance needed</span>';
+        foot.innerHTML = '<span class="chip cyan">Released to the room — no acceptance needed</span>' + dlBtn;
         return;
       }
 
