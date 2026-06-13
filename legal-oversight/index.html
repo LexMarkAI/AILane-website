@@ -314,6 +314,22 @@
     .eileen-fab{right:14px;bottom:14px}
   }
 </style>
+
+<!-- Consolidated Solicitor-actions panel — scoped sa- prefix (AILANE-CC-BRIEF-LOVR-SOLICITOR-PANEL-SITE-001). Additive only. -->
+<style>
+.sa-panel{border:1px solid var(--line,#d3dae3);border-radius:12px;overflow:hidden;margin:14px 0}
+.sa-hd{display:flex;align-items:center;gap:8px;padding:11px 14px;font-weight:600;border-bottom:2px solid #f59e0b}
+.sa-hd .sa-count{margin-left:auto;font-weight:400;opacity:.7;font-size:12px}
+.sa-row{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line,#eceff3)}
+.sa-row:first-child{border-top:none}.sa-row .sa-main{flex:1;min-width:0}
+.sa-name{font-weight:600;font-size:13.5px}.sa-sub{font-size:12px;opacity:.75;margin-top:1px}
+.sa-doc{font-size:11.5px;text-decoration:underline}
+.sa-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.sa-amber{background:#fef3c7;color:#92400e}.sa-blue{background:#dbeafe;color:#1e40af}
+.sa-purple{background:#ede9fe;color:#5b21b6}.sa-indigo{background:#e0e7ff;color:#3730a3}
+.sa-green{background:#dcfce7;color:#166534}.sa-red{background:#fee2e2;color:#991b1b}
+.sa-grey{background:#e5e7eb;color:#374151}
+</style>
 </head>
 <body>
 
@@ -1000,12 +1016,7 @@
         <div class="cd">${esc(ASSURANCE_POSTURE_LABELS[p.posture]||esc(p.posture||""))}${p.framework_body?` · ${esc(p.framework_body)}`:""}</div>
         <div class="cd">${esc(p.posture_note||"")}</div>
       </div>`).join("");
-    const counselCards = counsel.map(ci => `
-      <div class="card">
-        <div class="ct">${esc(ci.instruction_ref||"")} — ${esc(ci.title||"")}</div>
-        <div class="cd">Status: ${esc((ci.status||"").replace(/_/g," "))}${ci.due_date?` · due ${esc(ci.due_date)}`:""}</div>
-        <div class="cd">${esc(ci.scope_summary||"")}</div>
-      </div>`).join("");
+    const counselCards = counsel.map(counselCard).join("");
     const c2Line = c2 ? `
       <div class="card">
         <div class="ct">HSE Article 14 cohort — verification state</div>
@@ -1018,12 +1029,73 @@
         <div class="cd">${Number(ev.evidence_items||0)} evidence items · ${Number(ev.automated_items||0)} automated · ${Number(ev.controls_with_evidence||0)} control refs</div>
         <div class="cd">Latest collection: ${esc(ev.latest_collected_at||"—")}</div>
       </div>` : "";
+    // ── Solicitor-actions / currency / gate renderers (LOVR-SOLICITOR-PANEL-SITE-001) ──
+    // Card-class note: this page's Vault cards use card/ct/cd (no cm/cs), so the brief's
+    // cm/cs slots are rendered with the page's own `cd` class throughout.
+    const SA_LABEL = { amber:"Awaiting instruction", blue:"Instructed — awaiting opinion", purple:"Acknowledgement required", indigo:"Sign-off required", green:"Returned / received", red:"Overdue / rectification", grey:"Planned" };
+    const SA_RANK = { red:0, amber:1, blue:2, purple:3, indigo:4, grey:5, green:6 };
+    // Counsel matter + linked instruction. sa-doc is a non-clickable labelled reference:
+    // the Vault open path is keyed by artefact_id, not doc_code, so no doc_code open
+    // mechanism exists to reuse and no new vault-resolve call is authored here.
+    function counselCard(ci){
+      const doc = ci.artefact_doc_code
+        ? `<div class="cd"><span class="sa-doc" data-doc="${esc(ci.artefact_doc_code)}">Instruction: ${esc(ci.artefact_doc_code)}</span></div>` : "";
+      return `<div class="card">
+        <div class="ct">${esc(ci.instruction_ref||"")} — ${esc(ci.title||"")}</div>
+        <div class="cd">Status: ${esc((ci.status||"").replace(/_/g," "))}${ci.due_date?` · due ${esc(ci.due_date)}`:""}</div>
+        <div class="cd">${esc(ci.matter_plain || ci.scope_summary || "")}</div>${doc}
+      </div>`;
+    }
+    function saPanel(actions){
+      if(!Array.isArray(actions) || !actions.length) return "";
+      const open = actions.filter(a => a.colour !== "green");
+      const topColour = open.sort((a,b)=>(SA_RANK[a.colour]??9)-(SA_RANK[b.colour]??9))[0]?.colour || "green";
+      const rows = actions.map(a => `
+        <div class="sa-row">
+          <div class="sa-main">
+            <div class="sa-name">${esc(a.title||a.ref||"")}</div>
+            <div class="sa-sub">${esc(a.plain_summary||"")}${a.due_date?` · due ${esc(a.due_date)}`:""}</div>
+          </div>
+          <span class="sa-pill sa-${esc(a.colour||"grey")}">${esc(SA_LABEL[a.colour]||a.state||"")}</span>
+        </div>`).join("");
+      return `<div class="sa-panel">
+        <div class="sa-hd" style="border-bottom-color:${({amber:'#f59e0b',blue:'#2563eb',purple:'#7c3aed',indigo:'#4f46e5',red:'#dc2626',green:'#16a34a',grey:'#9ca3af'})[topColour]||'#9ca3af'}">
+          Solicitor actions <span class="sa-count">${open.length} open</span>
+        </div>${rows}
+      </div>`;
+    }
+    function currencyCards(rows){
+      if(!Array.isArray(rows) || !rows.length) return "";
+      return rows.map(p => {
+        const stale = p.last_event && p.last_event !== "director_approved_update" && p.last_event !== "baseline";
+        const flag = (p.last_event === "baseline")
+          ? `<span class="sa-pill sa-grey">Baseline — review currency</span>`
+          : (stale ? `<span class="sa-pill sa-amber">${esc(p.last_event.replace(/_/g," "))}</span>`
+                   : `<span class="sa-pill sa-green">Current</span>`);
+        return `<div class="card"><div class="ct">${esc(p.title||p.page||"")}</div>
+          <div class="cd">${esc(p.version||"")}</div><div class="cd">${flag}</div></div>`;
+      }).join("");
+    }
+    function gateCards(rows){
+      if(!Array.isArray(rows) || !rows.length) return "";
+      const cls = s => s==="met"?"sa-green":(s==="not_run"?"sa-grey":(s==="unmet"?"sa-amber":"sa-grey"));
+      const items = rows.map(g => `<span class="sa-pill ${cls(g.status)}" title="${esc(g.title||"")}">${esc(g.id)}: ${esc((g.status||"").replace(/_/g," "))}</span>`).join(" ");
+      return `<div class="card"><div class="ct">HSE deal-gate status</div>
+        <div class="cd" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${items}</div></div>`;
+    }
+    const saHtml = saPanel(data.solicitor_actions);
+    const currCards = currencyCards(data.currency);
+    const gateBlk = gateCards(data.gates);
     host.innerHTML = `
+      ${saHtml}
       <div class="section">
         <div class="sh"><span class="bar"></span><span class="st">Assurance &amp; Certifications</span><span class="sc">${progs.length}</span></div>
         <div class="cards">${progCards}</div>
         <div class="sh"><span class="bar"></span><span class="st">External counsel — instructions</span><span class="sc">${counsel.length}</span></div>
         <div class="cards">${counselCards}${c2Line}${evLine}</div>
+        ${currCards ? `<div class="sh"><span class="bar"></span><span class="st">Public-page currency</span><span class="sc">${(data.currency||[]).length}</span></div>
+        <div class="cards">${currCards}</div>` : ""}
+        ${gateBlk ? `<div class="cards" style="margin-top:14px">${gateBlk}</div>` : ""}
         <p class="cd" style="opacity:.7;margin-top:8px">Postures shown are programme states, not certification claims. Statuses update live from the governance estate.</p>
       </div>`;
   }
