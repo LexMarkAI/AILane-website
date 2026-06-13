@@ -6,9 +6,21 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Counterparty Orchestration &mdash; Ailane Admin</title>
 
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS (RULE 10) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <!-- CSP (SEC-001 §3.2) — page's existing stricter policy, minimally extended so the GA4 tags above
+       can load (googletagmanager script; google-analytics img + connect beacons). All other
+       directives unchanged. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://www.google-analytics.com https://region1.google-analytics.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -214,6 +226,28 @@
     .coc-radio-row label{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:0.84rem;color:var(--text-primary);cursor:pointer}
     .coc-radio-row input[type="radio"]{accent-color:var(--gold)}
     .coc-readonly{padding:8px 12px;background:var(--bg-input);border:1px dashed var(--border-default);border-radius:6px;font-family:var(--font-mono);font-size:0.78rem;color:var(--text-secondary)}
+
+    /* ─── Connected-flow breadcrumb + evaluation pane (BRIEF-DEALROOM-ORCHESTRATION-UI-SITE-001 §3.D) ─── */
+    .coc-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);margin-bottom:14px}
+    .coc-breadcrumb .crumb{color:var(--text-secondary)}
+    .coc-breadcrumb .crumb.active{color:var(--gold);font-weight:600}
+    .coc-breadcrumb .crumb.muted{color:var(--text-muted);opacity:0.45}
+    .coc-breadcrumb .sep{color:var(--text-muted);opacity:0.55}
+    .coc-entity-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .coc-action-evaluate{padding:5px 11px;border:1px solid var(--border-strong);background:transparent;color:var(--text-secondary);font-family:var(--font-mono);font-size:0.7rem;font-weight:500;border-radius:4px;cursor:pointer;letter-spacing:0.04em;white-space:nowrap}
+    .coc-action-evaluate:hover{border-color:var(--cyan);color:var(--cyan)}
+    .coc-room-banner{padding:10px 14px;background:var(--cyan-dim);border-left:3px solid var(--cyan);border-radius:4px;font-family:var(--font-body);font-size:0.82rem;color:var(--text-primary);margin-bottom:14px;font-weight:500;line-height:1.5}
+    .coc-dossier-section{margin-bottom:16px}
+    .coc-dossier-section h4{font-family:var(--font-mono);font-size:0.7rem;color:var(--cyan);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px}
+    .coc-dossier-section p{font-family:var(--font-body);font-size:0.84rem;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+    .coc-univ-searchrow{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+    .coc-univ-searchrow input{flex:1;min-width:220px}
+    .coc-univ-searchrow .btn-run{padding:8px 16px;font-size:0.8rem}
+    .coc-univ-meta{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);margin-bottom:8px}
+    .coc-univ-pager{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .coc-univ-pager .btn-link{padding:5px 12px;font-size:0.72rem}
+    .coc-univ-pager .pos{font-family:var(--font-mono);font-size:0.66rem;color:var(--text-muted)}
+    .coc-tag-universe{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--green);background:var(--green-dim);color:var(--green);font-family:var(--font-mono);font-size:0.62rem;border-radius:10px;letter-spacing:0.04em}
   </style>
 </head>
 
@@ -257,6 +291,9 @@
         <div class="authority">Authority: AMD-145 &middot; AMD-146 &middot; AMD-145-AM-002 &sect;3.5.1'</div>
       </div>
 
+      <!-- ─── AMD-147 · Connected-flow breadcrumb (Family › Cohort › Entity › Room) ─── -->
+      <div id="coc-breadcrumb" class="coc-breadcrumb" data-amd="AMD-147"></div>
+
       <!-- ─── AMD-147 · Cohort Browser ─── -->
       <section id="coc-cohort-browser-panel" class="coc-panel" data-amd="AMD-147">
         <header class="coc-panel-header">
@@ -276,6 +313,15 @@
         </header>
         <div class="coc-drilldown-meta" id="coc-drilldown-meta"></div>
         <div id="coc-drilldown-body"></div>
+      </section>
+
+      <!-- ─── AMD-147 · Pane 3 — Evaluation & Director-side room preview (hidden until used) ─── -->
+      <section id="coc-eval-panel" class="coc-panel" data-amd="AMD-147" style="display:none">
+        <header class="coc-panel-header">
+          <h2 id="coc-eval-title">Evaluation &amp; origination</h2>
+          <button type="button" class="coc-drilldown-close" id="coc-eval-close">Close</button>
+        </header>
+        <div id="coc-eval-body"></div>
       </section>
 
       <!-- ─── Counterparty selector + dispatch options ─── -->
@@ -1450,26 +1496,69 @@
     return parts.join(' · ');
   }
 
-  function renderCohortTile(cohort){
+  /* ═══ Connected-flow plumbing (BRIEF-DEALROOM-ORCHESTRATION-UI-SITE-001 §3.D) ═══
+     Pane 1 families ← ceo-portfolio-data?section=cohort_leagues; Pane 2 cohort + entities (register
+     list or §2.B universe browser); Pane 3 evaluate (cohort_entity_detail) + Director-gated
+     origination + dealroom_detail Director-side room preview. This page had no ceo-portfolio-data
+     callers, so these calls use the CEO/Director bearer pattern used elsewhere in the estate. Every
+     call degrades gracefully (inert note, never a broken pane) if its section is not yet deployed. */
+  var cohortFamiliesCache = [];   // families[] from cohort_leagues
+  var cohortRegisterCache = [];   // register entities[] from cohort_leagues
+  var currentFamilyObj = null;    // selected family (Pane 2)
+
+  async function ceoPortfolioFetch(qs){
+    var fresh = await sb.auth.getSession();
+    if(fresh && fresh.data && fresh.data.session) currentToken = fresh.data.session.access_token;
+    return fetch(SUPABASE_URL + '/functions/v1/ceo-portfolio-data?' + qs, {
+      headers: { 'Authorization': 'Bearer ' + currentToken, 'apikey': SUPABASE_ANON_KEY }
+    });
+  }
+
+  function setBreadcrumb(family, entity, room){
+    var bc = $('coc-breadcrumb');
+    if(!bc) return;
+    clear(bc);
+    var steps = [
+      { label: family ? (COHORT_DISPLAY_NAME[family] || family) : 'Family', on: !!family },
+      { label: 'Cohort', on: !!family },
+      { label: entity || 'Entity', on: !!entity },
+      { label: room || 'Room', on: !!room }
+    ];
+    steps.forEach(function(s, i){
+      if(i > 0) bc.appendChild(el('span', { class:'sep' }, '›'));
+      bc.appendChild(el('span', { class: 'crumb' + (s.on ? ' active' : ' muted') }, s.label));
+    });
+  }
+
+  function renderTierChips(fam){
+    var s = Number(fam.super_league_tier_s_count || 0);
+    var p = Number(fam.super_league_tier_p_count || 0);
+    var d = Number(fam.super_league_tier_d_count || 0);
+    if(s + p + d === 0) return null;
+    var wrap = el('span');
+    if(s > 0){ wrap.appendChild(el('span', { class:'coc-tier-S' }, 'S·' + s)); wrap.appendChild(document.createTextNode(' ')); }
+    if(p > 0){ wrap.appendChild(el('span', { class:'coc-tier-P' }, 'P·' + p)); wrap.appendChild(document.createTextNode(' ')); }
+    if(d > 0){ wrap.appendChild(el('span', { class:'coc-tier-D' }, 'D·' + d)); }
+    return wrap;
+  }
+
+  function renderCohortTile(fam){
     var btn = el('button', { class:'coc-tile', type:'button' });
     var head = el('div', { class:'coc-tile-head' });
-    head.appendChild(el('div', { class:'coc-tile-family' }, COHORT_DISPLAY_NAME[cohort.cohort_family] || cohort.cohort_family));
-    head.appendChild(el('div', { class:'coc-tile-dot ' + dotClassFor(cohort) }));
+    head.appendChild(el('div', { class:'coc-tile-family' }, COHORT_DISPLAY_NAME[fam.cohort_family] || fam.cohort_family));
+    head.appendChild(el('div', { class:'coc-tile-dot ' + dotClassFor(fam) }));
     btn.appendChild(head);
 
+    var headline = (fam.entity_count_total != null ? fam.entity_count_total : (fam.entity_count_active || 0));
     var countLine = el('div', { class:'coc-tile-count' });
-    countLine.appendChild(el('span', { class:'num' }, String(cohort.entity_count_active || 0)));
-    countLine.appendChild(document.createTextNode(cohort.entity_count_active === 1 ? 'entity' : 'entities'));
+    countLine.appendChild(el('span', { class:'num' }, Number(headline).toLocaleString('en-GB')));
+    countLine.appendChild(document.createTextNode(Number(headline) === 1 ? 'entity' : 'entities'));
     btn.appendChild(countLine);
 
-    if(cohort.cohort_family === SUPER_LEAGUE_COHORT){
-      var tiers = 'S=' + (cohort.super_league_tier_s_count || 0) +
-                  ' P=' + (cohort.super_league_tier_p_count || 0) +
-                  ' D=' + (cohort.super_league_tier_d_count || 0);
-      btn.appendChild(el('div', { class:'coc-tile-tiers' }, tiers));
-    }
+    var chips = renderTierChips(fam);
+    if(chips){ var tline = el('div', { class:'coc-tile-tiers' }); tline.appendChild(chips); btn.appendChild(tline); }
 
-    var band = pricingBandText(cohort);
+    var band = pricingBandText(fam);
     if(band){ btn.appendChild(el('div', { class:'coc-tile-band' }, band)); }
 
     return btn;
@@ -1478,36 +1567,54 @@
   async function loadCohortBrowser(){
     var grid = $('coc-cohort-tile-grid');
     grid.setAttribute('aria-busy', 'true');
+    setBreadcrumb(null, null, null);
 
-    var resp = await sb
-      .from('cohort_league_state')
-      .select('cohort_family,entity_count_active,super_league_tier_s_count,super_league_tier_p_count,super_league_tier_d_count,league_table_position,aggregate_metrics')
-      .eq('is_latest', true)
-      .order('cohort_family', { ascending: true });
+    var families = null, entities = null, errMsg = null;
+    try{
+      var r = await ceoPortfolioFetch('section=cohort_leagues');
+      if(r.status === 400 || r.status === 404){
+        errMsg = 'Cohort leagues pending backend deploy (cohort_leagues).';
+      } else if(!r.ok){
+        errMsg = 'Failed to load cohort_leagues (' + r.status + ').';
+      } else {
+        var j = await r.json();
+        var cl = j && j.sections ? j.sections.cohort_leagues : null;
+        if(!cl || cl.error){ errMsg = 'Cohort leagues unavailable' + (cl && cl.error ? ' (' + cl.error + ')' : '') + '.'; }
+        else { families = Array.isArray(cl.families) ? cl.families : []; entities = Array.isArray(cl.entities) ? cl.entities : []; }
+      }
+    }catch(e){ console.error('cohort_leagues', e); errMsg = 'Network error loading cohort leagues.'; }
 
     clear(grid);
-    if(resp.error){
-      var err = el('div', { class:'result-error-detail', style:'grid-column:1/-1' });
-      err.textContent = 'Failed to load cohort_league_state: ' + (resp.error.message || 'unknown');
-      grid.appendChild(err);
+    if(errMsg){
+      grid.appendChild(el('div', { class:'ws-empty', style:'grid-column:1/-1' }, errMsg));
       grid.setAttribute('aria-busy', 'false');
       return;
     }
 
-    cohortStateCache = resp.data || [];
-    if(cohortStateCache.length === 0){
-      grid.appendChild(el('div', { class:'ws-empty', style:'grid-column:1/-1' }, 'No cohort league state on record.'));
+    cohortFamiliesCache = families || [];
+    cohortRegisterCache = entities || [];
+
+    if(cohortFamiliesCache.length === 0){
+      grid.appendChild(el('div', { class:'ws-empty', style:'grid-column:1/-1' }, 'No cohort families in the current snapshot.'));
       grid.setAttribute('aria-busy', 'false');
       return;
     }
 
-    cohortStateCache.forEach(function(cohort){
-      var tile = renderCohortTile(cohort);
-      tile.addEventListener('click', function(){ openDrillDown(cohort); });
+    // Highest headline count first (mirrors the deal-rooms league ordering).
+    var ordered = cohortFamiliesCache.slice().sort(function(a, b){
+      return Number(b.entity_count_total || b.entity_count_active || 0) - Number(a.entity_count_total || a.entity_count_active || 0);
+    });
+    ordered.forEach(function(fam){
+      var tile = renderCohortTile(fam);
+      tile.addEventListener('click', function(){ openDrillDown(fam); });
       grid.appendChild(tile);
     });
 
     grid.setAttribute('aria-busy', 'false');
+  }
+
+  function familyRegisterEntities(family){
+    return cohortRegisterCache.filter(function(e){ return e && e.cohort_family === family; });
   }
 
   /* ─────────────────────────────────────────────
@@ -1518,124 +1625,452 @@
     return el('span', { class:'coc-tier-' + t, title: 'Super-league tier ' + t }, t);
   }
 
-  async function openDrillDown(cohort){
+  // Pane 2 — selected family: league-state summary + entity list (register table, or §2.B
+  // universe browser for aggregate-only families). Accepts either a family object (from a tile)
+  // or a cohort object carrying .cohort_family (the existing submitInstantiate refresh call).
+  async function openDrillDown(arg){
+    var familyKey = (typeof arg === 'string') ? arg : (arg && arg.cohort_family);
+    var fam = cohortFamiliesCache.find(function(f){ return f.cohort_family === familyKey; }) || (typeof arg === 'object' ? arg : null);
+    if(!fam){ return; }
+    currentFamilyObj = fam;
+
     var panel = $('coc-cohort-drilldown-panel');
     var title = $('coc-drilldown-title');
     var meta = $('coc-drilldown-meta');
     var body = $('coc-drilldown-body');
 
     panel.style.display = 'block';
-    title.textContent = (COHORT_DISPLAY_NAME[cohort.cohort_family] || cohort.cohort_family) + ' — drill-down';
+    title.textContent = (COHORT_DISPLAY_NAME[fam.cohort_family] || fam.cohort_family) + ' — cohort';
+    setBreadcrumb(fam.cohort_family, null, null);
 
     clear(meta);
     var metaParts = [];
-    metaParts.push((cohort.entity_count_active || 0) + ' active');
-    if(cohort.cohort_family === SUPER_LEAGUE_COHORT){
-      metaParts.push('S=' + (cohort.super_league_tier_s_count || 0));
-      metaParts.push('P=' + (cohort.super_league_tier_p_count || 0));
-      metaParts.push('D=' + (cohort.super_league_tier_d_count || 0));
+    var total = Number(fam.entity_count_total || 0);
+    metaParts.push(total.toLocaleString('en-GB') + ' total');
+    metaParts.push(Number(fam.entity_count_active || 0).toLocaleString('en-GB') + ' active');
+    if(fam.entity_count_lapsed != null) metaParts.push(Number(fam.entity_count_lapsed).toLocaleString('en-GB') + ' lapsed');
+    if(fam.entity_count_dissolved != null) metaParts.push(Number(fam.entity_count_dissolved).toLocaleString('en-GB') + ' dissolved');
+    if(fam.exclusivity_held_count != null || fam.exclusivity_available_count != null){
+      metaParts.push('exclusivity ' + Number(fam.exclusivity_held_count || 0) + ' held / ' + Number(fam.exclusivity_available_count || 0) + ' available');
     }
-    var band = pricingBandText(cohort);
-    if(band) metaParts.push(band);
     meta.appendChild(el('div', { style:'font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted)' }, metaParts.join(' · ')));
+    var chips = renderTierChips(fam);
+    if(chips){ var chipWrap = el('div', { style:'margin-top:6px' }); chipWrap.appendChild(chips); meta.appendChild(chipWrap); }
 
     clear(body);
     body.appendChild(el('div', { class:'ws-empty' }, 'Loading entities…'));
 
-    var entries = Array.isArray(cohort.league_table_position) ? cohort.league_table_position : [];
-    var alins = entries
-      .map(function(e){ return e && e.alin; })
-      .filter(function(a){ return a && a.indexOf('PEND') === -1; });
-
-    var existingMap = new Map();
-    if(alins.length > 0){
-      var lookup = await sb
-        .from('counterparty_profile')
-        .select('canonical_alin,counterparty_short_code')
-        .in('canonical_alin', alins);
-      if(!lookup.error && Array.isArray(lookup.data)){
-        lookup.data.forEach(function(r){
-          if(r.canonical_alin) existingMap.set(r.canonical_alin, r.counterparty_short_code);
-        });
+    var registerEntities = familyRegisterEntities(fam.cohort_family);
+    if(registerEntities.length > 0){
+      // Mark register entities that already have a workspace (so we offer "View workspace").
+      var existingMap = new Map();
+      var alins = registerEntities.map(function(e){ return e.alin; }).filter(function(a){ return a && a.indexOf('PEND') === -1; });
+      if(alins.length > 0){
+        try{
+          var lookup = await sb.from('counterparty_profile').select('canonical_alin,counterparty_short_code').in('canonical_alin', alins);
+          if(!lookup.error && Array.isArray(lookup.data)){
+            lookup.data.forEach(function(r){ if(r.canonical_alin) existingMap.set(r.canonical_alin, r.counterparty_short_code); });
+          }
+        }catch(e){}
       }
+      existingProfilesCache = existingMap;
+      clear(body);
+      renderEntityTable(body, fam, registerEntities, false);
+    } else if(total > 0){
+      // §2.A: non-zero headline count but no materialised register rows → universe browser (§2.B).
+      clear(body);
+      renderUniverseBrowser(body, fam.cohort_family);
+    } else {
+      clear(body);
+      body.appendChild(el('div', { class:'ws-empty' }, 'No entities in this cohort.'));
     }
-    existingProfilesCache = existingMap;
-
-    renderDrillDownTable(cohort, entries, existingMap);
 
     try{ panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }catch(e){}
   }
 
-  function renderDrillDownTable(cohort, entries, existingMap){
-    var body = $('coc-drilldown-body');
-    clear(body);
-
-    if(entries.length === 0){
-      body.appendChild(el('div', { class:'ws-empty' }, 'No entities in this cohort.'));
-      return;
-    }
-
-    var showTierColumn = (cohort.cohort_family === SUPER_LEAGUE_COHORT);
-
+  function renderEntityTable(container, fam, entities, isUniverse){
+    var showTier = !isUniverse;
     var wrap = el('div', { class:'tbl-wrap' });
     var tbl = el('table');
     var thead = el('thead');
     var hr = el('tr');
-    var cols = ['Company','ALIN'];
-    if(showTierColumn) cols.push('Tier');
-    cols.push('Size band','Evidence','CH number','Action');
+    var cols = ['Company', isUniverse ? 'CH number' : 'ALIN'];
+    if(showTier) cols.push('Tier');
+    cols.push('Size band', isUniverse ? 'Status' : 'Evidence', 'Actions');
     cols.forEach(function(c){ hr.appendChild(el('th', null, c)); });
     thead.appendChild(hr);
     tbl.appendChild(thead);
 
     var tbody = el('tbody');
-    entries.forEach(function(entry){
+    entities.forEach(function(ent){
       var tr = el('tr');
+      tr.appendChild(el('td', { class:'truncate', title: ent.company_name || '' }, ent.company_name || '—'));
 
-      tr.appendChild(el('td', { class:'truncate', title: entry.company_name || '' }, entry.company_name || '—'));
-
-      var alinTd = el('td', { class:'mono-dim' });
-      alinTd.appendChild(document.createTextNode(entry.alin || '—'));
-      if(entry.alin && entry.alin.indexOf('PEND') !== -1){
-        alinTd.appendChild(el('span', { class:'coc-pend-badge' }, 'PEND'));
+      if(isUniverse){
+        tr.appendChild(el('td', { class:'mono-dim' }, ent.companies_house_number || ent.company_number || ent.ch_number || '—'));
+      } else {
+        var alinTd = el('td', { class:'mono-dim' });
+        alinTd.appendChild(document.createTextNode(ent.alin || '—'));
+        if(ent.alin && ent.alin.indexOf('PEND') !== -1) alinTd.appendChild(el('span', { class:'coc-pend-badge' }, 'PEND'));
+        tr.appendChild(alinTd);
       }
-      tr.appendChild(alinTd);
 
-      if(showTierColumn){
+      if(showTier){
         var tierTd = el('td');
-        var badge = tierBadge(entry.super_league_tier);
+        var badge = tierBadge(ent.super_league_tier);
         if(badge) tierTd.appendChild(badge); else tierTd.appendChild(document.createTextNode('—'));
         tr.appendChild(tierTd);
       }
 
-      tr.appendChild(el('td', null, entry.size_band || '—'));
-      tr.appendChild(el('td', null, entry.evidence_tier || '—'));
-      tr.appendChild(el('td', { class:'mono-dim' }, entry.ch_number || '—'));
+      tr.appendChild(el('td', null, ent.size_band || '—'));
 
-      var actionTd = el('td');
-      var existingShortCode = entry.alin ? existingMap.get(entry.alin) : null;
-      if(existingShortCode){
-        var link = el('a', { class:'coc-action-workspace', href: '/partners/' + existingShortCode + '/' }, 'View workspace');
-        actionTd.appendChild(link);
+      if(isUniverse){
+        var stTd = el('td');
+        stTd.appendChild(el('span', { class:'coc-tag-universe' }, 'active · universe'));
+        tr.appendChild(stTd);
       } else {
-        var btn = el('button', { class:'coc-action-instantiate', type:'button' }, 'Instantiate');
-        btn.addEventListener('click', function(){ openInstantiateModal(entry, cohort); });
-        actionTd.appendChild(btn);
+        tr.appendChild(el('td', null, ent.evidence_tier || ent.exposure_band || '—'));
       }
-      tr.appendChild(actionTd);
 
+      tr.appendChild(entityActionsCell(ent, fam, isUniverse));
       tbody.appendChild(tr);
     });
-
     tbl.appendChild(tbody);
     wrap.appendChild(tbl);
-    body.appendChild(wrap);
+    container.appendChild(wrap);
+  }
+
+  function entityActionsCell(ent, fam, isUniverse){
+    var td = el('td');
+    var actions = el('div', { class:'coc-entity-actions' });
+    var chNum = ent.companies_house_number || ent.company_number || ent.ch_number || null;
+    var selKey = ent.alin || chNum || null;
+
+    var evalBtn = el('button', { class:'coc-action-evaluate', type:'button' }, 'Evaluate');
+    evalBtn.addEventListener('click', function(){ evaluateEntity(ent, fam, isUniverse); });
+    actions.appendChild(evalBtn);
+
+    // Register entities reuse the existing instantiate modal/RPC; universe entities (no register
+    // row — ALIN minted at instantiation) route to ceo-cohort-instantiate.
+    var existingShortCode = (!isUniverse && ent.alin) ? existingProfilesCache.get(ent.alin) : null;
+    if(existingShortCode){
+      actions.appendChild(el('a', { class:'coc-action-workspace', href: '/partners/' + existingShortCode + '/' }, 'View workspace'));
+    } else {
+      var createBtn = el('button', { class:'coc-action-instantiate', type:'button' }, 'Create Deal Room');
+      createBtn.addEventListener('click', function(){
+        if(isUniverse) originateUniverse(ent, fam, selKey);
+        else openInstantiateModal(ent, fam);
+      });
+      actions.appendChild(createBtn);
+    }
+    td.appendChild(actions);
+    return td;
+  }
+
+  // §2.B search-first universe browser (vanilla). Never auto-loads all rows; loads page 1 on open,
+  // then on search. Degrades to an inert line if cohort_universe is not yet deployed (§2.C).
+  function renderUniverseBrowser(container, family){
+    var state = { query:'', offset:0, limit:50 };
+
+    var searchRow = el('div', { class:'coc-univ-searchrow' });
+    var input = el('input', { type:'text', placeholder:'Search company name or number' });
+    var searchBtn = el('button', { class:'btn-run', type:'button' }, 'Search');
+    searchRow.appendChild(input);
+    searchRow.appendChild(searchBtn);
+    container.appendChild(searchRow);
+
+    var meta = el('div', { class:'coc-univ-meta' });
+    container.appendChild(meta);
+    var listHost = el('div');
+    container.appendChild(listHost);
+    var pager = el('div', { class:'coc-univ-pager' });
+    container.appendChild(pager);
+
+    async function load(){
+      searchBtn.disabled = true; searchBtn.textContent = 'Searching…';
+      clear(listHost); clear(meta); clear(pager);
+      listHost.appendChild(el('div', { class:'ws-empty' }, 'Loading universe…'));
+
+      var data = null, pending = false, errMsg = null;
+      try{
+        var qs = 'section=cohort_universe&family=' + encodeURIComponent(family)
+               + '&search=' + encodeURIComponent(state.query || '')
+               + '&offset=' + state.offset + '&limit=' + state.limit;
+        var r = await ceoPortfolioFetch(qs);
+        if(r.status === 400 || r.status === 404){ pending = true; }
+        else if(!r.ok){ errMsg = 'Universe lookup failed (' + r.status + ').'; }
+        else {
+          var j = await r.json();
+          var u = j && j.sections ? j.sections.cohort_universe : null;
+          if(!u || u.error === 'Invalid section'){ pending = true; }
+          else if(u.error){ errMsg = 'Universe unavailable (' + u.error + ').'; }
+          else data = u;
+        }
+      }catch(e){ console.error('cohort_universe', e); errMsg = 'Network error loading universe browser.'; }
+
+      searchBtn.disabled = false; searchBtn.textContent = 'Search';
+      clear(listHost);
+      if(pending){
+        clear(container);
+        container.appendChild(el('div', { class:'ws-empty', style:'text-align:left' }, 'Universe browser pending backend deploy (cohort_universe).'));
+        return;
+      }
+      if(errMsg){ listHost.appendChild(el('div', { class:'result-error-detail' }, errMsg)); return; }
+
+      var entities = data && Array.isArray(data.entities) ? data.entities : [];
+      var total = data ? data.total : null;
+      if(total != null){ meta.textContent = Number(total).toLocaleString('en-GB') + ' companies' + (state.query ? ' · "' + state.query + '"' : ''); }
+
+      if(entities.length === 0){ listHost.appendChild(el('div', { class:'ws-empty' }, 'No companies match this search.')); }
+      else { renderEntityTable(listHost, currentFamilyObj || { cohort_family: family }, entities, true); }
+
+      var hasMore = (data && data.has_more === true) || (total != null && (state.offset + entities.length) < Number(total));
+      if(state.offset > 0 || hasMore){
+        var prev = el('button', { class:'btn-link', type:'button' }, '← Prev');
+        prev.disabled = state.offset <= 0;
+        prev.addEventListener('click', function(){ state.offset = Math.max(0, state.offset - state.limit); load(); });
+        var next = el('button', { class:'btn-link', type:'button' }, 'Next →');
+        next.disabled = !hasMore;
+        next.addEventListener('click', function(){ state.offset = state.offset + state.limit; load(); });
+        pager.appendChild(prev); pager.appendChild(next);
+        if(entities.length > 0) pager.appendChild(el('span', { class:'pos' }, 'showing ' + (state.offset + 1) + '–' + (state.offset + entities.length)));
+      }
+    }
+
+    function doSearch(){ state.query = input.value.trim(); state.offset = 0; load(); }
+    searchBtn.addEventListener('click', doSearch);
+    input.addEventListener('keydown', function(e){ if(e.key === 'Enter') doSearch(); });
+    load();   // first open: page 1, no search term
+  }
+
+  /* ─────────────────────────────────────────────
+     AMD-147 — PANE 3 · evaluation, origination, room preview
+     ───────────────────────────────────────────── */
+  function openEvalPanel(titleText){
+    var panel = $('coc-eval-panel');
+    panel.style.display = 'block';
+    $('coc-eval-title').textContent = titleText;
+    try{ panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }catch(e){}
+  }
+
+  // Evaluate → render the entity dossier inline (ceo-portfolio-data?section=cohort_entity_detail).
+  async function evaluateEntity(ent, fam, isUniverse){
+    var chNum = ent.companies_house_number || ent.company_number || ent.ch_number || null;
+    var selKey = ent.alin || chNum || null;
+    var name = ent.company_name || selKey || 'entity';
+
+    openEvalPanel('Evaluation — ' + name);
+    setBreadcrumb(fam.cohort_family, name, null);
+    var body = $('coc-eval-body');
+    clear(body);
+    body.appendChild(el('div', { class:'ws-empty' }, 'Loading entity dossier…'));
+
+    if(!selKey){
+      clear(body);
+      body.appendChild(el('div', { class:'coc-modal-warning' }, 'No ALIN or CH number on this entity — cannot resolve a dossier.'));
+      return;
+    }
+
+    var detail = null, note = null;
+    try{
+      var r = await ceoPortfolioFetch('section=cohort_entity_detail&alin=' + encodeURIComponent(selKey));
+      if(r.status === 400 || r.status === 404){ note = 'Entity detail pending backend deploy (cohort_entity_detail).'; }
+      else if(!r.ok){ note = 'Entity detail unavailable (' + r.status + ').'; }
+      else {
+        var j = await r.json();
+        var d = j && j.sections ? j.sections.cohort_entity_detail : null;
+        if(!d || d.error){ note = 'Entity detail unavailable' + (d && d.error ? ' (' + d.error + ')' : '') + '.'; }
+        else detail = d;
+      }
+    }catch(e){ console.error('cohort_entity_detail', e); note = 'Network error loading entity dossier.'; }
+
+    clear(body);
+    var idLine = el('div', { class:'coc-univ-meta' });
+    idLine.textContent = (COHORT_DISPLAY_NAME[fam.cohort_family] || fam.cohort_family)
+      + (selKey ? ' · ' + selKey : '') + (ent.size_band ? ' · ' + ent.size_band : '') + (isUniverse ? ' · universe' : ' · register');
+    body.appendChild(idLine);
+
+    if(note) body.appendChild(el('div', { class:'coc-modal-warning' }, note));
+    else renderEntityDossier(body, detail);
+
+    var act = el('div', { class:'coc-entity-actions', style:'margin-top:14px' });
+    var createBtn = el('button', { class:'coc-action-instantiate', type:'button' }, 'Create Deal Room');
+    createBtn.addEventListener('click', function(){
+      if(isUniverse) originateUniverse(ent, fam, selKey);
+      else openInstantiateModal(ent, fam);
+    });
+    act.appendChild(createBtn);
+    body.appendChild(act);
+  }
+
+  function renderEntityDossier(body, detail){
+    if(detail.headline){
+      body.appendChild(el('div', { style:'font-family:var(--font-display);font-size:0.95rem;font-weight:600;color:var(--text-primary);margin-bottom:10px' }, detail.headline));
+    }
+    var sections = detail.sections && typeof detail.sections === 'object' ? detail.sections : null;
+    if(sections){
+      Object.keys(sections).forEach(function(k){
+        var val = sections[k];
+        if(val == null || val === '') return;
+        var sec = el('div', { class:'coc-dossier-section' });
+        sec.appendChild(el('h4', null, k.replace(/_/g, ' ')));
+        sec.appendChild(el('p', null, typeof val === 'string' ? val : JSON.stringify(val)));
+        body.appendChild(sec);
+      });
+    } else {
+      var grid = el('div', { class:'ws-header-grid' });
+      Object.keys(detail).forEach(function(k){
+        var v = detail[k];
+        if(v == null || typeof v === 'object') return;
+        var c = el('div', { class:'ws-cell' });
+        c.appendChild(el('div', { class:'ws-cell-label' }, k.replace(/_/g, ' ')));
+        c.appendChild(el('div', { class:'ws-cell-value mono' }, String(v)));
+        grid.appendChild(c);
+      });
+      if(grid.childNodes.length > 0) body.appendChild(grid);
+      else body.appendChild(el('div', { class:'ws-empty' }, 'Dossier returned no renderable fields.'));
+    }
+  }
+
+  // Universe Create Deal Room — Director-confirm then ceo-cohort-instantiate; on a returned CLID,
+  // show the Director-side room preview. (Register entities use the existing modal/RPC unchanged.)
+  async function originateUniverse(ent, fam, selKey){
+    var name = ent.company_name || selKey || 'entity';
+    var chNum = ent.companies_house_number || ent.company_number || ent.ch_number || null;
+    if(!confirm('Originate deal room for ' + name + ' — Director action. Continue?')) return;
+
+    openEvalPanel('Origination — ' + name);
+    setBreadcrumb(fam.cohort_family, name, null);
+    var body = $('coc-eval-body');
+    clear(body);
+    body.appendChild(el('div', { class:'ws-empty' }, 'Originating deal room…'));
+
+    var clid = null, note = null;
+    try{
+      var fresh = await sb.auth.getSession();
+      if(fresh && fresh.data && fresh.data.session) currentToken = fresh.data.session.access_token;
+      var r = await fetch(SUPABASE_URL + '/functions/v1/ceo-cohort-instantiate', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + currentToken, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity_id: null, alin: ent.alin || null, companies_house_number: chNum, selection_key: selKey, record_source: 'universe', confirm: true })
+      });
+      if(r.status === 404){ note = 'Universe origination service pending deploy (ceo-cohort-instantiate).'; }
+      else if(!r.ok){ var t = await r.text().catch(function(){ return ''; }); note = 'Origination failed (' + r.status + '). ' + String(t).slice(0, 200); }
+      else { var j = await r.json(); clid = j.clid || null; }
+    }catch(e){ console.error('ceo-cohort-instantiate', e); note = 'Network error originating deal room.'; }
+
+    clear(body);
+    if(note){ body.appendChild(el('div', { class:'coc-modal-warning' }, note)); return; }
+    if(clid){ await showRoomPreview(clid, fam, name); }
+    else { body.appendChild(el('div', { class:'coc-modal-helper' }, 'Deal room originated. No CLID returned for preview.')); }
+  }
+
+  // Director-side workspace preview (ceo-portfolio-data?section=dealroom_detail) — the room as the
+  // Director sees it before the counterparty enters.
+  async function showRoomPreview(clid, fam, name){
+    openEvalPanel('Director room preview — ' + (name || clid));
+    if(fam) setBreadcrumb(fam.cohort_family, name || null, clid);
+    var body = $('coc-eval-body');
+    clear(body);
+    body.appendChild(el('div', { class:'coc-room-banner' }, 'Director view — counterparty has not yet entered.'));
+    var loading = el('div', { class:'ws-empty' }, 'Loading room…');
+    body.appendChild(loading);
+
+    var detail = null, note = null;
+    try{
+      var r = await ceoPortfolioFetch('section=dealroom_detail&clid=' + encodeURIComponent(clid));
+      if(r.status === 400 || r.status === 404){ note = 'Room preview pending backend deploy (dealroom_detail).'; }
+      else if(!r.ok){ note = 'Room preview unavailable (' + r.status + ').'; }
+      else {
+        var j = await r.json();
+        var d = j && j.sections ? j.sections.dealroom_detail : null;
+        if(!d || d.error){ note = 'Room preview unavailable' + (d && d.error ? ' (' + d.error + ')' : '') + '.'; }
+        else detail = d;
+      }
+    }catch(e){ console.error('dealroom_detail', e); note = 'Network error loading room preview.'; }
+
+    try{ body.removeChild(loading); }catch(e){}
+    if(note){ body.appendChild(el('div', { class:'coc-modal-warning' }, note)); return; }
+    renderRoomPreview(body, detail, clid);
+  }
+
+  function renderRoomPreview(body, detail, clid){
+    var h = detail.header || {};
+    var sum = detail.summary || {};
+    var grid = el('div', { class:'ws-header-grid' });
+    function cell(label, value){
+      var c = el('div', { class:'ws-cell' });
+      c.appendChild(el('div', { class:'ws-cell-label' }, label));
+      c.appendChild(el('div', { class:'ws-cell-value mono' }, (value != null && value !== '') ? String(value) : '—'));
+      grid.appendChild(c);
+    }
+    cell('CLID', clid);
+    cell('Counterparty', h.counterparty_name || '—');
+    cell('Phase / gate', h.gate_label || phaseLabel(h.gate_state));
+    cell('Documents', sum.documents_total != null ? sum.documents_total : '—');
+    cell('Requirements', sum.requirements != null ? sum.requirements : '—');
+    cell('Blocking', sum.currently_blocking != null ? sum.currently_blocking : '—');
+    body.appendChild(grid);
+
+    var docs = Array.isArray(detail.documents) ? detail.documents : [];
+    if(docs.length > 0){
+      var ds = el('div', { class:'coc-dossier-section', style:'margin-top:16px' });
+      ds.appendChild(el('h4', null, 'Documents catalog (' + docs.length + ')'));
+      var wrap = el('div', { class:'tbl-wrap' });
+      var tbl = el('table'); var thead = el('thead'); var hr = el('tr');
+      ['name','phase','kind','status'].forEach(function(c){ hr.appendChild(el('th', null, c)); });
+      thead.appendChild(hr); tbl.appendChild(thead);
+      var tb = el('tbody');
+      docs.forEach(function(dc){
+        var tr = el('tr');
+        tr.appendChild(el('td', { class:'truncate', title: dc.name || '' }, dc.name || '—'));
+        tr.appendChild(el('td', null, dc.phase || '—'));
+        tr.appendChild(el('td', null, dc.kind || '—'));
+        tr.appendChild(el('td', null, dc.director_approved ? 'approved' : (dc.is_rendered ? 'rendered' : 'pending')));
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb); wrap.appendChild(tbl); ds.appendChild(wrap);
+      body.appendChild(ds);
+    }
+
+    var next = Array.isArray(detail.next_actions) ? detail.next_actions : [];
+    if(next.length > 0){
+      var ns = el('div', { class:'coc-dossier-section' });
+      ns.appendChild(el('h4', null, 'Next actions'));
+      next.forEach(function(a){
+        ns.appendChild(el('div', { style:'font-family:var(--font-mono);font-size:0.74rem;color:var(--text-secondary);padding:3px 0' }, (a.phase ? '[' + a.phase + '] ' : '') + (a.name || '—')));
+      });
+      body.appendChild(ns);
+    }
+
+    var contacts = Array.isArray(detail.public_contacts) ? detail.public_contacts : [];
+    if(contacts.length > 0){
+      var cs = el('div', { class:'coc-dossier-section' });
+      cs.appendChild(el('h4', null, 'Contacts'));
+      contacts.forEach(function(c){
+        cs.appendChild(el('div', { style:'font-family:var(--font-body);font-size:0.8rem;color:var(--text-secondary);padding:3px 0' }, (c.full_name || '—') + (c.role_title ? ' · ' + c.role_title : '') + (c.email ? ' · ' + c.email : '')));
+      });
+      body.appendChild(cs);
+    }
+
+    if(h.counterparty_short_code){
+      body.appendChild(el('a', { class:'coc-action-workspace', href: '/partners/' + h.counterparty_short_code + '/', style:'margin-top:14px;display:inline-block' }, 'Open full workspace ↗'));
+    }
   }
 
   function wireDrillDownClose(){
     $('coc-drilldown-close').addEventListener('click', function(){
       $('coc-cohort-drilldown-panel').style.display = 'none';
+      $('coc-eval-panel').style.display = 'none';
+      setBreadcrumb(null, null, null);
     });
+    var evalClose = $('coc-eval-close');
+    if(evalClose){
+      evalClose.addEventListener('click', function(){
+        $('coc-eval-panel').style.display = 'none';
+        if(currentFamilyObj) setBreadcrumb(currentFamilyObj.cohort_family, null, null);
+      });
+    }
   }
 
   /* ─────────────────────────────────────────────
