@@ -40,9 +40,10 @@
     <section class="hero">
       <div class="eyebrow">Upcoming Obligations</div>
       <h1>What is due, and when</h1>
-      <p>The twelve things on a charity's compliance calendar, each with where the duty
-        comes from, when it first falls due, how often it repeats, and a live countdown.
-        Dates marked "set at provisioning" are confirmed from your own records.</p>
+      <p>Your charity's compliance calendar — each obligation with where the duty comes
+        from, when it next falls due, how often it repeats, and a live countdown.
+        Confirm each one against your own records: dates marked "date set on confirmation"
+        are fixed once you confirm them.</p>
     </section>
 
     <!-- WEB-002 §7 — statute alert strip; populated only when
@@ -73,39 +74,193 @@
     var esc = api.esc;
     var box = document.getElementById('register');
 
-    /* §7 exception cards — graceful degrade: silently absent if unreachable */
+    /* ── §1 statute-change exception cards: this room's clid PLUS broadcast
+     *    (clid is null), newest first. Graceful degrade — silently absent if
+     *    unreachable; never an error. ── */
     if (state.mode === 'live') {
       (async function () {
         try {
-          var alerts = await api.getStatuteAlerts(state);
+          var alerts = await api.getStatuteAlertsForRoom(state);
           if (!alerts || !alerts.length) return;
           var strip = document.getElementById('alert-strip');
           strip.innerHTML = alerts.map(api.alertCardHtml).join('');
           strip.classList.remove('hidden');
-        } catch (e) { /* table arrives via BACKEND-002 — strip stays absent */ }
+        } catch (e) { /* table reachable later — strip stays absent */ }
       })();
     }
-    try {
-      var res = await fetch('/charities/rwf-2026/shared/obligations-seed.json');
-      var data = await res.json();
-      var html = '';
-      (data.register || []).forEach(function (r) {
-        var cd = api.countdown(r.first_due);
-        html += '<div class="item-row">' +
-          '<div class="it">' + esc(r.obligation) + '</div>' +
-          '<div class="id">' + esc(r.derivation) + '</div>' +
-          '<div class="im">' +
-            '<span class="chip ' + cd.cls + '">' + esc(cd.text) + '</span>' +
-            (r.first_due ? '<span class="chip">First due ' + esc(api.fmtDate(r.first_due)) + '</span>' : '') +
-            '<span class="chip">Repeats: ' + esc(r.cycle) + '</span>' +
-            '<span class="chip cyan">' + esc(r.provenance) + '</span>' +
-          '</div></div>';
-      });
-      box.innerHTML = html || '<div class="state"><div class="big">Register unavailable</div></div>';
-    } catch (e) {
-      box.innerHTML = '<div class="state"><div class="big">Register unavailable</div>' +
-        '<div>Please refresh to try again.</div></div>';
+
+    /* ── display helpers ── */
+    function cap(s) { s = String(s || ''); return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    function categoryLabel(c) { return cap(c); }
+    function cycleLabel(c) {
+      var map = {
+        annual: 'Annual', quarterly: 'Quarterly', continuous: 'Continuous',
+        per_event: 'Per event', per_award: 'Per award', '12_month': 'Every 12 months',
+        continuous_plus_annual: 'Continuous (plus annual return)',
+        annual_plus_per_transfer: 'Annual (plus per transfer)'
+      };
+      return map[c] || String(c || '').replace(/_/g, ' ');
     }
+    function reminderStateLabel(s) {
+      var map = { pending: 'Scheduled', active: 'Active', sent: 'Sent', complete: 'Complete', paused: 'Paused' };
+      return map[s] || cap(s);
+    }
+    function ladderText(arr) {
+      if (!arr || !arr.length) return 'Reminder ladder set on confirmation';
+      return 'Reminders at ' + arr.join(', ') + ' days before';
+    }
+    function verifBadge(status) {
+      switch (String(status || '')) {
+        case 'verified':  return { cls: 'green', text: 'Confirmed by you' };
+        case 'corrected': return { cls: 'green', text: 'Confirmed (date corrected)' };
+        case 'excluded':  return { cls: '', text: 'Marked not applicable' };
+        case 'unverified':return { cls: 'gold', text: 'Awaiting your confirmation' };
+        default:          return { cls: '', text: cap(status) };
+      }
+    }
+    function dueChips(r) {
+      if (!r.next_due_date) return '<span class="chip">Date set on confirmation</span>';
+      var cd = api.countdown(r.next_due_date);
+      return '<span class="chip ' + cd.cls + '">' + esc(cd.text) + '</span>' +
+        '<span class="chip">Next due ' + esc(api.fmtDate(r.next_due_date)) + '</span>';
+    }
+
+    /* ── §2 verify affordance (Confirm / Correct / Not applicable) ── */
+    function controlsHtml() {
+      return '<div class="actions">' +
+        '<button class="btn sm gold" type="button" data-act="verified">Confirm</button>' +
+        '<button class="btn sm" type="button" data-act="correct">Correct…</button>' +
+        '<button class="btn sm" type="button" data-act="excluded">Not applicable</button>' +
+        '</div>' +
+        '<div class="correct-form hidden" style="margin-top:6px">' +
+          '<div class="field"><label>Corrected next due date</label>' +
+            '<input type="date" data-cf="date"></div>' +
+          '<div class="field"><label>Note (optional)</label>' +
+            '<textarea data-cf="note" rows="2" placeholder="Anything we should record about this date"></textarea></div>' +
+          '<button class="btn sm gold" type="button" data-cf="save">Save correction</button>' +
+        '</div>' +
+        '<div class="verify-msg msg info hidden" aria-live="polite"></div>';
+    }
+
+    function rowInner(r) {
+      var vb = verifBadge(r.verification_status);
+      return '<div class="it">' + esc(r.title) + '</div>' +
+        (r.derivation ? '<div class="id">' + esc(r.derivation) + '</div>' : '') +
+        '<div class="im">' +
+          '<span class="chip">' + esc(categoryLabel(r.category)) + '</span>' +
+          dueChips(r) +
+          '<span class="chip">Repeats: ' + esc(cycleLabel(r.cycle)) + '</span>' +
+          (r.provenance ? '<span class="chip cyan">' + esc(r.provenance) + '</span>' : '') +
+          '<span class="chip ' + vb.cls + '">' + esc(vb.text) + '</span>' +
+        '</div>' +
+        '<div class="im">' +
+          '<span class="chip">' + esc(ladderText(r.reminder_ladder_days)) + '</span>' +
+          '<span class="chip">Reminder status: ' + esc(reminderStateLabel(r.reminder_state)) + '</span>' +
+        '</div>' +
+        (r.notes ? '<div class="id">Note: ' + esc(r.notes) + '</div>' : '') +
+        controlsHtml();
+    }
+
+    function rowHtml(r) {
+      return '<div class="item-row" data-code="' + esc(r.obligation_code) + '">' + rowInner(r) + '</div>';
+    }
+
+    function confirmLine(action) {
+      if (action === 'verified')  return 'Confirmed — thank you. This obligation now enters its reminder ladder.';
+      if (action === 'corrected') return 'Saved — your corrected date is recorded and the reminder ladder is updated.';
+      if (action === 'excluded')  return 'Marked not applicable — we will not remind you about this one.';
+      return 'Saved.';
+    }
+
+    function wireRow(rowEl) {
+      var code = rowEl.getAttribute('data-code');
+      rowEl.querySelectorAll('button[data-act]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var act = b.getAttribute('data-act');
+          if (act === 'correct') {
+            var f = rowEl.querySelector('.correct-form');
+            if (f) f.classList.toggle('hidden');
+            return;
+          }
+          doVerify(rowEl, code, act, null, null);
+        });
+      });
+      var save = rowEl.querySelector('[data-cf="save"]');
+      if (save) save.addEventListener('click', function () {
+        var d = rowEl.querySelector('[data-cf="date"]');
+        var n = rowEl.querySelector('[data-cf="note"]');
+        doVerify(rowEl, code, 'corrected', (d && d.value) || null, (n && n.value) || null);
+      });
+    }
+
+    async function doVerify(rowEl, code, action, correctedDue, note) {
+      var msg = rowEl.querySelector('.verify-msg');
+      var btns = rowEl.querySelectorAll('button');
+      btns.forEach(function (b) { b.disabled = true; });
+      if (msg) { msg.className = 'verify-msg msg info'; msg.textContent = 'Recording…'; }
+      try {
+        await api.verifyObligation(state, code, action, correctedDue, note);
+        try { if (window.gtag) window.gtag('event', 'charity_obligation_verified', { action: action }); } catch (e2) {}
+        var fresh = await api.getObligation(state, code);
+        var r = fresh && fresh[0];
+        if (r) {
+          rowEl.innerHTML = rowInner(r);
+          wireRow(rowEl);
+          var m2 = rowEl.querySelector('.verify-msg');
+          if (m2) { m2.className = 'verify-msg msg ok'; m2.textContent = confirmLine(action); }
+        } else if (msg) {
+          msg.className = 'verify-msg msg ok'; msg.textContent = confirmLine(action);
+        }
+      } catch (e) {
+        btns.forEach(function (b) { b.disabled = false; });
+        if (msg) { msg.className = 'verify-msg msg info'; msg.textContent = 'We could not record that just now — please try again.'; }
+      }
+    }
+
+    function emptyState() {
+      return '<div class="state"><div class="big">Your register is being prepared</div>' +
+        '<div>Your obligations appear here once they are confirmed against the ' +
+        'Foundation’s records. Nothing is overdue.</div></div>';
+    }
+
+    /* ── live: read charity_obligations as the authenticated trustee ── */
+    async function loadLive() {
+      box.innerHTML = '<div class="state"><div class="big">Loading your register…</div></div>';
+      var rows = null;
+      try { rows = await api.getObligations(state); } catch (e) { rows = null; }
+      if (rows && rows.length) {
+        box.innerHTML = rows.map(rowHtml).join('');
+        box.querySelectorAll('.item-row[data-code]').forEach(wireRow);
+      } else {
+        box.innerHTML = emptyState();   /* empty / !ok → graceful, never an error */
+      }
+    }
+
+    /* ── read-only mode: demonstration register (no verify affordance) ── */
+    async function loadSeed() {
+      try {
+        var res = await fetch('/charities/rwf-2026/shared/obligations-seed.json');
+        var data = await res.json();
+        var html = '';
+        (data.register || []).forEach(function (r) {
+          var cd = api.countdown(r.first_due);
+          html += '<div class="item-row">' +
+            '<div class="it">' + esc(r.obligation) + '</div>' +
+            '<div class="id">' + esc(r.derivation) + '</div>' +
+            '<div class="im">' +
+              '<span class="chip ' + cd.cls + '">' + esc(cd.text) + '</span>' +
+              (r.first_due ? '<span class="chip">First due ' + esc(api.fmtDate(r.first_due)) + '</span>' : '') +
+              '<span class="chip">Repeats: ' + esc(r.cycle) + '</span>' +
+              '<span class="chip cyan">' + esc(r.provenance) + '</span>' +
+            '</div></div>';
+        });
+        box.innerHTML = html || emptyState();
+      } catch (e) {
+        box.innerHTML = emptyState();
+      }
+    }
+
+    if (state.mode === 'live') { await loadLive(); } else { await loadSeed(); }
   });
   </script>
 </body>

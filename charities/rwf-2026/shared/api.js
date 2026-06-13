@@ -157,6 +157,59 @@
     return restGet(state, 'charity_statute_alerts?select=*&clid=eq.' + encodeURIComponent(CFG.CLID));
   }
 
+  /* Obligations-surface variant: this room's clid PLUS NULL-clid broadcast
+   * rows, newest first (CSO-RWF-ROOM-SURFACE-001 §1). */
+  function getStatuteAlertsForRoom(state) {
+    return restGet(state,
+      'charity_statute_alerts?select=*' +
+      '&or=(clid.eq.' + encodeURIComponent(CFG.CLID) + ',clid.is.null)' +
+      '&order=created_at.desc');
+  }
+
+  /* ── Obligations register (charity_obligations) ──
+   * Read as the authenticated trustee; RLS charity_obligations_trustee_select
+   * authorises. RULE 2: raw fetch with apikey + Bearer (via restGet). Empty or
+   * failed reads are a graceful-degrade branch for the caller, never an error. */
+  var OBLIGATION_SELECT =
+    'select=obligation_code,title,category,derivation,provenance,next_due_date,' +
+    'cycle,reminder_ladder_days,reminder_state,verification_status,notes';
+
+  function getObligations(state) {
+    return restGet(state,
+      'charity_obligations?clid=eq.' + encodeURIComponent(CFG.CLID) +
+      '&status=eq.active&' + OBLIGATION_SELECT +
+      '&order=next_due_date.asc.nullslast');
+  }
+
+  function getObligation(state, code) {
+    return restGet(state,
+      'charity_obligations?clid=eq.' + encodeURIComponent(CFG.CLID) +
+      '&obligation_code=eq.' + encodeURIComponent(code) +
+      '&' + OBLIGATION_SELECT + '&limit=1');
+  }
+
+  /* ── O-5 verification (verify_charity_obligation RPC) ──
+   * RULE 2 raw fetch to the PostgREST rpc endpoint, as the authenticated
+   * trustee. Mirrors supabase.rpc(); kept in the room's fetch pattern. */
+  async function rpcPost(state, fn, args) {
+    var res = await fetch(CFG.SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST', headers: headers(state, true), body: JSON.stringify(args || {})
+    });
+    if (!res.ok) { var e = new Error('rpc ' + res.status); e.status = res.status; throw e; }
+    var txt = await res.text();
+    try { return txt ? JSON.parse(txt) : true; } catch (e) { return true; }
+  }
+
+  function verifyObligation(state, code, action, correctedDue, note) {
+    return rpcPost(state, 'verify_charity_obligation', {
+      p_clid: CFG.CLID,
+      p_obligation_code: code,
+      p_action: action,
+      p_corrected_due: correctedDue || null,
+      p_note: note || null
+    });
+  }
+
   /* ── Eileen EF (eileen-charityroom) — may not be deployed yet ── */
   async function eileenCall(state, body) {
     var res = await fetch(CFG.EILEEN_EF_URL, {
@@ -241,6 +294,11 @@
     postVaultRow: postVaultRow,
     uploadVaultFile: uploadVaultFile,
     getStatuteAlerts: getStatuteAlerts,
+    getStatuteAlertsForRoom: getStatuteAlertsForRoom,
+    getObligations: getObligations,
+    getObligation: getObligation,
+    rpcPost: rpcPost,
+    verifyObligation: verifyObligation,
     askEileen: askEileen,
     getDocumentLinks: getDocumentLinks,
     getDocumentLink: getDocumentLink,
