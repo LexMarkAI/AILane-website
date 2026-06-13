@@ -347,6 +347,27 @@
 details[open] .ctx-summary::before{content:"\25BE "}
 .ctx-body{padding:0 16px 14px}
 </style>
+<!-- Compliance & certification tracker — scoped trk- styles (AILANE-CC-BRIEF-LOVR-TRACKER-SITE-001). Additive only. All text var(--text). -->
+<style>
+.trk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.trk-pill{flex:none;color:var(--text)}
+.trk-amber{color:var(--gold);background:var(--gold-soft);border-color:rgba(245,158,11,.3)}
+.trk-green{color:var(--green);background:var(--green-soft);border-color:rgba(52,211,153,.3)}
+.trk-red{color:var(--red);background:var(--red-soft);border-color:rgba(248,113,113,.3)}
+.trk-neutral{color:var(--muted);background:var(--grey-soft);border-color:rgba(148,163,184,.3)}
+.trk-progress{display:flex;align-items:center;gap:9px;margin:2px 0}
+.trk-bar{flex:1;height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.trk-bar > i{display:block;height:100%;background:var(--gold);border-radius:999px}
+.trk-pct{flex:none;font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--text)}
+.trk-meta{font-size:12.5px;color:var(--text);line-height:1.45}
+.trk-docs{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.trk-chip{cursor:pointer;font-size:10.5px;color:var(--text);border:1px solid var(--line);background:var(--panel-2);
+  border-radius:999px;padding:3px 9px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--mono);letter-spacing:.02em}
+.trk-chip:hover{border-color:rgba(14,165,233,.5)}
+.trk-chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.trk-notes{font-size:11.5px;color:var(--text);opacity:.8;margin-top:2px;line-height:1.45}
+.trk-also{font-size:12px;color:var(--text);opacity:.85;margin-top:12px}
+</style>
 </head>
 <body>
 
@@ -1056,13 +1077,63 @@ details[open] .ctx-summary::before{content:"\25BE "}
     const progs = data.programmes || [];
     const c2 = data.c2_art14_cohort || null;
     const ev = data.isms_evidence || null;
-    const progCards = progs.map(p => `
-      <div class="card">
-        <div class="ct">${esc(p.programme||"")}</div>
-        <div class="cd">${esc(ASSURANCE_POSTURE_LABELS[p.posture]||esc(p.posture||""))}${p.framework_body?` · ${esc(p.framework_body)}`:""}</div>
-        <div class="cd">${esc(p.posture_note||"")}</div>
-        <div class="cf"><a class="chip" href="#sec-assurance" onclick="LOVR.railScroll('sec-assurance');return false;">Open the assurance roadmap &rarr;</a></div>
-      </div>`).join("");
+
+    // ── Compliance & certification tracker — mirrors the CEO-dash feed
+    //    (data.certification_tracker). Replaces the assurance programme cards and
+    //    their non-functional "Open the assurance roadmap" links. Document chips
+    //    resolve doc_code → Vault artefact at click time, never a dead link.
+    const tracker = Array.isArray(data.certification_tracker) ? data.certification_tracker : [];
+    const trkPill = (status)=>{
+      const s = String(status||"").toLowerCase();
+      const cls = s==="in_progress" ? "trk-amber"
+        : (s==="complete"||s==="operating") ? "trk-green"
+        : s==="blocked" ? "trk-red"
+        : "trk-neutral";                          // planned + anything else → neutral
+      return `<span class="pill trk-pill ${cls}">${esc(s ? s.replace(/_/g," ") : "—")}</span>`;
+    };
+    // Distinct AILANE-* doc_codes across evidence_uri + linked_spec_ids.
+    const trkDocCodes = (t)=>{
+      const blob = [t.evidence_uri].concat(Array.isArray(t.linked_spec_ids)?t.linked_spec_ids:[])
+        .filter(Boolean).join(" ");
+      return Array.from(new Set(blob.match(/AILANE-[A-Z0-9]+(?:-[A-Z0-9]+)*/g) || []));
+    };
+    const trackerCards = tracker.map(t=>{
+      const pct = (t.progress_pct==null) ? null : Math.max(0, Math.min(100, Number(t.progress_pct)));
+      const progressHtml = (pct==null) ? "" :
+        `<div class="trk-progress"><div class="trk-bar"><i style="width:${pct}%"></i></div><span class="trk-pct">${pct}%</span></div>`;
+      const meta = [];
+      if(t.next_milestone) meta.push(`Next: ${esc(t.next_milestone)}`);
+      if(t.owner) meta.push(`Owner: ${esc(t.owner)}`);
+      const metaHtml = meta.length ? `<div class="trk-meta">${meta.join(" · ")}</div>` : "";
+      const codes = trkDocCodes(t);
+      const docsHtml = codes.length
+        ? `<div class="trk-docs">${codes.map(c=>`<span class="trk-chip" role="button" tabindex="0" data-doc="${esc(c)}" title="Open ${esc(c)}">${esc(c)}</span>`).join("")}</div>`
+        : "";
+      const notesHtml = t.notes ? `<div class="trk-notes">${esc(t.notes)}</div>` : "";
+      return `<div class="card">
+        <div class="trk-head"><div class="ct">${esc(t.track||"")}${t.standard?` — ${esc(t.standard)}`:""}</div>${trkPill(t.status)}</div>
+        ${progressHtml}${metaHtml}${docsHtml}${notesHtml}
+      </div>`;
+    }).join("");
+    // Programmes the tracker does not surface — keep them visible so none of the
+    // assurance programmes is lost. Match on distinctive tokens (≥4-digit standard
+    // numbers or scheme words ≥3 chars), ignoring generic standards-body prefixes
+    // so e.g. ISO/IEC 42001 is not conflated with the tracker's ISO 27001.
+    const TRK_STOP = new Set(["iso","iec","the","and","type","uk","us","high","inc","ltd"]);
+    const trkTokens = (s)=>{
+      const out = new Set();
+      (String(s||"").toLowerCase().match(/[a-z]{3,}|\d{4,}/g)||[]).forEach(x=>{ if(!TRK_STOP.has(x)) out.add(x); });
+      return out;
+    };
+    const trkHay = new Set();
+    tracker.forEach(t=>{ trkTokens(t.track).forEach(x=>trkHay.add(x)); trkTokens(t.standard).forEach(x=>trkHay.add(x)); });
+    const alsoTracked = progs.filter(p=>{
+      for(const x of trkTokens(p.programme)){ if(trkHay.has(x)) return false; }
+      return true;
+    });
+    const alsoTrackedHtml = alsoTracked.length
+      ? `<p class="trk-also">Also tracked: ${alsoTracked.map(p=>esc(p.programme||"")+" — "+esc(ASSURANCE_POSTURE_LABELS[p.posture]||p.posture||"")).join("; ")}.</p>`
+      : "";
     const c2Line = c2 ? `
       <div class="card">
         <div class="ct">HSE Article 14 cohort — verification state</div>
@@ -1117,8 +1188,9 @@ details[open] .ctx-summary::before{content:"\25BE "}
       <summary class="ctx-summary">AI Lane assurance posture &amp; status — context (click to expand)</summary>
       <div class="ctx-body">
       <div class="section">
-        <div class="sh"><span class="bar"></span><span class="st">Assurance &amp; Certifications</span><span class="sc">${progs.length}</span></div>
-        <div class="cards">${progCards}</div>
+        <div class="sh"><span class="bar"></span><span class="st">Compliance &amp; certification tracker</span><span class="sc">${tracker.length}</span></div>
+        <div class="cards">${trackerCards}</div>
+        ${alsoTrackedHtml}
         ${(c2Line||evLine) ? `<div class="sh"><span class="bar"></span><span class="st">Verification &amp; evidence</span></div>
         <div class="cards">${c2Line}${evLine}</div>` : ""}
         ${gateBlk ? `<div class="cards" style="margin-top:14px">${gateBlk}</div>` : ""}
@@ -1128,6 +1200,20 @@ details[open] .ctx-summary::before{content:"\25BE "}
         <p class="cd" style="opacity:.7;margin-top:8px">Postures shown are programme states, not certification claims. Statuses update live from the governance estate.</p>
       </div></div>
     </details>`;
+    // Wire tracker document chips. Resolve doc_code → artefact_id from the cached
+    // Vault rows (vaultCache.reg) at click time, so the load order of the Vault vs
+    // this section cannot leave a chip unresolved; unknown codes scroll to the
+    // assurance Vault section rather than dead-link.
+    host.querySelectorAll(".trk-chip[data-doc]").forEach(chip=>{
+      const code = chip.getAttribute("data-doc");
+      const go = ()=>{
+        const row = (vaultCache && Array.isArray(vaultCache.reg)) ? vaultCache.reg.find(r=>r.doc_code===code) : null;
+        if(row && row.artefact_id) LOVR.open(row.artefact_id, "preview");
+        else LOVR.railScroll("sec-assurance");
+      };
+      chip.addEventListener("click", go);
+      chip.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+    });
   }
   const __rvhOriginal = renderVaultHub;
   renderVaultHub = async function(){
