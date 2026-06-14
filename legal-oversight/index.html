@@ -1319,8 +1319,10 @@ details[open] .ctx-summary::before{content:"\25BE "}
     function gateCards(rows){
       if(!Array.isArray(rows) || !rows.length) return "";
       const cls = s => s==="met"?"sa-green":(s==="not_run"?"sa-grey":(s==="unmet"?"sa-amber":"sa-grey"));
-      const items = rows.map(g => `<span class="sa-pill ${cls(g.status)}" title="${esc(g.title||"")}">${esc(g.id)}: ${esc((g.status||"").replace(/_/g," "))}</span>`).join(" ");
+      const items = rows.map(g => `<span class="sa-pill ${cls(g.status)}" title="${esc(g.title||"")}">${esc(g.id)}${g.title?` — ${esc(g.title)}`:""}: ${esc((g.status||"").replace(/_/g," "))}</span>`).join(" ");
       return `<div class="card"><div class="ct">HSE deal-gate status</div>
+        <div class="cd" style="margin-top:4px">The release-readiness conditions for HSE-derived intelligence. They gate live commercial use; this room is in review, so most conditions are not yet run.</div>
+        <div class="cd" style="margin-top:4px;opacity:.85">Status — met (satisfied) · unmet (open) · not run (not yet assessed). See the Reviewer's Key for what each condition covers.</div>
         <div class="cd" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${items}</div></div>`;
     }
     function klCard(kl){
