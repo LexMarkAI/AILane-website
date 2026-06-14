@@ -836,11 +836,31 @@ function App() {
               </div>
             </div>
 
-            {/* LIVE COUNTERPARTIES */}
+            {/* LIVE COUNTERPARTIES — sub-categorised by counterparty type (BRIEF DEALROOMS-SUBCAT-001 §2).
+                Charity rows route to the Charity League section and simulation rows (is_simulation on the
+                linked partner_clids record) route to the Sandbox section — both excluded here (§2.2, display-only). */}
             <div className="section-label">Live Counterparties</div>
-            {counterparties.length>0 ? (
-              <div className="cp-grid">
-                {counterparties.map((cp,i)=>{
+            {(()=>{
+              // Sub-category render order (§2.1); a header shows only when its group has ≥1 member (AC-5).
+              const CP_GROUPS = [
+                { key:'institutional_licensee', label:'Institutional Licensees' },
+                { key:'data_distribution_platform', label:'Data Distribution Platforms' },
+                { key:'other', label:'Sovereign & Other' },
+              ];
+              const grouped = { institutional_licensee:[], data_distribution_platform:[], other:[] };
+              counterparties.forEach((cp,i)=>{
+                const linked = cp.clid ? clidMap[cp.clid] : null;
+                const isSim = cp.is_simulation===true || (linked ? linked.is_simulation===true : false);
+                if(isSim) return;                                       // simulation → Sandbox section (§2.2)
+                if(String(cp.counterparty_type)==='charity') return;    // charity → Charity League section (§2.2)
+                const bucket = (cp.counterparty_type==='institutional_licensee' || cp.counterparty_type==='data_distribution_platform') ? cp.counterparty_type : 'other';
+                grouped[bucket].push({ cp, i });
+              });
+              const total = grouped.institutional_licensee.length + grouped.data_distribution_platform.length + grouped.other.length;
+              if(total===0){
+                return <div className="card"><div className="card-body"><div className="empty-note">No live counterparty profiles in the current dataset.</div></div></div>;
+              }
+              const renderCpCard = (cp, i) => {
                   const inst = isInstitutional(cp);
                   const linked = cp.clid ? clidMap[cp.clid] : null;
                   const wsGate = linked ? linked.gate_state : null;        // workspace axis (partner_clids)
@@ -920,11 +940,14 @@ function App() {
                       </div>
                     </div>
                   );
-                })}
-              </div>
-            ) : (
-              <div className="card"><div className="card-body"><div className="empty-note">No live counterparty profiles in the current dataset.</div></div></div>
-            )}
+              };
+              return CP_GROUPS.filter(g=>grouped[g.key].length>0).map(g=>(
+                <div key={g.key}>
+                  <div className="section-label">{g.label}</div>
+                  <div className="cp-grid">{grouped[g.key].map(({cp,i})=>renderCpCard(cp,i))}</div>
+                </div>
+              ));
+            })()}
 
             {/* COHORT ORIGINATION — BRIEF CEO-DASH-IA-001 §2A (cohort leagues merged into Deal Rooms) */}
             <CohortOrigination token={token}/>
