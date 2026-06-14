@@ -136,6 +136,35 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .docs-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;}
 @media(max-width:800px){.docs-grid{grid-template-columns:1fr;}}
 
+/* ── Per-card progression strip + alerts (BRIEF DEALROOMS-PROGRESSION-RENDER-001) ── */
+.cp-prog{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:9px 11px;display:flex;flex-direction:column;gap:7px;}
+.cp-prog-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.cp-prog-phase{font-family:var(--font-mono);font-size:0.64rem;font-weight:600;color:var(--text-secondary);}
+.cp-prog-pill{font-family:var(--font-mono);font-size:0.55rem;font-weight:600;padding:2px 8px;border-radius:100px;border:1px solid var(--border-default);white-space:nowrap;}
+.cp-prog-pill.entered{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.25);}
+.cp-prog-pill.notentered{background:var(--bg-hover);color:var(--text-muted);border-color:var(--border-subtle);}
+.cp-prog-metrics{display:flex;flex-wrap:wrap;gap:6px;}
+.cp-prog-metric{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:0.58rem;padding:3px 8px;border-radius:6px;background:rgba(122,139,168,0.08);border:1px solid var(--border-subtle);}
+.cp-prog-metric .cpm-k{color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;font-size:0.5rem;}
+.cp-prog-metric .cpm-v{color:var(--text-primary);font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+.cpm-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);display:inline-block;}
+.cpm-dot.amber{background:var(--accent-amber);box-shadow:0 0 0 3px var(--accent-amber-dim);}
+.cp-prog-act{font-size:0.54rem;color:var(--text-muted);font-family:var(--font-mono);}
+.cp-alert-ind{font-family:var(--font-mono);font-size:0.58rem;font-weight:600;color:var(--accent-cyan);background:var(--accent-cyan-dim);border:1px solid rgba(14,165,233,0.2);border-radius:100px;padding:2px 10px;text-transform:none;letter-spacing:0;}
+.cp-alerts{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:8px 14px;margin-bottom:4px;}
+.cp-alerts-sum{cursor:pointer;font-family:var(--font-display);font-size:0.7rem;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;gap:8px;list-style:none;}
+.cp-alerts-sum::-webkit-details-marker{display:none;}
+.cp-alerts-n{font-family:var(--font-mono);font-size:0.56rem;font-weight:700;color:var(--accent-amber);background:var(--accent-amber-dim);border:1px solid rgba(245,158,11,0.25);border-radius:100px;padding:1px 8px;}
+.cp-alerts-list{margin-top:10px;display:flex;flex-direction:column;}
+.cp-alert-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border-subtle);}
+.cp-alert-row:last-child{border-bottom:none;}
+.cp-alert-sig{font-family:var(--font-mono);font-size:0.55rem;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap;border:1px solid var(--border-default);}
+.cp-alert-sig.enter{background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.25);}
+.cp-alert-sig.pay{background:var(--accent-cyan-dim);color:var(--accent-cyan);border-color:rgba(14,165,233,0.2);}
+.cp-alert-name{flex:1;font-size:0.72rem;color:var(--text-primary);font-weight:500;min-width:0;}
+.cp-alert-time{font-family:var(--font-mono);font-size:0.58rem;color:var(--text-muted);white-space:nowrap;}
+.cp-alerts-more{font-size:0.58rem;color:var(--text-muted);font-family:var(--font-mono);padding-top:7px;}
+
 /* ═══════ DRILL-DOWN DRAWER + DOC MODAL ═══════ */
 .dd-overlay{position:fixed;inset:0;background:rgba(3,6,12,0.66);z-index:600;backdrop-filter:blur(2px);animation:ddFade 0.2s ease;}
 @keyframes ddFade{from{opacity:0;}to{opacity:1;}}
@@ -282,6 +311,18 @@ window.eileenSupabase = sb;   // reused by the Eileen cross-platform panel
 
 function num(n){if(n==null) return '0';return Number(n).toLocaleString('en-GB');}
 function shortDate(d){if(!d) return '—';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+// Compact relative time (deal-room progression strips + alerts, BRIEF DEALROOMS-PROGRESSION-RENDER-001)
+function relTime(d){
+  if(!d) return '—';
+  const t=new Date(d).getTime(); if(isNaN(t)) return '—';
+  const s=Math.floor((Date.now()-t)/1000);
+  if(s<60) return s<5?'just now':s+'s ago';
+  const m=Math.floor(s/60); if(m<60) return m+'m ago';
+  const h=Math.floor(m/60); if(h<24) return h+'h ago';
+  const dd=Math.floor(h/24); if(dd<30) return dd+'d ago';
+  const mo=Math.floor(dd/30); if(mo<12) return mo+'mo ago';
+  return Math.floor(mo/12)+'y ago';
+}
 function friendly(s){if(s==null||s==='') return '—';return String(s).replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());}
 // envelope_*_pence are raw integers in pence — divide by 100 for £
 function penceGBP(p){if(p==null) return '—';const v=Number(p)/100;return '£'+v.toLocaleString('en-GB',{maximumFractionDigits:0});}
@@ -778,6 +819,15 @@ function App() {
   clids.forEach(c=>{ if(c.clid) clidMap[c.clid]=c; });
   const sandboxClids = clids.filter(c=>c.is_simulation===true);
 
+  // ─── Progression + alerts (BRIEF DEALROOMS-PROGRESSION-RENDER-001 §2.1) ───
+  // Read-only feed additions (ceo-portfolio-data v11). progByClid is threaded into renderCpCard the
+  // same way clidMap is (closure); includes simulations — not special-cased (§3). dealroomAlerts is
+  // server-filtered to dealroom_entered / dealroom_payment_settled signals.
+  const progression = Array.isArray(d.progression) ? d.progression : [];
+  const progByClid = {};
+  progression.forEach(p=>{ if(p && p.clid) progByClid[p.clid]=p; });
+  const dealroomAlerts = Array.isArray(d.dealroom_alerts) ? d.dealroom_alerts : [];
+
   // ─── Origination guard (BRIEF DEALROOMS-ORIGINATION-GUARD-001 §2.1) ───
   // Map a league entity's origin ALIN → its existing live deal room {clid, workspace_path}, so the
   // Cohort Origination league can offer "Open existing room ↗" instead of instantiating a duplicate.
@@ -870,7 +920,48 @@ function App() {
             {/* LIVE COUNTERPARTIES — sub-categorised by counterparty type (BRIEF DEALROOMS-SUBCAT-001 §2).
                 Charity rows route to the Charity League section and simulation rows (is_simulation on the
                 linked partner_clids record) route to the Sandbox section — both excluded here (§2.2, display-only). */}
-            <div className="section-label">Live Counterparties</div>
+            <div className="section-label" style={{justifyContent:'space-between'}}>
+              <span>Live Counterparties</span>
+              {/* Alerts indicator (BRIEF DEALROOMS-PROGRESSION-RENDER-001 §2.3) — nothing when both 0 */}
+              {(Number(summary.rooms_entered)>0||Number(summary.alerts_open)>0) && (
+                <span className="cp-alert-ind">{num(summary.rooms_entered)} entered · {num(summary.alerts_open)} open alert{Number(summary.alerts_open)===1?'':'s'}</span>
+              )}
+            </div>
+            {(()=>{
+              // Alerts disclosure (BRIEF DEALROOMS-PROGRESSION-RENDER-001 §2.3) — display only, collapsed by
+              // default. Unacknowledged dealroom_entered / dealroom_payment_settled events, newest first,
+              // capped at 20. Name resolves via progByClid then clidMap. No acknowledge control (read-only).
+              const openAlerts = dealroomAlerts.filter(a=>a&&a.dashboard_acknowledged!==true)
+                .slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+              if(openAlerts.length===0) return null;
+              const SIGNAL_LABEL={dealroom_entered:'Room entered',dealroom_payment_settled:'Payment settled'};
+              const alertName=(a)=>{
+                const p=a.clid?progByClid[a.clid]:null;
+                if(p&&p.counterparty_name) return p.counterparty_name;
+                const c=a.clid?clidMap[a.clid]:null;
+                return (c&&c.counterparty_name)||a.clid||'—';
+              };
+              const shown=openAlerts.slice(0,20), moreN=openAlerts.length-shown.length;
+              return (
+                <details className="cp-alerts">
+                  <summary className="cp-alerts-sum">Alerts <span className="cp-alerts-n">{num(openAlerts.length)}</span></summary>
+                  <div className="cp-alerts-list">
+                    {shown.map((a,i)=>{
+                      const sig=a.payload&&a.payload.signal;
+                      const entered=sig==='dealroom_entered';
+                      return (
+                        <div key={a.id||i} className="cp-alert-row">
+                          <span className={'cp-alert-sig '+(entered?'enter':'pay')}>{SIGNAL_LABEL[sig]||friendly(sig)}</span>
+                          <span className="cp-alert-name">{alertName(a)}</span>
+                          <span className="cp-alert-time">{relTime(a.created_at)}</span>
+                        </div>
+                      );
+                    })}
+                    {moreN>0 && <div className="cp-alerts-more">+{num(moreN)} more</div>}
+                  </div>
+                </details>
+              );
+            })()}
             {(()=>{
               // Sub-category render order (§2.1); a header shows only when its group has ≥1 member (AC-5).
               const CP_GROUPS = [
@@ -904,6 +995,7 @@ function App() {
                   const wsPath = linked ? linked.workspace_path : null;
                   const isLP = linked ? linked.is_launch_partner===true : false;
                   const name = cp.counterparty_legal_name_formal || cp.counterparty_legal_name || cp.counterparty_short_name || cp.counterparty_short_code || 'Counterparty';
+                  const prog = cp.clid ? progByClid[cp.clid] : null;   // progression row (BRIEF §2.2) — absent ⇒ no strip (AC-4)
                   return (
                     <div key={i} className={'cp-card'+(inst?' inst':'')} onClick={cp.clid?()=>openDealroom(cp.clid):undefined} style={cp.clid?{cursor:'pointer'}:undefined} title={cp.clid?'Open deal room':undefined}>
                       <div className="cp-head">
@@ -917,6 +1009,24 @@ function App() {
                           {isLP && <span className="badge lp">Launch Partner</span>}
                         </div>
                       </div>
+
+                      {/* PROGRESSION STRIP (BRIEF DEALROOMS-PROGRESSION-RENDER-001 §2.2) — read-only */}
+                      {prog && (
+                        <div className="cp-prog">
+                          <div className="cp-prog-top">
+                            <span className="cp-prog-phase">{PHASE_LABEL[prog.phase]||friendly(prog.phase)}</span>
+                            {prog.entered===true
+                              ? <span className="cp-prog-pill entered">Entered · {num(prog.entry_count)}×{prog.last_entered_at?' · '+relTime(prog.last_entered_at):''}</span>
+                              : <span className="cp-prog-pill notentered">Not entered</span>}
+                          </div>
+                          <div className="cp-prog-metrics">
+                            <span className="cp-prog-metric"><span className="cpm-k">Released</span><span className="cpm-v">{num(prog.releases_approved)}/{num(prog.releases_total)}</span></span>
+                            <span className="cp-prog-metric"><span className="cpm-k">Requirements</span><span className="cpm-v">{num(prog.requirements_satisfied)}/{num(prog.requirements_total)}</span></span>
+                            <span className="cp-prog-metric"><span className="cpm-k">Blockers</span><span className="cpm-v"><span className={'cpm-dot'+(Number(prog.requirements_blocking_open)>0?' amber':'')}/>{num(prog.requirements_blocking_open)}</span></span>
+                          </div>
+                          {prog.last_activity_at && <div className="cp-prog-act">Last activity {relTime(prog.last_activity_at)}</div>}
+                        </div>
+                      )}
 
                       {pkgs.length>0 && (
                         <div>
