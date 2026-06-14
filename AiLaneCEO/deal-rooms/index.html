@@ -117,6 +117,10 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .cp-links{display:flex;gap:8px;flex-wrap:wrap;}
 .cp-link{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-base);color:var(--text-secondary);font-size:0.66rem;text-decoration:none;transition:all 0.2s;}
 .cp-link:hover{border-color:var(--border-accent);color:var(--text-accent);}
+/* Activate Deal control (AILANE-CC-BRIEF-DEALROOMS-ACTIVATE-PANEL-001) — green = moment-of-agreement; not the gold reserved for Institutional */
+.cp-activate{display:flex;}
+.cp-activate-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid rgba(16,185,129,0.35);background:var(--accent-green-dim);color:var(--accent-green);font-family:var(--font-body);font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.cp-activate-btn:hover{background:rgba(16,185,129,0.22);border-color:rgba(16,185,129,0.5);}
 .divline{height:1px;background:var(--border-subtle);margin:1px 0;}
 .sandbox-section{background:rgba(139,92,246,0.04);border:1px dashed rgba(139,92,246,0.35);border-radius:var(--radius-lg);padding:14px 18px 16px;}
 .sandbox-banner{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:0.62rem;font-weight:700;color:var(--accent-purple);text-transform:uppercase;letter-spacing:0.1em;}
@@ -777,6 +781,144 @@ function CohortOrigination({ token, existingRoomByAlin }){
   );
 }
 
+// ═══════ ACTIVATE DEAL — arm auto-settlement + issue invoice (AILANE-CC-BRIEF-DEALROOMS-ACTIVATE-PANEL-001) ═══════
+// Director moment-of-agreement control on a Live Counterparty room. Posts the agreed bespoke amount +
+// label to ceo-dealroom-activate-payment (backend shipped 14 Jun 2026: verify_jwt, CEO-gated, audited),
+// which mints a sequential invoice number, arms auto-settlement at that amount, and releases a branded
+// invoice into the room. Reuses the page's standard EF auth (Bearer session token + anon apikey). The
+// action is deliberate — a confirm step gates submit because it consumes an invoice number + arms
+// settlement. Presentation only: no DB / RPC / Edge Function change. No bank details collected (AC-4).
+function ActivateDealModal({ cp, token, wsPath, onActivated, onOpenRoom, onClose }){
+  const clid = cp.clid;
+  const cpName = cp.counterparty_legal_name_formal || cp.counterparty_legal_name || cp.counterparty_short_name || cp.counterparty_short_code || 'Counterparty';
+  const [amount,setAmount]=useState('');
+  const [label,setLabel]=useState('');
+  const [terms,setTerms]=useState('30');
+  const [stage,setStage]=useState('form');   // 'form' | 'confirm' | 'done'
+  const [busy,setBusy]=useState(false);
+  const [res,setRes]=useState(null);
+  const [err,setErr]=useState(null);
+  useEffect(()=>{ const k=e=>{ if(e.key==='Escape'&&!busy) onClose(); }; document.addEventListener('keydown',k); return ()=>document.removeEventListener('keydown',k); },[busy]);
+
+  const amt=Number(amount);
+  const amountValid=String(amount).trim()!==''&&isFinite(amt)&&amt>0;
+  const labelValid=label.trim().length>0;
+  const termsRaw=String(terms).trim();
+  const termsNum=termsRaw===''?30:Number(termsRaw);
+  const termsValid=isFinite(termsNum)&&termsNum>=0;
+  const payTerms=Math.max(0,Math.round(termsNum));
+  const canReview=amountValid&&labelValid&&termsValid;
+
+  const gbp=(n,ccy)=>{ const v=Number(n); if(!isFinite(v)) return '—'; const s=v.toLocaleString('en-GB',{maximumFractionDigits:2}); return (!ccy||ccy==='GBP')?'£'+s:s+' '+ccy; };
+
+  async function activate(){
+    if(busy) return;
+    setBusy(true); setErr(null);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-dealroom-activate-payment`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({ clid, amount:amt, label:label.trim(), payment_terms_days:payTerms })});
+      let j=null; try{ j=await r.json(); }catch(_){}
+      if(r.ok&&j&&j.ok){
+        setRes(j); setStage('done');
+        if(typeof onActivated==='function'){ try{ onActivated(); }catch(_){} }   // silent feed refresh — surfaces released invoice + new payment requirement
+      }else{
+        const msg=(j&&(j.error||j.code))?((j.error||'Activation failed')+(j.code?' ('+j.code+')':'')):('Activation failed ('+r.status+').');
+        setErr(msg);   // non-blocking; leave form state unchanged for retry (no feed refresh)
+      }
+    }catch(e){ console.error('ceo-dealroom-activate-payment',e); setErr('Network error — deal not activated.'); }
+    setBusy(false);
+  }
+
+  const fld={padding:'7px 10px',background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:'0.72rem',fontFamily:'var(--font-body)',outline:'none',width:'100%'};
+  const lbl={fontSize:'0.56rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3};
+
+  return (
+    <div className="dm-overlay" onClick={()=>{ if(!busy) onClose(); }}>
+      <div className="dm-modal" onClick={e=>e.stopPropagation()} style={{width:620}}>
+        <div className="dm-head">
+          <div>
+            <div className="dm-title">Activate deal — {cpName}</div>
+            <div className="dm-cap">{clid} · arms auto-settlement + issues invoice (CEO-gated)</div>
+          </div>
+          <button className="dd-btn" onClick={onClose} disabled={busy}>Close</button>
+        </div>
+        <div className="dm-body" style={{whiteSpace:'normal'}}>
+          {stage==='form' && (
+            <div>
+              <div style={{fontSize:'0.7rem',color:'var(--text-secondary)',lineHeight:1.55,marginBottom:14}}>
+                Enter the agreed bespoke amount and a deal label. On confirm this arms auto-settlement at that amount and releases a branded, sequentially-numbered invoice into the room. Deliberate action — it consumes an invoice number.
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:8}}>
+                <div><div style={lbl}>Amount (£) *</div><input style={fld} type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="e.g. 75000"/></div>
+                <div><div style={lbl}>Payment terms (days)</div><input style={fld} type="number" min="0" max="365" value={terms} onChange={e=>setTerms(e.target.value)} placeholder="30"/></div>
+              </div>
+              <div style={{marginBottom:14}}><div style={lbl}>Deal label *</div><input style={fld} value={label} onChange={e=>setLabel(e.target.value)} placeholder={'e.g. "Stage-2 corpus & aggregate-intelligence licence"'}/></div>
+              {err && <div className="dd-act-err" style={{marginBottom:10}}>{err}</div>}
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <button className="orig-btn live" style={{marginTop:0}} disabled={!canReview} onClick={()=>{ setErr(null); setStage('confirm'); }}>Review activation →</button>
+                <button className="dd-btn" onClick={onClose}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {stage==='confirm' && (
+            <div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:'0.82rem',fontWeight:700,color:'var(--text-primary)',marginBottom:10}}>Confirm activation</div>
+              <div style={{fontSize:'0.74rem',color:'var(--text-secondary)',lineHeight:1.6,marginBottom:14}}>
+                Activate <b style={{color:'var(--text-primary)'}}>{label.trim()}</b> for <b style={{color:'var(--text-primary)'}}>{cpName}</b> at <b style={{color:'var(--accent-green)'}}>{gbp(amt)}</b>? This issues a sequential invoice and arms auto-settlement (net {payTerms} day{payTerms===1?'':'s'}).
+              </div>
+              {err && <div className="dd-act-err" style={{marginBottom:10}}>{err}</div>}
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <button className="orig-btn live" style={{marginTop:0}} disabled={busy} onClick={activate}>{busy?'Activating…':'Confirm — activate & issue invoice'}</button>
+                <button className="dd-btn" onClick={()=>{ setErr(null); setStage('form'); }} disabled={busy}>← Back</button>
+              </div>
+            </div>
+          )}
+          {stage==='done' && res && (
+            <div>
+              <div style={{fontFamily:'var(--font-display)',fontSize:'0.9rem',fontWeight:700,color:'var(--accent-green)',marginBottom:10}}>Deal activated — invoice released to room</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
+                <span className="meta-chip">Invoice <b>{res.invoice_number||'—'}</b></span>
+                <span className="meta-chip">Reference <b>{res.reference||'—'}</b></span>
+                <span className="meta-chip">Amount <b>{gbp(res.amount,res.currency)}</b></span>
+                {res.payment_due&&<span className="meta-chip">Due <b>{shortDate(res.payment_due)}</b></span>}
+                <span className="meta-chip">Auto-settle <b>{res.auto_released?'armed':'pending'}</b></span>
+              </div>
+              {res.bank_details_pending===true && (
+                <div style={{fontSize:'0.66rem',color:'var(--accent-amber)',background:'var(--accent-amber-dim)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:'var(--radius-sm)',padding:'8px 11px',marginBottom:8,lineHeight:1.5}}>Bank details not set — invoice shows placeholders. Set them in platform_config.</div>
+              )}
+              {res.invoice_pdf_pending===true && (
+                <div style={{fontSize:'0.66rem',color:'var(--text-secondary)',background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',padding:'8px 11px',marginBottom:8,lineHeight:1.5}}>Armed; invoice PDF is still generating — refresh shortly.</div>
+              )}
+              {res.note && <div style={{fontSize:'0.62rem',color:'var(--text-muted)',lineHeight:1.5,marginBottom:8}}>{res.note}</div>}
+              {res.invoice_document_id && <div style={{fontSize:'0.6rem',color:'var(--text-muted)',fontFamily:'var(--font-mono)',marginBottom:12}}>Invoice document {res.invoice_document_id}</div>}
+              <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+                {onOpenRoom && <button className="dd-btn primary" onClick={()=>{ onOpenRoom(); onClose(); }}>Open deal room →</button>}
+                {wsPath && <a className="cp-link" href={wsPath} target="_blank" rel="noopener">Workspace ↗</a>}
+                <button className="dd-btn" onClick={onClose}>Done</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Activate Deal button on the Live Counterparty card. Wrapper stops click-bubbling so neither the button
+// nor the modal triggers the card's openDealroom handler. Rendered only when a room CLID exists.
+function ActivateDeal({ cp, token, wsPath, onActivated, onOpenRoom }){
+  const [open,setOpen]=useState(false);
+  if(!cp.clid) return null;   // no room → nothing to arm
+  return (
+    <div className="cp-activate" onClick={e=>e.stopPropagation()}>
+      <button className="cp-activate-btn" onClick={()=>setOpen(true)}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Activate Deal
+      </button>
+      {open && <ActivateDealModal cp={cp} token={token} wsPath={wsPath} onActivated={onActivated} onOpenRoom={onOpenRoom} onClose={()=>setOpen(false)}/>}
+    </div>
+  );
+}
+
 function App() {
   const [auth, setAuth] = useState('checking');
   const [token, setToken] = useState(null);
@@ -796,14 +938,18 @@ function App() {
   }, []);
 
   // ─── Live data from ceo-portfolio-data ───
+  // loadDealrooms(silent): silent=true re-fetches without flashing the skeleton — used after an
+  // Activate-Deal arm so the released invoice + new payment requirement appear while the success
+  // panel stays mounted (BRIEF DEALROOMS-ACTIVATE-PANEL-001 §2.2).
+  async function loadDealrooms(silent){
+    if(!silent) setLoading(true);
+    try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealrooms`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+    if(r.ok){const j=await r.json();setData(j.sections?.dealrooms||null);}else{console.error('ceo-portfolio-data',r.status);}}catch(e){console.error(e);}
+    if(!silent) setLoading(false);
+  }
   useEffect(() => {
     if(auth!=='ok'||!token) return;
-    (async()=>{
-      setLoading(true);
-      try{const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-portfolio-data?section=dealrooms`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
-      if(r.ok){const j=await r.json();setData(j.sections?.dealrooms||null);}else{console.error('ceo-portfolio-data',r.status);}}catch(e){console.error(e);}
-      setLoading(false);
-    })();
+    loadDealrooms(false);
   }, [auth, token]);
 
   if(auth==='checking') return <div className="auth-gate"><div className="logo-mark">AILANE</div><div className="pulse-ring"/><div className="ts">Verifying clearance…</div></div>;
@@ -1070,6 +1216,9 @@ function App() {
                           </div>
                         </div>
                       )}
+
+                      {/* ACTIVATE DEAL (BRIEF DEALROOMS-ACTIVATE-PANEL-001 §2.2) — moment-of-agreement: arm settlement + issue invoice */}
+                      <ActivateDeal cp={cp} token={token} wsPath={wsPath} onActivated={()=>loadDealrooms(true)} onOpenRoom={()=>openDealroom(cp.clid)}/>
 
                       <div className="divline"/>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
