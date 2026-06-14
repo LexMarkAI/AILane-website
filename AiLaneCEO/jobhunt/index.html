@@ -115,6 +115,18 @@ table.reg tr.actionable:hover{background:rgba(245,158,11,0.1);}
 .disclaimer{background:var(--bg-base);border:1px solid var(--border-subtle);border-left:3px solid var(--accent-cyan);border-radius:var(--radius-sm);padding:11px 14px;font-size:0.64rem;color:var(--text-secondary);line-height:1.55;}
 .confirm-band{background:linear-gradient(180deg,rgba(16,185,129,0.08),var(--bg-base));border:1px solid rgba(16,185,129,0.3);border-radius:var(--radius-md);padding:14px 16px;}
 
+/* prep tab — lightweight markdown render (no external lib) */
+.prep-body{font-size:0.74rem;color:var(--text-secondary);line-height:1.6;}
+.prep-body .prep-h{font-family:var(--font-display);color:var(--text-primary);font-weight:700;letter-spacing:0.02em;margin:14px 0 5px;}
+.prep-body .prep-h:first-child{margin-top:0;}
+.prep-body .prep-h1{font-size:0.94rem;}
+.prep-body .prep-h2{font-size:0.84rem;}
+.prep-body .prep-h3{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;}
+.prep-body .prep-p{margin:6px 0;}
+.prep-body .prep-ul{margin:6px 0;padding-left:18px;}
+.prep-body .prep-ul li{margin:3px 0;}
+.prep-body strong{color:var(--text-primary);font-weight:600;}
+
 @media(max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}.form-grid{grid-template-columns:1fr;}}
 @media(max-width:640px){.kpi-strip{grid-template-columns:1fr 1fr;}}
 </style>
@@ -180,6 +192,33 @@ function bandLabel(b){return b?(b==='reject'?'Reject':'Band '+b):'unscored';}
 
 function Chip({color,children}){return <span className={'tchip '+(color||'muted')}>{children}</span>;}
 
+// ─── Lightweight Markdown → React (no external lib): #/##/### headings, **bold**, -/· bullets, blank-line paragraphs ───
+function renderInline(text,kp){
+  return String(text).split(/(\*\*[^*]+\*\*)/g).map((p,i)=>{
+    if(!p)return null;
+    const m=p.match(/^\*\*([^*]+)\*\*$/);
+    return m?<strong key={kp+'-b'+i}>{m[1]}</strong>:<React.Fragment key={kp+'-t'+i}>{p}</React.Fragment>;
+  });
+}
+function renderMarkdown(md){
+  if(!md)return null;
+  const lines=String(md).replace(/\r\n/g,'\n').split('\n');
+  const out=[];let para=[];let bullets=[];
+  const flushPara=()=>{if(para.length){const k='p'+out.length;out.push(<p key={k} className="prep-p">{renderInline(para.join(' '),k)}</p>);para=[];}};
+  const flushBullets=()=>{if(bullets.length){const k='u'+out.length;const items=bullets;out.push(<ul key={k} className="prep-ul">{items.map((b,i)=><li key={i}>{renderInline(b,k+'-'+i)}</li>)}</ul>);bullets=[];}};
+  lines.forEach(raw=>{
+    const t=raw.trim();
+    if(t===''){flushPara();flushBullets();return;}
+    const h=t.match(/^(#{1,3})\s+(.*)$/);
+    if(h){flushPara();flushBullets();const lvl=h[1].length;const k='h'+out.length;out.push(<div key={k} className={'prep-h prep-h'+lvl}>{renderInline(h[2],k)}</div>);return;}
+    const b=t.match(/^([-·])\s+(.*)$/);
+    if(b){flushPara();bullets.push(b[2]);return;}
+    flushBullets();para.push(t);
+  });
+  flushPara();flushBullets();
+  return out;
+}
+
 // ─── API layer ───
 function authHeaders(token,withJson){
   const h={'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY};
@@ -228,7 +267,7 @@ function PipelineRow({row,onSelect}){
   return(
     <tr className={'row'+(actionable?' actionable':'')} onClick={()=>onSelect(row)}>
       <td>
-        <div className="name-cell">{row.title}{actionable&&<span style={{marginLeft:8}} className="action-chip">CONFIRM?</span>}</div>
+        <div className="name-cell">{row.title}{actionable&&<span style={{marginLeft:8}} className="action-chip">CONFIRM?</span>}{row.prep_md&&<span style={{marginLeft:8}}><Chip color="purple">Prep</Chip></span>}</div>
         <div className="head-cell">{labelize(row.source)}</div>
         {row.source_url && (
           <a href={row.source_url} target="_blank" rel="noopener noreferrer"
@@ -455,6 +494,7 @@ function DetailModal({token,row,onClose,onChanged}){
         <button className={tab==='edit'?'active':''} onClick={()=>setTab('edit')}>Edit</button>
         <button className={tab==='score'?'active':''} onClick={()=>setTab('score')}>Score</button>
         <button className={tab==='activity'?'active':''} onClick={()=>setTab('activity')}>Activity</button>
+        <button className={tab==='prep'?'active':''} onClick={()=>setTab('prep')}>Prep</button>
       </div>
 
       {tab==='edit'&&(
@@ -548,6 +588,19 @@ function DetailModal({token,row,onClose,onChanged}){
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab==='prep'&&(
+        <div>
+          <div className="section-label" style={{paddingTop:0}}>Prep-for-Next-Stage</div>
+          <div className="muted-note" style={{marginTop:0,marginBottom:12,fontSize:'0.72rem'}}>
+            <strong style={{color:'var(--text-primary)'}}>Hiring manager:</strong> <span style={{color:'var(--text-secondary)'}}>{row.hiring_manager||'—'}</span>
+            {row.prep_generated_at&&<span className="ts"> · Prep generated {fmtDateTime(row.prep_generated_at)}</span>}
+          </div>
+          {row.prep_md
+            ? <div className="prep-body">{renderMarkdown(row.prep_md)}</div>
+            : <div className="muted-note">No prep yet. The daily scout generates a Prep-for-Next-Stage pack automatically once this role is marked submitted.</div>}
         </div>
       )}
     </Modal>
