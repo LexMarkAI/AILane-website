@@ -87,6 +87,8 @@ table.reg tr.actionable:hover{background:rgba(245,158,11,0.1);}
 .err{color:var(--accent-red);font-size:0.7rem;margin-top:8px;font-family:var(--font-mono);}
 .ok{color:var(--accent-green);font-size:0.7rem;font-family:var(--font-mono);}
 .url-text{font-family:var(--font-mono);font-size:0.64rem;color:var(--text-secondary);word-break:break-all;line-height:1.5;}
+.src-link{color:var(--accent-cyan);text-decoration:none;font-size:0.66rem;font-family:var(--font-mono);}
+.src-link:hover{text-decoration:underline;}
 
 /* modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(3,6,14,0.72);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto;}
@@ -228,6 +230,10 @@ function PipelineRow({row,onSelect}){
       <td>
         <div className="name-cell">{row.title}{actionable&&<span style={{marginLeft:8}} className="action-chip">CONFIRM?</span>}</div>
         <div className="head-cell">{labelize(row.source)}</div>
+        {row.source_url && (
+          <a href={row.source_url} target="_blank" rel="noopener noreferrer"
+             onClick={(e)=>e.stopPropagation()} className="src-link">Open posting ↗</a>
+        )}
       </td>
       <td>{row.employer}</td>
       <td>{row.band?<Chip color={bandColor(row.band)}>{bandLabel(row.band)}</Chip>:<span className="ts">—</span>}</td>
@@ -478,7 +484,9 @@ function DetailModal({token,row,onClose,onChanged}){
             <TextField label="Next action" value={f.next_action} onChange={v=>upd('next_action',v)} full/>
             <Field label="Notes" full><textarea value={f.notes} onChange={e=>upd('notes',e.target.value)}/></Field>
           </div>
-          {row.source_url&&<div className="muted-note">Source: <span className="url-text">{row.source_url}</span></div>}
+          {row.source_url && (
+            <div className="muted-note">Source: <a href={row.source_url} target="_blank" rel="noopener noreferrer" className="src-link">{row.source_url} ↗</a></div>
+          )}
 
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:14,alignItems:'center'}}>
             <button className="btn primary" disabled={busy} onClick={saveEdits}>{busy?'Saving…':'Save changes'}</button>
