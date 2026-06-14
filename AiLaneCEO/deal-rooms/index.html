@@ -466,12 +466,17 @@ function CreateRoomModal({ entity, dossierFindingId, token, onClose }){
 // Action 2 (Create) -> ceo-cohort-instantiate via a Director-confirm modal (§2). Both EFs are
 // Path A (research deploy now per DD-W1; create deploy held per DD-W5) and degrade gracefully
 // (clear message) until deployed.
-function EntityActions({ entity, token }){
+function EntityActions({ entity, token, existingRoomByAlin }){
   const [busy,setBusy]=useState(false);
   const [res,setRes]=useState(null);
   const [err,setErr]=useState(null);
   const [open,setOpen]=useState(false);
   const [createOpen,setCreateOpen]=useState(false);
+  // Origination guard (BRIEF DEALROOMS-ORIGINATION-GUARD-001 §2.2): if this league entity's ALIN
+  // already maps to a live (non-simulation) deal room, offer "Open existing room ↗" instead of
+  // "Create a bespoke deal room", which would instantiate a duplicate. Universe entities (null alin)
+  // never match. existingRoomByAlin is undefined on the universe path — guarded here.
+  const existingRoom = (existingRoomByAlin && entity && entity.alin) ? existingRoomByAlin[entity.alin] : null;
   async function research(){
     if(busy) return;
     setBusy(true); setErr(null);
@@ -495,10 +500,21 @@ function EntityActions({ entity, token }){
         {err && <div className="orig-note" style={{color:'var(--accent-red)'}}>{err}</div>}
       </div>
       <div className="orig-act">
-        <div className="orig-act-head"><span className="orig-act-n">2</span><span className="orig-act-t">Create a bespoke deal room</span><span className="orig-stage gated">Director-gated</span></div>
-        <div className="orig-act-d">CBI-001 instantiate (counterparty_profile + room at phase_0) — packages surfaced and the envelope priced internally; the Action&nbsp;1 dossier attaches as room context. Live data delivery stays gated (DDX-001 §5).</div>
-        <button className="orig-btn live" onClick={()=>setCreateOpen(true)}>Create deal room →</button>
-        <div className="orig-note">Consequential — opens a Director-confirm step; never auto-fired. {res?'A research dossier is ready and will be attached.':'Tip: run Action 1 first to attach a research dossier.'} EF deploy is Path A (held per DD-W5).</div>
+        {existingRoom ? (
+          <>
+            <div className="orig-act-head"><span className="orig-act-n">2</span><span className="orig-act-t">Open existing room</span><span className="orig-stage" style={{background:'var(--accent-green-dim)',color:'var(--accent-green)',borderColor:'rgba(16,185,129,0.25)'}}>live room</span></div>
+            <div className="orig-act-d">A live deal room already exists for this entity (<span style={{fontFamily:'var(--font-mono)',color:'var(--accent-cyan)'}}>{existingRoom.clid}</span>). Open its workspace instead of instantiating a duplicate.</div>
+            <a className="orig-btn live" href={existingRoom.workspace_path} target="_blank" rel="noopener" style={{display:'inline-block',textDecoration:'none'}}>Open existing room →</a>
+            <div className="orig-note">Origination guard — this register entity already maps to a live room; creation is suppressed to avoid a duplicate (DEALROOMS-ORIGINATION-GUARD-001 §2.2).</div>
+          </>
+        ) : (
+          <>
+            <div className="orig-act-head"><span className="orig-act-n">2</span><span className="orig-act-t">Create a bespoke deal room</span><span className="orig-stage gated">Director-gated</span></div>
+            <div className="orig-act-d">CBI-001 instantiate (counterparty_profile + room at phase_0) — packages surfaced and the envelope priced internally; the Action&nbsp;1 dossier attaches as room context. Live data delivery stays gated (DDX-001 §5).</div>
+            <button className="orig-btn live" onClick={()=>setCreateOpen(true)}>Create deal room →</button>
+            <div className="orig-note">Consequential — opens a Director-confirm step; never auto-fired. {res?'A research dossier is ready and will be attached.':'Tip: run Action 1 first to attach a research dossier.'} EF deploy is Path A (held per DD-W5).</div>
+          </>
+        )}
       </div>
       {open && res && <ResearchModal entity={entity} res={res} onClose={()=>setOpen(false)}/>}
       {createOpen && <CreateRoomModal entity={entity} dossierFindingId={res&&res.dossier_finding_id} token={token} onClose={()=>setCreateOpen(false)}/>}
@@ -595,7 +611,7 @@ function UniverseBrowser({ family, token }){
   );
 }
 
-function CohortOrigination({ token }){
+function CohortOrigination({ token, existingRoomByAlin }){
   const [cohort,setCohort]=useState(null);
   const [loading,setLoading]=useState(true);
   const [err,setErr]=useState(null);
@@ -712,7 +728,7 @@ function CohortOrigination({ token }){
               <UniverseBrowser key={selFam.cohort_family} family={selFam.cohort_family} token={token}/>
             ) : <div className="empty-note">No individual register entities for this family in the snapshot.</div>}
 
-            {selEntity && <EntityActions key={selEntity.alin} entity={selEntity} token={token}/>}
+            {selEntity && <EntityActions key={selEntity.alin} entity={selEntity} token={token} existingRoomByAlin={existingRoomByAlin}/>}
           </div>
         </div>
       )}
@@ -761,6 +777,21 @@ function App() {
   const clidMap = {};
   clids.forEach(c=>{ if(c.clid) clidMap[c.clid]=c; });
   const sandboxClids = clids.filter(c=>c.is_simulation===true);
+
+  // ─── Origination guard (BRIEF DEALROOMS-ORIGINATION-GUARD-001 §2.1) ───
+  // Map a league entity's origin ALIN → its existing live deal room {clid, workspace_path}, so the
+  // Cohort Origination league can offer "Open existing room ↗" instead of instantiating a duplicate.
+  // Include only counterparties with a non-null origin_cohort_alin whose linked CLID is NOT a
+  // simulation (clids[clid].is_simulation !== true). workspace_path is the same target the Live
+  // Counterparty card's Workspace ↗ uses (partner_clids.workspace_path, via clidMap).
+  const existingRoomByAlin = {};
+  counterparties.forEach(cp=>{
+    const alin = cp.origin_cohort_alin;
+    if(!alin || !cp.clid) return;
+    const linked = clidMap[cp.clid];
+    if(!linked || linked.is_simulation===true) return;
+    existingRoomByAlin[alin] = { clid: cp.clid, workspace_path: linked.workspace_path };
+  });
 
   function docCountFor(code){const r=docsByCp.find(x=>x.counterparty===code);return r?r.count:0;}
 
@@ -950,7 +981,7 @@ function App() {
             })()}
 
             {/* COHORT ORIGINATION — BRIEF CEO-DASH-IA-001 §2A (cohort leagues merged into Deal Rooms) */}
-            <CohortOrigination token={token}/>
+            <CohortOrigination token={token} existingRoomByAlin={existingRoomByAlin}/>
 
             {/* DOCUMENTS */}
             <div className="docs-grid">
