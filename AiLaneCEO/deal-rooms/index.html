@@ -1444,6 +1444,8 @@ function App() {
                       </div>
                       {c.launch_partner_rationale && <div style={{fontSize:'0.66rem',color:'var(--text-secondary)',lineHeight:1.5}}>{c.launch_partner_rationale}</div>}
                       {c.notes && <div style={{fontSize:'0.62rem',color:'var(--text-muted)',lineHeight:1.5,fontStyle:'italic'}}>{c.notes}</div>}
+                      {/* ACTIVATE DEAL on sandbox/sim rooms (BRIEF DEALROOMS-SANDBOX-ACTIVATE-001) — same control + ActivateDealModal as the live cards, gated on the sim room clid so the Director can run an end-to-end test. The control wraps itself in cp-activate's stopPropagation so it never triggers the card's drawer. counterparty_name is mapped into the modal's display-name field only; the POST keys off clid (backend resolves short_code — a sim room with no short_code returns 422, surfaced inline like other errors). */}
+                      <ActivateDeal cp={{...c, counterparty_legal_name: c.counterparty_name || c.clid}} token={token} wsPath={c.workspace_path} onActivated={()=>loadDealrooms(true)} onOpenRoom={()=>openDealroom(c.clid)}/>
                       {c.workspace_path && <div onClick={e=>e.stopPropagation()}><a className="cp-link" href={c.workspace_path} target="_blank" rel="noopener">Sandbox Workspace ↗</a></div>}
                     </div>
                   ))}
