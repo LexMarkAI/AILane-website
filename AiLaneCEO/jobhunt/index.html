@@ -43,6 +43,15 @@
 /* KPI / stats strip */
 .kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}.kpi-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:14px 16px;}.kpi-card.alarm{border-color:rgba(245,158,11,0.35);background:linear-gradient(180deg,rgba(245,158,11,0.07),var(--bg-surface));}.kpi-card .label{font-size:0.56rem;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}.kpi-card .value{font-family:var(--font-mono);font-size:1.3rem;font-weight:600;line-height:1.2;}.kpi-card .sub{font-size:0.56rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
 
+/* action-needed alert banner — AILANE-CC-BRIEF-CEO-JOBHUNT-ALERTS-CALENDAR-001 §1c */
+.action-banner{background:linear-gradient(180deg,rgba(245,158,11,0.08),var(--bg-surface));border:1px solid rgba(245,158,11,0.35);border-left:3px solid var(--accent-amber);border-radius:var(--radius-md);padding:14px 16px;}
+.action-banner-head{font-family:var(--font-display);font-size:0.82rem;font-weight:700;color:var(--accent-amber);margin-bottom:8px;}
+.action-banner-list{display:flex;flex-direction:column;gap:6px;}
+.action-banner-item{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--bg-base);border:1px solid var(--border-subtle);cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+.action-banner-item:hover{border-color:rgba(245,158,11,0.4);background:var(--bg-hover);}
+.action-banner-summary{font-size:0.74rem;color:var(--text-primary);font-weight:600;}
+.action-banner-meta{font-family:var(--font-mono);font-size:0.62rem;color:var(--text-secondary);}
+
 /* sec head */
 .sec-head{display:flex;align-items:center;gap:10px;padding:6px 0 2px;}.sec-head .t{font-family:var(--font-display);font-size:0.92rem;font-weight:700;color:var(--text-primary);letter-spacing:0.02em;}.sec-head .rule{flex:1;height:1px;background:var(--border-subtle);}
 
@@ -192,10 +201,13 @@ function bandLabel(b){return b?(b==='reject'?'Reject':'Band '+b):'unscored';}
 
 function Chip({color,children}){return <span className={'tchip '+(color||'muted')}>{children}</span>;}
 
-// ─── Lightweight Markdown → React (no external lib): #/##/### headings, **bold**, -/· bullets, blank-line paragraphs ───
+// ─── Lightweight Markdown → React (no external lib): #/##/### headings, **bold**, [label](url) links, -/· bullets, blank-line paragraphs ───
+// AILANE-CC-BRIEF-CEO-JOBHUNT-ALERTS-CALENDAR-001 §1(a): [label](url) → clickable link (http/https only), tokenised before **bold**.
 function renderInline(text,kp){
-  return String(text).split(/(\*\*[^*]+\*\*)/g).map((p,i)=>{
+  return String(text).split(/(\[[^\]]+\]\(https?:\/\/[^\s)]+\)|\*\*[^*]+\*\*)/g).map((p,i)=>{
     if(!p)return null;
+    const lm=p.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+    if(lm)return <a key={kp+'-l'+i} href={lm[2]} target="_blank" rel="noopener noreferrer" className="src-link">{lm[1]}</a>;
     const m=p.match(/^\*\*([^*]+)\*\*$/);
     return m?<strong key={kp+'-b'+i}>{m[1]}</strong>:<React.Fragment key={kp+'-t'+i}>{p}</React.Fragment>;
   });
@@ -246,15 +258,38 @@ function StatsStrip({rows}){
   const sc=(s)=>r.filter(x=>x.status===s).length;
   const bc=(b)=>r.filter(x=>x.band===b).length;
   const open=r.filter(x=>x.status!=='rejected'&&x.status!=='closed').length;
-  const packReady=sc('pack_ready');
+  // §1(d): Actions Needed counts rows flagged action_needed OR still pack_ready (awaiting confirm).
+  const actionsNeeded=r.filter(x=>x.action_needed===true||x.status==='pack_ready').length;
   return(
     <div className="kpi-strip">
       <div className="kpi-card"><div className="label">Open Pipeline</div><div className="value" style={{color:'var(--accent-cyan)'}}>{total?open:'—'}</div><div className="sub">{total} tracked total</div></div>
       <div className="kpi-card"><div className="label">Band A / B</div><div className="value" style={{color:'var(--accent-green)'}}>{bc('A')} / {bc('B')}</div><div className="sub">C {bc('C')} · reject {bc('reject')}</div></div>
       <div className="kpi-card"><div className="label">Drafting</div><div className="value" style={{color:'var(--accent-cyan)'}}>{sc('drafting')}</div><div className="sub">packs in progress</div></div>
-      <div className={'kpi-card'+(packReady>0?' alarm':'')}><div className="label">Actions Needed</div><div className="value" style={{color:packReady>0?'var(--accent-amber)':'var(--text-muted)'}}>{packReady}</div><div className="sub">pack ready · confirm to submit</div></div>
+      <div className={'kpi-card'+(actionsNeeded>0?' alarm':'')}><div className="label">Actions Needed</div><div className="value" style={{color:actionsNeeded>0?'var(--accent-amber)':'var(--text-muted)'}}>{actionsNeeded}</div><div className="sub">action needed · pack ready</div></div>
       <div className="kpi-card"><div className="label">Submitted</div><div className="value" style={{color:'var(--accent-green)'}}>{sc('submitted')}</div><div className="sub">live applications</div></div>
       <div className="kpi-card"><div className="label">Closed / Rejected</div><div className="value" style={{color:'var(--text-muted)'}}>{sc('closed')+sc('rejected')}</div><div className="sub">{sc('closed')} closed · {sc('rejected')} rejected</div></div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// ACTION-NEEDED ALERT BANNER  (AILANE-CC-BRIEF-CEO-JOBHUNT-ALERTS-CALENDAR-001 §1c)
+// Live banner above the stats strip: rows flagged action_needed by daily-job-application-watch.
+// ═══════════════════════════════════════════════
+function ActionBanner({rows,onSelect}){
+  const items=(rows||[]).filter(r=>r.action_needed===true);
+  if(items.length===0)return null;
+  return(
+    <div className="action-banner">
+      <div className="action-banner-head">Action needed ({items.length})</div>
+      <div className="action-banner-list">
+        {items.map(r=>(
+          <div key={r.id} className="action-banner-item" onClick={()=>onSelect(r)}>
+            <span className="action-banner-summary">{r.action_summary||r.next_action||'Action required'}</span>
+            <span className="action-banner-meta">{[r.title,r.employer].filter(Boolean).join(' · ')}{r.follow_up_due?' · due '+fmtDate(r.follow_up_due):''}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -267,7 +302,7 @@ function PipelineRow({row,onSelect}){
   return(
     <tr className={'row'+(actionable?' actionable':'')} onClick={()=>onSelect(row)}>
       <td>
-        <div className="name-cell">{row.title}{actionable&&<span style={{marginLeft:8}} className="action-chip">CONFIRM?</span>}{row.prep_md&&<span style={{marginLeft:8}}><Chip color="purple">Prep</Chip></span>}</div>
+        <div className="name-cell">{row.title}{actionable&&<span style={{marginLeft:8}} className="action-chip">CONFIRM?</span>}{row.action_needed===true&&<span style={{marginLeft:8}}><Chip color="amber">Action</Chip></span>}{row.prep_md&&<span style={{marginLeft:8}}><Chip color="purple">Prep</Chip></span>}</div>
         <div className="head-cell">{labelize(row.source)}</div>
         {row.source_url && (
           <a href={row.source_url} target="_blank" rel="noopener noreferrer"
@@ -306,6 +341,37 @@ function PipelineTable({rows,onSelect}){
             <tbody>{sorted.map(r=><PipelineRow key={r.id} row={r} onSelect={onSelect}/>)}</tbody>
           </table></div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// UPCOMING INTERVIEWS  (AILANE-CC-BRIEF-CEO-JOBHUNT-ALERTS-CALENDAR-001 §1e)
+// Agenda list of rows with a future interview_at, ascending. Clicking opens the role.
+// ═══════════════════════════════════════════════
+function UpcomingInterviews({rows,onSelect}){
+  const now=Date.now();
+  const items=(rows||[])
+    .filter(r=>r.interview_at&&new Date(r.interview_at).getTime()>now)
+    .sort((a,b)=>new Date(a.interview_at)-new Date(b.interview_at));
+  return(
+    <div className="card">
+      <div className="card-head"><div className="card-head-title">Upcoming interviews</div><div className="card-head-badge">{items.length} scheduled</div></div>
+      <div className="card-body">
+        {items.length===0
+          ? <div className="empty">No interviews scheduled yet — the daily watch adds them automatically when invites arrive.</div>
+          : <div className="tbl-wrap"><table className="reg">
+              <thead><tr><th>When</th><th>Role</th><th>Employer</th><th>Location · Mode</th></tr></thead>
+              <tbody>{items.map(r=>(
+                <tr className="row" key={r.id} onClick={()=>onSelect(r)}>
+                  <td><span className="ts">{fmtDateTime(r.interview_at)}</span></td>
+                  <td><span className="name-cell">{r.title}</span></td>
+                  <td>{r.employer}</td>
+                  <td>{r.location||'—'}<div className="head-cell"><Chip color="muted">{labelize(r.work_mode)}</Chip></div></td>
+                </tr>
+              ))}</tbody>
+            </table></div>}
       </div>
     </div>
   );
@@ -594,9 +660,24 @@ function DetailModal({token,row,onClose,onChanged}){
       {tab==='prep'&&(
         <div>
           <div className="section-label" style={{paddingTop:0}}>Prep-for-Next-Stage</div>
-          <div className="muted-note" style={{marginTop:0,marginBottom:12,fontSize:'0.72rem'}}>
-            <strong style={{color:'var(--text-primary)'}}>Hiring manager:</strong> <span style={{color:'var(--text-secondary)'}}>{row.hiring_manager||'—'}</span>
-            {row.prep_generated_at&&<span className="ts"> · Prep generated {fmtDateTime(row.prep_generated_at)}</span>}
+          <div style={{marginBottom:12}}>
+            <div className="muted-note" style={{marginTop:0,fontSize:'0.72rem'}}>
+              <strong style={{color:'var(--text-primary)'}}>Hiring manager:</strong> <span style={{color:'var(--text-secondary)'}}>{row.hiring_manager||'—'}</span>
+              {row.prep_generated_at&&<span className="ts"> · Prep generated {fmtDateTime(row.prep_generated_at)}</span>}
+            </div>
+            {row.recruiter_name&&(
+              <div className="muted-note" style={{marginTop:6,fontSize:'0.72rem'}}>
+                <strong style={{color:'var(--text-primary)'}}>Recruiter:</strong>{' '}
+                {row.recruiter_url
+                  ? <a href={row.recruiter_url} target="_blank" rel="noopener noreferrer" className="src-link">{row.recruiter_name}</a>
+                  : <span style={{color:'var(--text-secondary)'}}>{row.recruiter_name}</span>}
+              </div>
+            )}
+            {row.follow_up&&(
+              <div className="muted-note" style={{marginTop:6,fontSize:'0.72rem'}}>
+                <strong style={{color:'var(--text-primary)'}}>Follow-up:</strong> <span style={{color:'var(--text-secondary)'}}>{row.follow_up===true?'Required':row.follow_up}{row.follow_up_due?' · due '+fmtDate(row.follow_up_due):''}</span>
+              </div>
+            )}
           </div>
           {row.prep_md
             ? <div className="prep-body">{renderMarkdown(row.prep_md)}</div>
@@ -665,6 +746,7 @@ function App(){
       </div>
 
       <div className="main">
+        <ActionBanner rows={rows||[]} onSelect={setSelected}/>
         <StatsStrip rows={rows||[]}/>
 
         <div className="sec-head"><div className="t">External Job Hunt</div><div className="rule"/></div>
@@ -675,6 +757,8 @@ function App(){
 
         {loading?<div className="card"><div className="card-body"><div className="ts">Loading pipeline…</div></div></div>
           :!err&&<PipelineTable rows={filtered} onSelect={setSelected}/>}
+
+        {!loading&&!err&&<UpcomingInterviews rows={rows||[]} onSelect={setSelected}/>}
 
         <div className="disclaimer" style={{marginTop:4}}>
           Internal governance tooling for the external job hunt: every opportunity the daily scout finds, its fit score and
