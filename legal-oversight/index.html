@@ -368,6 +368,33 @@ details[open] .ctx-summary::before{content:"\25BE "}
 .trk-notes{font-size:11.5px;color:var(--text);opacity:.8;margin-top:2px;line-height:1.45}
 .trk-also{font-size:12px;color:var(--text);opacity:.85;margin-top:12px}
 </style>
+<!-- Wet-sign sign-off panel — scoped wsig- styles (AILANE-CC-BRIEF-LOVR-WETSIGN-SITE-001). Additive only; reuses colour tokens. All text var(--text)/var(--muted), never var(--ink). -->
+<style>
+.wsig{padding:22px 24px;color:var(--text)}
+.wsig-lead{font-size:13px;color:var(--muted);line-height:1.55;margin:0 0 18px}
+.wsig-step{margin:0 0 18px}
+.wsig-stepn{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:7px}
+.wsig-help{font-size:12px;color:var(--muted);margin:0 0 9px;line-height:1.45}
+.wsig-label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.wsig-select,.wsig-note{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+  border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;font-family:inherit}
+.wsig-select:focus,.wsig-note:focus{outline:none;border-color:var(--cyan)}
+.wsig-note{resize:vertical;min-height:84px;line-height:1.5}
+.wsig-file{width:100%;color:var(--text);font-size:13px;font-family:inherit}
+.wsig-file::file-selector-button{background:var(--panel);border:1px solid var(--line);color:var(--text);
+  border-radius:var(--radius-sm);padding:7px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;margin-right:10px}
+.wsig-file::file-selector-button:hover{border-color:#2b3a52;background:#142036}
+.wsig-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 6px}
+.wsig-msg{font-size:12.5px;color:var(--muted)}
+.wsig-msg.ok{color:var(--green)}
+.wsig-msg.err{color:var(--red)}
+.wsig-recorded{margin-top:22px;border-top:1px solid var(--line);padding-top:16px}
+.wsig-rec{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);padding:11px 13px;margin-top:9px}
+.wsig-recmeta{font-size:12px;color:var(--muted);margin-top:6px}
+.wsig-recwho{color:var(--text);font-weight:600}
+.wsig-recnote{font-size:12.5px;color:var(--text);opacity:.85;margin-top:6px;line-height:1.45;white-space:pre-wrap}
+.wsig-empty{font-size:12.5px;color:var(--muted);margin-top:9px}
+</style>
 </head>
 <body>
 
@@ -818,6 +845,9 @@ details[open] .ctx-summary::before{content:"\25BE "}
     const verb = isUrl ? "Open page" : "Open";
     let actions = `<button class="btn gold sm" onclick="LOVR.open('${r.artefact_id}','preview')">${verb}</button>`;
     if(isDoc) actions += `<button class="btn sm" onclick="LOVR.open('${r.artefact_id}','download')">Download</button>`;
+    // Wet-sign sign-off — master instruction set only (§1.1, AILANE-CC-BRIEF-LOVR-WETSIGN-SITE-001).
+    if(r.doc_code==='AILANE-COUNSEL-SET-001')
+      actions += `<button class="btn sm" onclick="LOVR.signoff('${r.artefact_id}')">Sign-off</button>`;
     const ackChip = INSTRUMENTS.includes(r.doc_code)
       ? (ackState[r.doc_code]
           ? `<div class="ackrow"><span class="ackbadge ok">Acknowledged ${esc(fmtDate(ackState[r.doc_code].acknowledged_at))}</span></div>`
@@ -903,6 +933,147 @@ details[open] .ctx-summary::before{content:"\25BE "}
     }catch(err){
       $("v-title").textContent = "Unable to open";
       $("v-body").innerHTML = `<div class="vpad"><div class="big">Unexpected error</div><div>${esc(err.message||"Error")}</div></div>`;
+    }
+  }
+
+  // ===========================================================================
+  // Wet-sign sign-off panel (§1.2/§1.3, AILANE-CC-BRIEF-LOVR-WETSIGN-SITE-001).
+  // Master instruction set only. Reuses the viewer overlay and the page's authed
+  // `sb` session: download the master → wet-sign offline → upload the signed PDF
+  // to the private bucket → record the determination via lovr_record_signoff
+  // (validated reviewer + hash-chained server-side). The four status values must
+  // match the RPC's accepted set exactly, or it rejects the entry.
+  // ===========================================================================
+  const SIGNOFF_STATUS = [
+    ["clean-approval","Clean approval"],
+    ["approval-with-conditions","Approval with conditions"],
+    ["blocked","Blocked"],
+    ["noted","Noted"]
+  ];
+  const SIGNOFF_STATUS_LABEL = Object.fromEntries(SIGNOFF_STATUS);
+
+  async function sha256hex(buf){
+    const h = await crypto.subtle.digest('SHA-256', buf);
+    return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function signoff(artefactId){
+    openViewer();
+    $("v-title").textContent = "Sign-off — Master instruction set (all five matters)";
+    $("v-meta").innerHTML = `<span style="color:var(--muted-2)">AILANE-COUNSEL-SET-001</span>`;
+    $("v-actions").innerHTML = "";
+    const opts = SIGNOFF_STATUS.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");
+    $("v-body").innerHTML = `
+      <div class="wsig">
+        <p class="wsig-lead">Download the master instruction set, wet-sign it offline, then upload the signed copy and record your determination. This room captures your sign-off; it does not certify. Regulatory intelligence, not legal advice.</p>
+
+        <div class="wsig-step">
+          <div class="wsig-stepn">Step 1 — Review &amp; sign</div>
+          <p class="wsig-help">Download the master, review all five matters, and wet-sign the document offline.</p>
+          <button class="btn sm" type="button" id="wsig-download">Download master</button>
+        </div>
+
+        <div class="wsig-step">
+          <div class="wsig-stepn">Step 2 — Your determination</div>
+          <label class="wsig-label" for="wsig-status">Determination</label>
+          <select class="wsig-select" id="wsig-status">${opts}</select>
+        </div>
+
+        <div class="wsig-step">
+          <div class="wsig-stepn">Step 3 — Upload signed copy</div>
+          <p class="wsig-help">Optional, but expected for an approval. PDF only.</p>
+          <input class="wsig-file" id="wsig-file" type="file" accept="application/pdf" />
+        </div>
+
+        <div class="wsig-step">
+          <label class="wsig-label" for="wsig-note">Notes</label>
+          <textarea class="wsig-note" id="wsig-note" rows="4" placeholder="Any conditions, observations or context for this determination."></textarea>
+        </div>
+
+        <div class="wsig-actions">
+          <button class="btn gold sm" type="button" id="wsig-submit">Record sign-off</button>
+          <span class="wsig-msg" id="wsig-msg"></span>
+        </div>
+
+        <div class="wsig-recorded">
+          <div class="wsig-stepn">Recorded sign-offs</div>
+          <div id="wsig-list"><span class="spin"></span>Loading…</div>
+        </div>
+      </div>`;
+    const dl = $("wsig-download");
+    if(dl) dl.addEventListener("click", ()=> LOVR.open(artefactId, "download"));
+    const subBtn = $("wsig-submit");
+    if(subBtn) subBtn.addEventListener("click", ()=> submitSignoff(artefactId));
+    loadSignoffList(artefactId);
+    try{ gtag('event','lovr_signoff_open'); }catch(_e){}
+  }
+
+  // Recorded sign-offs for this master — read-only. scope_ref is the artefact id.
+  async function loadSignoffList(artefactId){
+    const box = $("wsig-list"); if(!box) return;
+    try{
+      const { data, error } = await sb.from('lovr_reviewer_signoff')
+        .select('status,note,signed_filename,created_at,reviewer_identity_snapshot')
+        .eq('scope_ref', artefactId)
+        .order('created_at', { ascending:false });
+      if(error) throw error;
+      const rows = data||[];
+      if(!rows.length){ box.innerHTML = `<div class="wsig-empty">No sign-offs recorded yet.</div>`; return; }
+      box.innerHTML = rows.map(r=>{
+        const idn  = r.reviewer_identity_snapshot || {};
+        const who  = esc(idn.firm || idn.name || idn.full_name || idn.email || "Reviewer");
+        const st   = esc(SIGNOFF_STATUS_LABEL[r.status] || r.status || "—");
+        const fn   = r.signed_filename ? ` · ${esc(r.signed_filename)}` : "";
+        const note = r.note ? `<div class="wsig-recnote">${esc(r.note)}</div>` : "";
+        return `<div class="wsig-rec">
+          <span class="pill cbadge sign">${st}</span>
+          <div class="wsig-recmeta"><span class="wsig-recwho">${who}</span> · ${esc(fmtDate(r.created_at))}${fn}</div>
+          ${note}
+        </div>`;
+      }).join("");
+    }catch(_e){
+      box.innerHTML = `<div class="wsig-empty">Recorded sign-offs are unavailable right now.</div>`;
+    }
+  }
+
+  // Upload the signed copy (optional) then record the determination (§1.3).
+  async function submitSignoff(artefactId){
+    const sel = $("wsig-status"), noteEl = $("wsig-note"), fileEl = $("wsig-file");
+    const btn = $("wsig-submit"), msg = $("wsig-msg");
+    const status = sel ? sel.value : null;
+    const note   = (noteEl && noteEl.value.trim()) ? noteEl.value.trim() : null;
+    const file   = (fileEl && fileEl.files && fileEl.files[0]) ? fileEl.files[0] : null;
+    let objectPath=null, sha=null, fname=null;
+    if(btn){ btn.disabled = true; btn.textContent = "Recording…"; }
+    if(msg){ msg.className = "wsig-msg"; msg.textContent = ""; }
+    try{
+      const { data:{ session } } = await sb.auth.getSession();
+      if(!session) throw new Error("no session");
+      if(file){
+        const buf = await file.arrayBuffer();
+        sha = await sha256hex(buf);
+        fname = file.name;
+        const token = session.access_token;
+        const uid = JSON.parse(atob(token.split('.')[1])).sub;
+        objectPath = `${uid}/${Date.now()}_${fname.replace(/[^A-Za-z0-9._-]/g,'_')}`;
+        const up = await sb.storage.from('lovr-signed-instruments').upload(objectPath, file, { contentType:'application/pdf', upsert:false });
+        if(up.error) throw up.error;
+      }
+      const { data, error } = await sb.rpc('lovr_record_signoff', {
+        p_scope_ref: artefactId, p_doc_code: 'AILANE-COUNSEL-SET-001', p_status: status,
+        p_note: note, p_signed_object_path: objectPath, p_signed_file_sha256: sha, p_signed_filename: fname
+      });
+      if(error) throw error;
+      if(msg){ msg.className = "wsig-msg ok"; msg.textContent = "Sign-off recorded — reference " + data + (sha ? ", signed copy stored." : "."); }
+      try{ gtag('event','lovr_signoff_recorded',{ status: status }); }catch(_e){}
+      if(noteEl) noteEl.value = "";
+      if(fileEl) fileEl.value = "";
+      loadSignoffList(artefactId);
+    }catch(e){
+      if(msg){ msg.className = "wsig-msg err"; msg.textContent = "We could not record your sign-off. Please review your determination and try again."; }
+      console.error('signoff', e);
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = "Record sign-off"; }
     }
   }
 
@@ -1045,7 +1216,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
   })();
   window.EILEEN = { open: eileenOpen, close: eileenCloseP, send: eileenSend };
 
-  window.LOVR = { open, openViewer, closeViewer, toggle, railScroll };
+  window.LOVR = { open, openViewer, closeViewer, toggle, railScroll, signoff };
   document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeViewer(); });
 
   // Gate on load: session present → room; absent → sign-in. Also react to magic-link return.
