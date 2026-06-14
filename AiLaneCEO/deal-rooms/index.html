@@ -919,6 +919,127 @@ function ActivateDeal({ cp, token, wsPath, onActivated, onOpenRoom }){
   );
 }
 
+// ── Invoice bank details settings (AILANE-CC-BRIEF-CEO-SETTINGS-BANK-001) ──
+// Lets the Director view + update AI Lane's invoice bank/issuer details from the dashboard so they
+// never edit Supabase. GET pre-fills; Save POSTs ONLY the changed subset of the four whitelisted
+// invoice keys via ceo-config-set (backend shipped 14 Jun 2026: verify_jwt, CEO-gated; mirrors
+// ceo-governance-action security; ignores any non-whitelisted key). Reuses the page's standard EF
+// auth (Bearer session token + anon apikey) and the .dm-* modal shell / .dd-* controls.
+// Front-end only: no DB / RPC / Edge Function change. Only these four fields are exposed (AC-3).
+const BANK_KEYS = ['ailane_bank_account_name','ailane_bank_sort_code','ailane_bank_account_number','ailane_issuer_address'];
+const EMPTY_BANK = { ailane_bank_account_name:'', ailane_bank_sort_code:'', ailane_bank_account_number:'', ailane_issuer_address:'' };
+
+function BankDetailsModal({ token, onClose }){
+  const [vals,setVals]=useState(EMPTY_BANK);
+  const [initial,setInitial]=useState(null);    // snapshot from GET for change-diffing
+  const [complete,setComplete]=useState(null);  // bank_details_complete from server (null until known)
+  const [phase,setPhase]=useState('loading');   // 'loading' | 'ready' | 'error'
+  const [loadErr,setLoadErr]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const [saveErr,setSaveErr]=useState(null);
+  const [saved,setSaved]=useState(false);
+  useEffect(()=>{ const k=e=>{ if(e.key==='Escape'&&!saving) onClose(); }; document.addEventListener('keydown',k); return ()=>document.removeEventListener('keydown',k); },[saving]);
+
+  async function load(){
+    setPhase('loading'); setLoadErr(null); setSaved(false); setSaveErr(null);
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-config-set`,{headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY}});
+      let j=null; try{ j=await r.json(); }catch(_){}
+      if(r.ok&&j&&j.ok){
+        const c=j.config||{};
+        const next={}; BANK_KEYS.forEach(key=>{ next[key]=c[key]==null?'':String(c[key]); });
+        setVals(next); setInitial(next); setComplete(j.bank_details_complete===true); setPhase('ready');
+      }else{
+        const msg=(j&&(j.error||j.code))?((j.error||'Could not load bank details')+(j.code?' ('+j.code+')':'')):('Could not load bank details ('+r.status+').');
+        setLoadErr(msg); setPhase('error');
+      }
+    }catch(e){ console.error('ceo-config-set GET',e); setLoadErr('Network error — could not load bank details.'); setPhase('error'); }
+  }
+  useEffect(()=>{ load(); },[]);
+
+  function setField(key,v){ setVals(p=>({...p,[key]:v})); setSaved(false); setSaveErr(null); }
+
+  // Only POST the keys that actually changed (a subset is accepted; non-whitelisted keys are ignored server-side).
+  const changed = initial ? BANK_KEYS.filter(k=>vals[k]!==initial[k]) : [];
+  const dirty = changed.length>0;
+
+  async function save(){
+    if(saving||!dirty) return;
+    setSaving(true); setSaveErr(null); setSaved(false);
+    const values={}; changed.forEach(k=>{ values[k]=vals[k]; });
+    try{
+      const r=await fetch(`${SUPABASE_URL}/functions/v1/ceo-config-set`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({ values })});
+      let j=null; try{ j=await r.json(); }catch(_){}
+      if(r.ok&&j&&j.ok){
+        setComplete(j.bank_details_complete===true);
+        setInitial({...vals});   // new baseline → form no longer dirty
+        setSaved(true);
+      }else{
+        const msg=(j&&(j.error||j.code))?((j.error||'Save failed')+(j.code?' ('+j.code+')':'')):('Save failed ('+r.status+').');
+        setSaveErr(msg);   // non-blocking — keep the form open + values intact for retry
+      }
+    }catch(e){ console.error('ceo-config-set POST',e); setSaveErr('Network error — changes not saved.'); }
+    setSaving(false);
+  }
+
+  const fld={padding:'7px 10px',background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:'0.72rem',fontFamily:'var(--font-body)',outline:'none',width:'100%'};
+  const lbl={fontSize:'0.56rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3};
+  const pill={display:'inline-flex',alignItems:'center',gap:6,fontFamily:'var(--font-mono)',fontSize:'0.6rem',fontWeight:600,borderRadius:100,padding:'3px 10px',marginBottom:14};
+  const saveLabel = saving ? 'Saving…' : (saved && !dirty ? 'Saved ✓' : 'Save changes');
+
+  return (
+    <div className="dm-overlay" onClick={()=>{ if(!saving) onClose(); }}>
+      <div className="dm-modal" onClick={e=>e.stopPropagation()} style={{width:560}}>
+        <div className="dm-head">
+          <div>
+            <div className="dm-title">Invoice bank details</div>
+            <div className="dm-cap">Printed on every auto-generated invoice · CEO-gated · ceo-config-set</div>
+          </div>
+          <button className="dd-btn" onClick={onClose} disabled={saving}>Close</button>
+        </div>
+        <div className="dm-body" style={{whiteSpace:'normal'}}>
+          {phase==='loading' && (
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:46}}/>)}
+            </div>
+          )}
+          {phase==='error' && (
+            <div>
+              <div className="dd-act-err" style={{marginBottom:12}}>{loadErr}</div>
+              <button className="dd-btn primary" onClick={load}>Retry</button>
+            </div>
+          )}
+          {phase==='ready' && (
+            <div>
+              <div style={{fontSize:'0.7rem',color:'var(--text-secondary)',lineHeight:1.55,marginBottom:12}}>
+                These details populate the issuer / bank block on every auto-generated invoice. Account number is stored as text, so leading zeros are preserved.
+              </div>
+              {complete===true && (
+                <div style={{...pill,color:'var(--accent-green)',background:'var(--accent-green-dim)',border:'1px solid rgba(16,185,129,0.25)'}}>● Bank details complete</div>
+              )}
+              {complete===false && (
+                <div style={{...pill,color:'var(--accent-amber)',background:'var(--accent-amber-dim)',border:'1px solid rgba(245,158,11,0.25)'}}>● Incomplete — invoices will show placeholders</div>
+              )}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+                <div><div style={lbl}>Account name</div><input style={fld} value={vals.ailane_bank_account_name} onChange={e=>setField('ailane_bank_account_name',e.target.value)} placeholder="e.g. AI Lane Limited"/></div>
+                <div><div style={lbl}>Sort code</div><input style={fld} value={vals.ailane_bank_sort_code} onChange={e=>setField('ailane_bank_sort_code',e.target.value)} placeholder="e.g. 12-34-56"/></div>
+              </div>
+              <div style={{marginBottom:12}}><div style={lbl}>Account number</div><input style={fld} inputMode="numeric" value={vals.ailane_bank_account_number} onChange={e=>setField('ailane_bank_account_number',e.target.value)} placeholder="e.g. 01234567 (leading zeros preserved)"/></div>
+              <div style={{marginBottom:14}}><div style={lbl}>Issuer address (optional)</div><textarea className="dd-textarea" rows={3} value={vals.ailane_issuer_address} onChange={e=>setField('ailane_issuer_address',e.target.value)} placeholder="Registered / issuer address printed on invoices"/></div>
+              {saveErr && <div className="dd-act-err" style={{marginBottom:10}}>{saveErr}</div>}
+              {saved && !dirty && <div style={{fontSize:'0.66rem',color:'var(--accent-green)',fontWeight:600,marginBottom:10}}>Saved — invoice details updated.</div>}
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <button className="dd-btn primary" disabled={saving||!dirty} onClick={save}>{saveLabel}</button>
+                <button className="dd-btn" onClick={onClose} disabled={saving}>Close</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [auth, setAuth] = useState('checking');
   const [token, setToken] = useState(null);
@@ -926,6 +1047,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [drawerClid, setDrawerClid] = useState(null);
   const openDealroom = (clid) => { if(clid) setDrawerClid(clid); };
+  const [bankOpen, setBankOpen] = useState(false);   // Invoice bank details settings modal (BRIEF CEO-SETTINGS-BANK-001)
 
   // ─── Auth gate (CEO-only; identical pattern to module pages) ───
   useEffect(() => {
@@ -1000,9 +1122,12 @@ function App() {
         </div>
         <div className="top-bar-right">
           <div className="status-pill live"><div className="dot"/>LIVE</div>
+          <button className="back-btn" onClick={()=>setBankOpen(true)} title="View / update the bank & issuer details printed on invoices"><span aria-hidden="true">⚙</span> Invoice bank details</button>
           <a href="/admin/counterparty-orchestration/" className="back-btn" style={{textDecoration:'none'}}>Orchestration ↗</a>
         </div>
       </div>
+
+      {bankOpen && <BankDetailsModal token={token} onClose={()=>setBankOpen(false)}/>}
 
       <div className="main">
         {loading ? (
