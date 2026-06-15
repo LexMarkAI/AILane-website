@@ -164,6 +164,10 @@ function App(){
         <div className="sec-head"><div className="t">ACGE — Compliance Gating</div><div className="rule"/></div>
         <AcgePanel token={token}/>
 
+        {/* SECTION 2c — ISMS Action Center (AILANE-CC-BRIEF-ISMS-ACTION-CENTER-SITE-001) */}
+        <div className="sec-head"><div className="t">ISMS Action Center</div><div className="rule"/></div>
+        <IsmsActionCenter token={token}/>
+
         {/* SECTION 3 — Legal responsibilities & oversight */}
         <div className="sec-head"><div className="t">Legal Responsibilities &amp; Oversight</div><div className="rule"/></div>
         <LegalResponsibilities reviewers={reviewers} token={token}/>
@@ -545,6 +549,213 @@ function AcgePanel({token}){
             <span className="ts">{t.actor||''}</span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION 2c — ISMS ACTION CENTER (AILANE-CC-BRIEF-ISMS-ACTION-CENTER-SITE-001) ──
+// Live ISO 27001 ISMS state from the CEO-gated ceo-isms-data Edge Function, with
+// an in-place write path (ceo-isms-action) so the Director can action items.
+// Reuses the page's existing Bearer-token + apikey fetch convention (App auth
+// guard / GovernanceAlertsPanel). 401/403 renders "CEO session required"; the
+// page's own auth guard owns redirects — this panel never redirects.
+const ISMS_STATUS_STYLE={
+  open:{c:'var(--accent-amber)',bg:'var(--accent-amber-dim)',bd:'rgba(245,158,11,0.25)'},
+  in_progress:{c:'var(--accent-cyan)',bg:'var(--accent-cyan-dim)',bd:'rgba(14,165,233,0.25)'},
+  blocked:{c:'var(--text-muted)',bg:'var(--bg-hover)',bd:'var(--border-subtle)'},
+  done:{c:'var(--accent-green)',bg:'var(--accent-green-dim)',bd:'rgba(16,185,129,0.25)'},
+  accepted:{c:'var(--accent-green)',bg:'var(--accent-green-dim)',bd:'rgba(16,185,129,0.25)'},
+};
+const ISMS_STATUS_OPTIONS=['open','in_progress','done','accepted','blocked'];
+const RISK_BAND_COLOR={Low:'var(--accent-green)',Medium:'var(--accent-amber)',High:'var(--accent-red)',Critical:'var(--accent-red)'};
+function ismsStatusStyle(s){return ISMS_STATUS_STYLE[String(s||'').toLowerCase()]||{c:'var(--text-muted)',bg:'var(--bg-hover)',bd:'var(--border-subtle)'};}
+function ismsField(o,keys){if(o==null)return null;if(typeof o!=='object')return o;for(const k of keys){if(o[k]!=null&&o[k]!=='')return o[k];}return null;}
+// Local EF helper — the page has no shared helper; mirror the existing
+// Bearer-token + apikey convention used by every other panel on this page.
+async function callIsms(method,path,body,token){
+  const headers={'Authorization':`Bearer ${token}`,'apikey':SUPABASE_ANON_KEY};
+  if(body)headers['Content-Type']='application/json';
+  return fetch(`${SUPABASE_URL}/functions/v1/${path}`,{method,headers,body:body?JSON.stringify(body):undefined});
+}
+
+function IsmsActionRow({action,token,onRecorded}){
+  const a=action;
+  const[status,setStatus]=useState(a.status||'open');
+  const[evRef,setEvRef]=useState('');
+  const[evNote,setEvNote]=useState('');
+  const[busy,setBusy]=useState(false);
+  const[msg,setMsg]=useState(null);   // {k:'ok'|'err', t}
+  const st=ismsStatusStyle(a.status);
+  const inp={padding:'5px 8px',background:'var(--bg-base)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-sm)',color:'var(--text-primary)',fontSize:'0.64rem',fontFamily:'var(--font-body)',outline:'none'};
+  async function record(){
+    if(busy)return;setBusy(true);setMsg(null);
+    try{
+      const body={action_ref:a.action_ref,status};
+      if(evRef.trim())body.evidence_ref=evRef.trim();
+      if(evNote.trim())body.evidence_note=evNote.trim();
+      const r=await callIsms('POST','ceo-isms-action',body,token);
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.ok){setMsg({k:'ok',t:'✓ recorded'});setEvRef('');setEvNote('');if(onRecorded)onRecorded();}
+      else setMsg({k:'err',t:(d.error||`Record failed (${r.status}).`)});
+    }catch(e){setMsg({k:'err',t:'Network error. Please try again.'});}
+    setBusy(false);
+  }
+  return(
+    <div className="leg-row">
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+        <div style={{minWidth:0,flex:1}}>
+          <div className="leg-title">{a.title||a.action_ref}</div>
+          <div className="leg-meta">
+            {a.action_ref&&<span style={{fontFamily:'var(--font-mono)',fontSize:'0.58rem',color:'var(--text-muted)'}}>{a.action_ref}</span>}
+            {a.category&&<span className="leg-tag">{friendlyCat(a.category)}</span>}
+            {a.control_ref&&<span className="leg-tag primary">{a.control_ref}</span>}
+            {a.linked_risk&&<span className="leg-tag" style={{color:'var(--accent-red)',background:'var(--accent-red-dim)',borderColor:'rgba(239,68,68,0.25)'}}>risk {a.linked_risk}</span>}
+            {a.target_phase&&<span className="leg-tag si">{a.target_phase}</span>}
+          </div>
+          {a.description&&<div className="leg-summary" style={{WebkitLineClamp:3}}>{a.description}</div>}
+          {a.owner&&<div className="ts" style={{marginTop:3}}>Owner: {a.owner}</div>}
+        </div>
+        <span className="cstat" style={{color:st.c,background:st.bg,borderColor:st.bd}}>{String(a.status||'open').replace(/_/g,' ')}</span>
+      </div>
+      <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap',alignItems:'center'}}>
+        <select value={status} onChange={e=>setStatus(e.target.value)} style={{...inp,cursor:'pointer'}}>
+          {ISMS_STATUS_OPTIONS.map(o=><option key={o} value={o}>{o.replace(/_/g,' ')}</option>)}
+        </select>
+        <input style={{...inp,width:150}} type="text" value={evRef} onChange={e=>setEvRef(e.target.value)} placeholder="evidence ref (optional)"/>
+        <input style={{...inp,flex:1,minWidth:160}} type="text" value={evNote} onChange={e=>setEvNote(e.target.value)} placeholder="evidence note (optional)"/>
+        <button onClick={record} disabled={busy} style={{padding:'6px 14px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-accent)',background:'var(--accent-cyan-dim)',color:'var(--accent-cyan)',fontSize:'0.64rem',fontWeight:600,fontFamily:'var(--font-body)',cursor:busy?'default':'pointer',opacity:busy?0.6:1}}>{busy?'Recording…':'Record'}</button>
+        {msg&&<span style={{fontSize:'0.64rem',color:msg.k==='ok'?'var(--accent-green)':'var(--accent-red)'}}>{msg.t}</span>}
+      </div>
+    </div>
+  );
+}
+
+function IsmsActionCenter({token}){
+  const[state,setState]=useState({phase:'loading'});   // loading | ok | denied | error
+  async function load(){
+    if(!token)return;
+    try{
+      const r=await callIsms('GET','ceo-isms-data',null,token);
+      if(r.status===401||r.status===403){setState({phase:'denied'});return;}
+      if(!r.ok){setState({phase:'error',status:r.status});return;}
+      let j;try{j=await r.json();}catch(e){setState({phase:'error',status:'malformed JSON'});return;}
+      setState({phase:'ok',data:j});
+    }catch(e){setState({phase:'error',status:'network error'});}
+  }
+  useEffect(()=>{if(token){setState({phase:'loading'});load();}},[token]);
+
+  const d=(state.phase==='ok'&&state.data)||{};
+  const actions=Array.isArray(d.actions)?d.actions:[];
+  const risks=d.risks||{};const bands=risks.bands||{};const ohc=Array.isArray(risks.open_high_or_critical)?risks.open_high_or_critical:[];
+  const ev=d.evidence||{};const covered=Array.isArray(ev.controls_covered)?ev.controls_covered:[];
+  const gov=d.governance||{};const ia=gov.latest_internal_audit;const mr=gov.latest_management_review;
+  const dleft=gov.days_until_next_review;
+  const dColor=dleft==null?'var(--text-muted)':(dleft<0?'var(--accent-red)':(dleft<=14?'var(--accent-amber)':'var(--accent-green)'));
+  const certs=Array.isArray(d.certs)?d.certs:[];
+  const mt={marginTop:14};
+  const iaDate=ismsField(ia,['date','audit_date','conducted_at','completed_at']);
+  const mrDate=ismsField(mr,['date','review_date','conducted_at','held_at']);
+
+  return(
+    <div className="card">
+      <div className="card-head">
+        <div className="card-head-title">ISMS Action Center</div>
+        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          <span className="card-head-badge">ISO 27001 · ceo-isms-data</span>
+          {state.phase==='ok'&&d.generated_at&&<span className="ts">as at {acgeDateTime(d.generated_at)}</span>}
+          <button onClick={load} disabled={state.phase==='loading'} style={{padding:'4px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border-default)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontFamily:'var(--font-mono)',fontSize:'0.58rem',fontWeight:600,cursor:state.phase==='loading'?'default':'pointer'}}>↻ Refresh</button>
+        </div>
+      </div>
+      <div className="card-body">
+        {state.phase==='loading'&&<div className="ts">Loading ISMS state…</div>}
+        {state.phase==='denied'&&<div className="ts">CEO session required.</div>}
+        {state.phase==='error'&&<div className="ts">ISMS feed unavailable — {String(state.status)}</div>}
+        {state.phase==='ok'&&(
+          <div>
+            {/* Action items */}
+            <div className="section-label">Action items</div>
+            {actions.length===0&&<div className="ts">No ISMS actions recorded.</div>}
+            {actions.map((a,i)=><IsmsActionRow key={a.action_ref||i} action={a} token={token} onRecorded={load}/>)}
+
+            {/* Risk summary */}
+            <div className="section-label" style={mt}>Risk summary{risks.total!=null?' · '+risks.total+' total':''}</div>
+            <div className="ov-grid">
+              {['Low','Medium','High','Critical'].map(b=>(
+                <div className="ov-cell" key={b}>
+                  <div className="n" style={{color:RISK_BAND_COLOR[b]}}>{bands[b]!=null?bands[b]:0}</div>
+                  <div className="l">{b}</div>
+                </div>
+              ))}
+            </div>
+            {ohc.length>0&&(
+              <div style={{marginTop:10}}>
+                <div className="muted-note" style={{marginTop:0,marginBottom:4}}>Open high or critical risks:</div>
+                {ohc.map((rk,i)=>{
+                  const title=ismsField(rk,['title','risk_title','name','description'])||ismsField(rk,['risk_ref','ref'])||'(risk)';
+                  const band=ismsField(rk,['band','severity','level']);
+                  const rref=ismsField(rk,['risk_ref','ref']);
+                  return(
+                    <div key={i} style={{display:'flex',gap:10,alignItems:'center',padding:'5px 0',borderBottom:i<ohc.length-1?'1px solid var(--border-subtle)':'none',flexWrap:'wrap'}}>
+                      {band&&<span className="leg-tag" style={{color:RISK_BAND_COLOR[band]||'var(--accent-red)',background:'var(--accent-red-dim)',borderColor:'rgba(239,68,68,0.25)'}}>{band}</span>}
+                      <span style={{fontSize:'0.7rem',color:'var(--text-primary)',minWidth:0,flex:1}}>{title}</span>
+                      {rref&&<span className="ts">{rref}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Evidence coverage */}
+            <div className="section-label" style={mt}>Evidence coverage</div>
+            <div className="ov-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
+              <div className="ov-cell"><div className="n">{ev.controls_count!=null?ev.controls_count:'—'}</div><div className="l">Controls covered</div></div>
+              <div className="ov-cell"><div className="n">{ev.last_7_days!=null?ev.last_7_days:'—'}</div><div className="l">Items · last 7 days</div></div>
+              <div className="ov-cell"><div className="n">{ev.total!=null?ev.total:'—'}</div><div className="l">Total evidence</div></div>
+            </div>
+            {covered.length>0&&(
+              <div className="vchips" style={{marginTop:8}}>
+                {covered.map((c,i)=><span className="vchip" key={i}>{ismsField(c,['control_ref','control','ref'])||String(c)}</span>)}
+              </div>
+            )}
+
+            {/* Governance */}
+            <div className="section-label" style={mt}>Governance</div>
+            <div className="two-col">
+              <div className="ov-cell">
+                <div className="l">Latest internal audit</div>
+                <div style={{fontSize:'0.72rem',color:'var(--text-primary)',marginTop:4,fontFamily:'var(--font-mono)'}}>{ismsField(ia,['ref','audit_ref','reference'])||'—'}</div>
+                <div className="ts" style={{marginTop:2}}>
+                  {iaDate?shortDate(iaDate):'no date'}
+                  {ismsField(ia,['nonconformities','nc','noncomformities'])!=null?' · NC '+ismsField(ia,['nonconformities','nc','noncomformities']):''}
+                  {ismsField(ia,['observations','obs'])!=null?' · Obs '+ismsField(ia,['observations','obs']):''}
+                </div>
+              </div>
+              <div className="ov-cell">
+                <div className="l">Latest management review</div>
+                <div style={{fontSize:'0.72rem',color:'var(--text-primary)',marginTop:4,fontFamily:'var(--font-mono)'}}>{ismsField(mr,['ref','review_ref','reference'])||'—'}</div>
+                <div className="ts" style={{marginTop:2}}>{mrDate?shortDate(mrDate):'no date'}</div>
+              </div>
+            </div>
+            <div className="muted-note">Next review: <strong>{gov.next_review?shortDate(gov.next_review):'—'}</strong> · <span style={{color:dColor,fontWeight:600}}>{dleft==null?'—':(dleft<0?Math.abs(dleft)+' days overdue':dleft+' days until next review')}</span></div>
+
+            {/* Certifications */}
+            <div className="section-label" style={mt}>Certifications</div>
+            {certs.length===0&&<div className="ts">No certification tracks reported.</div>}
+            {certs.map((c,i)=>{
+              const pct=c.progress_pct==null?null:Math.max(0,Math.min(100,Number(c.progress_pct)));
+              return(
+                <div className="track-row" key={i}>
+                  <div className="track-top">
+                    <div><div className="track-name">{c.track}</div>{c.next_milestone&&<div className="track-std">Next: {c.next_milestone}</div>}</div>
+                    <span className={'cstat '+String(c.status||'planned')}>{String(c.status||'planned').replace(/_/g,' ')}{pct!=null?' · '+pct+'%':''}</span>
+                  </div>
+                  <div className="pbar"><div className="pfill" style={{width:(pct!=null?pct:0)+'%'}}/></div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
