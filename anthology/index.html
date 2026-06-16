@@ -270,89 +270,74 @@ footer a{color:var(--dim)}
   }
 })();
 </script>
-<!-- Compliance & certification roadmap (AILANE-CC-BRIEF-ANTHOLOGY-COMPLIANCE-SITE-001) -->
-<button type="button" id="acr-open" aria-haspopup="dialog" style="display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;padding:10px 16px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;cursor:pointer;">
-  <span aria-hidden="true">●</span> Compliance &amp; certification roadmap
-</button>
-<div id="acr-modal" role="dialog" aria-modal="true" aria-label="Compliance and certification roadmap" hidden
-     style="position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px;">
-  <div style="background:#fff;max-width:760px;width:100%;border-radius:14px;padding:22px 22px 28px;margin:24px 0;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-      <div>
-        <h2 style="margin:0;font-size:20px;color:#0f172a;font-weight:500;">Compliance &amp; certification roadmap</h2>
-        <p style="margin:6px 0 0;font-size:13px;color:#64748b;">Live from our register. Certifications in progress, not yet awarded · information only · regulatory intelligence, not legal advice.</p>
-      </div>
-      <button type="button" id="acr-close" aria-label="Close" style="font-size:22px;line-height:1;border:none;background:none;cursor:pointer;color:#64748b;">&times;</button>
-    </div>
-    <div id="acr-body" style="margin-top:16px;"><p style="color:#64748b;font-size:14px;">Loading the roadmap…</p></div>
-    <p style="margin:18px 0 0;font-size:12px;color:#94a3b8;">Regulatory intelligence, not legal advice. For assurance specifics, contact mark@ailane.ai. <a href="/terms/" style="color:#475569;">Terms</a>.</p>
-  </div>
-</div>
+<!-- Compliance & certification expandable card (AILANE-CC-BRIEF-ANTHOLOGY-COMPLIANCE-SITE-001-AM-001) -->
 <style>
-  #acr-modal .acr-card{border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:12px;}
-  #acr-modal .acr-bar{height:8px;background:#eef2f7;border-radius:99px;overflow:hidden;}
-  #acr-modal .acr-fill{height:100%;}
-  #acr-modal .acr-chip{font-size:12px;padding:3px 9px;border-radius:8px;white-space:nowrap;}
-  #acr-modal .acr-ti{border-left:2px solid #e2e8f0;padding-left:12px;margin-bottom:8px;font-size:13px;color:#475569;line-height:1.6;}
-  @media (prefers-reduced-motion: no-preference){#acr-modal .acr-fill{transition:width .4s ease;}}
+  /* Stronger glowing gold frame — deliberately stands out from the sibling cards (Director instruction). */
+  #cc-card{cursor:pointer;text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;gap:8px;
+    border:1.5px solid #c8a24e !important;border-radius:12px;
+    box-shadow:0 0 0 1px rgba(200,162,78,.35),0 0 18px 2px rgba(200,162,78,.45);
+    animation:cc-glow 2.8s ease-in-out infinite;}
+  #cc-card:hover{border-color:#e3bd63 !important;}
+  @keyframes cc-glow{0%,100%{box-shadow:0 0 0 1px rgba(200,162,78,.30),0 0 14px 1px rgba(200,162,78,.35);}50%{box-shadow:0 0 0 1px rgba(200,162,78,.55),0 0 26px 5px rgba(200,162,78,.65);}}
+  #cc-card .cc-live{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#5dcaa5;}
+  #cc-card .cc-live span{width:7px;height:7px;border-radius:50%;background:#5dcaa5;}
+  #cc-card .cc-title{font-size:15px;font-weight:500;color:#e9edf3;line-height:1.3;}
+  #cc-card .cc-sub{font-size:12px;color:#94a0b3;line-height:1.4;}
+  #cc-chev{transition:transform .25s;}
+  #cc-panel{margin-top:14px;background:#0c1626;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px;}
+  #cc-panel .cc-trk{background:#0f1a2b;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
+  #cc-panel .cc-bar{height:7px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;}
+  #cc-panel .cc-fill{height:100%;background:#c8a24e;}
+  #cc-panel .cc-ti{border-left:2px solid rgba(255,255,255,.12);padding-left:11px;margin-bottom:7px;font-size:12px;color:#9aa6b8;line-height:1.55;}
+  @media (prefers-reduced-motion:reduce){#cc-chev{transition:none;}#cc-card{animation:none;}}
 </style>
 <script>
 (function(){
-  var FN = "https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/anthology-compliance";
-  var openBtn = document.getElementById("acr-open"),
-      modal = document.getElementById("acr-modal"),
-      closeBtn = document.getElementById("acr-close"),
-      body = document.getElementById("acr-body");
-  var loaded = false;
-  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-  function chip(status){
-    var ip = status === "in_progress";
-    var bg = ip ? "#e6f1fb" : "#faeeda", fg = ip ? "#185fa5" : "#854f0b";
-    var label = ip ? "In progress" : (status === "planned" ? "Planned" : esc(status));
-    return '<span class="acr-chip" style="background:'+bg+';color:'+fg+'">'+label+'</span>';
+  var FN="https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/anthology-compliance";
+  var GRID_SELECTOR=".tiles";
+  var FALLBACKS=[GRID_SELECTOR,".stats-grid",".stat-grid",".live-stats",".metrics",'[class*="stat"]','[class*="grid"]'].filter(Boolean);
+  function findGrid(){
+    for(var i=0;i<FALLBACKS.length;i++){var g=document.querySelector(FALLBACKS[i]); if(g&&g.children&&g.children.length>=3) return g;}
+    return null;
   }
-  function card(t){
-    var ip = t.status === "in_progress";
-    var fill = ip ? "#185fa5" : "#854f0b";
-    var pct = Math.max(0, Math.min(100, Number(t.progress_pct)||0));
-    var prog = Array.isArray(t.progression) ? t.progression : [];
-    var rows = prog.map(function(p){
-      var d = p && p.date ? '<b style="color:#0f172a;font-weight:500;">'+esc(p.date)+' — </b>' : "";
-      return '<div class="acr-ti">'+d+esc(p && p.text)+'</div>';
-    }).join("");
-    return '<div class="acr-card">'
-      + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
-      +   '<div><div style="font-size:16px;font-weight:500;color:#0f172a;">'+esc(t.track)+'</div>'
-      +   '<div style="font-size:13px;color:#64748b;">'+esc(t.standard)+'</div></div>'+chip(t.status)+'</div>'
-      + '<div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px;"><div class="acr-bar" style="flex:1"><div class="acr-fill" style="width:'+pct+'%;background:'+fill+'"></div></div>'
-      +   '<span style="font-size:14px;font-weight:500;color:#0f172a;min-width:34px;text-align:right;">'+pct+'%</span></div>'
-      + '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px;">Next milestone</div>'
-      + '<div style="font-size:14px;color:#0f172a;line-height:1.6;">'+esc(t.milestone)+'</div>'
-      + (rows ? '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px;">Progression</div>'+rows : "")
-      + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #eef2f7;font-size:12px;color:#94a3b8;">Owner: '+esc(t.owner)+' · '+esc(t.linked_spec_count)+' linked spec(s)</div>'
-      + '</div>';
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+  function chip(st){var ip=st==="in_progress";return '<span style="font-size:11px;padding:3px 9px;border-radius:7px;white-space:nowrap;background:'+(ip?"rgba(55,138,221,.16)":"rgba(186,117,23,.18)")+';color:'+(ip?"#9cc2e8":"#e0b066")+'">'+(ip?"In progress":(st==="planned"?"Planned":esc(st)))+'</span>';}
+  function trk(x){
+    var p=Math.max(0,Math.min(100,Number(x.progress_pct)||0));
+    var pr=(Array.isArray(x.progression)?x.progression:[]).map(function(e){var d=e&&e.date?'<b style="color:#cfd6e2;font-weight:500;">'+esc(e.date)+' — </b>':"";return '<div class="cc-ti">'+d+esc(e&&e.text)+'</div>';}).join("");
+    return '<div class="cc-trk"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;"><div><div style="font-size:15px;font-weight:500;color:#e9edf3;">'+esc(x.track)+'</div><div style="font-size:12px;color:#8a94a6;">'+esc(x.standard)+'</div></div>'+chip(x.status)+'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin:11px 0 4px;"><div class="cc-bar" style="flex:1"><div class="cc-fill" style="width:'+p+'%"></div></div><span style="font-size:13px;font-weight:500;color:#e9edf3;min-width:32px;text-align:right;">'+p+'%</span></div>'
+      +'<div style="font-size:13px;color:#c4ccd8;line-height:1.55;margin-top:8px;">'+esc(x.milestone)+'</div>'+(pr?'<div style="margin-top:11px;">'+pr+'</div>':'')+'</div>';
   }
-  function load(){
-    if (loaded) return; loaded = true;
-    fetch(FN, { headers: { "Accept": "application/json" } })
-      .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
-      .then(function(d){
-        var tracks = d && d.tracks ? d.tracks : [];
-        if (!tracks.length) throw new Error("empty");
-        body.innerHTML = tracks.map(card).join("");
-      })
-      .catch(function(){
-        loaded = false;
-        body.innerHTML = '<p style="color:#64748b;font-size:14px;">Our certification roadmap is being updated. For our current status, contact mark@ailane.ai.</p>';
-      });
+  var loaded=false;
+  function loadPanel(body){
+    if(loaded)return; loaded=true;
+    fetch(FN,{headers:{"Accept":"application/json"}}).then(function(r){return r.ok?r.json():Promise.reject(r.status);})
+      .then(function(d){var t=(d&&d.tracks)||[]; if(!t.length)throw 0; body.innerHTML=t.map(trk).join("");})
+      .catch(function(){loaded=false; body.innerHTML='<div style="font-size:13px;color:#94a0b3;">Our certification roadmap is being updated. For our current status, contact mark@ailane.ai.</div>';});
   }
-  function open(){ modal.hidden = false; document.body.style.overflow = "hidden"; load();
-    if (typeof gtag === "function") { try { gtag("event", "anthology_compliance_open"); } catch(e){} } }
-  function close(){ modal.hidden = true; document.body.style.overflow = ""; }
-  openBtn && openBtn.addEventListener("click", open);
-  closeBtn && closeBtn.addEventListener("click", close);
-  modal && modal.addEventListener("click", function(e){ if (e.target === modal) close(); });
-  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && !modal.hidden) close(); });
+  function build(){
+    var grid=findGrid(); if(!grid||document.getElementById("cc-card"))return true;
+    var sib=grid.children[0];
+    var card=document.createElement("button");
+    card.id="cc-card"; card.type="button"; card.setAttribute("aria-expanded","false");
+    if(sib&&sib.className) card.className=sib.className;
+    card.style.cursor="pointer";
+    card.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;"><span class="cc-live"><span></span>Live</span><i class="ti ti-chevron-down" id="cc-chev" style="font-size:18px;color:#c8a24e;" aria-hidden="true"></i></div><div class="cc-title">Compliance &amp; certification</div><div class="cc-sub">Cyber Essentials · ISO 27001 · SOC 2 — view the full roadmap</div>';
+    grid.appendChild(card);
+    var panel=document.createElement("div");
+    panel.id="cc-panel"; panel.hidden=true;
+    panel.innerHTML='<div style="font-size:16px;font-weight:500;color:#e9edf3;">Compliance &amp; certification roadmap</div><div style="font-size:12px;color:#8a94a6;margin:4px 0 14px;">Live from our register · certifications in progress, not yet awarded · information only · regulatory intelligence, not legal advice.</div><div id="cc-body"></div>';
+    grid.parentNode.insertBefore(panel,grid.nextSibling);
+    var chev=card.querySelector("#cc-chev"), body=panel.querySelector("#cc-body");
+    card.addEventListener("click",function(){
+      var open=panel.hidden;
+      panel.hidden=!open; card.setAttribute("aria-expanded",String(open)); chev.style.transform=open?"rotate(180deg)":"";
+      if(open){loadPanel(body); if(typeof gtag==="function"){try{gtag("event","anthology_compliance_open");}catch(e){}}}
+    });
+    return true;
+  }
+  if(!build()){var n=0,iv=setInterval(function(){if(build()||++n>40)clearInterval(iv);},200);}
 })();
 </script>
 </body>
