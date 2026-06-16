@@ -195,7 +195,12 @@ footer a{color:var(--dim)}
     el.className = role === 'user' ? 'chat-user' : 'chat-eileen';
     el.textContent = text;
     historyEl.appendChild(el);
-    historyEl.scrollTop = historyEl.scrollHeight;
+    if (role === 'user') {
+      historyEl.scrollTop = historyEl.scrollHeight;
+    } else {
+      // Park the view at the START of Eileen's reply, not the end.
+      historyEl.scrollTop = el.offsetTop - historyEl.offsetTop;
+    }
   }
 
   async function sendToEileen(text){
