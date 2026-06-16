@@ -552,7 +552,8 @@ function ask(q){
     th.innerHTML=FALLBACK;
   })
   .finally(function(){ clearTimeout(to); busy=false; document.getElementById("asksend").disabled=false;
-    var log=document.getElementById("asklog"); log.scrollTop=log.scrollHeight; });
+    // Park the view at the START of Eileen's reply, not the end.
+    var log=document.getElementById("asklog"); log.scrollTop=th.offsetTop-log.offsetTop; });
 }
 document.getElementById("asksend").addEventListener("click",function(){
   var inp=document.getElementById("askinput"); var q=inp.value.trim(); inp.value=""; ask(q);
