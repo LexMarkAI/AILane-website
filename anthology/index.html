@@ -270,5 +270,90 @@ footer a{color:var(--dim)}
   }
 })();
 </script>
+<!-- Compliance & certification roadmap (AILANE-CC-BRIEF-ANTHOLOGY-COMPLIANCE-SITE-001) -->
+<button type="button" id="acr-open" aria-haspopup="dialog" style="display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;padding:10px 16px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;cursor:pointer;">
+  <span aria-hidden="true">●</span> Compliance &amp; certification roadmap
+</button>
+<div id="acr-modal" role="dialog" aria-modal="true" aria-label="Compliance and certification roadmap" hidden
+     style="position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px;">
+  <div style="background:#fff;max-width:760px;width:100%;border-radius:14px;padding:22px 22px 28px;margin:24px 0;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div>
+        <h2 style="margin:0;font-size:20px;color:#0f172a;font-weight:500;">Compliance &amp; certification roadmap</h2>
+        <p style="margin:6px 0 0;font-size:13px;color:#64748b;">Live from our register. Certifications in progress, not yet awarded · information only · regulatory intelligence, not legal advice.</p>
+      </div>
+      <button type="button" id="acr-close" aria-label="Close" style="font-size:22px;line-height:1;border:none;background:none;cursor:pointer;color:#64748b;">&times;</button>
+    </div>
+    <div id="acr-body" style="margin-top:16px;"><p style="color:#64748b;font-size:14px;">Loading the roadmap…</p></div>
+    <p style="margin:18px 0 0;font-size:12px;color:#94a3b8;">Regulatory intelligence, not legal advice. For assurance specifics, contact mark@ailane.ai. <a href="/terms/" style="color:#475569;">Terms</a>.</p>
+  </div>
+</div>
+<style>
+  #acr-modal .acr-card{border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+  #acr-modal .acr-bar{height:8px;background:#eef2f7;border-radius:99px;overflow:hidden;}
+  #acr-modal .acr-fill{height:100%;}
+  #acr-modal .acr-chip{font-size:12px;padding:3px 9px;border-radius:8px;white-space:nowrap;}
+  #acr-modal .acr-ti{border-left:2px solid #e2e8f0;padding-left:12px;margin-bottom:8px;font-size:13px;color:#475569;line-height:1.6;}
+  @media (prefers-reduced-motion: no-preference){#acr-modal .acr-fill{transition:width .4s ease;}}
+</style>
+<script>
+(function(){
+  var FN = "https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/anthology-compliance";
+  var openBtn = document.getElementById("acr-open"),
+      modal = document.getElementById("acr-modal"),
+      closeBtn = document.getElementById("acr-close"),
+      body = document.getElementById("acr-body");
+  var loaded = false;
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function chip(status){
+    var ip = status === "in_progress";
+    var bg = ip ? "#e6f1fb" : "#faeeda", fg = ip ? "#185fa5" : "#854f0b";
+    var label = ip ? "In progress" : (status === "planned" ? "Planned" : esc(status));
+    return '<span class="acr-chip" style="background:'+bg+';color:'+fg+'">'+label+'</span>';
+  }
+  function card(t){
+    var ip = t.status === "in_progress";
+    var fill = ip ? "#185fa5" : "#854f0b";
+    var pct = Math.max(0, Math.min(100, Number(t.progress_pct)||0));
+    var prog = Array.isArray(t.progression) ? t.progression : [];
+    var rows = prog.map(function(p){
+      var d = p && p.date ? '<b style="color:#0f172a;font-weight:500;">'+esc(p.date)+' — </b>' : "";
+      return '<div class="acr-ti">'+d+esc(p && p.text)+'</div>';
+    }).join("");
+    return '<div class="acr-card">'
+      + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
+      +   '<div><div style="font-size:16px;font-weight:500;color:#0f172a;">'+esc(t.track)+'</div>'
+      +   '<div style="font-size:13px;color:#64748b;">'+esc(t.standard)+'</div></div>'+chip(t.status)+'</div>'
+      + '<div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px;"><div class="acr-bar" style="flex:1"><div class="acr-fill" style="width:'+pct+'%;background:'+fill+'"></div></div>'
+      +   '<span style="font-size:14px;font-weight:500;color:#0f172a;min-width:34px;text-align:right;">'+pct+'%</span></div>'
+      + '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px;">Next milestone</div>'
+      + '<div style="font-size:14px;color:#0f172a;line-height:1.6;">'+esc(t.milestone)+'</div>'
+      + (rows ? '<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px;">Progression</div>'+rows : "")
+      + '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #eef2f7;font-size:12px;color:#94a3b8;">Owner: '+esc(t.owner)+' · '+esc(t.linked_spec_count)+' linked spec(s)</div>'
+      + '</div>';
+  }
+  function load(){
+    if (loaded) return; loaded = true;
+    fetch(FN, { headers: { "Accept": "application/json" } })
+      .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(d){
+        var tracks = d && d.tracks ? d.tracks : [];
+        if (!tracks.length) throw new Error("empty");
+        body.innerHTML = tracks.map(card).join("");
+      })
+      .catch(function(){
+        loaded = false;
+        body.innerHTML = '<p style="color:#64748b;font-size:14px;">Our certification roadmap is being updated. For our current status, contact mark@ailane.ai.</p>';
+      });
+  }
+  function open(){ modal.hidden = false; document.body.style.overflow = "hidden"; load();
+    if (typeof gtag === "function") { try { gtag("event", "anthology_compliance_open"); } catch(e){} } }
+  function close(){ modal.hidden = true; document.body.style.overflow = ""; }
+  openBtn && openBtn.addEventListener("click", open);
+  closeBtn && closeBtn.addEventListener("click", close);
+  modal && modal.addEventListener("click", function(e){ if (e.target === modal) close(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && !modal.hidden) close(); });
+})();
+</script>
 </body>
 </html>
