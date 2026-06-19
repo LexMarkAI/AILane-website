@@ -99,9 +99,45 @@
       var res=await sb.auth.signInWithPassword({email:email,password:pass});
       if(res.error){err.textContent=res.error.message;btn.disabled=false;btn.textContent='Sign In';return}
       if(!res.data.session){err.textContent='No session returned. Try again.';btn.disabled=false;btn.textContent='Sign In';return}
+      // AAL2 step-up (AILANE-SPEC-AUTH-001)
+      try{
+        var aal=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+        if(aal.data && aal.data.nextLevel==='aal2' && aal.data.currentLevel!=='aal2'){
+          return showMfaChallenge(res.data.session, btn, err);
+        }
+      }catch(e){}
       btn.innerHTML='<span class="sp"></span>Loading dashboard...';
       await route(res.data.session);
     }catch(e){err.textContent='An error occurred. Please try again.';btn.disabled=false;btn.textContent='Sign In'}
+  }
+  async function showMfaChallenge(session, btn, err){
+    // Swap the password form for a 6-digit code prompt.
+    document.getElementById('sub').textContent='Enter your authenticator code';
+    var sf=document.getElementById('sf');
+    if(sf){Array.prototype.forEach.call(sf.children,function(c){if(c.id!=='err')c.classList.add('hide')})}
+    if(!document.getElementById('mfw')){
+      var wrap=document.createElement('div');
+      wrap.id='mfw';
+      wrap.innerHTML='<div class="field"><label for="mfa">Authenticator code</label><input type="text" id="mfa" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div><button class="btn" id="mgo">Verify</button>';
+      var errEl=document.getElementById('err');
+      sf.insertBefore(wrap, errEl);
+      document.getElementById('mgo').addEventListener('click',function(){verifyMfa(session)});
+      document.getElementById('mfa').addEventListener('keydown',function(e){if(e.key==='Enter')verifyMfa(session)});
+    }
+    document.getElementById('err').textContent='';
+    document.getElementById('mfa').focus();
+    if(btn){btn.disabled=false}
+  }
+  async function verifyMfa(session){
+    var code=document.getElementById('mfa').value.trim();
+    var mgo=document.getElementById('mgo');
+    if(mgo){mgo.disabled=true;mgo.innerHTML='<span class="sp"></span>Verifying...'}
+    var lf=await sb.auth.mfa.listFactors();
+    var f=(lf.data && lf.data.totp && lf.data.totp[0]) ? lf.data.totp[0] : null;
+    if(!f){document.getElementById('err').textContent='No authenticator factor found.';if(mgo){mgo.disabled=false;mgo.textContent='Verify'}return}
+    var v=await sb.auth.mfa.challengeAndVerify({ factorId:f.id, code:code });
+    if(v.error){document.getElementById('err').textContent=v.error.message;if(mgo){mgo.disabled=false;mgo.textContent='Verify'}return}
+    return route(session); // reuse the page's existing post-login routing
   }
   function showReset(){document.getElementById('sf').classList.add('hide');document.getElementById('rf').classList.remove('hide');document.getElementById('sub').textContent='Reset your password';var v=document.getElementById('em').value;if(v)document.getElementById('re').value=v}
   function showLogin(){document.getElementById('rf').classList.add('hide');document.getElementById('sf').classList.remove('hide');document.getElementById('sub').textContent='Sign in to your account';document.getElementById('rerr').textContent='';document.getElementById('rok').classList.add('hide')}
