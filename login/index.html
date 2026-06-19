@@ -111,10 +111,38 @@
     }catch(e){err.textContent='An error occurred. Please try again.';btn.disabled=false;btn.textContent='Sign In'}
   }
   async function showMfaChallenge(session, btn, err){
-    // Swap the password form for a 6-digit code prompt.
-    document.getElementById('sub').textContent='Enter your authenticator code';
+    // Determine the available second factor(s) before choosing the prompt.
+    var lf=await sb.auth.mfa.listFactors();
+    var totpFactor=(lf.data && lf.data.totp && lf.data.totp[0]) ? lf.data.totp[0] : null;
+    var webauthnFactor=null;
+    if(lf.data){
+      var all=lf.data.all||[];
+      for(var i=0;i<all.length;i++){
+        if(all[i].factor_type==='webauthn' && all[i].status==='verified'){webauthnFactor=all[i];break;}
+      }
+      if(!webauthnFactor && lf.data.webauthn && lf.data.webauthn[0]){webauthnFactor=lf.data.webauthn[0];}
+    }
+    var canWebAuthn=!!(webauthnFactor && window.PublicKeyCredential && sb.auth.mfa.webauthn);
+    // Hide the password form, keep the error line.
     var sf=document.getElementById('sf');
     if(sf){Array.prototype.forEach.call(sf.children,function(c){if(c.id!=='err')c.classList.add('hide')})}
+    document.getElementById('err').textContent='';
+    if(canWebAuthn && !totpFactor){
+      document.getElementById('sub').textContent='Confirm with your passkey';
+      renderPasskeyChallenge(session, webauthnFactor, false);
+    }else if(canWebAuthn && totpFactor){
+      // Both available — passkey is preferred for privileged users; a code is offered too.
+      document.getElementById('sub').textContent='Confirm it’s you';
+      renderPasskeyChallenge(session, webauthnFactor, true);
+    }else{
+      // TOTP-only path (unchanged behaviour).
+      document.getElementById('sub').textContent='Enter your authenticator code';
+      renderTotpChallenge(session);
+    }
+    if(btn){btn.disabled=false}
+  }
+  function renderTotpChallenge(session){
+    var sf=document.getElementById('sf');
     if(!document.getElementById('mfw')){
       var wrap=document.createElement('div');
       wrap.id='mfw';
@@ -123,10 +151,48 @@
       sf.insertBefore(wrap, errEl);
       document.getElementById('mgo').addEventListener('click',function(){verifyMfa(session)});
       document.getElementById('mfa').addEventListener('keydown',function(e){if(e.key==='Enter')verifyMfa(session)});
+    }else{
+      document.getElementById('mfw').classList.remove('hide');
     }
-    document.getElementById('err').textContent='';
     document.getElementById('mfa').focus();
-    if(btn){btn.disabled=false}
+  }
+  function renderPasskeyChallenge(session, factor, showCodeOption){
+    var sf=document.getElementById('sf');
+    if(!document.getElementById('pkw')){
+      var wrap=document.createElement('div');
+      wrap.id='pkw';
+      var html='<button class="btn" id="pkgo">Use your passkey</button>';
+      if(showCodeOption){html+='<div class="link"><a id="usecode">Use an authenticator code instead</a></div>';}
+      wrap.innerHTML=html;
+      var errEl=document.getElementById('err');
+      sf.insertBefore(wrap, errEl);
+      document.getElementById('pkgo').addEventListener('click',function(){verifyWebAuthn(session, factor)});
+      if(showCodeOption){
+        document.getElementById('usecode').addEventListener('click',function(){
+          document.getElementById('pkw').classList.add('hide');
+          document.getElementById('sub').textContent='Enter your authenticator code';
+          renderTotpChallenge(session);
+        });
+      }
+    }else{
+      document.getElementById('pkw').classList.remove('hide');
+    }
+  }
+  // Passkey challenge. webauthn.authenticate() runs the full ceremony per Supabase docs:
+  // challenge -> navigator.credentials.get() -> verify. Either factor satisfies AAL2.
+  async function verifyWebAuthn(session, factor){
+    var pkgo=document.getElementById('pkgo');
+    var err=document.getElementById('err');
+    err.textContent='';
+    if(pkgo){pkgo.disabled=true;pkgo.innerHTML='<span class="sp"></span>Waiting for your device...'}
+    try{
+      var v=await sb.auth.mfa.webauthn.authenticate({factorId:factor.id, webauthn:{}});
+      if(v&&v.error){err.textContent=v.error.message||'Could not confirm your passkey. Please try again.';if(pkgo){pkgo.disabled=false;pkgo.textContent='Use your passkey'}return}
+      return route(session);
+    }catch(e){
+      if(pkgo){pkgo.disabled=false;pkgo.textContent='Use your passkey'}
+      err.textContent='Could not confirm your passkey. Please try again.';
+    }
   }
   async function verifyMfa(session){
     var code=document.getElementById('mfa').value.trim();
