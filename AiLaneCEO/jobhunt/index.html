@@ -7,6 +7,12 @@
 <title>Ailane · Career / External Roles</title>
 <meta name="robots" content="noindex, nofollow">
 
+<!-- CSP (SEC-001 §3.2 / RULE 22) — canonical value extended as a STRICT SUPERSET with
+     https://unpkg.com + 'unsafe-eval' in script-src, which this Babel-Standalone React page
+     requires (React/ReactDOM/Babel load from unpkg; the Babel runtime evaluates the inline
+     text/babel bundle). Mirrors the ratified AiLaneCEO/deal-rooms pattern. Narrows nothing. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
 <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
@@ -378,6 +384,138 @@ function UpcomingInterviews({rows,onSelect}){
 }
 
 // ═══════════════════════════════════════════════
+// CONSULTATION WORK & OFFERS  (AILANE-CC-BRIEF-CEO-JOBHUNT-CONSULTATION-SITE-001 §2)
+// Renders Mark's consultation/advisory channel — registered expert networks (firms) and
+// inbound consultation/contract offers — from ceo-jobhunt-data section=all → sections.consultation.
+// Additive: reads the consultation block from the existing section=all response (no extra fetch).
+// Resilient: if the block is absent (backend not yet deployed) it renders the shell + empty state,
+// no thrown exception, no console error.
+// ═══════════════════════════════════════════════
+function consultFirmColor(s){
+  if(s==='active')return 'green';
+  if(s==='registering')return 'cyan';
+  if(s==='paused')return 'amber';
+  if(s==='prospect')return 'muted';
+  if(s==='closed')return 'muted';
+  return 'muted';
+}
+function consultOfferColor(s){
+  if(s==='new')return 'amber';
+  if(s==='responded')return 'cyan';
+  if(s==='scheduled')return 'purple';
+  if(s==='completed')return 'green';
+  if(s==='declined')return 'muted';
+  return 'muted';
+}
+
+function ConsultationFirmRow({firm}){
+  const[open,setOpen]=useState(false);
+  const parked=firm.status==='prospect';
+  const domains=Array.isArray(firm.watch_domains)?firm.watch_domains:[];
+  const hasDetail=!!(firm.notes||firm.contact_email||domains.length||firm.last_activity_at);
+  return(
+    <React.Fragment>
+      <tr className={hasDetail?'row':''} style={parked?{opacity:0.55}:null} title={firm.notes||''} onClick={()=>{if(hasDetail)setOpen(o=>!o);}}>
+        <td>
+          <div className="name-cell">
+            {firm.firm_url
+              ? <a href={firm.firm_url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} className="src-link" style={{fontSize:'0.72rem',fontWeight:600}}>{firm.firm||'—'}</a>
+              : (firm.firm||'—')}
+            {parked&&<span style={{marginLeft:8}}><Chip color="muted">Parked</Chip></span>}
+          </div>
+          {firm.kind&&<div className="head-cell">{labelize(firm.kind)}</div>}
+        </td>
+        <td><Chip color={consultFirmColor(firm.status)}>{labelize(firm.status)}</Chip></td>
+        <td><span className="ts">{fmtDate(firm.registered_on)}</span></td>
+        <td><span className="ts" style={{whiteSpace:'normal',maxWidth:180,display:'inline-block'}}>{firm.rate_text||'—'}</span></td>
+        <td><span className="ts">{firm.offers_count!=null?firm.offers_count:'—'}</span></td>
+      </tr>
+      {open&&hasDetail&&(
+        <tr>
+          <td colSpan={5} style={{background:'var(--bg-base)'}}>
+            {firm.notes&&<div className="muted-note" style={{marginTop:0}}>{firm.notes}</div>}
+            {firm.contact_email&&<div className="muted-note">Contact: <span className="url-text">{firm.contact_email}</span></div>}
+            {domains.length>0&&<div className="muted-note">Watch domains: <span className="url-text">{domains.join(', ')}</span></div>}
+            {firm.last_activity_at&&<div className="muted-note">Last activity: {fmtDateTime(firm.last_activity_at)}</div>}
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
+  );
+}
+
+function ConsultationOfferRow({offer}){
+  const[open,setOpen]=useState(false);
+  const actionable=offer.action_needed===true;
+  const hasDetail=!!(offer.notes||offer.source_ref);
+  const cls=[actionable?'actionable':'',hasDetail?'row':''].filter(Boolean).join(' ');
+  return(
+    <React.Fragment>
+      <tr className={cls} title={offer.notes||''} onClick={()=>{if(hasDetail)setOpen(o=>!o);}}>
+        <td><span className="name-cell">{offer.firm||'—'}</span></td>
+        <td>
+          <span style={{whiteSpace:'normal',maxWidth:300,display:'inline-block'}}>{offer.action_summary||'—'}</span>
+          {actionable&&<span style={{marginLeft:8}} className="action-chip">ACTION NEEDED</span>}
+        </td>
+        <td><span className="ts">{fmtDate(offer.registered_on||offer.created_at)}</span></td>
+        <td><Chip color={consultOfferColor(offer.status)}>{labelize(offer.status)}</Chip></td>
+      </tr>
+      {open&&hasDetail&&(
+        <tr>
+          <td colSpan={4} style={{background:'var(--bg-base)'}}>
+            {offer.notes&&<div className="muted-note" style={{marginTop:0}}>{offer.notes}</div>}
+            {offer.source_ref&&<div className="muted-note">Source: <span className="url-text">{offer.source_ref}</span></div>}
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
+  );
+}
+
+function ConsultationSection({data}){
+  // Resilience: data may be undefined when sections.consultation is absent (backend not yet
+  // deployed). Coerce everything defensively so the shell renders the empty state with no error.
+  const c=data||{};
+  const firms=Array.isArray(c.firms)?c.firms:[];
+  const offers=Array.isArray(c.offers)?c.offers:[];
+  const stats=c.stats||{};
+  const firmsActive=stats.firms_active!=null?stats.firms_active:firms.filter(f=>f.status==='active').length;
+  const offersOpen=stats.offers_open!=null?stats.offers_open:offers.filter(o=>o.status==='new'||o.status==='responded'||o.status==='scheduled').length;
+  const actionsNeeded=stats.actions_needed!=null?stats.actions_needed:offers.filter(o=>o.action_needed===true).length;
+  return(
+    <div className="card">
+      <div className="card-head">
+        <div className="card-head-title">Consultation Work &amp; Offers</div>
+        <div className="card-head-badge">{firms.length} network{firms.length===1?'':'s'} · {offers.length} offer{offers.length===1?'':'s'}</div>
+      </div>
+      <div className="card-body">
+        <div className="kpi-strip" style={{gridTemplateColumns:'repeat(3,1fr)',marginBottom:14}}>
+          <div className="kpi-card"><div className="label">Active networks</div><div className="value" style={{color:'var(--accent-green)'}}>{firmsActive}</div><div className="sub">registered &amp; live</div></div>
+          <div className="kpi-card"><div className="label">Open offers</div><div className="value" style={{color:'var(--accent-cyan)'}}>{offersOpen}</div><div className="sub">awaiting response</div></div>
+          <div className={'kpi-card'+(actionsNeeded>0?' alarm':'')}><div className="label">Actions needed</div><div className="value" style={{color:actionsNeeded>0?'var(--accent-amber)':'var(--text-muted)'}}>{actionsNeeded}</div><div className="sub">need your reply</div></div>
+        </div>
+
+        <div className="section-label">Registered networks</div>
+        {firms.length===0
+          ? <div className="empty">No registered networks yet — expert-network registrations and their consultation rates appear here once logged.</div>
+          : <div className="tbl-wrap"><table className="reg">
+              <thead><tr><th>Network</th><th>Status</th><th>Registered</th><th>Rate</th><th>Offers</th></tr></thead>
+              <tbody>{firms.map((f,i)=><ConsultationFirmRow key={(f.firm||'firm')+'-'+i} firm={f}/>)}</tbody>
+            </table></div>}
+
+        <div className="section-label" style={{marginTop:14}}>Offers</div>
+        {offers.length===0
+          ? <div className="empty">No consultation offers yet — your registered networks are listed above; inbound consultation and contract requests are logged automatically by the daily scout.</div>
+          : <div className="tbl-wrap"><table className="reg">
+              <thead><tr><th>Network</th><th>Ask</th><th>Received</th><th>Status</th></tr></thead>
+              <tbody>{offers.map((o,i)=><ConsultationOfferRow key={(o.firm||'offer')+'-'+i} offer={o}/>)}</tbody>
+            </table></div>}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
 // FILTER TOOLBAR
 // ═══════════════════════════════════════════════
 function FilterBar({filters,setFilters,onAdd,onRefresh,count}){
@@ -694,6 +832,7 @@ function DetailModal({token,row,onClose,onChanged}){
 function App(){
   const[auth,setAuth]=useState('checking');const[token,setToken]=useState(null);
   const[rows,setRows]=useState(null);
+  const[consultation,setConsultation]=useState(null);
   const[err,setErr]=useState(null);const[loading,setLoading]=useState(true);
   const[selected,setSelected]=useState(null);const[adding,setAdding]=useState(false);
   const[filters,setFilters]=useState({status:'',band:'',source:'',work_mode:'',q:''});
@@ -714,7 +853,9 @@ function App(){
       const j=await apiGet(token,'section=all');
       const s=j.sections||{};
       setRows((s.pipeline&&s.pipeline.rows)||[]);
-    }catch(e){setErr(e.message);setRows([]);}
+      // §2: read the consultation block from the SAME section=all response — no extra network call.
+      setConsultation(s.consultation||null);
+    }catch(e){setErr(e.message);setRows([]);setConsultation(null);}
     setLoading(false);
   },[token]);
   useEffect(()=>{if(auth==='ok'&&token)load();},[auth,token,load]);
@@ -759,6 +900,8 @@ function App(){
           :!err&&<PipelineTable rows={filtered} onSelect={setSelected}/>}
 
         {!loading&&!err&&<UpcomingInterviews rows={rows||[]} onSelect={setSelected}/>}
+
+        {!loading&&!err&&<ConsultationSection data={consultation}/>}
 
         <div className="disclaimer" style={{marginTop:4}}>
           Internal governance tooling for the external job hunt: every opportunity the daily scout finds, its fit score and
