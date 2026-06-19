@@ -133,6 +133,20 @@
       <div class="err" id="sec-err"></div>
       <div class="ok" id="sec-ok"></div>
     </div>
+
+    <!-- Passkey (privileged users only — owner/admin). Additive: TOTP above is unchanged. -->
+    <div class="card hide" id="sec-passkey-card">
+      <h2>Passkey (this device or a security key)</h2>
+      <p class="muted" style="margin-bottom:18px">Add a passkey as a phishing-resistant second step. You can use this device&rsquo;s fingerprint, face or screen lock, or a hardware security key, when you sign in.</p>
+      <div id="sec-passkey-list"></div>
+      <div class="row">
+        <button class="btn" id="sec-passkey-add">Add a passkey</button>
+      </div>
+      <p class="muted hide" id="sec-passkey-unsupported" style="margin-top:16px"></p>
+      <p class="muted" style="margin-top:16px">If you lose access to your passkey, you may need to contact support to reset two-factor authentication — there is no automatic bypass.</p>
+      <div class="err" id="sec-pk-err"></div>
+      <div class="ok" id="sec-pk-ok"></div>
+    </div>
   </div>
 
   <footer class="sec-footer">
@@ -150,6 +164,7 @@
     var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
     var currentFactorId=null;
+    var canUsePasskey=false;
 
     function el(id){return document.getElementById(id);}
     function show(id){el(id).classList.remove('hide');}
@@ -173,13 +188,43 @@
       }catch(e){window.location.replace('/login/');}
     }
 
-    function onReady(session){
+    async function onReady(session){
       try{
         var payload=JSON.parse(atob(session.access_token.split('.')[1]));
         el('sec-user-email').textContent=payload.email||'';
       }catch(e){}
       document.body.style.visibility='visible';
+      await setupPasskeyGate(session);
       refresh();
+    }
+
+    // --- Passkey gate: only owner/admin see the passkey section ---
+    // Canonical fetch pattern (Authorization: Bearer) — NOT sb.from() — per AUTH rules.
+    async function getRole(token){
+      try{
+        var p=JSON.parse(atob(token.split('.')[1]));
+        var r=await fetch(SUPABASE_URL+'/rest/v1/app_users?id=eq.'+p.sub+'&select=role&limit=1',{
+          headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token,'Accept':'application/json'}
+        });
+        if(!r.ok)return null;
+        var rows=await r.json();
+        return(rows&&rows.length>0)?rows[0].role:null;
+      }catch(e){return null;}
+    }
+
+    async function setupPasskeyGate(session){
+      try{
+        var role=await getRole(session.access_token);
+        canUsePasskey=(role==='owner'||role==='admin');
+      }catch(e){canUsePasskey=false;}
+      if(!canUsePasskey)return;
+      show('sec-passkey-card');
+      // Feature-detect browser WebAuthn support and the Supabase WebAuthn MFA API.
+      if(!(window.PublicKeyCredential&&sb.auth.mfa.webauthn)){
+        el('sec-passkey-add').classList.add('hide');
+        el('sec-passkey-unsupported').classList.remove('hide');
+        el('sec-passkey-unsupported').textContent='Passkeys are not available on this device or browser.';
+      }
     }
 
     // --- List current factors and render state ---
@@ -215,6 +260,9 @@
         show('sec-on');
       }else{
         show('sec-off');
+      }
+      if(canUsePasskey){
+        renderPasskeys((res.data&&res.data.all)?res.data.all:[]);
       }
     }
 
@@ -265,11 +313,78 @@
       refresh();
     }
 
+    // --- Passkey (WebAuthn) factor management ---
+    function pkClear(){el('sec-pk-err').textContent='';el('sec-pk-ok').textContent='';}
+    function pkError(m){el('sec-pk-err').textContent=m||'Something went wrong. Please try again.';el('sec-pk-ok').textContent='';}
+    function pkSuccess(m){el('sec-pk-ok').textContent=m;el('sec-pk-err').textContent='';}
+
+    function renderPasskeys(allFactors){
+      var list=el('sec-passkey-list');
+      list.innerHTML='';
+      var pks=(allFactors||[]).filter(function(f){return f.factor_type==='webauthn'&&f.status==='verified';});
+      if(!pks.length){
+        var none=document.createElement('p');
+        none.className='muted';
+        none.textContent='No passkeys added yet.';
+        list.appendChild(none);
+        return;
+      }
+      pks.forEach(function(f){
+        var row=document.createElement('div');
+        row.className='factor';
+        var info=document.createElement('div');
+        var name=document.createElement('div');
+        name.className='factor-name';
+        name.textContent=f.friendly_name||'Passkey';
+        var sub=document.createElement('div');
+        sub.className='factor-sub';
+        sub.textContent='Active';
+        info.appendChild(name);info.appendChild(sub);
+        var btn=document.createElement('button');
+        btn.className='btn btn-ghost btn-danger';
+        btn.textContent='Remove';
+        btn.addEventListener('click',function(){removePasskey(f.id);});
+        row.appendChild(info);row.appendChild(btn);
+        list.appendChild(row);
+      });
+    }
+
+    // Enrol a passkey. webauthn.register() runs the full ceremony per Supabase docs:
+    // enroll -> challenge -> navigator.credentials.create() -> verify. rpId/rpOrigins
+    // default to window.location (ailane.ai in production).
+    async function addPasskey(){
+      pkClear();
+      if(!(window.PublicKeyCredential&&sb.auth.mfa.webauthn)){
+        pkError('Passkeys are not available on this device or browser.');return;
+      }
+      var btn=el('sec-passkey-add');
+      btn.disabled=true;btn.innerHTML='<span class="sp"></span>Waiting for your device…';
+      try{
+        var res=await sb.auth.mfa.webauthn.register({friendlyName:'Passkey '+new Date().toISOString().slice(0,10)});
+        btn.disabled=false;btn.textContent='Add a passkey';
+        if(res&&res.error){pkError(res.error.message||'Could not add the passkey. Please try again.');return;}
+        await refresh();
+        pkSuccess('Passkey added. You can use it as your second step when you sign in.');
+      }catch(e){
+        btn.disabled=false;btn.textContent='Add a passkey';
+        pkError('Could not add the passkey. Please try again.');
+      }
+    }
+
+    async function removePasskey(factorId){
+      pkClear();
+      var res=await sb.auth.mfa.unenroll({factorId:factorId});
+      if(res&&res.error){pkError(res.error.message);return;}
+      await refresh();
+      pkSuccess('Passkey removed.');
+    }
+
     // --- Wire up controls ---
     el('sec-setup-btn').addEventListener('click',startEnrol);
     el('sec-cancel-btn').addEventListener('click',cancelEnrol);
     el('sec-confirm-btn').addEventListener('click',function(){confirmEnrol(el('sec-code').value.trim());});
     el('sec-code').addEventListener('keydown',function(e){if(e.key==='Enter')confirmEnrol(el('sec-code').value.trim());});
+    el('sec-passkey-add').addEventListener('click',addPasskey);
 
     guard();
   })();
