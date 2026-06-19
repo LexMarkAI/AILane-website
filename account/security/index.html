@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Supabase CDN FIRST (protected page — RULE 26 auth guard) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 Analytics (mandatory — G-NTNXWZN31C) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NTNXWZN31C');</script>
+
+  <!-- CSP Meta Tag (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security &amp; Two-Factor — Ailane</title>
+  <meta name="description" content="Manage two-factor authentication for your Ailane account.">
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0A2342;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;color:#e2e8f0}
+    .sec-header{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid #1e293b}
+    .sec-header-left{display:flex;align-items:center;gap:16px}
+    .sec-wordmark{font-size:16px;font-weight:700;letter-spacing:3px;color:#fff;text-decoration:none}
+    .sec-wordmark:hover{color:#38bdf8}
+    .sec-header-divider{width:1px;height:20px;background:#334155}
+    .sec-header-title{font-size:14px;color:#94a3b8}
+    .sec-header-right{display:flex;align-items:center;gap:12px}
+    .sec-user-email{font-size:13px;color:#64748b}
+    .sec-back-btn{background:transparent;border:1px solid #334155;color:#94a3b8;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;text-decoration:none}
+    .sec-back-btn:hover{border-color:#64748b;color:#e2e8f0}
+    .sec-wrap{max-width:640px;margin:0 auto;padding:40px 24px}
+    .sec-intro h1{font-size:24px;font-weight:700;color:#e2e8f0;margin-bottom:6px}
+    .sec-intro p{font-size:14px;color:#64748b;line-height:1.6}
+    .card{background:rgba(10,22,40,0.6);border:1px solid #1e293b;border-radius:16px;padding:28px;margin-top:24px}
+    .card h2{font-size:16px;font-weight:600;color:#e2e8f0;margin-bottom:8px}
+    .card .muted{font-size:13px;color:#64748b;line-height:1.6}
+    .status-on{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#22c55e;margin-bottom:16px}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}
+    .factor{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;margin-bottom:10px}
+    .factor-name{font-size:14px;color:#e2e8f0}
+    .factor-sub{font-size:12px;color:#64748b;margin-top:2px}
+    .btn{display:inline-block;padding:12px 20px;background:#38bdf8;color:#fff;font-size:14px;font-weight:600;border:none;border-radius:10px;cursor:pointer;text-decoration:none}
+    .btn:hover{background:#0ea5e9}
+    .btn:disabled{opacity:0.6;cursor:not-allowed}
+    .btn-ghost{background:transparent;border:1px solid #334155;color:#94a3b8;padding:8px 14px;font-size:12px;border-radius:8px}
+    .btn-ghost:hover{border-color:#64748b;color:#e2e8f0}
+    .btn-danger{background:transparent;border:1px solid #7f1d1d;color:#f87171}
+    .btn-danger:hover{background:rgba(127,29,29,0.2);border-color:#b91c1c}
+    .field{margin:18px 0}
+    .field label{display:block;font-size:13px;color:#94a3b8;margin-bottom:6px}
+    .field input{width:100%;max-width:240px;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:1.2rem;letter-spacing:0.3em;outline:none}
+    .field input:focus{border-color:#38bdf8}
+    .qr-box{display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px;background:#fff;border-radius:12px;width:fit-content;margin:18px auto}
+    .qr-box img{width:200px;height:200px;display:block}
+    .secret{font-size:13px;color:#475569;word-break:break-all;text-align:center}
+    .secret code{display:inline-block;margin-top:6px;padding:8px 12px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;color:#94a3b8;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0.1em}
+    .err{color:#ef4444;font-size:13px;margin-top:12px;min-height:18px}
+    .ok{color:#22c55e;font-size:13px;margin-top:12px;min-height:18px}
+    .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px}
+    .hide{display:none}
+    .sp{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:s .6s linear infinite;vertical-align:middle;margin-right:8px}
+    @keyframes s{to{transform:rotate(360deg)}}
+    .sec-footer{padding:24px 32px;border-top:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+    .sec-footer-legal{display:flex;gap:16px}
+    .sec-footer-link{font-size:12px;color:#64748b;text-decoration:none}
+    .sec-footer-link:hover{color:#94a3b8;text-decoration:underline}
+    .sec-footer-company{font-size:11px;color:#475569}
+    @media (max-width:768px){
+      .sec-header{padding:16px;flex-direction:column;gap:12px}
+      .sec-wrap{padding:24px 16px}
+      .sec-footer{padding:16px;flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body style="visibility:hidden">
+
+  <header class="sec-header">
+    <div class="sec-header-left">
+      <a href="/" class="sec-wordmark">AILANE</a>
+      <div class="sec-header-divider"></div>
+      <span class="sec-header-title">Security &amp; Two-Factor</span>
+    </div>
+    <div class="sec-header-right">
+      <span class="sec-user-email" id="sec-user-email"></span>
+      <a href="/account/dashboard/" class="sec-back-btn">&larr; Back to Dashboard</a>
+    </div>
+  </header>
+
+  <div class="sec-wrap">
+    <div class="sec-intro">
+      <h1>Two-factor authentication</h1>
+      <p>Add a second step to your sign-in using an authenticator app. Once it is on, you will be asked for a 6-digit code from your app each time you sign in.</p>
+    </div>
+
+    <div class="card">
+      <h2>Authenticator app</h2>
+
+      <!-- Loading -->
+      <div id="sec-loading" class="muted">Loading your security settings…</div>
+
+      <!-- State: 2FA is ON -->
+      <div id="sec-on" class="hide">
+        <div class="status-on"><span class="status-dot"></span>Two-factor authentication is on</div>
+        <div id="sec-factor-list"></div>
+        <p class="muted">Keep your authenticator app safe. If you lose access to it, you may need to contact support to reset two-factor authentication on your account.</p>
+      </div>
+
+      <!-- State: 2FA is OFF (offer setup) -->
+      <div id="sec-off" class="hide">
+        <p class="muted" style="margin-bottom:18px">Two-factor authentication is not set up yet. Use an authenticator app such as the one on your phone to generate sign-in codes.</p>
+        <button class="btn" id="sec-setup-btn">Set up authenticator app</button>
+      </div>
+
+      <!-- State: enrolment in progress (QR + code) -->
+      <div id="sec-enrol" class="hide">
+        <p class="muted">1. Scan this QR code with your authenticator app. If you cannot scan it, enter the setup key manually.</p>
+        <div class="qr-box">
+          <img id="sec-qr" alt="Two-factor setup QR code">
+          <div class="secret">Setup key<br><code id="sec-secret"></code></div>
+        </div>
+        <div class="field">
+          <label for="sec-code">2. Enter the 6-digit code from your app</label>
+          <input type="text" id="sec-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+        </div>
+        <div class="row">
+          <button class="btn" id="sec-confirm-btn">Turn on two-factor authentication</button>
+          <button class="btn btn-ghost" id="sec-cancel-btn">Cancel</button>
+        </div>
+        <p class="muted" style="margin-top:16px">Save your authenticator app once you turn this on. If you lose access to it, you may need to contact support to reset two-factor authentication — there is no automatic bypass.</p>
+      </div>
+
+      <div class="err" id="sec-err"></div>
+      <div class="ok" id="sec-ok"></div>
+    </div>
+  </div>
+
+  <footer class="sec-footer">
+    <div class="sec-footer-legal">
+      <a href="/terms/" class="sec-footer-link">Terms of Service</a>
+      <a href="/privacy/" class="sec-footer-link">Privacy Policy</a>
+    </div>
+    <span class="sec-footer-company">&copy; 2026 AI Lane Limited. Company No. 17035654. ICO Reg. 00013389720.</span>
+  </footer>
+
+  <script>
+  (function(){
+    var SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+    var currentFactorId=null;
+
+    function el(id){return document.getElementById(id);}
+    function show(id){el(id).classList.remove('hide');}
+    function hide(id){el(id).classList.add('hide');}
+    function clearMsg(){el('sec-err').textContent='';el('sec-ok').textContent='';}
+    function showError(m){el('sec-err').textContent=m||'Something went wrong. Please try again.';el('sec-ok').textContent='';}
+    function showSuccess(m){el('sec-ok').textContent=m;el('sec-err').textContent='';}
+
+    // --- RULE 26 auth guard: any authenticated user ---
+    async function guard(){
+      try{
+        var result=await sb.auth.getSession();
+        var session=result.data?result.data.session:null;
+        if(session) return onReady(session);
+        return new Promise(function(resolve){
+          var timeout=setTimeout(function(){window.location.replace('/login/');},6000);
+          sb.auth.onAuthStateChange(function(event,s){
+            if(s){clearTimeout(timeout);onReady(s);resolve();}
+          });
+        });
+      }catch(e){window.location.replace('/login/');}
+    }
+
+    function onReady(session){
+      try{
+        var payload=JSON.parse(atob(session.access_token.split('.')[1]));
+        el('sec-user-email').textContent=payload.email||'';
+      }catch(e){}
+      document.body.style.visibility='visible';
+      refresh();
+    }
+
+    // --- List current factors and render state ---
+    async function refresh(){
+      clearMsg();
+      hide('sec-on');hide('sec-off');hide('sec-enrol');
+      show('sec-loading');
+      var res=await sb.auth.mfa.listFactors();
+      hide('sec-loading');
+      if(res.error){showError(res.error.message);show('sec-off');return;}
+      var totp=(res.data&&res.data.totp)?res.data.totp:[];
+      if(totp.length){
+        var list=el('sec-factor-list');
+        list.innerHTML='';
+        totp.forEach(function(f){
+          var row=document.createElement('div');
+          row.className='factor';
+          var info=document.createElement('div');
+          var name=document.createElement('div');
+          name.className='factor-name';
+          name.textContent=f.friendly_name||'Authenticator app';
+          var sub=document.createElement('div');
+          sub.className='factor-sub';
+          sub.textContent='Active';
+          info.appendChild(name);info.appendChild(sub);
+          var btn=document.createElement('button');
+          btn.className='btn btn-ghost btn-danger';
+          btn.textContent='Remove';
+          btn.addEventListener('click',function(){removeFactor(f.id);});
+          row.appendChild(info);row.appendChild(btn);
+          list.appendChild(row);
+        });
+        show('sec-on');
+      }else{
+        show('sec-off');
+      }
+    }
+
+    // --- Enrol a new TOTP factor -> show QR for the user to scan ---
+    async function startEnrol(){
+      clearMsg();
+      var res=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'Authenticator '+new Date().toISOString().slice(0,10)});
+      if(res.error){showError(res.error.message);return;}
+      currentFactorId=res.data.id;
+      renderQr(res.data.totp.qr_code,res.data.totp.secret);
+      hide('sec-off');hide('sec-on');
+      show('sec-enrol');
+      el('sec-code').value='';
+      el('sec-code').focus();
+    }
+
+    function renderQr(qr,secret){
+      el('sec-qr').src=qr;
+      el('sec-secret').textContent=secret;
+    }
+
+    // --- Verify the 6-digit code to activate the factor ---
+    async function confirmEnrol(code){
+      clearMsg();
+      if(!code||code.length<6){showError('Enter the 6-digit code from your authenticator app.');return;}
+      var btn=el('sec-confirm-btn');
+      btn.disabled=true;btn.innerHTML='<span class="sp"></span>Verifying…';
+      var res=await sb.auth.mfa.challengeAndVerify({factorId:currentFactorId,code:code});
+      btn.disabled=false;btn.textContent='Turn on two-factor authentication';
+      if(res.error){showError(res.error.message);return;}
+      currentFactorId=null;
+      await refresh();
+      showSuccess('Two-factor authentication is now on for your account.');
+    }
+
+    // --- Remove a factor ---
+    async function removeFactor(factorId){
+      clearMsg();
+      var res=await sb.auth.mfa.unenroll({factorId:factorId});
+      if(res.error){showError(res.error.message);return;}
+      await refresh();
+      showSuccess('Two-factor authentication has been removed.');
+    }
+
+    function cancelEnrol(){
+      currentFactorId=null;
+      clearMsg();
+      refresh();
+    }
+
+    // --- Wire up controls ---
+    el('sec-setup-btn').addEventListener('click',startEnrol);
+    el('sec-cancel-btn').addEventListener('click',cancelEnrol);
+    el('sec-confirm-btn').addEventListener('click',function(){confirmEnrol(el('sec-code').value.trim());});
+    el('sec-code').addEventListener('keydown',function(e){if(e.key==='Enter')confirmEnrol(el('sec-code').value.trim());});
+
+    guard();
+  })();
+  </script>
+</body>
+</html>
