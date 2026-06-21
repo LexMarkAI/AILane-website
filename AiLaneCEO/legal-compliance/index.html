@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailane · Legal &amp; Compliance — Change Review</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NTNXWZN31C');
+</script>
+
+<!-- CSP (SEC-001 §3.2) — canonical site CSP; connect-src permits the rsg functions host -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Supabase CDN first (before the guard) — protected page pattern -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root{--bg-void:#050810;--bg-base:#070B14;--bg-surface:#0C1220;--bg-elevated:#111B2E;--bg-hover:#162238;--bg-glass:rgba(12,18,32,0.85);--border-subtle:rgba(255,255,255,0.04);--border-default:rgba(255,255,255,0.07);--border-strong:rgba(255,255,255,0.12);--border-accent:rgba(14,165,233,0.3);--text-primary:#E2E8F0;--text-secondary:#AEBACE;--text-muted:#8390A6;--text-accent:#38BDF8;--accent-cyan:#0EA5E9;--accent-cyan-dim:rgba(14,165,233,0.15);--accent-green:#10B981;--accent-green-dim:rgba(16,185,129,0.15);--accent-red:#EF4444;--accent-red-dim:rgba(239,68,68,0.15);--accent-amber:#F59E0B;--accent-amber-dim:rgba(245,158,11,0.15);--accent-purple:#8B5CF6;--accent-purple-dim:rgba(139,92,246,0.15);--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--font-display:'Outfit',sans-serif;--font-body:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{font-size:18px;-webkit-font-smoothing:antialiased;}body{background:var(--bg-void);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;}body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(14,165,233,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}#root{position:relative;z-index:1;}
+.auth-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;}.auth-gate .logo-mark{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent-cyan);}.pulse-ring{width:40px;height:40px;border:2px solid var(--accent-cyan);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border-subtle);background:var(--bg-glass);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;}.top-bar-left{display:flex;align-items:center;gap:12px;}.back-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-secondary);font-family:var(--font-body);font-size:0.75rem;cursor:pointer;text-decoration:none;transition:all 0.2s;}.back-btn:hover{border-color:var(--border-accent);color:var(--text-accent);}.page-title{font-family:var(--font-display);font-size:1rem;font-weight:700;}.page-title span{color:var(--accent-green);}
+.status-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:0.65rem;font-family:var(--font-mono);font-weight:500;}.status-pill.live{background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.2);}.status-pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.3;}}.ts{font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);}
+.main{max-width:1100px;margin:0 auto;padding:20px 28px 60px;display:flex;flex-direction:column;gap:16px;}
+.card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;}.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;gap:10px;flex-wrap:wrap;}.card-head-title{font-family:var(--font-display);font-size:0.9rem;font-weight:600;}.card-head-badge{font-family:var(--font-mono);font-size:0.6rem;padding:3px 8px;border-radius:100px;background:var(--bg-hover);color:var(--text-muted);border:1px solid var(--border-subtle);}.card-body{padding:12px 18px 18px;}.section-label{font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;padding:8px 0 2px;}
+.leg-title{font-size:0.92rem;font-weight:600;color:var(--text-primary);line-height:1.35;}.leg-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;}.leg-tag{font-size:0.58rem;font-family:var(--font-mono);padding:2px 8px;border-radius:100px;border:1px solid var(--border-subtle);color:var(--text-secondary);background:var(--bg-hover);}.leg-summary{font-size:0.74rem;color:var(--text-secondary);line-height:1.6;margin-top:12px;}
+.muted-note{font-size:0.62rem;color:var(--text-muted);line-height:1.5;margin-top:8px;}
+.source-link{font-size:0.64rem;font-family:var(--font-mono);color:var(--text-accent);text-decoration:none;margin-top:10px;display:inline-block;}.source-link:hover{text-decoration:underline;}
+
+/* Standing note + intelligence framing */
+.standing-note{background:var(--bg-base);border:1px solid var(--border-subtle);border-left:3px solid var(--accent-cyan);border-radius:var(--radius-md);padding:16px 18px;}
+.standing-note .lead{font-size:0.82rem;color:var(--text-primary);line-height:1.6;font-weight:500;}
+.standing-note .sub{font-size:0.68rem;color:var(--accent-cyan);margin-top:8px;font-family:var(--font-mono);}
+
+/* Materiality + council markers */
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px;}
+.mat-chip{font-family:var(--font-mono);font-weight:600;padding:3px 10px;border-radius:100px;border:1px solid;display:inline-block;}
+.mat-chip.material{color:var(--accent-red);background:var(--accent-red-dim);border-color:rgba(239,68,68,0.35);font-size:0.68rem;padding:4px 12px;}
+.mat-chip.minor{color:var(--text-muted);background:var(--bg-hover);border-color:var(--border-subtle);font-size:0.6rem;}
+.mat-chip.pending{color:var(--accent-amber);background:var(--accent-amber-dim);border-color:rgba(245,158,11,0.25);font-size:0.6rem;}
+.council-marker{font-family:var(--font-mono);font-size:0.6rem;font-weight:600;padding:3px 10px;border-radius:100px;color:var(--accent-purple);background:var(--accent-purple-dim);border:1px solid rgba(139,92,246,0.3);display:inline-block;}
+
+/* Review note + decision controls */
+.disclaimer-foot{font-size:0.62rem;color:var(--text-muted);line-height:1.55;margin-top:12px;font-style:italic;border-top:1px solid var(--border-subtle);padding-top:10px;}
+.review-note{width:100%;min-height:130px;margin-top:14px;padding:11px 13px;background:var(--bg-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-body);font-size:0.74rem;line-height:1.55;resize:vertical;outline:none;}
+.review-note:focus{border-color:var(--border-accent);}
+.review-note:disabled{opacity:0.6;}
+.word-counter{font-family:var(--font-mono);font-size:0.62rem;color:var(--text-muted);margin-top:7px;}
+.word-counter.met{color:var(--accent-green);}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.dbtn{padding:8px 15px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-secondary);font-family:var(--font-body);font-size:0.68rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.dbtn:disabled{opacity:0.4;cursor:not-allowed;}
+.dbtn.accept:not(:disabled){border-color:rgba(16,185,129,0.4);color:var(--accent-green);}
+.dbtn.council:not(:disabled){border-color:rgba(139,92,246,0.4);color:var(--accent-purple);}
+.dbtn.reject:not(:disabled){border-color:rgba(239,68,68,0.4);color:var(--accent-red);}
+.dbtn:not(:disabled):hover{background:var(--bg-hover);}
+.inline-msg{margin-top:10px;font-size:0.66rem;font-family:var(--font-mono);line-height:1.45;}
+.inline-msg.err{color:var(--accent-red);}
+.inline-msg.ok{color:var(--accent-green);}
+.resolved-note{font-size:0.78rem;color:var(--accent-green);font-family:var(--font-mono);display:flex;align-items:center;gap:8px;}
+.empty-state{font-size:0.76rem;color:var(--text-muted);text-align:center;padding:32px 18px;}
+.review-card{transition:opacity 0.3s ease;}
+.review-card.resolved{opacity:0.7;}
+@media(max-width:700px){.main{padding:16px 16px 48px;}}
+</style>
+</head>
+<body style="visibility:hidden">
+<div id="root">
+  <div class="auth-gate"><div class="logo-mark">AILANE</div><div class="pulse-ring"></div><div class="ts">Verifying access…</div></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ── Config (public anon key — embedded, identical to the other AiLaneCEO pages) ──
+  var SUPABASE_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var FUNCTIONS_URL='https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
+  var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  var CEO_EMAIL='mark@ailane.ai';
+  var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  var AUTH_TOKEN=null;
+
+  // ── Tiny DOM helper (textContent for all backend-derived strings) ──
+  function el(tag,attrs){
+    var n=document.createElement(tag);
+    if(attrs){for(var k in attrs){if(!attrs.hasOwnProperty(k))continue;var v=attrs[k];
+      if(v==null)continue;
+      if(k==='class')n.className=v;
+      else if(k==='text')n.textContent=v;
+      else if(k==='style')n.style.cssText=v;
+      else if(k.indexOf('on')===0&&typeof v==='function')n.addEventListener(k.slice(2),v);
+      else n.setAttribute(k,v);
+    }}
+    for(var i=2;i<arguments.length;i++){var c=arguments[i];if(c==null)continue;
+      n.appendChild(typeof c==='string'?document.createTextNode(c):c);}
+    return n;
+  }
+  function shortDate(d){if(!d)return'';var x=new Date(d);return isNaN(x.getTime())?String(d):x.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+  function countWords(s){var m=String(s||'').trim().match(/\S+/g);return m?m.length:0;}
+  function safeUrl(u){return (typeof u==='string'&&/^https?:\/\//i.test(u))?u:null;}
+  function authHeaders(){return {'Authorization':'Bearer '+AUTH_TOKEN,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'};}
+
+  // ── Auth guard (RULE 26 — AiLaneCEO = mark@ailane.ai only; silent redirect to / on failure) ──
+  (function guard(){
+    sb.auth.getSession().then(function(res){
+      var session=res&&res.data&&res.data.session;
+      if(session){
+        try{var p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){onAuthed(session.access_token);return;}}catch(e){}
+      }
+      var t=setTimeout(function(){window.location.href='/';},6000);
+      sb.auth.onAuthStateChange(function(ev,sess){
+        if(sess){
+          clearTimeout(t);
+          try{var p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){onAuthed(sess.access_token);return;}}catch(e){}
+          window.location.href='/';
+        }
+      });
+    }).catch(function(){window.location.href='/';});
+  })();
+
+  function onAuthed(token){
+    AUTH_TOKEN=token;
+    renderShell();
+    document.body.style.visibility='visible';
+    loadFeed();
+  }
+
+  // ── Page shell (top bar + standing note + queue container) ──
+  function renderShell(){
+    var root=document.getElementById('root');
+    root.textContent='';
+
+    var topBar=el('div',{class:'top-bar'},
+      el('div',{class:'top-bar-left'},
+        el('a',{class:'back-btn',href:'/AiLaneCEO/'},'‹ Hub'),
+        el('div',{class:'page-title'},'Legal & ',el('span',{},'Compliance'))
+      ),
+      el('div',{class:'top-bar-right',style:'display:flex;align-items:center;gap:12px;'},
+        el('div',{class:'status-pill live'},el('div',{class:'dot'}),'LIVE'),
+        el('div',{class:'ts'},'Change-Lifecycle Review')
+      )
+    );
+    root.appendChild(topBar);
+
+    var main=el('div',{class:'main'});
+
+    // Standing note (verbatim) + intelligence-not-advice framing
+    main.appendChild(el('div',{class:'standing-note'},
+      el('div',{class:'lead'},'This is the human gate. Automation proposes; you ratify. A material change cannot proceed without your review.'),
+      el('div',{class:'sub'},'Intelligence for your decision — not legal advice.')
+    ));
+
+    // Queue header + container
+    var head=el('div',{class:'section-label',id:'queue-label'},'Changes awaiting your review');
+    main.appendChild(head);
+    var queue=el('div',{id:'queue',style:'display:flex;flex-direction:column;gap:16px;'},
+      el('div',{class:'empty-state',id:'queue-status'},'Loading the review queue…')
+    );
+    main.appendChild(queue);
+
+    root.appendChild(main);
+  }
+
+  // ── Load the Director feed ──
+  function loadFeed(){
+    fetch(FUNCTIONS_URL+'/rsg-director-feed',{headers:authHeaders()})
+      .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+      .then(function(j){renderQueue((j&&j.items)||[]);})
+      .catch(function(){
+        var s=document.getElementById('queue-status');
+        if(s)s.textContent="Couldn't load the review queue. Please refresh.";
+      });
+  }
+
+  function renderQueue(items){
+    var queue=document.getElementById('queue');
+    var label=document.getElementById('queue-label');
+    if(!queue)return;
+    queue.textContent='';
+    if(!items||items.length===0){
+      if(label)label.textContent='Changes awaiting your review';
+      queue.appendChild(el('div',{class:'empty-state'},'No changes awaiting your review.'));
+      return;
+    }
+    if(label)label.textContent=items.length+(items.length===1?' change':' changes')+' awaiting your review';
+    items.forEach(function(item){queue.appendChild(buildCard(item));});
+  }
+
+  // ── Build one review card ──
+  function buildCard(item){
+    var kl=item.kl_legislative_horizon||{};
+    var title=kl.legislation_short_name||kl.legislation_title||item.instrument_ref||'(untitled change)';
+
+    var card=el('div',{class:'card review-card'});
+    var body=el('div',{class:'card-body'});
+
+    // Title
+    body.appendChild(el('div',{class:'leg-title'},title));
+
+    // Materiality + council markers
+    var chips=el('div',{class:'chip-row'});
+    var mat=item.materiality;
+    if(mat==='material_client')chips.appendChild(el('span',{class:'mat-chip material'},'Material — client-affecting'));
+    else if(mat==='minor_non_client')chips.appendChild(el('span',{class:'mat-chip minor'},'Minor — not client-affecting'));
+    else if(mat==='pending')chips.appendChild(el('span',{class:'mat-chip pending'},'Materiality pending'));
+    else if(mat)chips.appendChild(el('span',{class:'mat-chip pending'},String(mat).replace(/_/g,' ')));
+    if(item.council_required===true)chips.appendChild(el('span',{class:'council-marker'},'Council review'));
+    if(chips.childNodes.length)body.appendChild(chips);
+
+    // Status line: status · alert stage · parliament stage · commencement
+    var alertStage=item.director_firm_alerted_at?'Firm alert — commencement known':(item.director_alerted_at?'Provisional alert':null);
+    var meta=el('div',{class:'leg-meta'});
+    if(item.status)meta.appendChild(el('span',{class:'leg-tag'},String(item.status).replace(/_/g,' ')));
+    if(alertStage)meta.appendChild(el('span',{class:'leg-tag'},alertStage));
+    if(kl.parliament_stage)meta.appendChild(el('span',{class:'leg-tag'},String(kl.parliament_stage)));
+    if(item.commencement_date)meta.appendChild(el('span',{class:'leg-tag'},'Commences '+shortDate(item.commencement_date)));
+    if(item.jurisdiction)meta.appendChild(el('span',{class:'leg-tag'},String(item.jurisdiction)));
+    if(meta.childNodes.length)body.appendChild(meta);
+
+    // Headline summary
+    if(kl.headline_summary)body.appendChild(el('div',{class:'leg-summary'},kl.headline_summary));
+
+    // Source link
+    var src=safeUrl(kl.source_url);
+    if(src)body.appendChild(el('a',{class:'source-link',href:src,target:'_blank',rel:'noopener'},'Source ↗'));
+
+    // Disclaimer (verbatim, muted footnote)
+    if(kl.disclaimer_text)body.appendChild(el('div',{class:'disclaimer-foot'},kl.disclaimer_text));
+
+    // ── Review note + decision controls ──
+    var note=el('textarea',{class:'review-note',placeholder:'Record your review note (minimum 150 words) before deciding…','aria-label':'Review note'});
+    body.appendChild(note);
+
+    var counter=el('div',{class:'word-counter'},'0 / 150 words');
+    body.appendChild(counter);
+
+    var btnAccept=el('button',{class:'dbtn accept',type:'button',disabled:'disabled'},'Accept (stage for commencement)');
+    var btnCouncil=el('button',{class:'dbtn council',type:'button',disabled:'disabled'},'Convene Legal Council');
+    var btnReject=el('button',{class:'dbtn reject',type:'button',disabled:'disabled'},'Reject');
+    var btnRow=el('div',{class:'btn-row'},btnAccept,btnCouncil,btnReject);
+    body.appendChild(btnRow);
+
+    var msg=el('div',{class:'inline-msg'});
+    body.appendChild(msg);
+
+    var buttons=[btnAccept,btnCouncil,btnReject];
+    function refreshGate(){
+      var n=countWords(note.value);
+      counter.textContent=n+' / 150 words';
+      var met=n>=150;
+      counter.className='word-counter'+(met?' met':'');
+      buttons.forEach(function(b){b.disabled=!met;});
+    }
+    note.addEventListener('input',refreshGate);
+
+    function setMsg(kind,text){msg.className='inline-msg'+(kind?' '+kind:'');msg.textContent=text||'';}
+
+    function decide(action){
+      if(countWords(note.value)<150)return;
+      buttons.forEach(function(b){b.disabled=true;});
+      note.disabled=true;
+      setMsg('','Recording your decision…');
+      fetch(FUNCTIONS_URL+'/rsg-director-action',{
+        method:'POST',
+        headers:authHeaders(),
+        body:JSON.stringify({adaptation_id:item.id,action:action,review_note:note.value})
+      }).then(function(r){
+        return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,body:j};});
+      }).then(function(res){
+        if(res.ok){resolveCard(card,res.body&&res.body.status,action);}
+        else{
+          note.disabled=false;refreshGate();
+          var errText=(res.body&&res.body.error==='review_note_too_short')
+            ? 'Your review note must reach 150 words before this decision can be recorded.'
+            : ((res.body&&res.body.error)||("Couldn't record that decision ("+res.status+"). Please try again."));
+          setMsg('err',errText);
+        }
+      }).catch(function(){
+        note.disabled=false;refreshGate();
+        setMsg('err','Network error — your decision was not recorded. Please try again.');
+      });
+    }
+    btnAccept.addEventListener('click',function(){decide('accept');});
+    btnCouncil.addEventListener('click',function(){decide('convene_council');});
+    btnReject.addEventListener('click',function(){decide('reject');});
+
+    card.appendChild(body);
+    return card;
+  }
+
+  function statusMessage(status,action){
+    var byStatus={staged:'Staged for commencement.',council:'Legal Council convened.',withdrawn:'Change withdrawn.'};
+    if(status&&byStatus[status])return byStatus[status];
+    var byAction={accept:'Staged for commencement.',convene_council:'Legal Council convened.',reject:'Change withdrawn.'};
+    return byAction[action]||('Decision recorded'+(status?' ('+String(status).replace(/_/g,' ')+')':'')+'.');
+  }
+
+  function resolveCard(card,status,action){
+    card.className='card review-card resolved';
+    var body=card.querySelector('.card-body');
+    if(body){
+      body.textContent='';
+      body.appendChild(el('div',{class:'resolved-note'},el('span',{},'✓'),statusMessage(status,action)));
+    }
+  }
+
+})();
+</script>
+</body>
+</html>
