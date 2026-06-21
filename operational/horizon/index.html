@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>On The Horizon — Operational Readiness — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase CDN — FIRST script in head after GA4/CSP; auth guard polls for it -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <style>
+    :root { --op-cyan: var(--tier-operational); --op-cyan-glow: var(--tier-operational-glow); }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--surface-void, #050c18); }
+    body {
+      background: var(--surface-void, #050c18);
+      color: var(--text-body, #e2e8f0);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--op-cyan); }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 96px; }
+
+    /* ---- Header ---- */
+    .eyebrow {
+      font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--op-cyan); font-weight: 600; margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 4vw, 2.9rem); font-weight: 700;
+      color: var(--text-prime, #f1f5f9); line-height: 1.1; margin-bottom: 12px;
+    }
+    .lede { color: var(--text-sec, #94a3b8); font-size: 1.02rem; max-width: 60ch; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin-top: 18px; padding: 6px 13px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      font-size: 0.74rem; letter-spacing: 0.04em; color: var(--text-sec, #94a3b8);
+    }
+    .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--op-cyan); box-shadow: 0 0 8px var(--op-cyan-glow); }
+
+    /* ---- Standing disclaimer ---- */
+    .disclaimer-banner {
+      margin: 30px 0 38px; padding: 16px 18px;
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-left: 3px solid var(--op-cyan);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      color: var(--text-sec, #94a3b8); font-size: 0.9rem;
+    }
+
+    .section-head {
+      font-size: 0.74rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+      margin: 0 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+
+    /* ---- Item cards ---- */
+    #horizon-list { display: flex; flex-direction: column; gap: 16px; }
+    .card {
+      position: relative; padding: 20px 22px;
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius, 12px);
+      transition: border-color 0.2s ease;
+    }
+    .card:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .card-title { font-size: 1.18rem; font-weight: 700; color: var(--text-prime, #f1f5f9); line-height: 1.25; }
+    .card-meta { margin-top: 6px; font-size: 0.82rem; color: var(--text-mute, #64748b); font-family: 'Space Mono', ui-monospace, monospace; letter-spacing: 0.02em; }
+    .card-summary { margin-top: 12px; color: var(--text-body, #e2e8f0); font-size: 0.95rem; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+    .tag {
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      color: var(--text-sec, #94a3b8); letter-spacing: 0.03em;
+    }
+    .tag.type { color: var(--op-cyan); border-color: rgba(34,211,238,0.3); }
+    .tag.priority-high { color: var(--status-warn, #f59e0b); border-color: rgba(245,158,11,0.3); }
+
+    .card-foot { display: flex; align-items: center; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+    .source-link { font-size: 0.85rem; font-weight: 500; }
+    .card-disclaimer { margin-top: 12px; font-size: 0.78rem; color: var(--text-mute, #64748b); font-style: italic; }
+
+    /* ---- Watch toggle ---- */
+    .watch-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 14px; border-radius: var(--card-radius-sm, 8px);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      background: transparent; color: var(--text-sec, #94a3b8);
+      font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .watch-btn:hover { border-color: var(--op-cyan); color: var(--op-cyan); }
+    .watch-btn .star { font-size: 1rem; line-height: 1; }
+    .watch-btn.watched { border-color: var(--op-cyan); color: var(--op-cyan); background: rgba(34,211,238,0.08); }
+    .watch-btn.watched .star { color: var(--op-cyan); }
+    .watch-error { font-size: 0.8rem; color: var(--status-err, #ef4444); }
+
+    /* ---- States ---- */
+    .state-msg { padding: 40px 22px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.95rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 30px; height: 30px; margin: 0 auto 16px; border: 3px solid rgba(34,211,238,0.15); border-top-color: var(--op-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Gap panel ---- */
+    .gap-panel {
+      margin-top: 56px; padding: 28px 26px;
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-lg, 16px);
+    }
+    .gap-panel h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.5rem; color: var(--text-prime, #f1f5f9); margin-bottom: 8px; }
+    .gap-panel .gap-sub { color: var(--text-sec, #94a3b8); font-size: 0.92rem; margin-bottom: 22px; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 7px; }
+    .field .opt { color: var(--text-mute, #64748b); font-weight: 400; }
+    .field textarea, .field input, .field select {
+      width: 100%; padding: 11px 13px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.92rem;
+    }
+    .field textarea { min-height: 96px; resize: vertical; }
+    .field textarea:focus, .field input:focus, .field select:focus { outline: none; border-color: var(--op-cyan); }
+    .gap-note { font-size: 0.82rem; color: var(--text-mute, #64748b); margin-bottom: 18px; }
+    .btn-primary {
+      padding: 11px 22px; border: none; border-radius: var(--card-radius-sm, 8px);
+      background: var(--op-cyan); color: #042027; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .form-error { color: var(--status-err, #ef4444); font-size: 0.85rem; margin-top: 12px; }
+    .gap-confirm { padding: 22px; text-align: center; color: var(--status-ok, #10b981); font-size: 0.98rem; line-height: 1.6; }
+    .gap-confirm .check { font-size: 1.6rem; display: block; margin-bottom: 8px; }
+  </style>
+</head>
+<body style="visibility:hidden">
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">Operational Readiness</div>
+      <h1>On The Horizon</h1>
+      <p class="lede">Forthcoming instruments the estate is tracking for your organisation. Add any item to your watchlist, or tell us about something we are not yet tracking.</p>
+      <span class="pill">Intelligence, not legal advice</span>
+    </header>
+
+    <div class="disclaimer-banner">
+      On The Horizon is forward intelligence to help you prepare. It is not legal advice. Where an item may affect your contracts or obligations, consider taking professional advice.
+    </div>
+
+    <h2 class="section-head">Tracked instruments</h2>
+    <div id="horizon-list">
+      <div class="state-msg"><div class="spinner"></div>Loading the horizon…</div>
+    </div>
+
+    <section class="gap-panel" id="gap-panel">
+      <h2>Tracking something we&rsquo;re missing?</h2>
+      <p class="gap-sub">Tell us about an instrument we are not yet tracking. Every suggestion is reviewed by a person before anything is added to the watchlist.</p>
+      <form id="gap-form" novalidate>
+        <div class="field">
+          <label for="instrument_description">What should we be tracking?</label>
+          <textarea id="instrument_description" name="instrument_description" required minlength="8"
+            placeholder="Describe the bill, regulation, consultation or other instrument (at least 8 characters)…"></textarea>
+        </div>
+        <div class="field">
+          <label for="jurisdiction_hint">Jurisdiction <span class="opt">(optional)</span></label>
+          <select id="jurisdiction_hint" name="jurisdiction_hint">
+            <option value="">Not sure / not specified</option>
+            <option value="UK">UK</option>
+            <option value="EU">EU</option>
+            <option value="US">US</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="source_url_hint">Source link <span class="opt">(optional)</span></label>
+          <input type="url" id="source_url_hint" name="source_url_hint" placeholder="https://…">
+        </div>
+        <p class="gap-note">Submissions are reviewed before anything is added. Sending this does not add the item to the watchlist.</p>
+        <button type="submit" class="btn-primary" id="gap-submit">Submit for review</button>
+        <div class="form-error" id="gap-form-error" hidden></div>
+      </form>
+    </section>
+  </main>
+
+  <!-- AUTH GUARD — runs before the app renders (matches operational/index.html live pattern, RULE 26) -->
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    var FUNCTION_URL  = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/rsg-horizon-watchlist';
+    // Live operational-room allow-list + institutional (AMD-123 successor to enterprise, tokens.css).
+    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
+
+    var settled = false;
+    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+
+    // Poll for the Supabase CDN to load.
+    var polls = 0;
+    (function waitForSb() {
+      if (window.supabase && window.supabase.createClient) { boot(); return; }
+      if (++polls > 60) { fail(); return; }
+      setTimeout(waitForSb, 100);
+    })();
+
+    function boot() {
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { verify(gs.data.session); return; }
+        // Fallback: session may still be hydrating — listen with a 6s timeout.
+        var to = setTimeout(function () {
+          try { sub.data.subscription.unsubscribe(); } catch (e) {}
+          fail();
+        }, 6000);
+        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+          if (session && !settled) {
+            clearTimeout(to);
+            try { sub.data.subscription.unsubscribe(); } catch (e) {}
+            verify(session);
+          }
+        });
+      }).catch(fail);
+
+      function verify(session) {
+        if (settled) return;
+        var token = session.access_token, payload;
+        try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return fail(); }
+        var userId = payload.sub;
+        fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) {
+            if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
+              settled = true;
+              document.body.style.visibility = 'visible';
+              initHorizon(token, SUPABASE_ANON, FUNCTION_URL);
+            } else { fail(); }
+          })
+          .catch(fail);
+      }
+    }
+  })();
+  </script>
+
+  <!-- APP — vanilla JS, no build step -->
+  <script>
+  function initHorizon(token, anonKey, fnUrl) {
+    var BASE_HEADERS = { 'Authorization': 'Bearer ' + token, 'apikey': anonKey, 'Content-Type': 'application/json' };
+    var listEl = document.getElementById('horizon-list');
+
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+
+    // ---- Load + render ----
+    function loadItems() {
+      listEl.innerHTML = '';
+      var loading = el('div', 'state-msg');
+      loading.appendChild(el('div', 'spinner'));
+      loading.appendChild(document.createTextNode('Loading the horizon…'));
+      listEl.appendChild(loading);
+
+      fetch(fnUrl, { method: 'GET', headers: BASE_HEADERS })
+        .then(function (r) { if (!r.ok) throw new Error('http'); return r.json(); })
+        .then(function (data) { renderItems((data && data.items) || []); })
+        .catch(function () {
+          listEl.innerHTML = '';
+          listEl.appendChild(el('div', 'state-msg', "Couldn't load the horizon right now. Please refresh."));
+        });
+    }
+
+    function renderItems(items) {
+      listEl.innerHTML = '';
+      if (!items.length) {
+        listEl.appendChild(el('div', 'state-msg', 'No tracked instruments to show yet.'));
+        return;
+      }
+      items.forEach(function (item) { listEl.appendChild(buildCard(item)); });
+    }
+
+    function buildCard(item) {
+      var card = el('div', 'card');
+
+      var top = el('div', 'card-top');
+      var left = el('div');
+      left.appendChild(el('div', 'card-title', item.legislation_short_name || item.legislation_title || 'Untitled instrument'));
+
+      var metaBits = [];
+      if (item.parliament_stage) metaBits.push(item.parliament_stage);
+      if (item.expected_enactment) metaBits.push(item.expected_enactment);
+      if (metaBits.length) left.appendChild(el('div', 'card-meta', metaBits.join(' · ')));
+      top.appendChild(left);
+
+      // Watch toggle
+      top.appendChild(buildWatchToggle(item, card));
+      card.appendChild(top);
+
+      if (item.headline_summary) card.appendChild(el('div', 'card-summary', item.headline_summary));
+
+      // Tags: type, priority, affected categories
+      var tags = el('div', 'tags');
+      if (item.legislation_type) tags.appendChild(el('span', 'tag type', item.legislation_type));
+      if (item.priority) {
+        var pcls = 'tag' + (String(item.priority).toLowerCase() === 'high' ? ' priority-high' : '');
+        tags.appendChild(el('span', pcls, 'Priority: ' + item.priority));
+      }
+      if (Array.isArray(item.affected_categories)) {
+        item.affected_categories.forEach(function (c) { tags.appendChild(el('span', 'tag', c)); });
+      }
+      if (tags.childNodes.length) card.appendChild(tags);
+
+      // Footer: source link
+      if (item.source_url) {
+        var foot = el('div', 'card-foot');
+        var a = el('a', 'source-link', 'Source');
+        a.href = item.source_url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        foot.appendChild(a);
+        card.appendChild(foot);
+      }
+
+      // Per-item disclaimer footnote
+      if (item.disclaimer_text) card.appendChild(el('div', 'card-disclaimer', item.disclaimer_text));
+
+      return card;
+    }
+
+    function buildWatchToggle(item, card) {
+      var btn = el('button', 'watch-btn');
+      btn.type = 'button';
+      var watched = !!item.watched;
+
+      function paint() {
+        btn.classList.toggle('watched', watched);
+        btn.innerHTML = '';
+        var star = el('span', 'star', watched ? '★' : '☆'); // ★ / ☆
+        btn.appendChild(star);
+        btn.appendChild(el('span', null, watched ? 'Watching' : 'Add to watchlist'));
+        btn.setAttribute('aria-pressed', watched ? 'true' : 'false');
+        btn.setAttribute('aria-label', watched ? 'Remove from watchlist' : 'Add to watchlist');
+      }
+      paint();
+
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        clearWatchError(card);
+        var action = watched ? 'unwatch' : 'watch';
+        watched = !watched;     // optimistic flip
+        paint();
+        btn.disabled = true;
+
+        fetch(fnUrl, {
+          method: 'POST',
+          headers: BASE_HEADERS,
+          body: JSON.stringify({ action: action, horizon_id: item.id })
+        })
+          .then(function (r) {
+            if (r.status < 200 || r.status >= 300) throw new Error('http');
+            item.watched = watched;
+            btn.disabled = false;
+          })
+          .catch(function () {
+            watched = !watched;   // revert
+            paint();
+            btn.disabled = false;
+            showWatchError(card);
+          });
+      });
+
+      return btn;
+    }
+
+    function showWatchError(card) {
+      clearWatchError(card);
+      var foot = card.querySelector('.card-foot');
+      if (!foot) { foot = el('div', 'card-foot'); card.appendChild(foot); }
+      var msg = el('span', 'watch-error', 'Could not update — try again');
+      msg.dataset.watchError = '1';
+      foot.appendChild(msg);
+    }
+    function clearWatchError(card) {
+      var existing = card.querySelector('[data-watch-error]');
+      if (existing) existing.remove();
+    }
+
+    // ---- Gap submission ----
+    var form = document.getElementById('gap-form');
+    var panel = document.getElementById('gap-panel');
+    var formError = document.getElementById('gap-form-error');
+    var submitBtn = document.getElementById('gap-submit');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      formError.hidden = true;
+
+      var description = document.getElementById('instrument_description').value.trim();
+      var jurisdiction = document.getElementById('jurisdiction_hint').value;
+      var sourceHint = document.getElementById('source_url_hint').value.trim();
+
+      if (description.length < 8) {
+        formError.textContent = 'Please describe the instrument in a little more detail (at least 8 characters).';
+        formError.hidden = false;
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting…';
+
+      fetch(fnUrl, {
+        method: 'POST',
+        headers: BASE_HEADERS,
+        body: JSON.stringify({
+          action: 'submit_gap',
+          instrument_description: description,
+          jurisdiction_hint: jurisdiction,
+          source_url_hint: sourceHint
+        })
+      })
+        .then(function (r) {
+          if (r.status === 201) {
+            showGapConfirmation();
+          } else {
+            throw new Error('http');
+          }
+        })
+        .catch(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit for review';
+          formError.textContent = 'Could not submit right now — please try again.';
+          formError.hidden = false;
+        });
+    });
+
+    function showGapConfirmation() {
+      panel.innerHTML = '';
+      var box = el('div', 'gap-confirm');
+      box.appendChild(el('span', 'check', '✓'));
+      box.appendChild(document.createTextNode(
+        'Thank you — submitted for review. We review every suggestion and, where appropriate, add it to the watchlist.'
+      ));
+      panel.appendChild(box);
+    }
+
+    // Kick off
+    loadItems();
+  }
+  </script>
+</body>
+</html>
