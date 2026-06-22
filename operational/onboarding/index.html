@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operational Onboarding — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP (AILANE-SPEC-SEC-001 §3.2) — canonical; this page is CSP-clean (no unpkg/Babel/React) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase JS — FIRST among scripts (RULE 26 auth-guard prerequisite) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --op-cyan: #22d3ee;
+      --op-green: #22c55e;
+      --bg: #060D1B;
+      --panel: #0A1628;
+      --panel-2: #0d1b30;
+      --line: rgba(34,211,238,0.16);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+    /* Loading splash (shown until auth guard reveals body) */
+    #boot { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 50; }
+    .spinner { width: 34px; height: 34px; border: 3px solid rgba(34,211,238,0.15); border-top-color: var(--op-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+    .brand { font-weight: 700; letter-spacing: 0.18em; font-size: 1.05rem; }
+    .brand small { display: block; letter-spacing: 0.04em; font-size: 0.72rem; color: var(--muted); font-weight: 500; margin-top: 4px; }
+    .tierpill { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--op-cyan); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: rgba(34,211,238,0.06); }
+
+    .lede { color: var(--muted); font-size: 0.98rem; line-height: 1.6; margin-bottom: 26px; max-width: 640px; }
+
+    /* Degraded banner */
+    #banner { display: none; align-items: center; gap: 10px; background: rgba(34,211,238,0.07); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; color: var(--text); font-size: 0.9rem; }
+    #banner .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--op-cyan); flex: 0 0 auto; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+    /* Step rail */
+    .rail { display: flex; flex-direction: column; gap: 14px; }
+    .step { display: flex; gap: 16px; background: var(--panel); border: 1px solid rgba(148,163,184,0.12); border-radius: 14px; padding: 18px 20px; }
+    .step.active { border-color: var(--line); box-shadow: 0 0 0 1px rgba(34,211,238,0.06) inset; }
+    .step.complete { border-color: rgba(34,197,94,0.28); }
+    .step.locked { opacity: 0.62; }
+
+    .marker { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; border: 1px solid rgba(148,163,184,0.3); color: var(--muted); }
+    .step.active .marker { border-color: var(--op-cyan); color: var(--op-cyan); background: rgba(34,211,238,0.08); }
+    .step.complete .marker { border-color: var(--op-green); color: #06210f; background: var(--op-green); }
+    .step.pending .marker { border-color: rgba(148,163,184,0.3); color: var(--muted); }
+
+    .body { flex: 1 1 auto; min-width: 0; }
+    .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .title { font-weight: 600; font-size: 1.02rem; }
+    .badge { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+    .badge.gate { color: var(--op-cyan); background: rgba(34,211,238,0.1); border: 1px solid var(--line); }
+    .badge.soon { color: var(--muted); background: rgba(148,163,184,0.08); border: 1px solid rgba(148,163,184,0.2); }
+    .badge.done { color: var(--op-green); background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.28); }
+
+    .panel { margin-top: 12px; font-size: 0.92rem; line-height: 1.55; color: var(--muted); }
+    .panel .ok { color: var(--op-green); font-weight: 600; }
+
+    .btn { display: inline-block; font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-radius: 10px; padding: 11px 18px; border: 1px solid var(--op-cyan); background: rgba(34,211,238,0.1); color: var(--op-cyan); text-decoration: none; transition: background 0.15s ease; margin-top: 12px; }
+    .btn:hover { background: rgba(34,211,238,0.18); }
+    .btn.primary { background: var(--op-cyan); color: #04141a; border-color: var(--op-cyan); }
+    .btn.primary:hover { background: #67e8f9; }
+    .btn[disabled], .btn.is-disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+    .help { margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
+
+    /* Agreement cards */
+    .cards { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+    .card { background: var(--panel-2); border: 1px solid rgba(148,163,184,0.14); border-radius: 12px; padding: 16px; }
+    .card h3 { font-size: 0.98rem; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+    .card .ver { font-size: 0.78rem; color: var(--muted); }
+    .viewer { margin: 12px 0; font-size: 0.88rem; min-height: 20px; }
+    .doc-link { color: var(--op-cyan); text-decoration: underline; font-weight: 600; }
+    .card-msg { margin-top: 8px; font-size: 0.85rem; color: var(--op-cyan); }
+    .card .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .card .btn { margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    footer.foot { margin-top: 40px; padding-top: 22px; border-top: 1px solid rgba(148,163,184,0.12); color: var(--muted); font-size: 0.8rem; line-height: 1.6; }
+
+    @media (max-width: 560px) {
+      .step { padding: 16px; gap: 12px; }
+      .wrap { padding: 28px 16px 60px; }
+    }
+  </style>
+</head>
+<body style="visibility:hidden">
+  <div id="boot">
+    <div style="text-align:center">
+      <div class="spinner"></div>
+      <div style="font-size:1.3rem;font-weight:700;letter-spacing:0.16em;margin-bottom:6px">AILANE</div>
+      <div style="font-size:0.86rem;color:#64748b">Preparing your onboarding room…</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">AILANE<small>Operational onboarding</small></div>
+      <span class="tierpill">Operational Readiness</span>
+    </header>
+
+    <p class="lede">Welcome. A few short steps prepare your organisation's workspace before it opens. Two of them are required: setting up two-factor authentication, and accepting your agreements. Once both are complete, your operational workspace unlocks below.</p>
+
+    <div id="banner"><span class="dot"></span><span>Connecting to your onboarding service…</span></div>
+
+    <div class="rail" id="rail"></div>
+
+    <footer class="foot">
+      Your two-factor setup and agreement acceptances are recorded securely against your organisation. An incomplete onboarding holds here — your workspace opens automatically once the two required steps are complete.
+    </footer>
+  </div>
+
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    var FNS = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
+    var MFA_PATH = '/account/security/';            // §0.2(2) enrolment flow
+    var ADMITTED = ['operational_readiness', 'governance', 'institutional']; // RULE 11 — canonical only
+
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    var T = null;            // access token
+    var USER = null;         // { id, email, tier }
+    var state = null;        // EF state response
+    var degraded = false;    // backend unreachable
+    var loading = true;      // initial state fetch in flight
+
+    function safeId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    // Human titles for the five agreement keys (with key-humanising fallback)
+    var TITLES = {
+      terms: 'Terms', terms_of_service: 'Terms', tos: 'Terms',
+      privacy: 'Privacy Notice', privacy_notice: 'Privacy Notice',
+      msa: 'Master Services Agreement', master_services_agreement: 'Master Services Agreement',
+      dpa: 'Data Processing Agreement', data_processing_agreement: 'Data Processing Agreement',
+      aup: 'Acceptable-Use Policy', acceptable_use: 'Acceptable-Use Policy', acceptable_use_policy: 'Acceptable-Use Policy'
+    };
+    function agreementTitle(key) {
+      if (!key) return 'Agreement';
+      var k = String(key).toLowerCase();
+      if (TITLES[k]) return TITLES[k];
+      return k.replace(/[_-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    }
+
+    // ── Auth guard (RULE 26) ─────────────────────────────────────────────
+    function fail() { window.location.replace('/login/'); }
+
+    async function gate(session) {
+      try {
+        if (!session || !session.access_token) { fail(); return; }
+        var payload = JSON.parse(atob(session.access_token.split('.')[1]));
+        var userId = payload.sub;
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + session.access_token, 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) { fail(); return; }
+        var rows = await resp.json();
+        if (!rows.length) { fail(); return; }
+        var tier = rows[0].subscription_tier;
+        if (ADMITTED.indexOf(tier) === -1) { fail(); return; }
+
+        T = session.access_token;
+        USER = { id: userId, email: payload.email, tier: tier };
+
+        // Reveal
+        var boot = document.getElementById('boot');
+        if (boot) boot.style.display = 'none';
+        document.body.style.visibility = 'visible';
+
+        render();
+        fetchState();
+      } catch (e) { fail(); }
+    }
+
+    function start() {
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { gate(gs.data.session); return; }
+        // Fallback: onAuthStateChange with a 6-second timeout
+        var settled = false;
+        var to = setTimeout(function () { if (!settled) { settled = true; fail(); } }, 6000);
+        sb.auth.onAuthStateChange(function (_evt, session) {
+          if (settled) return;
+          if (session) { settled = true; clearTimeout(to); gate(session); }
+        });
+      }).catch(function () { fail(); });
+    }
+
+    // ── State (§1.4) ─────────────────────────────────────────────────────
+    async function fetchState() {
+      loading = true;
+      try {
+        var resp = await fetch(FNS + '/operational-onboarding-state', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Accept': 'application/json' }
+        });
+        if (!resp.ok) { degraded = true; state = null; loading = false; render(); return; }
+        state = await resp.json();
+        degraded = false;
+        loading = false;
+        render();
+      } catch (e) {
+        // Network error / backend not deployed → graceful degradation (§4)
+        degraded = true;
+        state = null;
+        loading = false;
+        render();
+      }
+    }
+
+    async function refreshState() { await fetchState(); }
+
+    // ── Render ───────────────────────────────────────────────────────────
+    function render() {
+      document.getElementById('banner').style.display = degraded ? 'flex' : 'none';
+
+      var mfaPassed = !!(state && state.mfa_gate_passed === true);
+      var agreementsPassed = !!(state && state.agreements_gate_passed === true);
+      var gaps = (state && Array.isArray(state.gaps)) ? state.gaps : [];
+      var unlocked = !!(state && state.landing_unlocked === true);
+
+      var steps = [
+        { n: 0, title: 'Invitation', cls: 'complete', panel: '<div class="ok">Your operational invitation has been accepted.</div>' },
+        { n: 1, title: 'Create organisation', cls: 'complete', panel: '<div class="ok">Your organisation workspace has been created.</div>' },
+        { n: 2, title: 'Two-factor authentication', gate: true,
+          cls: mfaPassed ? 'complete' : 'active',
+          panel: step2Panel(mfaPassed) },
+        { n: 3, title: 'Agreement Vault', gate: true,
+          cls: (agreementsPassed && gaps.length === 0) ? 'complete' : 'active',
+          panel: step3Panel(agreementsPassed, gaps) },
+        { n: 4, title: 'Members & roles', soon: true, cls: 'locked',
+          panel: '<div class="muted">Invite colleagues and assign roles. This step opens in the next release.</div>' },
+        { n: 5, title: 'Tenant provisioning', soon: true, cls: 'locked',
+          panel: '<div class="muted">Your isolated workspace tenant is provisioned automatically. This step opens in the next release.</div>' },
+        { n: 6, title: 'Landing unlocked',
+          cls: unlocked ? 'complete' : 'pending',
+          panel: step6Panel(unlocked) }
+      ];
+
+      var html = '';
+      for (var i = 0; i < steps.length; i++) {
+        var s = steps[i];
+        var marker = s.cls === 'complete' ? '&#10003;' : String(s.n);
+        var badge = '';
+        if (s.gate) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'gate') + '">' + (s.cls === 'complete' ? 'Complete' : 'Required') + '</span>';
+        if (s.soon) badge += ' <span class="badge soon">Coming next</span>';
+        html += '<div class="step ' + s.cls + '">' +
+                  '<div class="marker">' + marker + '</div>' +
+                  '<div class="body">' +
+                    '<div class="head"><span class="title">' + s.n + ' &middot; ' + esc(s.title) + '</span>' + badge + '</div>' +
+                    '<div class="panel">' + s.panel + '</div>' +
+                  '</div>' +
+                '</div>';
+      }
+      document.getElementById('rail').innerHTML = html;
+
+      bindEvents(gaps);
+
+      // Lazily load each agreement's document viewer
+      for (var g = 0; g < gaps.length; g++) {
+        loadRender(gaps[g].agreement_key, gaps[g].required_version);
+      }
+    }
+
+    function step2Panel(passed) {
+      if (loading) return '<span class="muted">Checking your two-factor status…</span>';
+      if (passed) return '<div class="ok">&#10003; Two-factor authentication is on.</div>';
+      return 'Two-factor protects your organisation’s workspace. Enrol to continue.' +
+             '<br><a class="btn" href="' + MFA_PATH + '">Set up two-factor authentication</a>';
+    }
+
+    function step3Panel(passed, gaps) {
+      if (loading) return '<span class="muted">Loading your agreements…</span>';
+      if (degraded) return '<span class="muted">Your agreements will appear here once the onboarding service reconnects.</span>';
+      if (gaps.length === 0) {
+        if (passed) return '<div class="ok">&#10003; All required agreements have been accepted.</div>';
+        return '<span class="muted">Your agreements will appear here once published.</span>';
+      }
+      var cards = '<div class="cards">';
+      for (var i = 0; i < gaps.length; i++) {
+        var key = gaps[i].agreement_key;
+        var ver = gaps[i].required_version;
+        var id = safeId(key);
+        cards += '<div class="card">' +
+                   '<h3>' + esc(agreementTitle(key)) + '</h3>' +
+                   '<div class="ver">Version ' + esc(ver) + '</div>' +
+                   '<div class="viewer" id="viewer-' + id + '"><span class="muted">Loading document…</span></div>' +
+                   '<div class="actions"><button class="btn primary accept-btn" data-key="' + esc(key) + '" data-version="' + esc(ver) + '">Accept</button></div>' +
+                   '<div class="card-msg" id="msg-' + id + '"></div>' +
+                 '</div>';
+      }
+      cards += '</div>';
+      return cards;
+    }
+
+    function step6Panel(unlocked) {
+      if (unlocked) {
+        return 'Everything is in place.' +
+               '<br><a class="btn primary' + (degraded ? ' is-disabled' : '') + '" id="enter-btn" href="/operational/">Enter your operational workspace</a>';
+      }
+      return '<button class="btn is-disabled" disabled>Enter your operational workspace</button>' +
+             '<div class="help">Complete the two gated steps above to unlock your workspace.</div>';
+    }
+
+    function bindEvents(gaps) {
+      var btns = document.querySelectorAll('.accept-btn');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function () {
+          acceptAgreement(this.getAttribute('data-key'), this.getAttribute('data-version'), this);
+        });
+        if (degraded) { btns[i].disabled = true; btns[i].classList.add('is-disabled'); }
+      }
+      var enter = document.getElementById('enter-btn');
+      if (enter) {
+        enter.addEventListener('click', function (e) {
+          if (degraded) { e.preventDefault(); return; }
+          e.preventDefault();
+          window.location.href = '/operational/';
+        });
+      }
+    }
+
+    function setMsg(key, text) {
+      var el = document.getElementById('msg-' + safeId(key));
+      if (el) el.textContent = text || '';
+    }
+
+    // ── Agreement render (§1.6) ──────────────────────────────────────────
+    async function loadRender(key, version) {
+      var slot = document.getElementById('viewer-' + safeId(key));
+      if (!slot) return;
+      if (degraded) { slot.innerHTML = '<span class="muted">Document viewer unavailable while reconnecting.</span>'; return; }
+      try {
+        var resp = await fetch(FNS + '/operational-agreement-render', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agreement_key: key, version: version })
+        });
+        if (resp.status === 409) {
+          slot.innerHTML = '<span class="muted">This agreement is being prepared and will appear here shortly.</span>';
+          return;
+        }
+        if (!resp.ok) { slot.innerHTML = '<span class="muted">This document is unavailable just now.</span>'; return; }
+        var data = await resp.json();
+        var path = data && data.rendered_pdf_path;
+        if (!path) { slot.innerHTML = '<span class="muted">This agreement is being prepared and will appear here shortly.</span>'; return; }
+        var a = document.createElement('a');
+        a.href = path; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.className = 'doc-link'; a.textContent = 'View the document (PDF)';
+        slot.innerHTML = '';
+        slot.appendChild(a);
+      } catch (e) {
+        slot.innerHTML = '<span class="muted">This document is unavailable just now.</span>';
+      }
+    }
+
+    // ── Accept (§1.6) ────────────────────────────────────────────────────
+    async function acceptAgreement(key, version, btn) {
+      if (degraded) return;
+      btn.disabled = true; btn.classList.add('is-disabled');
+      var label = btn.textContent; btn.textContent = 'Recording acceptance…';
+      setMsg(key, '');
+      try {
+        var resp = await fetch(FNS + '/operational-accept-agreement', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agreement_key: key, agreement_version: version })
+        });
+        if (resp.status === 200) { await refreshState(); return; }
+        if (resp.status === 409) {
+          setMsg(key, 'This agreement has been updated — reloading the latest version.');
+          await refreshState();
+          return;
+        }
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setMsg(key, 'We couldn’t record your acceptance just now. Please try again.');
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setMsg(key, 'We couldn’t reach the onboarding service. Please try again.');
+      }
+    }
+
+    start();
+  })();
+  </script>
+</body>
+</html>
