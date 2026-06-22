@@ -96,6 +96,29 @@
     .card .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .card .btn { margin-top: 0; }
     .muted { color: var(--muted); }
+    .card-msg.ok-msg { color: var(--op-green); }
+
+    /* Members & roles (OOX Step 4) */
+    .members { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; margin-bottom: 16px; }
+    .member { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel-2); border: 1px solid rgba(148,163,184,0.14); border-radius: 11px; padding: 12px 14px; flex-wrap: wrap; }
+    .m-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .m-name { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .m-email { color: var(--muted); font-size: 0.82rem; }
+    .m-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .m-role { font-size: 0.74rem; letter-spacing: 0.04em; color: var(--op-cyan); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: rgba(34,211,238,0.06); }
+    .chip { font-size: 0.7rem; letter-spacing: 0.04em; border-radius: 999px; padding: 3px 9px; border: 1px solid rgba(148,163,184,0.25); color: var(--muted); }
+    .chip.on { color: var(--op-green); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
+    .chip.pending { color: var(--muted); background: rgba(148,163,184,0.08); }
+
+    /* Invite form (OOX Step 4) */
+    .invite-form { margin-top: 4px; }
+    .field-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .field { display: flex; flex-direction: column; gap: 5px; flex: 1 1 160px; min-width: 0; }
+    .field label { font-size: 0.78rem; color: var(--muted); }
+    .field input, .field select { font-family: inherit; font-size: 0.9rem; color: var(--text); background: var(--panel-2); border: 1px solid rgba(148,163,184,0.2); border-radius: 9px; padding: 10px 12px; }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--op-cyan); }
+    .field input[disabled], .field select[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .invite-form .btn { margin-top: 14px; }
 
     footer.foot { margin-top: 40px; padding-top: 22px; border-top: 1px solid rgba(148,163,184,0.12); color: var(--muted); font-size: 0.8rem; line-height: 1.6; }
 
@@ -147,6 +170,11 @@
     var agreements = null;   // live register: key -> { version, source_page_url } (OOX §2)
     var degraded = false;    // backend unreachable
     var loading = true;      // initial state fetch in flight
+    var members = null;          // OOX §1 — organisation members list
+    var membersError = false;    // operational-list-members unreachable / not yet deployed
+    var inviteForbidden = false; // 403 not_admin returned by operational-invite-member
+    var inviteMsg = null;        // persisted invite confirmation / inline message: { text, ok }
+    var provisionForbidden = false; // 403 not_admin returned by operational-provision-tenant
 
     function safeId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
     function esc(s) {
@@ -225,6 +253,7 @@
         if (!resp.ok) { degraded = true; state = null; loading = false; render(); return; }
         state = await resp.json();
         agreements = await fetchAgreements();   // live canonical source register (OOX §2.1)
+        await fetchMembers();                    // org members (OOX §1.1) — own try/catch, never throws
         degraded = false;
         loading = false;
         render();
@@ -262,6 +291,28 @@
       } catch (e) { return {}; }
     }
 
+    // ── Members (OOX §1.1) ───────────────────────────────────────────────
+    // Lists the organisation's members with the user's bearer token. Reused on
+    // page open and after any membership change (via refreshState). A failure or
+    // 404 (EF not yet deployed) sets membersError so Step 4 degrades gracefully
+    // and disables the invite form, without flagging the whole onboarding service.
+    async function fetchMembers() {
+      try {
+        var resp = await fetch(FNS + '/operational-list-members', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Accept': 'application/json' }
+        });
+        if (!resp.ok) { membersError = true; members = null; return; }
+        var data = await resp.json();
+        if (Array.isArray(data)) members = data;
+        else if (data && Array.isArray(data.members)) members = data.members;
+        else members = [];
+        membersError = false;
+      } catch (e) {
+        membersError = true; members = null;
+      }
+    }
+
     async function refreshState() { await fetchState(); }
 
     // ── Render ───────────────────────────────────────────────────────────
@@ -282,10 +333,11 @@
         { n: 3, title: 'Agreement Vault', gate: true,
           cls: (agreementsPassed && gaps.length === 0) ? 'complete' : 'active',
           panel: step3Panel(agreementsPassed, gaps) },
-        { n: 4, title: 'Members & roles', soon: true, cls: 'locked',
-          panel: '<div class="muted">Invite colleagues and assign roles. This step opens in the next release.</div>' },
-        { n: 5, title: 'Tenant provisioning', soon: true, cls: 'locked',
-          panel: '<div class="muted">Your isolated workspace tenant is provisioned automatically. This step opens in the next release.</div>' },
+        { n: 4, title: 'Members & roles', cls: 'active',
+          panel: step4Panel() },
+        { n: 5, title: 'Tenant provisioning',
+          cls: (state && state.provisioning_complete === true) ? 'complete' : 'active',
+          panel: step5Panel() },
         { n: 6, title: 'Landing unlocked',
           cls: unlocked ? 'complete' : 'pending',
           panel: step6Panel(unlocked) }
@@ -357,6 +409,89 @@
       return cards;
     }
 
+    // ── Step 4 — Members & roles (OOX §1) ────────────────────────────────
+    function step4Panel() {
+      if (loading) return '<span class="muted">Loading your members…</span>';
+
+      var blocked = (degraded || membersError);   // members EF unreachable / not yet deployed
+      var html = '';
+
+      if (blocked || members === null) {
+        html += '<div class="muted">Your members will appear here once the onboarding service reconnects.</div>';
+      } else {
+        html += renderMembersList(members);
+      }
+
+      if (inviteForbidden) {
+        html += '<div class="card-msg">Only an organisation admin can invite members.</div>';
+      } else {
+        html += inviteFormHtml(blocked ? ' disabled' : '');
+      }
+      return html;
+    }
+
+    function renderMembersList(list) {
+      if (!list || list.length === 0) {
+        return '<div class="muted">No members yet — invite your first colleague below.</div>';
+      }
+      var rows = '<div class="members">';
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i] || {};
+        var name = m.full_name || m.email || 'Member';
+        var role = m.role === 'admin' ? 'Admin' : (m.role === 'standard' ? 'Standard' : (m.role ? String(m.role) : '—'));
+        var chip = m.mfa_verified
+          ? '<span class="chip on">2FA on</span>'
+          : '<span class="chip pending">2FA pending</span>';
+        rows += '<div class="member">' +
+                  '<div class="m-main">' +
+                    '<span class="m-name">' + esc(name) + '</span>' +
+                    '<span class="m-email">' + esc(m.email || '') + '</span>' +
+                  '</div>' +
+                  '<div class="m-meta">' +
+                    '<span class="m-role">' + esc(role) + '</span>' + chip +
+                  '</div>' +
+                '</div>';
+      }
+      rows += '</div>';
+      return rows;
+    }
+
+    function inviteFormHtml(disabledAttr) {
+      var msg = inviteMsg ? esc(inviteMsg.text) : '';
+      var msgCls = 'card-msg' + (inviteMsg && inviteMsg.ok ? ' ok-msg' : '');
+      return '<form class="invite-form" id="invite-form" novalidate>' +
+               '<div class="field-row">' +
+                 '<div class="field"><label for="inv-name">Full name</label>' +
+                   '<input type="text" id="inv-name" name="full_name" placeholder="e.g. Jordan Patel" autocomplete="off"' + disabledAttr + '></div>' +
+                 '<div class="field"><label for="inv-email">Email</label>' +
+                   '<input type="email" id="inv-email" name="email" placeholder="name@company.co.uk" autocomplete="off"' + disabledAttr + '></div>' +
+                 '<div class="field"><label for="inv-role">Role</label>' +
+                   '<select id="inv-role" name="role"' + disabledAttr + '>' +
+                     '<option value="standard" selected>Standard</option>' +
+                     '<option value="admin">Admin</option>' +
+                   '</select></div>' +
+               '</div>' +
+               '<button type="submit" class="btn primary" id="invite-btn"' + disabledAttr + '>Send invitation</button>' +
+               '<div class="' + msgCls + '" id="invite-msg">' + msg + '</div>' +
+             '</form>';
+    }
+
+    // ── Step 5 — Tenant provisioning (OOX §2) ────────────────────────────
+    function step5Panel() {
+      if (loading) return '<span class="muted">Checking your workspace…</span>';
+      if (state && state.provisioning_complete === true) {
+        return '<div class="ok">&#10003; Your workspace has been provisioned.</div>';
+      }
+      if (provisionForbidden) {
+        return '<div class="muted">Your organisation admin will provision the workspace.</div>' +
+               '<div class="help">Provisioning enables your compliance modules and prepares your workspace.</div>';
+      }
+      var disabledAttr = degraded ? ' disabled' : '';
+      return '<button class="btn primary' + (degraded ? ' is-disabled' : '') + '" id="provision-btn"' + disabledAttr + '>Provision workspace</button>' +
+             '<div class="help">Provisioning enables your compliance modules and prepares your workspace.</div>' +
+             '<div class="card-msg" id="provision-msg"></div>';
+    }
+
     function step6Panel(unlocked) {
       if (unlocked) {
         return 'Everything is in place.' +
@@ -381,6 +516,21 @@
           e.preventDefault();
           window.location.href = '/operational/';
         });
+      }
+
+      // Step 4 — invite form (OOX §1.2)
+      var inviteForm = document.getElementById('invite-form');
+      if (inviteForm) {
+        inviteForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          submitInvite(document.getElementById('invite-btn'));
+        });
+      }
+
+      // Step 5 — provision (OOX §2)
+      var prov = document.getElementById('provision-btn');
+      if (prov) {
+        prov.addEventListener('click', function () { provisionTenant(prov); });
       }
     }
 
@@ -412,6 +562,112 @@
       } catch (e) {
         btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
         setMsg(key, 'We couldn’t reach the onboarding service. Please try again.');
+      }
+    }
+
+    // ── Step 4 / Step 5 message + banner helpers ─────────────────────────
+    function setInviteMsg(text, ok) {
+      inviteMsg = text ? { text: text, ok: !!ok } : null;
+      var el = document.getElementById('invite-msg');
+      if (el) { el.textContent = text || ''; el.className = 'card-msg' + (ok ? ' ok-msg' : ''); }
+    }
+    function setProvisionMsg(text) {
+      var el = document.getElementById('provision-msg');
+      if (el) el.textContent = text || '';
+    }
+    function showBanner(show) {
+      var b = document.getElementById('banner');
+      if (b) b.style.display = show ? 'flex' : 'none';
+    }
+
+    // ── Invite a member (OOX §1.2) ───────────────────────────────────────
+    async function submitInvite(btn) {
+      var nameEl  = document.getElementById('inv-name');
+      var emailEl = document.getElementById('inv-email');
+      var roleEl  = document.getElementById('inv-role');
+      var full_name = nameEl  ? nameEl.value.trim()  : '';
+      var email     = emailEl ? emailEl.value.trim() : '';
+      var role      = (roleEl && roleEl.value === 'admin') ? 'admin' : 'standard';
+
+      setInviteMsg('', false);
+      if (!full_name || !email) { setInviteMsg('Please enter both a name and an email address.', false); return; }
+      if (!btn) return;
+
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Sending invitation…';
+
+      try {
+        var resp = await fetch(FNS + '/operational-invite-member', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, full_name: full_name, role: role })
+        });
+
+        if (resp.status === 200) {
+          var data = {};
+          try { data = await resp.json(); } catch (e) {}
+          // Inviting a member re-locks the 2FA gate until they enrol — refreshState()
+          // re-fetches both the members list and onboarding state so Step 2 reflects it.
+          inviteMsg = (data && data.invite_email_sent === false)
+            ? { text: 'Member added — share their sign-in link from your admin tools.', ok: true }
+            : { text: 'Invitation sent to ' + email + '.', ok: true };
+          await refreshState();
+          return;
+        }
+
+        if (resp.status === 403) {           // not_admin
+          inviteForbidden = true; inviteMsg = null;
+          render();
+          return;
+        }
+
+        if (resp.status === 409) {           // member_email_exists
+          btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+          setInviteMsg('That email is already a member.', false);
+          return;
+        }
+
+        // other error → degradation banner; leave the form enabled to retry
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setInviteMsg('We couldn’t send that invitation just now. Please try again.', false);
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setInviteMsg('We couldn’t reach the onboarding service. Please try again.', false);
+      }
+    }
+
+    // ── Provision tenant (OOX §2) ────────────────────────────────────────
+    async function provisionTenant(btn) {
+      if (!btn || degraded) return;
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Provisioning…';
+      setProvisionMsg('');
+
+      try {
+        var resp = await fetch(FNS + '/operational-provision-tenant', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON }
+        });
+
+        // 200: re-fetch state; landing_unlocked (server truth) lights Step 6 if now true.
+        if (resp.status === 200) { await refreshState(); return; }
+
+        if (resp.status === 403) {           // not_admin
+          provisionForbidden = true;
+          render();
+          return;
+        }
+
+        // error / 404 → degradation banner; keep the button enabled to retry
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setProvisionMsg('We couldn’t start provisioning just now. Please try again.');
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        showBanner(true);
+        setProvisionMsg('We couldn’t reach the onboarding service. Please try again.');
       }
     }
 
