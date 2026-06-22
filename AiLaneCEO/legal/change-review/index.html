@@ -358,71 +358,184 @@
 
     if(kl.disclaimer_text)body.appendChild(el('div',{class:'disclaimer-foot'},kl.disclaimer_text));
 
-    var note=el('textarea',{class:'review-note',placeholder:'Record your review note (minimum 150 words) before deciding…','aria-label':'Review note'});
-    body.appendChild(note);
-
-    var counter=el('div',{class:'word-counter'},'0 / 150 words');
-    body.appendChild(counter);
-
-    var btnAccept=el('button',{class:'dbtn accept',type:'button',disabled:'disabled'},'Accept (stage for commencement)');
-    var btnCouncil=el('button',{class:'dbtn council',type:'button',disabled:'disabled'},'Convene Legal Council');
-    var btnReject=el('button',{class:'dbtn reject',type:'button',disabled:'disabled'},'Reject');
-    var btnRow=el('div',{class:'btn-row'},btnAccept,btnCouncil,btnReject);
-    body.appendChild(btnRow);
-
+    // ── Inline status/error message (shared across this card's controls) ──
     var msg=el('div',{class:'inline-msg'});
-    body.appendChild(msg);
-
-    var buttons=[btnAccept,btnCouncil,btnReject];
-    function refreshGate(){
-      var n=countWords(note.value);
-      counter.textContent=n+' / 150 words';
-      var met=n>=150;
-      counter.className='word-counter'+(met?' met':'');
-      buttons.forEach(function(b){b.disabled=!met;});
-    }
-    note.addEventListener('input',refreshGate);
-
     function setMsg(kind,text){msg.className='inline-msg'+(kind?' '+kind:'');msg.textContent=text||'';}
 
-    function decide(action){
-      if(countWords(note.value)<150)return;
-      buttons.forEach(function(b){b.disabled=true;});
-      note.disabled=true;
+    // ── Shared POST to rsg-director-action (the live ordered state machine, AM-002/AMD-238) ──
+    // On HTTP-ok: replace the card with a resolved state showing the returned status.
+    // On non-2xx: surface the structured `error` string inline (bad_state, council_posture_required,
+    //   review_note_too_short, bad_request, …) and re-enable controls so the Director can retry.
+    function postAction(payload,reenable){
       setMsg('','Recording your decision…');
       fetch(FUNCTIONS_URL+'/rsg-director-action',{
         method:'POST',
         headers:authHeaders(),
-        body:JSON.stringify({adaptation_id:item.id,action:action,review_note:note.value})
+        body:JSON.stringify(payload)
       }).then(function(r){
         return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,body:j};});
       }).then(function(res){
-        if(res.ok){resolveCard(card,res.body&&res.body.status,statusMessageA(res.body&&res.body.status,action));}
+        if(res.ok){resolveCard(card,res.body&&res.body.status,statusMessageA(res.body&&res.body.status));}
         else{
-          note.disabled=false;refreshGate();
-          var errText=(res.body&&res.body.error==='review_note_too_short')
-            ? 'Your review note must reach 150 words before this decision can be recorded.'
-            : ((res.body&&res.body.error)||("Couldn't record that decision ("+res.status+"). Please try again."));
+          if(reenable)reenable();
+          var errText=(res.body&&res.body.error)
+            ? 'Action declined: '+String(res.body.error)
+            : ("Couldn't record that decision ("+res.status+"). Please try again.");
           setMsg('err',errText);
         }
       }).catch(function(){
-        note.disabled=false;refreshGate();
+        if(reenable)reenable();
         setMsg('err','Network error — your decision was not recorded. Please try again.');
       });
     }
-    btnAccept.addEventListener('click',function(){decide('accept');});
-    btnCouncil.addEventListener('click',function(){decide('convene_council');});
-    btnReject.addEventListener('click',function(){decide('reject');});
+
+    // ── Review-note block (textarea + live counter). The ≥150-word gate applies ONLY to the
+    //    submit_review_note actions (Accept / Reject) — never to convene/record-posture/approve. ──
+    function buildNoteBlock(placeholder){
+      var note=el('textarea',{class:'review-note',placeholder:placeholder||'Record your review note (minimum 150 words) before deciding…','aria-label':'Review note'});
+      var counter=el('div',{class:'word-counter'},'0 / 150 words');
+      var block={note:note,counter:counter,onGate:null};
+      block.words=function(){return countWords(note.value);};
+      block.refresh=function(){
+        var n=block.words();
+        counter.textContent=n+' / 150 words';
+        counter.className='word-counter'+(n>=150?' met':'');
+        if(block.onGate)block.onGate(n>=150);
+      };
+      note.addEventListener('input',block.refresh);
+      return block;
+    }
+
+    var status=String(item.status||'');
+    var preCouncil=(status==='detected'||status==='provisional_alert'||status==='director_review');
+
+    if(preCouncil){
+      // Convene Legal Council — ALWAYS enabled, NO word gate → convene_council
+      var pcConvene=el('button',{class:'dbtn council',type:'button'},'Convene Legal Council');
+      body.appendChild(el('div',{class:'btn-row'},pcConvene));
+
+      // Review note + Reject (≥150 words) → submit_review_note / decision:'reject'. (No Accept here —
+      // the backend forbids accept before council returns.)
+      var pcNb=buildNoteBlock('Record your review note (minimum 150 words) to reject this change…');
+      body.appendChild(pcNb.note);
+      body.appendChild(pcNb.counter);
+      var pcReject=el('button',{class:'dbtn reject',type:'button',disabled:'disabled'},'Reject');
+      body.appendChild(el('div',{class:'btn-row'},pcReject));
+      pcNb.onGate=function(met){pcReject.disabled=!met;};
+
+      var pcLock=function(){pcConvene.disabled=true;pcReject.disabled=true;pcNb.note.disabled=true;};
+      var pcUnlock=function(){pcConvene.disabled=false;pcNb.note.disabled=false;pcNb.refresh();};
+      pcConvene.addEventListener('click',function(){
+        pcLock();
+        postAction({adaptation_id:item.id,action:'convene_council'},pcUnlock);
+      });
+      pcReject.addEventListener('click',function(){
+        if(pcNb.words()<150)return;
+        pcLock();
+        postAction({adaptation_id:item.id,action:'submit_review_note',decision:'reject',review_note:pcNb.note.value},pcUnlock);
+      });
+      body.appendChild(msg);
+    }
+    else if(status==='council_requested'){
+      body.appendChild(el('div',{class:'muted-note'},'Council convened — awaiting council posture. Record the council’s finding below, or reject.'));
+
+      // Posture mini-form: finding selector (required) + short summary → record_council_posture (NO word gate).
+      body.appendChild(el('div',{class:'section-label'},'Council posture'));
+      var crFinding=el('select',{'aria-label':'Council finding',style:'width:100%;margin-top:6px;padding:9px 11px;background:var(--bg-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-body);font-size:0.74rem;outline:none;'},
+        el('option',{value:''},'Select council finding…'),
+        el('option',{value:'aligned'},'Aligned'),
+        el('option',{value:'needs_change'},'Needs change'),
+        el('option',{value:'material_concern'},'Material concern')
+      );
+      body.appendChild(crFinding);
+      var crSummary=el('textarea',{class:'review-note',style:'min-height:70px;',placeholder:'Short council posture summary (optional)…','aria-label':'Council posture summary'});
+      body.appendChild(crSummary);
+      var crRecord=el('button',{class:'dbtn reviewed',type:'button',disabled:'disabled'},'Record council posture');
+      body.appendChild(el('div',{class:'btn-row'},crRecord));
+      crFinding.addEventListener('change',function(){crRecord.disabled=!crFinding.value;});
+
+      // Reject (≥150 words) remains available → submit_review_note / decision:'reject'.
+      body.appendChild(el('div',{class:'section-label'},'Or reject'));
+      var crNb=buildNoteBlock('Record your review note (minimum 150 words) to reject this change…');
+      body.appendChild(crNb.note);
+      body.appendChild(crNb.counter);
+      var crReject=el('button',{class:'dbtn reject',type:'button',disabled:'disabled'},'Reject');
+      body.appendChild(el('div',{class:'btn-row'},crReject));
+      crNb.onGate=function(met){crReject.disabled=!met;};
+
+      var crLock=function(){crRecord.disabled=true;crReject.disabled=true;crFinding.disabled=true;crSummary.disabled=true;crNb.note.disabled=true;};
+      var crUnlock=function(){crFinding.disabled=false;crSummary.disabled=false;crNb.note.disabled=false;crRecord.disabled=!crFinding.value;crNb.refresh();};
+      crRecord.addEventListener('click',function(){
+        if(!crFinding.value)return;
+        crLock();
+        postAction({adaptation_id:item.id,action:'record_council_posture',council_posture:{finding:crFinding.value,summary:crSummary.value}},crUnlock);
+      });
+      crReject.addEventListener('click',function(){
+        if(crNb.words()<150)return;
+        crLock();
+        postAction({adaptation_id:item.id,action:'submit_review_note',decision:'reject',review_note:crNb.note.value},crUnlock);
+      });
+      body.appendChild(msg);
+    }
+    else if(status==='council_returned'){
+      body.appendChild(el('div',{class:'muted-note'},'Council posture returned — record your review note (minimum 150 words), then accept to stage for commencement, or reject.'));
+      var rtNb=buildNoteBlock('Record your review note (minimum 150 words) before deciding…');
+      body.appendChild(rtNb.note);
+      body.appendChild(rtNb.counter);
+      var rtAccept=el('button',{class:'dbtn accept',type:'button',disabled:'disabled'},'Accept (stage for commencement)');
+      var rtReject=el('button',{class:'dbtn reject',type:'button',disabled:'disabled'},'Reject');
+      body.appendChild(el('div',{class:'btn-row'},rtAccept,rtReject));
+      rtNb.onGate=function(met){rtAccept.disabled=!met;rtReject.disabled=!met;};
+
+      var rtLock=function(){rtAccept.disabled=true;rtReject.disabled=true;rtNb.note.disabled=true;};
+      var rtUnlock=function(){rtNb.note.disabled=false;rtNb.refresh();};
+      rtAccept.addEventListener('click',function(){
+        if(rtNb.words()<150)return;
+        rtLock();
+        postAction({adaptation_id:item.id,action:'submit_review_note',decision:'accept',review_note:rtNb.note.value},rtUnlock);
+      });
+      rtReject.addEventListener('click',function(){
+        if(rtNb.words()<150)return;
+        rtLock();
+        postAction({adaptation_id:item.id,action:'submit_review_note',decision:'reject',review_note:rtNb.note.value},rtUnlock);
+      });
+      body.appendChild(msg);
+    }
+    else if(status==='drafted'){
+      body.appendChild(el('div',{class:'muted-note'},'Documents drafted — approve to stage for commencement.'));
+      var apBtn=el('button',{class:'dbtn accept',type:'button'},'Approve documents');
+      body.appendChild(el('div',{class:'btn-row'},apBtn));
+      apBtn.addEventListener('click',function(){
+        apBtn.disabled=true;
+        postAction({adaptation_id:item.id,action:'approve_documents'},function(){apBtn.disabled=false;});
+      });
+      body.appendChild(msg);
+    }
+    else{
+      // accepted / approved_staged / withdrawn / in_force / any other — resolved, no controls.
+      card.className='card review-card resolved';
+      body.appendChild(el('div',{class:'resolved-note'},el('span',{},'✓'),statusMessageA(status)));
+    }
 
     card.appendChild(body);
     return card;
   }
 
-  function statusMessageA(status,action){
-    var byStatus={staged:'Staged for commencement.',council:'Legal Council convened.',withdrawn:'Change withdrawn.'};
+  function statusMessageA(status){
+    var byStatus={
+      detected:'Detected — awaiting your review.',
+      provisional_alert:'Provisional alert — awaiting your review.',
+      director_review:'Director review — awaiting your decision.',
+      council_requested:'Council convened — awaiting council posture.',
+      council_returned:'Council posture recorded — awaiting your review.',
+      accepted:'Accepted — documents will be drafted.',
+      drafted:'Drafted — ready for document approval.',
+      approved_staged:'Approved — staged for commencement.',
+      withdrawn:'Withdrawn.',
+      in_force:'In force.'
+    };
     if(status&&byStatus[status])return byStatus[status];
-    var byAction={accept:'Staged for commencement.',convene_council:'Legal Council convened.',reject:'Change withdrawn.'};
-    return byAction[action]||('Decision recorded'+(status?' ('+String(status).replace(/_/g,' ')+')':'')+'.');
+    return 'Decision recorded'+(status?' ('+String(status).replace(/_/g,' ')+')':'')+'.';
   }
 
   /* ============================================================
