@@ -137,13 +137,14 @@
     var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
     var FNS = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
     var MFA_PATH = '/account/security/';            // §0.2(2) enrolment flow
-    var ADMITTED = ['operational_readiness', 'governance', 'institutional']; // RULE 11 — canonical only
+    var ADMITTED = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional']; // OOX §1 — matches /operational/ guard (account/billing tier axis) + institutional (forward-compat)
 
     var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     var T = null;            // access token
     var USER = null;         // { id, email, tier }
     var state = null;        // EF state response
+    var agreements = null;   // live register: key -> { version, source_page_url } (OOX §2)
     var degraded = false;    // backend unreachable
     var loading = true;      // initial state fetch in flight
 
@@ -223,6 +224,7 @@
         });
         if (!resp.ok) { degraded = true; state = null; loading = false; render(); return; }
         state = await resp.json();
+        agreements = await fetchAgreements();   // live canonical source register (OOX §2.1)
         degraded = false;
         loading = false;
         render();
@@ -233,6 +235,31 @@
         loading = false;
         render();
       }
+    }
+
+    // ── Agreements register (OOX §2.1) ───────────────────────────────────
+    // Live, canonical agreements: each ready row carries its register version and
+    // source_page_url (the real RSG-maintained legal page, e.g. https://ailane.ai/terms/).
+    // Shared-read with the user's bearer token. A failure degrades to an empty register
+    // (cards fall back to the "once published" copy) without flagging the onboarding
+    // service itself as unreachable.
+    async function fetchAgreements() {
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/operational_agreements?is_current=eq.true&ready=eq.true&select=agreement_key,version,source_page_url',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + T, 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) return {};
+        var rows = await resp.json();
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (r && r.agreement_key && r.source_page_url) {
+            map[String(r.agreement_key).toLowerCase()] = { version: r.version, source_page_url: r.source_page_url };
+          }
+        }
+        return map;
+      } catch (e) { return {}; }
     }
 
     async function refreshState() { await fetchState(); }
@@ -282,11 +309,6 @@
       document.getElementById('rail').innerHTML = html;
 
       bindEvents(gaps);
-
-      // Lazily load each agreement's document viewer
-      for (var g = 0; g < gaps.length; g++) {
-        loadRender(gaps[g].agreement_key, gaps[g].required_version);
-      }
     }
 
     function step2Panel(passed) {
@@ -303,17 +325,32 @@
         if (passed) return '<div class="ok">&#10003; All required agreements have been accepted.</div>';
         return '<span class="muted">Your agreements will appear here once published.</span>';
       }
-      var cards = '<div class="cards">';
+
+      // Intersect outstanding gaps with the live, ready agreements register (OOX §2.2).
+      // A gap renders only when its agreement_key resolves to a published, ready row
+      // carrying a source_page_url; otherwise it is not yet published and is left out (§2.3).
+      var reg = agreements || {};
+      var ready = [];
       for (var i = 0; i < gaps.length; i++) {
-        var key = gaps[i].agreement_key;
-        var ver = gaps[i].required_version;
-        var id = safeId(key);
+        var gkey = gaps[i].agreement_key;
+        var row = gkey ? reg[String(gkey).toLowerCase()] : null;
+        if (row && row.source_page_url) {
+          ready.push({ key: gkey, version: row.version, url: row.source_page_url });
+        }
+      }
+      if (ready.length === 0) return '<span class="muted">Your agreements will appear here once published.</span>';
+
+      var cards = '<div class="cards">';
+      for (var j = 0; j < ready.length; j++) {
+        var key = ready[j].key;
+        var ver = ready[j].version;       // live register version (also sent on Accept)
+        var url = ready[j].url;           // live canonical legal page
         cards += '<div class="card">' +
                    '<h3>' + esc(agreementTitle(key)) + '</h3>' +
-                   '<div class="ver">Version ' + esc(ver) + '</div>' +
-                   '<div class="viewer" id="viewer-' + id + '"><span class="muted">Loading document…</span></div>' +
+                   '<div class="ver">' + esc(ver) + '</div>' +
+                   '<div class="viewer"><a class="doc-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Read the agreement</a></div>' +
                    '<div class="actions"><button class="btn primary accept-btn" data-key="' + esc(key) + '" data-version="' + esc(ver) + '">Accept</button></div>' +
-                   '<div class="card-msg" id="msg-' + id + '"></div>' +
+                   '<div class="card-msg" id="msg-' + safeId(key) + '"></div>' +
                  '</div>';
       }
       cards += '</div>';
@@ -352,35 +389,6 @@
       if (el) el.textContent = text || '';
     }
 
-    // ── Agreement render (§1.6) ──────────────────────────────────────────
-    async function loadRender(key, version) {
-      var slot = document.getElementById('viewer-' + safeId(key));
-      if (!slot) return;
-      if (degraded) { slot.innerHTML = '<span class="muted">Document viewer unavailable while reconnecting.</span>'; return; }
-      try {
-        var resp = await fetch(FNS + '/operational-agreement-render', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agreement_key: key, version: version })
-        });
-        if (resp.status === 409) {
-          slot.innerHTML = '<span class="muted">This agreement is being prepared and will appear here shortly.</span>';
-          return;
-        }
-        if (!resp.ok) { slot.innerHTML = '<span class="muted">This document is unavailable just now.</span>'; return; }
-        var data = await resp.json();
-        var path = data && data.rendered_pdf_path;
-        if (!path) { slot.innerHTML = '<span class="muted">This agreement is being prepared and will appear here shortly.</span>'; return; }
-        var a = document.createElement('a');
-        a.href = path; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        a.className = 'doc-link'; a.textContent = 'View the document (PDF)';
-        slot.innerHTML = '';
-        slot.appendChild(a);
-      } catch (e) {
-        slot.innerHTML = '<span class="muted">This document is unavailable just now.</span>';
-      }
-    }
-
     // ── Accept (§1.6) ────────────────────────────────────────────────────
     async function acceptAgreement(key, version, btn) {
       if (degraded) return;
@@ -395,7 +403,7 @@
         });
         if (resp.status === 200) { await refreshState(); return; }
         if (resp.status === 409) {
-          setMsg(key, 'This agreement has been updated — reloading the latest version.');
+          setMsg(key, 'This agreement was just updated — loading the latest version.');
           await refreshState();
           return;
         }
