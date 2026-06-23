@@ -469,7 +469,7 @@
   <script>
   function initOperational() {
     var CFG = window.AILANE_OPS;
-    var EILEEN_URL = CFG.functionsBase + '/operational-eileen';
+    var EILEEN_URL = CFG.functionsBase + '/eileen-operational';
     var PENDING_COPY = "Eileen's operational workspace is being prepared — your tenant-scoped assistant will be available here shortly.";
 
     // ---- Left menu (eight sections, live wording) ----
@@ -708,7 +708,7 @@
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ASK EILEEN — POST to operational-eileen (forward-compatible).
+    // ASK EILEEN — POST to eileen-operational (forward-compatible).
     // Degrades gracefully until the EILEEN-002 backend is live: any network
     // error / 404 / 501 / non-2xx renders the calm pending copy. No dialog,
     // no white-screen. Works automatically once the backend deploys.
@@ -729,7 +729,7 @@
           return r.json();
         })
         .then(function (data) {
-          var text = (data && (data.answer || data.text || data.message)) || '';
+          var text = (data && (data.response || data.answer || data.text || data.message)) || '';
           var cites = (data && (data.citations || data.sources)) || null;
           if (!text) { renderPending(); return; }
           renderAnswer(text, cites);
