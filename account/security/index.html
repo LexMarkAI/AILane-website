@@ -163,6 +163,11 @@
     var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
     var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
+    // Feature flag — Passkey is Beta and hidden from users until GA.
+    // While false: the Passkey section is never shown and its WebAuthn init never runs.
+    // Flip to true (single change) to restore the section when Passkey leaves Beta.
+    const PASSKEY_BETA_ENABLED = false;
+
     var currentFactorId=null;
     var canUsePasskey=false;
 
@@ -194,7 +199,9 @@
         el('sec-user-email').textContent=payload.email||'';
       }catch(e){}
       document.body.style.visibility='visible';
-      await setupPasskeyGate(session);
+      if(PASSKEY_BETA_ENABLED){
+        await setupPasskeyGate(session);
+      }
       refresh();
     }
 
@@ -384,7 +391,9 @@
     el('sec-cancel-btn').addEventListener('click',cancelEnrol);
     el('sec-confirm-btn').addEventListener('click',function(){confirmEnrol(el('sec-code').value.trim());});
     el('sec-code').addEventListener('keydown',function(e){if(e.key==='Enter')confirmEnrol(el('sec-code').value.trim());});
-    el('sec-passkey-add').addEventListener('click',addPasskey);
+    if(PASSKEY_BETA_ENABLED){
+      el('sec-passkey-add').addEventListener('click',addPasskey);
+    }
 
     guard();
   })();
