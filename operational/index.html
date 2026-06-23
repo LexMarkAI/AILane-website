@@ -20,6 +20,10 @@
   <!-- Supabase JS — FIRST among scripts (RULE 26 auth-guard prerequisite) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
+  <!-- Canonical Nexus renderer (EILEEN-NEXUS-001) — same-origin, CSP 'self'.
+       Exposes window.AilaneNexus. Reused unchanged from /assets/js/nexus.js (no fork). -->
+  <script src="/assets/js/nexus.js" defer></script>
+
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
@@ -152,11 +156,8 @@
 
     /* Eileen identity */
     .eileen-id { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
-    .eileen-orb {
-      width: 12px; height: 12px; border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #bae6fd, var(--cyan) 60%, rgba(56,189,248,0.2));
-      box-shadow: 0 0 14px rgba(56,189,248,0.55);
-    }
+    /* Placeholder dot (.eileen-orb) retired by OOX-001 — replaced by the
+       canonical EILEEN-NEXUS-001 nexus (#eileen-nexus-host, styles below). */
     .eileen-id .name { font-size: 0.92rem; font-weight: 600; color: var(--text); }
     .eileen-id .node { font-family: 'Space Mono', monospace; font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
     .eileen-status {
@@ -195,7 +196,43 @@
       font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 0.16em;
       text-transform: uppercase; color: var(--cyan); margin-bottom: 8px;
     }
-    .answer-text { font-size: 0.96rem; color: var(--text); white-space: pre-wrap; line-height: 1.6; }
+    .answer-text { font-size: 0.96rem; color: var(--text); line-height: 1.6; }
+    /* ---- Markdown-rendered answer body (OOX-001 §1.B) ----
+       Parsed by the escape-first inline renderer in initOperational. */
+    .answer-text > *:first-child { margin-top: 0; }
+    .answer-text > *:last-child { margin-bottom: 0; }
+    .answer-text p { margin: 0 0 10px; }
+    .answer-text h1, .answer-text h2, .answer-text h3,
+    .answer-text h4, .answer-text h5, .answer-text h6 {
+      color: var(--text); font-weight: 700; line-height: 1.3; margin: 16px 0 8px;
+    }
+    .answer-text h1 { font-size: 1.18rem; }
+    .answer-text h2 { font-size: 1.08rem; }
+    .answer-text h3 { font-size: 1rem; }
+    .answer-text h4, .answer-text h5, .answer-text h6 { font-size: 0.94rem; }
+    .answer-text ul, .answer-text ol { margin: 8px 0 10px; padding-left: 22px; }
+    .answer-text li { margin: 3px 0; }
+    .answer-text li > ul, .answer-text li > ol { margin: 4px 0; }
+    .answer-text strong { color: var(--text); font-weight: 700; }
+    .answer-text em { font-style: italic; }
+    .answer-text a { color: var(--cyan); text-decoration: underline; }
+    .answer-text code {
+      font-family: 'Space Mono', monospace; font-size: 0.85em;
+      background: rgba(56,189,248,0.10); border: 1px solid var(--cyan-line);
+      padding: 1px 5px; border-radius: 4px;
+    }
+    .answer-text pre {
+      background: var(--card-2); border: 1px solid var(--line-mid);
+      border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 10px 0;
+    }
+    .answer-text pre code { background: none; border: none; padding: 0; font-size: 0.85rem; }
+    .answer-text blockquote {
+      margin: 10px 0; padding: 4px 14px; border-left: 2px solid var(--cyan-line); color: var(--muted);
+    }
+    .answer-text hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
+    .answer-text table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.9rem; }
+    .answer-text th, .answer-text td { border: 1px solid var(--line-mid); padding: 7px 10px; text-align: left; }
+    .answer-text th { background: rgba(56,189,248,0.06); color: var(--text); font-weight: 700; }
     .answer-cites { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--faint); white-space: pre-wrap; }
     .typing { display: inline-flex; gap: 4px; }
     .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); opacity: 0.5; animation: blink 1.1s infinite ease-in-out; }
@@ -278,6 +315,27 @@
       .eileen-status { margin-left: 0; }
     }
   </style>
+
+  <!-- EILEEN-NEXUS-001 styles — replicated verbatim from the canonical KL
+       consumer (knowledge-library/kl-app.jsx #eileen-nexus-001-styles). Halo
+       classes carry the dormant/ready/processing/presenting state triggers on
+       the host container. -->
+  <style id="eileen-nexus-001-styles">
+    .kl-nexus-host { position: relative; display: block; border-radius: 50%; }
+    .kl-nexus-host .kl-nexus-canvas { display: block; }
+    .kl-nexus-halo { transition: box-shadow 0.3s ease; }
+    .kl-nexus-halo--dormant { box-shadow: 0 0 8px rgba(14,165,233,0.1); }
+    .kl-nexus-halo--ready { box-shadow: 0 0 12px rgba(14,165,233,0.2); }
+    .kl-nexus-halo--processing { box-shadow: 0 0 20px rgba(14,165,233,0.4); animation: klNexusHaloPulse 1.5s ease-in-out infinite; }
+    .kl-nexus-halo--presenting { box-shadow: 0 0 24px rgba(14,165,233,0.5); }
+    @keyframes klNexusHaloPulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(14,165,233,0.4); }
+      50% { box-shadow: 0 0 28px rgba(14,165,233,0.55); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .kl-nexus-halo--processing { animation: none; }
+    }
+  </style>
 </head>
 <body style="visibility:hidden">
 
@@ -313,7 +371,9 @@
             <!-- EILEEN VIEW -->
             <section id="eileen-view">
               <div class="eileen-id">
-                <span class="eileen-orb"></span>
+                <!-- EILEEN-NEXUS-001 canonical nexus (replaces the placeholder dot).
+                     Canvas + AilaneNexus.createNexus wired in initOperational. -->
+                <div class="kl-nexus-host kl-nexus-halo kl-nexus-halo--dormant" id="eileen-nexus-host" style="width:44px;height:44px"></div>
                 <span class="name">Eileen</span>
                 <span class="node">&middot; Operational</span>
                 <span class="eileen-status"><span class="dot"></span>Online &mdash; tenant-scoped</span>
@@ -657,6 +717,172 @@
     }
 
     // ════════════════════════════════════════════════════════════════
+    // MARKDOWN (OOX-001 §1.B) — minimal, CSP-clean, escape-FIRST renderer.
+    // Supports headings, ul/ol lists, GFM pipe tables, bold/italic, inline
+    // code, code fences, blockquotes, links (safe schemes only) and rules.
+    // No external CDN. HTML is escaped BEFORE any formatting, so response
+    // text can never inject markup.
+    // ════════════════════════════════════════════════════════════════
+    function mdEscape(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function mdInline(escaped) {
+      var codes = [];
+      var s = escaped.replace(/`([^`]+)`/g, function (m, c) {
+        codes.push(c); return '\uE000' + (codes.length - 1) + '\uE000';
+      });
+      s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (m, txt, url) {
+        if (!/^(https?:\/\/|mailto:|\/|#)/i.test(url)) return m;
+        return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + txt + '</a>';
+      });
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+      s = s.replace(/\*(\S[^*\n]*?)\*/g, '<em>$1</em>');
+      s = s.replace(/\uE000(\d+)\uE000/g, function (m, i) { return '<code>' + codes[i] + '</code>'; });
+      return s;
+    }
+    function mdSplitRow(row) {
+      return row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); });
+    }
+    function mdIsTableSep(line) {
+      return /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)+\|?\s*$/.test(line);
+    }
+    function mdToHtml(src) {
+      var lines = String(src == null ? '' : src).replace(/\r\n?/g, '\n').split('\n');
+      var out = [];
+      var i = 0, n = lines.length;
+      function fmt(raw) { return mdInline(mdEscape(raw)); }
+      while (i < n) {
+        var line = lines[i];
+        if (/^\s*$/.test(line)) { i++; continue; }
+        if (/^\s*```/.test(line)) {
+          i++; var code = [];
+          while (i < n && !/^\s*```\s*$/.test(lines[i])) { code.push(lines[i]); i++; }
+          if (i < n) i++;
+          out.push('<pre><code>' + mdEscape(code.join('\n')) + '</code></pre>');
+          continue;
+        }
+        var h = line.match(/^\s{0,3}(#{1,6})\s+(.*)$/);
+        if (h) {
+          var lvl = h[1].length;
+          out.push('<h' + lvl + '>' + fmt(h[2].replace(/\s+#+\s*$/, '')) + '</h' + lvl + '>');
+          i++; continue;
+        }
+        if (/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
+        if (line.indexOf('|') >= 0 && i + 1 < n && mdIsTableSep(lines[i + 1])) {
+          var header = mdSplitRow(line);
+          i += 2;
+          var rows = [];
+          while (i < n && lines[i].indexOf('|') >= 0 && !/^\s*$/.test(lines[i])) { rows.push(mdSplitRow(lines[i])); i++; }
+          var t = ['<table><thead><tr>'];
+          for (var hc = 0; hc < header.length; hc++) t.push('<th>' + fmt(header[hc]) + '</th>');
+          t.push('</tr></thead><tbody>');
+          for (var ri = 0; ri < rows.length; ri++) {
+            t.push('<tr>');
+            for (var ci = 0; ci < header.length; ci++) t.push('<td>' + fmt(rows[ri][ci] != null ? rows[ri][ci] : '') + '</td>');
+            t.push('</tr>');
+          }
+          t.push('</tbody></table>');
+          out.push(t.join('')); continue;
+        }
+        if (/^\s{0,3}>\s?/.test(line)) {
+          var q = [];
+          while (i < n && /^\s{0,3}>\s?/.test(lines[i])) { q.push(lines[i].replace(/^\s{0,3}>\s?/, '')); i++; }
+          out.push('<blockquote>' + mdToHtml(q.join('\n')) + '</blockquote>'); continue;
+        }
+        if (/^\s*[-*+]\s+/.test(line)) {
+          var ul = [];
+          while (i < n && /^\s*[-*+]\s+/.test(lines[i])) { ul.push('<li>' + fmt(lines[i].replace(/^\s*[-*+]\s+/, '')) + '</li>'); i++; }
+          out.push('<ul>' + ul.join('') + '</ul>'); continue;
+        }
+        if (/^\s*\d+[.)]\s+/.test(line)) {
+          var ol = [];
+          while (i < n && /^\s*\d+[.)]\s+/.test(lines[i])) { ol.push('<li>' + fmt(lines[i].replace(/^\s*\d+[.)]\s+/, '')) + '</li>'); i++; }
+          out.push('<ol>' + ol.join('') + '</ol>'); continue;
+        }
+        var para = [];
+        while (i < n && !/^\s*$/.test(lines[i])
+          && !/^\s{0,3}#{1,6}\s+/.test(lines[i])
+          && !/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(lines[i])
+          && !/^\s*[-*+]\s+/.test(lines[i])
+          && !/^\s*\d+[.)]\s+/.test(lines[i])
+          && !/^\s{0,3}>\s?/.test(lines[i])
+          && !/^\s*```/.test(lines[i])
+          && !(lines[i].indexOf('|') >= 0 && i + 1 < n && mdIsTableSep(lines[i + 1]))) {
+          para.push(fmt(lines[i])); i++;
+        }
+        out.push('<p>' + para.join('<br>') + '</p>');
+      }
+      return out.join('\n');
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // EILEEN-NEXUS-001 (canonical) — identity-block nexus + live v3 feed.
+    // Reuses the canonical renderer window.AilaneNexus (assets/js/nexus.js);
+    // no fork. Halo state mirrors KL: dormant <-> ready (typing) -> processing
+    // (in flight) -> presenting (2s after answer) -> dormant. Live weights via
+    // eileen-nexus-intel (connect-src allowed); seed weights retained on failure.
+    // ════════════════════════════════════════════════════════════════
+    var nexusHost = $('eileen-nexus-host');
+    var nexusState = 'dormant';
+    var presentingTimer = null;
+    function setNexusState(state) {
+      nexusState = state;
+      if (nexusHost) nexusHost.className = 'kl-nexus-host kl-nexus-halo kl-nexus-halo--' + state;
+    }
+    var NEXUS_INTEL_URL = CFG.functionsBase + '/eileen-nexus-intel';
+    var nexusPollTimer = null;
+    function fetchNexusIntel() {
+      if (!(window.AilaneNexus && window.AilaneNexus.updateLive)) return;
+      var ctrl = new AbortController();
+      var to = setTimeout(function () { ctrl.abort(); }, 6000);
+      fetch(NEXUS_INTEL_URL, { signal: ctrl.signal })
+        .then(function (r) { clearTimeout(to); if (!r.ok) throw new Error('http_' + r.status); return r.json(); })
+        .then(function (data) {
+          if (!data || data.version !== 'v3' || !Array.isArray(data.categories) || !data.categories.length) return;
+          window.AilaneNexus.updateLive({
+            categories: data.categories,
+            relationships: Array.isArray(data.relationships) ? data.relationships : [],
+            instruments: Array.isArray(data.instruments) ? data.instruments : [],
+            snapshotAt: data.snapshotAt || null
+          });
+        })
+        .catch(function () { clearTimeout(to); /* retain seed weights */ });
+    }
+    function startNexusPoll() {
+      if (nexusPollTimer) return;
+      fetchNexusIntel();
+      nexusPollTimer = setInterval(fetchNexusIntel, 5 * 60 * 1000);
+    }
+    function initEileenNexus() {
+      if (!nexusHost) return;
+      var tries = 0;
+      (function wait() {
+        if (window.AilaneNexus && window.AilaneNexus.createNexus) {
+          var canvas = document.createElement('canvas');
+          canvas.className = 'kl-nexus-canvas';
+          canvas.setAttribute('aria-hidden', 'true');
+          nexusHost.appendChild(canvas);
+          window.AilaneNexus.createNexus(canvas, {
+            pageTier: 'landing',
+            size: 44,
+            interactive: false,
+            showRelationships: false,
+            dataSource: 'eileen-nexus-intel'
+          });
+          startNexusPoll();
+          return;
+        }
+        if (++tries > 50) return;
+        setTimeout(wait, 100);
+      })();
+    }
+
+    // ════════════════════════════════════════════════════════════════
     // ANSWER RENDERING — newest answer prepended at the TOP of the answer
     // area, directly under the greeting. The area never auto-scrolls to the
     // bottom; we never force the scroll position to the end (the V8 defect).
@@ -682,7 +908,7 @@
       box.appendChild(lbl);
       var body = document.createElement('div');
       body.className = 'answer-text';
-      body.textContent = text;
+      body.innerHTML = mdToHtml(text); // OOX-001 §1.B: parsed markdown (escape-first), not raw text
       box.appendChild(body);
       if (cites && cites.length) {
         var c = document.createElement('div');
@@ -699,12 +925,19 @@
       setPending(false);
       prependAnswer(text, cites);
       speak(text);
+      // EILEEN-NEXUS-001 halo: present briefly, then settle to dormant (mirrors KL).
+      if (presentingTimer) clearTimeout(presentingTimer);
+      setNexusState('presenting');
+      presentingTimer = setTimeout(function () { setNexusState('dormant'); presentingTimer = null; }, 2000);
     }
     function renderPending() {
       clearThinking();
       setPending(true);
       prependAnswer(PENDING_COPY, null);
       speak(PENDING_COPY);
+      // Graceful-degrade path: settle the halo to dormant (mirrors KL error path).
+      if (presentingTimer) { clearTimeout(presentingTimer); presentingTimer = null; }
+      setNexusState('dormant');
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -715,6 +948,7 @@
     // ════════════════════════════════════════════════════════════════
     function askEileen(question) {
       showThinking();
+      setNexusState('processing'); // EILEEN-NEXUS-001 halo: request in flight
       fetch(EILEEN_URL, {
         method: 'POST',
         headers: {
@@ -746,7 +980,11 @@
 
     // ---- Input wiring ----
     input.addEventListener('input', function () {
-      sendBtn.disabled = !input.value.trim();
+      var hasText = !!input.value.trim();
+      sendBtn.disabled = !hasText;
+      // EILEEN-NEXUS-001 halo: dormant <-> ready on typing (no override mid-flight).
+      if (hasText && nexusState === 'dormant') setNexusState('ready');
+      else if (!hasText && nexusState === 'ready') setNexusState('dormant');
     });
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -770,6 +1008,7 @@
     // ---- Initial state ----
     renderVoiceState();
     showEileen();
+    initEileenNexus(); // EILEEN-NEXUS-001: mount the canonical nexus (dormant)
   }
   </script>
 
