@@ -118,6 +118,43 @@
 .hist-note-body{font-size:0.68rem;color:var(--text-secondary);line-height:1.55;margin-top:6px;padding:8px 10px;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);white-space:pre-wrap;}
 
 @media(max-width:700px){.main{padding:16px 16px 48px;}.filter-seg{margin-left:0;}}
+
+/* ── Adaptation detail panel — council opinion + proposed version + ratify/override (RSG-SURFACE-RENDER-CEO-001) ── */
+.rsg-detail-sep{height:1px;background:var(--border-subtle);margin:16px 0 4px;}
+.rsg-detail-host{margin-top:4px;}
+.rsg-detail{display:flex;flex-direction:column;gap:14px;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 16px;margin-top:8px;}
+.rsg-detail-loading{font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono);padding:6px 0;}
+.rsg-detail-disclaimer{font-size:0.6rem;color:var(--text-muted);font-style:italic;border-bottom:1px solid var(--border-subtle);padding-bottom:10px;}
+.rsg-block{display:flex;flex-direction:column;gap:6px;}
+.rsg-inst-title{font-size:0.84rem;font-weight:600;color:var(--text-primary);line-height:1.35;}
+.rsg-finding-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rsg-finding-lead{font-size:0.62rem;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;}
+.rsg-badge{font-family:var(--font-mono);font-size:0.62rem;font-weight:600;padding:3px 10px;border-radius:100px;border:1px solid;display:inline-block;}
+.rsg-badge.green{color:var(--accent-green);background:var(--accent-green-dim);border-color:rgba(16,185,129,0.3);}
+.rsg-badge.amber{color:var(--accent-amber);background:var(--accent-amber-dim);border-color:rgba(245,158,11,0.3);}
+.rsg-badge.red{color:var(--accent-red);background:var(--accent-red-dim);border-color:rgba(239,68,68,0.35);}
+.rsg-badge.neutral{color:var(--text-secondary);background:var(--bg-hover);border-color:var(--border-subtle);}
+.rsg-surface-row{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:9px 11px;}
+.rsg-surface-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between;}
+.rsg-surface-ref{font-family:var(--font-mono);font-size:0.66rem;color:var(--text-secondary);}
+.rsg-surface-note{font-size:0.68rem;color:var(--text-secondary);line-height:1.5;margin-top:6px;}
+.rsg-decision{background:var(--bg-surface);border:1px solid var(--border-subtle);border-left:3px solid var(--accent-green);border-radius:var(--radius-sm);padding:10px 12px;margin-top:6px;display:flex;flex-direction:column;gap:6px;}
+.rsg-surface-class{font-family:var(--font-display);font-size:0.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;}
+.rsg-change{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+.rsg-change-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rsg-change-ref{font-family:var(--font-mono);font-size:0.66rem;color:var(--text-accent);}
+.rsg-change-res{font-size:0.64rem;color:var(--text-muted);font-family:var(--font-mono);}
+.rsg-change-text{font-size:0.72rem;color:var(--text-primary);line-height:1.55;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:8px 10px;white-space:pre-wrap;}
+.rsg-change-impact{font-size:0.68rem;color:var(--text-secondary);line-height:1.5;}
+.rsg-change-clauses{font-size:0.6rem;color:var(--text-muted);font-family:var(--font-mono);}
+.rsg-ratify{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:12px 14px;}
+.rsg-ref-input{width:100%;padding:9px 11px;background:var(--bg-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-body);font-size:0.72rem;outline:none;}
+.rsg-ref-input:focus{border-color:var(--border-accent);}
+.rsg-ff-select{width:100%;margin-top:6px;padding:9px 11px;background:var(--bg-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-body);font-size:0.72rem;outline:none;}
+.rsg-note{padding:8px 0;border-bottom:1px solid var(--border-subtle);}
+.rsg-note:last-child{border-bottom:none;}
+.rsg-note-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rsg-note-body{font-size:0.68rem;color:var(--text-secondary);line-height:1.55;margin-top:6px;white-space:pre-wrap;}
 </style>
 </head>
 <body style="visibility:hidden">
@@ -437,25 +474,12 @@
       body.appendChild(msg);
     }
     else if(status==='council_requested'){
-      body.appendChild(el('div',{class:'muted-note'},'Council convened — awaiting council posture. Record the council’s finding below, or reject.'));
+      body.appendChild(el('div',{class:'muted-note'},'Council convened. Review the council opinion and proposed version below, then ratify or override the opinion — or reject this change.'));
 
-      // Posture mini-form: finding selector (required) + short summary → record_council_posture (NO word gate).
-      body.appendChild(el('div',{class:'section-label'},'Council posture'));
-      var crFinding=el('select',{'aria-label':'Council finding',style:'width:100%;margin-top:6px;padding:9px 11px;background:var(--bg-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-body);font-size:0.74rem;outline:none;'},
-        el('option',{value:''},'Select council finding…'),
-        el('option',{value:'aligned'},'Aligned'),
-        el('option',{value:'needs_change'},'Needs change'),
-        el('option',{value:'material_concern'},'Material concern')
-      );
-      body.appendChild(crFinding);
-      var crSummary=el('textarea',{class:'review-note',style:'min-height:70px;',placeholder:'Short council posture summary (optional)…','aria-label':'Council posture summary'});
-      body.appendChild(crSummary);
-      var crRecord=el('button',{class:'dbtn reviewed',type:'button',disabled:'disabled'},'Record council posture');
-      body.appendChild(el('div',{class:'btn-row'},crRecord));
-      crFinding.addEventListener('change',function(){crRecord.disabled=!crFinding.value;});
-
-      // Reject (≥150 words) remains available → submit_review_note / decision:'reject'.
-      body.appendChild(el('div',{class:'section-label'},'Or reject'));
+      // The old posture mini-form (finding selector + summary) is superseded by the ratify/override control in the
+      // Adaptation detail panel below (openAdaptationDetail / renderDetail → record_council_posture
+      // with decision/ref). The ≥150-word reject path is retained, unchanged.
+      body.appendChild(el('div',{class:'section-label'},'Reject this change'));
       var crNb=buildNoteBlock('Record your review note (minimum 150 words) to reject this change…');
       body.appendChild(crNb.note);
       body.appendChild(crNb.counter);
@@ -463,13 +487,8 @@
       body.appendChild(el('div',{class:'btn-row'},crReject));
       crNb.onGate=function(met){crReject.disabled=!met;};
 
-      var crLock=function(){crRecord.disabled=true;crReject.disabled=true;crFinding.disabled=true;crSummary.disabled=true;crNb.note.disabled=true;};
-      var crUnlock=function(){crFinding.disabled=false;crSummary.disabled=false;crNb.note.disabled=false;crRecord.disabled=!crFinding.value;crNb.refresh();};
-      crRecord.addEventListener('click',function(){
-        if(!crFinding.value)return;
-        crLock();
-        postAction({adaptation_id:item.id,action:'record_council_posture',council_posture:{finding:crFinding.value,summary:crSummary.value}},crUnlock);
-      });
+      var crLock=function(){crReject.disabled=true;crNb.note.disabled=true;};
+      var crUnlock=function(){crNb.note.disabled=false;crNb.refresh();};
       crReject.addEventListener('click',function(){
         if(crNb.words()<150)return;
         crLock();
@@ -517,6 +536,19 @@
       body.appendChild(el('div',{class:'resolved-note'},el('span',{},'✓'),statusMessageA(status)));
     }
 
+    // ── Adaptation detail — council opinion + proposed version + ratify/override (RSG-SURFACE-RENDER-CEO-001) ──
+    // Opens the rsg-adaptation-detail surface for this item. Auto-opens for council_requested /
+    // council_returned (the ratify/override + recorded-decision states); on-demand button elsewhere.
+    var detailHost=el('div',{class:'rsg-detail-host'});
+    var detailOpenBtn=el('button',{class:'dbtn',type:'button'},
+      status==='council_requested'?'Review council opinion & proposed version'
+        :'View council opinion & proposed version');
+    detailOpenBtn.addEventListener('click',function(){detailOpenBtn.style.display='none';openAdaptationDetail(item,detailHost);});
+    body.appendChild(el('div',{class:'rsg-detail-sep'}));
+    body.appendChild(el('div',{class:'btn-row'},detailOpenBtn));
+    body.appendChild(detailHost);
+    if(status==='council_requested'||status==='council_returned'){detailOpenBtn.style.display='none';openAdaptationDetail(item,detailHost);}
+
     card.appendChild(body);
     return card;
   }
@@ -536,6 +568,249 @@
     };
     if(status&&byStatus[status])return byStatus[status];
     return 'Decision recorded'+(status?' ('+String(status).replace(/_/g,' ')+')':'')+'.';
+  }
+
+  /* ============================================================
+     ADAPTATION DETAIL — council opinion + proposed version + ratify/override
+     (RSG-SURFACE-RENDER-CEO-001)
+     rsg-adaptation-detail (GET) → renderDetail → rsg-director-action (POST)
+     Intelligence for the Director's decision — not legal advice.
+     ============================================================ */
+
+  // Finding / per-surface posture vocabulary → labelled badge + plain label.
+  function findingBadge(v){
+    var map={aligned:{t:'Aligned',c:'green'},needs_change:{t:'Needs change',c:'amber'},material_concern:{t:'Material concern',c:'red'}};
+    var d=map[v]||{t:String(v||'—').replace(/_/g,' '),c:'neutral'};
+    return el('span',{class:'rsg-badge '+d.c},d.t);
+  }
+  // Recommended-change resolution → human-readable line (§2.4).
+  function resolutionText(rc){
+    if(rc.resolution==='bulk')return 'Bulk change across cohort '+(rc.bulk_cohort_key||'—');
+    if(rc.resolution==='individual')return 'Individual change + re-acceptance for '+(rc.counterparty_short_code||'—');
+    return 'Single-document update';
+  }
+  // Known non-200 responses from rsg-director-action → friendly inline message (never crash).
+  function ratifyErrorText(httpStatus,body){
+    var e=body&&body.error;
+    if(e==='council_opinion_not_ready')return 'The council opinion is not ready yet — please refresh and try again.';
+    if(e==='bad_state')return 'This item is not in a state that accepts a council decision'+(body&&body.detail?(' ('+String(body.detail)+')'):'')+'.';
+    if(e==='ref_required')return 'A reference of at least '+((body&&body.min_length)||6)+' characters is required.';
+    if(e==='final_finding_required')return 'Select a final finding before overriding.';
+    if(e==='not_authorised')return 'You are not authorised to record this decision.';
+    if(e)return String(e);
+    return "Couldn't record that decision ("+httpStatus+"). Please try again.";
+  }
+  function detailRefreshBtn(item,host,label){
+    var b=el('button',{class:'refresh-btn',type:'button'},label||'↻ Refresh');
+    b.addEventListener('click',function(){openAdaptationDetail(item,host);});
+    return b;
+  }
+
+  // GET rsg-adaptation-detail for `item` and render into `host`. Re-callable (refresh / post-decision).
+  function openAdaptationDetail(item,host){
+    host.textContent='';
+    host.appendChild(el('div',{class:'rsg-detail-loading'},'Loading council opinion & proposed version…'));
+    fetch(FUNCTIONS_URL+'/rsg-adaptation-detail?adaptation_id='+encodeURIComponent(item.id),{headers:authHeaders()})
+      .then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,body:j};});})
+      .then(function(res){
+        host.textContent='';
+        if(!res.ok){
+          var errText=(res.body&&res.body.error)?String(res.body.error):("Couldn't load the council opinion ("+res.status+").");
+          host.appendChild(el('div',{class:'inline-msg err'},errText));
+          host.appendChild(el('div',{class:'btn-row'},detailRefreshBtn(item,host)));
+          return;
+        }
+        renderDetail(host,item,res.body||{});
+      })
+      .catch(function(){
+        host.textContent='';
+        host.appendChild(el('div',{class:'inline-msg err'},'Network error — could not load the council opinion. Please refresh.'));
+        host.appendChild(el('div',{class:'btn-row'},detailRefreshBtn(item,host)));
+      });
+  }
+
+  function renderDetail(host,item,data){
+    var adaptation=data.adaptation||{};
+    var instrument=data.instrument||{};
+    var opinion=data.council_opinion||null;
+    var changes=Array.isArray(data.recommended_changes)?data.recommended_changes:[];
+    var notes=Array.isArray(data.review_notes)?data.review_notes:[];
+    var counts=data.counts||{};
+    var status=String(adaptation.status||item.status||'');
+    var opinionReady=counts.opinion_ready===true;
+    var ratified=!!(opinion&&opinion.director_ratified===true);
+
+    var panel=el('div',{class:'rsg-detail'});
+
+    // Intelligence-not-advice framing (RULE 15 / §5).
+    panel.appendChild(el('div',{class:'rsg-detail-disclaimer'},'Regulatory intelligence for the Director’s decision — not legal advice.'));
+
+    // ── Instrument block (§2.2) ──
+    var ib=el('div',{class:'rsg-block'});
+    ib.appendChild(el('div',{class:'section-label'},'Instrument'));
+    ib.appendChild(el('div',{class:'rsg-inst-title'},instrument.legislation_short_name||adaptation.instrument_ref||item.instrument_ref||'(instrument)'));
+    var im=el('div',{class:'leg-meta'});
+    if(instrument.parliament_stage)im.appendChild(el('span',{class:'leg-tag'},String(instrument.parliament_stage)));
+    var enact=instrument.expected_enactment||adaptation.commencement_date;
+    if(enact)im.appendChild(el('span',{class:'leg-tag'},'Expected '+shortDate(enact)));
+    if(adaptation.staged_effective_date)im.appendChild(el('span',{class:'leg-tag'},'Staged '+shortDate(adaptation.staged_effective_date)));
+    if(im.childNodes.length)ib.appendChild(im);
+    if(instrument.headline_summary)ib.appendChild(el('div',{class:'leg-summary'},instrument.headline_summary));
+    var src=safeUrl(instrument.source_url);
+    if(src)ib.appendChild(el('a',{class:'source-link',href:src,target:'_blank',rel:'noopener'},'Source ↗'));
+    if(instrument.disclaimer_text)ib.appendChild(el('div',{class:'disclaimer-foot'},instrument.disclaimer_text));
+    panel.appendChild(ib);
+
+    // ── AI Legal Council opinion block (§2.3 + §3 state rules) ──
+    var ob=el('div',{class:'rsg-block'});
+    ob.appendChild(el('div',{class:'section-label'},'AI Legal Council opinion'));
+    if(!opinionReady){
+      // council_requested + not ready (or null opinion) → generating; any other status → none on file.
+      if(status==='council_requested'){
+        ob.appendChild(el('div',{class:'muted-note'},'Council opinion is being generated — refresh shortly.'));
+        ob.appendChild(el('div',{class:'btn-row'},detailRefreshBtn(item,host)));
+      }else{
+        ob.appendChild(el('div',{class:'muted-note'},'No council opinion recorded for this item.'));
+      }
+    }else{
+      var fr=el('div',{class:'rsg-finding-row'});
+      fr.appendChild(el('span',{class:'rsg-finding-lead'},'Finding'));
+      fr.appendChild(findingBadge(opinion.finding));
+      ob.appendChild(fr);
+      if(opinion.reasoning)ob.appendChild(el('div',{class:'leg-summary'},opinion.reasoning));
+      if(opinion.generation_method==='structured_fallback')
+        ob.appendChild(el('div',{class:'muted-note'},'Generated by the deterministic fallback (advanced model unavailable at generation time).'));
+      var psp=Array.isArray(opinion.per_surface_posture)?opinion.per_surface_posture:[];
+      if(psp.length){
+        ob.appendChild(el('div',{class:'section-label'},'Per-surface posture'));
+        psp.forEach(function(ps){
+          var row=el('div',{class:'rsg-surface-row'});
+          var head=el('div',{class:'rsg-surface-head'});
+          head.appendChild(el('span',{class:'rsg-surface-ref'},String(ps.surface_ref||'—')));
+          head.appendChild(findingBadge(ps.posture));
+          row.appendChild(head);
+          if(ps.note)row.appendChild(el('div',{class:'rsg-surface-note'},String(ps.note)));
+          ob.appendChild(row);
+        });
+      }
+      // Recorded Director decision (read-only) once ratified/overridden (§2.3 / §3).
+      if(ratified){
+        var dec=el('div',{class:'rsg-decision'});
+        var decRow=el('div',{class:'rsg-finding-row'});
+        decRow.appendChild(el('span',{class:'rsg-finding-lead'},opinion.director_decision==='override'?'Overridden by Director':'Ratified by Director'));
+        if(opinion.director_final_finding)decRow.appendChild(findingBadge(opinion.director_final_finding));
+        dec.appendChild(decRow);
+        var dm=el('div',{class:'leg-meta'});
+        if(opinion.director_ref)dm.appendChild(el('span',{class:'leg-tag'},'Ref '+String(opinion.director_ref)));
+        if(opinion.director_decided_at)dm.appendChild(el('span',{class:'leg-tag'},shortDate(opinion.director_decided_at)));
+        if(dm.childNodes.length)dec.appendChild(dm);
+        ob.appendChild(dec);
+      }
+    }
+    panel.appendChild(ob);
+
+    // ── Proposed version block (§2.4) — recommended changes grouped by surface_class ──
+    var pb=el('div',{class:'rsg-block'});
+    pb.appendChild(el('div',{class:'section-label'},'Proposed version'));
+    if(!changes.length){
+      pb.appendChild(el('div',{class:'muted-note'},'No proposed changes recorded yet.'));
+    }else{
+      var groups={},order=[];
+      changes.forEach(function(rc){var k=rc.surface_class||'Other';if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(rc);});
+      order.forEach(function(k){
+        pb.appendChild(el('div',{class:'rsg-surface-class'},String(k).replace(/_/g,' ')));
+        groups[k].forEach(function(rc){
+          var r=el('div',{class:'rsg-change'});
+          var ch=el('div',{class:'rsg-change-head'});
+          ch.appendChild(el('span',{class:'rsg-change-ref'},String(rc.elor_surface_ref||'—')));
+          if(rc.surface_kind)ch.appendChild(el('span',{class:'leg-tag'},String(rc.surface_kind).replace(/_/g,' ')));
+          r.appendChild(ch);
+          r.appendChild(el('div',{class:'rsg-change-res'},resolutionText(rc)));
+          if(rc.recommended_change)r.appendChild(el('div',{class:'rsg-change-text'},String(rc.recommended_change)));
+          if(rc.plain_english_impact)r.appendChild(el('div',{class:'rsg-change-impact'},String(rc.plain_english_impact)));
+          var clauses=rc.affected_clauses,clauseText='';
+          if(Array.isArray(clauses)&&clauses.length)clauseText=clauses.join(', ');
+          else if(typeof clauses==='string'&&clauses.trim())clauseText=clauses.trim();
+          if(clauseText)r.appendChild(el('div',{class:'rsg-change-clauses'},'Affected clauses: '+clauseText));
+          pb.appendChild(r);
+        });
+      });
+    }
+    panel.appendChild(pb);
+
+    // ── Ratify / override control (§2.5) — only when opinion ready and not yet ratified ──
+    if(opinionReady&&!ratified){
+      var rb=el('div',{class:'rsg-block rsg-ratify'});
+      rb.appendChild(el('div',{class:'section-label'},'Ratify or override the opinion'));
+      var refInput=el('input',{type:'text',class:'rsg-ref-input',placeholder:'Decision reference (minimum 6 characters)','aria-label':'Decision reference'});
+      rb.appendChild(refInput);
+      var ratifyBtn=el('button',{class:'dbtn accept',type:'button',disabled:'disabled'},'Ratify opinion');
+      rb.appendChild(el('div',{class:'btn-row'},ratifyBtn));
+      rb.appendChild(el('div',{class:'section-label'},'Or override the finding'));
+      var ffSelect=el('select',{class:'rsg-ff-select','aria-label':'Final finding'},
+        el('option',{value:''},'Select final finding…'),
+        el('option',{value:'aligned'},'Aligned'),
+        el('option',{value:'needs_change'},'Needs change'),
+        el('option',{value:'material_concern'},'Material concern')
+      );
+      rb.appendChild(ffSelect);
+      var overrideBtn=el('button',{class:'dbtn reviewed',type:'button',disabled:'disabled'},'Override finding');
+      rb.appendChild(el('div',{class:'btn-row'},overrideBtn));
+      var rmsg=el('div',{class:'inline-msg'});
+      rb.appendChild(rmsg);
+
+      var setRmsg=function(kind,text){rmsg.className='inline-msg'+(kind?' '+kind:'');rmsg.textContent=text||'';};
+      var refOK=function(){return refInput.value.trim().length>=6;};
+      // Mirror the backend gate so the Director never hits the 400: ratify needs ref≥6; override
+      // additionally needs a final_finding.
+      var gate=function(){var ok=refOK();ratifyBtn.disabled=!ok;overrideBtn.disabled=!(ok&&ffSelect.value);};
+      var lock=function(){ratifyBtn.disabled=true;overrideBtn.disabled=true;refInput.disabled=true;ffSelect.disabled=true;};
+      var unlock=function(){refInput.disabled=false;ffSelect.disabled=false;gate();};
+      var submit=function(payload){
+        lock();setRmsg('','Recording your decision…');
+        fetch(FUNCTIONS_URL+'/rsg-director-action',{method:'POST',headers:authHeaders(),body:JSON.stringify(payload)})
+          .then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,body:j};});})
+          .then(function(res){
+            if(res.ok){openAdaptationDetail(item,host);}            // re-GET detail → recorded decision, read-only
+            else{unlock();setRmsg('err',ratifyErrorText(res.status,res.body));}
+          })
+          .catch(function(){unlock();setRmsg('err','Network error — your decision was not recorded. Please try again.');});
+      };
+      refInput.addEventListener('input',gate);
+      ffSelect.addEventListener('change',gate);
+      ratifyBtn.addEventListener('click',function(){
+        if(!refOK())return;
+        submit({adaptation_id:item.id,action:'record_council_posture',decision:'ratify',ref:refInput.value.trim()});
+      });
+      overrideBtn.addEventListener('click',function(){
+        if(!refOK()||!ffSelect.value)return;
+        submit({adaptation_id:item.id,action:'record_council_posture',decision:'override',final_finding:ffSelect.value,ref:refInput.value.trim()});
+      });
+      panel.appendChild(rb);
+    }
+
+    // ── Review-note history (§2.6, newest first; the accept/reject submission flow is unchanged) ──
+    var nbk=el('div',{class:'rsg-block'});
+    nbk.appendChild(el('div',{class:'section-label'},'Review-note history'));
+    if(!notes.length){
+      nbk.appendChild(el('div',{class:'muted-note'},'No review notes recorded yet.'));
+    }else{
+      var sorted=notes.slice().sort(function(a,b){return new Date(b.reviewed_at||0).getTime()-new Date(a.reviewed_at||0).getTime();});
+      sorted.forEach(function(n){
+        var row=el('div',{class:'rsg-note'});
+        var top=el('div',{class:'rsg-note-top'});
+        if(n.decision)top.appendChild(el('span',{class:'hist-action'},String(n.decision)));
+        if(n.word_count!=null)top.appendChild(el('span',{class:'hist-meta'},n.word_count+' words'));
+        if(n.reviewed_by)top.appendChild(el('span',{class:'hist-meta'},String(n.reviewed_by)));
+        if(n.reviewed_at)top.appendChild(el('span',{class:'hist-meta'},shortDate(n.reviewed_at)));
+        row.appendChild(top);
+        if(n.note_text)row.appendChild(el('div',{class:'rsg-note-body'},String(n.note_text)));
+        nbk.appendChild(row);
+      });
+    }
+    panel.appendChild(nbk);
+
+    host.appendChild(panel);
   }
 
   /* ============================================================
