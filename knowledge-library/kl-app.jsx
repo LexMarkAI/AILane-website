@@ -2,6 +2,11 @@
 // KLUX-001 (AMD-036) | EILEEN-001 (AMD-020) | PLUGIN-001 (AMD-032)
 // Stage 2: Core React components
 
+// OOX-001 #43 — DOMPurify, bundled by esbuild into kl-app.js (pure string-only
+// JS; no network, no CSP impact). Hardens the Intelligence facet's two estate
+// HTML columns via an allowlist before dangerouslySetInnerHTML. See HubIntelFacet.
+import DOMPurify from 'dompurify';
+
 const { useState, useEffect, useRef, useCallback } = React;
 
 const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
@@ -7979,9 +7984,268 @@ function HubAlertsFacet({ hubSession }) {
   );
 }
 
+// ─── OOX-001 KL-Hub Intelligence facet (KL-HUB §5 step 5, realised as a hub
+// facet — AILANE-CC-BRIEF-OOX-KL-HUB-INTELLIGENCE-FACET-001) ───
+// The forward legislative pipeline (kl_legislative_horizon — global authenticated
+// SELECT; every published row surfaced in full) with the tenant's tracked items
+// (org_horizon_watchlist — RLS org-scoped) highlighted and a track/untrack
+// control (track = insert carrying org_id from get_my_org_id(); untrack = delete,
+// RLS-scoped). All reads/writes flow through hubSession.sb so RLS auto-scopes.
+// The pipeline is Tier 5 — a standing caveat banner; advice-free (RULE 15).
+// Render discipline mirrors the ACEI/Vault/Alerts facets: alive-guarded parallel
+// reads, resilient unwrap (hubVaultUnwrap → "—" + console.warn), loading line,
+// max-width container, reused hub chrome. EVERY server field renders via escaped
+// React children EXCEPT the two estate-authored HTML columns
+// (business_impact_html, preparatory_steps_html), which pass through
+// hubIntelSanitiseHtml (#43 DOMPurify allowlist) before the facet's ONLY
+// dangerouslySetInnerHTML. Mirrors operational/index.html renderIntelSection.
+
+// #43 — the security control. DOMPurify (bundled; string-only, no network, no CSP
+// impact) hardens the two estate-authored HTML columns to a tight allowlist before
+// they reach dangerouslySetInnerHTML. This is the ONLY sanitiser and the ONLY
+// dangerouslySetInnerHTML in the facet; every other field renders escaped.
+function hubIntelSanitiseHtml(html) {
+  if (html == null || html === '') return '';
+  try {
+    return DOMPurify.sanitize(String(html), {
+      ALLOWED_TAGS: ['p', 'br', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'h3', 'h4', 'a', 'span'],
+      ALLOWED_ATTR: ['href'],
+      ALLOWED_URI_REGEXP: /^https?:\/\//i,
+    });
+  } catch (e) {
+    console.warn('[OOX-001] Intelligence: sanitise failed', e);
+    return '';
+  }
+}
+
+// Coerce a server field to a printable string for escaped React children (mirrors
+// operational's textContent assignment; arrays/objects render safely rather than
+// throwing on object children).
+function hubIntelText(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.filter(function (x) { return x != null && x !== ''; }).map(String).join('\n');
+  if (typeof v === 'object') { try { return JSON.stringify(v); } catch (e) { return ''; } }
+  return String(v);
+}
+
+// Intel chrome (hub palette; mirrors operational .intel-* classes). Reuses the
+// shared section heading style and defines the card / caveat / chip / track-button
+// composites here.
+var HUB_INTEL_CAVEAT_STYLE = { background: 'rgba(14,165,233,0.07)', border: '1px solid rgba(14,165,233,0.28)', borderRadius: '10px', padding: '11px 14px', marginBottom: '18px', color: '#7DD3FC', fontFamily: "'DM Sans', sans-serif", fontSize: '12.5px', lineHeight: 1.55 };
+var HUB_INTEL_CARD_STYLE = { background: '#0F1D32', border: '1px solid #1E3A5F', borderLeft: '2px solid rgba(14,165,233,0.3)', borderRadius: '12px', padding: '16px 18px' };
+var HUB_INTEL_CARD_TRACKING_STYLE = { borderColor: 'rgba(14,165,233,0.45)', borderLeftColor: '#38BDF8', background: 'rgba(14,165,233,0.06)' };
+var HUB_INTEL_LIST_STYLE = { display: 'flex', flexDirection: 'column', gap: '14px', margin: '2px 0 4px' };
+var HUB_INTEL_TOP_STYLE = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' };
+var HUB_INTEL_TITLE_STYLE = { fontFamily: "'DM Sans', sans-serif", fontSize: '16px', fontWeight: 700, color: '#F1F5F9', wordBreak: 'break-word' };
+var HUB_INTEL_META_STYLE = { marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '2px 14px', fontFamily: "'DM Sans', sans-serif", fontSize: '12.5px', color: '#94A3B8' };
+var HUB_INTEL_CHIPS_STYLE = { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' };
+var HUB_INTEL_CHIP_BASE = { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif", fontSize: '11px', letterSpacing: '0.01em', padding: '3px 9px', borderRadius: '999px', border: '1px solid #1E3A5F', background: '#0A1628', color: '#94A3B8' };
+var HUB_INTEL_CHIP_TYPE = { color: '#0EA5E9', borderColor: 'rgba(14,165,233,0.3)', background: 'rgba(14,165,233,0.12)' };
+var HUB_INTEL_CHIP_HIGH = { color: '#F87171', borderColor: 'rgba(248,113,113,0.32)', background: 'rgba(248,113,113,0.08)' };
+var HUB_INTEL_SUBHEAD_STYLE = { marginTop: '14px', fontFamily: "'DM Mono', monospace", fontSize: '10px', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748B' };
+var HUB_INTEL_SUMMARY_STYLE = { marginTop: '12px', color: '#E2E8F0', fontFamily: "'DM Sans', sans-serif", fontSize: '14.5px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' };
+var HUB_INTEL_TEXT_STYLE = { marginTop: '6px', color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' };
+var HUB_INTEL_HTML_STYLE = { marginTop: '6px', color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6, wordBreak: 'break-word' };
+var HUB_INTEL_FOOT_STYLE = { marginTop: '14px', display: 'flex', flexWrap: 'wrap', gap: '8px 14px', alignItems: 'center' };
+var HUB_INTEL_SOURCE_STYLE = { fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#38BDF8', textDecoration: 'none', fontWeight: 600 };
+var HUB_INTEL_DISCLAIMER_STYLE = { marginTop: '10px', color: '#64748B', fontFamily: "'DM Sans', sans-serif", fontSize: '11.5px', lineHeight: 1.5, whiteSpace: 'pre-wrap' };
+var HUB_INTEL_TRACK_BASE = { flexShrink: 0, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600, letterSpacing: '0.01em', padding: '6px 12px', borderRadius: '999px', border: '1px solid #1E3A5F', background: '#0A1628', color: '#CBD5E1', whiteSpace: 'nowrap' };
+var HUB_INTEL_TRACK_ON = { color: '#38BDF8', borderColor: 'rgba(56,189,248,0.45)', background: 'rgba(14,165,233,0.14)' };
+var HUB_INTEL_FILTER_STYLE = { display: 'flex', justifyContent: 'flex-end', marginBottom: '14px' };
+var HUB_INTEL_TOGGLE_BASE = { cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', border: '1px solid #1E3A5F', background: '#0A1628', color: '#94A3B8' };
+var HUB_INTEL_TOGGLE_ON = { color: '#38BDF8', borderColor: 'rgba(56,189,248,0.45)', background: 'rgba(14,165,233,0.14)' };
+
+// One pipeline chip (escaped label). variant: 'type' | 'high' | null.
+function hubIntelChip(label, variant, key) {
+  var extra = variant === 'type' ? HUB_INTEL_CHIP_TYPE : variant === 'high' ? HUB_INTEL_CHIP_HIGH : null;
+  return React.createElement('span', { key: key, style: extra ? Object.assign({}, HUB_INTEL_CHIP_BASE, extra) : HUB_INTEL_CHIP_BASE }, label);
+}
+
+// One pipeline card. Header (title + stage/expected meta + track toggle), type/
+// priority/status chips, headline + key changes (escaped), the two sanitised
+// *_html columns, affected-category chips, a plain source link, the per-item
+// disclaimer. Tracked rows get the highlighted style + an "Untrack" control.
+function hubIntelCard(row, idx, isTracked, onToggle) {
+  var cardStyle = isTracked ? Object.assign({}, HUB_INTEL_CARD_STYLE, HUB_INTEL_CARD_TRACKING_STYLE) : HUB_INTEL_CARD_STYLE;
+  var children = [];
+
+  // Header: title + meta on the left, track/untrack on the right.
+  var name = row.legislation_short_name || row.legislation_title || 'Untitled instrument';
+  var left = [React.createElement('div', { key: 'title', style: HUB_INTEL_TITLE_STYLE }, name)];
+  var meta = [];
+  if (row.parliament_stage) meta.push(React.createElement('span', { key: 'stage' }, hubIntelText(row.parliament_stage)));
+  if (row.expected_enactment) meta.push(React.createElement('span', { key: 'exp' }, 'Expected in-force: ' + hubIntelText(row.expected_enactment)));
+  if (meta.length) left.push(React.createElement('div', { key: 'meta', style: HUB_INTEL_META_STYLE }, meta));
+  children.push(React.createElement('div', { key: 'top', style: HUB_INTEL_TOP_STYLE },
+    React.createElement('div', { key: 'l', style: { minWidth: 0 } }, left),
+    React.createElement('button', {
+      key: 'track', type: 'button',
+      style: isTracked ? Object.assign({}, HUB_INTEL_TRACK_BASE, HUB_INTEL_TRACK_ON) : HUB_INTEL_TRACK_BASE,
+      'aria-pressed': isTracked ? 'true' : 'false',
+      'aria-label': (isTracked ? 'Untrack ' : 'Track ') + name,
+      onClick: function () { onToggle(row); },
+    }, isTracked ? '✓ Tracking' : '+ Track')
+  ));
+
+  // Type / priority / status chips (escaped).
+  var chips = [];
+  if (row.legislation_type) chips.push(hubIntelChip(hubIntelText(row.legislation_type), 'type', 'type'));
+  if (row.priority) {
+    var high = String(row.priority).toLowerCase() === 'high';
+    chips.push(hubIntelChip('Priority: ' + hubIntelText(row.priority), high ? 'high' : null, 'prio'));
+  }
+  if (row.status) chips.push(hubIntelChip(hubIntelText(row.status), null, 'status'));
+  if (chips.length) children.push(React.createElement('div', { key: 'chips', style: HUB_INTEL_CHIPS_STYLE }, chips));
+
+  // Headline + key changes — escaped React children.
+  if (row.headline_summary) children.push(React.createElement('div', { key: 'sum', style: HUB_INTEL_SUMMARY_STYLE }, hubIntelText(row.headline_summary)));
+  if (row.key_changes != null && hubIntelText(row.key_changes) !== '') {
+    children.push(React.createElement('div', { key: 'kch', style: HUB_INTEL_SUBHEAD_STYLE }, 'Key changes'));
+    children.push(React.createElement('div', { key: 'kc', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.key_changes)));
+  }
+
+  // §1.2 the ONLY dangerouslySetInnerHTML — the two estate-authored HTML columns,
+  // each passed through the #43 DOMPurify allowlist first. Empty after sanitise → skip.
+  var bi = hubIntelSanitiseHtml(row.business_impact_html);
+  if (bi) {
+    children.push(React.createElement('div', { key: 'bih', style: HUB_INTEL_SUBHEAD_STYLE }, 'Business impact'));
+    children.push(React.createElement('div', { key: 'bi', style: HUB_INTEL_HTML_STYLE, dangerouslySetInnerHTML: { __html: bi } }));
+  }
+  var ps = hubIntelSanitiseHtml(row.preparatory_steps_html);
+  if (ps) {
+    children.push(React.createElement('div', { key: 'psh', style: HUB_INTEL_SUBHEAD_STYLE }, 'Preparatory steps'));
+    children.push(React.createElement('div', { key: 'ps', style: HUB_INTEL_HTML_STYLE, dangerouslySetInnerHTML: { __html: ps } }));
+  }
+
+  // Affected categories — escaped chips.
+  if (Array.isArray(row.affected_categories) && row.affected_categories.length) {
+    var cats = [];
+    row.affected_categories.forEach(function (c, i) {
+      if (c != null && c !== '') cats.push(hubIntelChip(hubIntelText(c), null, 'cat' + i));
+    });
+    if (cats.length) children.push(React.createElement('div', { key: 'cats', style: HUB_INTEL_CHIPS_STYLE }, cats));
+  }
+
+  // Source link (plain; rendered only for an http(s) URL — defensive, matching the
+  // sanitiser's URI policy).
+  if (row.source_url && /^https?:\/\//i.test(String(row.source_url))) {
+    children.push(React.createElement('div', { key: 'foot', style: HUB_INTEL_FOOT_STYLE },
+      React.createElement('a', { key: 'src', href: String(row.source_url), target: '_blank', rel: 'noopener noreferrer', style: HUB_INTEL_SOURCE_STYLE }, 'Source')));
+  }
+
+  // Per-item disclaimer footnote (escaped).
+  if (row.disclaimer_text) children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_DISCLAIMER_STYLE }, hubIntelText(row.disclaimer_text)));
+
+  return React.createElement('div', { key: row.id != null ? row.id : idx, style: cardStyle }, children);
+}
+
+// Intelligence facet body. Reads on open via the hub RLS client (§1.1): the global
+// forward pipeline + the tenant's watchlist + the org id (for inserts). Mirrors
+// HubAlertsFacet's shape (alive-guarded parallel reads, loading line, max-width
+// container). Reads are resilient; the facet never throws.
+function HubIntelFacet({ hubSession }) {
+  var _state = useState({ status: 'loading', pipeline: [], tracked: new Set(), orgId: null, error: false });
+  var state = _state[0]; var setState = _state[1];
+  var _trackedOnly = useState(false);
+  var trackedOnly = _trackedOnly[0]; var setTrackedOnly = _trackedOnly[1];
+
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setState({ status: 'ready', pipeline: [], tracked: new Set(), orgId: null, error: true }); return; }
+    // §1.1 reads — RLS-scoped via the authenticated hub client (parallel).
+    Promise.all([
+      sb.from('kl_legislative_horizon')
+        .select('id,legislation_short_name,legislation_title,legislation_type,parliament_stage,expected_enactment,priority,status,headline_summary,key_changes,business_impact_html,preparatory_steps_html,disclaimer_text,affected_categories,source_url,display_order')
+        .eq('is_published', true)
+        .order('display_order', { ascending: true }),
+      sb.from('org_horizon_watchlist').select('horizon_id'),
+      sb.rpc('get_my_org_id'),
+    ]).then(function (res) {
+      if (!alive) return;
+      var pipe = hubVaultUnwrap(res[0], 'kl_legislative_horizon');
+      var watch = hubVaultUnwrap(res[1], 'org_horizon_watchlist');
+      if (res[2] && res[2].error) console.warn('[OOX-001] Intelligence: get_my_org_id failed', res[2].error);
+      var orgId = (res[2] && !res[2].error) ? res[2].data : null;
+      var tracked = new Set();
+      (watch.rows || []).forEach(function (w) { if (w && w.horizon_id != null) tracked.add(w.horizon_id); });
+      setState({ status: 'ready', pipeline: pipe.rows || [], tracked: tracked, orgId: orgId, error: !!pipe.error });
+    }).catch(function (e) {
+      console.warn('[OOX-001] Intelligence facet: reads failed', e);
+      if (alive) setState({ status: 'ready', pipeline: [], tracked: new Set(), orgId: null, error: true });
+    });
+    return function () { alive = false; };
+  }, [hubSession]);
+
+  // §1.4 track/untrack. On success update the tracked Set (re-render restyles the
+  // card + button); on error console.warn and leave state unchanged (never block).
+  function toggleTrack(row) {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from || row == null || row.id == null) return;
+    var id = row.id;
+    var wasTracked = state.tracked.has(id);
+    var op = wasTracked
+      ? sb.from('org_horizon_watchlist').delete().eq('horizon_id', id)
+      : sb.from('org_horizon_watchlist').insert({ org_id: state.orgId, horizon_id: id, added_by: hubSession.userId });
+    Promise.resolve(op).then(function (r) {
+      if (r && r.error) throw r.error;
+      setState(function (prev) {
+        var next = new Set(prev.tracked);
+        if (wasTracked) next.delete(id); else next.add(id);
+        return Object.assign({}, prev, { tracked: next });
+      });
+    }).catch(function (e) {
+      console.warn(wasTracked ? '[OOX-001] Intelligence: untrack failed' : '[OOX-001] Intelligence: track failed', e);
+    });
+  }
+
+  if (state.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading the forward horizon…');
+  }
+
+  var children = [];
+  // §1.3 standing Tier-5 caveat banner (advice-free).
+  children.push(React.createElement('div', { key: 'caveat', style: HUB_INTEL_CAVEAT_STYLE },
+    'Forward pipeline — pre-enactment items are provisional (Tier 5): stage and dates can change. Intelligence, not advice.'));
+
+  if (state.error) {
+    // §1.6 resilient — the pipeline read failed: degrade to "—", never throw.
+    children.push(React.createElement('div', { key: 'err', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' } }, '—'));
+    return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
+  }
+
+  var pipeline = state.pipeline || [];
+  if (!pipeline.length) {
+    // §1.5 empty state.
+    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } }, 'No forward legislation is currently published.'));
+    return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
+  }
+
+  // §1.5 optional "tracked only" client-side filter (default: all).
+  children.push(React.createElement('div', { key: 'filter', style: HUB_INTEL_FILTER_STYLE },
+    React.createElement('button', {
+      type: 'button',
+      style: trackedOnly ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+      'aria-pressed': trackedOnly ? 'true' : 'false',
+      onClick: function () { setTrackedOnly(!trackedOnly); },
+    }, trackedOnly ? 'Showing tracked only' : 'Show tracked only')));
+
+  var rows = trackedOnly ? pipeline.filter(function (r) { return r && state.tracked.has(r.id); }) : pipeline;
+  if (!rows.length) {
+    children.push(React.createElement('div', { key: 'empty2', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } },
+      trackedOnly ? 'You are not tracking any items yet.' : 'No forward legislation is currently published.'));
+    return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
+  }
+
+  children.push(React.createElement('div', { key: 'list', style: HUB_INTEL_LIST_STYLE },
+    rows.map(function (row, idx) { return hubIntelCard(row, idx, state.tracked.has(row.id), toggleTrack); })));
+
+  return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
+}
+
 // Workspace facet mounted in the main content area (KL-HUB §1.5). The ACEI,
-// Vault and Alerts facets render live (brief-2 / brief-3 / brief-4); other
-// facets remain placeholders ported in later briefs. Routing/state in brief-1.
+// Vault, Alerts and Intelligence facets render live; Notes and Calendar remain
+// placeholders ported in later briefs. Routing/state in brief-1.
 function HubFacetView({ facet, hubSession, onBack }) {
   var label = HUB_FACET_LABELS[facet] || 'Workspace';
   var body = facet === 'acei'
@@ -7993,6 +8257,9 @@ function HubFacetView({ facet, hubSession, onBack }) {
     : facet === 'alerts'
     ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
         React.createElement(HubAlertsFacet, { hubSession: hubSession }))
+    : facet === 'intelligence'
+    ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
+        React.createElement(HubIntelFacet, { hubSession: hubSession }))
     : React.createElement('div', { style: { flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' } },
         React.createElement('div', { className: 'kl-placeholder-panel', style: { maxWidth: '420px' } },
           React.createElement('div', { className: 'kl-placeholder-icon' }, '🛠️'),
