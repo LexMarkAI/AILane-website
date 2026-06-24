@@ -381,6 +381,74 @@
       padding: 10px 18px; border-radius: 9px; cursor: pointer; text-decoration: none;
     }
     .acei-cta:hover { background: rgba(56,189,248,0.16); }
+
+    /* ════════════════════════════════════════════════════════════════
+       INTELLIGENCE — Forward legislative horizon (OOX-001). Mirrors the
+       room's card/chrome language (CSS vars only). Tracked items carry a
+       cyan-accent "tracking" state. ════════════════════════════════════ */
+    .intel-caveat {
+      margin: 0 0 18px; padding: 13px 16px;
+      border: 1px solid var(--line); border-left: 2px solid var(--cyan);
+      border-radius: 9px; background: var(--cyan-soft);
+      color: var(--muted); font-size: 0.86rem; line-height: 1.5;
+    }
+    .intel-filter { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+    .intel-filter-btn {
+      font-family: inherit; font-size: 0.78rem; color: var(--muted);
+      background: transparent; border: 1px solid var(--line-mid);
+      padding: 7px 13px; border-radius: 999px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .intel-filter-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
+    .intel-filter-btn.on { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
+    .intel-list { display: flex; flex-direction: column; gap: 14px; }
+    .intel-card {
+      position: relative; padding: 18px 20px;
+      background: var(--card); border: 1px solid var(--line);
+      border-left: 2px solid transparent; border-radius: 12px; transition: border-color 0.18s ease;
+    }
+    .intel-card:hover { border-color: var(--line-mid); }
+    .intel-card.tracking { border-left-color: var(--cyan); background: var(--card-2); }
+    .intel-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+    .intel-top-main { min-width: 0; }
+    .intel-title { font-size: 1.1rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .intel-meta {
+      margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px 14px;
+      font-family: 'Space Mono', monospace; font-size: 0.74rem; color: var(--faint); letter-spacing: 0.02em;
+    }
+    .intel-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+    .intel-chip {
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 999px;
+      background: var(--card-2); border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.02em;
+    }
+    .intel-chip.type { color: var(--cyan); border-color: var(--cyan-line); }
+    .intel-chip.priority.high { color: var(--gold); border-color: rgba(251,191,36,0.3); }
+    .intel-summary { margin-top: 12px; color: var(--text); font-size: 0.95rem; line-height: 1.6; }
+    .intel-subhead {
+      margin-top: 14px; font-family: 'Space Mono', monospace; font-size: 0.62rem;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+    }
+    .intel-text { margin-top: 6px; color: var(--muted); font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; }
+    .intel-html { margin-top: 6px; color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .intel-html > *:first-child { margin-top: 0; }
+    .intel-html > *:last-child { margin-bottom: 0; }
+    .intel-html p { margin: 0 0 8px; }
+    .intel-html ul, .intel-html ol { margin: 6px 0 8px; padding-left: 20px; }
+    .intel-html li { margin: 3px 0; }
+    .intel-html strong { color: var(--text); }
+    .intel-html a { color: var(--cyan); text-decoration: underline; }
+    .intel-foot { margin-top: 14px; }
+    .intel-source { font-size: 0.84rem; font-weight: 600; color: var(--cyan); text-decoration: none; }
+    .intel-source:hover { text-decoration: underline; }
+    .intel-disclaimer { margin-top: 12px; font-size: 0.76rem; color: var(--faint); font-style: italic; line-height: 1.5; }
+    .intel-track-btn {
+      flex-shrink: 0; font-family: inherit; font-size: 0.78rem; font-weight: 600;
+      color: var(--muted); background: transparent; border: 1px solid var(--line-mid);
+      padding: 7px 14px; border-radius: 999px; cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+    }
+    .intel-track-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
+    .intel-track-btn.tracking { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
+    .intel-track-btn:disabled { opacity: 0.5; cursor: default; }
+    .intel-card-error { margin-top: 10px; font-size: 0.8rem; color: #f87171; }
   </style>
 
   <!-- EILEEN-NEXUS-001 styles — replicated verbatim from the canonical KL
@@ -717,14 +785,15 @@
     var PENDING_COPY = "Eileen's operational workspace is being prepared — your tenant-scoped assistant will be available here shortly.";
 
     // ---- Left menu (eight sections, live wording) ----
-    // Intelligence links to the live /operational/horizon/ route; the rest open
-    // an in-page section panel with a calm empty state (deterministic).
+    // Intelligence opens the in-page forward-horizon section (OOX-001 — routed
+    // through openSection into #section-body, mirroring ACEI); the rest open an
+    // in-page section panel with a calm empty state (deterministic).
     var MENU = [
       { id: 'alerts',  label: 'Alerts' },
       { id: 'vault',   label: 'Document Vault' },
       { id: 'kl',      label: 'Knowledge Library' },
       { id: 'ticker',  label: 'Ticker Room' },
-      { id: 'intel',   label: 'Intelligence', href: '/operational/horizon/', chip: 'NEW' },
+      { id: 'intel',   label: 'Intelligence', chip: 'NEW' },
       { id: 'notes',   label: 'Notes', sub: 'always on' },
       { id: 'calendar',label: 'Calendar' },
       { id: 'acei',    label: 'ACEI Overview & Sector Report' }
@@ -802,6 +871,9 @@
       if (m.id === 'acei') {
         if (emptyEl) emptyEl.hidden = true;
         if (bodyEl) { bodyEl.hidden = false; renderAceiSection(bodyEl); }
+      } else if (m.id === 'intel') {
+        if (emptyEl) emptyEl.hidden = true;
+        if (bodyEl) { bodyEl.hidden = false; renderIntelSection(bodyEl); }
       } else {
         if (bodyEl) { bodyEl.hidden = true; bodyEl.innerHTML = ''; }
         if (emptyEl) emptyEl.hidden = false;
@@ -1029,6 +1101,230 @@
       s.appendChild(mkEl('div', 'acei-stat-label', label));
       s.appendChild(mkEl('div', 'acei-stat-val', val));
       return s;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // INTELLIGENCE — FORWARD LEGISLATIVE HORIZON (OOX-001). Wires the
+    // Intelligence room section to the live forward pipeline:
+    //   • kl_legislative_horizon — global authenticated SELECT (every
+    //     published row surfaced in full, §6(b)).
+    //   • org_horizon_watchlist  — RLS org-scoped; the tenant's tracked
+    //     set. track = insert, untrack = delete (RLS scopes the delete).
+    //   • get_my_org_id()        — RPC; org_id for the insert WITH CHECK.
+    // All reads/writes go through CFG.sb so RLS auto-scopes tenant rows.
+    // Render discipline mirrors the ACEI section (resilient unwrap via
+    // aceiData, DOM build via mkEl/textContent). The forward pipeline is
+    // Tier 5 — a standing caveat banner; advice-free (RULE 15). The two
+    // estate-authored HTML columns (business_impact_html,
+    // preparatory_steps_html) are trusted estate content with no tenant
+    // write path, so they render as HTML; EVERY other server field is
+    // inserted via textContent (mkEl). The section never throws: any read
+    // error degrades quietly with console.warn.
+    // ════════════════════════════════════════════════════════════════
+    var intelState = { orgId: null, tracked: new Set(), pipeline: [], trackedOnly: false };
+
+    function renderIntelSection(host) {
+      host.innerHTML = '';
+      host.appendChild(mkEl('div', 'acei-loading', 'Loading the forward horizon…'));
+      var sb = CFG.sb;
+      if (!sb || !sb.from) { intelBuild(host, [], new Set()); return; }
+      Promise.all([
+        sb.from('kl_legislative_horizon')
+          .select('id,legislation_short_name,legislation_title,legislation_type,parliament_stage,expected_enactment,priority,status,headline_summary,key_changes,business_impact_html,preparatory_steps_html,disclaimer_text,affected_categories,source_url,display_order')
+          .eq('is_published', true)
+          .order('display_order', { ascending: true }),
+        sb.from('org_horizon_watchlist').select('horizon_id'),
+        sb.rpc('get_my_org_id')
+      ]).then(function (res) {
+        var pipeline = aceiData(res[0], 'kl_legislative_horizon', []);
+        var watch = aceiData(res[1], 'org_horizon_watchlist', []);
+        intelState.orgId = (res[2] && !res[2].error) ? res[2].data : null;
+        var tracked = new Set();
+        (watch || []).forEach(function (w) { if (w && w.horizon_id != null) tracked.add(w.horizon_id); });
+        intelBuild(host, pipeline || [], tracked);
+      }).catch(function (e) {
+        console.warn('Intelligence section: reads failed', e);
+        intelBuild(host, [], new Set());
+      });
+    }
+
+    function intelBuild(host, pipeline, tracked) {
+      host.innerHTML = '';
+      intelState.tracked = tracked;
+      intelState.pipeline = pipeline || [];
+
+      // §1.2 Standing Tier-5 caveat banner.
+      host.appendChild(mkEl('div', 'intel-caveat',
+        'Forward pipeline — pre-enactment items are provisional (Tier 5): stage and dates can change. Intelligence, not advice.'));
+
+      // §1.5 Empty state.
+      if (!intelState.pipeline.length) {
+        host.appendChild(mkEl('div', 'empty-state', 'No forward legislation is currently published.'));
+        return;
+      }
+
+      // §1.4 Tracked-only filter (client-side over the loaded pipeline; default: all).
+      var bar = mkEl('div', 'intel-filter');
+      var toggle = mkEl('button', 'intel-filter-btn');
+      toggle.type = 'button';
+      function paintToggle() {
+        toggle.classList.toggle('on', intelState.trackedOnly);
+        toggle.textContent = intelState.trackedOnly ? 'Showing tracked only' : 'Show tracked only';
+        toggle.setAttribute('aria-pressed', intelState.trackedOnly ? 'true' : 'false');
+      }
+      paintToggle();
+      var listWrap = mkEl('div', 'intel-list');
+      toggle.addEventListener('click', function () {
+        intelState.trackedOnly = !intelState.trackedOnly;
+        paintToggle();
+        intelRenderList(listWrap);
+      });
+      bar.appendChild(toggle);
+      host.appendChild(bar);
+
+      host.appendChild(listWrap);
+      intelRenderList(listWrap);
+    }
+
+    function intelRenderList(listWrap) {
+      listWrap.innerHTML = '';
+      var rows = intelState.pipeline || [];
+      if (intelState.trackedOnly) {
+        rows = rows.filter(function (r) { return r && intelState.tracked.has(r.id); });
+      }
+      if (!rows.length) {
+        listWrap.appendChild(mkEl('div', 'empty-state',
+          intelState.trackedOnly ? 'You are not tracking any items yet.' : 'No forward legislation is currently published.'));
+        return;
+      }
+      rows.forEach(function (row) { listWrap.appendChild(intelCard(row)); });
+    }
+
+    function intelCard(row) {
+      var card = mkEl('div', 'intel-card');
+      if (intelState.tracked.has(row.id)) card.classList.add('tracking');
+
+      // Header: title + meta (stage, expected in-force) + track toggle.
+      var top = mkEl('div', 'intel-top');
+      var left = mkEl('div', 'intel-top-main');
+      left.appendChild(mkEl('div', 'intel-title',
+        row.legislation_short_name || row.legislation_title || 'Untitled instrument'));
+      var meta = mkEl('div', 'intel-meta');
+      if (row.parliament_stage) meta.appendChild(mkEl('span', null, row.parliament_stage));
+      if (row.expected_enactment) meta.appendChild(mkEl('span', null, 'Expected in-force: ' + row.expected_enactment));
+      if (meta.childNodes.length) left.appendChild(meta);
+      top.appendChild(left);
+      top.appendChild(intelTrackBtn(row, card));
+      card.appendChild(top);
+
+      // Type / priority / status chips.
+      var chips = mkEl('div', 'intel-chips');
+      if (row.legislation_type) chips.appendChild(mkEl('span', 'intel-chip type', row.legislation_type));
+      if (row.priority) {
+        var pcls = 'intel-chip priority' + (String(row.priority).toLowerCase() === 'high' ? ' high' : '');
+        chips.appendChild(mkEl('span', pcls, 'Priority: ' + row.priority));
+      }
+      if (row.status) chips.appendChild(mkEl('span', 'intel-chip', row.status));
+      if (chips.childNodes.length) card.appendChild(chips);
+
+      // Headline + key changes — plain server text via textContent.
+      if (row.headline_summary) card.appendChild(mkEl('div', 'intel-summary', row.headline_summary));
+      if (row.key_changes) {
+        card.appendChild(mkEl('div', 'intel-subhead', 'Key changes'));
+        card.appendChild(mkEl('div', 'intel-text', row.key_changes));
+      }
+
+      // Estate-authored HTML columns — trusted content (no tenant write path),
+      // rendered as HTML. No other server field is innerHTML'd.
+      if (row.business_impact_html) {
+        card.appendChild(mkEl('div', 'intel-subhead', 'Business impact'));
+        var bi = mkEl('div', 'intel-html');
+        bi.innerHTML = row.business_impact_html;
+        card.appendChild(bi);
+      }
+      if (row.preparatory_steps_html) {
+        card.appendChild(mkEl('div', 'intel-subhead', 'Preparatory steps'));
+        var ps = mkEl('div', 'intel-html');
+        ps.innerHTML = row.preparatory_steps_html;
+        card.appendChild(ps);
+      }
+
+      // Affected categories — small chips (textContent).
+      if (Array.isArray(row.affected_categories) && row.affected_categories.length) {
+        var cats = mkEl('div', 'intel-chips');
+        row.affected_categories.forEach(function (c) {
+          if (c != null && c !== '') cats.appendChild(mkEl('span', 'intel-chip', String(c)));
+        });
+        if (cats.childNodes.length) card.appendChild(cats);
+      }
+
+      // Source link (plain).
+      if (row.source_url) {
+        var foot = mkEl('div', 'intel-foot');
+        var a = mkEl('a', 'intel-source', 'Source');
+        a.href = row.source_url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        foot.appendChild(a);
+        card.appendChild(foot);
+      }
+
+      // Per-item disclaimer footnote.
+      if (row.disclaimer_text) card.appendChild(mkEl('div', 'intel-disclaimer', row.disclaimer_text));
+
+      return card;
+    }
+
+    function intelTrackBtn(row, card) {
+      var btn = mkEl('button', 'intel-track-btn');
+      btn.type = 'button';
+      function paint() {
+        var t = intelState.tracked.has(row.id);
+        btn.classList.toggle('tracking', t);
+        btn.textContent = t ? '✓ Tracking' : '+ Track';
+        btn.setAttribute('aria-pressed', t ? 'true' : 'false');
+        var name = row.legislation_short_name || row.legislation_title || 'item';
+        btn.setAttribute('aria-label', (t ? 'Untrack ' : 'Track ') + name);
+      }
+      paint();
+
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        var sb = CFG.sb;
+        if (!sb || !sb.from) return;
+        intelClearCardError(card);
+        var wasTracked = intelState.tracked.has(row.id);
+        btn.disabled = true;
+
+        var op = wasTracked
+          ? sb.from('org_horizon_watchlist').delete().eq('horizon_id', row.id)
+          : sb.from('org_horizon_watchlist').insert({ org_id: intelState.orgId, horizon_id: row.id, added_by: CFG.userId });
+
+        Promise.resolve(op).then(function (r) {
+          if (r && r.error) throw r.error;
+          if (wasTracked) { intelState.tracked.delete(row.id); card.classList.remove('tracking'); }
+          else { intelState.tracked.add(row.id); card.classList.add('tracking'); }
+          paint();
+          btn.disabled = false;
+        }).catch(function (e) {
+          console.warn(wasTracked ? 'Intelligence: untrack failed' : 'Intelligence: track failed', e);
+          btn.disabled = false;
+          intelShowCardError(card, wasTracked ? 'Could not untrack — please try again.' : 'Could not track — please try again.');
+        });
+      });
+
+      return btn;
+    }
+
+    function intelShowCardError(card, msg) {
+      intelClearCardError(card);
+      var e = mkEl('div', 'intel-card-error', msg);
+      e.setAttribute('data-intel-error', '1');
+      card.appendChild(e);
+    }
+    function intelClearCardError(card) {
+      var ex = card.querySelector('[data-intel-error]');
+      if (ex) ex.parentNode.removeChild(ex);
     }
 
     // ---- Time-aware greeting ----
