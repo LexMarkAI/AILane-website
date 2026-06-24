@@ -4,6 +4,93 @@
   var SUPABASE_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
   var EILEEN_ENDPOINT = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co") + "/functions/v1/eileen-intelligence";
+  var HUB_FUNCTIONS_BASE = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co");
+  var HUB_ALLOWED_TIERS = ["operational", "operational_readiness", "governance", "enterprise"];
+  var HUB_WORKSPACE_FACETS = [
+    { id: "vault", label: "Document Vault" },
+    { id: "alerts", label: "Alerts" },
+    { id: "acei", label: "ACEI Overview" },
+    { id: "intelligence", label: "Intelligence" },
+    { id: "notes", label: "Notes" },
+    { id: "calendar", label: "Calendar" }
+  ];
+  var HUB_FACET_LABELS = {
+    vault: "Document Vault",
+    alerts: "Alerts",
+    acei: "ACEI Overview",
+    intelligence: "Intelligence",
+    notes: "Notes",
+    calendar: "Calendar"
+  };
+  function klHubFlagSet() {
+    try {
+      var q = new URLSearchParams(window.location.search || "");
+      if (q.get("hub") === "1") return true;
+    } catch (e) {
+    }
+    try {
+      if (localStorage.getItem("ailane_kl_hub") === "on") return true;
+    } catch (e) {
+    }
+    return false;
+  }
+  function detectHubSession() {
+    if (!klHubFlagSet()) return Promise.resolve(null);
+    if (typeof window === "undefined" || !window.supabase || !window.supabase.createClient) {
+      return Promise.resolve(null);
+    }
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return sb.auth.getSession().then(function(gs) {
+      var session = gs && gs.data && gs.data.session;
+      if (!session) return null;
+      var token = session.access_token;
+      var payload;
+      try {
+        payload = JSON.parse(atob(token.split(".")[1]));
+      } catch (e) {
+        return null;
+      }
+      if (payload.aal !== "aal2") return null;
+      var userId = payload.sub;
+      return fetch(
+        SUPABASE_URL + "/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq." + userId + "&limit=1",
+        { headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": "Bearer " + token, "Accept": "application/json" } }
+      ).then(function(r) {
+        return r.ok ? r.json() : null;
+      }).then(function(rows) {
+        var tier = rows && rows[0] && rows[0].subscription_tier;
+        if (!tier || HUB_ALLOWED_TIERS.indexOf(tier) < 0) return null;
+        return {
+          sb,
+          token,
+          anon: SUPABASE_ANON_KEY,
+          supabaseUrl: SUPABASE_URL,
+          functionsBase: HUB_FUNCTIONS_BASE,
+          userId,
+          email: payload.email || "",
+          tier
+        };
+      }).catch(function() {
+        return null;
+      });
+    }).catch(function() {
+      return null;
+    });
+  }
+  function hubSendToEileen(hubSession, body) {
+    return fetch(hubSession.functionsBase + "/eileen-operational", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + hubSession.token,
+        "apikey": hubSession.anon,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    }).then(function(r) {
+      if (!r.ok) throw new Error("http_" + r.status);
+      return r.json();
+    });
+  }
   var INSTRUMENT_NAMES = {
     "ERA 1996": "Employment Rights Act 1996",
     "EqA 2010": "Equality Act 2010",
@@ -2283,7 +2370,7 @@
       }
     ));
   }
-  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
+  function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave, hubMode, hubSession, matterRefreshKey }) {
     const scrollRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     useEffect(() => {
@@ -2346,7 +2433,7 @@
         letterSpacing: "0.06em",
         marginBottom: "24px",
         textAlign: "center"
-      } }, "Eileen \xB7 UK Employment Law Intelligence"), /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion })), /* @__PURE__ */ React.createElement(HorizonAlert, null), /* @__PURE__ */ React.createElement(ForwardRail, null), /* @__PURE__ */ React.createElement("div", { className: "kl-domain-card-grid" }, DOMAINS.map(function(domain) {
+      } }, "Eileen \xB7 UK Employment Law Intelligence"), /* @__PURE__ */ React.createElement("div", { className: "kl-welcome-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion })), hubMode && hubSession && /* @__PURE__ */ React.createElement(HubMatterPanel, { hubSession, refreshKey: matterRefreshKey }), /* @__PURE__ */ React.createElement(HorizonAlert, null), /* @__PURE__ */ React.createElement(ForwardRail, null), /* @__PURE__ */ React.createElement("div", { className: "kl-domain-card-grid" }, DOMAINS.map(function(domain) {
         var navToDomain = function() {
           window.location.hash = "/domain/" + domain.slug;
         };
@@ -2422,6 +2509,7 @@
         }
         return /* @__PURE__ */ React.createElement(MessageBubble, { key: i, msg: m, onRunAnalysis, onVaultOnly });
       }), showQualifier && /* @__PURE__ */ React.createElement(QualifyingQuestion, { onSelect: onUserTypeSelect }), isLoading && /* @__PURE__ */ React.createElement(TypingIndicator, null)),
+      hubMode && hubSession && /* @__PURE__ */ React.createElement(HubMatterPanel, { hubSession, refreshKey: matterRefreshKey }),
       /* @__PURE__ */ React.createElement("div", { className: "kl-conversation-input" }, /* @__PURE__ */ React.createElement(MessageInput, { onSend, disabled: isLoading, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion }))
     ));
   }
@@ -2520,7 +2608,7 @@
       "Discuss with Eileen"
     )));
   }
-  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang }) {
+  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubMode, currentFacet, onSelectFacet }) {
     var _historyOpen = useState(false);
     var historyOpen = _historyOpen[0];
     var setHistoryOpen = _historyOpen[1];
@@ -2636,6 +2724,42 @@
             return rendered;
           })()
         )
+      ),
+      // OOX-001 §1.5: "Your workspace" facet rail (hub mode only). Each item opens
+      // a facet placeholder in the main content area; real panels port in later
+      // briefs. Renders nothing in public mode (hubMode === false).
+      hubMode && React.createElement(
+        "div",
+        {
+          style: { flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.06)", padding: "8px 0" }
+        },
+        React.createElement("div", {
+          style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 16px" }
+        }, "Your workspace"),
+        HUB_WORKSPACE_FACETS.map(function(f) {
+          var active = currentFacet === f.id;
+          return React.createElement("button", {
+            key: f.id,
+            type: "button",
+            onClick: function() {
+              onSelectFacet(active ? null : f.id);
+            },
+            "aria-pressed": active,
+            style: {
+              width: "100%",
+              textAlign: "left",
+              display: "block",
+              background: active ? "rgba(14,165,233,0.12)" : "transparent",
+              border: "none",
+              borderLeft: active ? "2px solid #0EA5E9" : "2px solid transparent",
+              color: active ? "#F1F5F9" : "#94A3B8",
+              cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: "13px",
+              padding: "8px 16px"
+            }
+          }, f.label);
+        })
       ),
       React.createElement(
         "div",
@@ -6732,6 +6856,351 @@
       console.error("Failed to save preferences:", err);
     }
   }
+  function fmtHubMatterDate(iso) {
+    if (!iso) return "";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    } catch (e) {
+      return String(iso);
+    }
+  }
+  var HUB_MATTER_BTN_STYLE = {
+    background: "transparent",
+    border: "1px solid rgba(14,165,233,0.3)",
+    borderRadius: "6px",
+    color: "#0EA5E9",
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: "12px",
+    padding: "6px 12px",
+    cursor: "pointer",
+    minHeight: "32px"
+  };
+  var HUB_MATTER_BTN_DANGER = Object.assign({}, HUB_MATTER_BTN_STYLE, {
+    color: "#F87171",
+    border: "1px solid rgba(239,68,68,0.35)"
+  });
+  var HUB_MATTER_BTN_PRIMARY = Object.assign({}, HUB_MATTER_BTN_STYLE, {
+    background: "#0EA5E9",
+    color: "#fff",
+    border: "1px solid #0EA5E9"
+  });
+  function HubMatterRow({ m, hubSession, onChanged, onToast }) {
+    var _mode = useState(null);
+    var mode = _mode[0];
+    var setMode = _mode[1];
+    var _reason = useState("");
+    var reason = _reason[0];
+    var setReason = _reason[1];
+    var _busy = useState(false);
+    var busy = _busy[0];
+    var setBusy = _busy[1];
+    function act(op, extra) {
+      setBusy(true);
+      var body = Object.assign({ op, matter_id: m.id }, extra || {});
+      return hubSendToEileen(hubSession, { matter_action: body }).then(function(resp) {
+        return resp && resp.matter_result;
+      });
+    }
+    function doExtend() {
+      var r = (reason || "").trim();
+      if (!r) return;
+      act("extend", { retention_reason: r }).then(function(mr) {
+        setBusy(false);
+        if (mr && mr.matter_ok) onToast("Kept until " + fmtHubMatterDate(mr.expires_at));
+        else console.warn("[OOX-001] extend failed", mr && mr.matter_error);
+        onChanged();
+      }).catch(function(e) {
+        console.warn("[OOX-001] extend failed", e);
+        setBusy(false);
+        onChanged();
+      });
+    }
+    function doDelete() {
+      act("delete").then(function(mr) {
+        setBusy(false);
+        if (mr && mr.matter_ok) onToast("Cleared");
+        else console.warn("[OOX-001] delete failed", mr && mr.matter_error);
+        onChanged();
+      }).catch(function(e) {
+        console.warn("[OOX-001] delete failed", e);
+        setBusy(false);
+        onChanged();
+      });
+    }
+    function doResolve() {
+      act("resolve").then(function(mr) {
+        setBusy(false);
+        if (mr && mr.matter_ok) onToast("Marked resolved \u2014 clears automatically after 30 days");
+        else console.warn("[OOX-001] resolve failed", mr && mr.matter_error);
+        onChanged();
+      }).catch(function(e) {
+        console.warn("[OOX-001] resolve failed", e);
+        setBusy(false);
+        onChanged();
+      });
+    }
+    var rowChildren = [
+      React.createElement(
+        "div",
+        { key: "main", style: { minWidth: 0 } },
+        React.createElement("div", { style: { color: "#F1F5F9", fontSize: "13px", lineHeight: 1.4 } }, m.summary || "(no summary)"),
+        React.createElement("div", { style: { color: "#64748B", fontSize: "11px", fontFamily: "'DM Mono', monospace", marginTop: "2px" } }, "Clears " + fmtHubMatterDate(m.expires_at))
+      )
+    ];
+    if (mode === "keep") {
+      rowChildren.push(React.createElement(
+        "div",
+        { key: "keep", style: { display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" } },
+        React.createElement("input", {
+          type: "text",
+          value: reason,
+          maxLength: 240,
+          placeholder: "Reason to keep (e.g. ongoing tribunal claim)",
+          onChange: function(e) {
+            setReason(e.target.value);
+          },
+          onKeyDown: function(e) {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              doExtend();
+            }
+          },
+          style: { flex: 1, minWidth: "160px", background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "6px", color: "#F1F5F9", fontSize: "12px", padding: "6px 10px", fontFamily: "'DM Sans', sans-serif" }
+        }),
+        React.createElement("button", { type: "button", disabled: busy || !reason.trim(), style: HUB_MATTER_BTN_PRIMARY, onClick: doExtend }, "Save reason"),
+        React.createElement("button", { type: "button", style: HUB_MATTER_BTN_STYLE, onClick: function() {
+          setMode(null);
+          setReason("");
+        } }, "Cancel")
+      ));
+    } else if (mode === "clear") {
+      rowChildren.push(React.createElement(
+        "div",
+        { key: "clear", style: { display: "flex", gap: "6px", marginTop: "8px", alignItems: "center", flexWrap: "wrap" } },
+        React.createElement("span", { style: { color: "#94A3B8", fontSize: "12px", flex: 1, minWidth: "160px" } }, "Clear this from memory? This cannot be undone."),
+        React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: doDelete }, "Confirm clear"),
+        React.createElement("button", { type: "button", style: HUB_MATTER_BTN_STYLE, onClick: function() {
+          setMode(null);
+        } }, "Cancel")
+      ));
+    } else {
+      rowChildren.push(React.createElement(
+        "div",
+        { key: "actions", style: { display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" } },
+        React.createElement("button", { type: "button", style: HUB_MATTER_BTN_STYLE, onClick: function() {
+          setMode("keep");
+        } }, "Keep"),
+        React.createElement("button", { type: "button", style: HUB_MATTER_BTN_DANGER, onClick: function() {
+          setMode("clear");
+        } }, "Clear now"),
+        React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: doResolve }, "Mark resolved")
+      ));
+    }
+    return React.createElement("div", {
+      style: { padding: "10px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }
+    }, rowChildren);
+  }
+  function HubMatterPanel({ hubSession, refreshKey }) {
+    var _matters = useState([]);
+    var matters = _matters[0];
+    var setMatters = _matters[1];
+    var _toast = useState("");
+    var toast = _toast[0];
+    var setToast = _toast[1];
+    var _capOpen = useState(false);
+    var capOpen = _capOpen[0];
+    var setCapOpen = _capOpen[1];
+    var _capText = useState("");
+    var capText = _capText[0];
+    var setCapText = _capText[1];
+    var _capCats = useState("");
+    var capCats = _capCats[0];
+    var setCapCats = _capCats[1];
+    var _capErr = useState("");
+    var capErr = _capErr[0];
+    var setCapErr = _capErr[1];
+    var _capBusy = useState(false);
+    var capBusy = _capBusy[0];
+    var setCapBusy = _capBusy[1];
+    var toastTimer = useRef(null);
+    function showToast(msg) {
+      setToast(msg);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(function() {
+        setToast("");
+      }, 3200);
+    }
+    var refresh = useCallback(function() {
+      if (!hubSession) return;
+      hubSendToEileen(hubSession, { matter_action: { op: "list" } }).then(function(resp) {
+        var mr = resp && resp.matter_result;
+        if (!mr || mr.matter_error || !Array.isArray(mr.matters)) {
+          if (mr && mr.matter_error) console.warn("[OOX-001] matter list error:", mr.matter_error);
+          setMatters([]);
+          return;
+        }
+        setMatters(mr.matters.filter(function(m) {
+          return m && m.due_soon === true;
+        }));
+      }).catch(function(e) {
+        console.warn("[OOX-001] matter list failed", e);
+        setMatters([]);
+      });
+    }, [hubSession]);
+    useEffect(function() {
+      refresh();
+    }, [refresh, refreshKey]);
+    useEffect(function() {
+      return function() {
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+      };
+    }, []);
+    function saveCapture() {
+      var summary = (capText || "").trim();
+      setCapErr("");
+      if (!summary) return;
+      var catList = (capCats || "").split(",").map(function(s) {
+        return s.trim();
+      }).filter(Boolean);
+      setCapBusy(true);
+      hubSendToEileen(hubSession, { matter_action: { op: "upsert", summary, acei_categories: catList } }).then(function(resp) {
+        setCapBusy(false);
+        var mr = resp && resp.matter_result;
+        if (mr && mr.matter_ok) {
+          showToast("Remembered");
+          setCapOpen(false);
+          setCapText("");
+          setCapCats("");
+          refresh();
+        } else if (mr && mr.matter_error) {
+          setCapErr(mr.matter_error);
+        } else {
+          setCapErr("Could not save the matter. Please try again.");
+        }
+      }).catch(function(e) {
+        setCapBusy(false);
+        console.warn("[OOX-001] upsert failed", e);
+        setCapErr("Could not save the matter. Please try again.");
+      });
+    }
+    var children = [];
+    if (matters.length > 0) {
+      children.push(React.createElement(
+        "div",
+        {
+          key: "card",
+          style: { background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "10px", padding: "8px 14px 12px", marginBottom: "8px" }
+        },
+        React.createElement("div", {
+          style: { color: "#94A3B8", fontSize: "10px", fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "4px 0" }
+        }, "Matter memory \u2014 due to clear"),
+        matters.map(function(m) {
+          return React.createElement(HubMatterRow, { key: m.id, m, hubSession, onChanged: refresh, onToast: showToast });
+        })
+      ));
+    }
+    var captureChildren = [
+      React.createElement("button", {
+        key: "toggle",
+        type: "button",
+        className: "kl-action-btn",
+        onClick: function() {
+          setCapErr("");
+          setCapOpen(!capOpen);
+        }
+      }, capOpen ? "Close" : "+ Remember a matter")
+    ];
+    if (capOpen) {
+      captureChildren.push(React.createElement(
+        "div",
+        {
+          key: "form",
+          style: { marginTop: "8px", background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "10px", padding: "12px" }
+        },
+        React.createElement("label", {
+          htmlFor: "hub-matter-capture-text",
+          style: { display: "block", color: "#94A3B8", fontSize: "12px", marginBottom: "6px", lineHeight: 1.4 }
+        }, "Describe the matter \u2014 use roles, not names. Eileen stores it anonymised."),
+        React.createElement("textarea", {
+          id: "hub-matter-capture-text",
+          value: capText,
+          rows: 2,
+          maxLength: 600,
+          onChange: function(e) {
+            setCapText(e.target.value);
+          },
+          style: { width: "100%", background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "6px", color: "#F1F5F9", fontSize: "13px", padding: "8px 10px", fontFamily: "'DM Sans', sans-serif", resize: "vertical" }
+        }),
+        React.createElement("input", {
+          type: "text",
+          value: capCats,
+          placeholder: "ACEI categories (optional, comma-separated)",
+          onChange: function(e) {
+            setCapCats(e.target.value);
+          },
+          style: { width: "100%", marginTop: "6px", background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "6px", color: "#F1F5F9", fontSize: "12px", padding: "6px 10px", fontFamily: "'DM Sans', sans-serif" }
+        }),
+        capErr ? React.createElement("div", { style: { color: "#F87171", fontSize: "12px", marginTop: "6px" } }, capErr) : null,
+        React.createElement(
+          "div",
+          { style: { display: "flex", gap: "6px", marginTop: "8px" } },
+          React.createElement("button", { type: "button", disabled: capBusy || !capText.trim(), style: HUB_MATTER_BTN_PRIMARY, onClick: saveCapture }, "Remember"),
+          React.createElement("button", { type: "button", style: HUB_MATTER_BTN_STYLE, onClick: function() {
+            setCapOpen(false);
+            setCapText("");
+            setCapCats("");
+            setCapErr("");
+          } }, "Cancel")
+        )
+      ));
+    }
+    children.push(React.createElement("div", { key: "capture" }, captureChildren));
+    if (toast) {
+      children.push(React.createElement("div", {
+        key: "toast",
+        role: "status",
+        "aria-live": "polite",
+        style: { marginTop: "8px", color: "#10B981", fontSize: "12px", fontFamily: "'DM Mono', monospace" }
+      }, toast));
+    }
+    return React.createElement("div", {
+      className: "kl-hub-matter-panel",
+      style: { maxWidth: "860px", width: "100%", margin: "0 auto 8px" }
+    }, children);
+  }
+  function HubFacetView({ facet, onBack }) {
+    var label = HUB_FACET_LABELS[facet] || "Workspace";
+    return React.createElement(
+      "div",
+      { className: "kl-main" },
+      React.createElement(
+        "div",
+        {
+          style: { display: "flex", alignItems: "center", gap: "12px", padding: "14px 24px", borderBottom: "1px solid var(--kl-border, #1E3A5F)", flexShrink: 0 }
+        },
+        React.createElement("button", {
+          type: "button",
+          className: "kl-action-btn",
+          onClick: onBack,
+          "aria-label": "Back to Eileen"
+        }, "\u2190 Back"),
+        React.createElement("div", { style: { fontSize: "15px", fontWeight: 500, color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif" } }, label)
+      ),
+      React.createElement(
+        "div",
+        { style: { flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" } },
+        React.createElement(
+          "div",
+          { className: "kl-placeholder-panel", style: { maxWidth: "420px" } },
+          React.createElement("div", { className: "kl-placeholder-icon" }, "\u{1F6E0}\uFE0F"),
+          React.createElement("div", { className: "kl-placeholder-title" }, label),
+          React.createElement("div", { className: "kl-placeholder-body" }, "This area is being wired in \u2014 coming shortly.")
+        )
+      )
+    );
+  }
   function App() {
     const [messages, setMessages] = useState([]);
     const [sessionId, setSessionId] = useState(() => "eileen-" + Date.now() + "-" + Math.random().toString(36).substr(2, 7));
@@ -6769,6 +7238,25 @@
       } catch (e) {
       }
       saveKlPreferences({ helper_dismissed: true });
+    }
+    const [hubSession, setHubSession] = useState(null);
+    useEffect(function() {
+      var alive = true;
+      detectHubSession().then(function(s) {
+        if (alive) setHubSession(s);
+      });
+      return function() {
+        alive = false;
+      };
+    }, []);
+    const hubMode = !!hubSession;
+    const [currentFacet, setCurrentFacet] = useState(null);
+    const [matterRefreshKey, setMatterRefreshKey] = useState(0);
+    function handleSelectFacet(id) {
+      setCurrentFacet(id);
+      if (id && window.location.hash && window.location.hash !== "#/") {
+        window.location.hash = "/";
+      }
     }
     const [accessType, setAccessType] = useState(window.__klAccessType || null);
     const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
@@ -7039,6 +7527,7 @@
       setMessages([]);
       setCurrentView("welcome");
       setCurrentDomain(null);
+      setCurrentFacet(null);
       contractPromptShown.current = false;
       if (window.location.hash && window.location.hash !== "#/") {
         window.location.hash = "/";
@@ -7047,6 +7536,7 @@
     async function sendMessage(text) {
       const clean = (text || "").trim();
       if (!clean || isLoading) return;
+      if (currentFacet) setCurrentFacet(null);
       if (currentView === "domain") {
         setCurrentView("conversation");
       }
@@ -7058,24 +7548,31 @@
       }
       setNexusState("processing");
       try {
-        var requestBody = {
-          message: (userType ? "[Context: user is " + (userType === "employer" ? "an employer/HR professional managing staff" : "a worker with a question about their own employment") + "] " : "") + clean,
-          session_id: sessionId,
-          page_context: currentDomain ? "knowledge-library/domain/" + currentDomain.slug : "knowledge-library"
-        };
-        if (currentDomain) {
-          requestBody.domain_context = currentDomain.id;
+        var data;
+        if (hubMode) {
+          var hubData = await hubSendToEileen(hubSession, { question: clean });
+          var hubText = hubData && (hubData.response || hubData.answer || hubData.text || hubData.message);
+          data = hubText ? { response: hubText } : null;
+        } else {
+          var requestBody = {
+            message: (userType ? "[Context: user is " + (userType === "employer" ? "an employer/HR professional managing staff" : "a worker with a question about their own employment") + "] " : "") + clean,
+            session_id: sessionId,
+            page_context: currentDomain ? "knowledge-library/domain/" + currentDomain.slug : "knowledge-library"
+          };
+          if (currentDomain) {
+            requestBody.domain_context = currentDomain.id;
+          }
+          const resp = await fetch(EILEEN_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + window.__klToken,
+              "Content-Type": "application/json",
+              "apikey": SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify(requestBody)
+          });
+          data = await resp.json();
         }
-        const resp = await fetch(EILEEN_ENDPOINT, {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + window.__klToken,
-            "Content-Type": "application/json",
-            "apikey": SUPABASE_ANON_KEY
-          },
-          body: JSON.stringify(requestBody)
-        });
-        const data = await resp.json();
         if (data && data.response) {
           setMessages((prev) => [...prev, {
             role: "assistant",
@@ -7089,6 +7586,9 @@
             setNexusState("dormant");
             presentingTimerRef.current = null;
           }, 2e3);
+          if (hubMode) setMatterRefreshKey(function(k) {
+            return k + 1;
+          });
           var userMsgCount = 0;
           for (var i = 0; i < messages.length; i++) {
             if (messages[i] && messages[i].role === "user") userMsgCount++;
@@ -7589,7 +8089,13 @@
         onCrownQuery: sendMessage,
         nexusState,
         prefersReducedMotion: prefersReducedMotion.current,
-        lang
+        lang,
+        hubMode,
+        currentFacet,
+        onSelectFacet: (id) => {
+          handleSelectFacet(id);
+          if (window.innerWidth <= 768) setSidebarOpen(false);
+        }
       }
     ), currentView === "domain" && currentDomain ? /* @__PURE__ */ React.createElement(
       DomainSubPage,
@@ -7610,7 +8116,7 @@
         tier,
         lang
       }
-    ) : /* @__PURE__ */ React.createElement(
+    ) : hubMode && currentFacet ? /* @__PURE__ */ React.createElement(HubFacetView, { facet: currentFacet, onBack: () => setCurrentFacet(null) }) : /* @__PURE__ */ React.createElement(
       ConversationArea,
       {
         messages,
@@ -7633,7 +8139,10 @@
         onInputChange: handleInputChange,
         nearDomain,
         onDomainHover: handleDomainHover,
-        onDomainLeave: handleDomainLeave
+        onDomainLeave: handleDomainLeave,
+        hubMode,
+        hubSession,
+        matterRefreshKey
       }
     ), currentView !== "domain" && messages.length === 0 && /* @__PURE__ */ React.createElement(
       FloatingNexusAdvisor,

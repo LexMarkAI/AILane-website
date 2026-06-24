@@ -8,6 +8,105 @@ const SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
 const EILEEN_ENDPOINT = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co') + '/functions/v1/eileen-intelligence';
 
+// ─── OOX-001 KL-Hub frame (preview-gated) ───────────────────────────────────
+// AILANE-OOX-001-KL-HUB-ARCHITECTURE-SPEC-001 §1–§5. Hub mode repoints the
+// centre Eileen chat to `eileen-operational`, stands up the matter bar, and
+// renders the "Your workspace" facet rail — for an AUTHENTICATED OPERATIONAL
+// session only, AND only behind a preview flag. In every other case the public
+// Knowledge Library renders exactly as today (the flag/session check is the
+// only gate). A later cutover brief drops the flag requirement. This brief
+// builds the frame + Eileen + rail shell only; facet content ports later.
+var HUB_FUNCTIONS_BASE = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co');
+// Live operational-room allow-list (verbatim from operational/index.html guard).
+var HUB_ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise'];
+
+// "Your workspace" facet rail (KL-HUB §1.5). Placeholders this brief; the real
+// panels (ACEI/Vault/Alerts/Intelligence/Notes/Calendar) port in later briefs.
+var HUB_WORKSPACE_FACETS = [
+  { id: 'vault',        label: 'Document Vault' },
+  { id: 'alerts',       label: 'Alerts' },
+  { id: 'acei',         label: 'ACEI Overview' },
+  { id: 'intelligence', label: 'Intelligence' },
+  { id: 'notes',        label: 'Notes' },
+  { id: 'calendar',     label: 'Calendar' },
+];
+var HUB_FACET_LABELS = {
+  vault: 'Document Vault', alerts: 'Alerts', acei: 'ACEI Overview',
+  intelligence: 'Intelligence', notes: 'Notes', calendar: 'Calendar',
+};
+
+// Preview flag — `?hub=1` in the URL OR localStorage `ailane_kl_hub === 'on'`.
+function klHubFlagSet() {
+  try {
+    var q = new URLSearchParams(window.location.search || '');
+    if (q.get('hub') === '1') return true;
+  } catch (e) { /* ignore */ }
+  try { if (localStorage.getItem('ailane_kl_hub') === 'on') return true; } catch (e) { /* ignore */ }
+  return false;
+}
+
+// Detect an authenticated operational session — mirrors the operational/index.html
+// guard (createClient → getSession() → JWT decode → tier + AAL2). Resolves to a
+// hubSession object or null. Returns null IMMEDIATELY (no Supabase client, no
+// network) when the preview flag is absent, so public mode incurs zero added
+// behaviour. hubSession shape mirrors window.AILANE_OPS plus the resolved tier.
+function detectHubSession() {
+  if (!klHubFlagSet()) return Promise.resolve(null);
+  if (typeof window === 'undefined' || !window.supabase || !window.supabase.createClient) {
+    return Promise.resolve(null);
+  }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return sb.auth.getSession().then(function (gs) {
+    var session = gs && gs.data && gs.data.session;
+    if (!session) return null;
+    var token = session.access_token;
+    var payload;
+    try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
+    // AAL2 required for hub mode (KL-HUB §1.1 / §2 security).
+    if (payload.aal !== 'aal2') return null;
+    var userId = payload.sub;
+    return fetch(
+      SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+      { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } }
+    ).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (rows) {
+        var tier = rows && rows[0] && rows[0].subscription_tier;
+        if (!tier || HUB_ALLOWED_TIERS.indexOf(tier) < 0) return null;
+        return {
+          sb: sb,
+          token: token,
+          anon: SUPABASE_ANON_KEY,
+          supabaseUrl: SUPABASE_URL,
+          functionsBase: HUB_FUNCTIONS_BASE,
+          userId: userId,
+          email: payload.email || '',
+          tier: tier,
+        };
+      })
+      .catch(function () { return null; });
+  }).catch(function () { return null; });
+}
+
+// Canonical hub Eileen request helper. Every call to eileen-operational — the
+// chat question AND the matter_action calls — flows through this one function,
+// so the endpoint URL + auth headers (Bearer token + apikey anon) are inherited,
+// never re-hardcoded. Returns the parsed JSON; throws on any non-2xx (caller
+// degrades gracefully). Mirrors operational/index.html `sendToEileen`.
+function hubSendToEileen(hubSession, body) {
+  return fetch(hubSession.functionsBase + '/eileen-operational', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + hubSession.token,
+      'apikey': hubSession.anon,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then(function (r) {
+    if (!r.ok) throw new Error('http_' + r.status);
+    return r.json();
+  });
+}
+
 const CROWN_JEWELS = [
   {
     name: 'Employment Rights Act 1996',
@@ -2635,7 +2734,7 @@ function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChan
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave, hubMode, hubSession, matterRefreshKey }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -2721,6 +2820,8 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             <div className="kl-welcome-input">
               <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
             </div>
+            {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). */}
+            {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} />}
             <HorizonAlert />
             {/* KL-LIVE-001 §W-C: Coming-into-force rail (live feed, date-sorted) */}
             <ForwardRail />
@@ -2812,6 +2913,8 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
             {isLoading && <TypingIndicator />}
           </div>
+          {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). */}
+          {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} />}
           <div className="kl-conversation-input">
             <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
           </div>
@@ -3000,7 +3103,7 @@ function CrownJewels({ onQuery, disabled }) {
 
 // ─── Sidebar ───
 
-function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang }) {
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubMode, currentFacet, onSelectFacet }) {
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
@@ -3099,6 +3202,33 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
               return rendered;
             })()
       )
+    ),
+
+    // OOX-001 §1.5: "Your workspace" facet rail (hub mode only). Each item opens
+    // a facet placeholder in the main content area; real panels port in later
+    // briefs. Renders nothing in public mode (hubMode === false).
+    hubMode && React.createElement('div', {
+      style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0' },
+    },
+      React.createElement('div', {
+        style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 16px' },
+      }, 'Your workspace'),
+      HUB_WORKSPACE_FACETS.map(function (f) {
+        var active = currentFacet === f.id;
+        return React.createElement('button', {
+          key: f.id,
+          type: 'button',
+          onClick: function () { onSelectFacet(active ? null : f.id); },
+          'aria-pressed': active,
+          style: {
+            width: '100%', textAlign: 'left', display: 'block',
+            background: active ? 'rgba(14,165,233,0.12)' : 'transparent',
+            border: 'none', borderLeft: active ? '2px solid #0EA5E9' : '2px solid transparent',
+            color: active ? '#F1F5F9' : '#94A3B8', cursor: 'pointer',
+            fontFamily: "'DM Sans', sans-serif", fontSize: '13px', padding: '8px 16px',
+          },
+        }, f.label);
+      })
     ),
 
     React.createElement('div', { style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' } },
@@ -6884,6 +7014,272 @@ async function saveKlPreferences(partial) {
 
 // ─── App ───
 
+// ─── OOX-001 Hub: matter memory + workspace facets ──────────────────────────
+// Ported from operational/index.html (matter bar + remember capture). Every
+// call reuses hubSendToEileen() (same eileen-operational URL + auth as the
+// chat). ALL server strings are rendered via React children (auto-escaped) —
+// never dangerouslySetInnerHTML on DB/server data (KL-HUB §1.4 / §2 security).
+// The layer degrades silently: any matter_error / network failure hides the
+// panel (console.warn only) and never blocks the chat.
+
+function fmtHubMatterDate(iso) {
+  if (!iso) return '';
+  try {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) { return String(iso); }
+}
+
+var HUB_MATTER_BTN_STYLE = {
+  background: 'transparent', border: '1px solid rgba(14,165,233,0.3)',
+  borderRadius: '6px', color: '#0EA5E9', fontFamily: "'DM Sans', sans-serif",
+  fontSize: '12px', padding: '6px 12px', cursor: 'pointer', minHeight: '32px',
+};
+var HUB_MATTER_BTN_DANGER = Object.assign({}, HUB_MATTER_BTN_STYLE, {
+  color: '#F87171', border: '1px solid rgba(239,68,68,0.35)',
+});
+var HUB_MATTER_BTN_PRIMARY = Object.assign({}, HUB_MATTER_BTN_STYLE, {
+  background: '#0EA5E9', color: '#fff', border: '1px solid #0EA5E9',
+});
+
+// A single due-to-clear matter row: Keep (extend, reason required) /
+// Clear now (delete, confirm) / Mark resolved.
+function HubMatterRow({ m, hubSession, onChanged, onToast }) {
+  var _mode = useState(null);  var mode = _mode[0];  var setMode = _mode[1]; // null | 'keep' | 'clear'
+  var _reason = useState(''); var reason = _reason[0]; var setReason = _reason[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+
+  function act(op, extra) {
+    setBusy(true);
+    var body = Object.assign({ op: op, matter_id: m.id }, extra || {});
+    return hubSendToEileen(hubSession, { matter_action: body })
+      .then(function (resp) { return resp && resp.matter_result; });
+  }
+  function doExtend() {
+    var r = (reason || '').trim();
+    if (!r) return;
+    act('extend', { retention_reason: r })
+      .then(function (mr) {
+        // Always clear busy: on a server-side failure the matter stays
+        // due_soon and the row re-renders, so leaving busy set would lock
+        // the buttons. On success the row leaves due_soon and unmounts.
+        setBusy(false);
+        if (mr && mr.matter_ok) onToast('Kept until ' + fmtHubMatterDate(mr.expires_at));
+        else console.warn('[OOX-001] extend failed', mr && mr.matter_error);
+        onChanged();
+      })
+      .catch(function (e) { console.warn('[OOX-001] extend failed', e); setBusy(false); onChanged(); });
+  }
+  function doDelete() {
+    act('delete')
+      .then(function (mr) {
+        setBusy(false);
+        if (mr && mr.matter_ok) onToast('Cleared');
+        else console.warn('[OOX-001] delete failed', mr && mr.matter_error);
+        onChanged();
+      })
+      .catch(function (e) { console.warn('[OOX-001] delete failed', e); setBusy(false); onChanged(); });
+  }
+  function doResolve() {
+    act('resolve')
+      .then(function (mr) {
+        setBusy(false);
+        if (mr && mr.matter_ok) onToast('Marked resolved — clears automatically after 30 days');
+        else console.warn('[OOX-001] resolve failed', mr && mr.matter_error);
+        onChanged();
+      })
+      .catch(function (e) { console.warn('[OOX-001] resolve failed', e); setBusy(false); onChanged(); });
+  }
+
+  var rowChildren = [
+    React.createElement('div', { key: 'main', style: { minWidth: 0 } },
+      React.createElement('div', { style: { color: '#F1F5F9', fontSize: '13px', lineHeight: 1.4 } }, m.summary || '(no summary)'),
+      React.createElement('div', { style: { color: '#64748B', fontSize: '11px', fontFamily: "'DM Mono', monospace", marginTop: '2px' } }, 'Clears ' + fmtHubMatterDate(m.expires_at))
+    ),
+  ];
+
+  if (mode === 'keep') {
+    rowChildren.push(React.createElement('div', { key: 'keep', style: { display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' } },
+      React.createElement('input', {
+        type: 'text', value: reason, maxLength: 240,
+        placeholder: 'Reason to keep (e.g. ongoing tribunal claim)',
+        onChange: function (e) { setReason(e.target.value); },
+        onKeyDown: function (e) { if (e.key === 'Enter') { e.preventDefault(); doExtend(); } },
+        style: { flex: 1, minWidth: '160px', background: '#0A1628', border: '1px solid #1E3A5F', borderRadius: '6px', color: '#F1F5F9', fontSize: '12px', padding: '6px 10px', fontFamily: "'DM Sans', sans-serif" },
+      }),
+      React.createElement('button', { type: 'button', disabled: busy || !reason.trim(), style: HUB_MATTER_BTN_PRIMARY, onClick: doExtend }, 'Save reason'),
+      React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: function () { setMode(null); setReason(''); } }, 'Cancel')
+    ));
+  } else if (mode === 'clear') {
+    rowChildren.push(React.createElement('div', { key: 'clear', style: { display: 'flex', gap: '6px', marginTop: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+      React.createElement('span', { style: { color: '#94A3B8', fontSize: '12px', flex: 1, minWidth: '160px' } }, 'Clear this from memory? This cannot be undone.'),
+      React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: doDelete }, 'Confirm clear'),
+      React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: function () { setMode(null); } }, 'Cancel')
+    ));
+  } else {
+    rowChildren.push(React.createElement('div', { key: 'actions', style: { display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' } },
+      React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: function () { setMode('keep'); } }, 'Keep'),
+      React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_DANGER, onClick: function () { setMode('clear'); } }, 'Clear now'),
+      React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: doResolve }, 'Mark resolved')
+    ));
+  }
+
+  return React.createElement('div', {
+    style: { padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' },
+  }, rowChildren);
+}
+
+// Retain-or-clear matter panel + "Remember a matter" capture (upsert).
+// Re-lists on `refreshKey` change (bumped after each Eileen answer) and on mount.
+function HubMatterPanel({ hubSession, refreshKey }) {
+  var _matters = useState([]); var matters = _matters[0]; var setMatters = _matters[1];
+  var _toast = useState(''); var toast = _toast[0]; var setToast = _toast[1];
+  var _capOpen = useState(false); var capOpen = _capOpen[0]; var setCapOpen = _capOpen[1];
+  var _capText = useState(''); var capText = _capText[0]; var setCapText = _capText[1];
+  var _capCats = useState(''); var capCats = _capCats[0]; var setCapCats = _capCats[1];
+  var _capErr = useState(''); var capErr = _capErr[0]; var setCapErr = _capErr[1];
+  var _capBusy = useState(false); var capBusy = _capBusy[0]; var setCapBusy = _capBusy[1];
+  var toastTimer = useRef(null);
+
+  function showToast(msg) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(function () { setToast(''); }, 3200);
+  }
+
+  var refresh = useCallback(function () {
+    if (!hubSession) return;
+    hubSendToEileen(hubSession, { matter_action: { op: 'list' } })
+      .then(function (resp) {
+        var mr = resp && resp.matter_result;
+        if (!mr || mr.matter_error || !Array.isArray(mr.matters)) {
+          if (mr && mr.matter_error) console.warn('[OOX-001] matter list error:', mr.matter_error);
+          setMatters([]); return;
+        }
+        setMatters(mr.matters.filter(function (m) { return m && m.due_soon === true; }));
+      })
+      .catch(function (e) { console.warn('[OOX-001] matter list failed', e); setMatters([]); });
+  }, [hubSession]);
+
+  useEffect(function () { refresh(); }, [refresh, refreshKey]);
+  useEffect(function () { return function () { if (toastTimer.current) clearTimeout(toastTimer.current); }; }, []);
+
+  function saveCapture() {
+    var summary = (capText || '').trim();
+    setCapErr('');
+    if (!summary) return;
+    var catList = (capCats || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    setCapBusy(true);
+    hubSendToEileen(hubSession, { matter_action: { op: 'upsert', summary: summary, acei_categories: catList } })
+      .then(function (resp) {
+        setCapBusy(false);
+        var mr = resp && resp.matter_result;
+        if (mr && mr.matter_ok) {
+          showToast('Remembered');
+          setCapOpen(false); setCapText(''); setCapCats('');
+          refresh();
+        } else if (mr && mr.matter_error) {
+          setCapErr(mr.matter_error);
+        } else {
+          setCapErr('Could not save the matter. Please try again.');
+        }
+      })
+      .catch(function (e) {
+        setCapBusy(false);
+        console.warn('[OOX-001] upsert failed', e);
+        setCapErr('Could not save the matter. Please try again.');
+      });
+  }
+
+  var children = [];
+
+  // Retain-or-clear card (only when there are due_soon matters).
+  if (matters.length > 0) {
+    children.push(React.createElement('div', {
+      key: 'card',
+      style: { background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px', padding: '8px 14px 12px', marginBottom: '8px' },
+    },
+      React.createElement('div', {
+        style: { color: '#94A3B8', fontSize: '10px', fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 0' },
+      }, 'Matter memory — due to clear'),
+      matters.map(function (m) {
+        return React.createElement(HubMatterRow, { key: m.id, m: m, hubSession: hubSession, onChanged: refresh, onToast: showToast });
+      })
+    ));
+  }
+
+  // Remember-a-matter control.
+  var captureChildren = [
+    React.createElement('button', {
+      key: 'toggle', type: 'button', className: 'kl-action-btn',
+      onClick: function () { setCapErr(''); setCapOpen(!capOpen); },
+    }, capOpen ? 'Close' : '+ Remember a matter'),
+  ];
+  if (capOpen) {
+    captureChildren.push(React.createElement('div', {
+      key: 'form',
+      style: { marginTop: '8px', background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px', padding: '12px' },
+    },
+      React.createElement('label', {
+        htmlFor: 'hub-matter-capture-text',
+        style: { display: 'block', color: '#94A3B8', fontSize: '12px', marginBottom: '6px', lineHeight: 1.4 },
+      }, 'Describe the matter — use roles, not names. Eileen stores it anonymised.'),
+      React.createElement('textarea', {
+        id: 'hub-matter-capture-text', value: capText, rows: 2, maxLength: 600,
+        onChange: function (e) { setCapText(e.target.value); },
+        style: { width: '100%', background: '#0A1628', border: '1px solid #1E3A5F', borderRadius: '6px', color: '#F1F5F9', fontSize: '13px', padding: '8px 10px', fontFamily: "'DM Sans', sans-serif", resize: 'vertical' },
+      }),
+      React.createElement('input', {
+        type: 'text', value: capCats, placeholder: 'ACEI categories (optional, comma-separated)',
+        onChange: function (e) { setCapCats(e.target.value); },
+        style: { width: '100%', marginTop: '6px', background: '#0A1628', border: '1px solid #1E3A5F', borderRadius: '6px', color: '#F1F5F9', fontSize: '12px', padding: '6px 10px', fontFamily: "'DM Sans', sans-serif" },
+      }),
+      capErr ? React.createElement('div', { style: { color: '#F87171', fontSize: '12px', marginTop: '6px' } }, capErr) : null,
+      React.createElement('div', { style: { display: 'flex', gap: '6px', marginTop: '8px' } },
+        React.createElement('button', { type: 'button', disabled: capBusy || !capText.trim(), style: HUB_MATTER_BTN_PRIMARY, onClick: saveCapture }, 'Remember'),
+        React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: function () { setCapOpen(false); setCapText(''); setCapCats(''); setCapErr(''); } }, 'Cancel')
+      )
+    ));
+  }
+  children.push(React.createElement('div', { key: 'capture' }, captureChildren));
+
+  if (toast) {
+    children.push(React.createElement('div', {
+      key: 'toast', role: 'status', 'aria-live': 'polite',
+      style: { marginTop: '8px', color: '#10B981', fontSize: '12px', fontFamily: "'DM Mono', monospace" },
+    }, toast));
+  }
+
+  return React.createElement('div', {
+    className: 'kl-hub-matter-panel',
+    style: { maxWidth: '860px', width: '100%', margin: '0 auto 8px' },
+  }, children);
+}
+
+// Workspace facet placeholder mounted in the main content area (KL-HUB §1.5).
+// Real content ports in later briefs; routing/state is established here.
+function HubFacetView({ facet, onBack }) {
+  var label = HUB_FACET_LABELS[facet] || 'Workspace';
+  return React.createElement('div', { className: 'kl-main' },
+    React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 24px', borderBottom: '1px solid var(--kl-border, #1E3A5F)', flexShrink: 0 },
+    },
+      React.createElement('button', {
+        type: 'button', className: 'kl-action-btn', onClick: onBack, 'aria-label': 'Back to Eileen',
+      }, '← Back'),
+      React.createElement('div', { style: { fontSize: '15px', fontWeight: 500, color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif" } }, label)
+    ),
+    React.createElement('div', { style: { flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' } },
+      React.createElement('div', { className: 'kl-placeholder-panel', style: { maxWidth: '420px' } },
+        React.createElement('div', { className: 'kl-placeholder-icon' }, '🛠️'),
+        React.createElement('div', { className: 'kl-placeholder-title' }, label),
+        React.createElement('div', { className: 'kl-placeholder-body' }, 'This area is being wired in — coming shortly.')
+      )
+    )
+  );
+}
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [sessionId, setSessionId] = useState(() => 'eileen-' + Date.now() + '-' + Math.random().toString(36).substr(2, 7));
@@ -6917,6 +7313,28 @@ function App() {
     try { localStorage.setItem('ailane_kl_helper_dismissed', '1'); } catch(e) { /* silent */ }
     saveKlPreferences({ helper_dismissed: true });
   }
+  // OOX-001 KL-Hub frame (preview-gated). hubSession is null unless an
+  // authenticated operational session is present AND the preview flag is set.
+  // hubMode being false ⇒ the public KL renders exactly as today.
+  const [hubSession, setHubSession] = useState(null);
+  useEffect(function () {
+    var alive = true;
+    detectHubSession().then(function (s) { if (alive) setHubSession(s); });
+    return function () { alive = false; };
+  }, []);
+  const hubMode = !!hubSession;
+  // Active workspace facet (hub mode only). null ⇒ Eileen conversation shows.
+  const [currentFacet, setCurrentFacet] = useState(null);
+  // Bumped after each hub Eileen answer to re-list the matter bar.
+  const [matterRefreshKey, setMatterRefreshKey] = useState(0);
+  function handleSelectFacet(id) {
+    setCurrentFacet(id);
+    // Leave any domain sub-page so the facet (main-area mount) is visible.
+    if (id && window.location.hash && window.location.hash !== '#/') {
+      window.location.hash = '/';
+    }
+  }
+
   const [accessType, setAccessType] = useState(window.__klAccessType || null);
   const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
   const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
@@ -7197,6 +7615,8 @@ function App() {
     // AMD-045: Reset view to welcome and clear domain context
     setCurrentView('welcome');
     setCurrentDomain(null);
+    // OOX-001: close any open workspace facet on new conversation.
+    setCurrentFacet(null);
     // §6.4: Reset contract prompt guard for new session
     contractPromptShown.current = false;
     if (window.location.hash && window.location.hash !== '#/') {
@@ -7207,6 +7627,8 @@ function App() {
   async function sendMessage(text) {
     const clean = (text || '').trim();
     if (!clean || isLoading) return;
+    // OOX-001: leave any open workspace facet so the conversation shows.
+    if (currentFacet) setCurrentFacet(null);
     // AMD-045 §5: Transition from domain sub-page to conversation on send
     if (currentView === 'domain') {
       setCurrentView('conversation');
@@ -7217,27 +7639,38 @@ function App() {
     if (presentingTimerRef.current) { clearTimeout(presentingTimerRef.current); presentingTimerRef.current = null; }
     setNexusState('processing');
     try {
-      // AMD-045 §4.8: Include domain context in Eileen request
-      var requestBody = {
-        message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional managing staff' : 'a worker with a question about their own employment') + '] ' : '') + clean,
-        session_id: sessionId,
-        page_context: currentDomain
-          ? 'knowledge-library/domain/' + currentDomain.slug
-          : 'knowledge-library',
-      };
-      if (currentDomain) {
-        requestBody.domain_context = currentDomain.id;
+      var data;
+      if (hubMode) {
+        // OOX-001 §1.3: hub mode routes Eileen to eileen-operational. Reuse the
+        // operational request shape ({ question }) and normalise the response to
+        // the KL message shape ({ response }) so the existing escape-first
+        // renderer (renderMarkdown) renders it unchanged.
+        var hubData = await hubSendToEileen(hubSession, { question: clean });
+        var hubText = hubData && (hubData.response || hubData.answer || hubData.text || hubData.message);
+        data = hubText ? { response: hubText } : null;
+      } else {
+        // AMD-045 §4.8: Include domain context in Eileen request
+        var requestBody = {
+          message: (userType ? '[Context: user is ' + (userType === 'employer' ? 'an employer/HR professional managing staff' : 'a worker with a question about their own employment') + '] ' : '') + clean,
+          session_id: sessionId,
+          page_context: currentDomain
+            ? 'knowledge-library/domain/' + currentDomain.slug
+            : 'knowledge-library',
+        };
+        if (currentDomain) {
+          requestBody.domain_context = currentDomain.id;
+        }
+        const resp = await fetch(EILEEN_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.__klToken,
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify(requestBody),
+        });
+        data = await resp.json();
       }
-      const resp = await fetch(EILEEN_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + window.__klToken,
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(requestBody),
-      });
-      const data = await resp.json();
       if (data && data.response) {
         setMessages((prev) => [...prev, {
           role: 'assistant',
@@ -7248,6 +7681,8 @@ function App() {
         loadSessionHistory();
         setNexusState('presenting');
         presentingTimerRef.current = setTimeout(function() { setNexusState('dormant'); presentingTimerRef.current = null; }, 2000);
+        // OOX-001 §1.4: refresh the retain-or-clear matter panel after each answer.
+        if (hubMode) setMatterRefreshKey(function (k) { return k + 1; });
 
         // EQIS: Show qualifying question only once the user is engaged.
         // Brief 5 §1.4: gate on ≥2 user messages OR ≥60s on-page, to keep
@@ -7854,8 +8289,13 @@ function App() {
         nexusState={nexusState}
         prefersReducedMotion={prefersReducedMotion.current}
         lang={lang}
+        hubMode={hubMode}
+        currentFacet={currentFacet}
+        onSelectFacet={(id) => { handleSelectFacet(id); if (window.innerWidth <= 768) setSidebarOpen(false); }}
       />
-      {/* AMD-045 §5: Conditional render — domain sub-page or conversation area */}
+      {/* AMD-045 §5: Conditional render — domain sub-page or conversation area.
+          OOX-001 §1.5: in hub mode an open workspace facet mounts in the main
+          content area (same mount as a domain "Explore →"). */}
       {currentView === 'domain' && currentDomain ? (
         <DomainSubPage
           domain={currentDomain}
@@ -7870,6 +8310,8 @@ function App() {
           tier={tier}
           lang={lang}
         />
+      ) : hubMode && currentFacet ? (
+        <HubFacetView facet={currentFacet} onBack={() => setCurrentFacet(null)} />
       ) : (
         <ConversationArea
           messages={messages}
@@ -7891,6 +8333,9 @@ function App() {
           nearDomain={nearDomain}
           onDomainHover={handleDomainHover}
           onDomainLeave={handleDomainLeave}
+          hubMode={hubMode}
+          hubSession={hubSession}
+          matterRefreshKey={matterRefreshKey}
         />
       )}
       {/* F-1: FloatingNexusAdvisor rendered at App level so it is visible
