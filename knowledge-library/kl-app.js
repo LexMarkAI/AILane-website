@@ -9503,6 +9503,337 @@
     ));
     return React.createElement("div", { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } }, children);
   }
+  var HUB_NOTES_COLS = "id,title,content_plain,pinned,note_type,updated_at,created_at";
+  var HUB_NOTES_CARD_STYLE = { background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "12px", padding: "16px 18px" };
+  var HUB_NOTES_CARD_PINNED = { borderColor: "rgba(14,165,233,0.45)", borderLeft: "2px solid #38BDF8", background: "rgba(14,165,233,0.06)" };
+  var HUB_NOTES_LIST_STYLE = { display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" };
+  var HUB_NOTES_TITLE_STYLE = { fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: "#F1F5F9", wordBreak: "break-word" };
+  var HUB_NOTES_SNIPPET_STYLE = { marginTop: "6px", color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "13.5px", lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" };
+  var HUB_NOTES_META_STYLE = { marginTop: "8px", color: "#64748B", fontFamily: "'DM Mono', monospace", fontSize: "11px" };
+  var HUB_NOTES_PIN_TAG = { display: "inline-flex", alignItems: "center", gap: "4px", flexShrink: 0, color: "#38BDF8", background: "rgba(14,165,233,0.12)", border: "1px solid rgba(56,189,248,0.35)", borderRadius: "999px", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 600, padding: "2px 9px", whiteSpace: "nowrap" };
+  var HUB_NOTES_INPUT_STYLE = { width: "100%", background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "6px", color: "#F1F5F9", fontSize: "13px", padding: "8px 10px", fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box" };
+  var HUB_NOTES_TEXTAREA_STYLE = Object.assign({}, HUB_NOTES_INPUT_STYLE, { resize: "vertical", marginTop: "8px" });
+  var HUB_NOTES_ACTIONS_STYLE = { display: "flex", gap: "6px", marginTop: "12px", flexWrap: "wrap" };
+  var HUB_NOTES_ERR_STYLE = { color: "#F87171", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", marginTop: "8px" };
+  function hubNotesSort(notes) {
+    return (notes || []).slice().sort(function(a, b) {
+      var ap = a && a.pinned ? 1 : 0;
+      var bp = b && b.pinned ? 1 : 0;
+      if (ap !== bp) return bp - ap;
+      var au = a && a.updated_at ? String(a.updated_at) : "";
+      var bu = b && b.updated_at ? String(b.updated_at) : "";
+      if (au < bu) return 1;
+      if (au > bu) return -1;
+      return 0;
+    });
+  }
+  function hubNotesSnippet(text2) {
+    if (text2 == null) return "";
+    var s = String(text2).trim();
+    if (s.length <= 200) return s;
+    return s.slice(0, 200).replace(/\s+\S*$/, "") + "\u2026";
+  }
+  function HubNoteCard({ note, hubSession, onChanged, onRemoved }) {
+    var _mode = useState(null);
+    var mode = _mode[0];
+    var setMode = _mode[1];
+    var _title = useState(note.title || "");
+    var title = _title[0];
+    var setTitle = _title[1];
+    var _content = useState(note.content_plain || "");
+    var content = _content[0];
+    var setContent = _content[1];
+    var _busy = useState(false);
+    var busy = _busy[0];
+    var setBusy = _busy[1];
+    var _err = useState("");
+    var err = _err[0];
+    var setErr = _err[1];
+    function sbReady() {
+      var sb = hubSession && hubSession.sb;
+      return sb && sb.from ? sb : null;
+    }
+    function saveEdit() {
+      var sb = sbReady();
+      if (!sb) return;
+      var t = (title || "").trim();
+      var c = (content || "").trim();
+      if (!c) {
+        setErr("Note content cannot be empty.");
+        return;
+      }
+      setBusy(true);
+      setErr("");
+      sb.from("kl_workspace_notes").update({ title: t || null, content_plain: c, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", note.id).select(HUB_NOTES_COLS).single().then(function(r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        setMode(null);
+        onChanged(r && r.data || Object.assign({}, note, { title: t || null, content_plain: c }));
+      }).catch(function(e) {
+        setBusy(false);
+        console.warn("[OOX-001] Notes: edit failed", e);
+        setErr("Could not save changes. Please try again.");
+      });
+    }
+    function doDelete() {
+      var sb = sbReady();
+      if (!sb) return;
+      setBusy(true);
+      setErr("");
+      sb.from("kl_workspace_notes").delete().eq("id", note.id).then(function(r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        onRemoved(note.id);
+      }).catch(function(e) {
+        setBusy(false);
+        console.warn("[OOX-001] Notes: delete failed", e);
+        setErr("Could not delete this note. Please try again.");
+        setMode(null);
+      });
+    }
+    function togglePin() {
+      var sb = sbReady();
+      if (!sb) return;
+      var next = !note.pinned;
+      setBusy(true);
+      sb.from("kl_workspace_notes").update({ pinned: next, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", note.id).select(HUB_NOTES_COLS).single().then(function(r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        onChanged(r && r.data || Object.assign({}, note, { pinned: next }));
+      }).catch(function(e) {
+        setBusy(false);
+        console.warn("[OOX-001] Notes: pin toggle failed", e);
+      });
+    }
+    var cardStyle = note.pinned ? Object.assign({}, HUB_NOTES_CARD_STYLE, HUB_NOTES_CARD_PINNED) : HUB_NOTES_CARD_STYLE;
+    if (mode === "edit") {
+      return React.createElement(
+        "div",
+        { style: cardStyle },
+        React.createElement("input", {
+          type: "text",
+          value: title,
+          maxLength: 200,
+          placeholder: "Title (optional)",
+          "aria-label": "Note title",
+          onChange: function(e) {
+            setTitle(e.target.value);
+          },
+          style: HUB_NOTES_INPUT_STYLE
+        }),
+        React.createElement("textarea", {
+          value: content,
+          rows: 4,
+          placeholder: "Write your note\u2026",
+          "aria-label": "Note content",
+          onChange: function(e) {
+            setContent(e.target.value);
+          },
+          style: HUB_NOTES_TEXTAREA_STYLE
+        }),
+        err ? React.createElement("div", { style: HUB_NOTES_ERR_STYLE }, err) : null,
+        React.createElement(
+          "div",
+          { style: HUB_NOTES_ACTIONS_STYLE },
+          React.createElement("button", { type: "button", disabled: busy || !content.trim(), style: HUB_MATTER_BTN_PRIMARY, onClick: saveEdit }, busy ? "Saving\u2026" : "Save"),
+          React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function() {
+            setMode(null);
+            setTitle(note.title || "");
+            setContent(note.content_plain || "");
+            setErr("");
+          } }, "Cancel")
+        )
+      );
+    }
+    if (mode === "delete") {
+      return React.createElement(
+        "div",
+        { style: cardStyle },
+        React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", lineHeight: 1.5 } }, "Delete this note? This cannot be undone."),
+        err ? React.createElement("div", { style: HUB_NOTES_ERR_STYLE }, err) : null,
+        React.createElement(
+          "div",
+          { style: HUB_NOTES_ACTIONS_STYLE },
+          React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: doDelete }, busy ? "Deleting\u2026" : "Confirm delete"),
+          React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function() {
+            setMode(null);
+            setErr("");
+          } }, "Cancel")
+        )
+      );
+    }
+    var children = [
+      React.createElement(
+        "div",
+        { key: "hdr", style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" } },
+        React.createElement(
+          "div",
+          { style: { minWidth: 0 } },
+          React.createElement("div", { style: HUB_NOTES_TITLE_STYLE }, note.title ? note.title : "Untitled")
+        ),
+        note.pinned ? React.createElement("span", { style: HUB_NOTES_PIN_TAG }, "\u{1F4CC} Pinned") : null
+      )
+    ];
+    var snip = hubNotesSnippet(note.content_plain);
+    if (snip) children.push(React.createElement("div", { key: "snip", style: HUB_NOTES_SNIPPET_STYLE }, snip));
+    children.push(React.createElement("div", { key: "meta", style: HUB_NOTES_META_STYLE }, "Updated " + hubVaultDate(note.updated_at)));
+    if (err) children.push(React.createElement("div", { key: "err", style: HUB_NOTES_ERR_STYLE }, err));
+    children.push(React.createElement(
+      "div",
+      { key: "actions", style: HUB_NOTES_ACTIONS_STYLE },
+      React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_STYLE, "aria-pressed": note.pinned ? "true" : "false", onClick: togglePin }, note.pinned ? "Unpin" : "Pin"),
+      React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function() {
+        setTitle(note.title || "");
+        setContent(note.content_plain || "");
+        setErr("");
+        setMode("edit");
+      } }, "Edit"),
+      React.createElement("button", { type: "button", disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: function() {
+        setErr("");
+        setMode("delete");
+      } }, "Delete")
+    ));
+    return React.createElement("div", { style: cardStyle }, children);
+  }
+  function HubNotesFacet({ hubSession }) {
+    var _state = useState({ status: "loading", notes: [], error: false });
+    var state = _state[0];
+    var setState = _state[1];
+    var _nt = useState("");
+    var newTitle = _nt[0];
+    var setNewTitle = _nt[1];
+    var _nc = useState("");
+    var newContent = _nc[0];
+    var setNewContent = _nc[1];
+    var _cb = useState(false);
+    var creating = _cb[0];
+    var setCreating = _cb[1];
+    var _ce = useState("");
+    var createErr = _ce[0];
+    var setCreateErr = _ce[1];
+    useEffect(function() {
+      var alive = true;
+      var sb = hubSession && hubSession.sb;
+      if (!sb || !sb.from) {
+        setState({ status: "ready", notes: [], error: true });
+        return;
+      }
+      sb.from("kl_workspace_notes").select(HUB_NOTES_COLS).order("pinned", { ascending: false }).order("updated_at", { ascending: false }).limit(100).then(function(res) {
+        if (!alive) return;
+        var un = hubVaultUnwrap(res, "kl_workspace_notes");
+        if (un.error) {
+          setState({ status: "ready", notes: [], error: true });
+          return;
+        }
+        setState({ status: "ready", notes: hubNotesSort(un.rows || []), error: false });
+      }).catch(function(e) {
+        console.warn("[OOX-001] Notes facet: read failed", e);
+        if (alive) setState({ status: "ready", notes: [], error: true });
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubSession]);
+    function createNote() {
+      var sb = hubSession && hubSession.sb;
+      if (!sb || !sb.from) return;
+      var t = (newTitle || "").trim();
+      var c = (newContent || "").trim();
+      if (!c) {
+        setCreateErr("Write something to save.");
+        return;
+      }
+      setCreating(true);
+      setCreateErr("");
+      sb.from("kl_workspace_notes").insert({ user_id: hubSession.userId, title: t || null, content_plain: c, content_json: {}, note_type: "note", pinned: false }).select(HUB_NOTES_COLS).single().then(function(r) {
+        setCreating(false);
+        if (r && r.error) throw r.error;
+        var row = r && r.data;
+        if (!row) {
+          setCreateErr("Could not save the note. Please try again.");
+          return;
+        }
+        setNewTitle("");
+        setNewContent("");
+        setState(function(prev) {
+          return { status: "ready", notes: hubNotesSort([row].concat(prev.notes || [])), error: prev.error };
+        });
+      }).catch(function(e) {
+        setCreating(false);
+        console.warn("[OOX-001] Notes: create failed", e);
+        setCreateErr("Could not save the note. Please try again.");
+      });
+    }
+    function handleChanged(row) {
+      if (!row || row.id == null) return;
+      setState(function(prev) {
+        var next = (prev.notes || []).map(function(n) {
+          return n.id === row.id ? row : n;
+        });
+        return Object.assign({}, prev, { notes: hubNotesSort(next) });
+      });
+    }
+    function handleRemoved(id) {
+      setState(function(prev) {
+        return Object.assign({}, prev, { notes: (prev.notes || []).filter(function(n) {
+          return n.id !== id;
+        }) });
+      });
+    }
+    if (state.status === "loading") {
+      return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading your notes\u2026");
+    }
+    var children = [];
+    var notes = state.notes || [];
+    if (state.error) {
+      children.push(React.createElement("div", { key: "err", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", marginBottom: "16px" } }, "Could not load your notes just now."));
+    } else if (!notes.length) {
+      children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6, marginBottom: "20px" } }, "No notes yet \u2014 capture your first below."));
+    } else {
+      children.push(React.createElement(
+        "div",
+        { key: "list", style: HUB_NOTES_LIST_STYLE },
+        notes.map(function(n) {
+          return React.createElement(HubNoteCard, { key: n.id, note: n, hubSession, onChanged: handleChanged, onRemoved: handleRemoved });
+        })
+      ));
+    }
+    children.push(React.createElement(
+      "div",
+      { key: "newform", style: HUB_NOTES_CARD_STYLE },
+      React.createElement("div", { key: "h", style: HUB_ACEI_SECTION_H }, "New note"),
+      React.createElement("input", {
+        key: "title",
+        type: "text",
+        value: newTitle,
+        maxLength: 200,
+        placeholder: "Title (optional)",
+        "aria-label": "New note title",
+        onChange: function(e) {
+          setNewTitle(e.target.value);
+        },
+        style: HUB_NOTES_INPUT_STYLE
+      }),
+      React.createElement("textarea", {
+        key: "content",
+        value: newContent,
+        rows: 3,
+        placeholder: "Write a note\u2026",
+        "aria-label": "New note content",
+        onChange: function(e) {
+          setNewContent(e.target.value);
+        },
+        style: HUB_NOTES_TEXTAREA_STYLE
+      }),
+      createErr ? React.createElement("div", { key: "err", style: HUB_NOTES_ERR_STYLE }, createErr) : null,
+      React.createElement(
+        "div",
+        { key: "actions", style: HUB_NOTES_ACTIONS_STYLE },
+        React.createElement("button", { type: "button", disabled: creating || !newContent.trim(), style: HUB_MATTER_BTN_PRIMARY, onClick: createNote }, creating ? "Saving\u2026" : "Save note")
+      )
+    ));
+    return React.createElement("div", { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } }, children);
+  }
   function HubFacetView({ facet, hubSession, onBack }) {
     var label = HUB_FACET_LABELS[facet] || "Workspace";
     var body = facet === "acei" ? React.createElement(
@@ -9521,6 +9852,10 @@
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
       React.createElement(HubIntelFacet, { hubSession })
+    ) : facet === "notes" ? React.createElement(
+      "div",
+      { style: { flex: 1, overflowY: "auto", padding: "24px" } },
+      React.createElement(HubNotesFacet, { hubSession })
     ) : React.createElement(
       "div",
       { style: { flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" } },
