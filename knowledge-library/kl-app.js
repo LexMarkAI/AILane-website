@@ -7436,12 +7436,247 @@
       // §1.5
     );
   }
+  function hubVaultUnwrap(res, name) {
+    if (!res || res.error) {
+      console.warn("[OOX-001] Vault read failed: " + name, res && res.error);
+      return { error: true };
+    }
+    return { rows: Array.isArray(res.data) ? res.data : [] };
+  }
+  function hubVaultFileSize(bytes) {
+    if (!hubAceiIsNum(bytes)) return "\u2014";
+    var n = Number(bytes);
+    if (n < 1024) return Math.round(n) + " B";
+    var units = ["KB", "MB", "GB", "TB"], u = -1;
+    do {
+      n /= 1024;
+      u++;
+    } while (n >= 1024 && u < units.length - 1);
+    return (n >= 10 ? Math.round(n) : n.toFixed(1)) + " " + units[u];
+  }
+  function hubVaultMimeLabel(mime) {
+    if (!mime) return "FILE";
+    var m = String(mime).toLowerCase();
+    if (m.indexOf("pdf") >= 0) return "PDF";
+    if (m.indexOf("wordprocessing") >= 0 || m.indexOf("msword") >= 0) return "DOCX";
+    if (m.indexOf("spreadsheet") >= 0 || m.indexOf("excel") >= 0) return "XLSX";
+    if (m.indexOf("text/plain") >= 0) return "TXT";
+    if (m.indexOf("image/") >= 0) return (m.split("/")[1] || "image").toUpperCase();
+    var slash = m.indexOf("/");
+    return (slash >= 0 ? m.slice(slash + 1) : m).toUpperCase();
+  }
+  function hubVaultVisibilityLabel(vis) {
+    var v = String(vis == null ? "" : vis).toLowerCase();
+    return v === "org_shared" || v === "org_required" ? "org" : "private";
+  }
+  function hubVaultStatusClass(status) {
+    var s = String(status == null ? "" : status).toLowerCase();
+    if (/(complete|done|extracted|analy[sz]ed|ready|success|\bok\b)/.test(s)) return "ok";
+    if (/(fail|error|reject)/.test(s)) return "bad";
+    if (/(pend|queue|process|progress|run|extract|analy[sz]ing|wait)/.test(s)) return "busy";
+    return "idle";
+  }
+  function hubVaultGapCount(g) {
+    if (g == null || g === "") return null;
+    if (Array.isArray(g)) return g.length;
+    if (typeof g === "object") {
+      try {
+        return Object.keys(g).length;
+      } catch (e) {
+        return null;
+      }
+    }
+    if (hubAceiIsNum(g)) return Math.round(Number(g));
+    return null;
+  }
+  function hubVaultDate(iso) {
+    if (!iso) return "\u2014";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    } catch (e) {
+      return String(iso);
+    }
+  }
+  var HUB_VAULT_PILL_BASE = { display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", letterSpacing: "0.01em", padding: "3px 9px", borderRadius: "999px", border: "1px solid #1E3A5F", background: "#0A1628", color: "#94A3B8" };
+  var HUB_VAULT_PILL_STYLES = {
+    ok: { color: "#22C55E", borderColor: "rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)" },
+    busy: { color: "#0EA5E9", borderColor: "rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.12)" },
+    bad: { color: "#F87171", borderColor: "rgba(248,113,113,0.32)", background: "rgba(248,113,113,0.08)" },
+    idle: { color: "#64748B" }
+  };
+  var HUB_VAULT_CHIP_STYLE = { display: "inline-block", fontFamily: "'DM Mono', monospace", fontSize: "10px", fontWeight: 700, letterSpacing: "0.04em", color: "#0EA5E9", whiteSpace: "nowrap", background: "rgba(14,165,233,0.12)", border: "1px solid rgba(14,165,233,0.3)", padding: "2px 8px", borderRadius: "6px" };
+  var HUB_VAULT_VIS_BASE = { display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", fontFamily: "'DM Mono', monospace", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "2px 8px", borderRadius: "999px", border: "1px solid #1E3A5F", color: "#94A3B8", background: "rgba(148,163,184,0.06)" };
+  var HUB_VAULT_VIS_ORG = { color: "#0EA5E9", borderColor: "rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.12)" };
+  var HUB_VAULT_CARD_STYLE = { background: "#0F1D32", border: "1px solid #1E3A5F", borderLeft: "2px solid rgba(14,165,233,0.3)", borderRadius: "12px", padding: "16px 18px" };
+  var HUB_VAULT_SAMPLE_STYLE = { flexShrink: 0, fontFamily: "'DM Mono', monospace", fontSize: "9px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94A3B8", background: "rgba(148,163,184,0.07)", border: "1px solid #1E3A5F", padding: "3px 9px", borderRadius: "999px", whiteSpace: "nowrap" };
+  var HUB_VAULT_STAT_TILE = { background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "8px", padding: "12px 14px" };
+  var HUB_VAULT_STAT_LABEL = { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", marginBottom: "6px" };
+  var HUB_VAULT_STAT_VAL = { color: "#F1F5F9", fontFamily: "'DM Mono', monospace", fontSize: "18px", fontWeight: 600 };
+  function hubVaultStatusPill(status, key) {
+    if (status == null || status === "") {
+      return React.createElement("span", { key, style: Object.assign({}, HUB_VAULT_PILL_BASE, HUB_VAULT_PILL_STYLES.idle) }, "\u2014");
+    }
+    var pillStyle = Object.assign({}, HUB_VAULT_PILL_BASE, HUB_VAULT_PILL_STYLES[hubVaultStatusClass(status)]);
+    return React.createElement("span", { key, style: pillStyle }, hubAceiHumanise(status));
+  }
+  function hubVaultDocsPanel(r) {
+    var children = [React.createElement("div", { key: "h", style: HUB_ACEI_SECTION_H }, "Documents")];
+    if (r.error) {
+      children.push(React.createElement("div", { key: "err", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } }, "\u2014"));
+      return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
+    }
+    var rows = r.rows || [];
+    if (!rows.length) {
+      children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No documents in your vault yet."));
+      children.push(React.createElement("div", { key: "note", style: { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.5, marginTop: "8px" } }, "Document upload is coming to this room shortly."));
+      return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
+    }
+    var headers = ["Document", "Type", "Size", "Extraction", "Analysis", "Visibility", "Added"];
+    var thBase = { padding: "9px 12px", borderBottom: "2px solid #1E3A5F", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 600, whiteSpace: "nowrap", textAlign: "left" };
+    var tdBase = { padding: "9px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", verticalAlign: "top" };
+    var tdFname = Object.assign({}, tdBase, { color: "#F1F5F9", fontWeight: 600, wordBreak: "break-word" });
+    var tdCell = Object.assign({}, tdBase, { color: "#F1F5F9" });
+    var tdNum = Object.assign({}, tdBase, { color: "#CBD5E1", fontFamily: "'DM Mono', monospace", whiteSpace: "nowrap" });
+    var tdMuted = Object.assign({}, tdBase, { color: "#94A3B8", whiteSpace: "nowrap" });
+    var headRow = React.createElement("tr", null, headers.map(function(h) {
+      return React.createElement("th", { key: h, style: thBase }, h);
+    }));
+    var bodyRows = rows.map(function(doc, idx) {
+      var vlabel = hubVaultVisibilityLabel(doc.visibility);
+      var visStyle = vlabel === "org" ? Object.assign({}, HUB_VAULT_VIS_BASE, HUB_VAULT_VIS_ORG) : HUB_VAULT_VIS_BASE;
+      return React.createElement(
+        "tr",
+        { key: doc.id != null ? doc.id : idx },
+        React.createElement("td", { style: tdFname }, doc.filename || "\u2014"),
+        React.createElement("td", { style: tdCell }, React.createElement("span", { style: HUB_VAULT_CHIP_STYLE }, hubVaultMimeLabel(doc.mime_type))),
+        React.createElement("td", { style: tdNum }, hubVaultFileSize(doc.file_size_bytes)),
+        React.createElement("td", { style: tdCell }, hubVaultStatusPill(doc.extraction_status, "ex")),
+        React.createElement("td", { style: tdCell }, hubVaultStatusPill(doc.analysis_status, "an")),
+        React.createElement("td", { style: tdCell }, React.createElement("span", { style: visStyle }, vlabel)),
+        React.createElement("td", { style: tdMuted }, hubVaultDate(doc.created_at))
+      );
+    });
+    children.push(React.createElement(
+      "div",
+      { key: "tbl", style: { overflowX: "auto", background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "10px" } },
+      React.createElement(
+        "table",
+        { style: { width: "100%", borderCollapse: "collapse", minWidth: "640px" } },
+        React.createElement("thead", null, headRow),
+        React.createElement("tbody", null, bodyRows)
+      )
+    ));
+    return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
+  }
+  function hubVaultAnalysisCard(a, idx) {
+    var main = [React.createElement("div", { key: "ref", style: { fontSize: "16px", fontWeight: 700, color: "#F1F5F9", wordBreak: "break-word", fontFamily: "'DM Sans', sans-serif" } }, a.employee_ref || "\u2014")];
+    var roleBits = [];
+    if (a.role_title) roleBits.push(a.role_title);
+    if (a.role_tier) roleBits.push(a.role_tier);
+    if (roleBits.length) main.push(React.createElement("div", { key: "role", style: { marginTop: "3px", fontSize: "13px", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif" } }, roleBits.join(" \xB7 ")));
+    var top = [React.createElement("div", { key: "main", style: { minWidth: 0 } }, main)];
+    if (a.is_demonstration === true) top.push(React.createElement("span", { key: "sample", style: HUB_VAULT_SAMPLE_STYLE }, "sample"));
+    var cardChildren = [React.createElement("div", { key: "top", style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" } }, top)];
+    if (hubAceiIsNum(a.compliance_score)) {
+      cardChildren.push(React.createElement(
+        "div",
+        { key: "grid", style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginTop: "12px" } },
+        React.createElement(
+          "div",
+          { style: HUB_VAULT_STAT_TILE },
+          React.createElement("div", { style: HUB_VAULT_STAT_LABEL }, "Compliance score"),
+          React.createElement("div", { style: HUB_VAULT_STAT_VAL }, hubAceiSmart(a.compliance_score))
+        )
+      ));
+    }
+    var gaps = hubVaultGapCount(a.critical_gaps);
+    if (gaps != null) {
+      cardChildren.push(React.createElement(
+        "div",
+        { key: "gaps", style: { marginTop: "10px", color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } },
+        String(gaps) + (gaps === 1 ? " critical gap" : " critical gaps")
+      ));
+    }
+    if (a.key_finding) {
+      cardChildren.push(React.createElement("div", { key: "kfh", style: { marginTop: "14px", fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#64748B" } }, "Key finding"));
+      cardChildren.push(React.createElement("div", { key: "kf", style: { marginTop: "6px", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6, whiteSpace: "pre-wrap" } }, a.key_finding));
+    }
+    return React.createElement("div", { key: a.id != null ? a.id : idx, style: HUB_VAULT_CARD_STYLE }, cardChildren);
+  }
+  function hubVaultAnalysesPanel(r) {
+    var children = [React.createElement("div", { key: "h", style: HUB_ACEI_SECTION_H }, "Contract analyses")];
+    if (r.error) {
+      children.push(React.createElement("div", { key: "err", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } }, "\u2014"));
+      return React.createElement("div", { key: "analyses", style: { marginBottom: "24px" } }, children);
+    }
+    var rows = r.rows || [];
+    if (!rows.length) {
+      children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No contract analyses yet."));
+      return React.createElement("div", { key: "analyses", style: { marginBottom: "24px" } }, children);
+    }
+    children.push(React.createElement(
+      "div",
+      { key: "list", style: { display: "flex", flexDirection: "column", gap: "14px", margin: "8px 0 4px" } },
+      rows.map(function(a, idx) {
+        return hubVaultAnalysisCard(a, idx);
+      })
+    ));
+    children.push(React.createElement(
+      "div",
+      { key: "cap", style: { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.55, marginTop: "10px" } },
+      "Analyses are indicative; the legal judgement belongs with a qualified professional."
+    ));
+    return React.createElement("div", { key: "analyses", style: { marginBottom: "24px" } }, children);
+  }
+  function HubVaultFacet({ hubSession }) {
+    var _state = useState({ status: "loading", docs: { rows: [] }, analyses: { rows: [] } });
+    var state = _state[0];
+    var setState = _state[1];
+    useEffect(function() {
+      var alive = true;
+      var sb = hubSession && hubSession.sb;
+      if (!sb || !sb.from) {
+        setState({ status: "ready", docs: { error: true }, analyses: { error: true } });
+        return;
+      }
+      Promise.all([
+        sb.from("kl_vault_documents").select("id,filename,mime_type,file_size_bytes,extraction_status,analysis_status,visibility,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(50),
+        sb.from("vault_contract_records").select("id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at").order("created_at", { ascending: false }).limit(50)
+      ]).then(function(res) {
+        if (!alive) return;
+        setState({ status: "ready", docs: hubVaultUnwrap(res[0], "kl_vault_documents"), analyses: hubVaultUnwrap(res[1], "vault_contract_records") });
+      }).catch(function(e) {
+        console.warn("[OOX-001] Vault facet: reads failed", e);
+        if (alive) setState({ status: "ready", docs: { error: true }, analyses: { error: true } });
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubSession]);
+    if (state.status === "loading") {
+      return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading your document vault\u2026");
+    }
+    return React.createElement(
+      "div",
+      { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } },
+      hubVaultDocsPanel(state.docs),
+      // §1.2
+      hubVaultAnalysesPanel(state.analyses)
+      // §1.3
+    );
+  }
   function HubFacetView({ facet, hubSession, onBack }) {
     var label = HUB_FACET_LABELS[facet] || "Workspace";
     var body = facet === "acei" ? React.createElement(
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
       React.createElement(HubAceiFacet, { hubSession })
+    ) : facet === "vault" ? React.createElement(
+      "div",
+      { style: { flex: 1, overflowY: "auto", padding: "24px" } },
+      React.createElement(HubVaultFacet, { hubSession })
     ) : React.createElement(
       "div",
       { style: { flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" } },
