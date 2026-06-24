@@ -509,6 +509,15 @@ details[open] .ctx-summary::before{content:"\25BE "}
 
   const esc = (s) => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const $ = (id) => document.getElementById(id);
+  // Version-label normalisation (§1.3) — render "Version 1.0" and "v1.0" identically
+  // as "v1.0" at display time only (never mutates the DB). Non-version labels pass
+  // through unchanged. Applied at every version-display site across the room.
+  function normVer(v){
+    const s = String(v==null?"":v).trim();
+    if(!s) return "";
+    const m = s.match(/^v(?:er(?:sion)?)?\.?\s*([0-9].*)$/i);
+    return m ? "v"+m[1].trim() : s;
+  }
 
   function renderGate(prefillInfo){
     $("app").innerHTML = `
@@ -617,7 +626,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
     const blocks = instruments.map((inst,i)=>`
       <section class="section" id="gi-${i}">
         <div class="sh"><span class="bar"></span><span class="st">${esc(inst.title)}</span>
-          <span class="sc">${esc(inst.version_label||"")}</span></div>
+          <span class="sc">${esc(normVer(inst.version_label))}</span></div>
         <div class="gate-read" id="gr-${i}"><div class="vpad"><span class="spin"></span>Loading…</div></div>
         <div class="gate-act" id="ga-${i}">
           <button class="btn gold" data-ack="${i}">I confirm I have read and understood this document.</button>
@@ -859,7 +868,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
       <div class="cbadgerow">${cardBadge(r)}</div>
       ${ackChip}
       <div class="cf">
-        <span class="chip">${esc(SOURCE_CHIP[r.content_source]||r.content_source)}${r.version_label?` · <span class="vd">${esc(r.version_label)}</span>`:""}</span>
+        <span class="chip">${esc(SOURCE_CHIP[r.content_source]||r.content_source)}${r.version_label?` · <span class="vd">${esc(normVer(r.version_label))}</span>`:""}</span>
         <span class="actions">${actions}</span>
       </div></div>`;
   }
@@ -908,7 +917,7 @@ details[open] .ctx-summary::before{content:"\25BE "}
       gtag('event','lovr_open_artefact',{ doc_code:data.doc_code, content_mode:data.content_mode });
       $("v-title").textContent = data.name || data.doc_code || "Artefact";
       const meta = [];
-      if(data.version_label) meta.push(esc(data.version_label));
+      if(data.version_label) meta.push(esc(normVer(data.version_label)));
       if(data.content_source) meta.push(esc(SOURCE_CHIP[data.content_source]||data.content_source));
       if(data.doc_code) meta.push(`<span style="color:var(--muted-2)">${esc(data.doc_code)}</span>`);
       $("v-meta").innerHTML = meta.join(" · ");
@@ -1256,6 +1265,60 @@ details[open] .ctx-summary::before{content:"\25BE "}
   /* === Assurance & Certifications — reviewer-room section (12 Jun 2026) ===
      Feed: security-definer fn legal_oversight_assurance() — aggregates only, no personal data. */
   const ASSURANCE_POSTURE_LABELS = { operating:"Operating", in_progress:"In progress", planned:"Planned", aspirational:"Aspirational" };
+
+  // === Document-estate dual-state (§1.4, RSG-DUAL-STATE-DISPLAY-SITE-P3-001) ===
+  // Reads the P0 spine via fn_document_estate_for_spec for each spec the room knows,
+  // returning a map spec-key → { active, commencing }. Fully defensive: an absent
+  // RPC, an error, or no rows leaves the entry out, so callers render Active only.
+  // Never throws; never fabricates a date — only a commencement_date the spine
+  // returns produces the amber "Commencing(date)" sibling. Safe before or after P0.
+  function normaliseEstateRows(rows){
+    if(!Array.isArray(rows) || !rows.length) return null;
+    const st = r=> String(r.state||r.status||r.posture||"").toLowerCase();
+    const dateOf = r=> r.commencement_date||r.commences_on||r.effective_date||r.commencing_date||null;
+    const active = rows.find(r=> /active|current|in[_ -]?force/.test(st(r))) || rows.find(r=> !dateOf(r)) || null;
+    const comRow = rows.find(r=> /commenc|forward|pending|future/.test(st(r)) && dateOf(r)) || rows.find(r=> dateOf(r));
+    const commencing = (comRow && dateOf(comRow))
+      ? { version: comRow.version||comRow.version_label, commencement_date: dateOf(comRow) }
+      : null;
+    return { active, commencing };
+  }
+  function normaliseEstateEntry(e){
+    if(!e) return null;
+    if(e.active || e.commencing){
+      const c = e.commencing || null;
+      const cd = c && (c.commencement_date||c.commences_on||c.effective_date);
+      return { active: e.active||null,
+        commencing: cd ? { version:c.version||c.version_label, commencement_date:cd } : null };
+    }
+    if(Array.isArray(e.rows)) return normaliseEstateRows(e.rows);
+    return { active:e, commencing:null };
+  }
+  async function loadDocumentEstate(feed, currency){
+    const out = {};
+    // 1) Prefer an estate already surfaced on the assurance feed (P0 may attach it).
+    (feed && Array.isArray(feed.document_estate) ? feed.document_estate : []).forEach(e=>{
+      const key = e && (e.spec_id||e.spec||e.doc_code||e.page||e.title);
+      if(key==null) return;
+      const norm = normaliseEstateEntry(e); if(norm) out[key] = norm;
+    });
+    // 2) Per-spec spine lookups for true spec identifiers not already covered.
+    const specs = (Array.isArray(currency)?currency:[])
+      .map(p=> p && (p.spec_id||p.spec||p.doc_code))
+      .filter(v=> v!=null && out[v]===undefined);
+    await Promise.all([...new Set(specs)].map(async (spec)=>{
+      try{
+        const { data, error } = await sb.rpc("fn_document_estate_for_spec", { p_spec_id: spec });
+        if(error || !data) return;
+        const rows = Array.isArray(data) ? data
+          : (Array.isArray(data.rows) ? data.rows : (Array.isArray(data.estate) ? data.estate : []));
+        const entry = normaliseEstateRows(rows);
+        if(entry) out[spec] = entry;
+      }catch(_e){ /* spine absent — Active only */ }
+    }));
+    return out;
+  }
+
   async function renderAssurance(){
     let host = document.getElementById("assurance");
     if(!host){
@@ -1380,22 +1443,103 @@ details[open] .ctx-summary::before{content:"\25BE "}
     const klBlk = klCard(data.knowledge_library);
     const eileenBlk = eileenCard(data.eileen_governance);
     const charityBlk = charitySection(data.charity);
-    host.innerHTML = `<details class="ctx-block">
+
+    // ── Solicitor panel + counsel matters + public-page currency + dual-state ──
+    //    §1C renderers from AILANE-CC-BRIEF-LOVR-SOLICITOR-PANEL-SITE-001 (the
+    //    canonical solicitor format), applied verbatim and reading the existing
+    //    legal_oversight_assurance() feed: solicitor_actions / counsel_instructions
+    //    / currency. The room's own gateCards already renders data.gates above, so
+    //    the canonical gateCards is not re-added here (de-duplicated). Every block
+    //    renders only when its data is present — safe to merge before or after P0.
+    const counsel = data.counsel_instructions || [];
+    const SA_LABEL = { amber:"Awaiting instruction", blue:"Instructed — awaiting opinion", purple:"Acknowledgement required", indigo:"Sign-off required", green:"Returned / received", red:"Overdue / rectification", grey:"Planned" };
+    const SA_RANK = { red:0, amber:1, blue:2, purple:3, indigo:4, grey:5, green:6 };
+    // §1.2 — a counsel matter as counselCard (ref — title / Status · due / matter /
+    // Open instruction). sa-doc resolves doc_code → artefact via the cached Vault
+    // rows at click time (same path as the tracker chips), reusing lovr-vault-resolve.
+    function counselCard(ci){
+      const doc = ci.artefact_doc_code
+        ? `<div class="cd"><span class="sa-doc" role="button" tabindex="0" style="cursor:pointer" data-doc="${esc(ci.artefact_doc_code)}" title="Open ${esc(ci.artefact_doc_code)}">Open instruction: ${esc(ci.artefact_doc_code)}</span></div>` : "";
+      return `<div class="card">
+        <div class="ct">${esc(ci.instruction_ref||"")} — ${esc(ci.title||"")}</div>
+        <div class="cd">Status: ${esc((ci.status||"").replace(/_/g," "))}${ci.due_date?` · due ${esc(ci.due_date)}`:""}</div>
+        <div class="cd">${esc(ci.matter_plain || ci.scope_summary || "")}</div>${doc}
+      </div>`;
+    }
+    function saPanel(actions){
+      if(!Array.isArray(actions) || !actions.length) return "";
+      const open = actions.filter(a => a.colour !== "green");
+      const topColour = open.sort((a,b)=>(SA_RANK[a.colour]??9)-(SA_RANK[b.colour]??9))[0]?.colour || "green";
+      const rows = actions.map(a => `
+        <div class="sa-row">
+          <div class="sa-main">
+            <div class="sa-name">${esc(a.title||a.ref||"")}</div>
+            <div class="sa-sub">${esc(a.plain_summary||"")}${a.due_date?` · due ${esc(a.due_date)}`:""}</div>
+          </div>
+          <span class="sa-pill sa-${esc(a.colour||"grey")}">${esc(SA_LABEL[a.colour]||a.state||"")}</span>
+        </div>`).join("");
+      return `<div class="sa-panel">
+        <div class="sa-hd" style="border-bottom-color:${({amber:'#f59e0b',blue:'#2563eb',purple:'#7c3aed',indigo:'#4f46e5',red:'#dc2626',green:'#16a34a',grey:'#9ca3af'})[topColour]||'#9ca3af'}">
+          Solicitor actions <span class="sa-count">${open.length} open</span>
+        </div>${rows}
+      </div>`;
+    }
+    // §1.4 — Active (green) always; Commencing (amber) only when a forward-dated
+    // spine row with a commencement_date exists for this spec. Else Active only.
+    const estate = await loadDocumentEstate(data, data.currency);
+    function commencingFor(p){
+      const keys = [p&&p.spec_id, p&&p.spec, p&&p.doc_code, p&&p.page, p&&p.title].filter(v=> v!=null);
+      for(const k of keys){ const e = estate[k]; if(e && e.commencing && e.commencing.commencement_date) return e.commencing; }
+      if(p && p.commencing && p.commencing.commencement_date) return p.commencing;
+      if(p && p.commencement_date) return { version:p.commencing_version, commencement_date:p.commencement_date };
+      return null;
+    }
+    function currencyCards(rows){
+      if(!Array.isArray(rows) || !rows.length) return "";
+      return rows.map(p => {
+        const stale = p.last_event && p.last_event !== "director_approved_update" && p.last_event !== "baseline";
+        const flag = (p.last_event === "baseline")
+          ? `<span class="sa-pill sa-grey">Baseline — review currency</span>`
+          : (stale ? `<span class="sa-pill sa-amber">${esc(p.last_event.replace(/_/g," "))}</span>`
+                   : `<span class="sa-pill sa-green">Active</span>`);
+        const com = commencingFor(p);
+        const comPill = com
+          ? ` <span class="sa-pill sa-amber" title="Forward-dated change — one ratification stands estate-wide">Commencing (${esc(fmtDate(com.commencement_date)||com.commencement_date)})${com.version?` · ${esc(normVer(com.version))}`:""}</span>`
+          : "";
+        return `<div class="card"><div class="ct">${esc(p.title||p.page||"")}</div>
+          <div class="cd">${esc(normVer(p.version||""))}</div><div class="cd">${flag}${comPill}</div></div>`;
+      }).join("");
+    }
+    const saHtml = saPanel(data.solicitor_actions);
+    const counselCards = counsel.map(counselCard).join("");
+    const counselSection = counsel.length
+      ? `<div class="sh"><span class="bar"></span><span class="st">External counsel — the five matters</span><span class="sc">${counsel.length}</span></div>
+         <div class="cards">${counselCards}</div>` : "";
+    const currCards = currencyCards(data.currency);
+    const currencySection = currCards
+      ? `<div class="sh"><span class="bar"></span><span class="st">Public-page currency</span><span class="sc">${(data.currency||[]).length}</span></div>
+         <div class="cards">${currCards}</div>` : "";
+
+    host.innerHTML = `
+      ${saHtml}
+      <details class="ctx-block">
       <summary class="ctx-summary">AI Lane assurance posture &amp; status — context (click to expand)</summary>
       <div class="ctx-body">
       <div class="section">
         <div class="sh"><span class="bar"></span><span class="st">Compliance &amp; certification tracker</span><span class="sc">${tracker.length}</span></div>
         <div class="cards">${trackerCards}</div>
         ${alsoTrackedHtml}
+        ${counselSection}
         ${(c2Line||evLine) ? `<div class="sh"><span class="bar"></span><span class="st">Verification &amp; evidence</span></div>
         <div class="cards">${c2Line}${evLine}</div>` : ""}
+        ${currencySection}
         ${gateBlk ? `<div class="cards" style="margin-top:14px">${gateBlk}</div>` : ""}
         ${(klBlk||eileenBlk) ? `<div class="sh"><span class="bar"></span><span class="st">Knowledge Library &amp; AI governance</span></div>
         <div class="cards">${klBlk}${eileenBlk}</div>` : ""}
         ${charityBlk}
         <p class="cd" style="opacity:.7;margin-top:8px">Postures shown are programme states, not certification claims. Statuses update live from the governance estate.</p>
       </div></div>
-    </details>`;
+      </details>`;
     // Wire tracker document chips. Resolve doc_code → artefact_id from the cached
     // Vault rows (vaultCache.reg) at click time, so the load order of the Vault vs
     // this section cannot leave a chip unresolved; unknown codes scroll to the
@@ -1409,6 +1553,19 @@ details[open] .ctx-summary::before{content:"\25BE "}
       };
       chip.addEventListener("click", go);
       chip.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+    });
+    // Wire the counsel-card "Open instruction" references (§1.2). Resolve doc_code →
+    // artefact_id from the cached Vault rows at click time (same path as trk-chips),
+    // reusing lovr-vault-resolve; unknown codes scroll to the counsel Vault section.
+    host.querySelectorAll(".sa-doc[data-doc]").forEach(el=>{
+      const code = el.getAttribute("data-doc");
+      const go = ()=>{
+        const row = (vaultCache && Array.isArray(vaultCache.reg)) ? vaultCache.reg.find(r=>r.doc_code===code) : null;
+        if(row && row.artefact_id) LOVR.open(row.artefact_id, "preview");
+        else LOVR.railScroll("sec-counsel-instruction");
+      };
+      el.addEventListener("click", go);
+      el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
     });
   }
   const __rvhOriginal = renderVaultHub;
