@@ -336,6 +336,98 @@
       .kl-nexus-halo--processing { animation: none; }
     }
   </style>
+
+  <!-- OOX-001 (AMD-241) matter-memory layer — calm, institutional; reuses page
+       CSS variables only. No new accent: gold stays brand-only (per :root note). -->
+  <style id="oox-matter-styles">
+    /* "＋ Remember a matter" trigger in the Eileen identity header */
+    .matter-remember-btn {
+      font-family: inherit; font-size: 0.74rem; color: var(--muted);
+      background: transparent; border: 1px solid var(--line-mid);
+      padding: 5px 11px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .matter-remember-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
+
+    /* Shared matter button (reuses the page's back-btn / send-btn idioms) */
+    .matter-btn {
+      font-family: inherit; font-size: 0.78rem; color: var(--muted); cursor: pointer;
+      background: transparent; border: 1px solid var(--line-mid);
+      padding: 6px 12px; border-radius: 7px; transition: all 0.15s ease;
+    }
+    .matter-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
+    .matter-btn.primary { background: var(--cyan); border-color: var(--cyan); color: #06121f; }
+    .matter-btn.primary:hover { opacity: 0.9; color: #06121f; }
+    .matter-btn.danger { color: #fca5a5; border-color: rgba(252,165,165,0.32); }
+    .matter-btn.danger:hover { border-color: #fca5a5; color: #fca5a5; }
+    .matter-btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* Remember-a-matter capture panel */
+    #eileen-matter-capture { margin: 0 0 22px; }
+    .matter-capture-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 16px 18px;
+    }
+    .matter-capture-card .mc-label { display: block; font-size: 0.84rem; color: var(--muted); margin-bottom: 9px; }
+    .matter-capture-card textarea {
+      width: 100%; min-height: 74px; resize: vertical;
+      background: var(--card-2); border: 1px solid var(--line-mid); border-radius: 9px;
+      color: var(--text); font-family: inherit; font-size: 0.92rem; padding: 10px 12px; outline: none;
+    }
+    .matter-capture-card textarea:focus { border-color: var(--cyan-line); }
+    .matter-capture-card .mc-cats {
+      width: 100%; margin-top: 10px;
+      background: var(--card-2); border: 1px solid var(--line-mid); border-radius: 9px;
+      color: var(--text); font-family: inherit; font-size: 0.88rem; padding: 9px 12px; outline: none;
+    }
+    .matter-capture-card .mc-cats:focus { border-color: var(--cyan-line); }
+    .mc-error { margin-top: 10px; font-size: 0.82rem; color: #fca5a5; }
+    .mc-actions { display: flex; gap: 10px; margin-top: 12px; }
+
+    /* Retain-or-clear panel */
+    #eileen-matter-panel { margin-top: 18px; }
+    .matter-panel-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 16px 18px;
+    }
+    .matter-panel-head {
+      font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--cyan); margin-bottom: 12px;
+    }
+    .matter-row {
+      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+      padding: 12px 0; border-top: 1px solid var(--line);
+    }
+    .matter-row:first-of-type { border-top: none; padding-top: 2px; }
+    .matter-row-main { flex: 1; min-width: 210px; }
+    .matter-row-summary { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+    .matter-row-meta {
+      margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint);
+    }
+    .matter-row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .matter-inline {
+      width: 100%; margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .matter-inline .reason {
+      flex: 1; min-width: 190px;
+      background: var(--card-2); border: 1px solid var(--line-mid); border-radius: 8px;
+      color: var(--text); font-family: inherit; font-size: 0.86rem; padding: 8px 11px; outline: none;
+    }
+    .matter-inline .reason:focus { border-color: var(--cyan-line); }
+    .matter-confirm-text { font-size: 0.84rem; color: var(--muted); }
+
+    /* Toast (re-list confirmations) */
+    #eileen-toast {
+      position: fixed; left: 50%; bottom: 92px;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--card-2); border: 1px solid var(--cyan-line); color: var(--text);
+      font-size: 0.84rem; padding: 10px 16px; border-radius: 10px; text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 360px; z-index: 50;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    #eileen-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
 </head>
 <body style="visibility:hidden">
 
@@ -376,7 +468,22 @@
                 <div class="kl-nexus-host kl-nexus-halo kl-nexus-halo--dormant" id="eileen-nexus-host" style="width:44px;height:44px"></div>
                 <span class="name">Eileen</span>
                 <span class="node">&middot; Operational</span>
+                <button type="button" class="matter-remember-btn" id="eileen-remember-btn" title="Remember a matter">&#xFF0B; Remember a matter</button>
                 <span class="eileen-status"><span class="dot"></span>Online &mdash; tenant-scoped</span>
+              </div>
+
+              <!-- OOX-001 §1.2 — "Remember this matter" capture (upsert). Hidden until invoked. -->
+              <div id="eileen-matter-capture" hidden>
+                <div class="matter-capture-card">
+                  <label class="mc-label" for="matter-capture-text">Describe the matter &mdash; use roles, not names. Eileen stores it anonymised.</label>
+                  <textarea id="matter-capture-text" rows="3" placeholder="e.g. Grievance raised by a warehouse operative about overtime pay&hellip;"></textarea>
+                  <input type="text" class="mc-cats" id="matter-capture-cats" placeholder="ACEI categories (optional, comma-separated)" autocomplete="off">
+                  <div class="mc-error" id="matter-capture-error" hidden></div>
+                  <div class="mc-actions">
+                    <button type="button" class="matter-btn primary" id="matter-capture-save">Save</button>
+                    <button type="button" class="matter-btn" id="matter-capture-cancel">Cancel</button>
+                  </div>
+                </div>
               </div>
 
               <h1 class="greeting" id="greeting">Hello.</h1>
@@ -388,6 +495,9 @@
               </div>
 
               <div id="answer-area"></div>
+
+              <!-- OOX-001 §1.1 — retain-or-clear panel (re-rendered each turn; hidden when none due). -->
+              <div id="eileen-matter-panel" hidden></div>
             </section>
 
             <!-- SECTION VIEW (in-page panel for menu items without a dedicated route) -->
@@ -423,6 +533,9 @@
       <span>AI Lane Limited (Company No. 17035654) &middot; ailane.ai &middot; Governed by AILANE-AMD-REG-001</span>
       <span class="mono">Operational Readiness &middot; Eileen</span>
     </footer>
+
+    <!-- OOX-001 — transient confirmation toast (matter actions) -->
+    <div id="eileen-toast" role="status" aria-live="polite"></div>
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════
@@ -946,27 +1059,35 @@
     // error / 404 / 501 / non-2xx renders the calm pending copy. No dialog,
     // no white-screen. Works automatically once the backend deploys.
     // ════════════════════════════════════════════════════════════════
-    function askEileen(question) {
-      showThinking();
-      setNexusState('processing'); // EILEEN-NEXUS-001 halo: request in flight
-      fetch(EILEEN_URL, {
+    // Canonical Eileen-bar request helper. Every call to eileen-operational —
+    // the chat question AND the OOX-001 matter_action calls — goes through this
+    // one function, so the endpoint URL + auth headers are inherited (never
+    // re-hardcoded). Returns the parsed JSON; throws on any non-2xx.
+    function sendToEileen(body) {
+      return fetch(EILEEN_URL, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + CFG.token,
           'apikey': CFG.anon,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ question: question })
-      })
-        .then(function (r) {
-          if (!r.ok) throw new Error('http_' + r.status); // 404 / 501 / 5xx -> pending
-          return r.json();
-        })
+        body: JSON.stringify(body)
+      }).then(function (r) {
+        if (!r.ok) throw new Error('http_' + r.status); // 404 / 501 / 5xx -> caller decides
+        return r.json();
+      });
+    }
+
+    function askEileen(question) {
+      showThinking();
+      setNexusState('processing'); // EILEEN-NEXUS-001 halo: request in flight
+      sendToEileen({ question: question })
         .then(function (data) {
           var text = (data && (data.response || data.answer || data.text || data.message)) || '';
           var cites = (data && (data.citations || data.sources)) || null;
           if (!text) { renderPending(); return; }
           renderAnswer(text, cites);
+          refreshMatterPanel(); // OOX-001 §1.1: refresh retain-or-clear panel after each answer
         })
         .catch(function () { renderPending(); });
     }
@@ -1004,6 +1125,253 @@
         }).catch(function () { window.location.replace('/login/'); });
       } catch (e) { window.location.replace('/login/'); }
     });
+
+    // ════════════════════════════════════════════════════════════════
+    // MATTER MEMORY (OOX-001 / AMD-241) — retain-or-clear panel + remember
+    // capture. Every call reuses sendToEileen() (same URL + auth as the bar);
+    // no new endpoint/key. All server strings are inserted via textContent
+    // (never innerHTML). The layer degrades silently: any matter_error or
+    // network failure hides the panel (console.warn only) and never blocks
+    // the chat. The answer stays anchored at the TOP (no scroll-jack).
+    // ════════════════════════════════════════════════════════════════
+    var matterPanel   = $('eileen-matter-panel');
+    var matterToast   = $('eileen-toast');
+    var matterCapture = $('eileen-matter-capture');
+    var rememberBtn   = $('eileen-remember-btn');
+    var toastTimer    = null;
+
+    function fmtMatterDate(iso) {
+      if (!iso) return '';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return String(iso);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch (e) { return String(iso); }
+    }
+
+    function showToast(msg) {
+      if (!matterToast) return;
+      matterToast.textContent = msg; // escaped — textContent
+      matterToast.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { matterToast.classList.remove('show'); }, 3200);
+    }
+
+    function hideMatterPanel() {
+      if (!matterPanel) return;
+      while (matterPanel.firstChild) matterPanel.removeChild(matterPanel.firstChild);
+      matterPanel.hidden = true;
+    }
+
+    // op:"list" drives the panel; only due_soon matters render; re-listed after
+    // each action; hidden when none. matter_action sent without a question
+    // returns early with { matter_result }.
+    function refreshMatterPanel() {
+      sendToEileen({ matter_action: { op: 'list' } })
+        .then(function (resp) {
+          var mr = resp && resp.matter_result;
+          if (!mr || mr.matter_error || !Array.isArray(mr.matters)) {
+            if (mr && mr.matter_error) console.warn('[OOX-001] matter list error:', mr.matter_error);
+            hideMatterPanel(); return;
+          }
+          var due = mr.matters.filter(function (m) { return m && m.due_soon === true; });
+          renderMatterPanel(due);
+        })
+        .catch(function (e) { console.warn('[OOX-001] matter list failed', e); hideMatterPanel(); });
+    }
+
+    function renderMatterPanel(due) {
+      if (!matterPanel) return;
+      while (matterPanel.firstChild) matterPanel.removeChild(matterPanel.firstChild);
+      if (!due || !due.length) { matterPanel.hidden = true; return; }
+      matterPanel.hidden = false;
+
+      var card = document.createElement('div');
+      card.className = 'matter-panel-card';
+      var head = document.createElement('div');
+      head.className = 'matter-panel-head';
+      head.textContent = 'Matter memory — due to clear';
+      card.appendChild(head);
+      due.forEach(function (m) { card.appendChild(buildMatterRow(m)); });
+      matterPanel.appendChild(card);
+    }
+
+    function buildMatterRow(m) {
+      var row = document.createElement('div');
+      row.className = 'matter-row';
+
+      var main = document.createElement('div');
+      main.className = 'matter-row-main';
+      var sum = document.createElement('div');
+      sum.className = 'matter-row-summary';
+      sum.textContent = m.summary || '(no summary)'; // escaped server data
+      main.appendChild(sum);
+      var meta = document.createElement('div');
+      meta.className = 'matter-row-meta';
+      meta.textContent = 'Clears ' + fmtMatterDate(m.expires_at);
+      main.appendChild(meta);
+      row.appendChild(main);
+
+      var actions = document.createElement('div');
+      actions.className = 'matter-row-actions';
+
+      var keepBtn = document.createElement('button');
+      keepBtn.type = 'button'; keepBtn.className = 'matter-btn'; keepBtn.textContent = 'Keep';
+      keepBtn.addEventListener('click', function () { openKeepPrompt(m, row, actions); });
+
+      var clearBtn = document.createElement('button');
+      clearBtn.type = 'button'; clearBtn.className = 'matter-btn danger'; clearBtn.textContent = 'Clear now';
+      clearBtn.addEventListener('click', function () { openClearConfirm(m, row, actions); });
+
+      var resolveBtn = document.createElement('button');
+      resolveBtn.type = 'button'; resolveBtn.className = 'matter-btn'; resolveBtn.textContent = 'Mark resolved';
+      resolveBtn.addEventListener('click', function () { doResolve(m); });
+
+      actions.appendChild(keepBtn);
+      actions.appendChild(clearBtn);
+      actions.appendChild(resolveBtn);
+      row.appendChild(actions);
+      return row;
+    }
+
+    function clearRowInline(row) {
+      var ex = row.querySelector('.matter-inline');
+      while (ex) { ex.parentNode.removeChild(ex); ex = row.querySelector('.matter-inline'); }
+    }
+
+    // Keep → inline one-line reason (required) → extend.
+    function openKeepPrompt(m, row, actions) {
+      clearRowInline(row);
+      actions.style.display = 'none';
+      var wrap = document.createElement('div');
+      wrap.className = 'matter-inline';
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'reason'; inp.maxLength = 240;
+      inp.placeholder = 'Reason to keep (e.g. ongoing tribunal claim)';
+      var submit = document.createElement('button');
+      submit.type = 'button'; submit.className = 'matter-btn primary'; submit.textContent = 'Save reason';
+      var cancel = document.createElement('button');
+      cancel.type = 'button'; cancel.className = 'matter-btn'; cancel.textContent = 'Cancel';
+      function close() { clearRowInline(row); actions.style.display = ''; }
+      submit.addEventListener('click', function () {
+        var reason = inp.value.trim();
+        if (!reason) { inp.focus(); return; } // required
+        submit.disabled = true;
+        doExtend(m, reason);
+      });
+      cancel.addEventListener('click', close);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submit.click(); } });
+      wrap.appendChild(inp); wrap.appendChild(submit); wrap.appendChild(cancel);
+      row.appendChild(wrap);
+      inp.focus();
+    }
+
+    // Clear now → confirm step → delete (irreversible).
+    function openClearConfirm(m, row, actions) {
+      clearRowInline(row);
+      actions.style.display = 'none';
+      var wrap = document.createElement('div');
+      wrap.className = 'matter-inline';
+      var txt = document.createElement('span');
+      txt.className = 'matter-confirm-text';
+      txt.textContent = 'Clear this from memory? This cannot be undone.';
+      var confirm = document.createElement('button');
+      confirm.type = 'button'; confirm.className = 'matter-btn danger'; confirm.textContent = 'Confirm clear';
+      var cancel = document.createElement('button');
+      cancel.type = 'button'; cancel.className = 'matter-btn'; cancel.textContent = 'Cancel';
+      confirm.addEventListener('click', function () { confirm.disabled = true; doDelete(m); });
+      cancel.addEventListener('click', function () { clearRowInline(row); actions.style.display = ''; });
+      wrap.appendChild(txt); wrap.appendChild(confirm); wrap.appendChild(cancel);
+      row.appendChild(wrap);
+    }
+
+    function doExtend(m, reason) {
+      sendToEileen({ matter_action: { op: 'extend', matter_id: m.id, retention_reason: reason } })
+        .then(function (resp) {
+          var mr = resp && resp.matter_result;
+          if (mr && mr.matter_ok) { showToast('Kept until ' + fmtMatterDate(mr.expires_at)); }
+          else { console.warn('[OOX-001] extend failed', mr && mr.matter_error); }
+          refreshMatterPanel();
+        })
+        .catch(function (e) { console.warn('[OOX-001] extend failed', e); refreshMatterPanel(); });
+    }
+
+    function doDelete(m) {
+      sendToEileen({ matter_action: { op: 'delete', matter_id: m.id } })
+        .then(function (resp) {
+          var mr = resp && resp.matter_result;
+          if (mr && mr.matter_ok) { showToast('Cleared'); }
+          else { console.warn('[OOX-001] delete failed', mr && mr.matter_error); }
+          refreshMatterPanel();
+        })
+        .catch(function (e) { console.warn('[OOX-001] delete failed', e); refreshMatterPanel(); });
+    }
+
+    function doResolve(m) {
+      sendToEileen({ matter_action: { op: 'resolve', matter_id: m.id } })
+        .then(function (resp) {
+          var mr = resp && resp.matter_result;
+          if (mr && mr.matter_ok) { showToast('Marked resolved — clears automatically after 30 days'); }
+          else { console.warn('[OOX-001] resolve failed', mr && mr.matter_error); }
+          refreshMatterPanel();
+        })
+        .catch(function (e) { console.warn('[OOX-001] resolve failed', e); refreshMatterPanel(); });
+    }
+
+    // ---- Remember-a-matter capture (upsert) ----
+    function openCapture() {
+      if (!matterCapture) return;
+      matterCapture.hidden = false;
+      var ta = $('matter-capture-text');
+      if (ta) ta.focus();
+    }
+    function closeCapture() {
+      if (!matterCapture) return;
+      matterCapture.hidden = true;
+      var ta = $('matter-capture-text'); if (ta) ta.value = '';
+      var cats = $('matter-capture-cats'); if (cats) cats.value = '';
+      var err = $('matter-capture-error'); if (err) { err.textContent = ''; err.hidden = true; }
+    }
+    function saveCapture() {
+      var ta = $('matter-capture-text');
+      var cats = $('matter-capture-cats');
+      var err = $('matter-capture-error');
+      var saveBtn = $('matter-capture-save');
+      if (err) { err.textContent = ''; err.hidden = true; }
+      var summary = ta ? ta.value.trim() : '';
+      if (!summary) { if (ta) ta.focus(); return; }
+      var catList = cats ? cats.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+      // v1 control never sends criminal_allegation / lawful_basis_ref (out of scope).
+      if (saveBtn) saveBtn.disabled = true;
+      sendToEileen({ matter_action: { op: 'upsert', summary: summary, acei_categories: catList } })
+        .then(function (resp) {
+          if (saveBtn) saveBtn.disabled = false;
+          var mr = resp && resp.matter_result;
+          if (mr && mr.matter_ok) {
+            showToast('Remembered');
+            closeCapture();
+            refreshMatterPanel();
+          } else if (mr && mr.matter_error) {
+            if (err) { err.textContent = mr.matter_error; err.hidden = false; } // escaped — textContent
+          } else if (err) {
+            err.textContent = 'Could not save the matter. Please try again.'; err.hidden = false;
+          }
+        })
+        .catch(function (e) {
+          if (saveBtn) saveBtn.disabled = false;
+          console.warn('[OOX-001] upsert failed', e);
+          if (err) { err.textContent = 'Could not save the matter. Please try again.'; err.hidden = false; }
+        });
+    }
+
+    if (rememberBtn) rememberBtn.addEventListener('click', function () {
+      if (matterCapture && matterCapture.hidden === false) closeCapture();
+      else openCapture();
+    });
+    var captureSaveBtn = $('matter-capture-save');
+    var captureCancelBtn = $('matter-capture-cancel');
+    if (captureSaveBtn) captureSaveBtn.addEventListener('click', saveCapture);
+    if (captureCancelBtn) captureCancelBtn.addEventListener('click', closeCapture);
 
     // ---- Initial state ----
     renderVoiceState();
