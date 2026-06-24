@@ -8530,9 +8530,398 @@ function HubNotesFacet({ hubSession }) {
   return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
 }
 
-// Workspace facet mounted in the main content area (KL-HUB §1.5). The ACEI,
-// Vault, Alerts, Intelligence and Notes facets render live; Calendar remains a
-// placeholder ported in a later brief. Routing/state in brief-1.
+// ─── OOX-001 KL-Hub Calendar facet (KL-HUB §5 step 7, realised as a hub facet —
+// AILANE-CC-BRIEF-OOX-KL-HUB-CALENDAR-FACET-001) ───
+// A CRUD surface over the tenant's upcoming compliance dates (kl_calendar_events).
+// Reads + writes flow through the hub session's authenticated client (hubSession.sb)
+// — no service key; RLS auto-scopes every row (full CRUD on own events where
+// auth.uid() = user_id, plus READ of org_shared rows for the caller's org). Inserts
+// set user_id = hubSession.userId (satisfies WITH CHECK), a CHECK-valid event_type /
+// status ('active') / visibility / recurrence enum, and event_date; org-shared inserts
+// carry org_id from get_my_org_id() (fetched once on mount, mirror HubIntelFacet). V1
+// is a date-ordered LIST (not a month grid, no recurrence expansion). Edit / delete /
+// status controls are gated to the OWNER (event.user_id === hubSession.userId);
+// org-shared events owned by a peer render read-only. ALL server values render via
+// React children (auto-escaped) — no raw-HTML sink anywhere in this facet (KL-HUB §1.4
+// / §2 security). Resilient: any write error console.warns, leaves state unchanged +
+// shows a brief inline note; never blocks. Mirrors HubNotesFacet's CRUD + form shape
+// and the matter bar's inline-edit / confirm-delete chrome.
+
+var HUB_CAL_COLS = 'id,event_type,title,description,event_date,end_date,recurrence,visibility,status,user_id';
+
+// Allowed enum values (CHECK-constrained) surfaced as humanised <select> options.
+var HUB_CAL_TYPE_OPTS = [
+  { v: 'policy_renewal',    l: 'Policy renewal' },
+  { v: 'training_deadline', l: 'Training deadline' },
+  { v: 'board_reporting',   l: 'Board reporting' },
+  { v: 'appraisal_cycle',   l: 'Appraisal cycle' },
+  { v: 'probation_review',  l: 'Probation review' },
+  { v: 'custom',            l: 'Custom' },
+];
+var HUB_CAL_TYPE_LABELS = { policy_renewal: 'Policy renewal', training_deadline: 'Training deadline', board_reporting: 'Board reporting', appraisal_cycle: 'Appraisal cycle', probation_review: 'Probation review', custom: 'Custom' };
+var HUB_CAL_REC_OPTS = [
+  { v: 'none',      l: 'No recurrence' },
+  { v: 'monthly',   l: 'Monthly' },
+  { v: 'quarterly', l: 'Quarterly' },
+  { v: 'biannual',  l: 'Biannual' },
+  { v: 'annual',    l: 'Annual' },
+];
+var HUB_CAL_REC_LABELS = { monthly: 'Monthly', quarterly: 'Quarterly', biannual: 'Biannual', annual: 'Annual' };
+
+// Calendar chrome — reuses the hub palette (cards/inputs/buttons mirror Notes + the
+// matter bar; pills/chips/visibility tags mirror the Vault facet).
+var HUB_CAL_DATE_STYLE = { fontFamily: "'DM Mono', monospace", fontSize: '14px', fontWeight: 700, color: '#F1F5F9', letterSpacing: '0.02em', whiteSpace: 'nowrap' };
+var HUB_CAL_DATE_OVERDUE = { color: '#F87171' };
+var HUB_CAL_OVERDUE_TAG = { display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.35)', borderRadius: '999px', fontFamily: "'DM Sans', sans-serif", fontSize: '11px', fontWeight: 600, padding: '2px 9px', whiteSpace: 'nowrap' };
+var HUB_CAL_TITLE_STYLE = { marginTop: '10px', fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 700, color: '#F1F5F9', wordBreak: 'break-word' };
+var HUB_CAL_REC_TAG = { display: 'inline-block', fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em', color: '#94A3B8', whiteSpace: 'nowrap', background: 'rgba(148,163,184,0.08)', border: '1px solid #1E3A5F', padding: '2px 8px', borderRadius: '6px' };
+var HUB_CAL_META_ROW = { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '10px' };
+var HUB_CAL_DESC_STYLE = { marginTop: '10px', color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' };
+var HUB_CAL_FIELD_LABEL = { color: '#64748B', fontFamily: "'DM Sans', sans-serif", fontSize: '11px', margin: '10px 0 4px' };
+var HUB_CAL_SELECT_STYLE = Object.assign({}, HUB_NOTES_INPUT_STYLE, { cursor: 'pointer' });
+var HUB_CAL_CHECKBOX_ROW = { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', cursor: 'pointer' };
+var HUB_CAL_SHARED_NOTE = { marginTop: '12px', color: '#64748B', fontFamily: "'DM Mono', monospace", fontSize: '11px' };
+var HUB_CAL_STATUS_CLASS = { active: 'busy', completed: 'ok', snoozed: 'idle', cancelled: 'idle' };
+
+// Humanisers (escaped at render via React children).
+function hubCalTypeLabel(t) { var k = String(t == null ? '' : t).toLowerCase(); return HUB_CAL_TYPE_LABELS[k] || hubAceiHumanise(t); }
+function hubCalRecLabel(r) { var k = String(r == null ? '' : r).toLowerCase(); if (!k || k === 'none') return ''; return HUB_CAL_REC_LABELS[k] || hubAceiHumanise(r); }
+
+// Today's local date as 'YYYY-MM-DD'. event_date is a date column, so a lexicographic
+// compare of ISO date strings is a safe overdue test (no Date/tz round-trip).
+function hubCalTodayStr() {
+  var d = new Date();
+  function p(n) { return (n < 10 ? '0' : '') + n; }
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+// date-only 'YYYY-MM-DD' -> en-GB short, built from parts (no UTC parse -> no tz
+// off-by-one). Non-date input passes through unchanged.
+function hubCalDate(dateStr) {
+  if (!dateStr) return '—';
+  var s = String(dateStr);
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return s;
+  try {
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) { return s; }
+}
+function hubCalIsOverdue(ev) {
+  if (!ev || !ev.event_date) return false;
+  if (String(ev.status) !== 'active') return false;
+  return String(ev.event_date) < hubCalTodayStr();
+}
+// Date-ascending sort (§1.1); title tie-break for stability. Re-applied after every
+// mutation so the list re-orders without a re-query.
+function hubCalSort(events) {
+  return (events || []).slice().sort(function (a, b) {
+    var ad = a && a.event_date ? String(a.event_date) : '';
+    var bd = b && b.event_date ? String(b.event_date) : '';
+    if (ad < bd) return -1;
+    if (ad > bd) return 1;
+    var at = a && a.title ? String(a.title) : '';
+    var bt = b && b.title ? String(b.title) : '';
+    return at < bt ? -1 : at > bt ? 1 : 0;
+  });
+}
+function hubCalStatusPill(status, key) {
+  var cls = HUB_CAL_STATUS_CLASS[String(status == null ? '' : status).toLowerCase()] || 'idle';
+  return React.createElement('span', { key: key, style: Object.assign({}, HUB_VAULT_PILL_BASE, HUB_VAULT_PILL_STYLES[cls]) }, hubAceiHumanise(status || 'active'));
+}
+function hubCalVisTag(vis, key) {
+  var isOrg = String(vis == null ? '' : vis).toLowerCase() === 'org_shared';
+  return React.createElement('span', { key: key, style: isOrg ? Object.assign({}, HUB_VAULT_VIS_BASE, HUB_VAULT_VIS_ORG) : HUB_VAULT_VIS_BASE }, isOrg ? 'org' : 'personal');
+}
+// Constrained <select> (options from a CHECK enum). Optional disabled placeholder.
+function hubCalSelectEl(key, value, onChange, opts, ariaLabel, placeholder) {
+  var children = [];
+  if (placeholder != null) children.push(React.createElement('option', { key: '__ph', value: '', disabled: true }, placeholder));
+  opts.forEach(function (o) { children.push(React.createElement('option', { key: o.v, value: o.v }, o.l)); });
+  return React.createElement('select', { key: key, value: value, 'aria-label': ariaLabel, onChange: onChange, style: HUB_CAL_SELECT_STYLE }, children);
+}
+
+// One event card. Default view: prominent date (overdue flagged), title, a humanised
+// type chip + optional recurrence tag + visibility tag, status pill, escaped
+// description, and — for the OWNER only — status / Edit / Delete controls. Edit ->
+// inline fields (§1.3); Delete -> confirm step (§1.4); status -> complete/snooze/reopen
+// (§1.4). Peer org-shared rows render read-only. Writes go through hubSession.sb (RLS);
+// on error console.warn + a brief inline note, state unchanged (§1.5).
+function HubCalEventCard({ event, hubSession, orgId, isOwner, onChanged, onRemoved }) {
+  var _mode = useState(null); var mode = _mode[0]; var setMode = _mode[1]; // null | 'edit' | 'delete'
+  var _title = useState(event.title || ''); var title = _title[0]; var setTitle = _title[1];
+  var _etype = useState(event.event_type || ''); var etype = _etype[0]; var setEtype = _etype[1];
+  var _edate = useState(event.event_date || ''); var edate = _edate[0]; var setEdate = _edate[1];
+  var _desc = useState(event.description || ''); var desc = _desc[0]; var setDesc = _desc[1];
+  var _recur = useState(event.recurrence || 'none'); var recur = _recur[0]; var setRecur = _recur[1];
+  var _share = useState(String(event.visibility || '') === 'org_shared'); var share = _share[0]; var setShare = _share[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _err = useState(''); var err = _err[0]; var setErr = _err[1];
+
+  function sbReady() { var sb = hubSession && hubSession.sb; return (sb && sb.from) ? sb : null; }
+  function resetEdit() { setTitle(event.title || ''); setEtype(event.event_type || ''); setEdate(event.event_date || ''); setDesc(event.description || ''); setRecur(event.recurrence || 'none'); setShare(String(event.visibility || '') === 'org_shared'); setErr(''); }
+
+  // §1.3 Edit — update the row + updated_at; refresh that row on success. org_id is
+  // set from the visibility toggle (data contract: org-shared rows carry org_id; the
+  // create path sets it too) — null for personal.
+  function saveEdit() {
+    var sb = sbReady(); if (!sb) return;
+    var t = (title || '').trim();
+    var d = (edate || '').trim();
+    if (!t) { setErr('A title is required.'); return; }
+    if (!etype) { setErr('Choose an event type.'); return; }
+    if (!d) { setErr('A date is required.'); return; }
+    var shareOrg = !!share;
+    if (shareOrg && orgId == null) { setErr('Could not confirm your organisation — please try again.'); return; }
+    setBusy(true); setErr('');
+    var recVal = (recur && recur !== 'none') ? recur : null;
+    sb.from('kl_calendar_events')
+      .update({ title: t, event_type: etype, event_date: d, description: (desc || '').trim() || null, recurrence: recVal, visibility: shareOrg ? 'org_shared' : 'personal', org_id: shareOrg ? orgId : null, updated_at: new Date().toISOString() })
+      .eq('id', event.id)
+      .select(HUB_CAL_COLS).single()
+      .then(function (r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        setMode(null);
+        onChanged((r && r.data) || Object.assign({}, event, { title: t, event_type: etype, event_date: d, description: (desc || '').trim() || null, recurrence: recVal, visibility: shareOrg ? 'org_shared' : 'personal' }));
+      })
+      .catch(function (e) { setBusy(false); console.warn('[OOX-001] Calendar: edit failed', e); setErr('Could not save changes. Please try again.'); });
+  }
+
+  // §1.4 Delete (after the confirm step) — remove from the list on success.
+  function doDelete() {
+    var sb = sbReady(); if (!sb) return;
+    setBusy(true); setErr('');
+    sb.from('kl_calendar_events').delete().eq('id', event.id)
+      .then(function (r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        onRemoved(event.id);
+      })
+      .catch(function (e) { setBusy(false); console.warn('[OOX-001] Calendar: delete failed', e); setErr('Could not delete this date. Please try again.'); setMode(null); });
+  }
+
+  // §1.4 Status — mark completed / snoozed, or reopen to active. Enum-constrained;
+  // bumps updated_at (mirrors the Notes pin-toggle write).
+  function setStatus(next) {
+    var sb = sbReady(); if (!sb) return;
+    setBusy(true); setErr('');
+    sb.from('kl_calendar_events')
+      .update({ status: next, updated_at: new Date().toISOString() })
+      .eq('id', event.id)
+      .select(HUB_CAL_COLS).single()
+      .then(function (r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        onChanged((r && r.data) || Object.assign({}, event, { status: next }));
+      })
+      .catch(function (e) { setBusy(false); console.warn('[OOX-001] Calendar: status update failed', e); setErr('Could not update the status. Please try again.'); });
+  }
+
+  var overdue = hubCalIsOverdue(event);
+  var cardStyle = overdue ? Object.assign({}, HUB_VAULT_CARD_STYLE, { borderLeft: '2px solid rgba(248,113,113,0.5)' }) : HUB_VAULT_CARD_STYLE;
+
+  if (mode === 'edit') {
+    return React.createElement('div', { style: cardStyle },
+      React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Title'),
+      React.createElement('input', { type: 'text', value: title, maxLength: 200, placeholder: 'What is due?', 'aria-label': 'Event title', onChange: function (e) { setTitle(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+      React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Type'),
+      hubCalSelectEl('etype', etype, function (e) { setEtype(e.target.value); }, HUB_CAL_TYPE_OPTS, 'Event type', 'Select type…'),
+      React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Date'),
+      React.createElement('input', { type: 'date', value: edate || '', 'aria-label': 'Event date', onChange: function (e) { setEdate(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+      React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Description (optional)'),
+      React.createElement('textarea', { value: desc, rows: 3, placeholder: 'Add any detail…', 'aria-label': 'Event description', onChange: function (e) { setDesc(e.target.value); }, style: HUB_NOTES_TEXTAREA_STYLE }),
+      React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Recurrence'),
+      hubCalSelectEl('erec', recur, function (e) { setRecur(e.target.value); }, HUB_CAL_REC_OPTS, 'Recurrence', null),
+      React.createElement('label', { style: HUB_CAL_CHECKBOX_ROW },
+        React.createElement('input', { type: 'checkbox', checked: share, 'aria-label': 'Share with organisation', onChange: function (e) { setShare(e.target.checked); } }),
+        'Share with organisation'),
+      err ? React.createElement('div', { style: HUB_NOTES_ERR_STYLE }, err) : null,
+      React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE },
+        React.createElement('button', { type: 'button', disabled: busy || !title.trim() || !etype || !edate, style: HUB_MATTER_BTN_PRIMARY, onClick: saveEdit }, busy ? 'Saving…' : 'Save'),
+        React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setMode(null); resetEdit(); } }, 'Cancel')
+      )
+    );
+  }
+
+  if (mode === 'delete') {
+    return React.createElement('div', { style: cardStyle },
+      React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.5 } }, 'Delete this date? This cannot be undone.'),
+      err ? React.createElement('div', { style: HUB_NOTES_ERR_STYLE }, err) : null,
+      React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE },
+        React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: doDelete }, busy ? 'Deleting…' : 'Confirm delete'),
+        React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setMode(null); setErr(''); } }, 'Cancel')
+      )
+    );
+  }
+
+  // Default view.
+  var recLabel = hubCalRecLabel(event.recurrence);
+  var children = [
+    React.createElement('div', { key: 'top', style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 } },
+        React.createElement('span', { style: overdue ? Object.assign({}, HUB_CAL_DATE_STYLE, HUB_CAL_DATE_OVERDUE) : HUB_CAL_DATE_STYLE }, hubCalDate(event.event_date)),
+        overdue ? React.createElement('span', { style: HUB_CAL_OVERDUE_TAG }, 'Overdue') : null
+      ),
+      hubCalStatusPill(event.status, 'st')
+    ),
+    React.createElement('div', { key: 'title', style: HUB_CAL_TITLE_STYLE }, event.title ? event.title : 'Untitled'),
+    React.createElement('div', { key: 'meta', style: HUB_CAL_META_ROW },
+      React.createElement('span', { key: 'type', style: HUB_VAULT_CHIP_STYLE }, hubCalTypeLabel(event.event_type)),
+      recLabel ? React.createElement('span', { key: 'rec', style: HUB_CAL_REC_TAG }, '↻ ' + recLabel) : null,
+      hubCalVisTag(event.visibility, 'vis')
+    ),
+  ];
+  if (event.description) children.push(React.createElement('div', { key: 'desc', style: HUB_CAL_DESC_STYLE }, event.description));
+  if (err) children.push(React.createElement('div', { key: 'err', style: HUB_NOTES_ERR_STYLE }, err));
+  if (isOwner) {
+    var actions = [];
+    if (String(event.status) === 'active') {
+      actions.push(React.createElement('button', { key: 'done', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setStatus('completed'); } }, 'Mark complete'));
+      actions.push(React.createElement('button', { key: 'snooze', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setStatus('snoozed'); } }, 'Snooze'));
+    } else {
+      actions.push(React.createElement('button', { key: 'reopen', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setStatus('active'); } }, 'Reopen'));
+    }
+    actions.push(React.createElement('button', { key: 'edit', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { resetEdit(); setMode('edit'); } }, 'Edit'));
+    actions.push(React.createElement('button', { key: 'del', type: 'button', disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: function () { setErr(''); setMode('delete'); } }, 'Delete'));
+    children.push(React.createElement('div', { key: 'actions', style: HUB_NOTES_ACTIONS_STYLE }, actions));
+  } else {
+    children.push(React.createElement('div', { key: 'shared', style: HUB_CAL_SHARED_NOTE }, 'Shared by your organisation · read-only'));
+  }
+
+  return React.createElement('div', { style: cardStyle }, children);
+}
+
+// Calendar facet body. Lists the tenant's upcoming dates on open (§1.1, RLS returns
+// own + org-shared, date-ascending), with a "New date" form below (§1.2). org_id for
+// org-shared writes is resolved once via get_my_org_id() (mirror HubIntelFacet). The
+// list is held in state and reconciled in place after each create/edit/delete/status
+// change (re-sorted by date; no re-query). Mirrors the other facets' shape
+// (alive-guarded read, loading line, resilient unwrap, max-width container, reused hub
+// chrome).
+function HubCalendarFacet({ hubSession }) {
+  var _state = useState({ status: 'loading', events: [], orgId: null, error: false });
+  var state = _state[0]; var setState = _state[1];
+  var _nt = useState(''); var nTitle = _nt[0]; var setNTitle = _nt[1];
+  var _ntype = useState(''); var nType = _ntype[0]; var setNType = _ntype[1];
+  var _ndate = useState(''); var nDate = _ndate[0]; var setNDate = _ndate[1];
+  var _ndesc = useState(''); var nDesc = _ndesc[0]; var setNDesc = _ndesc[1];
+  var _nrec = useState('none'); var nRec = _nrec[0]; var setNRec = _nrec[1];
+  var _nshare = useState(false); var nShare = _nshare[0]; var setNShare = _nshare[1];
+  var _cb = useState(false); var creating = _cb[0]; var setCreating = _cb[1];
+  var _ce = useState(''); var createErr = _ce[0]; var setCreateErr = _ce[1];
+
+  // §1.1 list read (own + org-shared, date-ascending) + one-shot get_my_org_id for
+  // org-shared writes (parallel; RLS-scoped via the authenticated hub client).
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setState({ status: 'ready', events: [], orgId: null, error: true }); return; }
+    Promise.all([
+      sb.from('kl_calendar_events').select(HUB_CAL_COLS).neq('status', 'cancelled').order('event_date', { ascending: true }).limit(100),
+      sb.rpc('get_my_org_id'),
+    ]).then(function (res) {
+      if (!alive) return;
+      var un = hubVaultUnwrap(res[0], 'kl_calendar_events');
+      if (res[1] && res[1].error) console.warn('[OOX-001] Calendar: get_my_org_id failed', res[1].error);
+      var orgId = (res[1] && !res[1].error) ? res[1].data : null;
+      if (un.error) { setState({ status: 'ready', events: [], orgId: orgId, error: true }); return; }
+      setState({ status: 'ready', events: hubCalSort(un.rows || []), orgId: orgId, error: false });
+    }).catch(function (e) {
+      console.warn('[OOX-001] Calendar facet: reads failed', e);
+      if (alive) setState({ status: 'ready', events: [], orgId: null, error: true });
+    });
+    return function () { alive = false; };
+  }, [hubSession]);
+
+  // §1.2 Create — insert the caller's event (user_id = hubSession.userId) → add to the
+  // list (re-sorted by date) + clear the form. Require title + event_type + event_date.
+  function createEvent() {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) return;
+    var t = (nTitle || '').trim();
+    var d = (nDate || '').trim();
+    if (!t) { setCreateErr('A title is required.'); return; }
+    if (!nType) { setCreateErr('Choose an event type.'); return; }
+    if (!d) { setCreateErr('A date is required.'); return; }
+    var shareOrg = !!nShare;
+    if (shareOrg && state.orgId == null) { setCreateErr('Could not confirm your organisation — please try again.'); return; }
+    setCreating(true); setCreateErr('');
+    var recVal = (nRec && nRec !== 'none') ? nRec : null;
+    sb.from('kl_calendar_events')
+      .insert({ user_id: hubSession.userId, event_type: nType, title: t, event_date: d, description: (nDesc || '').trim() || null, recurrence: recVal, status: 'active', visibility: shareOrg ? 'org_shared' : 'personal', org_id: shareOrg ? state.orgId : null })
+      .select(HUB_CAL_COLS).single()
+      .then(function (r) {
+        setCreating(false);
+        if (r && r.error) throw r.error;
+        var row = r && r.data;
+        if (!row) { setCreateErr('Could not save this date. Please try again.'); return; }
+        setNTitle(''); setNType(''); setNDate(''); setNDesc(''); setNRec('none'); setNShare(false);
+        setState(function (prev) { return Object.assign({}, prev, { events: hubCalSort([row].concat(prev.events || [])) }); });
+      })
+      .catch(function (e) { setCreating(false); console.warn('[OOX-001] Calendar: create failed', e); setCreateErr('Could not save this date. Please try again.'); });
+  }
+
+  // Reconcile a single mutated row / removal into the list (re-sort by date on change).
+  function handleChanged(row) {
+    if (!row || row.id == null) return;
+    setState(function (prev) {
+      var next = (prev.events || []).map(function (n) { return n.id === row.id ? row : n; });
+      return Object.assign({}, prev, { events: hubCalSort(next) });
+    });
+  }
+  function handleRemoved(id) {
+    setState(function (prev) { return Object.assign({}, prev, { events: (prev.events || []).filter(function (n) { return n.id !== id; }) }); });
+  }
+
+  if (state.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading your calendar…');
+  }
+
+  var children = [];
+  var events = state.events || [];
+  if (state.error) {
+    // §1.5 resilient — the read failed: a brief inline note, but the New-date form
+    // below still works.
+    children.push(React.createElement('div', { key: 'err', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', marginBottom: '16px' } }, 'Could not load your calendar just now.'));
+  } else if (!events.length) {
+    // §1.1 empty state.
+    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6, marginBottom: '20px' } }, 'No upcoming dates yet — add your first below.'));
+  } else {
+    children.push(React.createElement('div', { key: 'list', style: HUB_NOTES_LIST_STYLE },
+      events.map(function (ev) {
+        return React.createElement(HubCalEventCard, { key: ev.id, event: ev, hubSession: hubSession, orgId: state.orgId, isOwner: ev.user_id === hubSession.userId, onChanged: handleChanged, onRemoved: handleRemoved });
+      })));
+  }
+
+  // §1.2 "New date" capture form (below the list).
+  children.push(React.createElement('div', { key: 'newform', style: HUB_NOTES_CARD_STYLE },
+    React.createElement('div', { key: 'h', style: HUB_ACEI_SECTION_H }, 'New date'),
+    React.createElement('div', { key: 'lt', style: HUB_CAL_FIELD_LABEL }, 'Title'),
+    React.createElement('input', { key: 'title', type: 'text', value: nTitle, maxLength: 200, placeholder: 'What is due?', 'aria-label': 'New event title', onChange: function (e) { setNTitle(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+    React.createElement('div', { key: 'ltype', style: HUB_CAL_FIELD_LABEL }, 'Type'),
+    hubCalSelectEl('type', nType, function (e) { setNType(e.target.value); }, HUB_CAL_TYPE_OPTS, 'New event type', 'Select type…'),
+    React.createElement('div', { key: 'ld', style: HUB_CAL_FIELD_LABEL }, 'Date'),
+    React.createElement('input', { key: 'date', type: 'date', value: nDate, 'aria-label': 'New event date', onChange: function (e) { setNDate(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+    React.createElement('div', { key: 'ldesc', style: HUB_CAL_FIELD_LABEL }, 'Description (optional)'),
+    React.createElement('textarea', { key: 'desc', value: nDesc, rows: 3, placeholder: 'Add any detail…', 'aria-label': 'New event description', onChange: function (e) { setNDesc(e.target.value); }, style: HUB_NOTES_TEXTAREA_STYLE }),
+    React.createElement('div', { key: 'lrec', style: HUB_CAL_FIELD_LABEL }, 'Recurrence'),
+    hubCalSelectEl('rec', nRec, function (e) { setNRec(e.target.value); }, HUB_CAL_REC_OPTS, 'New event recurrence', null),
+    React.createElement('label', { key: 'share', style: HUB_CAL_CHECKBOX_ROW },
+      React.createElement('input', { type: 'checkbox', checked: nShare, 'aria-label': 'Share with organisation', onChange: function (e) { setNShare(e.target.checked); } }),
+      'Share with organisation'),
+    createErr ? React.createElement('div', { key: 'cerr', style: HUB_NOTES_ERR_STYLE }, createErr) : null,
+    React.createElement('div', { key: 'actions', style: HUB_NOTES_ACTIONS_STYLE },
+      React.createElement('button', { type: 'button', disabled: creating || !nTitle.trim() || !nType || !nDate, style: HUB_MATTER_BTN_PRIMARY, onClick: createEvent }, creating ? 'Saving…' : 'Save date')
+    )
+  ));
+
+  return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
+}
+
+// Workspace facet mounted in the main content area (KL-HUB §1.5). The ACEI, Vault,
+// Alerts, Intelligence, Notes and Calendar facets all render live. Routing/state in
+// brief-1.
 function HubFacetView({ facet, hubSession, onBack }) {
   var label = HUB_FACET_LABELS[facet] || 'Workspace';
   var body = facet === 'acei'
@@ -8550,6 +8939,9 @@ function HubFacetView({ facet, hubSession, onBack }) {
     : facet === 'notes'
     ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
         React.createElement(HubNotesFacet, { hubSession: hubSession }))
+    : facet === 'calendar'
+    ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
+        React.createElement(HubCalendarFacet, { hubSession: hubSession }))
     : React.createElement('div', { style: { flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' } },
         React.createElement('div', { className: 'kl-placeholder-panel', style: { maxWidth: '420px' } },
           React.createElement('div', { className: 'kl-placeholder-icon' }, '🛠️'),
