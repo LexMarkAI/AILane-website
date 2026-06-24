@@ -7773,9 +7773,215 @@ function HubVaultFacet({ hubSession }) {
   );
 }
 
-// Workspace facet mounted in the main content area (KL-HUB §1.5). The ACEI and
-// Vault facets render live (brief-2 / brief-3); other facets remain placeholders
-// ported in later briefs. Routing/state established in brief-1.
+// ─── OOX-001 KL-Hub Alerts facet (brief-4 / KL-HUB §5 step 4) ───
+// The tenant's open actions, breach register and mitigations, read on open via
+// the hub RLS client (hubSession.sb) — no service key; RLS auto-scopes every row
+// to the tenant. ALL DB values render via React children (auto-escaped) — never
+// dangerouslySetInnerHTML on data (KL-HUB §1.5 / §2 security). Each read is
+// unwrapped resiliently (hubVaultUnwrap): a failed panel shows "—" with
+// console.warn and the facet never throws. Mirrors operational/index.html
+// renderAlertsSection: open-actions panel (action_text/notes, status pill,
+// due_date overdue/due-soon flag, owner hint), breach register (ref, nature,
+// status, discovered date, ICO-reportable marker + report-due/overdue/reported
+// markers), mitigations (domain·category, tier, status, revalidate-by flag,
+// active-since), counts in each heading, and all three empty states. Breach
+// records are presented factually — no advice/conclusion language (RULE 15);
+// risk_assessment free-text is deliberately NOT rendered (matches operational).
+// rsg_change_alerts is NOT wired (firm-internal feed; tenants have no read
+// policy). Reuses the hub chrome: hubVaultUnwrap, hubVaultStatusPill,
+// hubVaultDate, hubAceiHumanise and HUB_ACEI_SECTION_H.
+
+// Whole-day difference (date − today), UTC-normalised. null if unparseable.
+// Mirrors operational alertsDaysUntil.
+function hubAlertsDaysUntil(iso) {
+  if (!iso) return null;
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  var now = new Date();
+  var a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  var b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((a - b) / 86400000);
+}
+// Overdue (past) / due-soon (≤14d) flag for a date field; null otherwise.
+function hubAlertsDateFlag(iso) {
+  var t = hubAlertsDaysUntil(iso);
+  if (t === null) return null;
+  if (t < 0) return { kind: 'overdue', label: 'Overdue' };
+  if (t <= 14) return { kind: 'due', label: 'Due soon' };
+  return null;
+}
+
+// Card / meta / flag chrome (hub palette; mirrors operational .alerts-* classes).
+var HUB_ALERTS_CARD_STYLE = { background: '#0F1D32', border: '1px solid #1E3A5F', borderLeft: '2px solid rgba(14,165,233,0.3)', borderRadius: '12px', padding: '14px 16px' };
+var HUB_ALERTS_TOP_STYLE = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' };
+var HUB_ALERTS_TITLE_STYLE = { fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 700, color: '#F1F5F9', wordBreak: 'break-word' };
+var HUB_ALERTS_SUB_STYLE = { marginTop: '3px', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#94A3B8', lineHeight: 1.5, wordBreak: 'break-word' };
+var HUB_ALERTS_META_STYLE = { marginTop: '9px', display: 'flex', flexWrap: 'wrap', gap: '6px 8px', alignItems: 'center' };
+var HUB_ALERTS_MONO_STYLE = { fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#64748B', letterSpacing: '0.02em' };
+var HUB_ALERTS_FLAG_BASE = { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif", fontSize: '11px', letterSpacing: '0.02em', padding: '2px 9px', borderRadius: '999px', border: '1px solid #1E3A5F', background: '#0A1628', color: '#94A3B8' };
+var HUB_ALERTS_FLAG_OVERDUE = { color: '#F87171', borderColor: 'rgba(248,113,113,0.32)', background: 'rgba(248,113,113,0.08)' };
+var HUB_ALERTS_FLAG_DUE = { color: '#0EA5E9', borderColor: 'rgba(14,165,233,0.3)', background: 'rgba(14,165,233,0.12)' };
+var HUB_ALERTS_FLAG_ICO = { fontFamily: "'DM Mono', monospace", fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#0EA5E9', borderColor: 'rgba(14,165,233,0.3)', background: 'rgba(14,165,233,0.12)' };
+var HUB_ALERTS_EMPTY_STYLE = { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 };
+var HUB_ALERTS_ERR_STYLE = { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' };
+var HUB_ALERTS_LIST_STYLE = { display: 'flex', flexDirection: 'column', gap: '12px', margin: '2px 0 4px' };
+
+// Section heading with the panel's row count (count omitted on read error).
+function hubAlertsHeading(title, r) {
+  var text = (r && r.rows) ? (title + ' · ' + r.rows.length) : title;
+  return React.createElement('div', { key: 'h', style: HUB_ACEI_SECTION_H }, text);
+}
+// A flag pill (overdue / due / ico). Label rendered via React children (escaped).
+function hubAlertsFlag(kind, label, key) {
+  var extra = kind === 'overdue' ? HUB_ALERTS_FLAG_OVERDUE
+    : kind === 'due' ? HUB_ALERTS_FLAG_DUE
+    : kind === 'ico' ? HUB_ALERTS_FLAG_ICO
+    : null;
+  return React.createElement('span', { key: key, style: extra ? Object.assign({}, HUB_ALERTS_FLAG_BASE, extra) : HUB_ALERTS_FLAG_BASE }, label);
+}
+// Mono meta chip (date lines). Value rendered via React children (escaped).
+function hubAlertsMono(text, key) {
+  return React.createElement('span', { key: key, style: HUB_ALERTS_MONO_STYLE }, text);
+}
+// Card top: title + optional sub on the left, status pill on the right.
+function hubAlertsCardTop(title, sub, status) {
+  var main = [React.createElement('div', { key: 't', style: HUB_ALERTS_TITLE_STYLE }, title)];
+  if (sub) main.push(React.createElement('div', { key: 's', style: HUB_ALERTS_SUB_STYLE }, sub));
+  return React.createElement('div', { key: 'top', style: HUB_ALERTS_TOP_STYLE },
+    React.createElement('div', { key: 'main', style: { minWidth: 0 } }, main),
+    hubVaultStatusPill(status, 'st')
+  );
+}
+// Assemble a card from a top element + a meta-children array (meta row omitted
+// when empty). key uses the row id with an index fallback.
+function hubAlertsCard(id, idx, top, meta) {
+  var children = [top];
+  if (meta.length) children.push(React.createElement('div', { key: 'meta', style: HUB_ALERTS_META_STYLE }, meta));
+  return React.createElement('div', { key: id != null ? id : idx, style: HUB_ALERTS_CARD_STYLE }, children);
+}
+// Panel wrapper: heading + count, "—" on read error, empty-state line, else list.
+function hubAlertsPanel(panelKey, title, r, emptyText, renderCard) {
+  var children = [hubAlertsHeading(title, r)];
+  if (r.error) {
+    children.push(React.createElement('div', { key: 'err', style: HUB_ALERTS_ERR_STYLE }, '—'));
+  } else {
+    var rows = r.rows || [];
+    if (!rows.length) {
+      children.push(React.createElement('div', { key: 'empty', style: HUB_ALERTS_EMPTY_STYLE }, emptyText));
+    } else {
+      children.push(React.createElement('div', { key: 'list', style: HUB_ALERTS_LIST_STYLE },
+        rows.map(function (row, idx) { return renderCard(row, idx); })));
+    }
+  }
+  return React.createElement('div', { key: panelKey, style: { marginBottom: '24px' } }, children);
+}
+
+// §1.2 — open action card. action_text (notes fallback); status pill; owner hint;
+// due_date with overdue/due-soon flag, or "No due date".
+function hubAlertsActionCard(a, idx) {
+  var cat = a.actions;
+  if (Array.isArray(cat)) cat = cat[0];
+  cat = cat || {};
+  var top = hubAlertsCardTop(cat.action_text || a.notes || 'Action', cat.owner_role_hint ? ('Owner: ' + cat.owner_role_hint) : null, a.status);
+  var meta = [];
+  if (a.due_date) {
+    meta.push(hubAlertsMono('Due ' + hubVaultDate(a.due_date), 'due'));
+    var flag = hubAlertsDateFlag(a.due_date);
+    if (flag) meta.push(hubAlertsFlag(flag.kind, flag.label, 'fl'));
+  } else {
+    meta.push(hubAlertsMono('No due date', 'due'));
+  }
+  return hubAlertsCard(a.id, idx, top, meta);
+}
+
+// §1.3 — breach card. ref, nature, status, discovered date; where ico_reportable
+// an "ICO-reportable" marker + report-due (overdue flagged only when not yet
+// reported) + reported date. Factual only — no advice (RULE 15). risk_assessment
+// is intentionally not rendered.
+function hubAlertsBreachCard(b, idx) {
+  var top = hubAlertsCardTop(b.breach_ref || 'Breach', b.nature || null, b.status);
+  var meta = [];
+  if (b.discovered_at) meta.push(hubAlertsMono('Discovered ' + hubVaultDate(b.discovered_at), 'disc'));
+  if (b.ico_reportable === true) {
+    meta.push(hubAlertsFlag('ico', 'ICO-reportable', 'ico'));
+    if (b.ico_report_due_at) {
+      meta.push(hubAlertsMono('Report due ' + hubVaultDate(b.ico_report_due_at), 'rdue'));
+      if (!b.ico_reported_at) {
+        var f = hubAlertsDateFlag(b.ico_report_due_at);
+        if (f && f.kind === 'overdue') meta.push(hubAlertsFlag('overdue', 'Report overdue', 'rovd'));
+      }
+    }
+    if (b.ico_reported_at) meta.push(hubAlertsMono('Reported ' + hubVaultDate(b.ico_reported_at), 'rep'));
+  }
+  return hubAlertsCard(b.id, idx, top, meta);
+}
+
+// §1.4 — mitigation card. domain·category (humanised), tier, status; revalidate_by
+// with due/overdue flag; active-since.
+function hubAlertsMitigationCard(m, idx) {
+  var titleBits = [];
+  if (m.domain) titleBits.push(hubAceiHumanise(m.domain));
+  if (m.category) titleBits.push(hubAceiHumanise(m.category));
+  var top = hubAlertsCardTop(titleBits.length ? titleBits.join(' · ') : 'Mitigation', (m.tier != null && m.tier !== '') ? ('Tier: ' + m.tier) : null, m.status);
+  var meta = [];
+  if (m.revalidate_by) {
+    meta.push(hubAlertsMono('Revalidate by ' + hubVaultDate(m.revalidate_by), 'rev'));
+    var flag = hubAlertsDateFlag(m.revalidate_by);
+    if (flag) meta.push(hubAlertsFlag(flag.kind, flag.label, 'fl'));
+  }
+  if (m.activated_at) meta.push(hubAlertsMono('Active since ' + hubVaultDate(m.activated_at), 'act'));
+  return hubAlertsCard(m.id, idx, top, meta);
+}
+
+// Alerts facet body. Reads on open via the hub RLS client (§1.1). Mirrors
+// HubVaultFacet's shape (alive-guarded parallel reads, loading line, max-width
+// container). Each panel is resilient; the facet never throws.
+function HubAlertsFacet({ hubSession }) {
+  var _state = useState({ status: 'loading', actions: { rows: [] }, breaches: { rows: [] }, mitigations: { rows: [] } });
+  var state = _state[0]; var setState = _state[1];
+
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setState({ status: 'ready', actions: { error: true }, breaches: { error: true }, mitigations: { error: true } }); return; }
+    // §1.1 reads — RLS-scoped via the authenticated hub client (parallel).
+    Promise.all([
+      sb.from('org_actions')
+        .select('id,status,due_date,notes,created_at,actions(action_text,owner_role_hint,deadline_days,required)')
+        .neq('status', 'completed')
+        .order('due_date', { ascending: true, nullsFirst: false }).limit(50),
+      sb.from('breach_register')
+        .select('id,breach_ref,discovered_at,nature,status,ico_reportable,ico_report_due_at,ico_reported_at,risk_assessment')
+        .order('discovered_at', { ascending: false }).limit(50),
+      sb.from('mitigation_register')
+        .select('id,domain,category,tier,status,revalidate_by,activated_at')
+        .order('revalidate_by', { ascending: true, nullsFirst: false }).limit(50),
+    ]).then(function (res) {
+      if (!alive) return;
+      setState({ status: 'ready',
+        actions: hubVaultUnwrap(res[0], 'org_actions'),
+        breaches: hubVaultUnwrap(res[1], 'breach_register'),
+        mitigations: hubVaultUnwrap(res[2], 'mitigation_register') });
+    }).catch(function (e) {
+      console.warn('[OOX-001] Alerts facet: reads failed', e);
+      if (alive) setState({ status: 'ready', actions: { error: true }, breaches: { error: true }, mitigations: { error: true } });
+    });
+    return function () { alive = false; };
+  }, [hubSession]);
+
+  if (state.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading your alerts…');
+  }
+  return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } },
+    hubAlertsPanel('actions', 'Open actions', state.actions, 'No open actions.', hubAlertsActionCard),           // §1.2
+    hubAlertsPanel('breaches', 'Breach register', state.breaches, 'No breaches recorded.', hubAlertsBreachCard),  // §1.3
+    hubAlertsPanel('mitigations', 'Mitigations', state.mitigations, 'No mitigations active.', hubAlertsMitigationCard) // §1.4
+  );
+}
+
+// Workspace facet mounted in the main content area (KL-HUB §1.5). The ACEI,
+// Vault and Alerts facets render live (brief-2 / brief-3 / brief-4); other
+// facets remain placeholders ported in later briefs. Routing/state in brief-1.
 function HubFacetView({ facet, hubSession, onBack }) {
   var label = HUB_FACET_LABELS[facet] || 'Workspace';
   var body = facet === 'acei'
@@ -7784,6 +7990,9 @@ function HubFacetView({ facet, hubSession, onBack }) {
     : facet === 'vault'
     ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
         React.createElement(HubVaultFacet, { hubSession: hubSession }))
+    : facet === 'alerts'
+    ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
+        React.createElement(HubAlertsFacet, { hubSession: hubSession }))
     : React.createElement('div', { style: { flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' } },
         React.createElement('div', { className: 'kl-placeholder-panel', style: { maxWidth: '420px' } },
           React.createElement('div', { className: 'kl-placeholder-icon' }, '🛠️'),
