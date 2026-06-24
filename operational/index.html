@@ -449,6 +449,56 @@
     .intel-track-btn.tracking { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
     .intel-track-btn:disabled { opacity: 0.5; cursor: default; }
     .intel-card-error { margin-top: 10px; font-size: 0.8rem; color: #f87171; }
+
+    /* ════════════════════════════════════════════════════════════════
+       DOCUMENT VAULT (OOX-001) — display-only section. Reuses the page
+       palette + the ACEI table / stat-grid and Intelligence card idioms
+       (CSS vars only; no new accent — gold stays brand-only). ════════════ */
+    .vault-panel { margin-bottom: 24px; }
+    .vault-panel:last-child { margin-bottom: 0; }
+    .vault-fname { color: var(--text); font-weight: 600; word-break: break-word; }
+    .vault-chip {
+      display: inline-block; font-family: 'Space Mono', monospace; font-size: 0.62rem;
+      font-weight: 700; letter-spacing: 0.04em; color: var(--cyan); white-space: nowrap;
+      background: var(--cyan-soft); border: 1px solid var(--cyan-line);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .vault-pill {
+      display: inline-flex; align-items: center; white-space: nowrap;
+      font-size: 0.7rem; letter-spacing: 0.01em; padding: 3px 9px; border-radius: 999px;
+      border: 1px solid var(--line-mid); background: var(--card-2); color: var(--muted);
+    }
+    .vault-pill--ok   { color: var(--green); border-color: rgba(34,197,94,0.3);    background: rgba(34,197,94,0.08); }
+    .vault-pill--busy { color: var(--cyan);  border-color: var(--cyan-line);       background: var(--cyan-soft); }
+    .vault-pill--bad  { color: #f87171;      border-color: rgba(248,113,113,0.32); background: rgba(248,113,113,0.08); }
+    .vault-pill--idle { color: var(--faint); }
+    .vault-vis {
+      display: inline-flex; align-items: center; white-space: nowrap;
+      font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px;
+      border: 1px solid var(--line-mid); color: var(--muted); background: rgba(148,163,184,0.06);
+    }
+    .vault-vis--org { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
+    .vault-analyses { display: flex; flex-direction: column; gap: 14px; margin: 8px 0 4px; }
+    .vault-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 16px 18px;
+    }
+    .vault-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .vault-card-main { min-width: 0; }
+    .vault-ref { font-size: 1rem; font-weight: 700; color: var(--text); word-break: break-word; }
+    .vault-role { margin-top: 3px; font-size: 0.84rem; color: var(--muted); }
+    .vault-sample {
+      flex-shrink: 0; font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+      background: rgba(148,163,184,0.07); border: 1px solid var(--line-mid);
+      padding: 3px 9px; border-radius: 999px;
+    }
+    .vault-subhead {
+      margin-top: 14px; font-family: 'Space Mono', monospace; font-size: 0.62rem;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+    }
+    .vault-finding { margin-top: 6px; color: var(--muted); font-size: 0.92rem; line-height: 1.6; white-space: pre-wrap; }
   </style>
 
   <!-- EILEEN-NEXUS-001 styles — replicated verbatim from the canonical KL
@@ -874,6 +924,9 @@
       } else if (m.id === 'intel') {
         if (emptyEl) emptyEl.hidden = true;
         if (bodyEl) { bodyEl.hidden = false; renderIntelSection(bodyEl); }
+      } else if (m.id === 'vault') {
+        if (emptyEl) emptyEl.hidden = true;
+        if (bodyEl) { bodyEl.hidden = false; renderVaultSection(bodyEl); }
       } else {
         if (bodyEl) { bodyEl.hidden = true; bodyEl.innerHTML = ''; }
         if (emptyEl) emptyEl.hidden = false;
@@ -1325,6 +1378,188 @@
     function intelClearCardError(card) {
       var ex = card.querySelector('[data-intel-error]');
       if (ex) ex.parentNode.removeChild(ex);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // DOCUMENT VAULT (OOX-001) — read-only, RLS-scoped via CFG.sb.
+    // Lists the tenant's vault documents and their stored contract
+    // analyses. Display-only (v1): the upload→analyse flow is a deliberate
+    // follow-up and is NOT wired here. Render discipline mirrors the ACEI/
+    // Intelligence sections: DOM built via mkEl/textContent (no innerHTML on
+    // any DB field), each read unwrapped resiliently. RLS auto-scopes both
+    // reads — no org_id/user_id hardcoding. The section never throws: a read
+    // error degrades that panel to "—" with console.warn; advice-free (RULE 15).
+    // ════════════════════════════════════════════════════════════════
+
+    // Resilient unwrap that preserves the error-vs-empty distinction (§1.4):
+    // a read error -> { error:true } (panel shows "—"); success -> { rows:[…] }.
+    function vaultUnwrap(res, name) {
+      if (!res || res.error) {
+        console.warn('Vault read failed: ' + name, res && res.error);
+        return { error: true };
+      }
+      return { rows: Array.isArray(res.data) ? res.data : [] };
+    }
+
+    function vaultFileSize(bytes) {
+      if (!aceiIsNum(bytes)) return '—';
+      var n = Number(bytes);
+      if (n < 1024) return Math.round(n) + ' B';
+      var units = ['KB', 'MB', 'GB', 'TB'], u = -1;
+      do { n /= 1024; u++; } while (n >= 1024 && u < units.length - 1);
+      return (n >= 10 ? Math.round(n) : n.toFixed(1)) + ' ' + units[u];
+    }
+
+    function vaultMimeLabel(mime) {
+      if (!mime) return 'FILE';
+      var m = String(mime).toLowerCase();
+      if (m.indexOf('pdf') >= 0) return 'PDF';
+      if (m.indexOf('wordprocessing') >= 0 || m.indexOf('msword') >= 0) return 'DOCX';
+      if (m.indexOf('spreadsheet') >= 0 || m.indexOf('excel') >= 0) return 'XLSX';
+      if (m.indexOf('text/plain') >= 0) return 'TXT';
+      if (m.indexOf('image/') >= 0) return (m.split('/')[1] || 'image').toUpperCase();
+      var slash = m.indexOf('/');
+      return (slash >= 0 ? m.slice(slash + 1) : m).toUpperCase();
+    }
+
+    function vaultVisibilityLabel(vis) {
+      var v = String(vis == null ? '' : vis).toLowerCase();
+      return (v === 'org_shared' || v === 'org_required') ? 'org' : 'private';
+    }
+
+    function vaultStatusClass(status) {
+      var s = String(status == null ? '' : status).toLowerCase();
+      if (/(complete|done|extracted|analy[sz]ed|ready|success|\bok\b)/.test(s)) return 'ok';
+      if (/(fail|error|reject)/.test(s)) return 'bad';
+      if (/(pend|queue|process|progress|run|extract|analy[sz]ing|wait)/.test(s)) return 'busy';
+      return 'idle';
+    }
+
+    function vaultStatusPill(status) {
+      if (status == null || status === '') return mkEl('span', 'vault-pill vault-pill--idle', '—');
+      return mkEl('span', 'vault-pill vault-pill--' + vaultStatusClass(status), aceiHumanise(status));
+    }
+
+    function vaultDate(iso) { return iso ? fmtMatterDate(iso) : '—'; }
+
+    // critical_gaps may arrive as an int, an array, or a jsonb object — reduce
+    // each to a count. Anything else (or null) -> null (omit the stat).
+    function vaultGapCount(g) {
+      if (g == null || g === '') return null;
+      if (Array.isArray(g)) return g.length;
+      if (typeof g === 'object') { try { return Object.keys(g).length; } catch (e) { return null; } }
+      if (aceiIsNum(g)) return Math.round(Number(g));
+      return null;
+    }
+
+    function renderVaultSection(host) {
+      host.innerHTML = '';
+      host.appendChild(mkEl('div', 'acei-loading', 'Loading your document vault…'));
+      var sb = CFG.sb;
+      if (!sb || !sb.from) { vaultBuild(host, { error: true }, { error: true }); return; }
+      Promise.all([
+        sb.from('kl_vault_documents')
+          .select('id,filename,mime_type,file_size_bytes,extraction_status,analysis_status,visibility,created_at')
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false }).limit(50),
+        sb.from('vault_contract_records')
+          .select('id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at')
+          .order('created_at', { ascending: false }).limit(50)
+      ]).then(function (res) {
+        vaultBuild(host, vaultUnwrap(res[0], 'kl_vault_documents'), vaultUnwrap(res[1], 'vault_contract_records'));
+      }).catch(function (e) {
+        console.warn('Vault section: reads failed', e);
+        vaultBuild(host, { error: true }, { error: true });
+      });
+    }
+
+    function vaultBuild(host, docsR, analysesR) {
+      host.innerHTML = '';
+      try { host.appendChild(vaultDocsPanel(docsR)); }
+      catch (e) { console.warn('Vault: documents panel failed', e); }
+      try { host.appendChild(vaultAnalysesPanel(analysesR)); }
+      catch (e) { console.warn('Vault: analyses panel failed', e); }
+    }
+
+    function vaultDocsPanel(r) {
+      var panel = mkEl('div', 'vault-panel');
+      panel.appendChild(mkEl('div', 'acei-section-h', 'Documents'));
+      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
+      var rows = r.rows || [];
+      if (!rows.length) {
+        panel.appendChild(mkEl('div', 'empty-state', 'No documents in your vault yet.'));
+        panel.appendChild(mkEl('div', 'acei-note', 'Document upload is coming to this room shortly.'));
+        return panel;
+      }
+      var table = mkEl('table', 'acei-table');
+      var thead = mkEl('thead'), htr = mkEl('tr');
+      ['Document', 'Type', 'Size', 'Extraction', 'Analysis', 'Visibility', 'Added']
+        .forEach(function (h) { htr.appendChild(mkEl('th', null, h)); });
+      thead.appendChild(htr); table.appendChild(thead);
+      var tbody = mkEl('tbody');
+      rows.forEach(function (doc) {
+        var tr = mkEl('tr');
+        tr.appendChild(mkEl('td', 'vault-fname', doc.filename || '—'));
+        var typeTd = mkEl('td');
+        typeTd.appendChild(mkEl('span', 'vault-chip', vaultMimeLabel(doc.mime_type)));
+        tr.appendChild(typeTd);
+        tr.appendChild(mkEl('td', 'acei-num', vaultFileSize(doc.file_size_bytes)));
+        var exTd = mkEl('td'); exTd.appendChild(vaultStatusPill(doc.extraction_status)); tr.appendChild(exTd);
+        var anTd = mkEl('td'); anTd.appendChild(vaultStatusPill(doc.analysis_status)); tr.appendChild(anTd);
+        var visTd = mkEl('td');
+        var vlabel = vaultVisibilityLabel(doc.visibility);
+        visTd.appendChild(mkEl('span', 'vault-vis vault-vis--' + vlabel, vlabel));
+        tr.appendChild(visTd);
+        tr.appendChild(mkEl('td', null, vaultDate(doc.created_at)));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      panel.appendChild(table);
+      return panel;
+    }
+
+    function vaultAnalysesPanel(r) {
+      var panel = mkEl('div', 'vault-panel');
+      panel.appendChild(mkEl('div', 'acei-section-h', 'Contract analyses'));
+      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
+      var rows = r.rows || [];
+      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No contract analyses yet.')); return panel; }
+      var list = mkEl('div', 'vault-analyses');
+      rows.forEach(function (a) { list.appendChild(vaultAnalysisCard(a)); });
+      panel.appendChild(list);
+      // Neutral caption only — no conclusions/advice framing (§1.3, RULE 15).
+      panel.appendChild(mkEl('div', 'acei-caption',
+        'Analyses are indicative; the legal judgement belongs with a qualified professional.'));
+      return panel;
+    }
+
+    function vaultAnalysisCard(a) {
+      var card = mkEl('div', 'vault-card');
+      var top = mkEl('div', 'vault-card-top');
+      var main = mkEl('div', 'vault-card-main');
+      // employee_ref is pseudonymised — present as-is via textContent.
+      main.appendChild(mkEl('div', 'vault-ref', a.employee_ref || '—'));
+      var roleBits = [];
+      if (a.role_title) roleBits.push(a.role_title);
+      if (a.role_tier) roleBits.push(a.role_tier);
+      if (roleBits.length) main.appendChild(mkEl('div', 'vault-role', roleBits.join(' · ')));
+      top.appendChild(main);
+      // Tag estate samples so the tenant can tell them from their own rows.
+      if (a.is_demonstration === true) top.appendChild(mkEl('span', 'vault-sample', 'sample'));
+      card.appendChild(top);
+
+      // Stored numbers only — the score is rendered as a bare value (no advice).
+      var grid = mkEl('div', 'acei-stat-grid');
+      if (aceiIsNum(a.compliance_score)) grid.appendChild(aceiStat('Compliance score', aceiSmart(a.compliance_score)));
+      var gaps = vaultGapCount(a.critical_gaps);
+      if (gaps != null) grid.appendChild(aceiStat('Critical gaps', String(gaps)));
+      if (grid.childNodes.length) card.appendChild(grid);
+
+      if (a.key_finding) {
+        card.appendChild(mkEl('div', 'vault-subhead', 'Key finding'));
+        card.appendChild(mkEl('div', 'vault-finding', a.key_finding));
+      }
+      return card;
     }
 
     // ---- Time-aware greeting ----
