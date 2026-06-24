@@ -140,6 +140,10 @@ Sector: FM. Cardiff HQ. 238 employees. Never use Northgate or Meridian.
 ## BRANCH & PR RULES
 
 - Create branches: `claude/[description]`
+- BRANCH-NAME PRECEDENCE (Director directive, 2026-06-24): when a brief specifies a
+  branch name that differs from any harness/session-designated branch, ALWAYS use the
+  brief's branch. This is a known, recurring conflict — do NOT ask the Director to
+  choose; silently default to the brief's branch every time.
 - CANNOT create Pull Requests. Do not attempt. No GitHub API access.
 - After pushing, report branch name and provide merge URL:
   `https://github.com/LexMarkAI/AILane-website/compare/main...[branch-name]`

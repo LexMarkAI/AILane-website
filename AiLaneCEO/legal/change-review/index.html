@@ -270,7 +270,7 @@
     // ── Lane B — Legal Pages pending review (rendered first; the Director's priority queue) ──
     var laneB=el('div',{id:'sec-laneB',class:'lane-section',style:'display:flex;flex-direction:column;gap:12px;'});
     laneB.appendChild(el('div',{class:'lane-head'},el('div',{class:'t'},'Legal Pages — pending review'),el('div',{class:'rule'})));
-    laneB.appendChild(el('div',{class:'lane-note'},'Accept & update ratifies the page’s current live text and re-gates accepted clients. If the page text itself needs editing first (e.g. a new statutory clause), edit the live page before accepting. Mark reviewed clears the item without changing the page. Convene Legal Council logs the decision and keeps the item pending.'));
+    laneB.appendChild(el('div',{class:'lane-note'},'Accept & update ratifies the page’s current live text and re-gates accepted clients. If the page text itself needs editing first (e.g. a new statutory clause), edit the live page before accepting. Mark reviewed clears the item without changing the page. Convene Legal Council escalates this page to a full AI Legal Council review in the Forward-law lane, where you ratify or override the opinion.'));
     laneB.appendChild(el('div',{class:'lane-queue',id:'laneB-queue'},el('div',{class:'empty-state',id:'laneB-status'},'Loading the legal-page review feed…')));
     main.appendChild(laneB);
 
@@ -902,13 +902,17 @@
       counter.textContent=n+' / 150 words';
       var met=n>=150;
       counter.className='word-counter'+(met?' met':'');
-      buttons.forEach(function(b){b.disabled=!met;});
+      // Accept & update keeps the ≥150-word gate; Mark reviewed and Convene are NOT word-gated. (§2.1/§3)
+      btnAccept.disabled=!met;
+      btnReviewed.disabled=false;
+      btnCouncil.disabled=false;
     }
     note.addEventListener('input',refreshGate);
+    refreshGate(); // init: Mark reviewed + Convene enabled immediately; Accept stays gated until 150 words
     function setMsg(kind,text){msg.className='inline-msg'+(kind?' '+kind:'');msg.textContent=text||'';}
 
     function decide(action){
-      if(countWords(note.value)<150)return;
+      if(action==='accept'&&countWords(note.value)<150)return; // ≥150-word gate applies to Accept only (§2.1)
       buttons.forEach(function(b){b.disabled=true;});
       note.disabled=true;
       setMsg('','Recording your decision…');
@@ -938,18 +942,86 @@
         setMsg('err','Network error — your decision was not recorded. Please try again.');
       });
     }
+    // ── Convene Legal Council (legal-page item) → escalate into the RSG (Forward-law) council flow. (§2.2/§2.3/§3)
+    //    promote (rsg-legalpage-promote, NEW) → on 200/409 take adaptation_id →
+    //    convene (rsg-director-action {convene_council}) → "Council convened — see Forward law".
+    //    Defensive (§2.3): route not yet deployed (404/403/network/no id) → neutral inline note, item stays pending. ──
+    var ROUTING_PENDING_MSG='Council routing is being enabled for legal pages — this item can\'t be convened yet.';
+    function conveneLegalPage(){
+      var changeId=page.legal_page_change_id;
+      buttons.forEach(function(b){b.disabled=true;});
+      note.disabled=true;
+      setMsg('','Convening the Legal Council…');
+      if(changeId==null||changeId===''){
+        // No legal_page_change_id on the feed item → route can't be exercised yet; safe neutral fallback. (§2.3)
+        note.disabled=false;refreshGate();
+        setMsg('',ROUTING_PENDING_MSG);
+        return;
+      }
+      fetch(FUNCTIONS_URL+'/rsg-legalpage-promote',{
+        method:'POST',
+        headers:authHeaders(),
+        body:JSON.stringify({legal_page_change_id:changeId})
+      }).then(function(r){
+        return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,body:j};});
+      }).then(function(res){
+        // 200 promoted, 409 already_promoted — both carry the adaptation_id to convene against. (§1/§3)
+        if(res.ok||res.status===409){
+          var adaptationId=res.body&&res.body.adaptation_id;
+          if(adaptationId==null){note.disabled=false;refreshGate();setMsg('',ROUTING_PENDING_MSG);return;}
+          conveneAdaptation(adaptationId);
+          return;
+        }
+        // 404 change_not_found / 403 / route absent → neutral fallback; item stays pending. (§2.3/§3)
+        if(res.status===404||res.status===403){note.disabled=false;refreshGate();setMsg('',ROUTING_PENDING_MSG);return;}
+        // Any other non-2xx → retryable inline error; item stays pending.
+        note.disabled=false;refreshGate();
+        setMsg('err',(res.body&&res.body.error)?('Couldn\'t convene the council: '+String(res.body.error)+'.'):("Couldn't convene the council ("+res.status+"). Please try again."));
+      }).catch(function(){
+        // Network error (route not deployed yet) → neutral fallback; item stays pending. (§2.3/§3)
+        note.disabled=false;refreshGate();
+        setMsg('',ROUTING_PENDING_MSG);
+      });
+    }
+    function conveneAdaptation(adaptationId){
+      setMsg('','Convening the Legal Council…');
+      fetch(FUNCTIONS_URL+'/rsg-director-action',{
+        method:'POST',
+        headers:authHeaders(),
+        body:JSON.stringify({adaptation_id:adaptationId,action:'convene_council'})
+      }).then(function(r){
+        return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,body:j};});
+      }).then(function(res){
+        if(res.ok){
+          // Item now lives in the Forward-law (RSG) lane — reviewed there exactly like a forward-law change. (§2.2/§3)
+          resolveCard(card,'council','Council convened — opinion generating; see Forward law.');
+          if(typeof COUNTS.legal==='number'&&COUNTS.legal>0)COUNTS.legal-=1;
+          updateSummary();
+          loadAll();
+          return;
+        }
+        // promote ok but convene rejected (e.g. 409 bad_state) → show the error inline; refresh (may already be convened). (§3)
+        note.disabled=false;refreshGate();
+        setMsg('err',(res.body&&res.body.error)?('Action declined: '+String(res.body.error)+'.'):("Couldn't convene the council ("+res.status+"). Please try again."));
+        loadAll();
+      }).catch(function(){
+        note.disabled=false;refreshGate();
+        setMsg('err','Network error — the council was not convened. Please try again.');
+      });
+    }
+
     btnAccept.addEventListener('click',function(){decide('accept');});
     btnReviewed.addEventListener('click',function(){decide('mark_reviewed');});
-    btnCouncil.addEventListener('click',function(){decide('convene_council');});
+    btnCouncil.addEventListener('click',conveneLegalPage);
 
     card.appendChild(body);
     return card;
   }
 
   function statusMessageB(status,action){
-    var byAction={accept:'Accepted & updated — page re-baselined and accepted clients re-gated.',mark_reviewed:'Reviewed — no change required.',convene_council:'Legal Council convened — item kept pending.'};
+    var byAction={accept:'Accepted & updated — page re-baselined and accepted clients re-gated.',mark_reviewed:'Reviewed — no change required.'};
     if(status){
-      var byStatus={accepted:'Accepted & updated — page re-baselined and accepted clients re-gated.',reviewed:'Reviewed — no change required.',council:'Legal Council convened — item kept pending.'};
+      var byStatus={accepted:'Accepted & updated — page re-baselined and accepted clients re-gated.',reviewed:'Reviewed — no change required.'};
       if(byStatus[status])return byStatus[status];
     }
     return byAction[action]||('Decision recorded'+(status?' ('+String(status).replace(/_/g,' ')+')':'')+'.');
