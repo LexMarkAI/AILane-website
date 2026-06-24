@@ -7170,8 +7170,289 @@
       style: { maxWidth: "860px", width: "100%", margin: "0 auto 8px" }
     }, children);
   }
-  function HubFacetView({ facet, onBack }) {
+  var HUB_ACEI_CAT_LABELS = {
+    discrimination_harassment: "Discrimination & harassment",
+    harassment_bullying: "Harassment & bullying",
+    unfair_dismissal: "Unfair dismissal",
+    wrongful_dismissal: "Wrongful dismissal",
+    redundancy: "Redundancy & restructure",
+    redundancy_restructure: "Redundancy & restructure",
+    pay_wages: "Pay & wages",
+    wages_pay: "Pay & wages",
+    national_minimum_wage: "National minimum wage",
+    working_time: "Working time",
+    holiday_pay: "Holiday pay",
+    family_leave: "Family & parental leave",
+    whistleblowing: "Whistleblowing",
+    tupe: "TUPE transfers",
+    contracts_terms: "Contracts & terms",
+    health_safety: "Health & safety",
+    data_protection: "Data protection",
+    grievance_disciplinary: "Grievance & disciplinary",
+    equal_pay: "Equal pay",
+    trade_union: "Trade union & collective",
+    worker_status: "Worker status & classification",
+    immigration_rtw: "Immigration & right to work"
+  };
+  function hubAceiIsNum(v) {
+    return v != null && v !== "" && !isNaN(Number(v));
+  }
+  function hubAceiF2(v) {
+    return hubAceiIsNum(v) ? Number(v).toFixed(2) : "\u2014";
+  }
+  function hubAceiF3(v) {
+    return hubAceiIsNum(v) ? Number(v).toFixed(3) : "\u2014";
+  }
+  function hubAceiInt(v) {
+    return hubAceiIsNum(v) ? String(Math.round(Number(v))) : "\u2014";
+  }
+  function hubAceiSmart(v) {
+    if (!hubAceiIsNum(v)) return "\u2014";
+    var n = Number(v);
+    return n === Math.round(n) ? String(n) : n.toFixed(2);
+  }
+  function hubAceiDi(v) {
+    if (!hubAceiIsNum(v)) return "\u2014";
+    var n = Number(v);
+    return n === Math.round(n) ? String(n) : n.toFixed(1);
+  }
+  function hubAceiHumanise(raw) {
+    if (raw == null) return "\u2014";
+    var key = String(raw).toLowerCase();
+    if (HUB_ACEI_CAT_LABELS[key]) return HUB_ACEI_CAT_LABELS[key];
+    return String(raw).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, function(c) {
+      return c.toUpperCase();
+    }) || "\u2014";
+  }
+  function hubAceiData(res, name, fallback) {
+    if (!res) return fallback;
+    if (res.error) {
+      console.warn("[OOX-001] ACEI read failed: " + name, res.error);
+      return fallback;
+    }
+    return res.data == null ? fallback : res.data;
+  }
+  var HUB_ACEI_CARD_STYLE = { background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "12px", padding: "20px 24px" };
+  var HUB_ACEI_SECTION_H = { color: "#94A3B8", fontFamily: "'DM Mono', monospace", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px" };
+  function hubAceiEmptyState() {
+    return React.createElement(
+      "div",
+      {
+        style: { maxWidth: "460px", margin: "24px auto", textAlign: "center", background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "12px", padding: "32px 24px" }
+      },
+      React.createElement("div", {
+        "aria-hidden": "true",
+        style: { width: "48px", height: "48px", margin: "0 auto 18px", borderRadius: "50%", background: "radial-gradient(circle at 32% 30%, #38BDF8, #0F1D32)", boxShadow: "0 0 24px rgba(14,165,233,0.35)" }
+      }),
+      React.createElement("div", {
+        style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6, marginBottom: "20px" }
+      }, "Your exposure index is calculated once your company profile is complete. Add your company number and SIC so Eileen can resolve your sector and weight your exposure."),
+      React.createElement("a", {
+        href: "/operational/onboarding/",
+        style: { display: "inline-block", background: "#0EA5E9", color: "#fff", textDecoration: "none", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 500, padding: "10px 18px", borderRadius: "8px" }
+      }, "Set up your workspace")
+    );
+  }
+  function hubAceiDomainHeader(d0) {
+    if (!d0) return null;
+    var meta = [
+      React.createElement("div", { key: "lbl", style: { color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", fontWeight: 500 } }, "Employment-law exposure index"),
+      React.createElement("div", { key: "drt", style: { color: "#94A3B8", fontFamily: "'DM Mono', monospace", fontSize: "12px", marginTop: "4px" } }, "Domain risk total: " + hubAceiSmart(d0.drt))
+    ];
+    if (d0.structural_flag === true) {
+      meta.push(React.createElement("span", {
+        key: "badge",
+        style: { alignSelf: "flex-start", marginTop: "8px", color: "#F59E0B", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "6px", fontFamily: "'DM Mono', monospace", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", padding: "2px 8px" }
+      }, "Structural"));
+    }
+    return React.createElement(
+      "div",
+      {
+        key: "di-card",
+        style: { display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap", marginBottom: "20px", background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "12px", padding: "20px 24px" }
+      },
+      React.createElement(
+        "div",
+        { style: { fontFamily: "'DM Mono', monospace", fontSize: "40px", fontWeight: 600, color: "#F1F5F9", lineHeight: 1, whiteSpace: "nowrap" } },
+        hubAceiDi(d0.di),
+        React.createElement("span", { style: { fontSize: "16px", color: "#64748B", marginLeft: "4px" } }, "/100")
+      ),
+      React.createElement("div", { style: { display: "flex", flexDirection: "column", minWidth: 0 } }, meta)
+    );
+  }
+  function hubAceiCategoryTable(rows) {
+    var sorted = rows.slice().sort(function(a, b) {
+      var av = hubAceiIsNum(a && a.wcs) ? Number(a.wcs) : -Infinity;
+      var bv = hubAceiIsNum(b && b.wcs) ? Number(b.wcs) : -Infinity;
+      return bv - av;
+    });
+    var headers = ["Category", "Likelihood (L)", "Impact (I)", "CRS (L\xD7I)", "Sector \xD7 (sm)", "Jurisdiction \xD7 (jm)", "Weighted (WCS)"];
+    var thBase = { padding: "9px 12px", borderBottom: "2px solid #1E3A5F", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 600, whiteSpace: "nowrap" };
+    var thText = Object.assign({}, thBase, { textAlign: "left" });
+    var thNum = Object.assign({}, thBase, { textAlign: "right" });
+    var tdText = { padding: "9px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 500 };
+    var tdNum = { padding: "9px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", color: "#CBD5E1", fontFamily: "'DM Mono', monospace", fontSize: "13px", textAlign: "right", whiteSpace: "nowrap" };
+    var tdWcs = Object.assign({}, tdNum, { color: "#F1F5F9", fontWeight: 600 });
+    var headRow = React.createElement("tr", null, headers.map(function(h, i) {
+      return React.createElement("th", { key: h, style: i === 0 ? thText : thNum }, h);
+    }));
+    var bodyRows = sorted.map(function(row, idx) {
+      var smStr = hubAceiF2(row.sm);
+      var smEmph = hubAceiIsNum(row.sm) && smStr !== "1.00";
+      var smStyle = smEmph ? Object.assign({}, tdNum, { color: "#0EA5E9", fontWeight: 600 }) : tdNum;
+      return React.createElement(
+        "tr",
+        { key: idx },
+        React.createElement("td", { style: tdText }, hubAceiHumanise(row.category)),
+        React.createElement("td", { style: tdNum }, hubAceiSmart(row.l)),
+        React.createElement("td", { style: tdNum }, hubAceiSmart(row.i)),
+        React.createElement("td", { style: tdNum }, hubAceiF2(row.crs)),
+        React.createElement("td", { style: smStyle }, smStr),
+        React.createElement("td", { style: tdNum }, hubAceiF2(row.jm)),
+        React.createElement("td", { style: tdWcs }, hubAceiF3(row.wcs))
+      );
+    });
+    return React.createElement(
+      "div",
+      { key: "cat", style: { marginBottom: "20px" } },
+      React.createElement("div", { style: HUB_ACEI_SECTION_H }, "Exposure by category"),
+      React.createElement(
+        "div",
+        { style: { overflowX: "auto", background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "10px" } },
+        React.createElement(
+          "table",
+          { style: { width: "100%", borderCollapse: "collapse", minWidth: "640px" } },
+          React.createElement("thead", null, headRow),
+          React.createElement("tbody", null, bodyRows)
+        )
+      ),
+      React.createElement(
+        "div",
+        { style: { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.5, marginTop: "10px" } },
+        "Weighted scores reflect your sector (Sector \xD7) and jurisdiction mix (Jurisdiction \xD7). WCS = CRS \xD7 Sector \xD7 \xD7 Jurisdiction \xD7."
+      )
+    );
+  }
+  function hubAceiSectorPanel(org, sector) {
+    var children = [
+      React.createElement("h3", { key: "h", style: { color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, margin: "0 0 4px" } }, "Your sector benchmark")
+    ];
+    if (!sector) {
+      children.push(React.createElement("div", { key: "na", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } }, "Sector benchmark not available for your SIC classification."));
+      return React.createElement("div", { key: "sector", style: HUB_ACEI_CARD_STYLE }, children);
+    }
+    var subTxt = sector.sector_name || "\u2014";
+    if (sector.sector_group_name) subTxt += " \xB7 " + sector.sector_group_name;
+    children.push(React.createElement("div", { key: "sub", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", marginBottom: "14px" } }, subTxt));
+    var stats = [
+      ["Sector exposure multiplier", hubAceiF2(sector.sector_multiplier)],
+      ["Employers in sector", hubAceiInt(sector.employer_count)],
+      ["Tribunal cases", hubAceiInt(sector.tribunal_cases)],
+      ["Cases per employer", hubAceiF2(sector.cases_per_employer)]
+    ];
+    children.push(React.createElement("div", {
+      key: "grid",
+      style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "14px" }
+    }, stats.map(function(s) {
+      return React.createElement(
+        "div",
+        { key: s[0], style: { background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "8px", padding: "12px 14px" } },
+        React.createElement("div", { style: { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", marginBottom: "6px" } }, s[0]),
+        React.createElement("div", { style: { color: "#F1F5F9", fontFamily: "'DM Mono', monospace", fontSize: "18px", fontWeight: 600 } }, s[1])
+      );
+    })));
+    children.push(React.createElement(
+      "div",
+      { key: "cmp", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", lineHeight: 1.5 } },
+      "Your sector multiplier is " + hubAceiF2(sector.sector_multiplier) + " \u2014 applied as the Sector \xD7 in your weighted scores above."
+    ));
+    var orgMult = org && org.acei_sector_multiplier;
+    if (hubAceiIsNum(orgMult) && hubAceiF2(orgMult) !== hubAceiF2(sector.sector_multiplier)) {
+      children.push(React.createElement(
+        "div",
+        { key: "note", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.5, marginTop: "8px" } },
+        "Applied value for your organisation: " + hubAceiF2(orgMult) + " \u2014 this is the multiplier applied to this tenant."
+      ));
+    }
+    return React.createElement("div", { key: "sector", style: HUB_ACEI_CARD_STYLE }, children);
+  }
+  function HubAceiFacet({ hubSession }) {
+    var _state = useState({ status: "loading", cats: [], dom: null, org: null, sector: null });
+    var state = _state[0];
+    var setState = _state[1];
+    useEffect(function() {
+      var alive = true;
+      var sb = hubSession && hubSession.sb;
+      if (!sb || !sb.from) {
+        setState({ status: "ready", cats: [], dom: null, org: null, sector: null });
+        return;
+      }
+      Promise.all([
+        sb.from("acei_category_scores").select("category,domain,l,i,sm,jm,crs,wcs,week_start_date").order("week_start_date", { ascending: false }).limit(60),
+        sb.from("acei_domain_scores").select("domain,drt,dmr,di,structural_flag,week_start_date").order("week_start_date", { ascending: false }).limit(1),
+        sb.from("organisations").select("name,acei_sector_code,acei_sector_multiplier").maybeSingle()
+      ]).then(function(res) {
+        var cats2 = hubAceiData(res[0], "acei_category_scores", []);
+        var dom = hubAceiData(res[1], "acei_domain_scores", []);
+        var org = hubAceiData(res[2], "organisations", null);
+        var code = org && org.acei_sector_code;
+        if (code) {
+          return sb.from("sector_exposure_summary").select("sector_code,sector_name,sector_group_name,sector_multiplier,employer_count,tribunal_cases,cases_per_employer").eq("sector_code", code).maybeSingle().then(function(secRes) {
+            if (!alive) return;
+            setState({ status: "ready", cats: cats2 || [], dom: dom && dom[0] || null, org, sector: hubAceiData(secRes, "sector_exposure_summary", null) });
+          });
+        }
+        if (alive) setState({ status: "ready", cats: cats2 || [], dom: dom && dom[0] || null, org, sector: null });
+      }).catch(function(e) {
+        console.warn("[OOX-001] ACEI facet: reads failed", e);
+        if (alive) setState({ status: "ready", cats: [], dom: null, org: null, sector: null });
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubSession]);
+    if (state.status === "loading") {
+      return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading your exposure index\u2026");
+    }
+    var cats = state.cats || [];
+    if (!cats.length) return hubAceiEmptyState();
+    var maxWeek = null;
+    cats.forEach(function(r) {
+      if (r && r.week_start_date != null) {
+        if (maxWeek === null || String(r.week_start_date) > String(maxWeek)) maxWeek = r.week_start_date;
+      }
+    });
+    var latest = maxWeek === null ? cats : cats.filter(function(r) {
+      return String(r.week_start_date) === String(maxWeek);
+    });
+    return React.createElement(
+      "div",
+      { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } },
+      hubAceiDomainHeader(state.dom),
+      // §1.3
+      hubAceiCategoryTable(latest),
+      // §1.4
+      hubAceiSectorPanel(state.org, state.sector)
+      // §1.5
+    );
+  }
+  function HubFacetView({ facet, hubSession, onBack }) {
     var label = HUB_FACET_LABELS[facet] || "Workspace";
+    var body = facet === "acei" ? React.createElement(
+      "div",
+      { style: { flex: 1, overflowY: "auto", padding: "24px" } },
+      React.createElement(HubAceiFacet, { hubSession })
+    ) : React.createElement(
+      "div",
+      { style: { flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" } },
+      React.createElement(
+        "div",
+        { className: "kl-placeholder-panel", style: { maxWidth: "420px" } },
+        React.createElement("div", { className: "kl-placeholder-icon" }, "\u{1F6E0}\uFE0F"),
+        React.createElement("div", { className: "kl-placeholder-title" }, label),
+        React.createElement("div", { className: "kl-placeholder-body" }, "This area is being wired in \u2014 coming shortly.")
+      )
+    );
     return React.createElement(
       "div",
       { className: "kl-main" },
@@ -7188,17 +7469,7 @@
         }, "\u2190 Back"),
         React.createElement("div", { style: { fontSize: "15px", fontWeight: 500, color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif" } }, label)
       ),
-      React.createElement(
-        "div",
-        { style: { flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" } },
-        React.createElement(
-          "div",
-          { className: "kl-placeholder-panel", style: { maxWidth: "420px" } },
-          React.createElement("div", { className: "kl-placeholder-icon" }, "\u{1F6E0}\uFE0F"),
-          React.createElement("div", { className: "kl-placeholder-title" }, label),
-          React.createElement("div", { className: "kl-placeholder-body" }, "This area is being wired in \u2014 coming shortly.")
-        )
-      )
+      body
     );
   }
   function App() {
@@ -8116,7 +8387,7 @@
         tier,
         lang
       }
-    ) : hubMode && currentFacet ? /* @__PURE__ */ React.createElement(HubFacetView, { facet: currentFacet, onBack: () => setCurrentFacet(null) }) : /* @__PURE__ */ React.createElement(
+    ) : hubMode && currentFacet ? /* @__PURE__ */ React.createElement(HubFacetView, { facet: currentFacet, hubSession, onBack: () => setCurrentFacet(null) }) : /* @__PURE__ */ React.createElement(
       ConversationArea,
       {
         messages,
