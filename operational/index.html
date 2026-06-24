@@ -499,6 +499,41 @@
       letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
     }
     .vault-finding { margin-top: 6px; color: var(--muted); font-size: 0.92rem; line-height: 1.6; white-space: pre-wrap; }
+
+    /* ════════════════════════════════════════════════════════════════
+       ALERTS ROOM (OOX-001) — display-only section wiring the tenant's
+       open actions, breach register and mitigations. Reuses the page
+       palette + the ACEI/Vault card idioms (CSS vars only; the red is the
+       existing vault-pill--bad #f87171 — no new accent, gold stays brand).
+       ════════════════════════════════════════════════════════════════ */
+    .alerts-panel { margin-bottom: 24px; }
+    .alerts-panel:last-child { margin-bottom: 0; }
+    .alerts-list { display: flex; flex-direction: column; gap: 12px; margin: 2px 0 4px; }
+    .alerts-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 14px 16px;
+    }
+    .alerts-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .alerts-card-main { min-width: 0; }
+    .alerts-title { font-size: 0.98rem; font-weight: 700; color: var(--text); word-break: break-word; }
+    .alerts-sub { margin-top: 3px; font-size: 0.84rem; color: var(--muted); line-height: 1.5; word-break: break-word; }
+    .alerts-meta { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+    .alerts-mono {
+      font-family: 'Space Mono', monospace; font-size: 0.72rem;
+      color: var(--faint); letter-spacing: 0.02em;
+    }
+    .alerts-flag {
+      display: inline-flex; align-items: center; white-space: nowrap;
+      font-size: 0.68rem; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px;
+      border: 1px solid var(--line-mid); background: var(--card-2); color: var(--muted);
+    }
+    .alerts-flag--overdue { color: #f87171; border-color: rgba(248,113,113,0.32); background: rgba(248,113,113,0.08); }
+    .alerts-flag--due { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
+    .alerts-flag--ico {
+      font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft);
+    }
   </style>
 
   <!-- EILEEN-NEXUS-001 styles — replicated verbatim from the canonical KL
@@ -927,6 +962,9 @@
       } else if (m.id === 'vault') {
         if (emptyEl) emptyEl.hidden = true;
         if (bodyEl) { bodyEl.hidden = false; renderVaultSection(bodyEl); }
+      } else if (m.id === 'alerts') {
+        if (emptyEl) emptyEl.hidden = true;
+        if (bodyEl) { bodyEl.hidden = false; renderAlertsSection(bodyEl); }
       } else {
         if (bodyEl) { bodyEl.hidden = true; bodyEl.innerHTML = ''; }
         if (emptyEl) emptyEl.hidden = false;
@@ -1560,6 +1598,232 @@
         card.appendChild(mkEl('div', 'vault-finding', a.key_finding));
       }
       return card;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ALERTS ROOM (OOX-001) — read-only, RLS-scoped via CFG.sb. Wires the
+    // Alerts section to the tenant's open actions, breach register and
+    // mitigations, with a count chip on the menu item. Three RLS-scoped
+    // reads (org_actions + the authenticated actions catalogue join,
+    // breach_register, mitigation_register); no service key, no new
+    // endpoint, no org_id hardcoding. rsg_change_alerts is deliberately
+    // NOT wired (Director/firm-internal feed; tenants have no read policy).
+    // Render discipline mirrors the ACEI/Intelligence/Vault sections: DOM
+    // built via mkEl/textContent (no innerHTML on any DB field); each read
+    // unwrapped resiliently (vaultUnwrap) so a failed panel shows "—" with
+    // console.warn and the section never throws. Breach records are
+    // presented factually — no advice/conclusion language (RULE 15).
+    // ════════════════════════════════════════════════════════════════
+
+    // Whole-day difference (date − today), UTC-normalised. null if unparseable.
+    function alertsDaysUntil(iso) {
+      if (!iso) return null;
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return null;
+      var now = new Date();
+      var a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      var b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      return Math.round((a - b) / 86400000);
+    }
+    // Overdue (past) / due-soon (≤14d) flag for a date field; null otherwise.
+    function alertsDateFlag(iso) {
+      var t = alertsDaysUntil(iso);
+      if (t === null) return null;
+      if (t < 0) return { kind: 'overdue', label: 'Overdue' };
+      if (t <= 14) return { kind: 'due', label: 'Due soon' };
+      return null;
+    }
+    // §1.5 — a breach "needs attention" unless it is closed/resolved.
+    function breachNeedsAttention(b) {
+      if (!b) return false;
+      var s = String(b.status == null ? '' : b.status).toLowerCase().trim();
+      return s !== 'closed' && s !== 'resolved';
+    }
+    // Section heading with the panel's row count (count omitted on read error).
+    function alertsHeading(title, r) {
+      return mkEl('div', 'acei-section-h', (r && r.rows) ? (title + ' · ' + r.rows.length) : title);
+    }
+
+    // Set / clear the Alerts menu-item count chip (reuses the .chip-new
+    // mechanism — §0.2(2)). Shown when count > 0; removed at 0.
+    function setAlertsChip(count) {
+      if (!menuEl) return;
+      var item = menuEl.querySelector('.menu-item[data-id="alerts"]');
+      if (!item) return;
+      var chip = item.querySelector('.chip-new');
+      var n = Number(count) || 0;
+      if (n > 0) {
+        if (!chip) { chip = document.createElement('span'); chip.className = 'chip-new'; item.appendChild(chip); }
+        chip.textContent = String(n);
+      } else if (chip) {
+        chip.parentNode.removeChild(chip);
+      }
+    }
+
+    function renderAlertsSection(host) {
+      host.innerHTML = '';
+      host.appendChild(mkEl('div', 'acei-loading', 'Loading your alerts…'));
+      var sb = CFG.sb;
+      if (!sb || !sb.from) { alertsBuild(host, { error: true }, { error: true }, { error: true }); return; }
+      Promise.all([
+        sb.from('org_actions')
+          .select('id,status,due_date,notes,created_at,actions(action_text,owner_role_hint,deadline_days,required)')
+          .neq('status', 'completed')
+          .order('due_date', { ascending: true, nullsFirst: false }).limit(50),
+        sb.from('breach_register')
+          .select('id,breach_ref,discovered_at,nature,status,ico_reportable,ico_report_due_at,ico_reported_at,risk_assessment')
+          .order('discovered_at', { ascending: false }).limit(50),
+        sb.from('mitigation_register')
+          .select('id,domain,category,tier,status,revalidate_by,activated_at')
+          .order('revalidate_by', { ascending: true, nullsFirst: false }).limit(50)
+      ]).then(function (res) {
+        alertsBuild(host,
+          vaultUnwrap(res[0], 'org_actions'),
+          vaultUnwrap(res[1], 'breach_register'),
+          vaultUnwrap(res[2], 'mitigation_register'));
+      }).catch(function (e) {
+        console.warn('Alerts section: reads failed', e);
+        alertsBuild(host, { error: true }, { error: true }, { error: true });
+      });
+    }
+
+    function alertsBuild(host, actionsR, breachesR, mitigR) {
+      host.innerHTML = '';
+      try { host.appendChild(alertsActionsPanel(actionsR)); }
+      catch (e) { console.warn('Alerts: actions panel failed', e); }
+      try { host.appendChild(alertsBreachesPanel(breachesR)); }
+      catch (e) { console.warn('Alerts: breaches panel failed', e); }
+      try { host.appendChild(alertsMitigationsPanel(mitigR)); }
+      catch (e) { console.warn('Alerts: mitigations panel failed', e); }
+      // §1.5 count chip — open actions + breaches still needing attention.
+      var openCount =
+        (actionsR && actionsR.rows ? actionsR.rows.length : 0) +
+        (breachesR && breachesR.rows ? breachesR.rows.filter(breachNeedsAttention).length : 0);
+      setAlertsChip(openCount);
+    }
+
+    // §1.2 — Open actions panel.
+    function alertsActionsPanel(r) {
+      var panel = mkEl('div', 'alerts-panel');
+      panel.appendChild(alertsHeading('Open actions', r));
+      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
+      var rows = r.rows || [];
+      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No open actions.')); return panel; }
+      var list = mkEl('div', 'alerts-list');
+      rows.forEach(function (a) { list.appendChild(alertsActionCard(a)); });
+      panel.appendChild(list);
+      return panel;
+    }
+    function alertsActionCard(a) {
+      var cat = a.actions;
+      if (Array.isArray(cat)) cat = cat[0];
+      cat = cat || {};
+      var card = mkEl('div', 'alerts-card');
+      var top = mkEl('div', 'alerts-card-top');
+      var main = mkEl('div', 'alerts-card-main');
+      // action_text from the authenticated catalogue; notes fallback.
+      main.appendChild(mkEl('div', 'alerts-title', cat.action_text || a.notes || 'Action'));
+      if (cat.owner_role_hint) main.appendChild(mkEl('div', 'alerts-sub', 'Owner: ' + cat.owner_role_hint));
+      top.appendChild(main);
+      top.appendChild(vaultStatusPill(a.status)); // reuses the vault status-pill idiom
+      card.appendChild(top);
+      var meta = mkEl('div', 'alerts-meta');
+      if (a.due_date) {
+        meta.appendChild(mkEl('span', 'alerts-mono', 'Due ' + vaultDate(a.due_date)));
+        var flag = alertsDateFlag(a.due_date);
+        if (flag) meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--' + flag.kind, flag.label));
+      } else {
+        meta.appendChild(mkEl('span', 'alerts-mono', 'No due date'));
+      }
+      if (meta.childNodes.length) card.appendChild(meta);
+      return card;
+    }
+
+    // §1.3 — Breach register (presented factually; no advice — RULE 15).
+    function alertsBreachesPanel(r) {
+      var panel = mkEl('div', 'alerts-panel');
+      panel.appendChild(alertsHeading('Breach register', r));
+      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
+      var rows = r.rows || [];
+      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No breaches recorded.')); return panel; }
+      var list = mkEl('div', 'alerts-list');
+      rows.forEach(function (b) { list.appendChild(alertsBreachCard(b)); });
+      panel.appendChild(list);
+      return panel;
+    }
+    function alertsBreachCard(b) {
+      var card = mkEl('div', 'alerts-card');
+      var top = mkEl('div', 'alerts-card-top');
+      var main = mkEl('div', 'alerts-card-main');
+      main.appendChild(mkEl('div', 'alerts-title', b.breach_ref || 'Breach'));
+      if (b.nature) main.appendChild(mkEl('div', 'alerts-sub', b.nature));
+      top.appendChild(main);
+      top.appendChild(vaultStatusPill(b.status));
+      card.appendChild(top);
+      var meta = mkEl('div', 'alerts-meta');
+      if (b.discovered_at) meta.appendChild(mkEl('span', 'alerts-mono', 'Discovered ' + vaultDate(b.discovered_at)));
+      // ICO marker — factual only. Overdue flagged when not yet reported (§1.3).
+      if (b.ico_reportable === true) {
+        meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--ico', 'ICO-reportable'));
+        if (b.ico_report_due_at) {
+          meta.appendChild(mkEl('span', 'alerts-mono', 'Report due ' + vaultDate(b.ico_report_due_at)));
+          if (!b.ico_reported_at) {
+            var f = alertsDateFlag(b.ico_report_due_at);
+            if (f && f.kind === 'overdue') meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--overdue', 'Report overdue'));
+          }
+        }
+        if (b.ico_reported_at) meta.appendChild(mkEl('span', 'alerts-mono', 'Reported ' + vaultDate(b.ico_reported_at)));
+      }
+      if (meta.childNodes.length) card.appendChild(meta);
+      return card;
+    }
+
+    // §1.4 — Mitigations panel.
+    function alertsMitigationsPanel(r) {
+      var panel = mkEl('div', 'alerts-panel');
+      panel.appendChild(alertsHeading('Mitigations', r));
+      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
+      var rows = r.rows || [];
+      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No mitigations active.')); return panel; }
+      var list = mkEl('div', 'alerts-list');
+      rows.forEach(function (m) { list.appendChild(alertsMitigationCard(m)); });
+      panel.appendChild(list);
+      return panel;
+    }
+    function alertsMitigationCard(m) {
+      var card = mkEl('div', 'alerts-card');
+      var top = mkEl('div', 'alerts-card-top');
+      var main = mkEl('div', 'alerts-card-main');
+      var titleBits = [];
+      if (m.domain) titleBits.push(aceiHumanise(m.domain));
+      if (m.category) titleBits.push(aceiHumanise(m.category));
+      main.appendChild(mkEl('div', 'alerts-title', titleBits.length ? titleBits.join(' · ') : 'Mitigation'));
+      if (m.tier != null && m.tier !== '') main.appendChild(mkEl('div', 'alerts-sub', 'Tier: ' + m.tier));
+      top.appendChild(main);
+      top.appendChild(vaultStatusPill(m.status));
+      card.appendChild(top);
+      var meta = mkEl('div', 'alerts-meta');
+      if (m.revalidate_by) {
+        meta.appendChild(mkEl('span', 'alerts-mono', 'Revalidate by ' + vaultDate(m.revalidate_by)));
+        var flag = alertsDateFlag(m.revalidate_by);
+        if (flag) meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--' + flag.kind, flag.label));
+      }
+      if (m.activated_at) meta.appendChild(mkEl('span', 'alerts-mono', 'Active since ' + vaultDate(m.activated_at)));
+      if (meta.childNodes.length) card.appendChild(meta);
+      return card;
+    }
+
+    // §1.5 — best-effort open-actions head count on load (never blocks load).
+    function initAlertsCount() {
+      var sb = CFG.sb;
+      if (!sb || !sb.from) return;
+      try {
+        Promise.resolve(
+          sb.from('org_actions').select('*', { count: 'exact', head: true }).neq('status', 'completed')
+        ).then(function (res) {
+          if (res && !res.error && typeof res.count === 'number') setAlertsChip(res.count);
+        }).catch(function (e) { console.warn('[OOX-001] alerts init count failed', e); });
+      } catch (e) { console.warn('[OOX-001] alerts init count failed', e); }
     }
 
     // ---- Time-aware greeting ----
@@ -2206,6 +2470,7 @@
     renderVoiceState();
     showEileen();
     initEileenNexus(); // EILEEN-NEXUS-001: mount the canonical nexus (dormant)
+    initAlertsCount(); // OOX-001 §1.5: best-effort open-actions count chip on load
   }
   </script>
 
