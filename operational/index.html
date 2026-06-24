@@ -314,6 +314,73 @@
       .onboard-link { margin: 14px; }
       .eileen-status { margin-left: 0; }
     }
+
+    /* ════════════════════════════════════════════════════════════════
+       ACEI Overview & Sector Report (OOX-001) — additive section chrome.
+       Reuses the page palette/typography; no new colours, no CDN.
+       ════════════════════════════════════════════════════════════════ */
+    .acei-loading { color: var(--muted); font-size: 0.9rem; padding: 6px 0 2px; }
+    .acei-di-card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+      padding: 22px 24px; margin-bottom: 22px;
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    }
+    .acei-di-figure {
+      font-family: 'Space Mono', monospace; font-size: 2.6rem; font-weight: 700;
+      color: var(--cyan); line-height: 1; white-space: nowrap;
+    }
+    .acei-di-figure .acei-di-denom { font-size: 1.05rem; color: var(--faint); font-weight: 400; }
+    .acei-di-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .acei-di-label {
+      font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--faint);
+    }
+    .acei-di-name { font-size: 1.02rem; font-weight: 600; color: var(--text); }
+    .acei-di-sub { font-size: 0.84rem; color: var(--muted); }
+    .acei-badge {
+      display: inline-flex; align-items: center; width: fit-content; margin-top: 2px;
+      font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+      background: rgba(148,163,184,0.07); border: 1px solid var(--line-mid);
+      padding: 3px 8px; border-radius: 999px;
+    }
+    .acei-section-h { font-size: 1.04rem; font-weight: 700; color: var(--text); margin: 4px 0 12px; }
+    .acei-table { width: 100%; border-collapse: collapse; margin: 8px 0 8px; font-size: 0.85rem; }
+    .acei-table th, .acei-table td { border: 1px solid var(--line-mid); padding: 8px 10px; text-align: left; }
+    .acei-table th {
+      background: rgba(56,189,248,0.06); color: var(--text); font-weight: 700;
+      font-size: 0.72rem; letter-spacing: 0.02em; white-space: nowrap;
+    }
+    .acei-table td { color: var(--muted); }
+    .acei-table td.acei-cat { color: var(--text); font-weight: 600; }
+    .acei-table td.acei-num { font-family: 'Space Mono', monospace; text-align: right; color: var(--text); white-space: nowrap; }
+    .acei-sm-emph { color: var(--cyan); font-weight: 700; }
+    .acei-caption { font-size: 0.78rem; color: var(--faint); margin: 6px 0 26px; line-height: 1.55; }
+    .acei-panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+      padding: 20px 22px; margin-bottom: 18px;
+    }
+    .acei-panel h3 { font-size: 1.02rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .acei-panel-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 14px; }
+    .acei-stat-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px; margin-bottom: 14px;
+    }
+    .acei-stat { background: var(--card-2); border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; }
+    .acei-stat-label {
+      font-family: 'Space Mono', monospace; font-size: 0.56rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--faint); margin-bottom: 5px;
+    }
+    .acei-stat-val { font-family: 'Space Mono', monospace; font-size: 1.12rem; font-weight: 700; color: var(--text); }
+    .acei-compare { font-size: 0.84rem; color: var(--muted); line-height: 1.55; }
+    .acei-note { font-size: 0.78rem; color: var(--faint); margin-top: 8px; line-height: 1.5; }
+    .acei-empty-body { max-width: 48ch; margin: 0 auto 4px; }
+    .acei-cta {
+      display: inline-block; margin-top: 16px; font-family: inherit; font-size: 0.86rem;
+      color: var(--cyan); background: var(--cyan-soft); border: 1px solid var(--cyan-line);
+      padding: 10px 18px; border-radius: 9px; cursor: pointer; text-decoration: none;
+    }
+    .acei-cta:hover { background: rgba(56,189,248,0.16); }
   </style>
 
   <!-- EILEEN-NEXUS-001 styles — replicated verbatim from the canonical KL
@@ -506,10 +573,14 @@
                 <button class="back-btn" id="section-back">&larr; Eileen</button>
                 <h2 id="section-title">Section</h2>
               </div>
-              <div class="empty-state">
+              <div class="empty-state" id="section-empty">
                 <div class="es-orb"></div>
                 This section will populate as your workspace is provisioned.
               </div>
+              <!-- OOX-001: dynamic content host for sections with a live renderer
+                   (currently ACEI Overview & Sector Report). Other menu items keep
+                   the generic #section-empty placeholder above (unchanged). -->
+              <div id="section-body" hidden></div>
             </section>
 
           </div>
@@ -724,6 +795,17 @@
       sectionTitle.textContent = m.label;
       eileenView.hidden = true;
       sectionView.hidden = false;
+      // OOX-001: route sections that have a live renderer into #section-body;
+      // everything else keeps the generic #section-empty placeholder.
+      var emptyEl = $('section-empty');
+      var bodyEl = $('section-body');
+      if (m.id === 'acei') {
+        if (emptyEl) emptyEl.hidden = true;
+        if (bodyEl) { bodyEl.hidden = false; renderAceiSection(bodyEl); }
+      } else {
+        if (bodyEl) { bodyEl.hidden = true; bodyEl.innerHTML = ''; }
+        if (emptyEl) emptyEl.hidden = false;
+      }
     }
     function showEileen() {
       setActive(null);
@@ -732,6 +814,222 @@
     }
     $('section-back').addEventListener('click', showEileen);
     $('home-brand').addEventListener('click', showEileen);
+
+    // ════════════════════════════════════════════════════════════════
+    // ACEI OVERVIEW & SECTOR REPORT (OOX-001) — read-only, RLS-scoped via
+    // CFG.sb. Surfaces the capture -> propagation chain: per-org sector
+    // multiplier (sm) flowing into weighted category scores (WCS = CRS × sm
+    // × jm), plus the org's sector benchmark. No writes, no new endpoint;
+    // every read is resilient and never blocks the room.
+    // ════════════════════════════════════════════════════════════════
+    var ACEI_CAT_LABELS = {
+      discrimination_harassment: 'Discrimination & harassment',
+      harassment_bullying: 'Harassment & bullying',
+      unfair_dismissal: 'Unfair dismissal',
+      wrongful_dismissal: 'Wrongful dismissal',
+      redundancy: 'Redundancy & restructure',
+      redundancy_restructure: 'Redundancy & restructure',
+      pay_wages: 'Pay & wages',
+      wages_pay: 'Pay & wages',
+      national_minimum_wage: 'National minimum wage',
+      working_time: 'Working time',
+      holiday_pay: 'Holiday pay',
+      family_leave: 'Family & parental leave',
+      whistleblowing: 'Whistleblowing',
+      tupe: 'TUPE transfers',
+      contracts_terms: 'Contracts & terms',
+      health_safety: 'Health & safety',
+      data_protection: 'Data protection',
+      grievance_disciplinary: 'Grievance & disciplinary',
+      equal_pay: 'Equal pay',
+      trade_union: 'Trade union & collective',
+      worker_status: 'Worker status & classification',
+      immigration_rtw: 'Immigration & right to work'
+    };
+
+    function mkEl(tag, cls, txt) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (txt != null) e.textContent = txt;
+      return e;
+    }
+    function aceiIsNum(v) { return v != null && v !== '' && !isNaN(Number(v)); }
+    function aceiF2(v) { return aceiIsNum(v) ? Number(v).toFixed(2) : '—'; }
+    function aceiF3(v) { return aceiIsNum(v) ? Number(v).toFixed(3) : '—'; }
+    function aceiInt(v) { return aceiIsNum(v) ? String(Math.round(Number(v))) : '—'; }
+    function aceiSmart(v) {
+      if (!aceiIsNum(v)) return '—';
+      var n = Number(v);
+      return n === Math.round(n) ? String(n) : n.toFixed(2);
+    }
+    function aceiDi(v) {
+      if (!aceiIsNum(v)) return '—';
+      var n = Number(v);
+      return n === Math.round(n) ? String(n) : n.toFixed(1);
+    }
+    function aceiHumanise(raw) {
+      if (raw == null) return '—';
+      var key = String(raw).toLowerCase();
+      if (ACEI_CAT_LABELS[key]) return ACEI_CAT_LABELS[key];
+      return String(raw).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+        .replace(/\b\w/g, function (c) { return c.toUpperCase(); }) || '—';
+    }
+    // Resilient unwrap: any read error -> fall back (block degrades), never throws.
+    function aceiData(res, name, fallback) {
+      if (!res) return fallback;
+      if (res.error) { console.warn('ACEI read failed: ' + name, res.error); return fallback; }
+      return (res.data == null) ? fallback : res.data;
+    }
+
+    function renderAceiSection(host) {
+      host.innerHTML = '';
+      host.appendChild(mkEl('div', 'acei-loading', 'Loading your exposure index…'));
+      var sb = CFG.sb;
+      if (!sb || !sb.from) { aceiBuild(host, [], [], null, null); return; }
+      Promise.all([
+        sb.from('acei_category_scores')
+          .select('category,domain,l,i,sm,jm,crs,wcs,week_start_date')
+          .order('week_start_date', { ascending: false }).limit(60),
+        sb.from('acei_domain_scores')
+          .select('domain,drt,dmr,di,structural_flag,week_start_date')
+          .order('week_start_date', { ascending: false }).limit(1),
+        sb.from('organisations')
+          .select('name,acei_sector_code,acei_sector_multiplier').maybeSingle()
+      ]).then(function (res) {
+        var cats = aceiData(res[0], 'acei_category_scores', []);
+        var dom = aceiData(res[1], 'acei_domain_scores', []);
+        var org = aceiData(res[2], 'organisations', null);
+        var code = org && org.acei_sector_code;
+        if (code) {
+          return sb.from('sector_exposure_summary')
+            .select('sector_code,sector_name,sector_group_name,sector_multiplier,employer_count,tribunal_cases,cases_per_employer,avg_jm')
+            .eq('sector_code', code).maybeSingle()
+            .then(function (secRes) {
+              aceiBuild(host, cats, dom, org, aceiData(secRes, 'sector_exposure_summary', null));
+            });
+        }
+        aceiBuild(host, cats, dom, org, null);
+      }).catch(function (e) {
+        console.warn('ACEI section: reads failed', e);
+        aceiBuild(host, [], [], null, null);
+      });
+    }
+
+    function aceiBuild(host, cats, dom, org, sector) {
+      host.innerHTML = '';
+      // §1.2 Empty state — no scores yet for this tenant.
+      if (!cats || !cats.length) { aceiBuildEmpty(host); return; }
+      // §1.1 latest-week filter — keep only rows on the max week_start_date.
+      var maxWeek = null;
+      cats.forEach(function (r) {
+        if (r && r.week_start_date != null) {
+          if (maxWeek === null || String(r.week_start_date) > String(maxWeek)) maxWeek = r.week_start_date;
+        }
+      });
+      var latest = maxWeek === null ? cats
+        : cats.filter(function (r) { return String(r.week_start_date) === String(maxWeek); });
+      aceiBuildDomainHeader(host, dom && dom[0]);   // §1.3
+      aceiBuildCategoryTable(host, latest);          // §1.4
+      aceiBuildSectorPanel(host, org, sector);       // §1.5
+    }
+
+    function aceiBuildEmpty(host) {
+      var card = mkEl('div', 'empty-state');
+      card.appendChild(mkEl('div', 'es-orb'));
+      card.appendChild(mkEl('div', 'acei-empty-body',
+        'Your exposure index is calculated once your company profile is complete. ' +
+        'Add your company number and SIC so Eileen can resolve your sector and weight your exposure.'));
+      var cta = mkEl('a', 'acei-cta', 'Set up your workspace');
+      cta.href = '/operational/onboarding/';
+      card.appendChild(cta);
+      host.appendChild(card);
+    }
+
+    function aceiBuildDomainHeader(host, d0) {
+      if (!d0) return; // read degraded -> hide the block (§1.6)
+      var card = mkEl('div', 'acei-di-card');
+      var fig = mkEl('div', 'acei-di-figure');
+      fig.appendChild(document.createTextNode(aceiDi(d0.di)));
+      fig.appendChild(mkEl('span', 'acei-di-denom', ' /100'));
+      card.appendChild(fig);
+      var meta = mkEl('div', 'acei-di-meta');
+      meta.appendChild(mkEl('div', 'acei-di-label', 'Employment-law exposure index'));
+      meta.appendChild(mkEl('div', 'acei-di-sub', 'Domain risk total: ' + aceiSmart(d0.drt)));
+      if (d0.structural_flag === true) meta.appendChild(mkEl('span', 'acei-badge', 'Structural'));
+      card.appendChild(meta);
+      host.appendChild(card);
+    }
+
+    function aceiBuildCategoryTable(host, rows) {
+      host.appendChild(mkEl('div', 'acei-section-h', 'Exposure by category'));
+      var sorted = rows.slice().sort(function (a, b) {
+        var av = aceiIsNum(a && a.wcs) ? Number(a.wcs) : -Infinity;
+        var bv = aceiIsNum(b && b.wcs) ? Number(b.wcs) : -Infinity;
+        return bv - av;
+      });
+      var table = mkEl('table', 'acei-table');
+      var thead = mkEl('thead');
+      var htr = mkEl('tr');
+      ['Category', 'Likelihood (L)', 'Impact (I)', 'CRS (L×I)', 'Sector × (sm)', 'Jurisdiction × (jm)', 'Weighted (WCS)']
+        .forEach(function (h) { htr.appendChild(mkEl('th', null, h)); });
+      thead.appendChild(htr);
+      table.appendChild(thead);
+      var tbody = mkEl('tbody');
+      sorted.forEach(function (row) {
+        var tr = mkEl('tr');
+        tr.appendChild(mkEl('td', 'acei-cat', aceiHumanise(row.category)));
+        tr.appendChild(mkEl('td', 'acei-num', aceiSmart(row.l)));
+        tr.appendChild(mkEl('td', 'acei-num', aceiSmart(row.i)));
+        tr.appendChild(mkEl('td', 'acei-num', aceiF2(row.crs)));
+        var smTd = mkEl('td', 'acei-num', aceiF2(row.sm));
+        if (aceiIsNum(row.sm) && aceiF2(row.sm) !== '1.00') smTd.classList.add('acei-sm-emph');
+        tr.appendChild(smTd);
+        tr.appendChild(mkEl('td', 'acei-num', aceiF2(row.jm)));
+        tr.appendChild(mkEl('td', 'acei-num', aceiF3(row.wcs)));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      host.appendChild(table);
+      host.appendChild(mkEl('div', 'acei-caption',
+        'Weighted scores reflect your sector (Sector ×) and your jurisdiction mix (Jurisdiction ×). ' +
+        'WCS = CRS × Sector × × Jurisdiction ×.'));
+    }
+
+    function aceiBuildSectorPanel(host, org, sector) {
+      var panel = mkEl('div', 'acei-panel');
+      panel.appendChild(mkEl('h3', null, 'Your sector benchmark'));
+      if (!sector) {
+        panel.appendChild(mkEl('div', 'acei-panel-sub', 'Sector benchmark not available for your SIC classification.'));
+        host.appendChild(panel);
+        return;
+      }
+      var subTxt = sector.sector_name || '—';
+      if (sector.sector_group_name) subTxt += ' · ' + sector.sector_group_name;
+      panel.appendChild(mkEl('div', 'acei-panel-sub', subTxt));
+      var grid = mkEl('div', 'acei-stat-grid');
+      grid.appendChild(aceiStat('Sector exposure multiplier', aceiF2(sector.sector_multiplier)));
+      grid.appendChild(aceiStat('Employers in sector', aceiInt(sector.employer_count)));
+      grid.appendChild(aceiStat('Tribunal cases', aceiInt(sector.tribunal_cases)));
+      grid.appendChild(aceiStat('Cases per employer', aceiF2(sector.cases_per_employer)));
+      panel.appendChild(grid);
+      panel.appendChild(mkEl('div', 'acei-compare',
+        'Your sector multiplier is ' + aceiF2(sector.sector_multiplier) +
+        ' — applied as the Sector × in your weighted scores above.'));
+      var orgMult = org && org.acei_sector_multiplier;
+      if (aceiIsNum(orgMult) && aceiF2(orgMult) !== aceiF2(sector.sector_multiplier)) {
+        panel.appendChild(mkEl('div', 'acei-note',
+          'Applied value for your organisation: ' + aceiF2(orgMult) +
+          ' — this is the multiplier applied to this tenant.'));
+      }
+      host.appendChild(panel);
+    }
+
+    function aceiStat(label, val) {
+      var s = mkEl('div', 'acei-stat');
+      s.appendChild(mkEl('div', 'acei-stat-label', label));
+      s.appendChild(mkEl('div', 'acei-stat-val', val));
+      return s;
+    }
 
     // ---- Time-aware greeting ----
     var hr = new Date().getHours();
