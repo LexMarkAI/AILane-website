@@ -1458,6 +1458,7 @@
     { id: "alerts", label: "Alerts" },
     { id: "acei", label: "ACEI Overview" },
     { id: "intelligence", label: "Intelligence" },
+    { id: "ticker", label: "Ticker" },
     { id: "notes", label: "Notes" },
     { id: "calendar", label: "Calendar" }
   ];
@@ -1466,6 +1467,7 @@
     alerts: "Alerts",
     acei: "ACEI Overview",
     intelligence: "Intelligence",
+    ticker: "Ticker",
     notes: "Notes",
     calendar: "Calendar"
   };
@@ -10327,6 +10329,245 @@
     ));
     return React.createElement("div", { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } }, children);
   }
+  var HUB_TICKER_RELEVANT_BADGE = { flexShrink: 0, display: "inline-flex", alignItems: "center", gap: "4px", color: "#38BDF8", background: "rgba(14,165,233,0.12)", border: "1px solid rgba(56,189,248,0.35)", borderRadius: "999px", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 600, padding: "3px 10px", whiteSpace: "nowrap" };
+  var HUB_TICKER_BODY_STYLE = { marginTop: "12px", color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.7, wordBreak: "break-word" };
+  var HUB_TICKER_BODY_COLLAPSED = Object.assign({}, HUB_TICKER_BODY_STYLE, { maxHeight: "180px", overflow: "hidden" });
+  var HUB_TICKER_MOREBTN_STYLE = { marginTop: "8px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600, padding: "4px 0", border: "none", background: "none", color: "#38BDF8" };
+  var HUB_TICKER_FILTERS_STYLE = { display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end", alignItems: "center", marginBottom: "14px" };
+  var HUB_TICKER_LONG = 600;
+  function hubTickerUrgencyVariant(u) {
+    var k = String(u == null ? "" : u).toLowerCase();
+    if (k === "act" || k === "action" || k === "urgent" || k === "high") return "high";
+    if (k === "monitor" || k === "watch" || k === "review" || k === "low") return "type";
+    return null;
+  }
+  function hubTickerTierLabel(t) {
+    if (t == null || t === "") return "";
+    var s = String(t).trim();
+    return /^\d+$/.test(s) ? "Tier " + s : hubAceiHumanise(s);
+  }
+  function hubTickerCatChips(cat) {
+    var list = Array.isArray(cat) ? cat : cat == null || cat === "" ? [] : [cat];
+    var out = [];
+    list.forEach(function(c, i) {
+      if (c != null && c !== "") out.push(hubIntelChip(hubAceiHumanise(c), null, "cat" + i));
+    });
+    return out;
+  }
+  function hubTickerCatMatch(cat, catSet) {
+    if (!catSet || !catSet.size || cat == null || cat === "") return false;
+    if (Array.isArray(cat)) return cat.some(function(c) {
+      return c != null && catSet.has(String(c).toLowerCase());
+    });
+    return catSet.has(String(cat).toLowerCase());
+  }
+  function hubTickerLatestCatSet(res) {
+    if (!res || res.error || !Array.isArray(res.data) || !res.data.length) {
+      if (res && res.error) console.warn("[OOX-001] Ticker: acei_category_scores read failed", res.error);
+      return null;
+    }
+    var rows = res.data;
+    var maxWeek = null;
+    rows.forEach(function(r) {
+      if (r && r.week_start_date != null && (maxWeek === null || String(r.week_start_date) > String(maxWeek))) maxWeek = r.week_start_date;
+    });
+    var set = /* @__PURE__ */ new Set();
+    rows.forEach(function(r) {
+      if (!r || r.category == null || r.category === "") return;
+      if (maxWeek !== null && String(r.week_start_date) !== String(maxWeek)) return;
+      set.add(String(r.category).toLowerCase());
+    });
+    return set.size ? set : null;
+  }
+  function hubTickerDistinct(rows, field, lower) {
+    var seen = {}, out = [];
+    (rows || []).forEach(function(r) {
+      if (!r || r[field] == null || r[field] === "") return;
+      var v = String(r[field]);
+      if (lower) v = v.toLowerCase();
+      if (!seen[v]) {
+        seen[v] = 1;
+        out.push(v);
+      }
+    });
+    var allNum = out.length > 0 && out.every(function(v) {
+      return /^\d+$/.test(v);
+    });
+    return out.sort(function(a, b) {
+      return allNum ? Number(a) - Number(b) : a < b ? -1 : a > b ? 1 : 0;
+    });
+  }
+  function hubTickerCard(row, idx, isRelevant, isExpanded, onToggleExpand) {
+    var cardStyle = isRelevant ? Object.assign({}, HUB_INTEL_CARD_STYLE, HUB_INTEL_CARD_TRACKING_STYLE) : HUB_INTEL_CARD_STYLE;
+    var children = [];
+    var left = [React.createElement("div", { key: "title", style: HUB_INTEL_TITLE_STYLE }, hubIntelText(row.event_title) || "Untitled briefing")];
+    var dateStr = row.event_date ? hubVaultDate(row.event_date) : "";
+    if (dateStr && dateStr !== "\u2014") left.push(React.createElement("div", { key: "meta", style: HUB_INTEL_META_STYLE }, React.createElement("span", { key: "d" }, dateStr)));
+    children.push(React.createElement(
+      "div",
+      { key: "top", style: HUB_INTEL_TOP_STYLE },
+      React.createElement("div", { key: "l", style: { minWidth: 0 } }, left),
+      isRelevant ? React.createElement("span", { key: "rel", style: HUB_TICKER_RELEVANT_BADGE, title: "Matches a category in your exposure profile" }, "\u25C6 Relevant to your exposure") : null
+    ));
+    var chips = [];
+    var tierLabel = hubTickerTierLabel(row.tier);
+    if (tierLabel) chips.push(hubIntelChip(tierLabel, null, "tier"));
+    if (row.legislative_urgency != null && String(row.legislative_urgency) !== "") {
+      chips.push(hubIntelChip(hubAceiHumanise(row.legislative_urgency), hubTickerUrgencyVariant(row.legislative_urgency), "urg"));
+    }
+    Array.prototype.push.apply(chips, hubTickerCatChips(row.acei_category));
+    if (chips.length) children.push(React.createElement("div", { key: "chips", style: HUB_INTEL_CHIPS_STYLE }, chips));
+    var raw = row.briefing_text == null ? "" : String(row.briefing_text);
+    var bodyHtml = renderMarkdown(raw);
+    if (bodyHtml) {
+      var isLong = raw.length > HUB_TICKER_LONG;
+      children.push(React.createElement("div", {
+        key: "body",
+        style: isLong && !isExpanded ? HUB_TICKER_BODY_COLLAPSED : HUB_TICKER_BODY_STYLE,
+        dangerouslySetInnerHTML: { __html: bodyHtml }
+      }));
+      if (isLong) {
+        children.push(React.createElement("button", {
+          key: "more",
+          type: "button",
+          style: HUB_TICKER_MOREBTN_STYLE,
+          "aria-expanded": isExpanded ? "true" : "false",
+          onClick: function() {
+            onToggleExpand(row);
+          }
+        }, isExpanded ? "Show less" : "Show more"));
+      }
+    }
+    if (row.source_url && /^https?:\/\//i.test(String(row.source_url))) {
+      children.push(React.createElement(
+        "div",
+        { key: "foot", style: HUB_INTEL_FOOT_STYLE },
+        React.createElement("a", { key: "src", href: String(row.source_url), target: "_blank", rel: "noopener noreferrer", style: HUB_INTEL_SOURCE_STYLE }, "Source")
+      ));
+    }
+    return React.createElement("div", { key: row.id != null ? row.id : idx, style: cardStyle }, children);
+  }
+  function HubTickerFacet({ hubSession }) {
+    var _state = useState({ status: "loading", briefings: [], catSet: null, error: false });
+    var state = _state[0];
+    var setState = _state[1];
+    var _expanded = useState(function() {
+      return /* @__PURE__ */ new Set();
+    });
+    var expanded = _expanded[0];
+    var setExpanded = _expanded[1];
+    var _tierF = useState("all");
+    var tierF = _tierF[0];
+    var setTierF = _tierF[1];
+    var _urgF = useState("all");
+    var urgF = _urgF[0];
+    var setUrgF = _urgF[1];
+    var _relOnly = useState(false);
+    var relOnly = _relOnly[0];
+    var setRelOnly = _relOnly[1];
+    useEffect(function() {
+      var alive = true;
+      var sb = hubSession && hubSession.sb;
+      if (!sb || !sb.from) {
+        setState({ status: "ready", briefings: [], catSet: null, error: true });
+        return;
+      }
+      Promise.all([
+        sb.from("ticker_briefings").select("id,event_title,tier,briefing_text,acei_category,event_date,source_url,legislative_urgency,created_at").order("event_date", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).limit(50),
+        sb.from("acei_category_scores").select("category,week_start_date").order("week_start_date", { ascending: false }).limit(60)
+      ]).then(function(res) {
+        if (!alive) return;
+        var feed = hubVaultUnwrap(res[0], "ticker_briefings");
+        var catSet2 = hubTickerLatestCatSet(res[1]);
+        setState({ status: "ready", briefings: feed.rows || [], catSet: catSet2, error: !!feed.error });
+      }).catch(function(e) {
+        console.warn("[OOX-001] Ticker facet: reads failed", e);
+        if (alive) setState({ status: "ready", briefings: [], catSet: null, error: true });
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubSession]);
+    function toggleExpand(row) {
+      if (row == null || row.id == null) return;
+      setExpanded(function(prev) {
+        var next = new Set(prev);
+        if (next.has(row.id)) next.delete(row.id);
+        else next.add(row.id);
+        return next;
+      });
+    }
+    if (state.status === "loading") {
+      return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading the intelligence feed\u2026");
+    }
+    var children = [];
+    children.push(React.createElement(
+      "div",
+      { key: "caveat", style: HUB_INTEL_CAVEAT_STYLE },
+      "Global employment-law intelligence feed. Items matching your exposure profile are highlighted; the full global feed always shows. Intelligence, not advice."
+    ));
+    if (state.error) {
+      children.push(React.createElement("div", { key: "err", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } }, "\u2014"));
+      return React.createElement("div", { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } }, children);
+    }
+    var briefings = state.briefings || [];
+    if (!briefings.length) {
+      children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No intelligence briefings available yet."));
+      return React.createElement("div", { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } }, children);
+    }
+    var catSet = state.catSet;
+    var hasRelevance = !!(catSet && catSet.size);
+    var tiers = hubTickerDistinct(briefings, "tier", false);
+    var urgencies = hubTickerDistinct(briefings, "legislative_urgency", true);
+    var controls = [];
+    if (tiers.length > 1) {
+      var tierOpts = [{ v: "all", l: "All tiers" }].concat(tiers.map(function(t) {
+        return { v: t, l: hubTickerTierLabel(t) };
+      }));
+      controls.push(hubCalSelectEl("tierf", tierF, function(e) {
+        setTierF(e.target.value);
+      }, tierOpts, "Filter by tier", null));
+    }
+    if (urgencies.length > 1) {
+      var urgOpts = [{ v: "all", l: "All urgency" }].concat(urgencies.map(function(u) {
+        return { v: u, l: hubAceiHumanise(u) };
+      }));
+      controls.push(hubCalSelectEl("urgf", urgF, function(e) {
+        setUrgF(e.target.value);
+      }, urgOpts, "Filter by urgency", null));
+    }
+    if (hasRelevance) {
+      controls.push(React.createElement("button", {
+        key: "relbtn",
+        type: "button",
+        style: relOnly ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+        "aria-pressed": relOnly ? "true" : "false",
+        onClick: function() {
+          setRelOnly(!relOnly);
+        }
+      }, relOnly ? "Showing relevant only" : "Relevant to me only"));
+    }
+    if (controls.length) children.push(React.createElement("div", { key: "filters", style: HUB_TICKER_FILTERS_STYLE }, controls));
+    var rows = briefings.filter(function(r) {
+      if (!r) return false;
+      if (tierF !== "all" && String(r.tier == null ? "" : r.tier) !== tierF) return false;
+      if (urgF !== "all" && String(r.legislative_urgency == null ? "" : r.legislative_urgency).toLowerCase() !== urgF) return false;
+      if (relOnly && !hubTickerCatMatch(r.acei_category, catSet)) return false;
+      return true;
+    });
+    if (!rows.length) {
+      children.push(React.createElement("div", { key: "empty2", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No briefings match the current filter."));
+      return React.createElement("div", { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } }, children);
+    }
+    children.push(React.createElement(
+      "div",
+      { key: "list", style: HUB_INTEL_LIST_STYLE },
+      rows.map(function(row, idx) {
+        return hubTickerCard(row, idx, hubTickerCatMatch(row.acei_category, catSet), expanded.has(row.id), toggleExpand);
+      })
+    ));
+    return React.createElement("div", { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } }, children);
+  }
   function HubFacetView({ facet, hubSession, onBack }) {
     var label = HUB_FACET_LABELS[facet] || "Workspace";
     var body = facet === "acei" ? React.createElement(
@@ -10345,6 +10586,10 @@
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
       React.createElement(HubIntelFacet, { hubSession })
+    ) : facet === "ticker" ? React.createElement(
+      "div",
+      { style: { flex: 1, overflowY: "auto", padding: "24px" } },
+      React.createElement(HubTickerFacet, { hubSession })
     ) : facet === "notes" ? React.createElement(
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
