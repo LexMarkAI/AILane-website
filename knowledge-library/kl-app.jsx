@@ -52,7 +52,7 @@ function klHubFlagSet() {
 }
 
 // Detect an authenticated operational session — mirrors the operational/index.html
-// guard (createClient → getSession() → JWT decode → tier + AAL2). Resolves to a
+// guard (createClient → getSession() → JWT decode → tier). Resolves to a
 // hubSession object or null. Returns null IMMEDIATELY (no Supabase client, no
 // network) when the preview flag is absent, so public mode incurs zero added
 // behaviour. hubSession shape mirrors window.AILANE_OPS plus the resolved tier.
@@ -68,8 +68,10 @@ function detectHubSession() {
     var token = session.access_token;
     var payload;
     try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
-    // AAL2 required for hub mode (KL-HUB §1.1 / §2 security).
-    if (payload.aal !== 'aal2') return null;
+    // OOX-001 (AMD-230): AAL2 is no longer an activation precondition — any
+    // authenticated session yields the hub when the preview flag is set. The AAL2
+    // control stays in the data layer (RLS: aal2_required_when_enrolled on the
+    // three Vault document tables), not as a front-end gate.
     var userId = payload.sub;
     return fetch(
       SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
@@ -7554,6 +7556,23 @@ function hubVaultUnwrap(res, name) {
   return { rows: Array.isArray(res.data) ? res.data : [] };
 }
 
+// §1.2 — Resolve whether the current session is AAL1 with a verified second
+// factor (so the aal2_required_when_enrolled RLS policy filters the three Vault
+// document tables to empty). Local read of the session AAL via supabase-js — no
+// network, no retry. Any uncertainty → false, so the ordinary empty state is
+// kept (brief §1.2 fallback): this cleanly distinguishes an AAL2-gated empty
+// docs read from a genuinely-empty vault. RLS still enforces AAL2 server-side.
+function hubVaultAal2StepUp(sb) {
+  try {
+    var mfa = sb && sb.auth && sb.auth.mfa;
+    if (!mfa || !mfa.getAuthenticatorAssuranceLevel) return Promise.resolve(false);
+    return mfa.getAuthenticatorAssuranceLevel().then(function (r) {
+      var d = r && r.data;
+      return !!(d && d.currentLevel === 'aal1' && d.nextLevel === 'aal2');
+    }).catch(function () { return false; });
+  } catch (e) { return Promise.resolve(false); }
+}
+
 // Human-readable file size (mirror operational vaultFileSize).
 function hubVaultFileSize(bytes) {
   if (!hubAceiIsNum(bytes)) return '—';
@@ -7648,6 +7667,13 @@ function hubVaultDocsPanel(r) {
   }
   var rows = r.rows || [];
   if (!rows.length) {
+    // §1.2 — AAL1 + MFA-enrolled: the aal2_required_when_enrolled RLS policy is
+    // filtering the documents read. Show a single calm step-up note (advice-free,
+    // RULE 15) in place of the empty state. RLS still enforces AAL2 server-side.
+    if (r.stepUp) {
+      children.push(React.createElement('div', { key: 'stepup', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } }, 'Verify your identity with your second factor to view stored documents.'));
+      return React.createElement('div', { key: 'docs', style: { marginBottom: '24px' } }, children);
+    }
     children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } }, 'No documents in your vault yet.'));
     children.push(React.createElement('div', { key: 'note', style: { color: '#64748B', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', lineHeight: 1.5, marginTop: '8px' } }, 'Document upload is coming to this room shortly.'));
     return React.createElement('div', { key: 'docs', style: { marginBottom: '24px' } }, children);
@@ -7760,9 +7786,17 @@ function HubVaultFacet({ hubSession }) {
       sb.from('vault_contract_records')
         .select('id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at')
         .order('created_at', { ascending: false }).limit(50),
+      hubVaultAal2StepUp(sb), // §1.2 — AAL1 + MFA-enrolled? (never rejects)
     ]).then(function (res) {
       if (!alive) return;
-      setState({ status: 'ready', docs: hubVaultUnwrap(res[0], 'kl_vault_documents'), analyses: hubVaultUnwrap(res[1], 'vault_contract_records') });
+      var docs = hubVaultUnwrap(res[0], 'kl_vault_documents');
+      // §1.2 — an empty documents read for an AAL1 + MFA-enrolled user is the
+      // aal2_required_when_enrolled RLS policy biting, not an empty vault: mark it
+      // so the panel shows the calm step-up note. A read error keeps the resilient
+      // "—"; a non-empty read renders normally. vault_contract_records is unaffected
+      // (AAL1-readable) and renders as before.
+      if (res[2] && docs.rows && docs.rows.length === 0) docs.stepUp = true;
+      setState({ status: 'ready', docs: docs, analyses: hubVaultUnwrap(res[1], 'vault_contract_records') });
     }).catch(function (e) {
       console.warn('[OOX-001] Vault facet: reads failed', e);
       if (alive) setState({ status: 'ready', docs: { error: true }, analyses: { error: true } });
