@@ -1499,7 +1499,6 @@
       } catch (e) {
         return null;
       }
-      if (payload.aal !== "aal2") return null;
       var userId = payload.sub;
       return fetch(
         SUPABASE_URL + "/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq." + userId + "&limit=1",
@@ -8892,6 +8891,20 @@
     }
     return { rows: Array.isArray(res.data) ? res.data : [] };
   }
+  function hubVaultAal2StepUp(sb) {
+    try {
+      var mfa = sb && sb.auth && sb.auth.mfa;
+      if (!mfa || !mfa.getAuthenticatorAssuranceLevel) return Promise.resolve(false);
+      return mfa.getAuthenticatorAssuranceLevel().then(function(r) {
+        var d = r && r.data;
+        return !!(d && d.currentLevel === "aal1" && d.nextLevel === "aal2");
+      }).catch(function() {
+        return false;
+      });
+    } catch (e) {
+      return Promise.resolve(false);
+    }
+  }
   function hubVaultFileSize(bytes) {
     if (!hubAceiIsNum(bytes)) return "\u2014";
     var n = Number(bytes);
@@ -8978,6 +8991,10 @@
     }
     var rows = r.rows || [];
     if (!rows.length) {
+      if (r.stepUp) {
+        children.push(React.createElement("div", { key: "stepup", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "Verify your identity with your second factor to view stored documents."));
+        return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
+      }
       children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No documents in your vault yet."));
       children.push(React.createElement("div", { key: "note", style: { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.5, marginTop: "8px" } }, "Document upload is coming to this room shortly."));
       return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
@@ -9092,10 +9109,14 @@
       }
       Promise.all([
         sb.from("kl_vault_documents").select("id,filename,mime_type,file_size_bytes,extraction_status,analysis_status,visibility,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(50),
-        sb.from("vault_contract_records").select("id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at").order("created_at", { ascending: false }).limit(50)
+        sb.from("vault_contract_records").select("id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at").order("created_at", { ascending: false }).limit(50),
+        hubVaultAal2StepUp(sb)
+        // §1.2 — AAL1 + MFA-enrolled? (never rejects)
       ]).then(function(res) {
         if (!alive) return;
-        setState({ status: "ready", docs: hubVaultUnwrap(res[0], "kl_vault_documents"), analyses: hubVaultUnwrap(res[1], "vault_contract_records") });
+        var docs = hubVaultUnwrap(res[0], "kl_vault_documents");
+        if (res[2] && docs.rows && docs.rows.length === 0) docs.stepUp = true;
+        setState({ status: "ready", docs, analyses: hubVaultUnwrap(res[1], "vault_contract_records") });
       }).catch(function(e) {
         console.warn("[OOX-001] Vault facet: reads failed", e);
         if (alive) setState({ status: "ready", docs: { error: true }, analyses: { error: true } });
