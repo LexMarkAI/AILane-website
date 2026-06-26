@@ -176,6 +176,7 @@
     var inviteMsg = null;        // persisted invite confirmation / inline message: { text, ok }
     var provisionForbidden = false; // 403 not_admin returned by operational-provision-tenant
     var acceptedLocal = {};      // OOX §1.3 — keys accepted this session: lower(key) -> display date (immediate acknowledgement + dedupe)
+    var acceptedDB = {};         // OOX §1.1 — accepted status hydrated from the DB on load: lower(key) -> { content_hash -> accepted_at }
     var mfaSkipped = false;      // OOX §1.1 — user chose "set up two-factor later" (2FA is optional, not a gate)
     var membersSkipped = false;  // OOX §1.2 — user chose "invite teammates later" (members are optional)
 
@@ -256,10 +257,10 @@
         if (!resp.ok) { degraded = true; state = null; loading = false; render(); return; }
         state = await resp.json();
         agreements = await fetchAgreements();   // live canonical source register (OOX §2.1)
+        acceptedDB = await fetchAcceptances();  // hydrate accepted status from the DB (OOX §1.1)
         await fetchMembers();                    // org members (OOX §1.1) — own try/catch, never throws
         degraded = false;
         loading = false;
-        await maybeUnlock();                     // OOX §1.4 — front-end sets landing_unlocked (no DB function does); latched
         render();
       } catch (e) {
         // Network error / backend not deployed → graceful degradation (§4)
@@ -279,7 +280,7 @@
     async function fetchAgreements() {
       try {
         var resp = await fetch(
-          SUPABASE_URL + '/rest/v1/operational_agreements?is_current=eq.true&ready=eq.true&select=agreement_key,version,source_page_url',
+          SUPABASE_URL + '/rest/v1/operational_agreements?is_current=eq.true&ready=eq.true&select=agreement_key,version,content_hash,source_page_url',
           { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + T, 'Accept': 'application/json' } }
         );
         if (!resp.ok) return {};
@@ -288,8 +289,41 @@
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
           if (r && r.agreement_key && r.source_page_url) {
-            map[String(r.agreement_key).toLowerCase()] = { version: r.version, source_page_url: r.source_page_url, key: r.agreement_key };
+            map[String(r.agreement_key).toLowerCase()] = { version: r.version, content_hash: r.content_hash, source_page_url: r.source_page_url, key: r.agreement_key };
           }
+        }
+        return map;
+      } catch (e) { return {}; }
+    }
+
+    // ── Accepted-agreement hydration (OOX §1.1) ──────────────────────────
+    // The user's own non-superseded acceptances, read with their bearer token
+    // (RLS auto-scopes to their organisation/user — the same shared-read pattern
+    // this page uses for the register). Keyed lower(agreement_key) -> { content_hash
+    // -> accepted_at }, so an agreement counts as accepted exactly when a non-
+    // superseded acceptance exists at the register's CURRENT content_hash — the same
+    // rule as the DB view v_operational_agreement_gaps (accepted ⇔ no gap). A failure
+    // degrades to an empty map (cards fall back to Accept; never a false "accepted").
+    async function fetchAcceptances() {
+      try {
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/operational_agreement_acceptances?superseded=eq.false&select=agreement_key,agreement_version,content_hash,accepted_at',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + T, 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) return {};
+        var rows = await resp.json();
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r || !r.agreement_key) continue;
+          var k = String(r.agreement_key).toLowerCase();
+          var h = r.content_hash == null ? '' : String(r.content_hash);   // '' = no content hash on the row
+          var at = r.accepted_at ? String(r.accepted_at) : '';
+          if (!map[k]) map[k] = {};
+          var prev = map[k][h];
+          // Record the acceptance (key presence = accepted at this hash); keep the
+          // most recent accepted_at for display. ISO timestamps compare lexically.
+          if (prev === undefined || (at && at > prev)) map[k][h] = at;
         }
         return map;
       } catch (e) { return {}; }
@@ -319,52 +353,12 @@
 
     async function refreshState() { await fetchState(); }
 
-    // ── Unlock (OOX §1.4) ────────────────────────────────────────────────
-    // landing_unlocked is set by the FRONT-END — no DB function sets it. The
-    // unlock condition is: agreements accepted AND workspace provisioned. Two-
-    // factor authentication is NOT required (it is optional, and independently
-    // enforced by RLS for Vault documents). The write is latched: we only ever
-    // set landing_unlocked → true, and only on rows not yet true (the not.is.true
-    // filter — which matches a false OR a never-set NULL value, since no DB
-    // function initialises this flag), so an already-unlocked org is never
-    // re-locked, and adding users or factors later cannot turn it back off.
-    function unlockReady() {
-      return !!(state &&
-        state.agreements_gate_passed === true &&
-        state.provisioning_complete === true);
-    }
-
-    async function maybeUnlock() {
-      if (!state || state.landing_unlocked === true) return; // already unlocked — latch, no re-write
-      if (!unlockReady()) return;                            // agreements + provisioning not both satisfied yet
-      var ok = await unlockLanding();
-      if (ok) state.landing_unlocked = true;                 // reflect locally so Step 6 lights immediately
-    }
-
-    async function unlockLanding() {
-      try {
-        // Authenticated update to operational_onboarding_state with the user's
-        // bearer (same auth pattern this page uses for its reads). RLS scopes the
-        // update to the caller's own organisation. The not.is.true filter targets
-        // a row whose flag is false OR NULL (never-set) and skips already-true
-        // rows, so the write only ever lands once and the latch is honoured.
-        // No backend/RLS/SQL change.
-        var resp = await fetch(
-          SUPABASE_URL + '/rest/v1/operational_onboarding_state?landing_unlocked=not.is.true',
-          {
-            method: 'PATCH',
-            headers: {
-              'apikey': SUPABASE_ANON,
-              'Authorization': 'Bearer ' + T,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({ landing_unlocked: true })
-          }
-        );
-        return resp.ok;
-      } catch (e) { return false; }
-    }
+    // ── Unlock (OOX §1.3/§1.4) ───────────────────────────────────────────
+    // landing_unlocked is a SERVER-GENERATED column — (agreements_gate_passed AND
+    // provisioning_complete). The front-end cannot and must not write it; it is
+    // read-only here. Step 6 reads state.landing_unlocked (server truth) and is
+    // never gated on the local acceptance UI. (The earlier front-end PATCH was
+    // dead — the column has no authenticated UPDATE policy — and was removed.)
 
     // ── Render ───────────────────────────────────────────────────────────
     function render() {
@@ -382,7 +376,7 @@
           cls: mfaPassed ? 'complete' : (mfaSkipped ? 'pending' : 'active'),
           panel: step2Panel(mfaPassed) },
         { n: 3, title: 'Agreement Vault', gate: true,
-          cls: (agreementsPassed && gaps.length === 0) ? 'complete' : 'active',
+          cls: agreementsAllAccepted(agreementsPassed, gaps) ? 'complete' : 'active',
           panel: step3Panel(agreementsPassed, gaps) },
         { n: 4, title: 'Members & roles', optional: true, optionalLabel: 'Optional',
           cls: membersSkipped ? 'pending' : 'active',
@@ -432,12 +426,15 @@
              '</div>';
     }
 
-    // ── Step 3 — Agreement Vault (OOX §1.3) ──────────────────────────────
-    // One status row per current+ready+published agreement: each shows Accepted ✓
-    // (with the in-session date when just accepted) or an Accept control. A
-    // successful accept is acknowledged immediately and re-acceptance is removed,
-    // so an already-accepted current version cannot be submitted twice. A plain-
-    // words summary always states what, if anything, is still outstanding.
+    // ── Step 3 — Agreement Vault (OOX §1.1/§1.2) ─────────────────────────
+    // One status row per current+ready+published agreement. Accepted status is
+    // HYDRATED from the DB on load: an agreement is accepted when a non-superseded
+    // acceptance exists at its current content_hash (mirrors v_operational_agreement_gaps:
+    // accepted ⇔ no gap), merged with any in-session acceptance so a fresh accept
+    // shows ✓ immediately. Accepted rows show "Accepted ✓ — recorded <date>" with no
+    // Accept button; only genuinely-outstanding rows show Accept — so an already-
+    // accepted version cannot be submitted twice and reloads create no duplicate
+    // rows. A plain-words summary names only what genuinely remains outstanding.
     function step3Panel(passed, gaps) {
       if (loading) return '<span class="muted">Loading your agreements…</span>';
       if (degraded) return '<span class="muted">Your agreements will appear here once the onboarding service reconnects.</span>';
@@ -445,14 +442,9 @@
       var reg = agreements || {};
       var regKeys = Object.keys(reg);
 
-      // Outstanding (awaiting) keys from the server gate (lowercased, deduped).
-      var gapSet = {};
-      for (var i = 0; i < gaps.length; i++) {
-        if (gaps[i] && gaps[i].agreement_key) gapSet[String(gaps[i].agreement_key).toLowerCase()] = true;
-      }
-
       // No published register yet — fall back to the "once published" copy, but
-      // still name anything outstanding so the user is never left in silence.
+      // still name anything the server reports outstanding so the user is never
+      // left in silence.
       if (regKeys.length === 0) {
         if (passed && gaps.length === 0) return '<div class="ok">&#10003; All required agreements have been accepted.</div>';
         var pending = outstandingNames(gaps);
@@ -461,6 +453,7 @@
       }
 
       regKeys.sort();
+      var outstanding = [];   // human titles still awaiting acceptance (hydrated truth, OOX §1.2)
       var cards = '<div class="cards">';
       for (var j = 0; j < regKeys.length; j++) {
         var lkey = regKeys[j];
@@ -468,15 +461,15 @@
         var origKey = row.key || lkey;             // original-case key (sent to the accept EF)
         var ver = row.version;                      // live register version (also sent on Accept)
         var url = row.source_page_url;              // live canonical legal page
-        var localDate = acceptedLocal[lkey];        // accepted in this session?
-        var isAccepted = !!localDate || !gapSet[lkey]; // accepted locally OR cleared from the server gate
+        var acceptedDate = acceptedDateFor(lkey, row); // null = outstanding; string (maybe '') = accepted (OOX §1.1)
         cards += '<div class="card">' +
                    '<h3>' + esc(agreementTitle(lkey)) + '</h3>' +
                    '<div class="ver">' + esc(ver) + '</div>' +
                    '<div class="viewer"><a class="doc-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Read the agreement</a></div>';
-        if (isAccepted) {
-          cards += '<div class="card-msg ok-msg">&#10003; Accepted' + (localDate ? ' — recorded ' + esc(localDate) : '') + '</div>';
+        if (acceptedDate !== null) {
+          cards += '<div class="card-msg ok-msg">&#10003; Accepted' + (acceptedDate ? ' — recorded ' + esc(acceptedDate) : '') + '</div>';
         } else {
+          outstanding.push(agreementTitle(lkey));
           cards += '<div class="actions">' +
                      '<button class="btn primary accept-btn" data-key="' + esc(origKey) + '" data-version="' + esc(ver) + '">Accept</button>' +
                      '<span class="muted">Awaiting your acceptance</span>' +
@@ -487,21 +480,47 @@
       }
       cards += '</div>';
 
-      // Plain-words status summary (OOX §1.3) — always say what's outstanding.
-      var summary;
-      if (passed && gaps.length === 0) {
-        summary = '<div class="ok" style="margin-top:12px">&#10003; All required agreements have been accepted.</div>';
-      } else {
-        var names = outstandingNames(gaps);
-        summary = names
-          ? '<div class="help" style="margin-top:12px">Awaiting your acceptance of: ' + esc(names) + '.</div>'
-          : '<div class="help" style="margin-top:12px">Finalising your acceptances…</div>';
-      }
+      // Plain-words status summary (OOX §1.2) — name only what is genuinely
+      // outstanding after hydration; otherwise a quiet all-clear.
+      var summary = (outstanding.length === 0)
+        ? '<div class="ok" style="margin-top:12px">&#10003; All agreements accepted.</div>'
+        : '<div class="help" style="margin-top:12px">Awaiting your acceptance of: ' + esc(outstanding.join(', ')) + '.</div>';
       return cards + summary;
     }
 
-    // Human-titled, deduped list of agreements still outstanding in the server
-    // gate, excluding any accepted in this session (optimistic). OOX §1.3.
+    // Accepted date for a register agreement (OOX §1.1). Returns:
+    //   • a string (possibly '') when accepted — '' means the date is unknown;
+    //   • null when still outstanding.
+    // Accepted ⇔ accepted in-session OR a hydrated non-superseded DB acceptance
+    // exists at the agreement's CURRENT content_hash. Existence (not truthiness)
+    // is what marks "accepted", so a null/blank accepted_at is still accepted.
+    function acceptedDateFor(lkey, row) {
+      if (acceptedLocal[lkey]) return acceptedLocal[lkey];          // accepted this session — show today's date
+      var hash = (row && row.content_hash != null) ? String(row.content_hash) : '';
+      var byHash = acceptedDB[lkey];
+      if (byHash && Object.prototype.hasOwnProperty.call(byHash, hash)) {
+        var at = byHash[hash];
+        return at ? formatAcceptedDate(at) : '';
+      }
+      return null;
+    }
+
+    // True when every current+ready register agreement is accepted (hydrated
+    // truth). With no register yet, defer to the server gate. Drives Step 3's
+    // marker and the awaiting summary off the same source (OOX §1.1/§1.2).
+    function agreementsAllAccepted(passed, gaps) {
+      var reg = agreements || {};
+      var keys = Object.keys(reg);
+      if (keys.length === 0) return !!(passed && gaps.length === 0);
+      for (var i = 0; i < keys.length; i++) {
+        if (acceptedDateFor(keys[i], reg[keys[i]]) === null) return false;
+      }
+      return true;
+    }
+
+    // Human-titled, deduped list of agreements the server still reports
+    // outstanding, excluding any accepted in this session (optimistic). Used only
+    // in the no-register fallback (the main path uses hydrated truth). OOX §1.2.
     function outstandingNames(gaps) {
       var seen = {}, names = [];
       for (var i = 0; i < gaps.length; i++) {
@@ -516,6 +535,17 @@
     function formatToday() {
       try { return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
       catch (e) { return 'today'; }
+    }
+
+    // Format a DB accepted_at timestamp for display (OOX §1.1). Returns '' on a
+    // missing/unparseable value so the card still reads "Accepted ✓" without a date.
+    function formatAcceptedDate(iso) {
+      if (!iso) return '';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      } catch (e) { return ''; }
     }
 
     // ── Step 4 — Members & roles (OOX §1) ────────────────────────────────
@@ -744,8 +774,8 @@
           try { data = await resp.json(); } catch (e) {}
           // refreshState() re-fetches both the members list and onboarding state.
           // (A new member without 2FA may show mfa_gate_passed=false server-side,
-          // but 2FA is no longer an unlock gate and landing_unlocked is latched —
-          // adding a teammate can never re-lock an already-open workspace, OOX §1.4.)
+          // but 2FA is not an unlock gate; landing_unlocked is a server-generated
+          // column, so adding a teammate cannot re-lock an open workspace, OOX §1.4.)
           inviteMsg = (data && data.invite_email_sent === false)
             ? { text: 'Member added — share their sign-in link from your admin tools.', ok: true }
             : { text: 'Invitation sent to ' + email + '.', ok: true };
@@ -789,8 +819,9 @@
           headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON }
         });
 
-        // 200: re-fetch state. With provisioning now complete, refreshState() runs
-        // maybeUnlock(), which sets landing_unlocked if agreements are also accepted (OOX §1.4).
+        // 200: re-fetch state. landing_unlocked is a server-generated column
+        // (agreements_gate_passed AND provisioning_complete); refreshState() re-reads
+        // it, so Step 6 lights up once provisioning completes the unlock condition.
         if (resp.status === 200) { await refreshState(); return; }
 
         if (resp.status === 403) {           // not_admin
