@@ -3238,12 +3238,16 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
   var setFeedExpanded = _feedExpanded[1];
 
   useEffect(function() {
+    // OOX-001 INTELLIGENCE-FOLD §1.1: the feed is public-KL only. In hub mode it is
+    // no longer rendered (the in-force statutory catalogue now lives inside the
+    // Intelligence facet — §1.2), so skip the fetch entirely.
+    if (hubMode) return;
     var cancelled = false;
     loadRegulatoryFeed().then(function(items) {
       if (!cancelled) setFeedItems(items);
     });
     return function() { cancelled = true; };
-  }, []);
+  }, [hubMode]);
 
   return React.createElement('nav', { className: 'kl-sidebar' + (open ? '' : ' collapsed'), role: 'navigation', 'aria-label': 'Conversation history' },
     // §5 — Sidebar Nexus indicator (20px, shows Eileen's current state)
@@ -3265,8 +3269,36 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
       )
     ),
 
-    // KLUX-001-AM-002 §2.3: Regulatory Intelligence Feed (replaces Crown Jewels)
-    React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
+    // OOX-001 INTELLIGENCE-FOLD §1.1: this middle scroll panel is PUBLIC-KL ONLY. In
+    // hub/operational mode the "Regulatory Intelligence" feed is removed (its in-force
+    // statutory catalogue now lives inside the Intelligence facet — §1.2) and the
+    // "Your workspace" facet rail occupies the scroll area instead. Public KL: the feed
+    // below is unchanged. The rail keeps Eileen / New Conversation / workspace / History.
+    hubMode
+      ? React.createElement('div', {
+          style: { flex: 1, overflowY: 'auto', minHeight: 0, borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0' },
+        },
+          React.createElement('div', {
+            style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 16px' },
+          }, 'Your workspace'),
+          HUB_WORKSPACE_FACETS.map(function (f) {
+            var active = currentFacet === f.id;
+            return React.createElement('button', {
+              key: f.id,
+              type: 'button',
+              onClick: function () { onSelectFacet(active ? null : f.id); },
+              'aria-pressed': active,
+              style: {
+                width: '100%', textAlign: 'left', display: 'block',
+                background: active ? 'rgba(14,165,233,0.12)' : 'transparent',
+                border: 'none', borderLeft: active ? '2px solid #0EA5E9' : '2px solid transparent',
+                color: active ? '#F1F5F9' : '#94A3B8', cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif", fontSize: '13px', padding: '8px 16px',
+              },
+            }, f.label);
+          })
+        )
+      : React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
       React.createElement('div', { style: { marginTop: '12px' } },
         React.createElement('div', {
           style: {
@@ -3323,33 +3355,6 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
               return rendered;
             })()
       )
-    ),
-
-    // OOX-001 §1.5: "Your workspace" facet rail (hub mode only). Each item opens
-    // a facet placeholder in the main content area; real panels port in later
-    // briefs. Renders nothing in public mode (hubMode === false).
-    hubMode && React.createElement('div', {
-      style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0' },
-    },
-      React.createElement('div', {
-        style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 16px' },
-      }, 'Your workspace'),
-      HUB_WORKSPACE_FACETS.map(function (f) {
-        var active = currentFacet === f.id;
-        return React.createElement('button', {
-          key: f.id,
-          type: 'button',
-          onClick: function () { onSelectFacet(active ? null : f.id); },
-          'aria-pressed': active,
-          style: {
-            width: '100%', textAlign: 'left', display: 'block',
-            background: active ? 'rgba(14,165,233,0.12)' : 'transparent',
-            border: 'none', borderLeft: active ? '2px solid #0EA5E9' : '2px solid transparent',
-            color: active ? '#F1F5F9' : '#94A3B8', cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif", fontSize: '13px', padding: '8px 16px',
-          },
-        }, f.label);
-      })
     ),
 
     React.createElement('div', { style: { flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' } },
@@ -8335,7 +8340,12 @@ function hubIntelCard(row, idx, isTracked, onToggle) {
 // forward pipeline + the tenant's watchlist + the org id (for inserts). Mirrors
 // HubAlertsFacet's shape (alive-guarded parallel reads, loading line, max-width
 // container). Reads are resilient; the facet never throws.
-function HubIntelFacet({ hubSession }) {
+// OOX-001 INTELLIGENCE-FOLD §1.2: this is the "Coming into force — forward pipeline"
+// view (formerly the whole Intelligence facet) — kl_legislative_horizon + the DOMPurify
+// *_html path, UNCHANGED. It is now one of two views the facet hosts; the new in-force
+// statutory view is HubIntelInForceView and the segmented wrapper is HubIntelFacet (both
+// below).
+function HubIntelHorizonView({ hubSession }) {
   var _state = useState({ status: 'loading', pipeline: [], tracked: new Set(), orgId: null, error: false });
   var state = _state[0]; var setState = _state[1];
   var _trackedOnly = useState(false);
@@ -8433,6 +8443,189 @@ function HubIntelFacet({ hubSession }) {
     rows.map(function (row, idx) { return hubIntelCard(row, idx, state.tracked.has(row.id), toggleTrack); })));
 
   return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
+}
+
+// ─── OOX-001 INTELLIGENCE-FOLD §1.2 — "In force — statutory requirements" view ───
+// The in-force statutory catalogue (regulatory_requirements: global authenticated/anon
+// SELECT, no org scope; plain-text columns only — there are NO *_html columns) that the
+// rail feed used to surface, now folded into the Intelligence facet as its default view.
+// Read on open via hubSession.sb. EVERY field renders via escaped React children — ZERO
+// dangerouslySetInnerHTML (these are plain-text columns). Resilient: read error → "—" +
+// console.warn, never throws. Reuses the hub Intelligence chrome (cards / chips / list /
+// caveat) plus hubAceiHumanise (category) and hubVaultDate (effective_from).
+
+// Exact §1.2 select list (mandated verbatim).
+var HUB_INTEL_REQ_COLS = 'id,category,requirement_name,statutory_basis,source_act,applies_to,mandatory,jurisdiction_code,description,current_minimum,commencement_status,commencement_note,effective_from,effective_to,is_forward_requirement,version';
+
+// "Mandatory" badge (reuses the red/high palette as a bolder, uppercase pill).
+var HUB_INTEL_MAND_BADGE = { flexShrink: 0, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '3px 10px', borderRadius: '999px', color: '#F87171', border: '1px solid rgba(248,113,113,0.4)', background: 'rgba(248,113,113,0.1)' };
+// Filter bar (category select + in-force/forward toggle) + the category <select>.
+var HUB_INTEL_FILTERBAR_STYLE = { display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' };
+var HUB_INTEL_SELECT_STYLE = { cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', border: '1px solid #1E3A5F', background: '#0A1628', color: '#CBD5E1' };
+var HUB_INTEL_TOGGLE_GROUP_STYLE = { display: 'inline-flex', gap: '6px' };
+
+// One statutory-requirement card. requirement_name; humanised category + commencement
+// chips; statutory_basis / source_act meta; a Mandatory badge where mandatory === true;
+// escaped description. ALL values via escaped React children — no raw-HTML sink (§1.2/§2).
+function hubIntelReqCard(row, idx) {
+  var children = [];
+  var name = hubIntelText(row.requirement_name) || 'Untitled requirement';
+  var left = [React.createElement('div', { key: 'title', style: HUB_INTEL_TITLE_STYLE }, name)];
+  var metaBits = [];
+  if (row.statutory_basis) metaBits.push(hubIntelText(row.statutory_basis));
+  if (row.source_act) metaBits.push(hubIntelText(row.source_act));
+  if (metaBits.length) left.push(React.createElement('div', { key: 'meta', style: HUB_INTEL_META_STYLE }, metaBits.join(' · ')));
+  children.push(React.createElement('div', { key: 'top', style: HUB_INTEL_TOP_STYLE },
+    React.createElement('div', { key: 'l', style: { minWidth: 0 } }, left),
+    row.mandatory === true ? React.createElement('span', { key: 'mand', style: HUB_INTEL_MAND_BADGE }, 'Mandatory') : null
+  ));
+
+  // Humanised category chip + commencement_status chip (+ effective_from where present).
+  var chips = [];
+  if (row.category) chips.push(hubIntelChip(hubAceiHumanise(row.category), 'type', 'cat'));
+  if (row.commencement_status) {
+    var label = hubAceiHumanise(row.commencement_status);
+    if (row.effective_from) label += ' · ' + hubVaultDate(row.effective_from);
+    chips.push(hubIntelChip(label, null, 'cs'));
+  }
+  if (chips.length) children.push(React.createElement('div', { key: 'chips', style: HUB_INTEL_CHIPS_STYLE }, chips));
+
+  // Description — escaped React children.
+  if (row.description != null && hubIntelText(row.description) !== '') {
+    children.push(React.createElement('div', { key: 'desc', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.description)));
+  }
+
+  return React.createElement('div', { key: row.id != null ? row.id : idx, style: HUB_INTEL_CARD_STYLE }, children);
+}
+
+// In-force statutory view. Reads regulatory_requirements on open (ordered category,
+// requirement_name). A light category filter + an in-force/forward commencement toggle
+// (via is_forward_requirement) sit above the cards. Resilient (hubVaultUnwrap → "—").
+function HubIntelInForceView({ hubSession }) {
+  var _state = useState({ status: 'loading', rows: [], error: false });
+  var state = _state[0]; var setState = _state[1];
+  var _cat = useState('all'); var cat = _cat[0]; var setCat = _cat[1];
+  var _comm = useState('inforce'); var comm = _comm[0]; var setComm = _comm[1]; // 'inforce' | 'forward'
+
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setState({ status: 'ready', rows: [], error: true }); return; }
+    // §1.2 read — global reference table; ordered category, requirement_name.
+    sb.from('regulatory_requirements')
+      .select(HUB_INTEL_REQ_COLS)
+      .order('category', { ascending: true })
+      .order('requirement_name', { ascending: true })
+      .then(function (res) {
+        if (!alive) return;
+        var out = hubVaultUnwrap(res, 'regulatory_requirements');
+        setState({ status: 'ready', rows: out.rows || [], error: !!out.error });
+      })
+      .catch(function (e) {
+        console.warn('[OOX-001] Intelligence in-force: read failed', e);
+        if (alive) setState({ status: 'ready', rows: [], error: true });
+      });
+    return function () { alive = false; };
+  }, [hubSession]);
+
+  if (state.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading the statutory catalogue…');
+  }
+
+  var children = [];
+  // Advice-free standing caveat (RULE 15), reusing the Intelligence caveat chrome.
+  children.push(React.createElement('div', { key: 'caveat', style: HUB_INTEL_CAVEAT_STYLE },
+    'In-force statutory requirements — reference information drawn from the regulatory catalogue. Intelligence, not advice.'));
+
+  if (state.error) {
+    // §1.3 resilient — the read failed: degrade to "—", never throw.
+    children.push(React.createElement('div', { key: 'err', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' } }, '—'));
+    return React.createElement('div', null, children);
+  }
+
+  var all = state.rows || [];
+  // Commencement split via is_forward_requirement (§1.2 toggle).
+  var byComm = all.filter(function (r) {
+    var fwd = r && r.is_forward_requirement === true;
+    return comm === 'forward' ? fwd : !fwd;
+  });
+  // Stable category options (humanised), derived from the full catalogue.
+  var catVals = []; var seenCat = {};
+  all.forEach(function (r) {
+    var c = r && r.category;
+    if (c != null && c !== '' && !seenCat[c]) { seenCat[c] = true; catVals.push(c); }
+  });
+  catVals.sort(function (a, b) { var ha = hubAceiHumanise(a), hb = hubAceiHumanise(b); return ha < hb ? -1 : ha > hb ? 1 : 0; });
+  var rows = cat === 'all' ? byComm : byComm.filter(function (r) { return r && String(r.category) === cat; });
+
+  // Filter bar: category <select> + in-force/forward toggle.
+  var catOptions = [React.createElement('option', { key: 'all', value: 'all' }, 'All categories')];
+  catVals.forEach(function (c) { catOptions.push(React.createElement('option', { key: c, value: c }, hubAceiHumanise(c))); });
+  children.push(React.createElement('div', { key: 'filter', style: HUB_INTEL_FILTERBAR_STYLE },
+    React.createElement('select', {
+      key: 'catsel', value: cat, 'aria-label': 'Filter by category',
+      onChange: function (e) { setCat(e.target.value); }, style: HUB_INTEL_SELECT_STYLE,
+    }, catOptions),
+    React.createElement('div', { key: 'commtoggle', style: HUB_INTEL_TOGGLE_GROUP_STYLE },
+      React.createElement('button', {
+        type: 'button', 'aria-pressed': comm === 'inforce' ? 'true' : 'false',
+        style: comm === 'inforce' ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+        onClick: function () { setComm('inforce'); },
+      }, 'In force'),
+      React.createElement('button', {
+        type: 'button', 'aria-pressed': comm === 'forward' ? 'true' : 'false',
+        style: comm === 'forward' ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+        onClick: function () { setComm('forward'); },
+      }, 'Forward-dated')
+    )
+  ));
+
+  if (!rows.length) {
+    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } },
+      comm === 'forward' ? 'No forward-dated statutory requirements match.' : 'No in-force statutory requirements match.'));
+    return React.createElement('div', null, children);
+  }
+
+  children.push(React.createElement('div', { key: 'list', style: HUB_INTEL_LIST_STYLE },
+    rows.map(function (row, idx) { return hubIntelReqCard(row, idx); })));
+
+  return React.createElement('div', null, children);
+}
+
+// ─── OOX-001 INTELLIGENCE-FOLD §1.2 — the Intelligence facet: a segmented wrapper over
+// two views. Default "In force" = the statutory catalogue (HubIntelInForceView;
+// regulatory_requirements; escaped/plain-text — zero raw-HTML sink). "Coming into force"
+// = the unchanged forward pipeline (HubIntelHorizonView; kl_legislative_horizon +
+// DOMPurify *_html). The wrapper owns only the view toggle; each view reads its own data
+// on mount via hubSession.sb and degrades resiliently. ───
+var HUB_INTEL_VIEWS = [
+  { id: 'inforce', label: 'In force — statutory requirements' },
+  { id: 'horizon', label: 'Coming into force — forward pipeline' },
+];
+var HUB_INTEL_SEG_WRAP = { display: 'flex', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' };
+var HUB_INTEL_SEG_BASE = { flex: '1 1 220px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, padding: '9px 14px', borderRadius: '8px', border: '1px solid #1E3A5F', background: '#0A1628', color: '#94A3B8', textAlign: 'center' };
+var HUB_INTEL_SEG_ON = { color: '#F1F5F9', borderColor: '#0EA5E9', background: 'rgba(14,165,233,0.14)' };
+
+function HubIntelFacet({ hubSession }) {
+  var _view = useState('inforce'); // §1.2 default to "In force"
+  var view = _view[0]; var setView = _view[1];
+
+  var seg = React.createElement('div', { key: 'seg', style: HUB_INTEL_SEG_WRAP, role: 'tablist', 'aria-label': 'Intelligence views' },
+    HUB_INTEL_VIEWS.map(function (v) {
+      var on = view === v.id;
+      return React.createElement('button', {
+        key: v.id, type: 'button', role: 'tab', 'aria-selected': on ? 'true' : 'false',
+        style: on ? Object.assign({}, HUB_INTEL_SEG_BASE, HUB_INTEL_SEG_ON) : HUB_INTEL_SEG_BASE,
+        onClick: function () { setView(v.id); },
+      }, v.label);
+    }));
+
+  return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } },
+    seg,
+    view === 'inforce'
+      ? React.createElement(HubIntelInForceView, { key: 'inforce', hubSession: hubSession })
+      : React.createElement(HubIntelHorizonView, { key: 'horizon', hubSession: hubSession })
+  );
 }
 
 // ─── OOX-001 KL-Hub Notes facet (KL-HUB §5 step 6, realised as a hub facet —
