@@ -143,14 +143,14 @@
       <span class="tierpill">Operational Readiness</span>
     </header>
 
-    <p class="lede">Your operational subscription is active. A few short steps prepare your organisation's workspace before it opens. Two of them are required: setting up two-factor authentication, and accepting your agreements. Once both are complete, your operational workspace unlocks below.</p>
+    <p class="lede">Your operational subscription is active. A few short steps prepare your organisation's workspace before it opens. Accepting your agreements is the one required step; setting up two-factor authentication and inviting teammates are recommended, but optional — you can do them now or later. Once your agreements are accepted and your workspace is provisioned, your operational workspace unlocks below.</p>
 
     <div id="banner"><span class="dot"></span><span>Connecting to your onboarding service…</span></div>
 
     <div class="rail" id="rail"></div>
 
     <footer class="foot">
-      Your two-factor setup and agreement acceptances are recorded securely against your organisation. An incomplete onboarding holds here — your workspace opens automatically once the two required steps are complete.
+      Your agreement acceptances and any two-factor setup are recorded securely against your organisation. Your workspace opens automatically once your agreements are accepted and your workspace is provisioned — two-factor authentication and teammates can be added at any time.
     </footer>
   </div>
 
@@ -175,6 +175,9 @@
     var inviteForbidden = false; // 403 not_admin returned by operational-invite-member
     var inviteMsg = null;        // persisted invite confirmation / inline message: { text, ok }
     var provisionForbidden = false; // 403 not_admin returned by operational-provision-tenant
+    var acceptedLocal = {};      // OOX §1.3 — keys accepted this session: lower(key) -> display date (immediate acknowledgement + dedupe)
+    var mfaSkipped = false;      // OOX §1.1 — user chose "set up two-factor later" (2FA is optional, not a gate)
+    var membersSkipped = false;  // OOX §1.2 — user chose "invite teammates later" (members are optional)
 
     function safeId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
     function esc(s) {
@@ -256,6 +259,7 @@
         await fetchMembers();                    // org members (OOX §1.1) — own try/catch, never throws
         degraded = false;
         loading = false;
+        await maybeUnlock();                     // OOX §1.4 — front-end sets landing_unlocked (no DB function does); latched
         render();
       } catch (e) {
         // Network error / backend not deployed → graceful degradation (§4)
@@ -284,7 +288,7 @@
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
           if (r && r.agreement_key && r.source_page_url) {
-            map[String(r.agreement_key).toLowerCase()] = { version: r.version, source_page_url: r.source_page_url };
+            map[String(r.agreement_key).toLowerCase()] = { version: r.version, source_page_url: r.source_page_url, key: r.agreement_key };
           }
         }
         return map;
@@ -315,6 +319,53 @@
 
     async function refreshState() { await fetchState(); }
 
+    // ── Unlock (OOX §1.4) ────────────────────────────────────────────────
+    // landing_unlocked is set by the FRONT-END — no DB function sets it. The
+    // unlock condition is: agreements accepted AND workspace provisioned. Two-
+    // factor authentication is NOT required (it is optional, and independently
+    // enforced by RLS for Vault documents). The write is latched: we only ever
+    // set landing_unlocked → true, and only on rows not yet true (the not.is.true
+    // filter — which matches a false OR a never-set NULL value, since no DB
+    // function initialises this flag), so an already-unlocked org is never
+    // re-locked, and adding users or factors later cannot turn it back off.
+    function unlockReady() {
+      return !!(state &&
+        state.agreements_gate_passed === true &&
+        state.provisioning_complete === true);
+    }
+
+    async function maybeUnlock() {
+      if (!state || state.landing_unlocked === true) return; // already unlocked — latch, no re-write
+      if (!unlockReady()) return;                            // agreements + provisioning not both satisfied yet
+      var ok = await unlockLanding();
+      if (ok) state.landing_unlocked = true;                 // reflect locally so Step 6 lights immediately
+    }
+
+    async function unlockLanding() {
+      try {
+        // Authenticated update to operational_onboarding_state with the user's
+        // bearer (same auth pattern this page uses for its reads). RLS scopes the
+        // update to the caller's own organisation. The not.is.true filter targets
+        // a row whose flag is false OR NULL (never-set) and skips already-true
+        // rows, so the write only ever lands once and the latch is honoured.
+        // No backend/RLS/SQL change.
+        var resp = await fetch(
+          SUPABASE_URL + '/rest/v1/operational_onboarding_state?landing_unlocked=not.is.true',
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_ANON,
+              'Authorization': 'Bearer ' + T,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ landing_unlocked: true })
+          }
+        );
+        return resp.ok;
+      } catch (e) { return false; }
+    }
+
     // ── Render ───────────────────────────────────────────────────────────
     function render() {
       document.getElementById('banner').style.display = degraded ? 'flex' : 'none';
@@ -327,13 +378,14 @@
       var steps = [
         { n: 0, title: 'Subscription activated', cls: 'complete', panel: '<div class="ok">Payment received — a receipt has been emailed to you.</div>' },
         { n: 1, title: 'Create organisation', cls: 'complete', panel: '<div class="ok">Your operational workspace was created when your subscription started.</div>' },
-        { n: 2, title: 'Two-factor authentication', gate: true,
-          cls: mfaPassed ? 'complete' : 'active',
+        { n: 2, title: 'Two-factor authentication', optional: true, optionalLabel: 'Recommended',
+          cls: mfaPassed ? 'complete' : (mfaSkipped ? 'pending' : 'active'),
           panel: step2Panel(mfaPassed) },
         { n: 3, title: 'Agreement Vault', gate: true,
           cls: (agreementsPassed && gaps.length === 0) ? 'complete' : 'active',
           panel: step3Panel(agreementsPassed, gaps) },
-        { n: 4, title: 'Members & roles', cls: 'active',
+        { n: 4, title: 'Members & roles', optional: true, optionalLabel: 'Optional',
+          cls: membersSkipped ? 'pending' : 'active',
           panel: step4Panel() },
         { n: 5, title: 'Tenant provisioning',
           cls: (state && state.provisioning_complete === true) ? 'complete' : 'active',
@@ -349,6 +401,7 @@
         var marker = s.cls === 'complete' ? '&#10003;' : String(s.n);
         var badge = '';
         if (s.gate) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'gate') + '">' + (s.cls === 'complete' ? 'Complete' : 'Required') + '</span>';
+        if (s.optional) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'soon') + '">' + (s.cls === 'complete' ? 'On' : esc(s.optionalLabel || 'Optional')) + '</span>';
         if (s.soon) badge += ' <span class="badge soon">Coming next</span>';
         html += '<div class="step ' + s.cls + '">' +
                   '<div class="marker">' + marker + '</div>' +
@@ -366,58 +419,122 @@
     function step2Panel(passed) {
       if (loading) return '<span class="muted">Checking your two-factor status…</span>';
       if (passed) return '<div class="ok">&#10003; Two-factor authentication is on.</div>';
-      return 'Two-factor protects your organisation’s workspace. Enrol to continue.' +
-             '<br><a class="btn" href="' + MFA_PATH + '">Set up two-factor authentication</a>';
+      var intro = 'Two-factor authentication adds an extra layer of protection for your organisation’s workspace. It’s recommended, but optional — you can set it up later and it won’t hold up your onboarding.';
+      if (mfaSkipped) {
+        return intro +
+               '<div class="help">You’ve chosen to set this up later. You can turn it on any time from your account security settings.</div>' +
+               '<a class="btn" href="' + MFA_PATH + '">Set up two-factor authentication</a>';
+      }
+      return intro +
+             '<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">' +
+               '<a class="btn primary" href="' + MFA_PATH + '">Set up two-factor authentication</a>' +
+               '<button class="btn" type="button" id="mfa-skip-btn">Skip for now</button>' +
+             '</div>';
     }
 
+    // ── Step 3 — Agreement Vault (OOX §1.3) ──────────────────────────────
+    // One status row per current+ready+published agreement: each shows Accepted ✓
+    // (with the in-session date when just accepted) or an Accept control. A
+    // successful accept is acknowledged immediately and re-acceptance is removed,
+    // so an already-accepted current version cannot be submitted twice. A plain-
+    // words summary always states what, if anything, is still outstanding.
     function step3Panel(passed, gaps) {
       if (loading) return '<span class="muted">Loading your agreements…</span>';
       if (degraded) return '<span class="muted">Your agreements will appear here once the onboarding service reconnects.</span>';
-      if (gaps.length === 0) {
-        if (passed) return '<div class="ok">&#10003; All required agreements have been accepted.</div>';
+
+      var reg = agreements || {};
+      var regKeys = Object.keys(reg);
+
+      // Outstanding (awaiting) keys from the server gate (lowercased, deduped).
+      var gapSet = {};
+      for (var i = 0; i < gaps.length; i++) {
+        if (gaps[i] && gaps[i].agreement_key) gapSet[String(gaps[i].agreement_key).toLowerCase()] = true;
+      }
+
+      // No published register yet — fall back to the "once published" copy, but
+      // still name anything outstanding so the user is never left in silence.
+      if (regKeys.length === 0) {
+        if (passed && gaps.length === 0) return '<div class="ok">&#10003; All required agreements have been accepted.</div>';
+        var pending = outstandingNames(gaps);
+        if (pending) return '<span class="muted">Your agreements will appear here once published. Awaiting: ' + esc(pending) + '.</span>';
         return '<span class="muted">Your agreements will appear here once published.</span>';
       }
 
-      // Intersect outstanding gaps with the live, ready agreements register (OOX §2.2).
-      // A gap renders only when its agreement_key resolves to a published, ready row
-      // carrying a source_page_url; otherwise it is not yet published and is left out (§2.3).
-      var reg = agreements || {};
-      var ready = [];
-      for (var i = 0; i < gaps.length; i++) {
-        var gkey = gaps[i].agreement_key;
-        var row = gkey ? reg[String(gkey).toLowerCase()] : null;
-        if (row && row.source_page_url) {
-          ready.push({ key: gkey, version: row.version, url: row.source_page_url });
-        }
-      }
-      if (ready.length === 0) return '<span class="muted">Your agreements will appear here once published.</span>';
-
+      regKeys.sort();
       var cards = '<div class="cards">';
-      for (var j = 0; j < ready.length; j++) {
-        var key = ready[j].key;
-        var ver = ready[j].version;       // live register version (also sent on Accept)
-        var url = ready[j].url;           // live canonical legal page
+      for (var j = 0; j < regKeys.length; j++) {
+        var lkey = regKeys[j];
+        var row = reg[lkey];
+        var origKey = row.key || lkey;             // original-case key (sent to the accept EF)
+        var ver = row.version;                      // live register version (also sent on Accept)
+        var url = row.source_page_url;              // live canonical legal page
+        var localDate = acceptedLocal[lkey];        // accepted in this session?
+        var isAccepted = !!localDate || !gapSet[lkey]; // accepted locally OR cleared from the server gate
         cards += '<div class="card">' +
-                   '<h3>' + esc(agreementTitle(key)) + '</h3>' +
+                   '<h3>' + esc(agreementTitle(lkey)) + '</h3>' +
                    '<div class="ver">' + esc(ver) + '</div>' +
-                   '<div class="viewer"><a class="doc-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Read the agreement</a></div>' +
-                   '<div class="actions"><button class="btn primary accept-btn" data-key="' + esc(key) + '" data-version="' + esc(ver) + '">Accept</button></div>' +
-                   '<div class="card-msg" id="msg-' + safeId(key) + '"></div>' +
-                 '</div>';
+                   '<div class="viewer"><a class="doc-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Read the agreement</a></div>';
+        if (isAccepted) {
+          cards += '<div class="card-msg ok-msg">&#10003; Accepted' + (localDate ? ' — recorded ' + esc(localDate) : '') + '</div>';
+        } else {
+          cards += '<div class="actions">' +
+                     '<button class="btn primary accept-btn" data-key="' + esc(origKey) + '" data-version="' + esc(ver) + '">Accept</button>' +
+                     '<span class="muted">Awaiting your acceptance</span>' +
+                   '</div>' +
+                   '<div class="card-msg" id="msg-' + safeId(origKey) + '"></div>';
+        }
+        cards += '</div>';
       }
       cards += '</div>';
-      return cards;
+
+      // Plain-words status summary (OOX §1.3) — always say what's outstanding.
+      var summary;
+      if (passed && gaps.length === 0) {
+        summary = '<div class="ok" style="margin-top:12px">&#10003; All required agreements have been accepted.</div>';
+      } else {
+        var names = outstandingNames(gaps);
+        summary = names
+          ? '<div class="help" style="margin-top:12px">Awaiting your acceptance of: ' + esc(names) + '.</div>'
+          : '<div class="help" style="margin-top:12px">Finalising your acceptances…</div>';
+      }
+      return cards + summary;
+    }
+
+    // Human-titled, deduped list of agreements still outstanding in the server
+    // gate, excluding any accepted in this session (optimistic). OOX §1.3.
+    function outstandingNames(gaps) {
+      var seen = {}, names = [];
+      for (var i = 0; i < gaps.length; i++) {
+        var k = (gaps[i] && gaps[i].agreement_key) ? String(gaps[i].agreement_key).toLowerCase() : '';
+        if (!k || seen[k] || acceptedLocal[k]) continue;
+        seen[k] = true;
+        names.push(agreementTitle(k));
+      }
+      return names.join(', ');
+    }
+
+    function formatToday() {
+      try { return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
+      catch (e) { return 'today'; }
     }
 
     // ── Step 4 — Members & roles (OOX §1) ────────────────────────────────
     function step4Panel() {
       if (loading) return '<span class="muted">Loading your members…</span>';
 
+      var intro = 'Invite teammates to your operational workspace. This is optional — you can do it now, or any time later from your workspace settings. It won’t hold up your onboarding.';
+
+      if (membersSkipped) {
+        return intro +
+               '<div class="help">You’ve chosen to invite teammates later.</div>' +
+               '<button class="btn" type="button" id="members-unskip-btn">Invite a teammate now</button>';
+      }
+
       var blocked = (degraded || membersError);   // members EF unreachable / not yet deployed
-      var html = '';
+      var html = intro;
 
       if (blocked || members === null) {
-        html += '<div class="muted">Your members will appear here once the onboarding service reconnects.</div>';
+        html += '<div class="muted" style="margin-top:10px">Your members will appear here once the onboarding service reconnects.</div>';
       } else {
         html += renderMembersList(members);
       }
@@ -427,6 +544,8 @@
       } else {
         html += inviteFormHtml(blocked ? ' disabled' : '');
       }
+
+      html += '<div class="actions" style="margin-top:12px"><button class="btn" type="button" id="members-skip-btn">Skip for now</button></div>';
       return html;
     }
 
@@ -498,7 +617,7 @@
                '<br><a class="btn primary' + (degraded ? ' is-disabled' : '') + '" id="enter-btn" href="/operational/">Enter your operational workspace</a>';
       }
       return '<button class="btn is-disabled" disabled>Enter your operational workspace</button>' +
-             '<div class="help">Complete the two gated steps above to unlock your workspace.</div>';
+             '<div class="help">Accept your agreements and provision your workspace to unlock. Two-factor authentication and inviting teammates are optional.</div>';
     }
 
     function bindEvents(gaps) {
@@ -532,6 +651,16 @@
       if (prov) {
         prov.addEventListener('click', function () { provisionTenant(prov); });
       }
+
+      // Step 2 — two-factor skip (OOX §1.1 — optional, advances the flow)
+      var mfaSkip = document.getElementById('mfa-skip-btn');
+      if (mfaSkip) mfaSkip.addEventListener('click', function () { mfaSkipped = true; render(); });
+
+      // Step 4 — members skip / un-skip (OOX §1.2 — optional, advances the flow)
+      var memSkip = document.getElementById('members-skip-btn');
+      if (memSkip) memSkip.addEventListener('click', function () { membersSkipped = true; render(); });
+      var memUnskip = document.getElementById('members-unskip-btn');
+      if (memUnskip) memUnskip.addEventListener('click', function () { membersSkipped = false; render(); });
     }
 
     function setMsg(key, text) {
@@ -542,6 +671,8 @@
     // ── Accept (§1.6) ────────────────────────────────────────────────────
     async function acceptAgreement(key, version, btn) {
       if (degraded) return;
+      var lkey = String(key).toLowerCase();
+      if (acceptedLocal[lkey]) return;                       // already accepted this session — no duplicate submit (§1.3)
       btn.disabled = true; btn.classList.add('is-disabled');
       var label = btn.textContent; btn.textContent = 'Recording acceptance…';
       setMsg(key, '');
@@ -551,9 +682,14 @@
           headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
           body: JSON.stringify({ agreement_key: key, agreement_version: version })
         });
-        if (resp.status === 200) { await refreshState(); return; }
+        if (resp.status === 200) {
+          acceptedLocal[lkey] = formatToday();               // acknowledge immediately + block re-acceptance (§1.3)
+          await refreshState();                              // server trigger recomputes the gate; re-read + re-render
+          return;
+        }
         if (resp.status === 409) {
-          setMsg(key, 'This agreement was just updated — loading the latest version.');
+          delete acceptedLocal[lkey];                        // content changed — the latest version must be reviewed afresh
+          setMsg(key, 'This agreement was just updated — loading the latest version to review.');
           await refreshState();
           return;
         }
@@ -606,8 +742,10 @@
         if (resp.status === 200) {
           var data = {};
           try { data = await resp.json(); } catch (e) {}
-          // Inviting a member re-locks the 2FA gate until they enrol — refreshState()
-          // re-fetches both the members list and onboarding state so Step 2 reflects it.
+          // refreshState() re-fetches both the members list and onboarding state.
+          // (A new member without 2FA may show mfa_gate_passed=false server-side,
+          // but 2FA is no longer an unlock gate and landing_unlocked is latched —
+          // adding a teammate can never re-lock an already-open workspace, OOX §1.4.)
           inviteMsg = (data && data.invite_email_sent === false)
             ? { text: 'Member added — share their sign-in link from your admin tools.', ok: true }
             : { text: 'Invitation sent to ' + email + '.', ok: true };
@@ -651,7 +789,8 @@
           headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON }
         });
 
-        // 200: re-fetch state; landing_unlocked (server truth) lights Step 6 if now true.
+        // 200: re-fetch state. With provisioning now complete, refreshState() runs
+        // maybeUnlock(), which sets landing_unlocked if agreements are also accepted (OOX §1.4).
         if (resp.status === 200) { await refreshState(); return; }
 
         if (resp.status === 403) {           // not_admin
