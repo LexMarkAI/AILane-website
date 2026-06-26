@@ -2,10 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Operational Readiness — Ailane</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Ailane Operational</title>
 
-  <!-- GA4 — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
+  <!-- ════════════════════════════════════════════════════════════════
+       OOX-001 (AMD-230) — /operational/ now hosts the SAME engine bundle as
+       /knowledge-library/ (knowledge-library/kl-app.js), rendered in operational
+       mode (window.__klMode = 'operational'). This supersedes the legacy vanilla
+       operational room: the room is retired and the Knowledge Library hub IS the
+       operational workspace, branded "Ailane Operational". The bundle is NOT
+       duplicated — it is referenced from ../knowledge-library/kl-app.js.
+       ════════════════════════════════════════════════════════════════ -->
+
+  <!-- Supabase CDN FIRST (protected page) — RULE 26 auth-guard prerequisite -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -14,2462 +26,758 @@
     gtag('config', 'G-NTNXWZN31C');
   </script>
 
-  <!-- CSP (AILANE-SPEC-SEC-001 §3.2) — canonical; this page is CSP-clean (vanilla JS only, no client-side transpile / no CDN runtime build) -->
+  <!-- CSP (AILANE-SPEC-SEC-001 §3.2) — UNCHANGED from the prior operational page.
+       React, ReactDOM and Supabase all load from cdn.jsdelivr.net, which is already
+       allow-listed in script-src below, so no CSP directive changes for this host. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 
-  <!-- Supabase JS — FIRST among scripts (RULE 26 auth-guard prerequisite) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- DM Sans + DM Mono Typography (engine chrome — KLUX-001 Art. 12) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
-  <!-- Canonical Nexus renderer (EILEEN-NEXUS-001) — same-origin, CSP 'self'.
-       Exposes window.AilaneNexus. Reused unchanged from /assets/js/nexus.js (no fork). -->
-  <script src="/assets/js/nexus.js" defer></script>
-
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <!-- React 18 (cdn.jsdelivr.net — CSP-allow-listed; same library/version as the KL host) -->
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --bg: #0a0f1a;
-      --card: #0d1321;
-      --card-2: #111a2e;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --faint: #64748b;
-      --cyan: #38bdf8;
-      --cyan-soft: rgba(56,189,248,0.10);
-      --cyan-line: rgba(56,189,248,0.28);
-      --green: #22c55e;
-      --gold: #fbbf24;            /* brand i-tittle ONLY — not a page theme accent */
-      --line: rgba(148,163,184,0.14);
-      --line-mid: rgba(148,163,184,0.22);
+      --kl-bg: #0A1628;
+      --kl-surface: #0F1D32;
+      --kl-surface-hover: #162440;
+      --kl-border: #1E3A5F;
+      --kl-cyan: #0EA5E9;
+      --kl-cyan-dim: rgba(14, 165, 233, 0.15);
+      --kl-text: #F1F5F9;
+      --kl-text-muted: #94A3B8;
+      --kl-text-dim: #64748B;
+      --kl-gold: #D4A017;
+      --kl-green: #10B981;
+      --kl-purple: #8B5CF6;
+      --kl-red: #EF4444;
+      --kl-font-sans: 'DM Sans', sans-serif;
+      --kl-font-mono: 'DM Mono', monospace;
+      --kl-sidebar-width: 280px;
+      --kl-topbar-height: 56px;
+      --kl-panel-rail-width: 48px;
+      --kl-advisory-height: 36px;
     }
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; }
+
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      line-height: 1.5;
+      font-family: var(--kl-font-sans);
+      background: var(--kl-bg);
+      color: var(--kl-text);
       overflow: hidden;
-    }
-    .mono { font-family: 'Space Mono', ui-monospace, monospace; }
-
-    ::-webkit-scrollbar { width: 7px; height: 7px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-
-    /* ---- App frame ---- */
-    .app { display: flex; flex-direction: column; height: 100vh; }
-
-    /* ---- Top bar ---- */
-    .topbar {
-      flex-shrink: 0; height: 60px; padding: 0 22px;
-      display: flex; align-items: center; justify-content: space-between;
-      background: var(--card); border-bottom: 1px solid var(--line);
-    }
-    .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
-    .wm {
-      font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.18rem;
-      color: var(--text); letter-spacing: 0.005em; display: inline-flex; align-items: baseline;
-      cursor: pointer; user-select: none;
-    }
-    .wm-i { position: relative; display: inline-block; }
-    .wm-tittle {
-      position: absolute; top: -0.04em; left: 50%; transform: translateX(-50%);
-      width: 0.18em; height: 0.18em; border-radius: 50%; background: var(--gold);
-    }
-    .wm-lane { color: var(--cyan); }
-    .v-divider { width: 1px; height: 22px; background: var(--line-mid); }
-    .eyebrow {
-      font-family: 'Space Mono', monospace; font-size: 0.66rem; font-weight: 700;
-      letter-spacing: 0.2em; text-transform: uppercase; color: var(--cyan);
-    }
-    .topbar-right { display: flex; align-items: center; gap: 14px; }
-    .org-name { font-size: 0.82rem; color: var(--muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pill-live {
-      display: inline-flex; align-items: center; gap: 7px;
-      font-size: 0.72rem; color: var(--muted);
-      padding: 5px 11px; border-radius: 999px;
-      background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.22);
-    }
-    .pill-live .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-    .chip-2fa {
-      font-family: 'Space Mono', monospace; font-size: 0.66rem; letter-spacing: 0.06em;
-      color: var(--faint); padding: 5px 10px; border-radius: 6px;
-      border: 1px solid var(--line); background: rgba(148,163,184,0.04);
-    }
-    .btn-logout {
-      font-family: inherit; font-size: 0.74rem; color: var(--muted);
-      background: transparent; border: 1px solid var(--line-mid);
-      padding: 6px 13px; border-radius: 7px; cursor: pointer; transition: all 0.15s ease;
-    }
-    .btn-logout:hover { border-color: var(--cyan-line); color: var(--cyan); }
-
-    /* ---- Body row ---- */
-    .body-row { flex: 1; display: flex; min-height: 0; }
-
-    /* ---- Sidebar ---- */
-    .sidebar {
-      width: 248px; flex-shrink: 0; background: var(--card);
-      border-right: 1px solid var(--line);
-      display: flex; flex-direction: column; overflow-y: auto;
-    }
-    .menu-label {
-      font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em;
-      text-transform: uppercase; color: var(--faint); padding: 20px 20px 10px;
-    }
-    .menu { display: flex; flex-direction: column; padding: 0 10px; gap: 2px; }
-    .menu-item {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      width: 100%; text-align: left; text-decoration: none;
-      padding: 11px 12px; border-radius: 9px;
-      background: transparent; border: none; border-left: 2px solid transparent;
-      color: var(--muted); font-family: inherit; font-size: 0.88rem; cursor: pointer;
-      transition: background 0.14s ease, color 0.14s ease;
-    }
-    .menu-item:hover { background: rgba(148,163,184,0.05); color: var(--text); }
-    .menu-item.active { background: var(--cyan-soft); color: var(--text); border-left-color: var(--cyan); }
-    .menu-item .mi-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-    .menu-item .mi-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .menu-item .mi-sub {
-      font-family: 'Space Mono', monospace; font-size: 0.58rem; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--faint);
-    }
-    .chip-new {
-      font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700;
-      letter-spacing: 0.1em; color: var(--cyan);
-      background: var(--cyan-soft); border: 1px solid var(--cyan-line);
-      padding: 2px 7px; border-radius: 999px; flex-shrink: 0;
-    }
-    .onboard-link {
-      margin: auto 14px 18px; padding: 11px 14px; border-radius: 9px;
-      text-decoration: none; font-size: 0.8rem; color: var(--cyan);
-      background: var(--cyan-soft); border: 1px solid var(--cyan-line);
-      display: flex; align-items: center; justify-content: space-between; transition: all 0.15s ease;
-    }
-    .onboard-link:hover { background: rgba(56,189,248,0.16); }
-
-    /* ---- Stage (centre) ---- */
-    .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    .stage-scroll { flex: 1; overflow-y: auto; padding: 40px clamp(20px, 6vw, 72px) 20px; }
-    .stage-inner { max-width: 760px; margin: 0 auto; }
-
-    /* Eileen identity */
-    .eileen-id { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
-    /* Placeholder dot (.eileen-orb) retired by OOX-001 — replaced by the
-       canonical EILEEN-NEXUS-001 nexus (#eileen-nexus-host, styles below). */
-    .eileen-id .name { font-size: 0.92rem; font-weight: 600; color: var(--text); }
-    .eileen-id .node { font-family: 'Space Mono', monospace; font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
-    .eileen-status {
-      display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
-      font-size: 0.72rem; color: var(--green);
-    }
-    .eileen-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-
-    .greeting { font-size: clamp(1.7rem, 3.4vw, 2.5rem); font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
-    .greeting-sub { margin-top: 10px; font-size: 1.02rem; color: var(--muted); max-width: 56ch; }
-
-    /* Eileen suggests */
-    .suggests { margin-top: 30px; }
-    .suggests-label {
-      font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.2em;
-      text-transform: uppercase; color: var(--faint); margin-bottom: 12px;
-    }
-    .chip-row { display: flex; flex-wrap: wrap; gap: 10px; }
-    .suggest-chip {
-      font-family: inherit; font-size: 0.84rem; color: var(--text);
-      background: var(--card-2); border: 1px solid var(--line-mid);
-      padding: 9px 15px; border-radius: 999px; cursor: pointer; transition: all 0.15s ease;
-    }
-    .suggest-chip:hover { border-color: var(--cyan-line); color: var(--cyan); }
-
-    /* Answer area — newest prepended at TOP (no force-scroll) */
-    #answer-area { margin-top: 30px; display: flex; flex-direction: column; gap: 16px; }
-    .answer {
-      background: var(--card); border: 1px solid var(--line);
-      border-left: 2px solid var(--cyan-line); border-radius: 12px;
-      padding: 18px 20px; animation: rise 0.25s ease;
-    }
-    @keyframes rise { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-    .answer.thinking { opacity: 0.7; }
-    .answer-label {
-      font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 0.16em;
-      text-transform: uppercase; color: var(--cyan); margin-bottom: 8px;
-    }
-    .answer-text { font-size: 0.96rem; color: var(--text); line-height: 1.6; }
-    /* ---- Markdown-rendered answer body (OOX-001 §1.B) ----
-       Parsed by the escape-first inline renderer in initOperational. */
-    .answer-text > *:first-child { margin-top: 0; }
-    .answer-text > *:last-child { margin-bottom: 0; }
-    .answer-text p { margin: 0 0 10px; }
-    .answer-text h1, .answer-text h2, .answer-text h3,
-    .answer-text h4, .answer-text h5, .answer-text h6 {
-      color: var(--text); font-weight: 700; line-height: 1.3; margin: 16px 0 8px;
-    }
-    .answer-text h1 { font-size: 1.18rem; }
-    .answer-text h2 { font-size: 1.08rem; }
-    .answer-text h3 { font-size: 1rem; }
-    .answer-text h4, .answer-text h5, .answer-text h6 { font-size: 0.94rem; }
-    .answer-text ul, .answer-text ol { margin: 8px 0 10px; padding-left: 22px; }
-    .answer-text li { margin: 3px 0; }
-    .answer-text li > ul, .answer-text li > ol { margin: 4px 0; }
-    .answer-text strong { color: var(--text); font-weight: 700; }
-    .answer-text em { font-style: italic; }
-    .answer-text a { color: var(--cyan); text-decoration: underline; }
-    .answer-text code {
-      font-family: 'Space Mono', monospace; font-size: 0.85em;
-      background: rgba(56,189,248,0.10); border: 1px solid var(--cyan-line);
-      padding: 1px 5px; border-radius: 4px;
-    }
-    .answer-text pre {
-      background: var(--card-2); border: 1px solid var(--line-mid);
-      border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 10px 0;
-    }
-    .answer-text pre code { background: none; border: none; padding: 0; font-size: 0.85rem; }
-    .answer-text blockquote {
-      margin: 10px 0; padding: 4px 14px; border-left: 2px solid var(--cyan-line); color: var(--muted);
-    }
-    .answer-text hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
-    .answer-text table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.9rem; }
-    .answer-text th, .answer-text td { border: 1px solid var(--line-mid); padding: 7px 10px; text-align: left; }
-    .answer-text th { background: rgba(56,189,248,0.06); color: var(--text); font-weight: 700; }
-    .answer-cites { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--faint); white-space: pre-wrap; }
-    .typing { display: inline-flex; gap: 4px; }
-    .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); opacity: 0.5; animation: blink 1.1s infinite ease-in-out; }
-    .typing span:nth-child(2) { animation-delay: 0.18s; }
-    .typing span:nth-child(3) { animation-delay: 0.36s; }
-    @keyframes blink { 0%,80%,100% { opacity: 0.25; } 40% { opacity: 1; } }
-
-    /* Section panel (in-page, for menu items with no dedicated route) */
-    .section-view .section-head {
-      display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
-    }
-    .section-view h2 { font-size: 1.5rem; font-weight: 700; color: var(--text); }
-    .back-btn {
-      font-family: inherit; font-size: 0.78rem; color: var(--muted);
-      background: transparent; border: 1px solid var(--line-mid);
-      padding: 6px 12px; border-radius: 7px; cursor: pointer; transition: all 0.15s ease;
-    }
-    .back-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
-    .empty-state {
-      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-      padding: 40px 28px; text-align: center; color: var(--muted); font-size: 0.96rem;
-    }
-    .empty-state .es-orb {
-      width: 30px; height: 30px; border-radius: 50%; margin: 0 auto 16px;
-      background: radial-gradient(circle at 35% 35%, rgba(186,230,253,0.4), rgba(56,189,248,0.16) 70%, transparent);
-      border: 1px solid var(--cyan-line);
+      height: 100vh;
+      line-height: 1.5;
     }
 
-    /* ---- Eileen bar (anchored bottom) ---- */
-    .eileen-bar-wrap {
-      flex-shrink: 0; padding: 14px clamp(20px, 6vw, 72px) 10px;
-      border-top: 1px solid var(--line); background: linear-gradient(0deg, var(--card), rgba(13,19,33,0.4));
+    #kl-root {
+      width: 100%;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: var(--kl-topbar-height) 1fr var(--kl-advisory-height);
+      grid-template-columns: var(--kl-sidebar-width) 1fr var(--kl-panel-rail-width);
+      grid-template-areas:
+        "topbar topbar topbar"
+        "sidebar main panelrail"
+        "advisory advisory advisory";
     }
-    .eileen-bar-inner { max-width: 760px; margin: 0 auto; }
-    .eileen-bar {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--card-2); border: 1px solid var(--line-mid); border-radius: 14px;
-      padding: 7px 8px 7px 16px; transition: border-color 0.15s ease, opacity 0.15s ease;
+
+    /* Sidebar collapsed state */
+    #kl-root.sidebar-collapsed {
+      grid-template-columns: 56px 1fr var(--kl-panel-rail-width);
     }
-    .eileen-bar:focus-within { border-color: var(--cyan-line); }
-    .eileen-bar.is-pending { opacity: 0.62; }
-    #eileen-input {
-      flex: 1; background: transparent; border: none; outline: none;
-      color: var(--text); font-family: inherit; font-size: 0.96rem; padding: 8px 0;
+
+    /* Panel drawer open state */
+    #kl-root.drawer-open {
+      grid-template-columns: var(--kl-sidebar-width) 1fr 468px;
     }
-    #eileen-input::placeholder { color: var(--faint); }
-    .voice-toggle {
-      flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
-      background: var(--cyan-soft); border: 1px solid var(--cyan-line); color: var(--cyan);
-      transition: all 0.15s ease;
+
+    /* AMD-050 §3: Sidebar layout protection.
+       — Compact (220px) in mid-width viewports so the conversation panel
+         never crushes the sidebar.
+       — flex-shrink: 0 / min-width safeguards belt-and-braces the grid column
+         in case any future flex wrapper is introduced above #kl-root. */
+    .kl-sidebar { min-width: 220px; flex-shrink: 0; }
+    .kl-main { flex: 1; min-width: 0; }
+    @media (min-width: 1025px) and (max-width: 1280px) {
+      #kl-root:not(.sidebar-collapsed) {
+        grid-template-columns: 220px 1fr var(--kl-panel-rail-width);
+      }
+      #kl-root.drawer-open:not(.sidebar-collapsed) {
+        grid-template-columns: 220px 1fr 468px;
+      }
     }
-    .voice-toggle.off { background: transparent; border-color: var(--line); color: var(--faint); }
-    .send-btn {
-      flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+
+    /* Mobile responsive — sidebar becomes overlay, panel rail hidden */
+    @media (max-width: 767px) {
+      #kl-root {
+        grid-template-columns: 0 1fr 0 !important;
+        grid-template-areas:
+          "topbar topbar topbar"
+          "main main main"
+          "advisory advisory advisory";
+      }
+      .kl-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        max-width: 85vw;
+        z-index: 40;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+      }
+      #kl-root:not(.sidebar-collapsed) .kl-sidebar {
+        transform: translateX(0);
+      }
+      .kl-panelrail { display: none; }
+      .kl-messages { padding: 16px; }
+      .kl-conversation-input { padding: 12px 16px; }
+      .kl-welcome { padding: 32px 16px; }
+      .kl-welcome-greeting { font-size: 22px; margin-bottom: 24px; }
+      .kl-topbar-title { font-size: 14px; }
+    }
+
+    /* Grid containers */
+    .kl-topbar { grid-area: topbar; background: var(--kl-surface); border-bottom: 1px solid var(--kl-border); display: flex; align-items: center; gap: 12px; padding: 0 16px; z-index: 10; }
+    .kl-sidebar { grid-area: sidebar; background: var(--kl-surface); border-right: 1px solid var(--kl-border); overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+    .kl-main { grid-area: main; display: flex; flex-direction: column; overflow: hidden; background: var(--kl-bg); min-width: 0; }
+    .kl-panelrail { grid-area: panelrail; background: var(--kl-surface); border-left: 1px solid var(--kl-border); display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 8px; }
+    .kl-advisory { grid-area: advisory; background: rgba(14, 165, 233, 0.08); border-top: 1px solid var(--kl-cyan); display: flex; align-items: center; justify-content: center; padding: 0 16px; }
+    .kl-advisory p { font-size: 11px; color: var(--kl-text-dim); font-family: var(--kl-font-sans); font-weight: 300; text-align: center; }
+
+    /* ─── TopBar ─── */
+    .kl-topbar-toggle { background: transparent; border: none; color: var(--kl-text-muted); cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.15s; }
+    .kl-topbar-toggle:hover { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-topbar-title { font-family: var(--kl-font-sans); font-size: 16px; font-weight: 500; letter-spacing: 0.01em; color: var(--kl-text); flex: 1; }
+    .kl-topbar-right { display: flex; align-items: center; gap: 8px; }
+    .kl-tier-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 500; font-family: var(--kl-font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .kl-badge-operational { background: rgba(14,165,233,0.12); color: var(--kl-cyan); border: 1px solid rgba(14,165,233,0.3); }
+    .kl-badge-governance { background: rgba(139,92,246,0.12); color: #A78BFA; border: 1px solid rgba(139,92,246,0.3); }
+    .kl-badge-enterprise,
+    .kl-badge-institutional { background: rgba(212,160,23,0.12); color: var(--kl-gold); border: 1px solid rgba(212,160,23,0.3); }  /* AMD-123 G-4.1: kl-badge-enterprise canonical; kl-badge-institutional retained as transitional alias */
+    .kl-badge-per-session { background: rgba(14,165,233,0.08); color: var(--kl-cyan); border: 1px solid rgba(14,165,233,0.2); }
+
+    /* ─── Sidebar ─── */
+    .kl-sidebar-section { padding: 12px; flex-shrink: 0; }
+    .kl-new-chat-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; background: transparent; border: 1px solid var(--kl-cyan); border-radius: 8px; color: var(--kl-cyan); font-family: var(--kl-font-sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .kl-new-chat-btn:hover { background: var(--kl-cyan-dim); }
+    .kl-sidebar-history { flex: 1; overflow-y: auto; padding: 4px 8px; min-height: 0; }
+    .kl-sidebar-empty { padding: 16px 8px; font-size: 12px; color: var(--kl-text-dim); text-align: center; font-family: var(--kl-font-sans); }
+    .kl-history-item { display: block; width: 100%; text-align: left; background: transparent; border: none; border-left: 2px solid transparent; padding: 8px 10px; margin-bottom: 2px; border-radius: 4px; color: var(--kl-text-muted); cursor: pointer; font-family: var(--kl-font-sans); transition: all 0.15s; }
+    .kl-history-item:hover { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-history-item.active { background: var(--kl-cyan-dim); border-left-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-history-title { font-size: 12px; line-height: 1.35; margin-bottom: 2px; }
+    .kl-history-time { font-size: 10px; color: var(--kl-text-dim); font-family: var(--kl-font-mono); }
+    .kl-sidebar-divider { height: 1px; background: var(--kl-border); margin: 8px 12px; flex-shrink: 0; }
+
+    /* ─── Crown Jewels ─── */
+    .kl-crown { padding: 4px 12px 16px; flex-shrink: 0; }
+    .kl-crown-title { font-size: 10px; font-weight: 500; color: var(--kl-text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; font-family: var(--kl-font-mono); }
+    .kl-crown-list { display: flex; flex-direction: column; gap: 4px; }
+    .kl-crown-item-header:hover { background: rgba(14,165,233,0.1) !important; }
+    .kl-crown-chips { display: flex; flex-direction: column; gap: 6px; }
+    .kl-chip { display: block; width: 100%; text-align: left; padding: 8px 10px; background: rgba(14,165,233,0.05); border: 1px solid rgba(14,165,233,0.15); border-radius: 8px; color: var(--kl-text-muted); font-family: var(--kl-font-sans); font-size: 11px; font-weight: 400; line-height: 1.35; cursor: pointer; transition: all 0.15s; }
+    .kl-chip:hover:not(:disabled) { background: var(--kl-cyan-dim); border-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ─── Welcome state ─── */
+    .kl-welcome { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; flex: 1; padding: 48px 24px; overflow-y: auto; }
+    .kl-welcome-nexus { margin-bottom: 24px; }
+    .kl-nexus-canvas { display: block; }
+    .kl-welcome-greeting { font-family: var(--kl-font-sans); font-size: 28px; font-weight: 500; color: var(--kl-text); margin-bottom: 32px; text-align: center; letter-spacing: -0.01em; }
+    .kl-welcome-input { width: 100%; max-width: 640px; margin-bottom: 32px; }
+    .kl-topics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; width: 100%; max-width: 820px; }
+    .kl-topic-card { padding: 16px; background: var(--kl-surface); border: 1px solid var(--kl-border); border-radius: 10px; color: var(--kl-text-muted); font-family: var(--kl-font-sans); font-size: 12px; line-height: 1.4; text-align: left; cursor: pointer; transition: all 0.2s; }
+    .kl-topic-card:hover:not(:disabled) { border-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-topic-card:disabled { opacity: 0.5; cursor: not-allowed; }
+    .kl-card-label { font-size: 12px; }
+    .kl-card-desc { font-size: 11px; color: var(--kl-text-dim); margin-top: 4px; line-height: 1.35; }
+    /* Topics grid tablet/mobile breakpoints consolidated at end of <style> per KLUI-001 §10 */
+
+    /* ─── Compact domain list (Brief 5 — minimalist welcome) ─── */
+    .kl-domain-compact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 820px; }
+    .kl-domain-compact { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--kl-surface); border: 1px solid var(--kl-border); border-radius: 10px; cursor: pointer; transition: background 0.2s, border-color 0.2s; text-align: left; width: 100%; font-family: var(--kl-font-sans); color: var(--kl-text); }
+    .kl-domain-compact:hover { background: var(--kl-surface-hover); border-color: var(--kl-cyan); }
+    .kl-domain-compact-name { font-weight: 600; font-size: 14px; flex-shrink: 0; color: var(--kl-text); }
+    .kl-domain-compact-orient { font-size: 13px; color: var(--kl-text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .kl-domain-compact-arrow { font-size: 16px; color: var(--kl-cyan); opacity: 0.6; flex-shrink: 0; }
+    @media (max-width: 767px) { .kl-domain-compact-grid { grid-template-columns: 1fr; } }
+
+    /* ─── Conversation state ─── */
+    .kl-conversation { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .kl-messages { flex: 1; overflow-y: auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; }
+    .kl-conversation-input { padding: 16px 32px; border-top: 1px solid var(--kl-border); background: var(--kl-surface); flex-shrink: 0; }
+
+    /* ─── Messages ─── */
+    .kl-msg { display: flex; max-width: 860px; width: 100%; }
+    .kl-msg-user { justify-content: flex-end; margin-left: auto; }
+    .kl-msg-eileen { justify-content: flex-start; margin-right: auto; }
+    .kl-msg-content { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-family: var(--kl-font-sans); font-size: 14px; line-height: 1.6; }
+    .kl-msg-user .kl-msg-content { background: var(--kl-cyan-dim); border: 1px solid rgba(14,165,233,0.3); color: var(--kl-text); }
+    .kl-msg-eileen .kl-msg-content { background: var(--kl-surface); border: 1px solid var(--kl-border); border-left: 2px solid var(--kl-cyan); color: var(--kl-text); }
+    .kl-msg-sender { font-size: 10px; font-weight: 500; color: var(--kl-cyan); margin-bottom: 6px; font-family: var(--kl-font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .kl-msg-body { white-space: normal; word-wrap: break-word; }
+    .kl-msg-user .kl-msg-body { white-space: pre-wrap; }
+    .kl-msg-body p { margin: 0 0 8px; }
+    .kl-msg-body p:last-child { margin-bottom: 0; }
+    .kl-msg-body strong { color: var(--kl-text); font-weight: 600; }
+    .kl-msg-body code { font-family: var(--kl-font-mono); font-size: 12px; background: rgba(14,165,233,0.1); padding: 1px 5px; border-radius: 3px; }
+    .kl-msg-body ul { margin: 6px 0 8px 18px; padding: 0; }
+    .kl-msg-body li { margin-bottom: 3px; }
+    .kl-msg-body h4, .kl-msg-body h5, .kl-msg-body h6 { color: var(--kl-text); font-weight: 600; margin: 10px 0 6px; font-size: 14px; }
+    .kl-msg-footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--kl-border); }
+    .kl-msg-stats { font-size: 11px; color: var(--kl-text-dim); font-family: var(--kl-font-mono); }
+
+    /* ─── Sprint H §1: Eileen response action bar ─── */
+    .kl-action-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+      color: var(--kl-text-dim);
+      font-family: var(--kl-font-sans);
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .kl-action-btn:hover {
+      background: rgba(14,165,233,0.08);
+      border-color: rgba(14,165,233,0.2);
+      color: var(--kl-cyan);
+    }
+
+    /* ─── Sprint H §2: Eileen reference links ─── */
+    .kl-ref-link {
+      color: var(--kl-cyan);
+      cursor: pointer;
+      border-bottom: 1px dotted rgba(14,165,233,0.4);
+      transition: border-color 0.15s;
+    }
+    .kl-ref-link:hover {
+      border-bottom-color: var(--kl-cyan);
+    }
+
+    /* ─── Sprint H §3.3: Bookshelf responsive ─── */
+    @media (max-width: 540px) {
+      .kl-book { width: 80px !important; height: 110px !important; }
+      .kl-book > div:nth-child(2) { font-size: 9px !important; }
+    }
+
+    /* ─── Typing indicator ─── */
+    .kl-typing-dots { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+    .kl-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--kl-cyan); animation: klPulse 1.4s ease-in-out infinite; }
+    .kl-dot:nth-child(2) { animation-delay: 0.2s; }
+    .kl-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes klPulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+    /* ─── Input bar ─── */
+    .kl-input-bar { display: flex; align-items: center; background: var(--kl-bg); border: 1px solid var(--kl-border); border-radius: 12px; padding: 4px; gap: 4px; transition: border-color 0.2s; }
+    .kl-input-bar:focus-within { border-color: var(--kl-cyan); }
+    .kl-input { flex: 1; background: transparent; border: none; outline: none; padding: 10px 12px; color: var(--kl-text); font-family: var(--kl-font-sans); font-size: 14px; }
+    .kl-input::placeholder { color: var(--kl-text-dim); }
+    .kl-send-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--kl-cyan); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.2s; }
+    .kl-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .kl-send-btn:not(:disabled):hover { opacity: 0.85; }
+
+    /* ─── Panel rail (KLUI-001 §2.1) ─── */
+    .kl-panelrail-slot { width: 28px; height: 28px; border-radius: 50%; background: var(--kl-surface-hover); border: 1px solid var(--kl-border); }
+    .kl-panel-rail-btn {
+      width: 48px; height: 48px;
       display: flex; align-items: center; justify-content: center;
-      background: var(--cyan); border: none; color: #06121f; font-size: 1.1rem;
-      transition: opacity 0.15s ease;
+      background: transparent;
+      border: none;
+      border-left: 2px solid transparent;
+      cursor: pointer;
+      color: var(--kl-text-muted);
+      font-size: 18px;
+      padding: 0;
+      transition: background 0.15s, border-left-color 0.15s, opacity 0.15s;
     }
-    .send-btn:disabled { opacity: 0.4; cursor: default; }
-    .eileen-caption {
-      max-width: 760px; margin: 9px auto 0; font-family: 'Space Mono', monospace;
-      font-size: 0.62rem; letter-spacing: 0.08em; color: var(--faint);
-    }
-    .eileen-caption.is-pending { color: var(--muted); }
+    .kl-panel-rail-btn:hover:not(:disabled) { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-panel-rail-btn.active { background: var(--kl-surface-hover); border-left-color: var(--kl-cyan); color: var(--kl-text); }
+    .kl-panel-rail-btn.locked, .kl-panel-rail-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .kl-panel-rail-icon { font-size: 18px; line-height: 1; }
 
-    /* ---- Footer ---- */
-    .footer {
-      flex-shrink: 0; padding: 8px 22px; background: var(--card); border-top: 1px solid var(--line);
-      display: flex; justify-content: space-between; gap: 12px;
-      font-size: 0.64rem; color: var(--faint); flex-wrap: wrap;
+    /* ─── Panel drawer (KLUI-001 §2.2) ─── */
+    .kl-panel-drawer {
+      position: fixed;
+      top: var(--kl-topbar-height);
+      right: var(--kl-panel-rail-width);
+      width: 420px;
+      height: calc(100vh - var(--kl-topbar-height) - var(--kl-advisory-height));
+      background: var(--kl-bg);
+      border-left: 1px solid var(--kl-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      animation: klSlideIn 0.2s ease-out;
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.25);
+    }
+    @media (max-width: 767px) {
+      .kl-panel-drawer { right: 0; width: 100%; }
+    }
+    @keyframes klSlideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    .kl-panel-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--kl-border);
+      background: var(--kl-surface);
+      flex-shrink: 0;
+    }
+    .kl-panel-drawer-title {
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--kl-text);
+      letter-spacing: 0.01em;
+    }
+    .kl-panel-drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--kl-text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .kl-panel-drawer-close:hover { background: var(--kl-surface-hover); color: var(--kl-text); }
+    .kl-panel-drawer-body { flex: 1; overflow: auto; padding: 16px; min-height: 0; }
+
+    /* ─── Notes panel ─── */
+    .kl-notes-panel { display: flex; flex-direction: column; height: 100%; gap: 8px; }
+    .kl-notes-title {
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--kl-text);
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .kl-notes-title:focus { border-color: var(--kl-cyan); }
+    .kl-notes-status { font-size: 11px; color: var(--kl-text-dim); font-family: var(--kl-font-mono); }
+    .kl-notes-status.saved { color: var(--kl-green); }
+    .kl-notes-status.error { color: var(--kl-red); }
+    .kl-notes-body {
+      flex: 1;
+      min-height: 200px;
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 12px;
+      color: var(--kl-text);
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      line-height: 1.7;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .kl-notes-body:focus { border-color: var(--kl-cyan); }
+
+    /* ─── Clipboard panel ─── */
+    .kl-clipboard-panel { display: flex; flex-direction: column; gap: 8px; }
+    .kl-clipboard-empty { color: var(--kl-text-dim); font-size: 13px; font-family: var(--kl-font-sans); line-height: 1.5; }
+    .kl-clipboard-clear {
+      align-self: flex-start;
+      background: transparent;
+      border: none;
+      color: var(--kl-red);
+      font-family: var(--kl-font-sans);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 2px 0;
+      margin-bottom: 4px;
+    }
+    .kl-clipboard-clear:hover { text-decoration: underline; }
+    .kl-clip {
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+    }
+    .kl-clip-text { color: var(--kl-text); margin: 0 0 6px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .kl-clip-actions { display: flex; gap: 12px; }
+    .kl-clip-copy, .kl-clip-remove {
+      background: transparent;
+      border: none;
+      font-family: var(--kl-font-sans);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .kl-clip-copy { color: var(--kl-cyan); }
+    .kl-clip-remove { color: var(--kl-text-dim); }
+    .kl-clip-copy:hover, .kl-clip-remove:hover { text-decoration: underline; }
+
+    /* ─── Placeholder panel ─── */
+    .kl-placeholder-panel { text-align: center; padding: 48px 16px 16px; }
+    .kl-placeholder-icon { font-size: 36px; color: var(--kl-text-dim); margin-bottom: 12px; line-height: 1; }
+    .kl-placeholder-title { font-family: var(--kl-font-sans); font-size: 16px; font-weight: 500; color: var(--kl-text); margin-bottom: 8px; }
+    .kl-placeholder-body { color: var(--kl-text-dim); font-size: 13px; line-height: 1.5; max-width: 280px; margin: 0 auto; }
+
+    /* ─── Session countdown (KLAC-001-AM-005) ─── */
+    .kl-session-countdown {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-family: var(--kl-font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      background: rgba(14, 165, 233, 0.08);
+      color: var(--kl-cyan);
+      border: 1px solid rgba(14, 165, 233, 0.25);
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .kl-session-countdown.urgent {
+      background: rgba(239, 68, 68, 0.12);
+      color: #F87171;
+      border-color: rgba(239, 68, 68, 0.4);
+      animation: klPulseUrgent 1.6s ease-in-out infinite;
+    }
+    .kl-session-countdown-time { font-variant-numeric: tabular-nums; }
+    @keyframes klPulseUrgent {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
     }
 
-    @media (max-width: 820px) {
-      body { overflow: auto; }
-      .app { height: auto; min-height: 100vh; }
-      .body-row { flex-direction: column; }
-      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--line); }
-      .onboard-link { margin: 14px; }
-      .eileen-status { margin-left: 0; }
+    /* ─── Expired modal ─── */
+    .kl-expired-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .kl-expired-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 14, 22, 0.82);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .kl-expired-content {
+      position: relative;
+      max-width: 420px;
+      width: 100%;
+      background: var(--kl-surface);
+      border: 1px solid var(--kl-border);
+      border-top: 2px solid var(--kl-cyan);
+      border-radius: 12px;
+      padding: 32px 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    .kl-expired-title {
+      font-family: var(--kl-font-sans);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--kl-text);
+      margin: 0 0 12px;
+      letter-spacing: -0.01em;
+    }
+    .kl-expired-body {
+      font-family: var(--kl-font-sans);
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--kl-text-muted);
+      margin: 0 0 24px;
+    }
+    .kl-expired-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      background: var(--kl-cyan);
+      color: #fff;
+      border-radius: 10px;
+      font-family: var(--kl-font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: opacity 0.15s;
+    }
+    .kl-expired-cta:hover { opacity: 0.88; }
+
+    /* ─── Mobile sidebar backdrop (rendered by React only when sidebar open) ─── */
+    .kl-sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 14, 22, 0.6);
+      z-index: 35;
+    }
+    @media (max-width: 767px) {
+      .kl-sidebar-backdrop { display: block; }
     }
 
-    /* ════════════════════════════════════════════════════════════════
-       ACEI Overview & Sector Report (OOX-001) — additive section chrome.
-       Reuses the page palette/typography; no new colours, no CDN.
-       ════════════════════════════════════════════════════════════════ */
-    .acei-loading { color: var(--muted); font-size: 0.9rem; padding: 6px 0 2px; }
-    .acei-di-card {
-      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-      padding: 22px 24px; margin-bottom: 22px;
-      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    /* ─── Sprint E §4: Mobile responsive for Sprint B/C/D components ─── */
+    @media (max-width: 767px) {
+      /* ContractUploadPrompt: full-width on mobile */
+      .kl-messages div[style*="max-width: 520px"],
+      .kl-messages div[style*="maxWidth"] { max-width: 100% !important; }
+      /* Domain sub-area grid: 1 column */
+      .kl-domain-subarea-grid { grid-template-columns: 1fr !important; }
+      /* Domain selector: horizontal scroll */
+      .kl-domain-selector { overflow-x: auto; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; }
     }
-    .acei-di-figure {
-      font-family: 'Space Mono', monospace; font-size: 2.6rem; font-weight: 700;
-      color: var(--cyan); line-height: 1; white-space: nowrap;
+    @media (max-width: 480px) {
+      /* QualifyingQuestion: stack buttons */
+      .kl-msg-eileen div[style*="flex-wrap"] { flex-direction: column !important; }
+      .kl-msg-eileen div[style*="flex-wrap"] button { width: 100% !important; }
     }
-    .acei-di-figure .acei-di-denom { font-size: 1.05rem; color: var(--faint); font-weight: 400; }
-    .acei-di-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    .acei-di-label {
-      font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.18em;
-      text-transform: uppercase; color: var(--faint);
-    }
-    .acei-di-name { font-size: 1.02rem; font-weight: 600; color: var(--text); }
-    .acei-di-sub { font-size: 0.84rem; color: var(--muted); }
-    .acei-badge {
-      display: inline-flex; align-items: center; width: fit-content; margin-top: 2px;
-      font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
-      background: rgba(148,163,184,0.07); border: 1px solid var(--line-mid);
-      padding: 3px 8px; border-radius: 999px;
-    }
-    .acei-section-h { font-size: 1.04rem; font-weight: 700; color: var(--text); margin: 4px 0 12px; }
-    .acei-table { width: 100%; border-collapse: collapse; margin: 8px 0 8px; font-size: 0.85rem; }
-    .acei-table th, .acei-table td { border: 1px solid var(--line-mid); padding: 8px 10px; text-align: left; }
-    .acei-table th {
-      background: rgba(56,189,248,0.06); color: var(--text); font-weight: 700;
-      font-size: 0.72rem; letter-spacing: 0.02em; white-space: nowrap;
-    }
-    .acei-table td { color: var(--muted); }
-    .acei-table td.acei-cat { color: var(--text); font-weight: 600; }
-    .acei-table td.acei-num { font-family: 'Space Mono', monospace; text-align: right; color: var(--text); white-space: nowrap; }
-    .acei-sm-emph { color: var(--cyan); font-weight: 700; }
-    .acei-caption { font-size: 0.78rem; color: var(--faint); margin: 6px 0 26px; line-height: 1.55; }
-    .acei-panel {
-      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-      padding: 20px 22px; margin-bottom: 18px;
-    }
-    .acei-panel h3 { font-size: 1.02rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-    .acei-panel-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 14px; }
-    .acei-stat-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px; margin-bottom: 14px;
-    }
-    .acei-stat { background: var(--card-2); border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; }
-    .acei-stat-label {
-      font-family: 'Space Mono', monospace; font-size: 0.56rem; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--faint); margin-bottom: 5px;
-    }
-    .acei-stat-val { font-family: 'Space Mono', monospace; font-size: 1.12rem; font-weight: 700; color: var(--text); }
-    .acei-compare { font-size: 0.84rem; color: var(--muted); line-height: 1.55; }
-    .acei-note { font-size: 0.78rem; color: var(--faint); margin-top: 8px; line-height: 1.5; }
-    .acei-empty-body { max-width: 48ch; margin: 0 auto 4px; }
-    .acei-cta {
-      display: inline-block; margin-top: 16px; font-family: inherit; font-size: 0.86rem;
-      color: var(--cyan); background: var(--cyan-soft); border: 1px solid var(--cyan-line);
-      padding: 10px 18px; border-radius: 9px; cursor: pointer; text-decoration: none;
-    }
-    .acei-cta:hover { background: rgba(56,189,248,0.16); }
 
-    /* ════════════════════════════════════════════════════════════════
-       INTELLIGENCE — Forward legislative horizon (OOX-001). Mirrors the
-       room's card/chrome language (CSS vars only). Tracked items carry a
-       cyan-accent "tracking" state. ════════════════════════════════════ */
-    .intel-caveat {
-      margin: 0 0 18px; padding: 13px 16px;
-      border: 1px solid var(--line); border-left: 2px solid var(--cyan);
-      border-radius: 9px; background: var(--cyan-soft);
-      color: var(--muted); font-size: 0.86rem; line-height: 1.5;
-    }
-    .intel-filter { display: flex; justify-content: flex-end; margin-bottom: 14px; }
-    .intel-filter-btn {
-      font-family: inherit; font-size: 0.78rem; color: var(--muted);
-      background: transparent; border: 1px solid var(--line-mid);
-      padding: 7px 13px; border-radius: 999px; cursor: pointer; transition: all 0.15s ease;
-    }
-    .intel-filter-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
-    .intel-filter-btn.on { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
-    .intel-list { display: flex; flex-direction: column; gap: 14px; }
-    .intel-card {
-      position: relative; padding: 18px 20px;
-      background: var(--card); border: 1px solid var(--line);
-      border-left: 2px solid transparent; border-radius: 12px; transition: border-color 0.18s ease;
-    }
-    .intel-card:hover { border-color: var(--line-mid); }
-    .intel-card.tracking { border-left-color: var(--cyan); background: var(--card-2); }
-    .intel-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
-    .intel-top-main { min-width: 0; }
-    .intel-title { font-size: 1.1rem; font-weight: 700; color: var(--text); line-height: 1.3; }
-    .intel-meta {
-      margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px 14px;
-      font-family: 'Space Mono', monospace; font-size: 0.74rem; color: var(--faint); letter-spacing: 0.02em;
-    }
-    .intel-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
-    .intel-chip {
-      font-size: 0.7rem; padding: 3px 10px; border-radius: 999px;
-      background: var(--card-2); border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.02em;
-    }
-    .intel-chip.type { color: var(--cyan); border-color: var(--cyan-line); }
-    .intel-chip.priority.high { color: var(--gold); border-color: rgba(251,191,36,0.3); }
-    .intel-summary { margin-top: 12px; color: var(--text); font-size: 0.95rem; line-height: 1.6; }
-    .intel-subhead {
-      margin-top: 14px; font-family: 'Space Mono', monospace; font-size: 0.62rem;
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
-    }
-    .intel-text { margin-top: 6px; color: var(--muted); font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; }
-    .intel-html { margin-top: 6px; color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
-    .intel-html > *:first-child { margin-top: 0; }
-    .intel-html > *:last-child { margin-bottom: 0; }
-    .intel-html p { margin: 0 0 8px; }
-    .intel-html ul, .intel-html ol { margin: 6px 0 8px; padding-left: 20px; }
-    .intel-html li { margin: 3px 0; }
-    .intel-html strong { color: var(--text); }
-    .intel-html a { color: var(--cyan); text-decoration: underline; }
-    .intel-foot { margin-top: 14px; }
-    .intel-source { font-size: 0.84rem; font-weight: 600; color: var(--cyan); text-decoration: none; }
-    .intel-source:hover { text-decoration: underline; }
-    .intel-disclaimer { margin-top: 12px; font-size: 0.76rem; color: var(--faint); font-style: italic; line-height: 1.5; }
-    .intel-track-btn {
-      flex-shrink: 0; font-family: inherit; font-size: 0.78rem; font-weight: 600;
-      color: var(--muted); background: transparent; border: 1px solid var(--line-mid);
-      padding: 7px 14px; border-radius: 999px; cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
-    }
-    .intel-track-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
-    .intel-track-btn.tracking { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
-    .intel-track-btn:disabled { opacity: 0.5; cursor: default; }
-    .intel-card-error { margin-top: 10px; font-size: 0.8rem; color: #f87171; }
-
-    /* ════════════════════════════════════════════════════════════════
-       DOCUMENT VAULT (OOX-001) — display-only section. Reuses the page
-       palette + the ACEI table / stat-grid and Intelligence card idioms
-       (CSS vars only; no new accent — gold stays brand-only). ════════════ */
-    .vault-panel { margin-bottom: 24px; }
-    .vault-panel:last-child { margin-bottom: 0; }
-    .vault-fname { color: var(--text); font-weight: 600; word-break: break-word; }
-    .vault-chip {
-      display: inline-block; font-family: 'Space Mono', monospace; font-size: 0.62rem;
-      font-weight: 700; letter-spacing: 0.04em; color: var(--cyan); white-space: nowrap;
-      background: var(--cyan-soft); border: 1px solid var(--cyan-line);
-      padding: 2px 8px; border-radius: 6px;
-    }
-    .vault-pill {
-      display: inline-flex; align-items: center; white-space: nowrap;
-      font-size: 0.7rem; letter-spacing: 0.01em; padding: 3px 9px; border-radius: 999px;
-      border: 1px solid var(--line-mid); background: var(--card-2); color: var(--muted);
-    }
-    .vault-pill--ok   { color: var(--green); border-color: rgba(34,197,94,0.3);    background: rgba(34,197,94,0.08); }
-    .vault-pill--busy { color: var(--cyan);  border-color: var(--cyan-line);       background: var(--cyan-soft); }
-    .vault-pill--bad  { color: #f87171;      border-color: rgba(248,113,113,0.32); background: rgba(248,113,113,0.08); }
-    .vault-pill--idle { color: var(--faint); }
-    .vault-vis {
-      display: inline-flex; align-items: center; white-space: nowrap;
-      font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700;
-      letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px;
-      border: 1px solid var(--line-mid); color: var(--muted); background: rgba(148,163,184,0.06);
-    }
-    .vault-vis--org { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
-    .vault-analyses { display: flex; flex-direction: column; gap: 14px; margin: 8px 0 4px; }
-    .vault-card {
-      background: var(--card); border: 1px solid var(--line);
-      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 16px 18px;
-    }
-    .vault-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .vault-card-main { min-width: 0; }
-    .vault-ref { font-size: 1rem; font-weight: 700; color: var(--text); word-break: break-word; }
-    .vault-role { margin-top: 3px; font-size: 0.84rem; color: var(--muted); }
-    .vault-sample {
-      flex-shrink: 0; font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
-      background: rgba(148,163,184,0.07); border: 1px solid var(--line-mid);
-      padding: 3px 9px; border-radius: 999px;
-    }
-    .vault-subhead {
-      margin-top: 14px; font-family: 'Space Mono', monospace; font-size: 0.62rem;
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
-    }
-    .vault-finding { margin-top: 6px; color: var(--muted); font-size: 0.92rem; line-height: 1.6; white-space: pre-wrap; }
-
-    /* ════════════════════════════════════════════════════════════════
-       ALERTS ROOM (OOX-001) — display-only section wiring the tenant's
-       open actions, breach register and mitigations. Reuses the page
-       palette + the ACEI/Vault card idioms (CSS vars only; the red is the
-       existing vault-pill--bad #f87171 — no new accent, gold stays brand).
-       ════════════════════════════════════════════════════════════════ */
-    .alerts-panel { margin-bottom: 24px; }
-    .alerts-panel:last-child { margin-bottom: 0; }
-    .alerts-list { display: flex; flex-direction: column; gap: 12px; margin: 2px 0 4px; }
-    .alerts-card {
-      background: var(--card); border: 1px solid var(--line);
-      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 14px 16px;
-    }
-    .alerts-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .alerts-card-main { min-width: 0; }
-    .alerts-title { font-size: 0.98rem; font-weight: 700; color: var(--text); word-break: break-word; }
-    .alerts-sub { margin-top: 3px; font-size: 0.84rem; color: var(--muted); line-height: 1.5; word-break: break-word; }
-    .alerts-meta { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
-    .alerts-mono {
-      font-family: 'Space Mono', monospace; font-size: 0.72rem;
-      color: var(--faint); letter-spacing: 0.02em;
-    }
-    .alerts-flag {
-      display: inline-flex; align-items: center; white-space: nowrap;
-      font-size: 0.68rem; letter-spacing: 0.02em; padding: 2px 9px; border-radius: 999px;
-      border: 1px solid var(--line-mid); background: var(--card-2); color: var(--muted);
-    }
-    .alerts-flag--overdue { color: #f87171; border-color: rgba(248,113,113,0.32); background: rgba(248,113,113,0.08); }
-    .alerts-flag--due { color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft); }
-    .alerts-flag--ico {
-      font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--cyan); border-color: var(--cyan-line); background: var(--cyan-soft);
-    }
-  </style>
-
-  <!-- EILEEN-NEXUS-001 styles — replicated verbatim from the canonical KL
-       consumer (knowledge-library/kl-app.jsx #eileen-nexus-001-styles). Halo
-       classes carry the dormant/ready/processing/presenting state triggers on
-       the host container. -->
-  <style id="eileen-nexus-001-styles">
-    .kl-nexus-host { position: relative; display: block; border-radius: 50%; }
-    .kl-nexus-host .kl-nexus-canvas { display: block; }
-    .kl-nexus-halo { transition: box-shadow 0.3s ease; }
-    .kl-nexus-halo--dormant { box-shadow: 0 0 8px rgba(14,165,233,0.1); }
-    .kl-nexus-halo--ready { box-shadow: 0 0 12px rgba(14,165,233,0.2); }
-    .kl-nexus-halo--processing { box-shadow: 0 0 20px rgba(14,165,233,0.4); animation: klNexusHaloPulse 1.5s ease-in-out infinite; }
-    .kl-nexus-halo--presenting { box-shadow: 0 0 24px rgba(14,165,233,0.5); }
-    @keyframes klNexusHaloPulse {
-      0%, 100% { box-shadow: 0 0 20px rgba(14,165,233,0.4); }
-      50% { box-shadow: 0 0 28px rgba(14,165,233,0.55); }
-    }
+    /* ─── Sprint E §5.5: prefers-reduced-motion ─── */
     @media (prefers-reduced-motion: reduce) {
-      .kl-nexus-halo--processing { animation: none; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
-  </style>
 
-  <!-- OOX-001 (AMD-241) matter-memory layer — calm, institutional; reuses page
-       CSS variables only. No new accent: gold stays brand-only (per :root note). -->
-  <style id="oox-matter-styles">
-    /* "＋ Remember a matter" trigger in the Eileen identity header */
-    .matter-remember-btn {
-      font-family: inherit; font-size: 0.74rem; color: var(--muted);
-      background: transparent; border: 1px solid var(--line-mid);
-      padding: 5px 11px; border-radius: 7px; cursor: pointer; white-space: nowrap;
-      transition: border-color 0.15s ease, color 0.15s ease;
+    /* ─── Focus-visible polish ─── */
+    /* §5.2: Global focus-visible for all interactive elements */
+    *:focus-visible {
+      outline: 2px solid var(--kl-cyan);
+      outline-offset: 2px;
     }
-    .matter-remember-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
+    .kl-input:focus-visible { outline: none; }
+    input[type="file"]:focus-visible { outline: none; }
 
-    /* Shared matter button (reuses the page's back-btn / send-btn idioms) */
-    .matter-btn {
-      font-family: inherit; font-size: 0.78rem; color: var(--muted); cursor: pointer;
-      background: transparent; border: 1px solid var(--line-mid);
-      padding: 6px 12px; border-radius: 7px; transition: all 0.15s ease;
-    }
-    .matter-btn:hover { border-color: var(--cyan-line); color: var(--cyan); }
-    .matter-btn.primary { background: var(--cyan); border-color: var(--cyan); color: #06121f; }
-    .matter-btn.primary:hover { opacity: 0.9; color: #06121f; }
-    .matter-btn.danger { color: #fca5a5; border-color: rgba(252,165,165,0.32); }
-    .matter-btn.danger:hover { border-color: #fca5a5; color: #fca5a5; }
-    .matter-btn:disabled { opacity: 0.5; cursor: default; }
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--kl-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--kl-surface-hover); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--kl-border); }
 
-    /* Remember-a-matter capture panel */
-    #eileen-matter-capture { margin: 0 0 22px; }
-    .matter-capture-card {
-      background: var(--card); border: 1px solid var(--line);
-      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 16px 18px;
-    }
-    .matter-capture-card .mc-label { display: block; font-size: 0.84rem; color: var(--muted); margin-bottom: 9px; }
-    .matter-capture-card textarea {
-      width: 100%; min-height: 74px; resize: vertical;
-      background: var(--card-2); border: 1px solid var(--line-mid); border-radius: 9px;
-      color: var(--text); font-family: inherit; font-size: 0.92rem; padding: 10px 12px; outline: none;
-    }
-    .matter-capture-card textarea:focus { border-color: var(--cyan-line); }
-    .matter-capture-card .mc-cats {
-      width: 100%; margin-top: 10px;
-      background: var(--card-2); border: 1px solid var(--line-mid); border-radius: 9px;
-      color: var(--text); font-family: inherit; font-size: 0.88rem; padding: 9px 12px; outline: none;
-    }
-    .matter-capture-card .mc-cats:focus { border-color: var(--cyan-line); }
-    .mc-error { margin-top: 10px; font-size: 0.82rem; color: #fca5a5; }
-    .mc-actions { display: flex; gap: 10px; margin-top: 12px; }
+    /* ============================================================
+       AMD-031 (KLUI-001) / AMD-045 (KLUX-001-AM-001) /
+       AMD-050 (KLUX-001-AM-002) — consolidated responsive rules.
+       Placed at the end of <style> per KLUI-001 §10 so source
+       order makes these authoritative over earlier scattered
+       overrides.
 
-    /* Retain-or-clear panel */
-    #eileen-matter-panel { margin-top: 18px; }
-    .matter-panel-card {
-      background: var(--card); border: 1px solid var(--line);
-      border-left: 2px solid var(--cyan-line); border-radius: 12px; padding: 16px 18px;
-    }
-    .matter-panel-head {
-      font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.16em;
-      text-transform: uppercase; color: var(--cyan); margin-bottom: 12px;
-    }
-    .matter-row {
-      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap;
-      padding: 12px 0; border-top: 1px solid var(--line);
-    }
-    .matter-row:first-of-type { border-top: none; padding-top: 2px; }
-    .matter-row-main { flex: 1; min-width: 210px; }
-    .matter-row-summary { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
-    .matter-row-meta {
-      margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 0.6rem;
-      letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint);
-    }
-    .matter-row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .matter-inline {
-      width: 100%; margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    }
-    .matter-inline .reason {
-      flex: 1; min-width: 190px;
-      background: var(--card-2); border: 1px solid var(--line-mid); border-radius: 8px;
-      color: var(--text); font-family: inherit; font-size: 0.86rem; padding: 8px 11px; outline: none;
-    }
-    .matter-inline .reason:focus { border-color: var(--cyan-line); }
-    .matter-confirm-text { font-size: 0.84rem; color: var(--muted); }
+       Scope: CSS-only fixes (viewport breakpoints, sidebar
+       widths, topic grid columns/gaps, WCAG 2.1 AA touch
+       targets, iOS-zoom-prevention input font-size).
 
-    /* Toast (re-list confirmations) */
-    #eileen-toast {
-      position: fixed; left: 50%; bottom: 92px;
-      transform: translateX(-50%) translateY(8px);
-      background: var(--card-2); border: 1px solid var(--cyan-line); color: var(--text);
-      font-size: 0.84rem; padding: 10px 16px; border-radius: 10px; text-align: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 360px; z-index: 50;
-      opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+       Deferred to a future sprint that rebuilds kl-app.jsx
+       via esbuild (require React DOM changes, not addressable
+       via CSS alone):
+         — §7 Key Instruments strip vertical stack (mobile):
+           class selector not emitted in static HTML.
+         — §8 Regulatory Feed hamburger-sheet (mobile):
+           requires new menu item + full-screen sheet render.
+         — §11 Hamburger menu + slide-in overlay (mobile):
+           topbar is rendered empty in static HTML and filled
+           by kl-app.js; adding the icon + overlay needs JSX.
+         — §5 Eileen full-screen overlay with top-left back
+           icon (mobile): requires conditional overlay render.
+         — §6 FloatingNexus mobile tap-to-open / disable-drag:
+           Canvas rendering lives in kl-app.js.
+       ============================================================ */
+
+    /* ===== TABLET (768–1024px) — KLUI-001 §7, KLUX-001-AM-002 §3 ===== */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      /* Sidebar: 48px icon-only; any React-side toggle of
+         .sidebar-collapsed still collapses identically.
+         NOTE: overlay-expand-on-click (spec §3) requires a
+         React-side handler to render the sidebar as a fixed
+         280px overlay — CSS alone cannot drive that because
+         the trigger is inside the React-owned topbar. Once
+         a React class (e.g. .sidebar-expanded) is wired in a
+         future sprint, the overlay rule below will activate. */
+      #kl-root,
+      #kl-root:not(.sidebar-collapsed) {
+        grid-template-columns: 48px 1fr var(--kl-panel-rail-width);
+      }
+      #kl-root.drawer-open,
+      #kl-root.drawer-open:not(.sidebar-collapsed) {
+        grid-template-columns: 48px 1fr 468px;
+      }
+      .kl-sidebar {
+        overflow: hidden;
+        min-width: 48px;
+      }
+      /* Future overlay-expand hook (React to add .sidebar-expanded) */
+      #kl-root.sidebar-expanded .kl-sidebar {
+        position: fixed;
+        top: var(--kl-topbar-height);
+        left: 0;
+        width: 280px;
+        min-width: 280px;
+        height: calc(100vh - var(--kl-topbar-height) - var(--kl-advisory-height));
+        z-index: 40;
+        overflow-y: auto;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+      }
+      /* Topic cards: 2 cols, 16px gap (§4) */
+      .kl-topics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+      /* Conversation padding eased for narrower viewports */
+      .kl-messages { padding: 20px 24px; }
+      .kl-conversation-input { padding: 14px 20px; }
     }
-    #eileen-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== MOBILE (<768px) — KLUI-001 §7, §12 ===== */
+    @media (max-width: 767px) {
+      /* Topic cards: 1 col full-width stack, 12px gap (§4) */
+      .kl-topics-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+      .kl-topic-card {
+        padding: 12px 16px;
+        min-height: 48px;
+        border-color: #1E293B;
+      }
+
+      /* WCAG 2.1 AA touch targets — minimum 44px (§12) */
+      .kl-new-chat-btn,
+      .kl-history-item,
+      .kl-chip,
+      .kl-topbar-toggle,
+      .kl-panel-drawer-close,
+      .kl-action-btn,
+      .kl-expired-cta {
+        min-height: 44px;
+      }
+
+      /* Eileen input bar — iOS zoom-on-focus prevention (§5):
+         input font-size must be 16px; bar min-height 48px. */
+      .kl-input-bar {
+        min-height: 48px;
+        padding: 6px;
+      }
+      .kl-input {
+        font-size: 16px;
+        padding: 12px;
+      }
+      .kl-send-btn {
+        width: 44px;
+        height: 44px;
+      }
+
+      /* Welcome state: keep greeting readable, tighten nexus spacing */
+      .kl-welcome-greeting { font-size: 22px; }
+    }
   </style>
 </head>
 <body style="visibility:hidden">
-
-  <div class="app">
-    <!-- TOP BAR -->
-    <header class="topbar">
-      <div class="brand">
-        <span class="wm" id="home-brand" title="Ailane — Operational Readiness">A<span class="wm-i">&#x0131;<span class="wm-tittle"></span></span><span class="wm-lane">lane</span></span>
-        <span class="v-divider"></span>
-        <span class="eyebrow">Operational Readiness</span>
-      </div>
-      <div class="topbar-right">
-        <span class="org-name" id="org-name">Your organisation</span>
-        <span class="pill-live"><span class="dot"></span>Live</span>
-        <span class="chip-2fa">2FA &middot; AAL2</span>
-        <button class="btn-logout" id="logout">Logout</button>
-      </div>
-    </header>
-
-    <div class="body-row">
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <div class="menu-label">Workspace</div>
-        <nav class="menu" id="menu"></nav>
-        <a class="onboard-link" href="/operational/onboarding/">Set up your workspace <span>&rarr;</span></a>
-      </aside>
-
-      <!-- STAGE -->
-      <main class="stage">
-        <div class="stage-scroll">
-          <div class="stage-inner">
-
-            <!-- EILEEN VIEW -->
-            <section id="eileen-view">
-              <div class="eileen-id">
-                <!-- EILEEN-NEXUS-001 canonical nexus (replaces the placeholder dot).
-                     Canvas + AilaneNexus.createNexus wired in initOperational. -->
-                <div class="kl-nexus-host kl-nexus-halo kl-nexus-halo--dormant" id="eileen-nexus-host" style="width:44px;height:44px"></div>
-                <span class="name">Eileen</span>
-                <span class="node">&middot; Operational</span>
-                <button type="button" class="matter-remember-btn" id="eileen-remember-btn" title="Remember a matter">&#xFF0B; Remember a matter</button>
-                <span class="eileen-status"><span class="dot"></span>Online &mdash; tenant-scoped</span>
-              </div>
-
-              <!-- OOX-001 §1.2 — "Remember this matter" capture (upsert). Hidden until invoked. -->
-              <div id="eileen-matter-capture" hidden>
-                <div class="matter-capture-card">
-                  <label class="mc-label" for="matter-capture-text">Describe the matter &mdash; use roles, not names. Eileen stores it anonymised.</label>
-                  <textarea id="matter-capture-text" rows="3" placeholder="e.g. Grievance raised by a warehouse operative about overtime pay&hellip;"></textarea>
-                  <input type="text" class="mc-cats" id="matter-capture-cats" placeholder="ACEI categories (optional, comma-separated)" autocomplete="off">
-                  <div class="mc-error" id="matter-capture-error" hidden></div>
-                  <div class="mc-actions">
-                    <button type="button" class="matter-btn primary" id="matter-capture-save">Save</button>
-                    <button type="button" class="matter-btn" id="matter-capture-cancel">Cancel</button>
-                  </div>
-                </div>
-              </div>
-
-              <h1 class="greeting" id="greeting">Hello.</h1>
-              <p class="greeting-sub">Ask Eileen anything &mdash; or open a section from the menu on the left.</p>
-
-              <div class="suggests">
-                <div class="suggests-label">Eileen suggests</div>
-                <div class="chip-row" id="suggest-row"></div>
-              </div>
-
-              <div id="answer-area"></div>
-
-              <!-- OOX-001 §1.1 — retain-or-clear panel (re-rendered each turn; hidden when none due). -->
-              <div id="eileen-matter-panel" hidden></div>
-            </section>
-
-            <!-- SECTION VIEW (in-page panel for menu items without a dedicated route) -->
-            <section id="section-view" class="section-view" hidden>
-              <div class="section-head">
-                <button class="back-btn" id="section-back">&larr; Eileen</button>
-                <h2 id="section-title">Section</h2>
-              </div>
-              <div class="empty-state" id="section-empty">
-                <div class="es-orb"></div>
-                This section will populate as your workspace is provisioned.
-              </div>
-              <!-- OOX-001: dynamic content host for sections with a live renderer
-                   (currently ACEI Overview & Sector Report). Other menu items keep
-                   the generic #section-empty placeholder above (unchanged). -->
-              <div id="section-body" hidden></div>
-            </section>
-
-          </div>
-        </div>
-
-        <!-- EILEEN BAR (anchored bottom; answers anchor TOP) -->
-        <div class="eileen-bar-wrap">
-          <div class="eileen-bar-inner">
-            <form class="eileen-bar" id="eileen-form" autocomplete="off">
-              <input id="eileen-input" type="text" placeholder="Ask Eileen about your exposure, documents, or what is coming&hellip;" aria-label="Ask Eileen">
-              <button type="button" class="voice-toggle" id="voice-toggle" title="Voice on" aria-pressed="true">&#x1F50A;</button>
-              <button type="submit" class="send-btn" id="send-btn" aria-label="Send to Eileen" disabled>&#x2191;</button>
-            </form>
-            <div class="eileen-caption" id="caption">live &middot; grounded in your data &middot; voice on</div>
-          </div>
-        </div>
-      </main>
+  <div id="kl-root">
+    <!-- React renders here. Placeholder structure for no-JS fallback: -->
+    <div class="kl-topbar" id="kl-topbar"></div>
+    <div class="kl-sidebar" id="kl-sidebar"></div>
+    <div class="kl-main" id="kl-main"></div>
+    <div class="kl-panelrail" id="kl-panelrail"></div>
+    <div class="kl-advisory">
+      <p>This is regulatory intelligence. It does not constitute legal advice. AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)</p>
     </div>
-
-    <footer class="footer">
-      <span>AI Lane Limited (Company No. 17035654) &middot; ailane.ai &middot; Governed by AILANE-AMD-REG-001</span>
-      <span class="mono">Operational Readiness &middot; Eileen</span>
-    </footer>
-
-    <!-- OOX-001 — transient confirmation toast (matter actions) -->
-    <div id="eileen-toast" role="status" aria-live="polite"></div>
   </div>
 
-  <!-- ════════════════════════════════════════════════════════════════
-       AUTH GUARD — runs before the app initialises (RULE 26).
-       Pattern + tier list preserved from the live operational guard:
-       body-hidden -> getSession() -> onAuthStateChange 6s fallback ->
-       JWT decode -> tier check -> reveal. Tier set copied verbatim
-       (OOX-GUARD-PRESENT-FIX-001): operational / operational_readiness /
-       governance / enterprise. No substitution, no narrowing.
-       ════════════════════════════════════════════════════════════════ -->
   <script>
-  (function () {
-    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
-    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
-    var FUNCTIONS_BASE = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
-    // Live operational-room allow-list (verbatim from the live /operational/ guard).
-    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise'];
+    // ─── Operational auth guard (reveal-after-verify, RULE 26 / AUTH-001) ───
+    // Tier-gated to the operational allow-list (verbatim from the live /operational/
+    // guard). On success: set window.__klMode = 'operational' so the engine renders
+    // the "Ailane Operational" chrome, expose the standard window.__kl* globals, reveal
+    // the page and boot the shared engine. On no-session / non-operational tier:
+    // redirect to /login/ (never render an error UI). Onboarding-aware routing
+    // (landing_unlocked → /operational/onboarding/) and the org-tier identity badge
+    // are handled inside the engine (detectHubSession), not here.
+    (function () {
+      var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+      // Live operational-room allow-list (verbatim — operational / operational_readiness
+      // / governance / enterprise). No substitution, no narrowing.
+      var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise'];
 
-    var settled = false;
-    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+      // Set the operational-mode flag synchronously, before the engine bundle can
+      // auto-init, so the brand renders "Ailane Operational" from the first paint.
+      window.__klMode = 'operational';
+      window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 
-    // Poll for the Supabase CDN to finish loading.
-    var polls = 0;
-    (function waitForSb() {
-      if (window.supabase && window.supabase.createClient) { boot(); return; }
-      if (++polls > 60) { fail(); return; }
-      setTimeout(waitForSb, 100);
-    })();
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      var settled = false;
+      function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
 
-    function boot() {
-      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      function boot(session) {
+        try {
+          var token = session.access_token;
+          var payload = JSON.parse(atob(token.split('.')[1]));
+          var userId = payload.sub;
+          // Operational tier gate — canonical raw-fetch + Bearer (RULE 2 / CLAUDE.md
+          // JWT-decode + raw-fetch). sb.from() at callback time is not used.
+          fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+            { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (rows) {
+              if (settled) return;
+              if (!(rows && rows[0] && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0)) { fail(); return; }
+              settled = true;
+              var tier = rows[0].subscription_tier;
+              window.__klUserId = userId;
+              window.__klToken = token;
+              window.__klAccessType = 'subscription';
+              window.__klTier = tier;
+              window.__ailaneUser = { id: userId, email: payload.email || '', token: token, tier: tier };
+              document.body.style.visibility = 'visible';
+              // Boot the shared engine. If the bundle is still loading, its own
+              // auto-init (guarded on window.__klAccessType) covers the race.
+              if (typeof window.initKLApp === 'function') window.initKLApp();
+            })
+            .catch(fail);
+        } catch (e) { fail(); }
+      }
 
-      sb.auth.getSession().then(function (gs) {
-        if (gs && gs.data && gs.data.session) { verify(sb, gs.data.session); return; }
-        // Fallback: session may still be hydrating — listen with a 6s timeout.
-        var to = setTimeout(function () {
-          try { sub.data.subscription.unsubscribe(); } catch (e) {}
-          fail();
-        }, 6000);
-        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
-          if (session && !settled) {
-            clearTimeout(to);
-            try { sub.data.subscription.unsubscribe(); } catch (e) {}
-            verify(sb, session);
-          }
-        });
+      sb.auth.getSession().then(function (result) {
+        if (result.data && result.data.session) { boot(result.data.session); return; }
+        // Session may still be hydrating (OAuth/magic-link) — try refresh, then a
+        // 6s onAuthStateChange fallback before failing to /login/.
+        sb.auth.refreshSession().then(function (rr) {
+          if (rr.data && rr.data.session) { boot(rr.data.session); return; }
+          var resolved = false;
+          var to = setTimeout(function () { if (!resolved) { resolved = true; fail(); } }, 6000);
+          var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+            if (!resolved && session) {
+              resolved = true;
+              clearTimeout(to);
+              try { sub.data.subscription.unsubscribe(); } catch (e) {}
+              boot(session);
+            }
+          });
+        }).catch(fail);
       }).catch(fail);
-    }
-
-    function verify(sb, session) {
-      if (settled) return;
-      var token = session.access_token, payload;
-      try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return fail(); }
-      var userId = payload.sub;
-      fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
-        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (rows) {
-          if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
-            settled = true;
-            // OOX-001 (AMD-230) cutover — the vanilla operational room is retired
-            // (KL-HUB-SPEC §5 step 9). An authenticated operational session is
-            // routed to the KL hub, which then applies onboarding-aware routing
-            // (onboarded → hub; not onboarded → /operational/onboarding/). The
-            // body stays hidden (visibility:hidden) so the retired room never
-            // flashes. /operational/onboarding/ and any other operational/*
-            // subpaths are separate pages and remain reachable (unaffected).
-            window.location.replace('/knowledge-library/');
-            return;
-          } else { fail(); }
-        })
-        .catch(fail);
-    }
-
-    // Org name for the chrome. The live page only stored org_id; we resolve the
-    // name via the canonical raw-fetch + Bearer pattern (RULE 2). If it cannot be
-    // resolved, the deterministic fallback "Your organisation" remains.
-    function resolveOrgName(token, userId) {
-      var H = { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' };
-      fetch(SUPABASE_URL + '/rest/v1/app_users?id=eq.' + userId + '&select=org_id', { headers: H })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (rows) {
-          if (!rows || !rows[0] || !rows[0].org_id) return null;
-          return fetch(SUPABASE_URL + '/rest/v1/organisations?id=eq.' + rows[0].org_id + '&select=name', { headers: H })
-            .then(function (r) { return r.ok ? r.json() : null; });
-        })
-        .then(function (orgs) {
-          if (orgs && orgs[0] && orgs[0].name) {
-            var el = document.getElementById('org-name');
-            if (el) { el.textContent = orgs[0].name; el.title = orgs[0].name; }
-          }
-        })
-        .catch(function () { /* graceful — keep fallback */ });
-    }
-  })();
+    })();
   </script>
 
-  <!-- ════════════════════════════════════════════════════════════════
-       APP — vanilla JS, no build step. CSP-clean.
-       ════════════════════════════════════════════════════════════════ -->
-  <script>
-  function initOperational() {
-    var CFG = window.AILANE_OPS;
-    var EILEEN_URL = CFG.functionsBase + '/eileen-operational';
-    var PENDING_COPY = "Eileen's operational workspace is being prepared — your tenant-scoped assistant will be available here shortly.";
-
-    // ---- Left menu (eight sections, live wording) ----
-    // Intelligence opens the in-page forward-horizon section (OOX-001 — routed
-    // through openSection into #section-body, mirroring ACEI); the rest open an
-    // in-page section panel with a calm empty state (deterministic).
-    var MENU = [
-      { id: 'alerts',  label: 'Alerts' },
-      { id: 'vault',   label: 'Document Vault' },
-      { id: 'kl',      label: 'Knowledge Library' },
-      { id: 'ticker',  label: 'Ticker Room' },
-      { id: 'intel',   label: 'Intelligence', chip: 'NEW' },
-      { id: 'notes',   label: 'Notes', sub: 'always on' },
-      { id: 'calendar',label: 'Calendar' },
-      { id: 'acei',    label: 'ACEI Overview & Sector Report' }
-    ];
-
-    var SUGGESTS = [
-      'What changed in my sector this week?',
-      'Which documents need attention?',
-      'What is coming on the horizon?',
-      'Show my open alerts'
-    ];
-
-    var $ = function (id) { return document.getElementById(id); };
-    var eileenView = $('eileen-view');
-    var sectionView = $('section-view');
-    var sectionTitle = $('section-title');
-    var answerArea = $('answer-area');
-    var form = $('eileen-form');
-    var input = $('eileen-input');
-    var sendBtn = $('send-btn');
-    var caption = $('caption');
-    var bar = form;
-
-    // ---- Build menu ----
-    var menuEl = $('menu');
-    MENU.forEach(function (m) {
-      var node = m.href ? document.createElement('a') : document.createElement('button');
-      node.className = 'menu-item';
-      if (m.href) { node.href = m.href; } else { node.type = 'button'; }
-      node.setAttribute('data-id', m.id);
-
-      var main = document.createElement('span');
-      main.className = 'mi-main';
-      var lbl = document.createElement('span');
-      lbl.className = 'mi-label';
-      lbl.textContent = m.label;
-      main.appendChild(lbl);
-      if (m.sub) {
-        var sub = document.createElement('span');
-        sub.className = 'mi-sub';
-        sub.textContent = m.sub;
-        main.appendChild(sub);
-      }
-      node.appendChild(main);
-
-      if (m.chip) {
-        var chip = document.createElement('span');
-        chip.className = 'chip-new';
-        chip.textContent = m.chip;
-        node.appendChild(chip);
-      }
-
-      if (!m.href) {
-        node.addEventListener('click', function () { openSection(m); });
-      }
-      menuEl.appendChild(node);
-    });
-
-    function setActive(id) {
-      var items = menuEl.querySelectorAll('.menu-item');
-      for (var i = 0; i < items.length; i++) {
-        items[i].classList.toggle('active', items[i].getAttribute('data-id') === id);
-      }
-    }
-
-    function openSection(m) {
-      setActive(m.id);
-      sectionTitle.textContent = m.label;
-      eileenView.hidden = true;
-      sectionView.hidden = false;
-      // OOX-001: route sections that have a live renderer into #section-body;
-      // everything else keeps the generic #section-empty placeholder.
-      var emptyEl = $('section-empty');
-      var bodyEl = $('section-body');
-      if (m.id === 'acei') {
-        if (emptyEl) emptyEl.hidden = true;
-        if (bodyEl) { bodyEl.hidden = false; renderAceiSection(bodyEl); }
-      } else if (m.id === 'intel') {
-        if (emptyEl) emptyEl.hidden = true;
-        if (bodyEl) { bodyEl.hidden = false; renderIntelSection(bodyEl); }
-      } else if (m.id === 'vault') {
-        if (emptyEl) emptyEl.hidden = true;
-        if (bodyEl) { bodyEl.hidden = false; renderVaultSection(bodyEl); }
-      } else if (m.id === 'alerts') {
-        if (emptyEl) emptyEl.hidden = true;
-        if (bodyEl) { bodyEl.hidden = false; renderAlertsSection(bodyEl); }
-      } else {
-        if (bodyEl) { bodyEl.hidden = true; bodyEl.innerHTML = ''; }
-        if (emptyEl) emptyEl.hidden = false;
-      }
-    }
-    function showEileen() {
-      setActive(null);
-      sectionView.hidden = true;
-      eileenView.hidden = false;
-    }
-    $('section-back').addEventListener('click', showEileen);
-    $('home-brand').addEventListener('click', showEileen);
-
-    // ════════════════════════════════════════════════════════════════
-    // ACEI OVERVIEW & SECTOR REPORT (OOX-001) — read-only, RLS-scoped via
-    // CFG.sb. Surfaces the capture -> propagation chain: per-org sector
-    // multiplier (sm) flowing into weighted category scores (WCS = CRS × sm
-    // × jm), plus the org's sector benchmark. No writes, no new endpoint;
-    // every read is resilient and never blocks the room.
-    // ════════════════════════════════════════════════════════════════
-    var ACEI_CAT_LABELS = {
-      discrimination_harassment: 'Discrimination & harassment',
-      harassment_bullying: 'Harassment & bullying',
-      unfair_dismissal: 'Unfair dismissal',
-      wrongful_dismissal: 'Wrongful dismissal',
-      redundancy: 'Redundancy & restructure',
-      redundancy_restructure: 'Redundancy & restructure',
-      pay_wages: 'Pay & wages',
-      wages_pay: 'Pay & wages',
-      national_minimum_wage: 'National minimum wage',
-      working_time: 'Working time',
-      holiday_pay: 'Holiday pay',
-      family_leave: 'Family & parental leave',
-      whistleblowing: 'Whistleblowing',
-      tupe: 'TUPE transfers',
-      contracts_terms: 'Contracts & terms',
-      health_safety: 'Health & safety',
-      data_protection: 'Data protection',
-      grievance_disciplinary: 'Grievance & disciplinary',
-      equal_pay: 'Equal pay',
-      trade_union: 'Trade union & collective',
-      worker_status: 'Worker status & classification',
-      immigration_rtw: 'Immigration & right to work'
-    };
-
-    function mkEl(tag, cls, txt) {
-      var e = document.createElement(tag);
-      if (cls) e.className = cls;
-      if (txt != null) e.textContent = txt;
-      return e;
-    }
-    function aceiIsNum(v) { return v != null && v !== '' && !isNaN(Number(v)); }
-    function aceiF2(v) { return aceiIsNum(v) ? Number(v).toFixed(2) : '—'; }
-    function aceiF3(v) { return aceiIsNum(v) ? Number(v).toFixed(3) : '—'; }
-    function aceiInt(v) { return aceiIsNum(v) ? String(Math.round(Number(v))) : '—'; }
-    function aceiSmart(v) {
-      if (!aceiIsNum(v)) return '—';
-      var n = Number(v);
-      return n === Math.round(n) ? String(n) : n.toFixed(2);
-    }
-    function aceiDi(v) {
-      if (!aceiIsNum(v)) return '—';
-      var n = Number(v);
-      return n === Math.round(n) ? String(n) : n.toFixed(1);
-    }
-    function aceiHumanise(raw) {
-      if (raw == null) return '—';
-      var key = String(raw).toLowerCase();
-      if (ACEI_CAT_LABELS[key]) return ACEI_CAT_LABELS[key];
-      return String(raw).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
-        .replace(/\b\w/g, function (c) { return c.toUpperCase(); }) || '—';
-    }
-    // Resilient unwrap: any read error -> fall back (block degrades), never throws.
-    function aceiData(res, name, fallback) {
-      if (!res) return fallback;
-      if (res.error) { console.warn('ACEI read failed: ' + name, res.error); return fallback; }
-      return (res.data == null) ? fallback : res.data;
-    }
-
-    function renderAceiSection(host) {
-      host.innerHTML = '';
-      host.appendChild(mkEl('div', 'acei-loading', 'Loading your exposure index…'));
-      var sb = CFG.sb;
-      if (!sb || !sb.from) { aceiBuild(host, [], [], null, null); return; }
-      Promise.all([
-        sb.from('acei_category_scores')
-          .select('category,domain,l,i,sm,jm,crs,wcs,week_start_date')
-          .order('week_start_date', { ascending: false }).limit(60),
-        sb.from('acei_domain_scores')
-          .select('domain,drt,dmr,di,structural_flag,week_start_date')
-          .order('week_start_date', { ascending: false }).limit(1),
-        sb.from('organisations')
-          .select('name,acei_sector_code,acei_sector_multiplier').maybeSingle()
-      ]).then(function (res) {
-        var cats = aceiData(res[0], 'acei_category_scores', []);
-        var dom = aceiData(res[1], 'acei_domain_scores', []);
-        var org = aceiData(res[2], 'organisations', null);
-        var code = org && org.acei_sector_code;
-        if (code) {
-          return sb.from('sector_exposure_summary')
-            .select('sector_code,sector_name,sector_group_name,sector_multiplier,employer_count,tribunal_cases,cases_per_employer,avg_jm')
-            .eq('sector_code', code).maybeSingle()
-            .then(function (secRes) {
-              aceiBuild(host, cats, dom, org, aceiData(secRes, 'sector_exposure_summary', null));
-            });
-        }
-        aceiBuild(host, cats, dom, org, null);
-      }).catch(function (e) {
-        console.warn('ACEI section: reads failed', e);
-        aceiBuild(host, [], [], null, null);
-      });
-    }
-
-    function aceiBuild(host, cats, dom, org, sector) {
-      host.innerHTML = '';
-      // §1.2 Empty state — no scores yet for this tenant.
-      if (!cats || !cats.length) { aceiBuildEmpty(host); return; }
-      // §1.1 latest-week filter — keep only rows on the max week_start_date.
-      var maxWeek = null;
-      cats.forEach(function (r) {
-        if (r && r.week_start_date != null) {
-          if (maxWeek === null || String(r.week_start_date) > String(maxWeek)) maxWeek = r.week_start_date;
-        }
-      });
-      var latest = maxWeek === null ? cats
-        : cats.filter(function (r) { return String(r.week_start_date) === String(maxWeek); });
-      aceiBuildDomainHeader(host, dom && dom[0]);   // §1.3
-      aceiBuildCategoryTable(host, latest);          // §1.4
-      aceiBuildSectorPanel(host, org, sector);       // §1.5
-    }
-
-    function aceiBuildEmpty(host) {
-      var card = mkEl('div', 'empty-state');
-      card.appendChild(mkEl('div', 'es-orb'));
-      card.appendChild(mkEl('div', 'acei-empty-body',
-        'Your exposure index is calculated once your company profile is complete. ' +
-        'Add your company number and SIC so Eileen can resolve your sector and weight your exposure.'));
-      var cta = mkEl('a', 'acei-cta', 'Set up your workspace');
-      cta.href = '/operational/onboarding/';
-      card.appendChild(cta);
-      host.appendChild(card);
-    }
-
-    function aceiBuildDomainHeader(host, d0) {
-      if (!d0) return; // read degraded -> hide the block (§1.6)
-      var card = mkEl('div', 'acei-di-card');
-      var fig = mkEl('div', 'acei-di-figure');
-      fig.appendChild(document.createTextNode(aceiDi(d0.di)));
-      fig.appendChild(mkEl('span', 'acei-di-denom', ' /100'));
-      card.appendChild(fig);
-      var meta = mkEl('div', 'acei-di-meta');
-      meta.appendChild(mkEl('div', 'acei-di-label', 'Employment-law exposure index'));
-      meta.appendChild(mkEl('div', 'acei-di-sub', 'Domain risk total: ' + aceiSmart(d0.drt)));
-      if (d0.structural_flag === true) meta.appendChild(mkEl('span', 'acei-badge', 'Structural'));
-      card.appendChild(meta);
-      host.appendChild(card);
-    }
-
-    function aceiBuildCategoryTable(host, rows) {
-      host.appendChild(mkEl('div', 'acei-section-h', 'Exposure by category'));
-      var sorted = rows.slice().sort(function (a, b) {
-        var av = aceiIsNum(a && a.wcs) ? Number(a.wcs) : -Infinity;
-        var bv = aceiIsNum(b && b.wcs) ? Number(b.wcs) : -Infinity;
-        return bv - av;
-      });
-      var table = mkEl('table', 'acei-table');
-      var thead = mkEl('thead');
-      var htr = mkEl('tr');
-      ['Category', 'Likelihood (L)', 'Impact (I)', 'CRS (L×I)', 'Sector × (sm)', 'Jurisdiction × (jm)', 'Weighted (WCS)']
-        .forEach(function (h) { htr.appendChild(mkEl('th', null, h)); });
-      thead.appendChild(htr);
-      table.appendChild(thead);
-      var tbody = mkEl('tbody');
-      sorted.forEach(function (row) {
-        var tr = mkEl('tr');
-        tr.appendChild(mkEl('td', 'acei-cat', aceiHumanise(row.category)));
-        tr.appendChild(mkEl('td', 'acei-num', aceiSmart(row.l)));
-        tr.appendChild(mkEl('td', 'acei-num', aceiSmart(row.i)));
-        tr.appendChild(mkEl('td', 'acei-num', aceiF2(row.crs)));
-        var smTd = mkEl('td', 'acei-num', aceiF2(row.sm));
-        if (aceiIsNum(row.sm) && aceiF2(row.sm) !== '1.00') smTd.classList.add('acei-sm-emph');
-        tr.appendChild(smTd);
-        tr.appendChild(mkEl('td', 'acei-num', aceiF2(row.jm)));
-        tr.appendChild(mkEl('td', 'acei-num', aceiF3(row.wcs)));
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      host.appendChild(table);
-      host.appendChild(mkEl('div', 'acei-caption',
-        'Weighted scores reflect your sector (Sector ×) and your jurisdiction mix (Jurisdiction ×). ' +
-        'WCS = CRS × Sector × × Jurisdiction ×.'));
-    }
-
-    function aceiBuildSectorPanel(host, org, sector) {
-      var panel = mkEl('div', 'acei-panel');
-      panel.appendChild(mkEl('h3', null, 'Your sector benchmark'));
-      if (!sector) {
-        panel.appendChild(mkEl('div', 'acei-panel-sub', 'Sector benchmark not available for your SIC classification.'));
-        host.appendChild(panel);
-        return;
-      }
-      var subTxt = sector.sector_name || '—';
-      if (sector.sector_group_name) subTxt += ' · ' + sector.sector_group_name;
-      panel.appendChild(mkEl('div', 'acei-panel-sub', subTxt));
-      var grid = mkEl('div', 'acei-stat-grid');
-      grid.appendChild(aceiStat('Sector exposure multiplier', aceiF2(sector.sector_multiplier)));
-      grid.appendChild(aceiStat('Employers in sector', aceiInt(sector.employer_count)));
-      grid.appendChild(aceiStat('Tribunal cases', aceiInt(sector.tribunal_cases)));
-      grid.appendChild(aceiStat('Cases per employer', aceiF2(sector.cases_per_employer)));
-      panel.appendChild(grid);
-      panel.appendChild(mkEl('div', 'acei-compare',
-        'Your sector multiplier is ' + aceiF2(sector.sector_multiplier) +
-        ' — applied as the Sector × in your weighted scores above.'));
-      var orgMult = org && org.acei_sector_multiplier;
-      if (aceiIsNum(orgMult) && aceiF2(orgMult) !== aceiF2(sector.sector_multiplier)) {
-        panel.appendChild(mkEl('div', 'acei-note',
-          'Applied value for your organisation: ' + aceiF2(orgMult) +
-          ' — this is the multiplier applied to this tenant.'));
-      }
-      host.appendChild(panel);
-    }
-
-    function aceiStat(label, val) {
-      var s = mkEl('div', 'acei-stat');
-      s.appendChild(mkEl('div', 'acei-stat-label', label));
-      s.appendChild(mkEl('div', 'acei-stat-val', val));
-      return s;
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // INTELLIGENCE — FORWARD LEGISLATIVE HORIZON (OOX-001). Wires the
-    // Intelligence room section to the live forward pipeline:
-    //   • kl_legislative_horizon — global authenticated SELECT (every
-    //     published row surfaced in full, §6(b)).
-    //   • org_horizon_watchlist  — RLS org-scoped; the tenant's tracked
-    //     set. track = insert, untrack = delete (RLS scopes the delete).
-    //   • get_my_org_id()        — RPC; org_id for the insert WITH CHECK.
-    // All reads/writes go through CFG.sb so RLS auto-scopes tenant rows.
-    // Render discipline mirrors the ACEI section (resilient unwrap via
-    // aceiData, DOM build via mkEl/textContent). The forward pipeline is
-    // Tier 5 — a standing caveat banner; advice-free (RULE 15). The two
-    // estate-authored HTML columns (business_impact_html,
-    // preparatory_steps_html) are trusted estate content with no tenant
-    // write path, so they render as HTML; EVERY other server field is
-    // inserted via textContent (mkEl). The section never throws: any read
-    // error degrades quietly with console.warn.
-    // ════════════════════════════════════════════════════════════════
-    var intelState = { orgId: null, tracked: new Set(), pipeline: [], trackedOnly: false };
-
-    function renderIntelSection(host) {
-      host.innerHTML = '';
-      host.appendChild(mkEl('div', 'acei-loading', 'Loading the forward horizon…'));
-      var sb = CFG.sb;
-      if (!sb || !sb.from) { intelBuild(host, [], new Set()); return; }
-      Promise.all([
-        sb.from('kl_legislative_horizon')
-          .select('id,legislation_short_name,legislation_title,legislation_type,parliament_stage,expected_enactment,priority,status,headline_summary,key_changes,business_impact_html,preparatory_steps_html,disclaimer_text,affected_categories,source_url,display_order')
-          .eq('is_published', true)
-          .order('display_order', { ascending: true }),
-        sb.from('org_horizon_watchlist').select('horizon_id'),
-        sb.rpc('get_my_org_id')
-      ]).then(function (res) {
-        var pipeline = aceiData(res[0], 'kl_legislative_horizon', []);
-        var watch = aceiData(res[1], 'org_horizon_watchlist', []);
-        intelState.orgId = (res[2] && !res[2].error) ? res[2].data : null;
-        var tracked = new Set();
-        (watch || []).forEach(function (w) { if (w && w.horizon_id != null) tracked.add(w.horizon_id); });
-        intelBuild(host, pipeline || [], tracked);
-      }).catch(function (e) {
-        console.warn('Intelligence section: reads failed', e);
-        intelBuild(host, [], new Set());
-      });
-    }
-
-    function intelBuild(host, pipeline, tracked) {
-      host.innerHTML = '';
-      intelState.tracked = tracked;
-      intelState.pipeline = pipeline || [];
-
-      // §1.2 Standing Tier-5 caveat banner.
-      host.appendChild(mkEl('div', 'intel-caveat',
-        'Forward pipeline — pre-enactment items are provisional (Tier 5): stage and dates can change. Intelligence, not advice.'));
-
-      // §1.5 Empty state.
-      if (!intelState.pipeline.length) {
-        host.appendChild(mkEl('div', 'empty-state', 'No forward legislation is currently published.'));
-        return;
-      }
-
-      // §1.4 Tracked-only filter (client-side over the loaded pipeline; default: all).
-      var bar = mkEl('div', 'intel-filter');
-      var toggle = mkEl('button', 'intel-filter-btn');
-      toggle.type = 'button';
-      function paintToggle() {
-        toggle.classList.toggle('on', intelState.trackedOnly);
-        toggle.textContent = intelState.trackedOnly ? 'Showing tracked only' : 'Show tracked only';
-        toggle.setAttribute('aria-pressed', intelState.trackedOnly ? 'true' : 'false');
-      }
-      paintToggle();
-      var listWrap = mkEl('div', 'intel-list');
-      toggle.addEventListener('click', function () {
-        intelState.trackedOnly = !intelState.trackedOnly;
-        paintToggle();
-        intelRenderList(listWrap);
-      });
-      bar.appendChild(toggle);
-      host.appendChild(bar);
-
-      host.appendChild(listWrap);
-      intelRenderList(listWrap);
-    }
-
-    function intelRenderList(listWrap) {
-      listWrap.innerHTML = '';
-      var rows = intelState.pipeline || [];
-      if (intelState.trackedOnly) {
-        rows = rows.filter(function (r) { return r && intelState.tracked.has(r.id); });
-      }
-      if (!rows.length) {
-        listWrap.appendChild(mkEl('div', 'empty-state',
-          intelState.trackedOnly ? 'You are not tracking any items yet.' : 'No forward legislation is currently published.'));
-        return;
-      }
-      rows.forEach(function (row) { listWrap.appendChild(intelCard(row)); });
-    }
-
-    function intelCard(row) {
-      var card = mkEl('div', 'intel-card');
-      if (intelState.tracked.has(row.id)) card.classList.add('tracking');
-
-      // Header: title + meta (stage, expected in-force) + track toggle.
-      var top = mkEl('div', 'intel-top');
-      var left = mkEl('div', 'intel-top-main');
-      left.appendChild(mkEl('div', 'intel-title',
-        row.legislation_short_name || row.legislation_title || 'Untitled instrument'));
-      var meta = mkEl('div', 'intel-meta');
-      if (row.parliament_stage) meta.appendChild(mkEl('span', null, row.parliament_stage));
-      if (row.expected_enactment) meta.appendChild(mkEl('span', null, 'Expected in-force: ' + row.expected_enactment));
-      if (meta.childNodes.length) left.appendChild(meta);
-      top.appendChild(left);
-      top.appendChild(intelTrackBtn(row, card));
-      card.appendChild(top);
-
-      // Type / priority / status chips.
-      var chips = mkEl('div', 'intel-chips');
-      if (row.legislation_type) chips.appendChild(mkEl('span', 'intel-chip type', row.legislation_type));
-      if (row.priority) {
-        var pcls = 'intel-chip priority' + (String(row.priority).toLowerCase() === 'high' ? ' high' : '');
-        chips.appendChild(mkEl('span', pcls, 'Priority: ' + row.priority));
-      }
-      if (row.status) chips.appendChild(mkEl('span', 'intel-chip', row.status));
-      if (chips.childNodes.length) card.appendChild(chips);
-
-      // Headline + key changes — plain server text via textContent.
-      if (row.headline_summary) card.appendChild(mkEl('div', 'intel-summary', row.headline_summary));
-      if (row.key_changes) {
-        card.appendChild(mkEl('div', 'intel-subhead', 'Key changes'));
-        card.appendChild(mkEl('div', 'intel-text', row.key_changes));
-      }
-
-      // Estate-authored HTML columns — trusted content (no tenant write path),
-      // rendered as HTML. No other server field is innerHTML'd.
-      if (row.business_impact_html) {
-        card.appendChild(mkEl('div', 'intel-subhead', 'Business impact'));
-        var bi = mkEl('div', 'intel-html');
-        bi.innerHTML = row.business_impact_html;
-        card.appendChild(bi);
-      }
-      if (row.preparatory_steps_html) {
-        card.appendChild(mkEl('div', 'intel-subhead', 'Preparatory steps'));
-        var ps = mkEl('div', 'intel-html');
-        ps.innerHTML = row.preparatory_steps_html;
-        card.appendChild(ps);
-      }
-
-      // Affected categories — small chips (textContent).
-      if (Array.isArray(row.affected_categories) && row.affected_categories.length) {
-        var cats = mkEl('div', 'intel-chips');
-        row.affected_categories.forEach(function (c) {
-          if (c != null && c !== '') cats.appendChild(mkEl('span', 'intel-chip', String(c)));
-        });
-        if (cats.childNodes.length) card.appendChild(cats);
-      }
-
-      // Source link (plain).
-      if (row.source_url) {
-        var foot = mkEl('div', 'intel-foot');
-        var a = mkEl('a', 'intel-source', 'Source');
-        a.href = row.source_url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        foot.appendChild(a);
-        card.appendChild(foot);
-      }
-
-      // Per-item disclaimer footnote.
-      if (row.disclaimer_text) card.appendChild(mkEl('div', 'intel-disclaimer', row.disclaimer_text));
-
-      return card;
-    }
-
-    function intelTrackBtn(row, card) {
-      var btn = mkEl('button', 'intel-track-btn');
-      btn.type = 'button';
-      function paint() {
-        var t = intelState.tracked.has(row.id);
-        btn.classList.toggle('tracking', t);
-        btn.textContent = t ? '✓ Tracking' : '+ Track';
-        btn.setAttribute('aria-pressed', t ? 'true' : 'false');
-        var name = row.legislation_short_name || row.legislation_title || 'item';
-        btn.setAttribute('aria-label', (t ? 'Untrack ' : 'Track ') + name);
-      }
-      paint();
-
-      btn.addEventListener('click', function () {
-        if (btn.disabled) return;
-        var sb = CFG.sb;
-        if (!sb || !sb.from) return;
-        intelClearCardError(card);
-        var wasTracked = intelState.tracked.has(row.id);
-        btn.disabled = true;
-
-        var op = wasTracked
-          ? sb.from('org_horizon_watchlist').delete().eq('horizon_id', row.id)
-          : sb.from('org_horizon_watchlist').insert({ org_id: intelState.orgId, horizon_id: row.id, added_by: CFG.userId });
-
-        Promise.resolve(op).then(function (r) {
-          if (r && r.error) throw r.error;
-          if (wasTracked) { intelState.tracked.delete(row.id); card.classList.remove('tracking'); }
-          else { intelState.tracked.add(row.id); card.classList.add('tracking'); }
-          paint();
-          btn.disabled = false;
-        }).catch(function (e) {
-          console.warn(wasTracked ? 'Intelligence: untrack failed' : 'Intelligence: track failed', e);
-          btn.disabled = false;
-          intelShowCardError(card, wasTracked ? 'Could not untrack — please try again.' : 'Could not track — please try again.');
-        });
-      });
-
-      return btn;
-    }
-
-    function intelShowCardError(card, msg) {
-      intelClearCardError(card);
-      var e = mkEl('div', 'intel-card-error', msg);
-      e.setAttribute('data-intel-error', '1');
-      card.appendChild(e);
-    }
-    function intelClearCardError(card) {
-      var ex = card.querySelector('[data-intel-error]');
-      if (ex) ex.parentNode.removeChild(ex);
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // DOCUMENT VAULT (OOX-001) — read-only, RLS-scoped via CFG.sb.
-    // Lists the tenant's vault documents and their stored contract
-    // analyses. Display-only (v1): the upload→analyse flow is a deliberate
-    // follow-up and is NOT wired here. Render discipline mirrors the ACEI/
-    // Intelligence sections: DOM built via mkEl/textContent (no innerHTML on
-    // any DB field), each read unwrapped resiliently. RLS auto-scopes both
-    // reads — no org_id/user_id hardcoding. The section never throws: a read
-    // error degrades that panel to "—" with console.warn; advice-free (RULE 15).
-    // ════════════════════════════════════════════════════════════════
-
-    // Resilient unwrap that preserves the error-vs-empty distinction (§1.4):
-    // a read error -> { error:true } (panel shows "—"); success -> { rows:[…] }.
-    function vaultUnwrap(res, name) {
-      if (!res || res.error) {
-        console.warn('Vault read failed: ' + name, res && res.error);
-        return { error: true };
-      }
-      return { rows: Array.isArray(res.data) ? res.data : [] };
-    }
-
-    function vaultFileSize(bytes) {
-      if (!aceiIsNum(bytes)) return '—';
-      var n = Number(bytes);
-      if (n < 1024) return Math.round(n) + ' B';
-      var units = ['KB', 'MB', 'GB', 'TB'], u = -1;
-      do { n /= 1024; u++; } while (n >= 1024 && u < units.length - 1);
-      return (n >= 10 ? Math.round(n) : n.toFixed(1)) + ' ' + units[u];
-    }
-
-    function vaultMimeLabel(mime) {
-      if (!mime) return 'FILE';
-      var m = String(mime).toLowerCase();
-      if (m.indexOf('pdf') >= 0) return 'PDF';
-      if (m.indexOf('wordprocessing') >= 0 || m.indexOf('msword') >= 0) return 'DOCX';
-      if (m.indexOf('spreadsheet') >= 0 || m.indexOf('excel') >= 0) return 'XLSX';
-      if (m.indexOf('text/plain') >= 0) return 'TXT';
-      if (m.indexOf('image/') >= 0) return (m.split('/')[1] || 'image').toUpperCase();
-      var slash = m.indexOf('/');
-      return (slash >= 0 ? m.slice(slash + 1) : m).toUpperCase();
-    }
-
-    function vaultVisibilityLabel(vis) {
-      var v = String(vis == null ? '' : vis).toLowerCase();
-      return (v === 'org_shared' || v === 'org_required') ? 'org' : 'private';
-    }
-
-    function vaultStatusClass(status) {
-      var s = String(status == null ? '' : status).toLowerCase();
-      if (/(complete|done|extracted|analy[sz]ed|ready|success|\bok\b)/.test(s)) return 'ok';
-      if (/(fail|error|reject)/.test(s)) return 'bad';
-      if (/(pend|queue|process|progress|run|extract|analy[sz]ing|wait)/.test(s)) return 'busy';
-      return 'idle';
-    }
-
-    function vaultStatusPill(status) {
-      if (status == null || status === '') return mkEl('span', 'vault-pill vault-pill--idle', '—');
-      return mkEl('span', 'vault-pill vault-pill--' + vaultStatusClass(status), aceiHumanise(status));
-    }
-
-    function vaultDate(iso) { return iso ? fmtMatterDate(iso) : '—'; }
-
-    // critical_gaps may arrive as an int, an array, or a jsonb object — reduce
-    // each to a count. Anything else (or null) -> null (omit the stat).
-    function vaultGapCount(g) {
-      if (g == null || g === '') return null;
-      if (Array.isArray(g)) return g.length;
-      if (typeof g === 'object') { try { return Object.keys(g).length; } catch (e) { return null; } }
-      if (aceiIsNum(g)) return Math.round(Number(g));
-      return null;
-    }
-
-    function renderVaultSection(host) {
-      host.innerHTML = '';
-      host.appendChild(mkEl('div', 'acei-loading', 'Loading your document vault…'));
-      var sb = CFG.sb;
-      if (!sb || !sb.from) { vaultBuild(host, { error: true }, { error: true }); return; }
-      Promise.all([
-        sb.from('kl_vault_documents')
-          .select('id,filename,mime_type,file_size_bytes,extraction_status,analysis_status,visibility,created_at')
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false }).limit(50),
-        sb.from('vault_contract_records')
-          .select('id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at')
-          .order('created_at', { ascending: false }).limit(50)
-      ]).then(function (res) {
-        vaultBuild(host, vaultUnwrap(res[0], 'kl_vault_documents'), vaultUnwrap(res[1], 'vault_contract_records'));
-      }).catch(function (e) {
-        console.warn('Vault section: reads failed', e);
-        vaultBuild(host, { error: true }, { error: true });
-      });
-    }
-
-    function vaultBuild(host, docsR, analysesR) {
-      host.innerHTML = '';
-      try { host.appendChild(vaultDocsPanel(docsR)); }
-      catch (e) { console.warn('Vault: documents panel failed', e); }
-      try { host.appendChild(vaultAnalysesPanel(analysesR)); }
-      catch (e) { console.warn('Vault: analyses panel failed', e); }
-    }
-
-    function vaultDocsPanel(r) {
-      var panel = mkEl('div', 'vault-panel');
-      panel.appendChild(mkEl('div', 'acei-section-h', 'Documents'));
-      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
-      var rows = r.rows || [];
-      if (!rows.length) {
-        panel.appendChild(mkEl('div', 'empty-state', 'No documents in your vault yet.'));
-        panel.appendChild(mkEl('div', 'acei-note', 'Document upload is coming to this room shortly.'));
-        return panel;
-      }
-      var table = mkEl('table', 'acei-table');
-      var thead = mkEl('thead'), htr = mkEl('tr');
-      ['Document', 'Type', 'Size', 'Extraction', 'Analysis', 'Visibility', 'Added']
-        .forEach(function (h) { htr.appendChild(mkEl('th', null, h)); });
-      thead.appendChild(htr); table.appendChild(thead);
-      var tbody = mkEl('tbody');
-      rows.forEach(function (doc) {
-        var tr = mkEl('tr');
-        tr.appendChild(mkEl('td', 'vault-fname', doc.filename || '—'));
-        var typeTd = mkEl('td');
-        typeTd.appendChild(mkEl('span', 'vault-chip', vaultMimeLabel(doc.mime_type)));
-        tr.appendChild(typeTd);
-        tr.appendChild(mkEl('td', 'acei-num', vaultFileSize(doc.file_size_bytes)));
-        var exTd = mkEl('td'); exTd.appendChild(vaultStatusPill(doc.extraction_status)); tr.appendChild(exTd);
-        var anTd = mkEl('td'); anTd.appendChild(vaultStatusPill(doc.analysis_status)); tr.appendChild(anTd);
-        var visTd = mkEl('td');
-        var vlabel = vaultVisibilityLabel(doc.visibility);
-        visTd.appendChild(mkEl('span', 'vault-vis vault-vis--' + vlabel, vlabel));
-        tr.appendChild(visTd);
-        tr.appendChild(mkEl('td', null, vaultDate(doc.created_at)));
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      panel.appendChild(table);
-      return panel;
-    }
-
-    function vaultAnalysesPanel(r) {
-      var panel = mkEl('div', 'vault-panel');
-      panel.appendChild(mkEl('div', 'acei-section-h', 'Contract analyses'));
-      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
-      var rows = r.rows || [];
-      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No contract analyses yet.')); return panel; }
-      var list = mkEl('div', 'vault-analyses');
-      rows.forEach(function (a) { list.appendChild(vaultAnalysisCard(a)); });
-      panel.appendChild(list);
-      // Neutral caption only — no conclusions/advice framing (§1.3, RULE 15).
-      panel.appendChild(mkEl('div', 'acei-caption',
-        'Analyses are indicative; the legal judgement belongs with a qualified professional.'));
-      return panel;
-    }
-
-    function vaultAnalysisCard(a) {
-      var card = mkEl('div', 'vault-card');
-      var top = mkEl('div', 'vault-card-top');
-      var main = mkEl('div', 'vault-card-main');
-      // employee_ref is pseudonymised — present as-is via textContent.
-      main.appendChild(mkEl('div', 'vault-ref', a.employee_ref || '—'));
-      var roleBits = [];
-      if (a.role_title) roleBits.push(a.role_title);
-      if (a.role_tier) roleBits.push(a.role_tier);
-      if (roleBits.length) main.appendChild(mkEl('div', 'vault-role', roleBits.join(' · ')));
-      top.appendChild(main);
-      // Tag estate samples so the tenant can tell them from their own rows.
-      if (a.is_demonstration === true) top.appendChild(mkEl('span', 'vault-sample', 'sample'));
-      card.appendChild(top);
-
-      // Stored numbers only — the score is rendered as a bare value (no advice).
-      var grid = mkEl('div', 'acei-stat-grid');
-      if (aceiIsNum(a.compliance_score)) grid.appendChild(aceiStat('Compliance score', aceiSmart(a.compliance_score)));
-      var gaps = vaultGapCount(a.critical_gaps);
-      if (gaps != null) grid.appendChild(aceiStat('Critical gaps', String(gaps)));
-      if (grid.childNodes.length) card.appendChild(grid);
-
-      if (a.key_finding) {
-        card.appendChild(mkEl('div', 'vault-subhead', 'Key finding'));
-        card.appendChild(mkEl('div', 'vault-finding', a.key_finding));
-      }
-      return card;
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // ALERTS ROOM (OOX-001) — read-only, RLS-scoped via CFG.sb. Wires the
-    // Alerts section to the tenant's open actions, breach register and
-    // mitigations, with a count chip on the menu item. Three RLS-scoped
-    // reads (org_actions + the authenticated actions catalogue join,
-    // breach_register, mitigation_register); no service key, no new
-    // endpoint, no org_id hardcoding. rsg_change_alerts is deliberately
-    // NOT wired (Director/firm-internal feed; tenants have no read policy).
-    // Render discipline mirrors the ACEI/Intelligence/Vault sections: DOM
-    // built via mkEl/textContent (no innerHTML on any DB field); each read
-    // unwrapped resiliently (vaultUnwrap) so a failed panel shows "—" with
-    // console.warn and the section never throws. Breach records are
-    // presented factually — no advice/conclusion language (RULE 15).
-    // ════════════════════════════════════════════════════════════════
-
-    // Whole-day difference (date − today), UTC-normalised. null if unparseable.
-    function alertsDaysUntil(iso) {
-      if (!iso) return null;
-      var d = new Date(iso);
-      if (isNaN(d.getTime())) return null;
-      var now = new Date();
-      var a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
-      var b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-      return Math.round((a - b) / 86400000);
-    }
-    // Overdue (past) / due-soon (≤14d) flag for a date field; null otherwise.
-    function alertsDateFlag(iso) {
-      var t = alertsDaysUntil(iso);
-      if (t === null) return null;
-      if (t < 0) return { kind: 'overdue', label: 'Overdue' };
-      if (t <= 14) return { kind: 'due', label: 'Due soon' };
-      return null;
-    }
-    // §1.5 — a breach "needs attention" unless it is closed/resolved.
-    function breachNeedsAttention(b) {
-      if (!b) return false;
-      var s = String(b.status == null ? '' : b.status).toLowerCase().trim();
-      return s !== 'closed' && s !== 'resolved';
-    }
-    // Section heading with the panel's row count (count omitted on read error).
-    function alertsHeading(title, r) {
-      return mkEl('div', 'acei-section-h', (r && r.rows) ? (title + ' · ' + r.rows.length) : title);
-    }
-
-    // Set / clear the Alerts menu-item count chip (reuses the .chip-new
-    // mechanism — §0.2(2)). Shown when count > 0; removed at 0.
-    function setAlertsChip(count) {
-      if (!menuEl) return;
-      var item = menuEl.querySelector('.menu-item[data-id="alerts"]');
-      if (!item) return;
-      var chip = item.querySelector('.chip-new');
-      var n = Number(count) || 0;
-      if (n > 0) {
-        if (!chip) { chip = document.createElement('span'); chip.className = 'chip-new'; item.appendChild(chip); }
-        chip.textContent = String(n);
-      } else if (chip) {
-        chip.parentNode.removeChild(chip);
-      }
-    }
-
-    function renderAlertsSection(host) {
-      host.innerHTML = '';
-      host.appendChild(mkEl('div', 'acei-loading', 'Loading your alerts…'));
-      var sb = CFG.sb;
-      if (!sb || !sb.from) { alertsBuild(host, { error: true }, { error: true }, { error: true }); return; }
-      Promise.all([
-        sb.from('org_actions')
-          .select('id,status,due_date,notes,created_at,actions(action_text,owner_role_hint,deadline_days,required)')
-          .neq('status', 'completed')
-          .order('due_date', { ascending: true, nullsFirst: false }).limit(50),
-        sb.from('breach_register')
-          .select('id,breach_ref,discovered_at,nature,status,ico_reportable,ico_report_due_at,ico_reported_at,risk_assessment')
-          .order('discovered_at', { ascending: false }).limit(50),
-        sb.from('mitigation_register')
-          .select('id,domain,category,tier,status,revalidate_by,activated_at')
-          .order('revalidate_by', { ascending: true, nullsFirst: false }).limit(50)
-      ]).then(function (res) {
-        alertsBuild(host,
-          vaultUnwrap(res[0], 'org_actions'),
-          vaultUnwrap(res[1], 'breach_register'),
-          vaultUnwrap(res[2], 'mitigation_register'));
-      }).catch(function (e) {
-        console.warn('Alerts section: reads failed', e);
-        alertsBuild(host, { error: true }, { error: true }, { error: true });
-      });
-    }
-
-    function alertsBuild(host, actionsR, breachesR, mitigR) {
-      host.innerHTML = '';
-      try { host.appendChild(alertsActionsPanel(actionsR)); }
-      catch (e) { console.warn('Alerts: actions panel failed', e); }
-      try { host.appendChild(alertsBreachesPanel(breachesR)); }
-      catch (e) { console.warn('Alerts: breaches panel failed', e); }
-      try { host.appendChild(alertsMitigationsPanel(mitigR)); }
-      catch (e) { console.warn('Alerts: mitigations panel failed', e); }
-      // §1.5 count chip — open actions + breaches still needing attention.
-      var openCount =
-        (actionsR && actionsR.rows ? actionsR.rows.length : 0) +
-        (breachesR && breachesR.rows ? breachesR.rows.filter(breachNeedsAttention).length : 0);
-      setAlertsChip(openCount);
-    }
-
-    // §1.2 — Open actions panel.
-    function alertsActionsPanel(r) {
-      var panel = mkEl('div', 'alerts-panel');
-      panel.appendChild(alertsHeading('Open actions', r));
-      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
-      var rows = r.rows || [];
-      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No open actions.')); return panel; }
-      var list = mkEl('div', 'alerts-list');
-      rows.forEach(function (a) { list.appendChild(alertsActionCard(a)); });
-      panel.appendChild(list);
-      return panel;
-    }
-    function alertsActionCard(a) {
-      var cat = a.actions;
-      if (Array.isArray(cat)) cat = cat[0];
-      cat = cat || {};
-      var card = mkEl('div', 'alerts-card');
-      var top = mkEl('div', 'alerts-card-top');
-      var main = mkEl('div', 'alerts-card-main');
-      // action_text from the authenticated catalogue; notes fallback.
-      main.appendChild(mkEl('div', 'alerts-title', cat.action_text || a.notes || 'Action'));
-      if (cat.owner_role_hint) main.appendChild(mkEl('div', 'alerts-sub', 'Owner: ' + cat.owner_role_hint));
-      top.appendChild(main);
-      top.appendChild(vaultStatusPill(a.status)); // reuses the vault status-pill idiom
-      card.appendChild(top);
-      var meta = mkEl('div', 'alerts-meta');
-      if (a.due_date) {
-        meta.appendChild(mkEl('span', 'alerts-mono', 'Due ' + vaultDate(a.due_date)));
-        var flag = alertsDateFlag(a.due_date);
-        if (flag) meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--' + flag.kind, flag.label));
-      } else {
-        meta.appendChild(mkEl('span', 'alerts-mono', 'No due date'));
-      }
-      if (meta.childNodes.length) card.appendChild(meta);
-      return card;
-    }
-
-    // §1.3 — Breach register (presented factually; no advice — RULE 15).
-    function alertsBreachesPanel(r) {
-      var panel = mkEl('div', 'alerts-panel');
-      panel.appendChild(alertsHeading('Breach register', r));
-      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
-      var rows = r.rows || [];
-      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No breaches recorded.')); return panel; }
-      var list = mkEl('div', 'alerts-list');
-      rows.forEach(function (b) { list.appendChild(alertsBreachCard(b)); });
-      panel.appendChild(list);
-      return panel;
-    }
-    function alertsBreachCard(b) {
-      var card = mkEl('div', 'alerts-card');
-      var top = mkEl('div', 'alerts-card-top');
-      var main = mkEl('div', 'alerts-card-main');
-      main.appendChild(mkEl('div', 'alerts-title', b.breach_ref || 'Breach'));
-      if (b.nature) main.appendChild(mkEl('div', 'alerts-sub', b.nature));
-      top.appendChild(main);
-      top.appendChild(vaultStatusPill(b.status));
-      card.appendChild(top);
-      var meta = mkEl('div', 'alerts-meta');
-      if (b.discovered_at) meta.appendChild(mkEl('span', 'alerts-mono', 'Discovered ' + vaultDate(b.discovered_at)));
-      // ICO marker — factual only. Overdue flagged when not yet reported (§1.3).
-      if (b.ico_reportable === true) {
-        meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--ico', 'ICO-reportable'));
-        if (b.ico_report_due_at) {
-          meta.appendChild(mkEl('span', 'alerts-mono', 'Report due ' + vaultDate(b.ico_report_due_at)));
-          if (!b.ico_reported_at) {
-            var f = alertsDateFlag(b.ico_report_due_at);
-            if (f && f.kind === 'overdue') meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--overdue', 'Report overdue'));
-          }
-        }
-        if (b.ico_reported_at) meta.appendChild(mkEl('span', 'alerts-mono', 'Reported ' + vaultDate(b.ico_reported_at)));
-      }
-      if (meta.childNodes.length) card.appendChild(meta);
-      return card;
-    }
-
-    // §1.4 — Mitigations panel.
-    function alertsMitigationsPanel(r) {
-      var panel = mkEl('div', 'alerts-panel');
-      panel.appendChild(alertsHeading('Mitigations', r));
-      if (r.error) { panel.appendChild(mkEl('div', 'acei-panel-sub', '—')); return panel; }
-      var rows = r.rows || [];
-      if (!rows.length) { panel.appendChild(mkEl('div', 'empty-state', 'No mitigations active.')); return panel; }
-      var list = mkEl('div', 'alerts-list');
-      rows.forEach(function (m) { list.appendChild(alertsMitigationCard(m)); });
-      panel.appendChild(list);
-      return panel;
-    }
-    function alertsMitigationCard(m) {
-      var card = mkEl('div', 'alerts-card');
-      var top = mkEl('div', 'alerts-card-top');
-      var main = mkEl('div', 'alerts-card-main');
-      var titleBits = [];
-      if (m.domain) titleBits.push(aceiHumanise(m.domain));
-      if (m.category) titleBits.push(aceiHumanise(m.category));
-      main.appendChild(mkEl('div', 'alerts-title', titleBits.length ? titleBits.join(' · ') : 'Mitigation'));
-      if (m.tier != null && m.tier !== '') main.appendChild(mkEl('div', 'alerts-sub', 'Tier: ' + m.tier));
-      top.appendChild(main);
-      top.appendChild(vaultStatusPill(m.status));
-      card.appendChild(top);
-      var meta = mkEl('div', 'alerts-meta');
-      if (m.revalidate_by) {
-        meta.appendChild(mkEl('span', 'alerts-mono', 'Revalidate by ' + vaultDate(m.revalidate_by)));
-        var flag = alertsDateFlag(m.revalidate_by);
-        if (flag) meta.appendChild(mkEl('span', 'alerts-flag alerts-flag--' + flag.kind, flag.label));
-      }
-      if (m.activated_at) meta.appendChild(mkEl('span', 'alerts-mono', 'Active since ' + vaultDate(m.activated_at)));
-      if (meta.childNodes.length) card.appendChild(meta);
-      return card;
-    }
-
-    // §1.5 — best-effort open-actions head count on load (never blocks load).
-    function initAlertsCount() {
-      var sb = CFG.sb;
-      if (!sb || !sb.from) return;
-      try {
-        Promise.resolve(
-          sb.from('org_actions').select('*', { count: 'exact', head: true }).neq('status', 'completed')
-        ).then(function (res) {
-          if (res && !res.error && typeof res.count === 'number') setAlertsChip(res.count);
-        }).catch(function (e) { console.warn('[OOX-001] alerts init count failed', e); });
-      } catch (e) { console.warn('[OOX-001] alerts init count failed', e); }
-    }
-
-    // ---- Time-aware greeting ----
-    var hr = new Date().getHours();
-    $('greeting').textContent = hr < 12 ? 'Good morning.' : hr < 18 ? 'Good afternoon.' : 'Good evening.';
-
-    // ---- Suggest chips ----
-    var sRow = $('suggest-row');
-    SUGGESTS.forEach(function (text) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'suggest-chip';
-      b.textContent = text;
-      b.addEventListener('click', function () { submitQuestion(text); });
-      sRow.appendChild(b);
-    });
-
-    // ════════════════════════════════════════════════════════════════
-    // VOICE — browser-native Web Speech API. ON by default, female en-GB,
-    // toggleable, persisted in-memory only (no localStorage). §1.7.
-    // ════════════════════════════════════════════════════════════════
-    var voiceOn = true;
-    var chosenVoice = null;
-    var voiceResolved = false;
-    var voiceToggle = $('voice-toggle');
-
-    function pickVoice(voices) {
-      if (!voices || !voices.length) return null;
-      var gb = voices.filter(function (v) { return (v.lang || '').toLowerCase().indexOf('en-gb') === 0; });
-      var priority = ['Libby', 'Hazel', 'Fiona', 'Google UK English Female'];
-      for (var i = 0; i < priority.length; i++) {
-        var m = gb.filter(function (v) { return v.name.indexOf(priority[i]) >= 0; })[0];
-        if (m) return m;
-      }
-      var fem = gb.filter(function (v) { return /female/i.test(v.name); })[0];
-      if (fem) return fem;
-      if (gb.length) return gb[0];
-      return voices[0] || null; // platform default
-    }
-
-    function resolveVoice() {
-      if (!('speechSynthesis' in window)) return;
-      var voices = window.speechSynthesis.getVoices();
-      if (!voices.length) return;
-      chosenVoice = pickVoice(voices);
-      voiceResolved = true;
-      voiceToggle.setAttribute('data-voice', (chosenVoice && chosenVoice.name) || 'default');
-    }
-
-    if ('speechSynthesis' in window) {
-      resolveVoice();
-      window.speechSynthesis.onvoiceschanged = function () { if (!voiceResolved) resolveVoice(); };
-      setTimeout(function () { if (!voiceResolved) resolveVoice(); }, 250);
-      setTimeout(function () { if (!voiceResolved) resolveVoice(); }, 1200);
-    }
-
-    function speak(text) {
-      if (!voiceOn || !('speechSynthesis' in window) || !text) return;
-      try {
-        window.speechSynthesis.cancel();
-        if (!chosenVoice) resolveVoice();
-        var clean = String(text).replace(/\s+/g, ' ').trim();
-        var utt = new SpeechSynthesisUtterance(clean);
-        if (chosenVoice) utt.voice = chosenVoice;
-        utt.lang = (chosenVoice && chosenVoice.lang) || 'en-GB';
-        utt.rate = 0.98; utt.pitch = 1.05; utt.volume = 1.0;
-        window.speechSynthesis.speak(utt);
-      } catch (e) { /* voice no-ops, page still works */ }
-    }
-
-    function renderVoiceState() {
-      voiceToggle.classList.toggle('off', !voiceOn);
-      voiceToggle.innerHTML = voiceOn ? '🔊' : '🔈';
-      voiceToggle.title = voiceOn ? 'Voice on' : 'Voice off';
-      voiceToggle.setAttribute('aria-pressed', voiceOn ? 'true' : 'false');
-      updateCaption();
-    }
-    voiceToggle.addEventListener('click', function () {
-      voiceOn = !voiceOn;
-      if (!voiceOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
-      renderVoiceState();
-    });
-
-    // ════════════════════════════════════════════════════════════════
-    // CAPTION
-    // ════════════════════════════════════════════════════════════════
-    var pendingMode = false;
-    function updateCaption() {
-      caption.textContent = 'live · grounded in your data · ' + (voiceOn ? 'voice on' : 'voice off');
-      caption.classList.toggle('is-pending', pendingMode);
-    }
-    function setPending(on) {
-      pendingMode = on;
-      bar.classList.toggle('is-pending', on);
-      sRow.style.opacity = on ? '0.62' : '';
-      updateCaption();
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // MARKDOWN (OOX-001 §1.B) — minimal, CSP-clean, escape-FIRST renderer.
-    // Supports headings, ul/ol lists, GFM pipe tables, bold/italic, inline
-    // code, code fences, blockquotes, links (safe schemes only) and rules.
-    // No external CDN. HTML is escaped BEFORE any formatting, so response
-    // text can never inject markup.
-    // ════════════════════════════════════════════════════════════════
-    function mdEscape(s) {
-      return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-    function mdInline(escaped) {
-      var codes = [];
-      var s = escaped.replace(/`([^`]+)`/g, function (m, c) {
-        codes.push(c); return '\uE000' + (codes.length - 1) + '\uE000';
-      });
-      s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (m, txt, url) {
-        if (!/^(https?:\/\/|mailto:|\/|#)/i.test(url)) return m;
-        return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + txt + '</a>';
-      });
-      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-      s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
-      s = s.replace(/\*(\S[^*\n]*?)\*/g, '<em>$1</em>');
-      s = s.replace(/\uE000(\d+)\uE000/g, function (m, i) { return '<code>' + codes[i] + '</code>'; });
-      return s;
-    }
-    function mdSplitRow(row) {
-      return row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); });
-    }
-    function mdIsTableSep(line) {
-      return /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)+\|?\s*$/.test(line);
-    }
-    function mdToHtml(src) {
-      var lines = String(src == null ? '' : src).replace(/\r\n?/g, '\n').split('\n');
-      var out = [];
-      var i = 0, n = lines.length;
-      function fmt(raw) { return mdInline(mdEscape(raw)); }
-      while (i < n) {
-        var line = lines[i];
-        if (/^\s*$/.test(line)) { i++; continue; }
-        if (/^\s*```/.test(line)) {
-          i++; var code = [];
-          while (i < n && !/^\s*```\s*$/.test(lines[i])) { code.push(lines[i]); i++; }
-          if (i < n) i++;
-          out.push('<pre><code>' + mdEscape(code.join('\n')) + '</code></pre>');
-          continue;
-        }
-        var h = line.match(/^\s{0,3}(#{1,6})\s+(.*)$/);
-        if (h) {
-          var lvl = h[1].length;
-          out.push('<h' + lvl + '>' + fmt(h[2].replace(/\s+#+\s*$/, '')) + '</h' + lvl + '>');
-          i++; continue;
-        }
-        if (/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
-        if (line.indexOf('|') >= 0 && i + 1 < n && mdIsTableSep(lines[i + 1])) {
-          var header = mdSplitRow(line);
-          i += 2;
-          var rows = [];
-          while (i < n && lines[i].indexOf('|') >= 0 && !/^\s*$/.test(lines[i])) { rows.push(mdSplitRow(lines[i])); i++; }
-          var t = ['<table><thead><tr>'];
-          for (var hc = 0; hc < header.length; hc++) t.push('<th>' + fmt(header[hc]) + '</th>');
-          t.push('</tr></thead><tbody>');
-          for (var ri = 0; ri < rows.length; ri++) {
-            t.push('<tr>');
-            for (var ci = 0; ci < header.length; ci++) t.push('<td>' + fmt(rows[ri][ci] != null ? rows[ri][ci] : '') + '</td>');
-            t.push('</tr>');
-          }
-          t.push('</tbody></table>');
-          out.push(t.join('')); continue;
-        }
-        if (/^\s{0,3}>\s?/.test(line)) {
-          var q = [];
-          while (i < n && /^\s{0,3}>\s?/.test(lines[i])) { q.push(lines[i].replace(/^\s{0,3}>\s?/, '')); i++; }
-          out.push('<blockquote>' + mdToHtml(q.join('\n')) + '</blockquote>'); continue;
-        }
-        if (/^\s*[-*+]\s+/.test(line)) {
-          var ul = [];
-          while (i < n && /^\s*[-*+]\s+/.test(lines[i])) { ul.push('<li>' + fmt(lines[i].replace(/^\s*[-*+]\s+/, '')) + '</li>'); i++; }
-          out.push('<ul>' + ul.join('') + '</ul>'); continue;
-        }
-        if (/^\s*\d+[.)]\s+/.test(line)) {
-          var ol = [];
-          while (i < n && /^\s*\d+[.)]\s+/.test(lines[i])) { ol.push('<li>' + fmt(lines[i].replace(/^\s*\d+[.)]\s+/, '')) + '</li>'); i++; }
-          out.push('<ol>' + ol.join('') + '</ol>'); continue;
-        }
-        var para = [];
-        while (i < n && !/^\s*$/.test(lines[i])
-          && !/^\s{0,3}#{1,6}\s+/.test(lines[i])
-          && !/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(lines[i])
-          && !/^\s*[-*+]\s+/.test(lines[i])
-          && !/^\s*\d+[.)]\s+/.test(lines[i])
-          && !/^\s{0,3}>\s?/.test(lines[i])
-          && !/^\s*```/.test(lines[i])
-          && !(lines[i].indexOf('|') >= 0 && i + 1 < n && mdIsTableSep(lines[i + 1]))) {
-          para.push(fmt(lines[i])); i++;
-        }
-        out.push('<p>' + para.join('<br>') + '</p>');
-      }
-      return out.join('\n');
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // EILEEN-NEXUS-001 (canonical) — identity-block nexus + live v3 feed.
-    // Reuses the canonical renderer window.AilaneNexus (assets/js/nexus.js);
-    // no fork. Halo state mirrors KL: dormant <-> ready (typing) -> processing
-    // (in flight) -> presenting (2s after answer) -> dormant. Live weights via
-    // eileen-nexus-intel (connect-src allowed); seed weights retained on failure.
-    // ════════════════════════════════════════════════════════════════
-    var nexusHost = $('eileen-nexus-host');
-    var nexusState = 'dormant';
-    var presentingTimer = null;
-    function setNexusState(state) {
-      nexusState = state;
-      if (nexusHost) nexusHost.className = 'kl-nexus-host kl-nexus-halo kl-nexus-halo--' + state;
-    }
-    var NEXUS_INTEL_URL = CFG.functionsBase + '/eileen-nexus-intel';
-    var nexusPollTimer = null;
-    function fetchNexusIntel() {
-      if (!(window.AilaneNexus && window.AilaneNexus.updateLive)) return;
-      var ctrl = new AbortController();
-      var to = setTimeout(function () { ctrl.abort(); }, 6000);
-      fetch(NEXUS_INTEL_URL, { signal: ctrl.signal })
-        .then(function (r) { clearTimeout(to); if (!r.ok) throw new Error('http_' + r.status); return r.json(); })
-        .then(function (data) {
-          if (!data || data.version !== 'v3' || !Array.isArray(data.categories) || !data.categories.length) return;
-          window.AilaneNexus.updateLive({
-            categories: data.categories,
-            relationships: Array.isArray(data.relationships) ? data.relationships : [],
-            instruments: Array.isArray(data.instruments) ? data.instruments : [],
-            snapshotAt: data.snapshotAt || null
-          });
-        })
-        .catch(function () { clearTimeout(to); /* retain seed weights */ });
-    }
-    function startNexusPoll() {
-      if (nexusPollTimer) return;
-      fetchNexusIntel();
-      nexusPollTimer = setInterval(fetchNexusIntel, 5 * 60 * 1000);
-    }
-    function initEileenNexus() {
-      if (!nexusHost) return;
-      var tries = 0;
-      (function wait() {
-        if (window.AilaneNexus && window.AilaneNexus.createNexus) {
-          var canvas = document.createElement('canvas');
-          canvas.className = 'kl-nexus-canvas';
-          canvas.setAttribute('aria-hidden', 'true');
-          nexusHost.appendChild(canvas);
-          window.AilaneNexus.createNexus(canvas, {
-            pageTier: 'landing',
-            size: 44,
-            interactive: false,
-            showRelationships: false,
-            dataSource: 'eileen-nexus-intel'
-          });
-          startNexusPoll();
-          return;
-        }
-        if (++tries > 50) return;
-        setTimeout(wait, 100);
-      })();
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // ANSWER RENDERING — newest answer prepended at the TOP of the answer
-    // area, directly under the greeting. The area never auto-scrolls to the
-    // bottom; we never force the scroll position to the end (the V8 defect).
-    // ════════════════════════════════════════════════════════════════
-    function clearThinking() {
-      var t = $('eileen-thinking');
-      if (t) t.parentNode.removeChild(t);
-    }
-    function showThinking() {
-      clearThinking();
-      var box = document.createElement('div');
-      box.className = 'answer thinking';
-      box.id = 'eileen-thinking';
-      box.innerHTML = '<div class="answer-label">Eileen</div><div class="answer-text"><span class="typing"><span></span><span></span><span></span></span></div>';
-      answerArea.insertBefore(box, answerArea.firstChild);
-    }
-    function prependAnswer(text, cites) {
-      var box = document.createElement('div');
-      box.className = 'answer';
-      var lbl = document.createElement('div');
-      lbl.className = 'answer-label';
-      lbl.textContent = 'Eileen';
-      box.appendChild(lbl);
-      var body = document.createElement('div');
-      body.className = 'answer-text';
-      body.innerHTML = mdToHtml(text); // OOX-001 §1.B: parsed markdown (escape-first), not raw text
-      box.appendChild(body);
-      if (cites && cites.length) {
-        var c = document.createElement('div');
-        c.className = 'answer-cites';
-        c.textContent = 'Sources: ' + cites.map(function (x) {
-          return (typeof x === 'string') ? x : (x.title || x.name || x.label || JSON.stringify(x));
-        }).join(' · ');
-        box.appendChild(c);
-      }
-      answerArea.insertBefore(box, answerArea.firstChild);
-    }
-    function renderAnswer(text, cites) {
-      clearThinking();
-      setPending(false);
-      prependAnswer(text, cites);
-      speak(text);
-      // EILEEN-NEXUS-001 halo: present briefly, then settle to dormant (mirrors KL).
-      if (presentingTimer) clearTimeout(presentingTimer);
-      setNexusState('presenting');
-      presentingTimer = setTimeout(function () { setNexusState('dormant'); presentingTimer = null; }, 2000);
-    }
-    function renderPending() {
-      clearThinking();
-      setPending(true);
-      prependAnswer(PENDING_COPY, null);
-      speak(PENDING_COPY);
-      // Graceful-degrade path: settle the halo to dormant (mirrors KL error path).
-      if (presentingTimer) { clearTimeout(presentingTimer); presentingTimer = null; }
-      setNexusState('dormant');
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // ASK EILEEN — POST to eileen-operational (forward-compatible).
-    // Degrades gracefully until the EILEEN-002 backend is live: any network
-    // error / 404 / 501 / non-2xx renders the calm pending copy. No dialog,
-    // no white-screen. Works automatically once the backend deploys.
-    // ════════════════════════════════════════════════════════════════
-    // Canonical Eileen-bar request helper. Every call to eileen-operational —
-    // the chat question AND the OOX-001 matter_action calls — goes through this
-    // one function, so the endpoint URL + auth headers are inherited (never
-    // re-hardcoded). Returns the parsed JSON; throws on any non-2xx.
-    function sendToEileen(body) {
-      return fetch(EILEEN_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + CFG.token,
-          'apikey': CFG.anon,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      }).then(function (r) {
-        if (!r.ok) throw new Error('http_' + r.status); // 404 / 501 / 5xx -> caller decides
-        return r.json();
-      });
-    }
-
-    function askEileen(question) {
-      showThinking();
-      setNexusState('processing'); // EILEEN-NEXUS-001 halo: request in flight
-      sendToEileen({ question: question })
-        .then(function (data) {
-          var text = (data && (data.response || data.answer || data.text || data.message)) || '';
-          var cites = (data && (data.citations || data.sources)) || null;
-          if (!text) { renderPending(); return; }
-          renderAnswer(text, cites);
-          refreshMatterPanel(); // OOX-001 §1.1: refresh retain-or-clear panel after each answer
-        })
-        .catch(function () { renderPending(); });
-    }
-
-    function submitQuestion(text) {
-      var q = (text || '').trim();
-      if (!q) return;
-      showEileen();
-      askEileen(q);
-    }
-
-    // ---- Input wiring ----
-    input.addEventListener('input', function () {
-      var hasText = !!input.value.trim();
-      sendBtn.disabled = !hasText;
-      // EILEEN-NEXUS-001 halo: dormant <-> ready on typing (no override mid-flight).
-      if (hasText && nexusState === 'dormant') setNexusState('ready');
-      else if (!hasText && nexusState === 'ready') setNexusState('dormant');
-    });
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var q = input.value.trim();
-      if (!q) return;
-      input.value = '';
-      sendBtn.disabled = true;
-      submitQuestion(q);
-    });
-
-    // ---- Logout ----
-    $('logout').addEventListener('click', function () {
-      try {
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-        CFG.sb.auth.signOut().then(function () {
-          window.location.replace('/login/');
-        }).catch(function () { window.location.replace('/login/'); });
-      } catch (e) { window.location.replace('/login/'); }
-    });
-
-    // ════════════════════════════════════════════════════════════════
-    // MATTER MEMORY (OOX-001 / AMD-241) — retain-or-clear panel + remember
-    // capture. Every call reuses sendToEileen() (same URL + auth as the bar);
-    // no new endpoint/key. All server strings are inserted via textContent
-    // (never innerHTML). The layer degrades silently: any matter_error or
-    // network failure hides the panel (console.warn only) and never blocks
-    // the chat. The answer stays anchored at the TOP (no scroll-jack).
-    // ════════════════════════════════════════════════════════════════
-    var matterPanel   = $('eileen-matter-panel');
-    var matterToast   = $('eileen-toast');
-    var matterCapture = $('eileen-matter-capture');
-    var rememberBtn   = $('eileen-remember-btn');
-    var toastTimer    = null;
-
-    function fmtMatterDate(iso) {
-      if (!iso) return '';
-      try {
-        var d = new Date(iso);
-        if (isNaN(d.getTime())) return String(iso);
-        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-      } catch (e) { return String(iso); }
-    }
-
-    function showToast(msg) {
-      if (!matterToast) return;
-      matterToast.textContent = msg; // escaped — textContent
-      matterToast.classList.add('show');
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(function () { matterToast.classList.remove('show'); }, 3200);
-    }
-
-    function hideMatterPanel() {
-      if (!matterPanel) return;
-      while (matterPanel.firstChild) matterPanel.removeChild(matterPanel.firstChild);
-      matterPanel.hidden = true;
-    }
-
-    // op:"list" drives the panel; only due_soon matters render; re-listed after
-    // each action; hidden when none. matter_action sent without a question
-    // returns early with { matter_result }.
-    function refreshMatterPanel() {
-      sendToEileen({ matter_action: { op: 'list' } })
-        .then(function (resp) {
-          var mr = resp && resp.matter_result;
-          if (!mr || mr.matter_error || !Array.isArray(mr.matters)) {
-            if (mr && mr.matter_error) console.warn('[OOX-001] matter list error:', mr.matter_error);
-            hideMatterPanel(); return;
-          }
-          var due = mr.matters.filter(function (m) { return m && m.due_soon === true; });
-          renderMatterPanel(due);
-        })
-        .catch(function (e) { console.warn('[OOX-001] matter list failed', e); hideMatterPanel(); });
-    }
-
-    function renderMatterPanel(due) {
-      if (!matterPanel) return;
-      while (matterPanel.firstChild) matterPanel.removeChild(matterPanel.firstChild);
-      if (!due || !due.length) { matterPanel.hidden = true; return; }
-      matterPanel.hidden = false;
-
-      var card = document.createElement('div');
-      card.className = 'matter-panel-card';
-      var head = document.createElement('div');
-      head.className = 'matter-panel-head';
-      head.textContent = 'Matter memory — due to clear';
-      card.appendChild(head);
-      due.forEach(function (m) { card.appendChild(buildMatterRow(m)); });
-      matterPanel.appendChild(card);
-    }
-
-    function buildMatterRow(m) {
-      var row = document.createElement('div');
-      row.className = 'matter-row';
-
-      var main = document.createElement('div');
-      main.className = 'matter-row-main';
-      var sum = document.createElement('div');
-      sum.className = 'matter-row-summary';
-      sum.textContent = m.summary || '(no summary)'; // escaped server data
-      main.appendChild(sum);
-      var meta = document.createElement('div');
-      meta.className = 'matter-row-meta';
-      meta.textContent = 'Clears ' + fmtMatterDate(m.expires_at);
-      main.appendChild(meta);
-      row.appendChild(main);
-
-      var actions = document.createElement('div');
-      actions.className = 'matter-row-actions';
-
-      var keepBtn = document.createElement('button');
-      keepBtn.type = 'button'; keepBtn.className = 'matter-btn'; keepBtn.textContent = 'Keep';
-      keepBtn.addEventListener('click', function () { openKeepPrompt(m, row, actions); });
-
-      var clearBtn = document.createElement('button');
-      clearBtn.type = 'button'; clearBtn.className = 'matter-btn danger'; clearBtn.textContent = 'Clear now';
-      clearBtn.addEventListener('click', function () { openClearConfirm(m, row, actions); });
-
-      var resolveBtn = document.createElement('button');
-      resolveBtn.type = 'button'; resolveBtn.className = 'matter-btn'; resolveBtn.textContent = 'Mark resolved';
-      resolveBtn.addEventListener('click', function () { doResolve(m); });
-
-      actions.appendChild(keepBtn);
-      actions.appendChild(clearBtn);
-      actions.appendChild(resolveBtn);
-      row.appendChild(actions);
-      return row;
-    }
-
-    function clearRowInline(row) {
-      var ex = row.querySelector('.matter-inline');
-      while (ex) { ex.parentNode.removeChild(ex); ex = row.querySelector('.matter-inline'); }
-    }
-
-    // Keep → inline one-line reason (required) → extend.
-    function openKeepPrompt(m, row, actions) {
-      clearRowInline(row);
-      actions.style.display = 'none';
-      var wrap = document.createElement('div');
-      wrap.className = 'matter-inline';
-      var inp = document.createElement('input');
-      inp.type = 'text'; inp.className = 'reason'; inp.maxLength = 240;
-      inp.placeholder = 'Reason to keep (e.g. ongoing tribunal claim)';
-      var submit = document.createElement('button');
-      submit.type = 'button'; submit.className = 'matter-btn primary'; submit.textContent = 'Save reason';
-      var cancel = document.createElement('button');
-      cancel.type = 'button'; cancel.className = 'matter-btn'; cancel.textContent = 'Cancel';
-      function close() { clearRowInline(row); actions.style.display = ''; }
-      submit.addEventListener('click', function () {
-        var reason = inp.value.trim();
-        if (!reason) { inp.focus(); return; } // required
-        submit.disabled = true;
-        doExtend(m, reason);
-      });
-      cancel.addEventListener('click', close);
-      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submit.click(); } });
-      wrap.appendChild(inp); wrap.appendChild(submit); wrap.appendChild(cancel);
-      row.appendChild(wrap);
-      inp.focus();
-    }
-
-    // Clear now → confirm step → delete (irreversible).
-    function openClearConfirm(m, row, actions) {
-      clearRowInline(row);
-      actions.style.display = 'none';
-      var wrap = document.createElement('div');
-      wrap.className = 'matter-inline';
-      var txt = document.createElement('span');
-      txt.className = 'matter-confirm-text';
-      txt.textContent = 'Clear this from memory? This cannot be undone.';
-      var confirm = document.createElement('button');
-      confirm.type = 'button'; confirm.className = 'matter-btn danger'; confirm.textContent = 'Confirm clear';
-      var cancel = document.createElement('button');
-      cancel.type = 'button'; cancel.className = 'matter-btn'; cancel.textContent = 'Cancel';
-      confirm.addEventListener('click', function () { confirm.disabled = true; doDelete(m); });
-      cancel.addEventListener('click', function () { clearRowInline(row); actions.style.display = ''; });
-      wrap.appendChild(txt); wrap.appendChild(confirm); wrap.appendChild(cancel);
-      row.appendChild(wrap);
-    }
-
-    function doExtend(m, reason) {
-      sendToEileen({ matter_action: { op: 'extend', matter_id: m.id, retention_reason: reason } })
-        .then(function (resp) {
-          var mr = resp && resp.matter_result;
-          if (mr && mr.matter_ok) { showToast('Kept until ' + fmtMatterDate(mr.expires_at)); }
-          else { console.warn('[OOX-001] extend failed', mr && mr.matter_error); }
-          refreshMatterPanel();
-        })
-        .catch(function (e) { console.warn('[OOX-001] extend failed', e); refreshMatterPanel(); });
-    }
-
-    function doDelete(m) {
-      sendToEileen({ matter_action: { op: 'delete', matter_id: m.id } })
-        .then(function (resp) {
-          var mr = resp && resp.matter_result;
-          if (mr && mr.matter_ok) { showToast('Cleared'); }
-          else { console.warn('[OOX-001] delete failed', mr && mr.matter_error); }
-          refreshMatterPanel();
-        })
-        .catch(function (e) { console.warn('[OOX-001] delete failed', e); refreshMatterPanel(); });
-    }
-
-    function doResolve(m) {
-      sendToEileen({ matter_action: { op: 'resolve', matter_id: m.id } })
-        .then(function (resp) {
-          var mr = resp && resp.matter_result;
-          if (mr && mr.matter_ok) { showToast('Marked resolved — clears automatically after 30 days'); }
-          else { console.warn('[OOX-001] resolve failed', mr && mr.matter_error); }
-          refreshMatterPanel();
-        })
-        .catch(function (e) { console.warn('[OOX-001] resolve failed', e); refreshMatterPanel(); });
-    }
-
-    // ---- Remember-a-matter capture (upsert) ----
-    function openCapture() {
-      if (!matterCapture) return;
-      matterCapture.hidden = false;
-      var ta = $('matter-capture-text');
-      if (ta) ta.focus();
-    }
-    function closeCapture() {
-      if (!matterCapture) return;
-      matterCapture.hidden = true;
-      var ta = $('matter-capture-text'); if (ta) ta.value = '';
-      var cats = $('matter-capture-cats'); if (cats) cats.value = '';
-      var err = $('matter-capture-error'); if (err) { err.textContent = ''; err.hidden = true; }
-    }
-    function saveCapture() {
-      var ta = $('matter-capture-text');
-      var cats = $('matter-capture-cats');
-      var err = $('matter-capture-error');
-      var saveBtn = $('matter-capture-save');
-      if (err) { err.textContent = ''; err.hidden = true; }
-      var summary = ta ? ta.value.trim() : '';
-      if (!summary) { if (ta) ta.focus(); return; }
-      var catList = cats ? cats.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
-      // v1 control never sends criminal_allegation / lawful_basis_ref (out of scope).
-      if (saveBtn) saveBtn.disabled = true;
-      sendToEileen({ matter_action: { op: 'upsert', summary: summary, acei_categories: catList } })
-        .then(function (resp) {
-          if (saveBtn) saveBtn.disabled = false;
-          var mr = resp && resp.matter_result;
-          if (mr && mr.matter_ok) {
-            showToast('Remembered');
-            closeCapture();
-            refreshMatterPanel();
-          } else if (mr && mr.matter_error) {
-            if (err) { err.textContent = mr.matter_error; err.hidden = false; } // escaped — textContent
-          } else if (err) {
-            err.textContent = 'Could not save the matter. Please try again.'; err.hidden = false;
-          }
-        })
-        .catch(function (e) {
-          if (saveBtn) saveBtn.disabled = false;
-          console.warn('[OOX-001] upsert failed', e);
-          if (err) { err.textContent = 'Could not save the matter. Please try again.'; err.hidden = false; }
-        });
-    }
-
-    if (rememberBtn) rememberBtn.addEventListener('click', function () {
-      if (matterCapture && matterCapture.hidden === false) closeCapture();
-      else openCapture();
-    });
-    var captureSaveBtn = $('matter-capture-save');
-    var captureCancelBtn = $('matter-capture-cancel');
-    if (captureSaveBtn) captureSaveBtn.addEventListener('click', saveCapture);
-    if (captureCancelBtn) captureCancelBtn.addEventListener('click', closeCapture);
-
-    // ---- Initial state ----
-    renderVoiceState();
-    showEileen();
-    initEileenNexus(); // EILEEN-NEXUS-001: mount the canonical nexus (dormant)
-    initAlertsCount(); // OOX-001 §1.5: best-effort open-actions count chip on load
-  }
-  </script>
-
+  <!-- Shared engine bundle (built by esbuild from knowledge-library/kl-app.jsx).
+       Referenced — NOT duplicated. Its content/* fetches use absolute
+       /knowledge-library/ paths, so they resolve correctly from /operational/. -->
+  <script src="../knowledge-library/kl-app.js"></script>
 </body>
 </html>

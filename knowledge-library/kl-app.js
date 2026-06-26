@@ -1471,6 +1471,18 @@
     notes: "Notes",
     calendar: "Calendar"
   };
+  function klOperationalMode() {
+    try {
+      if (window.__klMode === "operational") return true;
+    } catch (e) {
+    }
+    try {
+      var p = window.location && window.location.pathname || "";
+      if (p === "/operational" || p.indexOf("/operational/") === 0) return true;
+    } catch (e) {
+    }
+    return false;
+  }
   function detectHubSession() {
     if (typeof window === "undefined" || !window.supabase || !window.supabase.createClient) {
       return Promise.resolve(null);
@@ -1512,13 +1524,34 @@
           }
           var orgId = orgRes && orgRes.data;
           if (!orgId) return null;
-          return sb.from("operational_onboarding_state").select("landing_unlocked").limit(1).then(function(stRes) {
+          function finishHub() {
+            if (!klOperationalMode()) {
+              window.location.replace("/operational/");
+              return null;
+            }
+            return hubSession;
+          }
+          var orgTierP = fetch(
+            SUPABASE_URL + "/rest/v1/organisations?id=eq." + orgId + "&select=tier",
+            { headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": "Bearer " + token, "Accept": "application/json" } }
+          ).then(function(r) {
+            return r.ok ? r.json() : null;
+          }).then(function(orows) {
+            return orows && orows[0] && orows[0].tier;
+          }).catch(function() {
+            return null;
+          });
+          var stateP = sb.from("operational_onboarding_state").select("landing_unlocked").limit(1);
+          return Promise.all([orgTierP, stateP]).then(function(rr) {
+            var orgTier = rr[0];
+            if (orgTier) hubSession.orgTier = orgTier;
+            var stRes = rr[1];
             if (stRes && stRes.error) {
               console.warn("[OOX-001] onboarding-state read failed \u2014 failing open to hub", stRes.error);
-              return hubSession;
+              return finishHub();
             }
             var row = stRes && stRes.data && stRes.data[0];
-            if (row && row.landing_unlocked === true) return hubSession;
+            if (row && row.landing_unlocked === true) return finishHub();
             window.location.replace("/operational/onboarding/");
             return null;
           });
@@ -4333,10 +4366,34 @@
   function MobileSidebarBackdrop({ onClick }) {
     return /* @__PURE__ */ React.createElement("div", { className: "kl-sidebar-backdrop", onClick, "aria-hidden": "true" });
   }
-  function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang }) {
+  function klOrgTierBadge(orgTier) {
+    switch (orgTier) {
+      case "operational_readiness":
+      case "operational":
+        return { label: "Operational", cls: "kl-badge-operational" };
+      case "governance":
+        return { label: "Governance", cls: "kl-badge-governance" };
+      case "institutional":
+      case "enterprise":
+        return { label: orgTier === "institutional" ? "Institutional" : "Enterprise", cls: "kl-badge-enterprise" };
+      default:
+        if (!orgTier) return { label: "Operational", cls: "kl-badge-operational" };
+        return {
+          label: String(orgTier).replace(/[_-]+/g, " ").replace(/\b\w/g, function(c) {
+            return c.toUpperCase();
+          }),
+          cls: "kl-badge-operational"
+        };
+    }
+  }
+  function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier }) {
     let badgeLabel = "KNOWLEDGE LIBRARY";
     let badgeClass = "kl-badge-per-session";
-    if (accessType === "subscription") {
+    if (operationalMode) {
+      var ob = klOrgTierBadge(orgTier);
+      badgeLabel = ob.label;
+      badgeClass = ob.cls;
+    } else if (accessType === "subscription") {
       if (tier === "operational_readiness") {
         badgeLabel = "OPERATIONAL";
         badgeClass = "kl-badge-operational";
@@ -4350,11 +4407,13 @@
     } else if (accessType === "per_session") {
       badgeLabel = "PER-SESSION";
     }
+    var brandLabel = operationalMode ? "Ailane Operational" : "AILANE Knowledge Library";
+    var brandHref = operationalMode ? "/operational/" : "/";
     return /* @__PURE__ */ React.createElement("div", { className: "kl-topbar" }, /* @__PURE__ */ React.createElement("button", { className: "kl-topbar-toggle", onClick: onToggleSidebar, "aria-label": sidebarOpen ? "Collapse sidebar" : "Expand sidebar" }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" }))), /* @__PURE__ */ React.createElement(
       "a",
       {
         className: "kl-topbar-title",
-        href: "/",
+        href: brandHref,
         style: {
           color: "#22D3EE",
           textDecoration: "none",
@@ -4364,7 +4423,7 @@
           cursor: "pointer"
         }
       },
-      "AILANE Knowledge Library"
+      brandLabel
     ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), onToggleLang && /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -4449,12 +4508,15 @@
     institutional: 3
     /* AMD-123 G-4.1 transitional alias */
   };
-  function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
+  function PanelRail({ activePanel, onSelectPanel, accessType, tier, hubMode }) {
     var userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0;
-    var primaryPanels = PANEL_DEFS.filter(function(p) {
+    var defs = hubMode ? PANEL_DEFS.filter(function(p) {
+      return p.id === "research";
+    }) : PANEL_DEFS;
+    var primaryPanels = defs.filter(function(p) {
       return p.group === "primary";
     });
-    var secondaryPanels = PANEL_DEFS.filter(function(p) {
+    var secondaryPanels = defs.filter(function(p) {
       return p.group === "secondary";
     });
     function renderButton(p) {
@@ -4482,7 +4544,7 @@
       "div",
       { className: "kl-panelrail", role: "toolbar", "aria-label": "Workspace panels" },
       primaryPanels.map(renderButton),
-      React.createElement("div", {
+      primaryPanels.length && secondaryPanels.length ? React.createElement("div", {
         className: "kl-panel-rail-divider",
         style: {
           width: "24px",
@@ -4491,7 +4553,7 @@
           margin: "4px 0"
         },
         "aria-hidden": "true"
-      }),
+      }) : null,
       secondaryPanels.map(renderButton)
     );
   }
@@ -9117,7 +9179,7 @@
       }
       Promise.all([
         sb.from("kl_vault_documents").select("id,filename,mime_type,file_size_bytes,extraction_status,analysis_status,visibility,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(50),
-        sb.from("vault_contract_records").select("id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at").order("created_at", { ascending: false }).limit(50),
+        sb.from("vault_contract_records").select("id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at").eq("is_demonstration", false).order("created_at", { ascending: false }).limit(50),
         hubVaultAal2StepUp(sb)
         // §1.2 — AAL1 + MFA-enrolled? (never rejects)
       ]).then(function(res) {
@@ -10706,6 +10768,9 @@
       };
     }, []);
     const hubMode = !!hubSession;
+    const operationalMode = klOperationalMode();
+    const hubChrome = hubMode || operationalMode;
+    const orgTier = hubSession && hubSession.orgTier;
     const [currentFacet, setCurrentFacet] = useState(null);
     const [matterRefreshKey, setMatterRefreshKey] = useState(0);
     function handleSelectFacet(id) {
@@ -11511,7 +11576,9 @@
         sessionExpiresAt,
         onSessionExpired: () => setSessionExpired(true),
         lang,
-        onToggleLang: toggleLang
+        onToggleLang: toggleLang,
+        operationalMode,
+        orgTier
       }
     ), lang === "cy" && /* @__PURE__ */ React.createElement(
       "div",
@@ -11619,9 +11686,10 @@
         activePanel,
         onSelectPanel: handleSelectPanel,
         accessType,
-        tier
+        tier,
+        hubMode: hubChrome
       }
-    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => handleSelectPanel(null), lang }), !upsellDismissed && !sessionExpired && upsellGraceElapsed && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel && (!hubChrome || activePanel === "research") && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => handleSelectPanel(null), lang }), !upsellDismissed && !sessionExpired && upsellGraceElapsed && /* @__PURE__ */ React.createElement(
       UpsellCard,
       {
         productType: window.__klProductType || tier || "",
