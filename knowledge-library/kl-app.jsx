@@ -56,6 +56,22 @@ function klHubFlagSet() {
   return false;
 }
 
+// OOX-001 §1.2/§1.3 — operational-mode detection. The SAME engine bundle renders
+// at two host pages: /knowledge-library/ (public KL chrome) and /operational/
+// (the "Ailane Operational" workspace). operational/index.html sets the explicit
+// config flag `window.__klMode = 'operational'` before booting; the path check is
+// a defensive backup (matches /operational/ exactly, NOT /operational-demo/).
+// Operational mode only changes the chrome (brand + identity badge) and scopes the
+// legacy-drawer retirement — the Knowledge Library engine itself is unchanged.
+function klOperationalMode() {
+  try { if (window.__klMode === 'operational') return true; } catch (e) { /* ignore */ }
+  try {
+    var p = (window.location && window.location.pathname) || '';
+    if (p === '/operational' || p.indexOf('/operational/') === 0) return true;
+  } catch (e) { /* ignore */ }
+  return false;
+}
+
 // Detect an authenticated operational session — mirrors the operational/index.html
 // guard (createClient → getSession() → JWT decode → tier). Resolves to a
 // hubSession object or null.
@@ -117,23 +133,42 @@ function detectHubSession() {
           }
           var orgId = orgRes && orgRes.data;
           if (!orgId) return null;  // authenticated, no operational org → public KL
-          // §1.2 — onboarding-aware routing. RLS scopes this read to the caller's
-          // org (mirrors the onboarding page's RLS-scoped write), so no org filter
-          // is needed. landing_unlocked === true → hub; false / no row → finish
-          // onboarding first; read error → fail OPEN to the hub + warn.
-          return sb.from('operational_onboarding_state')
-            .select('landing_unlocked')
-            .limit(1)
-            .then(function (stRes) {
-              if (stRes && stRes.error) {
-                console.warn('[OOX-001] onboarding-state read failed — failing open to hub', stRes.error);
-                return hubSession;
-              }
-              var row = stRes && stRes.data && stRes.data[0];
-              if (row && row.landing_unlocked === true) return hubSession;  // onboarded → hub
-              window.location.replace('/operational/onboarding/');          // not onboarded → finish first
-              return null;
-            });
+          // §1.4 — realise the cutover. The hub's canonical home is /operational/.
+          // An authenticated, onboarded operational session that resolved here from
+          // the public KL path (no operational flag/path) is moved to /operational/
+          // so the operational chrome (brand + badge) applies. At /operational/ the
+          // flag is set ⇒ this is a no-op (no redirect loop). Anonymous/no-org
+          // sessions never reach this branch, so the public KL is untouched.
+          function finishHub() {
+            if (!klOperationalMode()) { window.location.replace('/operational/'); return null; }
+            return hubSession;
+          }
+          // §1.3 — product-context tier for the identity badge comes from
+          // organisations.tier (e.g. operational_readiness), NOT the billing-axis
+          // subscription_tier. Read-resilient: any failure leaves orgTier unset and
+          // the badge falls back to a neutral "Operational" label. §1.2 onboarding
+          // routing reads operational_onboarding_state.landing_unlocked (RLS-scoped
+          // to the caller's org). Both reads run in parallel.
+          var orgTierP = fetch(
+            SUPABASE_URL + '/rest/v1/organisations?id=eq.' + orgId + '&select=tier',
+            { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } }
+          ).then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (orows) { return orows && orows[0] && orows[0].tier; })
+            .catch(function () { return null; });
+          var stateP = sb.from('operational_onboarding_state').select('landing_unlocked').limit(1);
+          return Promise.all([orgTierP, stateP]).then(function (rr) {
+            var orgTier = rr[0];
+            if (orgTier) hubSession.orgTier = orgTier;  // §1.3 — humanised by the badge
+            var stRes = rr[1];
+            if (stRes && stRes.error) {
+              console.warn('[OOX-001] onboarding-state read failed — failing open to hub', stRes.error);
+              return finishHub();
+            }
+            var row = stRes && stRes.data && stRes.data[0];
+            if (row && row.landing_unlocked === true) return finishHub();   // onboarded → hub
+            window.location.replace('/operational/onboarding/');            // not onboarded → finish first
+            return null;
+          });
         }).catch(function (e) {
           console.warn('[OOX-001] hub routing resolution failed — failing open to hub', e);
           return hubSession;
@@ -3416,16 +3451,50 @@ function MobileSidebarBackdrop({ onClick }) {
 
 // ─── TopBar ───
 
-function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang }) {
+// OOX-001 §1.3 — humanise organisations.tier for the identity badge (the
+// product-context axis, e.g. operational_readiness → "Operational"). Distinct
+// from the billing-axis subscription_tier. The .kl-tier-badge CSS uppercases
+// the label; the class drives the palette (operational = cyan).
+function klOrgTierBadge(orgTier) {
+  switch (orgTier) {
+    case 'operational_readiness':
+    case 'operational':
+      return { label: 'Operational', cls: 'kl-badge-operational' };
+    case 'governance':
+      return { label: 'Governance', cls: 'kl-badge-governance' };
+    case 'institutional':
+    case 'enterprise':
+      return { label: orgTier === 'institutional' ? 'Institutional' : 'Enterprise', cls: 'kl-badge-enterprise' };
+    default:
+      // Unknown/absent org tier in operational mode → neutral, never the
+      // billing tier. Snake/kebab → Title Case fallback.
+      if (!orgTier) return { label: 'Operational', cls: 'kl-badge-operational' };
+      return {
+        label: String(orgTier).replace(/[_-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }),
+        cls: 'kl-badge-operational',
+      };
+  }
+}
+
+function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier }) {
   let badgeLabel = 'KNOWLEDGE LIBRARY';
   let badgeClass = 'kl-badge-per-session';
-  if (accessType === 'subscription') {
+  if (operationalMode) {
+    // §1.3 — operational identity badge reads organisations.tier, NOT subscription_tier.
+    var ob = klOrgTierBadge(orgTier);
+    badgeLabel = ob.label;
+    badgeClass = ob.cls;
+  } else if (accessType === 'subscription') {
     if (tier === 'operational_readiness') { badgeLabel = 'OPERATIONAL'; badgeClass = 'kl-badge-operational'; }
     else if (tier === 'governance') { badgeLabel = 'GOVERNANCE'; badgeClass = 'kl-badge-governance'; }
     else if (tier === 'enterprise' || tier === 'institutional') { badgeLabel = 'ENTERPRISE'; badgeClass = 'kl-badge-enterprise'; }
   } else if (accessType === 'per_session') {
     badgeLabel = 'PER-SESSION';
   }
+  // §1.2/§1.3 — in operational mode the brand reads "Ailane Operational" and links
+  // to the operational home (in-app), never to the ailane.ai root.
+  var brandLabel = operationalMode ? 'Ailane Operational' : 'AILANE Knowledge Library';
+  var brandHref = operationalMode ? '/operational/' : '/';
   return (
     <div className="kl-topbar">
       <button className="kl-topbar-toggle" onClick={onToggleSidebar} aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
@@ -3437,7 +3506,7 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
       </button>
       <a
         className="kl-topbar-title"
-        href="/"
+        href={brandHref}
         style={{
           color: '#22D3EE',
           textDecoration: 'none',
@@ -3446,7 +3515,7 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
           fontSize: '16px',
           cursor: 'pointer',
         }}
-      >AILANE Knowledge Library</a>
+      >{brandLabel}</a>
       <div className="kl-topbar-right">
         {accessType === 'per_session' && sessionExpiresAt && (
           <SessionCountdown expiresAt={sessionExpiresAt} onExpired={onSessionExpired} />
@@ -3543,10 +3612,15 @@ const TIER_RANK = {
   institutional: 3  /* AMD-123 G-4.1 transitional alias */
 };
 
-function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
+function PanelRail({ activePanel, onSelectPanel, accessType, tier, hubMode }) {
   var userRank = TIER_RANK[tier] != null ? TIER_RANK[tier] : (TIER_RANK[accessType] != null ? TIER_RANK[accessType] : 0);
-  var primaryPanels = PANEL_DEFS.filter(function(p) { return p.group === 'primary'; });
-  var secondaryPanels = PANEL_DEFS.filter(function(p) { return p.group === 'secondary'; });
+  // OOX-001 §1.1 — retire the legacy right-drawer Vault/Notes/Calendar in hub/
+  // operational mode (each lives once as a left-rail "Your workspace" facet). The
+  // right drawer then offers only Research (the Eileen legislation-library
+  // browser). Public KL keeps the full rail unchanged.
+  var defs = hubMode ? PANEL_DEFS.filter(function (p) { return p.id === 'research'; }) : PANEL_DEFS;
+  var primaryPanels = defs.filter(function(p) { return p.group === 'primary'; });
+  var secondaryPanels = defs.filter(function(p) { return p.group === 'secondary'; });
 
   function renderButton(p) {
     var minRank = p.minTier ? (TIER_RANK[p.minTier] != null ? TIER_RANK[p.minTier] : 99) : 0;
@@ -3568,7 +3642,7 @@ function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
 
   return React.createElement('div', { className: 'kl-panelrail', role: 'toolbar', 'aria-label': 'Workspace panels' },
     primaryPanels.map(renderButton),
-    React.createElement('div', {
+    (primaryPanels.length && secondaryPanels.length) ? React.createElement('div', {
       className: 'kl-panel-rail-divider',
       style: {
         width: '24px',
@@ -3577,7 +3651,7 @@ function PanelRail({ activePanel, onSelectPanel, accessType, tier }) {
         margin: '4px 0',
       },
       'aria-hidden': 'true',
-    }),
+    }) : null,
     secondaryPanels.map(renderButton)
   );
 }
@@ -7833,6 +7907,11 @@ function HubVaultFacet({ hubSession }) {
         .order('created_at', { ascending: false }).limit(50),
       sb.from('vault_contract_records')
         .select('id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at')
+        // OOX-001 §1.5 — defensive demo filter. Phase A (DB) already keeps
+        // is_demonstration rows out of authenticated tenants (demo reads are
+        // anon-only); this front-end guard ensures the operational Vault facet
+        // never surfaces sample/demonstration rows even if a future read path slips.
+        .eq('is_demonstration', false)
         .order('created_at', { ascending: false }).limit(50),
       hubVaultAal2StepUp(sb), // §1.2 — AAL1 + MFA-enrolled? (never rejects)
     ]).then(function (res) {
@@ -9362,6 +9441,13 @@ function App() {
     return function () { alive = false; };
   }, []);
   const hubMode = !!hubSession;
+  // OOX-001 §1.2 — operational mode (the /operational/ host, flag-driven). Stable
+  // for the page's life (window.__klMode is set before initKLApp). Drives the
+  // "Ailane Operational" chrome + the org-tier badge; the right-drawer retirement
+  // (§1.1) is scoped to hub/operational mode (hubMode || operationalMode).
+  const operationalMode = klOperationalMode();
+  const hubChrome = hubMode || operationalMode;
+  const orgTier = hubSession && hubSession.orgTier;
   // Active workspace facet (hub mode only). null ⇒ Eileen conversation shows.
   const [currentFacet, setCurrentFacet] = useState(null);
   // Bumped after each hub Eileen answer to re-list the matter bar.
@@ -10297,6 +10383,8 @@ function App() {
         onSessionExpired={() => setSessionExpired(true)}
         lang={lang}
         onToggleLang={toggleLang}
+        operationalMode={operationalMode}
+        orgTier={orgTier}
       />
       {/* DMSP-002: AI translation disclaimer. Mandatory sibling below TopBar
           whenever Welsh is active — bilingual Welsh/English copy makes clear
@@ -10395,10 +10483,13 @@ function App() {
         onSelectPanel={handleSelectPanel}
         accessType={accessType}
         tier={tier}
+        hubMode={hubChrome}
       />
       <AdvisoryBanner />
       {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
-      {activePanel && (
+      {/* OOX-001 §1.1 — in hub/operational mode only the Research drawer opens; a
+          stale persisted Vault/Notes/Calendar panel never re-opens the legacy drawer. */}
+      {activePanel && (!hubChrome || activePanel === 'research') && (
         <PanelDrawer panelId={activePanel} onClose={() => handleSelectPanel(null)} lang={lang} />
       )}
       {!upsellDismissed && !sessionExpired && upsellGraceElapsed && (
