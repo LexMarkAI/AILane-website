@@ -820,18 +820,15 @@
         .then(function (rows) {
           if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
             settled = true;
-            document.body.style.visibility = 'visible';
-            window.AILANE_OPS = {
-              sb: sb,
-              token: token,
-              anon: SUPABASE_ANON,
-              supabaseUrl: SUPABASE_URL,
-              functionsBase: FUNCTIONS_BASE,
-              userId: userId,
-              email: payload.email || ''
-            };
-            initOperational();
-            resolveOrgName(token, userId);
+            // OOX-001 (AMD-230) cutover — the vanilla operational room is retired
+            // (KL-HUB-SPEC §5 step 9). An authenticated operational session is
+            // routed to the KL hub, which then applies onboarding-aware routing
+            // (onboarded → hub; not onboarded → /operational/onboarding/). The
+            // body stays hidden (visibility:hidden) so the retired room never
+            // flashes. /operational/onboarding/ and any other operational/*
+            // subpaths are separate pages and remain reachable (unaffected).
+            window.location.replace('/knowledge-library/');
+            return;
           } else { fail(); }
         })
         .catch(fail);
