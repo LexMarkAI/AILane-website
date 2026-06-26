@@ -9452,6 +9452,7 @@
     return React.createElement("div", { key, style: HUB_INTEL_KC_LINE_STYLE }, text2);
   }
   function hubIntelKcObject(el, key) {
+    if (el == null || typeof el !== "object") return null;
     var change = el.change != null ? String(el.change).trim() : "";
     var note = el.note != null ? String(el.note).trim() : "";
     var primary = change !== "" ? change : note;
@@ -9480,6 +9481,7 @@
       } catch (e) {
         return [hubIntelKcLine(s, "kc0")];
       }
+      if (val == null) return [hubIntelKcEmpty()];
     }
     if (Array.isArray(val)) {
       var nodes = [];

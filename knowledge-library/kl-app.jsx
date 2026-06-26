@@ -8281,6 +8281,7 @@ function hubIntelKcLine(text, key) {
 // small secondary chips where present. Returns null (skipped) if it carries no usable
 // text — the raw object is never rendered.
 function hubIntelKcObject(el, key) {
+  if (el == null || typeof el !== 'object') return null;  // never read fields off null
   var change = el.change != null ? String(el.change).trim() : '';
   var note = el.note != null ? String(el.note).trim() : '';
   var primary = change !== '' ? change : note;
@@ -8310,6 +8311,9 @@ function hubIntelKeyChanges(raw) {
     if (s === '') return [hubIntelKcEmpty()];
     try { val = JSON.parse(s); }
     catch (e) { return [hubIntelKcLine(s, 'kc0')]; }  // non-JSON prose → one escaped line
+    // The string parsed to a JSON literal null/undefined (e.g. the text "null") →
+    // empty content; degrade gracefully rather than reaching the object branch.
+    if (val == null) return [hubIntelKcEmpty()];
   }
   if (Array.isArray(val)) {
     var nodes = [];
