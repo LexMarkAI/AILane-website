@@ -72,6 +72,22 @@ function klOperationalMode() {
   return false;
 }
 
+// OOX-001 HOTFIX (AMD-230) — idempotent routing navigation. The redirect-loop
+// class is caused by a routing redirect that navigates to the very path it is
+// already on: the engine reloads, re-evaluates the same condition, and redirects
+// again → forever. This helper compares the intended target to the current
+// pathname (trailing-slash-insensitive) and SKIPS the navigation when they already
+// match, so a routing redirect can never navigate to the path it is already on.
+// §1.3 — the durable, class-wide fix: every routing window.location.replace flows
+// through here. Returns true iff it actually navigated.
+function klRouteReplace(target) {
+  var here = '';
+  try { here = (window.location && window.location.pathname) || ''; } catch (e) { here = ''; }
+  if (here.replace(/\/+$/, '') === String(target).replace(/\/+$/, '')) return false;
+  window.location.replace(target);
+  return true;
+}
+
 // Detect an authenticated operational session — mirrors the operational/index.html
 // guard (createClient → getSession() → JWT decode → tier). Resolves to a
 // hubSession object or null.
@@ -140,7 +156,16 @@ function detectHubSession() {
           // flag is set ⇒ this is a no-op (no redirect loop). Anonymous/no-org
           // sessions never reach this branch, so the public KL is untouched.
           function finishHub() {
-            if (!klOperationalMode()) { window.location.replace('/operational/'); return null; }
+            // §1.1 — move an operational session that resolved here from the public
+            // KL path to /operational/ so the operational chrome applies. Fire ONLY
+            // when NOT already in operational mode AND NOT already on /operational/
+            // (trailing-slash-insensitive). Either condition true ⇒ render the hub in
+            // place — never re-navigate to the path we are already on (no loop).
+            if (klOperationalMode() === false &&
+                (window.location.pathname || '').replace(/\/+$/, '') !== '/operational') {
+              klRouteReplace('/operational/');
+              return null;
+            }
             return hubSession;
           }
           // §1.3 — product-context tier for the identity badge comes from
@@ -166,7 +191,12 @@ function detectHubSession() {
             }
             var row = stRes && stRes.data && stRes.data[0];
             if (row && row.landing_unlocked === true) return finishHub();   // onboarded → hub
-            window.location.replace('/operational/onboarding/');            // not onboarded → finish first
+            // §1.2 — not onboarded (landing_unlocked false / no row) ⇒ finish
+            // onboarding first, but NEVER redirect to /operational/onboarding/ while
+            // already on it (would loop). Idempotent: skip when already on the path.
+            if ((window.location.pathname || '').replace(/\/+$/, '') !== '/operational/onboarding') {
+              klRouteReplace('/operational/onboarding/');                    // not onboarded → finish first
+            }
             return null;
           });
         }).catch(function (e) {

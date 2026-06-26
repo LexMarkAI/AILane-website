@@ -1483,6 +1483,17 @@
     }
     return false;
   }
+  function klRouteReplace(target) {
+    var here = "";
+    try {
+      here = window.location && window.location.pathname || "";
+    } catch (e) {
+      here = "";
+    }
+    if (here.replace(/\/+$/, "") === String(target).replace(/\/+$/, "")) return false;
+    window.location.replace(target);
+    return true;
+  }
   function detectHubSession() {
     if (typeof window === "undefined" || !window.supabase || !window.supabase.createClient) {
       return Promise.resolve(null);
@@ -1525,8 +1536,8 @@
           var orgId = orgRes && orgRes.data;
           if (!orgId) return null;
           function finishHub() {
-            if (!klOperationalMode()) {
-              window.location.replace("/operational/");
+            if (klOperationalMode() === false && (window.location.pathname || "").replace(/\/+$/, "") !== "/operational") {
+              klRouteReplace("/operational/");
               return null;
             }
             return hubSession;
@@ -1552,7 +1563,9 @@
             }
             var row = stRes && stRes.data && stRes.data[0];
             if (row && row.landing_unlocked === true) return finishHub();
-            window.location.replace("/operational/onboarding/");
+            if ((window.location.pathname || "").replace(/\/+$/, "") !== "/operational/onboarding") {
+              klRouteReplace("/operational/onboarding/");
+            }
             return null;
           });
         }).catch(function(e) {
