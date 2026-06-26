@@ -4110,7 +4110,7 @@
       "Discuss with Eileen"
     )));
   }
-  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubMode, currentFacet, onSelectFacet }) {
+  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet }) {
     var _historyOpen = useState(false);
     var historyOpen = _historyOpen[0];
     var setHistoryOpen = _historyOpen[1];
@@ -4121,7 +4121,7 @@
     var feedExpanded = _feedExpanded[0];
     var setFeedExpanded = _feedExpanded[1];
     useEffect(function() {
-      if (hubMode) return;
+      if (hubChrome) return;
       var cancelled = false;
       loadRegulatoryFeed().then(function(items) {
         if (!cancelled) setFeedItems(items);
@@ -4129,7 +4129,7 @@
       return function() {
         cancelled = true;
       };
-    }, [hubMode]);
+    }, [hubChrome]);
     return React.createElement(
       "nav",
       { className: "kl-sidebar" + (open ? "" : " collapsed"), role: "navigation", "aria-label": "Conversation history" },
@@ -4159,12 +4159,14 @@
           React.createElement("span", null, "New Conversation")
         )
       ),
-      // OOX-001 INTELLIGENCE-FOLD §1.1: this middle scroll panel is PUBLIC-KL ONLY. In
-      // hub/operational mode the "Regulatory Intelligence" feed is removed (its in-force
+      // OOX-001 INTELLIGENCE-FOLD §1.1 + OOX-CARDS §1.1: this middle scroll panel is
+      // PUBLIC-KL ONLY. In the gated hub chrome — hub mode OR operational mode
+      // (hubChrome) — the "Regulatory Intelligence" feed is removed (its in-force
       // statutory catalogue now lives inside the Intelligence facet — §1.2) and the
-      // "Your workspace" facet rail occupies the scroll area instead. Public KL: the feed
-      // below is unchanged. The rail keeps Eileen / New Conversation / workspace / History.
-      hubMode ? React.createElement(
+      // "Your workspace" facet rail occupies the scroll area instead. Public KL (neither
+      // flag): the feed below is unchanged. The rail keeps Eileen / New Conversation /
+      // workspace / History.
+      hubChrome ? React.createElement(
         "div",
         {
           style: { flex: 1, overflowY: "auto", minHeight: 0, borderTop: "1px solid rgba(255,255,255,0.06)", padding: "8px 0" }
@@ -9441,6 +9443,80 @@
     var extra = variant === "type" ? HUB_INTEL_CHIP_TYPE : variant === "high" ? HUB_INTEL_CHIP_HIGH : null;
     return React.createElement("span", { key, style: extra ? Object.assign({}, HUB_INTEL_CHIP_BASE, extra) : HUB_INTEL_CHIP_BASE }, label);
   }
+  var HUB_INTEL_KC_LINE_STYLE = { marginTop: "8px", color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" };
+  var HUB_INTEL_KC_META_STYLE = { display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "5px" };
+  function hubIntelKcEmpty() {
+    return React.createElement("div", { key: "kc-empty", style: HUB_INTEL_KC_LINE_STYLE }, "No key changes listed yet.");
+  }
+  function hubIntelKcLine(text2, key) {
+    return React.createElement("div", { key, style: HUB_INTEL_KC_LINE_STYLE }, text2);
+  }
+  function hubIntelKcObject(el, key) {
+    if (el == null || typeof el !== "object") return null;
+    var change = el.change != null ? String(el.change).trim() : "";
+    var note = el.note != null ? String(el.note).trim() : "";
+    var primary = change !== "" ? change : note;
+    if (primary === "") return null;
+    var chips = [];
+    if (el.severity != null && String(el.severity).trim() !== "") {
+      var sev = String(el.severity).trim();
+      var high = /high|critical|severe|urgent/i.test(sev);
+      chips.push(hubIntelChip("Severity: " + sev, high ? "high" : null, "sev"));
+    }
+    if (el.expected != null && String(el.expected).trim() !== "") {
+      chips.push(hubIntelChip("Expected: " + String(el.expected).trim(), null, "exp"));
+    }
+    var kids = [React.createElement("div", { key: "c" }, primary)];
+    if (chips.length) kids.push(React.createElement("div", { key: "m", style: HUB_INTEL_KC_META_STYLE }, chips));
+    return React.createElement("div", { key, style: HUB_INTEL_KC_LINE_STYLE }, kids);
+  }
+  function hubIntelKeyChanges(raw) {
+    if (raw == null) return null;
+    var val = raw;
+    if (typeof val === "string") {
+      var s = val.trim();
+      if (s === "") return [hubIntelKcEmpty()];
+      try {
+        val = JSON.parse(s);
+      } catch (e) {
+        return [hubIntelKcLine(s, "kc0")];
+      }
+      if (val == null) return [hubIntelKcEmpty()];
+    }
+    if (Array.isArray(val)) {
+      var nodes = [];
+      val.forEach(function(el, i) {
+        if (el == null) return;
+        if (typeof el === "object") {
+          var n = hubIntelKcObject(el, "kc" + i);
+          if (n) nodes.push(n);
+        } else {
+          var t = String(el).trim();
+          if (t !== "") nodes.push(hubIntelKcLine(t, "kc" + i));
+        }
+      });
+      return nodes.length ? nodes : [hubIntelKcEmpty()];
+    }
+    if (typeof val === "object") {
+      var one = hubIntelKcObject(val, "kc0");
+      return one ? [one] : [hubIntelKcEmpty()];
+    }
+    var str = String(val).trim();
+    return str !== "" ? [hubIntelKcLine(str, "kc0")] : [hubIntelKcEmpty()];
+  }
+  var HUB_INTEL_DISCUSS_STYLE = { marginTop: "14px", display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", background: "transparent", border: "1px solid #0EA5E9", color: "#0EA5E9", borderRadius: "8px", padding: "6px 12px", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 };
+  function hubIntelDiscussBtn(seed, key) {
+    return React.createElement("button", {
+      key: key || "discuss",
+      type: "button",
+      style: HUB_INTEL_DISCUSS_STYLE,
+      "aria-label": "Discuss with Eileen",
+      onClick: function() {
+        if (typeof window.__klDiscussWithEileen === "function") window.__klDiscussWithEileen(seed);
+        else if (typeof window.__klSeedInput === "function") window.__klSeedInput(seed);
+      }
+    }, "\u2192 Discuss with Eileen");
+  }
   function hubIntelCard(row, idx, isTracked, onToggle) {
     var cardStyle = isTracked ? Object.assign({}, HUB_INTEL_CARD_STYLE, HUB_INTEL_CARD_TRACKING_STYLE) : HUB_INTEL_CARD_STYLE;
     var children = [];
@@ -9474,9 +9550,10 @@
     if (row.status) chips.push(hubIntelChip(hubIntelText(row.status), null, "status"));
     if (chips.length) children.push(React.createElement("div", { key: "chips", style: HUB_INTEL_CHIPS_STYLE }, chips));
     if (row.headline_summary) children.push(React.createElement("div", { key: "sum", style: HUB_INTEL_SUMMARY_STYLE }, hubIntelText(row.headline_summary)));
-    if (row.key_changes != null && hubIntelText(row.key_changes) !== "") {
+    var kcNodes = hubIntelKeyChanges(row.key_changes);
+    if (kcNodes) {
       children.push(React.createElement("div", { key: "kch", style: HUB_INTEL_SUBHEAD_STYLE }, "Key changes"));
-      children.push(React.createElement("div", { key: "kc", style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.key_changes)));
+      children.push(React.createElement("div", { key: "kc" }, kcNodes));
     }
     var bi = hubIntelSanitiseHtml(row.business_impact_html);
     if (bi) {
@@ -9503,6 +9580,8 @@
       ));
     }
     if (row.disclaimer_text) children.push(React.createElement("div", { key: "disc", style: HUB_INTEL_DISCLAIMER_STYLE }, hubIntelText(row.disclaimer_text)));
+    var discussName = row.legislation_short_name || row.legislation_title || "this legislation";
+    children.push(hubIntelDiscussBtn("Explain the " + discussName + " and what it means for my organisation.", "discuss"));
     return React.createElement("div", { key: row.id != null ? row.id : idx, style: cardStyle }, children);
   }
   function HubIntelHorizonView({ hubSession }) {
@@ -9640,6 +9719,12 @@
     if (row.description != null && hubIntelText(row.description) !== "") {
       children.push(React.createElement("div", { key: "desc", style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.description)));
     }
+    var reqName = hubIntelText(row.requirement_name) || "this requirement";
+    var reqBasis = hubIntelText(row.statutory_basis);
+    children.push(hubIntelDiscussBtn(
+      "Explain the requirement '" + reqName + "'" + (reqBasis ? " (" + reqBasis + ")" : "") + " and how we comply.",
+      "discuss"
+    ));
     return React.createElement("div", { key: row.id != null ? row.id : idx, style: HUB_INTEL_CARD_STYLE }, children);
   }
   function HubIntelInForceView({ hubSession }) {
@@ -10911,7 +10996,7 @@
           className: "kl-action-btn",
           onClick: onBack,
           "aria-label": "Back to Eileen"
-        }, "\u2190 Back"),
+        }, "\u2190 Back to Eileen"),
         React.createElement("div", { style: { fontSize: "15px", fontWeight: 500, color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif" } }, label)
       ),
       body
@@ -10970,6 +11055,7 @@
     const hubChrome = hubMode || operationalMode;
     const orgTier = hubSession && hubSession.orgTier;
     const [currentFacet, setCurrentFacet] = useState(null);
+    const [pendingEileenSeed, setPendingEileenSeed] = useState(null);
     const [matterRefreshKey, setMatterRefreshKey] = useState(0);
     function handleSelectFacet(id) {
       setCurrentFacet(id);
@@ -10977,6 +11063,13 @@
         window.location.hash = "/";
       }
     }
+    useEffect(function() {
+      if (pendingEileenSeed != null && !currentFacet) {
+        var seed = pendingEileenSeed;
+        setPendingEileenSeed(null);
+        if (typeof window.__klSeedInput === "function") window.__klSeedInput(seed);
+      }
+    }, [pendingEileenSeed, currentFacet]);
     const [accessType, setAccessType] = useState(window.__klAccessType || null);
     const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
     const [sessionExpiresAt, setSessionExpiresAt] = useState(window.__klSessionExpiry || null);
@@ -11375,6 +11468,11 @@
         ev.initCustomEvent("kl-seed-input", true, true, { text: text2 });
         window.dispatchEvent(ev);
       }
+    };
+    window.__klDiscussWithEileen = function(seed) {
+      if (typeof seed !== "string" || !seed) return;
+      setPendingEileenSeed(seed);
+      setCurrentFacet(null);
     };
     window.__klOpenPanel = function(panelId) {
       handleSelectPanel(panelId);
@@ -11811,7 +11909,7 @@
         nexusState,
         prefersReducedMotion: prefersReducedMotion.current,
         lang,
-        hubMode,
+        hubChrome,
         currentFacet,
         onSelectFacet: (id) => {
           handleSelectFacet(id);

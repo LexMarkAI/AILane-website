@@ -3224,7 +3224,7 @@ function CrownJewels({ onQuery, disabled }) {
 
 // ─── Sidebar ───
 
-function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubMode, currentFacet, onSelectFacet }) {
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet }) {
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
@@ -3238,16 +3238,19 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
   var setFeedExpanded = _feedExpanded[1];
 
   useEffect(function() {
-    // OOX-001 INTELLIGENCE-FOLD §1.1: the feed is public-KL only. In hub mode it is
-    // no longer rendered (the in-force statutory catalogue now lives inside the
-    // Intelligence facet — §1.2), so skip the fetch entirely.
-    if (hubMode) return;
+    // OOX-001 INTELLIGENCE-FOLD §1.1 + OOX-CARDS §1.1: the feed is PUBLIC-KL only.
+    // In the gated hub chrome — hub mode OR operational mode (hubChrome) — it is no
+    // longer rendered (the in-force statutory catalogue now lives inside the
+    // Intelligence facet), so skip the fetch entirely. The earlier fold gated this on
+    // hubMode alone, which left the feed live at /operational/ (operationalMode true,
+    // hubMode false). Keying on hubChrome removes it in operational mode too.
+    if (hubChrome) return;
     var cancelled = false;
     loadRegulatoryFeed().then(function(items) {
       if (!cancelled) setFeedItems(items);
     });
     return function() { cancelled = true; };
-  }, [hubMode]);
+  }, [hubChrome]);
 
   return React.createElement('nav', { className: 'kl-sidebar' + (open ? '' : ' collapsed'), role: 'navigation', 'aria-label': 'Conversation history' },
     // §5 — Sidebar Nexus indicator (20px, shows Eileen's current state)
@@ -3269,12 +3272,14 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
       )
     ),
 
-    // OOX-001 INTELLIGENCE-FOLD §1.1: this middle scroll panel is PUBLIC-KL ONLY. In
-    // hub/operational mode the "Regulatory Intelligence" feed is removed (its in-force
+    // OOX-001 INTELLIGENCE-FOLD §1.1 + OOX-CARDS §1.1: this middle scroll panel is
+    // PUBLIC-KL ONLY. In the gated hub chrome — hub mode OR operational mode
+    // (hubChrome) — the "Regulatory Intelligence" feed is removed (its in-force
     // statutory catalogue now lives inside the Intelligence facet — §1.2) and the
-    // "Your workspace" facet rail occupies the scroll area instead. Public KL: the feed
-    // below is unchanged. The rail keeps Eileen / New Conversation / workspace / History.
-    hubMode
+    // "Your workspace" facet rail occupies the scroll area instead. Public KL (neither
+    // flag): the feed below is unchanged. The rail keeps Eileen / New Conversation /
+    // workspace / History.
+    hubChrome
       ? React.createElement('div', {
           style: { flex: 1, overflowY: 'auto', minHeight: 0, borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0' },
         },
@@ -8258,6 +8263,93 @@ function hubIntelChip(label, variant, key) {
   return React.createElement('span', { key: key, style: extra ? Object.assign({}, HUB_INTEL_CHIP_BASE, extra) : HUB_INTEL_CHIP_BASE }, label);
 }
 
+// OOX-CARDS §1.2 — key_changes (kl_legislative_horizon, jsonb) arrives either as a
+// proper array (2 of 48 rows) or, more often, as a JSON STRING of that array (46
+// rows). Each element is an object {change,severity,expected,note} or a plain string.
+// Render DEFENSIVELY: JSON.parse a string first, render every element as escaped React
+// children — NEVER String(object) → "[object Object]" — and degrade to a graceful line
+// when empty/unparseable. Zero dangerouslySetInnerHTML in this path.
+var HUB_INTEL_KC_LINE_STYLE = { marginTop: '8px', color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' };
+var HUB_INTEL_KC_META_STYLE = { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' };
+function hubIntelKcEmpty() {
+  return React.createElement('div', { key: 'kc-empty', style: HUB_INTEL_KC_LINE_STYLE }, 'No key changes listed yet.');
+}
+function hubIntelKcLine(text, key) {
+  return React.createElement('div', { key: key, style: HUB_INTEL_KC_LINE_STYLE }, text);
+}
+// One key-changes object element → change (primary, escaped) + severity/expected as
+// small secondary chips where present. Returns null (skipped) if it carries no usable
+// text — the raw object is never rendered.
+function hubIntelKcObject(el, key) {
+  if (el == null || typeof el !== 'object') return null;  // never read fields off null
+  var change = el.change != null ? String(el.change).trim() : '';
+  var note = el.note != null ? String(el.note).trim() : '';
+  var primary = change !== '' ? change : note;
+  if (primary === '') return null;
+  var chips = [];
+  if (el.severity != null && String(el.severity).trim() !== '') {
+    var sev = String(el.severity).trim();
+    var high = /high|critical|severe|urgent/i.test(sev);
+    chips.push(hubIntelChip('Severity: ' + sev, high ? 'high' : null, 'sev'));
+  }
+  if (el.expected != null && String(el.expected).trim() !== '') {
+    chips.push(hubIntelChip('Expected: ' + String(el.expected).trim(), null, 'exp'));
+  }
+  var kids = [React.createElement('div', { key: 'c' }, primary)];
+  if (chips.length) kids.push(React.createElement('div', { key: 'm', style: HUB_INTEL_KC_META_STYLE }, chips));
+  return React.createElement('div', { key: key, style: HUB_INTEL_KC_LINE_STYLE }, kids);
+}
+// Returns an array of escaped React children for key_changes, or null to skip the
+// whole "Key changes" section (only when the value is absent). Handles: JS array,
+// JSON-string of an array, array of objects, array of strings, a bare object, and the
+// empty / empty-array / unparseable cases (graceful "No key changes listed yet.").
+function hubIntelKeyChanges(raw) {
+  if (raw == null) return null;
+  var val = raw;
+  if (typeof val === 'string') {
+    var s = val.trim();
+    if (s === '') return [hubIntelKcEmpty()];
+    try { val = JSON.parse(s); }
+    catch (e) { return [hubIntelKcLine(s, 'kc0')]; }  // non-JSON prose → one escaped line
+    // The string parsed to a JSON literal null/undefined (e.g. the text "null") →
+    // empty content; degrade gracefully rather than reaching the object branch.
+    if (val == null) return [hubIntelKcEmpty()];
+  }
+  if (Array.isArray(val)) {
+    var nodes = [];
+    val.forEach(function (el, i) {
+      if (el == null) return;
+      if (typeof el === 'object') { var n = hubIntelKcObject(el, 'kc' + i); if (n) nodes.push(n); }
+      else { var t = String(el).trim(); if (t !== '') nodes.push(hubIntelKcLine(t, 'kc' + i)); }
+    });
+    return nodes.length ? nodes : [hubIntelKcEmpty()];
+  }
+  if (typeof val === 'object') {                        // a bare object → its change line
+    var one = hubIntelKcObject(val, 'kc0');
+    return one ? [one] : [hubIntelKcEmpty()];
+  }
+  var str = String(val).trim();                         // number/bool → text or fallback
+  return str !== '' ? [hubIntelKcLine(str, 'kc0')] : [hubIntelKcEmpty()];
+}
+
+// OOX-CARDS §1.3 — "Discuss with Eileen" control shared by both Intelligence card
+// types. Closing the facet + seeding the Eileen input is handled by the App-level
+// window.__klDiscussWithEileen (deferred dispatch so the seed lands after the
+// conversation's MessageInput remounts). Falls back to a plain seed if that hub global
+// is somehow absent. Mirrors the existing RegulatoryFeed "Discuss" affordance (seeds
+// the input; does NOT auto-send).
+var HUB_INTEL_DISCUSS_STYLE = { marginTop: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', background: 'transparent', border: '1px solid #0EA5E9', color: '#0EA5E9', borderRadius: '8px', padding: '6px 12px', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600 };
+function hubIntelDiscussBtn(seed, key) {
+  return React.createElement('button', {
+    key: key || 'discuss', type: 'button', style: HUB_INTEL_DISCUSS_STYLE,
+    'aria-label': 'Discuss with Eileen',
+    onClick: function () {
+      if (typeof window.__klDiscussWithEileen === 'function') window.__klDiscussWithEileen(seed);
+      else if (typeof window.__klSeedInput === 'function') window.__klSeedInput(seed);
+    },
+  }, '→ Discuss with Eileen');
+}
+
 // One pipeline card. Header (title + stage/expected meta + track toggle), type/
 // priority/status chips, headline + key changes (escaped), the two sanitised
 // *_html columns, affected-category chips, a plain source link, the per-item
@@ -8296,9 +8388,12 @@ function hubIntelCard(row, idx, isTracked, onToggle) {
 
   // Headline + key changes — escaped React children.
   if (row.headline_summary) children.push(React.createElement('div', { key: 'sum', style: HUB_INTEL_SUMMARY_STYLE }, hubIntelText(row.headline_summary)));
-  if (row.key_changes != null && hubIntelText(row.key_changes) !== '') {
+  // §1.2 (OOX-CARDS) — key_changes rendered defensively (array | JSON-string of
+  // objects/strings); never "[object Object]", graceful fallback when empty. Escaped.
+  var kcNodes = hubIntelKeyChanges(row.key_changes);
+  if (kcNodes) {
     children.push(React.createElement('div', { key: 'kch', style: HUB_INTEL_SUBHEAD_STYLE }, 'Key changes'));
-    children.push(React.createElement('div', { key: 'kc', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.key_changes)));
+    children.push(React.createElement('div', { key: 'kc' }, kcNodes));
   }
 
   // §1.2 the ONLY dangerouslySetInnerHTML — the two estate-authored HTML columns,
@@ -8332,6 +8427,11 @@ function hubIntelCard(row, idx, isTracked, onToggle) {
 
   // Per-item disclaimer footnote (escaped).
   if (row.disclaimer_text) children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_DISCLAIMER_STYLE }, hubIntelText(row.disclaimer_text)));
+
+  // §1.3 (OOX-CARDS) — "Discuss with Eileen": switch the centre back to Eileen, seeded
+  // with this instrument's context (seed only; does NOT auto-send).
+  var discussName = row.legislation_short_name || row.legislation_title || 'this legislation';
+  children.push(hubIntelDiscussBtn('Explain the ' + discussName + ' and what it means for my organisation.', 'discuss'));
 
   return React.createElement('div', { key: row.id != null ? row.id : idx, style: cardStyle }, children);
 }
@@ -8494,6 +8594,14 @@ function hubIntelReqCard(row, idx) {
   if (row.description != null && hubIntelText(row.description) !== '') {
     children.push(React.createElement('div', { key: 'desc', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.description)));
   }
+
+  // §1.3 (OOX-CARDS) — "Discuss with Eileen": seed Eileen with this statutory
+  // requirement's context (seed only; does NOT auto-send).
+  var reqName = hubIntelText(row.requirement_name) || 'this requirement';
+  var reqBasis = hubIntelText(row.statutory_basis);
+  children.push(hubIntelDiscussBtn(
+    "Explain the requirement '" + reqName + "'" + (reqBasis ? ' (' + reqBasis + ')' : '') + ' and how we comply.',
+    'discuss'));
 
   return React.createElement('div', { key: row.id != null ? row.id : idx, style: HUB_INTEL_CARD_STYLE }, children);
 }
@@ -9614,7 +9722,7 @@ function HubFacetView({ facet, hubSession, onBack }) {
     },
       React.createElement('button', {
         type: 'button', className: 'kl-action-btn', onClick: onBack, 'aria-label': 'Back to Eileen',
-      }, '← Back'),
+      }, '← Back to Eileen'),
       React.createElement('div', { style: { fontSize: '15px', fontWeight: 500, color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif" } }, label)
     ),
     body
@@ -9673,6 +9781,9 @@ function App() {
   const orgTier = hubSession && hubSession.orgTier;
   // Active workspace facet (hub mode only). null ⇒ Eileen conversation shows.
   const [currentFacet, setCurrentFacet] = useState(null);
+  // OOX-CARDS §1.3 — a pending "Discuss with Eileen" seed: set alongside closing the
+  // facet, dispatched by the effect below once the conversation (MessageInput) mounts.
+  const [pendingEileenSeed, setPendingEileenSeed] = useState(null);
   // Bumped after each hub Eileen answer to re-list the matter bar.
   const [matterRefreshKey, setMatterRefreshKey] = useState(0);
   function handleSelectFacet(id) {
@@ -9682,6 +9793,17 @@ function App() {
       window.location.hash = '/';
     }
   }
+  // OOX-CARDS §1.3 — when a card's "Discuss with Eileen" closes the facet, the
+  // ConversationArea/MessageInput remounts in the same commit; child effects fire
+  // before this parent effect, so the kl-seed-input listener is registered by the time
+  // we seed. Seed the input (does NOT auto-send), then clear the pending value.
+  useEffect(function () {
+    if (pendingEileenSeed != null && !currentFacet) {
+      var seed = pendingEileenSeed;
+      setPendingEileenSeed(null);
+      if (typeof window.__klSeedInput === 'function') window.__klSeedInput(seed);
+    }
+  }, [pendingEileenSeed, currentFacet]);
 
   const [accessType, setAccessType] = useState(window.__klAccessType || null);
   const [tier, setTier] = useState(window.__klTier || window.__klProductType || null);
@@ -10110,6 +10232,16 @@ function App() {
       ev.initCustomEvent('kl-seed-input', true, true, { text: text });
       window.dispatchEvent(ev);
     }
+  };
+  // OOX-CARDS §1.3 — "Discuss with Eileen" from an Intelligence card: switch the centre
+  // back to Eileen (close any open workspace facet) AND seed the input with the item's
+  // context. The seed dispatch is deferred (see the pendingEileenSeed effect) so it
+  // lands after the conversation's MessageInput remounts. Reuses the existing seed
+  // mechanism — no new chat surface; does NOT auto-send.
+  window.__klDiscussWithEileen = function (seed) {
+    if (typeof seed !== 'string' || !seed) return;
+    setPendingEileenSeed(seed);
+    setCurrentFacet(null);
   };
   // Sprint G §2.8: Expose the panel opener so the welcome-state
   // "Browse the Library" button can open the Research Panel.
@@ -10639,7 +10771,7 @@ function App() {
         nexusState={nexusState}
         prefersReducedMotion={prefersReducedMotion.current}
         lang={lang}
-        hubMode={hubMode}
+        hubChrome={hubChrome}
         currentFacet={currentFacet}
         onSelectFacet={(id) => { handleSelectFacet(id); if (window.innerWidth <= 768) setSidebarOpen(false); }}
       />
