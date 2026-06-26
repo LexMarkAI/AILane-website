@@ -42,6 +42,11 @@ var HUB_FACET_LABELS = {
 };
 
 // Preview flag — `?hub=1` in the URL OR localStorage `ailane_kl_hub === 'on'`.
+// OOX-001 (AMD-230) cutover: RETIRED as an activation gate (KL-HUB-SPEC §5
+// step 9). The hub now activates from the authenticated session itself (see
+// detectHubSession). This helper is retained only as a no-op back-compat shim —
+// existing `?hub=1` / localStorage links still resolve to the hub (now via
+// auth), they just no longer drive activation. Safe to remove in a later cleanup.
 function klHubFlagSet() {
   try {
     var q = new URLSearchParams(window.location.search || '');
@@ -53,25 +58,36 @@ function klHubFlagSet() {
 
 // Detect an authenticated operational session — mirrors the operational/index.html
 // guard (createClient → getSession() → JWT decode → tier). Resolves to a
-// hubSession object or null. Returns null IMMEDIATELY (no Supabase client, no
-// network) when the preview flag is absent, so public mode incurs zero added
-// behaviour. hubSession shape mirrors window.AILANE_OPS plus the resolved tier.
+// hubSession object or null.
+//
+// OOX-001 (AMD-230) cutover — the preview flag is retired (KL-HUB-SPEC §5 step 9):
+//   • Hub activates for any AUTHENTICATED session whose user holds an operational
+//     org (get_my_org_id() → non-null) AND whose tier is allow-listed — no
+//     `?hub=1` required. `?hub=1`/localStorage remain a harmless no-op (back-compat).
+//   • Onboarding-aware routing (§1.2): read operational_onboarding_state
+//     .landing_unlocked (RLS-scoped to the caller's org). unlocked → hub; not
+//     unlocked (false / no row) → redirect to /operational/onboarding/ (finish
+//     onboarding first; never render an empty hub mid-onboarding). Read-resilient:
+//     any org/state read error fails OPEN to the hub (never trap a paying tenant
+//     out) + console.warn.
+//   • Truly anonymous visitors, and authenticated users with no operational org,
+//     still get the public KL unchanged (resolve null, no redirect).
+// hubSession shape mirrors window.AILANE_OPS plus the resolved tier.
 function detectHubSession() {
-  if (!klHubFlagSet()) return Promise.resolve(null);
   if (typeof window === 'undefined' || !window.supabase || !window.supabase.createClient) {
     return Promise.resolve(null);
   }
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   return sb.auth.getSession().then(function (gs) {
     var session = gs && gs.data && gs.data.session;
-    if (!session) return null;
+    if (!session) return null;  // truly anonymous → public KL (unchanged)
     var token = session.access_token;
     var payload;
     try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
     // OOX-001 (AMD-230): AAL2 is no longer an activation precondition — any
-    // authenticated session yields the hub when the preview flag is set. The AAL2
-    // control stays in the data layer (RLS: aal2_required_when_enrolled on the
-    // three Vault document tables), not as a front-end gate.
+    // authenticated session yields the hub. The AAL2 control stays in the data
+    // layer (RLS: aal2_required_when_enrolled on the three Vault document tables),
+    // not as a front-end gate.
     var userId = payload.sub;
     return fetch(
       SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
@@ -80,7 +96,7 @@ function detectHubSession() {
       .then(function (rows) {
         var tier = rows && rows[0] && rows[0].subscription_tier;
         if (!tier || HUB_ALLOWED_TIERS.indexOf(tier) < 0) return null;
-        return {
+        var hubSession = {
           sb: sb,
           token: token,
           anon: SUPABASE_ANON_KEY,
@@ -90,6 +106,38 @@ function detectHubSession() {
           email: payload.email || '',
           tier: tier,
         };
+        // §1.1 — confirm an operational org via get_my_org_id (the same RPC the
+        // facets use). Non-null org ⇒ operational tenant → onboarding-aware
+        // routing. Null org (authenticated, no org) ⇒ public KL. An RPC *error*
+        // (≠ "no org") fails OPEN to the hub — never trap a paying tenant out.
+        return sb.rpc('get_my_org_id').then(function (orgRes) {
+          if (orgRes && orgRes.error) {
+            console.warn('[OOX-001] get_my_org_id failed — failing open to hub', orgRes.error);
+            return hubSession;
+          }
+          var orgId = orgRes && orgRes.data;
+          if (!orgId) return null;  // authenticated, no operational org → public KL
+          // §1.2 — onboarding-aware routing. RLS scopes this read to the caller's
+          // org (mirrors the onboarding page's RLS-scoped write), so no org filter
+          // is needed. landing_unlocked === true → hub; false / no row → finish
+          // onboarding first; read error → fail OPEN to the hub + warn.
+          return sb.from('operational_onboarding_state')
+            .select('landing_unlocked')
+            .limit(1)
+            .then(function (stRes) {
+              if (stRes && stRes.error) {
+                console.warn('[OOX-001] onboarding-state read failed — failing open to hub', stRes.error);
+                return hubSession;
+              }
+              var row = stRes && stRes.data && stRes.data[0];
+              if (row && row.landing_unlocked === true) return hubSession;  // onboarded → hub
+              window.location.replace('/operational/onboarding/');          // not onboarded → finish first
+              return null;
+            });
+        }).catch(function (e) {
+          console.warn('[OOX-001] hub routing resolution failed — failing open to hub', e);
+          return hubSession;
+        });
       })
       .catch(function () { return null; });
   }).catch(function () { return null; });

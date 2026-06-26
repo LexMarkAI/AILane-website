@@ -1471,20 +1471,7 @@
     notes: "Notes",
     calendar: "Calendar"
   };
-  function klHubFlagSet() {
-    try {
-      var q = new URLSearchParams(window.location.search || "");
-      if (q.get("hub") === "1") return true;
-    } catch (e) {
-    }
-    try {
-      if (localStorage.getItem("ailane_kl_hub") === "on") return true;
-    } catch (e) {
-    }
-    return false;
-  }
   function detectHubSession() {
-    if (!klHubFlagSet()) return Promise.resolve(null);
     if (typeof window === "undefined" || !window.supabase || !window.supabase.createClient) {
       return Promise.resolve(null);
     }
@@ -1508,7 +1495,7 @@
       }).then(function(rows) {
         var tier = rows && rows[0] && rows[0].subscription_tier;
         if (!tier || HUB_ALLOWED_TIERS.indexOf(tier) < 0) return null;
-        return {
+        var hubSession = {
           sb,
           token,
           anon: SUPABASE_ANON_KEY,
@@ -1518,6 +1505,27 @@
           email: payload.email || "",
           tier
         };
+        return sb.rpc("get_my_org_id").then(function(orgRes) {
+          if (orgRes && orgRes.error) {
+            console.warn("[OOX-001] get_my_org_id failed \u2014 failing open to hub", orgRes.error);
+            return hubSession;
+          }
+          var orgId = orgRes && orgRes.data;
+          if (!orgId) return null;
+          return sb.from("operational_onboarding_state").select("landing_unlocked").limit(1).then(function(stRes) {
+            if (stRes && stRes.error) {
+              console.warn("[OOX-001] onboarding-state read failed \u2014 failing open to hub", stRes.error);
+              return hubSession;
+            }
+            var row = stRes && stRes.data && stRes.data[0];
+            if (row && row.landing_unlocked === true) return hubSession;
+            window.location.replace("/operational/onboarding/");
+            return null;
+          });
+        }).catch(function(e) {
+          console.warn("[OOX-001] hub routing resolution failed \u2014 failing open to hub", e);
+          return hubSession;
+        });
       }).catch(function() {
         return null;
       });
