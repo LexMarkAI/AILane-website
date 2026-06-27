@@ -1686,6 +1686,7 @@ function CommandCentre({ token, sections }) {
   const [genMsg, setGenMsg] = React.useState(null);
   const [alerts, setAlerts] = React.useState(null);   // { live, alerts, recentlyClosed, summary } | { live: false }
   const [actBusy, setActBusy] = React.useState(null); // 'alert_id:action' while a governance action posts
+  const [intelOpen, setIntelOpen] = React.useState(null); // Intelligence Alerts launcher open-count: null=loading, number=ok, '–'=error (§3.2)
   const [certs, setCerts] = React.useState(null);
   const [rooms, setRooms] = React.useState(null);
   const mounted = React.useRef(true);
@@ -1716,6 +1717,20 @@ function CommandCentre({ token, sections }) {
       });
     } catch (e) { console.error('ceo-legal-data governance_alerts', e); if (mounted.current) setAlerts({ live: false }); }
   }
+  // Intelligence Alerts launcher count (AILANE-CC-BRIEF-INTELLIGENCE-ALERTS-001 §3.2).
+  // Independent of the governance assessment feed above: counts open rows from the
+  // Director's full alert inbox via the deployed RPC. Failure → en-dash, never throws.
+  async function loadIntelOpen() {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_ceo_intelligence_alerts`, {
+        method: 'POST', headers: H, body: JSON.stringify({ p_limit: 500 }),
+      });
+      if (!r.ok) { console.warn('fn_ceo_intelligence_alerts (launcher count) HTTP ' + r.status); if (mounted.current) setIntelOpen('–'); return; }
+      const j = await r.json();
+      const n = Array.isArray(j) ? j.filter(a => a && a.status === 'open').length : 0;
+      if (mounted.current) setIntelOpen(n);
+    } catch (e) { console.warn('fn_ceo_intelligence_alerts (launcher count) error', e); if (mounted.current) setIntelOpen('–'); }
+  }
   async function govAction(action, alertId) {
     if (actBusy) return;
     setActBusy(String(alertId) + ':' + action);
@@ -1739,7 +1754,7 @@ function CommandCentre({ token, sections }) {
       if (r.ok) { const j = await r.json(); if (mounted.current) setRooms(j); }
     } catch (e) { console.error('ceo-portfolio-data dealrooms', e); }
   }
-  React.useEffect(() => { if (token) { loadIntel(); loadAlerts(); loadCerts(); loadRooms(); } }, [token]);
+  React.useEffect(() => { if (token) { loadIntel(); loadAlerts(); loadCerts(); loadRooms(); loadIntelOpen(); } }, [token]);
 
   async function generateBrief() {
     if (genBusy) return; setGenBusy(true); setGenMsg(null);
@@ -1838,13 +1853,14 @@ function CommandCentre({ token, sections }) {
           <div className="tile-foot"><span className="chip cyan">Knowledge Library</span><span className="chip cyan">Data estate</span></div>
         </Tile>
 
-        {/* 6 — GOVERNANCE ALERTS → modal (assessment feed, GOV-ALERTS-WEBSITE-001 §W-2) */}
-        <Tile iconClass={breached > 0 ? 'red' : 'cyan'} accent={breached > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)'} icon={<Icons.zap />} title="Governance Alerts"
-          status={awaitingDirector != null ? <StatusDot color={breached > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)'} label={String(awaitingDirector)} /> : null}
-          onClick={() => setModal('alerts')}>
+        {/* 6 — INTELLIGENCE ALERTS → console page (AILANE-CC-BRIEF-INTELLIGENCE-ALERTS-001 §3) */}
+        <Tile iconClass={(typeof intelOpen === 'number' && intelOpen > 0) ? 'red' : 'cyan'} accent={(typeof intelOpen === 'number' && intelOpen > 0) ? 'var(--accent-red)' : 'var(--accent-cyan)'} icon={<Icons.zap />} title="Intelligence Alerts"
+          status={intelOpen != null ? <StatusDot color={(typeof intelOpen === 'number' && intelOpen > 0) ? 'var(--accent-red)' : 'var(--accent-cyan)'} label={String(intelOpen)} /> : null}
+          onClick={() => window.location.href = '/AiLaneCEO/intelligence-alerts/'}>
           <div className="tile-headline">
-            {alerts == null ? 'Loading…' : (!govLive ? 'Assessment feed not yet live.'
-              : <span><strong>{awaitingDirector} awaiting director</strong>{breached > 0 ? ' · ' + breached + ' SLA-breached' : ''}</span>)}
+            {intelOpen == null ? 'Loading…'
+              : (intelOpen === '–' ? 'Alert inbox count unavailable.'
+                : <span><strong>{intelOpen} open</strong> · Director intelligence alert inbox</span>)}
           </div>
         </Tile>
 
