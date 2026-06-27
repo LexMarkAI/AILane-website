@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parliament Live — Operational Readiness — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) — verbatim from the horizon surface; not narrowed -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase CDN — FIRST script in head after GA4/CSP; auth guard polls for it -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <style>
+    :root { --op-cyan: var(--tier-operational); --op-cyan-glow: var(--tier-operational-glow); }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--surface-void, #050c18); }
+    body {
+      background: var(--surface-void, #050c18);
+      color: var(--text-body, #e2e8f0);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--op-cyan); }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 96px; }
+
+    /* ---- Header ---- */
+    .eyebrow {
+      font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--op-cyan); font-weight: 600; margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 4vw, 2.9rem); font-weight: 700;
+      color: var(--text-prime, #f1f5f9); line-height: 1.1; margin-bottom: 12px;
+    }
+    .lede { color: var(--text-sec, #94a3b8); font-size: 1.02rem; max-width: 64ch; }
+
+    .head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 18px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 13px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      font-size: 0.74rem; letter-spacing: 0.04em; color: var(--text-sec, #94a3b8);
+    }
+    .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--op-cyan); box-shadow: 0 0 8px var(--op-cyan-glow); }
+    .last-checked { font-size: 0.78rem; color: var(--text-mute, #64748b); font-family: 'Space Mono', ui-monospace, monospace; letter-spacing: 0.02em; }
+
+    /* ---- Standing disclaimer (Opinion C1: shown before reliance, plain & prominent) ---- */
+    .disclaimer-banner {
+      margin: 30px 0 36px; padding: 18px 20px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-left: 3px solid var(--op-cyan);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      color: var(--text-body, #e2e8f0); font-size: 0.95rem; line-height: 1.6;
+    }
+    .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
+
+    .section-head {
+      font-size: 0.74rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+      margin: 44px 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+    .section-head:first-of-type { margin-top: 0; }
+
+    /* ---- Recent movements strip (Zone B) ---- */
+    #movements-strip { display: flex; flex-direction: column; gap: 10px; }
+    .move-quiet {
+      padding: 16px 18px; color: var(--text-sec, #94a3b8); font-size: 0.92rem; line-height: 1.6;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px);
+    }
+    .move-quiet strong { color: var(--text-prime, #f1f5f9); }
+    .move-row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-left: 2px solid var(--op-cyan);
+      border-radius: var(--card-radius-sm, 8px);
+    }
+    .move-name { font-weight: 700; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; }
+    .move-transition { font-size: 0.85rem; color: var(--text-sec, #94a3b8); font-family: 'Space Mono', ui-monospace, monospace; }
+    .move-transition .arrow { color: var(--op-cyan); padding: 0 4px; }
+    .move-when { font-size: 0.78rem; color: var(--text-mute, #64748b); margin-left: auto; }
+    .badge-assent {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+      background: rgba(16,185,129,0.12); color: var(--status-ok, #10b981); border: 1px solid rgba(16,185,129,0.3);
+      letter-spacing: 0.02em;
+    }
+
+    /* ---- Bill-passage board (Zone A) ---- */
+    .stage-group { margin-bottom: 30px; }
+    .stage-group:last-child { margin-bottom: 0; }
+    .stage-group-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+    .stage-group-title { font-size: 1.05rem; font-weight: 700; color: var(--text-prime, #f1f5f9); }
+    .stage-group-note { font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--status-ok, #10b981); font-weight: 600; }
+    .stage-list { display: flex; flex-direction: column; gap: 14px; }
+
+    .card {
+      position: relative; padding: 18px 20px;
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius, 12px);
+      transition: border-color 0.2s ease;
+    }
+    .card:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .card-title { font-size: 1.12rem; font-weight: 700; color: var(--text-prime, #f1f5f9); line-height: 1.25; }
+    .card-summary { margin-top: 10px; color: var(--text-body, #e2e8f0); font-size: 0.95rem; }
+    .card-enact { margin-top: 10px; font-size: 0.82rem; color: var(--text-mute, #64748b); }
+    .card-enact strong { color: var(--text-sec, #94a3b8); font-weight: 600; }
+
+    .chip-relevant {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.7rem; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+      background: rgba(34,211,238,0.1); color: var(--op-cyan); border: 1px solid rgba(34,211,238,0.3);
+      letter-spacing: 0.02em;
+    }
+    .chip-relevant::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--op-cyan); }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+    .tag {
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      color: var(--text-sec, #94a3b8); letter-spacing: 0.03em;
+    }
+    .tag.type { color: var(--op-cyan); border-color: rgba(34,211,238,0.3); }
+    .tag.priority-critical { color: var(--status-err, #ef4444); border-color: rgba(239,68,68,0.35); }
+    .tag.priority-high { color: var(--status-warn, #f59e0b); border-color: rgba(245,158,11,0.3); }
+
+    .card-foot { display: flex; align-items: center; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
+    .source-link { font-size: 0.85rem; font-weight: 500; }
+
+    /* ---- States ---- */
+    .state-msg { padding: 40px 22px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.95rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 30px; height: 30px; margin: 0 auto 16px; border: 3px solid rgba(34,211,238,0.15); border-top-color: var(--op-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Ask Eileen panel (Zone C) ---- */
+    .eileen-panel {
+      margin-top: 8px; padding: 24px 24px 20px;
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-lg, 16px);
+    }
+    .eileen-intro { color: var(--text-sec, #94a3b8); font-size: 0.92rem; margin-bottom: 16px; }
+    .eileen-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .eileen-prompt {
+      padding: 8px 13px; border-radius: 999px;
+      background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.2);
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-size: 0.82rem; cursor: pointer;
+      transition: all 0.15s ease; text-align: left;
+    }
+    .eileen-prompt:hover:not(:disabled) { border-color: var(--op-cyan); color: var(--op-cyan); }
+    .eileen-prompt:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .eileen-messages { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .eileen-msg { max-width: 100%; }
+    .eileen-msg-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; font-family: 'Space Mono', ui-monospace, monospace; }
+    .eileen-msg.user .eileen-msg-label { color: var(--text-mute, #64748b); }
+    .eileen-msg.eileen .eileen-msg-label { color: var(--op-cyan); }
+    .eileen-msg-body {
+      padding: 12px 15px; border-radius: 12px; font-size: 0.95rem; line-height: 1.6;
+      background: var(--surface-card, #0c1525); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      color: var(--text-body, #e2e8f0); word-wrap: break-word; overflow-wrap: anywhere;
+    }
+    .eileen-msg.eileen .eileen-msg-body { border-left: 2px solid var(--op-cyan); }
+    .eileen-msg-body p { margin: 0 0 8px; }
+    .eileen-msg-body p:last-child { margin-bottom: 0; }
+    .eileen-msg-body strong { color: var(--text-prime, #f1f5f9); font-weight: 600; }
+    .eileen-msg-body em { font-style: italic; }
+    .eileen-msg-body ul, .eileen-msg-body ol { margin: 6px 0 8px 20px; }
+    .eileen-msg-body li { margin-bottom: 3px; }
+    .eileen-msg-body h4, .eileen-msg-body h5, .eileen-msg-body h6 { color: var(--text-prime, #f1f5f9); font-weight: 600; margin: 10px 0 6px; font-size: 0.98rem; }
+    .eileen-msg-body code { font-family: 'Space Mono', ui-monospace, monospace; font-size: 0.85em; background: rgba(34,211,238,0.1); padding: 1px 5px; border-radius: 3px; }
+    .eileen-msg-body a { color: var(--op-cyan); }
+    .eileen-msg-body hr { border: none; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); margin: 12px 0; }
+
+    .eileen-working { display: flex; align-items: center; gap: 6px; padding: 6px 0 2px; }
+    .eileen-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--op-cyan); animation: eilPulse 1.4s ease-in-out infinite; }
+    .eileen-dot:nth-child(2) { animation-delay: 0.2s; }
+    .eileen-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes eilPulse { 0%,80%,100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+    .eileen-error { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--status-err, #ef4444); font-size: 0.88rem; margin-bottom: 14px; }
+    .eileen-retry {
+      padding: 6px 14px; border-radius: var(--card-radius-sm, 8px);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); background: transparent;
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .eileen-retry:hover { border-color: var(--op-cyan); color: var(--op-cyan); }
+
+    .eileen-inputbar { display: flex; align-items: flex-end; gap: 8px; }
+    .eileen-input {
+      flex: 1; padding: 11px 13px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.95rem;
+      resize: none; min-height: 44px; max-height: 150px; line-height: 1.5;
+    }
+    .eileen-input:focus { outline: none; border-color: var(--op-cyan); }
+    .eileen-send {
+      padding: 11px 20px; border: none; border-radius: var(--card-radius-sm, 8px);
+      background: var(--op-cyan); color: #042027; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+      transition: opacity 0.15s ease; flex-shrink: 0;
+    }
+    .eileen-send:hover:not(:disabled) { opacity: 0.9; }
+    .eileen-send:disabled { opacity: 0.45; cursor: not-allowed; }
+  </style>
+</head>
+<body style="visibility:hidden">
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">Operational Readiness</div>
+      <h1>Parliament Live</h1>
+      <p class="lede">Live progress of the employment legislation we track for you &mdash; refreshed daily from the UK Parliament.</p>
+      <div class="head-row">
+        <span class="pill">Intelligence, not legal advice</span>
+        <span class="last-checked" id="last-checked" hidden></span>
+      </div>
+    </header>
+
+    <div class="disclaimer-banner" role="note">
+      <strong>Parliament Live is forward regulatory intelligence &mdash; not legal advice.</strong>
+      Bill positions are provisional until Royal Assent and can change. This is not a complete record of all
+      Parliamentary activity. For advice on your own situation, consult a qualified professional.
+    </div>
+
+    <!-- Zone A — Bill-passage board -->
+    <h2 class="section-head">Bill passage</h2>
+    <div id="board">
+      <div class="state-msg"><div class="spinner"></div>Loading the Parliament board&hellip;</div>
+    </div>
+
+    <!-- Zone B — Recent movements -->
+    <h2 class="section-head">Recent movements</h2>
+    <div id="movements-strip">
+      <div class="state-msg">Checking for recent movements&hellip;</div>
+    </div>
+
+    <!-- Zone C — Ask Eileen about Parliament -->
+    <h2 class="section-head">Ask Eileen about Parliament</h2>
+    <section class="eileen-panel" id="eileen-panel">
+      <p class="eileen-intro">Ask Eileen what&rsquo;s moving in Parliament &mdash; she has the live Parliament context to hand. Pick a starting point or type your own question.</p>
+      <div class="eileen-prompts" id="eileen-prompts">
+        <button type="button" class="eileen-prompt" data-prompt="What moved in Parliament this week?">What moved in Parliament this week?</button>
+        <button type="button" class="eileen-prompt" data-prompt="Which tracked bills are closest to becoming law?">Which tracked bills are closest to becoming law?</button>
+        <button type="button" class="eileen-prompt" data-prompt="Which of these affects us?">Which of these affects us?</button>
+      </div>
+      <div class="eileen-messages" id="eileen-messages"></div>
+      <div class="eileen-inputbar">
+        <textarea class="eileen-input" id="eileen-input" rows="1" maxlength="4000"
+          placeholder="Ask Eileen about Parliament&hellip;" aria-label="Ask Eileen about Parliament"></textarea>
+        <button type="button" class="eileen-send" id="eileen-send" disabled>Ask</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- AUTH GUARD — runs before the app renders (matches operational/horizon/index.html live pattern, RULE 26) -->
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    // Live operational-room allow-list + institutional (mirrors operational/horizon/index.html).
+    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
+
+    var settled = false;
+    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+
+    // Poll for the Supabase CDN to load.
+    var polls = 0;
+    (function waitForSb() {
+      if (window.supabase && window.supabase.createClient) { boot(); return; }
+      if (++polls > 60) { fail(); return; }
+      setTimeout(waitForSb, 100);
+    })();
+
+    function boot() {
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { verify(gs.data.session); return; }
+        // Fallback: session may still be hydrating — listen with a 6s timeout.
+        var to = setTimeout(function () {
+          try { sub.data.subscription.unsubscribe(); } catch (e) {}
+          fail();
+        }, 6000);
+        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+          if (session && !settled) {
+            clearTimeout(to);
+            try { sub.data.subscription.unsubscribe(); } catch (e) {}
+            verify(session);
+          }
+        });
+      }).catch(fail);
+
+      function verify(session) {
+        if (settled) return;
+        var token = session.access_token, payload;
+        try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return fail(); }
+        var userId = payload.sub;
+        fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) {
+            if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
+              settled = true;
+              document.body.style.visibility = 'visible';
+              initParliament(token, SUPABASE_ANON, SUPABASE_URL);
+            } else { fail(); }
+          })
+          .catch(fail);
+      }
+    }
+  })();
+  </script>
+
+  <!-- APP — vanilla JS, no build step -->
+  <script>
+  function initParliament(token, anonKey, restUrl) {
+    var BASE_HEADERS = { 'Authorization': 'Bearer ' + token, 'apikey': anonKey, 'Content-Type': 'application/json' };
+    var EILEEN_URL = restUrl + '/functions/v1/eileen-operational';
+
+    var boardEl   = document.getElementById('board');
+    var stripEl   = document.getElementById('movements-strip');
+    var lastEl    = document.getElementById('last-checked');
+
+    // ---- Small DOM helper ----
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+
+    // ---- RPC helper (brief §2 call pattern) ----
+    function rpc(fn, body) {
+      return fetch(restUrl + '/rest/v1/rpc/' + fn, {
+        method: 'POST', headers: BASE_HEADERS, body: JSON.stringify(body || {})
+      }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+    }
+
+    function isHttp(u) { return typeof u === 'string' && /^https?:\/\//i.test(u); }
+
+    function fmtDate(ts) {
+      if (!ts) return '';
+      var d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function fmtDateTime(ts) {
+      if (!ts) return '';
+      var d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ===========================================================================
+    // Zone A — Bill-passage board (fn_parliament_live_feed)
+    // ===========================================================================
+    var STAGE_DEFS = [
+      { order: 10, label: 'Royal Assent', note: 'Now law' },
+      { order: 5,  label: 'Third Reading' },
+      { order: 4,  label: 'Report stage' },
+      { order: 3,  label: 'Committee stage' },
+      { order: 2,  label: 'Second Reading' },
+      { order: 1,  label: 'First Reading' },
+      { order: 0,  label: 'Other' }
+    ];
+    var KNOWN_ORDERS = { 10: 1, 5: 1, 4: 1, 3: 1, 2: 1, 1: 1, 0: 1 };
+    var PRIORITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 };
+
+    function bucketOrder(so) {
+      var n = (so == null) ? 0 : Number(so);
+      return KNOWN_ORDERS[n] ? n : 0;
+    }
+
+    function loadBoard() {
+      rpc('fn_parliament_live_feed', { p_limit: 200 })
+        .then(function (rows) { renderBoard(Array.isArray(rows) ? rows : []); })
+        .catch(function () {
+          boardEl.innerHTML = '';
+          boardEl.appendChild(el('div', 'state-msg', "Couldn't load the Parliament board right now. Please refresh."));
+        });
+    }
+
+    function renderBoard(rows) {
+      boardEl.innerHTML = '';
+
+      // "Last checked" — most recent last_status_check across the feed.
+      var newest = null;
+      rows.forEach(function (r) {
+        if (r && r.last_status_check) {
+          var t = new Date(r.last_status_check).getTime();
+          if (!isNaN(t) && (newest == null || t > newest)) newest = t;
+        }
+      });
+      if (newest != null) {
+        lastEl.textContent = 'Last checked ' + fmtDateTime(newest);
+        lastEl.hidden = false;
+      }
+
+      if (!rows.length) {
+        // §2.1 — empty is graceful: not available on your plan / nothing tracked yet.
+        boardEl.appendChild(el('div', 'state-msg',
+          'Parliament Live isn’t available on your current plan, or there are no bills being tracked for you yet.'));
+        return;
+      }
+
+      // Group by stage bucket.
+      var groups = {};
+      rows.forEach(function (r) {
+        var b = bucketOrder(r && r.stage_order);
+        (groups[b] = groups[b] || []).push(r);
+      });
+
+      STAGE_DEFS.forEach(function (def) {
+        var list = groups[def.order];
+        if (!list || !list.length) return;
+
+        // Sort within group: priority (critical→low) then short name.
+        list.sort(function (a, b) {
+          var pa = PRIORITY_RANK[String(a.priority || '').toLowerCase()];
+          var pb = PRIORITY_RANK[String(b.priority || '').toLowerCase()];
+          pa = (pa == null) ? 4 : pa; pb = (pb == null) ? 4 : pb;
+          if (pa !== pb) return pa - pb;
+          var na = String(a.legislation_short_name || a.legislation_title || '');
+          var nb = String(b.legislation_short_name || b.legislation_title || '');
+          return na.localeCompare(nb);
+        });
+
+        var group = el('div', 'stage-group');
+        var head = el('div', 'stage-group-head');
+        head.appendChild(el('span', 'stage-group-title', def.label));
+        if (def.note) head.appendChild(el('span', 'stage-group-note', def.note));
+        group.appendChild(head);
+
+        var listEl = el('div', 'stage-list');
+        list.forEach(function (item) { listEl.appendChild(buildCard(item)); });
+        group.appendChild(listEl);
+        boardEl.appendChild(group);
+      });
+    }
+
+    function buildCard(item) {
+      var card = el('div', 'card');
+
+      var top = el('div', 'card-top');
+      top.appendChild(el('div', 'card-title', item.legislation_short_name || item.legislation_title || 'Untitled bill'));
+      if (item.implicates_tenant === true) {
+        top.appendChild(el('span', 'chip-relevant', 'Relevant to you'));
+      }
+      card.appendChild(top);
+
+      // status_summary — ready-made server line (rendered verbatim as text).
+      if (item.status_summary) card.appendChild(el('div', 'card-summary', item.status_summary));
+
+      // expected_enactment note.
+      if (item.expected_enactment) {
+        var en = el('div', 'card-enact');
+        en.appendChild(el('strong', null, 'Expected enactment: '));
+        en.appendChild(document.createTextNode(item.expected_enactment));
+        card.appendChild(en);
+      }
+
+      // Tags: type, priority, affected categories.
+      var tags = el('div', 'tags');
+      if (item.legislation_type) tags.appendChild(el('span', 'tag type', item.legislation_type));
+      if (item.priority) {
+        var p = String(item.priority).toLowerCase();
+        var pcls = 'tag' + (PRIORITY_RANK[p] != null ? ' priority-' + p : '');
+        tags.appendChild(el('span', pcls, 'Priority: ' + item.priority));
+      }
+      if (Array.isArray(item.affected_categories)) {
+        item.affected_categories.forEach(function (c) { if (c) tags.appendChild(el('span', 'tag', c)); });
+      }
+      if (tags.childNodes.length) card.appendChild(tags);
+
+      // Footer: View on Parliament link.
+      if (isHttp(item.source_url)) {
+        var foot = el('div', 'card-foot');
+        var a = el('a', 'source-link', 'View on Parliament ↗');
+        a.href = item.source_url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        foot.appendChild(a);
+        card.appendChild(foot);
+      }
+
+      return card;
+    }
+
+    // ===========================================================================
+    // Zone B — Recent movements (fn_parliament_live_daily_summary)
+    // ===========================================================================
+    function loadMovements() {
+      rpc('fn_parliament_live_daily_summary', { p_since_hours: 48, p_limit: 12 })
+        .then(function (rows) { renderMovements(Array.isArray(rows) ? rows : []); })
+        .catch(function () {
+          stripEl.innerHTML = '';
+          stripEl.appendChild(el('div', 'move-quiet', "Couldn't load recent movements right now. Please refresh."));
+        });
+    }
+
+    function renderMovements(rows) {
+      stripEl.innerHTML = '';
+
+      if (!rows.length) {
+        stripEl.appendChild(el('div', 'move-quiet', 'No recent movements to report on the bills we track for you.'));
+        return;
+      }
+
+      var recent = rows.filter(function (r) { return r && r.within_window === true; });
+
+      if (recent.length) {
+        recent.forEach(function (r) {
+          var row = el('div', 'move-row');
+          row.appendChild(el('span', 'move-name', r.legislation_short_name || 'Tracked bill'));
+
+          if (r.royal_assent === true) {
+            row.appendChild(el('span', 'badge-assent', 'Royal Assent — now law'));
+          } else {
+            var trans = el('span', 'move-transition');
+            if (r.previous_stage) {
+              trans.appendChild(document.createTextNode(r.previous_stage));
+              trans.appendChild(el('span', 'arrow', '→'));
+            }
+            trans.appendChild(document.createTextNode(r.new_stage || 'updated'));
+            row.appendChild(trans);
+          }
+
+          var when = fmtDate(r.changed_at);
+          if (when) row.appendChild(el('span', 'move-when', when));
+          stripEl.appendChild(row);
+        });
+        return;
+      }
+
+      // No within-window movements — honest "quiet lately" line using the newest row.
+      var newest = rows[0];
+      var box = el('div', 'move-quiet');
+      box.appendChild(document.createTextNode('Parliament has been quiet on the bills we track for you lately — the most recent movement was '));
+      box.appendChild(el('strong', null, newest.legislation_short_name || 'a tracked bill'));
+      box.appendChild(document.createTextNode(' → ' + (newest.new_stage || 'updated')));
+      var when = fmtDate(newest.changed_at);
+      if (when) box.appendChild(document.createTextNode(' on ' + when));
+      box.appendChild(document.createTextNode('.'));
+      stripEl.appendChild(box);
+    }
+
+    // ===========================================================================
+    // Zone C — Ask Eileen about Parliament (eileen-operational)
+    // ===========================================================================
+    var msgsEl   = document.getElementById('eileen-messages');
+    var inputEl  = document.getElementById('eileen-input');
+    var sendEl   = document.getElementById('eileen-send');
+    var promptsEl = document.getElementById('eileen-prompts');
+    var convo = [];        // [{ role:'user'|'assistant', content }]
+    var sending = false;
+    var lastUserText = null;
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    // Escape-first markdown — the whole string is escaped before any transform,
+    // so no path can inject raw markup; only tags we emit + http(s) hrefs appear.
+    function inlineMd(s) {
+      var codes = [];
+      s = s.replace(/`([^`]+)`/g, function (_m, c) { codes.push(c); return 'IC' + (codes.length - 1) + ''; });
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (_m, label, url) {
+        return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+      });
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+      s = s.replace(/IC(\d+)/g, function (_m, i) { return '<code>' + codes[+i] + '</code>'; });
+      return s;
+    }
+    function renderMarkdown(raw) {
+      var text = escapeHtml(raw).replace(/\r\n?/g, '\n');
+      var blocks = text.split(/\n{2,}/);
+      var out = [];
+      for (var b = 0; b < blocks.length; b++) {
+        var block = blocks[b].replace(/\s+$/, '');
+        if (!block.trim()) continue;
+        var lines = block.split('\n');
+        var h = (lines.length === 1) && block.match(/^(#{1,6})\s+(.+)$/);
+        if (h) { var lv = Math.min(h[1].length + 3, 6); out.push('<h' + lv + '>' + inlineMd(h[2]) + '</h' + lv + '>'); continue; }
+        if (lines.length === 1 && /^(-{3,}|\*{3,}|_{3,})$/.test(block)) { out.push('<hr>'); continue; }
+        if (lines.every(function (l) { return /^\s*[-*+]\s+/.test(l); })) {
+          out.push('<ul>' + lines.map(function (l) { return '<li>' + inlineMd(l.replace(/^\s*[-*+]\s+/, '')) + '</li>'; }).join('') + '</ul>'); continue;
+        }
+        if (lines.every(function (l) { return /^\s*\d+\.\s+/.test(l); })) {
+          out.push('<ol>' + lines.map(function (l) { return '<li>' + inlineMd(l.replace(/^\s*\d+\.\s+/, '')) + '</li>'; }).join('') + '</ol>'); continue;
+        }
+        out.push('<p>' + lines.map(inlineMd).join('<br>') + '</p>');
+      }
+      return out.join('');
+    }
+
+    function clearTransient() {
+      var t = msgsEl.querySelector('[data-transient]');
+      if (t) t.remove();
+    }
+
+    function renderConvo() {
+      msgsEl.innerHTML = '';
+      convo.forEach(function (m) {
+        var who = m.role === 'assistant' ? 'eileen' : 'user';
+        var wrap = el('div', 'eileen-msg ' + who);
+        wrap.appendChild(el('div', 'eileen-msg-label', m.role === 'assistant' ? 'Eileen' : 'You'));
+        var body = el('div', 'eileen-msg-body');
+        if (m.role === 'assistant') {
+          body.innerHTML = renderMarkdown(m.content);   // server text, rendered verbatim (escape-first)
+        } else {
+          body.appendChild(el('p', null, m.content));
+        }
+        wrap.appendChild(body);
+        msgsEl.appendChild(wrap);
+      });
+    }
+
+    function showWorking() {
+      clearTransient();
+      var w = el('div', 'eileen-working');
+      w.dataset.transient = '1';
+      w.appendChild(el('span', 'eileen-dot'));
+      w.appendChild(el('span', 'eileen-dot'));
+      w.appendChild(el('span', 'eileen-dot'));
+      w.appendChild(el('span', null, 'Eileen is checking Parliament…'));
+      msgsEl.appendChild(w);
+    }
+
+    function showError() {
+      clearTransient();
+      var e = el('div', 'eileen-error');
+      e.dataset.transient = '1';
+      e.appendChild(el('span', null, 'Eileen is unavailable — please try again.'));
+      var retry = el('button', 'eileen-retry', 'Retry');
+      retry.type = 'button';
+      retry.addEventListener('click', function () { if (lastUserText) dispatch(lastUserText); });
+      e.appendChild(retry);
+      msgsEl.appendChild(e);
+    }
+
+    function setSending(on) {
+      sending = on;
+      sendEl.disabled = on || inputEl.value.trim().length === 0;
+      inputEl.disabled = on;
+      Array.prototype.forEach.call(promptsEl.querySelectorAll('.eileen-prompt'), function (b) { b.disabled = on; });
+    }
+
+    function ask(text) {
+      var t = (text || '').trim();
+      if (!t || sending) return;
+      convo.push({ role: 'user', content: t });
+      renderConvo();
+      dispatch(t);
+    }
+
+    function dispatch(text) {
+      lastUserText = text;
+      setSending(true);
+      showWorking();
+
+      fetch(EILEEN_URL, {
+        method: 'POST', headers: BASE_HEADERS,
+        body: JSON.stringify({ messages: convo.map(function (m) { return { role: m.role, content: m.content }; }) })
+      })
+        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(function (data) {
+          clearTransient();
+          var resp = (data && typeof data.response === 'string') ? data.response : '';
+          if (!resp) throw new Error('empty');
+          convo.push({ role: 'assistant', content: resp });
+          setSending(false);
+          renderConvo();
+        })
+        .catch(function () {
+          setSending(false);
+          showError();
+        });
+    }
+
+    // Wire prompts + input.
+    Array.prototype.forEach.call(promptsEl.querySelectorAll('.eileen-prompt'), function (btn) {
+      btn.addEventListener('click', function () { ask(btn.dataset.prompt); });
+    });
+    inputEl.addEventListener('input', function () {
+      sendEl.disabled = sending || inputEl.value.trim().length === 0;
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+    });
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitInput(); }
+    });
+    sendEl.addEventListener('click', submitInput);
+    function submitInput() {
+      var t = inputEl.value.trim();
+      if (!t || sending) return;
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      sendEl.disabled = true;
+      ask(t);
+    }
+
+    // Kick off the two reads in parallel.
+    loadBoard();
+    loadMovements();
+  }
+  </script>
+</body>
+</html>

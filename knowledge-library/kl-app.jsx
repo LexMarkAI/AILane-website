@@ -32,6 +32,10 @@ var HUB_WORKSPACE_FACETS = [
   { id: 'alerts',       label: 'Alerts' },
   { id: 'acei',         label: 'ACEI Overview' },
   { id: 'intelligence', label: 'Intelligence' },
+  // PARLIAMENT-LIVE-001 — full-page surface (not an in-app facet): href routes
+  // to the standalone /operational/parliament-live/ page. Sits under Intelligence;
+  // inherits the rail's operational/enterprise/governance gating (hubChrome).
+  { id: 'parliament-live', label: 'Parliament Live', href: '/operational/parliament-live/' },
   { id: 'ticker',       label: 'Ticker' },
   { id: 'notes',        label: 'Notes' },
   { id: 'calendar',     label: 'Calendar' },
@@ -3291,7 +3295,10 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
             return React.createElement('button', {
               key: f.id,
               type: 'button',
-              onClick: function () { onSelectFacet(active ? null : f.id); },
+              onClick: function () {
+                if (f.href) { window.location.href = f.href; return; } // PARLIAMENT-LIVE-001: href items navigate to a full page
+                onSelectFacet(active ? null : f.id);
+              },
               'aria-pressed': active,
               style: {
                 width: '100%', textAlign: 'left', display: 'block',
