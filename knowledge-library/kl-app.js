@@ -1458,6 +1458,7 @@
     { id: "alerts", label: "Alerts" },
     { id: "acei", label: "ACEI Overview" },
     { id: "intelligence", label: "Intelligence" },
+    { id: "parliament-live", label: "Parliament Live", href: "/operational/parliament-live/" },
     { id: "ticker", label: "Ticker" },
     { id: "notes", label: "Notes" },
     { id: "calendar", label: "Calendar" }
@@ -4180,6 +4181,7 @@
             key: f.id,
             type: "button",
             onClick: function() {
+              if (f.href) { window.location.href = f.href; return; }
               onSelectFacet(active ? null : f.id);
             },
             "aria-pressed": active,
