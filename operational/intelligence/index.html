@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intelligence — Operational Readiness — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) — verbatim from the operational surfaces; not narrowed -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase CDN — FIRST script in head after GA4/CSP; auth guard polls for it -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <style>
+    :root { --op-cyan: var(--tier-operational); --op-cyan-glow: var(--tier-operational-glow); }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--surface-void, #050c18); }
+    body {
+      background: var(--surface-void, #050c18);
+      color: var(--text-body, #e2e8f0);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--op-cyan); }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 96px; }
+
+    /* ---- Header ---- */
+    .eyebrow {
+      font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--op-cyan); font-weight: 600; margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 4vw, 2.9rem); font-weight: 700;
+      color: var(--text-prime, #f1f5f9); line-height: 1.1; margin-bottom: 12px;
+    }
+    .lede { color: var(--text-sec, #94a3b8); font-size: 1.02rem; max-width: 64ch; }
+
+    .head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 18px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 13px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      font-size: 0.74rem; letter-spacing: 0.04em; color: var(--text-sec, #94a3b8);
+    }
+    .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--op-cyan); box-shadow: 0 0 8px var(--op-cyan-glow); }
+    .verified { font-size: 0.78rem; color: var(--text-mute, #64748b); font-family: 'Space Mono', ui-monospace, monospace; letter-spacing: 0.02em; }
+
+    /* ---- Standing disclaimer (Opinion C1: shown before reliance, plain & prominent) ---- */
+    .disclaimer-banner {
+      margin: 30px 0 36px; padding: 18px 20px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-left: 3px solid var(--op-cyan);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      color: var(--text-body, #e2e8f0); font-size: 0.95rem; line-height: 1.6;
+    }
+    .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
+
+    .section-head {
+      font-size: 0.74rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+      margin: 44px 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+    .section-head:first-of-type { margin-top: 0; }
+
+    /* ---- Item cards (most-relevant-first) ---- */
+    #intel-list { display: flex; flex-direction: column; gap: 16px; }
+    .card {
+      position: relative; padding: 20px 22px;
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius, 12px);
+      transition: border-color 0.2s ease;
+    }
+    .card:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+    .card-title { font-size: 1.16rem; font-weight: 700; color: var(--text-prime, #f1f5f9); line-height: 1.25; }
+    .card-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+    .card-summary { margin-top: 12px; color: var(--text-body, #e2e8f0); font-size: 0.95rem; }
+    .card-enact { margin-top: 10px; font-size: 0.82rem; color: var(--text-mute, #64748b); }
+    .card-enact strong { color: var(--text-sec, #94a3b8); font-weight: 600; }
+    .card-changed { margin-top: 10px; font-size: 0.8rem; color: var(--text-mute, #64748b); font-family: 'Space Mono', ui-monospace, monospace; letter-spacing: 0.02em; }
+    .card-changed strong { color: var(--text-sec, #94a3b8); font-weight: 600; }
+
+    .chip-relevant {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.7rem; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+      background: rgba(34,211,238,0.1); color: var(--op-cyan); border: 1px solid rgba(34,211,238,0.3);
+      letter-spacing: 0.02em;
+    }
+    .chip-relevant::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--op-cyan); }
+
+    /* Relevance grade badge (A→B→C) */
+    .grade-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.7rem; font-weight: 700; padding: 4px 11px; border-radius: 999px;
+      letter-spacing: 0.04em; border: 1px solid;
+    }
+    .grade-badge.grade-a { background: rgba(16,185,129,0.12); color: var(--status-ok, #10b981); border-color: rgba(16,185,129,0.35); }
+    .grade-badge.grade-b { background: rgba(34,211,238,0.1); color: var(--op-cyan); border-color: rgba(34,211,238,0.3); }
+    .grade-badge.grade-c { background: rgba(148,163,184,0.1); color: var(--text-sec, #94a3b8); border-color: rgba(148,163,184,0.25); }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+    .tag {
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      color: var(--text-sec, #94a3b8); letter-spacing: 0.03em;
+    }
+    .tag.type { color: var(--op-cyan); border-color: rgba(34,211,238,0.3); }
+    .tag.priority-critical { color: var(--status-err, #ef4444); border-color: rgba(239,68,68,0.35); }
+    .tag.priority-high { color: var(--status-warn, #f59e0b); border-color: rgba(245,158,11,0.3); }
+
+    .card-foot { display: flex; align-items: center; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+    .source-link { font-size: 0.85rem; font-weight: 500; }
+
+    /* ---- States ---- */
+    .state-msg { padding: 40px 22px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.95rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 30px; height: 30px; margin: 0 auto 16px; border: 3px solid rgba(34,211,238,0.15); border-top-color: var(--op-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Archived / Superseded (collapsed; dead & superseded items are not "live") ---- */
+    .archived-toggle {
+      display: flex; align-items: center; gap: 9px; width: 100%; justify-content: flex-start;
+      margin-top: 8px; padding: 13px 18px;
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius, 12px);
+      background: var(--surface-card, #0c1525);
+      color: var(--text-sec, #94a3b8);
+      font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .archived-toggle:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); color: var(--text-prime, #f1f5f9); }
+    .archived-toggle .chev { font-size: 0.78rem; transition: transform 0.2s ease; }
+    .archived-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+    .archived-toggle .count { color: var(--text-mute, #64748b); font-weight: 400; }
+    .archived-list { display: flex; flex-direction: column; gap: 16px; margin-top: 14px; }
+    .card.archived { opacity: 0.72; border-style: dashed; }
+    .card.archived:hover { opacity: 0.95; }
+    .reason-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.7rem; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+      background: rgba(148,163,184,0.1); color: var(--text-sec, #94a3b8);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.25));
+      letter-spacing: 0.02em;
+    }
+    .reason-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-mute, #64748b); }
+
+    /* ---- Other surfaces ---- */
+    .surface-links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .surface-link {
+      flex: 1 1 240px; display: block; padding: 16px 18px;
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius, 12px);
+      color: var(--text-body, #e2e8f0); text-decoration: none;
+      transition: border-color 0.2s ease;
+    }
+    .surface-link:hover { border-color: var(--op-cyan); }
+    .surface-link .sl-title { font-weight: 700; color: var(--text-prime, #f1f5f9); font-size: 1rem; }
+    .surface-link .sl-desc { margin-top: 5px; font-size: 0.85rem; color: var(--text-sec, #94a3b8); }
+    .surface-link .sl-go { color: var(--op-cyan); }
+  </style>
+</head>
+<body style="visibility:hidden">
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">Operational Readiness</div>
+      <h1>Intelligence</h1>
+      <p class="lede">The regulatory developments we track for your organisation &mdash; ordered most-relevant-first, so the changes that matter most to you are at the top.</p>
+      <div class="head-row">
+        <span class="pill">Intelligence, not legal advice</span>
+        <span class="verified" id="verified" hidden></span>
+      </div>
+    </header>
+
+    <div class="disclaimer-banner" role="note">
+      <strong>This is regulatory intelligence to support your decisions &mdash; not legal advice.</strong>
+      It is not a complete record of all applicable law, and the absence of an item here is not assurance
+      that nothing has changed. For advice on your own situation, consult a qualified professional.
+    </div>
+
+    <h2 class="section-head">Most relevant to you</h2>
+    <div id="intel-list">
+      <div class="state-msg"><div class="spinner"></div>Loading your intelligence&hellip;</div>
+    </div>
+
+    <h2 class="section-head">More intelligence surfaces</h2>
+    <div class="surface-links">
+      <a class="surface-link" href="/operational/parliament-live/">
+        <div class="sl-title">Parliament Live</div>
+        <div class="sl-desc">The full bill-passage board, stage by stage, with archived &amp; superseded bills. <span class="sl-go">Open &rarr;</span></div>
+      </a>
+      <a class="surface-link" href="/operational/horizon/">
+        <div class="sl-title">On The Horizon</div>
+        <div class="sl-desc">Forthcoming instruments the estate is tracking &mdash; add any to your watchlist. <span class="sl-go">Open &rarr;</span></div>
+      </a>
+    </div>
+  </main>
+
+  <!-- AUTH GUARD — runs before the app renders (matches operational/horizon/index.html live pattern, RULE 26) -->
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    // Live operational-room allow-list + institutional (mirrors operational/horizon/index.html).
+    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
+
+    var settled = false;
+    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+
+    // Poll for the Supabase CDN to load.
+    var polls = 0;
+    (function waitForSb() {
+      if (window.supabase && window.supabase.createClient) { boot(); return; }
+      if (++polls > 60) { fail(); return; }
+      setTimeout(waitForSb, 100);
+    })();
+
+    function boot() {
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { verify(gs.data.session); return; }
+        // Fallback: session may still be hydrating — listen with a 6s timeout.
+        var to = setTimeout(function () {
+          try { sub.data.subscription.unsubscribe(); } catch (e) {}
+          fail();
+        }, 6000);
+        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+          if (session && !settled) {
+            clearTimeout(to);
+            try { sub.data.subscription.unsubscribe(); } catch (e) {}
+            verify(session);
+          }
+        });
+      }).catch(fail);
+
+      function verify(session) {
+        if (settled) return;
+        var token = session.access_token, payload;
+        try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return fail(); }
+        var userId = payload.sub;
+        fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) {
+            if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
+              settled = true;
+              document.body.style.visibility = 'visible';
+              initIntelligence(token, SUPABASE_ANON, SUPABASE_URL);
+            } else { fail(); }
+          })
+          .catch(fail);
+      }
+    }
+  })();
+  </script>
+
+  <!-- APP — vanilla JS, no build step -->
+  <script>
+  function initIntelligence(token, anonKey, restUrl) {
+    var BASE_HEADERS = { 'Authorization': 'Bearer ' + token, 'apikey': anonKey, 'Content-Type': 'application/json' };
+
+    var listEl = document.getElementById('intel-list');
+    var verifiedEl = document.getElementById('verified');
+
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function isHttp(u) { return typeof u === 'string' && /^https?:\/\//i.test(u); }
+    function lc(s) { return String(s == null ? '' : s).toLowerCase(); }
+
+    function fmtDate(ts) {
+      if (!ts) return '';
+      var d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function fmtDateTime(ts) {
+      if (!ts) return '';
+      var d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function rpc(fn, body) {
+      return fetch(restUrl + '/rest/v1/rpc/' + fn, {
+        method: 'POST', headers: BASE_HEADERS, body: JSON.stringify(body || {})
+      }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+    }
+
+    // =========================================================================
+    // Lifecycle classification + dedupe — IDENTICAL deterministic rules to
+    // operational/parliament-live (AUDIT-FWD-001 §6). Backend classification
+    // fields (lifecycle_state / archived / superseded_* / last_changed_at /
+    // relevance_*) are PREFERRED when present; until they land we classify and
+    // rank deterministically client-side. No backend field is dropped when it
+    // arrives. The Intelligence landing reuses the operational room's existing
+    // tracked-intelligence feed (fn_parliament_live_feed) rather than rewriting
+    // the content — it just presents it most-relevant-first.
+    // =========================================================================
+    var SUPERSEDED_SUBJECTS = [
+      { rx: /dismissal and re-?engagement/, ref: 'Employment Rights Act 2025', reason: 'Superseded by Employment Rights Act 2025' },
+      { rx: /predictable terms/,            ref: 'Employment Rights Act 2025', reason: 'Repealed by Employment Rights Act 2025' },
+      { rx: /minimum service levels/,       ref: 'Employment Rights Act 2025', reason: 'Repealed by Employment Rights Act 2025' }
+    ];
+    var PRIORITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 };
+    var GRADE_RANK = { A: 0, B: 1, C: 2, D: 3 };
+    var CURRENT_SESSION_START = 2025;   // treat 2025-26 as the current session
+
+    function isActRecord(item) {
+      if (lc(item.legislation_type).indexOf('act') >= 0) return true;
+      if (Number(item.stage_order) === 10) return true;   // Royal Assent — now law
+      return false;
+    }
+    function sessionInfo(item) {
+      var hay = [item.parliament_session, item.session, item.legislation_title,
+                 item.legislation_short_name, item.status_summary].map(lc).join(' ');
+      var m = hay.match(/20(\d{2})\s*[–-]\s*(\d{2})/);
+      if (!m) return null;
+      return { startYear: 2000 + parseInt(m[1], 10), label: m[0].replace(/\s+/g, '') };
+    }
+    function badgeFromLifecycle(state) {
+      switch (state) {
+        case 'LAPSED':     return 'Lapsed';
+        case 'WITHDRAWN':  return 'Withdrawn';
+        case 'DEFEATED':   return 'Defeated';
+        case 'SUPERSEDED': return 'Superseded';
+        default:           return 'Archived';
+      }
+    }
+    function classify(item) {
+      var state = String(item.lifecycle_state || '').toUpperCase().replace(/\s+/g, '-');
+      if (item.archived === true ||
+          ['LAPSED', 'SUPERSEDED', 'WITHDRAWN', 'DEFEATED'].indexOf(state) >= 0) {
+        var ref = item.superseded_by_ref || null;
+        var reason = item.superseded_reason ||
+                     (ref ? 'Superseded by ' + ref : badgeFromLifecycle(state));
+        return { archived: true, ref: ref, reason: reason };
+      }
+      if (item.archived === false ||
+          ['LIVE', 'ENACTED-IN-FORCE'].indexOf(state) >= 0) {
+        return { archived: false, ref: null, reason: null };
+      }
+      var name = lc(item.legislation_short_name) + ' ' + lc(item.legislation_title);
+      for (var i = 0; i < SUPERSEDED_SUBJECTS.length; i++) {
+        if (SUPERSEDED_SUBJECTS[i].rx.test(name) &&
+            lc(item.legislation_short_name).indexOf('employment rights act 2025') < 0) {
+          return { archived: true, ref: SUPERSEDED_SUBJECTS[i].ref, reason: SUPERSEDED_SUBJECTS[i].reason };
+        }
+      }
+      if (!isActRecord(item)) {
+        var si = sessionInfo(item);
+        if (si && si.startYear < CURRENT_SESSION_START) {
+          return { archived: true, ref: null, reason: 'Session ' + si.label + ' ended' };
+        }
+      }
+      return { archived: false, ref: null, reason: null };
+    }
+
+    function changedTime(item) {
+      var t = item.last_changed_at ? new Date(item.last_changed_at).getTime() : NaN;
+      if (!isNaN(t)) return t;
+      var p = item.last_status_check ? new Date(item.last_status_check).getTime() : NaN;
+      return isNaN(p) ? 0 : p;
+    }
+    function billKey(item) {
+      if (item.bill_id != null && item.bill_id !== '') return 'id:' + item.bill_id;
+      return 'title:' + lc(item.legislation_short_name || item.legislation_title)
+              .replace(/\[[^\]]*\]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+    }
+    function dedupe(rows) {
+      var byKey = {}, order = [];
+      rows.forEach(function (r) {
+        var k = billKey(r);
+        if (!byKey[k]) { byKey[k] = r; order.push(k); }
+        else if (changedTime(r) > changedTime(byKey[k])) byKey[k] = r;
+      });
+      return order.map(function (k) { return byKey[k]; });
+    }
+
+    // Most-relevant-first: relevance_score desc → grade A→B→C → (fallback) tenant
+    // relevance flag → priority → recency. Backend relevance fields win when present.
+    function relevanceSort(a, b) {
+      var sa = (typeof a.relevance_score === 'number') ? a.relevance_score : null;
+      var sb = (typeof b.relevance_score === 'number') ? b.relevance_score : null;
+      if (sa != null || sb != null) {
+        if (sa == null) return 1;
+        if (sb == null) return -1;
+        if (sa !== sb) return sb - sa;
+      }
+      var ga = GRADE_RANK[String(a.relevance_grade || '').toUpperCase()];
+      var gb = GRADE_RANK[String(b.relevance_grade || '').toUpperCase()];
+      ga = (ga == null) ? 9 : ga; gb = (gb == null) ? 9 : gb;
+      if (ga !== gb) return ga - gb;
+      var ia = a.implicates_tenant === true ? 0 : 1;
+      var ib = b.implicates_tenant === true ? 0 : 1;
+      if (ia !== ib) return ia - ib;
+      var pa = PRIORITY_RANK[lc(a.priority)]; pa = (pa == null) ? 4 : pa;
+      var pb = PRIORITY_RANK[lc(b.priority)]; pb = (pb == null) ? 4 : pb;
+      if (pa !== pb) return pa - pb;
+      return changedTime(b) - changedTime(a);
+    }
+
+    function gradeOf(item) {
+      var g = String(item.relevance_grade || '').toUpperCase();
+      return GRADE_RANK[g] != null ? g : null;
+    }
+
+    function load() {
+      rpc('fn_parliament_live_feed', { p_limit: 200 })
+        .then(function (rows) { render(Array.isArray(rows) ? rows : []); })
+        .catch(function () {
+          listEl.innerHTML = '';
+          listEl.appendChild(el('div', 'state-msg', "Couldn't load your intelligence right now. Please refresh."));
+        });
+    }
+
+    function render(rows) {
+      listEl.innerHTML = '';
+
+      // "Verified" — most recent poll time (last_status_check). Poll time, NOT a change
+      // time: it is labelled "Verified", never "checked", and never implies recency of change.
+      var newest = null;
+      rows.forEach(function (r) {
+        if (r && r.last_status_check) {
+          var t = new Date(r.last_status_check).getTime();
+          if (!isNaN(t) && (newest == null || t > newest)) newest = t;
+        }
+      });
+      if (newest != null) { verifiedEl.textContent = 'Verified ' + fmtDateTime(newest); verifiedEl.hidden = false; }
+
+      if (!rows.length) {
+        listEl.appendChild(el('div', 'state-msg',
+          'Intelligence isn’t available on your current plan, or there is nothing being tracked for you yet.'));
+        return;
+      }
+
+      var active = [], archived = [];
+      dedupe(rows).forEach(function (r) {
+        r.__class = classify(r);
+        (r.__class.archived ? archived : active).push(r);
+      });
+
+      if (!active.length && !archived.length) {
+        listEl.appendChild(el('div', 'state-msg',
+          'Intelligence isn’t available on your current plan, or there is nothing being tracked for you yet.'));
+        return;
+      }
+
+      // Active, most-relevant-first.
+      active.sort(relevanceSort);
+      if (active.length) {
+        active.forEach(function (item) { listEl.appendChild(buildCard(item)); });
+      } else {
+        listEl.appendChild(el('div', 'state-msg', 'Nothing active is being tracked for you right now.'));
+      }
+
+      // Archived / superseded, collapsed, newest-first.
+      renderArchived(archived);
+    }
+
+    function renderArchived(archived) {
+      if (!archived.length) return;
+      archived.sort(function (a, b) { return changedTime(b) - changedTime(a); });
+
+      var toggle = el('button', 'archived-toggle');
+      toggle.type = 'button';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-controls', 'archived-list');
+      toggle.appendChild(el('span', 'chev', '▸'));
+      var label = el('span', null, 'Show archived / superseded');
+      toggle.appendChild(label);
+      toggle.appendChild(el('span', 'count', '(' + archived.length + ')'));
+
+      var box = el('div', 'archived-list');
+      box.id = 'archived-list';
+      box.hidden = true;
+      archived.forEach(function (item) { box.appendChild(buildCard(item, { archived: true })); });
+
+      toggle.addEventListener('click', function () {
+        var open = box.hidden;
+        box.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        label.textContent = open ? 'Hide archived / superseded' : 'Show archived / superseded';
+      });
+
+      listEl.appendChild(toggle);
+      listEl.appendChild(box);
+    }
+
+    function buildCard(item, opts) {
+      opts = opts || {};
+      var card = el('div', 'card' + (opts.archived ? ' archived' : ''));
+
+      var top = el('div', 'card-top');
+      top.appendChild(el('div', 'card-title', item.legislation_short_name || item.legislation_title || 'Untitled instrument'));
+
+      var badges = el('div', 'card-badges');
+      if (opts.archived) {
+        badges.appendChild(el('span', 'reason-badge', (item.__class && item.__class.reason) || 'Archived'));
+      } else {
+        var g = gradeOf(item);
+        if (g) badges.appendChild(el('span', 'grade-badge grade-' + g.toLowerCase(), 'Grade ' + g));
+        if (item.implicates_tenant === true) badges.appendChild(el('span', 'chip-relevant', 'Relevant to you'));
+      }
+      if (badges.childNodes.length) top.appendChild(badges);
+      card.appendChild(top);
+
+      if (item.status_summary) card.appendChild(el('div', 'card-summary', item.status_summary));
+
+      if (item.expected_enactment) {
+        var en = el('div', 'card-enact');
+        en.appendChild(el('strong', null, 'Expected enactment: '));
+        en.appendChild(document.createTextNode(item.expected_enactment));
+        card.appendChild(en);
+      }
+
+      // Per-card "last changed" — genuine change time only (last_changed_at), never poll time.
+      if (item.last_changed_at) {
+        var ch = fmtDate(item.last_changed_at);
+        if (ch) {
+          var chl = el('div', 'card-changed');
+          chl.appendChild(el('strong', null, 'Last changed '));
+          chl.appendChild(document.createTextNode(ch));
+          card.appendChild(chl);
+        }
+      }
+
+      var tags = el('div', 'tags');
+      if (item.legislation_type) tags.appendChild(el('span', 'tag type', item.legislation_type));
+      if (item.priority) {
+        var p = lc(item.priority);
+        var pcls = 'tag' + (PRIORITY_RANK[p] != null ? ' priority-' + p : '');
+        tags.appendChild(el('span', pcls, 'Priority: ' + item.priority));
+      }
+      if (Array.isArray(item.affected_categories)) {
+        item.affected_categories.forEach(function (c) { if (c) tags.appendChild(el('span', 'tag', c)); });
+      }
+      if (tags.childNodes.length) card.appendChild(tags);
+
+      if (isHttp(item.source_url)) {
+        var foot = el('div', 'card-foot');
+        var a = el('a', 'source-link', 'View on Parliament ↗');
+        a.href = item.source_url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        foot.appendChild(a);
+        card.appendChild(foot);
+      }
+
+      return card;
+    }
+
+    load();
+  }
+  </script>
+</body>
+</html>
