@@ -8256,6 +8256,18 @@ var HUB_INTEL_TRACK_ON = { color: '#38BDF8', borderColor: 'rgba(56,189,248,0.45)
 var HUB_INTEL_FILTER_STYLE = { display: 'flex', justifyContent: 'flex-end', marginBottom: '14px' };
 var HUB_INTEL_TOGGLE_BASE = { cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', border: '1px solid #1E3A5F', background: '#0A1628', color: '#94A3B8' };
 var HUB_INTEL_TOGGLE_ON = { color: '#38BDF8', borderColor: 'rgba(56,189,248,0.45)', background: 'rgba(14,165,233,0.14)' };
+// OOX-001 DISCLAIMER-FEEDBACK — Legal Council Opinion C1 banner + "Have we missed
+// something?" gap control on the forward-pipeline view. Plain, prominent, shown
+// before reliance; writes a gap submission direct to horizon_gap_submissions (RLS).
+var HUB_INTEL_C1_STYLE = { background: 'rgba(14,165,233,0.07)', border: '1px solid rgba(14,165,233,0.28)', borderLeft: '3px solid #38BDF8', borderRadius: '10px', padding: '13px 16px', marginBottom: '18px', color: '#BAE6FD', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', lineHeight: 1.6 };
+var HUB_INTEL_GAP_OPEN_STYLE = { cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '12.5px', fontWeight: 600, padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(56,189,248,0.45)', background: 'rgba(14,165,233,0.10)', color: '#38BDF8' };
+var HUB_INTEL_GAP_FORM_STYLE = { background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '12px', padding: '16px 18px', margin: '14px 0 6px' };
+var HUB_INTEL_GAP_LABEL_STYLE = { display: 'block', fontFamily: "'DM Sans', sans-serif", fontSize: '12.5px', fontWeight: 600, color: '#E2E8F0', margin: '12px 0 6px' };
+var HUB_INTEL_GAP_TEXTAREA_STYLE = { width: '100%', minHeight: '84px', resize: 'vertical', boxSizing: 'border-box', padding: '10px 12px', background: '#0A1628', border: '1px solid #1E3A5F', borderRadius: '8px', color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' };
+var HUB_INTEL_GAP_INPUT_STYLE = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', background: '#0A1628', border: '1px solid #1E3A5F', borderRadius: '8px', color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' };
+var HUB_INTEL_GAP_SUBMIT_STYLE = { cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 700, padding: '9px 18px', borderRadius: '8px', border: 'none', background: '#38BDF8', color: '#042027' };
+var HUB_INTEL_GAP_CANCEL_STYLE = { cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, padding: '9px 18px', borderRadius: '8px', border: '1px solid #1E3A5F', background: 'transparent', color: '#94A3B8' };
+var HUB_INTEL_GAP_CONFIRM_STYLE = { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '12px', padding: '16px 18px', margin: '14px 0 6px', color: '#6EE7B7', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', lineHeight: 1.6 };
 
 // One pipeline chip (escaped label). variant: 'type' | 'high' | null.
 function hubIntelChip(label, variant, key) {
@@ -8445,6 +8457,85 @@ function hubIntelCard(row, idx, isTracked, onToggle) {
 // *_html path, UNCHANGED. It is now one of two views the facet hosts; the new in-force
 // statutory view is HubIntelInForceView and the segmented wrapper is HubIntelFacet (both
 // below).
+// OOX-001 DISCLAIMER-FEEDBACK — "Have we missed something?" gap control. Writes a
+// gap submission DIRECT to public.horizon_gap_submissions via the authenticated hub
+// client (RLS: INSERT permitted only where org_id = get_my_org_id()). Free text is
+// passed strictly as data and is never rendered back unescaped. Mirrors the proven
+// org_horizon_watchlist insert (org_id from state.orgId, user from hubSession.userId).
+function HubIntelGapForm({ hubSession, orgId }) {
+  var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
+  var _desc = useState(''); var desc = _desc[0]; var setDesc = _desc[1];
+  var _src = useState(''); var src = _src[0]; var setSrc = _src[1];
+  var _jur = useState(''); var jur = _jur[0]; var setJur = _jur[1];
+  var _status = useState('idle'); var status = _status[0]; var setStatus = _status[1]; // idle | submitting | success | error
+  var _err = useState(''); var err = _err[0]; var setErr = _err[1];
+
+  var sb = hubSession && hubSession.sb;
+
+  function submit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    var description = (desc || '').trim();
+    if (!description) return;                       // also guarded by the disabled Submit button
+    if (!sb || !sb.from || !orgId) {
+      console.error('[OOX-001] Intelligence: gap submission blocked (no client/org)');
+      setErr('Sorry — we couldn’t submit that just now. Please try again.');
+      setStatus('error');
+      return;
+    }
+    setStatus('submitting'); setErr('');
+    Promise.resolve(sb.from('horizon_gap_submissions').insert({
+      org_id: orgId,
+      submitted_by: hubSession.userId,
+      instrument_description: description,
+      source_url_hint: (src || '').trim() || null,
+      jurisdiction_hint: (jur || '').trim() || null,
+    })).then(function (r) {
+      if (r && r.error) throw r.error;
+      setStatus('success');
+    }).catch(function (e2) {
+      console.error('[OOX-001] Intelligence: gap submission failed', e2);
+      setErr('Sorry — we couldn’t submit that just now. Please try again.');
+      setStatus('error');
+    });
+  }
+
+  if (status === 'success') {
+    return React.createElement('div', { style: HUB_INTEL_GAP_CONFIRM_STYLE },
+      'Thank you — we’ll check this against Parliament and legislation.gov.uk and update your horizon if it’s a current change. You can add more detail or a source any time.');
+  }
+
+  if (!open) {
+    return React.createElement('div', { style: { margin: '16px 0 4px' } },
+      React.createElement('button', { type: 'button', style: HUB_INTEL_GAP_OPEN_STYLE, onClick: function () { setOpen(true); } },
+        'Have we missed something?'));
+  }
+
+  var fields = [];
+  fields.push(React.createElement('div', { key: 'lead', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.55 } },
+    'This horizon is not a complete record. Tell us about a change you think we’ve missed — every suggestion is reviewed by a person before anything is added.'));
+  fields.push(React.createElement('label', { key: 'l1', style: HUB_INTEL_GAP_LABEL_STYLE }, 'Describe the change you think we’ve missed'));
+  fields.push(React.createElement('textarea', { key: 't1', style: HUB_INTEL_GAP_TEXTAREA_STYLE, value: desc,
+    onChange: function (ev) { setDesc(ev.target.value); }, placeholder: 'The bill, regulation, consultation or other change you think is missing…' }));
+  fields.push(React.createElement('label', { key: 'l2', style: HUB_INTEL_GAP_LABEL_STYLE }, 'Link to a source (a bill or legislation.gov.uk page), if you have one (optional)'));
+  fields.push(React.createElement('input', { key: 'i2', type: 'url', style: HUB_INTEL_GAP_INPUT_STYLE, value: src,
+    onChange: function (ev) { setSrc(ev.target.value); }, placeholder: 'https://…' }));
+  fields.push(React.createElement('label', { key: 'l3', style: HUB_INTEL_GAP_LABEL_STYLE }, 'Jurisdiction (optional)'));
+  fields.push(React.createElement('input', { key: 'i3', type: 'text', style: HUB_INTEL_GAP_INPUT_STYLE, value: jur,
+    onChange: function (ev) { setJur(ev.target.value); }, placeholder: 'e.g. England & Wales' }));
+  if (status === 'error' && err) {
+    fields.push(React.createElement('div', { key: 'e', style: { color: '#F87171', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', marginTop: '10px' } }, err));
+  }
+  var submitDisabled = (desc || '').trim().length === 0 || status === 'submitting';
+  fields.push(React.createElement('div', { key: 'act', style: { display: 'flex', gap: '10px', marginTop: '14px', flexWrap: 'wrap' } },
+    React.createElement('button', { key: 'submit', type: 'submit', disabled: submitDisabled,
+      style: submitDisabled ? Object.assign({}, HUB_INTEL_GAP_SUBMIT_STYLE, { opacity: 0.5, cursor: 'not-allowed' }) : HUB_INTEL_GAP_SUBMIT_STYLE },
+      status === 'submitting' ? 'Submitting…' : 'Submit'),
+    React.createElement('button', { key: 'cancel', type: 'button', style: HUB_INTEL_GAP_CANCEL_STYLE,
+      onClick: function () { setOpen(false); setErr(''); setStatus('idle'); } }, 'Cancel')));
+
+  return React.createElement('form', { style: HUB_INTEL_GAP_FORM_STYLE, onSubmit: submit }, fields);
+}
+
 function HubIntelHorizonView({ hubSession }) {
   var _state = useState({ status: 'loading', pipeline: [], tracked: new Set(), orgId: null, error: false });
   var state = _state[0]; var setState = _state[1];
@@ -8506,9 +8597,13 @@ function HubIntelHorizonView({ hubSession }) {
   }
 
   var children = [];
-  // §1.3 standing Tier-5 caveat banner (advice-free).
-  children.push(React.createElement('div', { key: 'caveat', style: HUB_INTEL_CAVEAT_STYLE },
-    'Forward pipeline — pre-enactment items are provisional (Tier 5): stage and dates can change. Intelligence, not advice.'));
+  // §1.3 standing disclaimer — Legal Council Opinion C1 (intelligence, not advice;
+  // not a complete record; absence is not assurance). Shown before reliance.
+  children.push(React.createElement('div', { key: 'caveat', style: HUB_INTEL_C1_STYLE, role: 'note' },
+    React.createElement('strong', { key: 's' }, 'This is regulatory intelligence to support your decisions — not legal advice.'),
+    ' It is not a complete record of all applicable law, and the absence of an item here is not assurance that nothing has changed. For advice on your own situation, consult a qualified professional.'));
+  // "Have we missed something?" gap control (direct insert to horizon_gap_submissions).
+  children.push(React.createElement(HubIntelGapForm, { key: 'gap', hubSession: hubSession, orgId: state.orgId }));
 
   if (state.error) {
     // §1.6 resilient — the pipeline read failed: degrade to "—", never throw.
