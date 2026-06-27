@@ -59,15 +59,16 @@
     }
     .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--op-cyan); box-shadow: 0 0 8px var(--op-cyan-glow); }
 
-    /* ---- Standing disclaimer ---- */
+    /* ---- Standing disclaimer (Opinion C1: shown before reliance, plain & prominent) ---- */
     .disclaimer-banner {
-      margin: 30px 0 38px; padding: 16px 18px;
-      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      margin: 30px 0 38px; padding: 18px 20px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
       border-left: 3px solid var(--op-cyan);
       border-radius: var(--card-radius-sm, 8px);
       background: var(--surface-raised, rgba(15,23,42,0.8));
-      color: var(--text-sec, #94a3b8); font-size: 0.9rem;
+      color: var(--text-body, #e2e8f0); font-size: 0.95rem; line-height: 1.6;
     }
+    .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
 
     .section-head {
       font-size: 0.74rem; letter-spacing: 0.18em; text-transform: uppercase;
@@ -155,6 +156,14 @@
     }
     .btn-primary:hover { opacity: 0.9; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      padding: 11px 22px; border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px); background: transparent;
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-secondary:hover { border-color: var(--op-cyan); color: var(--op-cyan); }
+    .gap-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .form-error { color: var(--status-err, #ef4444); font-size: 0.85rem; margin-top: 12px; }
     .gap-confirm { padding: 22px; text-align: center; color: var(--status-ok, #10b981); font-size: 0.98rem; line-height: 1.6; }
     .gap-confirm .check { font-size: 1.6rem; display: block; margin-bottom: 8px; }
@@ -169,8 +178,10 @@
       <span class="pill">Intelligence, not legal advice</span>
     </header>
 
-    <div class="disclaimer-banner">
-      On The Horizon is forward intelligence to help you prepare. It is not legal advice. Where an item may affect your contracts or obligations, consider taking professional advice.
+    <div class="disclaimer-banner" role="note">
+      <strong>This is regulatory intelligence to support your decisions — not legal advice.</strong>
+      It is not a complete record of all applicable law, and the absence of an item here is not assurance
+      that nothing has changed. For advice on your own situation, consult a qualified professional.
     </div>
 
     <h2 class="section-head">Tracked instruments</h2>
@@ -179,30 +190,28 @@
     </div>
 
     <section class="gap-panel" id="gap-panel">
-      <h2>Tracking something we&rsquo;re missing?</h2>
-      <p class="gap-sub">Tell us about an instrument we are not yet tracking. Every suggestion is reviewed by a person before anything is added to the watchlist.</p>
-      <form id="gap-form" novalidate>
+      <h2>Have we missed something?</h2>
+      <p class="gap-sub">This horizon is not a complete record. If a change you think matters is not here, tell us &mdash; every suggestion is reviewed by a person before anything is added.</p>
+      <button type="button" class="btn-primary" id="gap-open">Have we missed something?</button>
+      <form id="gap-form" novalidate hidden>
         <div class="field">
-          <label for="instrument_description">What should we be tracking?</label>
-          <textarea id="instrument_description" name="instrument_description" required minlength="8"
-            placeholder="Describe the bill, regulation, consultation or other instrument (at least 8 characters)…"></textarea>
+          <label for="instrument_description">Describe the change you think we&rsquo;ve missed</label>
+          <textarea id="instrument_description" name="instrument_description" required
+            placeholder="The bill, regulation, consultation or other change you think is missing&hellip;"></textarea>
+        </div>
+        <div class="field">
+          <label for="source_url_hint">Link to a source (a bill or legislation.gov.uk page), if you have one <span class="opt">(optional)</span></label>
+          <input type="url" id="source_url_hint" name="source_url_hint" placeholder="https://…">
         </div>
         <div class="field">
           <label for="jurisdiction_hint">Jurisdiction <span class="opt">(optional)</span></label>
-          <select id="jurisdiction_hint" name="jurisdiction_hint">
-            <option value="">Not sure / not specified</option>
-            <option value="UK">UK</option>
-            <option value="EU">EU</option>
-            <option value="US">US</option>
-            <option value="Other">Other</option>
-          </select>
+          <input type="text" id="jurisdiction_hint" name="jurisdiction_hint" placeholder="e.g. England &amp; Wales">
         </div>
-        <div class="field">
-          <label for="source_url_hint">Source link <span class="opt">(optional)</span></label>
-          <input type="url" id="source_url_hint" name="source_url_hint" placeholder="https://…">
+        <p class="gap-note">Submissions are reviewed before anything is added. Sending this does not add the item to your horizon.</p>
+        <div class="gap-actions">
+          <button type="submit" class="btn-primary" id="gap-submit" disabled>Submit</button>
+          <button type="button" class="btn-secondary" id="gap-cancel">Cancel</button>
         </div>
-        <p class="gap-note">Submissions are reviewed before anything is added. Sending this does not add the item to the watchlist.</p>
-        <button type="submit" class="btn-primary" id="gap-submit">Submit for review</button>
         <div class="form-error" id="gap-form-error" hidden></div>
       </form>
     </section>
@@ -259,7 +268,7 @@
             if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
               settled = true;
               document.body.style.visibility = 'visible';
-              initHorizon(token, SUPABASE_ANON, FUNCTION_URL);
+              initHorizon(token, SUPABASE_ANON, FUNCTION_URL, userId, SUPABASE_URL);
             } else { fail(); }
           })
           .catch(fail);
@@ -270,9 +279,17 @@
 
   <!-- APP — vanilla JS, no build step -->
   <script>
-  function initHorizon(token, anonKey, fnUrl) {
+  function initHorizon(token, anonKey, fnUrl, userId, restUrl) {
     var BASE_HEADERS = { 'Authorization': 'Bearer ' + token, 'apikey': anonKey, 'Content-Type': 'application/json' };
     var listEl = document.getElementById('horizon-list');
+
+    // Resolve the tenant org id for gap submissions (mirrors the hub's get_my_org_id RPC).
+    // Resilient: any failure leaves orgId null and the gap form shows a friendly error on submit.
+    var orgId = null;
+    fetch(restUrl + '/rest/v1/rpc/get_my_org_id', { method: 'POST', headers: BASE_HEADERS, body: '{}' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (v) { orgId = (v == null || v === '') ? null : v; })
+      .catch(function () { orgId = null; });
 
     function el(tag, cls, text) {
       var n = document.createElement(tag);
@@ -413,22 +430,44 @@
       if (existing) existing.remove();
     }
 
-    // ---- Gap submission ----
+    // ---- Gap submission ("Have we missed something?") ----
+    // Direct insert into public.horizon_gap_submissions via PostgREST. RLS permits the
+    // INSERT only where org_id = get_my_org_id() (the caller's org). The free text is
+    // treated strictly as data and is never rendered back unescaped.
     var form = document.getElementById('gap-form');
     var panel = document.getElementById('gap-panel');
     var formError = document.getElementById('gap-form-error');
     var submitBtn = document.getElementById('gap-submit');
+    var openBtn = document.getElementById('gap-open');
+    var cancelBtn = document.getElementById('gap-cancel');
+    var descEl = document.getElementById('instrument_description');
+
+    function setFormOpen(open) {
+      form.hidden = !open;
+      openBtn.hidden = open;
+      if (open) { try { descEl.focus(); } catch (e) {} }
+    }
+    // Submit stays disabled until instrument_description is non-empty.
+    function syncSubmit() { submitBtn.disabled = descEl.value.trim().length === 0; }
+
+    openBtn.addEventListener('click', function () { setFormOpen(true); });
+    cancelBtn.addEventListener('click', function () { formError.hidden = true; setFormOpen(false); });
+    descEl.addEventListener('input', syncSubmit);
+    syncSubmit();
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       formError.hidden = true;
 
-      var description = document.getElementById('instrument_description').value.trim();
-      var jurisdiction = document.getElementById('jurisdiction_hint').value;
-      var sourceHint = document.getElementById('source_url_hint').value.trim();
+      var description = descEl.value.trim();
+      if (!description) return;  // also guarded by the disabled Submit button
 
-      if (description.length < 8) {
-        formError.textContent = 'Please describe the instrument in a little more detail (at least 8 characters).';
+      var sourceHint = document.getElementById('source_url_hint').value.trim();
+      var jurisdiction = document.getElementById('jurisdiction_hint').value.trim();
+
+      if (!orgId) {
+        console.error('[horizon] gap submission blocked: tenant org id unavailable');
+        formError.textContent = 'Sorry — we couldn’t submit that just now. Please try again.';
         formError.hidden = false;
         return;
       }
@@ -436,27 +475,34 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting…';
 
-      fetch(fnUrl, {
+      fetch(restUrl + '/rest/v1/horizon_gap_submissions', {
         method: 'POST',
-        headers: BASE_HEADERS,
+        headers: {
+          'apikey': anonKey,
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
         body: JSON.stringify({
-          action: 'submit_gap',
+          org_id: orgId,
+          submitted_by: userId,
           instrument_description: description,
-          jurisdiction_hint: jurisdiction,
-          source_url_hint: sourceHint
+          source_url_hint: sourceHint || null,
+          jurisdiction_hint: jurisdiction || null
         })
       })
         .then(function (r) {
-          if (r.status === 201) {
+          if (r.status >= 200 && r.status < 300) {
             showGapConfirmation();
           } else {
-            throw new Error('http');
+            throw new Error('insert http ' + r.status);
           }
         })
-        .catch(function () {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Submit for review';
-          formError.textContent = 'Could not submit right now — please try again.';
+        .catch(function (err) {
+          console.error('[horizon] gap submission failed', err);
+          submitBtn.textContent = 'Submit';
+          syncSubmit();
+          formError.textContent = 'Sorry — we couldn’t submit that just now. Please try again.';
           formError.hidden = false;
         });
     });
@@ -466,7 +512,7 @@
       var box = el('div', 'gap-confirm');
       box.appendChild(el('span', 'check', '✓'));
       box.appendChild(document.createTextNode(
-        'Thank you — submitted for review. We review every suggestion and, where appropriate, add it to the watchlist.'
+        'Thank you — we’ll check this against Parliament and legislation.gov.uk and update your horizon if it’s a current change. You can add more detail or a source any time.'
       ));
       panel.appendChild(box);
     }
