@@ -388,13 +388,15 @@
     }
     function billKey(item) {
       if (item.bill_id != null && item.bill_id !== '') return 'id:' + item.bill_id;
-      return 'title:' + lc(item.legislation_short_name || item.legislation_title)
+      var t = lc(item.legislation_short_name || item.legislation_title)
               .replace(/\[[^\]]*\]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+      return t ? 'title:' + t : null;   // null → no stable identity, never merged
     }
     function dedupe(rows) {
-      var byKey = {}, order = [];
+      var byKey = {}, order = [], anon = 0;
       rows.forEach(function (r) {
         var k = billKey(r);
+        if (k == null) { k = 'anon:' + (anon++); byKey[k] = r; order.push(k); return; }
         if (!byKey[k]) { byKey[k] = r; order.push(k); }
         else if (changedTime(r) > changedTime(byKey[k])) byKey[k] = r;
       });
@@ -425,8 +427,9 @@
     }
 
     function gradeOf(item) {
+      // Only the spec grades A/B/C render a badge; any other value (incl. 'D') shows none.
       var g = String(item.relevance_grade || '').toUpperCase();
-      return GRADE_RANK[g] != null ? g : null;
+      return (g === 'A' || g === 'B' || g === 'C') ? g : null;
     }
 
     function load() {

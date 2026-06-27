@@ -523,14 +523,17 @@
     }
     function billKey(item) {
       if (item.bill_id != null && item.bill_id !== '') return 'id:' + item.bill_id;
-      return 'title:' + lc(item.legislation_short_name || item.legislation_title)
+      var t = lc(item.legislation_short_name || item.legislation_title)
               .replace(/\[[^\]]*\]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+      return t ? 'title:' + t : null;   // null → no stable identity, never merged
     }
-    // Dedupe defensively, keeping the most-recently-changed record per bill.
+    // Dedupe defensively, keeping the most-recently-changed record per bill. Rows with
+    // neither a bill_id nor any title have no stable identity and are kept distinct.
     function dedupe(rows) {
-      var byKey = {}, order = [];
+      var byKey = {}, order = [], anon = 0;
       rows.forEach(function (r) {
         var k = billKey(r);
+        if (k == null) { k = 'anon:' + (anon++); byKey[k] = r; order.push(k); return; }
         if (!byKey[k]) { byKey[k] = r; order.push(k); }
         else if (changedTime(r) > changedTime(byKey[k])) byKey[k] = r;
       });
