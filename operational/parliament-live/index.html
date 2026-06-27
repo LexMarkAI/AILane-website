@@ -150,6 +150,38 @@
     .card-foot { display: flex; align-items: center; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
     .source-link { font-size: 0.85rem; font-weight: 500; }
 
+    /* ---- Per-card "last changed" line (genuine change time; never the poll time) ---- */
+    .card-changed { margin-top: 10px; font-size: 0.8rem; color: var(--text-mute, #64748b); font-family: 'Space Mono', ui-monospace, monospace; letter-spacing: 0.02em; }
+    .card-changed strong { color: var(--text-sec, #94a3b8); font-weight: 600; }
+
+    /* ---- Archived / Superseded section (dead & superseded bills are not "live") ---- */
+    .archived-toggle {
+      display: flex; align-items: center; gap: 9px; width: 100%; justify-content: flex-start;
+      margin-top: 8px; padding: 13px 18px;
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius, 12px);
+      background: var(--surface-card, #0c1525);
+      color: var(--text-sec, #94a3b8);
+      font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .archived-toggle:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); color: var(--text-prime, #f1f5f9); }
+    .archived-toggle .chev { font-size: 0.78rem; transition: transform 0.2s ease; }
+    .archived-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+    .archived-toggle .count { color: var(--text-mute, #64748b); font-weight: 400; }
+    .archived-list { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+    .card.archived { opacity: 0.72; border-style: dashed; }
+    .card.archived:hover { opacity: 0.95; }
+    .reason-badge {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.7rem; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+      background: rgba(148,163,184,0.1); color: var(--text-sec, #94a3b8);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.25));
+      letter-spacing: 0.02em;
+    }
+    .reason-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-mute, #64748b); }
+
     /* ---- States ---- */
     .state-msg { padding: 40px 22px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.95rem;
       border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
@@ -406,10 +438,110 @@
         });
     }
 
+    // ---- Defensive dedupe + lifecycle classification (AUDIT-FWD-001 §6) ----
+    // The backend brief (PARLIAMENT-RELEVANCE-001) adds lifecycle_state / archived /
+    // superseded_* / last_changed_at / relevance_* to each row. We PREFER those fields
+    // when present; until they land we classify deterministically client-side so dead,
+    // superseded or duplicate bills are never presented as live. No backend field is
+    // dropped when it arrives.
+    function lc(s) { return String(s == null ? '' : s).toLowerCase(); }
+
+    var SUPERSEDED_SUBJECTS = [
+      { rx: /dismissal and re-?engagement/, ref: 'Employment Rights Act 2025', reason: 'Superseded by Employment Rights Act 2025' },
+      { rx: /predictable terms/,            ref: 'Employment Rights Act 2025', reason: 'Repealed by Employment Rights Act 2025' },
+      { rx: /minimum service levels/,       ref: 'Employment Rights Act 2025', reason: 'Repealed by Employment Rights Act 2025' }
+    ];
+
+    function isActRecord(item) {
+      if (lc(item.legislation_type).indexOf('act') >= 0) return true;
+      if (Number(item.stage_order) === 10) return true;   // Royal Assent — now law
+      return false;
+    }
+
+    // Latest session label/start-year if discoverable (explicit field or "2022-23" text).
+    function sessionInfo(item) {
+      var hay = [item.parliament_session, item.session, item.legislation_title,
+                 item.legislation_short_name, item.status_summary].map(lc).join(' ');
+      var m = hay.match(/20(\d{2})\s*[–-]\s*(\d{2})/);
+      if (!m) return null;
+      return { startYear: 2000 + parseInt(m[1], 10), label: m[0].replace(/\s+/g, '') };
+    }
+    var CURRENT_SESSION_START = 2025;   // treat 2025-26 as the current session
+
+    function badgeFromLifecycle(state) {
+      switch (state) {
+        case 'LAPSED':     return 'Lapsed';
+        case 'WITHDRAWN':  return 'Withdrawn';
+        case 'DEFEATED':   return 'Defeated';
+        case 'SUPERSEDED': return 'Superseded';
+        default:           return 'Archived';
+      }
+    }
+
+    // Returns { archived:Boolean, ref:String|null, reason:String|null }.
+    function classify(item) {
+      var state = String(item.lifecycle_state || '').toUpperCase().replace(/\s+/g, '-');
+
+      // 1) Backend-authoritative when the classification fields are present.
+      if (item.archived === true ||
+          ['LAPSED', 'SUPERSEDED', 'WITHDRAWN', 'DEFEATED'].indexOf(state) >= 0) {
+        var ref = item.superseded_by_ref || null;
+        var reason = item.superseded_reason ||
+                     (ref ? 'Superseded by ' + ref : badgeFromLifecycle(state));
+        return { archived: true, ref: ref, reason: reason };
+      }
+      if (item.archived === false ||
+          ['LIVE', 'ENACTED-IN-FORCE'].indexOf(state) >= 0) {
+        return { archived: false, ref: null, reason: null };
+      }
+
+      // 2) Deterministic client-side fallback (classification fields absent).
+      var name = lc(item.legislation_short_name) + ' ' + lc(item.legislation_title);
+      for (var i = 0; i < SUPERSEDED_SUBJECTS.length; i++) {
+        if (SUPERSEDED_SUBJECTS[i].rx.test(name) &&
+            lc(item.legislation_short_name).indexOf('employment rights act 2025') < 0) {
+          return { archived: true, ref: SUPERSEDED_SUBJECTS[i].ref, reason: SUPERSEDED_SUBJECTS[i].reason };
+        }
+      }
+      if (!isActRecord(item)) {
+        var si = sessionInfo(item);
+        if (si && si.startYear < CURRENT_SESSION_START) {
+          return { archived: true, ref: null, reason: 'Session ' + si.label + ' ended' };
+        }
+      }
+      return { archived: false, ref: null, reason: null };
+    }
+
+    // Genuine change timestamp for ordering / display. last_status_check (poll time) is a
+    // SORT fallback only — it is NEVER displayed as "last changed" (it cannot imply
+    // recency of change; the poll time is surfaced once, at the top, as "Verified").
+    function changedTime(item) {
+      var t = item.last_changed_at ? new Date(item.last_changed_at).getTime() : NaN;
+      if (!isNaN(t)) return t;
+      var p = item.last_status_check ? new Date(item.last_status_check).getTime() : NaN;
+      return isNaN(p) ? 0 : p;
+    }
+    function billKey(item) {
+      if (item.bill_id != null && item.bill_id !== '') return 'id:' + item.bill_id;
+      return 'title:' + lc(item.legislation_short_name || item.legislation_title)
+              .replace(/\[[^\]]*\]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+    }
+    // Dedupe defensively, keeping the most-recently-changed record per bill.
+    function dedupe(rows) {
+      var byKey = {}, order = [];
+      rows.forEach(function (r) {
+        var k = billKey(r);
+        if (!byKey[k]) { byKey[k] = r; order.push(k); }
+        else if (changedTime(r) > changedTime(byKey[k])) byKey[k] = r;
+      });
+      return order.map(function (k) { return byKey[k]; });
+    }
+
     function renderBoard(rows) {
       boardEl.innerHTML = '';
 
-      // "Last checked" — most recent last_status_check across the feed.
+      // "Verified" — most recent poll time across the feed (last_status_check). This is the
+      // poll time, NOT a change time, so it is labelled "Verified", never "checked/changed".
       var newest = null;
       rows.forEach(function (r) {
         if (r && r.last_status_check) {
@@ -418,7 +550,7 @@
         }
       });
       if (newest != null) {
-        lastEl.textContent = 'Last checked ' + fmtDateTime(newest);
+        lastEl.textContent = 'Verified ' + fmtDateTime(newest);
         lastEl.hidden = false;
       }
 
@@ -429,27 +561,39 @@
         return;
       }
 
-      // Group by stage bucket.
+      // Dedupe, then split into Active vs Archived/Superseded (each row keeps its __class).
+      var active = [], archived = [];
+      dedupe(rows).forEach(function (r) {
+        r.__class = classify(r);
+        (r.__class.archived ? archived : active).push(r);
+      });
+
+      if (!active.length && !archived.length) {
+        boardEl.appendChild(el('div', 'state-msg',
+          'Parliament Live isn’t available on your current plan, or there are no bills being tracked for you yet.'));
+        return;
+      }
+
+      renderActive(active);
+      renderArchived(archived);
+    }
+
+    // ---- Active: grouped by BILL PASSAGE stage, newest-first within each group ----
+    function renderActive(active) {
+      if (!active.length) {
+        boardEl.appendChild(el('div', 'state-msg', 'No active bills are in passage for you right now.'));
+        return;
+      }
       var groups = {};
-      rows.forEach(function (r) {
+      active.forEach(function (r) {
         var b = bucketOrder(r && r.stage_order);
         (groups[b] = groups[b] || []).push(r);
       });
-
       STAGE_DEFS.forEach(function (def) {
         var list = groups[def.order];
         if (!list || !list.length) return;
-
-        // Sort within group: priority (critical→low) then short name.
-        list.sort(function (a, b) {
-          var pa = PRIORITY_RANK[String(a.priority || '').toLowerCase()];
-          var pb = PRIORITY_RANK[String(b.priority || '').toLowerCase()];
-          pa = (pa == null) ? 4 : pa; pb = (pb == null) ? 4 : pb;
-          if (pa !== pb) return pa - pb;
-          var na = String(a.legislation_short_name || a.legislation_title || '');
-          var nb = String(b.legislation_short_name || b.legislation_title || '');
-          return na.localeCompare(nb);
-        });
+        // Newest-first by last_changed_at (genuine change time).
+        list.sort(function (a, b) { return changedTime(b) - changedTime(a); });
 
         var group = el('div', 'stage-group');
         var head = el('div', 'stage-group-head');
@@ -464,12 +608,46 @@
       });
     }
 
-    function buildCard(item) {
-      var card = el('div', 'card');
+    // ---- Archived / Superseded: collapsed, newest-first, each with a reason badge ----
+    function renderArchived(archived) {
+      if (!archived.length) return;
+      archived.sort(function (a, b) { return changedTime(b) - changedTime(a); });
+
+      var toggle = el('button', 'archived-toggle');
+      toggle.type = 'button';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-controls', 'archived-list');
+      toggle.appendChild(el('span', 'chev', '▸'));            // ▸
+      var label = el('span', null, 'Show archived / superseded');
+      toggle.appendChild(label);
+      toggle.appendChild(el('span', 'count', '(' + archived.length + ')'));
+
+      var listEl = el('div', 'archived-list');
+      listEl.id = 'archived-list';
+      listEl.hidden = true;
+      archived.forEach(function (item) { listEl.appendChild(buildCard(item, { archived: true })); });
+
+      toggle.addEventListener('click', function () {
+        var open = listEl.hidden;
+        listEl.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        label.textContent = open ? 'Hide archived / superseded' : 'Show archived / superseded';
+      });
+
+      boardEl.appendChild(toggle);
+      boardEl.appendChild(listEl);
+    }
+
+    function buildCard(item, opts) {
+      opts = opts || {};
+      var card = el('div', 'card' + (opts.archived ? ' archived' : ''));
 
       var top = el('div', 'card-top');
       top.appendChild(el('div', 'card-title', item.legislation_short_name || item.legislation_title || 'Untitled bill'));
-      if (item.implicates_tenant === true) {
+      if (opts.archived) {
+        var reason = (item.__class && item.__class.reason) || 'Archived';
+        top.appendChild(el('span', 'reason-badge', reason));
+      } else if (item.implicates_tenant === true) {
         top.appendChild(el('span', 'chip-relevant', 'Relevant to you'));
       }
       card.appendChild(top);
@@ -483,6 +661,18 @@
         en.appendChild(el('strong', null, 'Expected enactment: '));
         en.appendChild(document.createTextNode(item.expected_enactment));
         card.appendChild(en);
+      }
+
+      // Per-card "last changed" — genuine change time only (last_changed_at). Never the
+      // poll time (poll time is shown once, at the top, as "Verified").
+      if (item.last_changed_at) {
+        var ch = fmtDate(item.last_changed_at);
+        if (ch) {
+          var chl = el('div', 'card-changed');
+          chl.appendChild(el('strong', null, 'Last changed '));
+          chl.appendChild(document.createTextNode(ch));
+          card.appendChild(chl);
+        }
       }
 
       // Tags: type, priority, affected categories.
