@@ -417,7 +417,7 @@
       </div>
 
       <div class="stats-row">
-        <div class="stat"><div class="num">391</div><div class="label">Provisions mapped</div></div>
+        <div class="stat"><div class="num"><span data-live-stat="provisions">599</span></div><div class="label">Provisions mapped</div></div>
         <div class="stat"><div class="num">69</div><div class="label">Instruments tracked</div></div>
         <div class="stat"><div class="num">240</div><div class="label">Leading cases</div></div>
         <div class="stat"><div class="num">131,600+</div><div class="label">Tribunal decisions</div></div>
@@ -1803,6 +1803,35 @@
     });
   })();
   </script>
+
+<!-- Live tribunal-estate stats — anthology-live-stats EF (AMD-166 estate; additive RPC extension 10 Jun 2026).
+     Silent fallback: baked values remain if fetch fails. No auth, no Supabase client (RULE 27). -->
+<script>
+(function () {
+  var EP = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/anthology-live-stats';
+  fetch(EP)
+    .then(function (r) { if (!r.ok) { throw new Error('stats_unavailable'); } return r.json(); })
+    .then(function (s) {
+      var nodes = document.querySelectorAll('[data-live-stat]');
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        var k = el.getAttribute('data-live-stat');
+        if (k === 'as_at') {
+          var d = new Date(s.as_at);
+          if (!isNaN(d.getTime())) {
+            el.textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+          continue;
+        }
+        var v = s[k];
+        if (typeof v === 'number' && isFinite(v) && v > 0) {
+          el.textContent = v.toLocaleString('en-GB');
+        }
+      }
+    })
+    .catch(function () { /* baked fallback values remain — intentionally silent */ });
+})();
+</script>
 
 </body>
 </html>
