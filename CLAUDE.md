@@ -41,6 +41,20 @@ Owner: AI Lane Limited (Company No. 17035654, ICO Reg. 00013389720)
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
 ```
 
+### Favicon / App Icons (Estate Head Standard — AMD-246)
+Every page MUST carry the favicon block in `<head>` (icon files live at repo root):
+```html
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0a0e1a">
+
+```
+
+Inline `data:` URI icons are prohibited — reference the root asset files. `AiLaneCEO/` pages change only under explicit CEO approval.
+
 ## EDGE FUNCTION RULES
 
 ### Security Controls (SEC-001, ratified 22 Mar 2026)
