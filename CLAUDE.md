@@ -208,7 +208,7 @@ If API keys or secrets appear in conversation:
 ## GOVERNING DOCUMENTS
 
 - ACEI Constitution v1.0, RRI Constitution v1.0, CCI Constitution v1.0
-- AILANE-AMD-REG-001 (master amendment register, current: AMD-025)
+- AILANE-AMD-REG-001 (master amendment register, current: AMD-246)
 - AILANE-SPEC-SEC-001 v1.0 (security architecture, ratified 22 Mar 2026)
 - AILANE-SPEC-AUTH-001 v2.1 (authentication architecture)
 - AILANE-SPEC-CCPL-001 (compliance checker portal lifecycle)
