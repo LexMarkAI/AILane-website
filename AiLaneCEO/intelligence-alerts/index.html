@@ -172,6 +172,40 @@ body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(1
 .ingest-chip{font-family:var(--font-mono);font-size:0.6rem;font-weight:600;padding:3px 9px;border-radius:100px;white-space:nowrap;}
 .ingest-chip.ok{background:var(--accent-green-dim);color:#34D399;border:1px solid rgba(16,185,129,0.3);}
 .ingest-chip.warn{background:var(--accent-amber-dim);color:#FBBF24;border:1px solid rgba(245,158,11,0.3);}
+
+/* ─── CEO-ALERTS-READABILITY-001 additions ─── */
+/* last-updated meta strip (P0 §1) */
+.meta-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:linear-gradient(180deg,rgba(14,165,233,0.05),var(--bg-surface));}
+.meta-strip-main{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:0.8rem;color:var(--text-secondary);}
+.meta-live{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:0.7rem;font-weight:600;color:var(--accent-green);text-transform:uppercase;letter-spacing:0.04em;}
+.meta-live .dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse-dot 2s ease-in-out infinite;}
+.meta-text{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.meta-text strong{color:var(--text-accent);font-weight:700;}
+.meta-sep{color:var(--text-muted);}
+.meta-text.warn{color:#FBBF24;}
+
+/* disposition sections (P0 §2) */
+.disp-sections{display:flex;flex-direction:column;gap:16px;}
+.disp-section{display:flex;flex-direction:column;gap:12px;}
+.disp-header{width:100%;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);cursor:pointer;text-align:left;color:var(--text-primary);font-family:var(--font-display);transition:border-color 0.15s,background 0.15s;}
+.disp-header:hover{border-color:var(--border-accent);}
+.disp-section.attention .disp-header{border-color:var(--border-accent);background:linear-gradient(180deg,rgba(14,165,233,0.08),var(--bg-surface));}
+.disp-caret{font-size:0.7rem;color:var(--text-muted);width:12px;flex-shrink:0;}
+.disp-title{font-size:0.92rem;font-weight:700;}
+.disp-section.attention .disp-title{color:var(--text-accent);}
+.disp-count{margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;font-weight:600;padding:2px 10px;border-radius:100px;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border-default);}
+.disp-section.attention .disp-count{background:var(--accent-cyan-dim);color:var(--text-accent);border-color:var(--border-accent);}
+.disp-cards{display:flex;flex-direction:column;gap:12px;}
+.disp-empty{padding:6px 4px 2px;color:var(--text-muted);font-size:0.78rem;font-family:var(--font-mono);}
+
+/* recommended-action line (P0 §3 — kept distinct from narrative body) */
+.alert-rec{display:flex;gap:8px;align-items:flex-start;font-size:0.8rem;line-height:1.5;color:var(--text-secondary);margin:-2px 0 10px;}
+.alert-rec .rec-label{font-family:var(--font-mono);font-size:0.58rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-cyan);padding-top:2px;flex-shrink:0;font-weight:600;}
+
+/* tier-2/3 intelligence-not-advice footer (PLUGIN-001 §14.3) */
+.page-disclaimer{margin-top:10px;font-size:0.62rem;color:var(--text-muted);line-height:1.55;font-style:italic;border-top:1px solid var(--border-subtle);padding-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.page-disclaimer a{color:var(--text-accent);text-decoration:none;font-style:normal;}
+.page-disclaimer a:hover{text-decoration:underline;}
 </style>
 </head>
 <body style="visibility:hidden">
@@ -203,6 +237,18 @@ async function rpc(token, fn, params){
 // ─── formatting helpers ───
 function humanize(s){ return (s==null||s==='') ? '' : String(s).replace(/_/g,' '); }
 function fmtTime(t){ if(!t) return ''; const d=new Date(t); return isNaN(d) ? '' : d.toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+// relative "x ago" for the last-updated strip (P0 §1); falls back to absolute for old timestamps
+function relativeTime(t){
+  if(!t) return '—';
+  const d=new Date(t); if(isNaN(d)) return '—';
+  const secs=Math.round((Date.now()-d.getTime())/1000);
+  if(secs<45) return 'just now';
+  if(secs<90) return 'a minute ago';
+  const mins=Math.round(secs/60); if(mins<60) return mins+' min ago';
+  const hrs=Math.round(mins/60); if(hrs<24) return hrs+' hour'+(hrs===1?'':'s')+' ago';
+  const days=Math.round(hrs/24); if(days<30) return days+' day'+(days===1?'':'s')+' ago';
+  return fmtTime(t);
+}
 function sevStyle(sev){
   const s=String(sev||'').toLowerCase();
   if(s==='critical'||s==='action_required') return {background:'rgba(239,68,68,0.15)',color:'#F87171',border:'1px solid rgba(239,68,68,0.35)'};
@@ -411,7 +457,10 @@ function AlertCard({alert, token, onActed}){
     }
   }
 
-  const body = alert.narrative || alert.recommended_action || '';
+  // §3 — narrative is the body (backend now always populates it); recommended_action stays
+  // a distinct line, shown only when present and not identical to the narrative sentence.
+  const narrative = alert.narrative || alert.recommended_action || '';
+  const rec = (alert.recommended_action && alert.recommended_action!==alert.narrative) ? alert.recommended_action : '';
   const count = Number(alert.action_count)||0;
   const dup = Number(alert.duplicate_count)||0;
   const acted = !!alert.status && String(alert.status).toLowerCase()!=='open';
@@ -421,7 +470,7 @@ function AlertCard({alert, token, onActed}){
         <span className="sev-chip" style={sevStyle(alert.severity)}>{humanize(alert.severity) || '—'}</span>
         {alert.alert_type && <span className="type-tag">{humanize(alert.alert_type)}</span>}
         <EstateChip alert={alert}/>
-        {dup>1 && <span className="dup-chip" title="Identical alerts collapsed">×{dup}</span>}
+        {dup>1 && <span className="dup-chip" title={dup+' near-identical alerts collapsed into this one'}>+{dup-1} similar</span>}
         <span className="alert-time">{fmtTime(alert.created_at)}</span>
         <span className="status-badge" style={statusStyle(alert.status)}>{humanize(alert.status) || '—'}</span>
       </div>
@@ -429,7 +478,8 @@ function AlertCard({alert, token, onActed}){
       {alert.eileen_verdict && (
         <div className="eileen-verdict"><span className="ev-label">Eileen</span><span>{alert.eileen_verdict}</span></div>
       )}
-      {body && <div className="alert-body">{body}</div>}
+      {narrative && <div className="alert-body">{narrative}</div>}
+      {rec && <div className="alert-rec"><span className="rec-label">Recommended</span><span>{rec}</span></div>}
       <div className="alert-meta">
         {alert.source_link && <a className="src-link" href={alert.source_link} target="_blank" rel="noopener noreferrer">View source ↗</a>}
         {count>0 && <span className="meta-dim">{count} action{count===1?'':'s'}{alert.last_action ? (' · last: '+humanize(alert.last_action)) : ''}{alert.last_action_at ? (' · '+fmtTime(alert.last_action_at)) : ''}</span>}
@@ -508,7 +558,8 @@ function HistoryItem({alert, token}){
 function HistoryPane({alerts, token, err, onRetry}){
   if(err) return <ErrorBanner onRetry={onRetry}/>;
   if(alerts==null) return <div className="muted-note">Loading history…</div>;
-  const acted = alerts.filter(a=>{ const s=String(a.status||'').toLowerCase(); return s && s!=='open'; });
+  const acted = alerts.filter(a=>{ const s=String(a.status||'').toLowerCase(); return s && s!=='open'; })
+    .slice().sort((a,b)=> new Date(b.last_action_at||b.created_at) - new Date(a.last_action_at||a.created_at)); // newest first
   if(acted.length===0) return <div className="empty-state">No acted-on alerts yet.</div>;
   return (
     <div className="history-list">
@@ -556,6 +607,67 @@ function ErrorBanner({onRetry}){
   );
 }
 
+// ─── last-updated meta strip (P0 §1) — consumes fn_ceo_alerts_meta() ───
+function MetaStrip({meta, err, onRefresh}){
+  return (
+    <div className="meta-strip">
+      <div className="meta-strip-main">
+        <span className="meta-live"><span className="dot"/>Live</span>
+        <span className="meta-sep">·</span>
+        {meta ? (
+          <span className="meta-text">
+            <strong>{Number(meta.needs_attention)||0}</strong>&nbsp;need your decision
+            <span className="meta-sep">·</span>
+            most recent event {relativeTime(meta.last_event_at)}
+            <span className="meta-sep">·</span>
+            refreshed {relativeTime(meta.generated_at)}
+          </span>
+        ) : err ? (
+          <span className="meta-text warn">last-updated indicator unavailable</span>
+        ) : (
+          <span className="meta-text">loading status…</span>
+        )}
+      </div>
+      <button className="refresh-btn" onClick={onRefresh}>↻ Refresh</button>
+    </div>
+  );
+}
+
+// ─── disposition bucketing (P0 §2) — authoritative `disposition` column ───
+function groupByDisposition(list){
+  const g={attention:[],in_estate:[],aged:[],handled:[]};
+  for(const a of (list||[])){
+    const d=String(a.disposition||'').toLowerCase();
+    if(d==='in_estate') g.in_estate.push(a);
+    else if(d==='aged') g.aged.push(a);
+    else if(d==='handled') g.handled.push(a);
+    else g.attention.push(a); // 'attention' + any unknown/blank stays visible by default
+  }
+  return g;
+}
+
+// ─── one collapsible disposition section (P0 §2) ───
+function DispositionSection({title, alerts, token, onActed, defaultOpen, accent}){
+  const [open,setOpen]=useState(!!defaultOpen);
+  const n=alerts.length;
+  return (
+    <div className={'disp-section'+(accent?' '+accent:'')}>
+      <button className="disp-header" onClick={()=>setOpen(o=>!o)} aria-expanded={open}>
+        <span className="disp-caret">{open?'▾':'▸'}</span>
+        <span className="disp-title">{title}</span>
+        <span className="disp-count">{n}</span>
+      </button>
+      {open && (n>0 ? (
+        <div className="disp-cards">
+          {alerts.map(a=> <AlertCard key={a.id} alert={a} token={token} onActed={onActed}/>)}
+        </div>
+      ) : (
+        <div className="disp-empty">Nothing here.</div>
+      ))}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 // APP
 // ═══════════════════════════════════════════════
@@ -565,6 +677,8 @@ function App(){
   const [tab,setTab]=useState('alerts');     // 'alerts' | 'history' | 'ingestion' | 'registry'
   const [alerts,setAlerts]=useState(null);   // null = loading, [] = empty, [..] = rows
   const [alertsErr,setAlertsErr]=useState(false);
+  const [meta,setMeta]=useState(null);       // fn_ceo_alerts_meta() single row (P0 §1)
+  const [metaErr,setMetaErr]=useState(false);
   const [registry,setRegistry]=useState(null);
   const [registryErr,setRegistryErr]=useState(false);
   const [ingestions,setIngestions]=useState(null);
@@ -612,11 +726,29 @@ function App(){
       const r=await rpc(token,'fn_ceo_intelligence_alerts',{p_limit:200});
       if(!mounted.current) return;
       if(!r.ok){ console.error('fn_ceo_intelligence_alerts HTTP '+r.status, r.json); setAlertsErr(true); return; }
+      // Preserve the backend's attention-first ordering (P0 §2) — grouping by disposition
+      // is done at render; no client re-sort, so intra-section priority is the server's.
       const arr = Array.isArray(r.json) ? r.json.slice() : [];
-      arr.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at)); // newest first
       setAlerts(arr);
     }catch(e){ console.error('fn_ceo_intelligence_alerts error', e); if(mounted.current) setAlertsErr(true); }
   },[token]);
+
+  // Last-updated meta (P0 §1) — single-row RPC; PostgREST wraps it in an array.
+  const loadMeta=useCallback(async()=>{
+    if(!token) return;
+    setMetaErr(false);
+    try{
+      const r=await rpc(token,'fn_ceo_alerts_meta',{});
+      if(!mounted.current) return;
+      if(!r.ok){ console.error('fn_ceo_alerts_meta HTTP '+r.status, r.json); setMetaErr(true); return; }
+      const row = Array.isArray(r.json) ? r.json[0] : r.json;
+      setMeta(row||null);
+    }catch(e){ console.error('fn_ceo_alerts_meta error', e); if(mounted.current) setMetaErr(true); }
+  },[token]);
+
+  // Manual Refresh control re-calls BOTH RPCs (P0 §1); also used as the post-action re-fetch
+  // so the header's needs-attention count tracks Approve / Dismiss.
+  const refreshAlertsView=useCallback(()=>{ loadAlerts(); loadMeta(); },[loadAlerts,loadMeta]);
 
   // Registry (§4.4).
   const loadRegistry=useCallback(async()=>{
@@ -647,6 +779,7 @@ function App(){
   },[token]);
 
   useEffect(()=>{ if(auth==='ok'&&token) loadAlerts(); },[auth,token,loadAlerts]);
+  useEffect(()=>{ if(auth==='ok'&&token) loadMeta(); },[auth,token,loadMeta]);
   useEffect(()=>{ if(auth==='ok'&&token&&tab==='registry') loadRegistry(); },[auth,token,tab,loadRegistry]);
   useEffect(()=>{ if(auth==='ok'&&token&&tab==='ingestion') loadIngestions(); },[auth,token,tab,loadIngestions]);
 
@@ -672,15 +805,26 @@ function App(){
           <button className={'tab'+(tab==='ingestion'?' active':'')} onClick={()=>setTab('ingestion')}>Automated ingestion</button>
           <button className={'tab'+(tab==='registry'?' active':'')} onClick={()=>setTab('registry')}>Registry</button>
           <div className="tab-spacer"/>
-          <button className="refresh-btn" onClick={()=>{ if(tab==='alerts'||tab==='history') loadAlerts(); else if(tab==='ingestion') loadIngestions(); else loadRegistry(); }}>↻ Refresh</button>
+          <button className="refresh-btn" onClick={()=>{ if(tab==='alerts') refreshAlertsView(); else if(tab==='history') loadAlerts(); else if(tab==='ingestion') loadIngestions(); else loadRegistry(); }}>↻ Refresh</button>
         </div>
 
         {tab==='alerts' && (
           <div className="alerts-pane">
-            {alertsErr && <ErrorBanner onRetry={loadAlerts}/>}
+            <MetaStrip meta={meta} err={metaErr} onRefresh={refreshAlertsView}/>
+            {alertsErr && <ErrorBanner onRetry={refreshAlertsView}/>}
             {alerts==null && !alertsErr && <div className="muted-note">Loading alerts…</div>}
             {alerts && alerts.length===0 && !alertsErr && <div className="empty-state">No alerts in your inbox.</div>}
-            {alerts && alerts.length>0 && alerts.map(a=> <AlertCard key={a.id} alert={a} token={token} onActed={loadAlerts}/>)}
+            {alerts && alerts.length>0 && (()=>{
+              const g=groupByDisposition(alerts);
+              return (
+                <div className="disp-sections">
+                  <DispositionSection title="Needs your decision" alerts={g.attention} token={token} onActed={refreshAlertsView} defaultOpen accent="attention"/>
+                  <DispositionSection title="In the estate — for awareness" alerts={g.in_estate} token={token} onActed={refreshAlertsView}/>
+                  <DispositionSection title="Older items" alerts={g.aged} token={token} onActed={refreshAlertsView}/>
+                  <DispositionSection title="Handled" alerts={g.handled} token={token} onActed={refreshAlertsView}/>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -702,6 +846,12 @@ function App(){
             {!registryErr && <RegistryTable rows={registry}/>}
           </div>
         )}
+
+        {/* Tier-2/3 intelligence-not-advice disclaimer (AILANE-SPEC-PLUGIN-001 §14.3) */}
+        <footer className="page-disclaimer">
+          <span>Intelligence for the Director's decision — not legal advice (AILANE-SPEC-PLUGIN-001 Art XIV §14.3).</span>
+          <a href="/terms/" target="_blank" rel="noopener noreferrer">Terms</a>
+        </footer>
       </div>
     </div>
   );
