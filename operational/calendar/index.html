@@ -180,6 +180,46 @@
     .src-link { font-size: 0.82rem; font-weight: 600; }
     .agenda-past-toggle { margin-top: 18px; }
 
+    /* ---- Year (12-month) view ---- */
+    .year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+    .mini-month {
+      background: var(--surface-card, #0c1525); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-sm, 8px); padding: 12px 12px 14px;
+    }
+    .mini-title {
+      display: block; width: 100%; text-align: left; padding: 0; margin-bottom: 8px;
+      background: transparent; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.86rem; font-weight: 700; color: var(--text-prime, #f1f5f9);
+    }
+    .mini-title:hover { color: var(--op-cyan); }
+    .mini-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 3px; }
+    .mini-dow div { text-align: center; font-size: 0.54rem; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-mute, #64748b); font-weight: 600; }
+    .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .mini-cell {
+      min-height: 30px; border-radius: 4px; padding: 2px 1px; border: 1px solid transparent;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px;
+      background: transparent; font-family: inherit; color: var(--text-sec, #94a3b8);
+    }
+    .mini-cell.empty { background: transparent; border-color: transparent; }
+    .mini-cell.has-ev { cursor: pointer; background: var(--surface-glass, rgba(30,41,59,0.45)); }
+    .mini-cell.has-ev:hover { border-color: var(--op-cyan); }
+    .mini-cell.today { border-color: var(--op-cyan); }
+    .mini-num { font-size: 0.62rem; line-height: 1; font-family: 'Space Mono', ui-monospace, monospace; }
+    .mini-cell.today .mini-num { color: var(--op-cyan); }
+    .mini-dots { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; min-height: 4px; }
+    .mini-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--feed-color, #94a3b8); }
+    .year-past-toggle { margin-top: 20px; }
+
+    /* ---- Footer action area (relocated download control, §1.3) ---- */
+    .cal-footer {
+      display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px;
+      margin-top: 28px; padding-top: 20px;
+      border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+
+    /* ---- Per-item add-to-web-calendar links (§1.4) ---- */
+    a.link-btn { text-decoration: none; }
+
     /* ---- States ---- */
     .state-msg { padding: 40px 22px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.95rem;
       border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
@@ -328,9 +368,9 @@
       <span class="spacer"></span>
       <div class="view-toggle" role="group" aria-label="View">
         <button type="button" id="view-grid" aria-pressed="true">Month</button>
+        <button type="button" id="view-year" aria-pressed="false">Year</button>
         <button type="button" id="view-agenda" aria-pressed="false">Agenda</button>
       </div>
-      <button type="button" class="btn" id="btn-ics">Download calendar (.ics)</button>
       <button type="button" class="btn primary" id="btn-new">+ New date</button>
     </div>
 
@@ -352,6 +392,12 @@
 
     <!-- Day detail / agenda detail -->
     <div id="detail"></div>
+
+    <!-- Footer action area — download control relocated here (below the grid/agenda) to
+         prevent accidental clicks; renamed per §1.3. "+ New date" stays in the top row. -->
+    <div class="cal-footer" id="cal-footer">
+      <button type="button" class="btn" id="btn-ics">Download calendar event(s)</button>
+    </div>
 
     <!-- Ask Eileen (reused inline block — eileen-operational) -->
     <h2 class="section-head">Discuss with Eileen</h2>
@@ -530,7 +576,7 @@
     var FEEDS = {
       regulatory: { label: 'Statutory / Royal Assent', color: '#10b981', dim: 'rgba(16,185,129,0.12)' },
       rates:      { label: 'Employment rates',         color: '#f59e0b', dim: 'rgba(245,158,11,0.12)' },
-      horizon:    { label: 'Parliament / Horizon',     color: '#22d3ee', dim: 'rgba(34,211,238,0.12)' },
+      horizon:    { label: 'Parliament / Horizon',     color: '#3b82f6', dim: 'rgba(59,130,246,0.12)' },
       client:     { label: 'My events',                color: '#a855f7', dim: 'rgba(168,85,247,0.12)' },
     };
     var FEED_ORDER = ['regulatory', 'rates', 'horizon', 'client'];
@@ -784,10 +830,13 @@
 
     function renderView() {
       document.getElementById('view-grid').setAttribute('aria-pressed', state.view === 'grid' ? 'true' : 'false');
+      document.getElementById('view-year').setAttribute('aria-pressed', state.view === 'year' ? 'true' : 'false');
       document.getElementById('view-agenda').setAttribute('aria-pressed', state.view === 'agenda' ? 'true' : 'false');
       document.getElementById('month-bar').style.display = state.view === 'grid' ? 'flex' : 'none';
       renderFreshness();
-      if (state.view === 'grid') renderGrid(); else renderAgenda();
+      if (state.view === 'grid') renderGrid();
+      else if (state.view === 'year') renderYear();
+      else renderAgenda();
     }
 
     function renderGrid() {
@@ -839,6 +888,106 @@
       openDay(ds);
       var det = document.getElementById('detail');
       if (det && det.scrollIntoView) det.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Annual (12-month) view — current month → +11 as compact mini-month grids,
+    // event dots colour-coded by feed; respects the active colour filter. A click
+    // on a day drills into the day detail; a click on a month title opens Month
+    // view there. Back-filled past dates surface in a collapsed "Past" section. §1.1/§1.5
+    // ─────────────────────────────────────────────────────────────────────────
+    var MINI_DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+    function goToMonth(y, m) {
+      state.cursor = { y: y, m: m };
+      state.view = 'grid';
+      renderView();
+      var bar = document.getElementById('month-bar');
+      if (bar && bar.scrollIntoView) bar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function miniMonth(y, m, byDay, today) {
+      var box = el('div', 'mini-month');
+      var title = el('button', 'mini-title', MONTHS[m] + ' ' + y);
+      title.type = 'button';
+      (function (yy, mm) { title.addEventListener('click', function () { goToMonth(yy, mm); }); })(y, m);
+      box.appendChild(title);
+
+      var dow = el('div', 'mini-dow');
+      MINI_DOW.forEach(function (d) { dow.appendChild(el('div', null, d)); });
+      box.appendChild(dow);
+
+      var grid = el('div', 'mini-grid');
+      var first = new Date(y, m, 1);
+      var startDow = (first.getDay() + 6) % 7;   // Mon=0
+      var daysInMonth = new Date(y, m + 1, 0).getDate();
+      for (var i = 0; i < startDow; i++) grid.appendChild(el('div', 'mini-cell empty'));
+
+      for (var day = 1; day <= daysInMonth; day++) {
+        var ds = y + '-' + pad(m + 1) + '-' + pad(day);
+        var evs = byDay[ds] || [];
+        var cell;
+        if (evs.length) {
+          cell = el('button', 'mini-cell has-ev');
+          cell.type = 'button';
+          cell.setAttribute('aria-label', fmtDate(ds) + ' — ' + evs.length + ' date' + (evs.length === 1 ? '' : 's'));
+          (function (dsCapture) { cell.addEventListener('click', function () { selectDay(dsCapture); }); })(ds);
+        } else {
+          cell = el('div', 'mini-cell');
+        }
+        if (ds === today) cell.classList.add('today');
+        cell.appendChild(el('span', 'mini-num', String(day)));
+
+        var dots = el('div', 'mini-dots');
+        var seenFeeds = {};
+        evs.forEach(function (e) {
+          if (seenFeeds[e.feed]) return;
+          seenFeeds[e.feed] = true;
+          var dot = el('span', 'mini-dot');
+          dot.style.background = (FEEDS[e.feed] || FEEDS.client).color;
+          dots.appendChild(dot);
+        });
+        cell.appendChild(dots);
+        grid.appendChild(cell);
+      }
+      box.appendChild(grid);
+      return box;
+    }
+
+    function renderYear() {
+      var body = document.getElementById('cal-body');
+      var det = document.getElementById('detail');
+      body.innerHTML = '';
+      det.innerHTML = '';   // day detail repopulates on a day click
+
+      var today = todayStr();
+      var byDay = eventsByDay();              // respects the active colour filter
+      var start = monthCursor(new Date());    // current month → +11
+
+      var wrap = el('div', 'year-grid');
+      for (var k = 0; k < 12; k++) {
+        var mm = start.m + k;
+        var yy = start.y + Math.floor(mm / 12);
+        var month = ((mm % 12) + 12) % 12;
+        wrap.appendChild(miniMonth(yy, month, byDay, today));
+      }
+      body.appendChild(wrap);
+
+      // Back-filled past dates (§1.5) — collapsed by default; most recent first.
+      var past = filtered().filter(function (e) { return e.date < today; })
+        .sort(function (a, b) { return a.date > b.date ? -1 : a.date < b.date ? 1 : sortByFeed(a, b); });
+      if (past.length) {
+        var toggle = el('button', 'btn year-past-toggle');
+        toggle.type = 'button';
+        toggle.textContent = (state.pastOpen ? 'Hide' : 'Show') + ' past dates (' + past.length + ')';
+        toggle.addEventListener('click', function () { state.pastOpen = !state.pastOpen; renderYear(); });
+        body.appendChild(toggle);
+        if (state.pastOpen) {
+          var pl = el('div', 'ev-list'); pl.style.marginTop = '14px';
+          past.forEach(function (e) { pl.appendChild(eventCard(e)); });
+          body.appendChild(pl);
+        }
+      }
     }
 
     function openDay(ds) {
@@ -903,7 +1052,42 @@
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Event card (used in day detail + agenda)
+    // Add-to-web-calendar links (§1.4) — Google / Outlook deep links for users
+    // with no desktop .ics handler. All-day; end = start + 1 day. Top-level
+    // navigations (target=_blank rel=noopener); every interpolated value is
+    // URL-encoded; no CSP change needed.
+    // ─────────────────────────────────────────────────────────────────────────
+    function plusOneDayDash(ds) {
+      var m = String(ds || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!m) return null;
+      var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1);
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+    function eventTitleFor(e) {
+      return (e.kind === 'client' && e.isContract) ? ('Review contract — ' + (e.title || '')) : (e.title || 'Event');
+    }
+    function googleCalUrl(e) {
+      var start = icsDate(e.date); if (!start) return null;     // YYYYMMDD
+      var end = plusOneDay(e.date) || start;                    // YYYYMMDD + 1 (all-day, exclusive)
+      return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+        + '&text=' + encodeURIComponent(eventTitleFor(e))
+        + '&dates=' + start + '/' + end
+        + '&details=' + encodeURIComponent(e.detail || '');
+    }
+    function outlookCalUrl(e) {
+      var start = dateKey(e.date); if (!start) return null;     // YYYY-MM-DD
+      var end = plusOneDayDash(e.date) || start;                // YYYY-MM-DD + 1
+      return 'https://outlook.live.com/calendar/0/deeplink/compose?subject=' + encodeURIComponent(eventTitleFor(e))
+        + '&body=' + encodeURIComponent(e.detail || '')
+        + '&startdt=' + start + '&enddt=' + end + '&allday=true';
+    }
+    function calLink(label, href) {
+      var a = el('a', 'link-btn', label);
+      a.href = href; a.target = '_blank'; a.rel = 'noopener';
+      return a;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Event card (used in day detail + agenda + year past list)
     // ─────────────────────────────────────────────────────────────────────────
     function eventCard(e) {
       var card = setFeedVars(el('div', 'ev-card'), e.feed);
@@ -960,10 +1144,16 @@
           foot.appendChild(a);
         }
       }
-      var ib = el('button', 'link-btn', 'Add to calendar (.ics)');
+      var ib = el('button', 'link-btn', 'Download event (.ics)');
       ib.type = 'button';
       ib.addEventListener('click', function () { downloadIcs([e], slugify(e.title) || 'event'); });
       foot.appendChild(ib);
+
+      // §1.4 — one-click add to a web calendar (no desktop .ics handler needed).
+      var gUrl = googleCalUrl(e);
+      if (gUrl) foot.appendChild(calLink('Add to Google', gUrl));
+      var oUrl = outlookCalUrl(e);
+      if (oUrl) foot.appendChild(calLink('Add to Outlook', oUrl));
 
       var db = el('button', 'link-btn', 'Discuss with Eileen');
       db.type = 'button';
@@ -1444,6 +1634,7 @@
 
     // ── Wire toolbar / month nav / modal ──
     document.getElementById('view-grid').addEventListener('click', function () { state.view = 'grid'; renderView(); });
+    document.getElementById('view-year').addEventListener('click', function () { state.view = 'year'; renderView(); });
     document.getElementById('view-agenda').addEventListener('click', function () { state.view = 'agenda'; renderView(); });
     document.getElementById('prev-month').addEventListener('click', function () { var m = state.cursor.m - 1, y = state.cursor.y; if (m < 0) { m = 11; y--; } state.cursor = { y: y, m: m }; renderGrid(); });
     document.getElementById('next-month').addEventListener('click', function () { var m = state.cursor.m + 1, y = state.cursor.y; if (m > 11) { m = 0; y++; } state.cursor = { y: y, m: m }; renderGrid(); });
