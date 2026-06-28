@@ -154,14 +154,27 @@ Sector: FM. Cardiff HQ. 238 employees. Never use Northgate or Meridian.
 ## BRANCH & PR RULES
 
 - Create branches: `claude/[description]`
-- BRANCH-NAME PRECEDENCE (Director directive, 2026-06-24): when a brief specifies a
-  branch name that differs from any harness/session-designated branch, ALWAYS use the
-  brief's branch. This is a known, recurring conflict — do NOT ask the Director to
-  choose; silently default to the brief's branch every time.
-- CANNOT create Pull Requests. Do not attempt. No GitHub API access.
-- After pushing, report branch name and provide merge URL:
-  `https://github.com/LexMarkAI/AILane-website/compare/main...[branch-name]`
-- Stop after reporting branch push. Do not attempt PR creation.
+
+### Branch precedence — Patch B (AILANE-CC-GOVERNANCE-PATCH-CC-PR-BRANCH-001, 28 Jun 2026)
+**The brief's §4 named branch is authoritative.** CC creates and pushes exactly that
+branch. If the harness forbids pushing to it, CC does NOT silently substitute the harness
+branch — CC pushes to the harness branch ONLY as a fallback AND states, in the report,
+both names and that the brief branch could not be used and why. Silent divergence in
+either direction is prohibited.
+
+Supersedes the prior "BRANCH-NAME PRECEDENCE" directive (2026-06-24): the brief branch
+still wins, but any deviation is now surfaced in the report, never silent.
+
+### RULE 12 — PR discipline — Patch A (AILANE-CC-GOVERNANCE-PATCH-CC-PR-BRANCH-001, 28 Jun 2026)
+**PR creation is prohibited for CC via every transport.** CC pushes the branch and STOPS.
+CC must not call `gh pr create`, the GitHub REST/GraphQL API, **any GitHub MCP
+PR/issue/review tool**, or drive the web UI to create, edit, comment on, merge, or close a
+PR. The ONLY permitted PR is one the **harness auto-creates on push** (AMD-168) — CC takes
+no action on it: no subscribe, no poll, no watch, no status cron, no comment. After
+pushing, CC reports the branch, head SHA, compare URL and proposed PR title/body as text,
+then ends. The Director opens/merges the PR.
+
+Compare URL format: `https://github.com/LexMarkAI/AILane-website/compare/main...[branch-name]`
 
 ## MANDATORY FIRST STEP — EVERY SESSION
 
