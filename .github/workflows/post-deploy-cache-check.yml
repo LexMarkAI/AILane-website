@@ -1,0 +1,95 @@
+name: Post-deploy cache freshness check
+
+# AILANE-CC-BRIEF-PURGE-ON-DEPLOY-001 — implementable substitute for a CDN purge step.
+#
+# ailane.ai is served directly by GitHub Pages (A records 185.199.108-111.153) with
+# NO customer CDN in front (no Cloudflare / customer-Fastly / Vercel / Netlify). The
+# edge cache is GitHub's MANAGED Fastly, which:
+#   * auto-purges on every successful Pages deploy  -> native "purge-on-deploy", and
+#   * serves HTML with Cache-Control: max-age=600    -> staleness already bounded <=10 min.
+# GitHub Pages exposes no customer purge API/token and does not allow custom response
+# headers, so the brief's Part A/B (token-authenticated purge) and Part C (custom
+# Cache-Control / Surrogate-Control) cannot apply here. See
+# AILANE-DEPLOY-CDN-NOTES-PURGE-ON-DEPLOY-001.md for the full rationale and the
+# Cloudflare-front alternative (infra outside this repo; requires Director sign-off).
+#
+# This workflow is the durable in-repo hygiene step: after each Pages build of the
+# publishing branch it confirms the clean (edge) URLs are serving the CURRENT
+# live-bound HTML (so the data-live-stat figures render live) and surfaces any
+# staleness as a visible warning. It is NON-FATAL by design: transient edge
+# propagation must never fail an otherwise-good deploy (mirrors the brief's
+# "non-fatal-but-visible" requirement).
+
+on:
+  page_build:          # fires when GitHub Pages finishes building/deploying the branch
+  workflow_dispatch:   # allow manual re-checks on demand
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    # page_build fires for build attempts; only assert on a successful build.
+    # workflow_dispatch has no build payload, so allow it through unconditionally.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.build.status == 'built' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify clean URLs serve current live-bound HTML
+        shell: bash
+        run: |
+          set -u
+          BASE="https://ailane.ai"
+
+          # path -> sentinel string that MUST be present in the served HTML.
+          # The staleness bug was the edge serving OLD HTML (static baked-in numbers,
+          # no live binding). Asserting the live-stat binding is present proves the edge
+          # has the new HTML and that the figures will self-update via JS on every visit.
+          paths=("/employers/" "/kl-access/")
+          declare -A sentinel=(
+            ["/employers/"]='data-live-stat="employers"'
+            ["/kl-access/"]='data-live-stat="cases"'
+          )
+
+          {
+            echo "## Post-deploy cache freshness"
+            echo
+            echo "Asserting the clean (edge) URLs serve the current live-bound HTML."
+            echo
+            echo "| URL | HTTP | X-Cache | Age | Live-bound HTML |"
+            echo "| --- | --- | --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          warn=0
+          for path in "${paths[@]}"; do
+            url="${BASE}${path}"
+            want="${sentinel[$path]}"
+            ok=""
+            http="000"; xcache=""; age=""
+
+            # Retry to absorb a few seconds of edge propagation after the deploy purge.
+            for attempt in 1 2 3 4 5; do
+              http="$(curl -fsSL -D /tmp/hdr.txt -o /tmp/body.html -w '%{http_code}' "$url" || echo 000)"
+              xcache="$(tr -d '\r' < /tmp/hdr.txt | awk -F': ' 'tolower($1)=="x-cache"{v=$2} END{print v}')"
+              age="$(tr -d '\r' < /tmp/hdr.txt | awk -F': ' 'tolower($1)=="age"{v=$2} END{print v}')"
+              if [ "$http" = "200" ] && grep -qF "$want" /tmp/body.html; then
+                ok="yes"; break
+              fi
+              sleep 15
+            done
+
+            if [ "$ok" = "yes" ]; then
+              echo "| \`$path\` | $http | ${xcache:-n/a} | ${age:-n/a} | present |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              warn=1
+              echo "| \`$path\` | ${http:-ERR} | ${xcache:-n/a} | ${age:-n/a} | MISSING |" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Stale or missing live-bound HTML::${url} did not serve current live-bound HTML after retries (sentinel '${want}' not found). GitHub Pages normally self-heals within its max-age (<=10 min); if this persists, re-run a Pages deploy."
+            fi
+          done
+
+          # NON-FATAL: surface, never fail the deploy on transient edge state.
+          if [ "$warn" = "1" ]; then
+            echo "Freshness check raised warnings (non-fatal). See the annotations and job summary above."
+          else
+            echo "All clean URLs are serving current live-bound HTML."
+          fi
+          exit 0
