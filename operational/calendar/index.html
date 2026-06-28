@@ -382,7 +382,7 @@
 
       <div class="field-row">
         <div>
-          <label class="field-label" for="f-date">Date</label>
+          <label class="field-label" for="f-date" id="f-date-label">Date</label>
           <input class="field-input" id="f-date" type="date" aria-label="Event date">
         </div>
         <div>
@@ -398,6 +398,7 @@
         <option value="board_reporting">Board reporting</option>
         <option value="appraisal_cycle">Appraisal cycle</option>
         <option value="probation_review">Probation review</option>
+        <option value="contract_review">Contract review</option>
         <option value="custom">Custom</option>
       </select>
 
@@ -406,7 +407,7 @@
         <input class="field-input" id="f-customtype" type="text" maxlength="80" placeholder="e.g. Insurance renewal" aria-label="Custom type label">
       </div>
 
-      <label class="field-label" for="f-desc">Description (optional)</label>
+      <label class="field-label" for="f-desc" id="f-desc-label">Description (optional)</label>
       <textarea class="field-textarea" id="f-desc" rows="3" placeholder="Add any detail…" aria-label="Event description"></textarea>
 
       <label class="field-label" for="f-recur">Recurrence</label>
@@ -927,8 +928,12 @@
       var tags = el('div', 'ev-tags');
       tags.appendChild(setFeedVars(el('span', 'tag feed', (FEEDS[e.feed] || FEEDS.client).label), e.feed));
       if (e.kind === 'client') {
-        if (e.isContract) tags.appendChild(el('span', 'tag contract', 'Linked contract'));
-        else {
+        if (e.isContract) {
+          // §1.5 v1.3 — linked-contract chip only when a document is actually linked
+          // (automated reviews); user-set reviews show a "Contract review" tag + note/title.
+          if (e.linkedDocId) tags.appendChild(el('span', 'tag contract', 'Linked contract'));
+          else tags.appendChild(el('span', 'tag contract', 'Contract review'));
+        } else {
           var tlabel = (e.eventType === 'custom' && e.customTypeLabel) ? e.customTypeLabel : (TYPE_LABELS[e.eventType] || e.eventType);
           if (tlabel) tags.appendChild(el('span', 'tag', tlabel));
         }
@@ -965,7 +970,9 @@
       db.addEventListener('click', function () { discussWithEileen(e); });
       foot.appendChild(db);
 
-      if (e.kind === 'client' && e.isOwn && !e.isContract) {
+      // Own, non-automated events are editable — incl. user-set contract reviews (v1.3).
+      // Pipeline-authored (source forward_intelligence/pipeline) rows stay read-only.
+      if (e.kind === 'client' && e.isOwn && !e.isAuto) {
         var eb = el('button', 'link-btn', 'Edit'); eb.type = 'button';
         eb.addEventListener('click', function () { openEdit(e); });
         foot.appendChild(eb);
@@ -1155,7 +1162,14 @@
     }
 
     function refreshTypeUi() {
-      document.getElementById('custom-type-wrap').style.display = (document.getElementById('f-type').value === 'custom') ? 'block' : 'none';
+      var t = document.getElementById('f-type').value;
+      document.getElementById('custom-type-wrap').style.display = (t === 'custom') ? 'block' : 'none';
+      // Contract review (v1.3) — reframe the date label as "Review / renew by" and the
+      // description as "Which contract / note" (stored in description; a contract picker
+      // arrives with the Vault room, so linked_document_id stays null for manual reviews).
+      var isCR = (t === 'contract_review');
+      document.getElementById('f-date-label').textContent = isCR ? 'Review / renew by' : 'Date';
+      document.getElementById('f-desc-label').textContent = isCR ? 'Which contract / note (optional)' : 'Description (optional)';
     }
     function refreshRecurUi() {
       var v = document.getElementById('f-recur').value;
@@ -1210,7 +1224,7 @@
       document.getElementById('f-date').value = e.date || '';
       document.getElementById('f-enddate').value = e.end || '';
       var t = e.eventType || 'custom';
-      if (!TYPE_LABELS[t] || t === 'contract_review') t = 'custom';
+      if (!TYPE_LABELS[t]) t = 'custom';   // contract_review is now a selectable Type (v1.3)
       document.getElementById('f-type').value = t;
       document.getElementById('f-customtype').value = e.customTypeLabel || '';
       document.getElementById('f-desc').value = e.detail || '';
@@ -1274,7 +1288,7 @@
       } else {
         payload.user_id = ctx.userId;
         payload.status = 'active';
-        if (state.extColumns && !payload.source) payload.source = 'user';
+        if (state.extColumns) payload.source = 'user';   // §1.6 — all inserts are user-authored
         sb.from('kl_calendar_events').insert(stripExt(payload))
           .then(function (res) { if (res.error) throw res.error; closeModal(); reloadAndRender(); toast('Date added to your calendar.'); })
           .catch(function (e2) { console.warn('[OOX-001] Calendar: save (create) failed', e2); errEl.textContent = 'Could not save this date. Please try again.'; })
