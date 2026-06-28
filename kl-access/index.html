@@ -418,9 +418,9 @@
 
       <div class="stats-row">
         <div class="stat"><div class="num"><span data-live-stat="provisions">599</span></div><div class="label">Provisions mapped</div></div>
-        <div class="stat"><div class="num">69</div><div class="label">Instruments tracked</div></div>
+        <div class="stat"><div class="num"><span data-live-stat="instruments">79</span></div><div class="label">Instruments tracked</div></div>
         <div class="stat"><div class="num">240</div><div class="label">Leading cases</div></div>
-        <div class="stat"><div class="num">131,600+</div><div class="label">Tribunal decisions</div></div>
+        <div class="stat"><div class="num"><span data-live-stat="decisions">134,045</span>+</div><div class="label">Tribunal decisions</div></div>
       </div>
     </div>
   </section>
@@ -534,12 +534,12 @@
       <div class="section-header">
         <div class="section-label">Content Estate</div>
         <h2 class="section-title">What you can research</h2>
-        <p class="section-sub">Eileen retrieves from 391 provisions, 69 instruments, 240 leading cases, and authoritative guidance from five UK regulators.</p>
+        <p class="section-sub">Eileen retrieves from <span data-live-stat="provisions">599</span> provisions, <span data-live-stat="instruments">79</span> instruments, 240 leading cases, and authoritative guidance from five UK regulators.</p>
       </div>
 
       <div class="estate-grid">
         <div class="estate-card">
-          <div class="estate-stat">69</div>
+          <div class="estate-stat"><span data-live-stat="instruments">79</span></div>
           <div class="estate-label">Legislative Instruments</div>
           <h4>Every instrument that defines UK employer obligations</h4>
           <ul>
@@ -550,7 +550,7 @@
             <li>Health and Safety at Work etc. Act 1974 — general duties, risk assessment</li>
             <li>National Minimum Wage Act 1998 — rates updated April 2026</li>
             <li>TUPE Regulations 2006 — service provision changes, information obligations</li>
-            <li>And 62 more instruments</li>
+            <li>And 72 more instruments</li>
           </ul>
         </div>
 
@@ -1117,13 +1117,14 @@
 
     // EILEEN TYPING ANIMATION — she speaks, she's alive
     (function(){
+      // TODO: RAG-bind scripted Eileen figures — Director directive, future session
       var statements = [
         "Nine new employer obligations took effect this month. Want me to walk you through them?",
         "Your SSP policy changed on 6 April. I can explain exactly what\u2019s different.",
         "I\u2019ve read every provision of the Employment Rights Act 2025. Ask me anything.",
         "The Fair Work Agency is now operational. Do you know what they can inspect?",
         "Day-one unfair dismissal rights arrive in January 2027. Time to prepare is now.",
-        "I track 69 legislative instruments so you don\u2019t have to. What\u2019s on your mind?",
+        "I track 79 legislative instruments so you don\u2019t have to. What\u2019s on your mind?",
         "Zero-hours contract reforms are coming. Your contracts may need updating.",
         "I don\u2019t give legal advice \u2014 I give you the intelligence to make informed decisions."
       ];
@@ -1454,7 +1455,8 @@
         label: 'How I Work \u00B7 Try Me'
       },
       'content': {
-        text: 'This is what you\u2019re getting access to: 69 instruments, 391 provisions, 240 leading cases, and guidance from five UK regulators. All of it structured, searchable, and connected. No other platform gives employers this depth of UK employment law intelligence in one place. And I\u2019m your guide through every piece of it.',
+        // TODO: RAG-bind scripted Eileen figures \u2014 Director directive, future session
+        text: 'This is what you\u2019re getting access to: 79 instruments, 599 provisions, 240 leading cases, and guidance from five UK regulators. All of it structured, searchable, and connected. No other platform gives employers this depth of UK employment law intelligence in one place. And I\u2019m your guide through every piece of it.',
         label: 'Your Research Library'
       },
       'receive': {
@@ -1809,6 +1811,43 @@
 <script>
 (function () {
   var EP = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/anthology-live-stats';
+
+  // Reduced-motion users get the live value instantly — the count-up is decorative.
+  var REDUCE_MOTION = false;
+  try {
+    REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) { REDUCE_MOTION = false; }
+
+  // Parse a baked fallback string into its number + any trailing suffix (e.g. the "+" on "134,045+").
+  function parseDisplayed(text) {
+    var m = String(text == null ? '' : text).replace(/,/g, '').match(/(-?\d+(?:\.\d+)?)(\D*)$/);
+    if (!m) { return null; }
+    return { value: parseFloat(m[1]), suffix: m[2] || '' };
+  }
+
+  function formatStat(n, suffix) {
+    return Math.round(n).toLocaleString('en-GB') + (suffix || '');
+  }
+
+  // Count up from the baked fallback to the live value. Never ticks downward; never blanks.
+  function animateCount(el, from, to, suffix) {
+    if (REDUCE_MOTION || !isFinite(from) || !(to > from)) {
+      el.textContent = formatStat(to, suffix);
+      return;
+    }
+    var DURATION = 900;
+    var startTs = null;
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    function frame(ts) {
+      if (startTs === null) { startTs = ts; }
+      var p = Math.min(1, (ts - startTs) / DURATION);
+      el.textContent = formatStat(from + (to - from) * easeOutCubic(p), suffix);
+      if (p < 1) { requestAnimationFrame(frame); }
+      else { el.textContent = formatStat(to, suffix); }
+    }
+    requestAnimationFrame(frame);
+  }
+
   fetch(EP)
     .then(function (r) { if (!r.ok) { throw new Error('stats_unavailable'); } return r.json(); })
     .then(function (s) {
@@ -1825,7 +1864,8 @@
         }
         var v = s[k];
         if (typeof v === 'number' && isFinite(v) && v > 0) {
-          el.textContent = v.toLocaleString('en-GB');
+          var baked = parseDisplayed(el.textContent);
+          animateCount(el, baked ? baked.value : v, v, baked ? baked.suffix : '');
         }
       }
     })

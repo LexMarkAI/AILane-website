@@ -907,6 +907,43 @@
 <script>
 (function () {
   var EP = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/anthology-live-stats';
+
+  // Reduced-motion users get the live value instantly — the count-up is decorative.
+  var REDUCE_MOTION = false;
+  try {
+    REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) { REDUCE_MOTION = false; }
+
+  // Parse a baked fallback string into its number + any trailing suffix (e.g. the "+" on "134,045+").
+  function parseDisplayed(text) {
+    var m = String(text == null ? '' : text).replace(/,/g, '').match(/(-?\d+(?:\.\d+)?)(\D*)$/);
+    if (!m) { return null; }
+    return { value: parseFloat(m[1]), suffix: m[2] || '' };
+  }
+
+  function formatStat(n, suffix) {
+    return Math.round(n).toLocaleString('en-GB') + (suffix || '');
+  }
+
+  // Count up from the baked fallback to the live value. Never ticks downward; never blanks.
+  function animateCount(el, from, to, suffix) {
+    if (REDUCE_MOTION || !isFinite(from) || !(to > from)) {
+      el.textContent = formatStat(to, suffix);
+      return;
+    }
+    var DURATION = 900;
+    var startTs = null;
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    function frame(ts) {
+      if (startTs === null) { startTs = ts; }
+      var p = Math.min(1, (ts - startTs) / DURATION);
+      el.textContent = formatStat(from + (to - from) * easeOutCubic(p), suffix);
+      if (p < 1) { requestAnimationFrame(frame); }
+      else { el.textContent = formatStat(to, suffix); }
+    }
+    requestAnimationFrame(frame);
+  }
+
   fetch(EP)
     .then(function (r) { if (!r.ok) { throw new Error('stats_unavailable'); } return r.json(); })
     .then(function (s) {
@@ -923,7 +960,8 @@
         }
         var v = s[k];
         if (typeof v === 'number' && isFinite(v) && v > 0) {
-          el.textContent = v.toLocaleString('en-GB');
+          var baked = parseDisplayed(el.textContent);
+          animateCount(el, baked ? baked.value : v, v, baked ? baked.suffix : '');
         }
       }
     })
