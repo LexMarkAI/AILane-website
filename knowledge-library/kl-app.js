@@ -1458,10 +1458,17 @@
     { id: "alerts", label: "Alerts" },
     { id: "acei", label: "ACEI Overview" },
     { id: "intelligence", label: "Intelligence" },
+    // PARLIAMENT-LIVE-001 — full-page surface (not an in-app facet): href routes
+    // to the standalone /operational/parliament-live/ page. Sits under Intelligence;
+    // inherits the rail's operational/enterprise/governance gating (hubChrome).
     { id: "parliament-live", label: "Parliament Live", href: "/operational/parliament-live/" },
     { id: "ticker", label: "Ticker" },
     { id: "notes", label: "Notes" },
-    { id: "calendar", label: "Calendar" }
+    // OOX-001 CALENDAR-PAGE-001 — full-page surface (not an in-app facet): href routes
+    // to the standalone /operational/calendar/ page (the month-grid calendar merging the
+    // tenant's events with the dated statutory/rates/horizon intelligence). HubCalendarFacet
+    // is retained (no deletion) as the in-app fallback; the nav now navigates to the page.
+    { id: "calendar", label: "Calendar", href: "/operational/calendar/" }
   ];
   var HUB_FACET_LABELS = {
     vault: "Document Vault",
@@ -4111,10 +4118,13 @@
       "Discuss with Eileen"
     )));
   }
-  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet }) {
+  function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession }) {
     var _historyOpen = useState(false);
     var historyOpen = _historyOpen[0];
     var setHistoryOpen = _historyOpen[1];
+    var _calUnread = useState(false);
+    var calUnread = _calUnread[0];
+    var setCalUnread = _calUnread[1];
     var _feed = useState([]);
     var feedItems = _feed[0];
     var setFeedItems = _feed[1];
@@ -4131,6 +4141,70 @@
         cancelled = true;
       };
     }, [hubChrome]);
+    useEffect(function() {
+      if (!hubChrome || !hubSession || !hubSession.sb || !hubSession.sb.from) return;
+      var alive = true;
+      var sb = hubSession.sb;
+      function readAck() {
+        return sb.from("kl_user_preferences").select("preferences").eq("user_id", hubSession.userId).limit(1).then(function(res) {
+          var p = !res.error && res.data && res.data[0] && res.data[0].preferences || {};
+          var seen = p.calendar_seen_max || null;
+          var viewed = p.calendar_last_viewed || null;
+          if (!seen) {
+            try {
+              seen = localStorage.getItem("ailane_calendar_seen_max");
+            } catch (e) {
+            }
+          }
+          if (!viewed) {
+            try {
+              viewed = localStorage.getItem("ailane_calendar_last_viewed");
+            } catch (e) {
+            }
+          }
+          return { seen, viewed };
+        }).catch(function() {
+          var seen = null, viewed = null;
+          try {
+            seen = localStorage.getItem("ailane_calendar_seen_max");
+            viewed = localStorage.getItem("ailane_calendar_last_viewed");
+          } catch (e) {
+          }
+          return { seen, viewed };
+        });
+      }
+      Promise.all([
+        sb.from("v_kl_calendar_feed").select("event_date").neq("feed", "client").order("event_date", { ascending: false }).limit(1).then(function(res) {
+          return !res.error && res.data && res.data[0] ? res.data[0].event_date : null;
+        }).catch(function() {
+          return null;
+        }),
+        readAck()
+      ]).then(function(r) {
+        if (!alive) return;
+        var newest = r[0] ? String(r[0]).slice(0, 10) : null;
+        if (!newest) {
+          setCalUnread(false);
+          return;
+        }
+        var ack = r[1] || {};
+        var unread;
+        if (ack.seen) {
+          unread = newest > String(ack.seen).slice(0, 10);
+        } else if (ack.viewed) {
+          var nt = new Date(newest).getTime();
+          var vt = new Date(ack.viewed).getTime();
+          unread = isNaN(nt) || isNaN(vt) ? true : nt > vt;
+        } else {
+          unread = true;
+        }
+        setCalUnread(!!unread);
+      }).catch(function() {
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubChrome, hubSession]);
     return React.createElement(
       "nav",
       { className: "kl-sidebar" + (open ? "" : " collapsed"), role: "navigation", "aria-label": "Conversation history" },
@@ -4181,7 +4255,10 @@
             key: f.id,
             type: "button",
             onClick: function() {
-              if (f.href) { window.location.href = f.href; return; }
+              if (f.href) {
+                window.location.href = f.href;
+                return;
+              }
               onSelectFacet(active ? null : f.id);
             },
             "aria-pressed": active,
@@ -4198,7 +4275,25 @@
               fontSize: "13px",
               padding: "8px 16px"
             }
-          }, f.label);
+          }, [
+            React.createElement("span", { key: "lbl" }, f.label),
+            // OOX-001 CALENDAR-PAGE-001 §1.10 — new-events dot on the Calendar nav item.
+            f.id === "calendar" && calUnread ? React.createElement("span", {
+              key: "badge",
+              title: "New dates",
+              "aria-label": "New dates",
+              style: {
+                display: "inline-block",
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                background: "#22d3ee",
+                marginLeft: "8px",
+                verticalAlign: "middle",
+                boxShadow: "0 0 6px rgba(34,211,238,0.6)"
+              }
+            }) : null
+          ]);
         })
       ) : React.createElement(
         "div",
@@ -12062,7 +12157,8 @@
         onSelectFacet: (id) => {
           handleSelectFacet(id);
           if (window.innerWidth <= 768) setSidebarOpen(false);
-        }
+        },
+        hubSession
       }
     ), currentView === "domain" && currentDomain ? /* @__PURE__ */ React.createElement(
       DomainSubPage,
