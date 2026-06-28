@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar — Operational Readiness — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) — verbatim from the operational surface; not narrowed -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase CDN — FIRST script in head after GA4/CSP; auth guard polls for it -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <style>
+    :root { --op-cyan: var(--tier-operational); --op-cyan-glow: var(--tier-operational-glow); }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--surface-void, #050c18); }
+    body {
+      background: var(--surface-void, #050c18);
+      color: var(--text-body, #e2e8f0);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--op-cyan); }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 24px 96px; }
+
+    /* ---- Header ---- */
+    .eyebrow {
+      font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--op-cyan); font-weight: 600; margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2rem, 4vw, 2.9rem); font-weight: 700;
+      color: var(--text-prime, #f1f5f9); line-height: 1.1; margin-bottom: 12px;
+    }
+    .lede { color: var(--text-sec, #94a3b8); font-size: 1.02rem; max-width: 64ch; }
+
+    .head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 18px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 13px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      font-size: 0.74rem; letter-spacing: 0.04em; color: var(--text-sec, #94a3b8);
+    }
+    .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--op-cyan); box-shadow: 0 0 8px var(--op-cyan-glow); }
+
+    /* ---- Standing disclaimer ---- */
+    .disclaimer-banner {
+      margin: 30px 0 28px; padding: 18px 20px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-left: 3px solid var(--op-cyan);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      color: var(--text-body, #e2e8f0); font-size: 0.95rem; line-height: 1.6;
+    }
+    .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
+
+    .section-head {
+      font-size: 0.74rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+      margin: 40px 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+
+    /* ---- Toolbar (filter chips + view controls) ---- */
+    .cal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .legend-label { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-mute, #64748b); font-weight: 600; margin-right: 2px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 12px; border-radius: 999px; cursor: pointer; user-select: none;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-size: 0.78rem; letter-spacing: 0.02em;
+      transition: border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+    .chip .swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .chip[aria-pressed="false"] { opacity: 0.42; }
+    .chip[aria-pressed="true"] { color: var(--text-prime, #f1f5f9); }
+    .chip:hover { border-color: var(--border-lit, rgba(148,163,184,0.3)); }
+    .chip:focus-visible { outline: 2px solid var(--op-cyan); outline-offset: 2px; }
+
+    .spacer { flex: 1 1 auto; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 14px; border-radius: var(--card-radius-sm, 8px);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); background: transparent;
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .btn:hover { border-color: var(--op-cyan); color: var(--op-cyan); }
+    .btn.primary { background: var(--op-cyan); color: #042027; border-color: var(--op-cyan); }
+    .btn.primary:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .view-toggle { display: inline-flex; border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); border-radius: var(--card-radius-sm, 8px); overflow: hidden; }
+    .view-toggle button { padding: 8px 14px; background: transparent; border: none; color: var(--text-sec, #94a3b8); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    .view-toggle button[aria-pressed="true"] { background: var(--surface-hover, rgba(30,41,59,0.65)); color: var(--text-prime, #f1f5f9); }
+
+    /* ---- Per-feed freshness ---- */
+    .freshness { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 18px; }
+    .fresh-item { font-size: 0.74rem; color: var(--text-mute, #64748b); font-family: 'Space Mono', ui-monospace, monospace; letter-spacing: 0.01em; display: inline-flex; align-items: center; gap: 6px; }
+    .fresh-item .swatch { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* ---- Month navigation ---- */
+    .month-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .month-title { font-size: 1.18rem; font-weight: 700; color: var(--text-prime, #f1f5f9); min-width: 200px; }
+    .nav-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); background: transparent; color: var(--text-sec, #94a3b8); cursor: pointer; font-size: 1rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+    .nav-btn:hover { border-color: var(--op-cyan); color: var(--op-cyan); }
+
+    /* ---- Month grid ---- */
+    .grid-head { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
+    .grid-head div { text-align: center; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-mute, #64748b); font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cell {
+      min-height: 96px; padding: 6px 7px; border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-card, #0c1525); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: border-color 0.15s ease;
+      text-align: left; font-family: inherit; color: inherit; width: 100%;
+    }
+    .cell:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); }
+    .cell.empty { background: transparent; border-color: transparent; cursor: default; }
+    .cell.today { border-color: var(--op-cyan); box-shadow: inset 0 0 0 1px var(--op-cyan-glow); }
+    .cell.selected { border-color: var(--op-cyan); }
+    .cell-date { font-size: 0.8rem; font-weight: 700; color: var(--text-sec, #94a3b8); font-family: 'Space Mono', ui-monospace, monospace; }
+    .cell.today .cell-date { color: var(--op-cyan); }
+    .ev-dots { display: flex; flex-wrap: wrap; gap: 3px; }
+    .ev-pill {
+      display: block; width: 100%; font-size: 0.66rem; line-height: 1.3; padding: 2px 6px; border-radius: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border-left: 3px solid var(--feed-color, #94a3b8); background: var(--feed-dim, rgba(148,163,184,0.1)); color: var(--text-body, #e2e8f0);
+    }
+    .ev-more { font-size: 0.64rem; color: var(--text-mute, #64748b); padding: 1px 4px; }
+
+    /* ---- Day detail / agenda ---- */
+    .panel-title { font-size: 1.02rem; font-weight: 700; color: var(--text-prime, #f1f5f9); margin: 26px 0 14px; }
+    .ev-list { display: flex; flex-direction: column; gap: 12px; }
+    .ev-card {
+      position: relative; padding: 16px 18px; border-radius: var(--card-radius, 12px);
+      background: var(--surface-card, #0c1525); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-left: 3px solid var(--feed-color, #94a3b8);
+    }
+    .ev-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .ev-date { font-size: 0.82rem; font-weight: 700; color: var(--text-prime, #f1f5f9); font-family: 'Space Mono', ui-monospace, monospace; }
+    .ev-date .overdue { color: var(--status-err, #ef4444); }
+    .ev-title { margin-top: 8px; font-size: 1.04rem; font-weight: 700; color: var(--text-prime, #f1f5f9); word-break: break-word; }
+    .ev-detail { margin-top: 8px; color: var(--text-body, #e2e8f0); font-size: 0.92rem; white-space: pre-wrap; word-break: break-word; }
+    .ev-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+    .tag {
+      font-size: 0.68rem; padding: 3px 10px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      color: var(--text-sec, #94a3b8); letter-spacing: 0.03em; white-space: nowrap;
+    }
+    .tag.feed { color: var(--feed-color, #94a3b8); border-color: var(--feed-color, #94a3b8); background: var(--feed-dim, rgba(148,163,184,0.08)); }
+    .tag.org { color: var(--tier-governance, #a855f7); border-color: rgba(168,85,247,0.4); }
+    .tag.auto { color: var(--op-cyan); border-color: rgba(34,211,238,0.4); }
+    .tag.contract { color: var(--status-warn, #f59e0b); border-color: rgba(245,158,11,0.4); }
+    .tag.ro { color: var(--text-mute, #64748b); }
+    .ev-foot { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .link-btn { background: transparent; border: none; color: var(--op-cyan); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; padding: 0; }
+    .link-btn:hover { text-decoration: underline; }
+    .link-btn.danger { color: var(--status-err, #ef4444); }
+    .src-link { font-size: 0.82rem; font-weight: 600; }
+    .agenda-past-toggle { margin-top: 18px; }
+
+    /* ---- States ---- */
+    .state-msg { padding: 40px 22px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.95rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 30px; height: 30px; margin: 0 auto 16px; border: 3px solid rgba(34,211,238,0.15); border-top-color: var(--op-cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Modal (new / edit event) ---- */
+    .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; background: rgba(5,8,15,0.78); overflow-y: auto; }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: 100%; max-width: 520px; background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); border-top: 2px solid var(--op-cyan);
+      border-radius: var(--card-radius-lg, 16px); padding: 26px 26px 22px;
+    }
+    .modal h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-prime, #f1f5f9); margin-bottom: 6px; font-family: 'Playfair Display', Georgia, serif; }
+    .modal .sub { color: var(--text-sec, #94a3b8); font-size: 0.88rem; margin-bottom: 16px; }
+    .field-label { display: block; font-size: 0.74rem; color: var(--text-mute, #64748b); letter-spacing: 0.04em; margin: 14px 0 5px; font-weight: 600; }
+    .field-input, .field-select, .field-textarea {
+      width: 100%; padding: 10px 12px; background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.95rem;
+    }
+    .field-textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+    .field-input:focus, .field-select:focus, .field-textarea:focus { outline: none; border-color: var(--op-cyan); }
+    .field-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .field-row > div { flex: 1 1 160px; }
+    .reminder-opts, .interval-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .check-row { display: flex; align-items: center; gap: 9px; margin-top: 14px; color: var(--text-body, #e2e8f0); font-size: 0.9rem; cursor: pointer; }
+    .check-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); background: var(--surface-glass, rgba(30,41,59,0.5)); color: var(--text-sec, #94a3b8); font-size: 0.78rem; cursor: pointer; }
+    .check-pill input { accent-color: var(--op-cyan); }
+    .modal-err { color: var(--status-err, #ef4444); font-size: 0.86rem; margin-top: 14px; min-height: 1em; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .hint { font-size: 0.74rem; color: var(--text-mute, #64748b); margin-top: 6px; font-style: italic; }
+
+    /* ---- Ask Eileen panel (reused verbatim from parliament-live, eileen-operational) ---- */
+    .eileen-panel {
+      margin-top: 8px; padding: 24px 24px 20px;
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-lg, 16px);
+    }
+    .eileen-intro { color: var(--text-sec, #94a3b8); font-size: 0.92rem; margin-bottom: 16px; }
+    .eileen-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .eileen-prompt {
+      padding: 8px 13px; border-radius: 999px;
+      background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.2);
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-size: 0.82rem; cursor: pointer;
+      transition: all 0.15s ease; text-align: left;
+    }
+    .eileen-prompt:hover:not(:disabled) { border-color: var(--op-cyan); color: var(--op-cyan); }
+    .eileen-prompt:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .eileen-messages { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .eileen-msg { max-width: 100%; }
+    .eileen-msg-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; font-family: 'Space Mono', ui-monospace, monospace; }
+    .eileen-msg.user .eileen-msg-label { color: var(--text-mute, #64748b); }
+    .eileen-msg.eileen .eileen-msg-label { color: var(--op-cyan); }
+    .eileen-msg-body {
+      padding: 12px 15px; border-radius: 12px; font-size: 0.95rem; line-height: 1.6;
+      background: var(--surface-card, #0c1525); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      color: var(--text-body, #e2e8f0); word-wrap: break-word; overflow-wrap: anywhere;
+    }
+    .eileen-msg.eileen .eileen-msg-body { border-left: 2px solid var(--op-cyan); }
+    .eileen-msg-body p { margin: 0 0 8px; }
+    .eileen-msg-body p:last-child { margin-bottom: 0; }
+    .eileen-msg-body strong { color: var(--text-prime, #f1f5f9); font-weight: 600; }
+    .eileen-msg-body em { font-style: italic; }
+    .eileen-msg-body ul, .eileen-msg-body ol { margin: 6px 0 8px 20px; }
+    .eileen-msg-body li { margin-bottom: 3px; }
+    .eileen-msg-body h4, .eileen-msg-body h5, .eileen-msg-body h6 { color: var(--text-prime, #f1f5f9); font-weight: 600; margin: 10px 0 6px; font-size: 0.98rem; }
+    .eileen-msg-body code { font-family: 'Space Mono', ui-monospace, monospace; font-size: 0.85em; background: rgba(34,211,238,0.1); padding: 1px 5px; border-radius: 3px; }
+    .eileen-msg-body a { color: var(--op-cyan); }
+    .eileen-msg-body hr { border: none; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); margin: 12px 0; }
+
+    .eileen-working { display: flex; align-items: center; gap: 6px; padding: 6px 0 2px; }
+    .eileen-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--op-cyan); animation: eilPulse 1.4s ease-in-out infinite; }
+    .eileen-dot:nth-child(2) { animation-delay: 0.2s; }
+    .eileen-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes eilPulse { 0%,80%,100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+    .eileen-error { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--status-err, #ef4444); font-size: 0.88rem; margin-bottom: 14px; }
+    .eileen-retry {
+      padding: 6px 14px; border-radius: var(--card-radius-sm, 8px);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); background: transparent;
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .eileen-retry:hover { border-color: var(--op-cyan); color: var(--op-cyan); }
+
+    .eileen-inputbar { display: flex; align-items: flex-end; gap: 8px; }
+    .eileen-input {
+      flex: 1; padding: 11px 13px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.95rem;
+      resize: none; min-height: 44px; max-height: 150px; line-height: 1.5;
+    }
+    .eileen-input:focus { outline: none; border-color: var(--op-cyan); }
+    .eileen-send {
+      padding: 11px 20px; border: none; border-radius: var(--card-radius-sm, 8px);
+      background: var(--op-cyan); color: #042027; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+      transition: opacity 0.15s ease; flex-shrink: 0;
+    }
+    .eileen-send:hover:not(:disabled) { opacity: 0.9; }
+    .eileen-send:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    @media (max-width: 640px) {
+      .cell { min-height: 72px; }
+      .cell-date { font-size: 0.72rem; }
+      .ev-pill { font-size: 0.6rem; }
+      .month-title { min-width: 0; font-size: 1.04rem; }
+    }
+  </style>
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+</head>
+<body style="visibility:hidden">
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">Operational Readiness</div>
+      <h1>Compliance Calendar</h1>
+      <p class="lede">Your compliance dates and the employment-law landscape on one calendar &mdash; statutory and ERA&nbsp;2025 dates, employment rates, Parliamentary horizon dates and your own events, colour-coded and filterable.</p>
+      <div class="head-row">
+        <span class="pill">Intelligence, not legal advice</span>
+      </div>
+    </header>
+
+    <div class="disclaimer-banner" role="note">
+      <strong>This calendar is forward regulatory intelligence &mdash; not legal advice.</strong>
+      Statutory and Parliamentary dates are provisional until in force and can change. For advice on your own
+      situation, consult a qualified professional.
+    </div>
+
+    <!-- Toolbar: colour filter chips (multi-select) + view + actions -->
+    <div class="cal-toolbar">
+      <div class="legend" id="legend" role="group" aria-label="Filter by feed colour">
+        <span class="legend-label">Show</span>
+        <!-- chips injected -->
+      </div>
+      <span class="spacer"></span>
+      <div class="view-toggle" role="group" aria-label="View">
+        <button type="button" id="view-grid" aria-pressed="true">Month</button>
+        <button type="button" id="view-agenda" aria-pressed="false">Agenda</button>
+      </div>
+      <button type="button" class="btn" id="btn-ics">Download calendar (.ics)</button>
+      <button type="button" class="btn primary" id="btn-new">+ New date</button>
+    </div>
+
+    <!-- Per-feed freshness -->
+    <div class="freshness" id="freshness" aria-live="polite"></div>
+
+    <!-- Month navigation (grid view) -->
+    <div class="month-bar" id="month-bar">
+      <button type="button" class="nav-btn" id="prev-month" aria-label="Previous month">&#8249;</button>
+      <div class="month-title" id="month-title">&nbsp;</div>
+      <button type="button" class="nav-btn" id="next-month" aria-label="Next month">&#8250;</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="btn-today">Today</button>
+    </div>
+
+    <div id="cal-body">
+      <div class="state-msg"><div class="spinner"></div>Loading your calendar&hellip;</div>
+    </div>
+
+    <!-- Day detail / agenda detail -->
+    <div id="detail"></div>
+
+    <!-- Ask Eileen (reused inline block — eileen-operational) -->
+    <h2 class="section-head">Discuss with Eileen</h2>
+    <section class="eileen-panel" id="eileen-panel">
+      <p class="eileen-intro">Ask Eileen about any date on your calendar &mdash; she has your operational context to hand. Pick a starting point, click &ldquo;Discuss with Eileen&rdquo; on any date, or type your own question.</p>
+      <div class="eileen-prompts" id="eileen-prompts">
+        <button type="button" class="eileen-prompt" data-prompt="What compliance dates are coming up for us in the next 90 days?">What&rsquo;s coming up in the next 90 days?</button>
+        <button type="button" class="eileen-prompt" data-prompt="Which of the ERA 2025 dates affect my organisation, and how should we prepare?">Which ERA 2025 dates affect us?</button>
+        <button type="button" class="eileen-prompt" data-prompt="How should we prepare for the upcoming employment rate changes?">How do we prepare for rate changes?</button>
+      </div>
+      <div class="eileen-messages" id="eileen-messages"></div>
+      <div class="eileen-inputbar">
+        <textarea class="eileen-input" id="eileen-input" rows="1" maxlength="4000"
+          placeholder="Ask Eileen about a date&hellip;" aria-label="Ask Eileen about a date"></textarea>
+        <button type="button" class="eileen-send" id="eileen-send" disabled>Ask</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- New / edit event modal -->
+  <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h3 id="modal-title">New date</h3>
+      <p class="sub" id="modal-sub">Add a compliance date to your calendar.</p>
+
+      <label class="field-label" for="f-title">Title</label>
+      <input class="field-input" id="f-title" type="text" maxlength="200" placeholder="What is due?" aria-label="Event title">
+
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="f-date">Date</label>
+          <input class="field-input" id="f-date" type="date" aria-label="Event date">
+        </div>
+        <div>
+          <label class="field-label" for="f-enddate">End date (optional)</label>
+          <input class="field-input" id="f-enddate" type="date" aria-label="End date">
+        </div>
+      </div>
+
+      <label class="field-label" for="f-type">Type</label>
+      <select class="field-select" id="f-type" aria-label="Event type">
+        <option value="policy_renewal">Policy renewal</option>
+        <option value="training_deadline">Training deadline</option>
+        <option value="board_reporting">Board reporting</option>
+        <option value="appraisal_cycle">Appraisal cycle</option>
+        <option value="probation_review">Probation review</option>
+        <option value="custom">Custom</option>
+      </select>
+
+      <div id="custom-type-wrap" style="display:none">
+        <label class="field-label" for="f-customtype">Custom type label</label>
+        <input class="field-input" id="f-customtype" type="text" maxlength="80" placeholder="e.g. Insurance renewal" aria-label="Custom type label">
+      </div>
+
+      <label class="field-label" for="f-desc">Description (optional)</label>
+      <textarea class="field-textarea" id="f-desc" rows="3" placeholder="Add any detail…" aria-label="Event description"></textarea>
+
+      <label class="field-label" for="f-recur">Recurrence</label>
+      <select class="field-select" id="f-recur" aria-label="Recurrence">
+        <option value="none">No recurrence</option>
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly</option>
+        <option value="biannual">Biannual</option>
+        <option value="annual">Annual</option>
+        <option value="custom">Custom…</option>
+      </select>
+
+      <div id="custom-recur-wrap" style="display:none">
+        <label class="field-label">Repeat every</label>
+        <div class="interval-row">
+          <input class="field-input" id="f-rec-interval" type="number" min="1" max="999" value="1" style="max-width:90px" aria-label="Interval">
+          <select class="field-select" id="f-rec-unit" style="max-width:160px" aria-label="Interval unit">
+            <option value="DAILY">day(s)</option>
+            <option value="WEEKLY">week(s)</option>
+            <option value="MONTHLY">month(s)</option>
+            <option value="YEARLY">year(s)</option>
+          </select>
+        </div>
+        <div class="hint" id="rrule-preview"></div>
+      </div>
+
+      <label class="field-label">Reminders</label>
+      <div class="reminder-opts" id="reminder-opts" role="group" aria-label="Reminders"></div>
+
+      <label class="check-row" id="share-row">
+        <input type="checkbox" id="f-share" aria-label="Visible to your organisation">
+        <span>Visible to your organisation</span>
+      </label>
+
+      <div class="modal-err" id="modal-err" role="alert"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn primary" id="modal-save">Save</button>
+        <button type="button" class="btn" id="modal-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTH GUARD — reveal-after-verify (RULE 26, verbatim pattern from operational/index.html) -->
+  <script>
+  (function () {
+    var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    // Live operational-room allow-list — verbatim from operational/index.html.
+    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise'];
+
+    window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
+    var settled = false;
+    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+
+    // Poll for the Supabase CDN to load.
+    var polls = 0;
+    (function waitForSb() {
+      if (window.supabase && window.supabase.createClient) { start(); return; }
+      if (++polls > 60) { fail(); return; }
+      setTimeout(waitForSb, 100);
+    })();
+
+    function start() {
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      function boot(session) {
+        if (settled) return;
+        try {
+          var token = session.access_token;
+          var payload = JSON.parse(atob(token.split('.')[1]));
+          var userId = payload.sub;
+          fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+            { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (rows) {
+              if (settled) return;
+              if (!(rows && rows[0] && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0)) { fail(); return; }
+              settled = true;
+              var tier = rows[0].subscription_tier;
+              window.__klUserId = userId;
+              window.__klToken = token;
+              window.__klTier = tier;
+              document.body.style.visibility = 'visible';
+              initCalendar(sb, { token: token, anon: SUPABASE_ANON_KEY, restUrl: SUPABASE_URL, userId: userId, email: payload.email || '', tier: tier });
+            })
+            .catch(fail);
+        } catch (e) { fail(); }
+      }
+
+      sb.auth.getSession().then(function (result) {
+        if (result.data && result.data.session) { boot(result.data.session); return; }
+        // Session may still be hydrating (OAuth/magic-link) — try refresh, then a
+        // 6s onAuthStateChange fallback before failing to /login/.
+        sb.auth.refreshSession().then(function (rr) {
+          if (rr.data && rr.data.session) { boot(rr.data.session); return; }
+          var resolved = false;
+          var to = setTimeout(function () { if (!resolved) { resolved = true; fail(); } }, 6000);
+          var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+            if (!resolved && session) {
+              resolved = true;
+              clearTimeout(to);
+              try { sub.data.subscription.unsubscribe(); } catch (e) {}
+              boot(session);
+            }
+          });
+        }).catch(fail);
+      }).catch(fail);
+    }
+  })();
+  </script>
+
+  <!-- APP — vanilla JS, no build step. Authenticated client (sb) for all reads/writes (RLS). -->
+  <script>
+  function initCalendar(sb, ctx) {
+    'use strict';
+
+    // ── Feed config: colour + label per feed (Read A) + the client feed (Read B) ──
+    var FEEDS = {
+      regulatory: { label: 'Statutory / Royal Assent', color: '#10b981', dim: 'rgba(16,185,129,0.12)' },
+      rates:      { label: 'Employment rates',         color: '#f59e0b', dim: 'rgba(245,158,11,0.12)' },
+      horizon:    { label: 'Parliament / Horizon',     color: '#22d3ee', dim: 'rgba(34,211,238,0.12)' },
+      client:     { label: 'My events',                color: '#a855f7', dim: 'rgba(168,85,247,0.12)' },
+    };
+    var FEED_ORDER = ['regulatory', 'rates', 'horizon', 'client'];
+    var FILTER_KEY = 'ailane_calendar_feeds';
+    var SEEN_KEY = 'ailane_calendar_seen_max';
+
+    // Editable client type / recurrence enums (the six user-pickable types; contract_review
+    // is system/pipeline-authored and is rendered but NOT offered as a manual Type — §1.6).
+    var TYPE_LABELS = {
+      policy_renewal: 'Policy renewal', training_deadline: 'Training deadline',
+      board_reporting: 'Board reporting', appraisal_cycle: 'Appraisal cycle',
+      probation_review: 'Probation review', custom: 'Custom',
+      contract_review: 'Contract review',
+    };
+    var BASE_COLS = 'id,event_type,title,description,event_date,end_date,recurrence,visibility,status,user_id';
+    var FULL_COLS = 'id,event_type,custom_type_label,title,description,event_date,end_date,recurrence,recurrence_rule,reminder_days,visibility,status,user_id,linked_document_id,source';
+    var REMINDER_CHOICES = [1, 3, 7, 14, 30];
+
+    // ── State ──
+    var state = {
+      markers: [],          // Read A rows (read-only)
+      clients: [],          // Read B rows (editable / org-shared)
+      activeFeeds: loadFilter(),
+      view: 'grid',
+      cursor: monthCursor(new Date()),   // {y, m}
+      selectedDay: null,
+      orgId: null,
+      extColumns: true,     // FEED columns present? (custom_type_label/recurrence_rule/source/…)
+      pastOpen: false,
+    };
+
+    // ── DOM helpers ──
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function setFeedVars(node, feed) {
+      var f = FEEDS[feed] || FEEDS.client;
+      node.style.setProperty('--feed-color', f.color);
+      node.style.setProperty('--feed-dim', f.dim);
+      return node;
+    }
+    function isHttp(u) { return typeof u === 'string' && /^https?:\/\//i.test(u); }
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function monthCursor(d) { return { y: d.getFullYear(), m: d.getMonth() }; }
+
+    // date-only 'YYYY-MM-DD' → en-GB short (built from parts; no UTC parse → no tz off-by-one).
+    function fmtDate(s) {
+      if (!s) return '—';
+      var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return String(s);
+      try {
+        var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        if (isNaN(d.getTime())) return String(s);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch (e) { return String(s); }
+    }
+    function dateKey(s) { var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[1] + '-' + m[2] + '-' + m[3] : null; }
+
+    function loadFilter() {
+      try {
+        var raw = localStorage.getItem(FILTER_KEY);
+        if (raw) {
+          var arr = JSON.parse(raw);
+          if (Array.isArray(arr) && arr.length) {
+            var s = {}; arr.forEach(function (k) { if (FEEDS[k]) s[k] = true; });
+            if (Object.keys(s).length) return s;
+          }
+        }
+      } catch (e) { /* ignore */ }
+      var all = {}; FEED_ORDER.forEach(function (k) { all[k] = true; });   // default: all on
+      return all;
+    }
+    function persistFilter() {
+      var arr = FEED_ORDER.filter(function (k) { return state.activeFeeds[k]; });
+      try { localStorage.setItem(FILTER_KEY, JSON.stringify(arr)); } catch (e) { /* ignore */ }
+      // Best-effort mirror to kl_user_preferences (resilient; never blocks the UI).
+      try {
+        savePrefs({ calendar_feed_filter: arr });
+      } catch (e) { /* ignore */ }
+    }
+
+    // ── kl_user_preferences merge-write (GET-then-PATCH/POST), via the authenticated client ──
+    function savePrefs(partial) {
+      if (!sb || !sb.from) return Promise.resolve();
+      return sb.from('kl_user_preferences').select('id,preferences').eq('user_id', ctx.userId).limit(1)
+        .then(function (res) {
+          if (res.error) throw res.error;
+          var rows = res.data || [];
+          if (rows.length) {
+            var merged = Object.assign({}, rows[0].preferences || {}, partial);
+            return sb.from('kl_user_preferences').update({ preferences: merged, updated_at: new Date().toISOString() }).eq('id', rows[0].id);
+          }
+          return sb.from('kl_user_preferences').insert({ user_id: ctx.userId, preferences: partial });
+        })
+        .catch(function (e) { console.warn('[OOX-001] Calendar: prefs write failed', e); });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Loads — Read A (markers, read-only) + Read B (client events) + org id.
+    // Resilient: if the FEED columns/view are absent, fall back; panels degrade
+    // to "—" + console.warn and never throw (§1.11).
+    // ─────────────────────────────────────────────────────────────────────────
+    function loadAll() {
+      var pA = sb.from('v_kl_calendar_feed')
+        .select('feed,title,event_date,end_date,detail,url,ref_id')
+        .neq('feed', 'client').order('event_date', { ascending: true })
+        .then(function (res) { if (res.error) throw res.error; return res.data || []; })
+        .catch(function (e) { console.warn('[OOX-001] Calendar: feed (Read A) unavailable', e); return null; });
+
+      var pB = sb.from('kl_calendar_events').select(FULL_COLS).neq('status', 'cancelled').order('event_date', { ascending: true })
+        .then(function (res) {
+          if (res.error) throw res.error;
+          state.extColumns = true;
+          return res.data || [];
+        })
+        .catch(function () {
+          // FEED columns not yet applied — retry with the base column set (§1.6 graceful fallback).
+          return sb.from('kl_calendar_events').select(BASE_COLS).neq('status', 'cancelled').order('event_date', { ascending: true })
+            .then(function (res2) { if (res2.error) throw res2.error; state.extColumns = false; return res2.data || []; })
+            .catch(function (e2) { console.warn('[OOX-001] Calendar: client events (Read B) unavailable', e2); return null; });
+        });
+
+      var pOrg = sb.rpc('get_my_org_id')
+        .then(function (res) { return (res && !res.error) ? res.data : null; })
+        .catch(function () { return null; });
+
+      return Promise.all([pA, pB, pOrg]).then(function (r) {
+        state.markers = Array.isArray(r[0]) ? r[0] : [];
+        state.clients = Array.isArray(r[1]) ? r[1] : [];
+        state.orgId = r[2] || null;
+        state._readAFailed = (r[0] === null);
+        state._readBFailed = (r[1] === null);
+      });
+    }
+
+    // ── Unified model. Every entry: {feed,title,date,end,detail,url,ref,kind, ...client} ──
+    function modelMarkers() {
+      return (state.markers || []).map(function (row) {
+        var feed = (row.feed && FEEDS[row.feed]) ? row.feed : 'horizon';
+        return {
+          kind: 'marker', feed: feed, title: row.title || 'Untitled',
+          date: dateKey(row.event_date), end: dateKey(row.end_date),
+          detail: row.detail || '', url: row.url || '', ref: row.ref_id != null ? String(row.ref_id) : null,
+        };
+      }).filter(function (e) { return e.date; });
+    }
+    function modelClients() {
+      return (state.clients || []).map(function (row) {
+        var isContract = String(row.event_type) === 'contract_review' || (row.linked_document_id != null && row.linked_document_id !== '');
+        var src = row.source != null ? String(row.source) : null;
+        return {
+          kind: 'client', feed: 'client',
+          title: row.title || 'Untitled', date: dateKey(row.event_date), end: dateKey(row.end_date),
+          detail: row.description || '', url: '', ref: row.id != null ? ('id:' + row.id) : null,
+          id: row.id, eventType: row.event_type || 'custom', customTypeLabel: row.custom_type_label || '',
+          recurrence: row.recurrence || 'none', recurrenceRule: row.recurrence_rule || '',
+          reminderDays: Array.isArray(row.reminder_days) ? row.reminder_days : [],
+          visibility: row.visibility || 'personal', status: row.status || 'active',
+          userId: row.user_id, linkedDocId: row.linked_document_id || null, source: src,
+          isOwn: row.user_id === ctx.userId,
+          isContract: isContract,
+          isAuto: src === 'forward_intelligence' || src === 'pipeline',
+        };
+      }).filter(function (e) { return e.date; });
+    }
+    function allEvents() { return modelMarkers().concat(modelClients()); }
+    function filtered() {
+      var ev = allEvents();
+      return ev.filter(function (e) { return !!state.activeFeeds[e.feed]; });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Legend (colour chips) — click toggles a feed; multi-select union; default all.
+    // ─────────────────────────────────────────────────────────────────────────
+    function renderLegend() {
+      var box = document.getElementById('legend');
+      // keep the leading label, drop old chips
+      Array.prototype.slice.call(box.querySelectorAll('.chip')).forEach(function (c) { c.remove(); });
+      FEED_ORDER.forEach(function (feed) {
+        var f = FEEDS[feed];
+        var on = !!state.activeFeeds[feed];
+        var chip = el('button', 'chip');
+        chip.type = 'button';
+        chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+        var sw = el('span', 'swatch'); sw.style.background = f.color;
+        chip.appendChild(sw);
+        chip.appendChild(el('span', null, f.label));
+        chip.addEventListener('click', function () {
+          // §1.3 multi-select: from the "all" default, a click filters to that one feed;
+          // thereafter clicks add/remove feeds from the union. Emptying the union reverts
+          // to all (never show a blank calendar).
+          var showingAll = FEED_ORDER.every(function (k) { return state.activeFeeds[k]; });
+          if (showingAll) {
+            FEED_ORDER.forEach(function (k) { state.activeFeeds[k] = (k === feed); });
+          } else {
+            state.activeFeeds[feed] = !state.activeFeeds[feed];
+            if (!FEED_ORDER.some(function (k) { return state.activeFeeds[k]; })) {
+              FEED_ORDER.forEach(function (k) { state.activeFeeds[k] = true; });
+            }
+          }
+          persistFilter();
+          renderLegend();
+          renderView();
+          if (state.selectedDay) openDay(state.selectedDay);
+        });
+        box.appendChild(chip);
+      });
+    }
+
+    // ── Per-feed freshness: "updated …" (max marker date + count) per feed ──
+    function renderFreshness() {
+      var box = document.getElementById('freshness');
+      box.innerHTML = '';
+      FEED_ORDER.forEach(function (feed) {
+        var f = FEEDS[feed];
+        var ev = allEvents().filter(function (e) { return e.feed === feed; });
+        var item = el('div', 'fresh-item');
+        var sw = el('span', 'swatch'); sw.style.background = f.color; item.appendChild(sw);
+        var maxDate = null;
+        ev.forEach(function (e) { if (e.date && (maxDate == null || e.date > maxDate)) maxDate = e.date; });
+        var txt;
+        if (!ev.length) {
+          txt = f.label + ' — none';
+          if ((feed !== 'client') && state._readAFailed) txt = f.label + ' — unavailable';
+          if ((feed === 'client') && state._readBFailed) txt = f.label + ' — unavailable';
+        } else {
+          txt = f.label + ' — ' + ev.length + ' date' + (ev.length === 1 ? '' : 's') + ', latest ' + fmtDate(maxDate);
+        }
+        item.appendChild(el('span', null, txt));
+        box.appendChild(item);
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Month grid
+    // ─────────────────────────────────────────────────────────────────────────
+    var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    function eventsByDay() {
+      var map = {};
+      filtered().forEach(function (e) {
+        (map[e.date] = map[e.date] || []).push(e);
+      });
+      return map;
+    }
+
+    function renderView() {
+      document.getElementById('view-grid').setAttribute('aria-pressed', state.view === 'grid' ? 'true' : 'false');
+      document.getElementById('view-agenda').setAttribute('aria-pressed', state.view === 'agenda' ? 'true' : 'false');
+      document.getElementById('month-bar').style.display = state.view === 'grid' ? 'flex' : 'none';
+      renderFreshness();
+      if (state.view === 'grid') renderGrid(); else renderAgenda();
+    }
+
+    function renderGrid() {
+      var body = document.getElementById('cal-body');
+      body.innerHTML = '';
+      document.getElementById('month-title').textContent = MONTHS[state.cursor.m] + ' ' + state.cursor.y;
+
+      var head = el('div', 'grid-head');
+      DOW.forEach(function (d) { head.appendChild(el('div', null, d)); });
+      body.appendChild(head);
+
+      var grid = el('div', 'grid');
+      var first = new Date(state.cursor.y, state.cursor.m, 1);
+      var startDow = (first.getDay() + 6) % 7;   // Mon=0
+      var daysInMonth = new Date(state.cursor.y, state.cursor.m + 1, 0).getDate();
+      var byDay = eventsByDay();
+      var today = todayStr();
+
+      for (var i = 0; i < startDow; i++) grid.appendChild(el('div', 'cell empty'));
+
+      for (var day = 1; day <= daysInMonth; day++) {
+        var ds = state.cursor.y + '-' + pad(state.cursor.m + 1) + '-' + pad(day);
+        var cell = el('button', 'cell');
+        cell.type = 'button';
+        if (ds === today) cell.classList.add('today');
+        if (ds === state.selectedDay) cell.classList.add('selected');
+        cell.appendChild(el('span', 'cell-date', String(day)));
+
+        var evs = byDay[ds] || [];
+        var pillWrap = el('div', 'ev-dots');
+        evs.slice(0, 3).forEach(function (e) {
+          var pill = setFeedVars(el('span', 'ev-pill', e.isContract ? ('Review: ' + e.title) : e.title), e.feed);
+          pillWrap.appendChild(pill);
+        });
+        if (evs.length > 3) pillWrap.appendChild(el('div', 'ev-more', '+' + (evs.length - 3) + ' more'));
+        cell.appendChild(pillWrap);
+
+        (function (dsCapture) {
+          cell.addEventListener('click', function () { selectDay(dsCapture); });
+        })(ds);
+        grid.appendChild(cell);
+      }
+      body.appendChild(grid);
+    }
+
+    function selectDay(ds) {
+      state.selectedDay = ds;
+      if (state.view === 'grid') renderGrid();
+      openDay(ds);
+      var det = document.getElementById('detail');
+      if (det && det.scrollIntoView) det.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function openDay(ds) {
+      var det = document.getElementById('detail');
+      det.innerHTML = '';
+      var evs = filtered().filter(function (e) { return e.date === ds; }).sort(sortByFeed);
+      det.appendChild(el('div', 'panel-title', fmtDate(ds)));
+      if (!evs.length) {
+        det.appendChild(el('div', 'state-msg', 'Nothing on this day for the feeds you have selected.'));
+        return;
+      }
+      var list = el('div', 'ev-list');
+      evs.forEach(function (e) { list.appendChild(eventCard(e)); });
+      det.appendChild(list);
+    }
+
+    function sortByFeed(a, b) {
+      var fa = FEED_ORDER.indexOf(a.feed), fb = FEED_ORDER.indexOf(b.feed);
+      if (fa !== fb) return fa - fb;
+      return (a.title || '').localeCompare(b.title || '');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Agenda — upcoming first; past collapsible.
+    // ─────────────────────────────────────────────────────────────────────────
+    function renderAgenda() {
+      var body = document.getElementById('cal-body');
+      var det = document.getElementById('detail');
+      det.innerHTML = '';
+      body.innerHTML = '';
+      var today = todayStr();
+      var evs = filtered().slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : sortByFeed(a, b); });
+      var upcoming = evs.filter(function (e) { return e.date >= today; });
+      var past = evs.filter(function (e) { return e.date < today; });
+
+      if (!evs.length) {
+        body.appendChild(el('div', 'state-msg', 'No dates to show for the feeds you have selected.'));
+        return;
+      }
+
+      body.appendChild(el('div', 'panel-title', 'Upcoming'));
+      if (upcoming.length) {
+        var ul = el('div', 'ev-list');
+        upcoming.forEach(function (e) { ul.appendChild(eventCard(e)); });
+        body.appendChild(ul);
+      } else {
+        body.appendChild(el('div', 'state-msg', 'No upcoming dates.'));
+      }
+
+      if (past.length) {
+        var toggle = el('button', 'btn agenda-past-toggle');
+        toggle.type = 'button';
+        toggle.textContent = (state.pastOpen ? 'Hide' : 'Show') + ' past dates (' + past.length + ')';
+        toggle.addEventListener('click', function () { state.pastOpen = !state.pastOpen; renderAgenda(); });
+        body.appendChild(toggle);
+        if (state.pastOpen) {
+          var pl = el('div', 'ev-list'); pl.style.marginTop = '14px';
+          past.reverse().forEach(function (e) { pl.appendChild(eventCard(e)); });
+          body.appendChild(pl);
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Event card (used in day detail + agenda)
+    // ─────────────────────────────────────────────────────────────────────────
+    function eventCard(e) {
+      var card = setFeedVars(el('div', 'ev-card'), e.feed);
+      var overdue = e.kind === 'client' && e.status === 'active' && e.date < todayStr();
+
+      var top = el('div', 'ev-card-top');
+      var dwrap = el('div');
+      var dateLine = el('div', 'ev-date');
+      var dlabel = (e.kind === 'client' && e.isContract) ? ('Review contract — by ' + fmtDate(e.date)) : fmtDate(e.date);
+      if (overdue) { var od = el('span', 'overdue', dlabel + ' · overdue'); dateLine.appendChild(od); }
+      else { dateLine.appendChild(document.createTextNode(dlabel)); }
+      if (e.end && e.end !== e.date) dateLine.appendChild(document.createTextNode(' → ' + fmtDate(e.end)));
+      dwrap.appendChild(dateLine);
+      top.appendChild(dwrap);
+      card.appendChild(top);
+
+      card.appendChild(el('div', 'ev-title', e.title));
+
+      if (e.detail) card.appendChild(el('div', 'ev-detail', e.detail));
+
+      // Tags
+      var tags = el('div', 'ev-tags');
+      tags.appendChild(setFeedVars(el('span', 'tag feed', (FEEDS[e.feed] || FEEDS.client).label), e.feed));
+      if (e.kind === 'client') {
+        if (e.isContract) tags.appendChild(el('span', 'tag contract', 'Linked contract'));
+        else {
+          var tlabel = (e.eventType === 'custom' && e.customTypeLabel) ? e.customTypeLabel : (TYPE_LABELS[e.eventType] || e.eventType);
+          if (tlabel) tags.appendChild(el('span', 'tag', tlabel));
+        }
+        var recL = recLabel(e);
+        if (recL) tags.appendChild(el('span', 'tag', '↻ ' + recL));
+        if (Array.isArray(e.reminderDays) && e.reminderDays.length) {
+          tags.appendChild(el('span', 'tag', '⏰ ' + e.reminderDays.slice().sort(function (a, b) { return a - b; }).join(', ') + 'd'));
+        }
+        if (e.isAuto) tags.appendChild(el('span', 'tag auto', 'Auto · Forward intelligence'));
+        if (e.visibility === 'org_shared') tags.appendChild(el('span', 'tag org', 'org'));
+        if (!e.isOwn) tags.appendChild(el('span', 'tag ro', 'read-only'));
+      }
+      card.appendChild(tags);
+
+      // Footer actions
+      var foot = el('div', 'ev-foot');
+      if (e.kind === 'marker') {
+        var rb = el('button', 'link-btn', 'Remind me');
+        rb.type = 'button';
+        rb.addEventListener('click', function () { remindMe(e); });
+        foot.appendChild(rb);
+        if (isHttp(e.url)) {
+          var a = el('a', 'src-link', 'View source ↗'); a.href = e.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          foot.appendChild(a);
+        }
+      }
+      var ib = el('button', 'link-btn', 'Add to calendar (.ics)');
+      ib.type = 'button';
+      ib.addEventListener('click', function () { downloadIcs([e], slugify(e.title) || 'event'); });
+      foot.appendChild(ib);
+
+      var db = el('button', 'link-btn', 'Discuss with Eileen');
+      db.type = 'button';
+      db.addEventListener('click', function () { discussWithEileen(e); });
+      foot.appendChild(db);
+
+      if (e.kind === 'client' && e.isOwn && !e.isContract) {
+        var eb = el('button', 'link-btn', 'Edit'); eb.type = 'button';
+        eb.addEventListener('click', function () { openEdit(e); });
+        foot.appendChild(eb);
+        var xb = el('button', 'link-btn danger', 'Delete'); xb.type = 'button';
+        xb.addEventListener('click', function () { deleteEvent(e); });
+        foot.appendChild(xb);
+      }
+      card.appendChild(foot);
+      return card;
+    }
+
+    function recLabel(e) {
+      var r = String(e.recurrence || 'none').toLowerCase();
+      if (r === 'custom') return 'Custom';
+      var L = { monthly: 'Monthly', quarterly: 'Quarterly', biannual: 'Biannual', annual: 'Annual' };
+      return L[r] || '';
+    }
+    function slugify(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // "Remind me" on a read-only marker → personal client event (create or update
+    // reminder_days if one already exists for that ref_id) — §1.7.
+    // ─────────────────────────────────────────────────────────────────────────
+    function remindMe(marker) {
+      var days = window.prompt('Remind me how many days before ' + fmtDate(marker.date) + '? (comma-separated, e.g. 7,30)', '7');
+      if (days == null) return;
+      var reminderDays = String(days).split(',').map(function (x) { return parseInt(x.trim(), 10); }).filter(function (n) { return !isNaN(n) && n >= 0 && n <= 3650; });
+      if (!reminderDays.length) reminderDays = [7];
+
+      var refTag = marker.ref ? ('Source ref: ' + marker.ref) : null;
+      var label = marker.feed === 'regulatory' ? 'Statutory reminder' : 'Parliament reminder';
+      var descParts = [];
+      if (marker.detail) descParts.push(marker.detail);
+      if (refTag) descParts.push('(' + refTag + ')');
+      var description = descParts.join('\n\n');
+
+      // Already a reminder for this ref_id? Update its reminder_days instead of duplicating.
+      var existing = null;
+      if (marker.ref) {
+        existing = (state.clients || []).filter(function (row) {
+          return row.user_id === ctx.userId && row.description && String(row.description).indexOf('Source ref: ' + marker.ref) >= 0;
+        })[0];
+      }
+
+      if (existing) {
+        var upd = { reminder_days: reminderDays, updated_at: new Date().toISOString() };
+        sb.from('kl_calendar_events').update(stripExt(upd)).eq('id', existing.id)
+          .then(function (res) { if (res.error) throw res.error; existing.reminder_days = reminderDays; reloadAndRender(); toast('Reminder updated.'); })
+          .catch(function (e2) { console.warn('[OOX-001] Calendar: reminder update failed', e2); toast('Could not update the reminder.'); });
+        return;
+      }
+
+      var row = {
+        user_id: ctx.userId, event_type: 'custom', title: marker.title,
+        event_date: marker.date, description: description || null,
+        status: 'active', visibility: 'personal', recurrence: null,
+      };
+      if (state.extColumns) {
+        row.custom_type_label = label;
+        row.reminder_days = reminderDays;
+        row.source = 'user';
+      }
+      sb.from('kl_calendar_events').insert(row)
+        .then(function (res) { if (res.error) throw res.error; reloadAndRender(); toast('Reminder added to your calendar.'); })
+        .catch(function (e2) { console.warn('[OOX-001] Calendar: reminder create failed', e2); toast('Could not add the reminder.'); });
+    }
+
+    function stripExt(obj) {
+      if (state.extColumns) return obj;
+      var clone = Object.assign({}, obj);
+      ['custom_type_label', 'recurrence_rule', 'reminder_days', 'source'].forEach(function (k) { delete clone[k]; });
+      return clone;
+    }
+
+    function toast(msg) {
+      var t = document.getElementById('cal-toast');
+      if (!t) {
+        t = el('div'); t.id = 'cal-toast';
+        t.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;background:#0c1525;border:1px solid rgba(34,211,238,0.4);color:#e2e8f0;padding:11px 18px;border-radius:10px;font-size:0.88rem;box-shadow:0 12px 30px rgba(0,0,0,0.5)';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.style.opacity = '1';
+      clearTimeout(t._to);
+      t._to = setTimeout(function () { t.style.opacity = '0'; t.style.transition = 'opacity 0.4s ease'; }, 2600);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // .ics — valid iCalendar built client-side (whole or per-item). §1.8
+    // ─────────────────────────────────────────────────────────────────────────
+    function icsEscape(s) { return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
+    function icsDate(ds) { var m = String(ds || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[1] + m[2] + m[3]) : null; }
+    function plusOneDay(ds) {
+      var m = String(ds || '').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!m) return null;
+      var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1);
+      return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    }
+    function recurrenceRrule(e) {
+      var r = String(e.recurrence || 'none').toLowerCase();
+      if (r === 'monthly') return 'RRULE:FREQ=MONTHLY;INTERVAL=1';
+      if (r === 'quarterly') return 'RRULE:FREQ=MONTHLY;INTERVAL=3';
+      if (r === 'biannual') return 'RRULE:FREQ=MONTHLY;INTERVAL=6';
+      if (r === 'annual') return 'RRULE:FREQ=YEARLY';
+      if (r === 'custom' && e.recurrenceRule) {
+        var rr = String(e.recurrenceRule).replace(/^RRULE:/i, '');
+        return 'RRULE:' + rr;
+      }
+      return null;
+    }
+    function buildIcs(events) {
+      var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//AI Lane//Compliance Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+      events.forEach(function (e, i) {
+        var dt = icsDate(e.date); if (!dt) return;
+        var uid = (e.ref || ('ev-' + i)) + '@ailane.ai';
+        var endRaw = (e.end && e.end !== e.date) ? plusOneDay(e.end) : plusOneDay(e.date);   // DTEND is exclusive for all-day
+        lines.push('BEGIN:VEVENT');
+        lines.push('UID:' + icsEscape(uid));
+        lines.push('DTSTART;VALUE=DATE:' + dt);
+        if (endRaw) lines.push('DTEND;VALUE=DATE:' + endRaw);
+        var summary = (e.kind === 'client' && e.isContract) ? ('Review contract — ' + e.title) : e.title;
+        lines.push('SUMMARY:' + icsEscape(summary));
+        var desc = e.detail || '';
+        if (e.kind === 'client' && e.isContract && e.linkedDocId) desc = (desc ? desc + '\n' : '') + 'Linked contract: ' + e.linkedDocId;
+        if (desc) lines.push('DESCRIPTION:' + icsEscape(desc));
+        var rr = (e.kind === 'client') ? recurrenceRrule(e) : null;
+        if (rr) lines.push(rr);
+        lines.push('END:VEVENT');
+      });
+      lines.push('END:VCALENDAR');
+      return lines.join('\r\n');
+    }
+    function downloadIcs(events, name) {
+      var valid = (events || []).filter(function (e) { return e && e.date; });
+      if (!valid.length) { toast('Nothing to export.'); return; }
+      var ics = buildIcs(valid);
+      try {
+        var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = (name || 'ailane-calendar') + '.ics';
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+      } catch (e2) { console.warn('[OOX-001] Calendar: ics download failed', e2); toast('Could not build the calendar file.'); }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Discuss with Eileen — seed the reused inline panel; fallback /operational/#eileen.
+    // ─────────────────────────────────────────────────────────────────────────
+    function discussWithEileen(e) {
+      var seed = 'Explain the date "' + e.title + '"' + (e.detail ? ' (' + e.detail.slice(0, 200) + ')' : '') +
+        ' on ' + fmtDate(e.date) + ' and what my organisation should do to prepare.';
+      var input = document.getElementById('eileen-input');
+      if (input) {
+        input.value = seed;
+        input.dispatchEvent(new Event('input'));
+        input.focus();
+        var panel = document.getElementById('eileen-panel');
+        if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.location.href = '/operational/#eileen';
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // New / edit event modal — own events only (RLS), §1.6.
+    // ─────────────────────────────────────────────────────────────────────────
+    var editing = null;   // null=create, else the client event being edited
+
+    function buildReminderOpts() {
+      var box = document.getElementById('reminder-opts');
+      box.innerHTML = '';
+      REMINDER_CHOICES.forEach(function (n) {
+        var lab = el('label', 'check-pill');
+        var cb = el('input'); cb.type = 'checkbox'; cb.value = String(n); cb.setAttribute('data-reminder', '1');
+        lab.appendChild(cb);
+        lab.appendChild(el('span', null, n + ' day' + (n === 1 ? '' : 's') + ' before'));
+        box.appendChild(lab);
+      });
+    }
+    function readReminders() {
+      return Array.prototype.slice.call(document.querySelectorAll('#reminder-opts input[data-reminder]'))
+        .filter(function (c) { return c.checked; }).map(function (c) { return parseInt(c.value, 10); });
+    }
+    function setReminders(arr) {
+      var set = {}; (arr || []).forEach(function (n) { set[n] = true; });
+      Array.prototype.slice.call(document.querySelectorAll('#reminder-opts input[data-reminder]')).forEach(function (c) { c.checked = !!set[c.value]; });
+    }
+
+    function refreshTypeUi() {
+      document.getElementById('custom-type-wrap').style.display = (document.getElementById('f-type').value === 'custom') ? 'block' : 'none';
+    }
+    function refreshRecurUi() {
+      var v = document.getElementById('f-recur').value;
+      var custom = v === 'custom';
+      document.getElementById('custom-recur-wrap').style.display = (custom && state.extColumns) ? 'block' : 'none';
+      if (custom && !state.extColumns) {
+        // FEED columns absent: custom recurrence can't be stored — fall back to label + note.
+        document.getElementById('f-recur').value = 'none';
+        toast('Custom recurrence needs the latest update — using "No recurrence" for now.');
+      }
+      updateRrulePreview();
+    }
+    function buildRrule() {
+      var n = parseInt(document.getElementById('f-rec-interval').value, 10);
+      if (isNaN(n) || n < 1) n = 1;
+      var unit = document.getElementById('f-rec-unit').value;
+      return 'FREQ=' + unit + ';INTERVAL=' + n;
+    }
+    function updateRrulePreview() {
+      var p = document.getElementById('rrule-preview');
+      if (document.getElementById('f-recur').value === 'custom') p.textContent = 'RRULE: ' + buildRrule();
+      else p.textContent = '';
+    }
+
+    function openModal(title, sub) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-sub').textContent = sub;
+      document.getElementById('modal-err').textContent = '';
+      document.getElementById('modal-backdrop').classList.add('open');
+    }
+    function closeModal() { document.getElementById('modal-backdrop').classList.remove('open'); editing = null; }
+
+    function openNew() {
+      editing = null;
+      document.getElementById('f-title').value = '';
+      document.getElementById('f-date').value = state.selectedDay || todayStr();
+      document.getElementById('f-enddate').value = '';
+      document.getElementById('f-type').value = 'policy_renewal';
+      document.getElementById('f-customtype').value = '';
+      document.getElementById('f-desc').value = '';
+      document.getElementById('f-recur').value = 'none';
+      document.getElementById('f-rec-interval').value = '1';
+      document.getElementById('f-rec-unit').value = 'MONTHLY';
+      document.getElementById('f-share').checked = false;
+      setReminders([]);
+      refreshTypeUi(); refreshRecurUi();
+      openModal('New date', 'Add a compliance date to your calendar.');
+    }
+    function openEdit(e) {
+      editing = e;
+      document.getElementById('f-title').value = e.title || '';
+      document.getElementById('f-date').value = e.date || '';
+      document.getElementById('f-enddate').value = e.end || '';
+      var t = e.eventType || 'custom';
+      if (!TYPE_LABELS[t] || t === 'contract_review') t = 'custom';
+      document.getElementById('f-type').value = t;
+      document.getElementById('f-customtype').value = e.customTypeLabel || '';
+      document.getElementById('f-desc').value = e.detail || '';
+      var rec = String(e.recurrence || 'none').toLowerCase();
+      document.getElementById('f-recur').value = (['none', 'monthly', 'quarterly', 'biannual', 'annual', 'custom'].indexOf(rec) >= 0) ? rec : 'none';
+      if (rec === 'custom' && e.recurrenceRule) {
+        var mi = String(e.recurrenceRule).match(/INTERVAL=(\d+)/i);
+        var mf = String(e.recurrenceRule).match(/FREQ=([A-Z]+)/i);
+        document.getElementById('f-rec-interval').value = mi ? mi[1] : '1';
+        document.getElementById('f-rec-unit').value = mf ? mf[1].toUpperCase() : 'MONTHLY';
+      }
+      document.getElementById('f-share').checked = e.visibility === 'org_shared';
+      setReminders(e.reminderDays || []);
+      refreshTypeUi(); refreshRecurUi();
+      openModal('Edit date', 'Update this compliance date.');
+    }
+
+    function saveEvent() {
+      var title = (document.getElementById('f-title').value || '').trim();
+      var date = (document.getElementById('f-date').value || '').trim();
+      var endDate = (document.getElementById('f-enddate').value || '').trim();
+      var type = document.getElementById('f-type').value;
+      var customType = (document.getElementById('f-customtype').value || '').trim();
+      var desc = (document.getElementById('f-desc').value || '').trim();
+      var recur = document.getElementById('f-recur').value;
+      var share = document.getElementById('f-share').checked;
+      var errEl = document.getElementById('modal-err');
+
+      if (!title) { errEl.textContent = 'A title is required.'; return; }
+      if (title.length > 200) { errEl.textContent = 'Title must be 200 characters or fewer.'; return; }
+      if (!date) { errEl.textContent = 'A date is required.'; return; }
+      if (share && state.orgId == null) { errEl.textContent = 'Could not confirm your organisation — please try again.'; return; }
+
+      // 'custom' recurrence is only valid once the FEED columns/enum are present; otherwise
+      // fall back to no recurrence (§1.6) so the CHECK constraint can never be violated.
+      var recVal;
+      if (recur === 'custom') recVal = state.extColumns ? 'custom' : null;
+      else if (recur && recur !== 'none') recVal = recur;
+      else recVal = null;
+      var payload = {
+        event_type: type, title: title, event_date: date,
+        end_date: endDate || null, description: desc || null,
+        recurrence: recVal, visibility: share ? 'org_shared' : 'personal',
+        org_id: share ? state.orgId : null,
+      };
+      if (state.extColumns) {
+        payload.custom_type_label = (type === 'custom' && customType) ? customType : null;
+        payload.recurrence_rule = (recur === 'custom') ? buildRrule() : null;
+        payload.reminder_days = readReminders();
+      }
+
+      document.getElementById('modal-save').disabled = true;
+      errEl.textContent = '';
+
+      if (editing) {
+        payload.updated_at = new Date().toISOString();
+        sb.from('kl_calendar_events').update(stripExt(payload)).eq('id', editing.id)
+          .then(function (res) { if (res.error) throw res.error; closeModal(); reloadAndRender(); toast('Date updated.'); })
+          .catch(function (e2) { console.warn('[OOX-001] Calendar: save (edit) failed', e2); errEl.textContent = 'Could not save changes. Please try again.'; })
+          .then(function () { document.getElementById('modal-save').disabled = false; });
+      } else {
+        payload.user_id = ctx.userId;
+        payload.status = 'active';
+        if (state.extColumns && !payload.source) payload.source = 'user';
+        sb.from('kl_calendar_events').insert(stripExt(payload))
+          .then(function (res) { if (res.error) throw res.error; closeModal(); reloadAndRender(); toast('Date added to your calendar.'); })
+          .catch(function (e2) { console.warn('[OOX-001] Calendar: save (create) failed', e2); errEl.textContent = 'Could not save this date. Please try again.'; })
+          .then(function () { document.getElementById('modal-save').disabled = false; });
+      }
+    }
+
+    function deleteEvent(e) {
+      if (!window.confirm('Delete "' + e.title + '"? This cannot be undone.')) return;
+      sb.from('kl_calendar_events').delete().eq('id', e.id)
+        .then(function (res) { if (res.error) throw res.error; reloadAndRender(); toast('Date deleted.'); })
+        .catch(function (e2) { console.warn('[OOX-001] Calendar: delete failed', e2); toast('Could not delete this date.'); });
+    }
+
+    function reloadAndRender() {
+      loadAll().then(function () {
+        renderLegend(); renderView();
+        if (state.selectedDay && state.view === 'grid') openDay(state.selectedDay);
+      });
+    }
+
+    // ── calendar_last_viewed — written on open (kl_user_preferences + localStorage). ──
+    // Also stamps the seen-watermark (newest acknowledged auto event_date) so the nav
+    // badge clears on visit and re-lights only when a strictly newer auto-date arrives.
+    function writeLastViewed() {
+      var maxAuto = null;
+      (state.markers || []).forEach(function (row) {
+        var d = dateKey(row.event_date);
+        if (d && (maxAuto == null || d > maxAuto)) maxAuto = d;
+      });
+      var nowIso = new Date().toISOString();
+      try {
+        localStorage.setItem('ailane_calendar_last_viewed', nowIso);
+        if (maxAuto) localStorage.setItem(SEEN_KEY, maxAuto);
+      } catch (e) { /* ignore */ }
+      savePrefs({ calendar_last_viewed: nowIso, calendar_seen_max: maxAuto || null });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Ask Eileen (reused verbatim from operational/parliament-live — eileen-operational)
+    // ─────────────────────────────────────────────────────────────────────────
+    (function wireEileen() {
+      var BASE_HEADERS = { 'Authorization': 'Bearer ' + ctx.token, 'apikey': ctx.anon, 'Content-Type': 'application/json' };
+      var EILEEN_URL = ctx.restUrl + '/functions/v1/eileen-operational';
+      var msgsEl = document.getElementById('eileen-messages');
+      var inputEl = document.getElementById('eileen-input');
+      var sendEl = document.getElementById('eileen-send');
+      var promptsEl = document.getElementById('eileen-prompts');
+      var convo = [];
+      var sending = false;
+      var lastUserText = null;
+
+      function elx(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+      function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+      function inlineMd(s) {
+        var codes = [];
+        s = s.replace(/`([^`]+)`/g, function (_m, c) { codes.push(c); return 'IC' + (codes.length - 1) + ''; });
+        s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (_m, label, url) { return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + '</a>'; });
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+        s = s.replace(/IC(\d+)/g, function (_m, i) { return '<code>' + codes[+i] + '</code>'; });
+        return s;
+      }
+      function renderMarkdown(raw) {
+        var text = escapeHtml(raw).replace(/\r\n?/g, '\n');
+        var blocks = text.split(/\n{2,}/);
+        var out = [];
+        for (var b = 0; b < blocks.length; b++) {
+          var block = blocks[b].replace(/\s+$/, '');
+          if (!block.trim()) continue;
+          var lines = block.split('\n');
+          var h = (lines.length === 1) && block.match(/^(#{1,6})\s+(.+)$/);
+          if (h) { var lv = Math.min(h[1].length + 3, 6); out.push('<h' + lv + '>' + inlineMd(h[2]) + '</h' + lv + '>'); continue; }
+          if (lines.length === 1 && /^(-{3,}|\*{3,}|_{3,})$/.test(block)) { out.push('<hr>'); continue; }
+          if (lines.every(function (l) { return /^\s*[-*+]\s+/.test(l); })) {
+            out.push('<ul>' + lines.map(function (l) { return '<li>' + inlineMd(l.replace(/^\s*[-*+]\s+/, '')) + '</li>'; }).join('') + '</ul>'); continue;
+          }
+          if (lines.every(function (l) { return /^\s*\d+\.\s+/.test(l); })) {
+            out.push('<ol>' + lines.map(function (l) { return '<li>' + inlineMd(l.replace(/^\s*\d+\.\s+/, '')) + '</li>'; }).join('') + '</ol>'); continue;
+          }
+          out.push('<p>' + lines.map(inlineMd).join('<br>') + '</p>');
+        }
+        return out.join('');
+      }
+      function clearTransient() { var t = msgsEl.querySelector('[data-transient]'); if (t) t.remove(); }
+      function renderConvo() {
+        msgsEl.innerHTML = '';
+        convo.forEach(function (m) {
+          var who = m.role === 'assistant' ? 'eileen' : 'user';
+          var wrap = elx('div', 'eileen-msg ' + who);
+          wrap.appendChild(elx('div', 'eileen-msg-label', m.role === 'assistant' ? 'Eileen' : 'You'));
+          var body = elx('div', 'eileen-msg-body');
+          if (m.role === 'assistant') body.innerHTML = renderMarkdown(m.content);   // escape-first
+          else body.appendChild(elx('p', null, m.content));
+          wrap.appendChild(body);
+          msgsEl.appendChild(wrap);
+        });
+      }
+      function showWorking() {
+        clearTransient();
+        var w = elx('div', 'eileen-working'); w.dataset.transient = '1';
+        w.appendChild(elx('span', 'eileen-dot')); w.appendChild(elx('span', 'eileen-dot')); w.appendChild(elx('span', 'eileen-dot'));
+        w.appendChild(elx('span', null, 'Eileen is thinking…'));
+        msgsEl.appendChild(w);
+      }
+      function showError() {
+        clearTransient();
+        var e = elx('div', 'eileen-error'); e.dataset.transient = '1';
+        e.appendChild(elx('span', null, 'Eileen is unavailable — please try again.'));
+        var retry = elx('button', 'eileen-retry', 'Retry'); retry.type = 'button';
+        retry.addEventListener('click', function () { if (lastUserText) dispatch(lastUserText); });
+        e.appendChild(retry);
+        msgsEl.appendChild(e);
+      }
+      function setSending(on) {
+        sending = on;
+        sendEl.disabled = on || inputEl.value.trim().length === 0;
+        inputEl.disabled = on;
+        Array.prototype.forEach.call(promptsEl.querySelectorAll('.eileen-prompt'), function (b) { b.disabled = on; });
+      }
+      function ask(text) {
+        var t = (text || '').trim(); if (!t || sending) return;
+        convo.push({ role: 'user', content: t }); renderConvo(); dispatch(t);
+      }
+      function dispatch(text) {
+        lastUserText = text; setSending(true); showWorking();
+        fetch(EILEEN_URL, { method: 'POST', headers: BASE_HEADERS, body: JSON.stringify({ messages: convo.map(function (m) { return { role: m.role, content: m.content }; }) }) })
+          .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+          .then(function (data) {
+            clearTransient();
+            var resp = (data && typeof data.response === 'string') ? data.response : '';
+            if (!resp) throw new Error('empty');
+            convo.push({ role: 'assistant', content: resp }); setSending(false); renderConvo();
+          })
+          .catch(function () { setSending(false); showError(); });
+      }
+      Array.prototype.forEach.call(promptsEl.querySelectorAll('.eileen-prompt'), function (btn) {
+        btn.addEventListener('click', function () { ask(btn.dataset.prompt); });
+      });
+      inputEl.addEventListener('input', function () {
+        sendEl.disabled = sending || inputEl.value.trim().length === 0;
+        inputEl.style.height = 'auto'; inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+      });
+      inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitInput(); } });
+      sendEl.addEventListener('click', submitInput);
+      function submitInput() {
+        var t = inputEl.value.trim(); if (!t || sending) return;
+        inputEl.value = ''; inputEl.style.height = 'auto'; sendEl.disabled = true; ask(t);
+      }
+    })();
+
+    // ── Wire toolbar / month nav / modal ──
+    document.getElementById('view-grid').addEventListener('click', function () { state.view = 'grid'; renderView(); });
+    document.getElementById('view-agenda').addEventListener('click', function () { state.view = 'agenda'; renderView(); });
+    document.getElementById('prev-month').addEventListener('click', function () { var m = state.cursor.m - 1, y = state.cursor.y; if (m < 0) { m = 11; y--; } state.cursor = { y: y, m: m }; renderGrid(); });
+    document.getElementById('next-month').addEventListener('click', function () { var m = state.cursor.m + 1, y = state.cursor.y; if (m > 11) { m = 0; y++; } state.cursor = { y: y, m: m }; renderGrid(); });
+    document.getElementById('btn-today').addEventListener('click', function () { state.cursor = monthCursor(new Date()); selectDay(todayStr()); });
+    document.getElementById('btn-ics').addEventListener('click', function () { downloadIcs(filtered(), 'ailane-compliance-calendar'); });
+    document.getElementById('btn-new').addEventListener('click', openNew);
+    document.getElementById('f-type').addEventListener('change', refreshTypeUi);
+    document.getElementById('f-recur').addEventListener('change', refreshRecurUi);
+    document.getElementById('f-rec-interval').addEventListener('input', updateRrulePreview);
+    document.getElementById('f-rec-unit').addEventListener('change', updateRrulePreview);
+    document.getElementById('modal-save').addEventListener('click', saveEvent);
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+    document.getElementById('modal-backdrop').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+
+    buildReminderOpts();
+
+    // ── Boot ──
+    loadAll().then(function () {
+      renderLegend();
+      renderView();
+      writeLastViewed();   // §1.10 — stamp calendar_last_viewed on open (clears the nav badge)
+    }).catch(function (e) {
+      console.warn('[OOX-001] Calendar: initial load failed', e);
+      document.getElementById('cal-body').innerHTML = '';
+      document.getElementById('cal-body').appendChild(el('div', 'state-msg', 'Could not load your calendar right now. Please refresh.'));
+    });
+  }
+  </script>
+</body>
+</html>
