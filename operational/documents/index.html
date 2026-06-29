@@ -1033,10 +1033,22 @@
     function confirmRemove(doc, card) {
       if (!window.confirm('Remove this document and stop monitoring it?')) return;
       setSlotStatus(card, 'Removing…');
+      // DOCV-ROOM-RECTIFY-001 §4B — Prefer: return=minimal so the soft-delete PATCH
+      // does not trigger a return-representation read of the now-deleted_at row (which
+      // would fail the deleted_at IS NULL owner-select). On any non-2xx, log the real
+      // HTTP status + body so a recurrence is diagnosable.
       fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
-        method: 'PATCH', headers: H, body: JSON.stringify({ deleted_at: new Date().toISOString() })
+        method: 'PATCH',
+        headers: Object.assign({ 'Prefer': 'return=minimal' }, H),
+        body: JSON.stringify({ deleted_at: new Date().toISOString() })
       }).then(function (r) {
-        if (r.status < 200 || r.status >= 300) throw new Error('del ' + r.status);
+        if (r.status >= 200 && r.status < 300) return null;
+        return r.text().then(function (body) {
+          var e = new Error('remove ' + r.status);
+          e.httpStatus = r.status; e.httpBody = body;
+          throw e;
+        });
+      }).then(function () {
         clearType(doc.id);
         clearCheckAttempted(doc.id);
         if (selectedId === doc.id) {
@@ -1047,7 +1059,12 @@
           renderNotes(null);
         }
         loadSlots();
-      }).catch(function () {
+      }).catch(function (e) {
+        if (e && e.httpStatus) {
+          console.error('vault remove failed: HTTP ' + e.httpStatus + ' — ' + (e.httpBody || '(no body)'));
+        } else {
+          console.error('vault remove failed (network/other):', (e && e.message) || e);
+        }
         setSlotStatus(card, '');
         showRowErrorCard(card, 'Could not remove this document right now. Please try again.');
       });
@@ -1094,6 +1111,22 @@
       renderAttestation(docId);
       renderPackSlot(docId);
       renderNotes(docId);
+    }
+
+    // DOCV-ROOM-RECTIFY-001 §4A — on first load, auto-select a document so its
+    // exposure report + solicitor-pack render immediately (no manual click),
+    // matching the "document and its report side-by-side" intent. Prefer the
+    // most-recently-checked occupied slot; fall back to the first occupied slot.
+    function autoSelectInitial() {
+      if (selectedId || !docs.length) return;
+      var ids = docs.map(function (d) { return d.id; });
+      getJson('/vault_contract_records?document_id=in.(' + ids.join(',') + ')' +
+              '&select=document_id&order=created_at.desc&limit=1')
+        .then(function (rows) {
+          var checked = rows && rows[0] && docById(rows[0].document_id);
+          if (!selectedId) selectDoc(checked ? rows[0].document_id : docs[0].id);
+        })
+        .catch(function () { if (!selectedId) selectDoc(docs[0].id); });
     }
 
     function loadExposure(docId) {
@@ -1702,7 +1735,7 @@
 
     // ---- Kick off ----
     loadTierBadge();
-    loadPalettes().then(loadSlots);
+    loadPalettes().then(loadSlots).then(autoSelectInitial);
     loadNotifications();
     renderPackSlot(null);
     renderNotes(null);
