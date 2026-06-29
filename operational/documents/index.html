@@ -52,6 +52,17 @@
       font-family: var(--font-display, 'DM Serif Display', Georgia, serif);
       font-size: 1.32rem; color: var(--text-prime, #f1f5f9); letter-spacing: 0.01em;
     }
+    .topbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .topbar-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.86rem; font-weight: 600; text-decoration: none;
+      color: var(--tier-operational, #22d3ee);
+      padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .topbar-back:hover { border-color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.08); }
+    .topbar-back:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: 2px; }
     .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .tier-badge {
       display: inline-flex; align-items: center; gap: 7px;
@@ -294,6 +305,10 @@
     .slot-filename { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; }
     .slot-meta { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b);
       font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
+    /* DOCV-ROOM-RECTIFY-001 §4 — honest first-check-failure note on a filled slot */
+    .slot-checknote { margin-top: 8px; font-size: 0.74rem; line-height: 1.45;
+      color: var(--text-sec, #94a3b8);
+      border-left: 2px solid var(--tier-operational, #22d3ee); padding-left: 8px; }
     .slot-actions { display: flex; gap: 8px; margin-top: 10px; }
     .btn-mini {
       font-family: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer;
@@ -358,7 +373,11 @@
 <body style="visibility:hidden">
 
   <header class="topbar">
-    <div class="brand">Ailane Documents Vault</div>
+    <div class="topbar-left">
+      <!-- DOCV-ROOM-RECTIFY-001 §2 — back to the operational hub (hosts Eileen) -->
+      <a class="topbar-back" href="/operational/" aria-label="Back to the operational hub">← Operational</a>
+      <div class="brand">Ailane Documents Vault</div>
+    </div>
     <div class="topbar-right">
       <span class="tier-badge" id="tier-badge" hidden></span>
       <span class="monitor-counter" id="monitor-counter">— of 5 monitored</span>
@@ -661,6 +680,15 @@
     function readType(id) { try { return localStorage.getItem(typeKey(id)); } catch (e) { return null; } }
     function clearType(id) { try { localStorage.removeItem(typeKey(id)); } catch (e) {} }
 
+    // DOCV-ROOM-RECTIFY-001 §4 — honest first-check failure. We record (per device, like
+    // the type key) that a compliance check has been ATTEMPTED for a document, so a check
+    // that fails to land an overlay reads as "check didn't complete" rather than the
+    // misleading "not yet checked". A landed overlay always overrides this marker.
+    function attemptKey(id) { return 'docv_checked_' + uid + '_' + id; }
+    function markCheckAttempted(id) { try { localStorage.setItem(attemptKey(id), '1'); } catch (e) {} }
+    function clearCheckAttempted(id) { try { localStorage.removeItem(attemptKey(id)); } catch (e) {} }
+    function isCheckAttempted(id) { try { return localStorage.getItem(attemptKey(id)) === '1'; } catch (e) { return false; } }
+
     function docById(id) { for (var i = 0; i < docs.length; i++) { if (docs[i].id === id) return docs[i]; } return null; }
     function safeName(name) { return String(name || 'document').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120) || 'document'; }
     function cryptoId() {
@@ -743,6 +771,11 @@
       if (doc.analysis_status) metaBits.push(String(doc.analysis_status));
       card.appendChild(el('div', 'slot-meta', metaBits.join(' · ')));
 
+      // Honest first-check-failure note (DOCV-ROOM-RECTIFY-001 §4); shown by paintDot
+      // only when a check was attempted but no overlay landed.
+      var checkNote = el('div', 'slot-checknote'); checkNote.hidden = true;
+      card.appendChild(checkNote);
+
       var actions = el('div', 'slot-actions');
       var rep = el('button', 'btn-mini', 'Replace'); rep.type = 'button';
       rep.addEventListener('click', function (e) { e.stopPropagation(); openReplace(doc, card, idx); });
@@ -761,7 +794,7 @@
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
       });
 
-      paintDot(doc, dot);
+      paintDot(doc, dot, card);
       return card;
     }
     function buildEmptySlot(idx) {
@@ -886,7 +919,9 @@
           if (!id) throw new Error('no id');
           storeType(id, type);
           setSlotStatus(card, 'Running the first compliance check…');
-          return runBridge(id, type).then(function () { return id; });
+          // A check has now been attempted — mark it so a failure surfaces honestly
+          // (DOCV-ROOM-RECTIFY-001 §4) instead of reading as "not yet checked".
+          return runBridge(id, type).then(function () { markCheckAttempted(id); return id; });
         })
         .then(function (id) {
           selectedId = id;
@@ -978,7 +1013,8 @@
         })
         .then(function () {
           setSlotStatus(card, 'Running a fresh compliance check…');
-          return runBridge(doc.id, readType(doc.id) || SLOT_DEFS[idx]);
+          return runBridge(doc.id, readType(doc.id) || SLOT_DEFS[idx])
+            .then(function () { markCheckAttempted(doc.id); });
         })
         .then(function () {
           selectedId = doc.id;
@@ -1002,6 +1038,7 @@
       }).then(function (r) {
         if (r.status < 200 || r.status >= 300) throw new Error('del ' + r.status);
         clearType(doc.id);
+        clearCheckAttempted(doc.id);
         if (selectedId === doc.id) {
           selectedId = null;
           msg(expEl, 'Select a document to see its exposure report.');
@@ -1016,7 +1053,8 @@
       });
     }
 
-    function paintDot(doc, dot) {
+    function paintDot(doc, dot, card) {
+      var note = card ? card.querySelector('.slot-checknote') : null;
       Promise.all([
         getJson('/vault_contract_records?document_id=eq.' + doc.id +
                 '&select=status_band,critical_gaps,upload_id,created_at&order=created_at.desc&limit=1')
@@ -1031,8 +1069,17 @@
           dot.style.boxShadow = '0 0 0 3px ' + RING_HEX[status] + '33';
           dot.title = status === 'green' ? 'Solicitor-Verified'
                     : status === 'red' ? 'Significant gaps identified' : 'Ready for solicitor review';
+          if (note) { note.hidden = true; note.textContent = ''; }
+        } else if (isCheckAttempted(doc.id)) {
+          // Attempted but no overlay landed — surface honestly (DOCV-ROOM-RECTIFY-001 §4).
+          dot.title = 'First check didn’t complete — saved and monitored';
+          if (note) {
+            note.textContent = 'First check didn’t complete — saved & monitored. Use Replace to try again.';
+            note.hidden = false;
+          }
         } else {
           dot.title = 'No analysis yet';
+          if (note) { note.hidden = true; note.textContent = ''; }
         }
       });
     }
@@ -1066,21 +1113,28 @@
                 .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; });
           return Promise.all([Promise.resolve(overlay), fFindings, fAtt]);
         })
-        .then(function (res) { renderExposure(res[0], res[1] || [], res[2]); })
+        .then(function (res) { renderExposure(res[0], res[1] || [], res[2], docId); })
         .catch(function () { msg(expEl, "Couldn't load the exposure report right now. Please try again."); });
     }
 
-    function renderExposure(overlay, findings, att) {
+    function renderExposure(overlay, findings, att, docId) {
       clear(expEl);
+
+      // No landed overlay: distinguish "never attempted" from "attempted, didn't complete"
+      // (DOCV-ROOM-RECTIFY-001 §4) — a failed first check must not read as "not yet checked".
+      if (!overlay || !overlay.upload_id) {
+        var attempted = isCheckAttempted(docId);
+        expEl.appendChild(buildPendingBlock(attempted));
+        expEl.appendChild(el('div', 'state-msg', attempted
+          ? 'We couldn’t complete the first check — your document is saved and monitored. We’ll re-check on the next relevant change in the law, or use Replace to try again.'
+          : 'This document has not been checked yet.'));
+        return;
+      }
+
       var status = deriveStatus(att, overlay, findings);
 
       // ---- Status ring ----
       expEl.appendChild(buildStatusBlock(status, att));
-
-      if (!overlay || !overlay.upload_id) {
-        expEl.appendChild(el('div', 'state-msg', 'This document has not been checked yet.'));
-        return;
-      }
 
       var inforce = findings.filter(function (f) { return !f.is_forward_looking; });
       var forward = findings.filter(function (f) { return !!f.is_forward_looking; });
@@ -1131,6 +1185,21 @@
       var txt = el('div', 'status-text');
       txt.appendChild(label);
       if (sub.textContent) txt.appendChild(sub);
+      block.appendChild(ring); block.appendChild(txt);
+      return block;
+    }
+
+    // DOCV-ROOM-RECTIFY-001 §4 — calm pending block: either never attempted or
+    // attempted-but-didn't-complete. Neutral ring; no red/amber alarm.
+    function buildPendingBlock(attempted) {
+      var block = el('div', 'status-block');
+      var ring = el('div', 'ring');
+      ring.textContent = attempted ? '–' : '·';
+      var txt = el('div', 'status-text');
+      txt.appendChild(el('div', 'status-label', attempted ? 'First check didn’t complete' : 'Not yet checked'));
+      txt.appendChild(el('div', 'status-sub', attempted
+        ? 'Your document is saved and monitored.'
+        : 'No analysis on record for this document yet.'));
       block.appendChild(ring); block.appendChild(txt);
       return block;
     }
@@ -1381,9 +1450,10 @@
             // Re-run contract 5 by reloading the exposure pane → ring flips to green.
             loadExposure(docId);
             // Refresh the selected slot's status dot for this document.
-            var dot = listEl.querySelector('.slot.selected .doc-dot');
+            var selSlot = listEl.querySelector('.slot.selected');
+            var dot = selSlot && selSlot.querySelector('.doc-dot');
             var doc = docs.filter(function (d) { return d.id === docId; })[0];
-            if (dot && doc) paintDot(doc, dot);
+            if (dot && doc) paintDot(doc, dot, selSlot);
           })
           .catch(function () {
             submit.disabled = false; submit.textContent = 'Record attestation';
@@ -1432,17 +1502,9 @@
       var l4 = toggleLine('n_inapp', 'In-app', prefs.channel_in_app);
       notifEl.appendChild(l1); notifEl.appendChild(l2); notifEl.appendChild(l3); notifEl.appendChild(l4);
 
-      var freqWrap = el('div', 'field'); freqWrap.style.marginTop = '14px';
-      var freqLab = el('label', null, 'Digest frequency'); freqLab.setAttribute('for', 'n_freq');
-      freqWrap.appendChild(freqLab);
-      var sel = el('select'); sel.id = 'n_freq';
-      [['immediate', 'Immediate'], ['daily', 'Daily'], ['weekly', 'Weekly']].forEach(function (o) {
-        var opt = el('option', null, o[1]); opt.value = o[0];
-        if ((prefs.digest_frequency || 'immediate') === o[0]) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      freqWrap.appendChild(sel);
-      notifEl.appendChild(freqWrap);
+      // DOCV-ROOM-RECTIFY-001 §3 — Digest-frequency control removed: the offering is
+      // event-led (a check runs when a relevant change enters our intelligence), so a
+      // fixed digest cadence would contradict that promise.
 
       var saveBtn = el('button', 'btn-primary', 'Save settings');
       saveBtn.type = 'button';
@@ -1459,7 +1521,9 @@
           notify_on_green_revert: document.getElementById('n_revert').checked,
           channel_email: document.getElementById('n_email').checked,
           channel_in_app: document.getElementById('n_inapp').checked,
-          digest_frequency: document.getElementById('n_freq').value
+          // DOCV-ROOM-RECTIFY-001 §3 — event-led offering: the column stays populated
+          // and consistent with 'immediate' (the digest-frequency control was removed).
+          digest_frequency: 'immediate'
         };
         fetch(RESTU + '/vault_notification_prefs', {
           method: 'POST',
