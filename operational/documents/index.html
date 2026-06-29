@@ -780,7 +780,12 @@
       work.addEventListener('click', function (e) { e.stopPropagation(); });
       card.appendChild(work);
 
-      function open() { openChooser(card, idx, def); }
+      function open() {
+        // Once the chooser/upload UI is showing, a background click on the card
+        // padding must not re-open (and clear) it — that would discard the user's input.
+        if (work.style.display === 'block') return;
+        openChooser(card, idx, def);
+      }
       card.addEventListener('click', open);
       card.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
@@ -1501,10 +1506,11 @@
         'This is groundwork for instructing a solicitor, not legal advice.'));
 
       host.appendChild(wrap);
-      loadEntitlement(ent);
-      btn.addEventListener('click', function () { preparePack(docId, btn, ent, pmsg); });
+      var packState = { allow: 5 };
+      loadEntitlement(ent, packState);
+      btn.addEventListener('click', function () { preparePack(docId, btn, ent, pmsg, packState); });
     }
-    function loadEntitlement(entEl) {
+    function loadEntitlement(entEl, st) {
       getJson('/vault_solicitor_pack_entitlement?user_id=eq.' + uid +
               '&select=free_allowance,packs_used,period_end&order=period_start.desc&limit=1')
         .then(function (rows) {
@@ -1512,11 +1518,12 @@
           if (!r) { entEl.textContent = '5 included solicitor packs this year.'; return; }
           var allow = (typeof r.free_allowance === 'number') ? r.free_allowance : 5;
           var used = (typeof r.packs_used === 'number') ? r.packs_used : 0;
+          if (st) st.allow = allow;
           entEl.textContent = used + ' of ' + allow + ' included solicitor packs used this year.';
         })
         .catch(function () { entEl.textContent = '5 included solicitor packs this year.'; });
     }
-    function preparePack(docId, btn, entEl, pmsg) {
+    function preparePack(docId, btn, entEl, pmsg, st) {
       var old = btn.textContent;
       btn.disabled = true; btn.textContent = 'Preparing…'; pmsg.hidden = true;
       fetch(FN + '/generate-solicitor-pack', { method: 'POST', headers: H, body: JSON.stringify({ document_id: docId }) })
@@ -1532,7 +1539,12 @@
               document.body.appendChild(a); a.click();
               setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
               btn.disabled = false; btn.textContent = old;
-              if (remaining != null && entEl) entEl.textContent = remaining + ' included solicitor packs remaining this year.';
+              // X-Packs-Remaining refreshes the count; keep the single 'X of N used' phrasing.
+              if (remaining != null && entEl) {
+                var allow = (st && typeof st.allow === 'number') ? st.allow : 5;
+                var used = allow - parseInt(remaining, 10);
+                if (!isNaN(used)) entEl.textContent = Math.max(0, used) + ' of ' + allow + ' included solicitor packs used this year.';
+              }
               showMsg(pmsg, 'Your solicitor pack has downloaded.', 'ok');
             });
           }
