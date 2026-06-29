@@ -28,7 +28,11 @@ var HUB_ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', '
 // "Your workspace" facet rail (KL-HUB §1.5). Placeholders this brief; the real
 // panels (ACEI/Vault/Alerts/Intelligence/Notes/Calendar) port in later briefs.
 var HUB_WORKSPACE_FACETS = [
-  { id: 'vault',        label: 'Document Vault' },
+  // DOCV-ROOM-RECTIFY-001 — full-page surface (not an in-app facet): href routes
+  // to the standalone /operational/documents/ vault page (mirrors Parliament Live /
+  // Calendar below). The in-app HubVaultFacet is retained as a fallback but is no
+  // longer reachable from this nav.
+  { id: 'vault',        label: 'Document Vault', href: '/operational/documents/' },
   { id: 'alerts',       label: 'Alerts' },
   { id: 'acei',         label: 'ACEI Overview' },
   { id: 'intelligence', label: 'Intelligence' },

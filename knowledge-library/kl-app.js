@@ -1454,7 +1454,11 @@
   var HUB_FUNCTIONS_BASE = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co");
   var HUB_ALLOWED_TIERS = ["operational", "operational_readiness", "governance", "enterprise"];
   var HUB_WORKSPACE_FACETS = [
-    { id: "vault", label: "Document Vault" },
+    // DOCV-ROOM-RECTIFY-001 — full-page surface (not an in-app facet): href routes
+    // to the standalone /operational/documents/ vault page (mirrors Parliament Live /
+    // Calendar below). The in-app HubVaultFacet is retained as a fallback but is no
+    // longer reachable from this nav.
+    { id: "vault", label: "Document Vault", href: "/operational/documents/" },
     { id: "alerts", label: "Alerts" },
     { id: "acei", label: "ACEI Overview" },
     { id: "intelligence", label: "Intelligence" },
