@@ -255,6 +255,96 @@
 
     .vault-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
       font-size: 0.78rem; color: var(--text-mute, #64748b); text-align: center; }
+
+    /* ============================================================
+       DOCV-ROOM-002 (vault v2) — event-driven promise, 5 slots,
+       upload/remove/replace, live solicitor pack, notes facility
+       ============================================================ */
+
+    /* ---- Event-driven monitoring promise (calm banner) ---- */
+    .promise-banner {
+      margin: 0 0 24px; padding: 16px 18px;
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-left: 3px solid var(--tier-operational, #22d3ee);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-glass, rgba(30,41,59,0.5));
+      color: var(--text-body, #e2e8f0);
+    }
+    .promise-banner .promise-lead { font-size: 0.98rem; font-weight: 600; color: var(--text-prime, #f1f5f9); line-height: 1.55; }
+    .promise-banner .promise-sub { margin-top: 8px; font-size: 0.84rem; color: var(--text-sec, #94a3b8); line-height: 1.55; }
+
+    /* ---- 5-slot model ---- */
+    .slot {
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-base, #0a0e1a);
+      padding: 13px 14px; transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .slot.filled { cursor: pointer; }
+    .slot.filled:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); }
+    .slot.selected { border-color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.06); }
+    .slot.empty { border-style: dashed; cursor: pointer; text-align: center; }
+    .slot.empty:hover { border-color: var(--tier-operational, #22d3ee); }
+    .slot-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .slot-type-tag {
+      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--tier-operational, #22d3ee);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); border-radius: 999px; padding: 3px 9px;
+    }
+    .slot-filename { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; }
+    .slot-meta { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b);
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
+    .slot-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-mini {
+      font-family: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer;
+      padding: 5px 11px; border-radius: 999px; background: transparent;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); color: var(--text-sec, #94a3b8);
+      transition: all 0.15s ease;
+    }
+    .btn-mini:hover { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); }
+    .btn-mini.danger:hover { border-color: var(--status-err, #ef4444); color: var(--status-err, #ef4444); }
+    .btn-mini:disabled { opacity: 0.5; cursor: not-allowed; }
+    .slot-empty-body { padding: 10px 4px; }
+    .slot-empty-plus { font-size: 1.5rem; line-height: 1; color: var(--tier-operational, #22d3ee); }
+    .slot-empty-label { margin-top: 6px; font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.92rem; }
+    .slot-empty-hint { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b); }
+    .slot-work { margin-top: 12px; text-align: left; }
+    .chooser-title { font-size: 0.84rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 10px; }
+    .chooser-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+    .chooser-opt {
+      font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      padding: 7px 12px; border-radius: 999px; background: transparent;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); color: var(--text-sec, #94a3b8);
+      transition: all 0.15s ease;
+    }
+    .chooser-opt:hover { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); }
+    .chooser-opt.sel { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.08); }
+    .work-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .work-actions .btn-primary, .work-actions .btn-secondary { padding: 9px 16px; font-size: 0.82rem; }
+    .file-input { width: 100%; font-family: inherit; font-size: 0.82rem; color: var(--text-sec, #94a3b8); padding: 8px 0; }
+    .slot-hint { font-size: 0.76rem; color: var(--text-mute, #64748b); margin: 6px 0; line-height: 1.5; }
+    .slot-status { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.8rem; color: var(--text-sec, #94a3b8); }
+    .mini-spinner { width: 14px; height: 14px; border: 2px solid rgba(34,211,238,0.18);
+      border-top-color: var(--tier-operational, #22d3ee); border-radius: 50%; animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+
+    /* ---- Live solicitor pack + notes ---- */
+    .pack-entitlement { font-size: 0.82rem; color: var(--text-sec, #94a3b8); margin-bottom: 14px;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+    .pack-condition5 { margin-top: 12px; font-size: 0.78rem; color: var(--text-mute, #64748b); line-height: 1.5; }
+    .notes-area {
+      width: 100%; min-height: 84px; resize: vertical; padding: 10px 12px;
+      background: var(--surface-base, #0a0e1a); border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px); color: var(--text-prime, #f1f5f9);
+      font-family: inherit; font-size: 0.9rem; line-height: 1.5; margin-bottom: 12px;
+    }
+    .notes-area:focus { outline: none; border-color: var(--tier-operational, #22d3ee); }
+    .notes-recent { margin-top: 18px; }
+    .notes-recent-head { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600; margin-bottom: 10px; }
+    .note-item { padding: 10px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .note-item:first-of-type { border-top: none; }
+    .note-title { font-size: 0.82rem; font-weight: 600; color: var(--text-body, #e2e8f0); word-break: break-word; }
+    .note-body { margin-top: 3px; font-size: 0.8rem; color: var(--text-sec, #94a3b8); line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
   </style>
 
   <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
@@ -282,10 +372,15 @@
       that nothing has changed. For advice on your own situation, consult a qualified professional.
     </div>
 
+    <div class="promise-banner" role="note">
+      <div class="promise-lead">We run a compliance check on your contracts, policy and handbook documents when Ailane detects a change in the law.</div>
+      <div class="promise-sub">We don’t re-check on a fixed weekly or monthly schedule — there’s no point re-checking when nothing has changed. A check runs when a relevant change enters our intelligence.</div>
+    </div>
+
     <div class="panes">
-      <!-- Pane 1 — Document -->
+      <!-- Pane 1 — Documents (5 monitored slots) -->
       <section class="pane pane-docs" aria-label="Documents">
-        <h2 class="section-head">Document</h2>
+        <h2 class="section-head">Documents</h2>
         <div id="doc-list">
           <div class="state-msg"><div class="spinner"></div>Loading your vault…</div>
         </div>
@@ -302,13 +397,8 @@
       <!-- Pane 3 — Solicitor pack + attestation + notifications -->
       <section class="pane pane-side" aria-label="Solicitor pack, attestation and notification settings">
         <h2 class="section-head">Solicitor pack</h2>
-        <div class="pack-slot">
-          <h3>Solicitor pack</h3>
-          <p>The exposure report packaged for an external solicitor — the document, its findings and statutory references in one bundle ready to instruct on.</p>
-          <div class="slot-flags">
-            <span class="slot-flag">Available with Governance</span>
-            <span class="slot-flag">Coming soon</span>
-          </div>
+        <div id="solicitor-pack">
+          <div class="state-msg">Select a document to prepare its solicitor pack.</div>
         </div>
 
         <h2 class="section-head spaced">Record a solicitor attestation</h2>
@@ -320,6 +410,9 @@
         <div id="notifications">
           <div class="state-msg"><div class="spinner"></div>Loading your settings…</div>
         </div>
+
+        <h2 class="section-head spaced">Notes</h2>
+        <div id="vault-notes"></div>
       </section>
     </div>
 
@@ -552,56 +645,377 @@
     }
 
     // ===========================================================
-    //  PANE 1 — Document list
+    //  PANE 1 — 5 typed monitored slots (DOCV-ROOM-002 / ARC-DOCV-001 AM-003)
     // ===========================================================
-    function updateCounter() {
-      var n = docs.filter(function (d) { return !!d.monitored; }).length;
-      countEl.textContent = n + ' of 5 monitored';
+    // Default designations: slots 1-3 Employment Contract, slot 4 Policy, slot 5 Staff Handbook.
+    var SLOT_COUNT = 5;
+    var SLOT_DEFS  = ['employment_contract', 'employment_contract', 'employment_contract', 'policy', 'staff_handbook'];
+    var TYPE_LABEL = { employment_contract: 'Employment Contract', policy: 'Policy', staff_handbook: 'Staff Handbook' };
+    var TYPE_OPTIONS = [['employment_contract', 'Contract'], ['policy', 'Policy'], ['staff_handbook', 'Staff Handbook']];
+    var MAX_BYTES = 10 * 1024 * 1024;
+
+    // The confirmed slot type persists client-side (no vault column is assumed); the engine's
+    // routing token is sent to the bridge at upload time, so this is display-only.
+    function typeKey(id) { return 'docv_type_' + uid + '_' + id; }
+    function storeType(id, t) { try { localStorage.setItem(typeKey(id), t); } catch (e) {} }
+    function readType(id) { try { return localStorage.getItem(typeKey(id)); } catch (e) { return null; } }
+    function clearType(id) { try { localStorage.removeItem(typeKey(id)); } catch (e) {} }
+
+    function docById(id) { for (var i = 0; i < docs.length; i++) { if (docs[i].id === id) return docs[i]; } return null; }
+    function safeName(name) { return String(name || 'document').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120) || 'document'; }
+    function cryptoId() {
+      try { if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); } catch (e) {}
+      return 'id-' + Date.now() + '-' + Math.round(Math.random() * 1e9);
     }
-    function loadDocs() {
+    function validateFile(f) {
+      if (!f) return { ok: false, error: 'Please choose a file first.' };
+      if (!/\.(pdf|docx)$/i.test(f.name || '')) return { ok: false, error: 'Please choose a PDF or Word (.docx) file.' };
+      if (f.size === 0) return { ok: false, error: 'That file appears to be empty.' };
+      if (f.size > MAX_BYTES) return { ok: false, error: 'That file is over 10 MB. Please choose a smaller file.' };
+      return { ok: true };
+    }
+    function showMsg(node, text, cls) {
+      node.textContent = text;
+      node.className = 'form-msg' + (cls ? ' ' + cls : '');
+      node.hidden = false;
+    }
+    function setSlotStatus(card, text) {
+      var work = card.querySelector('.slot-work');
+      if (!work) return;
+      var s = work.querySelector('.slot-status');
+      if (!text) { if (s) s.remove(); return; }
+      work.style.display = 'block';
+      if (!s) { s = el('div', 'slot-status'); work.appendChild(s); }
+      clear(s);
+      s.appendChild(el('span', 'mini-spinner'));
+      s.appendChild(document.createTextNode(text));
+    }
+    function showRowErrorCard(card, text) {
+      var work = card.querySelector('.slot-work');
+      var host = work || card;
+      var ex = host.querySelector('[data-row-error]'); if (ex) ex.remove();
+      var e = el('div', 'row-error', text);
+      e.setAttribute('data-row-error', '1');
+      if (work) work.style.display = 'block';
+      host.appendChild(e);
+    }
+
+    function updateCounter() {
+      countEl.textContent = Math.min(docs.length, SLOT_COUNT) + ' of ' + SLOT_COUNT + ' monitored';
+    }
+    // A filled slot is a monitored, non-deleted vault row; the 5-cap is DB-enforced (trg_vault_monitored_cap).
+    function loadSlots() {
       loading(listEl, 'Loading your vault…');
-      getJson('/kl_vault_documents?user_id=eq.' + uid + '&deleted_at=is.null' +
+      return getJson('/kl_vault_documents?user_id=eq.' + uid + '&monitored=eq.true&deleted_at=is.null' +
               '&select=id,filename,mime_type,file_size_bytes,monitored,monitor_started_at,analysis_status,created_at' +
-              '&order=created_at.desc')
-        .then(function (rows) { docs = rows || []; renderDocs(); updateCounter(); })
+              '&order=created_at.asc&limit=' + SLOT_COUNT)
+        .then(function (rows) { docs = (rows || []).slice(0, SLOT_COUNT); renderSlots(); updateCounter(); })
         .catch(function () { msg(listEl, "Couldn't load your vault right now. Please refresh."); });
     }
-    function renderDocs() {
+    function renderSlots() {
       clear(listEl);
-      if (!docs.length) { msg(listEl, 'No documents in your vault yet.'); return; }
-      docs.forEach(function (d) { listEl.appendChild(buildDocRow(d)); });
+      for (var i = 0; i < SLOT_COUNT; i++) {
+        var doc = docs[i] || null;
+        listEl.appendChild(doc ? buildFilledSlot(doc, i) : buildEmptySlot(i));
+      }
     }
-    function buildDocRow(doc) {
-      var row = el('div', 'doc-row');
-      row.setAttribute('role', 'button');
-      row.setAttribute('tabindex', '0');
-      if (doc.id === selectedId) row.classList.add('selected');
+    function markSelected() {
+      Array.prototype.forEach.call(listEl.querySelectorAll('.slot'), function (c) {
+        c.classList.toggle('selected', c.getAttribute('data-doc-id') === selectedId);
+      });
+    }
+    function buildFilledSlot(doc, idx) {
+      var card = el('div', 'slot filled');
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('data-doc-id', doc.id);
+      if (doc.id === selectedId) card.classList.add('selected');
 
-      var dot = el('span', 'doc-dot');
-      dot.title = 'Status pending';
-      row.appendChild(dot);
+      var head = el('div', 'slot-head');
+      var dot = el('span', 'doc-dot'); dot.title = 'Status pending';
+      head.appendChild(dot);
+      var t = readType(doc.id) || SLOT_DEFS[idx];
+      head.appendChild(el('span', 'slot-type-tag', TYPE_LABEL[t] || 'Document'));
+      card.appendChild(head);
 
-      var main = el('div', 'doc-main');
-      main.appendChild(el('div', 'doc-name', doc.filename || 'Untitled document'));
-      var metaBits = ['Added ' + fmtDate(doc.created_at)];
+      card.appendChild(el('div', 'slot-filename', doc.filename || 'Untitled document'));
+      var metaBits = ['Added ' + fmtDate(doc.created_at), 'Monitored'];
       if (doc.analysis_status) metaBits.push(String(doc.analysis_status));
-      main.appendChild(el('div', 'doc-meta', metaBits.join(' · ')));
+      card.appendChild(el('div', 'slot-meta', metaBits.join(' · ')));
 
-      var tWrap = el('div', 'doc-toggle-wrap');
-      tWrap.appendChild(buildMonitorSwitch(doc, row));
-      main.appendChild(tWrap);
-      row.appendChild(main);
+      var actions = el('div', 'slot-actions');
+      var rep = el('button', 'btn-mini', 'Replace'); rep.type = 'button';
+      rep.addEventListener('click', function (e) { e.stopPropagation(); openReplace(doc, card, idx); });
+      var rem = el('button', 'btn-mini danger', 'Remove'); rem.type = 'button';
+      rem.addEventListener('click', function (e) { e.stopPropagation(); confirmRemove(doc, card); });
+      actions.appendChild(rep); actions.appendChild(rem);
+      card.appendChild(actions);
 
-      function select() { selectDoc(doc.id); }
-      row.addEventListener('click', select);
-      row.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); }
+      var work = el('div', 'slot-work'); work.style.display = 'none';
+      work.addEventListener('click', function (e) { e.stopPropagation(); });
+      card.appendChild(work);
+
+      function open() { selectDoc(doc.id); }
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
       });
 
-      // Asynchronously paint the status dot from overlay + attestation.
       paintDot(doc, dot);
-      return row;
+      return card;
     }
+    function buildEmptySlot(idx) {
+      var card = el('div', 'slot empty');
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      var def = SLOT_DEFS[idx];
+
+      var body = el('div', 'slot-empty-body');
+      body.appendChild(el('div', 'slot-empty-plus', '+'));
+      body.appendChild(el('div', 'slot-empty-label', 'Add ' + (TYPE_LABEL[def] || 'document')));
+      body.appendChild(el('div', 'slot-empty-hint', 'Empty slot · click to add a document'));
+      card.appendChild(body);
+
+      var work = el('div', 'slot-work'); work.style.display = 'none';
+      work.addEventListener('click', function (e) { e.stopPropagation(); });
+      card.appendChild(work);
+
+      function open() {
+        // Once the chooser/upload UI is showing, a background click on the card
+        // padding must not re-open (and clear) it — that would discard the user's input.
+        if (work.style.display === 'block') return;
+        openChooser(card, idx, def);
+      }
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      });
+      return card;
+    }
+    function resetSlotWork() { renderSlots(); markSelected(); }
+
+    // Empty-slot type chooser (3 options; default designation pre-selected).
+    function openChooser(card, idx, defaultType) {
+      var body = card.querySelector('.slot-empty-body');
+      var work = card.querySelector('.slot-work');
+      if (body) body.style.display = 'none';
+      clear(work); work.style.display = 'block';
+
+      work.appendChild(el('div', 'chooser-title', 'What kind of document is this?'));
+      var opts = el('div', 'chooser-opts');
+      var chosen = { type: defaultType };
+      var btns = [];
+      TYPE_OPTIONS.forEach(function (o) {
+        var b = el('button', 'chooser-opt' + (o[0] === defaultType ? ' sel' : ''), o[1]); b.type = 'button';
+        b.addEventListener('click', function (e) {
+          e.stopPropagation(); chosen.type = o[0];
+          btns.forEach(function (x) { x.classList.remove('sel'); });
+          b.classList.add('sel');
+        });
+        btns.push(b); opts.appendChild(b);
+      });
+      work.appendChild(opts);
+      work.appendChild(el('div', 'slot-hint', 'This sets which UK requirement set we check the document against.'));
+
+      var row = el('div', 'work-actions');
+      var confirm = el('button', 'btn-primary', 'Confirm'); confirm.type = 'button';
+      confirm.addEventListener('click', function (e) { e.stopPropagation(); openUpload(card, idx, chosen.type); });
+      var cancel = el('button', 'btn-secondary', 'Cancel'); cancel.type = 'button';
+      cancel.addEventListener('click', function (e) { e.stopPropagation(); resetSlotWork(); });
+      row.appendChild(confirm); row.appendChild(cancel);
+      work.appendChild(row);
+    }
+    function openUpload(card, idx, type) {
+      var work = card.querySelector('.slot-work');
+      clear(work); work.style.display = 'block';
+
+      work.appendChild(el('div', 'chooser-title', (TYPE_LABEL[type] || 'Document') + ' — choose a file'));
+      var input = el('input'); input.type = 'file'; input.accept = '.pdf,.docx'; input.className = 'file-input';
+      work.appendChild(input);
+      work.appendChild(el('div', 'slot-hint', 'PDF or Word (.docx), up to 10 MB. Uploading also turns on monitoring for this slot.'));
+
+      var msgEl = el('div', 'form-msg'); msgEl.hidden = true;
+      var row = el('div', 'work-actions');
+      var up = el('button', 'btn-primary', 'Upload & monitor'); up.type = 'button';
+      var cancel = el('button', 'btn-secondary', 'Cancel'); cancel.type = 'button';
+      up.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var f = input.files && input.files[0];
+        var v = validateFile(f);
+        if (!v.ok) { showMsg(msgEl, v.error, 'err'); return; }
+        doUpload(card, type, f, up, cancel, msgEl);
+      });
+      cancel.addEventListener('click', function (e) { e.stopPropagation(); resetSlotWork(); });
+      row.appendChild(up); row.appendChild(cancel);
+      work.appendChild(row); work.appendChild(msgEl);
+    }
+
+    // Storage upload → kl-document-vault (private). Path: <uid>/<uuid>_<safeName>.
+    function uploadToStorage(file) {
+      var path = uid + '/' + cryptoId() + '_' + safeName(file.name);
+      return fetch(REST + '/storage/v1/object/kl-document-vault/' + encodeURIComponent(path), {
+        method: 'POST',
+        headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + token,
+                   'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'true' },
+        body: file
+      }).then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return path; });
+    }
+    function doUpload(card, type, file, upBtn, cancelBtn, msgEl) {
+      upBtn.disabled = true; cancelBtn.disabled = true; msgEl.hidden = true;
+      setSlotStatus(card, 'Uploading…');
+      uploadToStorage(file)
+        .then(function (path) {
+          setSlotStatus(card, 'Saving to your vault…');
+          var body = {
+            user_id: uid, filename: file.name, storage_path: path,
+            file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream',
+            monitored: true, monitor_started_at: new Date().toISOString()
+          };
+          return fetch(RESTU + '/kl_vault_documents', {
+            method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H), body: JSON.stringify(body)
+          }).then(function (r) {
+            if (r.status < 200 || r.status >= 300) {
+              if (r.status >= 400 && r.status < 500) throw { cap: true };
+              throw new Error('insert ' + r.status);
+            }
+            return r.json();
+          });
+        })
+        .then(function (rep) {
+          var id = rep && rep[0] && rep[0].id;
+          if (!id) throw new Error('no id');
+          storeType(id, type);
+          setSlotStatus(card, 'Running the first compliance check…');
+          return runBridge(id, type).then(function () { return id; });
+        })
+        .then(function (id) {
+          selectedId = id;
+          return loadSlots().then(function () { selectDoc(id); });
+        })
+        .catch(function (err) {
+          setSlotStatus(card, '');
+          upBtn.disabled = false; cancelBtn.disabled = false;
+          showMsg(msgEl, (err && err.cap)
+            ? 'You can monitor up to 5 documents. Remove one to add another.'
+            : 'Could not add this document right now. Please try again.', 'err');
+        });
+    }
+
+    // The event-driven check pipeline mirrors the live KL caller (knowledge-library/kl-app.js):
+    //   kl_document_extract → kl-compliance-bridge {action:'start'} → poll {action:'poll'}.
+    function runBridge(documentId, type) {
+      return fetch(FN + '/kl_document_extract', {
+        method: 'POST', headers: H, body: JSON.stringify({ document_id: documentId })
+      }).catch(function () { return null; })
+        .then(function () {
+          return fetch(FN + '/kl-compliance-bridge', {
+            method: 'POST', headers: H,
+            body: JSON.stringify({ document_id: documentId, document_type: type, action: 'start' })
+          });
+        })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (d) {
+            if (r.status < 200 || r.status >= 300) return null; // a failed first check must not lose the saved, monitored doc
+            return (d && d.upload_id) || null;
+          });
+        })
+        .then(function (uploadId) { return uploadId ? pollBridge(documentId, uploadId, 0) : null; })
+        .catch(function () { return null; });
+    }
+    function pollBridge(documentId, uploadId, n) {
+      if (n >= 36) return null; // ~3 min ceiling; the overlay appears when the check lands
+      return new Promise(function (resolve) { setTimeout(resolve, 5000); }).then(function () {
+        return fetch(FN + '/kl-compliance-bridge', {
+          method: 'POST', headers: H,
+          body: JSON.stringify({ document_id: documentId, upload_id: uploadId, action: 'poll' })
+        }).then(function (r) { return r.json().catch(function () { return {}; }); })
+          .then(function (d) { return (d && d.status === 'processing') ? pollBridge(documentId, uploadId, n + 1) : d; })
+          .catch(function () { return pollBridge(documentId, uploadId, n + 1); });
+      });
+    }
+
+    // Replace once per calendar month — UPDATE of storage_path so the live trg_vault_replace_gate applies.
+    function openReplace(doc, card, idx) {
+      var work = card.querySelector('.slot-work');
+      clear(work); work.style.display = 'block';
+      work.appendChild(el('div', 'chooser-title', 'Replace this document'));
+      work.appendChild(el('div', 'slot-hint', 'You can replace each document once a calendar month. Upload the new version below.'));
+      var input = el('input'); input.type = 'file'; input.accept = '.pdf,.docx'; input.className = 'file-input';
+      work.appendChild(input);
+      var msgEl = el('div', 'form-msg'); msgEl.hidden = true;
+      var row = el('div', 'work-actions');
+      var go = el('button', 'btn-primary', 'Replace document'); go.type = 'button';
+      var cancel = el('button', 'btn-secondary', 'Cancel'); cancel.type = 'button';
+      go.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var f = input.files && input.files[0];
+        var v = validateFile(f);
+        if (!v.ok) { showMsg(msgEl, v.error, 'err'); return; }
+        doReplace(doc, card, idx, f, go, cancel, msgEl);
+      });
+      cancel.addEventListener('click', function (e) { e.stopPropagation(); resetSlotWork(); });
+      row.appendChild(go); row.appendChild(cancel);
+      work.appendChild(row); work.appendChild(msgEl);
+    }
+    function doReplace(doc, card, idx, file, goBtn, cancelBtn, msgEl) {
+      goBtn.disabled = true; cancelBtn.disabled = true; msgEl.hidden = true;
+      setSlotStatus(card, 'Uploading the new version…');
+      uploadToStorage(file)
+        .then(function (path) {
+          setSlotStatus(card, 'Updating your slot…');
+          var body = { storage_path: path, filename: file.name, file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream' };
+          return fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
+            method: 'PATCH', headers: Object.assign({ 'Prefer': 'return=representation' }, H), body: JSON.stringify(body)
+          }).then(function (r) {
+            if (r.status < 200 || r.status >= 300) {
+              return r.text().catch(function () { return ''; }).then(function (txt) {
+                if (/replace_limit/i.test(txt)) throw { replaceLimit: true };
+                throw new Error('patch ' + r.status);
+              });
+            }
+            return true;
+          });
+        })
+        .then(function () {
+          setSlotStatus(card, 'Running a fresh compliance check…');
+          return runBridge(doc.id, readType(doc.id) || SLOT_DEFS[idx]);
+        })
+        .then(function () {
+          selectedId = doc.id;
+          return loadSlots().then(function () { selectDoc(doc.id); });
+        })
+        .catch(function (err) {
+          setSlotStatus(card, '');
+          goBtn.disabled = false; cancelBtn.disabled = false;
+          showMsg(msgEl, (err && err.replaceLimit)
+            ? 'You can replace each document once a month. This one was already replaced this month — you can replace it again next month.'
+            : 'Could not replace this document right now. Please try again.', 'err');
+        });
+    }
+
+    // Remove frees the slot (soft-delete; the cap + lists filter deleted_at=is.null).
+    function confirmRemove(doc, card) {
+      if (!window.confirm('Remove this document and stop monitoring it?')) return;
+      setSlotStatus(card, 'Removing…');
+      fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
+        method: 'PATCH', headers: H, body: JSON.stringify({ deleted_at: new Date().toISOString() })
+      }).then(function (r) {
+        if (r.status < 200 || r.status >= 300) throw new Error('del ' + r.status);
+        clearType(doc.id);
+        if (selectedId === doc.id) {
+          selectedId = null;
+          msg(expEl, 'Select a document to see its exposure report.');
+          msg(attestEl, 'Select a document to record an attestation.');
+          renderPackSlot(null);
+          renderNotes(null);
+        }
+        loadSlots();
+      }).catch(function () {
+        setSlotStatus(card, '');
+        showRowErrorCard(card, 'Could not remove this document right now. Please try again.');
+      });
+    }
+
     function paintDot(doc, dot) {
       Promise.all([
         getJson('/vault_contract_records?document_id=eq.' + doc.id +
@@ -622,77 +1036,17 @@
         }
       });
     }
-    function buildMonitorSwitch(doc, row) {
-      var btn = el('button', 'switch' + (doc.monitored ? ' on' : ''));
-      btn.type = 'button';
-      function paint() {
-        btn.classList.toggle('on', !!doc.monitored);
-        clear(btn);
-        btn.appendChild(el('span', 'knob'));
-        btn.appendChild(el('span', null, doc.monitored ? 'Monitoring on' : 'Monitor off'));
-        btn.setAttribute('aria-pressed', doc.monitored ? 'true' : 'false');
-      }
-      paint();
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (btn.disabled) return;
-        clearRowError(row);
-        var next = !doc.monitored;
-        btn.disabled = true;
-        fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
-          method: 'PATCH',
-          headers: Object.assign({ 'Prefer': 'return=representation' }, H),
-          body: JSON.stringify({
-            monitored: next,
-            monitor_started_at: next ? new Date().toISOString() : null
-          })
-        })
-          .then(function (r) {
-            if (r.status < 200 || r.status >= 300) {
-              // DB trigger (trg_vault_monitored_cap) blocks a 6th monitored document.
-              if (next && (r.status >= 400 && r.status < 500)) {
-                throw { cap: true };
-              }
-              throw new Error('http ' + r.status);
-            }
-            return r.json().catch(function () { return null; });
-          })
-          .then(function (rep) {
-            doc.monitored = next;
-            if (rep && rep[0] && 'monitor_started_at' in rep[0]) doc.monitor_started_at = rep[0].monitor_started_at;
-            else doc.monitor_started_at = next ? new Date().toISOString() : null;
-            paint(); updateCounter(); btn.disabled = false;
-          })
-          .catch(function (err) {
-            paint(); btn.disabled = false;
-            showRowError(row, (err && err.cap)
-              ? 'You can monitor up to 5 documents. Stop monitoring one to add another.'
-              : 'Could not update monitoring — please try again.');
-          });
-      });
-      return btn;
-    }
-    function showRowError(row, text) {
-      clearRowError(row);
-      var e = el('div', 'row-error', text);
-      e.dataset.rowError = '1';
-      row.querySelector('.doc-main').appendChild(e);
-    }
-    function clearRowError(row) {
-      var ex = row.querySelector('[data-row-error]');
-      if (ex) ex.remove();
-    }
 
     // ===========================================================
     //  PANE 2 — Exposure report  +  PANE 3 — Attestation
     // ===========================================================
     function selectDoc(docId) {
       selectedId = docId;
-      Array.prototype.forEach.call(listEl.querySelectorAll('.doc-row'), function (r) { r.classList.remove('selected'); });
-      // re-mark the selected row
-      renderDocs();
+      markSelected();
       loadExposure(docId);
-      renderAttestation(docId, null);
+      renderAttestation(docId);
+      renderPackSlot(docId);
+      renderNotes(docId);
     }
 
     function loadExposure(docId) {
@@ -1026,10 +1380,10 @@
             submit.disabled = false; submit.textContent = 'Record attestation';
             // Re-run contract 5 by reloading the exposure pane → ring flips to green.
             loadExposure(docId);
-            // Refresh the list dot for this document.
-            var row = listEl.querySelector('.doc-row.selected .doc-dot');
+            // Refresh the selected slot's status dot for this document.
+            var dot = listEl.querySelector('.slot.selected .doc-dot');
             var doc = docs.filter(function (d) { return d.id === docId; })[0];
-            if (row && doc) paintDot(doc, row);
+            if (dot && doc) paintDot(doc, dot);
           })
           .catch(function () {
             submit.disabled = false; submit.textContent = 'Record attestation';
@@ -1125,10 +1479,169 @@
       });
     }
 
+    // ===========================================================
+    //  PANE 3 — Solicitor pack (wired to generate-solicitor-pack)
+    // ===========================================================
+    function renderPackSlot(docId) {
+      var host = document.getElementById('solicitor-pack');
+      if (!host) return;
+      clear(host);
+      if (!docId) { host.appendChild(el('div', 'state-msg', 'Select a document to prepare its solicitor pack.')); return; }
+
+      var wrap = el('div', 'pack-slot');
+      wrap.appendChild(el('h3', null, 'Solicitor pack'));
+      wrap.appendChild(el('p', null,
+        'The exposure report packaged for an external solicitor — the document, its findings and statutory references in one bundle.'));
+
+      var ent = el('div', 'pack-entitlement', 'Checking your included packs…');
+      wrap.appendChild(ent);
+
+      var btn = el('button', 'btn-primary', 'Prepare solicitor pack'); btn.type = 'button';
+      wrap.appendChild(btn);
+
+      var pmsg = el('div', 'form-msg'); pmsg.hidden = true;
+      wrap.appendChild(pmsg);
+
+      wrap.appendChild(el('div', 'pack-condition5',
+        'This is groundwork for instructing a solicitor, not legal advice.'));
+
+      host.appendChild(wrap);
+      var packState = { allow: 5 };
+      loadEntitlement(ent, packState);
+      btn.addEventListener('click', function () { preparePack(docId, btn, ent, pmsg, packState); });
+    }
+    function loadEntitlement(entEl, st) {
+      getJson('/vault_solicitor_pack_entitlement?user_id=eq.' + uid +
+              '&select=free_allowance,packs_used,period_end&order=period_start.desc&limit=1')
+        .then(function (rows) {
+          var r = rows && rows[0];
+          if (!r) { entEl.textContent = '5 included solicitor packs this year.'; return; }
+          var allow = (typeof r.free_allowance === 'number') ? r.free_allowance : 5;
+          var used = (typeof r.packs_used === 'number') ? r.packs_used : 0;
+          if (st) st.allow = allow;
+          entEl.textContent = used + ' of ' + allow + ' included solicitor packs used this year.';
+        })
+        .catch(function () { entEl.textContent = '5 included solicitor packs this year.'; });
+    }
+    function preparePack(docId, btn, entEl, pmsg, st) {
+      var old = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Preparing…'; pmsg.hidden = true;
+      fetch(FN + '/generate-solicitor-pack', { method: 'POST', headers: H, body: JSON.stringify({ document_id: docId }) })
+        .then(function (r) {
+          if (r.status === 200) {
+            var remaining = r.headers.get('X-Packs-Remaining');
+            var name = 'Ailane_Solicitor_Pack.pdf';
+            var cd = r.headers.get('Content-Disposition');
+            if (cd) { var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd); if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch (e) { name = m[1]; } } }
+            return r.blob().then(function (b) {
+              var url = URL.createObjectURL(b);
+              var a = document.createElement('a'); a.href = url; a.download = name;
+              document.body.appendChild(a); a.click();
+              setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+              btn.disabled = false; btn.textContent = old;
+              // X-Packs-Remaining refreshes the count; keep the single 'X of N used' phrasing.
+              if (remaining != null && entEl) {
+                var allow = (st && typeof st.allow === 'number') ? st.allow : 5;
+                var used = allow - parseInt(remaining, 10);
+                if (!isNaN(used)) entEl.textContent = Math.max(0, used) + ' of ' + allow + ' included solicitor packs used this year.';
+              }
+              showMsg(pmsg, 'Your solicitor pack has downloaded.', 'ok');
+            });
+          }
+          if (r.status === 402) {
+            btn.disabled = true; btn.textContent = old;
+            showMsg(pmsg, 'You’ve used your 5 included packs this year. Additional packs are £19.99 each.', 'err');
+            if (!pmsg.parentNode.querySelector('.pack-buy')) {
+              var buy = el('button', 'btn-secondary pack-buy', 'Buy an additional pack (£19.99)');
+              buy.type = 'button'; buy.disabled = true; buy.title = 'Available soon'; buy.style.marginTop = '10px';
+              pmsg.parentNode.insertBefore(buy, pmsg.nextSibling);
+            }
+            return;
+          }
+          if (r.status === 409) {
+            btn.disabled = false; btn.textContent = old;
+            showMsg(pmsg, 'Run a check on this document first.', 'err');
+            return;
+          }
+          btn.disabled = false; btn.textContent = old;
+          showMsg(pmsg, 'Could not prepare the pack right now. Please try again.', 'err');
+        })
+        .catch(function () {
+          btn.disabled = false; btn.textContent = old;
+          showMsg(pmsg, 'Could not prepare the pack right now. Please try again.', 'err');
+        });
+    }
+
+    // ===========================================================
+    //  PANE 3 — Notes facility (writes into kl_workspace_notes)
+    // ===========================================================
+    function renderNotes(docId) {
+      var host = document.getElementById('vault-notes');
+      if (!host) return;
+      clear(host);
+      host.appendChild(el('p', 'notif-intro',
+        'Jot a note about your documents. Notes you save here appear in your Knowledge Library Notes.'));
+
+      var ta = el('textarea', 'notes-area'); ta.setAttribute('rows', '4');
+      var doc = docId ? docById(docId) : null;
+      ta.placeholder = doc ? ('Note about ' + (doc.filename || 'this document') + '…') : 'A note for your Documents Vault…';
+      host.appendChild(ta);
+
+      var saveBtn = el('button', 'btn-primary', 'Save note'); saveBtn.type = 'button';
+      host.appendChild(saveBtn);
+      var nmsg = el('div', 'form-msg'); nmsg.hidden = true;
+      host.appendChild(nmsg);
+
+      var recent = el('div', 'notes-recent');
+      host.appendChild(recent);
+      loadRecentNotes(recent);
+
+      saveBtn.addEventListener('click', function () {
+        var content = ta.value.trim();
+        if (!content) { showMsg(nmsg, 'Please write something first.', 'err'); return; }
+        saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; nmsg.hidden = true;
+        var d = docId ? docById(docId) : null;
+        var title = d ? ('Documents Vault — ' + (d.filename || 'document')) : 'Documents Vault — note';
+        fetch(RESTU + '/kl_workspace_notes', {
+          method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H),
+          body: JSON.stringify({ user_id: uid, title: title, content_plain: content, note_type: 'note', source_attribution: 'Documents Vault' })
+        })
+          .then(function (r) { if (r.status < 200 || r.status >= 300) throw new Error('note ' + r.status); return r.json().catch(function () { return null; }); })
+          .then(function () {
+            saveBtn.disabled = false; saveBtn.textContent = 'Save note';
+            ta.value = '';
+            showMsg(nmsg, 'Saved to your Notes.', 'ok');
+            loadRecentNotes(recent);
+          })
+          .catch(function () {
+            saveBtn.disabled = false; saveBtn.textContent = 'Save note';
+            showMsg(nmsg, 'Could not save your note right now. Please try again.', 'err');
+          });
+      });
+    }
+    function loadRecentNotes(host) {
+      clear(host);
+      getJson('/kl_workspace_notes?user_id=eq.' + uid + '&source_attribution=eq.Documents%20Vault' +
+              '&select=id,title,content_plain,updated_at&order=updated_at.desc&limit=5')
+        .then(function (rows) {
+          if (!rows || !rows.length) return;
+          host.appendChild(el('div', 'notes-recent-head', 'Recent vault notes'));
+          rows.forEach(function (n) {
+            var item = el('div', 'note-item');
+            item.appendChild(el('div', 'note-title', n.title || 'Note'));
+            if (n.content_plain) item.appendChild(el('div', 'note-body', String(n.content_plain)));
+            host.appendChild(item);
+          });
+        })
+        .catch(function () { /* read-back is optional */ });
+    }
+
     // ---- Kick off ----
     loadTierBadge();
-    loadPalettes().then(loadDocs);
+    loadPalettes().then(loadSlots);
     loadNotifications();
+    renderPackSlot(null);
+    renderNotes(null);
   }
   </script>
 </body>
