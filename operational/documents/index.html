@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documents Vault — Operational — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) — copied verbatim from operational/horizon/index.html; unchanged -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase CDN — FIRST script in head after GA4/CSP; auth guard polls for it -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- Fonts — the tokens.css families: DM Serif Display (display), DM Sans (body), JetBrains Mono (mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Room colour / typography source of truth -->
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--surface-void, #050c18); }
+    body {
+      background: var(--surface-void, #050c18);
+      color: var(--text-body, #e2e8f0);
+      font-family: var(--font-body, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+      min-height: 100vh; line-height: 1.55; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--tier-operational, #22d3ee); }
+    h1, h2, h3 { font-family: var(--font-display, 'DM Serif Display', Georgia, serif); font-weight: 400; }
+
+    /* ---- Top bar ---- */
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      padding: 14px 24px;
+      background: var(--surface-deep, #06080f);
+      border-bottom: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+    }
+    .brand {
+      font-family: var(--font-display, 'DM Serif Display', Georgia, serif);
+      font-size: 1.32rem; color: var(--text-prime, #f1f5f9); letter-spacing: 0.01em;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .tier-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 12px; border-radius: 999px;
+      font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      color: var(--text-sec, #94a3b8); background: var(--surface-glass, rgba(30,41,59,0.5));
+    }
+    .tier-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .monitor-counter {
+      font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+      font-size: 0.8rem; color: var(--text-sec, #94a3b8); letter-spacing: 0.02em;
+    }
+
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 24px 80px; }
+
+    /* ---- Standing disclaimer ---- */
+    .disclaimer-banner {
+      margin: 6px 0 24px; padding: 16px 18px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-left: 3px solid var(--tier-operational, #22d3ee);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      color: var(--text-body, #e2e8f0); font-size: 0.92rem; line-height: 1.6;
+    }
+    .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
+
+    /* ---- Panes ---- */
+    .panes {
+      display: grid; gap: 20px;
+      grid-template-columns: 300px minmax(0, 1fr) 350px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .panes { grid-template-columns: 1fr; } }
+    .pane {
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-lg, 16px);
+      padding: 20px 20px 24px;
+    }
+    .section-head {
+      font-family: var(--font-body, 'DM Sans', sans-serif);
+      font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+      margin: 0 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+    .section-head.spaced { margin-top: 30px; }
+
+    /* ---- Pane 1: document list ---- */
+    #doc-list { display: flex; flex-direction: column; gap: 10px; }
+    .doc-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 13px 14px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-sm, 8px);
+      cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .doc-row:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); }
+    .doc-row.selected { border-color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.06); }
+    .doc-dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 4px; flex: 0 0 auto;
+      background: var(--text-mute, #64748b); box-shadow: 0 0 0 3px rgba(100,116,139,0.12); }
+    .doc-main { flex: 1; min-width: 0; }
+    .doc-name { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; }
+    .doc-meta { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b);
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
+    .doc-toggle-wrap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .switch {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      background: transparent; color: var(--text-sec, #94a3b8);
+      font-family: inherit; font-size: 0.76rem; font-weight: 600; cursor: pointer;
+      padding: 5px 10px; border-radius: 999px; transition: all 0.15s ease;
+    }
+    .switch:hover { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); }
+    .switch.on { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.08); }
+    .switch .knob { width: 9px; height: 9px; border-radius: 50%; background: currentColor; opacity: 0.5; }
+    .switch.on .knob { opacity: 1; box-shadow: 0 0 7px var(--tier-operational-glow, rgba(34,211,238,0.18)); }
+    .switch:disabled { opacity: 0.5; cursor: progress; }
+    .row-error { font-size: 0.76rem; color: var(--status-err, #ef4444); margin-top: 8px; line-height: 1.45; }
+
+    /* ---- States ---- */
+    .state-msg { padding: 32px 16px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.92rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 26px; height: 26px; margin: 0 auto 14px; border: 3px solid rgba(34,211,238,0.15);
+      border-top-color: var(--tier-operational, #22d3ee); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Pane 2: exposure report ---- */
+    .status-block { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+    .ring {
+      width: 76px; height: 76px; border-radius: 50%; flex: 0 0 auto;
+      border: 8px solid var(--text-mute, #64748b);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.7rem; line-height: 1; color: var(--text-prime, #f1f5f9);
+    }
+    .status-label { font-size: 1.18rem; font-weight: 700; color: var(--text-prime, #f1f5f9);
+      font-family: var(--font-body, 'DM Sans', sans-serif); }
+    .status-sub { margin-top: 4px; font-size: 0.84rem; color: var(--text-sec, #94a3b8); line-height: 1.5; }
+
+    .magnitude { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 26px; }
+    .mag-cell { text-align: center; padding: 12px 6px; border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-base, #0a0e1a); border: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .mag-num { display: block; font-size: 1.5rem; font-weight: 700;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); color: var(--text-prime, #f1f5f9); }
+    .mag-lbl { display: block; margin-top: 2px; font-size: 0.68rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-mute, #64748b); }
+
+    .finding { padding: 16px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .finding:first-of-type { border-top: none; }
+    .finding-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .sev { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 999px; color: #fff; }
+    .sev-critical { background: #991B1B; }
+    .sev-major    { background: #B4640A; }
+    .sev-minor    { background: #8a6d1a; }
+    .sev-aligned  { background: #176B3C; }
+    .finding-cat { font-size: 0.86rem; font-weight: 600; color: var(--text-body, #e2e8f0); }
+
+    .grad-bar { display: flex; width: 100%; height: 12px; border-radius: 999px; overflow: hidden;
+      background: var(--surface-base, #0a0e1a); margin-bottom: 10px; }
+    .grad-seg { height: 100%; }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .chip { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5)); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.74rem; color: var(--text-body, #e2e8f0); }
+    .chip .swatch { width: 11px; height: 11px; border-radius: 3px; flex: 0 0 auto; }
+    .finding-detail { font-size: 0.92rem; color: var(--text-body, #e2e8f0); margin-bottom: 8px; }
+    .statutory { font-size: 0.82rem; color: var(--text-sec, #94a3b8); }
+    .statutory .lbl { color: var(--text-mute, #64748b); }
+    .solicitor-points { margin-top: 8px; font-size: 0.82rem; color: var(--text-sec, #94a3b8);
+      border-left: 2px solid var(--tier-operational, #22d3ee); padding-left: 10px; }
+
+    /* GSO neutral band */
+    .gso-band { margin-top: 26px; padding: 18px; border-radius: var(--card-radius, 12px);
+      background: rgba(71,85,105,0.10); border: 1px solid #475569; }
+    .gso-band h3 { font-size: 1.02rem; color: var(--text-prime, #f1f5f9); margin-bottom: 4px; }
+    .gso-band .band-sub { font-size: 0.8rem; color: var(--text-sec, #94a3b8); margin-bottom: 14px; }
+    .gso-item { padding: 12px 0; border-top: 1px solid rgba(71,85,105,0.4); }
+    .gso-item:first-of-type { border-top: none; }
+    .gso-cluster { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; color: #cbd5e1; background: #475569; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+
+    /* Forward exposure */
+    .forward { margin-top: 26px; padding: 18px; border-radius: var(--card-radius, 12px);
+      background: var(--surface-base, #0a0e1a); border: 1px dashed var(--border-mid, rgba(148,163,184,0.2)); }
+    .forward h3 { font-size: 1.02rem; color: var(--text-prime, #f1f5f9); margin-bottom: 4px; }
+    .forward .fwd-note { font-size: 0.82rem; color: var(--status-warn, #f59e0b); margin-bottom: 14px; font-style: italic; }
+    .fwd-item { padding: 12px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .fwd-item:first-of-type { border-top: none; }
+
+    .pdf-row { margin-top: 26px; }
+
+    /* ---- Pane 3 ---- */
+    .pack-slot { padding: 18px; border-radius: var(--card-radius, 12px);
+      background: var(--surface-base, #0a0e1a); border: 1px dashed var(--border-mid, rgba(148,163,184,0.2)); }
+    .pack-slot h3 { font-size: 1rem; color: var(--text-prime, #f1f5f9); margin-bottom: 6px; }
+    .pack-slot p { font-size: 0.85rem; color: var(--text-sec, #94a3b8); margin-bottom: 14px; line-height: 1.55; }
+    .slot-flags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .slot-flag { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 999px; color: var(--text-mute, #64748b);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 6px; }
+    .field .opt { color: var(--text-mute, #64748b); font-weight: 400; }
+    .field input, .field select {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.9rem;
+    }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--tier-operational, #22d3ee); }
+    .attest-intro, .notif-intro { font-size: 0.82rem; color: var(--text-sec, #94a3b8); margin-bottom: 16px; line-height: 1.55; }
+
+    .toggle-line { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .toggle-line:last-of-type { border-bottom: none; }
+    .toggle-line .tl-label { font-size: 0.86rem; color: var(--text-body, #e2e8f0); }
+    .check { width: 18px; height: 18px; accent-color: var(--tier-operational, #22d3ee); cursor: pointer; }
+
+    .btn-primary {
+      padding: 11px 20px; border: none; border-radius: var(--card-radius-sm, 8px);
+      background: var(--tier-operational, #22d3ee); color: #042027; font-family: inherit; font-weight: 700;
+      font-size: 0.88rem; cursor: pointer; transition: opacity 0.15s ease;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-secondary {
+      padding: 11px 20px; border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px); background: transparent;
+      color: var(--text-sec, #94a3b8); font-family: inherit; font-weight: 600; font-size: 0.88rem; cursor: pointer;
+    }
+    .btn-secondary:hover { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); }
+    .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .form-msg { font-size: 0.82rem; margin-top: 12px; line-height: 1.5; }
+    .form-msg.err { color: var(--status-err, #ef4444); }
+    .form-msg.ok { color: var(--status-ok, #10b981); }
+
+    .vault-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.78rem; color: var(--text-mute, #64748b); text-align: center; }
+  </style>
+
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+</head>
+<body style="visibility:hidden">
+
+  <header class="topbar">
+    <div class="brand">Ailane Documents Vault</div>
+    <div class="topbar-right">
+      <span class="tier-badge" id="tier-badge" hidden></span>
+      <span class="monitor-counter" id="monitor-counter">— of 5 monitored</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="disclaimer-banner" role="note">
+      <strong>This is regulatory intelligence to support your decisions — not legal advice.</strong>
+      It is not a complete record of all applicable law, and the absence of an item here is not assurance
+      that nothing has changed. For advice on your own situation, consult a qualified professional.
+    </div>
+
+    <div class="panes">
+      <!-- Pane 1 — Document -->
+      <section class="pane pane-docs" aria-label="Documents">
+        <h2 class="section-head">Document</h2>
+        <div id="doc-list">
+          <div class="state-msg"><div class="spinner"></div>Loading your vault…</div>
+        </div>
+      </section>
+
+      <!-- Pane 2 — Exposure report -->
+      <section class="pane pane-exposure" aria-label="Exposure report">
+        <h2 class="section-head">Exposure report</h2>
+        <div id="exposure">
+          <div class="state-msg">Select a document to see its exposure report.</div>
+        </div>
+      </section>
+
+      <!-- Pane 3 — Solicitor pack + attestation + notifications -->
+      <section class="pane pane-side" aria-label="Solicitor pack, attestation and notification settings">
+        <h2 class="section-head">Solicitor pack</h2>
+        <div class="pack-slot">
+          <h3>Solicitor pack</h3>
+          <p>The exposure report packaged for an external solicitor — the document, its findings and statutory references in one bundle ready to instruct on.</p>
+          <div class="slot-flags">
+            <span class="slot-flag">Available with Governance</span>
+            <span class="slot-flag">Coming soon</span>
+          </div>
+        </div>
+
+        <h2 class="section-head spaced">Record a solicitor attestation</h2>
+        <div id="attestation">
+          <div class="state-msg">Select a document to record an attestation.</div>
+        </div>
+
+        <h2 class="section-head spaced">Notification settings</h2>
+        <div id="notifications">
+          <div class="state-msg"><div class="spinner"></div>Loading your settings…</div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="vault-footer">AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720.</footer>
+  </main>
+
+  <!-- AUTH GUARD — runs before the app renders (mirrors operational/horizon/index.html, RULE 26 / AUTH-001).
+       Reveal-after-verify; MFA optional for entry (AAL2-if-enrolled is enforced server-side by RLS only). -->
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    // Live operational-room allow-list + institutional (AMD-123 successor to enterprise, tokens.css).
+    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
+
+    var settled = false;
+    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+
+    // Poll for the Supabase CDN to load.
+    var polls = 0;
+    (function waitForSb() {
+      if (window.supabase && window.supabase.createClient) { boot(); return; }
+      if (++polls > 60) { fail(); return; }
+      setTimeout(waitForSb, 100);
+    })();
+
+    function boot() {
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { verify(gs.data.session); return; }
+        // Fallback: session may still be hydrating — listen with a 6s timeout.
+        var to = setTimeout(function () {
+          try { sub.data.subscription.unsubscribe(); } catch (e) {}
+          fail();
+        }, 6000);
+        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+          if (session && !settled) {
+            clearTimeout(to);
+            try { sub.data.subscription.unsubscribe(); } catch (e) {}
+            verify(session);
+          }
+        });
+      }).catch(fail);
+
+      function verify(session) {
+        if (settled) return;
+        var token = session.access_token, payload;
+        try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return fail(); }
+        var userId = payload.sub;
+        fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) {
+            if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
+              settled = true;
+              document.body.style.visibility = 'visible';
+              initDocuments(token, SUPABASE_ANON, userId, SUPABASE_URL);
+            } else { fail(); }
+          })
+          .catch(fail);
+      }
+    }
+  })();
+  </script>
+
+  <!-- APP — vanilla JS, no build step. All server text is treated as data (textContent / safe DOM only). -->
+  <script>
+  function initDocuments(token, ANON, uid, REST) {
+    var RESTU = REST + '/rest/v1';
+    var FN = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
+    var H = { 'apikey': ANON, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+    // ---- State ----
+    var docs = [];
+    var selectedId = null;
+    var aceiByKey = new Map();   // category_key  -> {number,label,hex}
+    var aceiByNum = new Map();   // category_number -> {number,label,hex}
+    var gsoMap = new Map();      // cluster_key   -> display_label
+
+    // ---- DOM refs ----
+    var listEl   = document.getElementById('doc-list');
+    var expEl    = document.getElementById('exposure');
+    var attestEl = document.getElementById('attestation');
+    var notifEl  = document.getElementById('notifications');
+    var badgeEl  = document.getElementById('tier-badge');
+    var countEl  = document.getElementById('monitor-counter');
+
+    var GSO_HEX = '#475569';
+    var RING_HEX = { green: '#176B3C', amber: '#B4640A', red: '#991B1B' };
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // ---- Helpers ----
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+    function loading(node, msg) {
+      clear(node);
+      var box = el('div', 'state-msg');
+      box.appendChild(el('div', 'spinner'));
+      box.appendChild(document.createTextNode(msg));
+      node.appendChild(box);
+    }
+    function msg(node, text) { clear(node); node.appendChild(el('div', 'state-msg', text)); }
+    function fmtDate(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+    }
+    function getJson(path) {
+      return fetch(RESTU + path, { headers: H })
+        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+    }
+    function aceiCssHex(number) {
+      try { return getComputedStyle(document.documentElement).getPropertyValue('--acei-' + number).trim() || null; }
+      catch (e) { return null; }
+    }
+
+    // ---- Tier badge (re-read the verified tier; guard signature is fixed at 4 args) ----
+    var TIER_VAR = {
+      operational: '--tier-operational', operational_readiness: '--tier-operational',
+      governance: '--tier-governance', enterprise: '--tier-enterprise', institutional: '--tier-institutional'
+    };
+    var TIER_LABEL = {
+      operational: 'Operational', operational_readiness: 'Operational Readiness',
+      governance: 'Governance', enterprise: 'Enterprise', institutional: 'Institutional'
+    };
+    function loadTierBadge() {
+      getJson('/kl_account_profiles?select=subscription_tier&user_id=eq.' + uid + '&limit=1')
+        .then(function (rows) {
+          if (!rows || !rows.length) return;
+          var t = rows[0].subscription_tier;
+          badgeEl.textContent = TIER_LABEL[t] || t;
+          var v = TIER_VAR[t];
+          if (v) badgeEl.style.color = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+          badgeEl.hidden = false;
+        })
+        .catch(function () { /* badge is cosmetic; ignore */ });
+    }
+
+    // ---- Palettes (contract 10 + 11), with §4 fallback ----
+    var ACEI_FALLBACK = [
+      ['unfair_dismissal', 1, 'Unfair Dismissal', '#EF4444'],
+      ['discrimination_harassment', 2, 'Discrimination & Harassment', '#D946EF'],
+      ['wages_working_time', 3, 'Wages, Working Time & Holiday', '#22C55E'],
+      ['whistleblowing', 4, 'Whistleblowing', '#FACC15'],
+      ['employment_status', 5, 'Employment Status', '#3B82F6'],
+      ['redundancy_org_change', 6, 'Redundancy & Org Change', '#F97316'],
+      ['parental_family_rights', 7, 'Parental & Family Rights', '#F43F5E'],
+      ['trade_union_collective', 8, 'Trade Union & Collective', '#A21CAF'],
+      ['breach_of_contract', 9, 'Breach of Contract & Notice', '#6366F1'],
+      ['health_safety', 10, 'Health & Safety', '#14B8A6'],
+      ['data_protection_privacy', 11, 'Data Protection & Privacy', '#4338CA'],
+      ['business_transfers_insolvency', 12, 'Business Transfers & Insolvency', '#64748B']
+    ];
+    function applyAceiFallback() {
+      aceiByKey.clear(); aceiByNum.clear();
+      ACEI_FALLBACK.forEach(function (e) {
+        var rec = { number: e[1], label: e[2], hex: aceiCssHex(e[1]) || e[3] };
+        aceiByKey.set(e[0], rec); aceiByNum.set(e[1], rec);
+      });
+    }
+    function loadPalettes() {
+      var p1 = getJson('/acei_category_palette?select=category_key,category_number,display_label,hex_colour')
+        .then(function (rows) {
+          if (rows && rows.length) {
+            aceiByKey.clear(); aceiByNum.clear();
+            rows.forEach(function (r) {
+              var rec = { number: r.category_number, label: r.display_label, hex: r.hex_colour };
+              aceiByKey.set(r.category_key, rec);
+              if (r.category_number != null) aceiByNum.set(r.category_number, rec);
+            });
+          } else { applyAceiFallback(); }
+        })
+        .catch(applyAceiFallback);
+      var p2 = getJson('/gso_cluster_palette?select=cluster_key,display_label')
+        .then(function (rows) { (rows || []).forEach(function (r) { gsoMap.set(r.cluster_key, r.display_label); }); })
+        .catch(function () { /* labels degrade to the raw key */ });
+      return Promise.all([p1, p2]);
+    }
+    function resolveAcei(key) {
+      if (key == null) return null;
+      var e = aceiByKey.get(String(key));
+      if (!e) { var n = parseInt(key, 10); if (!isNaN(n)) e = aceiByNum.get(n); }
+      return e || null;
+    }
+    function normWeights(aw) {
+      // acei_weights jsonb — accept array-of-objects or object-map; never invent values.
+      var out = [];
+      if (!aw) return out;
+      if (Array.isArray(aw)) {
+        aw.forEach(function (w) {
+          if (w == null) return;
+          var key = w.category_key != null ? w.category_key
+                  : (w.key != null ? w.key
+                  : (w.category != null ? w.category
+                  : (w.category_number != null ? w.category_number : null)));
+          var wt = (typeof w.weight === 'number') ? w.weight : (typeof w.value === 'number' ? w.value : null);
+          if (key != null && wt != null) out.push({ key: key, weight: wt });
+        });
+      } else if (typeof aw === 'object') {
+        Object.keys(aw).forEach(function (k) {
+          var v = aw[k];
+          if (typeof v === 'number') out.push({ key: k, weight: v });
+          else if (v && typeof v.weight === 'number') out.push({ key: k, weight: v.weight });
+        });
+      }
+      return out;
+    }
+
+    // ---- Status derivation (singular, document-level) ----
+    // green iff a live attestation exists; else red if overlay red OR a critical (in-force) finding; else amber.
+    function deriveStatus(att, overlay, findings) {
+      if (att) return 'green';
+      if (!overlay) return null; // no analysis yet
+      var red = overlay.status_band === 'red';
+      if (!red) {
+        if (findings) {
+          red = findings.some(function (f) { return !f.is_forward_looking && f.severity === 'critical'; });
+        } else if ((overlay.critical_gaps || 0) > 0) {
+          red = true;
+        }
+      }
+      return red ? 'red' : 'amber';
+    }
+
+    // ===========================================================
+    //  PANE 1 — Document list
+    // ===========================================================
+    function updateCounter() {
+      var n = docs.filter(function (d) { return !!d.monitored; }).length;
+      countEl.textContent = n + ' of 5 monitored';
+    }
+    function loadDocs() {
+      loading(listEl, 'Loading your vault…');
+      getJson('/kl_vault_documents?user_id=eq.' + uid + '&deleted_at=is.null' +
+              '&select=id,filename,mime_type,file_size_bytes,monitored,monitor_started_at,analysis_status,created_at' +
+              '&order=created_at.desc')
+        .then(function (rows) { docs = rows || []; renderDocs(); updateCounter(); })
+        .catch(function () { msg(listEl, "Couldn't load your vault right now. Please refresh."); });
+    }
+    function renderDocs() {
+      clear(listEl);
+      if (!docs.length) { msg(listEl, 'No documents in your vault yet.'); return; }
+      docs.forEach(function (d) { listEl.appendChild(buildDocRow(d)); });
+    }
+    function buildDocRow(doc) {
+      var row = el('div', 'doc-row');
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      if (doc.id === selectedId) row.classList.add('selected');
+
+      var dot = el('span', 'doc-dot');
+      dot.title = 'Status pending';
+      row.appendChild(dot);
+
+      var main = el('div', 'doc-main');
+      main.appendChild(el('div', 'doc-name', doc.filename || 'Untitled document'));
+      var metaBits = ['Added ' + fmtDate(doc.created_at)];
+      if (doc.analysis_status) metaBits.push(String(doc.analysis_status));
+      main.appendChild(el('div', 'doc-meta', metaBits.join(' · ')));
+
+      var tWrap = el('div', 'doc-toggle-wrap');
+      tWrap.appendChild(buildMonitorSwitch(doc, row));
+      main.appendChild(tWrap);
+      row.appendChild(main);
+
+      function select() { selectDoc(doc.id); }
+      row.addEventListener('click', select);
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); }
+      });
+
+      // Asynchronously paint the status dot from overlay + attestation.
+      paintDot(doc, dot);
+      return row;
+    }
+    function paintDot(doc, dot) {
+      Promise.all([
+        getJson('/vault_contract_records?document_id=eq.' + doc.id +
+                '&select=status_band,critical_gaps,upload_id,created_at&order=created_at.desc&limit=1')
+          .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
+        getJson('/vault_document_attestation?document_id=eq.' + doc.id +
+                '&superseded_at=is.null&select=solicitor_name&order=attested_on.desc&limit=1')
+          .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; })
+      ]).then(function (res) {
+        var status = deriveStatus(res[1], res[0], null);
+        if (status) {
+          dot.style.background = RING_HEX[status];
+          dot.style.boxShadow = '0 0 0 3px ' + RING_HEX[status] + '33';
+          dot.title = status === 'green' ? 'Solicitor-Verified'
+                    : status === 'red' ? 'Significant gaps identified' : 'Ready for solicitor review';
+        } else {
+          dot.title = 'No analysis yet';
+        }
+      });
+    }
+    function buildMonitorSwitch(doc, row) {
+      var btn = el('button', 'switch' + (doc.monitored ? ' on' : ''));
+      btn.type = 'button';
+      function paint() {
+        btn.classList.toggle('on', !!doc.monitored);
+        clear(btn);
+        btn.appendChild(el('span', 'knob'));
+        btn.appendChild(el('span', null, doc.monitored ? 'Monitoring on' : 'Monitor off'));
+        btn.setAttribute('aria-pressed', doc.monitored ? 'true' : 'false');
+      }
+      paint();
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (btn.disabled) return;
+        clearRowError(row);
+        var next = !doc.monitored;
+        btn.disabled = true;
+        fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
+          method: 'PATCH',
+          headers: Object.assign({ 'Prefer': 'return=representation' }, H),
+          body: JSON.stringify({
+            monitored: next,
+            monitor_started_at: next ? new Date().toISOString() : null
+          })
+        })
+          .then(function (r) {
+            if (r.status < 200 || r.status >= 300) {
+              // DB trigger (trg_vault_monitored_cap) blocks a 6th monitored document.
+              if (next && (r.status >= 400 && r.status < 500)) {
+                throw { cap: true };
+              }
+              throw new Error('http ' + r.status);
+            }
+            return r.json().catch(function () { return null; });
+          })
+          .then(function (rep) {
+            doc.monitored = next;
+            if (rep && rep[0] && 'monitor_started_at' in rep[0]) doc.monitor_started_at = rep[0].monitor_started_at;
+            else doc.monitor_started_at = next ? new Date().toISOString() : null;
+            paint(); updateCounter(); btn.disabled = false;
+          })
+          .catch(function (err) {
+            paint(); btn.disabled = false;
+            showRowError(row, (err && err.cap)
+              ? 'You can monitor up to 5 documents. Stop monitoring one to add another.'
+              : 'Could not update monitoring — please try again.');
+          });
+      });
+      return btn;
+    }
+    function showRowError(row, text) {
+      clearRowError(row);
+      var e = el('div', 'row-error', text);
+      e.dataset.rowError = '1';
+      row.querySelector('.doc-main').appendChild(e);
+    }
+    function clearRowError(row) {
+      var ex = row.querySelector('[data-row-error]');
+      if (ex) ex.remove();
+    }
+
+    // ===========================================================
+    //  PANE 2 — Exposure report  +  PANE 3 — Attestation
+    // ===========================================================
+    function selectDoc(docId) {
+      selectedId = docId;
+      Array.prototype.forEach.call(listEl.querySelectorAll('.doc-row'), function (r) { r.classList.remove('selected'); });
+      // re-mark the selected row
+      renderDocs();
+      loadExposure(docId);
+      renderAttestation(docId, null);
+    }
+
+    function loadExposure(docId) {
+      loading(expEl, 'Loading the exposure report…');
+      getJson('/vault_contract_records?document_id=eq.' + docId +
+              '&select=status_band,compliance_score,critical_gaps,key_finding,upload_id,created_at&order=created_at.desc&limit=1')
+        .then(function (rows) {
+          var overlay = (rows && rows[0]) || null;
+          var uploadId = overlay && overlay.upload_id;
+          var fFindings = uploadId
+            ? getJson('/compliance_findings?upload_id=eq.' + uploadId +
+                      '&select=severity,clause_category,statutory_ref,finding_detail,is_forward_looking,acei_weights,gso_cluster&order=severity.asc')
+                .catch(function () { return []; })
+            : Promise.resolve([]);
+          var fAtt = getJson('/vault_document_attestation?document_id=eq.' + docId +
+                      '&superseded_at=is.null&select=solicitor_name,firm,sra_no,attested_on,document_version&order=attested_on.desc&limit=1')
+                .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; });
+          return Promise.all([Promise.resolve(overlay), fFindings, fAtt]);
+        })
+        .then(function (res) { renderExposure(res[0], res[1] || [], res[2]); })
+        .catch(function () { msg(expEl, "Couldn't load the exposure report right now. Please try again."); });
+    }
+
+    function renderExposure(overlay, findings, att) {
+      clear(expEl);
+      var status = deriveStatus(att, overlay, findings);
+
+      // ---- Status ring ----
+      expEl.appendChild(buildStatusBlock(status, att));
+
+      if (!overlay || !overlay.upload_id) {
+        expEl.appendChild(el('div', 'state-msg', 'This document has not been checked yet.'));
+        return;
+      }
+
+      var inforce = findings.filter(function (f) { return !f.is_forward_looking; });
+      var forward = findings.filter(function (f) { return !!f.is_forward_looking; });
+      var gsoFindings = inforce.filter(function (f) { return !!f.gso_cluster; });
+      var riskFindings = inforce.filter(function (f) { return !f.gso_cluster; });
+
+      // ---- Exposure magnitude (counts, never a single score) ----
+      expEl.appendChild(buildMagnitude(inforce));
+
+      // ---- Per-finding risk blocks ----
+      sortBySeverity(riskFindings).forEach(function (f) { expEl.appendChild(buildFinding(f)); });
+
+      // ---- GSO neutral band ----
+      if (gsoFindings.length) expEl.appendChild(buildGsoBand(gsoFindings));
+
+      // ---- Forward exposure ----
+      if (forward.length) expEl.appendChild(buildForward(forward));
+
+      // ---- PDF download ----
+      expEl.appendChild(buildPdfRow(overlay.upload_id));
+    }
+
+    function buildStatusBlock(status, att) {
+      var block = el('div', 'status-block');
+      var ring = el('div', 'ring');
+      var label = el('div', 'status-label');
+      var sub = el('div', 'status-sub');
+
+      if (status === 'green') {
+        ring.style.borderColor = RING_HEX.green; ring.textContent = '✓';
+        label.textContent = 'Solicitor-Verified';
+        if (att) sub.textContent = 'Verified by ' + (att.solicitor_name || 'a solicitor') +
+          (att.firm ? ', ' + att.firm : '');
+      } else if (status === 'red') {
+        ring.style.borderColor = RING_HEX.red; ring.textContent = '!';
+        label.textContent = 'Significant gaps identified';
+        sub.textContent = 'Engine assessment — not solicitor-verified';
+      } else if (status === 'amber') {
+        ring.style.borderColor = RING_HEX.amber; ring.textContent = '◐';
+        label.textContent = 'Ready for solicitor review';
+        sub.textContent = 'Engine ceiling — green is recorded only from a solicitor attestation';
+      } else {
+        ring.textContent = '·';
+        label.textContent = 'Not yet checked';
+        sub.textContent = 'No analysis on record for this document yet.';
+      }
+
+      var txt = el('div', 'status-text');
+      txt.appendChild(label);
+      if (sub.textContent) txt.appendChild(sub);
+      block.appendChild(ring); block.appendChild(txt);
+      return block;
+    }
+
+    var SEV_RANK = { critical: 0, major: 1, minor: 2, aligned: 3 };
+    function sortBySeverity(arr) {
+      return arr.slice().sort(function (a, b) {
+        var ra = SEV_RANK[a.severity] != null ? SEV_RANK[a.severity] : 9;
+        var rb = SEV_RANK[b.severity] != null ? SEV_RANK[b.severity] : 9;
+        return ra - rb;
+      });
+    }
+    function buildMagnitude(inforce) {
+      var counts = { critical: 0, major: 0, minor: 0, aligned: 0 };
+      inforce.forEach(function (f) { if (counts.hasOwnProperty(f.severity)) counts[f.severity]++; });
+      var grid = el('div', 'magnitude');
+      [['critical', 'Critical'], ['major', 'Major'], ['minor', 'Minor'], ['aligned', 'Aligned']].forEach(function (s) {
+        var cell = el('div', 'mag-cell');
+        cell.appendChild(el('span', 'mag-num', String(counts[s[0]])));
+        cell.appendChild(el('span', 'mag-lbl', s[1]));
+        grid.appendChild(cell);
+      });
+      return grid;
+    }
+
+    function buildFinding(f) {
+      var box = el('div', 'finding');
+
+      var head = el('div', 'finding-head');
+      var sevKey = SEV_RANK[f.severity] != null ? f.severity : 'minor';
+      var sev = el('span', 'sev sev-' + sevKey, (f.severity || 'finding'));
+      head.appendChild(sev);
+      if (f.clause_category) head.appendChild(el('span', 'finding-cat', String(f.clause_category)));
+      box.appendChild(head);
+
+      // Weighted segmented gradient bar + named chips
+      var weights = normWeights(f.acei_weights);
+      var resolved = weights.map(function (w) {
+        var a = resolveAcei(w.key);
+        return {
+          weight: w.weight,
+          hex: a ? a.hex : GSO_HEX,
+          label: a ? a.label : String(w.key)
+        };
+      }).filter(function (w) { return w.weight > 0; });
+
+      if (resolved.length) {
+        var total = resolved.reduce(function (s, w) { return s + w.weight; }, 0) || 1;
+        var bar = el('div', 'grad-bar');
+        resolved.forEach(function (w) {
+          var seg = el('span', 'grad-seg');
+          seg.style.width = (w.weight / total * 100) + '%';
+          seg.style.background = w.hex;
+          seg.title = w.label + ' ' + Math.round(w.weight * 100) + '%';
+          bar.appendChild(seg);
+        });
+        box.appendChild(bar);
+
+        var chips = el('div', 'chips');
+        resolved.forEach(function (w) {
+          var chip = el('div', 'chip');
+          var sw = el('span', 'swatch'); sw.style.background = w.hex;
+          chip.appendChild(sw);
+          chip.appendChild(el('span', null, w.label + ' ' + Math.round(w.weight * 100) + '%'));
+          chips.appendChild(chip);
+        });
+        box.appendChild(chips);
+      }
+
+      if (f.finding_detail) box.appendChild(el('div', 'finding-detail', String(f.finding_detail)));
+      if (f.statutory_ref) {
+        var st = el('div', 'statutory');
+        st.appendChild(el('span', 'lbl', 'Statutory basis: '));
+        st.appendChild(document.createTextNode(String(f.statutory_ref)));
+        box.appendChild(st);
+      }
+      // For non-compliant (non-aligned) findings, a prompt to take to a solicitor.
+      if (f.severity && f.severity !== 'aligned') {
+        box.appendChild(el('div', 'solicitor-points',
+          'Points for your solicitor: raise this finding and its statutory basis when you instruct a solicitor.'));
+      }
+      return box;
+    }
+
+    function buildGsoBand(items) {
+      var band = el('div', 'gso-band');
+      band.appendChild(el('h3', null, 'Governance & statutory obligations'));
+      band.appendChild(el('div', 'band-sub', 'Standing obligations — listed for completeness, not colour-risk-graded.'));
+      sortBySeverity(items).forEach(function (f) {
+        var it = el('div', 'gso-item');
+        var label = gsoMap.get(f.gso_cluster) || String(f.gso_cluster);
+        it.appendChild(el('span', 'gso-cluster', label));
+        if (f.finding_detail) it.appendChild(el('div', 'finding-detail', String(f.finding_detail)));
+        if (f.statutory_ref) {
+          var st = el('div', 'statutory');
+          st.appendChild(el('span', 'lbl', 'Statutory basis: '));
+          st.appendChild(document.createTextNode(String(f.statutory_ref)));
+          it.appendChild(st);
+        }
+        band.appendChild(it);
+      });
+      return band;
+    }
+
+    function buildForward(items) {
+      var fwd = el('div', 'forward');
+      fwd.appendChild(el('h3', null, 'Legislative Horizon — forward exposure'));
+      fwd.appendChild(el('div', 'fwd-note', 'Not yet in force — does not affect the status above.'));
+      sortBySeverity(items).forEach(function (f) {
+        var it = el('div', 'fwd-item');
+        var head = el('div', 'finding-head');
+        var sevKey = SEV_RANK[f.severity] != null ? f.severity : 'minor';
+        head.appendChild(el('span', 'sev sev-' + sevKey, (f.severity || 'finding')));
+        if (f.clause_category) head.appendChild(el('span', 'finding-cat', String(f.clause_category)));
+        it.appendChild(head);
+        if (f.finding_detail) it.appendChild(el('div', 'finding-detail', String(f.finding_detail)));
+        if (f.statutory_ref) {
+          var st = el('div', 'statutory');
+          st.appendChild(el('span', 'lbl', 'Statutory basis: '));
+          st.appendChild(document.createTextNode(String(f.statutory_ref)));
+          it.appendChild(st);
+        }
+        fwd.appendChild(it);
+      });
+      return fwd;
+    }
+
+    function buildPdfRow(uploadId) {
+      var wrap = el('div', 'pdf-row');
+      var btn = el('button', 'btn-secondary');
+      btn.type = 'button';
+      if (!uploadId) {
+        btn.textContent = 'No analysis yet';
+        btn.disabled = true;
+      } else {
+        btn.textContent = 'Download exposure report (PDF)';
+        btn.addEventListener('click', function () { downloadPdf(uploadId, btn, wrap); });
+      }
+      wrap.appendChild(btn);
+      return wrap;
+    }
+    function downloadPdf(uploadId, btn, wrap) {
+      var old = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Preparing…';
+      var existing = wrap.querySelector('.form-msg'); if (existing) existing.remove();
+      fetch(FN + '/generate-vault-report-pdf', {
+        method: 'POST', headers: H, body: JSON.stringify({ upload_id: uploadId })
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('http ' + r.status);
+          var name = 'Ailane_Vault_Exposure_Report.pdf';
+          var cd = r.headers.get('Content-Disposition');
+          if (cd) {
+            var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd);
+            if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch (e) { name = m[1]; } }
+          }
+          return r.blob().then(function (b) { return { blob: b, name: name }; });
+        })
+        .then(function (o) {
+          var url = URL.createObjectURL(o.blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = o.name;
+          document.body.appendChild(a); a.click();
+          setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+          btn.disabled = false; btn.textContent = old;
+        })
+        .catch(function () {
+          btn.disabled = false; btn.textContent = old;
+          var e = el('div', 'form-msg err', 'Could not prepare the PDF right now. Please try again.');
+          wrap.appendChild(e);
+        });
+    }
+
+    // ===========================================================
+    //  PANE 3 — Attestation control
+    // ===========================================================
+    function renderAttestation(docId) {
+      clear(attestEl);
+      attestEl.appendChild(el('p', 'attest-intro',
+        'This records an external solicitor’s sign-off — it does not request advice. A recorded attestation is the only path to a Solicitor-Verified status.'));
+
+      var form = el('form');
+      form.setAttribute('novalidate', 'novalidate');
+
+      function field(id, labelText, type, required, placeholder, optional) {
+        var wrap = el('div', 'field');
+        var lab = el('label', null, labelText);
+        lab.setAttribute('for', id);
+        if (optional) { var o = el('span', 'opt', ' (optional)'); lab.appendChild(o); }
+        wrap.appendChild(lab);
+        var inp = el('input');
+        inp.id = id; inp.name = id; inp.type = type;
+        if (required) inp.required = true;
+        if (placeholder) inp.placeholder = placeholder;
+        wrap.appendChild(inp);
+        return wrap;
+      }
+
+      form.appendChild(field('att_solicitor_name', 'Solicitor name', 'text', true, 'e.g. J. Smith'));
+      form.appendChild(field('att_firm', 'Firm', 'text', true, 'e.g. Smith & Co LLP'));
+      form.appendChild(field('att_sra', 'SRA number', 'text', false, 'e.g. 123456', true));
+      var dateField = field('att_date', 'Date of attestation', 'date', true);
+      form.appendChild(dateField);
+      form.appendChild(field('att_version', 'Document version', 'text', true, 'e.g. v1.0'));
+
+      // default the date to today (browser-local)
+      var dInp = dateField.querySelector('input');
+      try { dInp.value = new Date().toISOString().slice(0, 10); } catch (e) {}
+
+      var actions = el('div');
+      var submit = el('button', 'btn-primary', 'Record attestation');
+      submit.type = 'submit';
+      actions.appendChild(submit);
+      form.appendChild(actions);
+      var formMsg = el('div', 'form-msg'); formMsg.hidden = true;
+      form.appendChild(formMsg);
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        formMsg.hidden = true; formMsg.className = 'form-msg';
+        var name = form.querySelector('#att_solicitor_name').value.trim();
+        var firm = form.querySelector('#att_firm').value.trim();
+        var sra = form.querySelector('#att_sra').value.trim();
+        var on = form.querySelector('#att_date').value;
+        var ver = form.querySelector('#att_version').value.trim();
+        if (!name || !firm || !on || !ver) {
+          formMsg.textContent = 'Please complete solicitor name, firm, date and document version.';
+          formMsg.className = 'form-msg err'; formMsg.hidden = false; return;
+        }
+        var body = {
+          document_id: docId,
+          solicitor_name: name,
+          firm: firm,
+          attested_on: on,
+          document_version: ver
+        };
+        if (sra) body.sra_no = sra;
+
+        submit.disabled = true; submit.textContent = 'Recording…';
+        fetch(FN + '/vault-record-attestation', {
+          method: 'POST', headers: H, body: JSON.stringify(body)
+        })
+          .then(function (r) { if (r.status < 200 || r.status >= 300) throw new Error('http ' + r.status); return r; })
+          .then(function () {
+            formMsg.textContent = 'Attestation recorded — this document is now Solicitor-Verified.';
+            formMsg.className = 'form-msg ok'; formMsg.hidden = false;
+            submit.disabled = false; submit.textContent = 'Record attestation';
+            // Re-run contract 5 by reloading the exposure pane → ring flips to green.
+            loadExposure(docId);
+            // Refresh the list dot for this document.
+            var row = listEl.querySelector('.doc-row.selected .doc-dot');
+            var doc = docs.filter(function (d) { return d.id === docId; })[0];
+            if (row && doc) paintDot(doc, row);
+          })
+          .catch(function () {
+            submit.disabled = false; submit.textContent = 'Record attestation';
+            formMsg.textContent = 'Could not record the attestation right now. Please try again.';
+            formMsg.className = 'form-msg err'; formMsg.hidden = false;
+          });
+      });
+
+      attestEl.appendChild(form);
+    }
+
+    // ===========================================================
+    //  PANE 3 — Notification settings
+    // ===========================================================
+    var NOTIF_DEFAULTS = {
+      notify_on_law_change: true, notify_on_green_revert: true,
+      channel_email: true, channel_in_app: true, digest_frequency: 'immediate'
+    };
+    function loadNotifications() {
+      loading(notifEl, 'Loading your settings…');
+      getJson('/vault_notification_prefs?user_id=eq.' + uid +
+              '&select=notify_on_law_change,notify_on_green_revert,channel_email,channel_in_app,digest_frequency&limit=1')
+        .then(function (rows) {
+          var prefs = (rows && rows[0]) ? rows[0] : NOTIF_DEFAULTS;
+          renderNotifications(prefs);
+        })
+        .catch(function () { renderNotifications(NOTIF_DEFAULTS); });
+    }
+    function renderNotifications(prefs) {
+      clear(notifEl);
+      notifEl.appendChild(el('p', 'notif-intro',
+        'We’ll tell you when a monitored document’s analysis changes after a change in the law.'));
+
+      function toggleLine(id, labelText, checked) {
+        var line = el('div', 'toggle-line');
+        line.appendChild(el('span', 'tl-label', labelText));
+        var cb = el('input', 'check');
+        cb.type = 'checkbox'; cb.id = id; cb.checked = !!checked;
+        line.appendChild(cb);
+        return line;
+      }
+
+      var l1 = toggleLine('n_law', 'Notify on a change in the law', prefs.notify_on_law_change);
+      var l2 = toggleLine('n_revert', 'Notify if a green status reverts', prefs.notify_on_green_revert);
+      var l3 = toggleLine('n_email', 'Email', prefs.channel_email);
+      var l4 = toggleLine('n_inapp', 'In-app', prefs.channel_in_app);
+      notifEl.appendChild(l1); notifEl.appendChild(l2); notifEl.appendChild(l3); notifEl.appendChild(l4);
+
+      var freqWrap = el('div', 'field'); freqWrap.style.marginTop = '14px';
+      var freqLab = el('label', null, 'Digest frequency'); freqLab.setAttribute('for', 'n_freq');
+      freqWrap.appendChild(freqLab);
+      var sel = el('select'); sel.id = 'n_freq';
+      [['immediate', 'Immediate'], ['daily', 'Daily'], ['weekly', 'Weekly']].forEach(function (o) {
+        var opt = el('option', null, o[1]); opt.value = o[0];
+        if ((prefs.digest_frequency || 'immediate') === o[0]) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      freqWrap.appendChild(sel);
+      notifEl.appendChild(freqWrap);
+
+      var saveBtn = el('button', 'btn-primary', 'Save settings');
+      saveBtn.type = 'button';
+      notifEl.appendChild(saveBtn);
+      var notifMsg = el('div', 'form-msg'); notifMsg.hidden = true;
+      notifEl.appendChild(notifMsg);
+
+      saveBtn.addEventListener('click', function () {
+        notifMsg.hidden = true; notifMsg.className = 'form-msg';
+        saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+        var body = {
+          user_id: uid,
+          notify_on_law_change: document.getElementById('n_law').checked,
+          notify_on_green_revert: document.getElementById('n_revert').checked,
+          channel_email: document.getElementById('n_email').checked,
+          channel_in_app: document.getElementById('n_inapp').checked,
+          digest_frequency: document.getElementById('n_freq').value
+        };
+        fetch(RESTU + '/vault_notification_prefs', {
+          method: 'POST',
+          headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }, H),
+          body: JSON.stringify(body)
+        })
+          .then(function (r) { if (r.status < 200 || r.status >= 300) throw new Error('http ' + r.status); })
+          .then(function () {
+            saveBtn.disabled = false; saveBtn.textContent = 'Save settings';
+            notifMsg.textContent = 'Settings saved.'; notifMsg.className = 'form-msg ok'; notifMsg.hidden = false;
+          })
+          .catch(function () {
+            saveBtn.disabled = false; saveBtn.textContent = 'Save settings';
+            notifMsg.textContent = 'Could not save your settings right now. Please try again.';
+            notifMsg.className = 'form-msg err'; notifMsg.hidden = false;
+          });
+      });
+    }
+
+    // ---- Kick off ----
+    loadTierBadge();
+    loadPalettes().then(loadDocs);
+    loadNotifications();
+  }
+  </script>
+</body>
+</html>
