@@ -7,6 +7,11 @@
  * - compliance_uploads (existing) — check results with overall_score
  * - compliance_findings (existing) — per-clause findings with severity
  */
+// AILANE-CC-BRIEF-DOCV-FRONTEND-WIRING-001 · F4 — MFA AAL2 elevation before vault writes.
+// §4.2 decision gate: panel-vault.js imported no auth-helper module, so the IF branch
+// applies — a new workspace/src/_mfa-elevation.js was created and is imported here.
+import { ensureAal2 } from './_mfa-elevation.js';
+
 class AilaneVaultPanel {
   constructor(container, bus) {
     this.bus = bus;
@@ -256,6 +261,56 @@ class AilaneVaultPanel {
         item.appendChild(monitored);
       }
 
+      // Row actions (F5a/F5b/F5c). Small bordered buttons mirror panel-documents.js.
+      // data-doc-id lets _setRowState() find this row to show progress/error state.
+      item.setAttribute('data-doc-id', doc.id);
+      var actions = document.createElement('div');
+      actions.className = 'ws-vault-actions';
+      actions.style.cssText = 'display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0;';
+      var actCss = 'padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-family:Inter,system-ui;background:none;line-height:1.2;';
+
+      // F5b — Solicitor pack. Needs a kl_vault_documents.id (document_id); offered for
+      // real vault rows only (fromUploads pseudo-rows carry an upload id, not a vault id).
+      if (!doc.fromUploads) {
+        var packBtn = document.createElement('button');
+        packBtn.className = 'ws-vault-act';
+        packBtn.type = 'button';
+        packBtn.style.cssText = actCss + 'border:1px solid #D1D5DB;color:#0A5C52;';
+        packBtn.textContent = 'Solicitor pack';
+        packBtn.addEventListener('click', function(e) { e.stopPropagation(); self._generateSolicitorPack(doc.id); });
+        actions.appendChild(packBtn);
+      }
+
+      // F5c — Vault report PDF. Needs an upload_id; offered only when an analysis exists.
+      if (doc.uploadId) {
+        var reportBtn = document.createElement('button');
+        reportBtn.className = 'ws-vault-act';
+        reportBtn.type = 'button';
+        reportBtn.style.cssText = actCss + 'border:1px solid #D1D5DB;color:#0A5C52;';
+        reportBtn.textContent = 'Report PDF';
+        reportBtn.addEventListener('click', function(e) { e.stopPropagation(); self._generateVaultReportPdf(doc.id, doc.uploadId); });
+        actions.appendChild(reportBtn);
+      }
+
+      // F5a — Soft-delete. Real vault rows only.
+      if (!doc.fromUploads) {
+        var delBtn = document.createElement('button');
+        delBtn.className = 'ws-vault-act';
+        delBtn.type = 'button';
+        delBtn.style.cssText = actCss + 'border:1px solid #FCA5A5;color:#DC2626;';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', function(e) { e.stopPropagation(); self._deleteDocument(doc.id); });
+        actions.appendChild(delBtn);
+      }
+
+      var rowStatus = document.createElement('span');
+      rowStatus.className = 'ws-vault-row-status';
+      rowStatus.setAttribute('aria-live', 'polite');
+      rowStatus.style.cssText = 'font-size:11px;color:#6B7280;font-family:Inter,system-ui;';
+      actions.appendChild(rowStatus);
+
+      item.appendChild(actions);
+
       // Click handler
       item.addEventListener('click', function() { self._selectDocument(doc, item); });
       item.addEventListener('keydown', function(e) {
@@ -450,6 +505,266 @@ class AilaneVaultPanel {
       setTimeout(function() { notice.remove(); }, 5000);
     });
     input.click();
+  }
+
+  // AILANE-CC-BRIEF-DOCV-FRONTEND-WIRING-001 · F5a
+  // Soft-delete via PATCH deleted_at=now(). kl_vault_documents has no DELETE policy
+  // (audit-verified); the owner UPDATE policy permits this. Mirrors the proven
+  // operational/documents pattern (DOCV-ROOM-RECTIFY-001 §4B): Prefer: return=minimal so
+  // the PATCH does not trigger a return-representation read of the now-deleted row (which
+  // would fail the deleted_at IS NULL owner-select). &deleted_at=is.null = idempotent.
+  // NOTE: deviates from brief §5.1's `this.supabase.from().update()` syntax — the panel
+  // has no Supabase client; it uses window.__ailaneUser.token + raw REST (recorded §10 #6).
+  async _deleteDocument(docId) {
+    if (!docId) return;
+    if (!window.confirm('Delete this document? It will be removed from your vault.')) return;
+
+    try {
+      await ensureAal2(); // F4 dependency — vault writes require aal2 when MFA-enrolled
+    } catch (e) {
+      this._showError('Multi-factor authentication required to delete (' + ((e && e.code) || 'mfa') + ').');
+      return;
+    }
+
+    var user = window.__ailaneUser;
+    if (!user) { this._showError('Not signed in.'); return; }
+
+    this._setRowState(docId, 'generating');
+
+    var resp;
+    try {
+      resp = await fetch(
+        'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1/kl_vault_documents?id=eq.' + docId + '&deleted_at=is.null',
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'Bearer ' + user.token,
+            'apikey': window.__SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ deleted_at: new Date().toISOString() })
+        }
+      );
+    } catch (e) {
+      this._setRowState(docId, 'error');
+      this._showError('Delete failed (network): ' + ((e && e.message) || e));
+      return;
+    }
+
+    if (resp.status < 200 || resp.status >= 300) {
+      var body = '';
+      try { body = await resp.text(); } catch (e) {}
+      console.error('[Vault] delete failed: HTTP ' + resp.status + ' — ' + (body || '(no body)'));
+      this._setRowState(docId, 'error');
+      this._showError('Delete failed (HTTP ' + resp.status + '): ' + body.slice(0, 200));
+      return;
+    }
+
+    await this._loadDocuments(); // refresh list (existing method, already filters deleted_at=is.null)
+    this._render();
+  }
+
+  // AILANE-CC-BRIEF-DOCV-FRONTEND-WIRING-001 · F5b
+  // generate-solicitor-pack expects { document_id } (confirmed from the live
+  // operational/documents surface) and returns a PDF blob on 200 (402 = quota, 409 = no
+  // analysis yet). docId is the kl_vault_documents.id and doubles as the row-state key.
+  async _generateSolicitorPack(docId) {
+    if (!docId) return;
+
+    try {
+      await ensureAal2(); // safe-by-default per brief §6.1
+    } catch (e) {
+      this._showError('Multi-factor authentication required (' + ((e && e.code) || 'mfa') + ').');
+      return;
+    }
+
+    var user = window.__ailaneUser;
+    if (!user) { this._showError('Not signed in.'); return; }
+
+    this._setRowState(docId, 'generating');
+
+    var resp;
+    try {
+      resp = await fetch('https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/generate-solicitor-pack', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + user.token,
+          'apikey': window.__SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ document_id: docId })
+      });
+    } catch (e) {
+      this._setRowState(docId, 'error');
+      this._showError('Network error: ' + ((e && e.message) || e));
+      return;
+    }
+
+    await this._handleFileResponse(docId, resp, 'Ailane_Solicitor_Pack.pdf');
+  }
+
+  // AILANE-CC-BRIEF-DOCV-FRONTEND-WIRING-001 · F5c
+  // generate-vault-report-pdf expects { upload_id } (confirmed from the live
+  // operational/documents surface — NOT document_id; §7 / open-question #5 resolved) and
+  // returns a PDF blob on 200. rowId keys the row state; uploadId is the EF payload.
+  async _generateVaultReportPdf(rowId, uploadId) {
+    if (!uploadId) return;
+
+    try {
+      await ensureAal2(); // safe-by-default per brief §7
+    } catch (e) {
+      this._showError('Multi-factor authentication required (' + ((e && e.code) || 'mfa') + ').');
+      return;
+    }
+
+    var user = window.__ailaneUser;
+    if (!user) { this._showError('Not signed in.'); return; }
+
+    this._setRowState(rowId, 'generating');
+
+    var resp;
+    try {
+      resp = await fetch('https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/generate-vault-report-pdf', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + user.token,
+          'apikey': window.__SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ upload_id: uploadId })
+      });
+    } catch (e) {
+      this._setRowState(rowId, 'error');
+      this._showError('Network error: ' + ((e && e.message) || e));
+      return;
+    }
+
+    await this._handleFileResponse(rowId, resp, 'Ailane_Vault_Exposure_Report.pdf');
+  }
+
+  // Shared honest response handler for the two PDF-generating EFs (F5b/F5c §6.2).
+  // Parses the body BEFORE assuming success; never swallows an error (brief §9).
+  async _handleFileResponse(rowId, resp, defaultName) {
+    var ct = resp.headers.get('content-type') || '';
+
+    // Friendly handling for the documented non-200 statuses from these EFs.
+    if (resp.status === 402) {
+      this._setRowState(rowId, 'error');
+      this._showError('You have used your included packs for this period. Additional packs are available separately.');
+      return;
+    }
+    if (resp.status === 409) {
+      this._setRowState(rowId, 'error');
+      this._showError('Run a compliance check on this document first.');
+      return;
+    }
+    if (resp.status !== 200) {
+      var text = '';
+      try { text = await resp.text(); } catch (e) {}
+      this._setRowState(rowId, 'error');
+      this._showError('Generation failed (HTTP ' + resp.status + '): ' + text.slice(0, 200));
+      return;
+    }
+
+    // 200 — branch on content-type.
+    if (ct.indexOf('application/json') !== -1) {
+      var jbody = null;
+      try { jbody = await resp.json(); } catch (e) {}
+      if (jbody && jbody.error) {
+        this._setRowState(rowId, 'error');
+        this._showError('Not ready: ' + jbody.error);
+        return;
+      }
+      if (jbody && jbody.url) {
+        this._setRowState(rowId, 'ready');
+        window.open(jbody.url, '_blank', 'noopener');
+        return;
+      }
+      this._setRowState(rowId, 'error');
+      this._showError('Unexpected response shape from the server.');
+      console.error('[Vault] unexpected JSON from PDF EF:', jbody);
+      return;
+    }
+
+    if (ct.indexOf('application/pdf') !== -1 || ct.indexOf('octet-stream') !== -1 || ct === '') {
+      var blob;
+      try { blob = await resp.blob(); } catch (e) {
+        this._setRowState(rowId, 'error');
+        this._showError('Could not read the generated file.');
+        return;
+      }
+      this._openBlob(blob, this._filenameFromResponse(resp, defaultName));
+      this._setRowState(rowId, 'ready');
+      return;
+    }
+
+    this._setRowState(rowId, 'error');
+    this._showError('Unexpected content type: ' + ct);
+    console.error('[Vault] unexpected content-type from PDF EF:', ct);
+  }
+
+  _filenameFromResponse(resp, fallback) {
+    var cd = resp.headers.get('Content-Disposition');
+    if (cd) {
+      var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd);
+      if (m && m[1]) { try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; } }
+    }
+    return fallback;
+  }
+
+  // Open the PDF in a new tab (brief §6.3 / §10 #3). window.open after an awaited
+  // fetch can be popup-blocked, so fall back to an anchor download (the mechanism the
+  // live operational/documents page uses) to guarantee the Director can view the file.
+  _openBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var win = window.open(url, '_blank', 'noopener');
+    if (!win) {
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'document.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+  }
+
+  // Per-row progress/error state. Disables this row's action buttons while busy and
+  // updates the row's status text. Mirrors the loading-state pattern of panel-documents.
+  _setRowState(rowId, state) {
+    if (!this.el) return;
+    var row = this.el.querySelector('.ws-vault-item[data-doc-id="' + rowId + '"]');
+    if (!row) return;
+    var busy = (state === 'generating');
+    var btns = row.querySelectorAll('.ws-vault-act');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].disabled = busy;
+      btns[i].style.opacity = busy ? '0.6' : '';
+      btns[i].style.cursor = busy ? 'default' : 'pointer';
+    }
+    var status = row.querySelector('.ws-vault-row-status');
+    if (status) {
+      if (state === 'generating') status.textContent = 'Preparing…';
+      else if (state === 'ready') status.textContent = 'Ready';
+      else status.textContent = '';
+    }
+  }
+
+  // Surface every error to the user (brief §9 — no silent swallows). Inline red banner
+  // under the header, mirroring the green notice banner already used by _handleUpload.
+  _showError(message) {
+    if (!this.el) return;
+    var existing = this.el.querySelector('.ws-vault-error');
+    if (existing) existing.remove();
+    var banner = document.createElement('div');
+    banner.className = 'ws-vault-error';
+    banner.setAttribute('role', 'alert');
+    banner.style.cssText = 'padding:10px 16px;background:#FEE2E2;border-bottom:1px solid #FCA5A5;color:#991B1B;font-size:13px;font-family:Inter,system-ui;';
+    banner.textContent = message;
+    if (this.el.children.length > 1) this.el.insertBefore(banner, this.el.children[1]);
+    else this.el.appendChild(banner);
+    setTimeout(function() { if (banner.parentNode) banner.remove(); }, 7000);
   }
 }
 
