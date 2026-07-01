@@ -4503,7 +4503,7 @@
         };
     }
   }
-  function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier }) {
+  function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier, hubSession }) {
     let badgeLabel = "KNOWLEDGE LIBRARY";
     let badgeClass = "kl-badge-per-session";
     if (operationalMode) {
@@ -4541,7 +4541,7 @@
         }
       },
       brandLabel
-    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), onToggleLang && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("div", { className: "kl-topbar-right" }, hubSession && /* @__PURE__ */ React.createElement(HubNotifBell, { hubSession }), accessType === "per_session" && sessionExpiresAt && /* @__PURE__ */ React.createElement(SessionCountdown, { expiresAt: sessionExpiresAt, onExpired: onSessionExpired }), onToggleLang && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -5291,668 +5291,24 @@
       deleteDialog
     );
   }
-  async function downloadVaultDocument(storagePath, filename) {
-    if (!window.__klToken || !storagePath) {
-      alert("Unable to download \u2014 please refresh and try again.");
-      return;
-    }
-    try {
-      var encodedPath = storagePath.split("/").map(function(part) {
-        return encodeURIComponent(part);
-      }).join("/");
-      var signResp = await fetch(
-        SUPABASE_URL + "/storage/v1/object/sign/kl-document-vault/" + encodedPath,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + window.__klToken,
-            "apikey": SUPABASE_ANON_KEY,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ expiresIn: 3600 })
-        }
-      );
-      if (!signResp.ok) {
-        var errText = await signResp.text();
-        console.error("Signed URL error:", signResp.status, errText);
-        alert("Download failed \u2014 the file may not be available. Please try again.");
-        return;
-      }
-      var signData = await signResp.json();
-      if (!signData.signedURL) {
-        console.error("No signedURL in response:", signData);
-        alert("Download failed \u2014 please try again.");
-        return;
-      }
-      var downloadUrl = SUPABASE_URL + "/storage/v1" + signData.signedURL;
-      var a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = filename || "document";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error("Download error:", err);
-      alert("Unable to download this document right now. Please check your connection and try again.");
-    }
-  }
-  async function downloadComplianceReport(uploadId) {
-    if (!window.__klToken) return;
-    try {
-      var resp = await fetch(
-        SUPABASE_URL + "/functions/v1/generate-report-pdf",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + window.__klToken,
-            "apikey": SUPABASE_ANON_KEY,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ upload_id: uploadId })
-        }
-      );
-      if (!resp.ok) {
-        throw new Error("PDF generation failed: " + resp.status);
-      }
-      var blob = await resp.blob();
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "Ailane-Compliance-Report.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Report download failed:", err);
-      alert("Unable to generate the compliance report right now. Please try again.");
-    }
-  }
-  async function fetchDocumentText(documentId) {
-    if (!window.__klToken) return null;
-    try {
-      var resp = await fetch(
-        SUPABASE_URL + "/rest/v1/kl_vault_document_text?document_id=eq." + documentId + "&select=extracted_text,char_count",
-        {
-          headers: {
-            "Authorization": "Bearer " + window.__klToken,
-            "apikey": SUPABASE_ANON_KEY
-          }
-        }
-      );
-      var data = await resp.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data[0];
-      }
-      return null;
-    } catch (err) {
-      console.error("Preview fetch failed:", err);
-      return null;
-    }
-  }
-  async function fetchComplianceFindings(uploadId) {
-    if (!window.__klToken) return null;
-    try {
-      var resp = await fetch(
-        SUPABASE_URL + "/rest/v1/compliance_findings?upload_id=eq." + uploadId + "&select=clause_category,severity,finding_detail,statutory_ref,remediation&order=severity.desc",
-        {
-          headers: {
-            "Authorization": "Bearer " + window.__klToken,
-            "apikey": SUPABASE_ANON_KEY
-          }
-        }
-      );
-      var data = await resp.json();
-      return Array.isArray(data) ? data : null;
-    } catch (err) {
-      console.error("Findings fetch failed:", err);
-      return null;
-    }
-  }
   function VaultPanel() {
-    var _s = useState([]);
-    var docs = _s[0];
-    var setDocs = _s[1];
-    var _l = useState(true);
-    var loading = _l[0];
-    var setLoading = _l[1];
-    var _err = useState(false);
-    var fetchError = _err[0];
-    var setFetchError = _err[1];
-    var _pid = useState(null);
-    var previewDocId = _pid[0];
-    var setPreviewDocId = _pid[1];
-    var _ptxt = useState(null);
-    var previewContent = _ptxt[0];
-    var setPreviewContent = _ptxt[1];
-    var _pload = useState(false);
-    var previewLoading = _pload[0];
-    var setPreviewLoading = _pload[1];
-    var _del = useState(null);
-    var deleteTarget = _del[0];
-    var setDeleteTarget = _del[1];
-    var _delPending = useState(false);
-    var deletePending = _delPending[0];
-    var setDeletePending = _delPending[1];
-    var _delError = useState(null);
-    var deleteError = _delError[0];
-    var setDeleteError = _delError[1];
-    function openDeleteConfirm(doc) {
-      setDeleteError(null);
-      setDeleteTarget(doc);
-    }
-    function cancelDelete() {
-      if (deletePending) return;
-      setDeleteTarget(null);
-      setDeleteError(null);
-    }
-    async function confirmDelete() {
-      var doc = deleteTarget;
-      if (!doc || deletePending) return;
-      if (doc.source !== "vault") {
-        setDeleteError("Compliance check uploads can't be deleted from here.");
-        return;
-      }
-      if (!window.__klToken || !window.__klUserId) {
-        setDeleteError("You're not signed in. Please refresh and try again.");
-        return;
-      }
-      setDeletePending(true);
-      setDeleteError(null);
-      try {
-        var resp = await fetch(
-          SUPABASE_URL + "/rest/v1/kl_vault_documents?id=eq." + doc.id + "&user_id=eq." + window.__klUserId,
-          {
-            method: "PATCH",
-            headers: {
-              "Authorization": "Bearer " + window.__klToken,
-              "apikey": SUPABASE_ANON_KEY,
-              "Content-Type": "application/json",
-              "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({ deleted_at: (/* @__PURE__ */ new Date()).toISOString() })
-          }
-        );
-        if (!resp.ok) {
-          setDeleteError("That didn't go through. Please try again in a moment.");
-          return;
-        }
-        setDocs(function(prev) {
-          return prev.filter(function(d) {
-            return !(d.source === doc.source && d.id === doc.id);
-          });
-        });
-        var key = doc.source + "-" + doc.id;
-        if (previewDocId === key) {
-          setPreviewDocId(null);
-          setPreviewContent(null);
-        }
-        setDeleteTarget(null);
-      } catch (err) {
-        console.error("Vault delete failed:", err);
-        setDeleteError("That didn't go through. Please check your connection and try again.");
-      } finally {
-        setDeletePending(false);
-      }
-    }
-    async function handlePreview(doc) {
-      if (previewDocId === doc.source + "-" + doc.id) {
-        setPreviewDocId(null);
-        setPreviewContent(null);
-        return;
-      }
-      var key = doc.source + "-" + doc.id;
-      setPreviewDocId(key);
-      setPreviewLoading(true);
-      setPreviewContent(null);
-      if (doc.source === "compliance") {
-        var findings = await fetchComplianceFindings(doc.id);
-        setPreviewContent({ type: "findings", data: findings });
-      } else {
-        var result = await fetchDocumentText(doc.id);
-        setPreviewContent({ type: "text", data: result ? result.extracted_text : "No extracted text available for this document." });
-      }
-      setPreviewLoading(false);
-    }
-    function loadDocs() {
-      setLoading(true);
-      setFetchError(false);
-      var cancelled = false;
-      async function load() {
-        if (!window.__klToken || !window.__klUserId) {
-          setLoading(false);
-          return;
-        }
-        var headers = { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY };
-        var vaultOk = false;
-        var uploadsOk = false;
-        var allDocs = [];
-        try {
-          var vaultResp = await fetch(
-            SUPABASE_URL + "/rest/v1/kl_vault_documents?user_id=eq." + window.__klUserId + "&deleted_at=is.null&order=created_at.desc&select=id,filename,storage_path,file_size_bytes,mime_type,extraction_status,analysis_status,created_at,visibility",
-            { headers }
-          );
-          if (vaultResp.ok) {
-            var vaultData = await vaultResp.json();
-            vaultOk = true;
-            if (!cancelled && Array.isArray(vaultData)) {
-              vaultData.forEach(function(d) {
-                allDocs.push({
-                  id: d.id,
-                  name: d.filename,
-                  source: "vault",
-                  size: d.file_size_bytes,
-                  status: d.extraction_status,
-                  score: null,
-                  storagePath: d.storage_path,
-                  date: d.created_at
-                });
-              });
-            }
-          }
-        } catch (e) {
-          console.warn("Vault docs fetch failed:", e);
-        }
-        try {
-          var uploadsResp = await fetch(
-            SUPABASE_URL + "/rest/v1/compliance_uploads?user_id=eq." + window.__klUserId + "&order=created_at.desc&select=id,file_name,file_path,file_size_bytes,document_type,status,overall_score,created_at,display_name",
-            { headers }
-          );
-          if (uploadsResp.ok) {
-            var uploadsData = await uploadsResp.json();
-            uploadsOk = true;
-            if (!cancelled && Array.isArray(uploadsData)) {
-              uploadsData.forEach(function(d) {
-                allDocs.push({
-                  id: d.id,
-                  name: d.display_name || d.file_name,
-                  source: "compliance",
-                  size: d.file_size_bytes,
-                  status: d.status,
-                  score: d.overall_score,
-                  storagePath: d.file_path,
-                  date: d.created_at
-                });
-              });
-            }
-          }
-        } catch (e) {
-          console.warn("Uploads fetch failed:", e);
-        }
-        if (!cancelled) {
-          if (!vaultOk && !uploadsOk) {
-            setFetchError(true);
-          }
-          allDocs.sort(function(a, b) {
-            return new Date(b.date) - new Date(a.date);
-          });
-          setDocs(allDocs);
-          setLoading(false);
-        }
-      }
-      load();
-      return function() {
-        cancelled = true;
-      };
-    }
-    useEffect(function() {
-      var cleanup = loadDocs();
-      return cleanup;
-    }, []);
-    var uploadButton = React.createElement(
-      "div",
-      { style: { marginBottom: "12px" } },
-      React.createElement("input", {
-        type: "file",
-        id: "vault-upload-input",
-        accept: ".pdf,.docx,.doc,.txt",
-        style: { display: "none" },
-        onChange: function(e) {
-          if (typeof window.__klHandleFileSelect === "function") {
-            window.__klHandleFileSelect(e);
-          }
-        }
-      }),
-      React.createElement(
-        "button",
-        {
-          type: "button",
-          onClick: function() {
-            var input = document.getElementById("vault-upload-input");
-            if (input) input.click();
-          },
-          style: {
-            width: "100%",
-            padding: "10px",
-            borderRadius: "8px",
-            background: "rgba(14,165,233,0.08)",
-            border: "1px solid rgba(14,165,233,0.2)",
-            color: "#0EA5E9",
-            fontSize: "13px",
-            fontWeight: 500,
-            cursor: "pointer",
-            fontFamily: "'DM Sans', sans-serif",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px"
-          }
-        },
-        React.createElement(
-          "svg",
-          { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" },
-          React.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }),
-          React.createElement("polyline", { points: "17 8 12 3 7 8" }),
-          React.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })
-        ),
-        "Upload document"
-      )
-    );
-    if (loading) {
-      return React.createElement("div", { style: { color: "#94A3B8", fontSize: "13px", padding: "12px" } }, "Loading documents\u2026");
-    }
-    if (fetchError && docs.length === 0) {
-      return React.createElement(
-        "div",
-        { style: { padding: "12px" } },
-        uploadButton,
-        React.createElement(EileenErrorMessage, {
-          message: "I wasn't able to load your documents right now. This is usually temporary.",
-          retryAction: function() {
-            loadDocs();
-          },
-          retryLabel: "Retry"
-        })
-      );
-    }
-    if (docs.length === 0) {
-      return React.createElement(
-        "div",
-        { style: { padding: "12px" } },
-        uploadButton,
-        React.createElement("p", { style: { color: "#94A3B8", fontSize: "14px", marginBottom: "6px" } }, "No documents yet."),
-        React.createElement(
-          "p",
-          { style: { color: "#64748B", fontSize: "13px", lineHeight: 1.5 } },
-          "Upload a contract here or through Eileen to run a compliance check."
-        )
-      );
-    }
-    var deleteModal = deleteTarget ? React.createElement(
-      "div",
-      {
-        role: "dialog",
-        "aria-modal": "true",
-        "aria-labelledby": "kl-del-title",
-        onClick: function(e) {
-          if (e.target === e.currentTarget) cancelDelete();
-        },
-        onKeyDown: function(e) {
-          if (e.key === "Escape") cancelDelete();
-        },
-        style: {
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1e3
-        }
-      },
-      React.createElement(
-        "div",
-        {
-          style: {
-            background: "#111827",
-            border: "1px solid #1E293B",
-            borderRadius: "12px",
-            padding: "24px",
-            maxWidth: "400px",
-            width: "90%",
-            fontFamily: "'DM Sans', sans-serif"
-          }
-        },
-        React.createElement("div", {
-          id: "kl-del-title",
-          style: { fontSize: "16px", fontWeight: 600, color: "#F1F5F9", marginBottom: "12px" }
-        }, "Delete document?"),
-        React.createElement(
-          "div",
-          {
-            style: { fontSize: "13px", color: "#94A3B8", marginBottom: "20px", lineHeight: 1.6 }
-          },
-          "Are you sure you want to delete ",
-          React.createElement(
-            "strong",
-            { style: { color: "#E2E8F0" } },
-            deleteTarget.name || "this document"
-          ),
-          "? This action cannot be undone."
-        ),
-        deleteError ? React.createElement("div", {
-          style: {
-            fontSize: "12px",
-            color: "#EF4444",
-            marginBottom: "12px",
-            padding: "8px 10px",
-            background: "rgba(239,68,68,0.08)",
-            border: "1px solid rgba(239,68,68,0.25)",
-            borderRadius: "6px"
-          }
-        }, deleteError) : null,
-        React.createElement(
-          "div",
-          {
-            style: { display: "flex", gap: "12px", justifyContent: "flex-end" }
-          },
-          React.createElement("button", {
-            type: "button",
-            onClick: cancelDelete,
-            disabled: deletePending,
-            style: {
-              background: "transparent",
-              border: "1px solid #374151",
-              borderRadius: "8px",
-              padding: "8px 16px",
-              color: "#94A3B8",
-              fontSize: "13px",
-              cursor: deletePending ? "not-allowed" : "pointer",
-              fontFamily: "'DM Sans', sans-serif",
-              opacity: deletePending ? 0.6 : 1
-            }
-          }, "Cancel"),
-          React.createElement("button", {
-            type: "button",
-            onClick: confirmDelete,
-            disabled: deletePending,
-            style: {
-              background: "rgba(239,68,68,0.15)",
-              border: "1px solid rgba(239,68,68,0.3)",
-              borderRadius: "8px",
-              padding: "8px 16px",
-              color: "#EF4444",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: deletePending ? "not-allowed" : "pointer",
-              fontFamily: "'DM Sans', sans-serif",
-              opacity: deletePending ? 0.6 : 1
-            }
-          }, deletePending ? "Deleting\u2026" : "Delete")
-        )
-      )
-    ) : null;
     return React.createElement(
       "div",
-      null,
-      uploadButton,
-      deleteModal,
-      docs.map(function(doc) {
-        var hasScore = doc.score != null;
-        var scoreColor = !hasScore ? null : doc.score >= 75 ? "#10B981" : doc.score >= 50 ? "#F59E0B" : "#EF4444";
-        var scoreBg = !hasScore ? null : doc.score >= 75 ? "rgba(16,185,129,0.15)" : doc.score >= 50 ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)";
-        var sourceBadge = React.createElement("span", {
-          style: {
-            fontSize: "10px",
-            fontWeight: 500,
-            padding: "2px 6px",
-            borderRadius: "4px",
-            fontFamily: "'DM Mono', monospace",
-            background: doc.source === "vault" ? "rgba(14,165,233,0.15)" : "rgba(16,185,129,0.15)",
-            color: doc.source === "vault" ? "#0EA5E9" : "#10B981",
-            flexShrink: 0
-          }
-        }, doc.source === "vault" ? "Vault" : "Check");
-        var scoreBadge = hasScore ? React.createElement(
-          "span",
-          {
-            style: {
-              fontSize: "11px",
-              fontWeight: 600,
-              padding: "2px 8px",
-              borderRadius: "4px",
-              background: scoreBg,
-              color: scoreColor,
-              flexShrink: 0,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px"
-            }
-          },
-          React.createElement("span", {
-            style: { width: "8px", height: "8px", borderRadius: "50%", background: scoreColor, display: "inline-block" }
-          }),
-          Math.round(doc.score) + "%"
-        ) : null;
-        var statusBadge = null;
-        if (!hasScore && doc.status) {
-          var statusColors = {
-            pending: { text: "#94A3B8", bg: "rgba(148,163,184,0.1)" },
-            extracting: { text: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
-            processing: { text: "#0EA5E9", bg: "rgba(14,165,233,0.1)" },
-            completed: { text: "#10B981", bg: "rgba(16,185,129,0.1)" },
-            ready: { text: "#10B981", bg: "rgba(16,185,129,0.1)" }
-          };
-          var sc = statusColors[doc.status] || statusColors.pending;
-          statusBadge = React.createElement("span", {
-            style: { fontSize: "10px", fontWeight: 500, padding: "2px 6px", borderRadius: "4px", background: sc.bg, color: sc.text, flexShrink: 0, fontFamily: "'DM Mono', monospace" }
-          }, doc.status);
-        }
-        return React.createElement(
-          "div",
-          {
-            key: doc.source + "-" + doc.id,
-            style: { padding: "12px", marginBottom: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }
-          },
-          // Row 1: Name + score or status
-          React.createElement(
-            "div",
-            { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" } },
-            React.createElement("span", {
-              style: { color: "#E2E8F0", fontSize: "13px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }
-            }, (doc.name || "").substring(0, 35)),
-            hasScore ? scoreBadge : statusBadge
-          ),
-          // Row 2: Source badge, date, file size
-          React.createElement(
-            "div",
-            { style: { display: "flex", gap: "8px", alignItems: "center", marginTop: "6px", flexWrap: "wrap" } },
-            sourceBadge,
-            React.createElement("span", { style: { color: "#64748B", fontSize: "11px" } }, relativeTime(doc.date)),
-            doc.size ? React.createElement("span", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace" } }, formatFileSize(doc.size)) : null
-          ),
-          // Row 3: Action buttons (Hotfix H-2/H-3/H-4)
-          React.createElement(
-            "div",
-            { style: { display: "flex", gap: "4px", marginTop: "8px" } },
-            React.createElement("button", {
-              type: "button",
-              className: "kl-action-btn",
-              onClick: function() {
-                handlePreview(doc);
-              },
-              style: { fontSize: "11px", padding: "3px 8px" }
-            }, previewDocId === doc.source + "-" + doc.id ? "Close" : "Preview"),
-            doc.source === "compliance" ? React.createElement("button", {
-              type: "button",
-              className: "kl-action-btn",
-              title: "Download compliance report",
-              style: { fontSize: "11px", padding: "3px 8px" },
-              onClick: function() {
-                downloadComplianceReport(doc.id);
-              }
-            }, "Download") : React.createElement("button", {
-              type: "button",
-              className: "kl-action-btn",
-              title: "Download original document",
-              style: { fontSize: "11px", padding: "3px 8px" },
-              onClick: function() {
-                downloadVaultDocument(doc.storagePath, doc.name);
-              }
-            }, "Download"),
-            // AMD-050 §5: soft-delete action. Only offered for vault-sourced
-            // documents; compliance_uploads have no deleted_at column.
-            doc.source === "vault" ? React.createElement("button", {
-              type: "button",
-              className: "kl-action-btn",
-              title: "Delete document",
-              "aria-label": "Delete " + (doc.name || "document"),
-              style: {
-                fontSize: "11px",
-                padding: "3px 8px",
-                marginLeft: "auto",
-                color: "#94A3B8"
-              },
-              onClick: function(e) {
-                e.stopPropagation();
-                openDeleteConfirm(doc);
-              }
-            }, "Delete") : null
-          ),
-          // Inline preview panel (H-3)
-          previewDocId === doc.source + "-" + doc.id ? React.createElement(
-            "div",
-            {
-              style: {
-                background: "#0F172A",
-                border: "1px solid #1E293B",
-                borderTop: "none",
-                borderRadius: "0 0 8px 8px",
-                padding: "16px",
-                maxHeight: "300px",
-                overflowY: "auto",
-                marginTop: "8px"
-              }
-            },
-            previewLoading ? React.createElement("span", { style: { color: "#94A3B8", fontSize: "13px", fontFamily: "'DM Sans', sans-serif" } }, "Loading preview\u2026") : previewContent && previewContent.type === "findings" && Array.isArray(previewContent.data) ? previewContent.data.map(function(f, i) {
-              var sevColor = f.severity === "high" || f.severity === "critical" ? "#EF4444" : f.severity === "medium" || f.severity === "major" ? "#F59E0B" : "#10B981";
-              return React.createElement(
-                "div",
-                {
-                  key: i,
-                  style: { marginBottom: "12px", paddingBottom: "12px", borderBottom: i < previewContent.data.length - 1 ? "1px solid #1E293B" : "none" }
-                },
-                React.createElement(
-                  "div",
-                  { style: { display: "flex", gap: "8px", marginBottom: "4px" } },
-                  React.createElement("span", {
-                    style: { fontSize: "11px", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: "uppercase", color: sevColor }
-                  }, f.severity),
-                  React.createElement("span", { style: { fontSize: "11px", fontFamily: "'DM Mono', monospace", color: "#64748B" } }, f.clause_category)
-                ),
-                React.createElement("p", { style: { color: "#CBD5E1", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, margin: "0 0 4px" } }, f.finding_detail),
-                f.statutory_ref ? React.createElement("span", { style: { fontSize: "11px", fontFamily: "'DM Mono', monospace", color: "#0EA5E9" } }, f.statutory_ref) : null
-              );
-            }) : previewContent && previewContent.type === "text" ? React.createElement("pre", {
-              style: { color: "#CBD5E1", fontFamily: "'DM Mono', monospace", fontSize: "12px", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }
-            }, previewContent.data) : React.createElement("span", { style: { color: "#94A3B8", fontSize: "13px" } }, "No preview available.")
-          ) : null
-        );
-      })
+      { style: { padding: "12px", fontFamily: "'DM Sans', sans-serif" } },
+      React.createElement(
+        "div",
+        { style: { fontSize: "14px", fontWeight: 600, color: "#F1F5F9", marginBottom: "8px" } },
+        "The Document Vault has moved"
+      ),
+      React.createElement(
+        "p",
+        { style: { color: "#94A3B8", fontSize: "13px", lineHeight: 1.6, marginBottom: "14px" } },
+        "Your documents, monitoring, exposure reports and solicitor packs now live in the Documents Vault room."
+      ),
+      React.createElement("a", {
+        href: "/operational/documents/",
+        style: { display: "inline-block", background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.3)", color: "#0EA5E9", borderRadius: "8px", padding: "10px 16px", fontSize: "13px", fontWeight: 500, textDecoration: "none" }
+      }, "Open the Documents Vault \u2192")
     );
   }
   function LiveIndicator({ generatedAt }) {
@@ -9092,51 +8448,12 @@
       return Promise.resolve(false);
     }
   }
-  function hubVaultFileSize(bytes) {
-    if (!hubAceiIsNum(bytes)) return "\u2014";
-    var n = Number(bytes);
-    if (n < 1024) return Math.round(n) + " B";
-    var units = ["KB", "MB", "GB", "TB"], u = -1;
-    do {
-      n /= 1024;
-      u++;
-    } while (n >= 1024 && u < units.length - 1);
-    return (n >= 10 ? Math.round(n) : n.toFixed(1)) + " " + units[u];
-  }
-  function hubVaultMimeLabel(mime) {
-    if (!mime) return "FILE";
-    var m = String(mime).toLowerCase();
-    if (m.indexOf("pdf") >= 0) return "PDF";
-    if (m.indexOf("wordprocessing") >= 0 || m.indexOf("msword") >= 0) return "DOCX";
-    if (m.indexOf("spreadsheet") >= 0 || m.indexOf("excel") >= 0) return "XLSX";
-    if (m.indexOf("text/plain") >= 0) return "TXT";
-    if (m.indexOf("image/") >= 0) return (m.split("/")[1] || "image").toUpperCase();
-    var slash = m.indexOf("/");
-    return (slash >= 0 ? m.slice(slash + 1) : m).toUpperCase();
-  }
-  function hubVaultVisibilityLabel(vis) {
-    var v = String(vis == null ? "" : vis).toLowerCase();
-    return v === "org_shared" || v === "org_required" ? "org" : "private";
-  }
   function hubVaultStatusClass(status) {
     var s = String(status == null ? "" : status).toLowerCase();
     if (/(complete|done|extracted|analy[sz]ed|ready|success|\bok\b)/.test(s)) return "ok";
     if (/(fail|error|reject)/.test(s)) return "bad";
     if (/(pend|queue|process|progress|run|extract|analy[sz]ing|wait)/.test(s)) return "busy";
     return "idle";
-  }
-  function hubVaultGapCount(g) {
-    if (g == null || g === "") return null;
-    if (Array.isArray(g)) return g.length;
-    if (typeof g === "object") {
-      try {
-        return Object.keys(g).length;
-      } catch (e) {
-        return null;
-      }
-    }
-    if (hubAceiIsNum(g)) return Math.round(Number(g));
-    return null;
   }
   function hubVaultDate(iso) {
     if (!iso) return "\u2014";
@@ -9159,10 +8476,6 @@
   var HUB_VAULT_VIS_BASE = { display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", fontFamily: "'DM Mono', monospace", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "2px 8px", borderRadius: "999px", border: "1px solid #1E3A5F", color: "#94A3B8", background: "rgba(148,163,184,0.06)" };
   var HUB_VAULT_VIS_ORG = { color: "#0EA5E9", borderColor: "rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.12)" };
   var HUB_VAULT_CARD_STYLE = { background: "#0F1D32", border: "1px solid #1E3A5F", borderLeft: "2px solid rgba(14,165,233,0.3)", borderRadius: "12px", padding: "16px 18px" };
-  var HUB_VAULT_SAMPLE_STYLE = { flexShrink: 0, fontFamily: "'DM Mono', monospace", fontSize: "9px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94A3B8", background: "rgba(148,163,184,0.07)", border: "1px solid #1E3A5F", padding: "3px 9px", borderRadius: "999px", whiteSpace: "nowrap" };
-  var HUB_VAULT_STAT_TILE = { background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "8px", padding: "12px 14px" };
-  var HUB_VAULT_STAT_LABEL = { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", marginBottom: "6px" };
-  var HUB_VAULT_STAT_VAL = { color: "#F1F5F9", fontFamily: "'DM Mono', monospace", fontSize: "18px", fontWeight: 600 };
   function hubVaultStatusPill(status, key) {
     if (status == null || status === "") {
       return React.createElement("span", { key, style: Object.assign({}, HUB_VAULT_PILL_BASE, HUB_VAULT_PILL_STYLES.idle) }, "\u2014");
@@ -9170,158 +8483,318 @@
     var pillStyle = Object.assign({}, HUB_VAULT_PILL_BASE, HUB_VAULT_PILL_STYLES[hubVaultStatusClass(status)]);
     return React.createElement("span", { key, style: pillStyle }, hubAceiHumanise(status));
   }
-  function hubVaultDocsPanel(r) {
-    var children = [React.createElement("div", { key: "h", style: HUB_ACEI_SECTION_H }, "Documents")];
-    if (r.error) {
-      children.push(React.createElement("div", { key: "err", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } }, "\u2014"));
-      return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
-    }
-    var rows = r.rows || [];
-    if (!rows.length) {
-      if (r.stepUp) {
-        children.push(React.createElement("div", { key: "stepup", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "Verify your identity with your second factor to view stored documents."));
-        return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
-      }
-      children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No documents in your vault yet."));
-      children.push(React.createElement("div", { key: "note", style: { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.5, marginTop: "8px" } }, "Document upload is coming to this room shortly."));
-      return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
-    }
-    var headers = ["Document", "Type", "Size", "Extraction", "Analysis", "Visibility", "Added"];
-    var thBase = { padding: "9px 12px", borderBottom: "2px solid #1E3A5F", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 600, whiteSpace: "nowrap", textAlign: "left" };
-    var tdBase = { padding: "9px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", verticalAlign: "top" };
-    var tdFname = Object.assign({}, tdBase, { color: "#F1F5F9", fontWeight: 600, wordBreak: "break-word" });
-    var tdCell = Object.assign({}, tdBase, { color: "#F1F5F9" });
-    var tdNum = Object.assign({}, tdBase, { color: "#CBD5E1", fontFamily: "'DM Mono', monospace", whiteSpace: "nowrap" });
-    var tdMuted = Object.assign({}, tdBase, { color: "#94A3B8", whiteSpace: "nowrap" });
-    var headRow = React.createElement("tr", null, headers.map(function(h) {
-      return React.createElement("th", { key: h, style: thBase }, h);
-    }));
-    var bodyRows = rows.map(function(doc, idx) {
-      var vlabel = hubVaultVisibilityLabel(doc.visibility);
-      var visStyle = vlabel === "org" ? Object.assign({}, HUB_VAULT_VIS_BASE, HUB_VAULT_VIS_ORG) : HUB_VAULT_VIS_BASE;
-      return React.createElement(
-        "tr",
-        { key: doc.id != null ? doc.id : idx },
-        React.createElement("td", { style: tdFname }, doc.filename || "\u2014"),
-        React.createElement("td", { style: tdCell }, React.createElement("span", { style: HUB_VAULT_CHIP_STYLE }, hubVaultMimeLabel(doc.mime_type))),
-        React.createElement("td", { style: tdNum }, hubVaultFileSize(doc.file_size_bytes)),
-        React.createElement("td", { style: tdCell }, hubVaultStatusPill(doc.extraction_status, "ex")),
-        React.createElement("td", { style: tdCell }, hubVaultStatusPill(doc.analysis_status, "an")),
-        React.createElement("td", { style: tdCell }, React.createElement("span", { style: visStyle }, vlabel)),
-        React.createElement("td", { style: tdMuted }, hubVaultDate(doc.created_at))
-      );
-    });
-    children.push(React.createElement(
+  function HubVaultMovedCard() {
+    return React.createElement(
       "div",
-      { key: "tbl", style: { overflowX: "auto", background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "10px" } },
+      { style: { maxWidth: "520px", margin: "48px auto 0", width: "100%" } },
       React.createElement(
-        "table",
-        { style: { width: "100%", borderCollapse: "collapse", minWidth: "640px" } },
-        React.createElement("thead", null, headRow),
-        React.createElement("tbody", null, bodyRows)
-      )
-    ));
-    return React.createElement("div", { key: "docs", style: { marginBottom: "24px" } }, children);
-  }
-  function hubVaultAnalysisCard(a, idx) {
-    var main = [React.createElement("div", { key: "ref", style: { fontSize: "16px", fontWeight: 700, color: "#F1F5F9", wordBreak: "break-word", fontFamily: "'DM Sans', sans-serif" } }, a.employee_ref || "\u2014")];
-    var roleBits = [];
-    if (a.role_title) roleBits.push(a.role_title);
-    if (a.role_tier) roleBits.push(a.role_tier);
-    if (roleBits.length) main.push(React.createElement("div", { key: "role", style: { marginTop: "3px", fontSize: "13px", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif" } }, roleBits.join(" \xB7 ")));
-    var top = [React.createElement("div", { key: "main", style: { minWidth: 0 } }, main)];
-    if (a.is_demonstration === true) top.push(React.createElement("span", { key: "sample", style: HUB_VAULT_SAMPLE_STYLE }, "sample"));
-    var cardChildren = [React.createElement("div", { key: "top", style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" } }, top)];
-    if (hubAceiIsNum(a.compliance_score)) {
-      cardChildren.push(React.createElement(
         "div",
-        { key: "grid", style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginTop: "12px" } },
+        { style: HUB_VAULT_CARD_STYLE },
+        React.createElement("div", { style: { fontSize: "16px", fontWeight: 700, color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", marginBottom: "8px" } }, "The Document Vault has moved"),
         React.createElement(
           "div",
-          { style: HUB_VAULT_STAT_TILE },
-          React.createElement("div", { style: HUB_VAULT_STAT_LABEL }, "Compliance score"),
-          React.createElement("div", { style: HUB_VAULT_STAT_VAL }, hubAceiSmart(a.compliance_score))
-        )
-      ));
-    }
-    var gaps = hubVaultGapCount(a.critical_gaps);
-    if (gaps != null) {
-      cardChildren.push(React.createElement(
-        "div",
-        { key: "gaps", style: { marginTop: "10px", color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } },
-        String(gaps) + (gaps === 1 ? " critical gap" : " critical gaps")
-      ));
-    }
-    if (a.key_finding) {
-      cardChildren.push(React.createElement("div", { key: "kfh", style: { marginTop: "14px", fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#64748B" } }, "Key finding"));
-      cardChildren.push(React.createElement("div", { key: "kf", style: { marginTop: "6px", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6, whiteSpace: "pre-wrap" } }, a.key_finding));
-    }
-    return React.createElement("div", { key: a.id != null ? a.id : idx, style: HUB_VAULT_CARD_STYLE }, cardChildren);
+          { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", lineHeight: 1.6, marginBottom: "16px" } },
+          "Your monitored documents, exposure reports, solicitor packs and notification settings now live in the Documents Vault room."
+        ),
+        React.createElement("a", {
+          href: "/operational/documents/",
+          style: { display: "inline-block", background: "#0EA5E9", color: "#fff", borderRadius: "8px", padding: "10px 18px", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 600, textDecoration: "none" }
+        }, "Open the Documents Vault \u2192")
+      )
+    );
   }
-  function hubVaultAnalysesPanel(r) {
-    var children = [React.createElement("div", { key: "h", style: HUB_ACEI_SECTION_H }, "Contract analyses")];
-    if (r.error) {
-      children.push(React.createElement("div", { key: "err", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" } }, "\u2014"));
-      return React.createElement("div", { key: "analyses", style: { marginBottom: "24px" } }, children);
-    }
-    var rows = r.rows || [];
-    if (!rows.length) {
-      children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No contract analyses yet."));
-      return React.createElement("div", { key: "analyses", style: { marginBottom: "24px" } }, children);
-    }
-    children.push(React.createElement(
-      "div",
-      { key: "list", style: { display: "flex", flexDirection: "column", gap: "14px", margin: "8px 0 4px" } },
-      rows.map(function(a, idx) {
-        return hubVaultAnalysisCard(a, idx);
-      })
-    ));
-    children.push(React.createElement(
-      "div",
-      { key: "cap", style: { color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.55, marginTop: "10px" } },
-      "Analyses are indicative; the legal judgement belongs with a qualified professional."
-    ));
-    return React.createElement("div", { key: "analyses", style: { marginBottom: "24px" } }, children);
-  }
-  function HubVaultFacet({ hubSession }) {
-    var _state = useState({ status: "loading", docs: { rows: [] }, analyses: { rows: [] } });
-    var state = _state[0];
-    var setState = _state[1];
+  function HubStepUpGate({ hubSession, onElevated }) {
+    var _code = useState("");
+    var code = _code[0];
+    var setCode = _code[1];
+    var _busy = useState(false);
+    var busy = _busy[0];
+    var setBusy = _busy[1];
+    var _err = useState("");
+    var err = _err[0];
+    var setErr = _err[1];
+    var _noTotp = useState(false);
+    var noTotp = _noTotp[0];
+    var setNoTotp = _noTotp[1];
+    var inputRef = useRef(null);
     useEffect(function() {
       var alive = true;
-      var sb = hubSession && hubSession.sb;
-      if (!sb || !sb.from) {
-        setState({ status: "ready", docs: { error: true }, analyses: { error: true } });
-        return;
+      try {
+        hubSession.sb.auth.mfa.listFactors().then(function(r) {
+          var totp = r && r.data && r.data.totp || [];
+          var verified = totp.filter(function(f) {
+            return f.status === "verified";
+          });
+          if (alive && !verified.length) setNoTotp(true);
+        }).catch(function() {
+        });
+      } catch (e) {
       }
-      Promise.all([
-        sb.from("kl_vault_documents").select("id,filename,mime_type,file_size_bytes,extraction_status,analysis_status,visibility,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(50),
-        sb.from("vault_contract_records").select("id,employee_ref,role_title,role_tier,compliance_score,critical_gaps,key_finding,is_demonstration,created_at").eq("is_demonstration", false).order("created_at", { ascending: false }).limit(50),
-        hubVaultAal2StepUp(sb)
-        // §1.2 — AAL1 + MFA-enrolled? (never rejects)
-      ]).then(function(res) {
-        if (!alive) return;
-        var docs = hubVaultUnwrap(res[0], "kl_vault_documents");
-        if (res[2] && docs.rows && docs.rows.length === 0) docs.stepUp = true;
-        setState({ status: "ready", docs, analyses: hubVaultUnwrap(res[1], "vault_contract_records") });
-      }).catch(function(e) {
-        console.warn("[OOX-001] Vault facet: reads failed", e);
-        if (alive) setState({ status: "ready", docs: { error: true }, analyses: { error: true } });
-      });
       return function() {
         alive = false;
       };
     }, [hubSession]);
-    if (state.status === "loading") {
-      return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading your document vault\u2026");
+    useEffect(function() {
+      if (!noTotp && inputRef.current) inputRef.current.focus();
+    }, [noTotp]);
+    function verify() {
+      var clean = (code || "").replace(/\D/g, "");
+      if (busy) return;
+      if (clean.length !== 6) {
+        setErr("Enter the 6-digit code from your authenticator app.");
+        return;
+      }
+      setBusy(true);
+      setErr("");
+      var mfa = hubSession.sb.auth.mfa;
+      mfa.listFactors().then(function(r) {
+        if (r.error) throw r.error;
+        var totp = (r.data && r.data.totp || []).filter(function(f) {
+          return f.status === "verified";
+        });
+        if (!totp.length) {
+          setNoTotp(true);
+          throw { silent: true };
+        }
+        return mfa.challenge({ factorId: totp[0].id }).then(function(c) {
+          if (c.error) throw c.error;
+          return mfa.verify({ factorId: totp[0].id, challengeId: c.data.id, code: clean });
+        });
+      }).then(function(v) {
+        if (v.error) throw v.error;
+        return hubSession.sb.auth.getSession();
+      }).then(function(gs) {
+        var s = gs && gs.data && gs.data.session;
+        var tok = s && s.access_token;
+        if (tok) {
+          hubSession.token = tok;
+          window.__klToken = tok;
+          if (window.__ailaneUser) window.__ailaneUser.token = tok;
+        }
+        onElevated();
+      }).catch(function(e) {
+        setBusy(false);
+        if (e && e.silent) return;
+        setErr(e && e.message || "That code didn\u2019t work. Please try again.");
+      });
+    }
+    function signInAgain() {
+      var done = function() {
+        window.location.replace("/login/");
+      };
+      try {
+        hubSession.sb.auth.signOut().then(done, done);
+      } catch (e) {
+        done();
+      }
+    }
+    var inner = noTotp ? [
+      React.createElement(
+        "p",
+        { key: "b", className: "kl-expired-body", style: { fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.55, color: "#94A3B8", margin: "0 0 24px" } },
+        "Your second step is set up with a method this page can\u2019t verify here. Sign in again to confirm it\u2019s you."
+      ),
+      React.createElement("button", { key: "go", type: "button", onClick: signInAgain, style: { display: "inline-flex", padding: "12px 24px", background: "#0EA5E9", color: "#fff", border: "none", borderRadius: "10px", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 500, cursor: "pointer" } }, "Sign in again")
+    ] : [
+      React.createElement(
+        "p",
+        { key: "b", style: { fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.55, color: "#94A3B8", margin: "0 0 20px" } },
+        "Two-factor authentication is on for your account. Enter the 6-digit code from your authenticator app to open your workspace."
+      ),
+      React.createElement("input", {
+        key: "in",
+        ref: inputRef,
+        type: "text",
+        inputMode: "numeric",
+        autoComplete: "one-time-code",
+        maxLength: 6,
+        placeholder: "123456",
+        value: code,
+        "aria-label": "Authenticator code",
+        onChange: function(e) {
+          setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+        },
+        onKeyDown: function(e) {
+          if (e.key === "Enter") verify();
+        },
+        style: { width: "180px", padding: "12px 16px", background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: "10px", color: "#F1F5F9", fontSize: "1.2rem", letterSpacing: "0.3em", outline: "none", textAlign: "center", fontFamily: "'DM Mono', monospace" }
+      }),
+      React.createElement(
+        "div",
+        { key: "act", style: { marginTop: "18px" } },
+        React.createElement("button", {
+          type: "button",
+          onClick: verify,
+          disabled: busy,
+          style: { display: "inline-flex", padding: "12px 24px", background: "#0EA5E9", color: "#fff", border: "none", borderRadius: "10px", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 500, cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1 }
+        }, busy ? "Verifying\u2026" : "Verify")
+      ),
+      React.createElement(
+        "div",
+        { key: "alt", style: { marginTop: "14px" } },
+        React.createElement("button", {
+          type: "button",
+          onClick: signInAgain,
+          style: { background: "none", border: "none", color: "#64748B", fontSize: "12px", cursor: "pointer", textDecoration: "underline", fontFamily: "'DM Sans', sans-serif" }
+        }, "Sign out and use a different account")
+      )
+    ];
+    return React.createElement(
+      "div",
+      {
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-label": "Two-factor verification",
+        style: { position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }
+      },
+      React.createElement("div", { style: { position: "absolute", inset: 0, background: "rgba(10, 14, 22, 0.82)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" } }),
+      React.createElement(
+        "div",
+        { style: { position: "relative", maxWidth: "420px", width: "100%", background: "#0F1D32", border: "1px solid #1E3A5F", borderTop: "2px solid #0EA5E9", borderRadius: "12px", padding: "32px 28px", boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6)", textAlign: "center" } },
+        React.createElement("h2", { style: { fontFamily: "'DM Sans', sans-serif", fontSize: "20px", fontWeight: 500, color: "#F1F5F9", margin: "0 0 12px", letterSpacing: "-0.01em" } }, "Confirm it\u2019s you"),
+        inner,
+        err ? React.createElement("div", { role: "alert", style: { color: "#F87171", fontSize: "13px", marginTop: "14px", fontFamily: "'DM Sans', sans-serif" } }, err) : null
+      )
+    );
+  }
+  function HubNotifBell({ hubSession }) {
+    var _items = useState(null);
+    var items = _items[0];
+    var setItems = _items[1];
+    var _open = useState(false);
+    var open = _open[0];
+    var setOpen = _open[1];
+    var wrapRef = useRef(null);
+    var load = useCallback(function() {
+      return fetch(hubSession.supabaseUrl + "/rest/v1/vault_client_notifications?user_id=eq." + hubSession.userId + "&channel_in_app=eq.true&select=id,kind,title,body,status_band,created_at,read_at&order=created_at.desc&limit=12", {
+        headers: { "apikey": hubSession.anon, "Authorization": "Bearer " + hubSession.token, "Accept": "application/json" }
+      }).then(function(r) {
+        return r.ok ? r.json() : null;
+      }).then(function(rows2) {
+        if (Array.isArray(rows2)) setItems(rows2);
+      }).catch(function(e) {
+        console.warn("[NOTIF-PREFS-UI-001] bell read failed", e);
+      });
+    }, [hubSession]);
+    useEffect(function() {
+      load();
+      var t = setInterval(load, 3e5);
+      return function() {
+        clearInterval(t);
+      };
+    }, [load]);
+    useEffect(function() {
+      if (!open) return;
+      function onDocClick(e) {
+        if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      }
+      function onKey(e) {
+        if (e.key === "Escape") setOpen(false);
+      }
+      document.addEventListener("mousedown", onDocClick);
+      document.addEventListener("keydown", onKey);
+      return function() {
+        document.removeEventListener("mousedown", onDocClick);
+        document.removeEventListener("keydown", onKey);
+      };
+    }, [open]);
+    function markDisplayedRead() {
+      var unread = (items || []).filter(function(n) {
+        return !n.read_at;
+      });
+      if (!unread.length) return;
+      var ids = unread.map(function(n) {
+        return n.id;
+      });
+      var now = (/* @__PURE__ */ new Date()).toISOString();
+      fetch(hubSession.supabaseUrl + "/rest/v1/vault_client_notifications?id=in.(" + ids.join(",") + ")&read_at=is.null", {
+        method: "PATCH",
+        headers: { "apikey": hubSession.anon, "Authorization": "Bearer " + hubSession.token, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({ read_at: now })
+      }).then(function(r) {
+        if (r.ok) setItems(function(prev) {
+          return (prev || []).map(function(n) {
+            return n.read_at ? n : Object.assign({}, n, { read_at: now });
+          });
+        });
+      }).catch(function(e) {
+        console.warn("[NOTIF-PREFS-UI-001] mark-read failed", e);
+      });
+    }
+    function toggle() {
+      var next = !open;
+      setOpen(next);
+      if (next) markDisplayedRead();
+    }
+    var unreadCount = (items || []).filter(function(n) {
+      return !n.read_at;
+    }).length;
+    var bellChildren = [
+      React.createElement(
+        "svg",
+        { key: "i", width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" },
+        React.createElement("path", { d: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" }),
+        React.createElement("path", { d: "M13.73 21a2 2 0 0 1-3.46 0" })
+      )
+    ];
+    if (unreadCount > 0) {
+      bellChildren.push(React.createElement("span", {
+        key: "n",
+        "aria-hidden": "true",
+        style: { position: "absolute", top: "2px", right: "2px", minWidth: "15px", height: "15px", padding: "0 3px", borderRadius: "999px", background: "#0EA5E9", color: "#fff", fontSize: "9px", fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono', monospace", lineHeight: 1 }
+      }, unreadCount > 9 ? "9+" : String(unreadCount)));
+    }
+    var list = null;
+    if (open) {
+      var rows = (items || []).map(function(n) {
+        return React.createElement(
+          "div",
+          { key: n.id, style: { padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: "8px", alignItems: "flex-start" } },
+          React.createElement("span", { "aria-hidden": "true", style: { flexShrink: 0, marginTop: "5px", width: "7px", height: "7px", borderRadius: "50%", background: n.read_at ? "rgba(148,163,184,0.35)" : "#0EA5E9" } }),
+          React.createElement(
+            "div",
+            { style: { minWidth: 0 } },
+            React.createElement("div", { style: { color: "#F1F5F9", fontSize: "12px", fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: "break-word" } }, n.title || "Vault update"),
+            n.body ? React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: "2px", wordBreak: "break-word" } }, n.body) : null,
+            React.createElement("div", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", marginTop: "4px" } }, hubVaultDate(n.created_at))
+          )
+        );
+      });
+      list = React.createElement(
+        "div",
+        {
+          role: "region",
+          "aria-label": "Vault notifications",
+          style: { position: "absolute", top: "calc(100% + 8px)", right: 0, width: "320px", maxWidth: "86vw", background: "#0F1D32", border: "1px solid #1E3A5F", borderRadius: "10px", boxShadow: "0 16px 40px rgba(0,0,0,0.5)", zIndex: 60, overflow: "hidden" }
+        },
+        React.createElement("div", { style: { padding: "10px 14px", borderBottom: "1px solid #1E3A5F", color: "#94A3B8", fontSize: "10px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "'DM Mono', monospace" } }, "Vault notifications"),
+        React.createElement(
+          "div",
+          { style: { maxHeight: "320px", overflowY: "auto" } },
+          rows.length ? rows : React.createElement(
+            "div",
+            { style: { padding: "18px 14px", color: "#64748B", fontSize: "13px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 } },
+            "No notifications yet. We\u2019ll post here when a change in the law triggers a re-check of your monitored documents."
+          )
+        ),
+        React.createElement("a", {
+          href: "/operational/documents/#notifications",
+          style: { display: "block", padding: "10px 14px", borderTop: "1px solid #1E3A5F", color: "#0EA5E9", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", textDecoration: "none" }
+        }, "Notification settings \u2192")
+      );
     }
     return React.createElement(
       "div",
-      { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } },
-      hubVaultDocsPanel(state.docs),
-      // §1.2
-      hubVaultAnalysesPanel(state.analyses)
-      // §1.3
+      { ref: wrapRef, style: { position: "relative" } },
+      React.createElement("button", {
+        type: "button",
+        onClick: toggle,
+        "aria-haspopup": "true",
+        "aria-expanded": open ? "true" : "false",
+        "aria-label": "Vault notifications" + (unreadCount ? " (" + unreadCount + " unread)" : ""),
+        style: { position: "relative", background: "transparent", border: "none", color: open ? "#F1F5F9" : "#94A3B8", cursor: "pointer", padding: "8px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px" }
+      }, bellChildren),
+      list
     );
   }
   function hubAlertsDaysUntil(iso) {
@@ -11198,7 +10671,7 @@
     ) : facet === "vault" ? React.createElement(
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
-      React.createElement(HubVaultFacet, { hubSession })
+      React.createElement(HubVaultMovedCard, null)
     ) : facet === "alerts" ? React.createElement(
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
@@ -11298,6 +10771,20 @@
       };
     }, []);
     const hubMode = !!hubSession;
+    const [hubStepUpNeeded, setHubStepUpNeeded] = useState(false);
+    useEffect(function() {
+      var alive = true;
+      if (!hubSession || !hubSession.sb) {
+        setHubStepUpNeeded(false);
+        return;
+      }
+      hubVaultAal2StepUp(hubSession.sb).then(function(needed) {
+        if (alive) setHubStepUpNeeded(!!needed);
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubSession]);
     const operationalMode = klOperationalMode();
     const hubChrome = hubMode || operationalMode;
     const orgTier = hubSession && hubSession.orgTier;
@@ -12109,7 +11596,7 @@
       uploadFile(file, msgId);
       if (e.target && "value" in e.target) e.target.value = "";
     }
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, hubMode && hubStepUpNeeded && /* @__PURE__ */ React.createElement(HubStepUpGate, { hubSession, onElevated: () => setHubStepUpNeeded(false) }), /* @__PURE__ */ React.createElement(
       TopBar,
       {
         sidebarOpen,
@@ -12121,7 +11608,8 @@
         lang,
         onToggleLang: toggleLang,
         operationalMode,
-        orgTier
+        orgTier,
+        hubSession
       }
     ), lang === "cy" && /* @__PURE__ */ React.createElement(
       "div",

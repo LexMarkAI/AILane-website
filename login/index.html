@@ -95,7 +95,17 @@
     try{if(window.gtag)gtag('event','login',{method:'email',subscription_tier:tier})}catch(e){}
     window.location.replace(d);
   }
-  (async function(){try{var g=await sb.auth.getSession();if(g.data&&g.data.session){document.getElementById('sub').textContent='Checking session...';await route(g.data.session)}}catch(e){}})();
+  // AAL2-STEPUP-001 (Stage C · C1): a persisted session must pass the same step-up
+  // as a fresh sign-in. Auto-routing an MFA-enrolled aal1 session onward left every
+  // vault read/write silently RLS-filtered downstream (aal2_required_when_enrolled).
+  (async function(){try{var g=await sb.auth.getSession();if(g.data&&g.data.session){document.getElementById('sub').textContent='Checking session...';
+    try{
+      var aal=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+      if(aal.data && aal.data.nextLevel==='aal2' && aal.data.currentLevel!=='aal2'){
+        return showMfaChallenge(g.data.session, null, document.getElementById('err'));
+      }
+    }catch(e){}
+    await route(g.data.session)}}catch(e){}})();
   async function doLogin(){
     var email=document.getElementById('em').value.trim(),pass=document.getElementById('pw').value,err=document.getElementById('err'),btn=document.getElementById('go');
     err.textContent='';
@@ -127,7 +137,11 @@
       for(var i=0;i<all.length;i++){
         if(all[i].factor_type==='webauthn' && all[i].status==='verified'){webauthnFactor=all[i];break;}
       }
-      if(!webauthnFactor && lf.data.webauthn && lf.data.webauthn[0]){webauthnFactor=lf.data.webauthn[0];}
+      // POLISH-001 · F12 (Stage C): VERIFIED passkeys only. The previous fallback to
+      // lf.data.webauthn[0] could select an abandoned, unverified enrolment and show
+      // a "Use your passkey" button that can never verify — a dead end when no TOTP
+      // factor exists. Passkey stays Beta-hidden at enrolment (account/security
+      // PASSKEY_BETA_ENABLED=false); an already-verified passkey still works here.
     }
     var canWebAuthn=!!(webauthnFactor && window.PublicKeyCredential && sb.auth.mfa.webauthn);
     // Hide the password form, keep the error line.
