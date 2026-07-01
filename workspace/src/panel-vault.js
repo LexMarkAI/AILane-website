@@ -507,14 +507,17 @@ class AilaneVaultPanel {
     input.click();
   }
 
-  // AILANE-CC-BRIEF-DOCV-FRONTEND-WIRING-001 · F5a
-  // Soft-delete via PATCH deleted_at=now(). kl_vault_documents has no DELETE policy
-  // (audit-verified); the owner UPDATE policy permits this. Mirrors the proven
-  // operational/documents pattern (DOCV-ROOM-RECTIFY-001 §4B): Prefer: return=minimal so
-  // the PATCH does not trigger a return-representation read of the now-deleted row (which
-  // would fail the deleted_at IS NULL owner-select). &deleted_at=is.null = idempotent.
-  // NOTE: deviates from brief §5.1's `this.supabase.from().update()` syntax — the panel
-  // has no Supabase client; it uses window.__ailaneUser.token + raw REST (recorded §10 #6).
+  // AILANE-CC-BRIEF-DOCV-FRONTEND-WIRING-001 · F5a — soft-delete via PATCH
+  // deleted_at=now() (no DELETE policy on kl_vault_documents; owner UPDATE permits).
+  // VAULT-PHASE-B-001 (Stage C · C2) — honest delete: Prefer: return=representation,
+  // and the row is treated as deleted ONLY when the representation is a NON-EMPTY
+  // array (the set of rows the UPDATE actually touched). An empty array means RLS
+  // filtered the update to zero rows (an aal1 session under aal2_required_when_
+  // enrolled, wrong owner, or already deleted) — surfaced as a failure, never as
+  // success. This supersedes the §4B return=minimal pattern: the Phase-B
+  // owner-select policy lets the owner read their own soft-deleted rows, so the
+  // representation read succeeds. A confirmed delete also writes the GDPR audit
+  // row (operational_matter_deletion_log) — best-effort, never blocking.
   async _deleteDocument(docId) {
     if (!docId) return;
     if (!window.confirm('Delete this document? It will be removed from your vault.')) return;
@@ -534,14 +537,14 @@ class AilaneVaultPanel {
     var resp;
     try {
       resp = await fetch(
-        'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1/kl_vault_documents?id=eq.' + docId + '&deleted_at=is.null',
+        'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1/kl_vault_documents?id=eq.' + docId + '&deleted_at=is.null&select=id,deleted_at',
         {
           method: 'PATCH',
           headers: {
             'Authorization': 'Bearer ' + user.token,
             'apikey': window.__SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
+            'Prefer': 'return=representation'
           },
           body: JSON.stringify({ deleted_at: new Date().toISOString() })
         }
@@ -561,8 +564,53 @@ class AilaneVaultPanel {
       return;
     }
 
+    var confirmedRows = null;
+    try { confirmedRows = await resp.json(); } catch (e) { confirmedRows = null; }
+    if (!confirmedRows || !confirmedRows.length) {
+      console.error('[Vault] delete unconfirmed: the PATCH matched zero rows (RLS-filtered or already deleted)');
+      this._setRowState(docId, 'error');
+      this._showError('Could not confirm the deletion. Refresh and try again — if two-factor is on for your account, you may need to re-verify.');
+      return;
+    }
+
+    this._recordDeletionAudit(docId);
+
     await this._loadDocuments(); // refresh list (existing method, already filters deleted_at=is.null)
     this._render();
+  }
+
+  // VAULT-PHASE-B-001 (Stage C · C2) — GDPR delete-audit. One row per confirmed
+  // delete into operational_matter_deletion_log (org-scoped RLS insert; matter_id
+  // carries the vault document id). Best-effort: failure logs to console only.
+  // GDPR Art 17 decision (recorded): the user-facing delete stays a SOFT delete +
+  // this audit row; full erasure (storage object + row purge) remains a
+  // service-role back-office process — no hard-delete Edge Function this phase.
+  _recordDeletionAudit(docId) {
+    var user = window.__ailaneUser;
+    if (!user) return;
+    var REST = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/rest/v1';
+    var headers = {
+      'Authorization': 'Bearer ' + user.token,
+      'apikey': window.__SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    };
+    fetch(REST + '/rpc/get_my_org_id', { method: 'POST', headers: headers, body: '{}' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (orgId) {
+        if (!orgId) { console.warn('[Vault] delete-audit skipped: no org id'); return; }
+        return fetch(REST + '/operational_matter_deletion_log', {
+          method: 'POST',
+          headers: Object.assign({ 'Prefer': 'return=minimal' }, headers),
+          body: JSON.stringify({ org_id: orgId, matter_id: docId, reason: 'vault_document_user_delete' })
+        }).then(function (r) {
+          if (!(r.status >= 200 && r.status < 300)) {
+            return r.text().then(function (b) {
+              console.warn('[Vault] delete-audit failed: HTTP ' + r.status + ' — ' + (b || '(no body)'));
+            });
+          }
+        });
+      })
+      .catch(function (e) { console.warn('[Vault] delete-audit failed:', e); });
   }
 
   // AILANE-CC-BRIEF-DOCV-FRONTEND-WIRING-001 · F5b

@@ -379,6 +379,21 @@
       <div class="brand">Ailane Documents Vault</div>
     </div>
     <div class="topbar-right">
+      <!-- NOTIF-PREFS-UI-001 (Stage C · C3) — in-app vault notification bell.
+           Populated from vault_client_notifications after boot; hidden until loaded. -->
+      <div id="notif-bell-wrap" style="position:relative;" hidden>
+        <button id="notif-bell" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Vault notifications"
+                style="position:relative;background:transparent;border:none;color:var(--text-sec,#94a3b8);cursor:pointer;padding:8px;border-radius:8px;display:flex;align-items:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span id="notif-badge" hidden style="position:absolute;top:2px;right:2px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--tier-operational,#22d3ee);color:#042027;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-mono,'JetBrains Mono',monospace);line-height:1;"></span>
+        </button>
+        <div id="notif-list" hidden
+             role="region" aria-label="Vault notifications"
+             style="position:absolute;top:calc(100% + 8px);right:0;width:320px;max-width:86vw;background:var(--surface-card,#0c1525);border:1px solid var(--border-mid,rgba(148,163,184,0.2));border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:60;overflow:hidden;"></div>
+      </div>
       <span class="tier-badge" id="tier-badge" hidden></span>
       <span class="monitor-counter" id="monitor-counter">— of 5 monitored</span>
     </div>
@@ -439,7 +454,10 @@
   </main>
 
   <!-- AUTH GUARD — runs before the app renders (mirrors operational/horizon/index.html, RULE 26 / AUTH-001).
-       Reveal-after-verify; MFA optional for entry (AAL2-if-enrolled is enforced server-side by RLS only). -->
+       Reveal-after-verify. MFA remains optional for NON-enrolled users; an MFA-enrolled
+       session at aal1 is stepped up here (AAL2-STEPUP-001, Stage C · C1) BEFORE the app
+       boots — otherwise the RESTRICTIVE aal2_required_when_enrolled policy silently
+       filters every vault read/write and the room renders an empty vault. -->
   <script>
   (function () {
     var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
@@ -489,10 +507,140 @@
             if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
               settled = true;
               document.body.style.visibility = 'visible';
-              initDocuments(token, SUPABASE_ANON, userId, SUPABASE_URL);
+              maybeStepUp(token, userId);
             } else { fail(); }
           })
           .catch(fail);
+      }
+
+      // ─── AAL2-STEPUP-001 (Stage C · C1) — MFA step-up before boot ───
+      function startApp(tok, userId) {
+        var panes = document.querySelector('.panes');
+        if (panes) panes.style.display = '';
+        var card = document.getElementById('stepup-card');
+        if (card) card.remove();
+        initDocuments(tok, SUPABASE_ANON, userId, SUPABASE_URL);
+      }
+
+      function maybeStepUp(token, userId) {
+        var mfa = sb.auth && sb.auth.mfa;
+        if (!mfa || !mfa.getAuthenticatorAssuranceLevel) { startApp(token, userId); return; }
+        mfa.getAuthenticatorAssuranceLevel().then(function (r) {
+          var d = r && r.data;
+          if (!(d && d.currentLevel === 'aal1' && d.nextLevel === 'aal2')) { startApp(token, userId); return; }
+          // Enrolled but aal1 → gate the room until the session is elevated.
+          mfa.listFactors().then(function (lf) {
+            var totp = ((lf && lf.data && lf.data.totp) || []).filter(function (f) { return f.status === 'verified'; });
+            renderStepUp(totp.length ? totp[0].id : null, userId, token);
+          }).catch(function () { renderStepUp(null, userId, token); });
+        }).catch(function () {
+          // AAL unreadable → never trap a tenant out; RLS still enforces server-side.
+          startApp(token, userId);
+        });
+      }
+
+      function renderStepUp(factorId, userId, aal1Token) {
+        var wrap = document.querySelector('.wrap');
+        var panes = document.querySelector('.panes');
+        if (panes) panes.style.display = 'none';
+        var old = document.getElementById('stepup-card');
+        if (old) old.remove();
+
+        var card = document.createElement('section');
+        card.className = 'pane';
+        card.id = 'stepup-card';
+        card.setAttribute('aria-label', 'Two-factor verification');
+        card.style.cssText = 'max-width:420px;margin:0 auto;text-align:center;';
+
+        function add(tag, cls, text) {
+          var n = document.createElement(tag);
+          if (cls) n.className = cls;
+          if (text != null) n.textContent = text;
+          card.appendChild(n);
+          return n;
+        }
+
+        add('h2', 'section-head', 'Confirm it’s you');
+
+        if (!factorId) {
+          // TOTP-less enrolment (e.g. a beta passkey) — /login/ owns the WebAuthn
+          // challenge ceremony; do not duplicate it here.
+          add('p', 'attest-intro', 'Your second step is set up with a method this page can’t verify here. Sign in again to confirm it’s you.');
+          var goBtn = add('button', 'btn-primary', 'Sign in again');
+          goBtn.type = 'button';
+          goBtn.addEventListener('click', function () {
+            var done = function () { window.location.replace('/login/'); };
+            try { sb.auth.signOut().then(done, done); } catch (e) { done(); }
+          });
+          wrap.insertBefore(card, panes);
+          goBtn.focus();
+          return;
+        }
+
+        add('p', 'attest-intro', 'Two-factor authentication is on for your account. Enter the 6-digit code from your authenticator app to open your vault.');
+
+        var field = add('div', 'field');
+        var input = document.createElement('input');
+        input.type = 'text'; input.id = 'stepup-code';
+        input.setAttribute('inputmode', 'numeric');
+        input.setAttribute('autocomplete', 'one-time-code');
+        input.maxLength = 6; input.placeholder = '123456';
+        input.setAttribute('aria-label', 'Authenticator code');
+        input.style.cssText = 'text-align:center;letter-spacing:0.3em;font-size:1.2rem;max-width:220px;margin:0 auto;';
+        field.appendChild(input);
+
+        var btn = add('button', 'btn-primary', 'Verify');
+        btn.type = 'button';
+        var msgEl = add('div', 'form-msg err', '');
+        msgEl.setAttribute('role', 'alert');
+        msgEl.hidden = true;
+
+        var alt = add('div', null, '');
+        alt.style.marginTop = '14px';
+        var altBtn = document.createElement('button');
+        altBtn.type = 'button';
+        altBtn.textContent = 'Sign out and use a different account';
+        altBtn.style.cssText = 'background:none;border:none;color:var(--text-mute,#64748b);font-size:0.78rem;cursor:pointer;text-decoration:underline;font-family:inherit;';
+        altBtn.addEventListener('click', function () {
+          var done = function () { window.location.replace('/login/'); };
+          try { sb.auth.signOut().then(done, done); } catch (e) { done(); }
+        });
+        alt.appendChild(altBtn);
+
+        var busy = false;
+        function doVerify() {
+          if (busy) return;
+          var code = (input.value || '').replace(/\D/g, '');
+          if (code.length !== 6) {
+            msgEl.textContent = 'Enter the 6-digit code from your authenticator app.';
+            msgEl.hidden = false;
+            return;
+          }
+          busy = true; btn.disabled = true; btn.textContent = 'Verifying…'; msgEl.hidden = true;
+          sb.auth.mfa.challenge({ factorId: factorId }).then(function (c) {
+            if (c.error) throw c.error;
+            return sb.auth.mfa.verify({ factorId: factorId, challengeId: c.data.id, code: code });
+          }).then(function (v) {
+            if (v.error) throw v.error;
+            // The elevated session mints a NEW aal2 access token — boot with it,
+            // not the aal1 token captured at guard time.
+            return sb.auth.getSession();
+          }).then(function (gs) {
+            // Fallback to the aal1 token only if the refreshed session is
+            // unreadable — verification succeeded, so never dead-end the boot.
+            var s = gs && gs.data && gs.data.session;
+            startApp((s && s.access_token) || aal1Token, userId);
+          }).catch(function (e) {
+            busy = false; btn.disabled = false; btn.textContent = 'Verify';
+            msgEl.textContent = (e && e.message) || 'That code didn’t work. Please try again.';
+            msgEl.hidden = false;
+          });
+        }
+        btn.addEventListener('click', doVerify);
+        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') doVerify(); });
+
+        wrap.insertBefore(card, panes);
+        input.focus();
       }
     }
   })();
@@ -1029,26 +1177,70 @@
         });
     }
 
+    // ─── VAULT-PHASE-B-001 (Stage C · C2) — GDPR delete-audit ───
+    // A CONFIRMED vault delete writes one row to operational_matter_deletion_log
+    // (org-scoped RLS insert; matter_id carries the vault document id). Best-effort:
+    // an audit failure logs to console and never blocks or reverses the delete.
+    //
+    // GDPR Art 17 erasure path — decision recorded for this phase: the user-facing
+    // delete stays a SOFT delete (deleted_at) with this audit row. Full erasure
+    // (storage object + row purge) remains a service-role back-office process run
+    // on a verified Art 17 request; no hard-delete Edge Function is introduced, so
+    // no client-reachable destructive path exists.
+    var _orgIdPromise = null;
+    function myOrgId() {
+      if (!_orgIdPromise) {
+        _orgIdPromise = fetch(RESTU + '/rpc/get_my_org_id', { method: 'POST', headers: H, body: '{}' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; });
+      }
+      return _orgIdPromise;
+    }
+    function recordDeletionAudit(documentId) {
+      myOrgId().then(function (orgId) {
+        if (!orgId) { console.warn('vault delete-audit skipped: no org id'); return; }
+        return fetch(RESTU + '/operational_matter_deletion_log', {
+          method: 'POST',
+          headers: Object.assign({ 'Prefer': 'return=minimal' }, H),
+          body: JSON.stringify({ org_id: orgId, matter_id: documentId, reason: 'vault_document_user_delete' })
+        }).then(function (r) {
+          if (!(r.status >= 200 && r.status < 300)) {
+            return r.text().then(function (b) { console.warn('vault delete-audit failed: HTTP ' + r.status + ' — ' + (b || '(no body)')); });
+          }
+        });
+      }).catch(function (e) { console.warn('vault delete-audit failed:', e); });
+    }
+
     // Remove frees the slot (soft-delete; the cap + lists filter deleted_at=is.null).
     function confirmRemove(doc, card) {
       if (!window.confirm('Remove this document and stop monitoring it?')) return;
       setSlotStatus(card, 'Removing…');
-      // DOCV-ROOM-RECTIFY-001 §4B — Prefer: return=minimal so the soft-delete PATCH
-      // does not trigger a return-representation read of the now-deleted_at row (which
-      // would fail the deleted_at IS NULL owner-select). On any non-2xx, log the real
-      // HTTP status + body so a recurrence is diagnosable.
-      fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
+      // VAULT-PHASE-B-001 (Stage C · C2) — honest delete. Prefer: return=representation:
+      // the body is the set of rows the UPDATE actually touched. Only a NON-EMPTY
+      // representation confirms the soft-delete. An empty array means RLS filtered
+      // the update to zero rows (an aal1 session under aal2_required_when_enrolled,
+      // wrong owner, or already removed) — the slot is NOT cleared and the failure is
+      // surfaced. This supersedes DOCV-ROOM-RECTIFY-001 §4B's return=minimal: the
+      // Phase-B owner-select policy now lets the owner read their own soft-deleted
+      // rows, so the representation read of the updated row succeeds.
+      fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id + '&deleted_at=is.null&select=id,deleted_at', {
         method: 'PATCH',
-        headers: Object.assign({ 'Prefer': 'return=minimal' }, H),
+        headers: Object.assign({ 'Prefer': 'return=representation' }, H),
         body: JSON.stringify({ deleted_at: new Date().toISOString() })
       }).then(function (r) {
-        if (r.status >= 200 && r.status < 300) return null;
+        if (r.status >= 200 && r.status < 300) return r.json().catch(function () { return null; });
         return r.text().then(function (body) {
           var e = new Error('remove ' + r.status);
           e.httpStatus = r.status; e.httpBody = body;
           throw e;
         });
-      }).then(function () {
+      }).then(function (rows) {
+        if (!rows || !rows.length) {
+          var e = new Error('remove unconfirmed');
+          e.unconfirmed = true;
+          throw e;
+        }
+        recordDeletionAudit(doc.id);
         clearType(doc.id);
         clearCheckAttempted(doc.id);
         if (selectedId === doc.id) {
@@ -1060,6 +1252,13 @@
         }
         loadSlots();
       }).catch(function (e) {
+        if (e && e.unconfirmed) {
+          // The slot stays rendered — removing the row now would be dishonest.
+          console.error('vault remove unconfirmed: the PATCH matched zero rows (RLS-filtered or already removed)');
+          setSlotStatus(card, '');
+          showRowErrorCard(card, 'Could not confirm the removal. Refresh the page and try again — if two-factor is on for your account, you may need to re-verify.');
+          return;
+        }
         if (e && e.httpStatus) {
           console.error('vault remove failed: HTTP ' + e.httpStatus + ' — ' + (e.httpBody || '(no body)'));
         } else {
@@ -1733,10 +1932,122 @@
         .catch(function () { /* read-back is optional */ });
     }
 
+    // ===========================================================
+    //  NOTIF-PREFS-UI-001 (Stage C · C3) — in-app notification bell
+    // ===========================================================
+    // Reads vault_client_notifications (owner-scoped RLS; in-app channel only).
+    // Opening the list marks the displayed unread items read (PATCH read_at via
+    // vcn_owner_update). Best-effort: any failure leaves the bell hidden. The
+    // notification-prefs section (#notifications, right pane) remains the write
+    // surface for vault_notification_prefs.
+    function initNotifBell() {
+      var wrapEl = document.getElementById('notif-bell-wrap');
+      var btn = document.getElementById('notif-bell');
+      var badge = document.getElementById('notif-badge');
+      var panel = document.getElementById('notif-list');
+      if (!wrapEl || !btn || !badge || !panel) return;
+      var notifs = [];
+      var open = false;
+
+      function unread() { return notifs.filter(function (n) { return !n.read_at; }); }
+      function paintBadge() {
+        var n = unread().length;
+        badge.hidden = n === 0;
+        badge.textContent = n > 9 ? '9+' : String(n);
+        btn.setAttribute('aria-label', 'Vault notifications' + (n ? ' (' + n + ' unread)' : ''));
+      }
+      function load() {
+        return getJson('/vault_client_notifications?user_id=eq.' + uid + '&channel_in_app=eq.true' +
+                '&select=id,kind,title,body,status_band,created_at,read_at&order=created_at.desc&limit=12')
+          .then(function (rows) {
+            notifs = rows || [];
+            wrapEl.hidden = false;
+            paintBadge();
+            if (open) renderList();
+          })
+          .catch(function () { /* bell is best-effort; leave hidden */ });
+      }
+      function markDisplayedRead() {
+        var ids = unread().map(function (n) { return n.id; });
+        if (!ids.length) return;
+        var now = new Date().toISOString();
+        fetch(RESTU + '/vault_client_notifications?id=in.(' + ids.join(',') + ')&read_at=is.null', {
+          method: 'PATCH',
+          headers: Object.assign({ 'Prefer': 'return=minimal' }, H),
+          body: JSON.stringify({ read_at: now })
+        }).then(function (r) {
+          if (r.status >= 200 && r.status < 300) {
+            notifs.forEach(function (n) { if (!n.read_at) n.read_at = now; });
+            paintBadge();
+            if (open) renderList();
+          }
+        }).catch(function (e) { console.warn('notification mark-read failed:', e); });
+      }
+      function renderList() {
+        clear(panel);
+        var head = el('div', null, 'Vault notifications');
+        head.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border-mid,rgba(148,163,184,0.2));color:var(--text-mute,#64748b);font-size:0.66rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;font-family:var(--font-mono,monospace);';
+        panel.appendChild(head);
+        var scroll = el('div');
+        scroll.style.cssText = 'max-height:320px;overflow-y:auto;';
+        if (!notifs.length) {
+          var empty = el('div', null, 'No notifications yet. We’ll post here when a change in the law triggers a re-check of your monitored documents.');
+          empty.style.cssText = 'padding:16px 14px;color:var(--text-mute,#64748b);font-size:0.82rem;line-height:1.5;';
+          scroll.appendChild(empty);
+        } else {
+          notifs.forEach(function (n) {
+            var row = el('div');
+            row.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border-dim,rgba(148,163,184,0.12));display:flex;gap:8px;align-items:flex-start;';
+            var dot = el('span');
+            dot.setAttribute('aria-hidden', 'true');
+            dot.style.cssText = 'flex-shrink:0;margin-top:5px;width:7px;height:7px;border-radius:50%;background:' +
+              (n.read_at ? 'rgba(148,163,184,0.35)' : 'var(--tier-operational,#22d3ee)') + ';';
+            row.appendChild(dot);
+            var main = el('div');
+            main.style.cssText = 'min-width:0;';
+            var t = el('div', null, n.title || 'Vault update');
+            t.style.cssText = 'color:var(--text-prime,#f1f5f9);font-size:0.82rem;font-weight:600;line-height:1.4;word-break:break-word;';
+            main.appendChild(t);
+            if (n.body) {
+              var b = el('div', null, n.body);
+              b.style.cssText = 'color:var(--text-sec,#94a3b8);font-size:0.8rem;line-height:1.45;margin-top:2px;word-break:break-word;';
+              main.appendChild(b);
+            }
+            var d = el('div', null, fmtDate(n.created_at));
+            d.style.cssText = 'color:var(--text-mute,#64748b);font-size:0.68rem;font-family:var(--font-mono,monospace);margin-top:4px;';
+            main.appendChild(d);
+            row.appendChild(main);
+            scroll.appendChild(row);
+          });
+        }
+        panel.appendChild(scroll);
+        var foot = document.createElement('a');
+        foot.href = '#notifications';
+        foot.textContent = 'Notification settings →';
+        foot.style.cssText = 'display:block;padding:10px 14px;border-top:1px solid var(--border-mid,rgba(148,163,184,0.2));color:var(--tier-operational,#22d3ee);font-size:0.8rem;text-decoration:none;';
+        foot.addEventListener('click', function () { toggle(false); });
+        panel.appendChild(foot);
+      }
+      function toggle(force) {
+        open = typeof force === 'boolean' ? force : !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.style.color = open ? 'var(--text-prime,#f1f5f9)' : 'var(--text-sec,#94a3b8)';
+        panel.hidden = !open;
+        if (open) { renderList(); markDisplayedRead(); }
+      }
+      btn.addEventListener('click', function (e) { e.stopPropagation(); toggle(); });
+      document.addEventListener('click', function (e) { if (open && !wrapEl.contains(e.target)) toggle(false); });
+      document.addEventListener('keydown', function (e) { if (open && e.key === 'Escape') { toggle(false); btn.focus(); } });
+
+      load();
+      setInterval(load, 300000); // refresh every 5 minutes
+    }
+
     // ---- Kick off ----
     loadTierBadge();
     loadPalettes().then(loadSlots).then(autoSelectInitial);
     loadNotifications();
+    initNotifBell();
     renderPackSlot(null);
     renderNotes(null);
   }

@@ -17,25 +17,60 @@ var _bus = null;
 var _currentSessionId = null;
 var _isProcessing = false;
 
-// Simple markdown rendering (no external deps)
+// Escape-first markdown rendering (no external deps).
+// POLISH-001 · F13 (Stage C): upgraded from bold/italic/<br> only — Eileen's
+// structured answers (headings, bullet/numbered lists, inline code) previously
+// rendered as literal ###/-/1. markup. Parse order: escape → inline code →
+// bold/italic → statute chips → block-level lines (headings, lists, paragraphs).
 function _renderMarkdown(text) {
   if (!text) return '';
-  var html = text
+  var escaped = String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // Bold
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Italic
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  // Newlines
-  html = html.replace(/\n/g, '<br>');
+  // Inline formatting. Code first so its content is never bold/italic-processed.
+  var inline = escaped
+    .replace(/`([^`\n]+)`/g, '<code class="ws-eileen-code">$1</code>')
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
 
   // Statutory reference chips — match patterns like "s.1 ERA 1996", "reg. 4 TUPE 2006", etc.
-  html = html.replace(/((?:s\.|section |reg\.|regulation |Schedule )\d+[A-Z]?(?:\(\d+\))?(?:\([a-z]\))?\s+[A-Z][A-Za-z\s]*\d{4})/g,
+  inline = inline.replace(/((?:s\.|section |reg\.|regulation |Schedule )\d+[A-Z]?(?:\(\d+\))?(?:\([a-z]\))?\s+[A-Z][A-Za-z\s]*\d{4})/g,
     '<span class="ws-eileen-statute-chip">$1</span>');
 
+  // Block-level pass: headings (##–######), unordered/ordered lists, paragraphs.
+  var lines = inline.split('\n');
+  var out = [];
+  var ul = [];
+  var ol = [];
+  function flushUl() { if (ul.length) { out.push('<ul class="ws-eileen-md-list">' + ul.join('') + '</ul>'); ul = []; } }
+  function flushOl() { if (ol.length) { out.push('<ol class="ws-eileen-md-list">' + ol.join('') + '</ol>'); ol = []; } }
+  for (var i = 0; i < lines.length; i++) {
+    var trimmed = lines[i].trim();
+    var h = /^(#{2,6})\s+(.*)$/.exec(trimmed);
+    var uli = /^[-*•]\s+(.*)$/.exec(trimmed);
+    var oli = /^\d+[.)]\s+(.*)$/.exec(trimmed);
+    if (h) { flushUl(); flushOl(); out.push('<div class="ws-eileen-md-h">' + h[2] + '</div>'); }
+    else if (uli) { flushOl(); ul.push('<li>' + uli[1] + '</li>'); }
+    else if (oli) { flushUl(); ol.push('<li>' + oli[1] + '</li>'); }
+    else if (trimmed === '') { flushUl(); flushOl(); out.push(''); }
+    else { flushUl(); flushOl(); out.push(lines[i]); }
+  }
+  flushUl(); flushOl();
+
+  // Collapse plain runs into <br>-joined paragraphs; blank lines separate them.
+  var html = '';
+  var para = [];
+  function flushPara() { if (para.length) { html += '<p class="ws-eileen-md-p">' + para.join('<br>') + '</p>'; para = []; } }
+  for (var j = 0; j < out.length; j++) {
+    var seg = out[j];
+    if (seg === '') { flushPara(); continue; }
+    if (/^<(ul|ol|div)/.test(seg)) { flushPara(); html += seg; continue; }
+    para.push(seg);
+  }
+  flushPara();
   return html;
 }
 
