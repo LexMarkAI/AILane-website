@@ -189,9 +189,48 @@ function ComplaintsRegister({data,token,onRefetch,onToast}){
   );
 }
 
+// ── Document Vault Issues (VAULT-TRUST-ROOM-001 §4) ──
+// A sibling section beside the complaints panel, mirroring its read shape:
+// a direct owner/CEO-scoped read of vault_issue_reports, newest first. Empty-
+// tolerant — the table is created by the companion backend brief, so until it
+// exists the REST read 404s and this renders "No vault issues reported."
+const VAULT_ISSUE_STATUS_COLOR={new:'var(--accent-amber)',reviewing:'var(--accent-cyan)',resolved:'var(--accent-green)'};
+function VaultIssues({rows}){
+  return(
+    <div className="card" id="vault-issues">
+      <div className="card-head"><div className="card-head-title">Document Vault Issues</div><div className="card-head-badge">{rows==null?'—':rows.length+' total'}</div></div>
+      <div className="card-body">
+        {rows==null&&<div className="ts">Loading vault issues…</div>}
+        {rows!=null&&rows.length===0&&<div className="ts">No vault issues reported.</div>}
+        {rows!=null&&rows.map((v,i)=>{
+          const status=String(v.status||'new');
+          return(
+            <div key={v.id||i} style={{borderBottom:i<rows.length-1?'1px solid var(--border-subtle)':'none',padding:'9px 0'}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <span className="case-cat">{friendlyCat(v.category)}</span>
+                    <span className="ts">{shortDate(v.created_at)}</span>
+                  </div>
+                  <div style={{fontSize:'0.68rem',color:'var(--text-secondary)',marginTop:4,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{v.message}</div>
+                  <div className="ts" style={{marginTop:4}}>{v.org_id?('org '+String(v.org_id).slice(0,8)):('user '+String(v.user_id||'—').slice(0,8))}{v.document_id?' · doc '+String(v.document_id).slice(0,8):''}{v.page_context?' · '+v.page_context:''}</div>
+                </div>
+                <div style={{flexShrink:0}}>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:'0.62rem',color:VAULT_ISSUE_STATUS_COLOR[status]||'var(--text-muted)'}}>{status.replace(/_/g,' ')}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function App(){
   const[auth,setAuth]=useState('checking');const[token,setToken]=useState(null);
   const[data,setData]=useState(null);      // legal_detail (future: voice_detail) — dp_complaints + dp_summary
+  const[vaultIssues,setVaultIssues]=useState(null);   // VAULT-TRUST-ROOM-001 §4 — vault_issue_reports (direct read)
   const[toasts,setToasts]=useState([]);
 
   useEffect(()=>{(async()=>{const{data:{session}}=await sb.auth.getSession();if(session){const p=JSON.parse(atob(session.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(session.access_token);setAuth('ok');return;}}const t=setTimeout(()=>{window.location.href='/';},3000);sb.auth.onAuthStateChange((ev,sess)=>{if(sess){clearTimeout(t);const p=JSON.parse(atob(sess.access_token.split('.')[1]));if(p.email===CEO_EMAIL){setToken(sess.access_token);setAuth('ok');}else window.location.href='/';}});})();},[]);
@@ -203,7 +242,15 @@ function App(){
       else setData({});
     }catch(e){setData({});}
   }
-  useEffect(()=>{if(auth==='ok'&&token)load(token);},[auth,token]);
+  // VAULT-TRUST-ROOM-001 §4 — direct read of vault_issue_reports (newest first).
+  // Empty-tolerant: a 404 (table absent) / 400 → [] → "No vault issues reported."
+  async function loadVI(tk){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/vault_issue_reports?select=id,created_at,category,message,status,user_id,org_id,document_id,page_context&order=created_at.desc&limit=100`,{headers:{'Authorization':`Bearer ${tk}`,'apikey':SUPABASE_ANON_KEY,'Accept':'application/json'}});
+      if(r.ok)setVaultIssues(await r.json());else setVaultIssues([]);
+    }catch(e){setVaultIssues([]);}
+  }
+  useEffect(()=>{if(auth==='ok'&&token){load(token);loadVI(token);}},[auth,token]);
 
   function addToast(m){setToasts(p=>[...p,m]);setTimeout(()=>setToasts(p=>p.slice(1)),4000);}
 
@@ -227,6 +274,11 @@ function App(){
         {/* SECTION 1 — s.164A complaints register with lifecycle actions */}
         <div className="sec-head"><div className="t">Data Protection Complaints</div><div className="rule"/></div>
         <ComplaintsRegister data={data} token={token} onRefetch={()=>load(token)} onToast={addToast}/>
+
+        {/* SECTION 1b — Document Vault Issues (VAULT-TRUST-ROOM-001 §4) — the room's
+            Report-an-issue channel; distinct from the s.164A complaints register. */}
+        <div className="sec-head"><div className="t">Document Vault Issues</div><div className="rule"/></div>
+        <VaultIssues rows={vaultIssues}/>
 
         {/* SECTION 2 — feedback estates (static-honest until voice_detail ships them) */}
         <div className="sec-head"><div className="t">Client Feedback</div><div className="rule"/></div>
