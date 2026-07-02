@@ -520,6 +520,34 @@
     .hist-doc-tag { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
       color: var(--text-mute, #64748b); border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
       border-radius: 999px; padding: 2px 8px; margin-left: 8px; }
+
+    /* ============================================================
+       DOCV-FWDNOTICE-ROOM-001 (AM-006/AMD-259 B1 + B3) — card forward
+       notice (the report-pane region below the findings/foot-collapse)
+       · horizon grouping around the forward renderer's existing output
+       (grouping chrome only — per-finding internals untouched)
+       ============================================================ */
+    .fwd-notice { margin-top: 12px; padding: 12px 14px;
+      border: 1px dashed var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-base, #0a0e1a); }
+    .fwd-notice-line1 { font-size: 0.86rem; font-weight: 600; color: var(--text-prime, #f1f5f9); line-height: 1.5; }
+    .fwd-notice-line2 { margin-top: 4px; font-size: 0.8rem; color: var(--text-sec, #94a3b8); line-height: 1.5; }
+    .fwd-notice-toggle { margin-top: 10px; }
+    .fwd-notice-list { margin-top: 8px; }
+    .fwd-notice-row { padding: 6px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.78rem; color: var(--text-sec, #94a3b8);
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
+    .fwd-notice-row:first-of-type { border-top: none; }
+    .fwd-group { margin-top: 14px; }
+    .fwd-group-head { font-family: var(--font-body, 'DM Sans', sans-serif); font-size: 0.84rem;
+      font-weight: 700; color: var(--text-prime, #f1f5f9); margin: 0; }
+    .fwd-group-sub { opacity: 0.92; }
+    .fwd-group-toggle { display: block; width: 100%; text-align: left; background: transparent; border: none;
+      padding: 0; cursor: pointer; font-family: var(--font-body, 'DM Sans', sans-serif);
+      font-size: 0.8rem; font-weight: 600; color: var(--text-mute, #64748b); line-height: 1.5; }
+    .fwd-group-toggle:hover { color: var(--text-sec, #94a3b8); }
+    .fwd-group-toggle:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: 2px; }
   </style>
 
   <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
@@ -842,6 +870,19 @@
       if (isNaN(d.getTime())) return '';
       return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
     }
+    // DOCV-FWDNOTICE-ROOM-001 — the forward-notice strings render commencement
+    // dates long-form ('1 January 2027') and clause categories humanised.
+    var MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    function fmtDateLong(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.getUTCDate() + ' ' + MONTHS_FULL[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+    }
+    function humaniseCategory(c) {
+      var s = String(c == null ? '' : c).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'General';
+    }
     function getJson(path) {
       return fetch(RESTU + path, { headers: H })
         .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
@@ -1115,6 +1156,12 @@
       repPane.appendChild(collapsed);
       var expanded = el('div', 'report-expanded'); expanded.hidden = true;
       repPane.appendChild(expanded);
+      // DOCV-FWDNOTICE-ROOM-001 §1 (AM-006 B1) — card forward notice: the report-pane
+      // region below the findings/foot-collapse. Painted by paintForwardNotice; stays
+      // hidden whenever the latest completed check carries no forward findings.
+      var fwdNotice = el('div', 'fwd-notice'); fwdNotice.hidden = true;
+      fwdNotice.addEventListener('click', function (e) { e.stopPropagation(); });
+      repPane.appendChild(fwdNotice);
       var pdfMsg = el('div', 'form-msg'); pdfMsg.hidden = true;
       repPane.appendChild(pdfMsg);
       body.appendChild(repPane);
@@ -1199,6 +1246,7 @@
       cardState[doc.id].els = {
         card: card, dot: dot, checked: checked, changeChip: changeChip, attChip: attChip,
         miniRing: miniRing, counts: counts, expandBtn: expandBtn, expanded: expanded,
+        fwdNotice: fwdNotice,
         pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody, checkNote: checkNote, drawer: drawer,
         attToggle: attToggle, attNote: attNote, attDrawer: attDrawer,
         revToggle: revToggle, solrevPane: solrevPane, gateChip: gateChip, repBtn: rep
@@ -1678,7 +1726,9 @@
         return Promise.all([
           (st.overlay && st.overlay.upload_id)
             ? getJson('/compliance_findings?upload_id=eq.' + st.overlay.upload_id +
-                      '&select=severity,clause_category,statutory_ref,finding_detail,is_forward_looking,acei_weights,gso_cluster&order=severity.asc')
+                      // DOCV-FWDNOTICE-ROOM-001 §1 — forward_effective_date + forward_source_act
+                      // ride the existing findings select (the B1 notice keys on them).
+                      '&select=severity,clause_category,statutory_ref,finding_detail,is_forward_looking,forward_effective_date,forward_source_act,acei_weights,gso_cluster&order=severity.asc')
                 .catch(function () { return []; })
             : [],
           (st.cycle && st.cycle.revision_document_id)
@@ -1777,9 +1827,68 @@
       }
     }
 
+    // ---- DOCV-FWDNOTICE-ROOM-001 §1 (AM-006 B1) — card forward notice ----
+    // Rendered in the report pane below the findings/foot-collapse when the
+    // latest completed check carries forward findings with at least one
+    // commencement date on record; otherwise nothing (no empty chrome).
+    // X = forward rows with severity != 'compliant' (will require updating);
+    // Y = forward rows with severity = 'compliant' (already anticipated).
+    function paintForwardNotice(doc) {
+      var st = cardState[doc.id];
+      if (!st || !st.els || !st.els.fwdNotice) return;
+      var host = st.els.fwdNotice;
+      clear(host);
+      host.hidden = true;
+      if (!st.overlay || !st.overlay.upload_id) return;
+      var forward = (st.findings || []).filter(function (f) { return !!f.is_forward_looking; });
+      if (!forward.length) return;
+      var dated = forward.filter(function (f) { return fmtDateLong(f.forward_effective_date) !== ''; })
+        .sort(function (a, b) { return String(a.forward_effective_date).localeCompare(String(b.forward_effective_date)); });
+      if (!dated.length) return; // forward rows without commencement dates can't carry the dated notice
+      var earliest = dated[0];
+      var x = 0, y = 0;
+      forward.forEach(function (f) { if (f.severity === 'compliant') y++; else x++; });
+
+      host.appendChild(el('div', 'fwd-notice-line1',
+        'Forward changes ahead — the next affects this document on ' + fmtDateLong(earliest.forward_effective_date) +
+        (earliest.forward_source_act ? ' (' + earliest.forward_source_act + ').' : '.')));
+      host.appendChild(el('div', 'fwd-notice-line2', x === 0
+        ? 'All ' + y + ' forthcoming provision' + (y === 1 ? ' is' : 's are') + ' already anticipated by this document — verify at commencement.'
+        : x + ' will require updating · ' + y + ' already anticipated (verify at commencement).'));
+
+      // Expandable dated list — one row per (date, area); a (date, area) pair
+      // carrying any non-compliant row reads 'will require updating'.
+      var byKey = {}, keys = [];
+      dated.forEach(function (f) {
+        var k = String(f.forward_effective_date) + '|' + String(f.clause_category || '');
+        if (!byKey[k]) { byKey[k] = { date: f.forward_effective_date, cat: f.clause_category, update: false }; keys.push(k); }
+        if (f.severity !== 'compliant') byKey[k].update = true;
+      });
+      var toggle = el('button', 'btn-mini fwd-notice-toggle', '▸ Dated list');
+      toggle.type = 'button';
+      toggle.setAttribute('aria-expanded', 'false');
+      var list = el('div', 'fwd-notice-list'); list.hidden = true;
+      keys.forEach(function (k) {
+        var r = byKey[k];
+        list.appendChild(el('div', 'fwd-notice-row',
+          fmtDateLong(r.date) + ' · ' + humaniseCategory(r.cat) + ' · ' + (r.update ? 'will require updating' : 'already anticipated')));
+      });
+      toggle.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var opening = list.hidden;
+        list.hidden = !opening;
+        toggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        toggle.textContent = (opening ? '▾' : '▸') + ' Dated list';
+      });
+      host.appendChild(toggle);
+      host.appendChild(list);
+      host.hidden = false;
+    }
+
     // ---- ① Exposure Report pane: collapsed strip (ring + counts + Expand) ----
     function paintReportPane(doc) {
       var st = cardState[doc.id]; var e = st.els;
+      paintForwardNotice(doc); // DOCV-FWDNOTICE-ROOM-001 §1 — keyed on the same fresh card state
       var status = deriveStatus(st.att, st.overlay, st.findings);
       if (status === 'green') { e.miniRing.style.borderColor = RING_HEX.green; e.miniRing.textContent = '✓'; }
       else if (status === 'red') { e.miniRing.style.borderColor = RING_HEX.red; e.miniRing.textContent = '!'; }
@@ -2197,7 +2306,12 @@
       var fwd = el('div', 'forward');
       fwd.appendChild(el('h3', null, 'Legislative Horizon — forward exposure'));
       fwd.appendChild(el('div', 'fwd-note', 'Not yet in force — does not affect the status above.'));
-      sortBySeverity(items).forEach(function (f) {
+      // DOCV-FWDNOTICE-ROOM-001 §2 (AM-006 B3) — horizon grouping AROUND the existing
+      // per-finding output (internals untouched; both callers — the card report pane
+      // and the ROOM-002 drill-in — compose through here): provisions requiring an
+      // update first and prominent; already-anticipated after, visually subordinate
+      // and collapsed by default.
+      function fwdItem(f) {
         var it = el('div', 'fwd-item');
         var head = el('div', 'finding-head');
         var sevKey = SEV_RANK[f.severity] != null ? f.severity : 'minor';
@@ -2211,8 +2325,35 @@
           st.appendChild(document.createTextNode(String(f.statutory_ref)));
           it.appendChild(st);
         }
-        fwd.appendChild(it);
-      });
+        return it;
+      }
+      var toUpdate = items.filter(function (f) { return f.severity !== 'compliant'; });
+      var anticipated = items.filter(function (f) { return f.severity === 'compliant'; });
+      if (toUpdate.length) {
+        var g1 = el('div', 'fwd-group');
+        g1.appendChild(el('h4', 'fwd-group-head', 'Provisions that will require updating'));
+        sortBySeverity(toUpdate).forEach(function (f) { g1.appendChild(fwdItem(f)); });
+        fwd.appendChild(g1);
+      }
+      if (anticipated.length) {
+        var g2 = el('div', 'fwd-group fwd-group-sub');
+        var head2 = 'Provisions your document already anticipates — verify at commencement';
+        var tog = el('button', 'fwd-group-toggle', '▸ ' + head2);
+        tog.type = 'button';
+        tog.setAttribute('aria-expanded', 'false');
+        var body2 = el('div'); body2.hidden = true;
+        sortBySeverity(anticipated).forEach(function (f) { body2.appendChild(fwdItem(f)); });
+        tog.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var opening = body2.hidden;
+          body2.hidden = !opening;
+          tog.setAttribute('aria-expanded', opening ? 'true' : 'false');
+          tog.textContent = (opening ? '▾ ' : '▸ ') + head2;
+        });
+        g2.appendChild(tog);
+        g2.appendChild(body2);
+        fwd.appendChild(g2);
+      }
       return fwd;
     }
 
@@ -3368,9 +3509,48 @@
         badge.textContent = n > 9 ? '9+' : String(n);
         btn.setAttribute('aria-label', 'Vault notifications' + (n ? ' (' + n + ' unread)' : ''));
       }
+      // DOCV-FWDNOTICE-ROOM-001 §3 — event-type → display copy map. The room shipped
+      // with no such map (the bell renders server-composed title/body; `kind` rode the
+      // select unused) — this introduces it, keyed on `kind`, overriding the headline
+      // ONLY for the kinds it names; every other kind renders exactly as before.
+      // vault_forward_review_due rows arrive with the companion backend brief: until
+      // such rows (and their payload fields) exist, this entry is inert.
+      function forwardReviewCopy(n) {
+        var p = n && n.payload;
+        if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = null; } }
+        if (!p || typeof p !== 'object') p = {};
+        var act = p.act || p.forward_source_act || p.source_act || null;
+        var rawDate = p.date || p.forward_effective_date || p.effective_date || null;
+        var when = rawDate ? (fmtDateLong(rawDate) || String(rawDate)) : null;
+        if (!when) return null; // no usable payload date → the server-composed copy stands
+        return act
+          ? 'Contract review due — ' + act + ' changes take effect ' + when
+          : 'Contract review due — a forthcoming change in employment law takes effect ' + when;
+      }
+      var ALERT_COPY = { vault_forward_review_due: forwardReviewCopy };
+      function mappedCopy(n) {
+        return (n && Object.prototype.hasOwnProperty.call(ALERT_COPY, n.kind)) ? ALERT_COPY[n.kind](n) : null;
+      }
+      // Payload enrich, best-effort: vault_client_notifications carries no payload
+      // column pre-backend, so the base select stays exactly as shipped and this
+      // extra read fires ONLY when a mapped-kind row exists. A missing payload
+      // column degrades to the server copy — never to a hidden bell.
+      function enrichPayloads(rows) {
+        var need = (rows || []).filter(function (n) { return Object.prototype.hasOwnProperty.call(ALERT_COPY, n.kind); });
+        if (!need.length) return Promise.resolve(rows);
+        return getJson('/vault_client_notifications?id=in.(' + need.map(function (n) { return n.id; }).join(',') + ')&select=id,payload')
+          .then(function (pr) {
+            var byId = {};
+            (pr || []).forEach(function (r) { byId[r.id] = r.payload; });
+            (rows || []).forEach(function (n) { if (byId[n.id] != null) n.payload = byId[n.id]; });
+            return rows;
+          })
+          .catch(function () { return rows; });
+      }
       function load() {
         return getJson('/vault_client_notifications?user_id=eq.' + uid + '&channel_in_app=eq.true' +
                 '&select=id,kind,title,body,status_band,created_at,read_at&order=created_at.desc&limit=12')
+          .then(enrichPayloads)
           .then(function (rows) {
             notifs = rows || [];
             wrapEl.hidden = false;
@@ -3417,7 +3597,9 @@
             row.appendChild(dot);
             var main = el('div');
             main.style.cssText = 'min-width:0;';
-            var t = el('div', null, n.title || 'Vault update');
+            // DOCV-FWDNOTICE-ROOM-001 §3 — the map's copy overrides the headline for
+            // the kinds it names; otherwise the server-composed title, as before.
+            var t = el('div', null, mappedCopy(n) || n.title || 'Vault update');
             t.style.cssText = 'color:var(--text-prime,#f1f5f9);font-size:0.82rem;font-weight:600;line-height:1.4;word-break:break-word;';
             main.appendChild(t);
             if (n.body) {
