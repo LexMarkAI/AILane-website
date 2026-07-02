@@ -548,6 +548,30 @@
       font-size: 0.8rem; font-weight: 600; color: var(--text-mute, #64748b); line-height: 1.5; }
     .fwd-group-toggle:hover { color: var(--text-sec, #94a3b8); }
     .fwd-group-toggle:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: 2px; }
+
+    /* ============================================================
+       VAULT-TRUST-ROOM-001 (AM-007 C6+/C7) — archived-version rows
+       in History → Documents (per-version Delete + standing retention
+       line) · quiet Report-an-issue control (footer region) + modal
+       → vault_issue_reports
+       ============================================================ */
+    .hist-actions { display: flex; gap: 8px; margin-top: 6px; }
+    .hist-retention { margin-top: 10px; padding-top: 8px;
+      border-top: 1px dashed var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.72rem; color: var(--text-mute, #64748b); line-height: 1.5; }
+    .report-issue-row { margin-top: 36px; text-align: center; }
+    .report-issue-link { background: transparent; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.78rem; color: var(--text-mute, #64748b); text-decoration: underline; padding: 4px 8px; }
+    .report-issue-link:hover { color: var(--text-sec, #94a3b8); }
+    .report-issue-link:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: 2px; }
+    .ri-overlay { position: fixed; inset: 0; z-index: 80; background: rgba(5,12,24,0.72);
+      display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .ri-dialog { width: 100%; max-width: 460px; max-height: 86vh; overflow-y: auto;
+      background: var(--surface-card, #0c1525); border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius, 12px); padding: 18px 18px 20px; box-shadow: 0 16px 40px rgba(0,0,0,0.5); }
+    .ri-assoc { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 14px; }
+    .ri-assoc label { font-size: 0.84rem; color: var(--text-body, #e2e8f0); line-height: 1.45; cursor: pointer; }
+    .ri-assoc .check { margin-top: 2px; flex: 0 0 auto; }
   </style>
 
   <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
@@ -624,6 +648,12 @@
           <div id="vault-notes"></div>
         </section>
       </div>
+    </div>
+
+    <!-- VAULT-TRUST-ROOM-001 §3 — quiet Report-an-issue control (footer region,
+         near the disclaimers). Wired by initReportIssue(); opens the §3 modal. -->
+    <div class="report-issue-row">
+      <button type="button" id="report-issue-btn" class="report-issue-link">Report an issue</button>
     </div>
 
     <footer class="vault-footer">AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720.</footer>
@@ -1249,7 +1279,8 @@
         fwdNotice: fwdNotice,
         pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody, checkNote: checkNote, drawer: drawer,
         attToggle: attToggle, attNote: attNote, attDrawer: attDrawer,
-        revToggle: revToggle, solrevPane: solrevPane, gateChip: gateChip, repBtn: rep
+        revToggle: revToggle, solrevPane: solrevPane, gateChip: gateChip, repBtn: rep,
+        histBtn: histBtn
       };
       // A rebuild (renderSlots) must not desync the accordion: restore this card's
       // open state — paintReportPane re-renders the findings once data lands.
@@ -1699,6 +1730,20 @@
       });
     }
 
+    // VAULT-TRUST-ROOM-001 §1 — archived-version count for this lineage. Powers the
+    // History count badge ("History (2)") and the drawer's default-to-Documents
+    // behaviour, so a room WITH archived versions surfaces its History instead of
+    // hiding it behind the Checks tab (the §1 Case-1 discoverability fix). Uses the
+    // exact filter the Documents tab renders (renderHistDocs): same lineage,
+    // archived_at set, deleted_at null, owner-scoped by RLS.
+    function loadArchivedCount(doc) {
+      if (!doc.lineage_id) return Promise.resolve(0);
+      return getJson('/kl_vault_documents?lineage_id=eq.' + doc.lineage_id +
+              '&archived_at=not.is.null&deleted_at=is.null&select=id')
+        .then(function (rows) { return (rows && rows.length) || 0; })
+        .catch(function () { return 0; });
+    }
+
     function loadCardData(doc) {
       var st = cardState[doc.id];
       if (!st || !st.els) return;
@@ -1718,11 +1763,13 @@
             .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
           loadEntitlementOnce(),
           loadOpenCycle(doc.lineage_id),
-          loadSlotGate(doc)
+          loadSlotGate(doc),
+          loadArchivedCount(doc)
         ]);
       }).then(function (res) {
         st.overlay = res[0]; st.att = res[1]; st.recheck = res[2]; st.pack = res[3];
         st.cycle = res[5]; st.gateOpensAt = res[6] || null;
+        st.archivedCount = res[7] || 0;
         return Promise.all([
           (st.overlay && st.overlay.upload_id)
             ? getJson('/compliance_findings?upload_id=eq.' + st.overlay.upload_id +
@@ -1791,6 +1838,10 @@
         e.attChip.title = (st.att.unlock_basis === 'acknowledged') ? C3_BADGE : '';
         e.attChip.hidden = false;
       } else { e.attChip.hidden = true; e.attChip.title = ''; }
+
+      // VAULT-TRUST-ROOM-001 §1 — the History control carries a count badge when
+      // archived versions exist, so a room that HAS History advertises it.
+      if (e.histBtn) e.histBtn.textContent = (st.archivedCount > 0) ? ('History (' + st.archivedCount + ')') : 'History';
 
       paintGateChip(doc);
       paintReportPane(doc);
@@ -2025,7 +2076,9 @@
       }
       tabChecks.addEventListener('click', function (e) { e.stopPropagation(); select('checks'); });
       tabDocs.addEventListener('click', function (e) { e.stopPropagation(); select('docs'); });
-      select('checks');
+      // VAULT-TRUST-ROOM-001 §1 — open on the Documents tab when archived versions
+      // exist, so opening History lands on the version history the Director sought.
+      select((st.archivedCount > 0) ? 'docs' : 'checks');
     }
     function renderHistChecks(docId, panel) {
       var st = cardState[docId];
@@ -2063,6 +2116,89 @@
     // §4.3 — archived versions of this document's lineage (superseded by a
     // solicitor revision at promotion). Reloaded on each open so a promotion in
     // this session appears without a page refresh.
+    // VAULT-TRUST-ROOM-001 §2 — standing retention line (small, footer) on the
+    // Documents tab. Rendered in every terminal state of the tab.
+    function appendRetentionLine(panel) {
+      panel.appendChild(el('div', 'hist-retention',
+        'Archived versions are retained until you delete them or close your account.'));
+    }
+    // VAULT-TRUST-ROOM-001 §2 — one archived-version row: the ROOM-001 §4.3 open
+    // action, plus a Delete action using the room's honest-delete pattern.
+    function buildArchivedRow(docId, r, panel) {
+      var it = el('div', 'hist-item');
+      var top = el('div');
+      top.appendChild(el('strong', null, r.filename || 'Untitled document'));
+      top.appendChild(el('span', 'hist-doc-tag', 'Not monitored'));
+      it.appendChild(top);
+      var line = el('div');
+      line.appendChild(el('span', 'hist-date', fmtDate(r.archived_at)));
+      line.appendChild(document.createTextNode(
+        'Archived — superseded by solicitor revision, ' + fmtDate(r.archived_at)));
+      it.appendChild(line);
+      var actions = el('div', 'hist-actions');
+      var openBtn = el('button', 'btn-mini', 'Open'); openBtn.type = 'button';
+      openBtn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        openVaultFile(r.storage_path, r.filename, openBtn);
+      });
+      var delBtn = el('button', 'btn-mini danger', 'Delete'); delBtn.type = 'button';
+      var errLine = el('div', 'row-error'); errLine.hidden = true; errLine.style.marginTop = '6px';
+      delBtn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        deleteArchivedVersion(docId, r, it, openBtn, delBtn, errLine, panel);
+      });
+      actions.appendChild(openBtn); actions.appendChild(delBtn);
+      it.appendChild(actions);
+      it.appendChild(errLine);
+      return it;
+    }
+    // VAULT-TRUST-ROOM-001 §2 — per-version delete: confirm → soft-delete
+    // (deleted_at) through the owner REST path, confirmed by a NON-EMPTY
+    // representation → the row leaves the list. The &archived_at=not.is.null guard
+    // makes it impossible to touch the CURRENT monitored document (archived_at IS
+    // NULL) even with a wrong id — the live doc's controls stay Replace/Remove.
+    function deleteArchivedVersion(docId, row, itemEl, openBtn, delBtn, errLine, panel) {
+      if (!window.confirm('Delete this archived version? It will be removed from your vault permanently. Archived versions are otherwise retained until you delete them.')) return;
+      errLine.hidden = true;
+      openBtn.disabled = true; delBtn.disabled = true;
+      var old = delBtn.textContent; delBtn.textContent = 'Deleting…';
+      fetch(RESTU + '/kl_vault_documents?id=eq.' + row.id + '&archived_at=not.is.null&deleted_at=is.null&select=id,deleted_at', {
+        method: 'PATCH',
+        headers: Object.assign({ 'Prefer': 'return=representation' }, H),
+        body: JSON.stringify({ deleted_at: new Date().toISOString() })
+      }).then(function (r) {
+        if (r.status >= 200 && r.status < 300) return r.json().catch(function () { return null; });
+        return r.text().then(function (body) { var e = new Error('delete ' + r.status); e.httpStatus = r.status; e.httpBody = body; throw e; });
+      }).then(function (rows) {
+        if (!rows || !rows.length) { var e = new Error('delete unconfirmed'); e.unconfirmed = true; throw e; }
+        // Consistent with the room's GDPR delete-audit for live removals (best-effort).
+        recordDeletionAudit(row.id);
+        clearType(row.id);
+        var st = cardState[docId];
+        if (st && st.archivedCount > 0) st.archivedCount -= 1;
+        if (st && st.els && st.els.histBtn) {
+          st.els.histBtn.textContent = (st.archivedCount > 0) ? ('History (' + st.archivedCount + ')') : 'History';
+        }
+        if (itemEl && itemEl.parentNode) itemEl.parentNode.removeChild(itemEl);
+        // Last archived row gone → show the empty state (retention line stays).
+        if (st && st.archivedCount === 0 && panel) {
+          clear(panel);
+          panel.appendChild(el('div', 'hist-item', 'No archived versions of this document yet.'));
+          appendRetentionLine(panel);
+        }
+      }).catch(function (e) {
+        openBtn.disabled = false; delBtn.disabled = false; delBtn.textContent = old;
+        if (e && e.unconfirmed) {
+          console.error('vault archived-version delete unconfirmed: PATCH matched zero rows (RLS-filtered or already removed)');
+          errLine.textContent = 'Could not confirm the deletion. Refresh and try again — if two-factor is on for your account, you may need to re-verify.';
+        } else {
+          if (e && e.httpStatus) console.error('vault archived-version delete failed: HTTP ' + e.httpStatus + ' — ' + (e.httpBody || '(no body)'));
+          else console.error('vault archived-version delete failed:', (e && e.message) || e);
+          errLine.textContent = 'Could not delete this archived version right now. Please try again.';
+        }
+        errLine.hidden = false;
+      });
+    }
     function renderHistDocs(docId, panel) {
       var doc = docById(docId);
       var st = cardState[docId];
@@ -2070,6 +2206,7 @@
       var lineage = (doc && doc.lineage_id) || (st && st.cycle && st.cycle.lineage_id) || null;
       if (!lineage) {
         panel.appendChild(el('div', 'hist-item', 'No archived versions of this document yet.'));
+        appendRetentionLine(panel);
         return;
       }
       panel.appendChild(el('div', 'hist-item', 'Loading…'));
@@ -2077,30 +2214,18 @@
               '&select=id,filename,storage_path,archived_at,created_at&order=archived_at.desc&limit=10')
         .then(function (rows) {
           clear(panel);
+          // Keep the badge/default-tab count honest with what the tab actually shows.
+          if (st) st.archivedCount = (rows && rows.length) || 0;
+          if (st && st.els && st.els.histBtn) {
+            st.els.histBtn.textContent = (st.archivedCount > 0) ? ('History (' + st.archivedCount + ')') : 'History';
+          }
           if (!rows || !rows.length) {
             panel.appendChild(el('div', 'hist-item', 'No archived versions of this document yet.'));
+            appendRetentionLine(panel);
             return;
           }
-          rows.forEach(function (r) {
-            var it = el('div', 'hist-item');
-            var top = el('div');
-            top.appendChild(el('strong', null, r.filename || 'Untitled document'));
-            top.appendChild(el('span', 'hist-doc-tag', 'Not monitored'));
-            it.appendChild(top);
-            var line = el('div');
-            line.appendChild(el('span', 'hist-date', fmtDate(r.archived_at)));
-            line.appendChild(document.createTextNode(
-              'Archived — superseded by solicitor revision, ' + fmtDate(r.archived_at)));
-            it.appendChild(line);
-            var openBtn = el('button', 'btn-mini', 'Open'); openBtn.type = 'button';
-            openBtn.style.marginTop = '6px';
-            openBtn.addEventListener('click', function (ev) {
-              ev.stopPropagation();
-              openVaultFile(r.storage_path, r.filename, openBtn);
-            });
-            it.appendChild(openBtn);
-            panel.appendChild(it);
-          });
+          rows.forEach(function (r) { panel.appendChild(buildArchivedRow(docId, r, panel)); });
+          appendRetentionLine(panel);
         })
         .catch(function () {
           clear(panel);
@@ -3637,12 +3762,148 @@
       setInterval(load, 300000); // refresh every 5 minutes
     }
 
+    // ===========================================================
+    //  VAULT-TRUST-ROOM-001 §3 — Report an issue (C7, room side)
+    //  A quiet footer control opens a small modal → owner REST INSERT
+    //  to vault_issue_reports (user_id from the session; page_context
+    //  'operational/documents'; optional current-document association).
+    //  Distinct from the formal complaints procedure — no complaint_log
+    //  reference. Degrades gracefully: a REST 404/400 (table absent, per
+    //  the companion backend brief) shows the try-again copy.
+    // ===========================================================
+    var ISSUE_CATEGORIES = [
+      ['document_issue', 'Something looks wrong with a document'],
+      ['check_result_question', 'Question about a check result'],
+      ['billing', 'Billing'],
+      ['other', 'Other']
+    ];
+    function initReportIssue() {
+      var btn = document.getElementById('report-issue-btn');
+      if (!btn) return;
+      btn.addEventListener('click', function (e) { e.stopPropagation(); openIssueModal(); });
+    }
+    function openIssueModal() {
+      var prev = document.getElementById('ri-overlay');
+      if (prev) prev.remove();
+
+      var overlay = el('div', 'ri-overlay');
+      overlay.id = 'ri-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', 'Report an issue');
+
+      var dialog = el('div', 'ri-dialog');
+      dialog.addEventListener('click', function (e) { e.stopPropagation(); });
+
+      dialog.appendChild(el('h2', 'section-head', 'Report an issue'));
+      dialog.appendChild(el('p', 'attest-intro',
+        'Tell us what doesn’t look right with your documents or checks and we’ll look into it.'));
+
+      // Category select
+      var catField = el('div', 'field');
+      var catLab = el('label', null, 'What’s this about?');
+      catLab.setAttribute('for', 'ri-category');
+      catField.appendChild(catLab);
+      var sel = el('select'); sel.id = 'ri-category'; sel.name = 'ri-category';
+      ISSUE_CATEGORIES.forEach(function (o) {
+        var opt = el('option', null, o[1]); opt.value = o[0];
+        sel.appendChild(opt);
+      });
+      catField.appendChild(sel);
+      dialog.appendChild(catField);
+
+      // Free-text (required, max 4000)
+      var msgField = el('div', 'field');
+      var msgLab = el('label', null, 'Tell us more');
+      msgLab.setAttribute('for', 'ri-message');
+      msgField.appendChild(msgLab);
+      var ta = el('textarea', 'notes-area'); ta.id = 'ri-message'; ta.name = 'ri-message';
+      ta.setAttribute('rows', '5'); ta.maxLength = 4000;
+      ta.placeholder = 'Describe what you’re seeing…';
+      msgField.appendChild(ta);
+      dialog.appendChild(msgField);
+
+      // Optional current-document association (only when a card is selected)
+      var assocCheckbox = null;
+      var assocDoc = selectedId ? docById(selectedId) : null;
+      if (assocDoc) {
+        var assoc = el('div', 'ri-assoc');
+        assocCheckbox = el('input', 'check'); assocCheckbox.type = 'checkbox'; assocCheckbox.id = 'ri-assoc';
+        assocCheckbox.checked = true;
+        var assocLab = el('label', null, 'This is about “' + (assocDoc.filename || 'the selected document') + '”');
+        assocLab.setAttribute('for', 'ri-assoc');
+        assoc.appendChild(assocCheckbox); assoc.appendChild(assocLab);
+        dialog.appendChild(assoc);
+      }
+
+      var msgEl = el('div', 'form-msg'); msgEl.hidden = true;
+      var actions = el('div', 'work-actions');
+      var send = el('button', 'btn-primary', 'Send'); send.type = 'button';
+      var cancel = el('button', 'btn-secondary', 'Cancel'); cancel.type = 'button';
+      actions.appendChild(send); actions.appendChild(cancel);
+      dialog.appendChild(actions);
+      dialog.appendChild(msgEl);
+
+      function close() {
+        document.removeEventListener('keydown', onKey);
+        overlay.remove();
+      }
+      function onKey(e) { if (e.key === 'Escape') close(); }
+      cancel.addEventListener('click', function (e) { e.stopPropagation(); close(); });
+      overlay.addEventListener('click', function () { close(); });
+      document.addEventListener('keydown', onKey);
+
+      send.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var message = (ta.value || '').trim();
+        if (!message) { showMsg(msgEl, 'Please describe the issue first.', 'err'); return; }
+        if (message.length > 4000) message = message.slice(0, 4000);
+        var body = {
+          user_id: uid,
+          category: sel.value,
+          message: message,
+          page_context: 'operational/documents'
+        };
+        if (assocCheckbox && assocCheckbox.checked && assocDoc) body.document_id = assocDoc.id;
+        send.disabled = true; cancel.disabled = true; send.textContent = 'Sending…'; msgEl.hidden = true;
+        fetch(RESTU + '/vault_issue_reports', {
+          method: 'POST',
+          headers: Object.assign({ 'Prefer': 'return=minimal' }, H),
+          body: JSON.stringify(body)
+        }).then(function (r) {
+          if (r.status >= 200 && r.status < 300) {
+            // Success — C1-safe, no promise language (brief §3, verbatim).
+            clear(dialog);
+            dialog.appendChild(el('h2', 'section-head', 'Report an issue'));
+            dialog.appendChild(el('p', 'attest-intro', 'Thank you — we’ve logged this and will look into it.'));
+            var doneRow = el('div', 'work-actions');
+            var done = el('button', 'btn-primary', 'Close'); done.type = 'button';
+            done.addEventListener('click', function (ev) { ev.stopPropagation(); close(); });
+            doneRow.appendChild(done);
+            dialog.appendChild(doneRow);
+            done.focus();
+          } else {
+            send.disabled = false; cancel.disabled = false; send.textContent = 'Send';
+            showMsg(msgEl, 'We couldn’t send this just now — please try again shortly.', 'err');
+          }
+        }).catch(function () {
+          send.disabled = false; cancel.disabled = false; send.textContent = 'Send';
+          showMsg(msgEl, 'We couldn’t send this just now — please try again shortly.', 'err');
+        });
+      });
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      sel.focus();
+    }
+
     // ---- Kick off ----
     loadTierBadge();
     loadPalettes().then(loadSlots).then(autoSelectInitial);
     loadNotifications();
     initNotifBell();
     renderNotes(null);
+    initReportIssue();
   }
   </script>
 </body>
