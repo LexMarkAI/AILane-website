@@ -1630,10 +1630,13 @@
       return Promise.resolve(null);
     }
     // §2 — the revision document of an open cycle: its row, latest overlay and findings.
+    // SOLREV-ROOM-002: storage_path rides the doc select (§1 — the tile's open action
+    // signs it), and acei_weights/gso_cluster ride the findings select (§2 — the card
+    // report pane's renderer reads them). Same calls the room already makes.
     function loadRevisionData(revDocId) {
       return Promise.all([
         getJson('/kl_vault_documents?id=eq.' + revDocId +
-                '&select=id,filename,created_at,analysis_status,deleted_at&limit=1')
+                '&select=id,filename,storage_path,created_at,analysis_status,deleted_at&limit=1')
           .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
         getJson('/vault_contract_records?document_id=eq.' + revDocId +
                 '&select=status_band,critical_gaps,upload_id,created_at&order=created_at.desc&limit=1')
@@ -1642,7 +1645,7 @@
         var revDoc = res[0], revOverlay = res[1];
         if (!revOverlay || !revOverlay.upload_id) return { doc: revDoc, overlay: revOverlay, findings: [] };
         return getJson('/compliance_findings?upload_id=eq.' + revOverlay.upload_id +
-                '&select=id,severity,clause_category,statutory_ref,finding_detail,is_forward_looking&order=severity.asc')
+                '&select=id,severity,clause_category,statutory_ref,finding_detail,is_forward_looking,acei_weights,gso_cluster&order=severity.asc')
           .catch(function () { return []; })
           .then(function (ff) { return { doc: revDoc, overlay: revOverlay, findings: ff || [] }; });
       });
@@ -2698,7 +2701,10 @@
       host.appendChild(od);
     }
 
-    // ---- §2.2/§2.4/§2.5 — the revision block: ring-frame, counts, pack, unlock ----
+    // ---- §2.2/§2.4/§2.5 · SOLREV-ROOM-002 §1–§4 — the revision outcome panel:
+    //      document tile (ring-frame + open action) ABOVE the outcome line ·
+    //      severity-aware outcome copy · Exposure Report drill-in · conditional
+    //      CTAs (clean pass → the C1 primary alone; residuals → ROOM-001 state) ----
     function renderRevisionBlock(doc, host) {
       var s = cardState[doc.id];
       var rev = s.rev;
@@ -2737,24 +2743,66 @@
         return;
       }
 
+      // SOLREV-ROOM-002 §1 — the ring-frame is the revision's document tile: the
+      // document being signed off is openable right where the sign-off is recorded.
+      // View and Download are the SAME mechanism here (openVaultFile — the History →
+      // Documents signed-URL path), so one combined action is offered.
+      var tileRow = el('div', 'solrev-actions');
+      var viewBtn = el('button', 'btn-secondary', 'View / download'); viewBtn.type = 'button';
+      if (!(rev.doc && rev.doc.storage_path)) {
+        viewBtn.disabled = true;
+        viewBtn.title = 'The stored file for this revision isn’t available right now.';
+      }
+      viewBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openVaultFile(rev.doc && rev.doc.storage_path, (rev.doc && rev.doc.filename) || 'Solicitor revision', viewBtn);
+      });
+      tileRow.appendChild(viewBtn);
+      frame.appendChild(tileRow);
+      host.appendChild(frame);
+
       // Findings count line — outcome-descriptive, no status adjectives.
-      frame.appendChild(el('div', 'solrev-outcome', residuals.length
+      // SOLREV-ROOM-002 §4 — a clean pass whose every current finding is severity
+      // `compliant` says so plainly; otherwise the ROOM-001 line stands. No verdict
+      // language either way (C1 — green wording is reserved for the recorded sign-off).
+      var allCompliant = !residuals.length && cur.length > 0 &&
+        cur.every(function (f) { return f.severity === 'compliant'; });
+      host.appendChild(el('div', 'solrev-outcome', residuals.length
         ? residuals.length + ' point' + (residuals.length === 1 ? '' : 's') + ' outstanding on this revision’s check (critical or major) · ' +
           cur.length + ' current finding' + (cur.length === 1 ? '' : 's') + ' reviewed.'
-        : 'No outstanding critical or major points on this revision’s check · ' +
-          cur.length + ' current finding' + (cur.length === 1 ? '' : 's') + ' reviewed.'));
+        : (allCompliant
+          ? 'No outstanding critical or major points · all ' + cur.length + ' clause' + (cur.length === 1 ? '' : 's') + ' reviewed, none requiring action.'
+          : 'No outstanding critical or major points on this revision’s check · ' +
+            cur.length + ' current finding' + (cur.length === 1 ? '' : 's') + ' reviewed.')));
 
-      // §2.2 — refreshed pack, in-cycle (the engine treats it as a free cycle refresh).
-      var packMsg = el('div', 'form-msg'); packMsg.hidden = true;
-      var packRow = el('div', 'solrev-actions');
-      var packBtn = el('button', 'btn-secondary', 'Prepare updated Solicitor Pack — included in your revision cycle');
-      packBtn.type = 'button';
-      packBtn.addEventListener('click', function (e) { e.stopPropagation(); requestRevisionPack(doc, packBtn, packMsg); });
-      packRow.appendChild(packBtn);
-      frame.appendChild(packRow);
-      frame.appendChild(packMsg);
+      // SOLREV-ROOM-002 §2 — “View updated Exposure Report” drill-in: this
+      // revision's findings through the card report pane's own renderer, inline
+      // expand/collapse, available in EVERY outcome state (clean passes included) —
+      // the outcome is never take-our-word-for-it.
+      var repRow = el('div', 'solrev-actions');
+      var repBtn = el('button', 'btn-mini', s.revReportOpen ? 'Hide updated Exposure Report' : 'View updated Exposure Report');
+      repBtn.type = 'button';
+      repBtn.setAttribute('aria-expanded', s.revReportOpen ? 'true' : 'false');
+      repBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        s.revReportOpen = !s.revReportOpen;
+        renderSolrevPane(doc);
+      });
+      repRow.appendChild(repBtn);
+      host.appendChild(repRow);
+      if (s.revReportOpen) {
+        var repHost = el('div', 'report-expanded');
+        repHost.hidden = false;
+        renderRevisionReport(repHost, s);
+        host.appendChild(repHost);
+      }
 
       // §2.4 — unlock states (C1 copy lock) · §2.5 — return-to-solicitor hint.
+      // SOLREV-ROOM-002 §3 — cleanPass = zero critical AND zero major over current
+      // (non-forward) findings, mirroring the server's unlock basis exactly
+      // (residuals is that set). Clean pass → the C1 primary CTA alone: the
+      // pack-refresh button and the return-to-solicitor hint render only with
+      // residuals. The C4 counter above (renderSolrevPane) is untouched either way.
       if (!residuals.length) {
         var c1Row = el('div', 'solrev-actions');
         var c1Btn = el('button', 'btn-primary', C1_READY); // live, canonical — C1
@@ -2766,10 +2814,19 @@
           renderSolrevPane(doc);
         });
         c1Row.appendChild(c1Btn);
-        frame.appendChild(c1Row);
-        if (s.signoffOpen) frame.appendChild(buildSignoffForm(doc, null));
+        host.appendChild(c1Row);
+        if (s.signoffOpen) host.appendChild(buildSignoffForm(doc, null));
       } else {
-        frame.appendChild(el('div', 'solrev-hint',
+        // §2.2 — refreshed pack, in-cycle (the engine treats it as a free cycle refresh).
+        var packMsg = el('div', 'form-msg'); packMsg.hidden = true;
+        var packRow = el('div', 'solrev-actions');
+        var packBtn = el('button', 'btn-secondary', 'Prepare updated Solicitor Pack — included in your revision cycle');
+        packBtn.type = 'button';
+        packBtn.addEventListener('click', function (e) { e.stopPropagation(); requestRevisionPack(doc, packBtn, packMsg); });
+        packRow.appendChild(packBtn);
+        host.appendChild(packRow);
+        host.appendChild(packMsg);
+        host.appendChild(el('div', 'solrev-hint',
           'Send the updated Solicitor Pack back to your solicitor, then upload their next revision.'));
         var ackRow = el('div', 'solrev-actions');
         var ackBtn = el('button', 'btn-primary', 'Record your solicitor’s sign-off');
@@ -2781,13 +2838,30 @@
           renderSolrevPane(doc);
         });
         ackRow.appendChild(ackBtn);
-        frame.appendChild(ackRow);
-        if (s.ackOpen) frame.appendChild(buildSignoffForm(doc, residuals));
+        host.appendChild(ackRow);
+        if (s.ackOpen) host.appendChild(buildSignoffForm(doc, residuals));
+        // §2.5 — the next revision is accepted anytime while the cycle is open.
+        buildRevUpload(doc, host);
       }
-      host.appendChild(frame);
+    }
 
-      // §2.5 — the next revision is accepted anytime while the cycle is open.
-      if (residuals.length) buildRevUpload(doc, host);
+    // SOLREV-ROOM-002 §2 — the revision's findings through the card report pane's
+    // renderer (buildMagnitude → buildFinding → buildGsoBand → buildForward),
+    // scoped to the revision's latest completed check. Renderer internals are
+    // untouched — the pointer lines etc. ride along because the renderer is
+    // reused, not modified. The pack pointer takes its not-yet-generated wording:
+    // a revision pack is an in-cycle refresh prepared from this workspace, not
+    // tracked as the card's live pack row.
+    function renderRevisionReport(host, st) {
+      var findings = (st.rev && st.rev.findings) || [];
+      var inforce = findings.filter(function (f) { return !f.is_forward_looking; });
+      var forward = findings.filter(function (f) { return !!f.is_forward_looking; });
+      var gsoFindings = inforce.filter(function (f) { return !!f.gso_cluster; });
+      var riskFindings = inforce.filter(function (f) { return !f.gso_cluster; });
+      host.appendChild(buildMagnitude(inforce));
+      sortBySeverity(riskFindings).forEach(function (f) { host.appendChild(buildFinding(f, false)); });
+      if (gsoFindings.length) host.appendChild(buildGsoBand(gsoFindings));
+      if (forward.length) host.appendChild(buildForward(forward));
     }
 
     // ---- §3 — the sign-off form; with residuals it IS the acknowledged-unlock
@@ -2918,6 +2992,7 @@
               // §4.1 — promoted: the revision is now the Current document.
               promoJustDone = rev.doc.id;
               s.solrevOpen = false; s.ackOpen = false; s.signoffOpen = false; s.solrevTouched = false;
+              s.revReportOpen = false; // ROOM-002 §2 — a later cycle starts collapsed
               selectedId = rev.doc.id;
               return loadSlots().then(function () { selectDoc(rev.doc.id); });
             }
