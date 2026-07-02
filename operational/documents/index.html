@@ -93,12 +93,13 @@
     /* ---- Panes ----
        DOCV-ROOM-003 (AM-004 §B4): .panes is now a plain block wrapper (the AAL2
        step-up gate toggles its display — class name preserved for that reason).
-       The document-set cards stack full-width; the attestation / notification /
-       notes controls sit in .lower-grid beneath them. */
+       The document-set cards stack full-width; the notification / notes controls
+       sit in .lower-grid beneath them (DOCV-ROOM-004 §2 moved the attestation
+       control into each document card). */
     .panes { display: block; }
     .lower-grid {
       display: grid; gap: 20px;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       align-items: start;
     }
     @media (max-width: 1100px) { .lower-grid { grid-template-columns: 1fr; } }
@@ -438,6 +439,25 @@
     .hist-item:first-of-type { border-top: none; }
     .hist-date { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 0.72rem;
       color: var(--text-mute, #64748b); margin-right: 8px; }
+
+    /* ============================================================
+       DOCV-ROOM-004 — collapse control at the report foot (+scroll
+       restore) · per-document attestation binding (card-footer
+       control, system-derived version)
+       ============================================================ */
+    .report-foot { margin-top: 18px; padding-top: 12px;
+      border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    /* The foot-collapse scroll restore targets the card header; the sticky
+       topbar must not cover it when the header lands at block:start. */
+    .dcard-head { scroll-margin-top: 72px; }
+    .dcard-attest { border-top: 1px dashed var(--border-mid, rgba(148,163,184,0.2)); padding: 10px 16px 14px; }
+    .attest-availability { font-size: 0.74rem; color: var(--text-mute, #64748b); margin-left: 10px; }
+    .attest-drawer { margin-top: 12px; max-width: 520px; }
+    .attest-heading { font-family: var(--font-body, 'DM Sans', sans-serif);
+      font-size: 0.95rem; font-weight: 600; color: var(--text-prime, #f1f5f9); margin: 0 0 6px; }
+    .attest-binding { font-size: 0.82rem; color: var(--text-sec, #94a3b8); margin-bottom: 12px; }
+    .attest-binding strong { color: var(--text-prime, #f1f5f9); }
+    .attest-microcopy { margin-top: 12px; font-size: 0.78rem; color: var(--text-mute, #64748b); line-height: 1.5; }
   </style>
 
   <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
@@ -497,15 +517,11 @@
         <div class="state-msg"><div class="spinner"></div>Loading your vault…</div>
       </section>
 
-      <!-- Lower controls — attestation + notification prefs (§B4 write surface) + notes -->
+      <!-- Lower controls — notification prefs (§B4 write surface) + notes.
+           DOCV-ROOM-004 §2: the attestation control lives inside each document
+           card (per-document, singular — ARC-DOCV-001 §6/AM-004); no global
+           attestation form remains on the page. -->
       <div class="lower-grid">
-        <section class="pane" aria-label="Record a solicitor attestation">
-          <h2 class="section-head">Record a solicitor attestation</h2>
-          <div id="attestation">
-            <div class="state-msg">Select a document to record an attestation.</div>
-          </div>
-        </section>
-
         <section class="pane" aria-label="Notification settings">
           <h2 class="section-head">Notification settings</h2>
           <div id="notifications">
@@ -734,7 +750,6 @@
 
     // ---- DOM refs ----
     var listEl   = document.getElementById('vault-cards');
-    var attestEl = document.getElementById('attestation');
     var notifEl  = document.getElementById('notifications');
     var badgeEl  = document.getElementById('tier-badge');
     var countEl  = document.getElementById('monitor-counter');
@@ -1076,6 +1091,24 @@
 
       card.appendChild(body);
 
+      // DOCV-ROOM-004 §2 (ARC-DOCV-001 §6/AM-004) — per-document attestation control.
+      // An attestation is singular and binds to THIS card's document; the footer row
+      // replaces ROOM-003's global form. The drawer is built lazily on first open;
+      // document_version is system-derived at submit time, never user-typed.
+      var attWrap = el('div', 'dcard-attest');
+      var attToggle = el('button', 'btn-mini', 'Record a solicitor attestation');
+      attToggle.type = 'button';
+      attToggle.id = 'attest-toggle-' + doc.id; // per-card id — no duplicates across cards
+      attToggle.setAttribute('aria-expanded', 'false');
+      attToggle.disabled = true; // enabled by paintCard once a completed check exists
+      var attNote = el('span', 'attest-availability', '');
+      var attDrawer = el('div', 'attest-drawer'); attDrawer.hidden = true;
+      attDrawer.addEventListener('click', function (e) { e.stopPropagation(); });
+      attWrap.appendChild(attToggle);
+      attWrap.appendChild(attNote);
+      attWrap.appendChild(attDrawer);
+      card.appendChild(attWrap);
+
       // §3 — slim history drawer (last 5 vault_recheck_log entries, lazy-loaded)
       var drawer = el('div', 'history-drawer'); drawer.hidden = true;
       card.appendChild(drawer);
@@ -1084,7 +1117,8 @@
       cardState[doc.id].els = {
         card: card, dot: dot, checked: checked, changeChip: changeChip, attChip: attChip,
         miniRing: miniRing, counts: counts, expandBtn: expandBtn, expanded: expanded,
-        pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody, checkNote: checkNote, drawer: drawer
+        pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody, checkNote: checkNote, drawer: drawer,
+        attToggle: attToggle, attNote: attNote, attDrawer: attDrawer
       };
       // A rebuild (renderSlots) must not desync the accordion: restore this card's
       // open state — paintReportPane re-renders the findings once data lands.
@@ -1101,6 +1135,7 @@
       });
       histBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleHistory(doc.id); });
       expandBtn.addEventListener('click', function (e) { e.stopPropagation(); selectDoc(doc.id); toggleReport(doc.id); });
+      attToggle.addEventListener('click', function (e) { e.stopPropagation(); selectDoc(doc.id); toggleAttest(doc.id); });
 
       loadCardData(doc);
       return card;
@@ -1414,7 +1449,6 @@
         delete cardState[doc.id];
         if (selectedId === doc.id) {
           selectedId = null;
-          msg(attestEl, 'Select a document to record an attestation.');
           renderNotes(null);
         }
         loadSlots();
@@ -1543,6 +1577,7 @@
 
       paintReportPane(doc);
       renderPackPane(doc);
+      paintAttestPane(doc);
     }
 
     // ---- ① Exposure Report pane: collapsed strip (ring + counts + Expand) ----
@@ -1628,6 +1663,30 @@
       sortBySeverity(riskFindings).forEach(function (f) { host.appendChild(buildFinding(f, packGen)); });
       if (gsoFindings.length) host.appendChild(buildGsoBand(gsoFindings));
       if (forward.length) host.appendChild(buildForward(forward));
+
+      // DOCV-ROOM-004 §1 — second Collapse control at the report FOOT: after the
+      // Legislative Horizon section, so a long read collapses without scrolling
+      // back to the pane header. Same toggleReport wiring as the header control;
+      // it only renders while the report is open, so aria-expanded mirrors true.
+      // On collapse the card header is scrolled back into view and keyboard focus
+      // returns to the header Expand button (a11y).
+      var foot = el('div', 'report-foot');
+      var footBtn = el('button', 'btn-mini', 'Collapse report');
+      footBtn.type = 'button';
+      footBtn.id = 'report-collapse-foot-' + docId; // id-suffixed — never duplicates the header control
+      footBtn.setAttribute('aria-expanded', 'true');
+      footBtn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        toggleReport(docId); // the report is open here, so this collapses it
+        var cur = cardState[docId];
+        if (cur && cur.els) {
+          var headEl = cur.els.card.querySelector('.dcard-head');
+          if (headEl) headEl.scrollIntoView({ block: 'start' });
+          cur.els.expandBtn.focus();
+        }
+      });
+      foot.appendChild(footBtn);
+      host.appendChild(foot);
     }
 
     // ---- §3 — history drawer: last 5 vault_recheck_log entries (quiet history) ----
@@ -1670,20 +1729,20 @@
     }
 
     // ===========================================================
-    //  Selection — attestation + notes track the selected card
-    //  (the report + pack render per card; DOCV-ROOM-003)
+    //  Selection — notes track the selected card (the report, pack and
+    //  attestation controls render per card; DOCV-ROOM-003 / -004)
     // ===========================================================
     function selectDoc(docId) {
       selectedId = docId;
       markSelected();
-      renderAttestation(docId);
       renderNotes(docId);
     }
 
-    // DOCV-ROOM-RECTIFY-001 §4A successor — on first load, auto-select a card so the
-    // attestation + notes controls are live without a manual click. Reports stay
-    // collapsed-first (AM-004 §B4 — Director direction). Prefer the most-recently-
-    // checked occupied slot; fall back to the first occupied slot.
+    // DOCV-ROOM-RECTIFY-001 §4A successor — on first load, auto-select a card so
+    // the notes control tracks a document without a manual click (the attestation
+    // control lives in each card — DOCV-ROOM-004 §2). Reports stay collapsed-first
+    // (AM-004 §B4 — Director direction). Prefer the most-recently-checked occupied
+    // slot; fall back to the first occupied slot.
     function autoSelectInitial() {
       if (selectedId || !docs.length) return;
       var ids = docs.map(function (d) { return d.id; });
@@ -1891,36 +1950,91 @@
     }
 
     // ===========================================================
-    //  PANE 3 — Attestation control
+    //  Per-card attestation control (DOCV-ROOM-004 §2 · ARC-DOCV-001 §6/AM-004)
+    //  An attestation is per document, SINGULAR — it is what turns THAT
+    //  document's ring green; there is no multi-document attestation.
+    //  document_version is system-derived from the current analysis's upload
+    //  reference (the same reference pack-freshness keys on) — never typed.
     // ===========================================================
-    function renderAttestation(docId) {
-      clear(attestEl);
-      attestEl.appendChild(el('p', 'attest-intro',
+    function paintAttestPane(doc) {
+      var st = cardState[doc.id];
+      if (!st || !st.els || !st.els.attToggle) return;
+      var e = st.els;
+      var ready = !!(st.overlay && st.overlay.upload_id);
+      e.attToggle.disabled = !ready;
+      e.attNote.textContent = ready ? '' : 'Available after this document’s first completed check.';
+      if (!ready && !e.attDrawer.hidden) {
+        e.attDrawer.hidden = true;
+        e.attToggle.setAttribute('aria-expanded', 'false');
+      }
+      // Keep the binding line current — a re-check moves the analysis date the
+      // attestation applies to.
+      if (e.attBind && ready) paintAttestBinding(doc);
+    }
+    // §2.2 — read-only binding line; also the visual carrier of the derived
+    // version (§2.3): the filename + analysis date ARE the version the user sees.
+    function paintAttestBinding(doc) {
+      var st = cardState[doc.id]; var e = st.els;
+      clear(e.attBind);
+      e.attBind.appendChild(document.createTextNode('Applies to: '));
+      e.attBind.appendChild(el('strong', null, doc.filename || 'this document'));
+      e.attBind.appendChild(document.createTextNode(' — analysis of ' +
+        (fmtDate(st.overlay && st.overlay.created_at) || '—')));
+    }
+    function toggleAttest(docId) {
+      var doc = docById(docId);
+      var st = cardState[docId];
+      if (!doc || !st || !st.els) return;
+      var e = st.els;
+      if (!e.attDrawer.hidden) {
+        e.attDrawer.hidden = true;
+        e.attToggle.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      if (e.attToggle.disabled) return;
+      if (!e.attFormBuilt) { buildAttestForm(doc, e.attDrawer); e.attFormBuilt = true; }
+      paintAttestBinding(doc); // the binding line reflects the analysis current at open time
+      e.attDrawer.hidden = false;
+      e.attToggle.setAttribute('aria-expanded', 'true');
+    }
+    function buildAttestForm(doc, host) {
+      var st = cardState[doc.id];
+      clear(host);
+
+      host.appendChild(el('h3', 'attest-heading', 'Record a solicitor attestation for this document'));
+      var bind = el('div', 'attest-binding');
+      st.els.attBind = bind;
+      host.appendChild(bind);
+      host.appendChild(el('p', 'attest-intro',
         'This records an external solicitor’s sign-off — it does not request advice. A recorded attestation is the only path to a Solicitor-Verified status.'));
 
       var form = el('form');
       form.setAttribute('novalidate', 'novalidate');
 
-      function field(id, labelText, type, required, placeholder, optional) {
+      // Per-card field ids — up to five cards each carry this form (no duplicate ids).
+      function field(idBase, labelText, type, required, placeholder, optional) {
+        var id = idBase + '-' + doc.id;
         var wrap = el('div', 'field');
         var lab = el('label', null, labelText);
         lab.setAttribute('for', id);
         if (optional) { var o = el('span', 'opt', ' (optional)'); lab.appendChild(o); }
         wrap.appendChild(lab);
         var inp = el('input');
-        inp.id = id; inp.name = id; inp.type = type;
+        inp.id = id; inp.name = idBase; inp.type = type;
         if (required) inp.required = true;
         if (placeholder) inp.placeholder = placeholder;
         wrap.appendChild(inp);
         return wrap;
       }
 
-      form.appendChild(field('att_solicitor_name', 'Solicitor name', 'text', true, 'e.g. J. Smith'));
-      form.appendChild(field('att_firm', 'Firm', 'text', true, 'e.g. Smith & Co LLP'));
-      form.appendChild(field('att_sra', 'SRA number', 'text', false, 'e.g. 123456', true));
+      var nameField = field('att_solicitor_name', 'Solicitor name', 'text', true, 'e.g. J. Smith');
+      var firmField = field('att_firm', 'Firm', 'text', true, 'e.g. Smith & Co LLP');
+      var sraField  = field('att_sra', 'SRA number', 'text', false, 'e.g. 123456', true);
       var dateField = field('att_date', 'Date of attestation', 'date', true);
-      form.appendChild(dateField);
-      form.appendChild(field('att_version', 'Document version', 'text', true, 'e.g. v1.0'));
+      form.appendChild(nameField); form.appendChild(firmField);
+      form.appendChild(sraField);  form.appendChild(dateField);
+      // §2.3 — NO document-version field: the version is system-derived at submit
+      // time from this card's current overlay upload reference.
 
       // default the date to today (browser-local)
       var dInp = dateField.querySelector('input');
@@ -1933,25 +2047,36 @@
       form.appendChild(actions);
       var formMsg = el('div', 'form-msg'); formMsg.hidden = true;
       form.appendChild(formMsg);
+      // §2.4 — condition-consistent microcopy under the submit.
+      form.appendChild(el('p', 'attest-microcopy',
+        'A solicitor attestation applies to one document at a time — it is what moves that document’s status to Solicitor-Verified (green). If the law changes and the analysis is refreshed, the attestation is superseded and a fresh one is required.'));
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         formMsg.hidden = true; formMsg.className = 'form-msg';
-        var name = form.querySelector('#att_solicitor_name').value.trim();
-        var firm = form.querySelector('#att_firm').value.trim();
-        var sra = form.querySelector('#att_sra').value.trim();
-        var on = form.querySelector('#att_date').value;
-        var ver = form.querySelector('#att_version').value.trim();
-        if (!name || !firm || !on || !ver) {
-          formMsg.textContent = 'Please complete solicitor name, firm, date and document version.';
+        var name = nameField.querySelector('input').value.trim();
+        var firm = firmField.querySelector('input').value.trim();
+        var sra  = sraField.querySelector('input').value.trim();
+        var on   = dateField.querySelector('input').value;
+        if (!name || !firm || !on) {
+          formMsg.textContent = 'Please complete solicitor name, firm and date.';
+          formMsg.className = 'form-msg err'; formMsg.hidden = false; return;
+        }
+        // §2.3 — derived version, read at submit time so a re-check between paints
+        // can't stale it: posted in the document_version field the
+        // vault-record-attestation payload already carries.
+        var cur = cardState[doc.id];
+        var ver = cur && cur.overlay && cur.overlay.upload_id;
+        if (!ver) {
+          formMsg.textContent = 'This document has no completed check to attest yet. Run a check first.';
           formMsg.className = 'form-msg err'; formMsg.hidden = false; return;
         }
         var body = {
-          document_id: docId,
+          document_id: doc.id,
           solicitor_name: name,
           firm: firm,
           attested_on: on,
-          document_version: ver
+          document_version: String(ver)
         };
         if (sra) body.sra_no = sra;
 
@@ -1966,7 +2091,7 @@
             submit.disabled = false; submit.textContent = 'Record attestation';
             // Re-run contract 5 by refreshing the card → header ring flips to green,
             // the Attested badge appears, and an open report repaints.
-            refreshCard(docId);
+            refreshCard(doc.id);
           })
           .catch(function () {
             submit.disabled = false; submit.textContent = 'Record attestation';
@@ -1975,7 +2100,7 @@
           });
       });
 
-      attestEl.appendChild(form);
+      host.appendChild(form);
     }
 
     // ===========================================================
