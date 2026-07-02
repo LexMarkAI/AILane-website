@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ════════════════════════════════════════════════════════════════════
+       STAGED PAGE — NOT LIVE. Built under AILANE-CC-BRIEF-PRICING-PAGES-001 (prep only).
+       • Stages the repriced Knowledge Library session pricing (£49 / £69 / £129) with
+         bundled Compliance Checks, the in-session upsell, and the extend/top-up path.
+       • The LIVE session page /kl-access/ is left UNTOUCHED. Its current session prices
+         and its in-session add-on note differ from this staging page. That add-on note is
+         subject to the unresolved AMD-043 governance conflict and must not be silently
+         changed without Director direction — see the completion report for the specifics.
+       • Do NOT link from nav, sitemap, or any live page until the Director gives a
+         separate go-live instruction. Checkout is intentionally NOT wired (Brief §3) —
+         the fulfilment backend (AILANE-CC-BRIEF-PRICING-FULFILMENT-BACKEND-001) lands first.
+       GO-LIVE CHECKLIST (for the separate go-live brief):
+         1. Wire the three KL Stripe Price IDs (Quick £49 / Day £69 / Week £129) via
+            kl-create-intent, plus the in-session upsell (£19 / £29) and extend top-ups
+            (£20 / £60 / £80). See per-card wire-up comments.
+         2. Reconcile with /kl-access/ — either reprice it to match or redirect it here,
+            resolving the AMD-043 add-on question at the same time.
+         3. Remove the noindex tag below and this staging banner; add to sitemap/nav as directed.
+  ════════════════════════════════════════════════════════════════════ -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>Knowledge Library Access &amp; Pricing | Ailane</title>
+  <meta name="description" content="Research UK employment law with Eileen. Buy a Knowledge Library research window — Quick Session, Day Pass, or Research Week — with Contract Compliance Checks built in.">
+  <!-- GA4 — REQUIRED ON EVERY PAGE (RULE 10) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:       #0C1018;
+      --navy-mid:   #111827;
+      --navy-soft:  #1C2B3A;
+      --gold:       #E8A923;
+      --teal:       #0D7377;
+      --teal-light: #14BDAD;
+      --white:      #FFFFFF;
+      --grey-400:   #9CA3AF;
+      --grey-600:   #6B7280;
+      --danger:     #DC2626;
+      --font-serif: 'DM Serif Display', Georgia, serif;
+      --font-sans:  'DM Sans', -apple-system, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--navy); color: var(--white); -webkit-font-smoothing: antialiased; min-height: 100vh; }
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(12,16,24,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(20,189,173,0.15); padding: 0 24px; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .wordmark { font-family: var(--font-sans); font-weight: 900; font-size: 18px; letter-spacing: 3px; color: var(--white); }
+    .wordmark span { color: var(--teal-light); }
+    .nav-links { display: flex; gap: 28px; list-style: none; font-size: 13px; font-weight: 500; color: var(--grey-400); }
+    .nav-links a:hover { color: var(--gold); transition: color .2s; }
+    .nav-cta { background: var(--teal); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 0.5px; padding: 8px 18px; border-radius: 4px; transition: background .2s; }
+    .nav-cta:hover { background: #0b6366; }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, #0C1018 0%, #0D1F2D 50%, #0C1018 100%); padding: 80px 24px 60px; position: relative; overflow: hidden; }
+    .hero-inner { max-width: 860px; margin: 0 auto; text-align: center; position: relative; }
+    .hero-label { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 3px; color: var(--teal-light); text-transform: uppercase; border: 1px solid rgba(20,189,173,0.3); padding: 5px 14px; border-radius: 20px; margin-bottom: 28px; }
+    .hero h1 { font-family: var(--font-serif); font-size: clamp(32px, 5vw, 52px); line-height: 1.15; font-weight: 400; color: var(--white); margin-bottom: 20px; }
+    .hero h1 em { color: var(--teal-light); font-style: normal; }
+    .hero-sub { font-size: clamp(15px, 2vw, 18px); color: #8A9BB0; line-height: 1.7; max-width: 620px; margin: 0 auto 24px; }
+    .price-hint { font-size: 13px; color: var(--grey-400); letter-spacing: 0.3px; }
+    .price-hint strong { color: var(--white); font-weight: 600; }
+
+    /* SECTIONS */
+    .section { padding: 60px 24px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-alt { background: var(--navy-mid); }
+    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 3px; color: var(--teal-light); text-transform: uppercase; margin-bottom: 12px; }
+    .section-heading { font-family: var(--font-serif); font-size: clamp(24px, 3.5vw, 34px); font-weight: 400; color: var(--white); line-height: 1.25; margin-bottom: 14px; }
+    .section-sub { font-size: 15px; color: var(--grey-400); line-height: 1.7; max-width: 620px; }
+
+    /* UNIVERSAL ACCESS BANNER */
+    .uad-banner { display: flex; gap: 16px; align-items: flex-start; background: rgba(20,189,173,0.07); border: 1px solid rgba(20,189,173,0.2); border-radius: 10px; padding: 20px 22px; margin: 28px 0 8px; }
+    .uad-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+    .uad-text h3 { font-size: 15px; font-weight: 700; color: var(--teal-light); margin-bottom: 6px; }
+    .uad-text p { font-size: 13px; color: var(--grey-400); line-height: 1.65; }
+
+    /* PRICING */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 40px; }
+    .pricing-card { background: var(--navy-soft); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 30px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+    .pricing-card.featured { border-color: var(--teal-light); background: linear-gradient(135deg, #16232F 0%, #14202B 100%); }
+    .pricing-card.featured::before { content: 'RECOMMENDED'; position: absolute; top: 16px; right: -26px; background: var(--teal-light); color: var(--navy); font-size: 8px; font-weight: 900; letter-spacing: 2px; padding: 4px 30px; transform: rotate(35deg); }
+    .card-name { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 4px; }
+    .card-dur { font-size: 12px; color: var(--grey-400); margin-bottom: 14px; }
+    .price-tag { font-family: var(--font-sans); font-size: 40px; font-weight: 900; color: var(--white); line-height: 1; }
+    .price-tag span { font-size: 16px; font-weight: 400; color: var(--grey-400); margin-left: 6px; }
+    .card-billing { font-size: 11px; color: var(--grey-600); margin: 8px 0 16px; }
+    .card-checks { background: rgba(20,189,173,0.08); border: 1px solid rgba(20,189,173,0.18); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+    .checks-primary { font-size: 13px; font-weight: 600; color: var(--teal-light); line-height: 1.5; }
+    .checks-extra { font-size: 12px; color: var(--grey-400); margin-top: 4px; }
+    .card-features { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+    .card-features li { font-size: 13px; color: var(--grey-400); display: flex; align-items: flex-start; gap: 8px; }
+    .card-features li::before { content: '✓'; color: var(--teal-light); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .coming-soon-badge { display: inline-block; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--grey-400); font-size: 12px; font-weight: 600; padding: 12px 20px; border-radius: 6px; width: 100%; text-align: center; margin-top: auto; }
+
+    /* MECHANIC PANELS (upsell + extend) */
+    .mechanic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-top: 36px; }
+    .mechanic { background: var(--navy-soft); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 28px; }
+    .mechanic h3 { font-size: 17px; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+    .mechanic p { font-size: 13.5px; color: var(--grey-400); line-height: 1.7; margin-bottom: 14px; }
+    .mechanic p:last-child { margin-bottom: 0; }
+    .extend-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid rgba(255,255,255,0.06); font-size: 13px; }
+    .extend-row:first-of-type { border-top: none; }
+    .extend-path { color: var(--grey-400); }
+    .extend-path strong { color: var(--white); font-weight: 600; }
+    .extend-cost { color: var(--teal-light); font-weight: 700; white-space: nowrap; }
+    .upsell-line { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+    .upsell-line:first-of-type { border-top: none; }
+    .upsell-price { font-size: 15px; font-weight: 800; color: var(--teal-light); min-width: 42px; }
+    .upsell-desc { font-size: 13px; color: var(--grey-400); line-height: 1.6; }
+
+    /* DISCLAIMER — Tier 3 (RULE 17), stronger treatment near pricing */
+    .tier3-disclaimer { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.25); border-left: 3px solid var(--danger); border-radius: 10px; padding: 20px 22px; margin: 40px auto 0; max-width: 900px; }
+    .tier3-disclaimer h4 { color: var(--danger); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+    .tier3-disclaimer p { font-size: 12.5px; color: #B9C2CE; line-height: 1.7; margin-bottom: 8px; }
+    .tier3-disclaimer p:last-child { margin-bottom: 0; }
+    .tier3-disclaimer strong { color: var(--white); font-weight: 600; }
+
+    /* FOOTER */
+    footer { background: #060A0F; border-top: 1px solid rgba(255,255,255,0.06); padding: 40px 24px; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: var(--grey-600); }
+    .footer-links a:hover { color: var(--grey-400); transition: color .2s; }
+    .footer-legal { font-size: 11px; color: var(--grey-600); line-height: 1.8; }
+
+    @media (max-width: 640px) { .nav-links { display: none; } .hero { padding: 60px 16px 44px; } }
+  </style>
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+</head>
+<body>
+
+<!-- ── NAVIGATION ── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="https://ailane.ai" class="wordmark">AIL<span>ANE</span></a>
+    <ul class="nav-links">
+      <li><a href="https://ailane.ai/#features">Platform</a></li>
+      <li><a href="https://ailane.ai/intelligence/">Intelligence</a></li>
+      <li><a href="https://ailane.ai/terms/">Terms</a></li>
+    </ul>
+    <a href="#sessions" class="nav-cta">Research with Eileen</a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">UK Employment Law Intelligence · Knowledge Library · Eileen</div>
+    <h1>Research UK employment law <em>with Eileen</em>.</h1>
+    <p class="hero-sub">The Knowledge Library gives you Eileen — Ailane's AI employment-law guide — alongside the full legislative estate, leading case law, and forward intelligence. Buy a research window and start immediately. Every session includes Contract Compliance Checks built in.</p>
+    <p class="price-hint"><strong>Quick Session £49</strong> · <strong>Day Pass £69</strong> · <strong>Research Week £129</strong> — Eileen included at every tier</p>
+  </div>
+</section>
+
+<!-- ── SESSIONS PRICING ── -->
+<section class="section" id="sessions">
+  <div class="section-inner">
+    <div class="section-label">Per-Session Access</div>
+    <h2 class="section-heading">Choose your research window</h2>
+    <p class="section-sub">No account required. Pay once, research with Eileen immediately. Every session includes unlimited Eileen access, the full legislative estate, forward intelligence, and bundled Contract Compliance Checks.</p>
+
+    <!-- Eileen Universal Access Doctrine banner (ratified 10 April 2026) -->
+    <div class="uad-banner">
+      <div class="uad-icon">✦</div>
+      <div class="uad-text">
+        <h3>Eileen is included at every level</h3>
+        <p>No question limits. No feature restrictions. Your access window is your only constraint — within it, Eileen is fully yours. This is the Eileen Universal Access Doctrine.</p>
+      </div>
+    </div>
+
+    <!-- ══ Three session tiers at the repriced figures (Brief §1). Only the Day Pass is
+         `featured`. Checkout is NOT wired on this staged page — see per-card wire-up notes. ══ -->
+    <div class="pricing-grid">
+
+      <!-- £49 · Quick Session -->
+      <div class="pricing-card">
+        <div class="card-name">Quick Session</div>
+        <div class="card-dur">2-hour focused research window with Eileen</div>
+        <div class="price-tag">£49<span>one-off</span></div>
+        <div class="card-billing">One-time payment · No account required</div>
+        <div class="card-checks">
+          <div class="checks-primary">1 Contract Compliance Check included</div>
+          <div class="checks-extra">Solicitor Preparation Pack included</div>
+        </div>
+        <ul class="card-features">
+          <li>Full Knowledge Library access</li>
+          <li>Eileen AI — unlimited questions</li>
+          <li>UK legislation &amp; statutory instrument viewer</li>
+          <li>ACAS, HSE &amp; ICO guidance</li>
+          <li>ERA 2025 forward intelligence</li>
+        </ul>
+        <!-- WIRE-UP (fulfilment brief): Quick Session £49 -> NEW Stripe Price ID via kl-create-intent. -->
+        <div class="coming-soon-badge">Secure checkout activating soon</div>
+      </div>
+
+      <!-- £69 · Day Pass (featured) -->
+      <div class="pricing-card featured">
+        <div class="card-name">Day Pass</div>
+        <div class="card-dur">Full day — 24 hours with Eileen</div>
+        <div class="price-tag">£69<span>one-off</span></div>
+        <div class="card-billing">One-time payment · No account required</div>
+        <div class="card-checks">
+          <div class="checks-primary">1 Contract Compliance Check included</div>
+          <div class="checks-extra">Solicitor Preparation Pack included</div>
+        </div>
+        <ul class="card-features">
+          <li>Everything in the Quick Session</li>
+          <li>24 hours of uninterrupted access</li>
+          <li>Research notes &amp; session history</li>
+          <li>Legislative horizon tracker</li>
+          <li>Full forward intelligence layer</li>
+        </ul>
+        <!-- WIRE-UP (fulfilment brief): Day Pass £69 -> NEW Stripe Price ID via kl-create-intent. -->
+        <div class="coming-soon-badge">Secure checkout activating soon</div>
+      </div>
+
+      <!-- £129 · Research Week -->
+      <div class="pricing-card">
+        <div class="card-name">Research Week</div>
+        <div class="card-dur">7 calendar days with Eileen</div>
+        <div class="price-tag">£129<span>one-off</span></div>
+        <div class="card-billing">One-time payment · No account required</div>
+        <div class="card-checks">
+          <div class="checks-primary">1× each of Contract, Handbook &amp; Policy Compliance Checks included</div>
+          <div class="checks-extra">Three document-type checks across the week</div>
+        </div>
+        <ul class="card-features">
+          <li>Everything in the Day Pass</li>
+          <li>7 days of sustained research</li>
+          <li>Research across every ACEI exposure category</li>
+          <li>Export a structured research summary</li>
+          <li>Board- and solicitor-ready briefing</li>
+        </ul>
+        <!-- WIRE-UP (fulfilment brief): Research Week £129 -> NEW Stripe Price ID via kl-create-intent. -->
+        <div class="coming-soon-badge">Secure checkout activating soon</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── IN-SESSION UPSELL + EXTEND ── -->
+<section class="section section-alt" id="more">
+  <div class="section-inner">
+    <div class="section-label">Within Your Session</div>
+    <h2 class="section-heading">Add checks, or add time — without starting over</h2>
+    <p class="section-sub">Your bundled checks and your access window are both flexible. Run more checks whenever you need them, and extend to a longer window while keeping everything you've already done.</p>
+
+    <div class="mechanic-grid">
+
+      <!-- IN-SESSION UPSELL — £19 / £29 only. The disputed in-session add-on product
+           (AMD-043) is deliberately NOT presented here per Brief §1. -->
+      <div class="mechanic">
+        <h3>Add another check any time</h3>
+        <p>Your bundled Contract Compliance Checks are used first. Once they're used, you can run additional checks within your active session whenever you need them:</p>
+        <div class="upsell-line">
+          <span class="upsell-price">£19</span>
+          <span class="upsell-desc">One additional Contract Compliance Check.</span>
+        </div>
+        <div class="upsell-line">
+          <span class="upsell-price">£29</span>
+          <span class="upsell-desc">One additional check <strong style="color:var(--grey-400)">plus</strong> a Solicitor Preparation Pack.</span>
+        </div>
+        <!-- WIRE-UP (fulfilment brief): in-session upsell £19 (check) / £29 (check + Solicitor Pack). -->
+      </div>
+
+      <!-- EXTEND / TOP-UP — pay only the gap. -->
+      <div class="mechanic">
+        <h3>Need more time? Extend — don't re-buy</h3>
+        <p>Extend your session to a longer window and keep everything from your current one — your remaining checks and your Solicitor Preparation Pack carry over. You only pay the difference:</p>
+        <div class="extend-row">
+          <span class="extend-path"><strong>Quick Session → Day Pass</strong></span>
+          <span class="extend-cost">+ £20</span>
+        </div>
+        <div class="extend-row">
+          <span class="extend-path"><strong>Day Pass → Research Week</strong></span>
+          <span class="extend-cost">+ £60</span>
+        </div>
+        <div class="extend-row">
+          <span class="extend-path"><strong>Quick Session → Research Week</strong> (direct)</span>
+          <span class="extend-cost">+ £80</span>
+        </div>
+        <!-- WIRE-UP (fulfilment brief): extend top-ups £20 / £60 / £80 — charge the gap, carry entitlements over. -->
+      </div>
+    </div>
+
+    <!-- ── DISCLAIMER — Tier 3 (RULE 17) ── -->
+    <div class="tier3-disclaimer">
+      <h4>Regulatory Intelligence — Not Legal Advice</h4>
+      <p><strong>This purchase grants time-bound access to the Ailane Knowledge Library and Eileen AI.</strong> Ailane provides regulatory intelligence — information about what UK employment law requires, traced to statutory source — to inform your compliance decisions. It is not legal advice and is not a substitute for qualified legal counsel.</p>
+      <p>Contract Compliance Checks produce structured analysis designed to help identify areas of regulatory concern. They are informational outputs, not opinions on your legal position, and are not designed to guarantee compliance or protection against employment tribunal claims. AI Lane Limited (Company No. 17035654 · ICO Reg. 00013389720) is not a law firm and does not provide regulated legal services. For advice on any specific matter, instruct a qualified employment solicitor.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="https://ailane.ai">ailane.ai</a>
+      <a href="https://ailane.ai/terms/">Terms of Service</a>
+      <a href="https://ailane.ai/privacy/">Privacy Policy</a>
+      <a href="https://ailane.ai/complaints/">Complaints Policy</a>
+      <a href="mailto:support@ailane.ai">support@ailane.ai</a>
+    </div>
+    <div class="footer-legal">
+      AI Lane Limited · Company No. 17035654 · ICO Reg. No. 00013389720 · Registered in England &amp; Wales<br>
+      Trading as Ailane · ailane.ai · UK Trademark No. UK00004347220<br>
+      Ailane is not a law firm and does not provide regulated legal services. All analyses are for informational purposes only.<br>
+      Constitutional governance: ACEI v1.0 · RRI v1.0 · CCI v1.0
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
