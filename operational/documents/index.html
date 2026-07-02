@@ -90,13 +90,18 @@
     }
     .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
 
-    /* ---- Panes ---- */
-    .panes {
+    /* ---- Panes ----
+       DOCV-ROOM-003 (AM-004 §B4): .panes is now a plain block wrapper (the AAL2
+       step-up gate toggles its display — class name preserved for that reason).
+       The document-set cards stack full-width; the attestation / notification /
+       notes controls sit in .lower-grid beneath them. */
+    .panes { display: block; }
+    .lower-grid {
       display: grid; gap: 20px;
-      grid-template-columns: 300px minmax(0, 1fr) 350px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       align-items: start;
     }
-    @media (max-width: 1100px) { .panes { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .lower-grid { grid-template-columns: 1fr; } }
     .pane {
       background: var(--surface-card, #0c1525);
       border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
@@ -360,6 +365,79 @@
     .note-item:first-of-type { border-top: none; }
     .note-title { font-size: 0.82rem; font-weight: 600; color: var(--text-body, #e2e8f0); word-break: break-word; }
     .note-body { margin-top: 3px; font-size: 0.8rem; color: var(--text-sec, #94a3b8); line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+
+    /* ============================================================
+       DOCV-ROOM-003 (AM-004 §B4) — per-slot document-set cards:
+       header strip + three panes (report collapsed-first · contract · pack)
+       ============================================================ */
+    #vault-cards { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+    .dcard {
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-lg, 16px);
+      overflow: hidden; transition: border-color 0.15s ease;
+    }
+    .dcard.selected { border-color: rgba(34,211,238,0.55); }
+    .dcard.empty { border-style: dashed; }
+    .dcard-head {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 12px 16px; cursor: pointer;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      background: var(--surface-base, #0a0e1a);
+    }
+    .dcard-head:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: -2px; }
+    .ring-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto;
+      background: var(--text-mute, #64748b); box-shadow: 0 0 0 3px rgba(100,116,139,0.12); }
+    .dcard-filename { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; min-width: 0; }
+    .dcard-checked { font-size: 0.72rem; color: var(--text-mute, #64748b);
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
+    .change-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--status-warn, #f59e0b); border: 1px solid rgba(245,158,11,0.45);
+      background: rgba(245,158,11,0.08); border-radius: 999px; padding: 3px 10px;
+    }
+    .attested-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+      color: #34d399; border: 1px solid rgba(23,107,60,0.7);
+      background: rgba(23,107,60,0.14); border-radius: 999px; padding: 3px 10px;
+    }
+    .dcard-head-spacer { flex: 1 1 auto; }
+    .dcard-body { display: grid; grid-template-columns: 1.35fr 1fr 1fr; align-items: start; }
+    .dpane { padding: 14px 16px 16px; min-width: 0; border-left: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .dpane:first-child { border-left: none; }
+    @media (max-width: 900px) {
+      .dcard-body { grid-template-columns: 1fr; }
+      .dpane { border-left: none; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+      .dpane:first-child { border-top: none; }
+    }
+    .dpane-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 10px; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+    }
+    .report-collapsed { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .mini-ring {
+      width: 36px; height: 36px; border-radius: 50%; flex: 0 0 auto;
+      border: 4px solid var(--text-mute, #64748b);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.92rem; line-height: 1; color: var(--text-prime, #f1f5f9);
+    }
+    .report-counts { font-size: 0.84rem; color: var(--text-sec, #94a3b8); line-height: 1.45; min-width: 0; }
+    .report-counts strong { color: var(--text-prime, #f1f5f9); }
+    .report-expanded { margin-top: 12px; }
+    .pane-note { font-size: 0.78rem; color: var(--text-mute, #64748b); line-height: 1.5; }
+    .pack-generated-line { font-size: 0.8rem; color: var(--text-sec, #94a3b8); margin-bottom: 10px;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+    .history-drawer { border-top: 1px dashed var(--border-mid, rgba(148,163,184,0.2)); padding: 10px 16px 14px; }
+    .hist-head { font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600; margin-bottom: 8px; }
+    .hist-item { padding: 7px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.8rem; color: var(--text-sec, #94a3b8); line-height: 1.5; }
+    .hist-item:first-of-type { border-top: none; }
+    .hist-date { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 0.72rem;
+      color: var(--text-mute, #64748b); margin-right: 8px; }
   </style>
 
   <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
@@ -412,42 +490,34 @@
     </div>
 
     <div class="panes">
-      <!-- Pane 1 — Documents (5 monitored slots) -->
-      <section class="pane pane-docs" aria-label="Documents">
-        <h2 class="section-head">Documents</h2>
-        <div id="doc-list">
-          <div class="state-msg"><div class="spinner"></div>Loading your vault…</div>
-        </div>
+      <!-- DOCV-ROOM-003 (AM-004 §B4) — per-slot document-set cards:
+           each occupied slot is ONE card (header strip + Exposure Report first,
+           collapsed · Contract · Solicitor Preparation Pack, side by side). -->
+      <section id="vault-cards" aria-label="Documents">
+        <div class="state-msg"><div class="spinner"></div>Loading your vault…</div>
       </section>
 
-      <!-- Pane 2 — Exposure report -->
-      <section class="pane pane-exposure" aria-label="Exposure report">
-        <h2 class="section-head">Exposure report</h2>
-        <div id="exposure">
-          <div class="state-msg">Select a document to see its exposure report.</div>
-        </div>
-      </section>
+      <!-- Lower controls — attestation + notification prefs (§B4 write surface) + notes -->
+      <div class="lower-grid">
+        <section class="pane" aria-label="Record a solicitor attestation">
+          <h2 class="section-head">Record a solicitor attestation</h2>
+          <div id="attestation">
+            <div class="state-msg">Select a document to record an attestation.</div>
+          </div>
+        </section>
 
-      <!-- Pane 3 — Solicitor pack + attestation + notifications -->
-      <section class="pane pane-side" aria-label="Solicitor pack, attestation and notification settings">
-        <h2 class="section-head">Solicitor pack</h2>
-        <div id="solicitor-pack">
-          <div class="state-msg">Select a document to prepare its solicitor pack.</div>
-        </div>
+        <section class="pane" aria-label="Notification settings">
+          <h2 class="section-head">Notification settings</h2>
+          <div id="notifications">
+            <div class="state-msg"><div class="spinner"></div>Loading your settings…</div>
+          </div>
+        </section>
 
-        <h2 class="section-head spaced">Record a solicitor attestation</h2>
-        <div id="attestation">
-          <div class="state-msg">Select a document to record an attestation.</div>
-        </div>
-
-        <h2 class="section-head spaced">Notification settings</h2>
-        <div id="notifications">
-          <div class="state-msg"><div class="spinner"></div>Loading your settings…</div>
-        </div>
-
-        <h2 class="section-head spaced">Notes</h2>
-        <div id="vault-notes"></div>
-      </section>
+        <section class="pane" aria-label="Notes">
+          <h2 class="section-head">Notes</h2>
+          <div id="vault-notes"></div>
+        </section>
+      </div>
     </div>
 
     <footer class="vault-footer">AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720.</footer>
@@ -656,13 +726,14 @@
     // ---- State ----
     var docs = [];
     var selectedId = null;
+    var expandedDocId = null;    // DOCV-ROOM-003 — report accordion: only one slot's report expanded at a time
+    var cardState = {};          // docId -> { overlay, att, findings, recheck, pack, historyLoaded, els }
     var aceiByKey = new Map();   // category_key  -> {number,label,hex}
     var aceiByNum = new Map();   // category_number -> {number,label,hex}
     var gsoMap = new Map();      // cluster_key   -> display_label
 
     // ---- DOM refs ----
-    var listEl   = document.getElementById('doc-list');
-    var expEl    = document.getElementById('exposure');
+    var listEl   = document.getElementById('vault-cards');
     var attestEl = document.getElementById('attestation');
     var notifEl  = document.getElementById('notifications');
     var badgeEl  = document.getElementById('tier-badge');
@@ -892,72 +963,168 @@
       clear(listEl);
       for (var i = 0; i < SLOT_COUNT; i++) {
         var doc = docs[i] || null;
-        listEl.appendChild(doc ? buildFilledSlot(doc, i) : buildEmptySlot(i));
+        listEl.appendChild(doc ? buildFilledCard(doc, i) : buildEmptyCard(i));
       }
     }
     function markSelected() {
-      Array.prototype.forEach.call(listEl.querySelectorAll('.slot'), function (c) {
+      Array.prototype.forEach.call(listEl.querySelectorAll('.dcard'), function (c) {
         c.classList.toggle('selected', c.getAttribute('data-doc-id') === selectedId);
       });
     }
-    function buildFilledSlot(doc, idx) {
-      var card = el('div', 'slot filled');
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
+    // Header chip: "Contract n/3" for contract slots (position among contract-typed slots),
+    // plain type label for Policy / Staff Handbook (AM-004 §B4 header strip).
+    function typeChipLabel(idx, t) {
+      if (t !== 'employment_contract') return TYPE_LABEL[t] || 'Document';
+      var total = 0, n = 0;
+      for (var i = 0; i < SLOT_COUNT; i++) {
+        var d = docs[i];
+        var ti = d ? (readType(d.id) || SLOT_DEFS[i]) : SLOT_DEFS[i];
+        if (ti === 'employment_contract') { total++; if (i <= idx) n++; }
+      }
+      return 'Contract ' + n + '/' + total;
+    }
+
+    // ---- DOCV-ROOM-003 (AM-004 §B4) — one card per occupied slot:
+    //      header strip + ① Exposure Report (collapsed-first) ② Contract ③ Pack ----
+    function buildFilledCard(doc, idx) {
+      var card = el('div', 'dcard');
       card.setAttribute('data-doc-id', doc.id);
       if (doc.id === selectedId) card.classList.add('selected');
-
-      var head = el('div', 'slot-head');
-      var dot = el('span', 'doc-dot'); dot.title = 'Status pending';
-      head.appendChild(dot);
       var t = readType(doc.id) || SLOT_DEFS[idx];
-      head.appendChild(el('span', 'slot-type-tag', TYPE_LABEL[t] || 'Document'));
+
+      // Header strip: RAG ring · type chip · filename · last-checked · change chip · attested badge
+      var head = el('div', 'dcard-head');
+      head.setAttribute('role', 'button');
+      head.setAttribute('tabindex', '0');
+      head.setAttribute('aria-label', 'Select ' + (doc.filename || 'document'));
+      var dot = el('span', 'ring-dot'); dot.title = 'Status pending';
+      head.appendChild(dot);
+      head.appendChild(el('span', 'slot-type-tag', typeChipLabel(idx, t)));
+      head.appendChild(el('span', 'dcard-filename', doc.filename || 'Untitled document'));
+      var checked = el('span', 'dcard-checked', 'Added ' + fmtDate(doc.created_at));
+      head.appendChild(checked);
+      var changeChip = el('span', 'change-chip'); changeChip.hidden = true;
+      head.appendChild(changeChip);
+      var attChip = el('span', 'attested-chip'); attChip.hidden = true;
+      head.appendChild(attChip);
+      head.appendChild(el('span', 'dcard-head-spacer'));
+      var histBtn = el('button', 'btn-mini', 'History'); histBtn.type = 'button';
+      histBtn.title = 'Recent checks on this document';
+      head.appendChild(histBtn);
       card.appendChild(head);
 
-      card.appendChild(el('div', 'slot-filename', doc.filename || 'Untitled document'));
-      var metaBits = ['Added ' + fmtDate(doc.created_at), 'Monitored'];
-      if (doc.analysis_status) metaBits.push(String(doc.analysis_status));
-      card.appendChild(el('div', 'slot-meta', metaBits.join(' · ')));
+      var body = el('div', 'dcard-body');
 
-      // Honest first-check-failure note (DOCV-ROOM-RECTIFY-001 §4); shown by paintDot
+      // ① Exposure Report — FIRST, collapsed by default (accordion)
+      var repPane = el('div', 'dpane dpane-report');
+      var repHead = el('div', 'dpane-head');
+      repHead.appendChild(el('span', null, 'Exposure Report'));
+      var pdfBtn = el('button', 'btn-mini', 'PDF'); pdfBtn.type = 'button'; pdfBtn.disabled = true;
+      pdfBtn.title = 'Download exposure report (PDF)';
+      repHead.appendChild(pdfBtn);
+      repPane.appendChild(repHead);
+      var collapsed = el('div', 'report-collapsed');
+      var miniRing = el('div', 'mini-ring', '·');
+      collapsed.appendChild(miniRing);
+      var counts = el('div', 'report-counts', 'Loading the report…');
+      collapsed.appendChild(counts);
+      var expandBtn = el('button', 'btn-mini', 'Expand report'); expandBtn.type = 'button';
+      expandBtn.disabled = true;
+      expandBtn.setAttribute('aria-expanded', 'false');
+      collapsed.appendChild(expandBtn);
+      repPane.appendChild(collapsed);
+      var expanded = el('div', 'report-expanded'); expanded.hidden = true;
+      repPane.appendChild(expanded);
+      var pdfMsg = el('div', 'form-msg'); pdfMsg.hidden = true;
+      repPane.appendChild(pdfMsg);
+      body.appendChild(repPane);
+
+      // ② Contract (the uploaded document) — Stage C replace / honest-delete controls untouched
+      var conPane = el('div', 'dpane dpane-contract');
+      var conHead = el('div', 'dpane-head');
+      conHead.appendChild(el('span', null, TYPE_LABEL[t] || 'Document'));
+      conPane.appendChild(conHead);
+      conPane.appendChild(el('div', 'slot-filename', doc.filename || 'Untitled document'));
+      var metaBits = ['Uploaded ' + fmtDate(doc.created_at), 'Monitored'];
+      if (doc.analysis_status) metaBits.push(String(doc.analysis_status));
+      conPane.appendChild(el('div', 'slot-meta', metaBits.join(' · ')));
+      // Honest first-check-failure note (DOCV-ROOM-RECTIFY-001 §4); shown by paintCard
       // only when a check was attempted but no overlay landed.
       var checkNote = el('div', 'slot-checknote'); checkNote.hidden = true;
-      card.appendChild(checkNote);
-
+      conPane.appendChild(checkNote);
       var actions = el('div', 'slot-actions');
       var rep = el('button', 'btn-mini', 'Replace'); rep.type = 'button';
       rep.addEventListener('click', function (e) { e.stopPropagation(); openReplace(doc, card, idx); });
       var rem = el('button', 'btn-mini danger', 'Remove'); rem.type = 'button';
       rem.addEventListener('click', function (e) { e.stopPropagation(); confirmRemove(doc, card); });
       actions.appendChild(rep); actions.appendChild(rem);
-      card.appendChild(actions);
-
+      conPane.appendChild(actions);
       var work = el('div', 'slot-work'); work.style.display = 'none';
       work.addEventListener('click', function (e) { e.stopPropagation(); });
-      card.appendChild(work);
+      conPane.appendChild(work);
+      body.appendChild(conPane);
 
-      function open() { selectDoc(doc.id); }
-      card.addEventListener('click', open);
-      card.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      // ③ Solicitor Preparation Pack — state-aware (generated / entitled / not entitled)
+      var packPane = el('div', 'dpane dpane-pack');
+      var packHead = el('div', 'dpane-head');
+      packHead.appendChild(el('span', null, 'Solicitor Preparation Pack'));
+      packPane.appendChild(packHead);
+      var packBody = el('div');
+      packBody.appendChild(el('div', 'pane-note', 'Checking your included packs…'));
+      packPane.appendChild(packBody);
+      body.appendChild(packPane);
+
+      card.appendChild(body);
+
+      // §3 — slim history drawer (last 5 vault_recheck_log entries, lazy-loaded)
+      var drawer = el('div', 'history-drawer'); drawer.hidden = true;
+      card.appendChild(drawer);
+
+      cardState[doc.id] = cardState[doc.id] || {};
+      cardState[doc.id].els = {
+        card: card, dot: dot, checked: checked, changeChip: changeChip, attChip: attChip,
+        miniRing: miniRing, counts: counts, expandBtn: expandBtn, expanded: expanded,
+        pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody, checkNote: checkNote, drawer: drawer
+      };
+      // A rebuild (renderSlots) must not desync the accordion: restore this card's
+      // open state — paintReportPane re-renders the findings once data lands.
+      if (expandedDocId === doc.id) {
+        expandBtn.textContent = 'Collapse report';
+        expandBtn.setAttribute('aria-expanded', 'true');
+        expanded.hidden = false;
+      }
+
+      function selectOnly() { selectDoc(doc.id); }
+      head.addEventListener('click', selectOnly);
+      head.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectOnly(); }
       });
+      histBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleHistory(doc.id); });
+      expandBtn.addEventListener('click', function (e) { e.stopPropagation(); selectDoc(doc.id); toggleReport(doc.id); });
 
-      paintDot(doc, dot, card);
+      loadCardData(doc);
       return card;
     }
-    function buildEmptySlot(idx) {
-      var card = el('div', 'slot empty');
+    function buildEmptyCard(idx) {
+      var card = el('div', 'dcard empty');
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
       var def = SLOT_DEFS[idx];
 
+      var head = el('div', 'dcard-head');
+      head.appendChild(el('span', 'slot-type-tag', TYPE_LABEL[def] || 'Document'));
+      head.appendChild(el('span', 'dcard-checked', 'Empty slot'));
+      card.appendChild(head);
+
       var body = el('div', 'slot-empty-body');
+      body.style.cssText = 'padding:14px 16px 18px;text-align:center;';
       body.appendChild(el('div', 'slot-empty-plus', '+'));
       body.appendChild(el('div', 'slot-empty-label', 'Add ' + (TYPE_LABEL[def] || 'document')));
       body.appendChild(el('div', 'slot-empty-hint', 'Empty slot · click to add a document'));
       card.appendChild(body);
 
       var work = el('div', 'slot-work'); work.style.display = 'none';
+      work.style.padding = '0 16px 16px';
       work.addEventListener('click', function (e) { e.stopPropagation(); });
       card.appendChild(work);
 
@@ -1243,11 +1410,11 @@
         recordDeletionAudit(doc.id);
         clearType(doc.id);
         clearCheckAttempted(doc.id);
+        if (expandedDocId === doc.id) expandedDocId = null;
+        delete cardState[doc.id];
         if (selectedId === doc.id) {
           selectedId = null;
-          msg(expEl, 'Select a document to see its exposure report.');
           msg(attestEl, 'Select a document to record an attestation.');
-          renderPackSlot(null);
           renderNotes(null);
         }
         loadSlots();
@@ -1269,53 +1436,254 @@
       });
     }
 
-    function paintDot(doc, dot, card) {
-      var note = card ? card.querySelector('.slot-checknote') : null;
-      Promise.all([
+    // ===========================================================
+    //  DOCV-ROOM-003 — per-card data + painting (AM-004 §B4)
+    // ===========================================================
+    // Shared pack entitlement (one read; refreshed from responses after generation).
+    var entState = { allow: 5, used: 0 };
+    var entPromise = null;
+    function loadEntitlementOnce() {
+      if (!entPromise) {
+        entPromise = getJson('/vault_solicitor_pack_entitlement?user_id=eq.' + uid +
+                '&select=free_allowance,packs_used,period_end&order=period_start.desc&limit=1')
+          .then(function (rows) {
+            var r = rows && rows[0];
+            if (r) {
+              entState.allow = (typeof r.free_allowance === 'number') ? r.free_allowance : 5;
+              entState.used = (typeof r.packs_used === 'number') ? r.packs_used : 0;
+            }
+            return entState;
+          })
+          .catch(function () { return entState; });
+      }
+      return entPromise;
+    }
+
+    // A pack is "generated" only while its live row still points at the CURRENT check
+    // (upload_id match) — the same test generate-solicitor-pack uses for free re-access.
+    function packIsGenerated(st) {
+      return !!(st && st.pack && st.overlay && st.overlay.upload_id && st.pack.upload_id === st.overlay.upload_id);
+    }
+
+    function loadCardData(doc) {
+      var st = cardState[doc.id];
+      if (!st || !st.els) return;
+      return Promise.all([
         getJson('/vault_contract_records?document_id=eq.' + doc.id +
-                '&select=status_band,critical_gaps,upload_id,created_at&order=created_at.desc&limit=1')
+                '&select=status_band,compliance_score,critical_gaps,key_finding,upload_id,created_at&order=created_at.desc&limit=1')
           .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
         getJson('/vault_document_attestation?document_id=eq.' + doc.id +
-                '&superseded_at=is.null&select=solicitor_name&order=attested_on.desc&limit=1')
-          .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; })
+                '&superseded_at=is.null&select=solicitor_name,firm,sra_no,attested_on,document_version&order=attested_on.desc&limit=1')
+          .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
+        getJson('/vault_recheck_log?document_id=eq.' + doc.id +
+                '&select=run_at,change_detected,change_summary&order=run_at.desc&limit=1')
+          .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
+        getJson('/vault_solicitor_packs?document_id=eq.' + doc.id +
+                '&superseded_at=is.null&select=upload_id,pack_version,created_at&order=created_at.desc&limit=1')
+          .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
+        loadEntitlementOnce()
       ]).then(function (res) {
-        var status = deriveStatus(res[1], res[0], null);
-        if (status) {
-          dot.style.background = RING_HEX[status];
-          dot.style.boxShadow = '0 0 0 3px ' + RING_HEX[status] + '33';
-          dot.title = status === 'green' ? 'Solicitor-Verified'
-                    : status === 'red' ? 'Significant gaps identified' : 'Ready for solicitor review';
-          if (note) { note.hidden = true; note.textContent = ''; }
-        } else if (isCheckAttempted(doc.id)) {
-          // Attempted but no overlay landed — surface honestly (DOCV-ROOM-RECTIFY-001 §4).
-          dot.title = 'First check didn’t complete — saved and monitored';
-          if (note) {
-            note.textContent = 'First check didn’t complete — saved & monitored. Use Replace to try again.';
-            note.hidden = false;
-          }
-        } else {
-          dot.title = 'No analysis yet';
-          if (note) { note.hidden = true; note.textContent = ''; }
-        }
+        st.overlay = res[0]; st.att = res[1]; st.recheck = res[2]; st.pack = res[3];
+        return (st.overlay && st.overlay.upload_id)
+          ? getJson('/compliance_findings?upload_id=eq.' + st.overlay.upload_id +
+                    '&select=severity,clause_category,statutory_ref,finding_detail,is_forward_looking,acei_weights,gso_cluster&order=severity.asc')
+              .catch(function () { return []; })
+          : [];
+      }).then(function (findings) {
+        st.findings = findings || [];
+        paintCard(doc);
       });
+    }
+    function refreshCard(docId) {
+      var doc = docById(docId);
+      if (doc) loadCardData(doc);
+    }
+
+    function paintCard(doc) {
+      var st = cardState[doc.id];
+      if (!st || !st.els) return;
+      var e = st.els;
+      var status = deriveStatus(st.att, st.overlay, st.findings);
+
+      // Header — RAG ring (existing semantics; green attested-only)
+      if (status) {
+        e.dot.style.background = RING_HEX[status];
+        e.dot.style.boxShadow = '0 0 0 3px ' + RING_HEX[status] + '33';
+        e.dot.title = status === 'green' ? 'Solicitor-Verified'
+                    : status === 'red' ? 'Significant gaps identified' : 'Ready for solicitor review';
+        e.checkNote.hidden = true; e.checkNote.textContent = '';
+      } else if (isCheckAttempted(doc.id)) {
+        // Attempted but no overlay landed — surface honestly (DOCV-ROOM-RECTIFY-001 §4).
+        e.dot.style.background = ''; e.dot.style.boxShadow = '';
+        e.dot.title = 'First check didn’t complete — saved and monitored';
+        e.checkNote.textContent = 'First check didn’t complete — saved & monitored. Use Replace to try again.';
+        e.checkNote.hidden = false;
+      } else {
+        e.dot.style.background = ''; e.dot.style.boxShadow = '';
+        e.dot.title = 'No analysis yet';
+        e.checkNote.hidden = true; e.checkNote.textContent = '';
+      }
+
+      // Header — last-checked date
+      e.checked.textContent = (st.overlay && st.overlay.created_at)
+        ? 'Last checked ' + fmtDate(st.overlay.created_at)
+        : 'Added ' + fmtDate(doc.created_at);
+
+      // Header — "what changed" chip (latest recheck row, change_detected=true)
+      if (st.recheck && st.recheck.change_detected === true) {
+        e.changeChip.textContent = 'Updated after a law change — ' + fmtDate(st.recheck.run_at);
+        e.changeChip.hidden = false;
+      } else { e.changeChip.hidden = true; }
+
+      // Header — §3 Attested badge with date
+      if (st.att && st.att.attested_on) {
+        e.attChip.textContent = 'Attested ' + fmtDate(st.att.attested_on);
+        e.attChip.hidden = false;
+      } else { e.attChip.hidden = true; }
+
+      paintReportPane(doc);
+      renderPackPane(doc);
+    }
+
+    // ---- ① Exposure Report pane: collapsed strip (ring + counts + Expand) ----
+    function paintReportPane(doc) {
+      var st = cardState[doc.id]; var e = st.els;
+      var status = deriveStatus(st.att, st.overlay, st.findings);
+      if (status === 'green') { e.miniRing.style.borderColor = RING_HEX.green; e.miniRing.textContent = '✓'; }
+      else if (status === 'red') { e.miniRing.style.borderColor = RING_HEX.red; e.miniRing.textContent = '!'; }
+      else if (status === 'amber') { e.miniRing.style.borderColor = RING_HEX.amber; e.miniRing.textContent = '◐'; }
+      else { e.miniRing.style.borderColor = ''; e.miniRing.textContent = isCheckAttempted(doc.id) ? '–' : '·'; }
+
+      if (!st.overlay || !st.overlay.upload_id) {
+        clear(e.counts);
+        e.counts.appendChild(document.createTextNode(isCheckAttempted(doc.id)
+          ? 'We couldn’t complete the first check — your document is saved and monitored. We’ll re-check on the next relevant change in the law, or use Replace to try again.'
+          : 'This document has not been checked yet.'));
+        e.expandBtn.disabled = true;
+        e.pdfBtn.disabled = true;
+        if (expandedDocId === doc.id) collapseReport(doc.id);
+        return;
+      }
+
+      var inforce = (st.findings || []).filter(function (f) { return !f.is_forward_looking; });
+      var sig = inforce.filter(function (f) { return f.severity === 'critical'; }).length;
+      clear(e.counts);
+      var line = el('div');
+      line.appendChild(el('strong', null, String(sig)));
+      line.appendChild(document.createTextNode(' significant gap' + (sig === 1 ? '' : 's') + ' · '));
+      line.appendChild(el('strong', null, String(inforce.length)));
+      line.appendChild(document.createTextNode(' area' + (inforce.length === 1 ? '' : 's') + ' reviewed'));
+      e.counts.appendChild(line);
+      e.expandBtn.disabled = false;
+      e.pdfBtn.disabled = false;
+      if (!e.pdfWired) {
+        e.pdfWired = true;
+        e.pdfBtn.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var cur = cardState[doc.id];
+          if (cur && cur.overlay && cur.overlay.upload_id) downloadPdf(cur.overlay.upload_id, e.pdfBtn, e.pdfMsg);
+        });
+      }
+      // If this card's report is open, repaint it from the fresh state.
+      if (expandedDocId === doc.id) renderReportInto(doc.id);
+    }
+
+    // ---- Accordion: only one slot's report expanded at a time (§B4 ①) ----
+    function toggleReport(docId) {
+      if (expandedDocId === docId) { collapseReport(docId); return; }
+      if (expandedDocId) collapseReport(expandedDocId);
+      var st = cardState[docId];
+      if (!st || !st.els || !st.overlay || !st.overlay.upload_id) return;
+      expandedDocId = docId;
+      st.els.expandBtn.textContent = 'Collapse report';
+      st.els.expandBtn.setAttribute('aria-expanded', 'true');
+      renderReportInto(docId);
+      st.els.expanded.hidden = false;
+    }
+    function collapseReport(docId) {
+      var st = cardState[docId];
+      if (st && st.els) {
+        st.els.expanded.hidden = true;
+        clear(st.els.expanded);
+        st.els.expandBtn.textContent = 'Expand report';
+        st.els.expandBtn.setAttribute('aria-expanded', 'false');
+      }
+      if (expandedDocId === docId) expandedDocId = null;
+    }
+    // Renders the existing findings list inline into the card's report pane.
+    function renderReportInto(docId) {
+      var st = cardState[docId];
+      if (!st || !st.els) return;
+      var host = st.els.expanded;
+      clear(host);
+      var overlay = st.overlay, findings = st.findings || [], att = st.att;
+      var status = deriveStatus(att, overlay, findings);
+      host.appendChild(buildStatusBlock(status, att));
+      var inforce = findings.filter(function (f) { return !f.is_forward_looking; });
+      var forward = findings.filter(function (f) { return !!f.is_forward_looking; });
+      var gsoFindings = inforce.filter(function (f) { return !!f.gso_cluster; });
+      var riskFindings = inforce.filter(function (f) { return !f.gso_cluster; });
+      host.appendChild(buildMagnitude(inforce));
+      var packGen = packIsGenerated(st);
+      sortBySeverity(riskFindings).forEach(function (f) { host.appendChild(buildFinding(f, packGen)); });
+      if (gsoFindings.length) host.appendChild(buildGsoBand(gsoFindings));
+      if (forward.length) host.appendChild(buildForward(forward));
+    }
+
+    // ---- §3 — history drawer: last 5 vault_recheck_log entries (quiet history) ----
+    function toggleHistory(docId) {
+      var st = cardState[docId];
+      if (!st || !st.els) return;
+      var drawer = st.els.drawer;
+      if (!drawer.hidden) { drawer.hidden = true; return; }
+      drawer.hidden = false;
+      if (st.historyLoaded) return;
+      clear(drawer);
+      drawer.appendChild(el('div', 'hist-head', 'Check history'));
+      drawer.appendChild(el('div', 'hist-item', 'Loading…'));
+      getJson('/vault_recheck_log?document_id=eq.' + docId +
+              '&select=run_at,change_detected,change_summary,new_status_band&order=run_at.desc&limit=5')
+        .then(function (rows) {
+          st.historyLoaded = true;
+          clear(drawer);
+          drawer.appendChild(el('div', 'hist-head', 'Check history'));
+          if (!rows || !rows.length) {
+            drawer.appendChild(el('div', 'hist-item',
+              'No re-checks on record yet — a check runs when a relevant change enters our intelligence.'));
+            return;
+          }
+          rows.forEach(function (r) {
+            var it = el('div', 'hist-item');
+            it.appendChild(el('span', 'hist-date', fmtDate(r.run_at)));
+            var summary = (r.change_summary && String(r.change_summary).trim())
+              ? String(r.change_summary)
+              : (r.change_detected ? 'Change detected — analysis updated.' : 'Re-checked — no material change.');
+            it.appendChild(document.createTextNode(summary));
+            drawer.appendChild(it);
+          });
+        })
+        .catch(function () {
+          clear(drawer);
+          drawer.appendChild(el('div', 'hist-head', 'Check history'));
+          drawer.appendChild(el('div', 'hist-item', 'Couldn’t load the history right now.'));
+        });
     }
 
     // ===========================================================
-    //  PANE 2 — Exposure report  +  PANE 3 — Attestation
+    //  Selection — attestation + notes track the selected card
+    //  (the report + pack render per card; DOCV-ROOM-003)
     // ===========================================================
     function selectDoc(docId) {
       selectedId = docId;
       markSelected();
-      loadExposure(docId);
       renderAttestation(docId);
-      renderPackSlot(docId);
       renderNotes(docId);
     }
 
-    // DOCV-ROOM-RECTIFY-001 §4A — on first load, auto-select a document so its
-    // exposure report + solicitor-pack render immediately (no manual click),
-    // matching the "document and its report side-by-side" intent. Prefer the
-    // most-recently-checked occupied slot; fall back to the first occupied slot.
+    // DOCV-ROOM-RECTIFY-001 §4A successor — on first load, auto-select a card so the
+    // attestation + notes controls are live without a manual click. Reports stay
+    // collapsed-first (AM-004 §B4 — Director direction). Prefer the most-recently-
+    // checked occupied slot; fall back to the first occupied slot.
     function autoSelectInitial() {
       if (selectedId || !docs.length) return;
       var ids = docs.map(function (d) { return d.id; });
@@ -1326,67 +1694,6 @@
           if (!selectedId) selectDoc(checked ? rows[0].document_id : docs[0].id);
         })
         .catch(function () { if (!selectedId) selectDoc(docs[0].id); });
-    }
-
-    function loadExposure(docId) {
-      loading(expEl, 'Loading the exposure report…');
-      getJson('/vault_contract_records?document_id=eq.' + docId +
-              '&select=status_band,compliance_score,critical_gaps,key_finding,upload_id,created_at&order=created_at.desc&limit=1')
-        .then(function (rows) {
-          var overlay = (rows && rows[0]) || null;
-          var uploadId = overlay && overlay.upload_id;
-          var fFindings = uploadId
-            ? getJson('/compliance_findings?upload_id=eq.' + uploadId +
-                      '&select=severity,clause_category,statutory_ref,finding_detail,is_forward_looking,acei_weights,gso_cluster&order=severity.asc')
-                .catch(function () { return []; })
-            : Promise.resolve([]);
-          var fAtt = getJson('/vault_document_attestation?document_id=eq.' + docId +
-                      '&superseded_at=is.null&select=solicitor_name,firm,sra_no,attested_on,document_version&order=attested_on.desc&limit=1')
-                .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; });
-          return Promise.all([Promise.resolve(overlay), fFindings, fAtt]);
-        })
-        .then(function (res) { renderExposure(res[0], res[1] || [], res[2], docId); })
-        .catch(function () { msg(expEl, "Couldn't load the exposure report right now. Please try again."); });
-    }
-
-    function renderExposure(overlay, findings, att, docId) {
-      clear(expEl);
-
-      // No landed overlay: distinguish "never attempted" from "attempted, didn't complete"
-      // (DOCV-ROOM-RECTIFY-001 §4) — a failed first check must not read as "not yet checked".
-      if (!overlay || !overlay.upload_id) {
-        var attempted = isCheckAttempted(docId);
-        expEl.appendChild(buildPendingBlock(attempted));
-        expEl.appendChild(el('div', 'state-msg', attempted
-          ? 'We couldn’t complete the first check — your document is saved and monitored. We’ll re-check on the next relevant change in the law, or use Replace to try again.'
-          : 'This document has not been checked yet.'));
-        return;
-      }
-
-      var status = deriveStatus(att, overlay, findings);
-
-      // ---- Status ring ----
-      expEl.appendChild(buildStatusBlock(status, att));
-
-      var inforce = findings.filter(function (f) { return !f.is_forward_looking; });
-      var forward = findings.filter(function (f) { return !!f.is_forward_looking; });
-      var gsoFindings = inforce.filter(function (f) { return !!f.gso_cluster; });
-      var riskFindings = inforce.filter(function (f) { return !f.gso_cluster; });
-
-      // ---- Exposure magnitude (counts, never a single score) ----
-      expEl.appendChild(buildMagnitude(inforce));
-
-      // ---- Per-finding risk blocks ----
-      sortBySeverity(riskFindings).forEach(function (f) { expEl.appendChild(buildFinding(f)); });
-
-      // ---- GSO neutral band ----
-      if (gsoFindings.length) expEl.appendChild(buildGsoBand(gsoFindings));
-
-      // ---- Forward exposure ----
-      if (forward.length) expEl.appendChild(buildForward(forward));
-
-      // ---- PDF download ----
-      expEl.appendChild(buildPdfRow(overlay.upload_id));
     }
 
     function buildStatusBlock(status, att) {
@@ -1421,20 +1728,8 @@
       return block;
     }
 
-    // DOCV-ROOM-RECTIFY-001 §4 — calm pending block: either never attempted or
-    // attempted-but-didn't-complete. Neutral ring; no red/amber alarm.
-    function buildPendingBlock(attempted) {
-      var block = el('div', 'status-block');
-      var ring = el('div', 'ring');
-      ring.textContent = attempted ? '–' : '·';
-      var txt = el('div', 'status-text');
-      txt.appendChild(el('div', 'status-label', attempted ? 'First check didn’t complete' : 'Not yet checked'));
-      txt.appendChild(el('div', 'status-sub', attempted
-        ? 'Your document is saved and monitored.'
-        : 'No analysis on record for this document yet.'));
-      block.appendChild(ring); block.appendChild(txt);
-      return block;
-    }
+    // (DOCV-ROOM-RECTIFY-001 §4's pending block is now expressed in the collapsed
+    //  report strip — see paintReportPane; the honest wording is unchanged.)
 
     var SEV_RANK = { critical: 0, major: 1, minor: 2, aligned: 3 };
     function sortBySeverity(arr) {
@@ -1457,7 +1752,7 @@
       return grid;
     }
 
-    function buildFinding(f) {
+    function buildFinding(f, packGenerated) {
       var box = el('div', 'finding');
 
       var head = el('div', 'finding-head');
@@ -1508,10 +1803,12 @@
         st.appendChild(document.createTextNode(String(f.statutory_ref)));
         box.appendChild(st);
       }
-      // For non-compliant (non-aligned) findings, a prompt to take to a solicitor.
-      if (f.severity && f.severity !== 'aligned') {
-        box.appendChild(el('div', 'solicitor-points',
-          'Points for your solicitor: raise this finding and its statutory basis when you instruct a solicitor.'));
+      // §B1 UI mirror (DOCV-ROOM-003 §2) — the per-finding guidance line carries the same
+      // entitlement-aware pointer as the PDF. Render-time only; no schema change.
+      if (f.severity && f.severity !== 'aligned' && f.severity !== 'compliant') {
+        box.appendChild(el('div', 'solicitor-points', packGenerated
+          ? 'Solicitor guidance for this finding is prepared in your Solicitor Preparation Pack.'
+          : 'Solicitor guidance for this finding is available in the Solicitor Preparation Pack — prepare it from this document’s card.'));
       }
       return box;
     }
@@ -1559,24 +1856,17 @@
       return fwd;
     }
 
-    function buildPdfRow(uploadId) {
-      var wrap = el('div', 'pdf-row');
-      var btn = el('button', 'btn-secondary');
-      btn.type = 'button';
-      if (!uploadId) {
-        btn.textContent = 'No analysis yet';
-        btn.disabled = true;
-      } else {
-        btn.textContent = 'Download exposure report (PDF)';
-        btn.addEventListener('click', function () { downloadPdf(uploadId, btn, wrap); });
-      }
-      wrap.appendChild(btn);
-      return wrap;
+    function triggerDownload(url, name) {
+      var a = document.createElement('a');
+      a.href = url; a.download = name || '';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} a.remove(); }, 1500);
     }
-    function downloadPdf(uploadId, btn, wrap) {
+    // PDF download — the button lives in the report pane header (§B4 ①); msgEl hosts errors.
+    function downloadPdf(uploadId, btn, msgEl) {
       var old = btn.textContent;
       btn.disabled = true; btn.textContent = 'Preparing…';
-      var existing = wrap.querySelector('.form-msg'); if (existing) existing.remove();
+      if (msgEl) msgEl.hidden = true;
       fetch(FN + '/generate-vault-report-pdf', {
         method: 'POST', headers: H, body: JSON.stringify({ upload_id: uploadId })
       })
@@ -1591,17 +1881,12 @@
           return r.blob().then(function (b) { return { blob: b, name: name }; });
         })
         .then(function (o) {
-          var url = URL.createObjectURL(o.blob);
-          var a = document.createElement('a');
-          a.href = url; a.download = o.name;
-          document.body.appendChild(a); a.click();
-          setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+          triggerDownload(URL.createObjectURL(o.blob), o.name);
           btn.disabled = false; btn.textContent = old;
         })
         .catch(function () {
           btn.disabled = false; btn.textContent = old;
-          var e = el('div', 'form-msg err', 'Could not prepare the PDF right now. Please try again.');
-          wrap.appendChild(e);
+          if (msgEl) showMsg(msgEl, 'Could not prepare the PDF right now. Please try again.', 'err');
         });
     }
 
@@ -1679,13 +1964,9 @@
             formMsg.textContent = 'Attestation recorded — this document is now Solicitor-Verified.';
             formMsg.className = 'form-msg ok'; formMsg.hidden = false;
             submit.disabled = false; submit.textContent = 'Record attestation';
-            // Re-run contract 5 by reloading the exposure pane → ring flips to green.
-            loadExposure(docId);
-            // Refresh the selected slot's status dot for this document.
-            var selSlot = listEl.querySelector('.slot.selected');
-            var dot = selSlot && selSlot.querySelector('.doc-dot');
-            var doc = docs.filter(function (d) { return d.id === docId; })[0];
-            if (dot && doc) paintDot(doc, dot, selSlot);
+            // Re-run contract 5 by refreshing the card → header ring flips to green,
+            // the Attested badge appears, and an open report repaints.
+            refreshCard(docId);
           })
           .catch(function () {
             submit.disabled = false; submit.textContent = 'Record attestation';
@@ -1776,91 +2057,120 @@
     }
 
     // ===========================================================
-    //  PANE 3 — Solicitor pack (wired to generate-solicitor-pack)
+    //  ③ Solicitor Preparation Pack pane — per card, state-aware
+    //  (generated → open/download · entitled → generate · not entitled → upsell)
     // ===========================================================
-    function renderPackSlot(docId) {
-      var host = document.getElementById('solicitor-pack');
-      if (!host) return;
+    function renderPackPane(doc) {
+      var st = cardState[doc.id];
+      if (!st || !st.els) return;
+      var host = st.els.packBody;
       clear(host);
-      if (!docId) { host.appendChild(el('div', 'state-msg', 'Select a document to prepare its solicitor pack.')); return; }
 
-      var wrap = el('div', 'pack-slot');
-      wrap.appendChild(el('h3', null, 'Solicitor pack'));
-      wrap.appendChild(el('p', null,
-        'The exposure report packaged for an external solicitor — the document, its findings and statutory references in one bundle.'));
-
-      var ent = el('div', 'pack-entitlement', 'Checking your included packs…');
-      wrap.appendChild(ent);
-
-      var btn = el('button', 'btn-primary', 'Prepare solicitor pack'); btn.type = 'button';
-      wrap.appendChild(btn);
+      if (!st.overlay || !st.overlay.upload_id) {
+        host.appendChild(el('div', 'pane-note',
+          'Run a check on this document first — the pack is prepared from its exposure findings.'));
+        host.appendChild(el('div', 'pack-condition5',
+          'This is groundwork for instructing a solicitor, not legal advice.'));
+        return;
+      }
 
       var pmsg = el('div', 'form-msg'); pmsg.hidden = true;
-      wrap.appendChild(pmsg);
 
-      wrap.appendChild(el('div', 'pack-condition5',
-        'This is groundwork for instructing a solicitor, not legal advice.'));
+      if (packIsGenerated(st)) {
+        // generated → open/download + generated date (free re-access while un-re-checked)
+        host.appendChild(el('div', 'pack-generated-line', 'Generated ' + fmtDate(st.pack.created_at)));
+        var openBtn = el('button', 'btn-primary', 'Open pack (PDF)'); openBtn.type = 'button';
+        openBtn.addEventListener('click', function (ev) { ev.stopPropagation(); requestPack(doc, openBtn, pmsg); });
+        host.appendChild(openBtn);
+      } else if (entState.used >= entState.allow) {
+        // not entitled → the ratified upsell copy + the entitlement path (no new pricing copy)
+        host.appendChild(el('div', 'pack-entitlement',
+          entState.used + ' of ' + entState.allow + ' included solicitor packs used this year.'));
+        var over = el('div', 'form-msg err',
+          'You’ve used your ' + entState.allow + ' included packs this year. Additional packs are £19.99 each.');
+        over.hidden = false;
+        host.appendChild(over);
+        var buy = el('button', 'btn-secondary pack-buy', 'Buy an additional pack (£19.99)');
+        buy.type = 'button'; buy.disabled = true; buy.title = 'Available soon'; buy.style.marginTop = '10px';
+        host.appendChild(buy);
+      } else {
+        // entitled, not generated → Generate (existing flow)
+        host.appendChild(el('div', 'pack-entitlement',
+          entState.used + ' of ' + entState.allow + ' included solicitor packs used this year.'));
+        var genBtn = el('button', 'btn-primary', 'Prepare solicitor pack'); genBtn.type = 'button';
+        genBtn.addEventListener('click', function (ev) { ev.stopPropagation(); requestPack(doc, genBtn, pmsg); });
+        host.appendChild(genBtn);
+      }
+      host.appendChild(pmsg);
+      // Condition 5 line + link to the prefs write surface (§B4 keeps #notifications as-is).
+      var note = el('div', 'pack-condition5');
+      note.appendChild(document.createTextNode('This is groundwork for instructing a solicitor, not legal advice. '));
+      var prefsLink = document.createElement('a');
+      prefsLink.href = '#notifications'; prefsLink.textContent = 'Notification settings';
+      note.appendChild(prefsLink);
+      note.appendChild(document.createTextNode(' control how we tell you about changes.'));
+      host.appendChild(note);
+    }
 
-      host.appendChild(wrap);
-      var packState = { allow: 5 };
-      loadEntitlement(ent, packState);
-      btn.addEventListener('click', function () { preparePack(docId, btn, ent, pmsg, packState); });
-    }
-    function loadEntitlement(entEl, st) {
-      getJson('/vault_solicitor_pack_entitlement?user_id=eq.' + uid +
-              '&select=free_allowance,packs_used,period_end&order=period_start.desc&limit=1')
-        .then(function (rows) {
-          var r = rows && rows[0];
-          if (!r) { entEl.textContent = '5 included solicitor packs this year.'; return; }
-          var allow = (typeof r.free_allowance === 'number') ? r.free_allowance : 5;
-          var used = (typeof r.packs_used === 'number') ? r.packs_used : 0;
-          if (st) st.allow = allow;
-          entEl.textContent = used + ' of ' + allow + ' included solicitor packs used this year.';
-        })
-        .catch(function () { entEl.textContent = '5 included solicitor packs this year.'; });
-    }
-    function preparePack(docId, btn, entEl, pmsg, st) {
+    // One call serves both states: generate-solicitor-pack streams a fresh PDF
+    // (entitlement unit consumed) OR returns JSON {pdf_url} for free re-access to
+    // the live pack of the current check — both land as a download here.
+    function requestPack(doc, btn, pmsg) {
+      var st = cardState[doc.id];
+      if (!st) return;
       var old = btn.textContent;
       btn.disabled = true; btn.textContent = 'Preparing…'; pmsg.hidden = true;
-      fetch(FN + '/generate-solicitor-pack', { method: 'POST', headers: H, body: JSON.stringify({ document_id: docId }) })
+      fetch(FN + '/generate-solicitor-pack', { method: 'POST', headers: H, body: JSON.stringify({ document_id: doc.id }) })
         .then(function (r) {
+          var ct = r.headers.get('Content-Type') || '';
+          if (r.status === 200 && ct.indexOf('application/json') !== -1) {
+            // Free re-access — signed URL to the stored pack; no entitlement unit used.
+            return r.json().then(function (d) {
+              if (!d || !d.pdf_url) throw new Error('pack json');
+              return fetch(d.pdf_url)
+                .then(function (fr) { if (!fr.ok) throw new Error('pack fetch ' + fr.status); return fr.blob(); })
+                .then(function (b) {
+                  triggerDownload(URL.createObjectURL(b), 'Ailane_Solicitor_Pack.pdf');
+                  btn.disabled = false; btn.textContent = old;
+                  st.pack = { upload_id: (st.overlay && st.overlay.upload_id) || null,
+                              created_at: d.generated_at || (st.pack && st.pack.created_at) || null };
+                  renderPackPane(doc);
+                });
+            });
+          }
           if (r.status === 200) {
             var remaining = r.headers.get('X-Packs-Remaining');
             var name = 'Ailane_Solicitor_Pack.pdf';
             var cd = r.headers.get('Content-Disposition');
             if (cd) { var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd); if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch (e) { name = m[1]; } } }
             return r.blob().then(function (b) {
-              var url = URL.createObjectURL(b);
-              var a = document.createElement('a'); a.href = url; a.download = name;
-              document.body.appendChild(a); a.click();
-              setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
-              btn.disabled = false; btn.textContent = old;
-              // X-Packs-Remaining refreshes the count; keep the single 'X of N used' phrasing.
-              if (remaining != null && entEl) {
-                var allow = (st && typeof st.allow === 'number') ? st.allow : 5;
-                var used = allow - parseInt(remaining, 10);
-                if (!isNaN(used)) entEl.textContent = Math.max(0, used) + ' of ' + allow + ' included solicitor packs used this year.';
-              }
-              showMsg(pmsg, 'Your solicitor pack has downloaded.', 'ok');
+              triggerDownload(URL.createObjectURL(b), name);
+              // X-Packs-Remaining refreshes the shared count; keep the 'X of N used' phrasing.
+              if (remaining != null) {
+                var rem = parseInt(remaining, 10);
+                if (!isNaN(rem)) entState.used = Math.max(0, entState.allow - rem);
+              } else { entState.used += 1; }
+              st.pack = { upload_id: (st.overlay && st.overlay.upload_id) || null, created_at: new Date().toISOString() };
+              renderPackPane(doc);
+              // §B1 mirror — an open report's finding lines flip to "prepared in your pack".
+              if (expandedDocId === doc.id) renderReportInto(doc.id);
             });
           }
           if (r.status === 402) {
-            btn.disabled = true; btn.textContent = old;
-            showMsg(pmsg, 'You’ve used your 5 included packs this year. Additional packs are £19.99 each.', 'err');
-            if (!pmsg.parentNode.querySelector('.pack-buy')) {
-              var buy = el('button', 'btn-secondary pack-buy', 'Buy an additional pack (£19.99)');
-              buy.type = 'button'; buy.disabled = true; buy.title = 'Available soon'; buy.style.marginTop = '10px';
-              pmsg.parentNode.insertBefore(buy, pmsg.nextSibling);
-            }
-            return;
+            // Overage — sync the shared entitlement from the response, re-render to the upsell state.
+            return r.json().catch(function () { return {}; }).then(function (d) {
+              if (d && typeof d.free_allowance === 'number') entState.allow = d.free_allowance;
+              if (d && typeof d.packs_used === 'number') entState.used = d.packs_used;
+              else entState.used = Math.max(entState.used, entState.allow);
+              renderPackPane(doc);
+            });
           }
           if (r.status === 409) {
             btn.disabled = false; btn.textContent = old;
             showMsg(pmsg, 'Run a check on this document first.', 'err');
             return;
           }
-          btn.disabled = false; btn.textContent = old;
-          showMsg(pmsg, 'Could not prepare the pack right now. Please try again.', 'err');
+          throw new Error('pack ' + r.status);
         })
         .catch(function () {
           btn.disabled = false; btn.textContent = old;
@@ -2048,7 +2358,6 @@
     loadPalettes().then(loadSlots).then(autoSelectInitial);
     loadNotifications();
     initNotifBell();
-    renderPackSlot(null);
     renderNotes(null);
   }
   </script>
