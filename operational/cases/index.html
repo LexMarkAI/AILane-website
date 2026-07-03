@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recent Cases — Operational — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) — copied verbatim from operational/documents/index.html; unchanged -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase CDN — FIRST script in head after GA4/CSP; auth guard polls for it -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- Fonts — the tokens.css families: DM Serif Display (display), DM Sans (body), JetBrains Mono (mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Room colour / typography source of truth -->
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--surface-void, #050c18); }
+    body {
+      background: var(--surface-void, #050c18);
+      color: var(--text-body, #e2e8f0);
+      font-family: var(--font-body, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+      min-height: 100vh; line-height: 1.55; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--tier-operational, #22d3ee); }
+    h1, h2, h3 { font-family: var(--font-display, 'DM Serif Display', Georgia, serif); font-weight: 400; }
+
+    /* ---- Top bar (shell chrome — verbatim from operational/documents/index.html) ---- */
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      padding: 14px 24px;
+      background: var(--surface-deep, #06080f);
+      border-bottom: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+    }
+    .brand {
+      font-family: var(--font-display, 'DM Serif Display', Georgia, serif);
+      font-size: 1.32rem; color: var(--text-prime, #f1f5f9); letter-spacing: 0.01em;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .topbar-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.86rem; font-weight: 600; text-decoration: none;
+      color: var(--tier-operational, #22d3ee);
+      padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .topbar-back:hover { border-color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.08); }
+    .topbar-back:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: 2px; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .tier-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 12px; border-radius: 999px;
+      font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      color: var(--text-sec, #94a3b8); background: var(--surface-glass, rgba(30,41,59,0.5));
+    }
+    .tier-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .monitor-counter {
+      font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+      font-size: 0.8rem; color: var(--text-sec, #94a3b8); letter-spacing: 0.02em;
+    }
+
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 24px 80px; }
+
+    /* ---- Standing disclaimer (verbatim) ---- */
+    .disclaimer-banner {
+      margin: 6px 0 24px; padding: 16px 18px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-left: 3px solid var(--tier-operational, #22d3ee);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      color: var(--text-body, #e2e8f0); font-size: 0.92rem; line-height: 1.6;
+    }
+    .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
+
+    /* ---- States (verbatim) ---- */
+    .state-msg { padding: 32px 16px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.92rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 26px; height: 26px; margin: 0 auto 14px; border: 3px solid rgba(34,211,238,0.15);
+      border-top-color: var(--tier-operational, #22d3ee); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Shell primitives the auth-guard step-up card depends on (verbatim) ---- */
+    .panes { display: block; }
+    .pane {
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-lg, 16px);
+      padding: 20px 20px 24px;
+    }
+    .section-head {
+      font-family: var(--font-body, 'DM Sans', sans-serif);
+      font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+      margin: 0 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.9rem;
+    }
+    .field input:focus { outline: none; border-color: var(--tier-operational, #22d3ee); }
+    .attest-intro { font-size: 0.82rem; color: var(--text-sec, #94a3b8); margin-bottom: 16px; line-height: 1.55; }
+    .btn-primary {
+      padding: 11px 20px; border: none; border-radius: var(--card-radius-sm, 8px);
+      background: var(--tier-operational, #22d3ee); color: #042027; font-family: inherit; font-weight: 700;
+      font-size: 0.88rem; cursor: pointer; transition: opacity 0.15s ease;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .form-msg { font-size: 0.82rem; margin-top: 12px; line-height: 1.5; }
+    .form-msg.err { color: var(--status-err, #ef4444); }
+    .form-msg.ok { color: var(--status-ok, #10b981); }
+
+    .vault-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.78rem; color: var(--text-mute, #64748b); text-align: center; }
+
+    /* ============================================================
+       OPERATIONAL-CASES-SITE-005 — Recent Cases surface:
+       two collapsible dropdown sections (Recent Cases · Enforcement)
+       modelled on the operational document-card toggle idiom.
+       ============================================================ */
+    #cases-root { display: flex; flex-direction: column; gap: 16px; }
+
+    .drop {
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-lg, 16px);
+      overflow: hidden; transition: border-color 0.15s ease;
+    }
+    .drop.open { border-color: rgba(34,211,238,0.35); }
+    .drop-head {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 14px 18px; cursor: pointer; text-align: left;
+      background: var(--surface-base, #0a0e1a);
+      border: none; border-bottom: 1px solid transparent;
+      color: var(--text-prime, #f1f5f9); font-family: inherit;
+    }
+    .drop.open .drop-head { border-bottom-color: var(--border-dim, rgba(148,163,184,0.12)); }
+    .drop-head:hover { background: rgba(34,211,238,0.04); }
+    .drop-head:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: -2px; }
+    .drop-caret { flex: 0 0 auto; color: var(--tier-operational, #22d3ee); font-size: 0.8rem;
+      transition: transform 0.15s ease; transform: rotate(0deg); }
+    .drop.open .drop-caret { transform: rotate(90deg); }
+    .drop-title { font-family: var(--font-body, 'DM Sans', sans-serif);
+      font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700;
+      color: var(--text-prime, #f1f5f9); }
+    .drop-count { font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 0.82rem; color: var(--text-sec, #94a3b8); letter-spacing: 0.01em; }
+    .drop-body { display: none; padding: 16px 18px 20px; }
+    .drop.open .drop-body { display: block; }
+    .drop-caption { font-size: 0.82rem; color: var(--text-sec, #94a3b8); line-height: 1.55; margin-bottom: 14px; }
+    .drop-foot { margin-top: 16px; padding-top: 12px;
+      border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.78rem; color: var(--text-mute, #64748b); line-height: 1.55; }
+
+    .cards { display: flex; flex-direction: column; gap: 10px; }
+    .case-card, .enf-card {
+      padding: 14px 15px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-sm, 8px);
+    }
+    .case-title {
+      font-weight: 600; font-size: 0.96rem; color: var(--text-prime, #f1f5f9);
+      text-decoration: none; word-break: break-word; display: inline-block;
+    }
+    a.case-title:hover { text-decoration: underline; }
+    .case-sub { margin-top: 3px; font-size: 0.86rem; color: var(--text-body, #e2e8f0); }
+    .case-tags { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 7px; }
+    .acei-chip {
+      display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5)); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.72rem; color: var(--text-body, #e2e8f0);
+    }
+    .acei-chip::before { content: ""; width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto;
+      background: var(--c, #64748b); }
+    .case-meta, .enf-meta { margin-top: 9px; font-size: 0.78rem; color: var(--text-mute, #64748b);
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; line-height: 1.6; }
+    .enf-org { font-weight: 600; font-size: 0.95rem; color: var(--text-prime, #f1f5f9); word-break: break-word; }
+    .src-link { display: inline-block; margin-top: 10px; font-size: 0.78rem; font-weight: 600;
+      color: var(--tier-operational, #22d3ee); text-decoration: none; }
+    .src-link:hover { text-decoration: underline; }
+  </style>
+
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+</head>
+<body style="visibility:hidden">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <!-- Back to the operational hub (hosts Eileen + the "Your workspace" nav) -->
+      <a class="topbar-back" href="/operational/" aria-label="Back to the operational hub">← Operational</a>
+      <div class="brand">Ailane Recent Cases</div>
+    </div>
+    <div class="topbar-right">
+      <!-- In-app notification bell (shell parity with the documents vault) — hidden
+           until populated; the Recent Cases surface does not wire vault notifications. -->
+      <div id="notif-bell-wrap" style="position:relative;" hidden>
+        <button id="notif-bell" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Notifications"
+                style="position:relative;background:transparent;border:none;color:var(--text-sec,#94a3b8);cursor:pointer;padding:8px;border-radius:8px;display:flex;align-items:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span id="notif-badge" hidden style="position:absolute;top:2px;right:2px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--tier-operational,#22d3ee);color:#042027;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-mono,'JetBrains Mono',monospace);line-height:1;"></span>
+        </button>
+        <div id="notif-list" hidden
+             role="region" aria-label="Notifications"
+             style="position:absolute;top:calc(100% + 8px);right:0;width:320px;max-width:86vw;background:var(--surface-card,#0c1525);border:1px solid var(--border-mid,rgba(148,163,184,0.2));border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:60;overflow:hidden;"></div>
+      </div>
+      <span class="tier-badge" id="tier-badge" hidden></span>
+      <span class="monitor-counter" id="monitor-counter"></span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="disclaimer-banner" role="note">
+      <strong>This is regulatory intelligence to support your decisions — not legal advice.</strong>
+      It is not a complete record of all applicable law, and the absence of an item here is not assurance
+      that nothing has changed. For advice on your own situation, consult a qualified professional.
+    </div>
+
+    <div class="panes">
+      <!-- Two collapsible dropdown sections rendered by initCases():
+           RECENT CASES (open) · ENFORCEMENT & REGULATORY (collapsed). -->
+      <section id="cases-root" aria-label="Recent cases">
+        <div class="state-msg"><div class="spinner"></div>Loading recent cases…</div>
+      </section>
+    </div>
+
+    <footer class="vault-footer">AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720.</footer>
+  </main>
+
+  <!-- AUTH GUARD — runs before the app renders (mirrors operational/documents/index.html, RULE 26/27 / AUTH-001).
+       Reveal-after-verify. MFA remains optional for NON-enrolled users; an MFA-enrolled
+       session at aal1 is stepped up here (AAL2-STEPUP-001, Stage C · C1) BEFORE the app
+       boots — otherwise the RESTRICTIVE aal2_required_when_enrolled policy silently
+       filters every read and the room renders empty. -->
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    // Live operational-room allow-list + institutional (AMD-123 successor to enterprise, tokens.css).
+    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
+
+    var settled = false;
+    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+
+    // Poll for the Supabase CDN to load.
+    var polls = 0;
+    (function waitForSb() {
+      if (window.supabase && window.supabase.createClient) { boot(); return; }
+      if (++polls > 60) { fail(); return; }
+      setTimeout(waitForSb, 100);
+    })();
+
+    function boot() {
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { verify(gs.data.session); return; }
+        // Fallback: session may still be hydrating — listen with a 6s timeout.
+        var to = setTimeout(function () {
+          try { sub.data.subscription.unsubscribe(); } catch (e) {}
+          fail();
+        }, 6000);
+        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+          if (session && !settled) {
+            clearTimeout(to);
+            try { sub.data.subscription.unsubscribe(); } catch (e) {}
+            verify(session);
+          }
+        });
+      }).catch(fail);
+
+      function verify(session) {
+        if (settled) return;
+        var token = session.access_token, payload;
+        try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return fail(); }
+        var userId = payload.sub;
+        fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) {
+            if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
+              settled = true;
+              document.body.style.visibility = 'visible';
+              maybeStepUp(token, userId);
+            } else { fail(); }
+          })
+          .catch(fail);
+      }
+
+      // ─── AAL2-STEPUP-001 (Stage C · C1) — MFA step-up before boot ───
+      function startApp(tok, userId) {
+        var panes = document.querySelector('.panes');
+        if (panes) panes.style.display = '';
+        var card = document.getElementById('stepup-card');
+        if (card) card.remove();
+        initCases(tok, SUPABASE_ANON, userId, SUPABASE_URL);
+      }
+
+      function maybeStepUp(token, userId) {
+        var mfa = sb.auth && sb.auth.mfa;
+        if (!mfa || !mfa.getAuthenticatorAssuranceLevel) { startApp(token, userId); return; }
+        mfa.getAuthenticatorAssuranceLevel().then(function (r) {
+          var d = r && r.data;
+          if (!(d && d.currentLevel === 'aal1' && d.nextLevel === 'aal2')) { startApp(token, userId); return; }
+          // Enrolled but aal1 → gate the room until the session is elevated.
+          mfa.listFactors().then(function (lf) {
+            var totp = ((lf && lf.data && lf.data.totp) || []).filter(function (f) { return f.status === 'verified'; });
+            renderStepUp(totp.length ? totp[0].id : null, userId, token);
+          }).catch(function () { renderStepUp(null, userId, token); });
+        }).catch(function () {
+          // AAL unreadable → never trap a tenant out; RLS still enforces server-side.
+          startApp(token, userId);
+        });
+      }
+
+      function renderStepUp(factorId, userId, aal1Token) {
+        var wrap = document.querySelector('.wrap');
+        var panes = document.querySelector('.panes');
+        if (panes) panes.style.display = 'none';
+        var old = document.getElementById('stepup-card');
+        if (old) old.remove();
+
+        var card = document.createElement('section');
+        card.className = 'pane';
+        card.id = 'stepup-card';
+        card.setAttribute('aria-label', 'Two-factor verification');
+        card.style.cssText = 'max-width:420px;margin:0 auto;text-align:center;';
+
+        function add(tag, cls, text) {
+          var n = document.createElement(tag);
+          if (cls) n.className = cls;
+          if (text != null) n.textContent = text;
+          card.appendChild(n);
+          return n;
+        }
+
+        add('h2', 'section-head', 'Confirm it’s you');
+
+        if (!factorId) {
+          // TOTP-less enrolment (e.g. a beta passkey) — /login/ owns the WebAuthn
+          // challenge ceremony; do not duplicate it here.
+          add('p', 'attest-intro', 'Your second step is set up with a method this page can’t verify here. Sign in again to confirm it’s you.');
+          var goBtn = add('button', 'btn-primary', 'Sign in again');
+          goBtn.type = 'button';
+          goBtn.addEventListener('click', function () {
+            var done = function () { window.location.replace('/login/'); };
+            try { sb.auth.signOut().then(done, done); } catch (e) { done(); }
+          });
+          wrap.insertBefore(card, panes);
+          goBtn.focus();
+          return;
+        }
+
+        add('p', 'attest-intro', 'Two-factor authentication is on for your account. Enter the 6-digit code from your authenticator app to open your recent cases.');
+
+        var field = add('div', 'field');
+        var input = document.createElement('input');
+        input.type = 'text'; input.id = 'stepup-code';
+        input.setAttribute('inputmode', 'numeric');
+        input.setAttribute('autocomplete', 'one-time-code');
+        input.maxLength = 6; input.placeholder = '123456';
+        input.setAttribute('aria-label', 'Authenticator code');
+        input.style.cssText = 'text-align:center;letter-spacing:0.3em;font-size:1.2rem;max-width:220px;margin:0 auto;';
+        field.appendChild(input);
+
+        var btn = add('button', 'btn-primary', 'Verify');
+        btn.type = 'button';
+        var msgEl = add('div', 'form-msg err', '');
+        msgEl.setAttribute('role', 'alert');
+        msgEl.hidden = true;
+
+        var alt = add('div', null, '');
+        alt.style.marginTop = '14px';
+        var altBtn = document.createElement('button');
+        altBtn.type = 'button';
+        altBtn.textContent = 'Sign out and use a different account';
+        altBtn.style.cssText = 'background:none;border:none;color:var(--text-mute,#64748b);font-size:0.78rem;cursor:pointer;text-decoration:underline;font-family:inherit;';
+        altBtn.addEventListener('click', function () {
+          var done = function () { window.location.replace('/login/'); };
+          try { sb.auth.signOut().then(done, done); } catch (e) { done(); }
+        });
+        alt.appendChild(altBtn);
+
+        var busy = false;
+        function doVerify() {
+          if (busy) return;
+          var code = (input.value || '').replace(/\D/g, '');
+          if (code.length !== 6) {
+            msgEl.textContent = 'Enter the 6-digit code from your authenticator app.';
+            msgEl.hidden = false;
+            return;
+          }
+          busy = true; btn.disabled = true; btn.textContent = 'Verifying…'; msgEl.hidden = true;
+          sb.auth.mfa.challenge({ factorId: factorId }).then(function (c) {
+            if (c.error) throw c.error;
+            return sb.auth.mfa.verify({ factorId: factorId, challengeId: c.data.id, code: code });
+          }).then(function (v) {
+            if (v.error) throw v.error;
+            // The elevated session mints a NEW aal2 access token — boot with it,
+            // not the aal1 token captured at guard time.
+            return sb.auth.getSession();
+          }).then(function (gs) {
+            // Fallback to the aal1 token only if the refreshed session is
+            // unreadable — verification succeeded, so never dead-end the boot.
+            var s = gs && gs.data && gs.data.session;
+            startApp((s && s.access_token) || aal1Token, userId);
+          }).catch(function (e) {
+            busy = false; btn.disabled = false; btn.textContent = 'Verify';
+            msgEl.textContent = (e && e.message) || 'That code didn’t work. Please try again.';
+            msgEl.hidden = false;
+          });
+        }
+        btn.addEventListener('click', doVerify);
+        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') doVerify(); });
+
+        wrap.insertBefore(card, panes);
+        input.focus();
+      }
+    }
+  })();
+  </script>
+
+  <!-- APP — vanilla JS, no build step. All server text is treated as data (textContent / safe DOM only). -->
+  <script>
+  function initCases(token, ANON, uid, REST) {
+    var FN = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
+    var RESTU = REST + '/rest/v1';
+    var H = { 'apikey': ANON, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // ---- DOM refs ----
+    var rootEl  = document.getElementById('cases-root');
+    var badgeEl = document.getElementById('tier-badge');
+    var countEl = document.getElementById('monitor-counter');
+
+    // ---- Helpers ----
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+    function fmtDate(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+    }
+    function humaniseCategory(c) {
+      var s = String(c == null ? '' : c).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'General';
+    }
+    // "£ when numeric" — format a numeric value as pounds; return null for null/empty;
+    // pass a non-numeric string through unchanged.
+    function money(v) {
+      if (v == null || v === '') return null;
+      var n = (typeof v === 'number') ? v : Number(String(v).replace(/[,\s£]/g, ''));
+      if (isFinite(n) && (typeof v === 'number' || /\d/.test(String(v)))) {
+        return '£' + n.toLocaleString('en-GB', { maximumFractionDigits: 0 });
+      }
+      return String(v);
+    }
+    function getJson(path) {
+      return fetch(RESTU + path, { headers: H })
+        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+    }
+    function aceiCssHex(number) {
+      try { return getComputedStyle(document.documentElement).getPropertyValue('--acei-' + number).trim() || null; }
+      catch (e) { return null; }
+    }
+
+    // ---- ACEI palette (self-contained fallback; mirrors operational/documents) ----
+    var ACEI = [
+      ['unfair_dismissal', 1, 'Unfair Dismissal', '#EF4444'],
+      ['discrimination_harassment', 2, 'Discrimination & Harassment', '#D946EF'],
+      ['wages_working_time', 3, 'Wages, Working Time & Holiday', '#22C55E'],
+      ['whistleblowing', 4, 'Whistleblowing', '#FACC15'],
+      ['employment_status', 5, 'Employment Status', '#3B82F6'],
+      ['redundancy_org_change', 6, 'Redundancy & Org Change', '#F97316'],
+      ['parental_family_rights', 7, 'Parental & Family Rights', '#F43F5E'],
+      ['trade_union_collective', 8, 'Trade Union & Collective', '#A21CAF'],
+      ['breach_of_contract', 9, 'Breach of Contract & Notice', '#6366F1'],
+      ['health_safety', 10, 'Health & Safety', '#14B8A6'],
+      ['data_protection_privacy', 11, 'Data Protection & Privacy', '#4338CA'],
+      ['business_transfers_insolvency', 12, 'Business Transfers & Insolvency', '#64748B']
+    ];
+    var ACEI_BYKEY = {}, ACEI_BYNUM = {};
+    ACEI.forEach(function (e) { var rec = { number: e[1], label: e[2], hex: e[3] }; ACEI_BYKEY[e[0]] = rec; ACEI_BYNUM[e[1]] = rec; });
+    function resolveAcei(key) {
+      if (key == null || key === '') return null;
+      var e = ACEI_BYKEY[String(key)];
+      if (!e) { var n = parseInt(key, 10); if (!isNaN(n)) e = ACEI_BYNUM[n]; }
+      return e || null;
+    }
+    function aceiChip(cat) {
+      var rec = resolveAcei(cat);
+      var chip = el('span', 'acei-chip', rec ? rec.label : humaniseCategory(cat));
+      chip.style.setProperty('--c', rec ? (aceiCssHex(rec.number) || rec.hex) : '#64748b');
+      return chip;
+    }
+
+    // ---- Tier badge (re-read the verified tier) ----
+    var TIER_VAR = {
+      operational: '--tier-operational', operational_readiness: '--tier-operational',
+      governance: '--tier-governance', enterprise: '--tier-enterprise', institutional: '--tier-institutional'
+    };
+    var TIER_LABEL = {
+      operational: 'Operational', operational_readiness: 'Operational Readiness',
+      governance: 'Governance', enterprise: 'Enterprise', institutional: 'Institutional'
+    };
+    function loadTierBadge() {
+      getJson('/kl_account_profiles?select=subscription_tier&user_id=eq.' + uid + '&limit=1')
+        .then(function (rows) {
+          if (!rows || !rows.length) return;
+          var t = rows[0].subscription_tier;
+          badgeEl.textContent = TIER_LABEL[t] || t;
+          var v = TIER_VAR[t];
+          if (v) badgeEl.style.color = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+          badgeEl.hidden = false;
+        })
+        .catch(function () { /* badge is cosmetic; ignore */ });
+    }
+
+    // ---- Collapsible dropdown (toggle + card idiom) ----
+    function makeDrop(title, openByDefault) {
+      var section = el('section', 'drop');
+      if (openByDefault) section.classList.add('open');
+      var head = document.createElement('button');
+      head.type = 'button'; head.className = 'drop-head';
+      head.setAttribute('aria-expanded', openByDefault ? 'true' : 'false');
+      var caret = el('span', 'drop-caret'); caret.setAttribute('aria-hidden', 'true'); caret.textContent = '▸';
+      var titleEl = el('span', 'drop-title', title);
+      var countBadge = el('span', 'drop-count', '');
+      head.appendChild(caret); head.appendChild(titleEl); head.appendChild(countBadge);
+      var body = el('div', 'drop-body');
+      section.appendChild(head); section.appendChild(body);
+      head.addEventListener('click', function () {
+        var open = section.classList.toggle('open');
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      return {
+        section: section,
+        body: body,
+        setCount: function (n) { countBadge.textContent = (n == null ? '' : '· ' + n); },
+        loading: function (m) {
+          clear(body);
+          var box = el('div', 'state-msg');
+          box.appendChild(el('div', 'spinner'));
+          box.appendChild(document.createTextNode(m));
+          body.appendChild(box);
+        },
+        state: function (m) { clear(body); body.appendChild(el('div', 'state-msg', m)); }
+      };
+    }
+
+    // ---- Renderers ----
+    function caseCard(c) {
+      var card = el('article', 'case-card');
+      var titleText = c.title || c.respondent_name || 'Tribunal decision';
+      if (c.source_url) {
+        var a = el('a', 'case-title', titleText);
+        a.href = c.source_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        card.appendChild(a);
+      } else {
+        card.appendChild(el('div', 'case-title', titleText));
+      }
+      if (c.respondent_name) card.appendChild(el('div', 'case-sub', c.respondent_name));
+      if (c.acei_category != null && c.acei_category !== '') {
+        var tags = el('div', 'case-tags'); tags.appendChild(aceiChip(c.acei_category)); card.appendChild(tags);
+      }
+      var parts = [];
+      var dd = fmtDate(c.decision_date); if (dd) parts.push(dd);
+      if (c.outcome) parts.push(String(c.outcome));
+      var aw = money(c.award_total); if (aw) parts.push(aw);
+      if (c.tribunal_region) parts.push(String(c.tribunal_region));
+      if (parts.length) card.appendChild(el('div', 'case-meta', parts.join('   ·   ')));
+      return card;
+    }
+
+    function enfCard(e) {
+      var card = el('article', 'enf-card');
+      card.appendChild(el('div', 'enf-org', e.organisation || 'Regulatory action'));
+      if (e.acei_category != null && e.acei_category !== '') {
+        var tags = el('div', 'case-tags'); tags.appendChild(aceiChip(e.acei_category)); card.appendChild(tags);
+      }
+      var parts = [];
+      if (e.action_type) parts.push(String(e.action_type));
+      if (e.sector) parts.push(String(e.sector));
+      var pen = money(e.penalty_amount); if (pen) parts.push(pen);
+      var di = fmtDate(e.date_issued); if (di) parts.push(di);
+      if (parts.length) card.appendChild(el('div', 'enf-meta', parts.join('   ·   ')));
+      if (e.source_url) {
+        var a = el('a', 'src-link', 'Source ↗');
+        a.href = e.source_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        card.appendChild(a);
+      }
+      return card;
+    }
+
+    function renderCases(drop, cases) {
+      var items = (cases && cases.items) || [];
+      drop.setCount((cases && typeof cases.count === 'number') ? cases.count : items.length);
+      clear(drop.body);
+      if (cases && cases.note) drop.body.appendChild(el('p', 'drop-caption', cases.note));
+      if (!items.length) {
+        drop.body.appendChild(el('div', 'state-msg', 'No recent decisions in your categories yet.'));
+        return;
+      }
+      var cards = el('div', 'cards');
+      items.forEach(function (c) { cards.appendChild(caseCard(c)); });
+      drop.body.appendChild(cards);
+    }
+
+    function renderEnforcement(drop, enf) {
+      var events = (enf && enf.events) || [];
+      drop.setCount((enf && typeof enf.count === 'number') ? enf.count : events.length);
+      clear(drop.body);
+      if (!events.length) {
+        drop.body.appendChild(el('div', 'state-msg', 'No recent enforcement activity in your categories.'));
+      } else {
+        var cards = el('div', 'cards');
+        events.forEach(function (e) { cards.appendChild(enfCard(e)); });
+        drop.body.appendChild(cards);
+      }
+      var footBits = [];
+      if (enf && enf.note) footBits.push(String(enf.note));
+      if (enf && enf.data_current_through) {
+        var dc = fmtDate(enf.data_current_through) || String(enf.data_current_through);
+        footBits.push('Data current through ' + dc);
+      }
+      if (footBits.length) drop.body.appendChild(el('p', 'drop-foot', footBits.join('   ·   ')));
+    }
+
+    // ---- Boot ----
+    loadTierBadge();
+
+    var casesDrop = makeDrop('Recent Cases', true);
+    var enfDrop = makeDrop('Enforcement & Regulatory', false);
+    clear(rootEl);
+    rootEl.appendChild(casesDrop.section);
+    rootEl.appendChild(enfDrop.section);
+    casesDrop.loading('Loading recent decisions…');
+    enfDrop.loading('Loading enforcement activity…');
+
+    fetch(FN + '/operational-cases', { method: 'POST', headers: H, body: '{}' })
+      .then(function (res) { if (!res.ok) throw new Error('http ' + res.status); return res.json(); })
+      .then(function (data) {
+        data = data || {};
+        renderCases(casesDrop, data.cases || {});
+        renderEnforcement(enfDrop, data.enforcement || {});
+        var cc = (data.cases && typeof data.cases.count === 'number') ? data.cases.count : ((data.cases && data.cases.items) || []).length;
+        var ec = (data.enforcement && typeof data.enforcement.count === 'number') ? data.enforcement.count : ((data.enforcement && data.enforcement.events) || []).length;
+        if (countEl) countEl.textContent = cc + ' case' + (cc === 1 ? '' : 's') + ' · ' + ec + ' notice' + (ec === 1 ? '' : 's');
+      })
+      .catch(function () {
+        casesDrop.setCount(null);
+        enfDrop.setCount(null);
+        casesDrop.state('Recent cases are temporarily unavailable. Please try again shortly.');
+        enfDrop.state('Enforcement information is temporarily unavailable. Please try again shortly.');
+        if (countEl) countEl.textContent = '';
+      });
+  }
+  </script>
+</body>
+</html>
