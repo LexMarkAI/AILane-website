@@ -27,6 +27,8 @@
     .btn{width:100%;padding:14px;background:#38bdf8;color:#fff;font-size:1rem;font-weight:600;border:none;border-radius:10px;cursor:pointer}
     .btn:hover{background:#0ea5e9}
     .btn:disabled{opacity:0.6;cursor:not-allowed}
+    .btn-alt{background:transparent;border:1px solid #38bdf8;color:#38bdf8;margin-top:10px}
+    .btn-alt:hover{background:rgba(56,189,248,0.1)}
     .err{color:#ef4444;font-size:0.85rem;text-align:center;margin-top:12px;min-height:20px}
     .ok{color:#22c55e;font-size:0.85rem;text-align:center;margin-top:12px}
     .link{text-align:center;margin-top:16px}
@@ -56,6 +58,10 @@
       <div class="field"><label for="pw">Password</label><input type="password" id="pw" placeholder="Your password" autocomplete="current-password"></div>
       <button class="btn" id="go" onclick="doLogin()">Sign In</button>
       <div class="err" id="err"></div>
+      <!-- Passwordless magic-link sign-in (KLUI-001 / AMD-262) — additive; the password,
+           passkey, authenticator and reset flows are unchanged. Uses the email entered above. -->
+      <button class="btn btn-alt" id="mlgo" onclick="doMagicLink()">Email me a sign-in link</button>
+      <div class="ok hide" id="mlok"></div>
       <div class="link"><a onclick="showReset()">Forgot password?</a></div>
     </div>
     <div id="rf" class="hide">
@@ -89,11 +95,35 @@
     var rows=await r.json();
     return(rows&&rows.length>0)?rows[0].subscription_tier:null;
   }
+  // KL session entitlement (KLUI-001/AMD-262, brief §2). RULE 2 raw-fetch Bearer, mirroring
+  // the vault's own gate: same RPC + p_user_id param; live = an entitlement row whose
+  // expires_at is in the future. Fails closed to false on any non-OK/parse/network error.
+  async function checkKLSession(token){
+    try{
+      var p=JSON.parse(atob(token.split('.')[1]));
+      var r=await fetch(SB_URL+'/rest/v1/rpc/kl_session_entitlement',{
+        method:'POST',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({p_user_id:p.sub})
+      });
+      if(!r.ok)return false;
+      var rows=await r.json();
+      var ent=Array.isArray(rows)?(rows[0]||null):(rows||null);
+      return !!(ent&&ent.expires_at&&new Date(ent.expires_at).getTime()>Date.now());
+    }catch(e){return false}
+  }
+  // Entitlement-aware post-auth routing (subscription-primary) — shared by password and
+  // magic-link sign-in and by the on-load session check (brief §2). Never targets index.html.
   async function route(session){
     var tier=await getTier(session.access_token);
-    var d=dest(tier);
     try{if(window.gtag)gtag('event','login',{method:'email',subscription_tier:tier})}catch(e){}
-    window.location.replace(d);
+    // Subscribers land exactly where they do today: dest() maps the org tier to its
+    // subscription destination; anything other than the KL default means a subscription.
+    var subDest=dest(tier);
+    if(subDest!=='/knowledge-library/'){window.location.replace(subDest);return}
+    // No subscription → an active KL session opens the vault; otherwise the existing default.
+    var hasKLSession=await checkKLSession(session.access_token);
+    window.location.replace(hasKLSession?'/knowledge-library/vault/':'/knowledge-library/');
   }
   // AAL2-STEPUP-001 (Stage C · C1): a persisted session must pass the same step-up
   // as a fresh sign-in. Auto-routing an MFA-enrolled aal1 session onward left every
@@ -235,6 +265,22 @@
     btn.disabled=true;btn.innerHTML='<span class="sp"></span>Sending...';
     try{var res=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/auth/callback/'});if(res.error)err.textContent=res.error.message;else{ok.classList.remove('hide');err.textContent=''}}catch(e){err.textContent='An error occurred.'}
     btn.disabled=false;btn.textContent='Send Reset Link';
+  }
+  // Passwordless magic-link sign-in (brief §1). Additive to signInWithPassword / passkey /
+  // authenticator / resetPasswordForEmail. Uses the email already entered; emailRedirectTo
+  // MUST be the allow-listed https://ailane.ai/login/, where the on-load check routes by entitlement.
+  async function doMagicLink(){
+    var email=document.getElementById('em').value.trim(),err=document.getElementById('err'),ok=document.getElementById('mlok'),btn=document.getElementById('mlgo');
+    err.textContent='';ok.classList.add('hide');
+    if(!email){err.textContent='Please enter your email.';return}
+    btn.disabled=true;btn.innerHTML='<span class="sp"></span>Sending link...';
+    try{
+      var res=await sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:'https://ailane.ai/login/',shouldCreateUser:true}});
+      if(res.error){err.textContent=res.error.message;btn.disabled=false;btn.textContent='Email me a sign-in link';return}
+      ok.textContent='Check your email — we’ve sent a sign-in link to '+email+'. It’s valid for a short time.';
+      ok.classList.remove('hide');
+      btn.disabled=false;btn.textContent='Email me a sign-in link';
+    }catch(e){err.textContent='An error occurred. Please try again.';btn.disabled=false;btn.textContent='Email me a sign-in link'}
   }
   </script>
 </body>
