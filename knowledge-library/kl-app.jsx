@@ -34,6 +34,10 @@ var HUB_WORKSPACE_FACETS = [
   // longer reachable from this nav.
   { id: 'vault',        label: 'Document Vault', href: '/operational/documents/' },
   { id: 'alerts',       label: 'Alerts' },
+  // OPERATIONAL-CASES-SITE-005 — full-page surface (not an in-app facet): href routes to the
+  // standalone /operational/cases/ page (ACEI-filtered recent tribunal decisions + relocated
+  // enforcement notices). Placed adjacent to Alerts; navigates via the href handler below.
+  { id: 'cases',        label: 'Recent Cases', href: '/operational/cases/' },
   { id: 'acei',         label: 'ACEI Overview' },
   { id: 'intelligence', label: 'Intelligence' },
   // PARLIAMENT-LIVE-001 — full-page surface (not an in-app facet): href routes
