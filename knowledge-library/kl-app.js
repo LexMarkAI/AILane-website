@@ -9034,23 +9034,38 @@
     var setState = _state[1];
     useEffect(function() {
       var alive = true;
-      var sb = hubSession && hubSession.sb;
-      if (!sb || !sb.functions || !sb.functions.invoke) {
+      if (!hubSession || !hubSession.functionsBase || !hubSession.token) {
         setState({ status: "ready", error: true, alerts: null });
         return;
       }
-      sb.functions.invoke("operational-alerts").then(function(res) {
+      (async function() {
+        var alerts2 = null, alertsError = null;
+        try {
+          var res = await fetch(hubSession.functionsBase + "/operational-alerts", {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + hubSession.token,
+              "apikey": hubSession.anon,
+              "Content-Type": "application/json"
+            },
+            body: "{}"
+          });
+          if (!res.ok) {
+            alertsError = new Error("operational-alerts " + res.status);
+          } else {
+            alerts2 = await res.json();
+          }
+        } catch (e) {
+          alertsError = e;
+        }
         if (!alive) return;
-        if (res && res.error) {
-          console.warn("[OOX-001] Alerts facet: operational-alerts invoke failed", res.error);
+        if (alertsError || !alerts2) {
+          console.warn("[OOX-001] Alerts facet: operational-alerts invoke failed", alertsError);
           setState({ status: "ready", error: true, alerts: null });
           return;
         }
-        setState({ status: "ready", error: false, alerts: res && res.data || null });
-      }).catch(function(e) {
-        console.warn("[OOX-001] Alerts facet: operational-alerts invoke failed", e);
-        if (alive) setState({ status: "ready", error: true, alerts: null });
-      });
+        setState({ status: "ready", error: false, alerts: alerts2 });
+      })();
       return function() {
         alive = false;
       };

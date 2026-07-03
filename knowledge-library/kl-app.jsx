@@ -7920,31 +7920,47 @@ function hubAlertsEnforcementCard(enf, error) {
 }
 
 // Alerts facet body. OPERATIONAL-ALERTS-SITE-001: one edge-function read
-// (operational-alerts) via the hub Supabase client replaces the three
-// governance-table reads. alive-guarded; on error each card renders its
-// error/empty state (never a blank screen).
+// (operational-alerts) replaces the three governance-table reads. SITE-002: the
+// read uses the estate's native-fetch idiom (mirrors hubSendToEileen) rather than
+// sb.functions.invoke, so no unlisted x-client-info preflight header blocks the
+// POST. alive-guarded; on error each card renders its error/empty state (never a
+// blank screen).
 function HubAlertsFacet({ hubSession }) {
   var _state = useState({ status: 'loading', error: false, alerts: null });
   var state = _state[0]; var setState = _state[1];
 
   useEffect(function () {
     var alive = true;
-    var sb = hubSession && hubSession.sb;
-    if (!sb || !sb.functions || !sb.functions.invoke) { setState({ status: 'ready', error: true, alerts: null }); return; }
-    // §2.1 — single invoke of the operational-alerts edge function (same hub
-    // client that invokes eileen-operational). { data, error } contract.
-    sb.functions.invoke('operational-alerts').then(function (res) {
+    if (!hubSession || !hubSession.functionsBase || !hubSession.token) { setState({ status: 'ready', error: true, alerts: null }); return; }
+    // §2.1 — single read of the operational-alerts edge function via the estate's
+    // native-fetch idiom (mirrors hubSendToEileen → eileen-operational: same
+    // functionsBase, apikey anon, Bearer session token, Content-Type json). Native
+    // fetch avoids the sb.functions.invoke x-client-info preflight header that the
+    // function's CORS allowlist does not list. The function ignores the body and
+    // derives the org from the token via get_my_org_id(); body is '{}'.
+    (async function () {
+      var alerts = null, alertsError = null;
+      try {
+        var res = await fetch(hubSession.functionsBase + '/operational-alerts', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + hubSession.token,
+            'apikey': hubSession.anon,
+            'Content-Type': 'application/json',
+          },
+          body: '{}',
+        });
+        if (!res.ok) { alertsError = new Error('operational-alerts ' + res.status); }
+        else { alerts = await res.json(); }
+      } catch (e) { alertsError = e; }
       if (!alive) return;
-      if (res && res.error) {
-        console.warn('[OOX-001] Alerts facet: operational-alerts invoke failed', res.error);
+      if (alertsError || !alerts) {
+        console.warn('[OOX-001] Alerts facet: operational-alerts invoke failed', alertsError);
         setState({ status: 'ready', error: true, alerts: null });
         return;
       }
-      setState({ status: 'ready', error: false, alerts: (res && res.data) || null });
-    }).catch(function (e) {
-      console.warn('[OOX-001] Alerts facet: operational-alerts invoke failed', e);
-      if (alive) setState({ status: 'ready', error: true, alerts: null });
-    });
+      setState({ status: 'ready', error: false, alerts: alerts });
+    })();
     return function () { alive = false; };
   }, [hubSession]);
 
