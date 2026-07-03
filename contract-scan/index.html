@@ -1051,7 +1051,7 @@ footer {
   <div class="pricing-grid">
     <!-- £19 Single Check -->
     <div class="pricing-card featured">
-      <div class="price-tag">£19<span>one-off</span></div>
+      <div class="price-tag">£29<span>one-off</span></div>
       <div class="price-name">Contract Compliance Check</div>
       <div class="price-desc">Full clause-level analysis of one employment document against current UK law requirements.</div>
       <ul class="price-features">
@@ -1063,17 +1063,19 @@ footer {
         <li>Downloadable PDF &amp; DOCX report</li>
         <li>Report delivered to your email</li>
         <li>ERA 2025 &amp; Working Time Regulations 1998</li>
+        <li>Exposure Report and Solicitor Pack included</li>
       </ul>
       <div class="d6-consent" id="consent-19">
         <input type="checkbox" id="d6-19" onchange="togglePayBtn('pay-19', 'd6-19')">
         <label for="d6-19">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand this analysis does not constitute legal advice and I will seek qualified legal advice before acting on any findings.</label>
       </div>
-      <a id="pay-19" href="https://buy.stripe.com/cNibJ26rmfwmgcb5hlfMA00?prefilled_promo_code=&utm_campaign=employer&audience=employer" class="btn-pay disabled-pay" onclick="return checkConsent('d6-19')">Contract Compliance Check — £19</a>
+      <a id="pay-19" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('compliance_check_bundle','d6-19',this)">Contract Compliance Check — £29</a>
+      <div id="checkout-error-d6-19" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
     </div>
 
     <!-- £39 Three-Document Bundle -->
     <div class="pricing-card featured">
-      <div class="price-tag">£39<span>one-off</span></div>
+      <div class="price-tag">£49<span>one-off</span></div>
       <div class="price-name">Three-Document Bundle</div>
       <div class="price-desc">Contract, handbook and policies analysed together — cross-document consistency check, combined remediation report, and forward exposure assessment.</div>
       <ul class="price-features">
@@ -1087,7 +1089,8 @@ footer {
         <input type="checkbox" id="d6-39" onchange="togglePayBtn('pay-39', 'd6-39')">
         <label for="d6-39">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand this analysis does not constitute legal advice and I will seek qualified legal advice before acting on any findings.</label>
       </div>
-      <a id="pay-39" href="https://buy.stripe.com/7sY6oI2b6doe6BBfVZfMA05?utm_campaign=employer&audience=employer" class="btn-pay disabled-pay" onclick="return checkConsent('d6-39')">Buy &amp; Upload My Documents →</a>
+      <a id="pay-39" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('three_document_bundle','d6-39',this)">Buy &amp; Upload My Documents →</a>
+      <div id="checkout-error-d6-39" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
     </div>
   </div>
 
@@ -1300,7 +1303,7 @@ footer {
       <div class="tier-cards">
         <div class="tier-card">
           <div class="tier-card-name">Contract Compliance Check</div>
-          <div class="tier-card-price">£19 <span>per document</span></div>
+          <div class="tier-card-price">£29 <span>per document</span></div>
           <p class="tier-card-body">Have more contracts to review? Each document analysed against current law and forward ERA 2025 provisions.</p>
           <a href="#pricing" class="btn-tier btn-tier-standard" onclick="event.preventDefault();checkAnother();">Check Another Contract</a>
         </div>
@@ -1444,6 +1447,32 @@ function checkConsent(checkId) {
     return false;
   }
   return true;
+}
+
+// AUTH-002 P0 — hosted checkout via create-checkout Edge Function.
+// Consent gate preserved: startCheckout defers to checkConsent first.
+var CREATE_CHECKOUT_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout';
+function startCheckout(productType, consentId, el) {
+  try { if (!checkConsent(consentId)) return false; } catch (e) { return false; }
+  if (el.dataset.busy === '1') return false;
+  el.dataset.busy = '1';
+  var prior = el.textContent;
+  el.textContent = 'Preparing secure checkout…';
+  try { if (window.gtag) gtag('event', 'begin_checkout', { item_id: productType }); } catch (e) {}
+  fetch(CREATE_CHECKOUT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_type: productType })
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (d && d.url) { window.location.href = d.url; return; }
+    throw new Error((d && d.error) || 'no url');
+  }).catch(function () {
+    el.dataset.busy = '0';
+    el.textContent = prior;
+    var m = document.getElementById('checkout-error-' + consentId);
+    if (m) m.textContent = 'Checkout is temporarily unavailable — please try again in a moment.';
+  });
+  return false;
 }
 
 // ── PORTAL MODE ────────────────────────────────────────────────────────────────
