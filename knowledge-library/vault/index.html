@@ -214,6 +214,16 @@
     .slot-empty-hint { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b); }
     .slot-work { margin-top: 12px; text-align: left; }
     .chooser-title { font-size: 0.84rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 10px; }
+    /* ---- Per-slot type chooser (brief §3) — COPIED VERBATIM from operational/documents ---- */
+    .chooser-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+    .chooser-opt {
+      font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      padding: 7px 12px; border-radius: 999px; background: transparent;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); color: var(--text-sec, #94a3b8);
+      transition: all 0.15s ease;
+    }
+    .chooser-opt:hover { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); }
+    .chooser-opt.sel { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.08); }
     .work-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
     .work-actions .btn-primary, .work-actions .btn-secondary { padding: 9px 16px; font-size: 0.82rem; }
     .file-input { width: 100%; font-family: inherit; font-size: 0.82rem; color: var(--text-sec, #94a3b8); padding: 8px 0; }
@@ -538,21 +548,26 @@
       var used = (typeof ent.checks_used === 'number') ? ent.checks_used : 0;
       var remaining = (typeof ent.checks_remaining === 'number') ? ent.checks_remaining
                     : Math.max(0, allowed - used);
-      // Research Week is the ratified "1 each" — Contract / Staff Handbook / Policy.
-      // Quick / Day sessions are generic Contract Compliance Check slots.
+      // Research Week's positional "1 each" (Contract / Staff Handbook / Policy) now
+      // seeds the chooser's default only — the user picks the type per empty slot (§3).
       var WEEK_TYPES = ['employment_contract', 'staff_handbook', 'policy'];
       function slotTypeAt(idx) {
         if (product === 'kl_research_week') return WEEK_TYPES[idx] || 'employment_contract';
         return 'employment_contract';
       }
-      function slotTypeLabel(type) {
-        if (product === 'kl_research_week') {
-          if (type === 'staff_handbook') return 'Staff Handbook';
-          if (type === 'policy') return 'Policy';
-          return 'Contract';
-        }
-        return 'Contract Compliance Check';
-      }
+      // Fix 3 (brief §3): the slot type is user-chosen per empty slot, so the label maps
+      // from the chosen/stored type code, independent of product. Codes + option order
+      // match operational/documents verbatim (Contract · Staff Handbook · Policy).
+      var TYPE_LABEL = { employment_contract: 'Contract', staff_handbook: 'Staff Handbook', policy: 'Policy' };
+      var TYPE_OPTIONS = [['employment_contract', 'Contract'], ['staff_handbook', 'Staff Handbook'], ['policy', 'Policy']];
+      function slotTypeLabel(type) { return TYPE_LABEL[type] || 'Contract'; }
+      // The confirmed slot type persists client-side (KL-namespaced, keyed by uid+doc),
+      // exactly as operational/documents does — display-only; the engine's routing token
+      // is sent to the bridge at upload time.
+      function typeKey(id) { return 'kl_docv_type_' + uid + '_' + id; }
+      function storeType(id, t) { try { localStorage.setItem(typeKey(id), t); } catch (e) {} }
+      function readType(id) { try { return localStorage.getItem(typeKey(id)); } catch (e) { return null; } }
+      function clearType(id) { try { localStorage.removeItem(typeKey(id)); } catch (e) {} }
 
       var GSO_HEX = '#475569';
       var RING_HEX = { green: '#176B3C', amber: '#B4640A', red: '#991B1B' };
@@ -710,7 +725,9 @@
 
       // ---- Filled card: header strip + Exposure Report · Contract · Solicitor Pack ----
       function buildFilledCard(doc, idx) {
-        var type = slotTypeAt(idx);
+        // A filled slot keeps the type it was uploaded with (brief §3.2) — the stored
+        // chosen type, falling back to the positional default for legacy rows.
+        var type = readType(doc.id) || slotTypeAt(idx);
         var card = el('div', 'dcard');
         card.setAttribute('data-doc-id', doc.id);
 
@@ -830,8 +847,8 @@
         var bodyEl = el('div', 'slot-empty-body');
         bodyEl.style.cssText = 'padding:14px 16px 18px;text-align:center;';
         bodyEl.appendChild(el('div', 'slot-empty-plus', '+'));
-        bodyEl.appendChild(el('div', 'slot-empty-label',
-          product === 'kl_research_week' ? ('Add ' + slotTypeLabel(type)) : 'Add a document to check'));
+        // Type is chosen per slot in the chooser (brief §3), so the empty prompt is generic.
+        bodyEl.appendChild(el('div', 'slot-empty-label', 'Add a document to check'));
         bodyEl.appendChild(el('div', 'slot-empty-hint', canAdd
           ? 'PDF or Word (.docx), up to 10 MB.'
           : 'Your session checks are used — add another below.'));
@@ -845,7 +862,7 @@
         if (canAdd) {
           function open() {
             if (work.style.display === 'block') return;
-            openUpload(card, type);
+            openChooser(card, idx, type);
           }
           card.addEventListener('click', open);
           card.addEventListener('keydown', function (e) {
@@ -1260,6 +1277,43 @@
         }).then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return path; });
       }
 
+      // Fix 1 (brief §1) — the event-driven check pipeline, ported VERBATIM from
+      // operational/documents runBridge: kl_document_extract → kl-compliance-bridge
+      // {action:'start'} → poll {action:'poll'}. Consumes the deployed Edge Functions
+      // (the bridge calls compliance-check internally). No product_type/session context
+      // is sent in the start body — operational sends none either; the bridge resolves
+      // the KL check allowance server-side from auth.uid() via kl_session_entitlement.
+      function runBridge(documentId, type) {
+        return fetch(FN + '/kl_document_extract', {
+          method: 'POST', headers: H, body: JSON.stringify({ document_id: documentId })
+        }).catch(function () { return null; })
+          .then(function () {
+            return fetch(FN + '/kl-compliance-bridge', {
+              method: 'POST', headers: H,
+              body: JSON.stringify({ document_id: documentId, document_type: type, action: 'start' })
+            });
+          })
+          .then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (d) {
+              if (r.status < 200 || r.status >= 300) return null; // a failed first check must not lose the saved doc
+              return (d && d.upload_id) || null;
+            });
+          })
+          .then(function (uploadId) { return uploadId ? pollBridge(documentId, uploadId, 0) : null; })
+          .catch(function () { return null; });
+      }
+      function pollBridge(documentId, uploadId, n) {
+        if (n >= 36) return null; // ~3 min ceiling; the overlay appears when the check lands
+        return new Promise(function (resolve) { setTimeout(resolve, 5000); }).then(function () {
+          return fetch(FN + '/kl-compliance-bridge', {
+            method: 'POST', headers: H,
+            body: JSON.stringify({ document_id: documentId, upload_id: uploadId, action: 'poll' })
+          }).then(function (r) { return r.json().catch(function () { return {}; }); })
+            .then(function (d) { return (d && d.status === 'processing') ? pollBridge(documentId, uploadId, n + 1) : d; })
+            .catch(function () { return pollBridge(documentId, uploadId, n + 1); });
+        });
+      }
+
       function setSlotStatus(work, m) {
         var s = work.querySelector('.slot-status');
         if (!m) { if (s) s.remove(); return; }
@@ -1268,6 +1322,39 @@
         clear(s);
         s.appendChild(el('span', 'mini-spinner'));
         s.appendChild(document.createTextNode(m));
+      }
+
+      // Empty-slot type chooser (brief §3) — 3 options, default designation pre-selected.
+      // Ported from operational/documents openChooser; classes/markup reused verbatim.
+      function openChooser(card, idx, defaultType) {
+        var emptyBody = card.querySelector('.slot-empty-body');
+        var work = card.querySelector('.slot-work');
+        if (emptyBody) emptyBody.style.display = 'none';
+        clear(work); work.style.display = 'block';
+
+        work.appendChild(el('div', 'chooser-title', 'What kind of document is this?'));
+        var opts = el('div', 'chooser-opts');
+        var chosen = { type: defaultType };
+        var btns = [];
+        TYPE_OPTIONS.forEach(function (o) {
+          var b = el('button', 'chooser-opt' + (o[0] === defaultType ? ' sel' : ''), o[1]); b.type = 'button';
+          b.addEventListener('click', function (e) {
+            e.stopPropagation(); chosen.type = o[0];
+            btns.forEach(function (x) { x.classList.remove('sel'); });
+            b.classList.add('sel');
+          });
+          btns.push(b); opts.appendChild(b);
+        });
+        work.appendChild(opts);
+        work.appendChild(el('div', 'slot-hint', 'This sets which UK requirement set we check the document against.'));
+
+        var row = el('div', 'work-actions');
+        var confirm = el('button', 'btn-primary', 'Confirm'); confirm.type = 'button';
+        confirm.addEventListener('click', function (e) { e.stopPropagation(); openUpload(card, chosen.type); });
+        var cancel = el('button', 'btn-secondary', 'Cancel'); cancel.type = 'button';
+        cancel.addEventListener('click', function (e) { e.stopPropagation(); renderSlots(); });
+        row.appendChild(confirm); row.appendChild(cancel);
+        work.appendChild(row);
       }
 
       function openUpload(card, type) {
@@ -1288,14 +1375,14 @@
           var f = input.files && input.files[0];
           var v = validateFile(f);
           if (!v.ok) { showMsg(msgEl, v.error, 'err'); return; }
-          doUpload(work, f, go, cancel, msgEl);
+          doUpload(work, type, f, go, cancel, msgEl);
         });
         cancel.addEventListener('click', function (e) { e.stopPropagation(); renderSlots(); });
         row.appendChild(go); row.appendChild(cancel);
         work.appendChild(row); work.appendChild(msgEl);
       }
 
-      function doUpload(work, file, goBtn, cancelBtn, msgEl) {
+      function doUpload(work, type, file, goBtn, cancelBtn, msgEl) {
         goBtn.disabled = true; cancelBtn.disabled = true; msgEl.hidden = true;
         setSlotStatus(work, 'Uploading…');
         uploadToStorage(file)
@@ -1311,6 +1398,18 @@
               if (r.status < 200 || r.status >= 300) throw new Error('insert ' + r.status);
               return r.json();
             });
+          })
+          .then(function (rep) {
+            // Fix 1 (brief §1): capture the inserted document id, persist the chosen type
+            // (§3), then run the SAME Compliance Check the operational vault runs so the
+            // Exposure Report card populates. runBridge never throws — a failed check must
+            // not lose the saved document (§1.5); loadDocs then re-renders from whatever
+            // findings landed (the card's existing loadCardData paints the report).
+            var id = rep && rep[0] && rep[0].id;
+            if (!id) throw new Error('no id');
+            storeType(id, type);
+            setSlotStatus(work, 'Running the Contract Compliance Check…');
+            return runBridge(id, type);
           })
           .then(function () { return loadDocs(); })
           .catch(function () {
@@ -1377,6 +1476,7 @@
         }).then(function (r) {
           if (r.status < 200 || r.status >= 300) throw new Error('remove ' + r.status);
           if (cardState[doc.id]) delete cardState[doc.id];
+          clearType(doc.id);
           return loadDocs();
         }).catch(function () { window.alert('Could not remove this document right now. Please try again.'); });
       }
