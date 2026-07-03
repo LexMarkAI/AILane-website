@@ -198,7 +198,10 @@
     .slot-filename { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; }
     .slot-meta { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b);
       font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
-    .slot-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .slot-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    /* Run Check — the explicit check trigger (brief §2); a compact primary sized for the slot. */
+    .slot-run { margin-top: 12px; }
+    .slot-run .btn-primary { padding: 8px 16px; font-size: 0.82rem; }
     .btn-mini {
       font-family: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer;
       padding: 5px 11px; border-radius: 999px; background: transparent;
@@ -727,12 +730,62 @@
       }
 
       // ===========================================================
+      //  Slot lifecycle detection (brief §1) — driven off the document's own
+      //  fields so a page reload restores the right state. The KL extract fn
+      //  stamps extraction_status; the bridge/compliance-check stamps
+      //  analysis_status. We accept the estate's status synonyms (see
+      //  kl-app.js hubVaultStatusClass) so we stay robust to 'completed'/'done'.
+      // ===========================================================
+      function normStatus(v) { return String(v == null ? '' : v).toLowerCase().trim(); }
+      function isExtracted(doc)    { return /^(extracted|complete|completed|done|ready|success|analy[sz]ed)$/.test(normStatus(doc.extraction_status)); }
+      function isExtractError(doc) { return /^(failed|unsupported|error|rejected)$/.test(normStatus(doc.extraction_status)); }
+      function isChecked(doc)      { return /^(complete|completed|done|analy[sz]ed)/.test(normStatus(doc.analysis_status)); }
+      // Empty → Preparing → Ready to check → Checked (final). Checked wins; then extract
+      // errors; then extracted = Ready; otherwise (pending/processing/blank) = Preparing.
+      function slotState(doc) {
+        if (isChecked(doc)) return 'checked';
+        if (isExtractError(doc)) return 'extract_error';
+        if (isExtracted(doc)) return 'ready';
+        return 'preparing';
+      }
+      function extractErrorText(doc) {
+        if (normStatus(doc.extraction_status) === 'unsupported')
+          return 'This file type isn’t supported for a check. Replace it with a PDF or Word (.docx) document.';
+        return 'We couldn’t read this document. Replace it with a clear PDF or Word (.docx) file to check it.';
+      }
+      // Extraction watch — after upload/replace (or on reload of a still-preparing doc), poll
+      // the document's extraction_status until it becomes terminal, then re-render once so the
+      // slot moves Preparing → Ready (Run Check) / extract-error. Deduped per document id.
+      var extractionWatch = {};
+      function ensureExtractionWatch(docId) {
+        if (!docId || extractionWatch[docId]) return;
+        extractionWatch[docId] = true;
+        pollExtraction(docId, 0);
+      }
+      function pollExtraction(docId, n) {
+        if (!extractionWatch[docId]) return;                    // cancelled (e.g. slot locked as Checked)
+        if (n >= 45) { delete extractionWatch[docId]; return; } // ~3.75 min ceiling
+        getJson('/kl_vault_documents?id=eq.' + docId + '&select=extraction_status,analysis_status')
+          .then(function (rows) {
+            var r = rows && rows[0];
+            if (!r) { delete extractionWatch[docId]; return; }
+            if (isExtracted(r) || isExtractError(r) || isChecked(r)) {
+              delete extractionWatch[docId];
+              loadDocs();
+            } else {
+              setTimeout(function () { pollExtraction(docId, n + 1); }, 5000);
+            }
+          })
+          .catch(function () { setTimeout(function () { pollExtraction(docId, n + 1); }, 5000); });
+      }
+
+      // ===========================================================
       //  Documents — point-in-time (NOT monitored). Read the session's
       //  non-deleted vault rows; render a typed slot per entitlement.
       // ===========================================================
       function loadDocs() {
         return getJson('/kl_vault_documents?user_id=eq.' + uid + '&deleted_at=is.null' +
-                '&select=id,filename,mime_type,file_size_bytes,analysis_status,created_at,last_replaced_at' +
+                '&select=id,filename,mime_type,file_size_bytes,extraction_status,analysis_status,created_at,last_replaced_at' +
                 '&order=created_at.asc')
           .then(function (rows) { docs = rows || []; renderSlots(); })
           .catch(function () {
@@ -800,7 +853,11 @@
         repPane.appendChild(pdfMsg);
         body.appendChild(repPane);
 
-        // ② Contract (the uploaded document) — Replace / Remove. "Checked" (point-in-time), not "Monitored".
+        // ② Contract (the uploaded document) — lifecycle-gated controls (brief §1/§2).
+        // The slot state drives which controls render: Run Check appears ONLY when extraction
+        // is ready and the slot is not yet checked; Replace appears ONLY pre-check (never in
+        // Checked — the integrity fix, no swap-and-re-run after a report); Remove is always
+        // available. "Checked" is point-in-time (not "Monitored").
         var conPane = el('div', 'dpane dpane-contract');
         var conHead = el('div', 'dpane-head');
         conHead.appendChild(el('span', null, slotTypeLabel(type)));
@@ -808,13 +865,54 @@
         conPane.appendChild(el('div', 'slot-filename', doc.filename || 'Untitled document'));
         var slotMeta = el('div', 'slot-meta', 'Added ' + fmtDate(doc.created_at));
         conPane.appendChild(slotMeta);
+
+        var state = slotState(doc);
+
+        // Lifecycle status line (Preparing… while extracting; Running… while a check is in flight).
+        var lifeStatus = el('div', 'slot-status'); lifeStatus.style.display = 'none';
+        conPane.appendChild(lifeStatus);
+        if (state === 'preparing') {
+          lifeStatus.style.display = 'flex';
+          lifeStatus.appendChild(el('span', 'mini-spinner'));
+          lifeStatus.appendChild(document.createTextNode('Preparing document…'));
+          ensureExtractionWatch(doc.id);   // re-render into Ready once extraction lands (brief §2.3)
+        } else if (state === 'extract_error') {
+          conPane.appendChild(el('div', 'row-error', extractErrorText(doc)));
+        }
+
+        // Run Check — the explicit check trigger (brief §2). Rendered ONLY in the Ready state.
+        var runRow = null, runBtn = null;
+        if (state === 'ready') {
+          runRow = el('div', 'slot-run');
+          runBtn = el('button', 'btn-primary', 'Run Check'); runBtn.type = 'button';
+          runRow.appendChild(runBtn);
+          conPane.appendChild(runRow);
+        }
+
+        // Message area for a declined Run Check (check_limit_reached / extraction_failed / network).
+        var runMsg = el('div', 'row-error'); runMsg.hidden = true;
+        conPane.appendChild(runMsg);
+
+        // Replace (pre-check only) + Remove (always). Replace MUST NOT render in Checked (brief §1).
         var actions = el('div', 'slot-actions');
-        var rep = el('button', 'btn-mini', 'Replace'); rep.type = 'button';
-        rep.addEventListener('click', function (e) { e.stopPropagation(); openReplace(doc, card); });
+        var rep = null;
+        if (state !== 'checked') {
+          rep = el('button', 'btn-mini', 'Replace'); rep.type = 'button';
+          rep.addEventListener('click', function (e) { e.stopPropagation(); openReplace(doc, card); });
+          actions.appendChild(rep);
+        }
         var rem = el('button', 'btn-mini danger', 'Remove'); rem.type = 'button';
         rem.addEventListener('click', function (e) { e.stopPropagation(); confirmRemove(doc); });
-        actions.appendChild(rep); actions.appendChild(rem);
+        actions.appendChild(rem);
         conPane.appendChild(actions);
+
+        if (runBtn) {
+          runBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            runCheck(doc, type, { runBtn: runBtn, runRow: runRow, rep: rep, status: lifeStatus, msg: runMsg });
+          });
+        }
+
         var work = el('div', 'slot-work'); work.style.display = 'none';
         work.addEventListener('click', function (e) { e.stopPropagation(); });
         conPane.appendChild(work);
@@ -836,7 +934,8 @@
         cardState[doc.id].els = {
           card: card, dot: dot, checked: checked, slotMeta: slotMeta,
           miniRing: miniRing, counts: counts, expandBtn: expandBtn, expanded: expanded,
-          pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody, repBtn: rep
+          pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody,
+          repBtn: rep, runRow: runRow, lifeStatus: lifeStatus, runMsg: runMsg
         };
         // Restore accordion open state across a re-render.
         if (expandedDocId === doc.id) {
@@ -965,6 +1064,17 @@
           : 'Added ' + fmtDate(doc.created_at);
         e.checked.textContent = checkedText;
         e.slotMeta.textContent = checkedText;
+
+        // Integrity lock (brief §1) — belt-and-braces to the field-driven state: once a real
+        // Exposure Report overlay exists, the slot is Checked (final). Remove Run Check AND
+        // Replace even if analysis_status hasn't caught up yet, so a checked slot can never be
+        // swapped and re-run. Remove stays.
+        if (isChecked(doc) || (st.overlay && st.overlay.upload_id)) {
+          delete extractionWatch[doc.id];   // a checked slot needs no extraction watch
+          if (e.runRow && e.runRow.parentNode) e.runRow.parentNode.removeChild(e.runRow);
+          if (e.repBtn && e.repBtn.parentNode) e.repBtn.parentNode.removeChild(e.repBtn);
+          if (e.lifeStatus) { clear(e.lifeStatus); e.lifeStatus.style.display = 'none'; }
+        }
 
         paintReportPane(doc);
         renderPackPane(doc);
@@ -1304,41 +1414,75 @@
         }).then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return path; });
       }
 
-      // Fix 1 (brief §1) — the event-driven check pipeline, ported VERBATIM from
-      // operational/documents runBridge: kl_document_extract → kl-compliance-bridge
-      // {action:'start'} → poll {action:'poll'}. Consumes the deployed Edge Functions
-      // (the bridge calls compliance-check internally). No product_type/session context
-      // is sent in the start body — operational sends none either; the bridge resolves
-      // the KL check allowance server-side from auth.uid() via kl_session_entitlement.
-      function runBridge(documentId, type) {
-        return fetch(FN + '/kl_document_extract', {
-          method: 'POST', headers: H, body: JSON.stringify({ document_id: documentId })
-        }).catch(function () { return null; })
-          .then(function () {
-            return fetch(FN + '/kl-compliance-bridge', {
-              method: 'POST', headers: H,
-              body: JSON.stringify({ document_id: documentId, document_type: type, action: 'start' })
-            });
-          })
+      // ===========================================================
+      //  Run Check (brief §2.2) — the explicit, direct replacement for the broken
+      //  doUpload auto-run. The old runBridge chained kl_document_extract → bridge
+      //  `start` in one breath, so `start` fired before extraction_status = 'extracted'
+      //  and the bridge declined it (that race is why the live check never ran). Here the
+      //  Run Check button exists ONLY once the document is extracted, so `start` is issued
+      //  cleanly. The bridge is the SOLE authority for checks_used — we never touch it here.
+      //  URL/headers reuse the estate pattern (Bearer user token + apikey).
+      // ===========================================================
+      function runCheck(doc, type, ui) {
+        var docId = doc.id;
+        if (ui.msg) ui.msg.hidden = true;
+        if (ui.rep) ui.rep.disabled = true;
+        if (ui.runBtn) { ui.runBtn.disabled = true; ui.runBtn.textContent = 'Starting the check…'; }
+        showLife(ui.status, 'Running the Contract Compliance Check…');
+        fetch(FN + '/kl-compliance-bridge', {
+          method: 'POST', headers: H,
+          body: JSON.stringify({ document_id: docId, document_type: type, action: 'start' })
+        })
           .then(function (r) {
-            return r.json().catch(function () { return {}; }).then(function (d) {
-              if (r.status < 200 || r.status >= 300) return null; // a failed first check must not lose the saved doc
-              return (d && d.upload_id) || null;
-            });
+            return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, d: d || {} }; });
           })
-          .then(function (uploadId) { return uploadId ? pollBridge(documentId, uploadId, 0) : null; })
-          .catch(function () { return null; });
+          .then(function (res) {
+            var d = res.d;
+            if (res.status >= 200 && res.status < 300 && d.upload_id) {
+              return pollRunCheck(docId, d.upload_id, 0);   // started → poll to completion
+            }
+            // Declined (check_limit_reached / pending / unsupported_document / extraction_failed):
+            // surface the bridge's message; leave the slot Ready to retry or Replace (§2.2).
+            throw { msg: bridgeStartMessage(res.status, d) };
+          })
+          .then(function () { return loadDocs(); })   // re-render from real fields → Checked + Exposure Report
+          .catch(function (err) {
+            hideLife(ui.status);
+            if (ui.rep) ui.rep.disabled = false;
+            if (ui.runBtn) { ui.runBtn.disabled = false; ui.runBtn.textContent = 'Run Check'; }
+            if (ui.msg) showRowError(ui.msg, (err && err.msg) || 'Could not run the check right now. Please try again.');
+          });
       }
-      function pollBridge(documentId, uploadId, n) {
-        if (n >= 36) return null; // ~3 min ceiling; the overlay appears when the check lands
+      function pollRunCheck(documentId, uploadId, n) {
+        if (n >= 36) return null; // ~3 min ceiling (brief §2.2); loadDocs then re-renders from whatever landed
         return new Promise(function (resolve) { setTimeout(resolve, 5000); }).then(function () {
           return fetch(FN + '/kl-compliance-bridge', {
             method: 'POST', headers: H,
             body: JSON.stringify({ document_id: documentId, upload_id: uploadId, action: 'poll' })
           }).then(function (r) { return r.json().catch(function () { return {}; }); })
-            .then(function (d) { return (d && d.status === 'processing') ? pollBridge(documentId, uploadId, n + 1) : d; })
-            .catch(function () { return pollBridge(documentId, uploadId, n + 1); });
+            .then(function (d) { return (d && d.status === 'processing') ? pollRunCheck(documentId, uploadId, n + 1) : d; })
+            .catch(function () { return pollRunCheck(documentId, uploadId, n + 1); });
         });
+      }
+      // ---- Run Check UI helpers ----
+      function showLife(node, m) {
+        if (!node) return;
+        node.style.display = 'flex'; clear(node);
+        node.appendChild(el('span', 'mini-spinner'));
+        node.appendChild(document.createTextNode(m));
+      }
+      function hideLife(node) { if (node) { clear(node); node.style.display = 'none'; } }
+      function showRowError(node, m) { if (node) { node.textContent = m; node.hidden = false; } }
+      // Prefer the bridge's own `message`; otherwise map its `error` to RULE-15 language.
+      function bridgeStartMessage(status, d) {
+        if (d && d.message) return String(d.message);
+        var err = d && (typeof d.error === 'string' ? d.error : null);
+        if (err === 'check_limit_reached')  return 'You’ve used all the Contract Compliance Checks in this session. Add another below to check this document.';
+        if (err === 'extraction_failed')    return 'We couldn’t read this document. Replace it with a clear PDF or Word (.docx) file, then run the check.';
+        if (err === 'unsupported_document') return 'This document type isn’t supported for a check. Replace it with a PDF or Word (.docx) file.';
+        if (err === 'pending')              return 'This document is still being prepared. Give it a moment, then run the check.';
+        if (status === 403)                 return 'No checks are available on your session right now.';
+        return 'Could not run the check right now. Please try again.';
       }
 
       function setSlotStatus(work, m) {
@@ -1417,7 +1561,10 @@
             setSlotStatus(work, 'Saving to your vault…');
             var body = {
               user_id: uid, filename: file.name, storage_path: path,
-              file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream'
+              file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream',
+              // Start the lifecycle deterministically in Preparing (matches the live KL caller,
+              // kl-app.js) — Run Check only appears once extraction_status reaches 'extracted'.
+              extraction_status: 'pending', analysis_status: 'pending'
             };
             return fetch(RESTU + '/kl_vault_documents', {
               method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H), body: JSON.stringify(body)
@@ -1427,18 +1574,26 @@
             });
           })
           .then(function (rep) {
-            // Fix 1 (brief §1): capture the inserted document id, persist the chosen type
-            // (§3), then run the SAME Compliance Check the operational vault runs so the
-            // Exposure Report card populates. runBridge never throws — a failed check must
-            // not lose the saved document (§1.5); loadDocs then re-renders from whatever
-            // findings landed (the card's existing loadCardData paints the report).
+            // Brief §2.1: capture the inserted id, persist the chosen type (§3), then fire
+            // extraction ONLY. The check is NO LONGER auto-run here — the old chain raced the
+            // bridge `start` ahead of extraction_status = 'extracted', so the bridge declined
+            // it and the check silently never ran. Extraction must still happen on upload so
+            // the document becomes checkable; the explicit Run Check button (shown once
+            // extraction_status = 'extracted') issues the bridge start.
             var id = rep && rep[0] && rep[0].id;
             if (!id) throw new Error('no id');
             storeType(id, type);
-            setSlotStatus(work, 'Running the Contract Compliance Check…');
-            return runBridge(id, type);
+            setSlotStatus(work, 'Preparing document…');
+            fetch(FN + '/kl_document_extract', {
+              method: 'POST', headers: H, body: JSON.stringify({ document_id: id })
+            }).catch(function () { /* extraction errors surface via extraction_status on refresh */ });
+            return id;
           })
-          .then(function () { return loadDocs(); })
+          .then(function (id) {
+            // Re-render into the Preparing slot, then watch extraction_status until it flips to
+            // 'extracted' (→ Ready, Run Check enabled). This removes the race that broke the auto-run.
+            return loadDocs().then(function () { ensureExtractionWatch(id); });
+          })
           .catch(function () {
             setSlotStatus(work, '');
             goBtn.disabled = false; cancelBtn.disabled = false;
@@ -1487,7 +1642,16 @@
               return true;
             });
           })
-          .then(function () { return loadDocs(); })
+          .then(function () {
+            // A replaced file is new content — re-fire extraction for it (as on upload, §2.1)
+            // and watch until it is 'extracted' again before Run Check is offered. We do NOT
+            // auto-run the check on replace (brief §2.1 — no auto-run).
+            setSlotStatus(work, 'Preparing the new version…');
+            fetch(FN + '/kl_document_extract', {
+              method: 'POST', headers: H, body: JSON.stringify({ document_id: doc.id })
+            }).catch(function () {});
+            return loadDocs().then(function () { ensureExtractionWatch(doc.id); });
+          })
           .catch(function () {
             setSlotStatus(work, '');
             goBtn.disabled = false; cancelBtn.disabled = false;
