@@ -1462,7 +1462,7 @@
     // Calendar below). The in-app HubVaultFacet is retained as a fallback but is no
     // longer reachable from this nav.
     { id: "vault", label: "Document Vault", href: "/operational/documents/" },
-    { id: "alerts", label: "Alerts" },
+    { id: "alerts", label: "Alerts", href: "/operational/alerts/" },
     { id: "acei", label: "ACEI Overview" },
     { id: "intelligence", label: "Intelligence" },
     // PARLIAMENT-LIVE-001 — full-page surface (not an in-app facet): href routes

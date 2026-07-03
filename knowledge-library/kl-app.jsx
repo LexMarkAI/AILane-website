@@ -33,7 +33,11 @@ var HUB_WORKSPACE_FACETS = [
   // Calendar below). The in-app HubVaultFacet is retained as a fallback but is no
   // longer reachable from this nav.
   { id: 'vault',        label: 'Document Vault', href: '/operational/documents/' },
-  { id: 'alerts',       label: 'Alerts' },
+  // OPERATIONAL-ALERTS-SITE-004 — full-page surface (not an in-app facet): href routes
+  // to the standalone /operational/alerts/ page (mirrors Document Vault / Parliament Live /
+  // Calendar). The in-app HubAlertsFacet is retained (no deletion) as a dormant fallback;
+  // the nav now navigates to the page.
+  { id: 'alerts',       label: 'Alerts', href: '/operational/alerts/' },
   { id: 'acei',         label: 'ACEI Overview' },
   { id: 'intelligence', label: 'Intelligence' },
   // PARLIAMENT-LIVE-001 — full-page surface (not an in-app facet): href routes

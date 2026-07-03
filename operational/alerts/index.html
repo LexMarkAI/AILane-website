@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts — Operational — Ailane</title>
+
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) — copied verbatim from operational/documents/index.html; unchanged -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+
+  <!-- Supabase CDN — FIRST script in head after GA4/CSP; auth guard polls for it -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- Fonts — the tokens.css families: DM Serif Display (display), DM Sans (body), JetBrains Mono (mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Room colour / typography source of truth -->
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--surface-void, #050c18); }
+    body {
+      background: var(--surface-void, #050c18);
+      color: var(--text-body, #e2e8f0);
+      font-family: var(--font-body, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+      min-height: 100vh; line-height: 1.55; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--tier-operational, #22d3ee); }
+    h1, h2, h3 { font-family: var(--font-display, 'DM Serif Display', Georgia, serif); font-weight: 400; }
+
+    /* ---- Top bar (replicated verbatim from operational/documents/index.html) ---- */
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      padding: 14px 24px;
+      background: var(--surface-deep, #06080f);
+      border-bottom: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+    }
+    .brand {
+      font-family: var(--font-display, 'DM Serif Display', Georgia, serif);
+      font-size: 1.32rem; color: var(--text-prime, #f1f5f9); letter-spacing: 0.01em;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .topbar-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.86rem; font-weight: 600; text-decoration: none;
+      color: var(--tier-operational, #22d3ee);
+      padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .topbar-back:hover { border-color: var(--tier-operational, #22d3ee); background: rgba(34,211,238,0.08); }
+    .topbar-back:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: 2px; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .tier-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 12px; border-radius: 999px;
+      font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      color: var(--text-sec, #94a3b8); background: var(--surface-glass, rgba(30,41,59,0.5));
+    }
+    .tier-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .monitor-counter {
+      font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+      font-size: 0.8rem; color: var(--text-sec, #94a3b8); letter-spacing: 0.02em;
+    }
+
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 24px 80px; }
+
+    /* ---- Standing disclaimer (replicated from operational/documents/index.html) ---- */
+    .disclaimer-banner {
+      margin: 6px 0 24px; padding: 16px 18px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-left: 3px solid var(--tier-operational, #22d3ee);
+      border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-raised, rgba(15,23,42,0.8));
+      color: var(--text-body, #e2e8f0); font-size: 0.92rem; line-height: 1.6;
+    }
+    .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
+
+    /* ---- Panes: plain block wrapper (class name preserved so the AAL2 step-up gate
+         can toggle its display, exactly as in operational/documents/index.html) ---- */
+    .panes { display: block; }
+
+    .section-head {
+      font-family: var(--font-body, 'DM Sans', sans-serif);
+      font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+      margin: 0 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+    }
+    .pane {
+      background: var(--surface-card, #0c1525);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-lg, 16px);
+      padding: 20px 20px 24px;
+    }
+
+    /* ---- States (replicated from operational/documents/index.html) ---- */
+    .state-msg { padding: 32px 16px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.92rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 26px; height: 26px; margin: 0 auto 14px; border: 3px solid rgba(34,211,238,0.15);
+      border-top-color: var(--tier-operational, #22d3ee); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Step-up card controls (needed by the AAL2 gate copied from documents) ---- */
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.9rem;
+    }
+    .field input:focus { outline: none; border-color: var(--tier-operational, #22d3ee); }
+    .attest-intro { font-size: 0.82rem; color: var(--text-sec, #94a3b8); margin-bottom: 16px; line-height: 1.55; }
+    .btn-primary {
+      padding: 11px 20px; border: none; border-radius: var(--card-radius-sm, 8px);
+      background: var(--tier-operational, #22d3ee); color: #042027; font-family: inherit; font-weight: 700;
+      font-size: 0.88rem; cursor: pointer; transition: opacity 0.15s ease;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .form-msg { font-size: 0.82rem; margin-top: 12px; line-height: 1.5; }
+    .form-msg.err { color: var(--status-err, #ef4444); }
+    .form-msg.ok { color: var(--status-ok, #10b981); }
+
+    .vault-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.78rem; color: var(--text-mute, #64748b); text-align: center; }
+
+    /* ============================================================
+       OPERATIONAL-ALERTS-SITE-004 — Alerts body chrome.
+       Reproduces the item layouts of the SPA HubAlertsFacet
+       (knowledge-library/kl-app.jsx — HUB_ALERTS_* / HUB_VAULT_*)
+       in this standalone shell's visual idiom (tokens.css variables,
+       CSS classes in this <style> block). No new styling system:
+       the semantic bands reuse the estate palette (green #22C55E,
+       red #F87171, warm amber #D97706 per AMD-050; blue = the room's
+       --tier-operational cyan).
+       ============================================================ */
+    .al-wrap { max-width: 900px; margin: 0 auto; width: 100%; }
+
+    /* Collapsible category section — native <details>/<summary> toggle,
+       header carries the count (Contract open by default, Statute collapsed). */
+    .acat {
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-radius: var(--card-radius-lg, 16px);
+      background: var(--surface-card, #0c1525);
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .acat-summary {
+      list-style: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 16px 18px;
+      font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-sec, #94a3b8);
+    }
+    .acat-summary::-webkit-details-marker { display: none; }
+    .acat-summary:hover { color: var(--text-prime, #f1f5f9); }
+    .acat-summary:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: -2px; }
+    .acat-chevron {
+      width: 8px; height: 8px; flex: 0 0 auto; margin-right: 2px;
+      border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+      transform: rotate(45deg); transition: transform 0.15s ease;
+    }
+    .acat[open] > .acat-summary .acat-chevron { transform: rotate(-135deg); }
+    .acat-body { padding: 0 18px 18px; }
+
+    .al-list { display: flex; flex-direction: column; gap: 12px; margin: 2px 0 4px; }
+    .al-card {
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      border-left: 2px solid rgba(34,211,238,0.3);
+      border-radius: var(--card-radius-sm, 8px);
+      padding: 14px 16px;
+    }
+    .al-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .al-main { min-width: 0; }
+    .al-title { font-family: var(--font-body, 'DM Sans', sans-serif); font-size: 0.94rem; font-weight: 700;
+      color: var(--text-prime, #f1f5f9); word-break: break-word; }
+    .al-sub { margin-top: 3px; font-family: var(--font-body, 'DM Sans', sans-serif); font-size: 0.82rem;
+      color: var(--text-sec, #94a3b8); line-height: 1.5; word-break: break-word; }
+    .al-meta { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+    .al-mono { font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+      font-size: 0.7rem; color: var(--text-mute, #64748b); letter-spacing: 0.02em; }
+
+    /* Status-band / severity / priority pills — reuse the estate semantic palette. */
+    .al-pill {
+      display: inline-flex; align-items: center; white-space: nowrap;
+      font-family: var(--font-body, 'DM Sans', sans-serif); font-size: 0.68rem; letter-spacing: 0.02em;
+      padding: 2px 9px; border-radius: 999px;
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      background: var(--surface-glass, rgba(30,41,59,0.5)); color: var(--text-sec, #94a3b8);
+    }
+    .al-pill--red   { color: #F87171; border-color: rgba(248,113,113,0.32); background: rgba(248,113,113,0.08); }
+    .al-pill--amber { color: #D97706; border-color: rgba(217,119,6,0.34);  background: rgba(217,119,6,0.10); }
+    .al-pill--green { color: #22C55E; border-color: rgba(34,197,94,0.3);    background: rgba(34,197,94,0.08); }
+    .al-pill--blue  { color: var(--tier-operational, #22d3ee); border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.12); }
+    .al-pill--idle  { color: var(--text-mute, #64748b); }
+
+    /* SLA / days-left day-chip (mono, cyan) — mirrors HUB_VAULT_CHIP_STYLE. */
+    .al-chip {
+      display: inline-block; font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--tier-operational, #22d3ee); white-space: nowrap;
+      background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.3);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .al-link { font-family: var(--font-body, 'DM Sans', sans-serif); font-size: 0.74rem;
+      color: var(--tier-operational, #22d3ee); text-decoration: none; font-weight: 600; }
+    .al-link:hover { text-decoration: underline; }
+
+    .al-empty { color: var(--text-body, #e2e8f0); font-family: var(--font-body, 'DM Sans', sans-serif);
+      font-size: 0.86rem; line-height: 1.6; }
+    .al-err { color: var(--text-sec, #94a3b8); font-family: var(--font-body, 'DM Sans', sans-serif); font-size: 0.82rem; }
+  </style>
+
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+</head>
+<body style="visibility:hidden">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <!-- Back to the operational hub (hosts Eileen + the workspace nav) — same target as the documents page -->
+      <a class="topbar-back" href="/operational/" aria-label="Back to the operational hub">← Operational</a>
+      <div class="brand">Ailane Alerts</div>
+    </div>
+    <div class="topbar-right">
+      <!-- NOTIF-PREFS-UI-001 (Stage C · C3) — in-app vault notification bell.
+           Replicated from operational/documents/index.html; populated from
+           vault_client_notifications after boot; hidden until loaded. -->
+      <div id="notif-bell-wrap" style="position:relative;" hidden>
+        <button id="notif-bell" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Vault notifications"
+                style="position:relative;background:transparent;border:none;color:var(--text-sec,#94a3b8);cursor:pointer;padding:8px;border-radius:8px;display:flex;align-items:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span id="notif-badge" hidden style="position:absolute;top:2px;right:2px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--tier-operational,#22d3ee);color:#042027;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-mono,'JetBrains Mono',monospace);line-height:1;"></span>
+        </button>
+        <div id="notif-list" hidden
+             role="region" aria-label="Vault notifications"
+             style="position:absolute;top:calc(100% + 8px);right:0;width:320px;max-width:86vw;background:var(--surface-card,#0c1525);border:1px solid var(--border-mid,rgba(148,163,184,0.2));border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:60;overflow:hidden;"></div>
+      </div>
+      <span class="tier-badge" id="tier-badge" hidden></span>
+      <span class="monitor-counter" id="monitor-counter">Operational alerts</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="disclaimer-banner" role="note">
+      <strong>This is regulatory intelligence to support your decisions — not legal advice.</strong>
+      It is not a complete record of all applicable law, and the absence of an item here is not assurance
+      that nothing has changed. For advice on your own situation, consult a qualified professional.
+    </div>
+
+    <div class="panes">
+      <section id="alerts-root" class="al-wrap" aria-label="Alerts">
+        <div class="state-msg"><div class="spinner"></div>Loading your alerts…</div>
+      </section>
+    </div>
+
+    <footer class="vault-footer">AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720.</footer>
+  </main>
+
+  <!-- AUTH GUARD — replicated VERBATIM from operational/documents/index.html (RULE 26 / RULE 27 /
+       AUTH-001). Reveal-after-verify. MFA remains optional for NON-enrolled users; an MFA-enrolled
+       session at aal1 is stepped up here (AAL2-STEPUP-001, Stage C · C1) BEFORE the app boots.
+       ONLY change vs the documents page: startApp() calls initAlerts() (not initDocuments()). -->
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    // Live operational-room allow-list + institutional (AMD-123 successor to enterprise, tokens.css).
+    var ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
+
+    var settled = false;
+    function fail() { if (settled) return; settled = true; window.location.replace('/login/'); }
+
+    // Poll for the Supabase CDN to load.
+    var polls = 0;
+    (function waitForSb() {
+      if (window.supabase && window.supabase.createClient) { boot(); return; }
+      if (++polls > 60) { fail(); return; }
+      setTimeout(waitForSb, 100);
+    })();
+
+    function boot() {
+      var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      sb.auth.getSession().then(function (gs) {
+        if (gs && gs.data && gs.data.session) { verify(gs.data.session); return; }
+        // Fallback: session may still be hydrating — listen with a 6s timeout.
+        var to = setTimeout(function () {
+          try { sub.data.subscription.unsubscribe(); } catch (e) {}
+          fail();
+        }, 6000);
+        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
+          if (session && !settled) {
+            clearTimeout(to);
+            try { sub.data.subscription.unsubscribe(); } catch (e) {}
+            verify(session);
+          }
+        });
+      }).catch(fail);
+
+      function verify(session) {
+        if (settled) return;
+        var token = session.access_token, payload;
+        try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return fail(); }
+        var userId = payload.sub;
+        fetch(SUPABASE_URL + '/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.' + userId + '&limit=1',
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (rows) {
+            if (rows && rows.length > 0 && ALLOWED_TIERS.indexOf(rows[0].subscription_tier) >= 0) {
+              settled = true;
+              document.body.style.visibility = 'visible';
+              maybeStepUp(token, userId);
+            } else { fail(); }
+          })
+          .catch(fail);
+      }
+
+      // ─── AAL2-STEPUP-001 (Stage C · C1) — MFA step-up before boot ───
+      function startApp(tok, userId) {
+        var panes = document.querySelector('.panes');
+        if (panes) panes.style.display = '';
+        var card = document.getElementById('stepup-card');
+        if (card) card.remove();
+        initAlerts(tok, SUPABASE_ANON, userId, SUPABASE_URL);
+      }
+
+      function maybeStepUp(token, userId) {
+        var mfa = sb.auth && sb.auth.mfa;
+        if (!mfa || !mfa.getAuthenticatorAssuranceLevel) { startApp(token, userId); return; }
+        mfa.getAuthenticatorAssuranceLevel().then(function (r) {
+          var d = r && r.data;
+          if (!(d && d.currentLevel === 'aal1' && d.nextLevel === 'aal2')) { startApp(token, userId); return; }
+          // Enrolled but aal1 → gate the room until the session is elevated.
+          mfa.listFactors().then(function (lf) {
+            var totp = ((lf && lf.data && lf.data.totp) || []).filter(function (f) { return f.status === 'verified'; });
+            renderStepUp(totp.length ? totp[0].id : null, userId, token);
+          }).catch(function () { renderStepUp(null, userId, token); });
+        }).catch(function () {
+          // AAL unreadable → never trap a tenant out; RLS still enforces server-side.
+          startApp(token, userId);
+        });
+      }
+
+      function renderStepUp(factorId, userId, aal1Token) {
+        var wrap = document.querySelector('.wrap');
+        var panes = document.querySelector('.panes');
+        if (panes) panes.style.display = 'none';
+        var old = document.getElementById('stepup-card');
+        if (old) old.remove();
+
+        var card = document.createElement('section');
+        card.className = 'pane';
+        card.id = 'stepup-card';
+        card.setAttribute('aria-label', 'Two-factor verification');
+        card.style.cssText = 'max-width:420px;margin:0 auto;text-align:center;';
+
+        function add(tag, cls, text) {
+          var n = document.createElement(tag);
+          if (cls) n.className = cls;
+          if (text != null) n.textContent = text;
+          card.appendChild(n);
+          return n;
+        }
+
+        add('h2', 'section-head', 'Confirm it’s you');
+
+        if (!factorId) {
+          // TOTP-less enrolment (e.g. a beta passkey) — /login/ owns the WebAuthn
+          // challenge ceremony; do not duplicate it here.
+          add('p', 'attest-intro', 'Your second step is set up with a method this page can’t verify here. Sign in again to confirm it’s you.');
+          var goBtn = add('button', 'btn-primary', 'Sign in again');
+          goBtn.type = 'button';
+          goBtn.addEventListener('click', function () {
+            var done = function () { window.location.replace('/login/'); };
+            try { sb.auth.signOut().then(done, done); } catch (e) { done(); }
+          });
+          wrap.insertBefore(card, panes);
+          goBtn.focus();
+          return;
+        }
+
+        add('p', 'attest-intro', 'Two-factor authentication is on for your account. Enter the 6-digit code from your authenticator app to open your alerts.');
+
+        var field = add('div', 'field');
+        var input = document.createElement('input');
+        input.type = 'text'; input.id = 'stepup-code';
+        input.setAttribute('inputmode', 'numeric');
+        input.setAttribute('autocomplete', 'one-time-code');
+        input.maxLength = 6; input.placeholder = '123456';
+        input.setAttribute('aria-label', 'Authenticator code');
+        input.style.cssText = 'text-align:center;letter-spacing:0.3em;font-size:1.2rem;max-width:220px;margin:0 auto;';
+        field.appendChild(input);
+
+        var btn = add('button', 'btn-primary', 'Verify');
+        btn.type = 'button';
+        var msgEl = add('div', 'form-msg err', '');
+        msgEl.setAttribute('role', 'alert');
+        msgEl.hidden = true;
+
+        var alt = add('div', null, '');
+        alt.style.marginTop = '14px';
+        var altBtn = document.createElement('button');
+        altBtn.type = 'button';
+        altBtn.textContent = 'Sign out and use a different account';
+        altBtn.style.cssText = 'background:none;border:none;color:var(--text-mute,#64748b);font-size:0.78rem;cursor:pointer;text-decoration:underline;font-family:inherit;';
+        altBtn.addEventListener('click', function () {
+          var done = function () { window.location.replace('/login/'); };
+          try { sb.auth.signOut().then(done, done); } catch (e) { done(); }
+        });
+        alt.appendChild(altBtn);
+
+        var busy = false;
+        function doVerify() {
+          if (busy) return;
+          var code = (input.value || '').replace(/\D/g, '');
+          if (code.length !== 6) {
+            msgEl.textContent = 'Enter the 6-digit code from your authenticator app.';
+            msgEl.hidden = false;
+            return;
+          }
+          busy = true; btn.disabled = true; btn.textContent = 'Verifying…'; msgEl.hidden = true;
+          sb.auth.mfa.challenge({ factorId: factorId }).then(function (c) {
+            if (c.error) throw c.error;
+            return sb.auth.mfa.verify({ factorId: factorId, challengeId: c.data.id, code: code });
+          }).then(function (v) {
+            if (v.error) throw v.error;
+            // The elevated session mints a NEW aal2 access token — boot with it,
+            // not the aal1 token captured at guard time.
+            return sb.auth.getSession();
+          }).then(function (gs) {
+            // Fallback to the aal1 token only if the refreshed session is
+            // unreadable — verification succeeded, so never dead-end the boot.
+            var s = gs && gs.data && gs.data.session;
+            startApp((s && s.access_token) || aal1Token, userId);
+          }).catch(function (e) {
+            busy = false; btn.disabled = false; btn.textContent = 'Verify';
+            msgEl.textContent = (e && e.message) || 'That code didn’t work. Please try again.';
+            msgEl.hidden = false;
+          });
+        }
+        btn.addEventListener('click', doVerify);
+        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') doVerify(); });
+
+        wrap.insertBefore(card, panes);
+        input.focus();
+      }
+    }
+  })();
+  </script>
+
+  <!-- APP — vanilla JS, no build step. All server text is treated as data (textContent / safe DOM only).
+       The Alerts body reproduces the SPA HubAlertsFacet item layouts (kl-app.jsx) but reads the SAME
+       operational-alerts edge function via this shell's native-fetch idiom (mirrors initDocuments' FN/H). -->
+  <script>
+  function initAlerts(token, ANON, uid, REST) {
+    var RESTU = REST + '/rest/v1';
+    var FN = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
+    var H = { 'apikey': ANON, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+    // ---- DOM refs ----
+    var rootEl  = document.getElementById('alerts-root');
+    var badgeEl = document.getElementById('tier-badge');
+    var countEl = document.getElementById('monitor-counter');
+
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    // ---- DOM helpers (mirror operational/documents/index.html) ----
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+    // ISO date -> '1 Jul 2026' (UTC; notification-bell copy — mirrors documents fmtDate).
+    function fmtDate(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+    }
+    function fmtDateLong(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.getUTCDate() + ' ' + MONTHS_FULL[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+    }
+    function getJson(path) {
+      return fetch(RESTU + path, { headers: H })
+        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+    }
+
+    // ============================================================
+    //  Alerts render helpers — ported from HubAlertsFacet
+    //  (knowledge-library/kl-app.jsx). Same layouts, humanise map,
+    //  status/severity/priority pills, SLA day-chips, source links.
+    // ============================================================
+    function truncate(s, n) {
+      if (!s) return '';
+      return s.length > n ? s.substring(0, n - 1) + '…' : s;
+    }
+    // ACEI category → human label (mirrors HUB_ACEI_CAT_LABELS).
+    var CAT_LABELS = {
+      discrimination_harassment: 'Discrimination & harassment',
+      harassment_bullying: 'Harassment & bullying',
+      unfair_dismissal: 'Unfair dismissal',
+      wrongful_dismissal: 'Wrongful dismissal',
+      redundancy: 'Redundancy & restructure',
+      redundancy_restructure: 'Redundancy & restructure',
+      pay_wages: 'Pay & wages',
+      wages_pay: 'Pay & wages',
+      national_minimum_wage: 'National minimum wage',
+      working_time: 'Working time',
+      holiday_pay: 'Holiday pay',
+      family_leave: 'Family & parental leave',
+      whistleblowing: 'Whistleblowing',
+      tupe: 'TUPE transfers',
+      contracts_terms: 'Contracts & terms',
+      health_safety: 'Health & safety',
+      data_protection: 'Data protection',
+      grievance_disciplinary: 'Grievance & disciplinary',
+      equal_pay: 'Equal pay',
+      trade_union: 'Trade union & collective',
+      worker_status: 'Worker status & classification',
+      immigration_rtw: 'Immigration & right to work'
+    };
+    function humanise(raw) {
+      if (raw == null) return '—';
+      var key = String(raw).toLowerCase();
+      if (CAT_LABELS[key]) return CAT_LABELS[key];
+      return String(raw).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+        .replace(/\b\w/g, function (c) { return c.toUpperCase(); }) || '—';
+    }
+    // ISO date -> en-GB '01 Jul 2026' (mirrors hubVaultDate — alert item copy).
+    function fmtVaultDate(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return String(iso);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch (e) { return String(iso); }
+    }
+    // Whole-day difference (date − today), UTC-normalised (mirrors hubAlertsDaysUntil).
+    function daysUntil(iso) {
+      if (!iso) return null;
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return null;
+      var now = new Date();
+      var a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      var b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      return Math.round((a - b) / 86400000);
+    }
+    // Extraction/analysis status → tone class (mirrors hubVaultStatusClass).
+    function statusClass(status) {
+      var s = String(status == null ? '' : status).toLowerCase();
+      if (/(complete|done|extracted|analy[sz]ed|ready|success|\bok\b)/.test(s)) return 'ok';
+      if (/(fail|error|reject)/.test(s)) return 'bad';
+      if (/(pend|queue|process|progress|run|extract|analy[sz]ing|wait)/.test(s)) return 'busy';
+      return 'idle';
+    }
+    // Coloured tone pill (red/amber/green/blue/idle). Empty label -> null.
+    function pill(tone, label) {
+      if (label == null || label === '') return null;
+      return el('span', 'al-pill' + (tone ? ' al-pill--' + tone : ''), label);
+    }
+    // status_band 'red'|'amber'|'green' -> matching pill (capitalised label).
+    function bandPill(band) {
+      if (band == null || band === '') return null;
+      var b = String(band).toLowerCase();
+      var tone = (b === 'red' || b === 'amber' || b === 'green') ? b : 'idle';
+      return pill(tone, b.charAt(0).toUpperCase() + b.slice(1));
+    }
+    // Horizon priority -> pill (high=red, medium=amber, low=green; humanised label).
+    function priorityPill(priority) {
+      if (priority == null || priority === '') return null;
+      var p = String(priority).toLowerCase();
+      var tone = /^(high|urgent|critical|1)$/.test(p) ? 'red'
+        : /^(medium|med|moderate|2)$/.test(p) ? 'amber'
+        : /^(low|routine|3)$/.test(p) ? 'green' : 'idle';
+      return pill(tone, humanise(priority));
+    }
+    // alert_class severity -> pill (1 = high/red, 2 = medium/amber).
+    function severityPill(alertClass) {
+      if (alertClass == null || alertClass === '') return null;
+      var n = Number(alertClass);
+      if (n === 1) return pill('red', 'High');
+      if (n === 2) return pill('amber', 'Medium');
+      return pill('idle', humanise(alertClass));
+    }
+    // Extraction/analysis status pill. Empty -> '—' (idle); humanised label (mirrors hubVaultStatusPill).
+    function statusPill(status) {
+      if (status == null || status === '') return el('span', 'al-pill al-pill--idle', '—');
+      var cls = statusClass(status);
+      var tone = cls === 'ok' ? 'green' : cls === 'bad' ? 'red' : cls === 'busy' ? 'blue' : 'idle';
+      return el('span', 'al-pill al-pill--' + tone, humanise(status));
+    }
+    // Days-remaining chip for a future SLA/commencement date; null if past/unset.
+    function slaChip(iso) {
+      var d = daysUntil(iso);
+      if (d == null || d < 0) return null;
+      return el('span', 'al-chip', d === 0 ? 'Due today' : (d + (d === 1 ? ' day left' : ' days left')));
+    }
+    // Safe external source link (http/https only; new tab, noopener). null if unusable.
+    function sourceLink(url, label) {
+      if (!url || typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null;
+      var a = el('a', 'al-link', label);
+      a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      return a;
+    }
+    function mono(text) { return el('span', 'al-mono', text); }
+    // Card top: title + optional sub on the left, an optional prebuilt pill on the right.
+    function cardTop(title, sub, pillEl) {
+      var top = el('div', 'al-top');
+      var main = el('div', 'al-main');
+      main.appendChild(el('div', 'al-title', title));
+      if (sub) main.appendChild(el('div', 'al-sub', sub));
+      top.appendChild(main);
+      if (pillEl) top.appendChild(pillEl);
+      return top;
+    }
+    // Assemble a card from a top element + a meta-children array (meta row omitted when empty).
+    function card(top, meta) {
+      var c = el('div', 'al-card');
+      c.appendChild(top);
+      var kids = (meta || []).filter(Boolean);
+      if (kids.length) {
+        var m = el('div', 'al-meta');
+        kids.forEach(function (x) { m.appendChild(x); });
+        c.appendChild(m);
+      }
+      return c;
+    }
+
+    // ─── Contract Alerts items — notifications → forward → contracts ───
+    function contractNotif(n) {
+      var title = n.title || (n.kind ? humanise(n.kind) : 'Contract update');
+      var top = cardTop(title, n.body || null, bandPill(n.status_band));
+      var meta = [];
+      if (n.created_at) meta.push(mono(fmtVaultDate(n.created_at)));
+      return card(top, meta);
+    }
+    function contractForward(f) {
+      var sub = f.affected_category ? humanise(f.affected_category) : null;
+      var top = cardTop(f.source_title || 'Forward change', sub, statusPill(f.status));
+      var meta = [];
+      if (f.commencement_date) meta.push(mono('Commences ' + fmtVaultDate(f.commencement_date)));
+      if (f.sla_deadline) {
+        meta.push(mono('SLA ' + fmtVaultDate(f.sla_deadline)));
+        meta.push(slaChip(f.sla_deadline));
+      }
+      return card(top, meta);
+    }
+    function contractDoc(c) {
+      var title = c.role_title || c.employee_ref || 'Contract';
+      var top = cardTop(title, c.key_finding ? truncate(c.key_finding, 160) : null, bandPill(c.status_band));
+      var meta = [];
+      if (c.critical_gaps != null) meta.push(mono(c.critical_gaps === 1 ? '1 critical gap' : (c.critical_gaps + ' critical gaps')));
+      if (c.compliance_score != null && c.compliance_score !== '') meta.push(mono('Score ' + c.compliance_score));
+      return card(top, meta);
+    }
+    function contractItems(contract) {
+      var items = [];
+      (contract.notifications || []).forEach(function (n) { items.push(contractNotif(n)); });
+      (contract.forward || []).forEach(function (f) { items.push(contractForward(f)); });
+      (contract.contracts || []).forEach(function (c) { items.push(contractDoc(c)); });
+      return items;
+    }
+
+    // ─── Statute & Legislation items — horizon → upcoming → alerts ───
+    function statuteHorizon(h) {
+      var sub = h.parliament_stage || h.status || null;
+      var top = cardTop(h.legislation_short_name || 'Legislation', sub, priorityPill(h.priority));
+      var meta = [];
+      if (h.expected_enactment) meta.push(mono('Coming into force ' + fmtVaultDate(h.expected_enactment)));
+      if (h.relevant_to_org === true) meta.push(pill('blue', 'Affects your contracts'));
+      meta.push(sourceLink(h.source_url, 'Source →'));
+      return card(top, meta);
+    }
+    function statuteUpcoming(u) {
+      var top = cardTop(u.short_title || 'Statute', u.obligations_summary ? truncate(u.obligations_summary, 160) : null, null);
+      var meta = [];
+      if (u.commencement_date) meta.push(mono('Commences ' + fmtVaultDate(u.commencement_date)));
+      meta.push(sourceLink(u.legislation_gov_url, 'legislation.gov.uk →'));
+      return card(top, meta);
+    }
+    function statuteAlert(a) {
+      var top = cardTop(a.title || 'Alert', a.summary ? truncate(a.summary, 160) : null, severityPill(a.alert_class));
+      var meta = [];
+      if (a.alert_type) meta.push(mono(humanise(a.alert_type)));
+      if (a.sla_deadline) {
+        meta.push(mono('SLA ' + fmtVaultDate(a.sla_deadline)));
+        meta.push(slaChip(a.sla_deadline));
+      }
+      meta.push(sourceLink(a.source_url, 'Source →'));
+      return card(top, meta);
+    }
+    function statuteItems(statute) {
+      var items = [];
+      (statute.horizon || []).forEach(function (h) { items.push(statuteHorizon(h)); });
+      (statute.upcoming || []).forEach(function (u) { items.push(statuteUpcoming(u)); });
+      (statute.alerts || []).forEach(function (a) { items.push(statuteAlert(a)); });
+      return items;
+    }
+
+    // ─── Collapsible category section (native <details>/<summary>) ───
+    function section(openByDefault, title, count, error, items, emptyText) {
+      var details = el('details', 'acat');
+      if (openByDefault) details.open = true;
+      var summary = el('summary', 'acat-summary');
+      var heading = (!error && count != null) ? (title + ' · ' + count) : title;
+      summary.appendChild(el('span', 'acat-title', heading));
+      summary.appendChild(el('span', 'acat-chevron'));
+      details.appendChild(summary);
+      var body = el('div', 'acat-body');
+      if (error) {
+        body.appendChild(el('div', 'al-err', 'Alerts are temporarily unavailable.'));
+      } else if (!items.length) {
+        body.appendChild(el('div', 'al-empty', emptyText));
+      } else {
+        var list = el('div', 'al-list');
+        items.forEach(function (it) { if (it) list.appendChild(it); });
+        body.appendChild(list);
+      }
+      details.appendChild(body);
+      return details;
+    }
+
+    function render(data, error) {
+      data = data || {};
+      var contract = data.contract || {};
+      var statute = data.statute || {};
+      clear(rootEl);
+      var cItems = error ? [] : contractItems(contract);
+      var sItems = error ? [] : statuteItems(statute);
+      // CONTRACT ALERTS — open by default. STATUTE & LEGISLATION — collapsed by default.
+      rootEl.appendChild(section(true, 'Contract Alerts', contract.count, error, cItems,
+        'No contract alerts — your monitored contracts are up to date.'));
+      rootEl.appendChild(section(false, 'Statute & Legislation', statute.count, error, sItems,
+        'No statute changes flagged right now.'));
+      if (!error && countEl) {
+        var cc = typeof contract.count === 'number' ? contract.count : cItems.length;
+        var sc = typeof statute.count === 'number' ? statute.count : sItems.length;
+        var total = cc + sc;
+        countEl.textContent = total + (total === 1 ? ' alert' : ' alerts');
+      }
+    }
+
+    // ---- Tier badge (re-read the verified tier; guard signature is fixed at 4 args) ----
+    var TIER_VAR = {
+      operational: '--tier-operational', operational_readiness: '--tier-operational',
+      governance: '--tier-governance', enterprise: '--tier-enterprise', institutional: '--tier-institutional'
+    };
+    var TIER_LABEL = {
+      operational: 'Operational', operational_readiness: 'Operational Readiness',
+      governance: 'Governance', enterprise: 'Enterprise', institutional: 'Institutional'
+    };
+    function loadTierBadge() {
+      getJson('/kl_account_profiles?select=subscription_tier&user_id=eq.' + uid + '&limit=1')
+        .then(function (rows) {
+          if (!rows || !rows.length) return;
+          var t = rows[0].subscription_tier;
+          badgeEl.textContent = TIER_LABEL[t] || t;
+          var v = TIER_VAR[t];
+          if (v) badgeEl.style.color = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+          badgeEl.hidden = false;
+        })
+        .catch(function () { /* badge is cosmetic; ignore */ });
+    }
+
+    // ============================================================
+    //  NOTIF-PREFS-UI-001 (Stage C · C3) — in-app notification bell
+    //  Replicated from operational/documents/index.html. Reads
+    //  vault_client_notifications (owner-scoped RLS; in-app channel).
+    //  Opening the list marks displayed unread items read. Best-effort:
+    //  any failure leaves the bell hidden. The write surface for
+    //  vault_notification_prefs lives on the Documents Vault page, so
+    //  the panel's settings link points there.
+    // ============================================================
+    function initNotifBell() {
+      var wrapEl = document.getElementById('notif-bell-wrap');
+      var btn = document.getElementById('notif-bell');
+      var badge = document.getElementById('notif-badge');
+      var panel = document.getElementById('notif-list');
+      if (!wrapEl || !btn || !badge || !panel) return;
+      var notifs = [];
+      var open = false;
+
+      function unread() { return notifs.filter(function (n) { return !n.read_at; }); }
+      function paintBadge() {
+        var n = unread().length;
+        badge.hidden = n === 0;
+        badge.textContent = n > 9 ? '9+' : String(n);
+        btn.setAttribute('aria-label', 'Vault notifications' + (n ? ' (' + n + ' unread)' : ''));
+      }
+      function forwardReviewCopy(n) {
+        var p = n && n.payload;
+        if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = null; } }
+        if (!p || typeof p !== 'object') p = {};
+        var act = p.act || p.forward_source_act || p.source_act || null;
+        var rawDate = p.date || p.forward_effective_date || p.effective_date || null;
+        var when = rawDate ? (fmtDateLong(rawDate) || String(rawDate)) : null;
+        if (!when) return null; // no usable payload date → the server-composed copy stands
+        return act
+          ? 'Contract review due — ' + act + ' changes take effect ' + when
+          : 'Contract review due — a forthcoming change in employment law takes effect ' + when;
+      }
+      var ALERT_COPY = { vault_forward_review_due: forwardReviewCopy };
+      function mappedCopy(n) {
+        return (n && Object.prototype.hasOwnProperty.call(ALERT_COPY, n.kind)) ? ALERT_COPY[n.kind](n) : null;
+      }
+      function enrichPayloads(rows) {
+        var need = (rows || []).filter(function (n) { return Object.prototype.hasOwnProperty.call(ALERT_COPY, n.kind); });
+        if (!need.length) return Promise.resolve(rows);
+        return getJson('/vault_client_notifications?id=in.(' + need.map(function (n) { return n.id; }).join(',') + ')&select=id,payload')
+          .then(function (pr) {
+            var byId = {};
+            (pr || []).forEach(function (r) { byId[r.id] = r.payload; });
+            (rows || []).forEach(function (n) { if (byId[n.id] != null) n.payload = byId[n.id]; });
+            return rows;
+          })
+          .catch(function () { return rows; });
+      }
+      function load() {
+        return getJson('/vault_client_notifications?user_id=eq.' + uid + '&channel_in_app=eq.true' +
+                '&select=id,kind,title,body,status_band,created_at,read_at&order=created_at.desc&limit=12')
+          .then(enrichPayloads)
+          .then(function (rows) {
+            notifs = rows || [];
+            wrapEl.hidden = false;
+            paintBadge();
+            if (open) renderList();
+          })
+          .catch(function () { /* bell is best-effort; leave hidden */ });
+      }
+      function markDisplayedRead() {
+        var ids = unread().map(function (n) { return n.id; });
+        if (!ids.length) return;
+        var now = new Date().toISOString();
+        fetch(RESTU + '/vault_client_notifications?id=in.(' + ids.join(',') + ')&read_at=is.null', {
+          method: 'PATCH',
+          headers: Object.assign({ 'Prefer': 'return=minimal' }, H),
+          body: JSON.stringify({ read_at: now })
+        }).then(function (r) {
+          if (r.status >= 200 && r.status < 300) {
+            notifs.forEach(function (n) { if (!n.read_at) n.read_at = now; });
+            paintBadge();
+            if (open) renderList();
+          }
+        }).catch(function (e) { console.warn('notification mark-read failed:', e); });
+      }
+      function renderList() {
+        clear(panel);
+        var head = el('div', null, 'Vault notifications');
+        head.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border-mid,rgba(148,163,184,0.2));color:var(--text-mute,#64748b);font-size:0.66rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;font-family:var(--font-mono,monospace);';
+        panel.appendChild(head);
+        var scroll = el('div');
+        scroll.style.cssText = 'max-height:320px;overflow-y:auto;';
+        if (!notifs.length) {
+          var empty = el('div', null, 'No notifications yet. We’ll post here when a change in the law triggers a re-check of your monitored documents.');
+          empty.style.cssText = 'padding:16px 14px;color:var(--text-mute,#64748b);font-size:0.82rem;line-height:1.5;';
+          scroll.appendChild(empty);
+        } else {
+          notifs.forEach(function (n) {
+            var row = el('div');
+            row.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border-dim,rgba(148,163,184,0.12));display:flex;gap:8px;align-items:flex-start;';
+            var dot = el('span');
+            dot.setAttribute('aria-hidden', 'true');
+            dot.style.cssText = 'flex-shrink:0;margin-top:5px;width:7px;height:7px;border-radius:50%;background:' +
+              (n.read_at ? 'rgba(148,163,184,0.35)' : 'var(--tier-operational,#22d3ee)') + ';';
+            row.appendChild(dot);
+            var main = el('div');
+            main.style.cssText = 'min-width:0;';
+            var t = el('div', null, mappedCopy(n) || n.title || 'Vault update');
+            t.style.cssText = 'color:var(--text-prime,#f1f5f9);font-size:0.82rem;font-weight:600;line-height:1.4;word-break:break-word;';
+            main.appendChild(t);
+            if (n.body) {
+              var b = el('div', null, n.body);
+              b.style.cssText = 'color:var(--text-sec,#94a3b8);font-size:0.8rem;line-height:1.45;margin-top:2px;word-break:break-word;';
+              main.appendChild(b);
+            }
+            var d = el('div', null, fmtDate(n.created_at));
+            d.style.cssText = 'color:var(--text-mute,#64748b);font-size:0.68rem;font-family:var(--font-mono,monospace);margin-top:4px;';
+            main.appendChild(d);
+            row.appendChild(main);
+            scroll.appendChild(row);
+          });
+        }
+        panel.appendChild(scroll);
+        var foot = document.createElement('a');
+        foot.href = '/operational/documents/#notifications';
+        foot.textContent = 'Notification settings →';
+        foot.style.cssText = 'display:block;padding:10px 14px;border-top:1px solid var(--border-mid,rgba(148,163,184,0.2));color:var(--tier-operational,#22d3ee);font-size:0.8rem;text-decoration:none;';
+        foot.addEventListener('click', function () { toggle(false); });
+        panel.appendChild(foot);
+      }
+      function toggle(force) {
+        open = typeof force === 'boolean' ? force : !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.style.color = open ? 'var(--text-prime,#f1f5f9)' : 'var(--text-sec,#94a3b8)';
+        panel.hidden = !open;
+        if (open) { renderList(); markDisplayedRead(); }
+      }
+      btn.addEventListener('click', function (e) { e.stopPropagation(); toggle(); });
+      document.addEventListener('click', function (e) { if (open && !wrapEl.contains(e.target)) toggle(false); });
+      document.addEventListener('keydown', function (e) { if (open && e.key === 'Escape') { toggle(false); btn.focus(); } });
+
+      load();
+      setInterval(load, 300000); // refresh every 5 minutes
+    }
+
+    // ============================================================
+    //  Boot — chrome first, then the single operational-alerts read.
+    //  §2.1 — native-fetch idiom (mirrors initDocuments' FN/H and the
+    //  SPA HubAlertsFacet): POST '{}' with apikey anon + Bearer session
+    //  token; the function derives the org from the token. On error,
+    //  each section renders its "temporarily unavailable" state.
+    // ============================================================
+    loadTierBadge();
+    initNotifBell();
+
+    fetch(FN + '/operational-alerts', { method: 'POST', headers: H, body: '{}' })
+      .then(function (r) { if (!r.ok) throw new Error('operational-alerts ' + r.status); return r.json(); })
+      .then(function (data) { render(data, false); })
+      .catch(function (e) { console.warn('[operational-alerts] load failed', e); render(null, true); });
+  }
+  </script>
+
+</body>
+</html>
