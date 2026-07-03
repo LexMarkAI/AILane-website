@@ -8806,13 +8806,6 @@
     var b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
     return Math.round((a - b) / 864e5);
   }
-  function hubAlertsDateFlag(iso) {
-    var t = hubAlertsDaysUntil(iso);
-    if (t === null) return null;
-    if (t < 0) return { kind: "overdue", label: "Overdue" };
-    if (t <= 14) return { kind: "due", label: "Due soon" };
-    return null;
-  }
   var HUB_ALERTS_CARD_STYLE = { background: "#0F1D32", border: "1px solid #1E3A5F", borderLeft: "2px solid rgba(14,165,233,0.3)", borderRadius: "12px", padding: "14px 16px" };
   var HUB_ALERTS_TOP_STYLE = { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" };
   var HUB_ALERTS_TITLE_STYLE = { fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 700, color: "#F1F5F9", wordBreak: "break-word" };
@@ -8826,10 +8819,6 @@
   var HUB_ALERTS_EMPTY_STYLE = { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 };
   var HUB_ALERTS_ERR_STYLE = { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px" };
   var HUB_ALERTS_LIST_STYLE = { display: "flex", flexDirection: "column", gap: "12px", margin: "2px 0 4px" };
-  function hubAlertsHeading(title, r) {
-    var text2 = r && r.rows ? title + " \xB7 " + r.rows.length : title;
-    return React.createElement("div", { key: "h", style: HUB_ACEI_SECTION_H }, text2);
-  }
   function hubAlertsFlag(kind, label, key) {
     var extra = kind === "overdue" ? HUB_ALERTS_FLAG_OVERDUE : kind === "due" ? HUB_ALERTS_FLAG_DUE : kind === "ico" ? HUB_ALERTS_FLAG_ICO : null;
     return React.createElement("span", { key, style: extra ? Object.assign({}, HUB_ALERTS_FLAG_BASE, extra) : HUB_ALERTS_FLAG_BASE }, label);
@@ -8837,113 +8826,230 @@
   function hubAlertsMono(text2, key) {
     return React.createElement("span", { key, style: HUB_ALERTS_MONO_STYLE }, text2);
   }
-  function hubAlertsCardTop(title, sub, status) {
+  function hubAlertsCard(id, idx, top, meta) {
+    var children = [top];
+    if (meta.length) children.push(React.createElement("div", { key: "meta", style: HUB_ALERTS_META_STYLE }, meta));
+    return React.createElement("div", { key: id != null ? id : idx, style: HUB_ALERTS_CARD_STYLE }, children);
+  }
+  var HUB_ALERTS_BAND_RED = { color: "#F87171", borderColor: "rgba(248,113,113,0.32)", background: "rgba(248,113,113,0.08)" };
+  var HUB_ALERTS_BAND_AMBER = { color: "#D97706", borderColor: "rgba(217,119,6,0.34)", background: "rgba(217,119,6,0.10)" };
+  var HUB_ALERTS_BAND_GREEN = { color: "#22C55E", borderColor: "rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)" };
+  var HUB_ALERTS_LINK_STYLE = { fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: "#38BDF8", textDecoration: "none", fontWeight: 600 };
+  var HUB_ALERTS_FOOT_STYLE = { marginTop: "10px", color: "#64748B", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", lineHeight: 1.5 };
+  function hubAlertsTonePill(tone, label, key) {
+    if (label == null || label === "") return null;
+    var extra = tone === "red" ? HUB_ALERTS_BAND_RED : tone === "amber" ? HUB_ALERTS_BAND_AMBER : tone === "green" ? HUB_ALERTS_BAND_GREEN : tone === "blue" ? HUB_ALERTS_FLAG_DUE : null;
+    return React.createElement("span", { key, style: extra ? Object.assign({}, HUB_ALERTS_FLAG_BASE, extra) : HUB_ALERTS_FLAG_BASE }, label);
+  }
+  function hubAlertsBandPill(band, key) {
+    if (band == null || band === "") return null;
+    var b = String(band).toLowerCase();
+    var tone = b === "red" || b === "amber" || b === "green" ? b : "idle";
+    return hubAlertsTonePill(tone, b.charAt(0).toUpperCase() + b.slice(1), key);
+  }
+  function hubAlertsPriorityPill(priority, key) {
+    if (priority == null || priority === "") return null;
+    var p = String(priority).toLowerCase();
+    var tone = /^(high|urgent|critical|1)$/.test(p) ? "red" : /^(medium|med|moderate|2)$/.test(p) ? "amber" : /^(low|routine|3)$/.test(p) ? "green" : "idle";
+    return hubAlertsTonePill(tone, hubAceiHumanise(priority), key);
+  }
+  function hubAlertsSeverityPill(alertClass, key) {
+    if (alertClass == null || alertClass === "") return null;
+    var n = Number(alertClass);
+    if (n === 1) return hubAlertsTonePill("red", "High", key);
+    if (n === 2) return hubAlertsTonePill("amber", "Medium", key);
+    return hubAlertsTonePill("idle", hubAceiHumanise(alertClass), key);
+  }
+  function hubAlertsSlaChip(iso, key) {
+    var d = hubAlertsDaysUntil(iso);
+    if (d == null || d < 0) return null;
+    return React.createElement("span", { key, style: HUB_VAULT_CHIP_STYLE }, d === 0 ? "Due today" : d + (d === 1 ? " day left" : " days left"));
+  }
+  function hubAlertsLink(url, label, key) {
+    if (!url || typeof url !== "string" || !/^https?:\/\//i.test(url)) return null;
+    return React.createElement("a", { key, href: url, target: "_blank", rel: "noopener noreferrer", style: HUB_ALERTS_LINK_STYLE }, label);
+  }
+  function hubAlertsPenalty(v) {
+    if (v == null || String(v).trim() === "") return null;
+    var n = typeof v === "number" ? v : Number(String(v).replace(/[£,\s]/g, ""));
+    if (!isNaN(n) && isFinite(n)) return "\xA3" + n.toLocaleString("en-GB");
+    return String(v);
+  }
+  function hubAlertsCardTopEl(title, sub, pillEl) {
     var main = [React.createElement("div", { key: "t", style: HUB_ALERTS_TITLE_STYLE }, title)];
     if (sub) main.push(React.createElement("div", { key: "s", style: HUB_ALERTS_SUB_STYLE }, sub));
     return React.createElement(
       "div",
       { key: "top", style: HUB_ALERTS_TOP_STYLE },
       React.createElement("div", { key: "main", style: { minWidth: 0 } }, main),
-      hubVaultStatusPill(status, "st")
+      pillEl || null
     );
   }
-  function hubAlertsCard(id, idx, top, meta) {
-    var children = [top];
-    if (meta.length) children.push(React.createElement("div", { key: "meta", style: HUB_ALERTS_META_STYLE }, meta));
-    return React.createElement("div", { key: id != null ? id : idx, style: HUB_ALERTS_CARD_STYLE }, children);
+  function hubAlertsCategoryHeading(title, count, error) {
+    var text2 = !error && count != null ? title + " \xB7 " + count : title;
+    return React.createElement("div", { key: "h", style: HUB_ACEI_SECTION_H }, text2);
   }
-  function hubAlertsPanel(panelKey, title, r, emptyText, renderCard) {
-    var children = [hubAlertsHeading(title, r)];
-    if (r.error) {
-      children.push(React.createElement("div", { key: "err", style: HUB_ALERTS_ERR_STYLE }, "\u2014"));
+  function hubAlertsCategoryCard(sectionKey, title, count, error, items, emptyText, footer) {
+    var children = [hubAlertsCategoryHeading(title, count, error)];
+    if (error) {
+      children.push(React.createElement("div", { key: "err", style: HUB_ALERTS_ERR_STYLE }, "Alerts are temporarily unavailable."));
+    } else if (!items.length) {
+      children.push(React.createElement("div", { key: "empty", style: HUB_ALERTS_EMPTY_STYLE }, emptyText));
     } else {
-      var rows = r.rows || [];
-      if (!rows.length) {
-        children.push(React.createElement("div", { key: "empty", style: HUB_ALERTS_EMPTY_STYLE }, emptyText));
-      } else {
-        children.push(React.createElement(
-          "div",
-          { key: "list", style: HUB_ALERTS_LIST_STYLE },
-          rows.map(function(row, idx) {
-            return renderCard(row, idx);
-          })
-        ));
-      }
+      children.push(React.createElement("div", { key: "list", style: HUB_ALERTS_LIST_STYLE }, items));
     }
-    return React.createElement("div", { key: panelKey, style: { marginBottom: "24px" } }, children);
+    if (!error && footer) children.push(React.createElement("div", { key: "foot", style: HUB_ALERTS_FOOT_STYLE }, footer));
+    return React.createElement("div", { key: sectionKey, style: { marginBottom: "24px" } }, children);
   }
-  function hubAlertsActionCard(a, idx) {
-    var cat = a.actions;
-    if (Array.isArray(cat)) cat = cat[0];
-    cat = cat || {};
-    var top = hubAlertsCardTop(cat.action_text || a.notes || "Action", cat.owner_role_hint ? "Owner: " + cat.owner_role_hint : null, a.status);
+  function hubAlertsContractNotif(n, idx) {
+    var title = n.title || (n.kind ? hubAceiHumanise(n.kind) : "Contract update");
+    var top = hubAlertsCardTopEl(title, n.body || null, hubAlertsBandPill(n.status_band, "band"));
     var meta = [];
-    if (a.due_date) {
-      meta.push(hubAlertsMono("Due " + hubVaultDate(a.due_date), "due"));
-      var flag = hubAlertsDateFlag(a.due_date);
-      if (flag) meta.push(hubAlertsFlag(flag.kind, flag.label, "fl"));
-    } else {
-      meta.push(hubAlertsMono("No due date", "due"));
-    }
-    return hubAlertsCard(a.id, idx, top, meta);
+    if (n.created_at) meta.push(hubAlertsMono(hubVaultDate(n.created_at), "dt"));
+    return hubAlertsCard("cn-" + (n.id != null ? n.id : idx), idx, top, meta);
   }
-  function hubAlertsBreachCard(b, idx) {
-    var top = hubAlertsCardTop(b.breach_ref || "Breach", b.nature || null, b.status);
+  function hubAlertsContractForward(f, idx) {
+    var sub = f.affected_category ? hubAceiHumanise(f.affected_category) : null;
+    var top = hubAlertsCardTopEl(f.source_title || "Forward change", sub, hubVaultStatusPill(f.status, "st"));
     var meta = [];
-    if (b.discovered_at) meta.push(hubAlertsMono("Discovered " + hubVaultDate(b.discovered_at), "disc"));
-    if (b.ico_reportable === true) {
-      meta.push(hubAlertsFlag("ico", "ICO-reportable", "ico"));
-      if (b.ico_report_due_at) {
-        meta.push(hubAlertsMono("Report due " + hubVaultDate(b.ico_report_due_at), "rdue"));
-        if (!b.ico_reported_at) {
-          var f = hubAlertsDateFlag(b.ico_report_due_at);
-          if (f && f.kind === "overdue") meta.push(hubAlertsFlag("overdue", "Report overdue", "rovd"));
-        }
-      }
-      if (b.ico_reported_at) meta.push(hubAlertsMono("Reported " + hubVaultDate(b.ico_reported_at), "rep"));
+    if (f.commencement_date) meta.push(hubAlertsMono("Commences " + hubVaultDate(f.commencement_date), "cm"));
+    if (f.sla_deadline) {
+      meta.push(hubAlertsMono("SLA " + hubVaultDate(f.sla_deadline), "sla"));
+      var chip = hubAlertsSlaChip(f.sla_deadline, "slac");
+      if (chip) meta.push(chip);
     }
-    return hubAlertsCard(b.id, idx, top, meta);
+    return hubAlertsCard("cf-" + (f.id != null ? f.id : idx), idx, top, meta);
   }
-  function hubAlertsMitigationCard(m, idx) {
-    var titleBits = [];
-    if (m.domain) titleBits.push(hubAceiHumanise(m.domain));
-    if (m.category) titleBits.push(hubAceiHumanise(m.category));
-    var top = hubAlertsCardTop(titleBits.length ? titleBits.join(" \xB7 ") : "Mitigation", m.tier != null && m.tier !== "" ? "Tier: " + m.tier : null, m.status);
+  function hubAlertsContractDoc(c, idx) {
+    var title = c.role_title || c.employee_ref || "Contract";
+    var top = hubAlertsCardTopEl(title, c.key_finding ? truncate(c.key_finding, 160) : null, hubAlertsBandPill(c.status_band, "band"));
     var meta = [];
-    if (m.revalidate_by) {
-      meta.push(hubAlertsMono("Revalidate by " + hubVaultDate(m.revalidate_by), "rev"));
-      var flag = hubAlertsDateFlag(m.revalidate_by);
-      if (flag) meta.push(hubAlertsFlag(flag.kind, flag.label, "fl"));
+    if (c.critical_gaps != null) meta.push(hubAlertsMono(c.critical_gaps === 1 ? "1 critical gap" : c.critical_gaps + " critical gaps", "cg"));
+    if (c.compliance_score != null && c.compliance_score !== "") meta.push(hubAlertsMono("Score " + c.compliance_score, "cs"));
+    return hubAlertsCard("cc-" + (c.id != null ? c.id : idx), idx, top, meta);
+  }
+  function hubAlertsContractCard(contract, error) {
+    var items = [];
+    var notifs = contract.notifications || [];
+    for (var i = 0; i < notifs.length; i++) items.push(hubAlertsContractNotif(notifs[i], i));
+    var fwd = contract.forward || [];
+    for (var j = 0; j < fwd.length; j++) items.push(hubAlertsContractForward(fwd[j], j));
+    var docs = contract.contracts || [];
+    for (var k = 0; k < docs.length; k++) items.push(hubAlertsContractDoc(docs[k], k));
+    return hubAlertsCategoryCard(
+      "contract",
+      "Contract Alerts",
+      contract.count,
+      error,
+      items,
+      "No contract alerts \u2014 your monitored contracts are up to date.",
+      null
+    );
+  }
+  function hubAlertsStatuteHorizon(h, idx) {
+    var sub = h.parliament_stage || h.status || null;
+    var top = hubAlertsCardTopEl(h.legislation_short_name || "Legislation", sub, hubAlertsPriorityPill(h.priority, "pri"));
+    var meta = [];
+    if (h.expected_enactment) meta.push(hubAlertsMono("Coming into force " + hubVaultDate(h.expected_enactment), "ef"));
+    if (h.relevant_to_org === true) meta.push(hubAlertsFlag("due", "Affects your contracts", "rel"));
+    var link = hubAlertsLink(h.source_url, "Source \u2192", "src");
+    if (link) meta.push(link);
+    return hubAlertsCard("sh-" + (h.id != null ? h.id : idx), idx, top, meta);
+  }
+  function hubAlertsStatuteUpcoming(u, idx) {
+    var top = hubAlertsCardTopEl(u.short_title || "Statute", u.obligations_summary ? truncate(u.obligations_summary, 160) : null, null);
+    var meta = [];
+    if (u.commencement_date) meta.push(hubAlertsMono("Commences " + hubVaultDate(u.commencement_date), "cm"));
+    var link = hubAlertsLink(u.legislation_gov_url, "legislation.gov.uk \u2192", "src");
+    if (link) meta.push(link);
+    return hubAlertsCard("su-" + (u.id != null ? u.id : idx), idx, top, meta);
+  }
+  function hubAlertsStatuteAlert(a, idx) {
+    var top = hubAlertsCardTopEl(a.title || "Alert", a.summary ? truncate(a.summary, 160) : null, hubAlertsSeverityPill(a.alert_class, "sev"));
+    var meta = [];
+    if (a.alert_type) meta.push(hubAlertsMono(hubAceiHumanise(a.alert_type), "typ"));
+    if (a.sla_deadline) {
+      meta.push(hubAlertsMono("SLA " + hubVaultDate(a.sla_deadline), "sla"));
+      var chip = hubAlertsSlaChip(a.sla_deadline, "slac");
+      if (chip) meta.push(chip);
     }
-    if (m.activated_at) meta.push(hubAlertsMono("Active since " + hubVaultDate(m.activated_at), "act"));
-    return hubAlertsCard(m.id, idx, top, meta);
+    var link = hubAlertsLink(a.source_url, "Source \u2192", "src");
+    if (link) meta.push(link);
+    return hubAlertsCard("sa-" + (a.id != null ? a.id : idx), idx, top, meta);
+  }
+  function hubAlertsStatuteCard(statute, error) {
+    var items = [];
+    var hz = statute.horizon || [];
+    for (var i = 0; i < hz.length; i++) items.push(hubAlertsStatuteHorizon(hz[i], i));
+    var up = statute.upcoming || [];
+    for (var j = 0; j < up.length; j++) items.push(hubAlertsStatuteUpcoming(up[j], j));
+    var al = statute.alerts || [];
+    for (var k = 0; k < al.length; k++) items.push(hubAlertsStatuteAlert(al[k], k));
+    return hubAlertsCategoryCard(
+      "statute",
+      "Statute & Legislation",
+      statute.count,
+      error,
+      items,
+      "No statute changes flagged right now.",
+      null
+    );
+  }
+  function hubAlertsEnforcementEvent(e, idx) {
+    var sub = e.action_type ? hubAceiHumanise(e.action_type) : null;
+    var top = hubAlertsCardTopEl(e.organisation || "Enforcement action", sub, null);
+    var meta = [];
+    if (e.sector) meta.push(hubAlertsMono(hubAceiHumanise(e.sector), "sec"));
+    var pen = hubAlertsPenalty(e.penalty_amount);
+    if (pen) meta.push(hubAlertsMono(pen, "pen"));
+    if (e.date_issued) meta.push(hubAlertsMono(hubVaultDate(e.date_issued), "dt"));
+    var link = hubAlertsLink(e.source_url, "Source \u2192", "src");
+    if (link) meta.push(link);
+    return hubAlertsCard("ee-" + (e.id != null ? e.id : idx), idx, top, meta);
+  }
+  function hubAlertsEnforcementCard(enf, error) {
+    var items = [];
+    var events = enf.events || [];
+    for (var i = 0; i < events.length; i++) items.push(hubAlertsEnforcementEvent(events[i], i));
+    var footer = null;
+    if (!error) {
+      var bits = [];
+      if (enf.note) bits.push(enf.note);
+      if (enf.data_current_through) bits.push("Data current through " + hubVaultDate(enf.data_current_through));
+      if (bits.length) footer = bits.join("  \xB7  ");
+    }
+    return hubAlertsCategoryCard(
+      "enforcement",
+      "Enforcement & Regulatory",
+      enf.count,
+      error,
+      items,
+      "No recent enforcement activity in your categories.",
+      footer
+    );
   }
   function HubAlertsFacet({ hubSession }) {
-    var _state = useState({ status: "loading", actions: { rows: [] }, breaches: { rows: [] }, mitigations: { rows: [] } });
+    var _state = useState({ status: "loading", error: false, alerts: null });
     var state = _state[0];
     var setState = _state[1];
     useEffect(function() {
       var alive = true;
       var sb = hubSession && hubSession.sb;
-      if (!sb || !sb.from) {
-        setState({ status: "ready", actions: { error: true }, breaches: { error: true }, mitigations: { error: true } });
+      if (!sb || !sb.functions || !sb.functions.invoke) {
+        setState({ status: "ready", error: true, alerts: null });
         return;
       }
-      Promise.all([
-        sb.from("org_actions").select("id,status,due_date,notes,created_at,actions(action_text,owner_role_hint,deadline_days,required)").neq("status", "completed").order("due_date", { ascending: true, nullsFirst: false }).limit(50),
-        sb.from("breach_register").select("id,breach_ref,discovered_at,nature,status,ico_reportable,ico_report_due_at,ico_reported_at,risk_assessment").order("discovered_at", { ascending: false }).limit(50),
-        sb.from("mitigation_register").select("id,domain,category,tier,status,revalidate_by,activated_at").order("revalidate_by", { ascending: true, nullsFirst: false }).limit(50)
-      ]).then(function(res) {
+      sb.functions.invoke("operational-alerts").then(function(res) {
         if (!alive) return;
-        setState({
-          status: "ready",
-          actions: hubVaultUnwrap(res[0], "org_actions"),
-          breaches: hubVaultUnwrap(res[1], "breach_register"),
-          mitigations: hubVaultUnwrap(res[2], "mitigation_register")
-        });
+        if (res && res.error) {
+          console.warn("[OOX-001] Alerts facet: operational-alerts invoke failed", res.error);
+          setState({ status: "ready", error: true, alerts: null });
+          return;
+        }
+        setState({ status: "ready", error: false, alerts: res && res.data || null });
       }).catch(function(e) {
-        console.warn("[OOX-001] Alerts facet: reads failed", e);
-        if (alive) setState({ status: "ready", actions: { error: true }, breaches: { error: true }, mitigations: { error: true } });
+        console.warn("[OOX-001] Alerts facet: operational-alerts invoke failed", e);
+        if (alive) setState({ status: "ready", error: true, alerts: null });
       });
       return function() {
         alive = false;
@@ -8952,15 +9058,16 @@
     if (state.status === "loading") {
       return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading your alerts\u2026");
     }
+    var alerts = state.alerts || {};
     return React.createElement(
       "div",
       { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } },
-      hubAlertsPanel("actions", "Open actions", state.actions, "No open actions.", hubAlertsActionCard),
-      // §1.2
-      hubAlertsPanel("breaches", "Breach register", state.breaches, "No breaches recorded.", hubAlertsBreachCard),
-      // §1.3
-      hubAlertsPanel("mitigations", "Mitigations", state.mitigations, "No mitigations active.", hubAlertsMitigationCard)
-      // §1.4
+      hubAlertsContractCard(alerts.contract || {}, state.error),
+      // §2.2
+      hubAlertsStatuteCard(alerts.statute || {}, state.error),
+      // §2.3
+      hubAlertsEnforcementCard(alerts.enforcement || {}, state.error)
+      // §2.4
     );
   }
   function hubIntelSanitiseHtml(html2) {
