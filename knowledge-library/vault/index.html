@@ -29,6 +29,18 @@
   <!-- Colour / typography source of truth (shared with the operational vault) -->
   <link rel="stylesheet" href="/assets/css/tokens.css">
 
+  <!-- ==========================================================================
+       KL VAULT — layout & styling parity with operational/documents/index.html
+       (AILANE-CC-BRIEF-KL-VAULT-PARITY-001, spec KLUI-001/AMD-262). The card grid,
+       Exposure Report card, Solicitor Pack pane and slot chrome REUSE the exact
+       operational vault classes verbatim (.dcard / .dcard-body grid / .dpane /
+       .report-collapsed / .mini-ring / .slot-*), so the two pages are visually
+       indistinguishable in structure. KL differs ONLY where it is point-in-time,
+       not continuously monitored: the monitoring explainer, forward-notice,
+       Notification Settings, Monitored/Attested/History chips and the
+       solicitor-approved/revised lifecycle are absent (brief §2). Counters are
+       relabelled to session credits (§1) and the pack is session-scoped (§4).
+       ========================================================================== -->
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html { background: var(--surface-void, #050c18); }
@@ -41,7 +53,7 @@
     a { color: var(--tier-operational, #22d3ee); }
     h1, h2, h3 { font-family: var(--font-display, 'DM Serif Display', Georgia, serif); font-weight: 400; }
 
-    /* ---- Top bar ---- */
+    /* ---- Top bar (operational parity) ---- */
     .topbar {
       position: sticky; top: 0; z-index: 20;
       display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
@@ -73,7 +85,7 @@
       color: var(--tier-operational, #22d3ee); background: var(--surface-glass, rgba(30,41,59,0.5));
     }
     .tier-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-    /* Session check-credit counter (relabelled from the operational "— of 5 monitored"). */
+    /* Session check-credit counter — relabelled from the operational "— of 5 monitored". */
     .credit-counter {
       font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
       font-size: 0.8rem; color: var(--text-sec, #94a3b8); letter-spacing: 0.02em;
@@ -81,7 +93,7 @@
 
     .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 24px 80px; }
 
-    /* ---- Standing disclaimer ---- */
+    /* ---- Standing disclaimer (KEEP verbatim, brief §2) ---- */
     .disclaimer-banner {
       margin: 6px 0 24px; padding: 16px 18px;
       border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
@@ -92,7 +104,7 @@
     }
     .disclaimer-banner strong { color: var(--text-prime, #f1f5f9); }
 
-    /* ---- Layout ---- */
+    /* ---- Panes / layout ---- */
     .section-head {
       font-family: var(--font-body, 'DM Sans', sans-serif);
       font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
@@ -100,7 +112,7 @@
       margin: 0 0 16px; padding-bottom: 10px;
       border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
     }
-    .section-head.spaced { margin-top: 34px; }
+    .section-head.spaced { margin-top: 30px; }
     .pane {
       background: var(--surface-card, #0c1525);
       border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
@@ -108,32 +120,85 @@
       padding: 20px 20px 24px;
     }
 
-    /* ---- Document cards (report pane removed — KL is point-in-time, not monitored) ---- */
-    #vault-cards { display: flex; flex-direction: column; gap: 14px; margin-bottom: 8px; }
+    /* ---- States ---- */
+    .state-msg { padding: 32px 16px; text-align: center; color: var(--text-mute, #64748b); font-size: 0.92rem;
+      border: 1px dashed var(--border-dim, rgba(148,163,184,0.12)); border-radius: var(--card-radius, 12px); }
+    .spinner { width: 26px; height: 26px; margin: 0 auto 14px; border: 3px solid rgba(34,211,238,0.15);
+      border-top-color: var(--tier-operational, #22d3ee); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================================
+       Per-slot document-set cards — COPIED VERBATIM from the
+       operational vault (DOCV-ROOM-003 §B4): header strip + a
+       side-by-side grid of panes (Exposure Report · Contract ·
+       Solicitor Preparation Pack). This is the core parity fix.
+       ============================================================ */
+    #vault-cards { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
     .dcard {
       background: var(--surface-card, #0c1525);
       border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
       border-radius: var(--card-radius-lg, 16px);
       overflow: hidden; transition: border-color 0.15s ease;
     }
+    .dcard.selected { border-color: rgba(34,211,238,0.55); }
     .dcard.empty { border-style: dashed; }
     .dcard-head {
       display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-      padding: 12px 16px;
+      padding: 12px 16px; cursor: pointer;
       border-bottom: 1px solid var(--border-dim, rgba(148,163,184,0.12));
       background: var(--surface-base, #0a0e1a);
+      scroll-margin-top: 72px;
     }
+    .dcard-head:focus-visible { outline: 2px solid var(--tier-operational, #22d3ee); outline-offset: -2px; }
+    .ring-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto;
+      background: var(--text-mute, #64748b); box-shadow: 0 0 0 3px rgba(100,116,139,0.12); }
+    .dcard-filename { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; min-width: 0; }
+    .dcard-checked { font-size: 0.72rem; color: var(--text-mute, #64748b);
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
+    /* Session credit counter on the card header — relabelled from the operational
+       "Contract 1/3" slot counter (brief §1/§2). */
+    .slot-credit { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em;
+      color: var(--text-sec, #94a3b8); border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      background: var(--surface-glass, rgba(30,41,59,0.5)); border-radius: 999px; padding: 3px 10px;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+    .dcard-head-spacer { flex: 1 1 auto; }
+    .dcard-body { display: grid; grid-template-columns: 1.35fr 1fr 1fr; align-items: start; }
+    .dpane { padding: 14px 16px 16px; min-width: 0; border-left: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .dpane:first-child { border-left: none; }
+    @media (max-width: 900px) {
+      .dcard-body { grid-template-columns: 1fr; }
+      .dpane { border-left: none; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+      .dpane:first-child { border-top: none; }
+    }
+    .dpane-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 10px; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600;
+    }
+    .report-collapsed { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .mini-ring {
+      width: 36px; height: 36px; border-radius: 50%; flex: 0 0 auto;
+      border: 4px solid var(--text-mute, #64748b);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.92rem; line-height: 1; color: var(--text-prime, #f1f5f9);
+    }
+    .report-counts { font-size: 0.84rem; color: var(--text-sec, #94a3b8); line-height: 1.45; min-width: 0; }
+    .report-counts strong { color: var(--text-prime, #f1f5f9); }
+    .report-expanded { margin-top: 12px; }
+    .pane-note { font-size: 0.78rem; color: var(--text-mute, #64748b); line-height: 1.5; }
+    .pack-generated-line { font-size: 0.8rem; color: var(--text-sec, #94a3b8); margin-bottom: 10px;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+
+    /* ---- Slot chrome (operational parity) ---- */
     .slot-type-tag {
       font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
       color: var(--tier-operational, #22d3ee);
       border: 1px solid var(--border-mid, rgba(148,163,184,0.2)); border-radius: 999px; padding: 3px 9px;
     }
-    .dcard-filename { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; min-width: 0; }
-    .dcard-head-spacer { flex: 1 1 auto; }
-    .dcard-body { padding: 14px 16px 16px; }
+    .slot-filename { font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.95rem; word-break: break-word; }
     .slot-meta { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b);
       font-family: var(--font-mono, 'JetBrains Mono', monospace); letter-spacing: 0.01em; }
-    .slot-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .slot-actions { display: flex; gap: 8px; margin-top: 10px; }
     .btn-mini {
       font-family: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer;
       padding: 5px 11px; border-radius: 999px; background: transparent;
@@ -143,21 +208,72 @@
     .btn-mini:hover { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); }
     .btn-mini.danger:hover { border-color: var(--status-err, #ef4444); color: var(--status-err, #ef4444); }
     .btn-mini:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* ---- Empty "add a document" slot ---- */
-    .dcard.empty .dcard-body { text-align: center; padding: 22px 16px; cursor: pointer; }
+    .slot-empty-body { padding: 10px 4px; }
     .slot-empty-plus { font-size: 1.5rem; line-height: 1; color: var(--tier-operational, #22d3ee); }
     .slot-empty-label { margin-top: 6px; font-weight: 600; color: var(--text-prime, #f1f5f9); font-size: 0.92rem; }
     .slot-empty-hint { margin-top: 3px; font-size: 0.74rem; color: var(--text-mute, #64748b); }
-    .slot-work { margin-top: 14px; text-align: left; }
+    .slot-work { margin-top: 12px; text-align: left; }
     .chooser-title { font-size: 0.84rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 10px; }
-    .slot-hint { font-size: 0.76rem; color: var(--text-mute, #64748b); margin: 6px 0; line-height: 1.5; }
-    .file-input { width: 100%; font-family: inherit; font-size: 0.82rem; color: var(--text-sec, #94a3b8); padding: 8px 0; }
     .work-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
     .work-actions .btn-primary, .work-actions .btn-secondary { padding: 9px 16px; font-size: 0.82rem; }
-    .slot-status { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.8rem; color: var(--text-sec, #94a3b8); }
+    .file-input { width: 100%; font-family: inherit; font-size: 0.82rem; color: var(--text-sec, #94a3b8); padding: 8px 0; }
+    .slot-hint { font-size: 0.76rem; color: var(--text-mute, #64748b); margin: 6px 0; line-height: 1.5; }
+    .slot-status { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.8rem; color: var(--text-sec, #94a3b8); }
     .mini-spinner { width: 14px; height: 14px; border: 2px solid rgba(34,211,238,0.18);
       border-top-color: var(--tier-operational, #22d3ee); border-radius: 50%; animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+    .row-error { font-size: 0.76rem; color: var(--status-err, #ef4444); margin-top: 8px; line-height: 1.45; }
+
+    /* ---- Exposure Report — expanded findings (operational parity) ---- */
+    .status-block { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+    .ring {
+      width: 76px; height: 76px; border-radius: 50%; flex: 0 0 auto;
+      border: 8px solid var(--text-mute, #64748b);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.7rem; line-height: 1; color: var(--text-prime, #f1f5f9);
+    }
+    .status-label { font-size: 1.18rem; font-weight: 700; color: var(--text-prime, #f1f5f9);
+      font-family: var(--font-body, 'DM Sans', sans-serif); }
+    .status-sub { margin-top: 4px; font-size: 0.84rem; color: var(--text-sec, #94a3b8); line-height: 1.5; }
+    .magnitude { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 26px; }
+    .mag-cell { text-align: center; padding: 12px 6px; border-radius: var(--card-radius-sm, 8px);
+      background: var(--surface-base, #0a0e1a); border: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .mag-num { display: block; font-size: 1.5rem; font-weight: 700;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace); color: var(--text-prime, #f1f5f9); }
+    .mag-lbl { display: block; margin-top: 2px; font-size: 0.68rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-mute, #64748b); }
+    .finding { padding: 16px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .finding:first-of-type { border-top: none; }
+    .finding-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .sev { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 999px; color: #fff; }
+    .sev-critical { background: #991B1B; }
+    .sev-major    { background: #B4640A; }
+    .sev-minor    { background: #8a6d1a; }
+    .sev-aligned  { background: #176B3C; }
+    .finding-cat { font-size: 0.86rem; font-weight: 600; color: var(--text-body, #e2e8f0); }
+    .grad-bar { display: flex; width: 100%; height: 12px; border-radius: 999px; overflow: hidden;
+      background: var(--surface-base, #0a0e1a); margin-bottom: 10px; }
+    .grad-seg { height: 100%; }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .chip { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px;
+      background: var(--surface-glass, rgba(30,41,59,0.5)); border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
+      font-size: 0.74rem; color: var(--text-body, #e2e8f0); }
+    .chip .swatch { width: 11px; height: 11px; border-radius: 3px; flex: 0 0 auto; }
+    .finding-detail { font-size: 0.92rem; color: var(--text-body, #e2e8f0); margin-bottom: 8px; }
+    .statutory { font-size: 0.82rem; color: var(--text-sec, #94a3b8); }
+    .statutory .lbl { color: var(--text-mute, #64748b); }
+    .solicitor-points { margin-top: 8px; font-size: 0.82rem; color: var(--text-sec, #94a3b8);
+      border-left: 2px solid var(--tier-operational, #22d3ee); padding-left: 10px; }
+    .gso-band { margin-top: 26px; padding: 18px; border-radius: var(--card-radius, 12px);
+      background: rgba(71,85,105,0.10); border: 1px solid #475569; }
+    .gso-band h3 { font-size: 1.02rem; color: var(--text-prime, #f1f5f9); margin-bottom: 4px; }
+    .gso-band .band-sub { font-size: 0.8rem; color: var(--text-sec, #94a3b8); margin-bottom: 14px; }
+    .gso-item { padding: 12px 0; border-top: 1px solid rgba(71,85,105,0.4); }
+    .gso-item:first-of-type { border-top: none; }
+    .gso-cluster { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; color: #cbd5e1; background: #475569; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+    .report-foot { margin-top: 18px; padding-top: 12px;
+      border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
 
     /* ---- Buttons ---- */
     .btn-primary {
@@ -172,13 +288,15 @@
       padding: 11px 20px; border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
       border-radius: var(--card-radius-sm, 8px); background: transparent;
       color: var(--text-sec, #94a3b8); font-family: inherit; font-weight: 600; font-size: 0.88rem; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
     }
     .btn-secondary:hover { border-color: var(--tier-operational, #22d3ee); color: var(--tier-operational, #22d3ee); }
+    .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
     .form-msg { font-size: 0.82rem; margin-top: 12px; line-height: 1.5; }
     .form-msg.err { color: var(--status-err, #ef4444); }
     .form-msg.ok { color: var(--status-ok, #10b981); }
 
-    /* ---- Solicitor Preparation Pack (session-scoped) ---- */
+    /* ---- Solicitor Preparation Pack — session buy-more panel (brief §4) ---- */
     .pack-lead { font-size: 0.9rem; color: var(--text-body, #e2e8f0); line-height: 1.6; margin-bottom: 6px; }
     .pack-included { display: inline-flex; align-items: center; gap: 7px; margin: 4px 0 16px;
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
@@ -193,17 +311,27 @@
     .upsell-desc { font-size: 0.86rem; color: var(--text-body, #e2e8f0); line-height: 1.5; }
     .pack-actions { margin-top: 18px; }
 
+    /* ---- Notes (KEEP — already belongs to KL, brief §2) ---- */
+    .notif-intro { font-size: 0.82rem; color: var(--text-sec, #94a3b8); margin-bottom: 16px; line-height: 1.55; }
+    .notes-area {
+      width: 100%; min-height: 84px; resize: vertical; padding: 10px 12px;
+      background: var(--surface-base, #0a0e1a); border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px); color: var(--text-prime, #f1f5f9);
+      font-family: inherit; font-size: 0.9rem; line-height: 1.5; margin-bottom: 12px;
+    }
+    .notes-area:focus { outline: none; border-color: var(--tier-operational, #22d3ee); }
+    .notes-recent { margin-top: 18px; }
+    .notes-recent-head { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600; margin-bottom: 10px; }
+    .note-item { padding: 10px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .note-item:first-of-type { border-top: none; }
+    .note-title { font-size: 0.82rem; font-weight: 600; color: var(--text-body, #e2e8f0); word-break: break-word; }
+    .note-body { margin-top: 3px; font-size: 0.8rem; color: var(--text-sec, #94a3b8); line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+
     /* ---- Empty state (no active Knowledge Library session) ---- */
     .empty-state { max-width: 460px; margin: 48px auto 0; text-align: center; }
     .empty-state h1 { font-size: 1.5rem; color: var(--text-prime, #f1f5f9); margin-bottom: 12px; }
     .empty-state p { font-size: 0.94rem; color: var(--text-sec, #94a3b8); line-height: 1.6; margin-bottom: 22px; }
-
-    /* ---- Loading / status ---- */
-    .state-msg { display: flex; align-items: center; gap: 10px; justify-content: center;
-      padding: 40px 16px; color: var(--text-sec, #94a3b8); font-size: 0.9rem; }
-    .spinner { width: 18px; height: 18px; border: 2px solid rgba(34,211,238,0.18);
-      border-top-color: var(--tier-operational, #22d3ee); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     .vault-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12));
       font-size: 0.78rem; color: var(--text-mute, #64748b); text-align: center; }
@@ -242,7 +370,7 @@
        AUTH GUARD — reveal-after-verify (RULE 26 / AUTH-001), reusing the exact
        operational vault pattern: body visibility:hidden, Supabase CDN first,
        getSession() then onAuthStateChange 6s fallback, decode JWT `sub`.
-       The ONLY substitution (per brief §2) is the entitlement source: instead of
+       The ONLY substitution (per brief §5) is the entitlement source: instead of
        reading kl_account_profiles.subscription_tier, this calls the KL session
        gate kl_session_entitlement(p_user_id) via the canonical raw-fetch Bearer
        pattern (RULE 2). No sb.from() at gate time.
@@ -254,7 +382,7 @@
 
     var settled = false;
     // Hard-fail path (no auth session / decode failure / RPC network error):
-    // redirect silently to /kl-access/, never an auth-error UI (brief §2).
+    // redirect silently to /kl-access/, never an auth-error UI (brief §5).
     function fail() { if (settled) return; settled = true; window.location.replace('/kl-access/'); }
 
     // Poll for the Supabase CDN to load.
@@ -323,7 +451,9 @@
   })();
   </script>
 
-  <!-- APP — vanilla JS, no build step. All server text is treated as data (textContent / safe DOM). -->
+  <!-- APP — vanilla JS, no build step. All server text is treated as data (textContent / safe DOM).
+       Layout & data wiring mirror operational/documents/index.html; the only differences are the
+       point-in-time removals (brief §2) and the session-credit / session-pack relabels (§1/§4). -->
   <script>
   (function () {
     function el(tag, cls, text) {
@@ -351,8 +481,12 @@
       if (!f) return { ok: false, error: 'Choose a PDF or Word (.docx) file first.' };
       var okType = /\.pdf$|\.docx$/i.test(f.name || '');
       if (!okType) return { ok: false, error: 'Upload a PDF or Word (.docx) document.' };
+      if (f.size === 0) return { ok: false, error: 'That file appears to be empty.' };
       if (f.size > 10 * 1024 * 1024) return { ok: false, error: 'That file is over 10 MB. Please upload a smaller document.' };
       return { ok: true };
+    }
+    function showMsg(node, text, kind) {
+      node.textContent = text; node.className = 'form-msg ' + (kind || ''); node.hidden = false;
     }
 
     var PRODUCT_LABEL = {
@@ -365,8 +499,10 @@
       if (PRODUCT_LABEL[p]) return PRODUCT_LABEL[p];
       return String(p).replace(/^kl[_-]/, '').replace(/[_-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
     }
+    // Slots per pass (brief §1): Quick = 1, Day = 2, Week = 3.
+    var PRODUCT_SLOTS = { kl_quick_session: 1, kl_day_pass: 2, kl_research_week: 3 };
 
-    // ---- No active session empty state (brief §2 gate: link to /kl-access/) ----
+    // ---- No active session empty state (brief §5 gate: link to /kl-access/) ----
     window.renderNoSession = function () {
       var root = document.getElementById('vault-root');
       if (!root) return;
@@ -384,44 +520,85 @@
     // ---- Populated vault ----
     window.initKLVault = function (token, ANON, uid, REST, ent) {
       var RESTU = REST + '/rest/v1';
+      var FN = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
       var H = { 'apikey': ANON, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-      var docs = [];
 
-      // Topbar: product badge + relabelled session check-credit counter (brief §2).
+      // ---- State ----
+      var docs = [];
+      var cardState = {};           // docId -> { overlay, pack, findings, els }
+      var expandedDocId = null;     // report accordion — only one open at a time
+      var aceiByKey = new Map();
+      var aceiByNum = new Map();
+      var gsoMap = new Map();
+
+      // ---- Entitlement (brief §1) ----
+      var product = ent.product_type || null;
+      var allowed = (typeof ent.checks_allowed === 'number') ? ent.checks_allowed
+                  : (PRODUCT_SLOTS[product] || 1);
+      var used = (typeof ent.checks_used === 'number') ? ent.checks_used : 0;
+      var remaining = (typeof ent.checks_remaining === 'number') ? ent.checks_remaining
+                    : Math.max(0, allowed - used);
+      // Research Week is the ratified "1 each" — Contract / Staff Handbook / Policy.
+      // Quick / Day sessions are generic Contract Compliance Check slots.
+      var WEEK_TYPES = ['employment_contract', 'staff_handbook', 'policy'];
+      function slotTypeAt(idx) {
+        if (product === 'kl_research_week') return WEEK_TYPES[idx] || 'employment_contract';
+        return 'employment_contract';
+      }
+      function slotTypeLabel(type) {
+        if (product === 'kl_research_week') {
+          if (type === 'staff_handbook') return 'Staff Handbook';
+          if (type === 'policy') return 'Policy';
+          return 'Contract';
+        }
+        return 'Contract Compliance Check';
+      }
+
+      var GSO_HEX = '#475569';
+      var RING_HEX = { green: '#176B3C', amber: '#B4640A', red: '#991B1B' };
+
+      // Topbar: product badge + relabelled session check-credit counter (brief §1).
       var badgeEl = document.getElementById('product-badge');
       var countEl = document.getElementById('credit-counter');
-      badgeEl.textContent = productLabel(ent.product_type);
+      badgeEl.textContent = productLabel(product);
       badgeEl.hidden = false;
-      var used = (typeof ent.checks_used === 'number') ? ent.checks_used : 0;
-      var allowed = (typeof ent.checks_allowed === 'number') ? ent.checks_allowed : 0;
       countEl.textContent = 'Checks used: ' + used + ' of ' + allowed + ' this session';
       countEl.hidden = false;
 
       var root = document.getElementById('vault-root');
       clear(root);
 
-      // Standing disclaimer (regulatory intelligence — not legal advice).
+      // Standing disclaimer — KEEP verbatim (brief §2). Intelligence, not legal advice.
       var disc = el('div', 'disclaimer-banner');
       disc.setAttribute('role', 'note');
-      var dstrong = el('strong', null, 'This is regulatory intelligence to support your decisions — not legal advice. ');
-      disc.appendChild(dstrong);
+      disc.appendChild(el('strong', null, 'This is regulatory intelligence to support your decisions — not legal advice. '));
       disc.appendChild(document.createTextNode(
         'It is not a complete record of all applicable law, and the absence of an item here is not assurance that nothing has changed. For advice on your own situation, consult a qualified professional.'));
       root.appendChild(disc);
 
-      // Documents section.
+      // Documents section — the slotted-grid card layout (operational parity).
       root.appendChild(el('h2', 'section-head', 'Documents for this session'));
       var listEl = el('section', null); listEl.id = 'vault-cards';
       listEl.setAttribute('aria-label', 'Documents');
-      listEl.appendChild(loadingRow('Loading your documents…'));
+      listEl.appendChild(loadingBox('Loading your documents…'));
       root.appendChild(listEl);
 
-      // Solicitor Preparation Pack section (session-scoped).
-      root.appendChild(buildPackPane(ent));
+      // Solicitor Preparation Pack — session buy-more panel (brief §4).
+      root.appendChild(buildPackBuyMore());
 
-      loadDocs();
+      // Notes — KEEP (brief §2).
+      root.appendChild(el('h2', 'section-head spaced', 'Notes'));
+      var notesPane = el('section', 'pane');
+      notesPane.setAttribute('aria-label', 'Notes');
+      var notesHost = el('div'); notesHost.id = 'vault-notes';
+      notesPane.appendChild(notesHost);
+      root.appendChild(notesPane);
 
-      function loadingRow(m) {
+      loadPalettes().then(loadDocs);
+      renderNotes();
+
+      // ---- Helpers ----
+      function loadingBox(m) {
         var box = el('div', 'state-msg');
         box.appendChild(el('div', 'spinner'));
         box.appendChild(document.createTextNode(m));
@@ -432,74 +609,647 @@
           .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
       }
 
-      // KL documents are point-in-time (not monitored): read the session's non-deleted
-      // documents. The write-side document model / check execution is owned by the KL
-      // fulfilment flow — this vault manages which documents the session's checks apply to.
+      // ===========================================================
+      //  ACEI / GSO palettes — for the Exposure Report finding bars
+      // ===========================================================
+      var ACEI_FALLBACK = [
+        ['unfair_dismissal', 1, 'Unfair Dismissal', '#EF4444'],
+        ['discrimination_harassment', 2, 'Discrimination & Harassment', '#D946EF'],
+        ['wages_working_time', 3, 'Wages, Working Time & Holiday', '#22C55E'],
+        ['whistleblowing', 4, 'Whistleblowing', '#FACC15'],
+        ['employment_status', 5, 'Employment Status', '#3B82F6'],
+        ['redundancy_org_change', 6, 'Redundancy & Org Change', '#F97316'],
+        ['parental_family_rights', 7, 'Parental & Family Rights', '#F43F5E'],
+        ['trade_union_collective', 8, 'Trade Union & Collective', '#A21CAF'],
+        ['breach_of_contract', 9, 'Breach of Contract & Notice', '#6366F1'],
+        ['health_safety', 10, 'Health & Safety', '#14B8A6'],
+        ['data_protection_privacy', 11, 'Data Protection & Privacy', '#4338CA'],
+        ['business_transfers_insolvency', 12, 'Business Transfers & Insolvency', '#64748B']
+      ];
+      function aceiCssHex(number) {
+        try { return getComputedStyle(document.documentElement).getPropertyValue('--acei-' + number).trim() || null; }
+        catch (e) { return null; }
+      }
+      function applyAceiFallback() {
+        aceiByKey.clear(); aceiByNum.clear();
+        ACEI_FALLBACK.forEach(function (e2) {
+          var rec = { number: e2[1], label: e2[2], hex: aceiCssHex(e2[1]) || e2[3] };
+          aceiByKey.set(e2[0], rec); aceiByNum.set(e2[1], rec);
+        });
+      }
+      function loadPalettes() {
+        var p1 = getJson('/acei_category_palette?select=category_key,category_number,display_label,hex_colour')
+          .then(function (rows) {
+            if (rows && rows.length) {
+              aceiByKey.clear(); aceiByNum.clear();
+              rows.forEach(function (r) {
+                var rec = { number: r.category_number, label: r.display_label, hex: r.hex_colour };
+                aceiByKey.set(r.category_key, rec);
+                if (r.category_number != null) aceiByNum.set(r.category_number, rec);
+              });
+            } else { applyAceiFallback(); }
+          })
+          .catch(applyAceiFallback);
+        var p2 = getJson('/gso_cluster_palette?select=cluster_key,display_label')
+          .then(function (rows) { (rows || []).forEach(function (r) { gsoMap.set(r.cluster_key, r.display_label); }); })
+          .catch(function () { /* labels degrade to the raw key */ });
+        return Promise.all([p1, p2]).catch(function () { applyAceiFallback(); });
+      }
+      function resolveAcei(key) {
+        if (key == null) return null;
+        var e2 = aceiByKey.get(String(key));
+        if (!e2) { var n = parseInt(key, 10); if (!isNaN(n)) e2 = aceiByNum.get(n); }
+        return e2 || null;
+      }
+      function normWeights(aw) {
+        var out = [];
+        if (!aw) return out;
+        if (Array.isArray(aw)) {
+          aw.forEach(function (w) {
+            if (w == null) return;
+            var key = w.category_key != null ? w.category_key
+                    : (w.key != null ? w.key
+                    : (w.category != null ? w.category
+                    : (w.category_number != null ? w.category_number : null)));
+            var wt = (typeof w.weight === 'number') ? w.weight : (typeof w.value === 'number' ? w.value : null);
+            if (key != null && wt != null) out.push({ key: key, weight: wt });
+          });
+        } else if (typeof aw === 'object') {
+          Object.keys(aw).forEach(function (k) {
+            var v = aw[k];
+            if (typeof v === 'number') out.push({ key: k, weight: v });
+            else if (v && typeof v.weight === 'number') out.push({ key: k, weight: v.weight });
+          });
+        }
+        return out;
+      }
+
+      // ===========================================================
+      //  Documents — point-in-time (NOT monitored). Read the session's
+      //  non-deleted vault rows; render a typed slot per entitlement.
+      // ===========================================================
       function loadDocs() {
         return getJson('/kl_vault_documents?user_id=eq.' + uid + '&deleted_at=is.null' +
                 '&select=id,filename,mime_type,file_size_bytes,analysis_status,created_at,last_replaced_at' +
                 '&order=created_at.asc')
-          .then(function (rows) { docs = rows || []; renderDocs(); })
+          .then(function (rows) { docs = rows || []; renderSlots(); })
           .catch(function () {
             clear(listEl);
-            listEl.appendChild(el('div', 'state-msg', "Couldn’t load your documents right now. Please refresh."));
+            listEl.appendChild(el('div', 'state-msg', 'Couldn’t load your documents right now. Please refresh.'));
           });
       }
 
-      function renderDocs() {
+      function renderSlots() {
         clear(listEl);
-        docs.forEach(function (doc) { listEl.appendChild(buildDocCard(doc)); });
-        listEl.appendChild(buildAddCard());
+        var total = Math.max(allowed, docs.length);
+        for (var i = 0; i < total; i++) {
+          var doc = docs[i] || null;
+          listEl.appendChild(doc ? buildFilledCard(doc, i) : buildEmptyCard(i));
+        }
       }
 
-      function buildDocCard(doc) {
+      // ---- Filled card: header strip + Exposure Report · Contract · Solicitor Pack ----
+      function buildFilledCard(doc, idx) {
+        var type = slotTypeAt(idx);
         var card = el('div', 'dcard');
         card.setAttribute('data-doc-id', doc.id);
 
+        // Header strip — RAG dot · type tag · session-credit counter · filename · checked date.
+        // (Monitored / Attested / History / change chips REMOVED — brief §2.)
         var head = el('div', 'dcard-head');
-        head.appendChild(el('span', 'slot-type-tag', 'Contract Compliance Check'));
+        head.setAttribute('role', 'button');
+        head.setAttribute('tabindex', '0');
+        head.setAttribute('aria-label', 'Toggle report for ' + (doc.filename || 'document'));
+        var dot = el('span', 'ring-dot'); dot.title = 'No analysis yet';
+        head.appendChild(dot);
+        head.appendChild(el('span', 'slot-type-tag', slotTypeLabel(type)));
+        head.appendChild(el('span', 'slot-credit', 'Check ' + (idx + 1) + ' of ' + allowed));
         head.appendChild(el('span', 'dcard-filename', doc.filename || 'Untitled document'));
+        var checked = el('span', 'dcard-checked', 'Added ' + fmtDate(doc.created_at));
+        head.appendChild(checked);
         head.appendChild(el('span', 'dcard-head-spacer'));
         card.appendChild(head);
 
-        var bodyEl = el('div', 'dcard-body');
-        var metaBits = ['Added ' + fmtDate(doc.created_at)];
-        if (doc.last_replaced_at) metaBits.push('Replaced ' + fmtDate(doc.last_replaced_at));
-        if (doc.analysis_status) metaBits.push(String(doc.analysis_status));
-        bodyEl.appendChild(el('div', 'slot-meta', metaBits.join(' · ')));
+        var body = el('div', 'dcard-body');
 
-        // Replace / Remove — KEPT as-is (brief §2): swap which document is checked in the session.
+        // ① Exposure Report — collapsed-first (accordion). Same card + styling as operational.
+        var repPane = el('div', 'dpane dpane-report');
+        var repHead = el('div', 'dpane-head');
+        repHead.appendChild(el('span', null, 'Exposure Report'));
+        var pdfBtn = el('button', 'btn-mini', 'PDF'); pdfBtn.type = 'button'; pdfBtn.disabled = true;
+        pdfBtn.title = 'Download exposure report (PDF)';
+        repHead.appendChild(pdfBtn);
+        repPane.appendChild(repHead);
+        var collapsed = el('div', 'report-collapsed');
+        var miniRing = el('div', 'mini-ring', '·');
+        collapsed.appendChild(miniRing);
+        var counts = el('div', 'report-counts', 'Loading the report…');
+        collapsed.appendChild(counts);
+        var expandBtn = el('button', 'btn-mini', 'Expand report'); expandBtn.type = 'button';
+        expandBtn.disabled = true;
+        expandBtn.setAttribute('aria-expanded', 'false');
+        collapsed.appendChild(expandBtn);
+        repPane.appendChild(collapsed);
+        var expanded = el('div', 'report-expanded'); expanded.hidden = true;
+        repPane.appendChild(expanded);
+        var pdfMsg = el('div', 'form-msg'); pdfMsg.hidden = true;
+        repPane.appendChild(pdfMsg);
+        body.appendChild(repPane);
+
+        // ② Contract (the uploaded document) — Replace / Remove. "Checked" (point-in-time), not "Monitored".
+        var conPane = el('div', 'dpane dpane-contract');
+        var conHead = el('div', 'dpane-head');
+        conHead.appendChild(el('span', null, slotTypeLabel(type)));
+        conPane.appendChild(conHead);
+        conPane.appendChild(el('div', 'slot-filename', doc.filename || 'Untitled document'));
+        var slotMeta = el('div', 'slot-meta', 'Added ' + fmtDate(doc.created_at));
+        conPane.appendChild(slotMeta);
         var actions = el('div', 'slot-actions');
         var rep = el('button', 'btn-mini', 'Replace'); rep.type = 'button';
-        rep.addEventListener('click', function () { openReplace(doc, card); });
+        rep.addEventListener('click', function (e) { e.stopPropagation(); openReplace(doc, card); });
         var rem = el('button', 'btn-mini danger', 'Remove'); rem.type = 'button';
-        rem.addEventListener('click', function () { confirmRemove(doc); });
+        rem.addEventListener('click', function (e) { e.stopPropagation(); confirmRemove(doc); });
         actions.appendChild(rep); actions.appendChild(rem);
-        bodyEl.appendChild(actions);
-
+        conPane.appendChild(actions);
         var work = el('div', 'slot-work'); work.style.display = 'none';
-        bodyEl.appendChild(work);
-        card.appendChild(bodyEl);
-        return card;
-      }
+        work.addEventListener('click', function (e) { e.stopPropagation(); });
+        conPane.appendChild(work);
+        body.appendChild(conPane);
 
-      function buildAddCard() {
-        var card = el('div', 'dcard empty');
-        var bodyEl = el('div', 'dcard-body');
-        bodyEl.appendChild(el('div', 'slot-empty-plus', '+'));
-        bodyEl.appendChild(el('div', 'slot-empty-label', 'Add a document to check'));
-        bodyEl.appendChild(el('div', 'slot-empty-hint', 'PDF or Word (.docx), up to 10 MB.'));
-        var work = el('div', 'slot-work'); work.style.display = 'none';
-        bodyEl.appendChild(work);
-        card.appendChild(bodyEl);
-        bodyEl.addEventListener('click', function () {
-          if (work.style.display === 'block') return;
-          openUpload(card, work);
+        // ③ Solicitor Preparation Pack — session-scoped (brief §4).
+        var packPane = el('div', 'dpane dpane-pack');
+        var packHead = el('div', 'dpane-head');
+        packHead.appendChild(el('span', null, 'Solicitor Preparation Pack'));
+        packPane.appendChild(packHead);
+        var packBody = el('div');
+        packBody.appendChild(el('div', 'pane-note', 'Checking this document…'));
+        packPane.appendChild(packBody);
+        body.appendChild(packPane);
+
+        card.appendChild(body);
+
+        cardState[doc.id] = cardState[doc.id] || {};
+        cardState[doc.id].els = {
+          card: card, dot: dot, checked: checked, slotMeta: slotMeta,
+          miniRing: miniRing, counts: counts, expandBtn: expandBtn, expanded: expanded,
+          pdfBtn: pdfBtn, pdfMsg: pdfMsg, packBody: packBody, repBtn: rep
+        };
+        // Restore accordion open state across a re-render.
+        if (expandedDocId === doc.id) {
+          expandBtn.textContent = 'Collapse report';
+          expandBtn.setAttribute('aria-expanded', 'true');
+          expanded.hidden = false;
+        }
+
+        function toggle() { toggleReport(doc.id); }
+        head.addEventListener('click', toggle);
+        head.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
         });
+        expandBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleReport(doc.id); });
+
+        loadCardData(doc);
         return card;
       }
 
-      // ---- Storage upload → kl-document-vault (private). Path: <uid>/<uuid>_<safeName>. ----
+      // ---- Empty slot — "+ Add a document to check" (operational affordance) ----
+      function buildEmptyCard(idx) {
+        var type = slotTypeAt(idx);
+        var canAdd = remaining > 0 && idx < allowed;
+        var card = el('div', 'dcard empty');
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', canAdd ? '0' : '-1');
+
+        var head = el('div', 'dcard-head');
+        head.style.cursor = canAdd ? 'pointer' : 'default';
+        head.appendChild(el('span', 'slot-type-tag', slotTypeLabel(type)));
+        head.appendChild(el('span', 'slot-credit', 'Check ' + (idx + 1) + ' of ' + allowed));
+        head.appendChild(el('span', 'dcard-checked', 'Empty slot'));
+        card.appendChild(head);
+
+        var bodyEl = el('div', 'slot-empty-body');
+        bodyEl.style.cssText = 'padding:14px 16px 18px;text-align:center;';
+        bodyEl.appendChild(el('div', 'slot-empty-plus', '+'));
+        bodyEl.appendChild(el('div', 'slot-empty-label',
+          product === 'kl_research_week' ? ('Add ' + slotTypeLabel(type)) : 'Add a document to check'));
+        bodyEl.appendChild(el('div', 'slot-empty-hint', canAdd
+          ? 'PDF or Word (.docx), up to 10 MB.'
+          : 'Your session checks are used — add another below.'));
+        card.appendChild(bodyEl);
+
+        var work = el('div', 'slot-work'); work.style.display = 'none';
+        work.style.padding = '0 16px 16px';
+        work.addEventListener('click', function (e) { e.stopPropagation(); });
+        card.appendChild(work);
+
+        if (canAdd) {
+          function open() {
+            if (work.style.display === 'block') return;
+            openUpload(card, type);
+          }
+          card.addEventListener('click', open);
+          card.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+          });
+        }
+        return card;
+      }
+
+      // ===========================================================
+      //  Exposure Report data wiring — reads the check overlay + findings
+      //  exactly as the operational vault does (vault_contract_records →
+      //  upload_id → compliance_findings). KL is point-in-time, so any
+      //  forward-looking rows are dropped (no Legislative Horizon; brief §2).
+      //  Check execution / the write-side model is owned by the KL fulfilment
+      //  flow — this vault manages documents and DISPLAYS their results.
+      // ===========================================================
+      function loadCardData(doc) {
+        var st = cardState[doc.id];
+        if (!st || !st.els) return;
+        return Promise.all([
+          getJson('/vault_contract_records?document_id=eq.' + doc.id +
+                  '&select=status_band,critical_gaps,upload_id,created_at&order=created_at.desc&limit=1')
+            .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
+          getJson('/vault_solicitor_packs?document_id=eq.' + doc.id +
+                  '&superseded_at=is.null&select=upload_id,created_at&order=created_at.desc&limit=1')
+            .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; })
+        ]).then(function (res) {
+          st.overlay = res[0]; st.pack = res[1];
+          if (st.overlay && st.overlay.upload_id) {
+            return getJson('/compliance_findings?upload_id=eq.' + st.overlay.upload_id +
+                    '&select=severity,clause_category,statutory_ref,finding_detail,acei_weights,gso_cluster,is_forward_looking&order=severity.asc')
+              .catch(function () { return []; });
+          }
+          return [];
+        }).then(function (findings) {
+          st.findings = (findings || []).filter(function (f) { return !f.is_forward_looking; });
+          paintCard(doc);
+        });
+      }
+
+      function deriveStatus(overlay, findings) {
+        if (!overlay) return null; // no analysis yet
+        // Point-in-time engine assessment. Green is not reachable in a KL session
+        // (the solicitor-attestation lifecycle is operational-only — brief §2).
+        if (overlay.status_band === 'red') return 'red';
+        var red = (findings || []).some(function (f) { return f.severity === 'critical'; });
+        if (!red && (overlay.critical_gaps || 0) > 0) red = true;
+        return red ? 'red' : 'amber';
+      }
+      function packIsGenerated(st) {
+        return !!(st && st.pack && st.overlay && st.overlay.upload_id && st.pack.upload_id === st.overlay.upload_id);
+      }
+
+      function paintCard(doc) {
+        var st = cardState[doc.id];
+        if (!st || !st.els) return;
+        var e = st.els;
+        var status = deriveStatus(st.overlay, st.findings);
+
+        if (status) {
+          e.dot.style.background = RING_HEX[status];
+          e.dot.style.boxShadow = '0 0 0 3px ' + RING_HEX[status] + '33';
+          e.dot.title = status === 'red' ? 'Significant gaps identified' : 'Reviewed — engine assessment';
+        } else {
+          e.dot.style.background = ''; e.dot.style.boxShadow = '';
+          e.dot.title = 'No analysis yet';
+        }
+
+        // "Last checked" → "Checked" (point-in-time, brief §2).
+        var checkedText = (st.overlay && st.overlay.created_at)
+          ? 'Checked ' + fmtDate(st.overlay.created_at)
+          : 'Added ' + fmtDate(doc.created_at);
+        e.checked.textContent = checkedText;
+        e.slotMeta.textContent = checkedText;
+
+        paintReportPane(doc);
+        renderPackPane(doc);
+      }
+
+      // ---- Exposure Report — collapsed strip (ring + counts + Expand) ----
+      function paintReportPane(doc) {
+        var st = cardState[doc.id]; var e = st.els;
+        var status = deriveStatus(st.overlay, st.findings);
+        if (status === 'red') { e.miniRing.style.borderColor = RING_HEX.red; e.miniRing.textContent = '!'; }
+        else if (status === 'amber') { e.miniRing.style.borderColor = RING_HEX.amber; e.miniRing.textContent = '◐'; }
+        else { e.miniRing.style.borderColor = ''; e.miniRing.textContent = '·'; }
+
+        if (!st.overlay || !st.overlay.upload_id) {
+          clear(e.counts);
+          e.counts.appendChild(document.createTextNode('This document has not been checked yet.'));
+          e.expandBtn.disabled = true;
+          e.pdfBtn.disabled = true;
+          if (expandedDocId === doc.id) collapseReport(doc.id);
+          return;
+        }
+
+        var sig = (st.findings || []).filter(function (f) { return f.severity === 'critical'; }).length;
+        var reviewed = (st.findings || []).length;
+        clear(e.counts);
+        var line = el('div');
+        line.appendChild(el('strong', null, String(sig)));
+        line.appendChild(document.createTextNode(' significant gap' + (sig === 1 ? '' : 's') + ' · '));
+        line.appendChild(el('strong', null, String(reviewed)));
+        line.appendChild(document.createTextNode(' area' + (reviewed === 1 ? '' : 's') + ' reviewed'));
+        e.counts.appendChild(line);
+        e.expandBtn.disabled = false;
+        e.pdfBtn.disabled = false;
+        if (!e.pdfWired) {
+          e.pdfWired = true;
+          e.pdfBtn.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            var cur = cardState[doc.id];
+            if (cur && cur.overlay && cur.overlay.upload_id) downloadPdf(cur.overlay.upload_id, e.pdfBtn, e.pdfMsg);
+          });
+        }
+        if (expandedDocId === doc.id) renderReportInto(doc.id);
+      }
+
+      // ---- Accordion (one report open at a time) ----
+      function toggleReport(docId) {
+        if (expandedDocId === docId) { collapseReport(docId); return; }
+        if (expandedDocId) collapseReport(expandedDocId);
+        var st = cardState[docId];
+        if (!st || !st.els || !st.overlay || !st.overlay.upload_id) return;
+        expandedDocId = docId;
+        st.els.expandBtn.textContent = 'Collapse report';
+        st.els.expandBtn.setAttribute('aria-expanded', 'true');
+        renderReportInto(docId);
+        st.els.expanded.hidden = false;
+      }
+      function collapseReport(docId) {
+        var st = cardState[docId];
+        if (st && st.els) {
+          st.els.expanded.hidden = true;
+          clear(st.els.expanded);
+          st.els.expandBtn.textContent = 'Expand report';
+          st.els.expandBtn.setAttribute('aria-expanded', 'false');
+        }
+        if (expandedDocId === docId) expandedDocId = null;
+      }
+      function renderReportInto(docId) {
+        var st = cardState[docId];
+        if (!st || !st.els) return;
+        var host = st.els.expanded;
+        clear(host);
+        var findings = st.findings || [];
+        var status = deriveStatus(st.overlay, findings);
+        host.appendChild(buildStatusBlock(status));
+        var gsoFindings = findings.filter(function (f) { return !!f.gso_cluster; });
+        var riskFindings = findings.filter(function (f) { return !f.gso_cluster; });
+        host.appendChild(buildMagnitude(findings));
+        var packGen = packIsGenerated(st);
+        sortBySeverity(riskFindings).forEach(function (f) { host.appendChild(buildFinding(f, packGen)); });
+        if (gsoFindings.length) host.appendChild(buildGsoBand(gsoFindings));
+
+        var foot = el('div', 'report-foot');
+        var footBtn = el('button', 'btn-mini', 'Collapse report');
+        footBtn.type = 'button';
+        footBtn.setAttribute('aria-expanded', 'true');
+        footBtn.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          toggleReport(docId);
+          var cur = cardState[docId];
+          if (cur && cur.els) {
+            var headEl = cur.els.card.querySelector('.dcard-head');
+            if (headEl) headEl.scrollIntoView({ block: 'start' });
+            cur.els.expandBtn.focus();
+          }
+        });
+        foot.appendChild(footBtn);
+        host.appendChild(foot);
+      }
+
+      function buildStatusBlock(status) {
+        var block = el('div', 'status-block');
+        var ring = el('div', 'ring');
+        var label = el('div', 'status-label');
+        var sub = el('div', 'status-sub');
+        if (status === 'red') {
+          ring.style.borderColor = RING_HEX.red; ring.textContent = '!';
+          label.textContent = 'Significant gaps identified';
+          sub.textContent = 'Engine assessment — not solicitor-verified';
+        } else if (status === 'amber') {
+          ring.style.borderColor = RING_HEX.amber; ring.textContent = '◐';
+          label.textContent = 'Ready for solicitor review';
+          sub.textContent = 'Engine assessment — prepare a Solicitor Preparation Pack to take this further';
+        } else {
+          ring.textContent = '·';
+          label.textContent = 'Not yet checked';
+          sub.textContent = 'No analysis on record for this document yet.';
+        }
+        var txt = el('div');
+        txt.appendChild(label);
+        if (sub.textContent) txt.appendChild(sub);
+        block.appendChild(ring); block.appendChild(txt);
+        return block;
+      }
+
+      var SEV_RANK = { critical: 0, major: 1, minor: 2, aligned: 3 };
+      function sortBySeverity(arr) {
+        return arr.slice().sort(function (a, b) {
+          var ra = SEV_RANK[a.severity] != null ? SEV_RANK[a.severity] : 9;
+          var rb = SEV_RANK[b.severity] != null ? SEV_RANK[b.severity] : 9;
+          return ra - rb;
+        });
+      }
+      function buildMagnitude(items) {
+        var counts = { critical: 0, major: 0, minor: 0, aligned: 0 };
+        items.forEach(function (f) { if (counts.hasOwnProperty(f.severity)) counts[f.severity]++; });
+        var grid = el('div', 'magnitude');
+        [['critical', 'Critical'], ['major', 'Major'], ['minor', 'Minor'], ['aligned', 'Aligned']].forEach(function (s) {
+          var cell = el('div', 'mag-cell');
+          cell.appendChild(el('span', 'mag-num', String(counts[s[0]])));
+          cell.appendChild(el('span', 'mag-lbl', s[1]));
+          grid.appendChild(cell);
+        });
+        return grid;
+      }
+      function buildFinding(f, packGenerated) {
+        var box = el('div', 'finding');
+        var head = el('div', 'finding-head');
+        var sevKey = SEV_RANK[f.severity] != null ? f.severity : 'minor';
+        head.appendChild(el('span', 'sev sev-' + sevKey, (f.severity || 'finding')));
+        if (f.clause_category) head.appendChild(el('span', 'finding-cat', String(f.clause_category)));
+        box.appendChild(head);
+
+        var weights = normWeights(f.acei_weights);
+        var resolved = weights.map(function (w) {
+          var a = resolveAcei(w.key);
+          return { weight: w.weight, hex: a ? a.hex : GSO_HEX, label: a ? a.label : String(w.key) };
+        }).filter(function (w) { return w.weight > 0; });
+        if (resolved.length) {
+          var total = resolved.reduce(function (s, w) { return s + w.weight; }, 0) || 1;
+          var bar = el('div', 'grad-bar');
+          resolved.forEach(function (w) {
+            var seg = el('span', 'grad-seg');
+            seg.style.width = (w.weight / total * 100) + '%';
+            seg.style.background = w.hex;
+            seg.title = w.label + ' ' + Math.round(w.weight * 100) + '%';
+            bar.appendChild(seg);
+          });
+          box.appendChild(bar);
+          var chips = el('div', 'chips');
+          resolved.forEach(function (w) {
+            var chip = el('div', 'chip');
+            var sw = el('span', 'swatch'); sw.style.background = w.hex;
+            chip.appendChild(sw);
+            chip.appendChild(el('span', null, w.label + ' ' + Math.round(w.weight * 100) + '%'));
+            chips.appendChild(chip);
+          });
+          box.appendChild(chips);
+        }
+
+        if (f.finding_detail) box.appendChild(el('div', 'finding-detail', String(f.finding_detail)));
+        if (f.statutory_ref) {
+          var st = el('div', 'statutory');
+          st.appendChild(el('span', 'lbl', 'Statutory basis: '));
+          st.appendChild(document.createTextNode(String(f.statutory_ref)));
+          box.appendChild(st);
+        }
+        if (f.severity && f.severity !== 'aligned' && f.severity !== 'compliant') {
+          box.appendChild(el('div', 'solicitor-points', packGenerated
+            ? 'Solicitor guidance for this finding is prepared in your Solicitor Preparation Pack.'
+            : 'Solicitor guidance for this finding is available in the Solicitor Preparation Pack — prepare it from this document’s card.'));
+        }
+        return box;
+      }
+      function buildGsoBand(items) {
+        var band = el('div', 'gso-band');
+        band.appendChild(el('h3', null, 'Governance & statutory obligations'));
+        band.appendChild(el('div', 'band-sub', 'Standing obligations — listed for completeness, not colour-risk-graded.'));
+        sortBySeverity(items).forEach(function (f) {
+          var it = el('div', 'gso-item');
+          it.appendChild(el('span', 'gso-cluster', gsoMap.get(f.gso_cluster) || String(f.gso_cluster)));
+          if (f.finding_detail) it.appendChild(el('div', 'finding-detail', String(f.finding_detail)));
+          if (f.statutory_ref) {
+            var st = el('div', 'statutory');
+            st.appendChild(el('span', 'lbl', 'Statutory basis: '));
+            st.appendChild(document.createTextNode(String(f.statutory_ref)));
+            it.appendChild(st);
+          }
+          band.appendChild(it);
+        });
+        return band;
+      }
+
+      function triggerDownload(url, name) {
+        var a = document.createElement('a');
+        a.href = url; a.download = name || '';
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} a.remove(); }, 1500);
+      }
+      function downloadPdf(uploadId, btn, msgEl) {
+        var old = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Preparing…';
+        if (msgEl) msgEl.hidden = true;
+        fetch(FN + '/generate-vault-report-pdf', {
+          method: 'POST', headers: H, body: JSON.stringify({ upload_id: uploadId })
+        })
+          .then(function (r) {
+            if (!r.ok) throw new Error('http ' + r.status);
+            var name = 'Ailane_Vault_Exposure_Report.pdf';
+            var cd = r.headers.get('Content-Disposition');
+            if (cd) { var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd); if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch (e) { name = m[1]; } } }
+            return r.blob().then(function (b) { return { blob: b, name: name }; });
+          })
+          .then(function (o) {
+            triggerDownload(URL.createObjectURL(o.blob), o.name);
+            btn.disabled = false; btn.textContent = old;
+          })
+          .catch(function () {
+            btn.disabled = false; btn.textContent = old;
+            if (msgEl) showMsg(msgEl, 'Could not prepare the PDF right now. Please try again.', 'err');
+          });
+      }
+
+      // ===========================================================
+      //  ③ Solicitor Preparation Pack — per-document pane (brief §4).
+      //  Session framing ("Included with your <pass>"); the per-document
+      //  "Prepare solicitor pack" control is the same as operational.
+      //  The retired £15 is NOT rendered; the £19/£29 in-session buy-more
+      //  lives in the session panel below (non-charging, pre-revenue).
+      // ===========================================================
+      function renderPackPane(doc) {
+        var st = cardState[doc.id];
+        if (!st || !st.els) return;
+        var host = st.els.packBody;
+        clear(host);
+
+        if (!st.overlay || !st.overlay.upload_id) {
+          host.appendChild(el('div', 'pane-note',
+            'Run a check on this document first — the pack is prepared from its exposure findings.'));
+          host.appendChild(el('div', 'pane-note', 'Included with your ' + productLabel(product) + '.'));
+          return;
+        }
+
+        var pmsg = el('div', 'form-msg'); pmsg.hidden = true;
+        if (packIsGenerated(st)) {
+          host.appendChild(el('div', 'pack-generated-line', 'Generated ' + fmtDate(st.pack.created_at)));
+          var openBtn = el('button', 'btn-primary', 'Open pack (PDF)'); openBtn.type = 'button';
+          openBtn.addEventListener('click', function (ev) { ev.stopPropagation(); requestPack(doc, openBtn, pmsg); });
+          host.appendChild(openBtn);
+        } else {
+          host.appendChild(el('div', 'pane-note', 'Included with your ' + productLabel(product) + '.'));
+          var genBtn = el('button', 'btn-primary', 'Prepare solicitor pack'); genBtn.type = 'button';
+          genBtn.addEventListener('click', function (ev) { ev.stopPropagation(); requestPack(doc, genBtn, pmsg); });
+          host.appendChild(genBtn);
+        }
+        host.appendChild(pmsg);
+        host.appendChild(el('div', 'pane-note',
+          'This is groundwork for instructing a solicitor, not legal advice.'));
+      }
+
+      function requestPack(doc, btn, pmsg) {
+        var st = cardState[doc.id];
+        if (!st) return;
+        var old = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Preparing…'; pmsg.hidden = true;
+        fetch(FN + '/generate-solicitor-pack', { method: 'POST', headers: H, body: JSON.stringify({ document_id: doc.id }) })
+          .then(function (r) {
+            var ct = r.headers.get('Content-Type') || '';
+            if (r.status === 200 && ct.indexOf('application/json') !== -1) {
+              return r.json().then(function (d) {
+                if (!d || !d.pdf_url) throw new Error('pack json');
+                return fetch(d.pdf_url)
+                  .then(function (fr) { if (!fr.ok) throw new Error('pack fetch ' + fr.status); return fr.blob(); })
+                  .then(function (b) {
+                    triggerDownload(URL.createObjectURL(b), 'Ailane_Solicitor_Pack.pdf');
+                    btn.disabled = false; btn.textContent = old;
+                    st.pack = { upload_id: (st.overlay && st.overlay.upload_id) || null,
+                                created_at: d.generated_at || (st.pack && st.pack.created_at) || null };
+                    renderPackPane(doc);
+                  });
+              });
+            }
+            if (r.status === 200) {
+              var name = 'Ailane_Solicitor_Pack.pdf';
+              var cd = r.headers.get('Content-Disposition');
+              if (cd) { var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd); if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch (e) { name = m[1]; } } }
+              return r.blob().then(function (b) {
+                triggerDownload(URL.createObjectURL(b), name);
+                st.pack = { upload_id: (st.overlay && st.overlay.upload_id) || null, created_at: new Date().toISOString() };
+                renderPackPane(doc);
+                if (expandedDocId === doc.id) renderReportInto(doc.id);
+              });
+            }
+            if (r.status === 409) {
+              btn.disabled = false; btn.textContent = old;
+              showMsg(pmsg, 'Run a check on this document first.', 'err');
+              return;
+            }
+            throw new Error('pack ' + r.status);
+          })
+          .catch(function () {
+            btn.disabled = false; btn.textContent = old;
+            showMsg(pmsg, 'Could not prepare the pack right now. Please try again.', 'err');
+          });
+      }
+
+      // ===========================================================
+      //  Add / Replace / Remove (kl_vault_documents, kl-document-vault
+      //  storage). Point-in-time: no `monitored` flag is set (brief §2).
+      // ===========================================================
       function uploadToStorage(file) {
         var path = uid + '/' + cryptoId() + '_' + safeName(file.name);
         return fetch(REST + '/storage/v1/object/kl-document-vault/' + encodeURIComponent(path), {
@@ -510,33 +1260,47 @@
         }).then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return path; });
       }
 
-      function openUpload(card, work) {
+      function setSlotStatus(work, m) {
+        var s = work.querySelector('.slot-status');
+        if (!m) { if (s) s.remove(); return; }
+        work.style.display = 'block';
+        if (!s) { s = el('div', 'slot-status'); work.appendChild(s); }
+        clear(s);
+        s.appendChild(el('span', 'mini-spinner'));
+        s.appendChild(document.createTextNode(m));
+      }
+
+      function openUpload(card, type) {
+        var work = card.querySelector('.slot-work');
+        var emptyBody = card.querySelector('.slot-empty-body');
+        if (emptyBody) emptyBody.style.display = 'none';
         clear(work); work.style.display = 'block';
-        work.appendChild(el('div', 'chooser-title', 'Add a document'));
-        work.appendChild(el('div', 'slot-hint', 'Upload the contract, policy or handbook you want to run a Contract Compliance Check on.'));
+        work.appendChild(el('div', 'chooser-title', slotTypeLabel(type) + ' — choose a file'));
+        work.appendChild(el('div', 'slot-hint', 'Upload the document you want to run a Contract Compliance Check on. PDF or Word (.docx), up to 10 MB.'));
         var input = el('input'); input.type = 'file'; input.accept = '.pdf,.docx'; input.className = 'file-input';
         work.appendChild(input);
         var msgEl = el('div', 'form-msg'); msgEl.hidden = true;
         var row = el('div', 'work-actions');
         var go = el('button', 'btn-primary', 'Add document'); go.type = 'button';
         var cancel = el('button', 'btn-secondary', 'Cancel'); cancel.type = 'button';
-        go.addEventListener('click', function () {
+        go.addEventListener('click', function (e) {
+          e.stopPropagation();
           var f = input.files && input.files[0];
           var v = validateFile(f);
           if (!v.ok) { showMsg(msgEl, v.error, 'err'); return; }
           doUpload(work, f, go, cancel, msgEl);
         });
-        cancel.addEventListener('click', function () { work.style.display = 'none'; clear(work); });
+        cancel.addEventListener('click', function (e) { e.stopPropagation(); renderSlots(); });
         row.appendChild(go); row.appendChild(cancel);
         work.appendChild(row); work.appendChild(msgEl);
       }
 
       function doUpload(work, file, goBtn, cancelBtn, msgEl) {
         goBtn.disabled = true; cancelBtn.disabled = true; msgEl.hidden = true;
-        setStatus(work, 'Uploading…');
+        setSlotStatus(work, 'Uploading…');
         uploadToStorage(file)
           .then(function (path) {
-            setStatus(work, 'Saving to your vault…');
+            setSlotStatus(work, 'Saving to your vault…');
             var body = {
               user_id: uid, filename: file.name, storage_path: path,
               file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream'
@@ -550,13 +1314,13 @@
           })
           .then(function () { return loadDocs(); })
           .catch(function () {
-            clearStatus(work);
+            setSlotStatus(work, '');
             goBtn.disabled = false; cancelBtn.disabled = false;
             showMsg(msgEl, 'Could not add this document right now. Please try again.', 'err');
           });
       }
 
-      // ---- Replace — swap the document in place (no monitoring / no monthly gate) ----
+      // Replace — swap the document in place (no monthly gate; KL is point-in-time).
       function openReplace(doc, card) {
         var work = card.querySelector('.slot-work');
         clear(work); work.style.display = 'block';
@@ -568,23 +1332,23 @@
         var row = el('div', 'work-actions');
         var go = el('button', 'btn-primary', 'Replace document'); go.type = 'button';
         var cancel = el('button', 'btn-secondary', 'Cancel'); cancel.type = 'button';
-        go.addEventListener('click', function () {
+        go.addEventListener('click', function (e) {
+          e.stopPropagation();
           var f = input.files && input.files[0];
           var v = validateFile(f);
           if (!v.ok) { showMsg(msgEl, v.error, 'err'); return; }
           doReplace(doc, work, f, go, cancel, msgEl);
         });
-        cancel.addEventListener('click', function () { work.style.display = 'none'; clear(work); });
+        cancel.addEventListener('click', function (e) { e.stopPropagation(); work.style.display = 'none'; clear(work); });
         row.appendChild(go); row.appendChild(cancel);
         work.appendChild(row); work.appendChild(msgEl);
       }
-
       function doReplace(doc, work, file, goBtn, cancelBtn, msgEl) {
         goBtn.disabled = true; cancelBtn.disabled = true; msgEl.hidden = true;
-        setStatus(work, 'Uploading the new version…');
+        setSlotStatus(work, 'Uploading the new version…');
         uploadToStorage(file)
           .then(function (path) {
-            setStatus(work, 'Updating your vault…');
+            setSlotStatus(work, 'Updating your vault…');
             var body = {
               filename: file.name, storage_path: path,
               file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream',
@@ -599,56 +1363,47 @@
           })
           .then(function () { return loadDocs(); })
           .catch(function () {
-            clearStatus(work);
+            setSlotStatus(work, '');
             goBtn.disabled = false; cancelBtn.disabled = false;
             showMsg(msgEl, 'Could not replace this document right now. Please try again.', 'err');
           });
       }
 
-      // ---- Remove — soft delete (frees the document from the session) ----
+      // Remove — soft delete (frees the document from the session).
       function confirmRemove(doc) {
         if (!window.confirm('Remove this document from your session?')) return;
         fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
           method: 'PATCH', headers: H, body: JSON.stringify({ deleted_at: new Date().toISOString() })
         }).then(function (r) {
           if (r.status < 200 || r.status >= 300) throw new Error('remove ' + r.status);
+          if (cardState[doc.id]) delete cardState[doc.id];
           return loadDocs();
         }).catch(function () { window.alert('Could not remove this document right now. Please try again.'); });
       }
 
-      function setStatus(work, m) {
-        clearStatus(work);
-        var s = el('div', 'slot-status'); s.setAttribute('data-status', '1');
-        s.appendChild(el('div', 'mini-spinner'));
-        s.appendChild(document.createTextNode(m));
-        work.appendChild(s);
-      }
-      function clearStatus(work) {
-        var ex = work.querySelector('[data-status]'); if (ex) ex.remove();
-      }
-      function showMsg(node, text, kind) {
-        node.textContent = text; node.className = 'form-msg ' + (kind || ''); node.hidden = false;
-      }
-
-      // ---- Solicitor Preparation Pack — session-scoped, with the in-KL £19/£29 upsell ----
-      function buildPackPane(ent) {
+      // ===========================================================
+      //  Solicitor Preparation Pack — session buy-more panel (brief §4).
+      //  Session framing + the £19 / £29 in-session buy-more. The retired
+      //  £15 is not rendered. Pre-revenue the "Add a check" CTA is staged
+      //  non-charging (→ /kl-access/, same manner as the access page) —
+      //  it creates NO Checkout Session against a live Price.
+      // ===========================================================
+      function buildPackBuyMore() {
         var wrap = document.createElement('div');
         wrap.appendChild(el('h2', 'section-head spaced', 'Solicitor Preparation Pack'));
         var pane = el('section', 'pane');
         pane.setAttribute('aria-label', 'Solicitor Preparation Pack');
 
         pane.appendChild(el('p', 'pack-lead',
-          'A Solicitor Preparation Pack packages your Contract Compliance Check findings so a qualified solicitor can review your position quickly.'));
-        pane.appendChild(el('span', 'pack-included', 'Included with your ' + productLabel(ent.product_type)));
+          'A Solicitor Preparation Pack packages your Contract Compliance Check findings so a qualified solicitor can review your position quickly. Prepare one from any checked document’s card above.'));
+        pane.appendChild(el('span', 'pack-included', 'Included with your ' + productLabel(product)));
 
         pane.appendChild(el('div', 'upsell-sub',
           'Your bundled Contract Compliance Checks are used first. Once they’re used, you can add more within your active session:'));
 
-        // Ratified in-session upsell copy: £19 (check) / £29 (check + Solicitor Pack) only.
-        // The retired standalone add-on price is not surfaced anywhere on this page.
         var l1 = el('div', 'upsell-line');
         l1.appendChild(el('span', 'upsell-price', '£19'));
-        l1.appendChild(el('span', 'upsell-desc', 'One additional Contract Compliance Check.'));
+        l1.appendChild(el('span', 'upsell-desc', 'One additional Contract Compliance Check (add a Solicitor Preparation Pack too).'));
         pane.appendChild(l1);
         var l2 = el('div', 'upsell-line');
         l2.appendChild(el('span', 'upsell-price', '£29'));
@@ -660,9 +1415,8 @@
         l2.appendChild(d2);
         pane.appendChild(l2);
 
-        // The "additional" action points at the in-KL upsell. WIRE-UP (fulfilment brief):
-        // in-session upsell £19 (check) / £29 (check + Solicitor Pack) reuse the standalone
-        // Price IDs; this front-end brief creates no Stripe object and invents no Price ID.
+        // Non-charging staging (pre-revenue): route to /kl-access/, which stages the
+        // checkout under Director control. This creates no live charge (brief §4).
         var actions = el('div', 'pack-actions');
         var add = el('a', 'btn-primary', 'Add a check');
         add.href = '/kl-access/';
@@ -671,6 +1425,66 @@
 
         wrap.appendChild(pane);
         return wrap;
+      }
+
+      // ===========================================================
+      //  Notes — writes into kl_workspace_notes (KEEP, brief §2).
+      // ===========================================================
+      function renderNotes() {
+        var host = document.getElementById('vault-notes');
+        if (!host) return;
+        clear(host);
+        host.appendChild(el('p', 'notif-intro',
+          'Jot a note about your documents. Notes you save here appear in your Knowledge Library Notes.'));
+
+        var ta = el('textarea', 'notes-area'); ta.setAttribute('rows', '4');
+        ta.placeholder = 'A note for your Knowledge Library Vault…';
+        host.appendChild(ta);
+        var saveBtn = el('button', 'btn-primary', 'Save note'); saveBtn.type = 'button';
+        host.appendChild(saveBtn);
+        var nmsg = el('div', 'form-msg'); nmsg.hidden = true;
+        host.appendChild(nmsg);
+        var recent = el('div', 'notes-recent');
+        host.appendChild(recent);
+        loadRecentNotes(recent);
+
+        saveBtn.addEventListener('click', function () {
+          var content = ta.value.trim();
+          if (!content) { showMsg(nmsg, 'Please write something first.', 'err'); return; }
+          saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; nmsg.hidden = true;
+          fetch(RESTU + '/kl_workspace_notes', {
+            method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H),
+            body: JSON.stringify({ user_id: uid, title: 'Knowledge Library Vault — note',
+                                   content_plain: content, note_type: 'note', source_attribution: 'Knowledge Library Vault' })
+          })
+            .then(function (r) { if (r.status < 200 || r.status >= 300) throw new Error('note ' + r.status); return r.json().catch(function () { return null; }); })
+            .then(function () {
+              saveBtn.disabled = false; saveBtn.textContent = 'Save note';
+              ta.value = '';
+              showMsg(nmsg, 'Saved to your Notes.', 'ok');
+              loadRecentNotes(recent);
+            })
+            .catch(function () {
+              saveBtn.disabled = false; saveBtn.textContent = 'Save note';
+              showMsg(nmsg, 'Could not save your note right now. Please try again.', 'err');
+            });
+        });
+      }
+      function loadRecentNotes(host) {
+        clear(host);
+        getJson('/kl_workspace_notes?user_id=eq.' + uid + '&source_attribution=eq.Knowledge%20Library%20Vault' +
+                '&select=id,title,content_plain,updated_at&order=updated_at.desc&limit=5')
+          .then(function (rows) {
+            if (!rows || !rows.length) return;
+            host.appendChild(el('div', 'notes-recent-head', 'Recent vault notes'));
+            rows.forEach(function (n) {
+              var item = el('div', 'note-item');
+              item.appendChild(el('div', 'note-title', n.title || 'Note'));
+              if (n.content_plain) item.appendChild(el('div', 'note-body', String(n.content_plain)));
+              host.appendChild(item);
+            });
+          })
+          .catch(function () { /* read-back is optional */ });
       }
     };
   })();
