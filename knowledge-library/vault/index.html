@@ -366,6 +366,10 @@
       <span class="tier-badge" id="product-badge" hidden></span>
       <!-- Session check-credit counter — relabelled from the operational monitored-slot counter. -->
       <span class="credit-counter" id="credit-counter" hidden></span>
+      <!-- Sign-out control (brief §3) — reuses the operational vault class (.btn-primary) and the
+           operational signOut().then/catch → location.replace('/login/') pattern. Additive UI;
+           the RULE 26 guard and the kl_session_entitlement gate are untouched. -->
+      <button class="btn-primary" id="kl-signout-btn" type="button">Sign out</button>
     </div>
   </header>
 
@@ -458,6 +462,29 @@
           .catch(fail);
       }
     }
+  })();
+  </script>
+
+  <!-- ==========================================================================
+       SIGN-OUT CONTROL (brief §3) — additive header UI. Reuses the operational
+       vault pattern: sb.auth.signOut().then/catch → window.location.replace('/login/'),
+       the same target operational/documents (and account/dashboard) redirect to. A
+       client is created only to clear the session; the RULE 26 guard and the
+       kl_session_entitlement gate above are untouched.
+       ========================================================================== -->
+  <script>
+  (function () {
+    var btn = document.getElementById('kl-signout-btn');
+    if (!btn) return;
+    var SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+    btn.addEventListener('click', function () {
+      var done = function () { window.location.replace('/login/'); };
+      try {
+        var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        sb.auth.signOut().then(done).catch(done);
+      } catch (e) { done(); }
+    });
   })();
   </script>
 
