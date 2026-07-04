@@ -705,8 +705,12 @@
             <li>ACAS, HSE, and ICO guidance</li>
             <li>ERA 2025 intelligence</li>
           </ul>
-          <button type="button" class="cta cta-cyan-o" disabled aria-disabled="true">Available soon</button>
-          <div class="cta-soon-note">Knowledge Library checkout opens shortly.</div>
+          <div class="d6-consent kl-consent" id="consent-kl-q">
+            <input type="checkbox" id="kl-q" onchange="toggleKlBtn('pay-kl-q','kl-q')">
+            <label for="kl-q">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice.</label>
+          </div>
+          <a id="pay-kl-q" href="#" class="cta cta-cyan-o disabled-pay" onclick="return startCheckout('kl_quick_session','kl-q',this)">Quick Session — £49</a>
+          <div id="checkout-error-kl-q" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
         </div>
 
         <!-- Day Pass £69 -->
@@ -727,8 +731,12 @@
             <li>Research notes and session history</li>
             <li>24 hours uninterrupted access</li>
           </ul>
-          <button type="button" class="cta cta-cyan" disabled aria-disabled="true">Available soon</button>
-          <div class="cta-soon-note">Knowledge Library checkout opens shortly.</div>
+          <div class="d6-consent kl-consent" id="consent-kl-d">
+            <input type="checkbox" id="kl-d" onchange="toggleKlBtn('pay-kl-d','kl-d')">
+            <label for="kl-d">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice.</label>
+          </div>
+          <a id="pay-kl-d" href="#" class="cta cta-cyan disabled-pay" onclick="return startCheckout('kl_day_pass','kl-d',this)">Day Pass — £69</a>
+          <div id="checkout-error-kl-d" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
         </div>
 
         <!-- Research Week £129 -->
@@ -748,8 +756,12 @@
             <li>Legislative horizon tracker</li>
             <li>7 days of sustained research</li>
           </ul>
-          <button type="button" class="cta cta-cyan-o" disabled aria-disabled="true">Available soon</button>
-          <div class="cta-soon-note">Knowledge Library checkout opens shortly.</div>
+          <div class="d6-consent kl-consent" id="consent-kl-w">
+            <input type="checkbox" id="kl-w" onchange="toggleKlBtn('pay-kl-w','kl-w')">
+            <label for="kl-w">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice.</label>
+          </div>
+          <a id="pay-kl-w" href="#" class="cta cta-cyan-o disabled-pay" onclick="return startCheckout('kl_research_week','kl-w',this)">Research Week — £129</a>
+          <div id="checkout-error-kl-w" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
         </div>
       </div>
     </div>
@@ -1576,6 +1588,54 @@
     .catch(function () { /* baked fallback values remain — intentionally silent */ });
 })();
 </script>
+
+<script>
+/* KL pass checkout — GOLIVE-WIRING-001. Pattern mirrors /compliance-check/ (AMD-263 D2). */
+var CREATE_CHECKOUT_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout';
+function toggleKlBtn(btnId, chkId) {
+  var chk = document.getElementById(chkId);
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (chk && chk.checked) { btn.classList.remove('disabled-pay'); } else { btn.classList.add('disabled-pay'); }
+}
+function checkConsent(checkId) {
+  var chk = document.getElementById(checkId);
+  if (!chk || !chk.checked) {
+    alert('Please confirm you have read the Terms of Service and Privacy Policy before proceeding.');
+    return false;
+  }
+  return true;
+}
+function startCheckout(productType, consentId, el) {
+  try { if (!checkConsent(consentId)) return false; } catch (e) { return false; }
+  if (el.dataset.busy === '1') return false;
+  el.dataset.busy = '1';
+  var prior = el.textContent;
+  el.textContent = 'Preparing secure checkout…';
+  try { if (window.gtag) gtag('event', 'begin_checkout', { item_id: productType }); } catch (e) {}
+  fetch(CREATE_CHECKOUT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_type: productType })
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (d && d.url) { window.location.href = d.url; return; }
+    throw new Error((d && d.error) || 'no url');
+  }).catch(function () {
+    el.dataset.busy = '0';
+    el.textContent = prior;
+    var m = document.getElementById('checkout-error-' + consentId);
+    if (m) m.textContent = 'Checkout is temporarily unavailable — please try again in a moment.';
+  });
+  return false;
+}
+</script>
+<style>
+.kl-consent{display:flex;gap:10px;align-items:flex-start;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.18);border-radius:8px;padding:12px;margin:14px 0 12px 0;text-align:left}
+.kl-consent input{margin-top:3px;flex:none}
+.kl-consent label{font-size:0.78rem;color:rgba(255,255,255,0.72);line-height:1.45}
+.kl-consent a{color:#38bdf8}
+.disabled-pay{opacity:0.45;pointer-events:none}
+</style>
 
 </body>
 </html>
