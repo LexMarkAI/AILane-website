@@ -1252,6 +1252,9 @@ footer {
   <div class="portal-wrap">
     <div class="portal-card">
 
+  <!-- GOLIVE003 §C.4 — Solicitor Preparation Pack add-on purchase confirmation (shown on return with ?addon=pack) -->
+  <div id="pack-addon-confirmation" style="display:none;background:rgba(13,115,119,0.15);border:1px solid rgba(20,189,173,0.35);border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:var(--teal-light);line-height:1.6;">Thank you — your Solicitor Preparation Pack is being prepared and will arrive by email shortly.</div>
+
   <!-- VERIFY STATE -->
   <div id="state-verify">
     <div class="portal-header">
@@ -1345,6 +1348,9 @@ footer {
       <div id="next-doc-row"></div>
       <div class="email-notice" id="email-notice"></div>
     </div>
+
+    <!-- GOLIVE003 §C.3 — £19 Solicitor Preparation Pack upsell (rendered for one_time_scan only) -->
+    <div id="pack-upsell-row"></div>
 
     <!-- TIER PANEL — post-report navigation -->
     <div class="tier-panel">
@@ -1473,6 +1479,12 @@ let pollTimer        = null;
   // Capture UTM params for payment links
   captureUTM();
 
+  // GOLIVE003 §C.4 — confirm the Solicitor Preparation Pack add-on purchase on return.
+  if (params.get('addon') === 'pack') {
+    const conf = document.getElementById('pack-addon-confirmation');
+    if (conf) conf.style.display = 'block';
+  }
+
   if (session) {
     stripeSessionId = session;
     showPortalMode();
@@ -1513,7 +1525,7 @@ function checkConsent(checkId) {
 // AUTH-002 P0 — hosted checkout via create-checkout Edge Function.
 // Consent gate preserved: startCheckout defers to checkConsent first.
 var CREATE_CHECKOUT_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout';
-function startCheckout(productType, consentId, el) {
+function startCheckout(productType, consentId, el, extra) {
   try { if (!checkConsent(consentId)) return false; } catch (e) { return false; }
   if (el.dataset.busy === '1') return false;
   el.dataset.busy = '1';
@@ -1523,7 +1535,7 @@ function startCheckout(productType, consentId, el) {
   fetch(CREATE_CHECKOUT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ product_type: productType })
+    body: JSON.stringify({ product_type: productType, ...(extra || {}) })
   }).then(function (r) { return r.json(); }).then(function (d) {
     if (d && d.url) { window.location.href = d.url; return; }
     throw new Error((d && d.error) || 'no url');
@@ -1602,8 +1614,9 @@ async function beginVerify(sessionId, attempt) {
         break;
       case 'error':
         showState('error');
+        console.log('[analysis] processing_error:', d.processing_error);
         document.getElementById('error-reason').textContent =
-          d.processing_error || 'An error occurred during analysis.';
+          'We could not complete the analysis of this document. Please try a different file, or contact support@ailane.ai if the problem persists.';
         document.getElementById('error-ref').textContent = `Session: …${sessionId.slice(-20)}`;
         break;
       default:
@@ -1956,6 +1969,35 @@ function renderResults(score, findingCounts, email, fileName) {
       tpBody.textContent = 'This analysis found your documentation broadly aligns with current statutory requirements, with minor areas that may benefit from review. Maintaining this standard as legislation evolves is where ongoing monitoring adds value.';
     }
   }
+
+  // GOLIVE003 §C — offer the £19 Solicitor Preparation Pack after a completed single Contract Check.
+  renderPackUpsell();
+}
+
+// ── GOLIVE003 §C — SOLICITOR PREPARATION PACK UPSELL ────────────────────────
+function renderPackUpsell() {
+  const el = document.getElementById('pack-upsell-row');
+  if (!el) return;
+  el.innerHTML = '';
+  // one_time_scan is the £19 single Contract Check. The Compliance Check Bundle (£29)
+  // and Three-Document Bundle (£49) already include the Solicitor Preparation Pack.
+  if (sessionTier !== 'one_time_scan') return;
+  // Fail closed — without a document reference we cannot order the pack, so render nothing.
+  if (!uploadId) return;
+  el.innerHTML = `
+    <div class="tier-panel" style="margin-top:24px;">
+      <div class="tier-guidance" style="margin-bottom:16px;">
+        <div class="tier-guidance-eyebrow">ADD TO THIS CHECK</div>
+        <h3>Add the Solicitor Preparation Pack — £19</h3>
+        <p>A solicitor-ready preparation document for this check — questions and instructions to review, structured for onward legal advice. Delivered by email as a PDF.</p>
+      </div>
+      <div class="d6-consent" id="consent-cc-pack">
+        <input type="checkbox" id="cc-pack" onchange="togglePayBtn('pay-pack','cc-pack')">
+        <label for="cc-pack">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand this analysis does not constitute legal advice and I will seek qualified legal advice before acting on any findings.</label>
+      </div>
+      <a id="pay-pack" href="#" class="btn-pay disabled-pay" onclick="return startCheckout('pack_addon','cc-pack',this,{ upload_id: '${uploadId}' })">Add the Solicitor Preparation Pack — £19</a>
+      <div id="checkout-error-cc-pack" class="checkout-error" style="color:#ff9a9a;font-size:12px;min-height:16px;margin-top:6px"></div>
+    </div>`;
 }
 
 // ── FINDING FEEDBACK ────────────────────────────────────────────────────────
