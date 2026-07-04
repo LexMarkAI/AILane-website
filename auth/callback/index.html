@@ -67,7 +67,15 @@
         try{var cr=await sb.auth.exchangeCodeForSession(params.get('code'));if(cr.data&&cr.data.session)session=cr.data.session}catch(e){}
       }
       if(!session){for(var i=0;i<8;i++){var g=await sb.auth.getSession();if(g.data&&g.data.session){session=g.data.session;break}if(i<7)await sleep(500)}}
-      if(!session){window.location.replace('/login/');return}
+      if(!session){
+        if(params.has('checkout')){
+          try{if(window.gtag)gtag('event','subscription_checkout_landed',{method:'stripe'})}catch(e){}
+          var sp=document.querySelector('.spinner');if(sp)sp.style.display='none';
+          var br=document.querySelector('.brand');if(br)br.textContent='AILANE';
+          st('Payment received — your account is being set up. Your secure sign-in link is on its way to your email (usually within a minute). Open it on this device to enter your workspace. If it has not arrived in a few minutes, check your spam folder or contact support@ailane.ai.');
+          return;
+        }
+        window.location.replace('/login/');return}
       // LOVR P0 — reviewer routing: an active legal reviewer enters the Legal Oversight Room.
       // RULE 2: JWT decode + raw fetch only (never sb.from() at the callback). Additive — on any
       // miss/error this falls through to the existing tier routing below, untouched.
@@ -88,7 +96,7 @@
       var returnTo=sessionStorage.getItem('ailane_returnTo')||params.get('returnTo');
       sessionStorage.removeItem('ailane_returnTo');
       if(returnTo){
-        var allowedPrefixes=['/account/','/intelligence/','/governance-dashboard/','/knowledge-library/','/partners/'];
+        var allowedPrefixes=['/account/','/intelligence/','/governance-dashboard/','/knowledge-library/','/partners/','/billing/'];
         var isAllowed=allowedPrefixes.some(function(p){return returnTo.startsWith(p)});
         if(isAllowed)d=returnTo;
       }

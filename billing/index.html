@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage billing — Ailane</title>
+  <!-- Supabase CDN FIRST (protected page) — RULE 26 auth-guard prerequisite -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#060D1B;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,sans-serif}
+    .wrap{text-align:center;color:#fff;max-width:440px;padding:24px}
+    .brand{font-size:1.6rem;font-weight:700;letter-spacing:0.15em;margin-bottom:12px}
+    .status{font-size:0.95rem;color:rgba(255,255,255,0.6);line-height:1.6}
+    .status a{color:#38bdf8}
+    .spinner{width:36px;height:36px;border:3px solid rgba(56,189,248,0.15);border-top-color:#38bdf8;border-radius:50%;animation:s .8s linear infinite;margin:0 auto 18px}
+    @keyframes s{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body style="visibility:hidden">
+  <div class="wrap">
+    <div class="spinner" id="sp"></div>
+    <div class="brand">AILANE</div>
+    <div class="status" id="st">Opening your billing portal...</div>
+  </div>
+  <script>
+  var SB_URL='https://cnbsxwtvazfvzmltkuvx.supabase.co';
+  var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+  var PORTAL_EF='https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-billing-portal-session';
+  var sb=window.supabase.createClient(SB_URL,SB_KEY);
+  function st(m,isErr){var e=document.getElementById('st');if(e)e.innerHTML=m;var s=document.getElementById('sp');if(s&&isErr)s.style.display='none'}
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+  (async function(){
+    document.body.style.visibility='visible';
+    try{
+      var session=null;
+      for(var i=0;i<6;i++){var g=await sb.auth.getSession();if(g.data&&g.data.session){session=g.data.session;break}if(i<5)await sleep(400)}
+      if(!session){window.location.replace('/account/?returnTo=/billing/');return}
+      var r=await fetch(PORTAL_EF,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:'{}'});
+      var d=await r.json().catch(function(){return {}});
+      if(r.ok&&d&&d.url){try{if(window.gtag)gtag('event','billing_portal_opened')}catch(e){};window.location.replace(d.url);return}
+      st((d&&d.error?d.error:'Billing portal is temporarily unavailable.')+'<br><br>Need help? <a href="mailto:support@ailane.ai">support@ailane.ai</a>',true);
+    }catch(e){st('Billing portal is temporarily unavailable.<br><br>Need help? <a href="mailto:support@ailane.ai">support@ailane.ai</a>',true)}
+  })();
+  </script>
+</body>
+</html>

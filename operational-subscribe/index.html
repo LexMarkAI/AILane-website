@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start Operational — Ailane</title>
+  <!-- GA4 — REQUIRED ON EVERY PAGE -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NTNXWZN31C');
+  </script>
+  <!-- CSP — REQUIRED ON EVERY PAGE (SEC-001 §3.2) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://js.stripe.com https://www.googletagmanager.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://www.google-analytics.com; connect-src 'self' https://cnbsxwtvazfvzmltkuvx.supabase.co https://cnbsxwtvazfvzmltkuvx.functions.supabase.co https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'">
+  <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0a0e1a">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#060D1B;color:#fff;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{max-width:560px;width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:36px}
+    .brand{font-size:1.1rem;font-weight:700;letter-spacing:0.15em;color:#38bdf8;margin-bottom:18px}
+    h1{font-size:1.6rem;margin-bottom:6px}
+    .price{font-size:1.15rem;color:#38bdf8;font-weight:600;margin-bottom:18px}
+    ul{list-style:none;margin:0 0 22px 0}
+    li{padding:7px 0 7px 26px;position:relative;color:rgba(255,255,255,0.82);font-size:0.95rem}
+    li::before{content:"✓";position:absolute;left:0;color:#38bdf8}
+    .consent{display:flex;gap:10px;align-items:flex-start;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.18);border-radius:8px;padding:12px;margin-bottom:16px}
+    .consent input{margin-top:3px;flex:none}
+    .consent label{font-size:0.8rem;color:rgba(255,255,255,0.72);line-height:1.45}
+    .consent a{color:#38bdf8}
+    .btn{display:block;width:100%;text-align:center;background:#38bdf8;color:#04121f;font-weight:700;padding:14px;border-radius:8px;text-decoration:none;font-size:1rem}
+    .btn.disabled-pay{opacity:0.45;pointer-events:none}
+    .err{color:#ff9a9a;font-size:12px;min-height:16px;margin-top:8px}
+    .manage{margin-top:18px;text-align:center;font-size:0.85rem;color:rgba(255,255,255,0.55)}
+    .manage a{color:#38bdf8;text-decoration:none}
+    .legal{margin-top:22px;font-size:0.7rem;color:rgba(255,255,255,0.38);text-align:center;line-height:1.5}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">AILANE</div>
+    <h1>Operational</h1>
+    <div class="price">£199/month · Know your exposure.</div>
+    <ul>
+      <li>Exposure scoring across 12 compliance categories</li>
+      <li>5 contracts monitored — auto-rescanned when law changes</li>
+      <li>Legislative alerts via email</li>
+      <li>Compliance calendar with ERA 2025 dates</li>
+      <li>Document Vault with findings overlay</li>
+      <li>5 compliance checks per month</li>
+      <li>PDF compliance reports</li>
+    </ul>
+    <div class="consent">
+      <input type="checkbox" id="op-consent" onchange="toggleOpBtn()">
+      <label for="op-consent">I confirm I have read and agree to the <a href="https://ailane.ai/terms/" target="_blank">Terms of Service</a> and <a href="https://ailane.ai/privacy/" target="_blank">Privacy Policy</a>. I understand Ailane provides regulatory intelligence, not legal advice. The subscription renews monthly and can be cancelled at any time from Manage billing.</label>
+    </div>
+    <a id="op-pay" href="#" class="btn disabled-pay" onclick="return startCheckout('operational','op-consent',this)">Start Operational — £199/month</a>
+    <div id="checkout-error-op-consent" class="err"></div>
+    <div class="manage">Existing subscriber? <a href="/billing/">Manage billing</a></div>
+    <div class="legal">AI Lane Limited · Co. 17035654 · ICO 00013389720 · Regulatory intelligence, not legal advice.</div>
+  </div>
+  <script>
+  var CREATE_CHECKOUT_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout';
+  function toggleOpBtn() {
+    var chk = document.getElementById('op-consent');
+    var btn = document.getElementById('op-pay');
+    if (chk && chk.checked) { btn.classList.remove('disabled-pay'); } else { btn.classList.add('disabled-pay'); }
+  }
+  function checkConsent(checkId) {
+    var chk = document.getElementById(checkId);
+    if (!chk || !chk.checked) {
+      alert('Please confirm you have read the Terms of Service and Privacy Policy before proceeding.');
+      return false;
+    }
+    return true;
+  }
+  function startCheckout(productType, consentId, el) {
+    try { if (!checkConsent(consentId)) return false; } catch (e) { return false; }
+    if (el.dataset.busy === '1') return false;
+    el.dataset.busy = '1';
+    var prior = el.textContent;
+    el.textContent = 'Preparing secure checkout…';
+    try { if (window.gtag) gtag('event', 'begin_checkout', { item_id: productType }); } catch (e) {}
+    fetch(CREATE_CHECKOUT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_type: productType })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.url) { window.location.href = d.url; return; }
+      throw new Error((d && d.error) || 'no url');
+    }).catch(function () {
+      el.dataset.busy = '0';
+      el.textContent = prior;
+      var m = document.getElementById('checkout-error-' + consentId);
+      if (m) m.textContent = 'Checkout is temporarily unavailable — please try again in a moment.';
+    });
+    return false;
+  }
+  </script>
+</body>
+</html>
