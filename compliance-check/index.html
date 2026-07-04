@@ -1891,7 +1891,13 @@ function renderResults(score, findingCounts, email, fileName) {
           : (u.status === 'analysing' || u.status === 'pending' ? 'Analysis in progress…' : u.status);
         const scoreTxt = '';
         const links = u.status === 'complete'
-          ? btn(EXPOSURE_URL(u.id), '📄 Exposure Report', true) + btn(PACK_URL(u.id), '📄 Solicitor Pack', true)
+          ? `<div style="width:100%;">
+               <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px;">
+                 <a href="${EXPOSURE_URL(u.id)}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 16px;border-radius:8px;background:var(--gold,#c9a227);color:#101010;font-weight:700;font-size:13px;text-decoration:none;">📄 Exposure Report (PDF)</a>
+                 <a href="${PACK_URL(u.id)}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid var(--gold,#c9a227);color:var(--gold,#c9a227);font-weight:700;font-size:13px;text-decoration:none;">📄 Solicitor Preparation Pack (PDF)</a>
+               </div>
+               <iframe src="${EXPOSURE_URL(u.id)}" title="Exposure Report — ${(u.file_name || 'document').replace(/"/g,'')}" loading="lazy" style="width:100%;height:560px;border:1px solid var(--border,rgba(148,163,184,0.2));border-radius:10px;background:#fff;"></iframe>
+             </div>`
           : `<span style="font-size:11.5px;color:var(--grey-400);">Documents available when analysis completes — they are also emailed to you.</span>`;
         return card(`Document ${i + 1} · ${DOC_LABELS[u.document_type] || u.document_type}`,
           `${u.file_name || ''}${scoreTxt}<br>${counts}`, links);
