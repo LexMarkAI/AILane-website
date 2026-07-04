@@ -1353,7 +1353,7 @@ footer {
   <div id="state-upload" style="display:none;">
     <div class="portal-header">
       <div class="portal-step">Step 2 of 3 · Upload Your Document</div>
-      <div class="portal-title">Payment confirmed. Upload your contract.</div>
+      <div class="portal-title">Payment confirmed. Upload your document.</div>
       <div class="portal-sub" id="upload-tier-msg">Upload your employment document for analysis.</div>
     </div>
 
@@ -1376,10 +1376,12 @@ footer {
       <label for="doc-type">Document type</label>
       <select id="doc-type" class="doc-type-select">
         <option value="contract" selected>Employment contract</option>
+        <option value="handbook">Staff handbook</option>
+        <option value="policy">Workplace policy</option>
       </select>
     </div>
     <div class="upload-error" id="upload-error"></div>
-    <button id="btn-submit" class="btn-submit" disabled onclick="submitUpload()">Analyse My Contract</button>
+    <button id="btn-submit" class="btn-submit" disabled onclick="submitUpload()">Analyse My Document</button>
   </div>
 
   <!-- ANALYSING STATE -->
@@ -1532,6 +1534,10 @@ const SUPABASE_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1';
 const PORTAL_UPLOAD = `${SUPABASE_BASE}/portal-upload`;
 const PDF_URL       = (id) => `${SUPABASE_BASE}/generate-report-pdf?upload_id=${id}`;
 const DOCX_URL      = (id) => `${SUPABASE_BASE}/generate-report?upload_id=${id}`;
+const EXPOSURE_URL  = (id) => `${SUPABASE_BASE}/generate-check-exposure-pdf?upload_id=${id}`;
+const PACK_URL      = (id) => `${SUPABASE_BASE}/generate-check-pack-pdf?upload_id=${id}`;
+const BUNDLE_TIERS  = ['check_bundle', 'three_doc_bundle'];
+let sessionTier     = '';
 
 const SUPABASE_URL  = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
@@ -1656,6 +1662,7 @@ async function beginVerify(sessionId, attempt) {
     }
 
     portalSessionId = d.portal_session_id;
+    sessionTier = d.tier || sessionTier;
 
     switch (d.session_status) {
       case 'paid':
@@ -1798,7 +1805,7 @@ async function submitUpload() {
       }
       showUploadError(d.error || 'Upload failed. Please try again or contact support@ailane.ai.');
       btn.disabled = false;
-      btn.textContent = 'Analyse My Contract';
+      btn.textContent = 'Analyse My Document';
       return;
     }
 
@@ -1809,7 +1816,7 @@ async function submitUpload() {
   } catch (e) {
     showUploadError('Network error during upload. Please check your connection and try again.');
     btn.disabled = false;
-    btn.textContent = 'Analyse My Contract';
+    btn.textContent = 'Analyse My Document';
   }
 }
 
@@ -1824,6 +1831,7 @@ async function poll() {
     const r = await fetch(`${PORTAL_UPLOAD}?session=${encodeURIComponent(stripeSessionId)}`);
     const d = await r.json();
     if (!d.verified) return;
+    sessionTier = d.tier || sessionTier;
 
     const status = d.session_status;
     if (status === 'complete') {
@@ -1903,17 +1911,32 @@ function renderResults(score, findingCounts, email, fileName) {
     }).join('');
   }
 
-  // Download buttons
+  // Your documents — presented distinctly, in the estate progression
+  // (Compliance Report → Exposure Report → Solicitor Preparation Pack).
   const drEl = document.getElementById('download-row');
   if (drEl && uploadId) {
+    const isBundle = BUNDLE_TIERS.includes(sessionTier);
+    const card = (title, desc, linksHtml) => `
+      <div style="border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:16px;flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--white);">${title}</div>
+        <div style="font-size:12px;color:var(--grey-400);line-height:1.55;flex:1;">${desc}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${linksHtml}</div>
+      </div>`;
+    const btn = (href, label, primary) =>
+      `<a href="${href}" target="_blank" class="btn-download ${primary ? 'btn-download-pdf' : 'btn-download-docx'}" style="margin:0;">${label}</a>`;
+    const lockedNote = `<span style="font-size:11.5px;color:var(--gold);font-weight:700;">Included with the Compliance Check Bundle — £29</span>`;
     drEl.innerHTML = `
-      <a href="${PDF_URL(uploadId)}" target="_blank" class="btn-download btn-download-pdf">
-        📄 Download PDF Report
-      </a>
-      <a href="${DOCX_URL(uploadId)}" target="_blank" class="btn-download btn-download-docx">
-        📝 Download DOCX Report
-      </a>
-    `;
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;width:100%;">
+        ${card('1 · Compliance Report',
+          'Your /100 score with clause-level findings, the clause as read, statutory references and remediation guidance.',
+          btn(PDF_URL(uploadId), '📄 PDF', true) + btn(DOCX_URL(uploadId), '📝 DOCX', false))}
+        ${card('2 · Exposure Report',
+          'Your regulatory position, prioritised — status ring, exposure magnitude and weighted ACEI category classification.',
+          isBundle ? btn(EXPOSURE_URL(uploadId), '📄 Download PDF', true) : lockedNote)}
+        ${card('3 · Solicitor Preparation Pack',
+          'Structured for onward legal advice — your findings converted into a prioritised review agenda for your solicitor.',
+          isBundle ? btn(PACK_URL(uploadId), '📄 Download PDF', true) : lockedNote)}
+      </div>`;
   }
 
   // Email notice
