@@ -1405,7 +1405,8 @@ footer {
       <div class="state-icon">❌</div>
       <h2>Analysis Issue</h2>
       <p id="error-reason">We encountered an issue processing your document. Please contact support for a prompt resolution or full refund.</p>
-      <a href="mailto:support@ailane.ai" style="color:var(--gold);font-weight:600;">support@ailane.ai</a>
+      <button type="button" onclick="retryFromError()" style="display:inline-block;margin:14px 0 10px 0;padding:12px 22px;border:none;border-radius:8px;background:var(--gold);color:#101010;font-weight:700;font-size:0.95rem;cursor:pointer;">Try a different file</button>
+      <p style="font-size:0.85rem;"><a href="mailto:support@ailane.ai" style="color:var(--gold);font-weight:600;">support@ailane.ai</a></p>
       <div class="state-ref" id="error-ref"></div>
     </div>
   </div>
@@ -1650,11 +1651,30 @@ function validateAndSetFile(file) {
     showUploadError('Document is too large (max 10MB). Please reduce the file size or contact support.');
     return;
   }
-  selectedFile = file;
-  document.getElementById('file-name-display').textContent = file.name;
-  document.getElementById('file-size-display').textContent = formatBytes(file.size);
-  document.getElementById('file-selected').classList.add('visible');
-  document.getElementById('btn-submit').disabled = false;
+  // UPLOAD-RETRY-UX-001: verify the file signature matches its extension before
+  // accepting it. PDF begins %PDF (0x25 0x50 0x44 0x46); DOCX is a zip and begins
+  // PK\x03\x04 (0x50 0x4B 0x03 0x04). A renamed text file passes the extension
+  // check but fails here — caught instantly, nothing uploaded, no slot consumed.
+  var fr = new FileReader();
+  fr.onload = function () {
+    var b = new Uint8Array(fr.result);
+    var isPdf = b.length >= 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
+    var isZip = b.length >= 4 && b[0] === 0x50 && b[1] === 0x4B && b[2] === 0x03 && b[3] === 0x04;
+    var extNow = file.name.toLowerCase().split('.').pop();
+    if ((extNow === 'pdf' && !isPdf) || (extNow === 'docx' && !isZip)) {
+      showUploadError('That file does not appear to be a valid .' + extNow + ' file — it may have been renamed rather than converted. Please re-save the document as a PDF or DOCX and try again.');
+      return;
+    }
+    selectedFile = file;
+    document.getElementById('file-name-display').textContent = file.name;
+    document.getElementById('file-size-display').textContent = formatBytes(file.size);
+    document.getElementById('file-selected').classList.add('visible');
+    document.getElementById('btn-submit').disabled = false;
+  };
+  fr.onerror = function () {
+    showUploadError('We could not read that file. Please try selecting it again.');
+  };
+  fr.readAsArrayBuffer(file.slice(0, 8));
 }
 function clearFile() {
   selectedFile = null;
@@ -1763,11 +1783,23 @@ async function poll() {
       clearInterval(pollTimer);
       showState('oos');
       document.getElementById('oos-ref').textContent = `Session: …${stripeSessionId.slice(-20)}`;
+    } else if (status === 'sparse_report') {
+      clearInterval(pollTimer);
+      showState('error');
+      // UPLOAD-RETRY-UX-001 v1.1: sparse_report is a terminal engine verdict —
+      // the poll must exit; the buyer gets honest copy and the retry path.
+      try { console.error('[portal] sparse analysis detail:', d.processing_error || '(none)'); } catch (e) {}
+      document.getElementById('error-reason').textContent =
+        'The analysis completed with fewer confirmed findings than this document type requires, so we have not issued the report. You can try again with a fresh copy of the document, or contact support quoting your session reference — analyses that cannot be completed are eligible for a full refund.';
+      document.getElementById('error-ref').textContent = `Session: …${stripeSessionId.slice(-20)}`;
     } else if (status === 'error') {
       clearInterval(pollTimer);
       showState('error');
+      // UPLOAD-RETRY-UX-001: raw engine detail goes to the console for support
+      // diagnostics — the buyer sees fixed, actionable copy with a retry path.
+      try { console.error('[portal] analysis error detail:', d.processing_error || '(none)'); } catch (e) {}
       document.getElementById('error-reason').textContent =
-        d.processing_error || 'Analysis error. Contact support@ailane.ai for a prompt resolution.';
+        'We could not complete the analysis of this document. This is sometimes caused by a file that is not a true PDF or DOCX (for example, a renamed text file). You can try again with a fresh copy of the document, or contact support quoting your session reference — unresolved analysis issues are eligible for a full refund.';
       document.getElementById('error-ref').textContent = `Session: …${stripeSessionId.slice(-20)}`;
     }
     // else still analysing — continue polling
@@ -1776,6 +1808,20 @@ async function poll() {
   }
 }
 
+// UPLOAD-RETRY-UX-001: return the buyer to the upload state after an analysis
+// error, with a clean file input and the submit button reset. Known boundary
+// (documented, deliberate): if the failed document already consumed its
+// document-type slot server-side, a same-type re-upload returns 409 and the
+// page resumes polling — different-type uploads proceed normally. The full
+// same-type-replace-after-error belongs to portal-upload (backend), queued.
+function retryFromError() {
+  if (pollTimer) clearInterval(pollTimer);
+  clearFile();
+  var btn = document.getElementById('btn-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Analyse My Document'; }
+  showState('upload');
+  try { if (window.gtag) gtag('event', 'upload_retry_after_error'); } catch (e) {}
+}
 // ── RENDER RESULTS ─────────────────────────────────────────────────────────────
 // THREE-DOC-ACTIVATE-001 — next-document flow for the £49 bundle.
 function startNextDocument() {
