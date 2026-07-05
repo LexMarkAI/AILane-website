@@ -1480,9 +1480,14 @@ let pollTimer        = null;
   captureUTM();
 
   // GOLIVE003 §C.4 — confirm the Solicitor Preparation Pack add-on purchase on return.
+  // PACKADDON-RETURN-FIX-001: a pack add-on is fulfilled and emailed server-side by
+  // stripe-webhook (handlePackAddon); there is NO compliance_portal_sessions row to
+  // verify, so the document-check verifier (portal-upload, via beginVerify) must NOT
+  // run on a pack return. Show the confirmation and return.
   if (params.get('addon') === 'pack') {
     const conf = document.getElementById('pack-addon-confirmation');
     if (conf) conf.style.display = 'block';
+    return;
   }
 
   if (session) {
