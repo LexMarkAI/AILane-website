@@ -696,138 +696,136 @@
     </div>
   </div>
 
+  <!-- Purchase / expired gate (AILANE-CC-BRIEF-KL-ACCESS-FIX-001 · T1). Shown by
+       the entitlement gate below when there is no live KL pass. Reuses the KL
+       expired-modal chrome. Primary CTA → /kl-access/#sessions. -->
+  <div id="kl-access-gate" class="kl-expired-modal" style="display:none">
+    <div class="kl-expired-backdrop" aria-hidden="true"></div>
+    <div class="kl-expired-content">
+      <h2 id="kl-access-gate-title" class="kl-expired-title">Enter the Knowledge Library</h2>
+      <p id="kl-access-gate-body" class="kl-expired-body">Open the access link emailed with your purchase to sign in, or buy a pass to get started.</p>
+      <a class="kl-expired-cta" href="/kl-access/#sessions">Get access</a>
+      <div style="margin-top:18px">
+        <a href="/operational/" style="color:var(--kl-text-dim);font-size:12px;font-family:var(--kl-font-sans);text-decoration:none;border-bottom:1px dotted var(--kl-text-dim)">Have a Knowledge Library subscription? Open your workspace →</a>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // ─── Auth Guard (reveal-first pattern, AUTH-001 §8.2) ───
-    // Design: reveal the page and boot React for any authenticated user.
-    // Tier and session data load ASYNC via sb.from() which handles token
-    // refresh automatically. NO blocking queries. NO redirect on data 401.
-    // Only redirect if there is genuinely no session at all.
+    // ─── KL entitlement gate (AILANE-CC-BRIEF-KL-ACCESS-FIX-001 · T1/T2/T3) ───
+    // /knowledge-library/ is the per-session pass entry point. Access is gated
+    // SOLELY by the buyer's active KL entitlement — NO role / tier / CEO check.
+    // The magic-link session is completed from the URL hash by supabase-js
+    // (detectSessionInUrl defaults true); kl_session_entitlement(auth.uid()) is
+    // then called AS THE SIGNED-IN USER (raw fetch + Bearer JWT — RULE 2; mirrors
+    // knowledge-library/vault/index.html) because it is SECURITY-guarded by
+    // auth.uid() = p_user_id. A live pass → GRANT: the shared engine (kl-app.js)
+    // boots in per-session pass mode (PER-SESSION badge, reduced rail, live
+    // countdown) driven by the window.__kl* globals set below. No live pass /
+    // not signed in → the purchase/expired gate. NEVER a hard redirect to a login.
     (function() {
       var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
       var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
       var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       window.__SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+      // Documentary pass-mode marker (T2). The shared engine keys per-session
+      // rendering off window.__klAccessType, not __klMode; this value is
+      // deliberately NON-'operational' so klOperationalMode() stays false and the
+      // Knowledge Library chrome (not the Operational chrome) renders.
+      window.__klMode = 'knowledge_library';
 
-      function fail() { window.location.replace('/account/'); }
+      var settled = false;
 
-      function boot(session) {
-        try {
-          var token = session.access_token;
-          var payload = JSON.parse(atob(token.split('.')[1]));
-          var userId = payload.sub;
-
-          // Set globals immediately — page reveals NOW
-          window.__klUserId = userId;
-          window.__klToken = token;
-          window.__klAccessType = 'subscription'; // default, updated async
-          window.__klTier = 'loading';
-
-          // Also set legacy globals for any code that reads them
-          window.__ailaneUser = { id: userId, email: payload.email || '', token: token, tier: 'loading' };
-
-          document.body.style.visibility = 'visible';
-
-          // Boot React
-          if (typeof window.initKLApp === 'function') {
-            window.initKLApp();
-          } else if (window.KLApp) {
-            ReactDOM.createRoot(document.getElementById('kl-root')).render(
-              React.createElement(window.KLApp)
-            );
-          }
-
-          // Load tier ASYNC via Supabase client (handles token refresh automatically)
-          sb.from('kl_account_profiles')
-            .select('subscription_tier, role_type')
-            .eq('user_id', userId)
-            .limit(1)
-            .then(function(result) {
-              if (result.data && result.data[0]) {
-                var tier = result.data[0].subscription_tier;
-                // Director entitlement (GOV-ALERTS-WEBSITE-001 §W-1): role_type
-                // is a role flag, never a tier value. Directors get the full
-                // governance feature map and must bypass every per-session
-                // downgrade or purchase/upgrade path. Tier global is set
-                // BEFORE any dispatch so no downgrade branch can run first.
-                if (result.data[0].role_type === 'director') {
-                  window.__klIsDirector = true;
-                  tier = 'governance';
-                  window.__klSessionExpiry = null;
-                  window.__klProductType = null;
-                  window.__ailaneSession = null;
-                }
-                window.__klTier = tier;
-                window.__klAccessType = 'subscription';
-                window.__ailaneUser.tier = tier;
-                window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
-                  detail: { accessType: 'subscription', tier: tier, userId: userId }
-                }));
-                window.dispatchEvent(new CustomEvent('ailane-tier-loaded', { detail: { tier: tier } }));
-              }
-            })
-            .catch(function(e) { console.warn('Tier fetch failed (non-blocking):', e); });
-
-          // Load session ASYNC (for per-session users)
-          sb.from('kl_sessions')
-            .select('id, expires_at, product_type')
-            .eq('user_id', userId)
-            .eq('status', 'active')
-            .gte('expires_at', new Date().toISOString())
-            .order('expires_at', { ascending: false })
-            .limit(1)
-            .then(function(result) {
-              // Directors are never downgraded to per-session access
-              // (GOV-ALERTS-WEBSITE-001 §W-1).
-              if (result.data && result.data[0] && window.__klIsDirector !== true) {
-                window.__klAccessType = 'per_session';
-                window.__klSessionExpiry = result.data[0].expires_at;
-                window.__klProductType = result.data[0].product_type;
-                window.__ailaneSession = result.data[0];
-                window.dispatchEvent(new CustomEvent('ailane-session-loaded', { detail: result.data[0] }));
-                window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
-                  detail: { accessType: 'per_session', tier: result.data[0].product_type, userId: userId }
-                }));
-              }
-            })
-            .catch(function(e) { console.warn('Session fetch failed (non-blocking):', e); });
-
-        } catch (e) {
-          console.error('Auth boot error:', e);
-          fail();
+      // No live pass / not signed in → purchase/expired gate. Never a redirect.
+      function showGate(signedIn) {
+        if (settled) return;
+        settled = true;
+        var gate = document.getElementById('kl-access-gate');
+        var title = document.getElementById('kl-access-gate-title');
+        var body = document.getElementById('kl-access-gate-body');
+        if (signedIn) {
+          if (title) title.textContent = 'Your Knowledge Library pass isn’t active';
+          if (body) body.textContent = 'This pass has expired or is no longer active. Purchase a new pass to continue your research.';
+        } else {
+          if (title) title.textContent = 'Enter the Knowledge Library';
+          if (body) body.textContent = 'Open the access link emailed with your purchase to sign in, or buy a pass to get started.';
         }
+        if (gate) gate.style.display = 'flex';
+        document.body.style.visibility = 'visible';
       }
 
-      // Main init
+      // Live pass → GRANT. Set the per-session globals the shared engine reads on
+      // mount, reveal the page, and boot the engine in pass mode.
+      function grant(token, userId, email, ent) {
+        if (settled) return;
+        settled = true;
+        window.__klUserId = userId;
+        window.__klToken = token;
+        window.__klAccessType = 'per_session';
+        window.__klProductType = ent.product_type || null;
+        window.__klTier = ent.product_type || null;         // TIER_RANK[kl_*] = 0 → reduced rail
+        window.__klSessionExpiry = ent.expires_at || null;  // drives SessionCountdown (T3)
+        window.__ailaneSession = ent;
+        window.__ailaneUser = { id: userId, email: email || '', token: token, tier: ent.product_type || 'per_session' };
+        document.body.style.visibility = 'visible';
+        // Boot the shared engine. If the bundle is still loading, its own auto-init
+        // (guarded on window.__klAccessType, now set) covers the race.
+        if (typeof window.initKLApp === 'function') window.initKLApp();
+        try {
+          window.dispatchEvent(new CustomEvent('ailane-kl-ready', {
+            detail: { accessType: 'per_session', tier: ent.product_type || 'per_session', userId: userId }
+          }));
+        } catch (e) { /* non-blocking */ }
+      }
+
+      function verify(session) {
+        if (settled) return;
+        var token = session.access_token, payload;
+        try { payload = JSON.parse(atob(token.split('.')[1])); } catch (e) { return showGate(true); }
+        var userId = payload.sub;
+        // kl_session_entitlement — returns 0 or 1 row for the signed-in user's
+        // active pass. Raw fetch + Bearer sends the user's JWT so auth.uid()
+        // resolves to them and the SECURITY guard passes.
+        fetch(SUPABASE_URL + '/rest/v1/rpc/kl_session_entitlement', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ p_user_id: userId })
+        })
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(rows) {
+            var ent = Array.isArray(rows) ? (rows[0] || null) : (rows || null);
+            var live = ent && ent.expires_at && new Date(ent.expires_at).getTime() > Date.now();
+            if (live) { grant(token, userId, payload.email || '', ent); }
+            else { showGate(true); }
+          })
+          .catch(function() { showGate(true); });
+      }
+
+      // Complete the magic-link session, then gate. getSession → refreshSession →
+      // 6s onAuthStateChange fallback handles the async hash exchange. No session
+      // at all → purchase gate (NOT a redirect to a role login).
       sb.auth.getSession().then(function(result) {
-        if (result.data && result.data.session) {
-          boot(result.data.session);
-        } else {
-          // Try refresh
-          sb.auth.refreshSession().then(function(refreshResult) {
-            if (refreshResult.data && refreshResult.data.session) {
-              boot(refreshResult.data.session);
-            } else {
-              // Wait for auth state change (handles OAuth/magic link redirects)
-              var resolved = false;
-              var timeout = setTimeout(function() {
-                if (!resolved) { resolved = true; fail(); }
-              }, 6000);
-              sb.auth.onAuthStateChange(function(event, session) {
-                if (!resolved && session) {
-                  resolved = true;
-                  clearTimeout(timeout);
-                  boot(session);
-                }
-              });
+        if (result.data && result.data.session) { verify(result.data.session); return; }
+        sb.auth.refreshSession().then(function(rr) {
+          if (rr.data && rr.data.session) { verify(rr.data.session); return; }
+          var resolved = false;
+          var to = setTimeout(function() { if (!resolved) { resolved = true; showGate(false); } }, 6000);
+          var sub = sb.auth.onAuthStateChange(function(_evt, session) {
+            if (!resolved && session) {
+              resolved = true;
+              clearTimeout(to);
+              try { sub.data.subscription.unsubscribe(); } catch (e) {}
+              verify(session);
             }
-          }).catch(function() {
-            fail();
           });
-        }
-      }).catch(function() {
-        fail();
-      });
+        }).catch(function() { showGate(false); });
+      }).catch(function() { showGate(false); });
     })();
   </script>
 
