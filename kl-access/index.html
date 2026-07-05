@@ -398,6 +398,45 @@
 </head>
 <body>
 
+  <!-- KL post-payment confirmation bridge (AILANE-CC-BRIEF-KL-ACCESS-FIX-001 · T4).
+       Stripe returns to /kl-access/?session={CHECKOUT_SESSION_ID}. Show a
+       NON-blocking confirmation (no auth required) instead of re-rendering the
+       purchase page (the "loop"), and never redirect to a login. If a Supabase
+       magic-link session lands here in the URL hash instead, forward it (hash
+       intact) to /knowledge-library/, which completes the session with its own
+       supabase-js — so no Supabase CDN is loaded on this public purchase page. -->
+  <div id="kl-access-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:#0a1424;align-items:center;justify-content:center;padding:24px;font-family:'DM Sans',sans-serif">
+    <div style="max-width:460px;width:100%;text-align:center;background:#0f1d32;border:1px solid #1e3a5f;border-top:2px solid #38bdf8;border-radius:14px;padding:40px 32px;box-shadow:0 24px 60px rgba(0,0,0,0.55)">
+      <div style="font-size:40px;line-height:1;margin-bottom:16px" aria-hidden="true">✓</div>
+      <h1 style="font-size:22px;font-weight:600;color:#f1f5f9;margin:0 0 12px">Payment confirmed</h1>
+      <p style="font-size:15px;line-height:1.6;color:#94a3b8;margin:0 0 26px">Your access link has been emailed. Open it to enter the Knowledge Library.</p>
+      <a href="/knowledge-library/" style="display:inline-flex;align-items:center;justify-content:center;padding:13px 28px;background:#38bdf8;color:#04121f;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Enter the Knowledge Library</a>
+    </div>
+  </div>
+  <script>
+  (function () {
+    try {
+      var hash = window.location.hash || '';
+      if (hash.indexOf('access_token=') !== -1 || hash.indexOf('refresh_token=') !== -1) {
+        // Magic-link session landed here — complete it on the KL page (forward the
+        // hash intact). Not a self-redirect and not a login redirect.
+        window.location.replace('/knowledge-library/' + hash);
+        return;
+      }
+      var qs = new URLSearchParams(window.location.search || '');
+      var sess = qs.get('session') || qs.get('session_id');
+      if (sess) {
+        var box = document.getElementById('kl-access-confirm');
+        if (box) {
+          box.style.display = 'flex';
+          try { document.body.style.overflow = 'hidden'; } catch (e) {}
+        }
+        try { if (window.gtag) gtag('event', 'purchase_confirmed', { transport: 'kl_access' }); } catch (e) {}
+      }
+    } catch (e) { /* never block the page */ }
+  })();
+  </script>
+
   <nav class="nav">
     <a href="https://ailane.ai/" class="nav-logo">A<span>I</span>LANE</a>
     <div class="nav-links">
