@@ -786,5 +786,93 @@
        Referenced — NOT duplicated. Its content/* fetches use absolute
        /knowledge-library/ paths, so they resolve correctly from /operational/. -->
   <script src="../knowledge-library/kl-app.js"></script>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       SIGN-OUT CONTROL (AILANE-CC-BRIEF-OPERATIONAL-SIGNOUT-SITE-001) —
+       additive room-chrome UI. The operational top bar is rendered by the
+       shared engine bundle (../knowledge-library/kl-app.js), which is NOT
+       modified here (it also drives the KL hub). Instead this self-contained
+       script injects a "Sign out" button into the engine's .kl-topbar-right
+       slot — mirroring the KL vault's .topbar-right sign-out (knowledge-library/
+       vault/index.html) — and keeps it present across React re-renders via a
+       MutationObserver on the stable #kl-root mount.
+
+       Client (brief §1 deterministic rule): the auth-guard's `sb` client above
+       is closure-scoped and not reachable here, so — exactly as the KL vault's
+       own sign-out IIFE does — a fresh client is created from the SAME
+       SUPABASE_URL + anon key already used by this page's auth guard (verbatim,
+       lines 720–721). No new secret / no service-role key. On click:
+       await <client>.auth.signOut() then window.location.href = '/' (site
+       landing). Purely additive: the RULE 26 guard and the tier gate are
+       untouched. ════════════════════════════════════════════════════════════ -->
+  <script>
+  (function () {
+    var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g';
+
+    var BTN_ID = 'op-signout-btn';
+    var btn = null;
+
+    function makeBtn() {
+      var b = document.createElement('button');
+      b.id = BTN_ID;
+      b.type = 'button';
+      b.textContent = 'Sign out';
+      b.setAttribute('aria-label', 'Sign out');
+      // Compact filled-cyan control sized for the 56px top bar; mirrors the KL
+      // vault's filled-cyan sign-out, using this page's --kl-cyan accent. Styled
+      // inline so the <head> (GA4 / CSP / favicon — brief §7) stays untouched.
+      b.style.cssText = [
+        'flex:0 0 auto',
+        'display:inline-flex',
+        'align-items:center',
+        'padding:6px 14px',
+        'background:var(--kl-cyan, #0EA5E9)',
+        'color:#fff',
+        'border:none',
+        'border-radius:8px',
+        "font-family:var(--kl-font-sans, 'DM Sans', sans-serif)",
+        'font-size:13px',
+        'font-weight:600',
+        'letter-spacing:0.01em',
+        'cursor:pointer',
+        'white-space:nowrap',
+        'margin-left:4px',
+        'transition:opacity 0.15s'
+      ].join(';');
+      b.addEventListener('mouseenter', function () { b.style.opacity = '0.88'; });
+      b.addEventListener('mouseleave', function () { b.style.opacity = '1'; });
+      b.addEventListener('click', function () {
+        // Faithful mirror of the KL vault sign-out handler; only the redirect
+        // target differs (brief §1: site landing '/' rather than '/login/').
+        var done = function () { window.location.href = '/'; };
+        try {
+          var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          sb.auth.signOut().then(done).catch(done);
+        } catch (e) { done(); }
+      });
+      return b;
+    }
+
+    // Idempotently keep the button inside the live engine top bar. The common
+    // case (button still connected) is an O(1) early-return.
+    function ensureSignout() {
+      if (btn && btn.isConnected) return;
+      var slot = document.querySelector('.kl-topbar-right') || document.querySelector('.kl-topbar');
+      if (!slot) return;                       // engine chrome not mounted yet
+      if (!btn) btn = makeBtn();
+      slot.appendChild(btn);
+    }
+
+    // Initial attempt (covers an already-mounted engine), then keep it present
+    // across engine re-renders. #kl-root is React's stable mount, so observing
+    // it survives top-bar remounts.
+    ensureSignout();
+    var root = document.getElementById('kl-root') || document.body;
+    try {
+      new MutationObserver(ensureSignout).observe(root, { childList: true, subtree: true });
+    } catch (e) {}
+  })();
+  </script>
 </body>
 </html>
