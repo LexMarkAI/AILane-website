@@ -410,7 +410,7 @@
       <div style="font-size:40px;line-height:1;margin-bottom:16px" aria-hidden="true">✓</div>
       <h1 style="font-size:22px;font-weight:600;color:#f1f5f9;margin:0 0 12px">Payment confirmed</h1>
       <p style="font-size:15px;line-height:1.6;color:#94a3b8;margin:0 0 26px">Your access link has been emailed. Open it to enter the Knowledge Library.</p>
-      <a href="/knowledge-library/" style="display:inline-flex;align-items:center;justify-content:center;padding:13px 28px;background:#38bdf8;color:#04121f;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Enter the Knowledge Library</a>
+      <a id="kl-access-enter" href="/knowledge-library/" style="display:inline-flex;align-items:center;justify-content:center;padding:13px 28px;background:#38bdf8;color:#04121f;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Enter the Knowledge Library</a>
     </div>
   </div>
   <script>
@@ -430,6 +430,14 @@
         if (box) {
           box.style.display = 'flex';
           try { document.body.style.overflow = 'hidden'; } catch (e) {}
+        }
+        // Extend return (brief §2): create-checkout v11 returns extends to
+        // /kl-access/?session=...&extend=1. This public page has no Supabase/RPC,
+        // so forward the flag to the KL app, which re-checks entitlement on load
+        // and confirms the extension with a toast.
+        if (qs.get('extend') === '1') {
+          var enter = document.getElementById('kl-access-enter');
+          if (enter) enter.setAttribute('href', '/knowledge-library/?extend=1');
         }
         try { if (window.gtag) gtag('event', 'purchase_confirmed', { transport: 'kl_access' }); } catch (e) {}
       }
