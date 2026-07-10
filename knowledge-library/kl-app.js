@@ -5395,7 +5395,7 @@
       React.createElement(
         "p",
         { style: { color: "#94A3B8", fontSize: "13px", lineHeight: 1.6, marginBottom: "14px" } },
-        "Your documents, monitoring, exposure reports and solicitor packs now live in the Documents Vault room."
+        "Your documents, monitoring, exposure reports and Solicitors Preparation Bundles now live in the Documents Vault room."
       ),
       React.createElement("a", {
         href: "/operational/documents/",
@@ -7809,38 +7809,58 @@
       )
     );
   }
+  var CREATE_CHECKOUT_URL = "https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/create-checkout";
   var UPSELL_CONFIG = {
     kl_quick_session: {
       threshold: 20,
       title: "Need more time?",
-      message: "Your Quick Session ends in less than 20 minutes. Upgrade to a Day Pass for 24 hours of full access \u2014 including 2 compliance checks.",
-      cta: "Upgrade to Day Pass \u2014 \xA349",
-      href: "/kl-access/?product=kl_day_pass"
+      message: "Your Quick Session is nearly up. Extend now and your remaining time and check allowance carry over.",
+      offers: [
+        { cta: "Extend to Day Pass \u2014 \xA320", productType: "kl_extend_qs_to_day" },
+        { cta: "Extend to Research Week \u2014 \xA380", productType: "kl_extend_qs_to_week" }
+      ]
     },
     kl_day_pass: {
       threshold: 60,
       title: "Extend your research",
-      message: "Your Day Pass expires in under an hour. A Research Week gives you 7 full days and 3 compliance checks included.",
-      cta: "Upgrade to Research Week \u2014 \xA399",
-      href: "/kl-access/?product=kl_research_week"
-    },
-    kl_research_week: {
-      threshold: 1440,
-      title: "Ready for continuous monitoring?",
-      message: "Your Research Week ends tomorrow. Operational subscribers get 5 monitored contracts with auto-rescan, alerts, and ongoing Eileen access.",
-      cta: "Explore Operational \u2014 \xA3199/mo",
-      href: "/account/"
+      message: "Your Day Pass is nearly up. Extend to a Research Week for 7 full days \u2014 your remaining time and check allowance carry over.",
+      offers: [
+        { cta: "Extend to Research Week \u2014 \xA360", productType: "kl_extend_day_to_week" }
+      ]
     }
   };
   function UpsellCard({ productType, minutesRemaining, onDismiss }) {
+    const [consent, setConsent] = useState(false);
+    const [busy, setBusy] = useState("");
+    const [err, setErr] = useState("");
     const c = UPSELL_CONFIG[productType];
     if (!c) return null;
     if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
+    function startExtend(offer) {
+      if (!consent) { setErr("Please confirm you have read the Terms of Service and Privacy Policy before proceeding."); return; }
+      if (busy) return;
+      setErr(""); setBusy(offer.productType);
+      try { if (window.gtag) window.gtag("event", "begin_checkout", { item_id: offer.productType }); } catch (e) {}
+      fetch(CREATE_CHECKOUT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_type: offer.productType })
+      }).then(function(r) {
+        return r.json();
+      }).then(function(d) {
+        if (d && d.url) { window.location.href = d.url; return; }
+        throw new Error((d && d.error) || "no url");
+      }).catch(function() {
+        setBusy("");
+        setErr("Checkout is temporarily unavailable — please try again in a moment.");
+      });
+    }
+    var ready = consent && !busy;
     return /* @__PURE__ */ React.createElement(
       "div",
       {
         role: "complementary",
-        "aria-label": "Session upgrade prompt",
+        "aria-label": "Session extension prompt",
         style: {
           position: "fixed",
           bottom: "80px",
@@ -7864,7 +7884,7 @@
         {
           type: "button",
           onClick: onDismiss,
-          "aria-label": "Dismiss upgrade prompt",
+          "aria-label": "Dismiss extension prompt",
           style: {
             background: "none",
             border: "none",
@@ -7877,24 +7897,33 @@
         },
         "\xD7"
       )),
-      /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement(
-        "a",
-        {
-          href: c.href,
-          style: {
-            display: "inline-block",
-            padding: "8px 16px",
-            borderRadius: "8px",
-            fontSize: "13px",
-            fontWeight: 600,
-            background: "#0EA5E9",
-            color: "#FFFFFF",
-            textDecoration: "none",
-            cursor: "pointer"
-          }
-        },
-        c.cta
-      ))
+      /* @__PURE__ */ React.createElement("label", { style: { display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "12px", cursor: "pointer" } }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: consent, onChange: function(e) { setConsent(e.target.checked); if (e.target.checked) setErr(""); }, style: { marginTop: "3px", flex: "none" } }), /* @__PURE__ */ React.createElement("span", { style: { color: "#94A3B8", fontSize: "12px", lineHeight: 1.45 } }, "I have read and agree to the ", /* @__PURE__ */ React.createElement("a", { href: "/terms/", target: "_blank", rel: "noopener noreferrer", style: { color: "#38BDF8" } }, "Terms of Service"), " and ", /* @__PURE__ */ React.createElement("a", { href: "/privacy/", target: "_blank", rel: "noopener noreferrer", style: { color: "#38BDF8" } }, "Privacy Policy"), ".")),
+      /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" } }, c.offers.map(function(offer) {
+        return /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: offer.productType,
+            type: "button",
+            onClick: function() { startExtend(offer); },
+            disabled: !ready,
+            style: {
+              display: "inline-block",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 600,
+              background: "#0EA5E9",
+              color: "#FFFFFF",
+              border: "none",
+              textDecoration: "none",
+              cursor: ready ? "pointer" : "not-allowed",
+              opacity: ready ? 1 : 0.45
+            }
+          },
+          busy === offer.productType ? "Preparing secure checkout…" : offer.cta
+        );
+      })),
+      err ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", color: "#F87171", fontSize: "12px", lineHeight: 1.45 } }, err) : null
     );
   }
   async function saveKlPreferences(partial) {
@@ -8586,7 +8615,7 @@
         React.createElement(
           "div",
           { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", lineHeight: 1.6, marginBottom: "16px" } },
-          "Your monitored documents, exposure reports, solicitor packs and notification settings now live in the Documents Vault room."
+          "Your monitored documents, exposure reports, Solicitors Preparation Bundles and notification settings now live in the Documents Vault room."
         ),
         React.createElement("a", {
           href: "/operational/documents/",
@@ -11095,6 +11124,24 @@
       return function() {
         clearTimeout(t);
       };
+    }, []);
+    useEffect(function() {
+      try {
+        var params = new URLSearchParams(window.location.search || "");
+        if (params.get("extend") !== "1") return;
+        var toast = document.createElement("div");
+        toast.textContent = "Session extended — your expiry and check allowance have been updated.";
+        toast.style.cssText = "position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#10B981;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;max-width:92%;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);opacity:1;transition:opacity 0.4s;";
+        document.body.appendChild(toast);
+        setTimeout(function() {
+          toast.style.opacity = "0";
+          setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 400);
+        }, 4500);
+        params.delete("extend");
+        var qs = params.toString();
+        window.history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : "") + (window.location.hash || ""));
+      } catch (e) {
+      }
     }, []);
     const contractPromptShown = useRef(false);
     const [currentView, setCurrentView] = useState(function() {

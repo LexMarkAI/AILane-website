@@ -321,6 +321,15 @@
     .upsell-desc { font-size: 0.86rem; color: var(--text-body, #e2e8f0); line-height: 1.5; }
     .pack-actions { margin-top: 18px; }
 
+    /* ---- Delivered reports (brief §1) — the persisted Exposure Report + Solicitors
+       Preparation Bundle PDFs, grouped one entry per delivery pair. ---- */
+    .delivered-entry { padding: 14px 0; border-top: 1px solid var(--border-dim, rgba(148,163,184,0.12)); }
+    .delivered-entry:first-of-type { border-top: none; padding-top: 2px; }
+    .delivered-date { font-size: 0.82rem; font-weight: 600; color: var(--text-sec, #94a3b8); margin-bottom: 10px; }
+    .delivered-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .delivered-emailed { font-size: 0.84rem; color: var(--text-mute, #64748b); }
+    .delivered-availability { font-size: 0.78rem; color: var(--text-mute, #64748b); line-height: 1.5; margin-top: 10px; }
+
     /* ---- Notes (KEEP — already belongs to KL, brief §2) ---- */
     .notif-intro { font-size: 0.82rem; color: var(--text-sec, #94a3b8); margin-bottom: 16px; line-height: 1.55; }
     .notes-area {
@@ -624,6 +633,10 @@
       listEl.setAttribute('aria-label', 'Documents');
       listEl.appendChild(loadingBox('Loading your documents…'));
       root.appendChild(listEl);
+
+      // Delivered reports — the persisted Exposure Report + Solicitors Preparation
+      // Bundle PDFs for this user (brief §1).
+      root.appendChild(buildDeliveredReports());
 
       // Solicitors Preparation Bundle — session buy-more panel (brief §4).
       root.appendChild(buildPackBuyMore());
@@ -1210,7 +1223,7 @@
       // ===========================================================
       //  ③ Solicitors Preparation Bundle — per-document pane (brief §4).
       //  Session framing ("Included with your <pass>"); the per-document
-      //  "Prepare solicitor pack" control is the same as operational.
+      //  "Prepare Solicitors Preparation Bundle" control is the same as operational.
       //  The retired £15 is NOT rendered; the £19/£29 in-session buy-more
       //  lives in the session panel below (non-charging, pre-revenue).
       // ===========================================================
@@ -1235,7 +1248,7 @@
           host.appendChild(openBtn);
         } else {
           host.appendChild(el('div', 'pane-note', 'Included with your ' + productLabel(product) + '.'));
-          var genBtn = el('button', 'btn-primary', 'Prepare solicitor pack'); genBtn.type = 'button';
+          var genBtn = el('button', 'btn-primary', 'Prepare Solicitors Preparation Bundle'); genBtn.type = 'button';
           genBtn.addEventListener('click', function (ev) { ev.stopPropagation(); requestPack(doc, genBtn, pmsg); });
           host.appendChild(genBtn);
         }
@@ -1258,7 +1271,7 @@
                 return fetch(d.pdf_url)
                   .then(function (fr) { if (!fr.ok) throw new Error('pack fetch ' + fr.status); return fr.blob(); })
                   .then(function (b) {
-                    triggerDownload(URL.createObjectURL(b), 'Ailane_Solicitor_Pack.pdf');
+                    triggerDownload(URL.createObjectURL(b), 'Ailane_Solicitors_Preparation_Bundle.pdf');
                     btn.disabled = false; btn.textContent = old;
                     st.pack = { upload_id: (st.overlay && st.overlay.upload_id) || null,
                                 created_at: d.generated_at || (st.pack && st.pack.created_at) || null };
@@ -1267,7 +1280,7 @@
               });
             }
             if (r.status === 200) {
-              var name = 'Ailane_Solicitor_Pack.pdf';
+              var name = 'Ailane_Solicitors_Preparation_Bundle.pdf';
               var cd = r.headers.get('Content-Disposition');
               if (cd) { var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd); if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch (e) { name = m[1]; } } }
               return r.blob().then(function (b) {
@@ -1509,6 +1522,121 @@
       }
 
       // ===========================================================
+      //  Delivered reports (brief §1) — the Exposure Report + Solicitors
+      //  Preparation Bundle PDFs that the delivery loop (send-report-email)
+      //  persisted to the private kl-reports bucket + kl_report_history.
+      //  Read owner-scoped with the RULE 2 raw fetch (Bearer user JWT + apikey);
+      //  downloads REUSE the kl-document-vault storage pattern (§0a) against the
+      //  kl-reports bucket, whose read policy scopes to auth.uid()::text.
+      // ===========================================================
+      function buildDeliveredReports() {
+        var wrap = document.createElement('div');
+        wrap.appendChild(el('h2', 'section-head spaced', 'Delivered reports'));
+        var pane = el('section', 'pane');
+        pane.setAttribute('aria-label', 'Delivered reports');
+        pane.id = 'vault-delivered';
+        pane.appendChild(loadingBox('Loading your delivered reports…'));
+        wrap.appendChild(pane);
+        loadDeliveredReports(pane);
+        return wrap;
+      }
+
+      function reportKind(row) {
+        var sp = row.storage_path || '';
+        if (sp.indexOf('Exposure_Report') !== -1) return 'exposure';
+        if (sp.indexOf('Solicitors_Preparation_Bundle') !== -1) return 'bundle';
+        return null;
+      }
+
+      function loadDeliveredReports(pane) {
+        getJson('/kl_report_history?user_id=eq.' + uid +
+                '&report_type=eq.compliance_report&generation_status=eq.complete' +
+                '&order=created_at.desc' +
+                '&select=id,storage_path,emailed_at,expires_at,created_at,session_id')
+          .then(function (rows) {
+            clear(pane);
+            if (!rows || !rows.length) {
+              // Zero rows → the panel's empty state (brief §1).
+              pane.appendChild(el('p', 'pane-note',
+                'No delivered reports yet. Run a Contract Compliance Check and your Exposure Report and Solicitors Preparation Bundle are delivered by email and kept here.'));
+              return;
+            }
+            // Rows arrive in delivery pairs sharing an emailed_at (one Exposure_Report,
+            // one Solicitors_Preparation_Bundle). Group by emailed_at; keep newest first.
+            var groups = {};
+            var order = [];
+            rows.forEach(function (row) {
+              var key = row.emailed_at || ('row-' + row.id);
+              if (!groups[key]) { groups[key] = { when: row.emailed_at || row.created_at, rows: [] }; order.push(key); }
+              groups[key].rows.push(row);
+            });
+            order.forEach(function (key) { pane.appendChild(renderDeliveredEntry(groups[key])); });
+          })
+          .catch(function () {
+            clear(pane);
+            pane.appendChild(el('p', 'pane-note',
+              'Could not load your delivered reports right now. Please refresh to try again.'));
+          });
+      }
+
+      function reportLabel(kind) {
+        if (kind === 'exposure') return 'Exposure Report (PDF)';
+        if (kind === 'bundle') return 'Solicitors Preparation Bundle (PDF)';
+        return 'Delivered report';
+      }
+      function renderDeliveredEntry(group) {
+        var entry = el('div', 'delivered-entry');
+        entry.appendChild(el('div', 'delivered-date',
+          group.when ? ('Delivered ' + fmtDate(group.when)) : 'Delivered'));
+
+        var actions = el('div', 'delivered-actions');
+        // Order the pair deterministically — Exposure Report, then Solicitors
+        // Preparation Bundle, then anything unclassified. Every row is rendered
+        // (never hidden, brief §1): a persisted PDF (storage_path set) becomes a
+        // download button; a null storage_path shows "Delivered by email".
+        var RANK = { exposure: 0, bundle: 1 };
+        var rows = group.rows.slice().sort(function (a, b) {
+          var ra = RANK[reportKind(a)], rb = RANK[reportKind(b)];
+          return (ra == null ? 2 : ra) - (rb == null ? 2 : rb);
+        });
+        rows.forEach(function (row) {
+          var label = reportLabel(reportKind(row));
+          if (row.storage_path) {
+            var btn = el('button', 'btn-primary', label); btn.type = 'button';
+            btn.addEventListener('click', function (ev) {
+              ev.stopPropagation(); downloadDeliveredReport(row.storage_path, btn);
+            });
+            actions.appendChild(btn);
+          } else {
+            actions.appendChild(el('span', 'delivered-emailed', label + ' — Delivered by email'));
+          }
+        });
+        entry.appendChild(actions);
+
+        // Availability line (brief §4) — beneath the download buttons.
+        entry.appendChild(el('div', 'delivered-availability',
+          'Delivered by email and kept in your document vault for 90 days.'));
+        return entry;
+      }
+
+      function downloadDeliveredReport(storagePath, btn) {
+        var old = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Preparing…';
+        fetch(REST + '/storage/v1/object/kl-reports/' + encodeURIComponent(storagePath), {
+          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + token }
+        })
+          .then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return r.blob(); })
+          .then(function (b) {
+            var name = (storagePath.split('/').pop()) || 'Ailane_Report.pdf';
+            triggerDownload(URL.createObjectURL(b), name);
+            btn.disabled = false; btn.textContent = old;
+          })
+          .catch(function () {
+            btn.disabled = false; btn.textContent = old;
+          });
+      }
+
+      // ===========================================================
       //  Solicitors Preparation Bundle — session buy-more panel (brief §4).
       //  Session framing + the £19 / £29 in-session buy-more. The retired
       //  £15 is not rendered. Pre-revenue the "Add a check" CTA is staged
@@ -1522,7 +1650,7 @@
         pane.setAttribute('aria-label', 'Solicitors Preparation Bundle');
 
         pane.appendChild(el('p', 'pack-lead',
-          'A Solicitors Preparation Bundle packages your Contract Compliance Check findings so a qualified solicitor can review your position quickly. Prepare one from any checked document’s card above.'));
+          'The guidance layer — your findings converted into a prioritised review agenda for your solicitor. Prepare one from any checked document’s card above.'));
         pane.appendChild(el('span', 'pack-included', 'Included with your ' + productLabel(product)));
 
         pane.appendChild(el('div', 'upsell-sub',
