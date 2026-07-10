@@ -1449,8 +1449,22 @@ const SUPABASE_BASE = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1';
 const PORTAL_UPLOAD = `${SUPABASE_BASE}/portal-upload`;
 // EXPOSURE-LEAD-001: generate-report-pdf and generate-report (DOCX) are RETIRED
 // (Director instruction, 4 Jul 2026). Do not reintroduce references to them.
-const EXPOSURE_URL  = (id) => `${SUPABASE_BASE}/generate-check-exposure-pdf?upload_id=${id}`;
-const PACK_URL      = (id) => `${SUPABASE_BASE}/generate-check-pack-pdf?upload_id=${id}`;
+// D3 session binding (AILANE-CC-BRIEF-CHECK-PDF-SESSION-SITE-001): the hardened
+// generate-check-*-pdf endpoints now require a session binding. This page already
+// holds the buyer's Stripe Checkout session (cs_…) in stripeSessionId, sourced from
+// its own ?session= URL param, so append it to every check-PDF request. If the token
+// is absent or malformed the URL is left unchanged and a single console warning is
+// surfaced (the internal service-bearer lane is unaffected — this is browser-only).
+const CHECK_SESSION_RE = /^cs_[A-Za-z0-9_]+$/;
+let checkSessionWarned = false;
+function withCheckSession(url) {
+  const s = stripeSessionId;
+  if (s && CHECK_SESSION_RE.test(s)) return `${url}&session=${s}`;
+  if (!checkSessionWarned) { console.warn('check-pdf: no session token on results page'); checkSessionWarned = true; }
+  return url;
+}
+const EXPOSURE_URL  = (id) => withCheckSession(`${SUPABASE_BASE}/generate-check-exposure-pdf?upload_id=${id}`);
+const PACK_URL      = (id) => withCheckSession(`${SUPABASE_BASE}/generate-check-pack-pdf?upload_id=${id}`);
 const BUNDLE_TIERS  = ['check_bundle', 'three_doc_bundle'];
 let sessionTier     = '';
 let docsAllowed     = 1;
