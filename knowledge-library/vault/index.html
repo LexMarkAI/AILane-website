@@ -1639,9 +1639,12 @@
       // ===========================================================
       //  Solicitors Preparation Bundle — session buy-more panel (brief §4).
       //  Session framing + the £19 / £29 in-session buy-more. The retired
-      //  £15 is not rendered. Pre-revenue the "Add a check" CTA is staged
-      //  non-charging (→ /kl-access/, same manner as the access page) —
-      //  it creates NO Checkout Session against a live Price.
+      //  £15 is not rendered. Each option starts a real Checkout Session via
+      //  create-checkout (kl_check_addon £19 / kl_check_addon_bundle £29),
+      //  passing the signed-in user's email so the webhook credits the right
+      //  KL session. Both products stay dark (is_active=false) until the
+      //  Director's go-live flip — until then create-checkout returns 404 and
+      //  the inline error shows (expected pre-go-live behaviour, not a bug).
       // ===========================================================
       function buildPackBuyMore() {
         var wrap = document.createElement('div');
@@ -1658,7 +1661,7 @@
 
         var l1 = el('div', 'upsell-line');
         l1.appendChild(el('span', 'upsell-price', '£19'));
-        l1.appendChild(el('span', 'upsell-desc', 'One additional Contract Compliance Check (add a Solicitors Preparation Bundle too).'));
+        l1.appendChild(el('span', 'upsell-desc', 'One additional Contract Compliance Check — Exposure Report.'));
         pane.appendChild(l1);
         var l2 = el('div', 'upsell-line');
         l2.appendChild(el('span', 'upsell-price', '£29'));
@@ -1670,12 +1673,43 @@
         l2.appendChild(d2);
         pane.appendChild(l2);
 
-        // Non-charging staging (pre-revenue): route to /kl-access/, which stages the
-        // checkout under Director control. This creates no live charge (brief §4).
+        // Buy-more actions (brief §1) — two options, each starting a real Checkout
+        // Session via create-checkout with its product_type + the signed-in user's
+        // email (Content-Type only, mirroring the anonymous create-checkout contract —
+        // no apikey/Authorization). The webhook credits the buyer's active KL session
+        // by email hash, so the email is required for the credit to land correctly.
         var actions = el('div', 'pack-actions');
-        var add = el('a', 'btn-primary', 'Add a check');
-        add.href = '/kl-access/';
-        actions.appendChild(add);
+        var buyRow = el('div');
+        buyRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;align-items:center;';
+        var buyErr = el('div', 'form-msg'); buyErr.hidden = true; buyErr.setAttribute('role', 'alert');
+        var addOne = el('button', 'btn-primary', 'Add a check — £19'); addOne.type = 'button';
+        var addBundle = el('button', 'btn-primary', 'Add a check + Solicitors Preparation Bundle — £29'); addBundle.type = 'button';
+
+        function startCheckAddon(productType) {
+          var email = '';
+          try { email = JSON.parse(atob(token.split('.')[1])).email || ''; } catch (e) {}
+          if (window.gtag) window.gtag('event', 'begin_checkout', { item_id: productType });
+          addOne.disabled = true; addBundle.disabled = true; buyErr.hidden = true;
+          fetch(FN + '/create-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_type: productType, email: email })
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (d && d.url) { window.location.href = d.url; return; }
+              throw new Error((d && d.error) || 'no url');
+            })
+            .catch(function () {
+              addOne.disabled = false; addBundle.disabled = false;
+              showMsg(buyErr, 'Checkout is temporarily unavailable — please try again in a moment.', 'err');
+            });
+        }
+
+        addOne.addEventListener('click', function (ev) { ev.stopPropagation(); startCheckAddon('kl_check_addon'); });
+        addBundle.addEventListener('click', function (ev) { ev.stopPropagation(); startCheckAddon('kl_check_addon_bundle'); });
+        buyRow.appendChild(addOne); buyRow.appendChild(addBundle);
+        actions.appendChild(buyRow); actions.appendChild(buyErr);
         pane.appendChild(actions);
 
         wrap.appendChild(pane);
