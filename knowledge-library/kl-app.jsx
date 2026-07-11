@@ -24,6 +24,11 @@ const EILEEN_ENDPOINT = SUPABASE_URL.replace('.supabase.co', '.functions.supabas
 var HUB_FUNCTIONS_BASE = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co');
 // Live operational-room allow-list (verbatim from operational/index.html guard).
 var HUB_ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise'];
+var KL_SUBSCRIPTION_TIERS = [
+  // KL-VAULT-INTEGRATION-001 §2.2 — RULE 11 subscription tiers (exact strings) for the
+  // entitlement-aware Documents nav routing (see detectKLPass / Sidebar).
+  'operational_readiness', 'governance', 'institutional',
+];
 
 // "Your workspace" facet rail (KL-HUB §1.5). Placeholders this brief; the real
 // panels (ACEI/Vault/Alerts/Intelligence/Notes/Calendar) port in later briefs.
@@ -222,6 +227,35 @@ function detectHubSession() {
       })
       .catch(function () { return null; });
   }).catch(function () { return null; });
+}
+
+function detectKLPass() {
+  var token, userId;
+  try {
+    token = window.__klToken;
+    userId = window.__klUserId;
+  } catch (e) {}
+  if (!token || !userId) return Promise.resolve(false);
+  return fetch(SUPABASE_URL + '/rest/v1/rpc/kl_session_entitlement', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ p_user_id: userId }),
+  }).then(function (r) {
+    return r.ok ? r.json() : null;
+  }).then(function (rows) {
+    var ent = Array.isArray(rows) ? (rows[0] || null) : (rows || null);
+    if (!ent) return false;
+    // Active row = expires_at in the future (mirrors the vault gate); if a status field
+    // is present it must read active. Any missing signal or error fails closed to false.
+    var live = ent.expires_at && new Date(ent.expires_at).getTime() > Date.now();
+    var active = ent.status == null || String(ent.status).toLowerCase() === 'active';
+    return !!(live && active);
+  }).catch(function () { return false; });
 }
 
 // Canonical hub Eileen request helper. Every call to eileen-operational — the
@@ -3240,7 +3274,33 @@ function CrownJewels({ onQuery, disabled }) {
 
 // ─── Sidebar ───
 
-function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession }) {
+// KL-VAULT-INTEGRATION-001 §2 — a nav button linking to the KL session vault, styled
+// identically to the hub "Your workspace" facet buttons (reuses their inline style).
+function klVaultNavButton(key, label) {
+  return React.createElement('button', {
+    key,
+    type: 'button',
+    onClick: function () {
+      window.location.href = '/knowledge-library/vault/';
+    },
+    'aria-label': label,
+    style: {
+      width: '100%',
+      textAlign: 'left',
+      display: 'block',
+      background: 'transparent',
+      border: 'none',
+      borderLeft: '2px solid transparent',
+      color: '#94A3B8',
+      cursor: 'pointer',
+      fontFamily: "'DM Sans', sans-serif",
+      fontSize: '13px',
+      padding: '8px 16px',
+    },
+  }, label);
+}
+
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession, hasKLSession, hasSubscription }) {
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
@@ -3357,11 +3417,17 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
           }, 'Your workspace'),
           HUB_WORKSPACE_FACETS.map(function (f) {
             var active = currentFacet === f.id;
+            // KL-VAULT-INTEGRATION-001 §2.3 — subscription-primary routing of the Document
+            // Vault item. A subscription holder keeps the Operational (monitored) vault; a
+            // KL-only pass holder (no subscription, active KL session) is routed to their
+            // own session vault instead of the Operational vault their pass can't open.
+            var href = f.href;
+            if (f.id === 'vault' && hasKLSession && !hasSubscription) href = '/knowledge-library/vault/';
             return React.createElement('button', {
               key: f.id,
               type: 'button',
               onClick: function () {
-                if (f.href) { window.location.href = f.href; return; } // PARLIAMENT-LIVE-001: href items navigate to a full page
+                if (href) { window.location.href = href; return; } // PARLIAMENT-LIVE-001: href items navigate to a full page
                 onSelectFacet(active ? null : f.id);
               },
               'aria-pressed': active,
@@ -3388,9 +3454,32 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
                   })
                 : null,
             ]);
-          })
+          }),
+          // KL-VAULT-INTEGRATION-001 §2.3 (branch 1) — a subscription holder who ALSO holds
+          // an active KL pass gets a visible secondary link to their KL session vault, in
+          // addition to the (unchanged) Operational Document Vault above.
+          hasKLSession ? klVaultNavButton('kl-session-vault', 'Knowledge Library session vault') : null
         )
       : React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
+      // KL-VAULT-INTEGRATION-001 §2.3 (branch 2) — a KL-only pass holder (no subscription,
+      // active KL session) is no longer orphaned: their Documents nav routes to their own
+      // session vault. Public KL users (no pass) see no change (branch 3).
+      hasKLSession && !hasSubscription ? React.createElement(
+        'div',
+        { style: { marginTop: '12px' } },
+        React.createElement('div', {
+          style: {
+            color: '#64748B',
+            fontSize: '10px',
+            fontFamily: "'DM Mono', monospace",
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            padding: '8px 16px',
+          },
+        }, 'Your workspace'),
+        klVaultNavButton('kl-only-documents', 'Documents')
+      ) : null,
       React.createElement('div', { style: { marginTop: '12px' } },
         React.createElement('div', {
           style: {
@@ -9724,6 +9813,14 @@ function App() {
     detectHubSession().then(function (s) { if (alive) setHubSession(s); });
     return function () { alive = false; };
   }, []);
+  // KL-VAULT-INTEGRATION-001 §2.1 — active-KL-pass signal (kl_session_entitlement),
+  // read at the app's existing authenticated-read readiness point. Fails closed to false.
+  const [hasKLSession, setHasKLSession] = useState(false);
+  useEffect(function () {
+    var alive = true;
+    detectKLPass().then(function (v) { if (alive) setHasKLSession(!!v); });
+    return function () { alive = false; };
+  }, []);
   const hubMode = !!hubSession;
   // AAL2-STEPUP-001 (Stage C · C1) — hub MFA step-up. When the authenticated
   // session is aal1 with a verified second factor, the RESTRICTIVE
@@ -9745,6 +9842,11 @@ function App() {
   // (§1.1) is scoped to hub/operational mode (hubMode || operationalMode).
   const operationalMode = klOperationalMode();
   const hubChrome = hubMode || operationalMode;
+  // KL-VAULT-INTEGRATION-001 §2.2 — subscription signal (RULE 11 exact strings), reusing
+  // the app's already-resolved tier. A validated hub session (tier-gated in detectHubSession)
+  // is itself proof of subscription; window.__klAccessType/__klTier mirror the app's own
+  // isSubscription expression used at upload time.
+  const hasSubscription = hubMode || window.__klAccessType === 'subscription' || KL_SUBSCRIPTION_TIERS.indexOf(window.__klTier) >= 0 || !!(hubSession && (KL_SUBSCRIPTION_TIERS.indexOf(hubSession.tier) >= 0 || KL_SUBSCRIPTION_TIERS.indexOf(hubSession.orgTier) >= 0));
   const orgTier = hubSession && hubSession.orgTier;
   // Active workspace facet (hub mode only). null ⇒ Eileen conversation shows.
   const [currentFacet, setCurrentFacet] = useState(null);
@@ -10772,6 +10874,8 @@ function App() {
         currentFacet={currentFacet}
         onSelectFacet={(id) => { handleSelectFacet(id); if (window.innerWidth <= 768) setSidebarOpen(false); }}
         hubSession={hubSession}
+        hasKLSession={hasKLSession}
+        hasSubscription={hasSubscription}
       />
       {/* AMD-045 §5: Conditional render — domain sub-page or conversation area.
           OOX-001 §1.5: in hub mode an open workspace facet mounts in the main
