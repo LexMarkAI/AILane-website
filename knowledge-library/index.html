@@ -837,58 +837,20 @@
           .catch(function() { showGate(true, { email: payload.email || '' }); });
       }
 
-      // ── Magic-link identity precedence (KL-MAGICLINK-IDENTITY-001) ──
-      // A magic link carries the BUYER's identity in the URL hash. A stale session
-      // already in storage must NOT outrank it: the page would otherwise evaluate
-      // kl_session_entitlement for the WRONG user and gate a buyer who holds a live
-      // pass. The URL identity always wins.
-      function klHashParams() {
-        var h = (window.location.hash || '').replace(/^#/, '');
-        return h ? new URLSearchParams(h) : null;
-      }
-      function klStripHash() {
-        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
-      }
-      var klHp = klHashParams();
-      var klErr = klHp ? (klHp.get('error_code') || klHp.get('error')) : null;
-      var klAt  = klHp ? klHp.get('access_token') : null;
-      var klRt  = klHp ? klHp.get('refresh_token') : null;
-      if (klErr) {
-        // Expired / already-used / invalid link → say so; never a silent gate.
-        klStripHash();
-        showGate(false, { linkError: klErr });
+      // ── AUTH-002 §132 (P3, AMD-263 — executed): this page NEVER completes a session.
+      // Any auth hash (tokens from legacy emailed links, or GoTrue error hashes) is
+      // FORWARDED intact to /auth/callback/, the single session-establishment authority.
+      // KL-MAGICLINK-IDENTITY-001's invariant is preserved there: the URL identity wins.
+      if (window.location.hash && /(?:^|[#&])(access_token|refresh_token|error|error_code)=/.test(window.location.hash)) {
+        window.location.replace('/auth/callback/' + window.location.hash);
         return;
       }
-      if (klAt && klRt) {
-        sb.auth.setSession({ access_token: klAt, refresh_token: klRt })
-          .then(function (r) {
-            klStripHash();
-            if (r && r.data && r.data.session) { verify(r.data.session); }
-            else { showGate(false, { linkError: 'exchange_failed' }); }
-          })
-          .catch(function () { klStripHash(); showGate(false, { linkError: 'exchange_failed' }); });
-        return;   // URL identity wins — never fall through to the stored session
-      }
 
-      // Complete the magic-link session, then gate. getSession → refreshSession →
-      // 6s onAuthStateChange fallback handles the async hash exchange. No session
-      // at all → purchase gate (NOT a redirect to a role login).
-      sb.auth.getSession().then(function(result) {
-        if (result.data && result.data.session) { verify(result.data.session); return; }
-        sb.auth.refreshSession().then(function(rr) {
-          if (rr.data && rr.data.session) { verify(rr.data.session); return; }
-          var resolved = false;
-          var to = setTimeout(function() { if (!resolved) { resolved = true; showGate(false); } }, 6000);
-          var sub = sb.auth.onAuthStateChange(function(_evt, session) {
-            if (!resolved && session) {
-              resolved = true;
-              clearTimeout(to);
-              try { sub.data.subscription.unsubscribe(); } catch (e) {}
-              verify(session);
-            }
-          });
-        }).catch(function() { showGate(false); });
-      }).catch(function() { showGate(false); });
+      // §132: read the established session once; never refresh, never listen, never mint.
+      sb.auth.getSession().then(function (result) {
+        if (result.data && result.data.session) { verify(result.data.session); }
+        else { showGate(false); }
+      }).catch(function () { showGate(false); });
     })();
   </script>
 

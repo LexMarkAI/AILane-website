@@ -108,6 +108,15 @@
         if(rvRes.ok){var rvRows=await rvRes.json();if(Array.isArray(rvRows)&&rvRows.length>0){window.location.replace('/legal-oversight/');return}}
       }catch(e){}
       st('Loading your dashboard...');
+      // AAL2 step-up guard (AAL2-STEPUP-001, consolidated here under AUTH-002 §132):
+      // an MFA-enrolled session at aal1 goes to /login/ for the challenge ceremony —
+      // /login/ is credential entry; this router never routes an under-assured session.
+      try{
+        var aal=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+        if(aal.data && aal.data.nextLevel==='aal2' && aal.data.currentLevel!=='aal2'){
+          window.location.replace('/login/?stepup=1');return;
+        }
+      }catch(e){}
       var tier=await getTier(session.access_token);
       var d=dest(tier);
       // returnTo: redirect preservation (P0 — KLUI-001 workspace redirect)

@@ -419,36 +419,13 @@
     function boot() {
       var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-      // ── Magic-link identity precedence (KL-MAGICLINK-IDENTITY-001) ──
-      // A magic link carries the BUYER's identity in the URL hash. A stale session
-      // already in storage must NOT outrank it, or the vault would evaluate the
-      // kl_session_entitlement gate for the WRONG user. The URL identity always wins.
-      function klHashParams() {
-        var h = (window.location.hash || '').replace(/^#/, '');
-        return h ? new URLSearchParams(h) : null;
-      }
-      function klStripHash() {
-        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
-      }
-      var klHp = klHashParams();
-      var klErr = klHp ? (klHp.get('error_code') || klHp.get('error')) : null;
-      var klAt  = klHp ? klHp.get('access_token') : null;
-      var klRt  = klHp ? klHp.get('refresh_token') : null;
-      if (klErr) {
-        // Expired / already-used / invalid link → the vault's silent no-session path.
-        klStripHash();
-        fail();
+      // ── AUTH-002 §132 (P3, AMD-263 — executed): this page NEVER completes a session.
+      // Any auth hash (tokens from legacy emailed links, or GoTrue error hashes) is
+      // FORWARDED intact to /auth/callback/, the single session-establishment authority.
+      // KL-MAGICLINK-IDENTITY-001's invariant is preserved there: the URL identity wins.
+      if (window.location.hash && /(?:^|[#&])(access_token|refresh_token|error|error_code)=/.test(window.location.hash)) {
+        window.location.replace('/auth/callback/' + window.location.hash);
         return;
-      }
-      if (klAt && klRt) {
-        sb.auth.setSession({ access_token: klAt, refresh_token: klRt })
-          .then(function (r) {
-            klStripHash();
-            if (r && r.data && r.data.session) { verify(r.data.session); }
-            else { fail(); }
-          })
-          .catch(function () { klStripHash(); fail(); });
-        return;   // URL identity wins — never fall through to the stored session
       }
 
       sb.auth.getSession().then(function (gs) {

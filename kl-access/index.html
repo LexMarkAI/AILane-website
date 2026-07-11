@@ -14,6 +14,9 @@
   <!-- Stripe.js — loaded eagerly for Elements mount on checkout interaction -->
   <script src="https://js.stripe.com/v3/"></script>
 
+  <!-- supabase-js — AM-001 (AMD-276): loaded for the checkout→session exchange only (see body bridge) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <!-- GA4 Analytics — REQUIRED ON EVERY PAGE, NO EXCEPTIONS -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NTNXWZN31C"></script>
   <script>
@@ -404,7 +407,8 @@
        purchase page (the "loop"), and never redirect to a login. If a Supabase
        magic-link session lands here in the URL hash instead, forward it (hash
        intact) to /knowledge-library/, which completes the session with its own
-       supabase-js — so no Supabase CDN is loaded on this public purchase page. -->
+       supabase-js — so no Supabase CDN is loaded on this public purchase page.
+       AM-001 (AMD-276, 11 Jul 2026): supabase-js now loaded for the checkout→session exchange; this page still never completes a session itself — verifyOtp mints it and /auth/callback/ routes it. -->
   <div id="kl-access-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:#0a1424;align-items:center;justify-content:center;padding:24px;font-family:'DM Sans',sans-serif">
     <div style="max-width:460px;width:100%;text-align:center;background:#0f1d32;border:1px solid #1e3a5f;border-top:2px solid #38bdf8;border-radius:14px;padding:40px 32px;box-shadow:0 24px 60px rgba(0,0,0,0.55)">
       <div style="font-size:40px;line-height:1;margin-bottom:16px" aria-hidden="true">✓</div>
@@ -424,6 +428,37 @@
         return;
       }
       var qs = new URLSearchParams(window.location.search || '');
+      // ── AM-001 checkout→session exchange (AMD-276) ──
+      // POST the Stripe checkout id to kl-session-exchange; a single-use token_hash
+      // comes back ONLY for an active, recent, unconsumed KL pass. verifyOtp REPLACES
+      // any stored session (stale-identity collision structurally impossible here).
+      // EVERY failure path falls through to the existing email-link copy unchanged.
+      var __klCs = qs.get('session') || '';
+      var __klCanExchange = /^cs_[A-Za-z0-9_]{10,}$/.test(__klCs) && window.supabase && window.supabase.createClient;
+      function __klExchangeFail() { /* fall through: existing bridge rendering runs as today */ }
+      if (__klCanExchange) {
+        fetch('https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/kl-session-exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checkout_session_id: __klCs })
+        }).then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d || !d.token_hash) { __klExchangeFail(); return; }
+            var sb = window.supabase.createClient(
+              'https://cnbsxwtvazfvzmltkuvx.supabase.co',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g'
+            );
+            sb.auth.verifyOtp({ token_hash: d.token_hash, type: 'email' })
+              .then(function (v) {
+                if (v && v.data && v.data.session) {
+                  try { if (window.gtag) gtag('event', 'login', { method: 'checkout_exchange' }); } catch (e) {}
+                  window.location.replace('/auth/callback/');
+                } else { __klExchangeFail(); }
+              })
+              .catch(__klExchangeFail);
+          })
+          .catch(__klExchangeFail);
+      }
       var sess = qs.get('session') || qs.get('session_id');
       if (sess) {
         var box = document.getElementById('kl-access-confirm');
