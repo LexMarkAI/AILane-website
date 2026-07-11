@@ -136,6 +136,11 @@
       // pass — a live KL entitlement carries the buyer to the vault. Subscription (Operational/
       // Governance/Enterprise), reviewer and returnTo-allowlist routing above are untouched.
       if(d==='/login/'&&await hasLiveKlPass(session.access_token))d='/knowledge-library/';
+      // Loop-breaker (11 Jul 2026 live test): a SIGNED-IN browser is never sent to /login/ —
+      // /login/ bounces signed-in visitors straight back here (P3 handoff), which loops.
+      // The KL gate is the terminal no-entitlement destination: identity-aware, names the
+      // signed-in email, offers sign-out, and never redirects (KL-ACCESS-FIX-001 invariant).
+      if(d==='/login/')d='/knowledge-library/';
       window.location.replace(d);
     }catch(e){window.location.replace('/login/?error=callback_failed')}
   })();
