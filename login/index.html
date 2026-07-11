@@ -82,50 +82,11 @@
   var sb=window.supabase.createClient(SB_URL,SB_KEY);
   document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
   document.getElementById('em').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('pw').focus()});
-  function dest(t){
-    if(t==='operational'||t==='operational_readiness')return'/operational/';
-    if(t==='governance')return'/governance/';
-    if(t==='enterprise'||t==='institutional')return'/enterprise/';
-    return'/knowledge-library/';
-  }
-  async function getTier(token){
-    var p=JSON.parse(atob(token.split('.')[1]));
-    var r=await fetch(SB_URL+'/rest/v1/kl_account_profiles?select=subscription_tier&user_id=eq.'+p.sub+'&limit=1',{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Accept':'application/json'}
-    });
-    if(!r.ok)return null;
-    var rows=await r.json();
-    return(rows&&rows.length>0)?rows[0].subscription_tier:null;
-  }
-  // KL session entitlement (KLUI-001/AMD-262, brief §2). RULE 2 raw-fetch Bearer, mirroring
-  // the vault's own gate: same RPC + p_user_id param; live = an entitlement row whose
-  // expires_at is in the future. Fails closed to false on any non-OK/parse/network error.
-  async function checkKLSession(token){
-    try{
-      var p=JSON.parse(atob(token.split('.')[1]));
-      var r=await fetch(SB_URL+'/rest/v1/rpc/kl_session_entitlement',{
-        method:'POST',
-        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json'},
-        body:JSON.stringify({p_user_id:p.sub})
-      });
-      if(!r.ok)return false;
-      var rows=await r.json();
-      var ent=Array.isArray(rows)?(rows[0]||null):(rows||null);
-      return !!(ent&&ent.expires_at&&new Date(ent.expires_at).getTime()>Date.now());
-    }catch(e){return false}
-  }
-  // Entitlement-aware post-auth routing (subscription-primary) — shared by password and
-  // magic-link sign-in and by the on-load session check (brief §2). Never targets index.html.
+  // AUTH-002 §132 (P3, AMD-263 — executed): /login/ is credential entry only.
+  // All post-auth routing lives at /auth/callback/, the single session router.
   async function route(session){
-    var tier=await getTier(session.access_token);
-    try{if(window.gtag)gtag('event','login',{method:'email',subscription_tier:tier})}catch(e){}
-    // Subscribers land exactly where they do today: dest() maps the org tier to its
-    // subscription destination; anything other than the KL default means a subscription.
-    var subDest=dest(tier);
-    if(subDest!=='/knowledge-library/'){window.location.replace(subDest);return}
-    // No subscription → an active KL session opens the vault; otherwise the existing default.
-    var hasKLSession=await checkKLSession(session.access_token);
-    window.location.replace(hasKLSession?'/knowledge-library/vault/':'/kl-access/');
+    try{if(window.gtag)gtag('event','login',{method:'email'})}catch(e){}
+    window.location.replace('/auth/callback/');
   }
   // AAL2-STEPUP-001 (Stage C · C1): a persisted session must pass the same step-up
   // as a fresh sign-in. Auto-routing an MFA-enrolled aal1 session onward left every
@@ -270,14 +231,15 @@
   }
   // Passwordless magic-link sign-in (brief §1). Additive to signInWithPassword / passkey /
   // authenticator / resetPasswordForEmail. Uses the email already entered; emailRedirectTo
-  // MUST be the allow-listed https://ailane.ai/login/, where the on-load check routes by entitlement.
+  // MUST be the allow-listed https://ailane.ai/auth/callback/, the single session router
+  // (Chairman probe-verified on the GoTrue allow-list, 11 July 2026).
   async function doMagicLink(){
     var email=document.getElementById('em').value.trim(),err=document.getElementById('err'),ok=document.getElementById('mlok'),btn=document.getElementById('mlgo');
     err.textContent='';ok.classList.add('hide');
     if(!email){err.textContent='Please enter your email.';return}
     btn.disabled=true;btn.innerHTML='<span class="sp"></span>Sending link...';
     try{
-      var res=await sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:'https://ailane.ai/login/',shouldCreateUser:true}});
+      var res=await sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:'https://ailane.ai/auth/callback/',shouldCreateUser:true}});
       if(res.error){err.textContent=res.error.message;btn.disabled=false;btn.textContent='Email me a sign-in link';return}
       ok.textContent='Check your email — we’ve sent a sign-in link to '+email+'. It’s valid for a short time.';
       ok.classList.remove('hide');
