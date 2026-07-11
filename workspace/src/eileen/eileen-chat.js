@@ -4,7 +4,11 @@
  * message history loading from kl_eileen_conversations.
  */
 
-var EDGE_FN_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/kl_ai_assistant';
+// EILEEN-REPOINT-SITE-001 — repoint workspace Eileen from the retired
+// diagnostic stub to the working eileen-intelligence engine.
+// Endpoint construction mirrors knowledge-library/kl-app.jsx EILEEN_ENDPOINT
+// (SUPABASE_URL.replace('.supabase.co','.functions.supabase.co') + '/functions/v1/eileen-intelligence').
+var EDGE_FN_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/functions/v1/eileen-intelligence';
 var SUPABASE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co';
 var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1NDQ5MDIsImV4cCI6MjA1NzEyMDkwMn0.LMfOjHp97P9MKaOeaK3GI2JCQ7kj5Kxpuq6llLD-1H0';
 
@@ -172,7 +176,9 @@ async function _sendMessage(text) {
   _showTyping();
 
   try {
-    var workspaceContext = window.__EileenContext ? window.__EileenContext.getWorkspaceContext() : {};
+    // eileen-intelligence's contract (mirrored from kl-app.jsx) is { message,
+    // session_id, page_context }. workspace_context was only consumed by the
+    // retired diagnostic stub, so it is not sent here.
     var response = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: {
@@ -183,8 +189,7 @@ async function _sendMessage(text) {
       body: JSON.stringify({
         message: text.trim(),
         session_id: _currentSessionId,
-        page_context: 'workspace',
-        workspace_context: workspaceContext
+        page_context: 'workspace'
       })
     });
 
