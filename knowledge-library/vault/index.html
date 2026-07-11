@@ -392,7 +392,7 @@
   <!-- ==========================================================================
        AUTH GUARD — reveal-after-verify (RULE 26 / AUTH-001), reusing the exact
        operational vault pattern: body visibility:hidden, Supabase CDN first,
-       getSession() then onAuthStateChange 6s fallback, decode JWT `sub`.
+       getSession() single read (§132 — no fallback listener), decode JWT `sub`.
        The ONLY substitution (per brief §5) is the entitlement source: instead of
        reading kl_account_profiles.subscription_tier, this calls the KL session
        gate kl_session_entitlement(p_user_id) via the canonical raw-fetch Bearer
@@ -428,20 +428,13 @@
         return;
       }
 
+      // §132 (P3, AMD-263): read the established session ONCE. This page never refreshes,
+      // never listens, never mints — /auth/callback/ is the single session-establishment
+      // authority; the hash-forwarder above already sent any auth tokens there. A session
+      // hydrated from storage is available by the time getSession() resolves.
       sb.auth.getSession().then(function (gs) {
         if (gs && gs.data && gs.data.session) { verify(gs.data.session); return; }
-        // Fallback: session may still be hydrating — listen with a 6s timeout.
-        var to = setTimeout(function () {
-          try { sub.data.subscription.unsubscribe(); } catch (e) {}
-          fail();
-        }, 6000);
-        var sub = sb.auth.onAuthStateChange(function (_evt, session) {
-          if (session && !settled) {
-            clearTimeout(to);
-            try { sub.data.subscription.unsubscribe(); } catch (e) {}
-            verify(session);
-          }
-        });
+        fail();
       }).catch(fail);
 
       function verify(session) {
