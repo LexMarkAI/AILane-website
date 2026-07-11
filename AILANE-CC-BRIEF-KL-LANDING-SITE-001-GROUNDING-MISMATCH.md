@@ -1,5 +1,30 @@
 # GROUNDING-MISMATCH — AILANE-CC-BRIEF-KL-LANDING-SITE-001
 
+> ## ⚠️ SUPERSEDED IN PART — 11 July 2026
+>
+> **The build-prohibition findings in this document are superseded by
+> AILANE-CC-BRIEF-KL-ENGINE-RECONCILE-SITE-001 (as amended).**
+>
+> This document was correct that no build command had been committed, and correct
+> that a naive rebuild drops live features. Both are now resolved:
+>
+> - The build command is committed as `knowledge-library/build-engine.sh`. It
+>   requires `--bundle`, because `kl-app.jsx` imports `dompurify` (a runtime
+>   dependency, inlined into the engine). A build WITHOUT `--bundle` emits
+>   `require("dompurify")` and white-screens all three host pages.
+> - The divergence was measured as exactly THREE features — `detectKLPass`,
+>   `klVaultNavButton`, `KL_SUBSCRIPTION_TIERS` — back-ported into `kl-app.jsx`
+>   and guarded by a parity gate that now includes a runtime boot check.
+>
+> This document's fourth named feature, the Recent-Cases nav, was ALREADY present
+> in `kl-app.jsx` (line 40, `HUB_WORKSPACE_FACETS`) and survives a rebuild. That
+> claim was stale when merged.
+>
+> Its architectural findings — shared engine; three pages load `kl-app.js`;
+> `knowledge-library/index.html` is a React shell — remain CORRECT and are the
+> basis of the reconcile brief. The prohibition on HAND-EDITING `kl-app.js` also
+> remains, permanently: it is build output.
+
 **Repo:** `LexMarkAI/AILane-website` (§0.1 repo gate PASSED — `origin` is
 `https://github.com/LexMarkAI/AILane-website`).
 **Determination:** The brief's §0.2 grounding step reveals that **File A's §0.2

@@ -1,5 +1,5 @@
 (() => {
-  // ../node_modules/dompurify/dist/purify.es.mjs
+  // node_modules/dompurify/dist/purify.es.mjs
   function _arrayLikeToArray(r, a) {
     (null == a || a > r.length) && (a = r.length);
     for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
@@ -1446,16 +1446,20 @@
   }
   var purify = createDOMPurify();
 
-  // kl-app.jsx
+  // knowledge-library/kl-app.jsx
   var { useState, useEffect, useRef, useCallback } = React;
   var SUPABASE_URL = "https://cnbsxwtvazfvzmltkuvx.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
   var EILEEN_ENDPOINT = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co") + "/functions/v1/eileen-intelligence";
   var HUB_FUNCTIONS_BASE = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co");
   var HUB_ALLOWED_TIERS = ["operational", "operational_readiness", "governance", "enterprise"];
-  // KL-VAULT-INTEGRATION-001 §2.2 — RULE 11 subscription tiers (exact strings) for the
-  // entitlement-aware Documents nav routing (see detectKLPass / Sidebar).
-  var KL_SUBSCRIPTION_TIERS = ["operational_readiness", "governance", "institutional"];
+  var KL_SUBSCRIPTION_TIERS = [
+    // KL-VAULT-INTEGRATION-001 §2.2 — RULE 11 subscription tiers (exact strings) for the
+    // entitlement-aware Documents nav routing (see detectKLPass / Sidebar).
+    "operational_readiness",
+    "governance",
+    "institutional"
+  ];
   var HUB_WORKSPACE_FACETS = [
     // DOCV-ROOM-RECTIFY-001 — full-page surface (not an in-app facet): href routes
     // to the standalone /operational/documents/ vault page (mirrors Parliament Live /
@@ -1620,8 +1624,6 @@
     }).then(function(rows) {
       var ent = Array.isArray(rows) ? rows[0] || null : rows || null;
       if (!ent) return false;
-      // Active row = expires_at in the future (mirrors the vault gate); if a status field
-      // is present it must read active. Any missing signal or error fails closed to false.
       var live = ent.expires_at && new Date(ent.expires_at).getTime() > Date.now();
       var active = ent.status == null || String(ent.status).toLowerCase() === "active";
       return !!(live && active);
@@ -4160,8 +4162,6 @@
       "Discuss with Eileen"
     )));
   }
-  // KL-VAULT-INTEGRATION-001 §2 — a nav button linking to the KL session vault, styled
-  // identically to the hub "Your workspace" facet buttons (reuses their inline style).
   function klVaultNavButton(key, label) {
     return React.createElement("button", {
       key,
@@ -4318,10 +4318,6 @@
         }, "Your workspace"),
         HUB_WORKSPACE_FACETS.map(function(f) {
           var active = currentFacet === f.id;
-          // KL-VAULT-INTEGRATION-001 §2.3 — subscription-primary routing of the Document
-          // Vault item. A subscription holder keeps the Operational (monitored) vault; a
-          // KL-only pass holder (no subscription, active KL session) is routed to their
-          // own session vault instead of the Operational vault their pass can't open.
           var href = f.href;
           if (f.id === "vault" && hasKLSession && !hasSubscription) href = "/knowledge-library/vault/";
           return React.createElement("button", {
@@ -7837,25 +7833,33 @@
     if (!c) return null;
     if (minutesRemaining == null || minutesRemaining <= 0 || minutesRemaining > c.threshold) return null;
     function startExtend(offer) {
-      if (!consent) { setErr("Please confirm you have read the Terms of Service and Privacy Policy before proceeding."); return; }
+      if (!consent) {
+        setErr("Please confirm you have read the Terms of Service and Privacy Policy before proceeding.");
+        return;
+      }
       if (busy) return;
-      setErr(""); setBusy(offer.productType);
-      try { if (window.gtag) window.gtag("event", "begin_checkout", { item_id: offer.productType }); } catch (e) {}
+      setErr("");
+      setBusy(offer.productType);
+      try {
+        if (window.gtag) window.gtag("event", "begin_checkout", { item_id: offer.productType });
+      } catch (e) {
+      }
       fetch(CREATE_CHECKOUT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ product_type: offer.productType })
-      }).then(function(r) {
-        return r.json();
-      }).then(function(d) {
-        if (d && d.url) { window.location.href = d.url; return; }
-        throw new Error((d && d.error) || "no url");
-      }).catch(function() {
+      }).then((r) => r.json()).then((d) => {
+        if (d && d.url) {
+          window.location.href = d.url;
+          return;
+        }
+        throw new Error(d && d.error || "no url");
+      }).catch(() => {
         setBusy("");
-        setErr("Checkout is temporarily unavailable — please try again in a moment.");
+        setErr("Checkout is temporarily unavailable \u2014 please try again in a moment.");
       });
     }
-    var ready = consent && !busy;
+    const ready = consent && !busy;
     return /* @__PURE__ */ React.createElement(
       "div",
       {
@@ -7897,32 +7901,41 @@
         },
         "\xD7"
       )),
-      /* @__PURE__ */ React.createElement("label", { style: { display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "12px", cursor: "pointer" } }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: consent, onChange: function(e) { setConsent(e.target.checked); if (e.target.checked) setErr(""); }, style: { marginTop: "3px", flex: "none" } }), /* @__PURE__ */ React.createElement("span", { style: { color: "#94A3B8", fontSize: "12px", lineHeight: 1.45 } }, "I have read and agree to the ", /* @__PURE__ */ React.createElement("a", { href: "/terms/", target: "_blank", rel: "noopener noreferrer", style: { color: "#38BDF8" } }, "Terms of Service"), " and ", /* @__PURE__ */ React.createElement("a", { href: "/privacy/", target: "_blank", rel: "noopener noreferrer", style: { color: "#38BDF8" } }, "Privacy Policy"), ".")),
-      /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" } }, c.offers.map(function(offer) {
-        return /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            key: offer.productType,
-            type: "button",
-            onClick: function() { startExtend(offer); },
-            disabled: !ready,
-            style: {
-              display: "inline-block",
-              padding: "8px 16px",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 600,
-              background: "#0EA5E9",
-              color: "#FFFFFF",
-              border: "none",
-              textDecoration: "none",
-              cursor: ready ? "pointer" : "not-allowed",
-              opacity: ready ? 1 : 0.45
-            }
+      /* @__PURE__ */ React.createElement("label", { style: { display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "12px", cursor: "pointer" } }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: consent,
+          onChange: (e) => {
+            setConsent(e.target.checked);
+            if (e.target.checked) setErr("");
           },
-          busy === offer.productType ? "Preparing secure checkout…" : offer.cta
-        );
-      })),
+          style: { marginTop: "3px", flex: "none" }
+        }
+      ), /* @__PURE__ */ React.createElement("span", { style: { color: "#94A3B8", fontSize: "12px", lineHeight: 1.45 } }, "I have read and agree to the", " ", /* @__PURE__ */ React.createElement("a", { href: "/terms/", target: "_blank", rel: "noopener noreferrer", style: { color: "#38BDF8" } }, "Terms of Service"), " ", "and", " ", /* @__PURE__ */ React.createElement("a", { href: "/privacy/", target: "_blank", rel: "noopener noreferrer", style: { color: "#38BDF8" } }, "Privacy Policy"), ".")),
+      /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" } }, c.offers.map((offer) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: offer.productType,
+          type: "button",
+          onClick: () => startExtend(offer),
+          disabled: !ready,
+          style: {
+            display: "inline-block",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            background: "#0EA5E9",
+            color: "#FFFFFF",
+            border: "none",
+            textDecoration: "none",
+            cursor: ready ? "pointer" : "not-allowed",
+            opacity: ready ? 1 : 0.45
+          }
+        },
+        busy === offer.productType ? "Preparing secure checkout\u2026" : offer.cta
+      ))),
       err ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", color: "#F87171", fontSize: "12px", lineHeight: 1.45 } }, err) : null
     );
   }
@@ -11013,8 +11026,6 @@
         alive = false;
       };
     }, []);
-    // KL-VAULT-INTEGRATION-001 §2.1 — active-KL-pass signal (kl_session_entitlement),
-    // read at the app's existing authenticated-read readiness point. Fails closed to false.
     const [hasKLSession, setHasKLSession] = useState(false);
     useEffect(function() {
       var alive = true;
@@ -11042,10 +11053,6 @@
     }, [hubSession]);
     const operationalMode = klOperationalMode();
     const hubChrome = hubMode || operationalMode;
-    // KL-VAULT-INTEGRATION-001 §2.2 — subscription signal (RULE 11 exact strings), reusing
-    // the app's already-resolved tier. A validated hub session (tier-gated in detectHubSession)
-    // is itself proof of subscription; window.__klAccessType/__klTier mirror the app's own
-    // isSubscription expression used at upload time.
     const hasSubscription = hubMode || window.__klAccessType === "subscription" || KL_SUBSCRIPTION_TIERS.indexOf(window.__klTier) >= 0 || !!(hubSession && (KL_SUBSCRIPTION_TIERS.indexOf(hubSession.tier) >= 0 || KL_SUBSCRIPTION_TIERS.indexOf(hubSession.orgTier) >= 0));
     const orgTier = hubSession && hubSession.orgTier;
     const [currentFacet, setCurrentFacet] = useState(null);
@@ -11130,12 +11137,14 @@
         var params = new URLSearchParams(window.location.search || "");
         if (params.get("extend") !== "1") return;
         var toast = document.createElement("div");
-        toast.textContent = "Session extended — your expiry and check allowance have been updated.";
+        toast.textContent = "Session extended \u2014 your expiry and check allowance have been updated.";
         toast.style.cssText = "position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#10B981;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;max-width:92%;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);opacity:1;transition:opacity 0.4s;";
         document.body.appendChild(toast);
         setTimeout(function() {
           toast.style.opacity = "0";
-          setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 400);
+          setTimeout(function() {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+          }, 400);
         }, 4500);
         params.delete("extend");
         var qs = params.toString();
