@@ -465,7 +465,11 @@
             var ent = Array.isArray(rows) ? (rows[0] || null) : (rows || null);
             var live = ent && ent.expires_at && new Date(ent.expires_at).getTime() > Date.now();
             if (live) {
-              window.initKLVault(token, SUPABASE_ANON, userId, SUPABASE_URL, ent);
+              // Pass the guard's live Supabase client (sb) through so the vault can
+              // read the CURRENT session token per request (brief §4). No second
+              // client is created — this is the same auto-refreshing client the
+              // guard just used for getSession().
+              window.initKLVault(token, SUPABASE_ANON, userId, SUPABASE_URL, ent, sb);
             } else {
               window.renderNoSession();
             }
@@ -566,10 +570,32 @@
     };
 
     // ---- Populated vault ----
-    window.initKLVault = function (token, ANON, uid, REST, ent) {
+    window.initKLVault = function (token, ANON, uid, REST, ent, sb) {
       var RESTU = REST + '/rest/v1';
       var FN = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co';
-      var H = { 'apikey': ANON, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+      // Fix 2 (brief §4) — auth headers are rebuilt PER REQUEST from the CURRENT
+      // session token, never captured once at load. Supabase refreshes the JWT on
+      // its own schedule; the old single captured-once H header snapshot went stale,
+      // and kl-compliance-bridge (verify_jwt:true) rejected the stale token at the
+      // gateway BEFORE the function ran — every server-side gate passing yet no
+      // compliance_uploads row ever written. `sb` is the guard's live (auto-
+      // refreshing) client, passed in at boot — no second client is created.
+      // `extra` merges request-specific headers (e.g. Prefer, storage Content-Type).
+      function authHeaders(extra) {
+        return sb.auth.getSession().then(function (res) {
+          var t = res && res.data && res.data.session && res.data.session.access_token;
+          if (!t) throw new Error('no active session');
+          var h = { 'apikey': ANON, 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' };
+          if (extra) { Object.keys(extra).forEach(function (k) { h[k] = extra[k]; }); }
+          return h;
+        });
+      }
+      // A missing/ended session must never fall through to an unauthenticated request
+      // (brief §4): callers detect it to show "please sign in again" and stop.
+      function isNoSession(err) {
+        return !!(err && /no active session/.test(String((err && err.message) || err)));
+      }
 
       // ---- State ----
       var docs = [];
@@ -662,8 +688,9 @@
         return box;
       }
       function getJson(path) {
-        return fetch(RESTU + path, { headers: H })
-          .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+        return authHeaders().then(function (h) {
+          return fetch(RESTU + path, { headers: h });
+        }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
       }
 
       // ===========================================================
@@ -928,10 +955,12 @@
         return Promise.all([
           getJson('/vault_contract_records?document_id=eq.' + doc.id +
                   '&select=status_band,critical_gaps,upload_id,created_at&order=created_at.desc&limit=1')
-            .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; }),
+            .then(function (r) { return (r && r[0]) || null; })
+            .catch(function (e) { console.error('[kl-vault] contract-record read failed', { document_id: doc.id, error: String((e && e.message) || e) }); return null; }),
           getJson('/vault_solicitor_packs?document_id=eq.' + doc.id +
                   '&superseded_at=is.null&select=upload_id,created_at&order=created_at.desc&limit=1')
-            .then(function (r) { return (r && r[0]) || null; }).catch(function () { return null; })
+            .then(function (r) { return (r && r[0]) || null; })
+            .catch(function (e) { console.error('[kl-vault] solicitor-pack read failed', { document_id: doc.id, error: String((e && e.message) || e) }); return null; })
         ]).then(function (res) {
           st.overlay = res[0]; st.pack = res[1];
           if (st.overlay && st.overlay.upload_id) {
@@ -1202,8 +1231,10 @@
         var old = btn.textContent;
         btn.disabled = true; btn.textContent = 'Preparing…';
         if (msgEl) msgEl.hidden = true;
-        fetch(FN + '/generate-vault-report-pdf', {
-          method: 'POST', headers: H, body: JSON.stringify({ upload_id: uploadId })
+        authHeaders().then(function (h) {
+          return fetch(FN + '/generate-vault-report-pdf', {
+            method: 'POST', headers: h, body: JSON.stringify({ upload_id: uploadId })
+          });
         })
           .then(function (r) {
             if (!r.ok) throw new Error('http ' + r.status);
@@ -1264,7 +1295,9 @@
         if (!st) return;
         var old = btn.textContent;
         btn.disabled = true; btn.textContent = 'Preparing…'; pmsg.hidden = true;
-        fetch(FN + '/generate-solicitor-pack', { method: 'POST', headers: H, body: JSON.stringify({ document_id: doc.id }) })
+        authHeaders().then(function (h) {
+          return fetch(FN + '/generate-solicitor-pack', { method: 'POST', headers: h, body: JSON.stringify({ document_id: doc.id }) });
+        })
           .then(function (r) {
             var ct = r.headers.get('Content-Type') || '';
             if (r.status === 200 && ct.indexOf('application/json') !== -1) {
@@ -1311,49 +1344,134 @@
       // ===========================================================
       function uploadToStorage(file) {
         var path = uid + '/' + cryptoId() + '_' + safeName(file.name);
-        return fetch(REST + '/storage/v1/object/kl-document-vault/' + encodeURIComponent(path), {
-          method: 'POST',
-          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + token,
-                     'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'true' },
-          body: file
-        }).then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return path; });
+        return authHeaders({ 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'true' })
+          .then(function (h) {
+            return fetch(REST + '/storage/v1/object/kl-document-vault/' + encodeURIComponent(path), {
+              method: 'POST', headers: h, body: file
+            });
+          }).then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return path; });
       }
 
-      // Fix 1 (brief §1) — the event-driven check pipeline, ported VERBATIM from
-      // operational/documents runBridge: kl_document_extract → kl-compliance-bridge
-      // {action:'start'} → poll {action:'poll'}. Consumes the deployed Edge Functions
-      // (the bridge calls compliance-check internally). No product_type/session context
-      // is sent in the start body — operational sends none either; the bridge resolves
-      // the KL check allowance server-side from auth.uid() via kl_session_entitlement.
+      // Build an Error that carries the bridge's actual status + structured body, and
+      // surfaces its own `message` to the user (brief §3.1). The bridge returns e.g.
+      // 403 {error:'check_limit_reached', message:…}, 400 {error:'pending', message:…},
+      // 403 {message:'Document not found or access denied'} — `message` is the line we show.
+      function bridgeError(status, body) {
+        var e = new Error('bridge ' + status + (body && body.error ? (' ' + body.error) : ''));
+        e.status = status;
+        e.body = body;
+        e.userMessage = (body && body.message) ? String(body.message) : '';
+        return e;
+      }
+      // Persist the failure so it is diagnosable after the fact (brief §3.3).
+      // analysis_status is a plain-text diagnostic column (verified — nothing gates
+      // rendering on it). Best-effort: a failed PATCH here is only logged, never
+      // masking the failure we are already surfacing.
+      function markCheckFailed(documentId) {
+        return authHeaders().then(function (h) {
+          return fetch(RESTU + '/kl_vault_documents?id=eq.' + documentId, {
+            method: 'PATCH', headers: h, body: JSON.stringify({ analysis_status: 'failed' })
+          });
+        }).then(function (r) {
+          if (!r.ok) console.error('[kl-vault] could not persist analysis_status=failed', { document_id: documentId, status: r.status });
+        }).catch(function (e) {
+          console.error('[kl-vault] markCheckFailed error', { document_id: documentId, error: String((e && e.message) || e) });
+        });
+      }
+      // Turn a check failure into a user-facing line (brief §3.4 / RULE 15): say plainly
+      // that the check did not complete and the document was saved; surface the bridge's
+      // own message when present (it is the actionable part — limit reached, access
+      // denied, still pending). No banned product language; no promise of a retry
+      // control that does not exist.
+      function checkFailMessage(err) {
+        var saved = 'Your document has been saved to your vault.';
+        var m = err && err.userMessage;
+        if (m && typeof m === 'string' && m.trim()) {
+          return 'The compliance check didn’t complete: ' + m.trim() + ' ' + saved;
+        }
+        return 'The compliance check didn’t complete. ' + saved;
+      }
+
+      // Fix 1 (brief §3) — the check pipeline, now (a) authenticated PER REQUEST via
+      // authHeaders() so a refreshed JWT is never stale at the verify_jwt gateway, and
+      // (b) NON-SILENT: every failure is logged (console.error), carries the bridge's
+      // status + message, and REJECTS rather than resolving null. The saved document is
+      // preserved by the CALLER (doUpload), not by swallowing the error here.
+      // Pipeline: kl_document_extract → kl-compliance-bridge {action:'start'} → poll.
       function runBridge(documentId, type) {
-        return fetch(FN + '/kl_document_extract', {
-          method: 'POST', headers: H, body: JSON.stringify({ document_id: documentId })
-        }).catch(function () { return null; })
-          .then(function () {
-            return fetch(FN + '/kl-compliance-bridge', {
-              method: 'POST', headers: H,
-              body: JSON.stringify({ document_id: documentId, document_type: type, action: 'start' })
-            });
-          })
-          .then(function (r) {
+        // Step 1 — extraction. Authenticated; a failure here is LOGGED but not fatal on
+        // its own — the bridge validates extraction server-side and is the arbiter.
+        return authHeaders().then(function (h) {
+          return fetch(FN + '/kl_document_extract', {
+            method: 'POST', headers: h, body: JSON.stringify({ document_id: documentId })
+          }).then(function (r) {
+            if (!r.ok) {
+              return r.text().catch(function () { return ''; }).then(function (b) {
+                console.error('[kl-vault] extract failed', { endpoint: '/kl_document_extract', document_id: documentId, status: r.status, body: b });
+              });
+            }
+          });
+        }).catch(function (e) {
+          if (isNoSession(e)) throw e; // no live session — never proceed unauthenticated
+          console.error('[kl-vault] extract request error', { endpoint: '/kl_document_extract', document_id: documentId, error: String((e && e.message) || e) });
+          // swallow transient extract errors — the bridge reports if extraction is missing
+        }).then(function () {
+          return authHeaders();
+        }).then(function (h) {
+          // Step 2 — start the check. A non-2xx (or missing upload_id) is a REAL failure:
+          // logged, and thrown with the bridge's own message for the user (brief §3).
+          return fetch(FN + '/kl-compliance-bridge', {
+            method: 'POST', headers: h,
+            body: JSON.stringify({ document_id: documentId, document_type: type, action: 'start' })
+          }).then(function (r) {
             return r.json().catch(function () { return {}; }).then(function (d) {
-              if (r.status < 200 || r.status >= 300) return null; // a failed first check must not lose the saved doc
-              return (d && d.upload_id) || null;
+              if (r.status < 200 || r.status >= 300 || !(d && d.upload_id)) {
+                console.error('[kl-vault] bridge start failed', { endpoint: '/kl-compliance-bridge', document_id: documentId, status: r.status, body: d });
+                throw bridgeError(r.status, d);
+              }
+              return d.upload_id;
             });
-          })
-          .then(function (uploadId) { return uploadId ? pollBridge(documentId, uploadId, 0) : null; })
-          .catch(function () { return null; });
+          });
+        }).then(function (uploadId) {
+          // Step 3 — poll to completion (authenticated per tick, non-silent).
+          return pollBridge(documentId, uploadId, 0);
+        });
       }
       function pollBridge(documentId, uploadId, n) {
-        if (n >= 36) return null; // ~3 min ceiling; the overlay appears when the check lands
-        return new Promise(function (resolve) { setTimeout(resolve, 5000); }).then(function () {
-          return fetch(FN + '/kl-compliance-bridge', {
-            method: 'POST', headers: H,
-            body: JSON.stringify({ document_id: documentId, upload_id: uploadId, action: 'poll' })
-          }).then(function (r) { return r.json().catch(function () { return {}; }); })
-            .then(function (d) { return (d && d.status === 'processing') ? pollBridge(documentId, uploadId, n + 1) : d; })
-            .catch(function () { return pollBridge(documentId, uploadId, n + 1); });
-        });
+        if (n >= 36) { // ~3 min ceiling — surface it rather than giving up in silence.
+          console.error('[kl-vault] bridge poll timed out', { endpoint: '/kl-compliance-bridge', document_id: documentId, upload_id: uploadId, polls: n });
+          var te = new Error('poll timeout'); te.userMessage = 'The check is taking longer than expected.';
+          return Promise.reject(te);
+        }
+        return new Promise(function (resolve) { setTimeout(resolve, 5000); })
+          .then(function () { return authHeaders(); })
+          .then(function (h) {
+            return fetch(FN + '/kl-compliance-bridge', {
+              method: 'POST', headers: h,
+              body: JSON.stringify({ document_id: documentId, upload_id: uploadId, action: 'poll' })
+            }).then(function (r) {
+              return r.json().catch(function () { return {}; }).then(function (d) {
+                if (r.status < 200 || r.status >= 300) {
+                  console.error('[kl-vault] bridge poll failed', { endpoint: '/kl-compliance-bridge', document_id: documentId, status: r.status, body: d });
+                  throw bridgeError(r.status, d);
+                }
+                if (d && d.status === 'processing') return pollBridge(documentId, uploadId, n + 1);
+                if (d && (d.status === 'failed' || d.status === 'error')) {
+                  console.error('[kl-vault] bridge reported check failure', { endpoint: '/kl-compliance-bridge', document_id: documentId, body: d });
+                  throw bridgeError(r.status, d);
+                }
+                return d; // terminal: the check reported a result
+              });
+            });
+          })
+          .catch(function (e) {
+            // A no-session, an already-logged bridge error, or the poll timeout must
+            // propagate (not retry, not fall through). Only genuine transient network
+            // errors are retried — and even those are logged, never silent.
+            if (isNoSession(e) || (e && e.status != null) || (e && e.message === 'poll timeout')) throw e;
+            console.error('[kl-vault] bridge poll request error', { endpoint: '/kl-compliance-bridge', document_id: documentId, poll: n, error: String((e && e.message) || e) });
+            return pollBridge(documentId, uploadId, n + 1);
+          });
       }
 
       function setSlotStatus(work, m) {
@@ -1434,27 +1552,57 @@
               user_id: uid, filename: file.name, storage_path: path,
               file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream'
             };
-            return fetch(RESTU + '/kl_vault_documents', {
-              method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H), body: JSON.stringify(body)
+            return authHeaders({ 'Prefer': 'return=representation' }).then(function (h) {
+              return fetch(RESTU + '/kl_vault_documents', {
+                method: 'POST', headers: h, body: JSON.stringify(body)
+              });
             }).then(function (r) {
               if (r.status < 200 || r.status >= 300) throw new Error('insert ' + r.status);
               return r.json();
             });
           })
           .then(function (rep) {
-            // Fix 1 (brief §1): capture the inserted document id, persist the chosen type
-            // (§3), then run the SAME Compliance Check the operational vault runs so the
-            // Exposure Report card populates. runBridge never throws — a failed check must
-            // not lose the saved document (§1.5); loadDocs then re-renders from whatever
-            // findings landed (the card's existing loadCardData paints the report).
+            // The document is now SAVED. Run the check — but a failure must be SURFACED
+            // (brief §3), not swallowed, while the saved document is KEPT (brief §1.5).
+            // runBridge REJECTS on a real failure carrying the bridge's message; on
+            // success it resolves and we re-render so the Exposure Report card paints.
             var id = rep && rep[0] && rep[0].id;
             if (!id) throw new Error('no id');
             storeType(id, type);
             setSlotStatus(work, 'Running the Contract Compliance Check…');
-            return runBridge(id, type);
+            return runBridge(id, type).then(function () {
+              setSlotStatus(work, '');
+              return loadDocs();
+            }, function (err) {
+              // Check FAILED. Log it, persist analysis_status=failed, and tell the user —
+              // but keep the saved document. We deliberately do NOT re-render on this path
+              // (that would wipe the message); the saved document appears as a card on the
+              // next load. Block a duplicate re-add, and let Cancel/Close reveal the card.
+              console.error('[kl-vault] compliance check did not complete', {
+                document_id: id, status: err && err.status, body: err && err.body,
+                error: String((err && err.message) || err)
+              });
+              return markCheckFailed(id).then(function () {
+                setSlotStatus(work, '');
+                // Document is already saved — block a duplicate re-add.
+                goBtn.disabled = true; goBtn.textContent = 'Check didn’t complete';
+                // Replace Cancel with a clean "Close" that reloads the list so the saved
+                // document shows as a card (the original handler's renderSlots() would use
+                // a stale docs array that predates this upload).
+                var closeBtn = cancelBtn.cloneNode(true);
+                closeBtn.disabled = false; closeBtn.textContent = 'Close';
+                if (cancelBtn.parentNode) cancelBtn.parentNode.replaceChild(closeBtn, cancelBtn);
+                closeBtn.addEventListener('click', function (ev) { ev.stopPropagation(); loadDocs(); });
+                showMsg(msgEl, isNoSession(err)
+                  ? 'Your session has ended. Please sign in again.'
+                  : checkFailMessage(err), 'err');
+              });
+            });
           })
-          .then(function () { return loadDocs(); })
-          .catch(function () {
+          .catch(function (e) {
+            // Upload / insert failure — the document was NOT saved. Surface it (now logged
+            // too, not silent) and let the user retry adding it.
+            console.error('[kl-vault] add-document failed before check', { error: String((e && e.message) || e) });
             setSlotStatus(work, '');
             goBtn.disabled = false; cancelBtn.disabled = false;
             showMsg(msgEl, 'Could not add this document right now. Please try again.', 'err');
@@ -1495,8 +1643,10 @@
               file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream',
               last_replaced_at: new Date().toISOString()
             };
-            return fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
-              method: 'PATCH', headers: H, body: JSON.stringify(body)
+            return authHeaders().then(function (h) {
+              return fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
+                method: 'PATCH', headers: h, body: JSON.stringify(body)
+              });
             }).then(function (r) {
               if (r.status < 200 || r.status >= 300) throw new Error('patch ' + r.status);
               return true;
@@ -1513,8 +1663,10 @@
       // Remove — soft delete (frees the document from the session).
       function confirmRemove(doc) {
         if (!window.confirm('Remove this document from your session?')) return;
-        fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
-          method: 'PATCH', headers: H, body: JSON.stringify({ deleted_at: new Date().toISOString() })
+        authHeaders().then(function (h) {
+          return fetch(RESTU + '/kl_vault_documents?id=eq.' + doc.id, {
+            method: 'PATCH', headers: h, body: JSON.stringify({ deleted_at: new Date().toISOString() })
+          });
         }).then(function (r) {
           if (r.status < 200 || r.status >= 300) throw new Error('remove ' + r.status);
           if (cardState[doc.id]) delete cardState[doc.id];
@@ -1624,8 +1776,8 @@
       function downloadDeliveredReport(storagePath, btn) {
         var old = btn.textContent;
         btn.disabled = true; btn.textContent = 'Preparing…';
-        fetch(REST + '/storage/v1/object/kl-reports/' + encodeURIComponent(storagePath), {
-          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + token }
+        authHeaders().then(function (h) {
+          return fetch(REST + '/storage/v1/object/kl-reports/' + encodeURIComponent(storagePath), { headers: h });
         })
           .then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return r.blob(); })
           .then(function (b) {
@@ -1743,12 +1895,14 @@
           var content = ta.value.trim();
           if (!content) { showMsg(nmsg, 'Please write something first.', 'err'); return; }
           saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; nmsg.hidden = true;
-          fetch(RESTU + '/kl_workspace_notes', {
-            method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H),
-            body: JSON.stringify({ user_id: uid, title: 'Knowledge Library Vault — note',
-                                   content_plain: content, note_type: 'note', source_attribution: 'Knowledge Library Vault' })
+          authHeaders({ 'Prefer': 'return=representation' }).then(function (h) {
+            return fetch(RESTU + '/kl_workspace_notes', {
+              method: 'POST', headers: h,
+              body: JSON.stringify({ user_id: uid, title: 'Knowledge Library Vault — note',
+                                     content_plain: content, note_type: 'note', source_attribution: 'Knowledge Library Vault' })
+            });
           })
-            .then(function (r) { if (r.status < 200 || r.status >= 300) throw new Error('note ' + r.status); return r.json().catch(function () { return null; }); })
+            .then(function (r) { if (r.status < 200 || r.status >= 300) throw new Error('note ' + r.status); return true; })
             .then(function () {
               saveBtn.disabled = false; saveBtn.textContent = 'Save note';
               ta.value = '';
