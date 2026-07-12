@@ -2780,9 +2780,14 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
 
 // ─── MessageInput ───
 
-function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChange, nexusState, tier, prefersReducedMotion }) {
+// KL-LANDING-SITE-002 §5 — the inline contract-upload button (and its hidden
+// file <input> + paperclip handler) was removed. Contracts enter the Knowledge
+// Library through Documents only. The now-dead onFileSelect / pulseUpload props
+// were dropped from this component and its call sites (ConversationArea ×2,
+// DomainSubPage ×1). The Eileen text input, placeholder and submit arrow are
+// untouched and now fill the bar's full width.
+function MessageInput({ onSend, disabled, onInputChange, nexusState, tier, prefersReducedMotion }) {
   const [value, setValue] = useState('');
-  const fileInputRef = useRef(null);
   const textInputRef = useRef(null);
 
   // KLUX-001-AM-002 §2.4 / Art. 5: "Discuss with Eileen" seeds the input
@@ -2823,63 +2828,8 @@ function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChan
     }
   }
 
-  function onPaperclipClick() {
-    if (fileInputRef.current) fileInputRef.current.click();
-  }
-
   return (
     <div className="kl-input-bar">
-      {onFileSelect && (
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept=".pdf,.docx,.doc,.txt"
-          style={{ display: 'none' }}
-          onChange={onFileSelect}
-        />
-      )}
-      {onFileSelect && (
-        <button
-          type="button"
-          onClick={onPaperclipClick}
-          title="Upload a contract for compliance analysis"
-          aria-label="Upload a contract for compliance analysis"
-          style={{
-            background: 'rgba(14,165,233,0.08)',
-            border: '1px solid rgba(14,165,233,0.2)',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            padding: '6px 10px',
-            color: '#0EA5E9',
-            fontSize: '13px',
-            fontWeight: 500,
-            fontFamily: "'DM Sans', sans-serif",
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            animation: pulseUpload ? 'kl-pulse 1.5s ease-in-out 3' : 'none',
-          }}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <span>Upload contract</span>
-        </button>
-      )}
       <input
         ref={textInputRef}
         className="kl-input"
@@ -2905,7 +2855,7 @@ function MessageInput({ onSend, disabled, onFileSelect, pulseUpload, onInputChan
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, pulseUpload, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave, hubMode, hubSession, matterRefreshKey }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave, hubMode, hubSession, matterRefreshKey }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -2989,7 +2939,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               Eileen &middot; UK Employment Law Intelligence
             </div>
             <div className="kl-welcome-input">
-              <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
+              <MessageInput onSend={onSend} disabled={isLoading} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
             </div>
             {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). */}
             {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} />}
@@ -3087,7 +3037,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
           {/* OOX-001 §1.4: hub-mode matter bar (retain-or-clear + remember). */}
           {hubMode && hubSession && <HubMatterPanel hubSession={hubSession} refreshKey={matterRefreshKey} />}
           <div className="kl-conversation-input">
-            <MessageInput onSend={onSend} disabled={isLoading} onFileSelect={onFileSelect} pulseUpload={pulseUpload} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
+            <MessageInput onSend={onSend} disabled={isLoading} onInputChange={onInputChange} nexusState={nexusState} tier={tier} prefersReducedMotion={prefersReducedMotion} />
           </div>
         </div>
       )}
@@ -3276,13 +3226,62 @@ function CrownJewels({ onQuery, disabled }) {
 
 // KL-VAULT-INTEGRATION-001 §2 — a nav button linking to the KL session vault, styled
 // identically to the hub "Your workspace" facet buttons (reuses their inline style).
-function klVaultNavButton(key, label) {
+function klVaultNavButton(key, label, primary) {
+  // KL-LANDING-SITE-002 §3.1 — `primary` promotes the Documents action to the same
+  // visual weight as the "+ New Conversation" button (bordered, full-width, cyan;
+  // mirrors .kl-new-chat-btn). Omitted/false keeps the original subtle nav styling,
+  // so the OTHER caller (the subscriber "Knowledge Library session vault" link,
+  // rendered in the hubChrome branch) is byte-identical.
+  var subtle = {
+    width: '100%',
+    textAlign: 'left',
+    display: 'block',
+    background: 'transparent',
+    border: 'none',
+    borderLeft: '2px solid transparent',
+    color: '#94A3B8',
+    cursor: 'pointer',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: '13px',
+    padding: '8px 16px',
+  };
+  var primaryStyle = {
+    width: '100%',
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '10px 12px',
+    background: 'transparent',
+    border: '1px solid #0EA5E9',
+    borderRadius: '8px',
+    color: '#0EA5E9',
+    cursor: 'pointer',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: '13px',
+    fontWeight: 500,
+  };
   return React.createElement('button', {
     key,
     type: 'button',
     onClick: function () {
       window.location.href = '/knowledge-library/vault/';
     },
+    'aria-label': label,
+    style: primary ? primaryStyle : subtle,
+  }, label);
+}
+
+// KL-LANDING-SITE-002 §3.2/§3.3 — a "Your workspace" nav button for a KL workspace
+// section. Styled identically to klVaultNavButton's subtle variant, but instead of
+// navigating it opens an in-app drawer (KLWorkspaceDrawer) in the main content area
+// via the onOpen callback. Pass-holder surface only; never routes to /operational/*.
+function klWorkspaceNavButton(section, label, onOpen) {
+  return React.createElement('button', {
+    key: 'kl-ws-' + section,
+    type: 'button',
+    onClick: function () { if (typeof onOpen === 'function') onOpen(section); },
     'aria-label': label,
     style: {
       width: '100%',
@@ -3300,7 +3299,7 @@ function klVaultNavButton(key, label) {
   }, label);
 }
 
-function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession, hasKLSession, hasSubscription }) {
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession, hasKLSession, hasSubscription, onOpenWorkspace }) {
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
@@ -3478,7 +3477,21 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
             padding: '8px 16px',
           },
         }, 'Your workspace'),
-        klVaultNavButton('kl-only-documents', 'Documents')
+        // KL-LANDING-SITE-002 §3.1 — Documents promoted to a primary (bordered,
+        // full-width) action, same visual weight as "+ New Conversation". Target
+        // (/knowledge-library/vault/) and label unchanged.
+        React.createElement('div', { key: 'kl-docs-wrap', style: { padding: '0 16px 6px' } },
+          klVaultNavButton('kl-only-documents', 'Documents', true)
+        ),
+        // KL-LANDING-SITE-002 §3.2 — six KL-scoped workspace sections. Each opens an
+        // in-app drawer in the main content area (KLWorkspaceDrawer via onOpenWorkspace),
+        // NOT a /operational/* route. Wiring/data sources are in KLWorkspaceDrawer (§3.3).
+        klWorkspaceNavButton('cases', 'Recent Cases', onOpenWorkspace),
+        klWorkspaceNavButton('intelligence', 'Intelligence', onOpenWorkspace),
+        klWorkspaceNavButton('parliament', 'Parliament Live', onOpenWorkspace),
+        klWorkspaceNavButton('ticker', 'Ticker', onOpenWorkspace),
+        klWorkspaceNavButton('notes', 'Notes', onOpenWorkspace),
+        klWorkspaceNavButton('calendar', 'Calendar', onOpenWorkspace)
       ) : null,
       React.createElement('div', { style: { marginTop: '12px' } },
         React.createElement('div', {
@@ -3692,7 +3705,113 @@ function klOrgTierBadge(orgTier) {
   }
 }
 
-function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier, hubSession }) {
+// ─── KLSignOutControl (KL-LANDING-SITE-002 §7) ───
+// The KL surface's sign-out path (it previously had none). Rendered by TopBar for
+// pass holders only. The modal offers exactly two outcomes; endSession ALWAYS awaits
+// the kl-session-purge call BEFORE signOut (the endpoint authenticates on the caller's
+// JWT — signing out first would 401), and a purge failure NEVER traps the user in an
+// authenticated session: it is logged, then sign-out + redirect proceed regardless.
+function KLSignOutControl() {
+  var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+
+  async function endSession(retain) {
+    setBusy(true);
+    var PURGE_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/kl-session-purge';
+    var sb = (window.supabase && window.supabase.createClient)
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    try {
+      if (sb) {
+        const gs = await sb.auth.getSession();
+        const token = gs && gs.data && gs.data.session && gs.data.session.access_token;
+        if (token) {
+          try {
+            await fetch(PURGE_URL, {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ retain: retain }),   // true = Keep, false = Delete everything
+            });
+          } catch (e) {
+            // DETERMINISTIC RULE: never trap the user — log and continue to sign out.
+            console.error('kl-session-purge failed', e);
+          }
+        }
+        try { await sb.auth.signOut(); } catch (e) { /* proceed to redirect regardless */ }
+      }
+    } finally {
+      window.location.replace('/knowledge-library/');
+    }
+  }
+
+  var btn = React.createElement('button', {
+    type: 'button',
+    onClick: function () { setOpen(true); },
+    className: 'kl-signout-btn',
+    'aria-label': 'Sign out',
+    style: {
+      background: 'none', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px',
+      color: '#fff', padding: '4px 10px', fontSize: '13px', cursor: 'pointer',
+      fontFamily: "'DM Sans', sans-serif", letterSpacing: '0.5px',
+    },
+  }, 'Sign Out');
+
+  if (!open) return btn;
+
+  var modal = React.createElement('div', {
+    role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Signing out',
+    onClick: function () { if (!busy) setOpen(false); },
+    style: { position: 'fixed', inset: 0, zIndex: 1300, background: 'rgba(2,6,23,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
+  },
+    React.createElement('div', {
+      onClick: function (e) { e.stopPropagation(); },
+      style: {
+        width: 'min(440px, 100%)', background: '#0b1220', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '14px', padding: '24px', fontFamily: "'DM Sans', sans-serif",
+        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+      },
+    },
+      React.createElement('h2', { style: { margin: '0 0 10px', color: '#F1F5F9', fontSize: '18px', fontWeight: 700 } }, 'Signing out'),
+      React.createElement('p', { style: { margin: '0 0 18px', color: '#94A3B8', fontSize: '13px', lineHeight: 1.5 } },
+        'Your Knowledge Library workspace is per-session. Choose what happens to your workspace data.'),
+      React.createElement('button', {
+        type: 'button', disabled: busy, onClick: function () { endSession(true); },
+        style: {
+          width: '100%', boxSizing: 'border-box', textAlign: 'left', display: 'block', marginBottom: '12px',
+          padding: '12px 14px', borderRadius: '10px', cursor: busy ? 'default' : 'pointer',
+          background: 'transparent', border: '1px solid #0EA5E9', color: '#0EA5E9',
+          fontFamily: "'DM Sans', sans-serif", opacity: busy ? 0.6 : 1,
+        },
+      },
+        React.createElement('span', { style: { display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '3px' } }, 'Keep my workspace'),
+        React.createElement('span', { style: { display: 'block', fontSize: '12px', color: '#94A3B8', lineHeight: 1.4 } },
+          'Your workspace is saved. Sign back in to continue where you left off.')
+      ),
+      React.createElement('button', {
+        type: 'button', disabled: busy, onClick: function () { endSession(false); },
+        style: {
+          width: '100%', boxSizing: 'border-box', textAlign: 'left', display: 'block', marginBottom: '14px',
+          padding: '12px 14px', borderRadius: '10px', cursor: busy ? 'default' : 'pointer',
+          background: 'transparent', border: '1px solid rgba(239,68,68,0.5)', color: '#F87171',
+          fontFamily: "'DM Sans', sans-serif", opacity: busy ? 0.6 : 1,
+        },
+      },
+        React.createElement('span', { style: { display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '3px' } }, 'Delete everything'),
+        React.createElement('span', { style: { display: 'block', fontSize: '12px', color: '#94A3B8', lineHeight: 1.4 } },
+          'Your documents, notes, calendar entries, saved reports and conversation history are permanently deleted. Your account and purchase record are kept. This cannot be undone.')
+      ),
+      React.createElement('div', { style: { textAlign: 'center' } },
+        React.createElement('button', {
+          type: 'button', disabled: busy, onClick: function () { setOpen(false); },
+          style: { background: 'transparent', border: 'none', color: '#64748B', fontSize: '13px', cursor: busy ? 'default' : 'pointer', fontStyle: 'italic', fontFamily: "'DM Sans', sans-serif" },
+        }, 'Cancel')
+      )
+    )
+  );
+
+  return React.createElement(React.Fragment, null, btn, modal);
+}
+
+function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier, hubSession, hasKLSession, hasSubscription }) {
   let badgeLabel = 'KNOWLEDGE LIBRARY';
   let badgeClass = 'kl-badge-per-session';
   if (operationalMode) {
@@ -3763,6 +3882,10 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
           </button>
         )}
         <span className={'kl-tier-badge ' + badgeClass}>{badgeLabel}</span>
+        {/* KL-LANDING-SITE-002 §7 — Sign Out, to the right of the PER-SESSION badge.
+            Pass holders only (hasKLSession && !hasSubscription); never rendered on the
+            Operational surface, which has its own session controls. */}
+        {hasKLSession && !hasSubscription && <KLSignOutControl />}
       </div>
     </div>
   );
@@ -6260,6 +6383,282 @@ function PanelDrawer({ panelId, onClose, lang }) {
   );
 }
 
+// ─── KLWorkspaceDrawer (KL-LANDING-SITE-002 §3.3) ───
+// Pass-holder-only workspace drawer. Opened from the "Your workspace" nav (§3.2),
+// it renders in the main content area over the conversation. Each section queries a
+// KL-scoped table directly via the RULE 2 canonical pattern (the shell decoded the
+// JWT into window.__klToken; here we send Authorization: Bearer <token> + the anon
+// apikey). It NEVER routes to /operational/*, NEVER reads the Operational ticker table, and
+// renders every DB string as escaped React text (no dangerouslySetInnerHTML — so no
+// sanitiser is needed here). RLS is owner-scoped or read-authenticated on every
+// table, so no tier predicate is sent from the client. Zero rows → neutral empty state.
+
+var KL_WS_LABELS = {
+  cases: 'Recent Cases',
+  intelligence: 'Intelligence',
+  parliament: 'Parliament Live',
+  ticker: 'Ticker',
+  notes: 'Notes',
+  calendar: 'Calendar',
+};
+
+function klWsHeaders(extra) {
+  var h = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + (window.__klToken || ''),
+    'Accept': 'application/json',
+  };
+  if (extra) { for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) h[k] = extra[k]; } }
+  return h;
+}
+
+function klWsFetchRows(path) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: klWsHeaders() })
+    .then(function (r) { return r.ok ? r.json() : []; })
+    .then(function (rows) { return Array.isArray(rows) ? rows : []; })
+    .catch(function () { return []; });
+}
+
+function klWsCount(table) {
+  // Exact row count via the Content-Range header (owner/RLS-scoped, HEAD → no body).
+  // Any failure → null (the stat is simply omitted; the list still renders).
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?limit=1', {
+    method: 'HEAD',
+    headers: klWsHeaders({ 'Prefer': 'count=exact' }),
+  }).then(function (r) {
+    var cr = r.headers.get('content-range') || '';
+    var slash = cr.indexOf('/');
+    var n = slash >= 0 ? parseInt(cr.slice(slash + 1), 10) : NaN;
+    return isNaN(n) ? null : n;
+  }).catch(function () { return null; });
+}
+
+function klWsDate(v) {
+  if (!v) return '';
+  try {
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return String(v);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) { return String(v); }
+}
+
+function klWsSnippet(s, n) {
+  if (!s) return '';
+  var lim = n || 160;
+  var t = String(s).replace(/\s+/g, ' ').trim();
+  return t.length > lim ? t.slice(0, lim) + '…' : t;
+}
+
+function klWsCard(children, key) {
+  return React.createElement('div', {
+    key: key,
+    style: {
+      padding: '12px 14px', marginBottom: '10px',
+      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: '10px',
+    },
+  }, children);
+}
+
+function klWsTitle(text) {
+  return React.createElement('div', {
+    key: 'title', style: { color: '#F1F5F9', fontSize: '13px', fontWeight: 600, marginBottom: '4px' },
+  }, text);
+}
+
+function klWsMetaLine(text) {
+  return React.createElement('div', {
+    key: 'meta', style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Mono', monospace", marginBottom: '4px' },
+  }, text);
+}
+
+function klWsBodyText(text) {
+  return React.createElement('div', {
+    key: 'body', style: { color: '#CBD5E1', fontSize: '12px', lineHeight: 1.5 },
+  }, text);
+}
+
+function klWsBadge(text, key) {
+  return React.createElement('span', {
+    key: key,
+    style: {
+      display: 'inline-block', fontSize: '10px', fontFamily: "'DM Mono', monospace",
+      color: '#0EA5E9', border: '1px solid rgba(14,165,233,0.35)', borderRadius: '4px',
+      padding: '1px 6px', marginRight: '6px', marginTop: '4px',
+    },
+  }, text);
+}
+
+function klWsSourceLink(url) {
+  if (!url) return null;
+  return React.createElement('a', {
+    key: 'src', href: url, target: '_blank', rel: 'noopener noreferrer',
+    style: { display: 'inline-block', marginTop: '6px', color: '#0EA5E9', fontSize: '11px', textDecoration: 'none' },
+  }, 'Source ↗');
+}
+
+function klWsRenderRow(section, row, i) {
+  var key = 'row-' + i;
+  if (section === 'cases') {
+    var csub = [row.court, row.year].filter(Boolean).join(' · ');
+    return klWsCard([
+      klWsTitle(row.name || row.citation || 'Case'),
+      row.citation ? klWsMetaLine(row.citation + (csub ? '  —  ' + csub : '')) : (csub ? klWsMetaLine(csub) : null),
+      row.principle ? klWsBodyText(klWsSnippet(row.principle, 220)) : null,
+    ], key);
+  }
+  if (section === 'intelligence') {
+    var badges = [];
+    if (row.in_force) badges.push(klWsBadge('In force', 'inforce'));
+    if (row.is_era_2025) badges.push(klWsBadge('ERA 2025', 'era'));
+    var loc = [];
+    if (row.instrument_id != null) loc.push('Instrument ' + row.instrument_id);
+    if (row.section_num) loc.push('s. ' + row.section_num);
+    return klWsCard([
+      klWsTitle(row.title || ('Provision ' + (row.provision_id != null ? row.provision_id : ''))),
+      loc.length ? klWsMetaLine(loc.join(' · ')) : null,
+      badges.length ? React.createElement('div', { key: 'badges' }, badges) : null,
+    ], key);
+  }
+  if (section === 'parliament') {
+    var pstage = [row.parliament_stage, row.expected_enactment ? ('Expected ' + row.expected_enactment) : null].filter(Boolean).join('  ·  ');
+    return klWsCard([
+      klWsTitle(row.legislation_short_name || row.legislation_title || 'Legislation'),
+      pstage ? klWsMetaLine(pstage) : null,
+      row.headline_summary ? klWsBodyText(klWsSnippet(row.headline_summary, 240)) : null,
+      klWsSourceLink(row.source_url),
+    ], key);
+  }
+  if (section === 'ticker') {
+    return klWsCard([
+      klWsTitle(row.title || 'Alert'),
+      row.detected_at ? klWsMetaLine(klWsDate(row.detected_at)) : null,
+      row.summary ? klWsBodyText(klWsSnippet(row.summary, 240)) : null,
+      klWsSourceLink(row.source_url),
+    ], key);
+  }
+  if (section === 'notes') {
+    return klWsCard([
+      klWsTitle((row.pinned ? '📌 ' : '') + (row.title || 'Untitled')),
+      row.updated_at ? klWsMetaLine('Updated ' + klWsDate(row.updated_at)) : null,
+      row.content_plain ? klWsBodyText(klWsSnippet(row.content_plain, 200)) : null,
+    ], key);
+  }
+  if (section === 'calendar') {
+    var when = [klWsDate(row.event_date), row.end_date ? klWsDate(row.end_date) : null].filter(Boolean).join(' – ');
+    return klWsCard([
+      klWsTitle(row.title || 'Event'),
+      when ? klWsMetaLine(when + (row.event_type ? ('  ·  ' + row.event_type) : '')) : null,
+      row.description ? klWsBodyText(klWsSnippet(row.description, 200)) : null,
+    ], key);
+  }
+  return null;
+}
+
+function KLWorkspaceDrawer({ section, onClose }) {
+  var _rows = useState(null); var rows = _rows[0]; var setRows = _rows[1];   // null = loading
+  var _counts = useState(null); var counts = _counts[0]; var setCounts = _counts[1];
+
+  useEffect(function () {
+    if (!section) return;
+    var alive = true;
+    setRows(null); setCounts(null);
+    var path;
+    if (section === 'cases') {
+      path = 'kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100';
+    } else if (section === 'intelligence') {
+      // §3.2 — the three KL intelligence tables. List = provisions (592-row core);
+      // header = exact counts across provisions / instruments / versions.
+      Promise.all([klWsCount('kl_provisions'), klWsCount('kl_instruments'), klWsCount('kl_versions')])
+        .then(function (c) { if (alive) setCounts({ provisions: c[0], instruments: c[1], versions: c[2] }); });
+      path = 'kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=200';
+    } else if (section === 'parliament') {
+      // §3.3 HARD RULE — is_published=true AND archived=false. RLS enforces is_published
+      // but NOT archived, so archived MUST be filtered here. ~2 of 49 rows qualify; a
+      // near-empty panel is the correct result. Do NOT relax this filter to fill the panel.
+      path = 'kl_legislative_horizon?is_published=eq.true&archived=eq.false&select=id,legislation_title,legislation_short_name,parliament_stage,expected_enactment,headline_summary,source_url&order=display_order.asc&limit=50';
+    } else if (section === 'ticker') {
+      // §3.3 HARD RULE — kl_legislative_alerts ONLY (never the Operational tier-scoped
+      // ticker table, which has no KL tier and permits anonymous read). Select
+      // title/summary/detected_at/source_url ONLY; raw_content is never fetched.
+      path = 'kl_legislative_alerts?select=title,summary,detected_at,source_url&order=detected_at.desc&limit=50';
+    } else if (section === 'notes') {
+      path = 'kl_workspace_notes?select=id,title,content_plain,pinned,updated_at&order=updated_at.desc&limit=100';
+    } else if (section === 'calendar') {
+      path = 'kl_calendar_events?select=id,event_type,title,description,event_date,end_date,status&order=event_date.asc&limit=100';
+    } else {
+      path = null;
+    }
+    if (path) {
+      klWsFetchRows(path).then(function (data) { if (alive) setRows(data); });
+    } else {
+      setRows([]);
+    }
+    return function () { alive = false; };
+  }, [section]);
+
+  useEffect(function () {
+    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return function () { window.removeEventListener('keydown', onKey); };
+  }, [onClose]);
+
+  if (!section) return null;
+  var label = KL_WS_LABELS[section] || section;
+
+  var body;
+  if (rows === null) {
+    body = React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '24px 4px', textAlign: 'center' } }, 'Loading…');
+  } else if (rows.length === 0) {
+    // §3.3 — neutral empty state; never fabricate placeholder content or fall back to another table.
+    body = React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '24px 4px', textAlign: 'center' } }, 'No items to show.');
+  } else {
+    body = rows.map(function (row, i) { return klWsRenderRow(section, row, i); });
+  }
+
+  var header = null;
+  if (section === 'intelligence' && counts) {
+    var stats = [];
+    if (counts.provisions != null) stats.push(counts.provisions + ' provisions');
+    if (counts.instruments != null) stats.push(counts.instruments + ' instruments');
+    if (counts.versions != null) stats.push(counts.versions + ' versions');
+    if (stats.length) {
+      header = React.createElement('div', {
+        style: { color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Mono', monospace", marginBottom: '12px' },
+      }, stats.join('  ·  '));
+    }
+  }
+
+  return React.createElement('div', {
+    role: 'dialog', 'aria-label': label + ' workspace', 'aria-modal': 'true',
+    onClick: onClose,
+    style: { position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(2,6,23,0.55)', display: 'flex', justifyContent: 'flex-end' },
+  },
+    React.createElement('div', {
+      onClick: function (e) { e.stopPropagation(); },
+      style: {
+        width: 'min(440px, 100%)', height: '100%', background: '#0b1220',
+        borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-8px 0 40px rgba(0,0,0,0.4)',
+        display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif",
+      },
+    },
+      React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' },
+      },
+        React.createElement('span', { style: { color: '#F1F5F9', fontSize: '15px', fontWeight: 600 } }, label),
+        React.createElement('button', {
+          type: 'button', onClick: onClose, 'aria-label': 'Close ' + label,
+          style: { background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '18px', cursor: 'pointer', lineHeight: 1 },
+        }, '✕')
+      ),
+      React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '14px 18px' } },
+        header,
+        body
+      )
+    )
+  );
+}
+
 // ─── AdvisoryBanner ───
 
 function AdvisoryBanner() {
@@ -6549,7 +6948,7 @@ function BookShelf({ onOpenBook }) {
 // domain header, expandable sub-area grid, key instruments strip,
 // and anchored Eileen panel at bottom.
 
-function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileSelect, nexusState, prefersReducedMotion, onInputChange, tier, lang }) {
+function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, nexusState, prefersReducedMotion, onInputChange, tier, lang }) {
   var _exp = useState(null);
   var expandedSubArea = _exp[0];
   var setExpandedSubArea = _exp[1];
@@ -6751,7 +7150,7 @@ function DomainSubPage({ domain, onBack, onAskEileen, onSend, isLoading, onFileS
           style: { color: '#94A3B8', fontSize: '13px', fontFamily: "'DM Sans', sans-serif" },
         }, domain.eileenGreeting)
       ),
-      React.createElement(MessageInput, { onSend: onSend, disabled: isLoading, onFileSelect: onFileSelect, onInputChange: onInputChange, nexusState: nexusState, tier: tier, prefersReducedMotion: prefersReducedMotion })
+      React.createElement(MessageInput, { onSend: onSend, disabled: isLoading, onInputChange: onInputChange, nexusState: nexusState, tier: tier, prefersReducedMotion: prefersReducedMotion })
     )
   );
 }
@@ -9850,6 +10249,10 @@ function App() {
   const orgTier = hubSession && hubSession.orgTier;
   // Active workspace facet (hub mode only). null ⇒ Eileen conversation shows.
   const [currentFacet, setCurrentFacet] = useState(null);
+  // KL-LANDING-SITE-002 §3.3 — the active KL "Your workspace" drawer section (null =
+  // closed). Set only by the pass-holder nav (§3.2); the mount is additionally guarded
+  // on hasKLSession && !hasSubscription so it can never reach the Operational surface.
+  const [klWorkspace, setKlWorkspace] = useState(null);
   // OOX-CARDS §1.3 — a pending "Discuss with Eileen" seed: set alongside closing the
   // facet, dispatched by the effect below once the conversation (MessageInput) mounts.
   const [pendingEileenSeed, setPendingEileenSeed] = useState(null);
@@ -10839,6 +11242,8 @@ function App() {
         operationalMode={operationalMode}
         orgTier={orgTier}
         hubSession={hubSession}
+        hasKLSession={hasKLSession}
+        hasSubscription={hasSubscription}
       />
       {/* DMSP-002: AI translation disclaimer. Mandatory sibling below TopBar
           whenever Welsh is active — bilingual Welsh/English copy makes clear
@@ -10876,6 +11281,7 @@ function App() {
         hubSession={hubSession}
         hasKLSession={hasKLSession}
         hasSubscription={hasSubscription}
+        onOpenWorkspace={setKlWorkspace}
       />
       {/* AMD-045 §5: Conditional render — domain sub-page or conversation area.
           OOX-001 §1.5: in hub mode an open workspace facet mounts in the main
@@ -10887,7 +11293,6 @@ function App() {
           onAskEileen={function(question) { sendMessage(question); }}
           onSend={sendMessage}
           isLoading={isLoading}
-          onFileSelect={handleFileSelect}
           nexusState={nexusState}
           prefersReducedMotion={prefersReducedMotion.current}
           onInputChange={handleInputChange}
@@ -10910,7 +11315,6 @@ function App() {
           onToggleFloatingNexus={() => setFloatingNexusOpen(!floatingNexusOpen)}
           showQualifier={showQualifier}
           onUserTypeSelect={handleUserTypeSelect}
-          pulseUpload={messages.some(function(m) { return m.role === 'system_ui' && m.type === 'contract_upload_prompt'; }) && !hasUploadedThisSession}
           nexusState={nexusState}
           prefersReducedMotion={prefersReducedMotion.current}
           onInputChange={handleInputChange}
@@ -10924,8 +11328,16 @@ function App() {
       )}
       {/* F-1: FloatingNexusAdvisor rendered at App level so it is visible
           above ConversationArea (previously nested inside welcome branch
-          and effectively clipped). Hide on domain sub-pages. */}
-      {currentView !== 'domain' && messages.length === 0 && (
+          and effectively clipped). Hide on domain sub-pages.
+          KL-LANDING-SITE-002 §6 — retire the floating Eileen from the KL surface.
+          This mount is SHARED with Operational (its guard never referenced
+          hubChrome, so it renders on the Operational welcome state too). Per the
+          §6 deterministic rule the retirement is gated on the KL condition only:
+          adding `&& hubChrome` suppresses it for pass holders / public KL
+          (!hubChrome) while leaving Operational byte-identical — for hubChrome=true
+          the guard reduces to exactly its previous value. The component and its
+          styles remain in the file, unreferenced-but-intact, so it can return. */}
+      {currentView !== 'domain' && messages.length === 0 && hubChrome && (
         <FloatingNexusAdvisor
           nearDomain={nearDomain}
           nexusState={nexusState}
@@ -10935,18 +11347,27 @@ function App() {
           onDismiss={handleHelperDismiss}
         />
       )}
-      <PanelRail
-        activePanel={activePanel}
-        onSelectPanel={handleSelectPanel}
-        accessType={accessType}
-        tier={tier}
-        hubMode={hubChrome}
-      />
+      {/* KL-LANDING-SITE-002 §4 — the right icon rail is Operational-only. Pass
+          holders (!hubChrome) get no rail. PanelRail is NOT deleted — Operational
+          still filters PANEL_DEFS down to its Research drawer through it. For
+          hubChrome the mount is identical to before (`{true && <PanelRail/>}`). */}
+      {hubChrome && (
+        <PanelRail
+          activePanel={activePanel}
+          onSelectPanel={handleSelectPanel}
+          accessType={accessType}
+          tier={tier}
+          hubMode={hubChrome}
+        />
+      )}
       <AdvisoryBanner />
       {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
-      {/* OOX-001 §1.1 — in hub/operational mode only the Research drawer opens; a
-          stale persisted Vault/Notes/Calendar panel never re-opens the legacy drawer. */}
-      {activePanel && (!hubChrome || activePanel === 'research') && (
+      {/* OOX-001 §1.1 + KL-LANDING-SITE-002 §4 — the right drawer now opens ONLY in
+          the Operational Research case. The old `!hubChrome` half (the KL drawer) is
+          removed, so pass holders get no right drawer. Operational is byte-identical:
+          for hubChrome=true the guard reduces to `activePanel === 'research'`, exactly
+          the old behaviour; for !hubChrome it is always false (retired). */}
+      {activePanel === 'research' && hubChrome && (
         <PanelDrawer panelId={activePanel} onClose={() => handleSelectPanel(null)} lang={lang} />
       )}
       {!upsellDismissed && !sessionExpired && upsellGraceElapsed && (
@@ -10955,6 +11376,12 @@ function App() {
           minutesRemaining={minutesRemaining}
           onDismiss={() => setUpsellDismissed(true)}
         />
+      )}
+      {/* KL-LANDING-SITE-002 §3.3 — the KL "Your workspace" drawer. Double-guarded:
+          it is only ever opened from the pass-holder nav, AND the mount itself requires
+          hasKLSession && !hasSubscription, so it cannot render on the Operational surface. */}
+      {hasKLSession && !hasSubscription && klWorkspace && (
+        <KLWorkspaceDrawer section={klWorkspace} onClose={() => setKlWorkspace(null)} />
       )}
       {sessionExpired && <ExpiredModal />}
     </React.Fragment>
