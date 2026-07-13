@@ -3535,16 +3535,19 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
           klVaultNavButton('kl-only-documents', 'Documents', true)
         ),
         // KL-PARITY-001 WP6 — the KL workspace menu now presents the same offerings as the
-        // Operational workspace: Intelligence, Cases, Calendar, Parliament Live (Documents is
-        // the promoted item above). Alerts and ACEI Overview are excluded by Director
+        // Operational workspace: Intelligence, Cases, Calendar, Notes, Parliament Live (Documents
+        // is the promoted item above). Alerts and ACEI Overview are excluded by Director
         // instruction — their components are retained, simply not linked here. Each item opens
         // an in-app parity view (KLWorkspaceDrawer) inside the signed-in KL shell, because a
         // pass holder cannot open the subscription-tier-gated /operational/* pages. The Notes
         // component (KLNotesTab) and its 'notes' drawer section are retained (Save-to-Notes
-        // still writes); only its menu link is dropped to match the exact WP6 composition.
+        // still writes); its menu link — dropped under the original WP6 composition — is
+        // reinstated immediately after Calendar per AILANE-CC-RELAY-KL-PARITY-001-F1
+        // (Director decision, 13 Jul 2026).
         klWorkspaceNavButton('intelligence', 'Intelligence', onOpenWorkspace),
         klWorkspaceNavButton('cases', 'Cases', onOpenWorkspace),
         klWorkspaceNavButton('calendar', 'Calendar', onOpenWorkspace),
+        klWorkspaceNavButton('notes', 'Notes', onOpenWorkspace),
         klWorkspaceNavButton('parliament', 'Parliament Live', onOpenWorkspace)
       ) : null,
       React.createElement('div', { style: { marginTop: '12px' } },
