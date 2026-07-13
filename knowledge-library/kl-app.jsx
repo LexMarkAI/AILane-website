@@ -2522,7 +2522,7 @@ function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis,
 
 // ─── MessageBubble ───
 
-function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
+function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder }) {
   if (msg.type === 'file_upload') {
     return (
       <div className="kl-msg kl-msg-user">
@@ -2743,6 +2743,52 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly }) {
               title="Save this response to Saved Items"
             >Save</button>
 
+            {/* §7.3 — Save to Notes: persists the WHOLE exchange (question + answer)
+                as an `eileen_conversation` note that propagates into the Notes hub.
+                Distinct from the AMD-044 "Save" above (which stores the response
+                alone). Pass holders ONLY (klPassHolder) — this control and its write
+                target are KL-scoped, so it never renders on Operational or public KL,
+                keeping both byte-identical. Only shown once the exchange carries its
+                paired question (msg.userMessage), i.e. a real Eileen turn. */}
+            {klPassHolder && msg.userMessage != null && (
+              <button
+                type="button"
+                onClick={function(e) {
+                  var btn = e.currentTarget;
+                  btn.disabled = true;
+                  var orig = btn.textContent;
+                  btn.textContent = 'Saving…';
+                  var userId = window.__klUserId;
+                  if (!userId) { btn.textContent = 'Not signed in'; setTimeout(function() { btn.textContent = orig; btn.disabled = false; }, 1800); return; }
+                  var note = {
+                    user_id: userId,
+                    project_id: null,
+                    title: klNoteTitleFromQuestion(msg.userMessage),
+                    content_plain: 'Question:\n' + (msg.userMessage || '') + '\n\nEileen:\n' + (msg.content || ''),
+                    content_json: {},
+                    note_type: 'eileen_conversation',
+                    source_attribution: msg.conversationId || null,
+                  };
+                  var refs = klRefsFromProvisions(msg.provisionsRetrieved);
+                  if (refs) note.statutory_refs = refs;
+                  klWsInsert('kl_workspace_notes', note).then(function(rows) {
+                    if (rows) {
+                      btn.textContent = '✓ Saved to Notes';
+                      btn.style.color = '#10B981';
+                      // §7.3 — propagate into the Notes section with no reload.
+                      if (typeof window.__klHubNotesRefresh === 'function') window.__klHubNotesRefresh();
+                    } else {
+                      btn.textContent = 'Failed';
+                      btn.style.color = '#EF4444';
+                    }
+                    setTimeout(function() { btn.textContent = orig; btn.style.color = ''; btn.disabled = false; }, 2000);
+                  });
+                }}
+                className="kl-action-btn"
+                title="Save this question and Eileen's answer to your Notes"
+              >Save to Notes</button>
+            )}
+
             {/* Download — AMD-044 §3.4: includes mandatory disclaimer */}
             <button
               type="button"
@@ -2855,7 +2901,7 @@ function MessageInput({ onSend, disabled, onInputChange, nexusState, tier, prefe
 
 // ─── ConversationArea ───
 
-function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave, hubMode, hubSession, matterRefreshKey }) {
+function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onRunAnalysis, onVaultOnly, floatingNexusExpanded, onToggleFloatingNexus, showQualifier, onUserTypeSelect, nexusState, prefersReducedMotion, onInputChange, nearDomain, onDomainHover, onDomainLeave, hubMode, hubSession, matterRefreshKey, klPassHolder }) {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -3029,7 +3075,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               if (m.isError) {
                 return <EileenErrorMessage key={i} message={m.errorMessage || m.content} retryAction={m.retryAction} retryLabel={m.retryLabel} />;
               }
-              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} onVaultOnly={onVaultOnly} />;
+              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} onVaultOnly={onVaultOnly} klPassHolder={klPassHolder} />;
             })}
             {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
             {isLoading && <TypingIndicator />}
@@ -3390,7 +3436,12 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
         style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' },
       }, 'Eileen')
     ),
-    React.createElement('div', { className: 'kl-sidebar-section' },
+    // §8 — "+ New Conversation" is redundant for pass holders (the Eileen chat bar
+    // is always present). SHARED-COMPONENT TRAP: this button renders for BOTH the
+    // Operational surface (hubChrome) and pass holders — the same class of control
+    // as the Upload button. Per the deterministic rule the removal is gated on the
+    // pass-holder condition ONLY; Operational and public KL keep it, byte-identical.
+    (hasKLSession && !hasSubscription) ? null : React.createElement('div', { className: 'kl-sidebar-section' },
       React.createElement('button', { className: 'kl-new-chat-btn', onClick: onNewChat },
         React.createElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.25', strokeLinecap: 'round', strokeLinejoin: 'round' },
           React.createElement('line', { x1: '12', y1: '5', x2: '12', y2: '19' }),
@@ -3483,13 +3534,12 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
         React.createElement('div', { key: 'kl-docs-wrap', style: { padding: '0 16px 6px' } },
           klVaultNavButton('kl-only-documents', 'Documents', true)
         ),
-        // KL-LANDING-SITE-002 §3.2 — six KL-scoped workspace sections. Each opens an
-        // in-app drawer in the main content area (KLWorkspaceDrawer via onOpenWorkspace),
-        // NOT a /operational/* route. Wiring/data sources are in KLWorkspaceDrawer (§3.3).
-        klWorkspaceNavButton('cases', 'Recent Cases', onOpenWorkspace),
+        // KL-INTELLIGENCE-HUB §4 — three peers, not four-plus-a-ticker. "Intelligence"
+        // opens the tabbed hub (Law / Cases / Horizon, §5); "Recent Cases" and
+        // "Parliament Live" are relocated INTO that hub, and "Ticker" becomes the
+        // header alert bell (§6). Notes (§7) and Calendar are unchanged. The removed
+        // items' query logic is relocated (KLIntelligenceHub / KLTickerBell), not lost.
         klWorkspaceNavButton('intelligence', 'Intelligence', onOpenWorkspace),
-        klWorkspaceNavButton('parliament', 'Parliament Live', onOpenWorkspace),
-        klWorkspaceNavButton('ticker', 'Ticker', onOpenWorkspace),
         klWorkspaceNavButton('notes', 'Notes', onOpenWorkspace),
         klWorkspaceNavButton('calendar', 'Calendar', onOpenWorkspace)
       ) : null,
@@ -3811,7 +3861,7 @@ function KLSignOutControl() {
   return React.createElement(React.Fragment, null, btn, modal);
 }
 
-function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier, hubSession, hasKLSession, hasSubscription }) {
+function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpiresAt, onSessionExpired, lang, onToggleLang, operationalMode, orgTier, hubSession, hasKLSession, hasSubscription, onOpenHubLaw }) {
   let badgeLabel = 'KNOWLEDGE LIBRARY';
   let badgeClass = 'kl-badge-per-session';
   if (operationalMode) {
@@ -3881,6 +3931,13 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
             {lang === 'en' ? 'CY' : 'EN'}
           </button>
         )}
+        {/* KL-INTELLIGENCE-HUB §6 — Ticker demoted to an alert bell, beside the
+            PER-SESSION badge and Sign Out. Pass holders ONLY (hasKLSession &&
+            !hasSubscription); reads kl_legislative_alerts (NEVER the operational
+            tier-scoped ticker table, which has no KL tier and permits anon read).
+            Distinct from the operational HubNotifBell above, which is gated on
+            hubSession and never renders for pass holders. */}
+        {hasKLSession && !hasSubscription && <KLTickerBell onOpenLawInstrument={onOpenHubLaw} />}
         <span className={'kl-tier-badge ' + badgeClass}>{badgeLabel}</span>
         {/* KL-LANDING-SITE-002 §7 — Sign Out, to the right of the PER-SESSION badge.
             Pass holders only (hasKLSession && !hasSubscription); never rendered on the
@@ -6402,10 +6459,44 @@ var KL_WS_LABELS = {
   calendar: 'Calendar',
 };
 
-function klWsHeaders(extra) {
+// ─── Live-token auth for the pass-holder workspace (KL-INTELLIGENCE-HUB §3(g)) ───
+// The shell (knowledge-library/index.html) sets window.__klToken ONCE at load and,
+// per AUTH-002 §132, "never refresh, never listen, never mint" — so that snapshot goes
+// stale the moment supabase-js auto-refreshes the JWT on its own schedule (~1h). A
+// stale header against a verify_jwt:true function (kl-cases-feed, §5.2) is rejected at
+// the gateway with NO log and NO surfaced error — the identical defect fixed for the
+// vault page in KL-VAULT-CHECK-FIX-SITE-001. We therefore read the CURRENT access token
+// from a live getSession() on EVERY request. One lazily-created client (mirroring the
+// guard, detectHubSession) shares the host's persisted, auto-refreshed session, so
+// getSession() returns the fresh token; window.__klToken remains only a last-resort
+// fallback if no client/session is available.
+var __klEngineSb = null;
+function klEngineClient() {
+  if (__klEngineSb) return __klEngineSb;
+  try {
+    if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+      __klEngineSb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (e) { __klEngineSb = null; }
+  return __klEngineSb;
+}
+function klLiveToken() {
+  try {
+    var sb = klEngineClient();
+    if (sb && sb.auth && sb.auth.getSession) {
+      return sb.auth.getSession().then(function (gs) {
+        var t = gs && gs.data && gs.data.session && gs.data.session.access_token;
+        return t || window.__klToken || '';
+      }).catch(function () { return window.__klToken || ''; });
+    }
+  } catch (e) { /* fall through to snapshot */ }
+  return Promise.resolve(window.__klToken || '');
+}
+
+function klWsHeaders(extra, token) {
   var h = {
     'apikey': SUPABASE_ANON_KEY,
-    'Authorization': 'Bearer ' + (window.__klToken || ''),
+    'Authorization': 'Bearer ' + (token != null ? token : (window.__klToken || '')),
     'Accept': 'application/json',
   };
   if (extra) { for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) h[k] = extra[k]; } }
@@ -6413,24 +6504,84 @@ function klWsHeaders(extra) {
 }
 
 function klWsFetchRows(path) {
-  return fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: klWsHeaders() })
-    .then(function (r) { return r.ok ? r.json() : []; })
-    .then(function (rows) { return Array.isArray(rows) ? rows : []; })
-    .catch(function () { return []; });
+  return klLiveToken().then(function (tok) {
+    return fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: klWsHeaders(null, tok) })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) { return Array.isArray(rows) ? rows : []; })
+      .catch(function () { return []; });
+  });
 }
 
 function klWsCount(table) {
   // Exact row count via the Content-Range header (owner/RLS-scoped, HEAD → no body).
   // Any failure → null (the stat is simply omitted; the list still renders).
-  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?limit=1', {
-    method: 'HEAD',
-    headers: klWsHeaders({ 'Prefer': 'count=exact' }),
-  }).then(function (r) {
-    var cr = r.headers.get('content-range') || '';
-    var slash = cr.indexOf('/');
-    var n = slash >= 0 ? parseInt(cr.slice(slash + 1), 10) : NaN;
-    return isNaN(n) ? null : n;
-  }).catch(function () { return null; });
+  return klLiveToken().then(function (tok) {
+    return fetch(SUPABASE_URL + '/rest/v1/' + table + '?limit=1', {
+      method: 'HEAD',
+      headers: klWsHeaders({ 'Prefer': 'count=exact' }, tok),
+    }).then(function (r) {
+      var cr = r.headers.get('content-range') || '';
+      var slash = cr.indexOf('/');
+      var n = slash >= 0 ? parseInt(cr.slice(slash + 1), 10) : NaN;
+      return isNaN(n) ? null : n;
+    }).catch(function () { return null; });
+  });
+}
+
+// Owner/RLS-scoped REST writes for Notes (§7) — live token, JSON body.
+function klWsPatch(path, body) {
+  return klLiveToken().then(function (tok) {
+    return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      method: 'PATCH',
+      headers: klWsHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, tok),
+      body: JSON.stringify(body || {}),
+    }).then(function (r) { return r.ok ? r.json().catch(function () { return []; }) : null; })
+      .catch(function () { return null; });
+  });
+}
+function klWsInsert(path, body) {
+  return klLiveToken().then(function (tok) {
+    return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      method: 'POST',
+      headers: klWsHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, tok),
+      body: JSON.stringify(body || {}),
+    }).then(function (r) { return r.ok ? r.json().catch(function () { return null; }) : null; })
+      .catch(function () { return null; });
+  });
+}
+// Postgres RPC (SECURITY DEFINER parliament feeds — §5.3). Live token; returns [].
+function klWsRpc(fn, body) {
+  return klLiveToken().then(function (tok) {
+    return fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: klWsHeaders({ 'Content-Type': 'application/json' }, tok),
+      body: JSON.stringify(body || {}),
+    }).then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) { return Array.isArray(rows) ? rows : []; })
+      .catch(function () { return []; });
+  });
+}
+// kl-cases-feed Edge Function (verify_jwt:true — §5.2). LIVE token is mandatory: a
+// stale snapshot is rejected at the gateway, invisibly. Returns the parsed body, or
+// { __error:true, status } so the caller can render the honest error state the brief
+// requires if the function is not yet deployed (404). Endpoint form per §5.2.
+var KL_FUNCTIONS_BASE = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co');
+function klCasesFeed(payload) {
+  return klLiveToken().then(function (tok) {
+    return fetch(KL_FUNCTIONS_BASE + '/kl-cases-feed', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + tok,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload || {}),
+    }).then(function (r) {
+      if (!r.ok) return { __error: true, status: r.status };
+      return r.json().catch(function () { return { __error: true, status: 0 }; });
+    }).catch(function () { return { __error: true, status: 0 }; });
+  });
 }
 
 function klWsDate(v) {
@@ -6555,48 +6706,610 @@ function klWsRenderRow(section, row, i) {
   return null;
 }
 
-function KLWorkspaceDrawer({ section, onClose }) {
-  var _rows = useState(null); var rows = _rows[0]; var setRows = _rows[1];   // null = loading
-  var _counts = useState(null); var counts = _counts[0]; var setCounts = _counts[1];
+// ═══════════════════════════════════════════════════════════════════════════
+// KL-INTELLIGENCE-HUB-SITE-001 — The Intelligence Hub (PASS HOLDERS ONLY)
+// Every component below renders ONLY inside KLWorkspaceDrawer, whose App-level
+// mount is guarded `hasKLSession && !hasSubscription` (§9 check 1). The
+// Operational surface (hubChrome) never mounts any of this. Every DB string
+// renders as escaped React text — no dangerouslySetInnerHTML. RLS is
+// owner-scoped or read-authenticated on every source; the JWT is read live per
+// request (klLiveToken, §3g) so a background token refresh can never stale it.
+// ═══════════════════════════════════════════════════════════════════════════
 
+var KL_HUB_SECTION_LABEL = { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' };
+var KL_HUB_CARD = { padding: '12px 14px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px' };
+var KL_HUB_CARD_BTN = { display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" };
+var KL_HUB_BADGE_OK = { flexShrink: 0, fontSize: '9px', fontFamily: "'DM Mono', monospace", color: '#10B981', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '4px', padding: '2px 6px', whiteSpace: 'nowrap' };
+var KL_HUB_BADGE_WARN = { flexShrink: 0, fontSize: '9px', fontFamily: "'DM Mono', monospace", color: '#F59E0B', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '4px', padding: '2px 6px', whiteSpace: 'nowrap' };
+var KL_HUB_BADGE_STAGE = { flexShrink: 0, fontSize: '9px', fontFamily: "'DM Mono', monospace", color: '#0EA5E9', border: '1px solid rgba(14,165,233,0.4)', borderRadius: '4px', padding: '2px 6px', whiteSpace: 'nowrap' };
+var KL_STAGE_LABELS = { 10: 'Royal Assent', 5: 'Third Reading', 4: 'Report stage', 3: 'Committee stage', 2: 'Second Reading', 1: 'First Reading', 0: '' };
+function klStageLabel(so) { var n = (so == null) ? 0 : Number(so); return KL_STAGE_LABELS[n] || ''; }
+
+function klProvisionRef(provision, instrumentTitle) {
+  var parts = [];
+  if (instrumentTitle) parts.push(instrumentTitle);
+  if (provision.section_num) parts.push('s. ' + provision.section_num);
+  var loc = parts.length ? ' (' + parts.join(', ') + ')' : '';
+  return (provision.title || ('Provision ' + (provision.provision_id != null ? provision.provision_id : ''))) + loc;
+}
+function klCaseId(rec) { return (rec && (rec.id != null ? rec.id : (rec.case_id != null ? rec.case_id : (rec.uuid != null ? rec.uuid : null)))) || null; }
+function klNoteTypeLabel(t) {
+  if (t === 'eileen_conversation') return 'Eileen conversation';
+  if (t === 'eileen_response') return 'Eileen response';
+  if (t === 'clip') return 'Clip';
+  if (t === 'note' || !t) return 'Note';
+  return String(t);
+}
+// §7.3 — derive plain statutory_refs strings from an eileen-intelligence
+// provisions_retrieved payload (array of strings or objects). Returns null when
+// there is nothing usable, so the column is simply omitted.
+function klRefsFromProvisions(pr) {
+  if (!pr) return null;
+  var arr = Array.isArray(pr) ? pr : [];
+  var refs = [];
+  arr.forEach(function (p) {
+    if (p == null) return;
+    if (typeof p === 'string') { refs.push(p); return; }
+    if (typeof p === 'object') {
+      var s = p.citation || p.section_num || p.title || p.provision_id || p.id;
+      if (s != null) refs.push(String(s));
+    }
+  });
+  return refs.length ? refs : null;
+}
+// §7.3 — note title from a question: first ~60 chars, trimmed at a word boundary.
+function klNoteTitleFromQuestion(q) {
+  var t = String(q || '').replace(/\s+/g, ' ').trim();
+  if (!t) return 'Eileen conversation';
+  if (t.length <= 60) return t;
+  var cut = t.slice(0, 60);
+  var sp = cut.lastIndexOf(' ');
+  if (sp > 30) cut = cut.slice(0, sp);
+  return cut + '…';
+}
+
+function KLHubLoading() { return React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '24px 4px', textAlign: 'center' } }, 'Loading…'); }
+function KLHubEmpty({ text }) { return React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '20px 4px', textAlign: 'center', lineHeight: 1.5 } }, text || 'No items to show.'); }
+function KLHubBack({ onBack, label }) {
+  return (
+    <button type="button" onClick={onBack} style={{ background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '12px', cursor: 'pointer', padding: '2px 0', marginBottom: '12px', fontFamily: "'DM Sans', sans-serif" }}>
+      {'← ' + (label || 'Back')}
+    </button>
+  );
+}
+// Every detail layer carries this — seeds the chat with the item as context and
+// hands a domain_context down to the next eileen-intelligence call (§5.1/§5.2).
+function KLDiscussButton({ seed, domainContext, onDiscuss }) {
+  return (
+    <button type="button"
+      onClick={function () { if (typeof onDiscuss === 'function') onDiscuss(seed, domainContext); }}
+      style={{ marginTop: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', background: 'rgba(14,165,233,0.10)', border: '1px solid rgba(14,165,233,0.4)', borderRadius: '8px', color: '#0EA5E9', fontSize: '12px', fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+      {'Discuss with Eileen →'}
+    </button>
+  );
+}
+
+// ─── §5.1 Law: provision detail + version history ───
+function KLVersionRow({ v }) {
+  var date = v.effective_date || v.effective_from || v.valid_from || v.in_force_from || v.date || v.created_at || null;
+  var label = v.version || v.version_num || v.version_label || v.status || v.change_type || null;
+  var note = v.change_summary || v.summary || v.note || v.description || v.notes || null;
+  var head = [label ? String(label) : null, date ? klWsDate(date) : null].filter(Boolean).join('  ·  ') || 'Version';
+  return (
+    <div style={{ padding: '8px 10px', marginBottom: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px' }}>
+      <div style={{ color: '#CBD5E1', fontSize: '12px', fontFamily: "'DM Mono', monospace" }}>{head}</div>
+      {note ? <div style={{ color: '#94A3B8', fontSize: '12px', marginTop: '3px', lineHeight: 1.45 }}>{klWsSnippet(note, 220)}</div> : null}
+    </div>
+  );
+}
+function KLProvisionDetail({ provision, instrumentTitle, onBack, onDiscuss }) {
+  var _v = useState(null); var versions = _v[0]; var setVersions = _v[1];
   useEffect(function () {
-    if (!section) return;
-    var alive = true;
-    setRows(null); setCounts(null);
-    var path;
-    if (section === 'cases') {
-      path = 'kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100';
-    } else if (section === 'intelligence') {
-      // §3.2 — the three KL intelligence tables. List = provisions (592-row core);
-      // header = exact counts across provisions / instruments / versions.
-      Promise.all([klWsCount('kl_provisions'), klWsCount('kl_instruments'), klWsCount('kl_versions')])
-        .then(function (c) { if (alive) setCounts({ provisions: c[0], instruments: c[1], versions: c[2] }); });
-      path = 'kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=200';
-    } else if (section === 'parliament') {
-      // §3.3 HARD RULE — is_published=true AND archived=false. RLS enforces is_published
-      // but NOT archived, so archived MUST be filtered here. ~2 of 49 rows qualify; a
-      // near-empty panel is the correct result. Do NOT relax this filter to fill the panel.
-      path = 'kl_legislative_horizon?is_published=eq.true&archived=eq.false&select=id,legislation_title,legislation_short_name,parliament_stage,expected_enactment,headline_summary,source_url&order=display_order.asc&limit=50';
-    } else if (section === 'ticker') {
-      // §3.3 HARD RULE — kl_legislative_alerts ONLY (never the Operational tier-scoped
-      // ticker table, which has no KL tier and permits anonymous read). Select
-      // title/summary/detected_at/source_url ONLY; raw_content is never fetched.
-      path = 'kl_legislative_alerts?select=title,summary,detected_at,source_url&order=detected_at.desc&limit=50';
-    } else if (section === 'notes') {
-      path = 'kl_workspace_notes?select=id,title,content_plain,pinned,updated_at&order=updated_at.desc&limit=100';
-    } else if (section === 'calendar') {
-      path = 'kl_calendar_events?select=id,event_type,title,description,event_date,end_date,status&order=event_date.asc&limit=100';
-    } else {
-      path = null;
-    }
-    if (path) {
-      klWsFetchRows(path).then(function (data) { if (alive) setRows(data); });
-    } else {
-      setRows([]);
-    }
+    var alive = true; setVersions(null);
+    // Version history from kl_versions. Column shape is not uniform across the
+    // estate, so select=* and match defensively on provision linkage, falling
+    // back to instrument-level history when no per-provision key is present.
+    klWsFetchRows('kl_versions?select=*&limit=400').then(function (rows) {
+      if (!alive) return;
+      var pid = provision.provision_id, iid = provision.instrument_id;
+      var hasProvLink = rows.some(function (v) { return v && v.provision_id != null; });
+      var mine = rows.filter(function (v) {
+        if (!v) return false;
+        return hasProvLink ? (v.provision_id === pid) : (iid != null && v.instrument_id === iid);
+      });
+      setVersions(mine);
+    });
     return function () { alive = false; };
-  }, [section]);
+  }, [provision]);
 
+  var seed = 'Please explain ' + klProvisionRef(provision, instrumentTitle) + ' — what it requires and its practical implications for an employer.';
+  var domainContext = 'provision:' + (provision.provision_id != null ? provision.provision_id : '');
+  return (
+    <div>
+      <KLHubBack onBack={onBack} label="Back to Law" />
+      <div style={{ color: '#F1F5F9', fontSize: '15px', fontWeight: 700, marginBottom: '6px', lineHeight: 1.35 }}>{provision.title || ('Provision ' + provision.provision_id)}</div>
+      <div style={{ color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Mono', monospace", marginBottom: '10px' }}>
+        {[instrumentTitle, provision.section_num ? ('s. ' + provision.section_num) : null].filter(Boolean).join('  ·  ')}
+      </div>
+      <div style={{ marginBottom: '4px' }}>
+        {provision.in_force ? klWsBadge('In force', 'if') : klWsBadge('Not yet in force', 'nif')}
+        {provision.is_era_2025 ? klWsBadge('ERA 2025', 'era') : null}
+      </div>
+      <div style={{ color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', margin: '16px 0 8px' }}>Version history</div>
+      {versions === null ? <KLHubLoading />
+        : versions.length === 0 ? <div style={{ color: '#64748B', fontSize: '12px' }}>No recorded version changes for this provision.</div>
+        : versions.map(function (v, i) { return <KLVersionRow key={i} v={v} />; })}
+      <KLDiscussButton seed={seed} domainContext={domainContext} onDiscuss={onDiscuss} />
+    </div>
+  );
+}
+// ─── §5.1 Law tab ───
+function KLLawTab({ onDiscuss, focusInstrumentId }) {
+  var _p = useState(null); var provisions = _p[0]; var setProvisions = _p[1];
+  var _c = useState(null); var counts = _c[0]; var setCounts = _c[1];
+  var _sel = useState(null); var selected = _sel[0]; var setSelected = _sel[1];
+  var _exp = useState({}); var expanded = _exp[0]; var setExpanded = _exp[1];
+  var _tick = useState(0); var setTick = _tick[1];
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=700')
+      .then(function (rows) { if (alive) setProvisions(rows); });
+    Promise.all([klWsCount('kl_provisions'), klWsCount('kl_instruments'), klWsCount('kl_versions')])
+      .then(function (c) { if (alive) setCounts({ provisions: c[0], instruments: c[1], versions: c[2] }); });
+    // Resolve instrument display titles (live-feed map → static names → raw code).
+    ensureInstrumentsMap().then(function () { if (alive) setTick(function (x) { return x + 1; }); }).catch(function () {});
+    return function () { alive = false; };
+  }, []);
+  useEffect(function () {
+    if (focusInstrumentId != null) setExpanded(function (prev) { var n = Object.assign({}, prev); n[focusInstrumentId] = true; return n; });
+  }, [focusInstrumentId]);
+
+  if (selected) {
+    return <KLProvisionDetail provision={selected} instrumentTitle={instrumentDisplayTitle(selected.instrument_id)} onBack={function () { setSelected(null); }} onDiscuss={onDiscuss} />;
+  }
+  if (provisions === null) return <KLHubLoading />;
+
+  var groups = [], byId = {};
+  provisions.forEach(function (p) {
+    var k = p.instrument_id == null ? '—' : p.instrument_id;
+    if (!byId[k]) { byId[k] = { id: p.instrument_id, items: [] }; groups.push(byId[k]); }
+    byId[k].items.push(p);
+  });
+  return (
+    <div>
+      {counts ? (
+        <div style={{ color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Mono', monospace", marginBottom: '12px' }}>
+          {[counts.instruments != null ? (counts.instruments + ' instruments') : null, counts.provisions != null ? (counts.provisions + ' provisions') : null, counts.versions != null ? (counts.versions + ' versions') : null].filter(Boolean).join('  ·  ')}
+        </div>
+      ) : null}
+      <div style={{ color: '#64748B', fontSize: '12px', marginBottom: '14px', lineHeight: 1.5 }}>The statutory corpus — the law as it stands. Open a provision for its detail and version history.</div>
+      {groups.map(function (g, gi) {
+        var title = instrumentDisplayTitle(g.id);
+        var isOpen = !!expanded[g.id];
+        return (
+          <div key={gi} style={{ marginBottom: '8px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', overflow: 'hidden' }}>
+            <button type="button" onClick={function () { setExpanded(function (prev) { var n = Object.assign({}, prev); n[g.id] = !prev[g.id]; return n; }); }}
+              style={{ width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: 'none', color: '#F1F5F9', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600 }}>
+              <span style={{ minWidth: 0 }}>{title}</span>
+              <span style={{ color: '#64748B', fontSize: '11px', fontFamily: "'DM Mono', monospace", flexShrink: 0 }}>{g.items.length + (isOpen ? ' ▾' : ' ▸')}</span>
+            </button>
+            {isOpen ? (
+              <div style={{ padding: '4px 0' }}>
+                {g.items.map(function (p, pi) {
+                  return (
+                    <button key={pi} type="button" onClick={function () { setSelected(p); }}
+                      style={{ width: '100%', textAlign: 'left', display: 'block', background: 'transparent', border: 'none', borderLeft: '2px solid transparent', color: '#CBD5E1', cursor: 'pointer', padding: '7px 14px', fontFamily: "'DM Sans', sans-serif", fontSize: '12.5px', lineHeight: 1.4 }}>
+                      <span style={{ color: '#64748B', fontFamily: "'DM Mono', monospace", marginRight: '6px' }}>{p.section_num ? ('s.' + p.section_num) : '·'}</span>
+                      {p.title || ('Provision ' + p.provision_id)}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+// ─── §5.2 Cases: Landmark + Recent Decisions ───
+function KLLandmarkDetail({ row, onBack, onDiscuss }) {
+  var sub = [row.court, row.year].filter(Boolean).join('  ·  ');
+  var seed = 'Please explain the employment-law principle in ' + (row.name || row.citation || 'this case') + (row.citation ? (' ' + row.citation) : '') + '.';
+  var domainContext = 'case:' + (row.case_id != null ? row.case_id : '');
+  return (
+    <div>
+      <KLHubBack onBack={onBack} label="Back to Cases" />
+      <div style={{ color: '#F1F5F9', fontSize: '15px', fontWeight: 700, marginBottom: '6px', lineHeight: 1.35 }}>{row.name || row.citation || 'Case'}</div>
+      {(row.citation || sub) ? <div style={{ color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Mono', monospace", marginBottom: '12px' }}>{[row.citation, sub].filter(Boolean).join('  —  ')}</div> : null}
+      {row.principle ? <div style={{ color: '#CBD5E1', fontSize: '12.5px', lineHeight: 1.6 }}>{row.principle}</div> : <div style={{ color: '#64748B', fontSize: '12px' }}>No principle recorded.</div>}
+      <KLDiscussButton seed={seed} domainContext={domainContext} onDiscuss={onDiscuss} />
+    </div>
+  );
+}
+// Recent Decisions card — surfaces `enriched` per record (§5.2 / §9 check 7):
+// a decision with no findings is a decision Ailane has NOT enriched, not one with
+// no outcome. The distinction is rendered, never left implicit.
+function KLDecisionCard({ rec, onOpen }) {
+  var isEnriched = rec.enriched === true;
+  var name = rec.name || rec.case_name || rec.title || rec.citation || 'Decision';
+  var date = rec.decision_date || rec.judgment_date || rec.date || rec.published_at || rec.created_at || null;
+  var court = rec.court || rec.tribunal || null;
+  return (
+    <button type="button" onClick={onOpen} style={Object.assign({}, KL_HUB_CARD_BTN, isEnriched ? {} : { opacity: 0.9 })}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ color: '#F1F5F9', fontSize: '13px', fontWeight: 600, marginBottom: '3px', minWidth: 0 }}>{name}</div>
+        {isEnriched ? <span style={KL_HUB_BADGE_OK}>Ailane-enriched</span> : <span style={KL_HUB_BADGE_WARN}>Not enriched</span>}
+      </div>
+      {(court || date) ? <div style={{ color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Mono', monospace", marginBottom: '3px' }}>{[court, date ? klWsDate(date) : null].filter(Boolean).join(' · ')}</div> : null}
+      {!isEnriched ? <div style={{ color: '#F59E0B', fontSize: '11px', lineHeight: 1.45 }}>Ailane has not enriched this decision — no structured findings are available.</div> : null}
+    </button>
+  );
+}
+function KLDecisionDetail({ id, preview, onBack, onDiscuss }) {
+  var _d = useState(null); var detail = _d[0]; var setDetail = _d[1];
+  useEffect(function () {
+    var alive = true; setDetail(null);
+    if (!id) { setDetail({ __error: true, status: 0 }); return function () { alive = false; }; }
+    klCasesFeed({ action: 'detail', id: id }).then(function (res) {
+      if (!alive) return;
+      if (res && res.__error) { setDetail(res); return; }
+      var d = (res && (res.case || res.data || res.detail)) || res;
+      setDetail(d || {});
+    });
+    return function () { alive = false; };
+  }, [id]);
+
+  var base = (detail && !detail.__error) ? detail : (preview || {});
+  var name = base.name || base.case_name || base.title || base.citation || 'Decision';
+  var court = base.court || base.tribunal || null;
+  var date = base.decision_date || base.judgment_date || base.date || base.published_at || base.created_at || null;
+  var judgment = base.judgment_text || base.judgment || base.body || base.full_text || base.summary || null;
+  // enrichment_present is authoritative from the detail response; fall back to the
+  // list record's `enriched` only until the detail resolves.
+  var present = (detail && !detail.__error) ? (detail.enrichment_present === true) : (preview && preview.enriched === true);
+  var seed = 'Please summarise the employment-law significance of ' + name + (court ? (' (' + court + ')') : '') + '.';
+  var domainContext = 'case:' + (id != null ? id : '');
+  return (
+    <div>
+      <KLHubBack onBack={onBack} label="Back to Cases" />
+      <div style={{ color: '#F1F5F9', fontSize: '15px', fontWeight: 700, marginBottom: '6px', lineHeight: 1.35 }}>{name}</div>
+      {(court || date) ? <div style={{ color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Mono', monospace", marginBottom: '10px' }}>{[court, date ? klWsDate(date) : null].filter(Boolean).join('  ·  ')}</div> : null}
+      {detail === null ? <KLHubLoading />
+        : (detail && detail.__error) ? (
+          <div style={{ color: '#F59E0B', fontSize: '12px', marginBottom: '10px', lineHeight: 1.5 }}>{detail.status === 404 ? 'This decision’s detail is not available yet (kl-cases-feed not deployed).' : 'This decision could not be loaded right now.'}</div>
+        ) : (
+          <div>
+            <div style={{ padding: '10px 12px', borderRadius: '8px', marginBottom: '12px', fontSize: '12px', lineHeight: 1.5, background: present ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)', border: '1px solid ' + (present ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'), color: present ? '#6EE7B7' : '#FCD34D' }}>
+              {present ? 'Ailane has enriched this decision — structured findings are available.' : 'Ailane has not enriched this decision. The judgment text is shown; structured findings are not available.'}
+            </div>
+            {judgment ? <div style={{ color: '#CBD5E1', fontSize: '12.5px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{klWsSnippet(judgment, 1400)}</div> : <div style={{ color: '#64748B', fontSize: '12px' }}>No judgment text available.</div>}
+          </div>
+        )}
+      <KLDiscussButton seed={seed} domainContext={domainContext} onDiscuss={onDiscuss} />
+    </div>
+  );
+}
+function KLCasesTab({ onDiscuss }) {
+  var _lm = useState(null); var landmark = _lm[0]; var setLandmark = _lm[1];
+  var _fd = useState(null); var feed = _fd[0]; var setFeed = _fd[1];
+  var _sel = useState(null); var selected = _sel[0]; var setSelected = _sel[1];
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=255')
+      .then(function (rows) { if (alive) setLandmark(rows); });
+    klCasesFeed({ action: 'list', limit: 25, offset: 0 }).then(function (res) {
+      if (!alive) return;
+      if (res && res.__error) { setFeed({ __error: true, status: res.status }); return; }
+      var rows = Array.isArray(res) ? res : ((res && (res.cases || res.data || res.rows || res.items)) || []);
+      setFeed(Array.isArray(rows) ? rows : []);
+    });
+    return function () { alive = false; };
+  }, []);
+
+  if (selected && selected.kind === 'landmark') return <KLLandmarkDetail row={selected.row} onBack={function () { setSelected(null); }} onDiscuss={onDiscuss} />;
+  if (selected && selected.kind === 'decision') return <KLDecisionDetail id={selected.id} preview={selected.preview} onBack={function () { setSelected(null); }} onDiscuss={onDiscuss} />;
+
+  return (
+    <div>
+      <div style={KL_HUB_SECTION_LABEL}>Landmark Cases</div>
+      <div style={{ color: '#64748B', fontSize: '12px', marginBottom: '10px', lineHeight: 1.5 }}>A curated editorial set — how the law has been applied.</div>
+      {landmark === null ? <KLHubLoading /> : landmark.length === 0 ? <KLHubEmpty text="No landmark cases to show." />
+        : landmark.map(function (row, i) {
+            var sub = [row.court, row.year].filter(Boolean).join(' · ');
+            return (
+              <button key={i} type="button" onClick={function () { setSelected({ kind: 'landmark', row: row }); }} style={KL_HUB_CARD_BTN}>
+                <div style={{ color: '#F1F5F9', fontSize: '13px', fontWeight: 600, marginBottom: '3px' }}>{row.name || row.citation || 'Case'}</div>
+                {(row.citation || sub) ? <div style={{ color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Mono', monospace", marginBottom: '3px' }}>{[row.citation, sub].filter(Boolean).join('  —  ')}</div> : null}
+                {row.principle ? <div style={{ color: '#CBD5E1', fontSize: '12px', lineHeight: 1.5 }}>{klWsSnippet(row.principle, 160)}</div> : null}
+              </button>
+            );
+          })}
+
+      <div style={Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: '22px' })}>Recent Decisions</div>
+      <div style={{ color: '#64748B', fontSize: '12px', marginBottom: '10px', lineHeight: 1.5 }}>The live feed of tribunal decisions, newest first.</div>
+      {feed === null ? <KLHubLoading />
+        : (feed && feed.__error) ? (
+          <div style={{ padding: '12px 14px', border: '1px solid rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.06)', borderRadius: '10px', color: '#FCD34D', fontSize: '12px', lineHeight: 1.5 }}>
+            {feed.status === 404 ? 'The Recent Decisions feed is not available yet (kl-cases-feed returned 404 — not deployed). Landmark Cases above are unaffected.' : 'The Recent Decisions feed could not be loaded right now (error ' + (feed.status || '') + '). Please try again shortly.'}
+          </div>
+        ) : feed.length === 0 ? <KLHubEmpty text="No recent decisions to show." />
+        : feed.map(function (rec, i) { return <KLDecisionCard key={i} rec={rec} onOpen={function () { setSelected({ kind: 'decision', id: klCaseId(rec), preview: rec }); }} />; })}
+    </div>
+  );
+}
+// ─── §5.3 Horizon: parliament feed + movements + published horizon ───
+function KLBillRow({ b }) {
+  var name = b.legislation_short_name || b.legislation_title || 'Bill';
+  var stageLabel = klStageLabel(b.stage_order);
+  var status = b.status_summary || null;
+  var archived = b.archived === true || ['LAPSED', 'SUPERSEDED', 'WITHDRAWN', 'DEFEATED'].indexOf(String(b.lifecycle_state || '').toUpperCase()) >= 0;
+  return (
+    <div style={Object.assign({}, KL_HUB_CARD, archived ? { opacity: 0.7 } : {})}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'flex-start' }}>
+        <div style={{ color: '#F1F5F9', fontSize: '13px', fontWeight: 600, minWidth: 0 }}>{name}</div>
+        {archived ? <span style={KL_HUB_BADGE_WARN}>Archived</span> : (stageLabel ? <span style={KL_HUB_BADGE_STAGE}>{stageLabel}</span> : null)}
+      </div>
+      {status ? <div style={{ color: '#94A3B8', fontSize: '11px', marginTop: '3px', lineHeight: 1.45 }}>{klWsSnippet(status, 180)}</div> : null}
+      {klWsSourceLink(b.source_url)}
+    </div>
+  );
+}
+function KLMovements({ rows }) {
+  if (!rows || !rows.length) return <KLHubEmpty text="No recent movements to report on the bills we track for you." />;
+  var recent = rows.filter(function (r) { return r && r.within_window === true; });
+  if (recent.length) {
+    return (
+      <div>{recent.map(function (r, i) {
+        var when = klWsDate(r.changed_at);
+        return (
+          <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <span style={{ color: '#F1F5F9', fontSize: '12.5px', fontWeight: 600 }}>{r.legislation_short_name || 'Tracked bill'}</span>
+            {r.royal_assent === true ? <span style={KL_HUB_BADGE_OK}>Royal Assent — now law</span> : <span style={{ color: '#94A3B8', fontSize: '11px' }}>{(r.previous_stage ? (r.previous_stage + ' → ') : '') + (r.new_stage || 'updated')}</span>}
+            {when ? <span style={{ color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", marginLeft: 'auto' }}>{when}</span> : null}
+          </div>
+        );
+      })}</div>
+    );
+  }
+  var newest = rows[0];
+  var when = klWsDate(newest.changed_at);
+  return (
+    <div style={{ color: '#94A3B8', fontSize: '12px', lineHeight: 1.5 }}>
+      Parliament has been quiet on the bills we track for you lately — the most recent movement was <strong style={{ color: '#CBD5E1' }}>{newest.legislation_short_name || 'a tracked bill'}</strong>{' → ' + (newest.new_stage || 'updated') + (when ? (' on ' + when) : '') + '.'}
+    </div>
+  );
+}
+function KLHorizonTab() {
+  var _feed = useState(null); var feed = _feed[0]; var setFeed = _feed[1];
+  var _mov = useState(null); var moves = _mov[0]; var setMoves = _mov[1];
+  var _pub = useState(null); var published = _pub[0]; var setPublished = _pub[1];
+  useEffect(function () {
+    var alive = true;
+    // Same SECURITY DEFINER RPCs /operational/parliament-live/ uses. The feed RPC
+    // returns newest-first — preserved, never re-sorted (§5.3 Director instruction).
+    klWsRpc('fn_parliament_live_feed', { p_limit: 200 }).then(function (rows) { if (alive) setFeed(rows); });
+    klWsRpc('fn_parliament_live_daily_summary', { p_since_hours: 48, p_limit: 12 }).then(function (rows) { if (alive) setMoves(rows); });
+    // Curated horizon — is_published AND archived both filtered (§9 check 9). ~2 of
+    // 49 rows qualify; a near-empty panel is CORRECT — do NOT relax the filter.
+    klWsFetchRows('kl_legislative_horizon?is_published=eq.true&archived=eq.false&select=id,legislation_title,legislation_short_name,parliament_stage,expected_enactment,headline_summary,source_url&order=display_order.asc&limit=50')
+      .then(function (rows) { if (alive) setPublished(rows); });
+    return function () { alive = false; };
+  }, []);
+  return (
+    <div>
+      <div style={KL_HUB_SECTION_LABEL}>Recent movements</div>
+      {moves === null ? <KLHubLoading /> : <KLMovements rows={moves} />}
+
+      <div style={Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: '22px' })}>In Parliament</div>
+      <div style={{ color: '#64748B', fontSize: '12px', marginBottom: '10px', lineHeight: 1.5 }}>Bills we track, most recent and most relevant first.</div>
+      {feed === null ? <KLHubLoading /> : feed.length === 0 ? <KLHubEmpty text="No tracked bills to show." /> : feed.map(function (b, i) { return <KLBillRow key={i} b={b} />; })}
+
+      <div style={Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: '22px' })}>Published horizon</div>
+      {published === null ? <KLHubLoading /> : published.length === 0 ? (
+        <KLHubEmpty text="No published horizon entries yet. The pipeline is healthy; items appear here once they are editorially published." />
+      ) : published.map(function (h, i) {
+        var stage = [h.parliament_stage, h.expected_enactment ? ('Expected ' + h.expected_enactment) : null].filter(Boolean).join('  ·  ');
+        return (
+          <div key={i} style={KL_HUB_CARD}>
+            <div style={{ color: '#F1F5F9', fontSize: '13px', fontWeight: 600, marginBottom: '3px' }}>{h.legislation_short_name || h.legislation_title || 'Legislation'}</div>
+            {stage ? <div style={{ color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Mono', monospace", marginBottom: '3px' }}>{stage}</div> : null}
+            {h.headline_summary ? <div style={{ color: '#CBD5E1', fontSize: '12px', lineHeight: 1.5 }}>{klWsSnippet(h.headline_summary, 200)}</div> : null}
+            {klWsSourceLink(h.source_url)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+// ─── §5 Intelligence hub — three tabs; all mounted so tab state is preserved ───
+function KLIntelligenceHub({ entry, onDiscuss }) {
+  var _t = useState((entry && entry.tab) || 'law'); var tab = _t[0]; var setTab = _t[1];
+  var focusInstrumentId = entry ? entry.instrumentId : null;
+  var TABS = [['law', 'Law'], ['cases', 'Cases'], ['horizon', 'Horizon']];
+  return (
+    <div>
+      <div role="tablist" style={{ display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        {TABS.map(function (t) {
+          var active = tab === t[0];
+          return (
+            <button key={t[0]} type="button" role="tab" aria-selected={active} onClick={function () { setTab(t[0]); }}
+              style={{ padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: active ? '2px solid #0EA5E9' : '2px solid transparent', color: active ? '#F1F5F9' : '#94A3B8', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: active ? 600 : 500 }}>
+              {t[1]}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: tab === 'law' ? 'block' : 'none' }}><KLLawTab onDiscuss={onDiscuss} focusInstrumentId={focusInstrumentId} /></div>
+      <div style={{ display: tab === 'cases' ? 'block' : 'none' }}><KLCasesTab onDiscuss={onDiscuss} /></div>
+      <div style={{ display: tab === 'horizon' ? 'block' : 'none' }}><KLHorizonTab /></div>
+    </div>
+  );
+}
+// ─── §7 Notes — open, edit (title + content_plain), download (.md) ───
+function KLNoteEditor({ note, onBack }) {
+  var _t = useState(note.title || ''); var title = _t[0]; var setTitle = _t[1];
+  var _c = useState(note.content_plain || ''); var content = _c[0]; var setContent = _c[1];
+  var _s = useState('idle'); var status = _s[0]; var setStatus = _s[1];
+  function save() {
+    if (status === 'saving') return;
+    setStatus('saving');
+    klWsPatch('kl_workspace_notes?id=eq.' + encodeURIComponent(note.id), { title: title, content_plain: content, updated_at: new Date().toISOString() })
+      .then(function (res) { setStatus(res ? 'saved' : 'error'); setTimeout(function () { setStatus('idle'); }, 1800); });
+  }
+  function download() {
+    // §7.2 / RULE 16 — Markdown export. Plain text only; NO hyperlinks / href / URLs.
+    var md = '# ' + (title || 'Untitled') + '\n\n' + (content || '') + '\n\n---\nExported from the Ailane Knowledge Library. Regulatory intelligence, not legal advice. AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720\n';
+    var blob = new Blob([md], { type: 'text/markdown' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (String(title || 'note').replace(/[^a-zA-Z0-9 _-]/g, '').trim().slice(0, 60) || 'note') + '.md';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  var saveLabel = status === 'saving' ? 'Saving…' : status === 'saved' ? '✓ Saved' : status === 'error' ? 'Save failed' : 'Save';
+  return (
+    <div>
+      <KLHubBack onBack={onBack} label="Back to Notes" />
+      <input type="text" value={title} onChange={function (e) { setTitle(e.target.value); }} aria-label="Note title"
+        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F1F5F9', fontSize: '14px', fontWeight: 600, padding: '10px 12px', marginBottom: '10px', fontFamily: "'DM Sans', sans-serif" }} />
+      <textarea value={content} onChange={function (e) { setContent(e.target.value); }} aria-label="Note content" rows={14}
+        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#CBD5E1', fontSize: '13px', lineHeight: 1.55, padding: '10px 12px', fontFamily: "'DM Sans', sans-serif", resize: 'vertical' }} />
+      {note.note_type ? <div style={{ color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", marginTop: '6px' }}>{klNoteTypeLabel(note.note_type) + (note.source_attribution ? ('  ·  ref ' + note.source_attribution) : '')}</div> : null}
+      <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+        <button type="button" onClick={save} style={{ padding: '9px 18px', background: '#0EA5E9', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>{saveLabel}</button>
+        <button type="button" onClick={download} style={{ padding: '9px 18px', background: 'transparent', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Download (.md)</button>
+      </div>
+    </div>
+  );
+}
+function KLNotesTab() {
+  var _n = useState(null); var notes = _n[0]; var setNotes = _n[1];
+  var _sel = useState(null); var sel = _sel[0]; var setSel = _sel[1];
+  var reload = useCallback(function () {
+    return klWsFetchRows('kl_workspace_notes?select=id,title,content_plain,pinned,note_type,source_attribution,statutory_refs,updated_at&order=updated_at.desc&limit=200')
+      .then(function (rows) { setNotes(rows); return rows; });
+  }, []);
+  useEffect(function () { reload(); }, [reload]);
+  // §7.3 — let a chat "Save to Notes" propagate here with no page reload.
+  useEffect(function () {
+    window.__klHubNotesRefresh = function () { reload(); };
+    return function () { if (window.__klHubNotesRefresh) delete window.__klHubNotesRefresh; };
+  }, [reload]);
+
+  if (sel) return <KLNoteEditor note={sel} onBack={function () { setSel(null); reload(); }} />;
+  if (notes === null) return <KLHubLoading />;
+  if (notes.length === 0) return <KLHubEmpty text="No notes yet. Save an Eileen conversation, or your saved items will appear here." />;
+  return (
+    <div>
+      {notes.map(function (n, i) {
+        return (
+          <button key={n.id || i} type="button" onClick={function () { setSel(n); }} style={KL_HUB_CARD_BTN}>
+            <div style={{ color: '#F1F5F9', fontSize: '13px', fontWeight: 600, marginBottom: '3px' }}>{(n.pinned ? '📌 ' : '') + (n.title || 'Untitled')}</div>
+            <div style={{ color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", marginBottom: '3px' }}>{[n.note_type ? klNoteTypeLabel(n.note_type) : null, n.updated_at ? ('Updated ' + klWsDate(n.updated_at)) : null].filter(Boolean).join('  ·  ')}</div>
+            {n.content_plain ? <div style={{ color: '#CBD5E1', fontSize: '12px', lineHeight: 1.5 }}>{klWsSnippet(n.content_plain, 140)}</div> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+// ─── Calendar (unchanged behaviour, relocated into the reshaped drawer) ───
+function KLCalendarList() {
+  var _r = useState(null); var rows = _r[0]; var setRows = _r[1];
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('kl_calendar_events?select=id,event_type,title,description,event_date,end_date,status&order=event_date.asc&limit=100')
+      .then(function (data) { if (alive) setRows(data); });
+    return function () { alive = false; };
+  }, []);
+  if (rows === null) return <KLHubLoading />;
+  if (rows.length === 0) return <KLHubEmpty text="No calendar events to show." />;
+  return <div>{rows.map(function (row, i) { return klWsRenderRow('calendar', row, i); })}</div>;
+}
+
+// ─── §6 Ticker → a bell (pass holders only; kl_legislative_alerts ONLY) ───
+// A separate affordance from the operational HubNotifBell (vault_client_notifications,
+// gated on hubSession). This one reads kl_legislative_alerts and is mounted only for
+// hasKLSession && !hasSubscription. Fields: title/summary/detected_at/source_url +
+// affected_instrument_id; never the full alert body. Where an alert names an
+// instrument, it links into the Law tab — the change-feed relationship made visible.
+function KLTickerBell({ onOpenLawInstrument }) {
+  var _items = useState(null); var items = _items[0]; var setItems = _items[1];
+  var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
+  var wrapRef = useRef(null);
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id&order=detected_at.desc&limit=30')
+      .then(function (rows) { if (alive) setItems(rows); });
+    return function () { alive = false; };
+  }, []);
+  useEffect(function () {
+    if (!open) return;
+    function onDoc(e) { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); }
+    function onKey(e) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onDoc); document.addEventListener('keydown', onKey);
+    return function () { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  var newest = (items && items[0]) ? items[0].detected_at : null;
+  var seen = null; try { seen = localStorage.getItem('ailane_kl_alerts_seen'); } catch (e) {}
+  var hasNew = !!(newest && (!seen || new Date(newest).getTime() > new Date(seen).getTime()));
+  function toggle() {
+    var next = !open; setOpen(next);
+    if (next && newest) { try { localStorage.setItem('ailane_kl_alerts_seen', newest); } catch (e) {} }
+  }
+  var bellChildren = [
+    React.createElement('svg', { key: 'i', width: '18', height: '18', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+      React.createElement('path', { d: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9' }),
+      React.createElement('path', { d: 'M13.73 21a2 2 0 0 1-3.46 0' })
+    ),
+  ];
+  if (hasNew) {
+    bellChildren.push(React.createElement('span', { key: 'n', 'aria-hidden': 'true', style: { position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderRadius: '50%', background: '#0EA5E9', boxShadow: '0 0 6px rgba(14,165,233,0.7)' } }));
+  }
+  var list = null;
+  if (open) {
+    var rows = (items || []).map(function (n, i) {
+      var hasInst = n.affected_instrument_id != null && n.affected_instrument_id !== '';
+      return React.createElement('div', { key: i, style: { padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' } },
+        React.createElement('div', { style: { color: '#F1F5F9', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: 'break-word' } }, n.title || 'Regulatory alert'),
+        n.detected_at ? React.createElement('div', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", marginTop: '3px' } }, klWsDate(n.detected_at)) : null,
+        n.summary ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: '3px', wordBreak: 'break-word' } }, klWsSnippet(n.summary, 180)) : null,
+        React.createElement('div', { style: { display: 'flex', gap: '12px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' } },
+          hasInst ? React.createElement('button', {
+            type: 'button',
+            onClick: function () { setOpen(false); if (typeof onOpenLawInstrument === 'function') onOpenLawInstrument(n.affected_instrument_id); },
+            style: { background: 'transparent', border: 'none', color: '#0EA5E9', fontSize: '11px', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" },
+          }, 'View in Law →') : null,
+          klWsSourceLink(n.source_url)
+        )
+      );
+    });
+    list = React.createElement('div', {
+      role: 'region', 'aria-label': 'Regulatory alerts',
+      style: { position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '320px', maxWidth: '86vw', background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', zIndex: 60, overflow: 'hidden' },
+    },
+      React.createElement('div', { style: { padding: '10px 14px', borderBottom: '1px solid #1E3A5F', color: '#94A3B8', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: "'DM Mono', monospace" } }, 'Regulatory alerts'),
+      React.createElement('div', { style: { maxHeight: '340px', overflowY: 'auto' } },
+        rows.length ? rows : React.createElement('div', { style: { padding: '18px 14px', color: '#64748B', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 } }, 'No alerts yet. We’ll post here when the law changes.')
+      )
+    );
+  }
+  return React.createElement('div', { ref: wrapRef, style: { position: 'relative' } },
+    React.createElement('button', {
+      type: 'button', onClick: toggle, 'aria-haspopup': 'true', 'aria-expanded': open ? 'true' : 'false', 'aria-label': 'Regulatory alerts',
+      style: { position: 'relative', background: 'transparent', border: 'none', color: open ? '#F1F5F9' : '#94A3B8', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' },
+    }, bellChildren),
+    list
+  );
+}
+
+// ─── KLWorkspaceDrawer — the reshaped pass-holder drawer (Intelligence / Notes /
+// Calendar). Opened ONLY from the pass-holder nav; the App mount is guarded
+// hasKLSession && !hasSubscription (§9 check 1). ───
+function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
   useEffect(function () {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
@@ -6604,57 +7317,38 @@ function KLWorkspaceDrawer({ section, onClose }) {
   }, [onClose]);
 
   if (!section) return null;
-  var label = KL_WS_LABELS[section] || section;
 
-  var body;
-  if (rows === null) {
-    body = React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '24px 4px', textAlign: 'center' } }, 'Loading…');
-  } else if (rows.length === 0) {
-    // §3.3 — neutral empty state; never fabricate placeholder content or fall back to another table.
-    body = React.createElement('div', { style: { color: '#64748B', fontSize: '13px', padding: '24px 4px', textAlign: 'center' } }, 'No items to show.');
+  var title, body;
+  if (section === 'intelligence') {
+    title = 'Intelligence';
+    body = <KLIntelligenceHub entry={entry} onDiscuss={onDiscuss} />;
+  } else if (section === 'notes') {
+    title = 'Notes';
+    body = <KLNotesTab />;
+  } else if (section === 'calendar') {
+    title = 'Calendar';
+    body = <KLCalendarList />;
   } else {
-    body = rows.map(function (row, i) { return klWsRenderRow(section, row, i); });
+    title = KL_WS_LABELS[section] || section;
+    body = <KLHubEmpty text="This section has moved into Intelligence or the alert bell." />;
   }
-
-  var header = null;
-  if (section === 'intelligence' && counts) {
-    var stats = [];
-    if (counts.provisions != null) stats.push(counts.provisions + ' provisions');
-    if (counts.instruments != null) stats.push(counts.instruments + ' instruments');
-    if (counts.versions != null) stats.push(counts.versions + ' versions');
-    if (stats.length) {
-      header = React.createElement('div', {
-        style: { color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Mono', monospace", marginBottom: '12px' },
-      }, stats.join('  ·  '));
-    }
-  }
+  var panelWidth = section === 'intelligence' ? 'min(560px, 100%)' : 'min(440px, 100%)';
 
   return React.createElement('div', {
-    role: 'dialog', 'aria-label': label + ' workspace', 'aria-modal': 'true',
-    onClick: onClose,
+    role: 'dialog', 'aria-label': title + ' workspace', 'aria-modal': 'true', onClick: onClose,
     style: { position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(2,6,23,0.55)', display: 'flex', justifyContent: 'flex-end' },
   },
     React.createElement('div', {
       onClick: function (e) { e.stopPropagation(); },
-      style: {
-        width: 'min(440px, 100%)', height: '100%', background: '#0b1220',
-        borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-8px 0 40px rgba(0,0,0,0.4)',
-        display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif",
-      },
+      style: { width: panelWidth, height: '100%', background: '#0b1220', borderLeft: '1px solid rgba(255,255,255,0.08)', boxShadow: '-8px 0 40px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" },
     },
       React.createElement('div', {
         style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' },
       },
-        React.createElement('span', { style: { color: '#F1F5F9', fontSize: '15px', fontWeight: 600 } }, label),
-        React.createElement('button', {
-          type: 'button', onClick: onClose, 'aria-label': 'Close ' + label,
-          style: { background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '18px', cursor: 'pointer', lineHeight: 1 },
-        }, '✕')
+        React.createElement('span', { style: { color: '#F1F5F9', fontSize: '15px', fontWeight: 600 } }, title),
+        React.createElement('button', { type: 'button', onClick: onClose, 'aria-label': 'Close ' + title, style: { background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '18px', cursor: 'pointer', lineHeight: 1 } }, '✕')
       ),
-      React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '14px 18px' } },
-        header,
-        body
-      )
+      React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '14px 18px' } }, body)
     )
   );
 }
@@ -10253,6 +10947,22 @@ function App() {
   // closed). Set only by the pass-holder nav (§3.2); the mount is additionally guarded
   // on hasKLSession && !hasSubscription so it can never reach the Operational surface.
   const [klWorkspace, setKlWorkspace] = useState(null);
+  // KL-INTELLIGENCE-HUB §5/§6 — hub entry point: which tab to open, plus an optional
+  // instrument to focus in the Law tab (set by the alert bell's "View in Law", §6).
+  const [hubEntry, setHubEntry] = useState(null);
+  function openHub(section, entryObj) { setHubEntry(entryObj || null); setKlWorkspace(section); }
+  // §5.1/§5.2 — "Discuss with Eileen" from a hub detail: close the hub, seed the chat
+  // input (does NOT auto-send), and hand a domain_context to the NEXT eileen-intelligence
+  // call via a ref consumed once in sendMessage.
+  const pendingDomainContextRef = useRef(null);
+  function handleHubDiscuss(seedText, domainContext) {
+    setKlWorkspace(null);
+    pendingDomainContextRef.current = domainContext || null;
+    setTimeout(function () { if (typeof window.__klSeedInput === 'function') window.__klSeedInput(seedText); }, 0);
+  }
+  // Pass-holder flag threaded to the shared MessageBubble so the §7.3 "Save to Notes"
+  // action renders for pass holders only (Operational / public KL stay byte-identical).
+  const klPassHolder = hasKLSession && !hasSubscription;
   // OOX-CARDS §1.3 — a pending "Discuss with Eileen" seed: set alongside closing the
   // facet, dispatched by the effect below once the conversation (MessageInput) mounts.
   const [pendingEileenSeed, setPendingEileenSeed] = useState(null);
@@ -10563,7 +11273,9 @@ function App() {
       const msgs = [];
       data.forEach((row) => {
         msgs.push({ role: 'user', content: row.user_message });
-        msgs.push({ role: 'assistant', content: row.eileen_response });
+        // §7.3 — carry the paired question so a history-loaded exchange also offers
+        // "Save to Notes" (pass holders only, gated in MessageBubble).
+        msgs.push({ role: 'assistant', content: row.eileen_response, userMessage: row.user_message });
       });
       setMessages(msgs);
       setSessionId(sid);
@@ -10622,9 +11334,15 @@ function App() {
             ? 'knowledge-library/domain/' + currentDomain.slug
             : 'knowledge-library',
         };
+        // AMD-045 §4.8 domain sub-page context still wins. Otherwise a hub "Discuss
+        // with Eileen" (§5.1/§5.2) supplies a structured item ref (provision:<id> /
+        // case:<id>) via pendingDomainContextRef, consumed once per turn.
         if (currentDomain) {
           requestBody.domain_context = currentDomain.id;
+        } else if (pendingDomainContextRef.current) {
+          requestBody.domain_context = pendingDomainContextRef.current;
         }
+        pendingDomainContextRef.current = null;
         const resp = await fetch(EILEEN_ENDPOINT, {
           method: 'POST',
           headers: {
@@ -10642,6 +11360,13 @@ function App() {
           content: data.response,
           provisionsCount: data.provisions_count,
           casesCount: data.cases_count,
+          // §7.3 — carry the paired question + conversation id + retrieved provisions
+          // so "Save to Notes" can persist the full exchange as an eileen_conversation
+          // note with source_attribution + statutory_refs. Read defensively; absence
+          // of the id/provisions is fine (the note still saves).
+          userMessage: clean,
+          conversationId: data.conversation_id || data.id || data.conversationId || null,
+          provisionsRetrieved: data.provisions_retrieved || data.provisions || null,
         }]);
         loadSessionHistory();
         setNexusState('presenting');
@@ -11244,6 +11969,7 @@ function App() {
         hubSession={hubSession}
         hasKLSession={hasKLSession}
         hasSubscription={hasSubscription}
+        onOpenHubLaw={(instrumentId) => openHub('intelligence', { tab: 'law', instrumentId: instrumentId })}
       />
       {/* DMSP-002: AI translation disclaimer. Mandatory sibling below TopBar
           whenever Welsh is active — bilingual Welsh/English copy makes clear
@@ -11281,7 +12007,7 @@ function App() {
         hubSession={hubSession}
         hasKLSession={hasKLSession}
         hasSubscription={hasSubscription}
-        onOpenWorkspace={setKlWorkspace}
+        onOpenWorkspace={(section) => openHub(section, null)}
       />
       {/* AMD-045 §5: Conditional render — domain sub-page or conversation area.
           OOX-001 §1.5: in hub mode an open workspace facet mounts in the main
@@ -11324,6 +12050,7 @@ function App() {
           hubMode={hubMode}
           hubSession={hubSession}
           matterRefreshKey={matterRefreshKey}
+          klPassHolder={klPassHolder}
         />
       )}
       {/* F-1: FloatingNexusAdvisor rendered at App level so it is visible
@@ -11381,7 +12108,7 @@ function App() {
           it is only ever opened from the pass-holder nav, AND the mount itself requires
           hasKLSession && !hasSubscription, so it cannot render on the Operational surface. */}
       {hasKLSession && !hasSubscription && klWorkspace && (
-        <KLWorkspaceDrawer section={klWorkspace} onClose={() => setKlWorkspace(null)} />
+        <KLWorkspaceDrawer section={klWorkspace} entry={hubEntry} onClose={() => setKlWorkspace(null)} onDiscuss={handleHubDiscuss} />
       )}
       {sessionExpired && <ExpiredModal />}
     </React.Fragment>
