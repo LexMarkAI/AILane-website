@@ -4004,7 +4004,7 @@
           /* @__PURE__ */ React.createElement("span", { className: "kl-domain-card-desc" }, domain.orientation),
           /* @__PURE__ */ React.createElement("span", { className: "kl-domain-card-explore" }, "Explore ", /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2192"))
         );
-      })), /* @__PURE__ */ React.createElement(BookShelf, { onOpenBook: function(book) {
+      })), /* @__PURE__ */ React.createElement(BookShelf, { klPassHolder, onOpenBook: function(book) {
         if (typeof window.__klOpenPanel === "function") {
           window.__klOpenPanel("research");
           window.__klPendingInstrument = book.id;
@@ -4435,14 +4435,18 @@
             { key: "kl-docs-wrap", style: { padding: "0 16px 6px" } },
             klVaultNavButton("kl-only-documents", "Documents", true)
           ),
-          // KL-INTELLIGENCE-HUB §4 — three peers, not four-plus-a-ticker. "Intelligence"
-          // opens the tabbed hub (Law / Cases / Horizon, §5); "Recent Cases" and
-          // "Parliament Live" are relocated INTO that hub, and "Ticker" becomes the
-          // header alert bell (§6). Notes (§7) and Calendar are unchanged. The removed
-          // items' query logic is relocated (KLIntelligenceHub / KLTickerBell), not lost.
+          // KL-PARITY-001 WP6 — the KL workspace menu now presents the same offerings as the
+          // Operational workspace: Intelligence, Cases, Calendar, Parliament Live (Documents is
+          // the promoted item above). Alerts and ACEI Overview are excluded by Director
+          // instruction — their components are retained, simply not linked here. Each item opens
+          // an in-app parity view (KLWorkspaceDrawer) inside the signed-in KL shell, because a
+          // pass holder cannot open the subscription-tier-gated /operational/* pages. The Notes
+          // component (KLNotesTab) and its 'notes' drawer section are retained (Save-to-Notes
+          // still writes); only its menu link is dropped to match the exact WP6 composition.
           klWorkspaceNavButton("intelligence", "Intelligence", onOpenWorkspace),
-          klWorkspaceNavButton("notes", "Notes", onOpenWorkspace),
-          klWorkspaceNavButton("calendar", "Calendar", onOpenWorkspace)
+          klWorkspaceNavButton("cases", "Cases", onOpenWorkspace),
+          klWorkspaceNavButton("calendar", "Calendar", onOpenWorkspace),
+          klWorkspaceNavButton("parliament", "Parliament Live", onOpenWorkspace)
         ) : null,
         React.createElement(
           "div",
@@ -7584,27 +7588,6 @@
     });
   }
   var KL_FUNCTIONS_BASE = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co");
-  function klCasesFeed(payload) {
-    return klLiveToken().then(function(tok) {
-      return fetch(KL_FUNCTIONS_BASE + "/kl-cases-feed", {
-        method: "POST",
-        headers: {
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": "Bearer " + tok,
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(payload || {})
-      }).then(function(r) {
-        if (!r.ok) return { __error: true, status: r.status };
-        return r.json().catch(function() {
-          return { __error: true, status: 0 };
-        });
-      }).catch(function() {
-        return { __error: true, status: 0 };
-      });
-    });
-  }
   function klWsDate(v) {
     if (!v) return "";
     try {
@@ -7621,52 +7604,6 @@
     var t = String(s).replace(/\s+/g, " ").trim();
     return t.length > lim ? t.slice(0, lim) + "\u2026" : t;
   }
-  function klWsCard(children, key) {
-    return React.createElement("div", {
-      key,
-      style: {
-        padding: "12px 14px",
-        marginBottom: "10px",
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
-        borderRadius: "10px"
-      }
-    }, children);
-  }
-  function klWsTitle(text2) {
-    return React.createElement("div", {
-      key: "title",
-      style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "4px" }
-    }, text2);
-  }
-  function klWsMetaLine(text2) {
-    return React.createElement("div", {
-      key: "meta",
-      style: { color: "#94A3B8", fontSize: "11px", fontFamily: "'DM Mono', monospace", marginBottom: "4px" }
-    }, text2);
-  }
-  function klWsBodyText(text2) {
-    return React.createElement("div", {
-      key: "body",
-      style: { color: "#CBD5E1", fontSize: "12px", lineHeight: 1.5 }
-    }, text2);
-  }
-  function klWsBadge(text2, key) {
-    return React.createElement("span", {
-      key,
-      style: {
-        display: "inline-block",
-        fontSize: "10px",
-        fontFamily: "'DM Mono', monospace",
-        color: "#0EA5E9",
-        border: "1px solid rgba(14,165,233,0.35)",
-        borderRadius: "4px",
-        padding: "1px 6px",
-        marginRight: "6px",
-        marginTop: "4px"
-      }
-    }, text2);
-  }
   function klWsSourceLink(url) {
     if (!url) return null;
     return React.createElement("a", {
@@ -7676,63 +7613,6 @@
       rel: "noopener noreferrer",
       style: { display: "inline-block", marginTop: "6px", color: "#0EA5E9", fontSize: "11px", textDecoration: "none" }
     }, "Source \u2197");
-  }
-  function klWsRenderRow(section, row, i) {
-    var key = "row-" + i;
-    if (section === "cases") {
-      var csub = [row.court, row.year].filter(Boolean).join(" \xB7 ");
-      return klWsCard([
-        klWsTitle(row.name || row.citation || "Case"),
-        row.citation ? klWsMetaLine(row.citation + (csub ? "  \u2014  " + csub : "")) : csub ? klWsMetaLine(csub) : null,
-        row.principle ? klWsBodyText(klWsSnippet(row.principle, 220)) : null
-      ], key);
-    }
-    if (section === "intelligence") {
-      var badges = [];
-      if (row.in_force) badges.push(klWsBadge("In force", "inforce"));
-      if (row.is_era_2025) badges.push(klWsBadge("ERA 2025", "era"));
-      var loc = [];
-      if (row.instrument_id != null) loc.push("Instrument " + row.instrument_id);
-      if (row.section_num) loc.push("s. " + row.section_num);
-      return klWsCard([
-        klWsTitle(row.title || "Provision " + (row.provision_id != null ? row.provision_id : "")),
-        loc.length ? klWsMetaLine(loc.join(" \xB7 ")) : null,
-        badges.length ? React.createElement("div", { key: "badges" }, badges) : null
-      ], key);
-    }
-    if (section === "parliament") {
-      var pstage = [row.parliament_stage, row.expected_enactment ? "Expected " + row.expected_enactment : null].filter(Boolean).join("  \xB7  ");
-      return klWsCard([
-        klWsTitle(row.legislation_short_name || row.legislation_title || "Legislation"),
-        pstage ? klWsMetaLine(pstage) : null,
-        row.headline_summary ? klWsBodyText(klWsSnippet(row.headline_summary, 240)) : null,
-        klWsSourceLink(row.source_url)
-      ], key);
-    }
-    if (section === "ticker") {
-      return klWsCard([
-        klWsTitle(row.title || "Alert"),
-        row.detected_at ? klWsMetaLine(klWsDate(row.detected_at)) : null,
-        row.summary ? klWsBodyText(klWsSnippet(row.summary, 240)) : null,
-        klWsSourceLink(row.source_url)
-      ], key);
-    }
-    if (section === "notes") {
-      return klWsCard([
-        klWsTitle((row.pinned ? "\u{1F4CC} " : "") + (row.title || "Untitled")),
-        row.updated_at ? klWsMetaLine("Updated " + klWsDate(row.updated_at)) : null,
-        row.content_plain ? klWsBodyText(klWsSnippet(row.content_plain, 200)) : null
-      ], key);
-    }
-    if (section === "calendar") {
-      var when = [klWsDate(row.event_date), row.end_date ? klWsDate(row.end_date) : null].filter(Boolean).join(" \u2013 ");
-      return klWsCard([
-        klWsTitle(row.title || "Event"),
-        when ? klWsMetaLine(when + (row.event_type ? "  \xB7  " + row.event_type : "")) : null,
-        row.description ? klWsBodyText(klWsSnippet(row.description, 200)) : null
-      ], key);
-    }
-    return null;
   }
   var KL_HUB_SECTION_LABEL = { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" };
   var KL_HUB_CARD = { padding: "12px 14px", marginBottom: "10px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px" };
@@ -7744,16 +7624,6 @@
   function klStageLabel(so) {
     var n = so == null ? 0 : Number(so);
     return KL_STAGE_LABELS[n] || "";
-  }
-  function klProvisionRef(provision, instrumentTitle) {
-    var parts = [];
-    if (instrumentTitle) parts.push(instrumentTitle);
-    if (provision.section_num) parts.push("s. " + provision.section_num);
-    var loc = parts.length ? " (" + parts.join(", ") + ")" : "";
-    return (provision.title || "Provision " + (provision.provision_id != null ? provision.provision_id : "")) + loc;
-  }
-  function klCaseId(rec) {
-    return rec && (rec.id != null ? rec.id : rec.case_id != null ? rec.case_id : rec.uuid != null ? rec.uuid : null) || null;
   }
   function klNoteTypeLabel(t) {
     if (t === "eileen_conversation") return "Eileen conversation";
@@ -7797,239 +7667,6 @@
   function KLHubBack({ onBack, label }) {
     return /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onBack, style: { background: "transparent", border: "none", color: "#94A3B8", fontSize: "12px", cursor: "pointer", padding: "2px 0", marginBottom: "12px", fontFamily: "'DM Sans', sans-serif" } }, "\u2190 " + (label || "Back"));
   }
-  function KLDiscussButton({ seed, domainContext, onDiscuss }) {
-    return /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        type: "button",
-        onClick: function() {
-          if (typeof onDiscuss === "function") onDiscuss(seed, domainContext);
-        },
-        style: { marginTop: "14px", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "rgba(14,165,233,0.10)", border: "1px solid rgba(14,165,233,0.4)", borderRadius: "8px", color: "#0EA5E9", fontSize: "12px", fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }
-      },
-      "Discuss with Eileen \u2192"
-    );
-  }
-  function KLVersionRow({ v }) {
-    var date = v.effective_date || v.effective_from || v.valid_from || v.in_force_from || v.date || v.created_at || null;
-    var label = v.version || v.version_num || v.version_label || v.status || v.change_type || null;
-    var note = v.change_summary || v.summary || v.note || v.description || v.notes || null;
-    var head = [label ? String(label) : null, date ? klWsDate(date) : null].filter(Boolean).join("  \xB7  ") || "Version";
-    return /* @__PURE__ */ React.createElement("div", { style: { padding: "8px 10px", marginBottom: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", fontFamily: "'DM Mono', monospace" } }, head), note ? /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", marginTop: "3px", lineHeight: 1.45 } }, klWsSnippet(note, 220)) : null);
-  }
-  function KLProvisionDetail({ provision, instrumentTitle, onBack, onDiscuss }) {
-    var _v = useState(null);
-    var versions = _v[0];
-    var setVersions = _v[1];
-    useEffect(function() {
-      var alive = true;
-      setVersions(null);
-      klWsFetchRows("kl_versions?select=*&limit=400").then(function(rows) {
-        if (!alive) return;
-        var pid = provision.provision_id, iid = provision.instrument_id;
-        var hasProvLink = rows.some(function(v) {
-          return v && v.provision_id != null;
-        });
-        var mine = rows.filter(function(v) {
-          if (!v) return false;
-          return hasProvLink ? v.provision_id === pid : iid != null && v.instrument_id === iid;
-        });
-        setVersions(mine);
-      });
-      return function() {
-        alive = false;
-      };
-    }, [provision]);
-    var seed = "Please explain " + klProvisionRef(provision, instrumentTitle) + " \u2014 what it requires and its practical implications for an employer.";
-    var domainContext = "provision:" + (provision.provision_id != null ? provision.provision_id : "");
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(KLHubBack, { onBack, label: "Back to Law" }), /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "15px", fontWeight: 700, marginBottom: "6px", lineHeight: 1.35 } }, provision.title || "Provision " + provision.provision_id), /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Mono', monospace", marginBottom: "10px" } }, [instrumentTitle, provision.section_num ? "s. " + provision.section_num : null].filter(Boolean).join("  \xB7  ")), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "4px" } }, provision.in_force ? klWsBadge("In force", "if") : klWsBadge("Not yet in force", "nif"), provision.is_era_2025 ? klWsBadge("ERA 2025", "era") : null), /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: "0.05em", margin: "16px 0 8px" } }, "Version history"), versions === null ? /* @__PURE__ */ React.createElement(KLHubLoading, null) : versions.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px" } }, "No recorded version changes for this provision.") : versions.map(function(v, i) {
-      return /* @__PURE__ */ React.createElement(KLVersionRow, { key: i, v });
-    }), /* @__PURE__ */ React.createElement(KLDiscussButton, { seed, domainContext, onDiscuss }));
-  }
-  function KLLawTab({ onDiscuss, focusInstrumentId }) {
-    var _p = useState(null);
-    var provisions = _p[0];
-    var setProvisions = _p[1];
-    var _c = useState(null);
-    var counts = _c[0];
-    var setCounts = _c[1];
-    var _sel = useState(null);
-    var selected = _sel[0];
-    var setSelected = _sel[1];
-    var _exp = useState({});
-    var expanded = _exp[0];
-    var setExpanded = _exp[1];
-    var _tick = useState(0);
-    var setTick = _tick[1];
-    useEffect(function() {
-      var alive = true;
-      klWsFetchRows("kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025&order=instrument_id,section_num&limit=700").then(function(rows) {
-        if (alive) setProvisions(rows);
-      });
-      Promise.all([klWsCount("kl_provisions"), klWsCount("kl_instruments"), klWsCount("kl_versions")]).then(function(c) {
-        if (alive) setCounts({ provisions: c[0], instruments: c[1], versions: c[2] });
-      });
-      ensureInstrumentsMap().then(function() {
-        if (alive) setTick(function(x) {
-          return x + 1;
-        });
-      }).catch(function() {
-      });
-      return function() {
-        alive = false;
-      };
-    }, []);
-    useEffect(function() {
-      if (focusInstrumentId != null) setExpanded(function(prev) {
-        var n = Object.assign({}, prev);
-        n[focusInstrumentId] = true;
-        return n;
-      });
-    }, [focusInstrumentId]);
-    if (selected) {
-      return /* @__PURE__ */ React.createElement(KLProvisionDetail, { provision: selected, instrumentTitle: instrumentDisplayTitle(selected.instrument_id), onBack: function() {
-        setSelected(null);
-      }, onDiscuss });
-    }
-    if (provisions === null) return /* @__PURE__ */ React.createElement(KLHubLoading, null);
-    var groups = [], byId = {};
-    provisions.forEach(function(p) {
-      var k = p.instrument_id == null ? "\u2014" : p.instrument_id;
-      if (!byId[k]) {
-        byId[k] = { id: p.instrument_id, items: [] };
-        groups.push(byId[k]);
-      }
-      byId[k].items.push(p);
-    });
-    return /* @__PURE__ */ React.createElement("div", null, counts ? /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Mono', monospace", marginBottom: "12px" } }, [counts.instruments != null ? counts.instruments + " instruments" : null, counts.provisions != null ? counts.provisions + " provisions" : null, counts.versions != null ? counts.versions + " versions" : null].filter(Boolean).join("  \xB7  ")) : null, /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px", marginBottom: "14px", lineHeight: 1.5 } }, "The statutory corpus \u2014 the law as it stands. Open a provision for its detail and version history."), groups.map(function(g, gi) {
-      var title = instrumentDisplayTitle(g.id);
-      var isOpen = !!expanded[g.id];
-      return /* @__PURE__ */ React.createElement("div", { key: gi, style: { marginBottom: "8px", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", overflow: "hidden" } }, /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          type: "button",
-          onClick: function() {
-            setExpanded(function(prev) {
-              var n = Object.assign({}, prev);
-              n[g.id] = !prev[g.id];
-              return n;
-            });
-          },
-          style: { width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(255,255,255,0.03)", border: "none", color: "#F1F5F9", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 600 }
-        },
-        /* @__PURE__ */ React.createElement("span", { style: { minWidth: 0 } }, title),
-        /* @__PURE__ */ React.createElement("span", { style: { color: "#64748B", fontSize: "11px", fontFamily: "'DM Mono', monospace", flexShrink: 0 } }, g.items.length + (isOpen ? " \u25BE" : " \u25B8"))
-      ), isOpen ? /* @__PURE__ */ React.createElement("div", { style: { padding: "4px 0" } }, g.items.map(function(p, pi) {
-        return /* @__PURE__ */ React.createElement(
-          "button",
-          {
-            key: pi,
-            type: "button",
-            onClick: function() {
-              setSelected(p);
-            },
-            style: { width: "100%", textAlign: "left", display: "block", background: "transparent", border: "none", borderLeft: "2px solid transparent", color: "#CBD5E1", cursor: "pointer", padding: "7px 14px", fontFamily: "'DM Sans', sans-serif", fontSize: "12.5px", lineHeight: 1.4 }
-          },
-          /* @__PURE__ */ React.createElement("span", { style: { color: "#64748B", fontFamily: "'DM Mono', monospace", marginRight: "6px" } }, p.section_num ? "s." + p.section_num : "\xB7"),
-          p.title || "Provision " + p.provision_id
-        );
-      })) : null);
-    }));
-  }
-  function KLLandmarkDetail({ row, onBack, onDiscuss }) {
-    var sub = [row.court, row.year].filter(Boolean).join("  \xB7  ");
-    var seed = "Please explain the employment-law principle in " + (row.name || row.citation || "this case") + (row.citation ? " " + row.citation : "") + ".";
-    var domainContext = "case:" + (row.case_id != null ? row.case_id : "");
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(KLHubBack, { onBack, label: "Back to Cases" }), /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "15px", fontWeight: 700, marginBottom: "6px", lineHeight: 1.35 } }, row.name || row.citation || "Case"), row.citation || sub ? /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Mono', monospace", marginBottom: "12px" } }, [row.citation, sub].filter(Boolean).join("  \u2014  ")) : null, row.principle ? /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12.5px", lineHeight: 1.6 } }, row.principle) : /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px" } }, "No principle recorded."), /* @__PURE__ */ React.createElement(KLDiscussButton, { seed, domainContext, onDiscuss }));
-  }
-  function KLDecisionCard({ rec, onOpen }) {
-    var isEnriched = rec.enriched === true;
-    var name = rec.name || rec.case_name || rec.title || rec.citation || "Decision";
-    var date = rec.decision_date || rec.judgment_date || rec.date || rec.published_at || rec.created_at || null;
-    var court = rec.court || rec.tribunal || null;
-    return /* @__PURE__ */ React.createElement("button", { type: "button", onClick: onOpen, style: Object.assign({}, KL_HUB_CARD_BTN, isEnriched ? {} : { opacity: 0.9 }) }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "3px", minWidth: 0 } }, name), isEnriched ? /* @__PURE__ */ React.createElement("span", { style: KL_HUB_BADGE_OK }, "Ailane-enriched") : /* @__PURE__ */ React.createElement("span", { style: KL_HUB_BADGE_WARN }, "Not enriched")), court || date ? /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "11px", fontFamily: "'DM Mono', monospace", marginBottom: "3px" } }, [court, date ? klWsDate(date) : null].filter(Boolean).join(" \xB7 ")) : null, !isEnriched ? /* @__PURE__ */ React.createElement("div", { style: { color: "#F59E0B", fontSize: "11px", lineHeight: 1.45 } }, "Ailane has not enriched this decision \u2014 no structured findings are available.") : null);
-  }
-  function KLDecisionDetail({ id, preview, onBack, onDiscuss }) {
-    var _d = useState(null);
-    var detail = _d[0];
-    var setDetail = _d[1];
-    useEffect(function() {
-      var alive = true;
-      setDetail(null);
-      if (!id) {
-        setDetail({ __error: true, status: 0 });
-        return function() {
-          alive = false;
-        };
-      }
-      klCasesFeed({ action: "detail", id }).then(function(res) {
-        if (!alive) return;
-        if (res && res.__error) {
-          setDetail(res);
-          return;
-        }
-        var d = res && (res.case || res.data || res.detail) || res;
-        setDetail(d || {});
-      });
-      return function() {
-        alive = false;
-      };
-    }, [id]);
-    var base = detail && !detail.__error ? detail : preview || {};
-    var name = base.name || base.case_name || base.title || base.citation || "Decision";
-    var court = base.court || base.tribunal || null;
-    var date = base.decision_date || base.judgment_date || base.date || base.published_at || base.created_at || null;
-    var judgment = base.judgment_text || base.judgment || base.body || base.full_text || base.summary || null;
-    var present = detail && !detail.__error ? detail.enrichment_present === true : preview && preview.enriched === true;
-    var seed = "Please summarise the employment-law significance of " + name + (court ? " (" + court + ")" : "") + ".";
-    var domainContext = "case:" + (id != null ? id : "");
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(KLHubBack, { onBack, label: "Back to Cases" }), /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "15px", fontWeight: 700, marginBottom: "6px", lineHeight: 1.35 } }, name), court || date ? /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Mono', monospace", marginBottom: "10px" } }, [court, date ? klWsDate(date) : null].filter(Boolean).join("  \xB7  ")) : null, detail === null ? /* @__PURE__ */ React.createElement(KLHubLoading, null) : detail && detail.__error ? /* @__PURE__ */ React.createElement("div", { style: { color: "#F59E0B", fontSize: "12px", marginBottom: "10px", lineHeight: 1.5 } }, detail.status === 404 ? "This decision\u2019s detail is not available yet (kl-cases-feed not deployed)." : "This decision could not be loaded right now.") : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 12px", borderRadius: "8px", marginBottom: "12px", fontSize: "12px", lineHeight: 1.5, background: present ? "rgba(16,185,129,0.08)" : "rgba(245,158,11,0.08)", border: "1px solid " + (present ? "rgba(16,185,129,0.3)" : "rgba(245,158,11,0.3)"), color: present ? "#6EE7B7" : "#FCD34D" } }, present ? "Ailane has enriched this decision \u2014 structured findings are available." : "Ailane has not enriched this decision. The judgment text is shown; structured findings are not available."), judgment ? /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12.5px", lineHeight: 1.6, whiteSpace: "pre-wrap" } }, klWsSnippet(judgment, 1400)) : /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px" } }, "No judgment text available.")), /* @__PURE__ */ React.createElement(KLDiscussButton, { seed, domainContext, onDiscuss }));
-  }
-  function KLCasesTab({ onDiscuss }) {
-    var _lm = useState(null);
-    var landmark = _lm[0];
-    var setLandmark = _lm[1];
-    var _fd = useState(null);
-    var feed = _fd[0];
-    var setFeed = _fd[1];
-    var _sel = useState(null);
-    var selected = _sel[0];
-    var setSelected = _sel[1];
-    useEffect(function() {
-      var alive = true;
-      klWsFetchRows("kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=255").then(function(rows) {
-        if (alive) setLandmark(rows);
-      });
-      klCasesFeed({ action: "list", limit: 25, offset: 0 }).then(function(res) {
-        if (!alive) return;
-        if (res && res.__error) {
-          setFeed({ __error: true, status: res.status });
-          return;
-        }
-        var rows = Array.isArray(res) ? res : res && (res.cases || res.data || res.rows || res.items) || [];
-        setFeed(Array.isArray(rows) ? rows : []);
-      });
-      return function() {
-        alive = false;
-      };
-    }, []);
-    if (selected && selected.kind === "landmark") return /* @__PURE__ */ React.createElement(KLLandmarkDetail, { row: selected.row, onBack: function() {
-      setSelected(null);
-    }, onDiscuss });
-    if (selected && selected.kind === "decision") return /* @__PURE__ */ React.createElement(KLDecisionDetail, { id: selected.id, preview: selected.preview, onBack: function() {
-      setSelected(null);
-    }, onDiscuss });
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: KL_HUB_SECTION_LABEL }, "Landmark Cases"), /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px", marginBottom: "10px", lineHeight: 1.5 } }, "A curated editorial set \u2014 how the law has been applied."), landmark === null ? /* @__PURE__ */ React.createElement(KLHubLoading, null) : landmark.length === 0 ? /* @__PURE__ */ React.createElement(KLHubEmpty, { text: "No landmark cases to show." }) : landmark.map(function(row, i) {
-      var sub = [row.court, row.year].filter(Boolean).join(" \xB7 ");
-      return /* @__PURE__ */ React.createElement("button", { key: i, type: "button", onClick: function() {
-        setSelected({ kind: "landmark", row });
-      }, style: KL_HUB_CARD_BTN }, /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "3px" } }, row.name || row.citation || "Case"), row.citation || sub ? /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "11px", fontFamily: "'DM Mono', monospace", marginBottom: "3px" } }, [row.citation, sub].filter(Boolean).join("  \u2014  ")) : null, row.principle ? /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", lineHeight: 1.5 } }, klWsSnippet(row.principle, 160)) : null);
-    }), /* @__PURE__ */ React.createElement("div", { style: Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: "22px" }) }, "Recent Decisions"), /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px", marginBottom: "10px", lineHeight: 1.5 } }, "The live feed of tribunal decisions, newest first."), feed === null ? /* @__PURE__ */ React.createElement(KLHubLoading, null) : feed && feed.__error ? /* @__PURE__ */ React.createElement("div", { style: { padding: "12px 14px", border: "1px solid rgba(245,158,11,0.35)", background: "rgba(245,158,11,0.06)", borderRadius: "10px", color: "#FCD34D", fontSize: "12px", lineHeight: 1.5 } }, feed.status === 404 ? "The Recent Decisions feed is not available yet (kl-cases-feed returned 404 \u2014 not deployed). Landmark Cases above are unaffected." : "The Recent Decisions feed could not be loaded right now (error " + (feed.status || "") + "). Please try again shortly.") : feed.length === 0 ? /* @__PURE__ */ React.createElement(KLHubEmpty, { text: "No recent decisions to show." }) : feed.map(function(rec, i) {
-      return /* @__PURE__ */ React.createElement(KLDecisionCard, { key: i, rec, onOpen: function() {
-        setSelected({ kind: "decision", id: klCaseId(rec), preview: rec });
-      } });
-    }));
-  }
   function KLBillRow({ b }) {
     var name = b.legislation_short_name || b.legislation_title || "Bill";
     var stageLabel = klStageLabel(b.stage_order);
@@ -8051,62 +7688,6 @@
     var newest = rows[0];
     var when = klWsDate(newest.changed_at);
     return /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", lineHeight: 1.5 } }, "Parliament has been quiet on the bills we track for you lately \u2014 the most recent movement was ", /* @__PURE__ */ React.createElement("strong", { style: { color: "#CBD5E1" } }, newest.legislation_short_name || "a tracked bill"), " \u2192 " + (newest.new_stage || "updated") + (when ? " on " + when : "") + ".");
-  }
-  function KLHorizonTab() {
-    var _feed = useState(null);
-    var feed = _feed[0];
-    var setFeed = _feed[1];
-    var _mov = useState(null);
-    var moves = _mov[0];
-    var setMoves = _mov[1];
-    var _pub = useState(null);
-    var published = _pub[0];
-    var setPublished = _pub[1];
-    useEffect(function() {
-      var alive = true;
-      klWsRpc("fn_parliament_live_feed", { p_limit: 200 }).then(function(rows) {
-        if (alive) setFeed(rows);
-      });
-      klWsRpc("fn_parliament_live_daily_summary", { p_since_hours: 48, p_limit: 12 }).then(function(rows) {
-        if (alive) setMoves(rows);
-      });
-      klWsFetchRows("kl_legislative_horizon?is_published=eq.true&archived=eq.false&select=id,legislation_title,legislation_short_name,parliament_stage,expected_enactment,headline_summary,source_url&order=display_order.asc&limit=50").then(function(rows) {
-        if (alive) setPublished(rows);
-      });
-      return function() {
-        alive = false;
-      };
-    }, []);
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: KL_HUB_SECTION_LABEL }, "Recent movements"), moves === null ? /* @__PURE__ */ React.createElement(KLHubLoading, null) : /* @__PURE__ */ React.createElement(KLMovements, { rows: moves }), /* @__PURE__ */ React.createElement("div", { style: Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: "22px" }) }, "In Parliament"), /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "12px", marginBottom: "10px", lineHeight: 1.5 } }, "Bills we track, most recent and most relevant first."), feed === null ? /* @__PURE__ */ React.createElement(KLHubLoading, null) : feed.length === 0 ? /* @__PURE__ */ React.createElement(KLHubEmpty, { text: "No tracked bills to show." }) : feed.map(function(b, i) {
-      return /* @__PURE__ */ React.createElement(KLBillRow, { key: i, b });
-    }), /* @__PURE__ */ React.createElement("div", { style: Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: "22px" }) }, "Published horizon"), published === null ? /* @__PURE__ */ React.createElement(KLHubLoading, null) : published.length === 0 ? /* @__PURE__ */ React.createElement(KLHubEmpty, { text: "No published horizon entries yet. The pipeline is healthy; items appear here once they are editorially published." }) : published.map(function(h, i) {
-      var stage = [h.parliament_stage, h.expected_enactment ? "Expected " + h.expected_enactment : null].filter(Boolean).join("  \xB7  ");
-      return /* @__PURE__ */ React.createElement("div", { key: i, style: KL_HUB_CARD }, /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "3px" } }, h.legislation_short_name || h.legislation_title || "Legislation"), stage ? /* @__PURE__ */ React.createElement("div", { style: { color: "#94A3B8", fontSize: "11px", fontFamily: "'DM Mono', monospace", marginBottom: "3px" } }, stage) : null, h.headline_summary ? /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", lineHeight: 1.5 } }, klWsSnippet(h.headline_summary, 200)) : null, klWsSourceLink(h.source_url));
-    }));
-  }
-  function KLIntelligenceHub({ entry, onDiscuss }) {
-    var _t = useState(entry && entry.tab || "law");
-    var tab = _t[0];
-    var setTab = _t[1];
-    var focusInstrumentId = entry ? entry.instrumentId : null;
-    var TABS = [["law", "Law"], ["cases", "Cases"], ["horizon", "Horizon"]];
-    return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { role: "tablist", style: { display: "flex", gap: "4px", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.08)" } }, TABS.map(function(t) {
-      var active = tab === t[0];
-      return /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: t[0],
-          type: "button",
-          role: "tab",
-          "aria-selected": active,
-          onClick: function() {
-            setTab(t[0]);
-          },
-          style: { padding: "8px 12px", background: "transparent", border: "none", borderBottom: active ? "2px solid #0EA5E9" : "2px solid transparent", color: active ? "#F1F5F9" : "#94A3B8", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: active ? 600 : 500 }
-        },
-        t[1]
-      );
-    })), /* @__PURE__ */ React.createElement("div", { style: { display: tab === "law" ? "block" : "none" } }, /* @__PURE__ */ React.createElement(KLLawTab, { onDiscuss, focusInstrumentId })), /* @__PURE__ */ React.createElement("div", { style: { display: tab === "cases" ? "block" : "none" } }, /* @__PURE__ */ React.createElement(KLCasesTab, { onDiscuss })), /* @__PURE__ */ React.createElement("div", { style: { display: tab === "horizon" ? "block" : "none" } }, /* @__PURE__ */ React.createElement(KLHorizonTab, null)));
   }
   function KLNoteEditor({ note, onBack }) {
     var _t = useState(note.title || "");
@@ -8201,25 +7782,6 @@
       return /* @__PURE__ */ React.createElement("button", { key: n.id || i, type: "button", onClick: function() {
         setSel(n);
       }, style: KL_HUB_CARD_BTN }, /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "3px" } }, (n.pinned ? "\u{1F4CC} " : "") + (n.title || "Untitled")), /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", marginBottom: "3px" } }, [n.note_type ? klNoteTypeLabel(n.note_type) : null, n.updated_at ? "Updated " + klWsDate(n.updated_at) : null].filter(Boolean).join("  \xB7  ")), n.content_plain ? /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", lineHeight: 1.5 } }, klWsSnippet(n.content_plain, 140)) : null);
-    }));
-  }
-  function KLCalendarList() {
-    var _r = useState(null);
-    var rows = _r[0];
-    var setRows = _r[1];
-    useEffect(function() {
-      var alive = true;
-      klWsFetchRows("kl_calendar_events?select=id,event_type,title,description,event_date,end_date,status&order=event_date.asc&limit=100").then(function(data) {
-        if (alive) setRows(data);
-      });
-      return function() {
-        alive = false;
-      };
-    }, []);
-    if (rows === null) return /* @__PURE__ */ React.createElement(KLHubLoading, null);
-    if (rows.length === 0) return /* @__PURE__ */ React.createElement(KLHubEmpty, { text: "No calendar events to show." });
-    return /* @__PURE__ */ React.createElement("div", null, rows.map(function(row, i) {
-      return klWsRenderRow("calendar", row, i);
     }));
   }
   function KLTickerBell({ onOpenLawInstrument }) {
@@ -8336,6 +7898,510 @@
       list
     );
   }
+  function klIntelFwdCard(row, idx) {
+    var children = [];
+    var name = row.legislation_short_name || row.legislation_title || "Untitled instrument";
+    var left = [React.createElement("div", { key: "title", style: HUB_INTEL_TITLE_STYLE }, name)];
+    var meta = [];
+    if (row.parliament_stage) meta.push(React.createElement("span", { key: "stage" }, hubIntelText(row.parliament_stage)));
+    if (row.expected_enactment) meta.push(React.createElement("span", { key: "exp" }, "Expected in-force: " + hubIntelText(row.expected_enactment)));
+    if (meta.length) left.push(React.createElement("div", { key: "meta", style: HUB_INTEL_META_STYLE }, meta));
+    children.push(React.createElement(
+      "div",
+      { key: "top", style: HUB_INTEL_TOP_STYLE },
+      React.createElement("div", { key: "l", style: { minWidth: 0 } }, left)
+    ));
+    var chips = [];
+    if (row.legislation_type) chips.push(hubIntelChip(hubIntelText(row.legislation_type), "type", "type"));
+    if (row.priority) {
+      var high = String(row.priority).toLowerCase() === "high";
+      chips.push(hubIntelChip("Priority: " + hubIntelText(row.priority), high ? "high" : null, "prio"));
+    }
+    if (row.status) chips.push(hubIntelChip(hubIntelText(row.status), null, "status"));
+    if (chips.length) children.push(React.createElement("div", { key: "chips", style: HUB_INTEL_CHIPS_STYLE }, chips));
+    if (row.headline_summary) children.push(React.createElement("div", { key: "sum", style: HUB_INTEL_SUMMARY_STYLE }, hubIntelText(row.headline_summary)));
+    var kcNodes = hubIntelKeyChanges(row.key_changes);
+    if (kcNodes) {
+      children.push(React.createElement("div", { key: "kch", style: HUB_INTEL_SUBHEAD_STYLE }, "Key changes"));
+      children.push(React.createElement("div", { key: "kc" }, kcNodes));
+    }
+    var bi = hubIntelSanitiseHtml(row.business_impact_html);
+    if (bi) {
+      children.push(React.createElement("div", { key: "bih", style: HUB_INTEL_SUBHEAD_STYLE }, "Business impact"));
+      children.push(React.createElement("div", { key: "bi", style: HUB_INTEL_HTML_STYLE, dangerouslySetInnerHTML: { __html: bi } }));
+    }
+    var ps = hubIntelSanitiseHtml(row.preparatory_steps_html);
+    if (ps) {
+      children.push(React.createElement("div", { key: "psh", style: HUB_INTEL_SUBHEAD_STYLE }, "Preparatory steps"));
+      children.push(React.createElement("div", { key: "ps", style: HUB_INTEL_HTML_STYLE, dangerouslySetInnerHTML: { __html: ps } }));
+    }
+    if (Array.isArray(row.affected_categories) && row.affected_categories.length) {
+      var cats = [];
+      row.affected_categories.forEach(function(c, i) {
+        if (c != null && c !== "") cats.push(hubIntelChip(hubIntelText(c), null, "cat" + i));
+      });
+      if (cats.length) children.push(React.createElement("div", { key: "cats", style: HUB_INTEL_CHIPS_STYLE }, cats));
+    }
+    if (row.source_url && /^https?:\/\//i.test(String(row.source_url))) {
+      children.push(React.createElement(
+        "div",
+        { key: "foot", style: HUB_INTEL_FOOT_STYLE },
+        React.createElement("a", { key: "src", href: String(row.source_url), target: "_blank", rel: "noopener noreferrer", style: HUB_INTEL_SOURCE_STYLE }, "Source")
+      ));
+    }
+    if (row.disclaimer_text) children.push(React.createElement("div", { key: "disc", style: HUB_INTEL_DISCLAIMER_STYLE }, hubIntelText(row.disclaimer_text)));
+    var discussName = row.legislation_short_name || row.legislation_title || "this legislation";
+    children.push(hubIntelDiscussBtn("Explain the " + discussName + " and what it means for my organisation.", "discuss"));
+    return React.createElement("div", { key: row.id != null ? row.id : idx, style: HUB_INTEL_CARD_STYLE }, children);
+  }
+  function KLIntelParityInForce() {
+    var _state = useState({ status: "loading", rows: [] });
+    var state = _state[0];
+    var setState = _state[1];
+    var _cat = useState("all");
+    var cat = _cat[0];
+    var setCat = _cat[1];
+    var _comm = useState("inforce");
+    var comm = _comm[0];
+    var setComm = _comm[1];
+    useEffect(function() {
+      var alive = true;
+      klWsFetchRows("regulatory_requirements?select=" + HUB_INTEL_REQ_COLS + "&order=category.asc&order=requirement_name.asc").then(function(rows2) {
+        if (alive) setState({ status: "ready", rows: rows2 || [] });
+      });
+      return function() {
+        alive = false;
+      };
+    }, []);
+    if (state.status === "loading") {
+      return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading the statutory catalogue\u2026");
+    }
+    var children = [];
+    children.push(React.createElement(
+      "div",
+      { key: "caveat", style: HUB_INTEL_CAVEAT_STYLE },
+      "In-force statutory requirements \u2014 reference information drawn from the regulatory catalogue. Intelligence, not advice."
+    ));
+    var all = state.rows || [];
+    var byComm = all.filter(function(r) {
+      var fwd = r && r.is_forward_requirement === true;
+      return comm === "forward" ? fwd : !fwd;
+    });
+    var catVals = [];
+    var seenCat = {};
+    all.forEach(function(r) {
+      var c = r && r.category;
+      if (c != null && c !== "" && !seenCat[c]) {
+        seenCat[c] = true;
+        catVals.push(c);
+      }
+    });
+    catVals.sort(function(a, b) {
+      var ha = hubAceiHumanise(a), hb = hubAceiHumanise(b);
+      return ha < hb ? -1 : ha > hb ? 1 : 0;
+    });
+    var rows = cat === "all" ? byComm : byComm.filter(function(r) {
+      return r && String(r.category) === cat;
+    });
+    var catOptions = [React.createElement("option", { key: "all", value: "all" }, "All categories")];
+    catVals.forEach(function(c) {
+      catOptions.push(React.createElement("option", { key: c, value: c }, hubAceiHumanise(c)));
+    });
+    children.push(React.createElement(
+      "div",
+      { key: "filter", style: HUB_INTEL_FILTERBAR_STYLE },
+      React.createElement("select", {
+        key: "catsel",
+        value: cat,
+        "aria-label": "Filter by category",
+        onChange: function(e) {
+          setCat(e.target.value);
+        },
+        style: HUB_INTEL_SELECT_STYLE
+      }, catOptions),
+      React.createElement(
+        "div",
+        { key: "commtoggle", style: HUB_INTEL_TOGGLE_GROUP_STYLE },
+        React.createElement("button", {
+          type: "button",
+          "aria-pressed": comm === "inforce" ? "true" : "false",
+          style: comm === "inforce" ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+          onClick: function() {
+            setComm("inforce");
+          }
+        }, "In force"),
+        React.createElement("button", {
+          type: "button",
+          "aria-pressed": comm === "forward" ? "true" : "false",
+          style: comm === "forward" ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+          onClick: function() {
+            setComm("forward");
+          }
+        }, "Forward-dated")
+      )
+    ));
+    if (!rows.length) {
+      children.push(React.createElement(
+        "div",
+        { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } },
+        comm === "forward" ? "No forward-dated statutory requirements match." : "No in-force statutory requirements match."
+      ));
+      return React.createElement("div", null, children);
+    }
+    children.push(React.createElement(
+      "div",
+      { key: "list", style: HUB_INTEL_LIST_STYLE },
+      rows.map(function(row, idx) {
+        return hubIntelReqCard(row, idx);
+      })
+    ));
+    return React.createElement("div", null, children);
+  }
+  function KLIntelParityForward() {
+    var _state = useState({ status: "loading", rows: [] });
+    var state = _state[0];
+    var setState = _state[1];
+    useEffect(function() {
+      var alive = true;
+      klWsFetchRows("kl_legislative_horizon?is_published=eq.true&select=id,legislation_short_name,legislation_title,legislation_type,parliament_stage,expected_enactment,priority,status,headline_summary,key_changes,business_impact_html,preparatory_steps_html,disclaimer_text,affected_categories,source_url,display_order&order=display_order.asc").then(function(rows2) {
+        if (alive) setState({ status: "ready", rows: rows2 || [] });
+      });
+      return function() {
+        alive = false;
+      };
+    }, []);
+    if (state.status === "loading") {
+      return React.createElement("div", { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", padding: "8px 0" } }, "Loading the forward horizon\u2026");
+    }
+    var children = [];
+    children.push(React.createElement(
+      "div",
+      { key: "c1", style: HUB_INTEL_C1_STYLE, role: "note" },
+      React.createElement("strong", { key: "s" }, "This is regulatory intelligence to support your decisions \u2014 not legal advice."),
+      " It is not a complete record of all applicable law, and the absence of an item here is not assurance that nothing has changed. For advice on your own situation, consult a qualified professional."
+    ));
+    var rows = state.rows || [];
+    if (!rows.length) {
+      children.push(React.createElement("div", { key: "empty", style: { color: "#CBD5E1", fontFamily: "'DM Sans', sans-serif", fontSize: "14px", lineHeight: 1.6 } }, "No forward legislation is currently published."));
+      return React.createElement("div", null, children);
+    }
+    children.push(React.createElement(
+      "div",
+      { key: "list", style: HUB_INTEL_LIST_STYLE },
+      rows.map(function(row, idx) {
+        return klIntelFwdCard(row, idx);
+      })
+    ));
+    return React.createElement("div", null, children);
+  }
+  function KLIntelParity() {
+    var _view = useState("inforce");
+    var view = _view[0];
+    var setView = _view[1];
+    var seg = React.createElement(
+      "div",
+      { key: "seg", style: HUB_INTEL_SEG_WRAP, role: "tablist", "aria-label": "Intelligence views" },
+      HUB_INTEL_VIEWS.map(function(v) {
+        var on = view === v.id;
+        return React.createElement("button", {
+          key: v.id,
+          type: "button",
+          role: "tab",
+          "aria-selected": on ? "true" : "false",
+          style: on ? Object.assign({}, HUB_INTEL_SEG_BASE, HUB_INTEL_SEG_ON) : HUB_INTEL_SEG_BASE,
+          onClick: function() {
+            setView(v.id);
+          }
+        }, v.label);
+      })
+    );
+    return React.createElement(
+      "div",
+      { style: { width: "100%" } },
+      seg,
+      view === "inforce" ? React.createElement(KLIntelParityInForce, { key: "inforce" }) : React.createElement(KLIntelParityForward, { key: "horizon" })
+    );
+  }
+  function klDedupeCasesByName(rows) {
+    var idxByName = {};
+    var out = [];
+    rows.forEach(function(r) {
+      var name = r && r.name;
+      if (name == null || name === "") {
+        out.push(r);
+        return;
+      }
+      if (!Object.prototype.hasOwnProperty.call(idxByName, name)) {
+        idxByName[name] = out.length;
+        out.push(r);
+        return;
+      }
+      var cur = out[idxByName[name]];
+      var curCanon = cur.citation_canonical != null && cur.citation_canonical !== "";
+      var rCanon = r.citation_canonical != null && r.citation_canonical !== "";
+      var replace = false;
+      if (rCanon && !curCanon) replace = true;
+      else if (rCanon === curCanon) {
+        var ct = cur.updated_at ? new Date(cur.updated_at).getTime() : 0;
+        var rt = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+        if (rt > ct) replace = true;
+      }
+      if (replace) out[idxByName[name]] = r;
+    });
+    return out;
+  }
+  function klParityCaseCard(row, idx) {
+    var children = [];
+    children.push(React.createElement("div", { key: "title", style: HUB_INTEL_TITLE_STYLE }, row.name || row.citation || "Tribunal decision"));
+    var meta = [row.citation, row.court, row.year].filter(function(v) {
+      return v != null && v !== "";
+    });
+    if (meta.length) children.push(React.createElement("div", { key: "meta", style: HUB_INTEL_META_STYLE }, meta.join("   \xB7   ")));
+    if (row.principle) children.push(React.createElement("div", { key: "body", style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.principle)));
+    return React.createElement("div", { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
+  }
+  function KLCasesParity() {
+    var _r = useState(null);
+    var rows = _r[0];
+    var setRows = _r[1];
+    useEffect(function() {
+      var alive = true;
+      klWsFetchRows("kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at&order=year.desc&limit=255").then(function(data) {
+        if (!alive) return;
+        var filtered = (data || []).filter(function(r) {
+          return r && r.court !== "N/A";
+        });
+        setRows(klDedupeCasesByName(filtered));
+      });
+      return function() {
+        alive = false;
+      };
+    }, []);
+    var children = [];
+    children.push(React.createElement(
+      "div",
+      { key: "disc", style: HUB_INTEL_C1_STYLE, role: "note" },
+      React.createElement("strong", { key: "s" }, "This is regulatory intelligence to support your decisions \u2014 not legal advice."),
+      " It is not a complete record of all applicable law, and the absence of an item here is not assurance that nothing has changed. For advice on your own situation, consult a qualified professional."
+    ));
+    if (rows === null) {
+      children.push(React.createElement(KLHubLoading, { key: "load" }));
+      return React.createElement("div", null, children);
+    }
+    if (!rows.length) {
+      children.push(React.createElement(KLHubEmpty, { key: "empty", text: "No recent decisions to show." }));
+      return React.createElement("div", null, children);
+    }
+    children.push(React.createElement(
+      "div",
+      { key: "list", style: HUB_INTEL_LIST_STYLE },
+      rows.map(function(row, i) {
+        return klParityCaseCard(row, i);
+      })
+    ));
+    return React.createElement("div", null, children);
+  }
+  var KL_CAL_FEEDS = {
+    regulatory: { label: "Statutory / Royal Assent", color: "#10b981" },
+    rates: { label: "Employment rates", color: "#f59e0b" },
+    horizon: { label: "Parliament / Horizon", color: "#3b82f6" },
+    client: { label: "My events", color: "#a855f7" }
+  };
+  var KL_CAL_FEED_ORDER = ["regulatory", "rates", "horizon", "client"];
+  function klCalFeedKey(f) {
+    return KL_CAL_FEEDS[f] ? f : "horizon";
+  }
+  function klCalMonthLabel(mk) {
+    if (!mk || mk.length < 7) return "Undated";
+    var parts = mk.split("-");
+    var y = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return mk;
+    return months[m - 1] + " " + y;
+  }
+  function klParityCalCard(row, key) {
+    var fk = klCalFeedKey(row.feed);
+    var color = KL_CAL_FEEDS[fk].color;
+    var children = [];
+    var when = [klWsDate(row.event_date), row.end_date ? klWsDate(row.end_date) : null].filter(Boolean).join(" \u2192 ");
+    if (when) children.push(React.createElement("div", { key: "date", style: { color: "#94A3B8", fontSize: "11px", fontFamily: "'DM Mono', monospace", marginBottom: "4px" } }, when));
+    children.push(React.createElement("div", { key: "title", style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "4px" } }, row.title || "Event"));
+    if (row.detail) children.push(React.createElement("div", { key: "detail", style: { color: "#CBD5E1", fontSize: "12px", lineHeight: 1.5, whiteSpace: "pre-wrap" } }, hubIntelText(row.detail)));
+    children.push(React.createElement(
+      "div",
+      { key: "tag", style: { display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "10px", fontFamily: "'DM Mono', monospace", color, marginTop: "6px" } },
+      React.createElement("span", { style: { width: "8px", height: "8px", borderRadius: "2px", background: color, display: "inline-block" } }),
+      KL_CAL_FEEDS[fk].label
+    ));
+    if (row.url) children.push(klWsSourceLink(row.url));
+    return React.createElement("div", { key, style: { padding: "12px 14px", marginBottom: "10px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderLeft: "2px solid " + color, borderRadius: "10px" } }, children);
+  }
+  function KLCalendarParity() {
+    var _r = useState(null);
+    var rows = _r[0];
+    var setRows = _r[1];
+    useEffect(function() {
+      var alive = true;
+      klWsFetchRows("v_kl_calendar_feed?select=feed,title,event_date,end_date,detail,url,ref_id&order=event_date.asc").then(function(data) {
+        if (alive) setRows(data || []);
+      });
+      return function() {
+        alive = false;
+      };
+    }, []);
+    var children = [];
+    children.push(React.createElement(
+      "div",
+      { key: "disc", style: HUB_INTEL_C1_STYLE, role: "note" },
+      React.createElement("strong", { key: "s" }, "This calendar is forward regulatory intelligence \u2014 not legal advice."),
+      " Statutory and Parliamentary dates are provisional until in force and can change. For advice on your own situation, consult a qualified professional."
+    ));
+    if (rows === null) {
+      children.push(React.createElement(KLHubLoading, { key: "load" }));
+      return React.createElement("div", null, children);
+    }
+    var present = {};
+    rows.forEach(function(r) {
+      present[klCalFeedKey(r.feed)] = true;
+    });
+    var legend = [];
+    KL_CAL_FEED_ORDER.forEach(function(k) {
+      if (!present[k]) return;
+      legend.push(React.createElement(
+        "span",
+        { key: k, style: { display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "14px", marginBottom: "6px", fontSize: "12px", color: "#94A3B8", fontFamily: "'DM Sans', sans-serif" } },
+        React.createElement("span", { style: { width: "10px", height: "10px", borderRadius: "3px", background: KL_CAL_FEEDS[k].color, display: "inline-block" } }),
+        KL_CAL_FEEDS[k].label
+      ));
+    });
+    if (legend.length) children.push(React.createElement("div", { key: "legend", style: { display: "flex", flexWrap: "wrap", marginBottom: "14px" } }, legend));
+    if (!rows.length) {
+      children.push(React.createElement(KLHubEmpty, { key: "empty", text: "No dates to show right now." }));
+      return React.createElement("div", null, children);
+    }
+    var groups = [];
+    var byMonth = {};
+    rows.forEach(function(r) {
+      var mk = r.event_date ? String(r.event_date).slice(0, 7) : "";
+      if (!Object.prototype.hasOwnProperty.call(byMonth, mk)) {
+        byMonth[mk] = { key: mk, items: [] };
+        groups.push(byMonth[mk]);
+      }
+      byMonth[mk].items.push(r);
+    });
+    groups.forEach(function(g) {
+      children.push(React.createElement("div", { key: "mh-" + g.key, style: Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: "18px" }) }, klCalMonthLabel(g.key)));
+      g.items.forEach(function(r, i) {
+        children.push(klParityCalCard(r, g.key + "-" + i));
+      });
+    });
+    return React.createElement("div", null, children);
+  }
+  var KL_PARL_STAGE_DEFS = [
+    { order: 10, label: "Royal Assent", note: "Now law" },
+    { order: 5, label: "Third Reading" },
+    { order: 4, label: "Report stage" },
+    { order: 3, label: "Committee stage" },
+    { order: 2, label: "Second Reading" },
+    { order: 1, label: "First Reading" },
+    { order: 0, label: "Other" }
+  ];
+  function klParlBillArchived(b) {
+    return !!(b && (b.archived === true || ["LAPSED", "SUPERSEDED", "WITHDRAWN", "DEFEATED"].indexOf(String(b.lifecycle_state || "").toUpperCase()) >= 0));
+  }
+  function klParlChangedTime(b) {
+    var t = b && (b.last_changed_at || b.last_status_check);
+    var n = t ? new Date(t).getTime() : 0;
+    return isNaN(n) ? 0 : n;
+  }
+  function KLParliamentParity() {
+    var _feed = useState(null);
+    var feed = _feed[0];
+    var setFeed = _feed[1];
+    var _mov = useState(null);
+    var moves = _mov[0];
+    var setMoves = _mov[1];
+    var _arch = useState(false);
+    var showArch = _arch[0];
+    var setShowArch = _arch[1];
+    useEffect(function() {
+      var alive = true;
+      klWsRpc("fn_parliament_live_feed", { p_limit: 200 }).then(function(rows) {
+        if (alive) setFeed(rows);
+      });
+      klWsRpc("fn_parliament_live_daily_summary", { p_since_hours: 48, p_limit: 12 }).then(function(rows) {
+        if (alive) setMoves(rows);
+      });
+      return function() {
+        alive = false;
+      };
+    }, []);
+    var children = [];
+    children.push(React.createElement(
+      "div",
+      { key: "disc", style: HUB_INTEL_C1_STYLE, role: "note" },
+      React.createElement("strong", { key: "s" }, "Parliament Live is forward regulatory intelligence \u2014 not legal advice."),
+      " Bill positions are provisional until Royal Assent and can change. This is not a complete record of all Parliamentary activity. For advice on your own situation, consult a qualified professional."
+    ));
+    children.push(React.createElement("div", { key: "boardlabel", style: KL_HUB_SECTION_LABEL }, "Bill passage"));
+    if (feed === null) {
+      children.push(React.createElement(KLHubLoading, { key: "boardload" }));
+    } else {
+      var active = [], archived = [];
+      (feed || []).forEach(function(b) {
+        (klParlBillArchived(b) ? archived : active).push(b);
+      });
+      if (!active.length && !archived.length) {
+        children.push(React.createElement(KLHubEmpty, { key: "boardempty", text: "Parliament Live isn't available on your current plan, or there are no bills being tracked for you yet." }));
+      } else {
+        var buckets = {};
+        active.forEach(function(b) {
+          var so = b.stage_order == null ? 0 : Number(b.stage_order);
+          if (!KL_PARL_STAGE_DEFS.some(function(d) {
+            return d.order === so;
+          })) so = 0;
+          (buckets[so] = buckets[so] || []).push(b);
+        });
+        KL_PARL_STAGE_DEFS.forEach(function(d) {
+          var list = buckets[d.order];
+          if (!list || !list.length) return;
+          list.sort(function(a, b) {
+            return klParlChangedTime(b) - klParlChangedTime(a);
+          });
+          children.push(React.createElement(
+            "div",
+            { key: "sg-" + d.order, style: { display: "flex", alignItems: "baseline", gap: "8px", margin: "14px 0 8px" } },
+            React.createElement("span", { style: { color: "#CBD5E1", fontSize: "12px", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" } }, d.label),
+            d.note ? React.createElement("span", { style: { color: "#10B981", fontSize: "10px", fontFamily: "'DM Mono', monospace" } }, d.note) : null
+          ));
+          list.forEach(function(b, i) {
+            children.push(React.createElement(KLBillRow, { key: "b-" + d.order + "-" + i, b }));
+          });
+        });
+        if (!active.length) children.push(React.createElement(KLHubEmpty, { key: "noactive", text: "No active bills are in passage for you right now." }));
+        if (archived.length) {
+          archived.sort(function(a, b) {
+            return klParlChangedTime(b) - klParlChangedTime(a);
+          });
+          children.push(React.createElement("button", {
+            key: "archtoggle",
+            type: "button",
+            onClick: function() {
+              setShowArch(!showArch);
+            },
+            style: { background: "transparent", border: "none", color: "#94A3B8", fontSize: "12px", cursor: "pointer", padding: "12px 0 6px", fontFamily: "'DM Sans', sans-serif" },
+            "aria-expanded": showArch ? "true" : "false"
+          }, (showArch ? "Hide" : "Show") + " archived / superseded (" + archived.length + ")"));
+          if (showArch) archived.forEach(function(b, i) {
+            children.push(React.createElement(KLBillRow, { key: "ar-" + i, b }));
+          });
+        }
+      }
+    }
+    children.push(React.createElement("div", { key: "movlabel", style: Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: "22px" }) }, "Recent movements"));
+    children.push(moves === null ? React.createElement(KLHubLoading, { key: "movload" }) : React.createElement(KLMovements, { key: "mov", rows: moves }));
+    return React.createElement("div", null, children);
+  }
   function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
     useEffect(function() {
       function onKey(e) {
@@ -8350,18 +8416,24 @@
     var title, body;
     if (section === "intelligence") {
       title = "Intelligence";
-      body = /* @__PURE__ */ React.createElement(KLIntelligenceHub, { entry, onDiscuss });
+      body = /* @__PURE__ */ React.createElement(KLIntelParity, null);
+    } else if (section === "cases") {
+      title = "Cases";
+      body = /* @__PURE__ */ React.createElement(KLCasesParity, null);
+    } else if (section === "calendar") {
+      title = "Calendar";
+      body = /* @__PURE__ */ React.createElement(KLCalendarParity, null);
+    } else if (section === "parliament") {
+      title = "Parliament Live";
+      body = /* @__PURE__ */ React.createElement(KLParliamentParity, null);
     } else if (section === "notes") {
       title = "Notes";
       body = /* @__PURE__ */ React.createElement(KLNotesTab, null);
-    } else if (section === "calendar") {
-      title = "Calendar";
-      body = /* @__PURE__ */ React.createElement(KLCalendarList, null);
     } else {
       title = KL_WS_LABELS[section] || section;
       body = /* @__PURE__ */ React.createElement(KLHubEmpty, { text: "This section has moved into Intelligence or the alert bell." });
     }
-    var panelWidth = section === "intelligence" ? "min(560px, 100%)" : "min(440px, 100%)";
+    var panelWidth = section === "intelligence" || section === "cases" || section === "calendar" || section === "parliament" ? "min(620px, 100%)" : "min(440px, 100%)";
     return React.createElement(
       "div",
       {
@@ -8480,10 +8552,23 @@
       )
     );
   }
-  function BookShelf({ onOpenBook }) {
+  function BookShelf({ onOpenBook, klPassHolder }) {
     var _books = useState([]);
     var books = _books[0];
     var setBooks = _books[1];
+    var _instCount = useState(null);
+    var instCount = _instCount[0];
+    var setInstCount = _instCount[1];
+    useEffect(function() {
+      if (!klPassHolder) return;
+      var alive = true;
+      klWsCount("kl_instruments").then(function(n) {
+        if (alive && n != null) setInstCount(n);
+      });
+      return function() {
+        alive = false;
+      };
+    }, [klPassHolder]);
     useEffect(function() {
       var cancelled = false;
       fetch("/knowledge-library/content/content-index.json").then(function(r) {
@@ -8668,7 +8753,13 @@
         { style: { textAlign: "center", marginTop: "12px" } },
         React.createElement("button", {
           type: "button",
-          onClick: function() {
+          // KL-PARITY-001 WP1 \u2014 pass-holder repair: open the KL Intelligence view (the WP2
+          // surface; the research panel is retired for pass holders) with a live
+          // kl_instruments count. Operational / public keep the original research-panel
+          // handler AND the original "72" text \u2014 byte-identical (RULE 18 / \u00a73).
+          onClick: klPassHolder ? function() {
+            if (typeof window.__klOpenWorkspace === "function") window.__klOpenWorkspace("intelligence");
+          } : function() {
             if (typeof window.__klOpenPanel === "function") window.__klOpenPanel("research");
           },
           style: {
@@ -8680,7 +8771,7 @@
             fontFamily: "'DM Sans', sans-serif",
             padding: "4px 8px"
           }
-        }, "Browse all 72 instruments \u2192")
+        }, klPassHolder ? "Browse all " + (instCount != null ? instCount : 79) + " instruments \u2192" : "Browse all 72 instruments \u2192")
       )
     );
   }
@@ -12667,9 +12758,13 @@
       if (typeof seed !== "string" || !seed) return;
       setPendingEileenSeed(seed);
       setCurrentFacet(null);
+      setKlWorkspace(null);
     };
     window.__klOpenPanel = function(panelId) {
       handleSelectPanel(panelId);
+    };
+    window.__klOpenWorkspace = function(section) {
+      openHub(section, null);
     };
     window.__klHandleFileSelect = handleFileSelect;
     async function handleUserTypeSelect(type) {
