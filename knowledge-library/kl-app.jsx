@@ -3534,14 +3534,18 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
         React.createElement('div', { key: 'kl-docs-wrap', style: { padding: '0 16px 6px' } },
           klVaultNavButton('kl-only-documents', 'Documents', true)
         ),
-        // KL-INTELLIGENCE-HUB §4 — three peers, not four-plus-a-ticker. "Intelligence"
-        // opens the tabbed hub (Law / Cases / Horizon, §5); "Recent Cases" and
-        // "Parliament Live" are relocated INTO that hub, and "Ticker" becomes the
-        // header alert bell (§6). Notes (§7) and Calendar are unchanged. The removed
-        // items' query logic is relocated (KLIntelligenceHub / KLTickerBell), not lost.
+        // KL-PARITY-001 WP6 — the KL workspace menu now presents the same offerings as the
+        // Operational workspace: Intelligence, Cases, Calendar, Parliament Live (Documents is
+        // the promoted item above). Alerts and ACEI Overview are excluded by Director
+        // instruction — their components are retained, simply not linked here. Each item opens
+        // an in-app parity view (KLWorkspaceDrawer) inside the signed-in KL shell, because a
+        // pass holder cannot open the subscription-tier-gated /operational/* pages. The Notes
+        // component (KLNotesTab) and its 'notes' drawer section are retained (Save-to-Notes
+        // still writes); only its menu link is dropped to match the exact WP6 composition.
         klWorkspaceNavButton('intelligence', 'Intelligence', onOpenWorkspace),
-        klWorkspaceNavButton('notes', 'Notes', onOpenWorkspace),
-        klWorkspaceNavButton('calendar', 'Calendar', onOpenWorkspace)
+        klWorkspaceNavButton('cases', 'Cases', onOpenWorkspace),
+        klWorkspaceNavButton('calendar', 'Calendar', onOpenWorkspace),
+        klWorkspaceNavButton('parliament', 'Parliament Live', onOpenWorkspace)
       ) : null,
       React.createElement('div', { style: { marginTop: '12px' } },
         React.createElement('div', {
@@ -7306,9 +7310,402 @@ function KLTickerBell({ onOpenLawInstrument }) {
   );
 }
 
-// ─── KLWorkspaceDrawer — the reshaped pass-holder drawer (Intelligence / Notes /
-// Calendar). Opened ONLY from the pass-holder nav; the App mount is guarded
-// hasKLSession && !hasSubscription (§9 check 1). ───
+// ═══════════════════════════════════════════════════════════════════════════
+// KL-PARITY-001 — Knowledge Library ⇄ Operational parity views (PASS HOLDERS)
+// AILANE-CC-BRIEF-KL-PARITY-001. The signed-in KL workspace presents the same
+// Intelligence / Cases / Calendar / Parliament Live offerings as the Operational
+// workspace, from the SAME data sources. Because a KL per-session pass holder has
+// no operational subscription tier, the standalone /operational/{cases,calendar,
+// parliament-live}/ pages redirect them to /login/; these views therefore render
+// IN-APP inside the existing KL shell (KLWorkspaceDrawer), fetching via the proven
+// pass-holder live-token helpers (klWsFetchRows / klWsRpc — authenticated-read RLS)
+// and REUSING the operational render helpers/styles verbatim so the look matches.
+// Operational components are untouched. Org-scoped operational controls (Intelligence
+// Track/Untrack + "Have we missed something?" gap form) are omitted — a KL pass holder
+// has no operational org. A shared-module consolidation is available as future work.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// WP2 — Intelligence forward-pipeline card. Byte-mirrors hubIntelCard (operational
+// forward card) EXCEPT the org-scoped Track/Untrack control. Reuses hubIntel* chips /
+// key-changes / DOMPurify HTML / Discuss verbatim.
+function klIntelFwdCard(row, idx) {
+  var children = [];
+  var name = row.legislation_short_name || row.legislation_title || 'Untitled instrument';
+  var left = [React.createElement('div', { key: 'title', style: HUB_INTEL_TITLE_STYLE }, name)];
+  var meta = [];
+  if (row.parliament_stage) meta.push(React.createElement('span', { key: 'stage' }, hubIntelText(row.parliament_stage)));
+  if (row.expected_enactment) meta.push(React.createElement('span', { key: 'exp' }, 'Expected in-force: ' + hubIntelText(row.expected_enactment)));
+  if (meta.length) left.push(React.createElement('div', { key: 'meta', style: HUB_INTEL_META_STYLE }, meta));
+  children.push(React.createElement('div', { key: 'top', style: HUB_INTEL_TOP_STYLE },
+    React.createElement('div', { key: 'l', style: { minWidth: 0 } }, left)
+  ));
+
+  var chips = [];
+  if (row.legislation_type) chips.push(hubIntelChip(hubIntelText(row.legislation_type), 'type', 'type'));
+  if (row.priority) {
+    var high = String(row.priority).toLowerCase() === 'high';
+    chips.push(hubIntelChip('Priority: ' + hubIntelText(row.priority), high ? 'high' : null, 'prio'));
+  }
+  if (row.status) chips.push(hubIntelChip(hubIntelText(row.status), null, 'status'));
+  if (chips.length) children.push(React.createElement('div', { key: 'chips', style: HUB_INTEL_CHIPS_STYLE }, chips));
+
+  if (row.headline_summary) children.push(React.createElement('div', { key: 'sum', style: HUB_INTEL_SUMMARY_STYLE }, hubIntelText(row.headline_summary)));
+  var kcNodes = hubIntelKeyChanges(row.key_changes);
+  if (kcNodes) {
+    children.push(React.createElement('div', { key: 'kch', style: HUB_INTEL_SUBHEAD_STYLE }, 'Key changes'));
+    children.push(React.createElement('div', { key: 'kc' }, kcNodes));
+  }
+  var bi = hubIntelSanitiseHtml(row.business_impact_html);
+  if (bi) {
+    children.push(React.createElement('div', { key: 'bih', style: HUB_INTEL_SUBHEAD_STYLE }, 'Business impact'));
+    children.push(React.createElement('div', { key: 'bi', style: HUB_INTEL_HTML_STYLE, dangerouslySetInnerHTML: { __html: bi } }));
+  }
+  var ps = hubIntelSanitiseHtml(row.preparatory_steps_html);
+  if (ps) {
+    children.push(React.createElement('div', { key: 'psh', style: HUB_INTEL_SUBHEAD_STYLE }, 'Preparatory steps'));
+    children.push(React.createElement('div', { key: 'ps', style: HUB_INTEL_HTML_STYLE, dangerouslySetInnerHTML: { __html: ps } }));
+  }
+  if (Array.isArray(row.affected_categories) && row.affected_categories.length) {
+    var cats = [];
+    row.affected_categories.forEach(function (c, i) {
+      if (c != null && c !== '') cats.push(hubIntelChip(hubIntelText(c), null, 'cat' + i));
+    });
+    if (cats.length) children.push(React.createElement('div', { key: 'cats', style: HUB_INTEL_CHIPS_STYLE }, cats));
+  }
+  if (row.source_url && /^https?:\/\//i.test(String(row.source_url))) {
+    children.push(React.createElement('div', { key: 'foot', style: HUB_INTEL_FOOT_STYLE },
+      React.createElement('a', { key: 'src', href: String(row.source_url), target: '_blank', rel: 'noopener noreferrer', style: HUB_INTEL_SOURCE_STYLE }, 'Source')));
+  }
+  if (row.disclaimer_text) children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_DISCLAIMER_STYLE }, hubIntelText(row.disclaimer_text)));
+  var discussName = row.legislation_short_name || row.legislation_title || 'this legislation';
+  children.push(hubIntelDiscussBtn('Explain the ' + discussName + ' and what it means for my organisation.', 'discuss'));
+
+  return React.createElement('div', { key: row.id != null ? row.id : idx, style: HUB_INTEL_CARD_STYLE }, children);
+}
+
+// WP2 — In-force statutory view. Mirrors HubIntelInForceView (regulatory_requirements,
+// category filter, in-force/forward-dated toggle, hubIntelReqCard) but fetches via
+// klWsFetchRows (pass-holder live token) instead of hubSession.sb.
+function KLIntelParityInForce() {
+  var _state = useState({ status: 'loading', rows: [] });
+  var state = _state[0]; var setState = _state[1];
+  var _cat = useState('all'); var cat = _cat[0]; var setCat = _cat[1];
+  var _comm = useState('inforce'); var comm = _comm[0]; var setComm = _comm[1];
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('regulatory_requirements?select=' + HUB_INTEL_REQ_COLS + '&order=category.asc&order=requirement_name.asc')
+      .then(function (rows) { if (alive) setState({ status: 'ready', rows: rows || [] }); });
+    return function () { alive = false; };
+  }, []);
+  if (state.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading the statutory catalogue…');
+  }
+  var children = [];
+  children.push(React.createElement('div', { key: 'caveat', style: HUB_INTEL_CAVEAT_STYLE },
+    'In-force statutory requirements — reference information drawn from the regulatory catalogue. Intelligence, not advice.'));
+  var all = state.rows || [];
+  var byComm = all.filter(function (r) {
+    var fwd = r && r.is_forward_requirement === true;
+    return comm === 'forward' ? fwd : !fwd;
+  });
+  var catVals = []; var seenCat = {};
+  all.forEach(function (r) {
+    var c = r && r.category;
+    if (c != null && c !== '' && !seenCat[c]) { seenCat[c] = true; catVals.push(c); }
+  });
+  catVals.sort(function (a, b) { var ha = hubAceiHumanise(a), hb = hubAceiHumanise(b); return ha < hb ? -1 : ha > hb ? 1 : 0; });
+  var rows = cat === 'all' ? byComm : byComm.filter(function (r) { return r && String(r.category) === cat; });
+  var catOptions = [React.createElement('option', { key: 'all', value: 'all' }, 'All categories')];
+  catVals.forEach(function (c) { catOptions.push(React.createElement('option', { key: c, value: c }, hubAceiHumanise(c))); });
+  children.push(React.createElement('div', { key: 'filter', style: HUB_INTEL_FILTERBAR_STYLE },
+    React.createElement('select', {
+      key: 'catsel', value: cat, 'aria-label': 'Filter by category',
+      onChange: function (e) { setCat(e.target.value); }, style: HUB_INTEL_SELECT_STYLE,
+    }, catOptions),
+    React.createElement('div', { key: 'commtoggle', style: HUB_INTEL_TOGGLE_GROUP_STYLE },
+      React.createElement('button', {
+        type: 'button', 'aria-pressed': comm === 'inforce' ? 'true' : 'false',
+        style: comm === 'inforce' ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+        onClick: function () { setComm('inforce'); },
+      }, 'In force'),
+      React.createElement('button', {
+        type: 'button', 'aria-pressed': comm === 'forward' ? 'true' : 'false',
+        style: comm === 'forward' ? Object.assign({}, HUB_INTEL_TOGGLE_BASE, HUB_INTEL_TOGGLE_ON) : HUB_INTEL_TOGGLE_BASE,
+        onClick: function () { setComm('forward'); },
+      }, 'Forward-dated')
+    )
+  ));
+  if (!rows.length) {
+    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } },
+      comm === 'forward' ? 'No forward-dated statutory requirements match.' : 'No in-force statutory requirements match.'));
+    return React.createElement('div', null, children);
+  }
+  children.push(React.createElement('div', { key: 'list', style: HUB_INTEL_LIST_STYLE },
+    rows.map(function (row, idx) { return hubIntelReqCard(row, idx); })));
+  return React.createElement('div', null, children);
+}
+
+// WP2 — Forward-pipeline view. Mirrors HubIntelHorizonView's read + rendering
+// (kl_legislative_horizon, is_published) minus the org watchlist / gap form.
+function KLIntelParityForward() {
+  var _state = useState({ status: 'loading', rows: [] });
+  var state = _state[0]; var setState = _state[1];
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('kl_legislative_horizon?is_published=eq.true&select=id,legislation_short_name,legislation_title,legislation_type,parliament_stage,expected_enactment,priority,status,headline_summary,key_changes,business_impact_html,preparatory_steps_html,disclaimer_text,affected_categories,source_url,display_order&order=display_order.asc')
+      .then(function (rows) { if (alive) setState({ status: 'ready', rows: rows || [] }); });
+    return function () { alive = false; };
+  }, []);
+  if (state.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading the forward horizon…');
+  }
+  var children = [];
+  children.push(React.createElement('div', { key: 'c1', style: HUB_INTEL_C1_STYLE, role: 'note' },
+    React.createElement('strong', { key: 's' }, 'This is regulatory intelligence to support your decisions — not legal advice.'),
+    ' It is not a complete record of all applicable law, and the absence of an item here is not assurance that nothing has changed. For advice on your own situation, consult a qualified professional.'
+  ));
+  var rows = state.rows || [];
+  if (!rows.length) {
+    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } }, 'No forward legislation is currently published.'));
+    return React.createElement('div', null, children);
+  }
+  children.push(React.createElement('div', { key: 'list', style: HUB_INTEL_LIST_STYLE },
+    rows.map(function (row, idx) { return klIntelFwdCard(row, idx); })));
+  return React.createElement('div', null, children);
+}
+
+// WP2 — Intelligence facet: segmented wrapper over the two views (mirrors HubIntelFacet).
+function KLIntelParity() {
+  var _view = useState('inforce');
+  var view = _view[0]; var setView = _view[1];
+  var seg = React.createElement('div', { key: 'seg', style: HUB_INTEL_SEG_WRAP, role: 'tablist', 'aria-label': 'Intelligence views' },
+    HUB_INTEL_VIEWS.map(function (v) {
+      var on = view === v.id;
+      return React.createElement('button', {
+        key: v.id, type: 'button', role: 'tab', 'aria-selected': on ? 'true' : 'false',
+        style: on ? Object.assign({}, HUB_INTEL_SEG_BASE, HUB_INTEL_SEG_ON) : HUB_INTEL_SEG_BASE,
+        onClick: function () { setView(v.id); },
+      }, v.label);
+    }));
+  return React.createElement('div', { style: { width: '100%' } },
+    seg,
+    view === 'inforce'
+      ? React.createElement(KLIntelParityInForce, { key: 'inforce' })
+      : React.createElement(KLIntelParityForward, { key: 'horizon' })
+  );
+}
+
+// WP3 — Cases. kl_cases (year-descending, the KL cases view's existing ordering) with
+// BOTH display-level transforms from §1: (1) exclude the four court='N/A' pseudo-rows
+// (absence-of-authority notes, not judgments); (2) dedupe duplicated case names (parallel
+// citations), preferring citation_canonical, then most recent updated_at. No DB write.
+function klDedupeCasesByName(rows) {
+  var idxByName = {}; var out = [];
+  rows.forEach(function (r) {
+    var name = r && r.name;
+    if (name == null || name === '') { out.push(r); return; }
+    if (!Object.prototype.hasOwnProperty.call(idxByName, name)) { idxByName[name] = out.length; out.push(r); return; }
+    var cur = out[idxByName[name]];
+    var curCanon = cur.citation_canonical != null && cur.citation_canonical !== '';
+    var rCanon = r.citation_canonical != null && r.citation_canonical !== '';
+    var replace = false;
+    if (rCanon && !curCanon) replace = true;
+    else if (rCanon === curCanon) {
+      var ct = cur.updated_at ? new Date(cur.updated_at).getTime() : 0;
+      var rt = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+      if (rt > ct) replace = true;
+    }
+    if (replace) out[idxByName[name]] = r;
+  });
+  return out;
+}
+function klParityCaseCard(row, idx) {
+  var children = [];
+  children.push(React.createElement('div', { key: 'title', style: HUB_INTEL_TITLE_STYLE }, row.name || row.citation || 'Tribunal decision'));
+  var meta = [row.citation, row.court, row.year].filter(function (v) { return v != null && v !== ''; });
+  if (meta.length) children.push(React.createElement('div', { key: 'meta', style: HUB_INTEL_META_STYLE }, meta.join('   ·   ')));
+  if (row.principle) children.push(React.createElement('div', { key: 'body', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.principle)));
+  return React.createElement('div', { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
+}
+function KLCasesParity() {
+  var _r = useState(null); var rows = _r[0]; var setRows = _r[1];
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at&order=year.desc&limit=255')
+      .then(function (data) {
+        if (!alive) return;
+        var filtered = (data || []).filter(function (r) { return r && r.court !== 'N/A'; });
+        setRows(klDedupeCasesByName(filtered));
+      });
+    return function () { alive = false; };
+  }, []);
+  var children = [];
+  children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_C1_STYLE, role: 'note' },
+    React.createElement('strong', { key: 's' }, 'This is regulatory intelligence to support your decisions — not legal advice.'),
+    ' It is not a complete record of all applicable law, and the absence of an item here is not assurance that nothing has changed. For advice on your own situation, consult a qualified professional.'
+  ));
+  if (rows === null) { children.push(React.createElement(KLHubLoading, { key: 'load' })); return React.createElement('div', null, children); }
+  if (!rows.length) { children.push(React.createElement(KLHubEmpty, { key: 'empty', text: 'No recent decisions to show.' })); return React.createElement('div', null, children); }
+  children.push(React.createElement('div', { key: 'list', style: HUB_INTEL_LIST_STYLE },
+    rows.map(function (row, i) { return klParityCaseCard(row, i); })));
+  return React.createElement('div', null, children);
+}
+
+// WP4 — Calendar. v_kl_calendar_feed (security_invoker view; authenticated read). Renders
+// whatever feeds the view returns, colour-coded and labelled per the operational calendar's
+// FEEDS config, grouped by month (agenda style — the drawer is too narrow for a month grid).
+var KL_CAL_FEEDS = {
+  regulatory: { label: 'Statutory / Royal Assent', color: '#10b981' },
+  rates: { label: 'Employment rates', color: '#f59e0b' },
+  horizon: { label: 'Parliament / Horizon', color: '#3b82f6' },
+  client: { label: 'My events', color: '#a855f7' },
+};
+var KL_CAL_FEED_ORDER = ['regulatory', 'rates', 'horizon', 'client'];
+function klCalFeedKey(f) { return KL_CAL_FEEDS[f] ? f : 'horizon'; }
+function klCalMonthLabel(mk) {
+  if (!mk || mk.length < 7) return 'Undated';
+  var parts = mk.split('-');
+  var y = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+  var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return mk;
+  return months[m - 1] + ' ' + y;
+}
+function klParityCalCard(row, key) {
+  var fk = klCalFeedKey(row.feed);
+  var color = KL_CAL_FEEDS[fk].color;
+  var children = [];
+  var when = [klWsDate(row.event_date), row.end_date ? klWsDate(row.end_date) : null].filter(Boolean).join(' → ');
+  if (when) children.push(React.createElement('div', { key: 'date', style: { color: '#94A3B8', fontSize: '11px', fontFamily: "'DM Mono', monospace", marginBottom: '4px' } }, when));
+  children.push(React.createElement('div', { key: 'title', style: { color: '#F1F5F9', fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, row.title || 'Event'));
+  if (row.detail) children.push(React.createElement('div', { key: 'detail', style: { color: '#CBD5E1', fontSize: '12px', lineHeight: 1.5, whiteSpace: 'pre-wrap' } }, hubIntelText(row.detail)));
+  children.push(React.createElement('div', { key: 'tag', style: { display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontFamily: "'DM Mono', monospace", color: color, marginTop: '6px' } },
+    React.createElement('span', { style: { width: '8px', height: '8px', borderRadius: '2px', background: color, display: 'inline-block' } }),
+    KL_CAL_FEEDS[fk].label));
+  if (row.url) children.push(klWsSourceLink(row.url));
+  return React.createElement('div', { key: key, style: { padding: '12px 14px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid ' + color, borderRadius: '10px' } }, children);
+}
+function KLCalendarParity() {
+  var _r = useState(null); var rows = _r[0]; var setRows = _r[1];
+  useEffect(function () {
+    var alive = true;
+    klWsFetchRows('v_kl_calendar_feed?select=feed,title,event_date,end_date,detail,url,ref_id&order=event_date.asc')
+      .then(function (data) { if (alive) setRows(data || []); });
+    return function () { alive = false; };
+  }, []);
+  var children = [];
+  children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_C1_STYLE, role: 'note' },
+    React.createElement('strong', { key: 's' }, 'This calendar is forward regulatory intelligence — not legal advice.'),
+    ' Statutory and Parliamentary dates are provisional until in force and can change. For advice on your own situation, consult a qualified professional.'
+  ));
+  if (rows === null) { children.push(React.createElement(KLHubLoading, { key: 'load' })); return React.createElement('div', null, children); }
+  var present = {};
+  rows.forEach(function (r) { present[klCalFeedKey(r.feed)] = true; });
+  var legend = [];
+  KL_CAL_FEED_ORDER.forEach(function (k) {
+    if (!present[k]) return;
+    legend.push(React.createElement('span', { key: k, style: { display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '14px', marginBottom: '6px', fontSize: '12px', color: '#94A3B8', fontFamily: "'DM Sans', sans-serif" } },
+      React.createElement('span', { style: { width: '10px', height: '10px', borderRadius: '3px', background: KL_CAL_FEEDS[k].color, display: 'inline-block' } }),
+      KL_CAL_FEEDS[k].label));
+  });
+  if (legend.length) children.push(React.createElement('div', { key: 'legend', style: { display: 'flex', flexWrap: 'wrap', marginBottom: '14px' } }, legend));
+  if (!rows.length) { children.push(React.createElement(KLHubEmpty, { key: 'empty', text: 'No dates to show right now.' })); return React.createElement('div', null, children); }
+  var groups = []; var byMonth = {};
+  rows.forEach(function (r) {
+    var mk = r.event_date ? String(r.event_date).slice(0, 7) : '';
+    if (!Object.prototype.hasOwnProperty.call(byMonth, mk)) { byMonth[mk] = { key: mk, items: [] }; groups.push(byMonth[mk]); }
+    byMonth[mk].items.push(r);
+  });
+  groups.forEach(function (g) {
+    children.push(React.createElement('div', { key: 'mh-' + g.key, style: Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: '18px' }) }, klCalMonthLabel(g.key)));
+    g.items.forEach(function (r, i) { children.push(klParityCalCard(r, g.key + '-' + i)); });
+  });
+  return React.createElement('div', null, children);
+}
+
+// WP5 — Parliament Live. The SAME SECURITY DEFINER RPCs /operational/parliament-live/
+// uses (fn_parliament_live_feed + fn_parliament_live_daily_summary, which project
+// parliamentary_intelligence). Bills grouped by passage stage (newest-first within stage),
+// archived/superseded collapsed, plus a Recent movements strip — mirroring the operational
+// board. Reuses the existing KLBillRow / KLMovements cards.
+var KL_PARL_STAGE_DEFS = [
+  { order: 10, label: 'Royal Assent', note: 'Now law' },
+  { order: 5, label: 'Third Reading' },
+  { order: 4, label: 'Report stage' },
+  { order: 3, label: 'Committee stage' },
+  { order: 2, label: 'Second Reading' },
+  { order: 1, label: 'First Reading' },
+  { order: 0, label: 'Other' },
+];
+function klParlBillArchived(b) {
+  return !!(b && (b.archived === true || ['LAPSED', 'SUPERSEDED', 'WITHDRAWN', 'DEFEATED'].indexOf(String(b.lifecycle_state || '').toUpperCase()) >= 0));
+}
+function klParlChangedTime(b) {
+  var t = b && (b.last_changed_at || b.last_status_check);
+  var n = t ? new Date(t).getTime() : 0;
+  return isNaN(n) ? 0 : n;
+}
+function KLParliamentParity() {
+  var _feed = useState(null); var feed = _feed[0]; var setFeed = _feed[1];
+  var _mov = useState(null); var moves = _mov[0]; var setMoves = _mov[1];
+  var _arch = useState(false); var showArch = _arch[0]; var setShowArch = _arch[1];
+  useEffect(function () {
+    var alive = true;
+    klWsRpc('fn_parliament_live_feed', { p_limit: 200 }).then(function (rows) { if (alive) setFeed(rows); });
+    klWsRpc('fn_parliament_live_daily_summary', { p_since_hours: 48, p_limit: 12 }).then(function (rows) { if (alive) setMoves(rows); });
+    return function () { alive = false; };
+  }, []);
+  var children = [];
+  children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_C1_STYLE, role: 'note' },
+    React.createElement('strong', { key: 's' }, 'Parliament Live is forward regulatory intelligence — not legal advice.'),
+    ' Bill positions are provisional until Royal Assent and can change. This is not a complete record of all Parliamentary activity. For advice on your own situation, consult a qualified professional.'
+  ));
+  // Bill passage board.
+  children.push(React.createElement('div', { key: 'boardlabel', style: KL_HUB_SECTION_LABEL }, 'Bill passage'));
+  if (feed === null) {
+    children.push(React.createElement(KLHubLoading, { key: 'boardload' }));
+  } else {
+    var active = [], archived = [];
+    (feed || []).forEach(function (b) { (klParlBillArchived(b) ? archived : active).push(b); });
+    if (!active.length && !archived.length) {
+      children.push(React.createElement(KLHubEmpty, { key: 'boardempty', text: "Parliament Live isn't available on your current plan, or there are no bills being tracked for you yet." }));
+    } else {
+      var buckets = {};
+      active.forEach(function (b) {
+        var so = (b.stage_order == null) ? 0 : Number(b.stage_order);
+        if (!KL_PARL_STAGE_DEFS.some(function (d) { return d.order === so; })) so = 0;
+        (buckets[so] = buckets[so] || []).push(b);
+      });
+      KL_PARL_STAGE_DEFS.forEach(function (d) {
+        var list = buckets[d.order];
+        if (!list || !list.length) return;
+        list.sort(function (a, b) { return klParlChangedTime(b) - klParlChangedTime(a); });
+        children.push(React.createElement('div', { key: 'sg-' + d.order, style: { display: 'flex', alignItems: 'baseline', gap: '8px', margin: '14px 0 8px' } },
+          React.createElement('span', { style: { color: '#CBD5E1', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" } }, d.label),
+          d.note ? React.createElement('span', { style: { color: '#10B981', fontSize: '10px', fontFamily: "'DM Mono', monospace" } }, d.note) : null
+        ));
+        list.forEach(function (b, i) { children.push(React.createElement(KLBillRow, { key: 'b-' + d.order + '-' + i, b: b })); });
+      });
+      if (!active.length) children.push(React.createElement(KLHubEmpty, { key: 'noactive', text: 'No active bills are in passage for you right now.' }));
+      if (archived.length) {
+        archived.sort(function (a, b) { return klParlChangedTime(b) - klParlChangedTime(a); });
+        children.push(React.createElement('button', {
+          key: 'archtoggle', type: 'button', onClick: function () { setShowArch(!showArch); },
+          style: { background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '12px', cursor: 'pointer', padding: '12px 0 6px', fontFamily: "'DM Sans', sans-serif" },
+          'aria-expanded': showArch ? 'true' : 'false',
+        }, (showArch ? 'Hide' : 'Show') + ' archived / superseded (' + archived.length + ')'));
+        if (showArch) archived.forEach(function (b, i) { children.push(React.createElement(KLBillRow, { key: 'ar-' + i, b: b })); });
+      }
+    }
+  }
+  // Recent movements.
+  children.push(React.createElement('div', { key: 'movlabel', style: Object.assign({}, KL_HUB_SECTION_LABEL, { marginTop: '22px' }) }, 'Recent movements'));
+  children.push(moves === null ? React.createElement(KLHubLoading, { key: 'movload' }) : React.createElement(KLMovements, { key: 'mov', rows: moves }));
+  return React.createElement('div', null, children);
+}
+
+// ─── KLWorkspaceDrawer — the reshaped pass-holder drawer (Intelligence / Cases /
+// Calendar / Parliament Live / Notes). Opened ONLY from the pass-holder nav; the App
+// mount is guarded hasKLSession && !hasSubscription (§9 check 1). ───
 function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
   useEffect(function () {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
@@ -7320,19 +7717,30 @@ function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
 
   var title, body;
   if (section === 'intelligence') {
+    // KL-PARITY-001 WP2 — the Intelligence view now mirrors the operational Intelligence
+    // facet (In force — statutory requirements / Coming into force — forward pipeline).
     title = 'Intelligence';
-    body = <KLIntelligenceHub entry={entry} onDiscuss={onDiscuss} />;
+    body = <KLIntelParity />;
+  } else if (section === 'cases') {
+    // KL-PARITY-001 WP3 — Cases (kl_cases; pseudo-rows excluded, duplicate names deduped).
+    title = 'Cases';
+    body = <KLCasesParity />;
+  } else if (section === 'calendar') {
+    // KL-PARITY-001 WP4 — Calendar from v_kl_calendar_feed (was kl_calendar_events).
+    title = 'Calendar';
+    body = <KLCalendarParity />;
+  } else if (section === 'parliament') {
+    // KL-PARITY-001 WP5 — Parliament Live (fn_parliament_live_* RPCs).
+    title = 'Parliament Live';
+    body = <KLParliamentParity />;
   } else if (section === 'notes') {
     title = 'Notes';
     body = <KLNotesTab />;
-  } else if (section === 'calendar') {
-    title = 'Calendar';
-    body = <KLCalendarList />;
   } else {
     title = KL_WS_LABELS[section] || section;
     body = <KLHubEmpty text="This section has moved into Intelligence or the alert bell." />;
   }
-  var panelWidth = section === 'intelligence' ? 'min(560px, 100%)' : 'min(440px, 100%)';
+  var panelWidth = (section === 'intelligence' || section === 'cases' || section === 'calendar' || section === 'parliament') ? 'min(620px, 100%)' : 'min(440px, 100%)';
 
   return React.createElement('div', {
     role: 'dialog', 'aria-label': title + ' workspace', 'aria-modal': 'true', onClick: onClose,
@@ -7472,6 +7880,18 @@ function BookShelf({ onOpenBook }) {
   var _books = useState([]);
   var books = _books[0];
   var setBooks = _books[1];
+  // KL-PARITY-001 WP1 — live instrument count for the "Browse all …" link, read from
+  // kl_instruments via the same pass-holder live-token fetch pattern the Intelligence
+  // view uses. Falls back to the 13 Jul 2026 verified count (79) until it resolves; the
+  // hardcoded "72" is stale.
+  var _instCount = useState(null);
+  var instCount = _instCount[0];
+  var setInstCount = _instCount[1];
+  useEffect(function() {
+    var alive = true;
+    klWsCount('kl_instruments').then(function(n) { if (alive && n != null) setInstCount(n); });
+    return function() { alive = false; };
+  }, []);
 
   useEffect(function() {
     var cancelled = false;
@@ -7626,13 +8046,18 @@ function BookShelf({ onOpenBook }) {
     React.createElement('div', { style: { textAlign: 'center', marginTop: '12px' } },
       React.createElement('button', {
         type: 'button',
-        onClick: function() { if (typeof window.__klOpenPanel === 'function') window.__klOpenPanel('research'); },
+        // KL-PARITY-001 WP1 \u2014 repair: open the KL Intelligence view (the WP2 surface)
+        // instead of the retired-for-pass-holders research panel; live instrument count.
+        onClick: function() {
+          if (typeof window.__klOpenWorkspace === 'function') window.__klOpenWorkspace('intelligence');
+          else if (typeof window.__klOpenPanel === 'function') window.__klOpenPanel('research');
+        },
         style: {
           background: 'transparent', border: 'none', color: '#0EA5E9',
           fontSize: '12px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
           padding: '4px 8px',
         },
-      }, 'Browse all 72 instruments \u2192')
+      }, 'Browse all ' + (instCount != null ? instCount : 79) + ' instruments \u2192')
     )
   );
 }
@@ -11462,12 +11887,23 @@ function App() {
     if (typeof seed !== 'string' || !seed) return;
     setPendingEileenSeed(seed);
     setCurrentFacet(null);
+    // KL-PARITY-001 — also close the pass-holder workspace drawer (Intelligence / Cases /
+    // etc.) so the seeded Eileen input is revealed. No-op in Operational mode, where the
+    // KL drawer is never open (klWorkspace stays null), so Operational is byte-identical.
+    setKlWorkspace(null);
   };
   // Sprint G §2.8: Expose the panel opener so the welcome-state
   // "Browse the Library" button can open the Research Panel.
   // §W-G.4: routes through handleSelectPanel so open-state persists.
   window.__klOpenPanel = function(panelId) {
     handleSelectPanel(panelId);
+  };
+  // KL-PARITY-001 WP1 — open a pass-holder workspace section (intelligence / cases /
+  // calendar / parliament) from anywhere in the tree, e.g. the welcome BookShelf's
+  // "Browse all … instruments" link. Mirrors openHub; the KLWorkspaceDrawer mount is
+  // guarded hasKLSession && !hasSubscription, so this is a no-op off the pass-holder surface.
+  window.__klOpenWorkspace = function(section) {
+    openHub(section, null);
   };
   // Sprint H §5.1: Expose handleFileSelect so the VaultPanel upload button
   // can invoke the App-level upload flow without prop drilling.
