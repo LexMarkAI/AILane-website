@@ -4004,7 +4004,7 @@
           /* @__PURE__ */ React.createElement("span", { className: "kl-domain-card-desc" }, domain.orientation),
           /* @__PURE__ */ React.createElement("span", { className: "kl-domain-card-explore" }, "Explore ", /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2192"))
         );
-      })), /* @__PURE__ */ React.createElement(BookShelf, { onOpenBook: function(book) {
+      })), /* @__PURE__ */ React.createElement(BookShelf, { klPassHolder, onOpenBook: function(book) {
         if (typeof window.__klOpenPanel === "function") {
           window.__klOpenPanel("research");
           window.__klPendingInstrument = book.id;
@@ -8552,7 +8552,7 @@
       )
     );
   }
-  function BookShelf({ onOpenBook }) {
+  function BookShelf({ onOpenBook, klPassHolder }) {
     var _books = useState([]);
     var books = _books[0];
     var setBooks = _books[1];
@@ -8560,6 +8560,7 @@
     var instCount = _instCount[0];
     var setInstCount = _instCount[1];
     useEffect(function() {
+      if (!klPassHolder) return;
       var alive = true;
       klWsCount("kl_instruments").then(function(n) {
         if (alive && n != null) setInstCount(n);
@@ -8567,7 +8568,7 @@
       return function() {
         alive = false;
       };
-    }, []);
+    }, [klPassHolder]);
     useEffect(function() {
       var cancelled = false;
       fetch("/knowledge-library/content/content-index.json").then(function(r) {
@@ -8752,11 +8753,14 @@
         { style: { textAlign: "center", marginTop: "12px" } },
         React.createElement("button", {
           type: "button",
-          // KL-PARITY-001 WP1 \u2014 repair: open the KL Intelligence view (the WP2 surface)
-          // instead of the retired-for-pass-holders research panel; live instrument count.
-          onClick: function() {
+          // KL-PARITY-001 WP1 \u2014 pass-holder repair: open the KL Intelligence view (the WP2
+          // surface; the research panel is retired for pass holders) with a live
+          // kl_instruments count. Operational / public keep the original research-panel
+          // handler AND the original "72" text \u2014 byte-identical (RULE 18 / \u00a73).
+          onClick: klPassHolder ? function() {
             if (typeof window.__klOpenWorkspace === "function") window.__klOpenWorkspace("intelligence");
-            else if (typeof window.__klOpenPanel === "function") window.__klOpenPanel("research");
+          } : function() {
+            if (typeof window.__klOpenPanel === "function") window.__klOpenPanel("research");
           },
           style: {
             background: "transparent",
@@ -8767,7 +8771,7 @@
             fontFamily: "'DM Sans', sans-serif",
             padding: "4px 8px"
           }
-        }, "Browse all " + (instCount != null ? instCount : 79) + " instruments \u2192")
+        }, klPassHolder ? "Browse all " + (instCount != null ? instCount : 79) + " instruments \u2192" : "Browse all 72 instruments \u2192")
       )
     );
   }

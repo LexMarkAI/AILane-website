@@ -3022,7 +3022,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
             </div>
             {/* Sprint H §3.2: BookShelf replaces the Sprint G accent-line button.
                 Renders up to 15 instruments as leather-textured book covers. */}
-            <BookShelf onOpenBook={function(book) {
+            <BookShelf klPassHolder={klPassHolder} onOpenBook={function(book) {
               if (typeof window.__klOpenPanel === 'function') {
                 window.__klOpenPanel('research');
                 window.__klPendingInstrument = book.id;
@@ -7876,22 +7876,25 @@ function HorizonAlert() {
 // Fetches content-index.json manifest. Up to 15 featured books across the
 // top categories, with category-coloured leather gradients and gold titles.
 
-function BookShelf({ onOpenBook }) {
+function BookShelf({ onOpenBook, klPassHolder }) {
   var _books = useState([]);
   var books = _books[0];
   var setBooks = _books[1];
-  // KL-PARITY-001 WP1 — live instrument count for the "Browse all …" link, read from
-  // kl_instruments via the same pass-holder live-token fetch pattern the Intelligence
-  // view uses. Falls back to the 13 Jul 2026 verified count (79) until it resolves; the
-  // hardcoded "72" is stale.
+  // KL-PARITY-001 WP1 — live instrument count for the KL pass-holder "Browse all …"
+  // link, read from kl_instruments via the same pass-holder live-token fetch pattern
+  // the Intelligence view uses. Falls back to the 13 Jul 2026 verified count (79) until
+  // it resolves; the hardcoded "72" is stale. GATED on klPassHolder so the shared
+  // BookShelf leaves the Operational welcome (and its research-panel Browse button)
+  // byte-identical — no changed text, no extra fetch (RULE 18 / §3).
   var _instCount = useState(null);
   var instCount = _instCount[0];
   var setInstCount = _instCount[1];
   useEffect(function() {
+    if (!klPassHolder) return;
     var alive = true;
     klWsCount('kl_instruments').then(function(n) { if (alive && n != null) setInstCount(n); });
     return function() { alive = false; };
-  }, []);
+  }, [klPassHolder]);
 
   useEffect(function() {
     var cancelled = false;
@@ -8046,18 +8049,21 @@ function BookShelf({ onOpenBook }) {
     React.createElement('div', { style: { textAlign: 'center', marginTop: '12px' } },
       React.createElement('button', {
         type: 'button',
-        // KL-PARITY-001 WP1 \u2014 repair: open the KL Intelligence view (the WP2 surface)
-        // instead of the retired-for-pass-holders research panel; live instrument count.
-        onClick: function() {
-          if (typeof window.__klOpenWorkspace === 'function') window.__klOpenWorkspace('intelligence');
-          else if (typeof window.__klOpenPanel === 'function') window.__klOpenPanel('research');
-        },
+        // KL-PARITY-001 WP1 \u2014 pass-holder repair: open the KL Intelligence view (the WP2
+        // surface; the research panel is retired for pass holders) with a live
+        // kl_instruments count. Operational / public keep the original research-panel
+        // handler AND the original "72" text \u2014 byte-identical (RULE 18 / \u00a73).
+        onClick: klPassHolder
+          ? function() { if (typeof window.__klOpenWorkspace === 'function') window.__klOpenWorkspace('intelligence'); }
+          : function() { if (typeof window.__klOpenPanel === 'function') window.__klOpenPanel('research'); },
         style: {
           background: 'transparent', border: 'none', color: '#0EA5E9',
           fontSize: '12px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
           padding: '4px 8px',
         },
-      }, 'Browse all ' + (instCount != null ? instCount : 79) + ' instruments \u2192')
+      }, klPassHolder
+        ? ('Browse all ' + (instCount != null ? instCount : 79) + ' instruments \u2192')
+        : 'Browse all 72 instruments \u2192')
     )
   );
 }
