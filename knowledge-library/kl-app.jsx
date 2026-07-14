@@ -8701,7 +8701,10 @@ function UpsellCard({ productType, minutesRemaining, onDismiss }) {
           <button
             key={offer.productType}
             type="button"
-            onClick={() => startExtend(offer)}
+            aria-disabled={true}
+            data-payments-offline="1"
+            data-po-action="() => startExtend(offer)"
+            onClick={(e) => e.preventDefault()}
             disabled={!ready}
             style={{
               display: 'inline-block', padding: '8px 16px', borderRadius: '8px',
@@ -8712,7 +8715,7 @@ function UpsellCard({ productType, minutesRemaining, onDismiss }) {
               opacity: ready ? 1 : 0.45,
             }}
           >
-            {busy === offer.productType ? 'Preparing secure checkout…' : offer.cta}
+            Coming soon
           </button>
         ))}
       </div>

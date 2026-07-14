@@ -1836,8 +1836,10 @@
         var buyRow = el('div');
         buyRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;align-items:center;';
         var buyErr = el('div', 'form-msg'); buyErr.hidden = true; buyErr.setAttribute('role', 'alert');
-        var addOne = el('button', 'btn-primary', 'Add a check — £19'); addOne.type = 'button';
-        var addBundle = el('button', 'btn-primary', 'Add a check + Solicitors Preparation Bundle — £29'); addBundle.type = 'button';
+        var addOne = el('button', 'btn-primary', 'Coming soon'); addOne.type = 'button';
+        addOne.setAttribute('aria-disabled', 'true'); addOne.setAttribute('data-payments-offline', '1'); addOne.setAttribute('data-po-action', "startCheckAddon('kl_check_addon')");
+        var addBundle = el('button', 'btn-primary', 'Coming soon'); addBundle.type = 'button';
+        addBundle.setAttribute('aria-disabled', 'true'); addBundle.setAttribute('data-payments-offline', '1'); addBundle.setAttribute('data-po-action', "startCheckAddon('kl_check_addon_bundle')");
 
         function startCheckAddon(productType) {
           var email = '';
@@ -1860,8 +1862,7 @@
             });
         }
 
-        addOne.addEventListener('click', function (ev) { ev.stopPropagation(); startCheckAddon('kl_check_addon'); });
-        addBundle.addEventListener('click', function (ev) { ev.stopPropagation(); startCheckAddon('kl_check_addon_bundle'); });
+        // PAYMENTS-OFFLINE-001: checkout bindings removed — buttons show "Coming soon" (data-po-action preserves the original action). Restored by git revert.
         buyRow.appendChild(addOne); buyRow.appendChild(addBundle);
         actions.appendChild(buyRow); actions.appendChild(buyErr);
         pane.appendChild(actions);
