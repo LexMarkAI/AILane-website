@@ -8192,6 +8192,29 @@
     });
     return out;
   }
+  function klCaseSourceColForClass(cls) {
+    var s = String(cls == null ? "" : cls).toLowerCase();
+    if (s.indexOf("supreme") >= 0) return "supremecourt_url";
+    if (s.indexOf("judiciary") >= 0 || s.indexOf("judicial") >= 0) return "judiciary_url";
+    if (s.indexOf("tna") >= 0 || s.indexOf("national") >= 0) return "tna_url";
+    return null;
+  }
+  function klParityCaseSourceEl(row) {
+    var href = null;
+    var col = klCaseSourceColForClass(row.url_source_class);
+    if (col && row[col]) href = row[col];
+    if (!href) href = row.tna_url || row.supremecourt_url || row.judiciary_url || null;
+    var label = "Source \u2197";
+    if (!href) {
+      href = "https://caselaw.nationalarchives.gov.uk/judgments/search?query=" + encodeURIComponent(row.name || row.citation || "");
+      label = "Search The National Archives \u2197";
+    }
+    return React.createElement(
+      "div",
+      { key: "foot", style: HUB_INTEL_FOOT_STYLE },
+      React.createElement("a", { key: "src", href, target: "_blank", rel: "noopener noreferrer", style: HUB_INTEL_SOURCE_STYLE }, label)
+    );
+  }
   function klParityCaseCard(row, idx) {
     var children = [];
     children.push(React.createElement("div", { key: "title", style: HUB_INTEL_TITLE_STYLE }, row.name || row.citation || "Tribunal decision"));
@@ -8200,6 +8223,7 @@
     });
     if (meta.length) children.push(React.createElement("div", { key: "meta", style: HUB_INTEL_META_STYLE }, meta.join("   \xB7   ")));
     if (row.principle) children.push(React.createElement("div", { key: "body", style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.principle)));
+    children.push(klParityCaseSourceEl(row));
     return React.createElement("div", { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
   }
   function KLCasesParity() {
@@ -8208,7 +8232,7 @@
     var setRows = _r[1];
     useEffect(function() {
       var alive = true;
-      klWsFetchRows("kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at&order=year.desc&limit=255").then(function(data) {
+      klWsFetchRows("kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at,tna_url,judiciary_url,supremecourt_url,url_source_class&order=year.desc&limit=255").then(function(data) {
         if (!alive) return;
         var filtered = (data || []).filter(function(r) {
           return r && r.court !== "N/A";

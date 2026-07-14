@@ -7565,19 +7565,50 @@ function klDedupeCasesByName(rows) {
   });
   return out;
 }
+// KL-PARITY-003 WP1 — which stored URL column a url_source_class names, or null if it
+// does not clearly name one of the three. Token match is deliberately conservative: a
+// class that does not obviously map to tna/supremecourt/judiciary falls through to the
+// first-non-null rule below (never mis-attributes a URL).
+function klCaseSourceColForClass(cls) {
+  var s = String(cls == null ? '' : cls).toLowerCase();
+  if (s.indexOf('supreme') >= 0) return 'supremecourt_url';
+  if (s.indexOf('judiciary') >= 0 || s.indexOf('judicial') >= 0) return 'judiciary_url';
+  if (s.indexOf('tna') >= 0 || s.indexOf('national') >= 0) return 'tna_url';
+  return null;
+}
+// KL-PARITY-003 WP1 — exactly one deterministic source link per case row:
+//   (1) url_source_class names one of the three stored columns AND it is populated → use it;
+//   (2) else the first non-null of tna_url → supremecourt_url → judiciary_url ("Source ↗");
+//   (3) else an honest TNA judgment SEARCH on the case name (159 of 251 cases carry no
+//       stored URL — verified live 14 Jul 2026), labelled so it never reads as the judgment.
+function klParityCaseSourceEl(row) {
+  var href = null;
+  var col = klCaseSourceColForClass(row.url_source_class);
+  if (col && row[col]) href = row[col];
+  if (!href) href = row.tna_url || row.supremecourt_url || row.judiciary_url || null;
+  var label = 'Source ↗';
+  if (!href) {
+    href = 'https://caselaw.nationalarchives.gov.uk/judgments/search?query=' + encodeURIComponent(row.name || row.citation || '');
+    label = 'Search The National Archives ↗';
+  }
+  return React.createElement('div', { key: 'foot', style: HUB_INTEL_FOOT_STYLE },
+    React.createElement('a', { key: 'src', href: href, target: '_blank', rel: 'noopener noreferrer', style: HUB_INTEL_SOURCE_STYLE }, label));
+}
 function klParityCaseCard(row, idx) {
   var children = [];
   children.push(React.createElement('div', { key: 'title', style: HUB_INTEL_TITLE_STYLE }, row.name || row.citation || 'Tribunal decision'));
   var meta = [row.citation, row.court, row.year].filter(function (v) { return v != null && v !== ''; });
   if (meta.length) children.push(React.createElement('div', { key: 'meta', style: HUB_INTEL_META_STYLE }, meta.join('   ·   ')));
   if (row.principle) children.push(React.createElement('div', { key: 'body', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.principle)));
+  // KL-PARITY-003 WP1 — one source link on every row (stored URL or honest TNA search).
+  children.push(klParityCaseSourceEl(row));
   return React.createElement('div', { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
 }
 function KLCasesParity() {
   var _r = useState(null); var rows = _r[0]; var setRows = _r[1];
   useEffect(function () {
     var alive = true;
-    klWsFetchRows('kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at&order=year.desc&limit=255')
+    klWsFetchRows('kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at,tna_url,judiciary_url,supremecourt_url,url_source_class&order=year.desc&limit=255')
       .then(function (data) {
         if (!alive) return;
         var filtered = (data || []).filter(function (r) { return r && r.court !== 'N/A'; });
