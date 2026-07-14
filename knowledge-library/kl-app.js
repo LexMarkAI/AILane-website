@@ -8224,6 +8224,9 @@
     if (meta.length) children.push(React.createElement("div", { key: "meta", style: HUB_INTEL_META_STYLE }, meta.join("   \xB7   ")));
     if (row.principle) children.push(React.createElement("div", { key: "body", style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.principle)));
     children.push(klParityCaseSourceEl(row));
+    var caseName = row.name || row.citation || "this decision";
+    var seed = "Case: " + caseName + (row.citation ? " (" + row.citation + ")" : "") + (row.principle ? " \u2014 " + String(row.principle).slice(0, 200) : "");
+    children.push(hubIntelDiscussBtn(seed, "discuss"));
     return React.createElement("div", { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
   }
   function KLCasesParity() {

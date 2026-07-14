@@ -7602,6 +7602,14 @@ function klParityCaseCard(row, idx) {
   if (row.principle) children.push(React.createElement('div', { key: 'body', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.principle)));
   // KL-PARITY-003 WP1 — one source link on every row (stored URL or honest TNA search).
   children.push(klParityCaseSourceEl(row));
+  // KL-PARITY-003 WP2 — Discuss with Eileen: same component/bridge as the Intelligence
+  // cards (hubIntelDiscussBtn → window.__klDiscussWithEileen), which seeds the input and
+  // closes the pass-holder workspace drawer so Eileen is revealed (does NOT auto-send).
+  var caseName = row.name || row.citation || 'this decision';
+  var seed = 'Case: ' + caseName
+    + (row.citation ? ' (' + row.citation + ')' : '')
+    + (row.principle ? ' — ' + String(row.principle).slice(0, 200) : '');
+  children.push(hubIntelDiscussBtn(seed, 'discuss'));
   return React.createElement('div', { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
 }
 function KLCasesParity() {
