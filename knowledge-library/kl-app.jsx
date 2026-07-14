@@ -7242,13 +7242,49 @@ function KLCalendarList() {
 // hasKLSession && !hasSubscription. Fields: title/summary/detected_at/source_url +
 // affected_instrument_id; never the full alert body. Where an alert names an
 // instrument, it links into the Law tab — the change-feed relationship made visible.
+// ── KL-PARITY-002 WP-B — client-safe alert bell ───────────────────────────────
+// kl_legislative_alerts currently has RLS `USING true`, so estate-internal ops
+// telemetry (every licence_* type) is visible to the pass-holder REST read. Until
+// the Chairman audience migration tightens the data layer, the display layer is the
+// control: render ONLY the client-appropriate alert_type allowlist (§1), keyed to
+// humanised headings, and NEVER the raw machine title. Any alert_type not in the
+// allowlist (incl. unknown/future types) does not render — the intended safe default.
+var KL_ALERT_ALLOW = {
+  new_bill: function (s) { return 'New Bill before Parliament' + (s ? (' — ' + s) : ''); },
+  dsit_commencement_plan_change: function (s) { return 'Commencement timetable updated' + (s ? (' — ' + s) : ''); },
+  ico_commencement_statement_change: function () { return 'ICO commencement guidance updated'; },
+  new_si_tracked_instrument: function (s) { return 'New Statutory Instrument tracked' + (s ? (' — ' + s) : ''); },
+  guidance_update: function (s) { return 'Guidance updated' + (s ? (' — ' + s) : ''); },
+};
+// {subject}: the alert title with any worker prefix stripped — the text after the
+// first ":" when the prefix before it matches a known ingest-worker label (the same
+// "<label>: <detail>" shape the excluded licence_* alerts use); otherwise the full
+// title. Kept conservative so a genuine name-first title is not over-stripped. (§1)
+var KL_ALERT_WORKER_PREFIX = /^(?:new\s+bill|bill\s+(?:introduced|tracked|detected|updated)|new\s+(?:si|statutory\s+instrument)|statutory\s+instrument|(?:dsit\s+)?commencement|ico\s+commencement|guidance\s+(?:update|updated|change|changed)|guidance)\b/i;
+function klAlertSubject(title) {
+  var t = String(title == null ? '' : title).replace(/\s+/g, ' ').trim();
+  var i = t.indexOf(':');
+  if (i > 0) {
+    var prefix = t.slice(0, i).trim();
+    var rest = t.slice(i + 1).trim();
+    if (rest && KL_ALERT_WORKER_PREFIX.test(prefix)) return rest;
+  }
+  return t;
+}
+// Body = summary trimmed to the first two sentences (§1); no terminator -> whole text.
+function klAlertBody(summary) {
+  var s = String(summary == null ? '' : summary).replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  var parts = s.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+  return (parts && parts.length) ? parts.slice(0, 2).join('').trim() : s;
+}
 function KLTickerBell({ onOpenLawInstrument }) {
   var _items = useState(null); var items = _items[0]; var setItems = _items[1];
   var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
   var wrapRef = useRef(null);
   useEffect(function () {
     var alive = true;
-    klWsFetchRows('kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id&order=detected_at.desc&limit=30')
+    klWsFetchRows('kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id,alert_type&order=detected_at.desc&limit=30')
       .then(function (rows) { if (alive) setItems(rows); });
     return function () { alive = false; };
   }, []);
@@ -7260,7 +7296,10 @@ function KLTickerBell({ onOpenLawInstrument }) {
     return function () { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  var newest = (items && items[0]) ? items[0].detected_at : null;
+  // KL-PARITY-002 WP-B — allowlist filter BEFORE any render (incl. the "new" dot),
+  // so estate-internal ops alert types never surface to a client pass holder.
+  var visible = (items || []).filter(function (n) { return n && Object.prototype.hasOwnProperty.call(KL_ALERT_ALLOW, n.alert_type); });
+  var newest = (visible && visible[0]) ? visible[0].detected_at : null;
   var seen = null; try { seen = localStorage.getItem('ailane_kl_alerts_seen'); } catch (e) {}
   var hasNew = !!(newest && (!seen || new Date(newest).getTime() > new Date(seen).getTime()));
   function toggle() {
@@ -7278,12 +7317,16 @@ function KLTickerBell({ onOpenLawInstrument }) {
   }
   var list = null;
   if (open) {
-    var rows = (items || []).map(function (n, i) {
+    var rows = visible.map(function (n, i) {
+      // Heading is ALWAYS template-derived (§1), keyed on alert_type — the raw machine
+      // title is never rendered verbatim for an allowlisted type.
+      var heading = KL_ALERT_ALLOW[n.alert_type](klAlertSubject(n.title));
+      var body = klAlertBody(n.summary);
       var hasInst = n.affected_instrument_id != null && n.affected_instrument_id !== '';
       return React.createElement('div', { key: i, style: { padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' } },
-        React.createElement('div', { style: { color: '#F1F5F9', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: 'break-word' } }, n.title || 'Regulatory alert'),
+        React.createElement('div', { style: { color: '#F1F5F9', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: 'break-word' } }, heading),
         n.detected_at ? React.createElement('div', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", marginTop: '3px' } }, klWsDate(n.detected_at)) : null,
-        n.summary ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: '3px', wordBreak: 'break-word' } }, klWsSnippet(n.summary, 180)) : null,
+        body ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: '3px', wordBreak: 'break-word' } }, body) : null,
         React.createElement('div', { style: { display: 'flex', gap: '12px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' } },
           hasInst ? React.createElement('button', {
             type: 'button',
@@ -7647,16 +7690,125 @@ function klParlChangedTime(b) {
   var n = t ? new Date(t).getTime() : 0;
   return isNaN(n) ? 0 : n;
 }
-function KLParliamentParity() {
+// ── KL-PARITY-002 WP-A — pass-holder Parliament Live fallback ──────────────────
+// fn_parliament_live_feed is org-coupled: its body runs
+//   _org := public.get_my_org_id(); if _org is null then return;
+// so for a KL pass holder (who has no organisation) it returns an EMPTY set by
+// design, and the board renders blank. We replicate the RPC's row logic client-side
+// against kl_legislative_horizon (directly readable by pass holders via the
+// kl_lh_auth_read_published RLS policy) so the board renders for them. Org /
+// operational callers keep the RPC path byte-unchanged. Pass holders have no org, so
+// implicates_tenant is always false and no tenant-tier chrome is shown. (§1)
+var KL_PARL_MOVE_WINDOW_HOURS = 48; // mirrors p_since_hours passed to fn_parliament_live_daily_summary
+var KL_PARL_MOVE_LIMIT = 12;        // mirrors p_limit passed to fn_parliament_live_daily_summary
+// stage_order — the RPC's CASE, replicated verbatim (§1); first match wins, in order.
+function klPhParlStageOrder(stage) {
+  var s = String(stage == null ? '' : stage).toLowerCase();
+  if (s.indexOf('royal assent') >= 0) return 10;
+  if (/(3rd|third)\s+reading/.test(s)) return 5;
+  if (s.indexOf('report') >= 0) return 4;
+  if (s.indexOf('committee') >= 0) return 3;
+  if (/(2nd|second)\s+reading/.test(s)) return 2;
+  if (/(1st|first)\s+reading/.test(s)) return 1;
+  return 0;
+}
+// §1 secondary sort key: priority (critical, high, medium, else).
+function klPhParlPriorityRank(priority) {
+  var p = String(priority == null ? '' : priority).toLowerCase();
+  if (p === 'critical') return 0;
+  if (p === 'high') return 1;
+  if (p === 'medium') return 2;
+  return 3;
+}
+// "DD Mon" (e.g. "07 Jul") for the status_summary fallback.
+function klPhDDMon(v) {
+  if (!v) return '';
+  try {
+    var d = new Date(v);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  } catch (e) { return ''; }
+}
+// One kl_legislative_horizon row -> a feed-shaped row KLBillRow / klParlBillArchived
+// / klParlChangedTime already understand. status_summary = bill_status_summary, else
+// parliament_stage + " · checked " + last_status_check (DD Mon). (§1)
+function klPhParlFeedRow(h) {
+  h = h || {};
+  var status = h.bill_status_summary;
+  if (status == null || String(status).trim() === '') {
+    var stageTxt = (h.parliament_stage == null ? '' : String(h.parliament_stage)).trim();
+    var checked = klPhDDMon(h.last_status_check);
+    status = [stageTxt, checked ? ('checked ' + checked) : ''].filter(Boolean).join(' · ') || null;
+  }
+  return {
+    legislation_short_name: h.legislation_short_name,
+    legislation_title: h.legislation_title,
+    stage_order: klPhParlStageOrder(h.parliament_stage),
+    status_summary: status,
+    priority: h.priority,
+    source_url: h.source_url,
+    archived: h.archived === true,
+    lifecycle_state: h.lifecycle_state,
+    last_changed_at: h.last_changed_at,
+    last_status_check: h.last_status_check,
+    parliament_stage: h.parliament_stage,
+    implicates_tenant: false,
+  };
+}
+// The full feed, ordered per §1: stage_order DESC, priority, short name. (KLParliament-
+// Parity re-buckets by stage and re-sorts within stage, so this order is the RPC-parity
+// default rather than the final display order.)
+function klPhParlFeed(rows) {
+  var out = (rows || []).map(klPhParlFeedRow);
+  out.sort(function (a, b) {
+    if (b.stage_order !== a.stage_order) return b.stage_order - a.stage_order;
+    var pr = klPhParlPriorityRank(a.priority) - klPhParlPriorityRank(b.priority);
+    if (pr !== 0) return pr;
+    var na = String(a.legislation_short_name || a.legislation_title || '');
+    var nb = String(b.legislation_short_name || b.legislation_title || '');
+    return na < nb ? -1 : na > nb ? 1 : 0;
+  });
+  return out;
+}
+// Recent movements — same direct read, newest-first, each flagged within the 48h
+// window fn_parliament_live_daily_summary uses; KLMovements renders within-window rows
+// (else its "Parliament has been quiet" fallback). previous_stage is unknown from the
+// horizon read (null); royal_assent tracks a Royal Assent stage.
+function klPhParlMoves(rows) {
+  var now = Date.now();
+  var winMs = KL_PARL_MOVE_WINDOW_HOURS * 3600 * 1000;
+  var out = (rows || []).filter(function (h) { return h && h.last_changed_at; }).map(function (h) {
+    var t = new Date(h.last_changed_at).getTime();
+    return {
+      changed_at: h.last_changed_at,
+      legislation_short_name: h.legislation_short_name,
+      new_stage: h.parliament_stage,
+      previous_stage: null,
+      royal_assent: klPhParlStageOrder(h.parliament_stage) === 10,
+      within_window: !isNaN(t) && (now - t) <= winMs,
+      _t: isNaN(t) ? 0 : t,
+    };
+  });
+  out.sort(function (a, b) { return b._t - a._t; });
+  return out.slice(0, KL_PARL_MOVE_LIMIT);
+}
+function KLParliamentParity({ klPassHolder }) {
   var _feed = useState(null); var feed = _feed[0]; var setFeed = _feed[1];
   var _mov = useState(null); var moves = _mov[0]; var setMoves = _mov[1];
   var _arch = useState(false); var showArch = _arch[0]; var setShowArch = _arch[1];
   useEffect(function () {
     var alive = true;
-    klWsRpc('fn_parliament_live_feed', { p_limit: 200 }).then(function (rows) { if (alive) setFeed(rows); });
-    klWsRpc('fn_parliament_live_daily_summary', { p_since_hours: 48, p_limit: 12 }).then(function (rows) { if (alive) setMoves(rows); });
+    if (klPassHolder) {
+      // Pass holders: fn_parliament_live_feed returns empty (org-coupled, §1) — read
+      // kl_legislative_horizon directly and replicate the RPC's rows client-side. One
+      // read feeds both the passage board and the movements strip.
+      klWsFetchRows('kl_legislative_horizon?auto_tracked=eq.true&legislation_type=in.(bill,act)&select=*&limit=200')
+        .then(function (rows) { if (alive) { setFeed(klPhParlFeed(rows)); setMoves(klPhParlMoves(rows)); } });
+    } else {
+      klWsRpc('fn_parliament_live_feed', { p_limit: 200 }).then(function (rows) { if (alive) setFeed(rows); });
+      klWsRpc('fn_parliament_live_daily_summary', { p_since_hours: 48, p_limit: 12 }).then(function (rows) { if (alive) setMoves(rows); });
+    }
     return function () { alive = false; };
-  }, []);
+  }, [klPassHolder]);
   var children = [];
   children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_C1_STYLE, role: 'note' },
     React.createElement('strong', { key: 's' }, 'Parliament Live is forward regulatory intelligence — not legal advice.'),
@@ -7709,7 +7861,7 @@ function KLParliamentParity() {
 // ─── KLWorkspaceDrawer — the reshaped pass-holder drawer (Intelligence / Cases /
 // Calendar / Parliament Live / Notes). Opened ONLY from the pass-holder nav; the App
 // mount is guarded hasKLSession && !hasSubscription (§9 check 1). ───
-function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
+function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss, klPassHolder }) {
   useEffect(function () {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
@@ -7734,8 +7886,10 @@ function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
     body = <KLCalendarParity />;
   } else if (section === 'parliament') {
     // KL-PARITY-001 WP5 — Parliament Live (fn_parliament_live_* RPCs).
+    // KL-PARITY-002 WP-A — pass holders get the org-less kl_legislative_horizon
+    // fallback (the RPC is org-coupled and empty for them); org users keep the RPCs.
     title = 'Parliament Live';
-    body = <KLParliamentParity />;
+    body = <KLParliamentParity klPassHolder={klPassHolder} />;
   } else if (section === 'notes') {
     title = 'Notes';
     body = <KLNotesTab />;
@@ -12553,7 +12707,7 @@ function App() {
           it is only ever opened from the pass-holder nav, AND the mount itself requires
           hasKLSession && !hasSubscription, so it cannot render on the Operational surface. */}
       {hasKLSession && !hasSubscription && klWorkspace && (
-        <KLWorkspaceDrawer section={klWorkspace} entry={hubEntry} onClose={() => setKlWorkspace(null)} onDiscuss={handleHubDiscuss} />
+        <KLWorkspaceDrawer section={klWorkspace} entry={hubEntry} onClose={() => setKlWorkspace(null)} onDiscuss={handleHubDiscuss} klPassHolder={klPassHolder} />
       )}
       {sessionExpired && <ExpiredModal />}
     </React.Fragment>

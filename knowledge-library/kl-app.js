@@ -7787,6 +7787,40 @@
       }, style: KL_HUB_CARD_BTN }, /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "3px" } }, (n.pinned ? "\u{1F4CC} " : "") + (n.title || "Untitled")), /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", marginBottom: "3px" } }, [n.note_type ? klNoteTypeLabel(n.note_type) : null, n.updated_at ? "Updated " + klWsDate(n.updated_at) : null].filter(Boolean).join("  \xB7  ")), n.content_plain ? /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", lineHeight: 1.5 } }, klWsSnippet(n.content_plain, 140)) : null);
     }));
   }
+  var KL_ALERT_ALLOW = {
+    new_bill: function(s) {
+      return "New Bill before Parliament" + (s ? " \u2014 " + s : "");
+    },
+    dsit_commencement_plan_change: function(s) {
+      return "Commencement timetable updated" + (s ? " \u2014 " + s : "");
+    },
+    ico_commencement_statement_change: function() {
+      return "ICO commencement guidance updated";
+    },
+    new_si_tracked_instrument: function(s) {
+      return "New Statutory Instrument tracked" + (s ? " \u2014 " + s : "");
+    },
+    guidance_update: function(s) {
+      return "Guidance updated" + (s ? " \u2014 " + s : "");
+    }
+  };
+  var KL_ALERT_WORKER_PREFIX = /^(?:new\s+bill|bill\s+(?:introduced|tracked|detected|updated)|new\s+(?:si|statutory\s+instrument)|statutory\s+instrument|(?:dsit\s+)?commencement|ico\s+commencement|guidance\s+(?:update|updated|change|changed)|guidance)\b/i;
+  function klAlertSubject(title) {
+    var t = String(title == null ? "" : title).replace(/\s+/g, " ").trim();
+    var i = t.indexOf(":");
+    if (i > 0) {
+      var prefix = t.slice(0, i).trim();
+      var rest = t.slice(i + 1).trim();
+      if (rest && KL_ALERT_WORKER_PREFIX.test(prefix)) return rest;
+    }
+    return t;
+  }
+  function klAlertBody(summary) {
+    var s = String(summary == null ? "" : summary).replace(/\s+/g, " ").trim();
+    if (!s) return "";
+    var parts = s.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+    return parts && parts.length ? parts.slice(0, 2).join("").trim() : s;
+  }
   function KLTickerBell({ onOpenLawInstrument }) {
     var _items = useState(null);
     var items = _items[0];
@@ -7797,7 +7831,7 @@
     var wrapRef = useRef(null);
     useEffect(function() {
       var alive = true;
-      klWsFetchRows("kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id&order=detected_at.desc&limit=30").then(function(rows2) {
+      klWsFetchRows("kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id,alert_type&order=detected_at.desc&limit=30").then(function(rows2) {
         if (alive) setItems(rows2);
       });
       return function() {
@@ -7819,7 +7853,10 @@
         document.removeEventListener("keydown", onKey);
       };
     }, [open]);
-    var newest = items && items[0] ? items[0].detected_at : null;
+    var visible = (items || []).filter(function(n) {
+      return n && Object.prototype.hasOwnProperty.call(KL_ALERT_ALLOW, n.alert_type);
+    });
+    var newest = visible && visible[0] ? visible[0].detected_at : null;
     var seen = null;
     try {
       seen = localStorage.getItem("ailane_kl_alerts_seen");
@@ -7849,14 +7886,16 @@
     }
     var list = null;
     if (open) {
-      var rows = (items || []).map(function(n, i) {
+      var rows = visible.map(function(n, i) {
+        var heading = KL_ALERT_ALLOW[n.alert_type](klAlertSubject(n.title));
+        var body = klAlertBody(n.summary);
         var hasInst = n.affected_instrument_id != null && n.affected_instrument_id !== "";
         return React.createElement(
           "div",
           { key: i, style: { padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)" } },
-          React.createElement("div", { style: { color: "#F1F5F9", fontSize: "12px", fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: "break-word" } }, n.title || "Regulatory alert"),
+          React.createElement("div", { style: { color: "#F1F5F9", fontSize: "12px", fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: "break-word" } }, heading),
           n.detected_at ? React.createElement("div", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", marginTop: "3px" } }, klWsDate(n.detected_at)) : null,
-          n.summary ? React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: "3px", wordBreak: "break-word" } }, klWsSnippet(n.summary, 180)) : null,
+          body ? React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: "3px", wordBreak: "break-word" } }, body) : null,
           React.createElement(
             "div",
             { style: { display: "flex", gap: "12px", marginTop: "6px", alignItems: "center", flexWrap: "wrap" } },
@@ -8317,7 +8356,92 @@
     var n = t ? new Date(t).getTime() : 0;
     return isNaN(n) ? 0 : n;
   }
-  function KLParliamentParity() {
+  var KL_PARL_MOVE_WINDOW_HOURS = 48;
+  var KL_PARL_MOVE_LIMIT = 12;
+  function klPhParlStageOrder(stage) {
+    var s = String(stage == null ? "" : stage).toLowerCase();
+    if (s.indexOf("royal assent") >= 0) return 10;
+    if (/(3rd|third)\s+reading/.test(s)) return 5;
+    if (s.indexOf("report") >= 0) return 4;
+    if (s.indexOf("committee") >= 0) return 3;
+    if (/(2nd|second)\s+reading/.test(s)) return 2;
+    if (/(1st|first)\s+reading/.test(s)) return 1;
+    return 0;
+  }
+  function klPhParlPriorityRank(priority) {
+    var p = String(priority == null ? "" : priority).toLowerCase();
+    if (p === "critical") return 0;
+    if (p === "high") return 1;
+    if (p === "medium") return 2;
+    return 3;
+  }
+  function klPhDDMon(v) {
+    if (!v) return "";
+    try {
+      var d = new Date(v);
+      return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    } catch (e) {
+      return "";
+    }
+  }
+  function klPhParlFeedRow(h) {
+    h = h || {};
+    var status = h.bill_status_summary;
+    if (status == null || String(status).trim() === "") {
+      var stageTxt = (h.parliament_stage == null ? "" : String(h.parliament_stage)).trim();
+      var checked = klPhDDMon(h.last_status_check);
+      status = [stageTxt, checked ? "checked " + checked : ""].filter(Boolean).join(" \xB7 ") || null;
+    }
+    return {
+      legislation_short_name: h.legislation_short_name,
+      legislation_title: h.legislation_title,
+      stage_order: klPhParlStageOrder(h.parliament_stage),
+      status_summary: status,
+      priority: h.priority,
+      source_url: h.source_url,
+      archived: h.archived === true,
+      lifecycle_state: h.lifecycle_state,
+      last_changed_at: h.last_changed_at,
+      last_status_check: h.last_status_check,
+      parliament_stage: h.parliament_stage,
+      implicates_tenant: false
+    };
+  }
+  function klPhParlFeed(rows) {
+    var out = (rows || []).map(klPhParlFeedRow);
+    out.sort(function(a, b) {
+      if (b.stage_order !== a.stage_order) return b.stage_order - a.stage_order;
+      var pr = klPhParlPriorityRank(a.priority) - klPhParlPriorityRank(b.priority);
+      if (pr !== 0) return pr;
+      var na = String(a.legislation_short_name || a.legislation_title || "");
+      var nb = String(b.legislation_short_name || b.legislation_title || "");
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+    return out;
+  }
+  function klPhParlMoves(rows) {
+    var now = Date.now();
+    var winMs = KL_PARL_MOVE_WINDOW_HOURS * 3600 * 1e3;
+    var out = (rows || []).filter(function(h) {
+      return h && h.last_changed_at;
+    }).map(function(h) {
+      var t = new Date(h.last_changed_at).getTime();
+      return {
+        changed_at: h.last_changed_at,
+        legislation_short_name: h.legislation_short_name,
+        new_stage: h.parliament_stage,
+        previous_stage: null,
+        royal_assent: klPhParlStageOrder(h.parliament_stage) === 10,
+        within_window: !isNaN(t) && now - t <= winMs,
+        _t: isNaN(t) ? 0 : t
+      };
+    });
+    out.sort(function(a, b) {
+      return b._t - a._t;
+    });
+    return out.slice(0, KL_PARL_MOVE_LIMIT);
+  }
+  function KLParliamentParity({ klPassHolder }) {
     var _feed = useState(null);
     var feed = _feed[0];
     var setFeed = _feed[1];
@@ -8329,16 +8453,25 @@
     var setShowArch = _arch[1];
     useEffect(function() {
       var alive = true;
-      klWsRpc("fn_parliament_live_feed", { p_limit: 200 }).then(function(rows) {
-        if (alive) setFeed(rows);
-      });
-      klWsRpc("fn_parliament_live_daily_summary", { p_since_hours: 48, p_limit: 12 }).then(function(rows) {
-        if (alive) setMoves(rows);
-      });
+      if (klPassHolder) {
+        klWsFetchRows("kl_legislative_horizon?auto_tracked=eq.true&legislation_type=in.(bill,act)&select=*&limit=200").then(function(rows) {
+          if (alive) {
+            setFeed(klPhParlFeed(rows));
+            setMoves(klPhParlMoves(rows));
+          }
+        });
+      } else {
+        klWsRpc("fn_parliament_live_feed", { p_limit: 200 }).then(function(rows) {
+          if (alive) setFeed(rows);
+        });
+        klWsRpc("fn_parliament_live_daily_summary", { p_since_hours: 48, p_limit: 12 }).then(function(rows) {
+          if (alive) setMoves(rows);
+        });
+      }
       return function() {
         alive = false;
       };
-    }, []);
+    }, [klPassHolder]);
     var children = [];
     children.push(React.createElement(
       "div",
@@ -8405,7 +8538,7 @@
     children.push(moves === null ? React.createElement(KLHubLoading, { key: "movload" }) : React.createElement(KLMovements, { key: "mov", rows: moves }));
     return React.createElement("div", null, children);
   }
-  function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
+  function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss, klPassHolder }) {
     useEffect(function() {
       function onKey(e) {
         if (e.key === "Escape") onClose();
@@ -8428,7 +8561,7 @@
       body = /* @__PURE__ */ React.createElement(KLCalendarParity, null);
     } else if (section === "parliament") {
       title = "Parliament Live";
-      body = /* @__PURE__ */ React.createElement(KLParliamentParity, null);
+      body = /* @__PURE__ */ React.createElement(KLParliamentParity, { klPassHolder });
     } else if (section === "notes") {
       title = "Notes";
       body = /* @__PURE__ */ React.createElement(KLNotesTab, null);
@@ -13289,7 +13422,7 @@
         minutesRemaining,
         onDismiss: () => setUpsellDismissed(true)
       }
-    ), hasKLSession && !hasSubscription && klWorkspace && /* @__PURE__ */ React.createElement(KLWorkspaceDrawer, { section: klWorkspace, entry: hubEntry, onClose: () => setKlWorkspace(null), onDiscuss: handleHubDiscuss }), sessionExpired && /* @__PURE__ */ React.createElement(ExpiredModal, null));
+    ), hasKLSession && !hasSubscription && klWorkspace && /* @__PURE__ */ React.createElement(KLWorkspaceDrawer, { section: klWorkspace, entry: hubEntry, onClose: () => setKlWorkspace(null), onDiscuss: handleHubDiscuss, klPassHolder }), sessionExpired && /* @__PURE__ */ React.createElement(ExpiredModal, null));
   }
   window.initKLApp = function() {
     const container = document.getElementById("kl-root");
