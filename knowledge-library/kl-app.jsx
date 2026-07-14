@@ -5655,7 +5655,21 @@ function CalendarPanel() {
 
 // ─── ResearchPanel (kl_provisions grouped by instrument + kl_cases, tabs + search) ───
 
-function ResearchPanel({ lang }) {
+function ResearchPanel({ lang, klPassHolder }) {
+  // KL-PARITY-004 WP1.5 — Eileen affordance bridge. Operational keeps its byte-identical
+  // path: __klSendMessage seeds-and-sends while the right drawer stays open alongside the
+  // conversation. Pass holders get the KL-PARITY-001 bridge behaviour instead — the research
+  // drawer closes (via __klOpenPanel(null)) and the seed lands in the Eileen input (via
+  // __klDiscussWithEileen, which seeds without auto-sending and closes any workspace/facet),
+  // so Eileen is visible after the click. Same seed text either branch.
+  function askEileen(seed) {
+    if (klPassHolder) {
+      if (typeof window.__klOpenPanel === 'function') window.__klOpenPanel(null);
+      if (typeof window.__klDiscussWithEileen === 'function') window.__klDiscussWithEileen(seed);
+    } else if (typeof window.__klSendMessage === 'function') {
+      window.__klSendMessage(seed);
+    }
+  }
   // Sprint F §3.2: default tab is Library (was 'provisions')
   var _tab = useState('library');
   var tab = _tab[0];
@@ -5897,7 +5911,7 @@ function ResearchPanel({ lang }) {
               onClick: function() {
                 // §W-B: seed Eileen with the display title, never the raw code.
                 var seedMsg = 'Tell me about ' + item.title + (item.instrument_id ? ' under the ' + instrumentDisplayTitle(item.instrument_id) : '');
-                if (window.__klSendMessage) window.__klSendMessage(seedMsg);
+                askEileen(seedMsg);
               },
               title: 'Ask Eileen about this provision',
             },
@@ -5964,7 +5978,7 @@ function ResearchPanel({ lang }) {
           React.createElement('button', {
             type: 'button',
             onClick: function() {
-              if (window.__klSendMessage) window.__klSendMessage('Tell me about the case ' + item.name + (item.citation ? ' (' + item.citation + ')' : '') + ' and what it means for employers');
+              askEileen('Tell me about the case ' + item.name + (item.citation ? ' (' + item.citation + ')' : '') + ' and what it means for employers');
             },
             style: {
               padding: '6px 12px', borderRadius: '6px',
@@ -6197,7 +6211,7 @@ function ResearchPanel({ lang }) {
       ),
       React.createElement('button', {
         type: 'button',
-        onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Tell me about the ' + inst.title + ' and what it means for employers'); },
+        onClick: function() { askEileen('Tell me about the ' + inst.title + ' and what it means for employers'); },
         style: {
           marginTop: '12px', padding: '8px 14px', borderRadius: '6px',
           background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
@@ -6326,7 +6340,7 @@ function ResearchPanel({ lang }) {
 
       React.createElement('button', {
         type: 'button',
-        onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Give me a comprehensive briefing on the ' + displayTitle + ' including key obligations, recent changes, and practical implications for employers'); },
+        onClick: function() { askEileen('Give me a comprehensive briefing on the ' + displayTitle + ' including key obligations, recent changes, and practical implications for employers'); },
         style: {
           display: 'block', marginBottom: '16px', padding: '8px 14px', borderRadius: '6px',
           background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)',
@@ -6393,7 +6407,7 @@ function ResearchPanel({ lang }) {
               }, '\u2197 View on legislation.gov.uk'),
               React.createElement('button', {
                 type: 'button',
-                onClick: function() { if (window.__klSendMessage) window.__klSendMessage('Explain ' + provTitle + ' of the ' + displayTitle + ' and its practical implications'); },
+                onClick: function() { askEileen('Explain ' + provTitle + ' of the ' + displayTitle + ' and its practical implications'); },
                 style: {
                   display: 'block', marginTop: '6px', padding: '4px 10px', borderRadius: '4px',
                   background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)',
@@ -6511,7 +6525,7 @@ const PANEL_COMPONENTS = {
   research: ResearchPanel,
 };
 
-function PanelDrawer({ panelId, onClose, lang }) {
+function PanelDrawer({ panelId, onClose, lang, klPassHolder }) {
   if (!panelId) return null;
   const PanelContent = PANEL_COMPONENTS[panelId] || PlaceholderPanel;
   const label = PANEL_LABELS[panelId] || panelId;
@@ -6522,7 +6536,10 @@ function PanelDrawer({ panelId, onClose, lang }) {
         <button className="kl-panel-drawer-close" onClick={onClose} aria-label="Close panel">✕</button>
       </div>
       <div className="kl-panel-drawer-body">
-        <PanelContent panelId={panelId} lang={lang} />
+        {/* KL-PARITY-004 WP1.5 — klPassHolder threaded so ResearchPanel routes its Eileen
+            affordance through the pass-holder bridge (close drawer + seed) while operational
+            keeps its byte-identical auto-send path. Ignored by the other panel components. */}
+        <PanelContent panelId={panelId} lang={lang} klPassHolder={klPassHolder} />
       </div>
     </div>
   );
@@ -11658,7 +11675,12 @@ function App() {
   // KL-INTELLIGENCE-HUB §5/§6 — hub entry point: which tab to open, plus an optional
   // instrument to focus in the Law tab (set by the alert bell's "View in Law", §6).
   const [hubEntry, setHubEntry] = useState(null);
-  function openHub(section, entryObj) { setHubEntry(entryObj || null); setKlWorkspace(section); }
+  // KL-PARITY-004 WP1.4 — research ↔ workspace mutual exclusion: opening a workspace
+  // section closes the research drawer. openHub is reached ONLY from pass-holder surfaces
+  // (Sidebar "Your workspace" nav + KLTickerBell, both gated hasKLSession && !hasSubscription),
+  // so operational/hub never runs this line and stays byte-identical. Mirrors the engine's
+  // "close siblings" pattern (__klDiscussWithEileen clears facet + workspace together).
+  function openHub(section, entryObj) { setActivePanel(null); setHubEntry(entryObj || null); setKlWorkspace(section); }
   // §5.1/§5.2 — "Discuss with Eileen" from a hub detail: close the hub, seed the chat
   // input (does NOT auto-send), and hand a domain_context to the NEXT eileen-intelligence
   // call via a ref consumed once in sendMessage.
@@ -12188,6 +12210,11 @@ function App() {
   // §W-G.4: routes through handleSelectPanel so open-state persists.
   window.__klOpenPanel = function(panelId) {
     handleSelectPanel(panelId);
+    // KL-PARITY-004 WP1.4 — research ↔ workspace mutual exclusion: opening a panel closes
+    // any open pass-holder workspace drawer. No-op in operational/hub (klWorkspace is never
+    // set there → setKlWorkspace(null) is a same-value bail), so those surfaces are
+    // byte-identical. Guarded on a truthy panelId so closing a panel does not touch it.
+    if (panelId) setKlWorkspace(null);
   };
   // KL-PARITY-001 WP1 — open a pass-holder workspace section (intelligence / cases /
   // calendar / parliament) from anywhere in the tree, e.g. the welcome BookShelf's
@@ -12816,13 +12843,15 @@ function App() {
       )}
       <AdvisoryBanner />
       {sidebarOpen && <MobileSidebarBackdrop onClick={() => setSidebarOpen(false)} />}
-      {/* OOX-001 §1.1 + KL-LANDING-SITE-002 §4 — the right drawer now opens ONLY in
-          the Operational Research case. The old `!hubChrome` half (the KL drawer) is
-          removed, so pass holders get no right drawer. Operational is byte-identical:
-          for hubChrome=true the guard reduces to `activePanel === 'research'`, exactly
-          the old behaviour; for !hubChrome it is always false (retired). */}
-      {activePanel === 'research' && hubChrome && (
-        <PanelDrawer panelId={activePanel} onClose={() => handleSelectPanel(null)} lang={lang} />
+      {/* OOX-001 §1.1 + KL-LANDING-SITE-002 §4 — the right drawer opens in the
+          Operational Research case. KL-PARITY-004 WP1.1 — additive gate: it now also
+          opens for pass holders (hasKLSession && !hasSubscription = klPassHolder), so a
+          book-click / ref-click reaches the same Research drawer an operational user gets.
+          Operational is byte-identical: for hubChrome=true the guard reduces to
+          `activePanel === 'research'`, exactly the old behaviour; the klPassHolder disjunct
+          adds the pass-holder surface only (it is false in every operational/hub render). */}
+      {activePanel === 'research' && (hubChrome || klPassHolder) && (
+        <PanelDrawer panelId={activePanel} onClose={() => handleSelectPanel(null)} lang={lang} klPassHolder={klPassHolder} />
       )}
       {!upsellDismissed && !sessionExpired && upsellGraceElapsed && (
         <UpsellCard

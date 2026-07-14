@@ -6575,7 +6575,15 @@
       }));
     }));
   }
-  function ResearchPanel({ lang }) {
+  function ResearchPanel({ lang, klPassHolder }) {
+    function askEileen(seed) {
+      if (klPassHolder) {
+        if (typeof window.__klOpenPanel === "function") window.__klOpenPanel(null);
+        if (typeof window.__klDiscussWithEileen === "function") window.__klDiscussWithEileen(seed);
+      } else if (typeof window.__klSendMessage === "function") {
+        window.__klSendMessage(seed);
+      }
+    }
     var _tab = useState("library");
     var tab = _tab[0];
     var setTab = _tab[1];
@@ -6832,7 +6840,7 @@
                   },
                   onClick: function() {
                     var seedMsg = "Tell me about " + item.title + (item.instrument_id ? " under the " + instrumentDisplayTitle(item.instrument_id) : "");
-                    if (window.__klSendMessage) window.__klSendMessage(seedMsg);
+                    askEileen(seedMsg);
                   },
                   title: "Ask Eileen about this provision"
                 },
@@ -6921,7 +6929,7 @@
             React.createElement("button", {
               type: "button",
               onClick: function() {
-                if (window.__klSendMessage) window.__klSendMessage("Tell me about the case " + item.name + (item.citation ? " (" + item.citation + ")" : "") + " and what it means for employers");
+                askEileen("Tell me about the case " + item.name + (item.citation ? " (" + item.citation + ")" : "") + " and what it means for employers");
               },
               style: {
                 padding: "6px 12px",
@@ -7208,7 +7216,7 @@
         React.createElement("button", {
           type: "button",
           onClick: function() {
-            if (window.__klSendMessage) window.__klSendMessage("Tell me about the " + inst.title + " and what it means for employers");
+            askEileen("Tell me about the " + inst.title + " and what it means for employers");
           },
           style: {
             marginTop: "12px",
@@ -7325,7 +7333,7 @@
         React.createElement("button", {
           type: "button",
           onClick: function() {
-            if (window.__klSendMessage) window.__klSendMessage("Give me a comprehensive briefing on the " + displayTitle + " including key obligations, recent changes, and practical implications for employers");
+            askEileen("Give me a comprehensive briefing on the " + displayTitle + " including key obligations, recent changes, and practical implications for employers");
           },
           style: {
             display: "block",
@@ -7423,7 +7431,7 @@
                 React.createElement("button", {
                   type: "button",
                   onClick: function() {
-                    if (window.__klSendMessage) window.__klSendMessage("Explain " + provTitle + " of the " + displayTitle + " and its practical implications");
+                    askEileen("Explain " + provTitle + " of the " + displayTitle + " and its practical implications");
                   },
                   style: {
                     display: "block",
@@ -7560,11 +7568,11 @@
     calendar: CalendarPanel,
     research: ResearchPanel
   };
-  function PanelDrawer({ panelId, onClose, lang }) {
+  function PanelDrawer({ panelId, onClose, lang, klPassHolder }) {
     if (!panelId) return null;
     const PanelContent = PANEL_COMPONENTS[panelId] || PlaceholderPanel;
     const label = PANEL_LABELS[panelId] || panelId;
-    return /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer", role: "dialog", "aria-label": label }, /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-header" }, /* @__PURE__ */ React.createElement("span", { className: "kl-panel-drawer-title" }, label), /* @__PURE__ */ React.createElement("button", { className: "kl-panel-drawer-close", onClick: onClose, "aria-label": "Close panel" }, "\u2715")), /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-body" }, /* @__PURE__ */ React.createElement(PanelContent, { panelId, lang })));
+    return /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer", role: "dialog", "aria-label": label }, /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-header" }, /* @__PURE__ */ React.createElement("span", { className: "kl-panel-drawer-title" }, label), /* @__PURE__ */ React.createElement("button", { className: "kl-panel-drawer-close", onClick: onClose, "aria-label": "Close panel" }, "\u2715")), /* @__PURE__ */ React.createElement("div", { className: "kl-panel-drawer-body" }, /* @__PURE__ */ React.createElement(PanelContent, { panelId, lang, klPassHolder })));
   }
   var KL_WS_LABELS = {
     cases: "Recent Cases",
@@ -12556,6 +12564,7 @@
     const [klWorkspace, setKlWorkspace] = useState(null);
     const [hubEntry, setHubEntry] = useState(null);
     function openHub(section, entryObj) {
+      setActivePanel(null);
       setHubEntry(entryObj || null);
       setKlWorkspace(section);
     }
@@ -13021,6 +13030,7 @@
     };
     window.__klOpenPanel = function(panelId) {
       handleSelectPanel(panelId);
+      if (panelId) setKlWorkspace(null);
     };
     window.__klOpenWorkspace = function(section) {
       openHub(section, null);
@@ -13538,7 +13548,7 @@
         tier,
         hubMode: hubChrome
       }
-    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel === "research" && hubChrome && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => handleSelectPanel(null), lang }), !upsellDismissed && !sessionExpired && upsellGraceElapsed && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(AdvisoryBanner, null), sidebarOpen && /* @__PURE__ */ React.createElement(MobileSidebarBackdrop, { onClick: () => setSidebarOpen(false) }), activePanel === "research" && (hubChrome || klPassHolder) && /* @__PURE__ */ React.createElement(PanelDrawer, { panelId: activePanel, onClose: () => handleSelectPanel(null), lang, klPassHolder }), !upsellDismissed && !sessionExpired && upsellGraceElapsed && /* @__PURE__ */ React.createElement(
       UpsellCard,
       {
         productType: window.__klProductType || tier || "",
