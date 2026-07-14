@@ -3771,6 +3771,55 @@ function klOrgTierBadge(orgTier) {
 function KLSignOutControl() {
   var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
   var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  // KL-PARITY-003 WP4(a) — resend state: null | 'sending' | 'sent' | 'ratelimited' | 'error'.
+  var _rs = useState(null); var resendState = _rs[0]; var setResendState = _rs[1];
+
+  // KL-PARITY-003 WP4(a) — email the signed-in pass holder a fresh access link BEFORE the
+  // session is dropped, then complete sign-out. Reads the address from the auth client
+  // (still authenticated here); the link is emailed by kl-access-resend and never returned
+  // (§1). Enumeration-safe copy — never asserts whether the address holds a pass. If the
+  // email cannot be read (unexpected), skip and complete sign-out normally: the public
+  // WP4(c) lost-link form remains the route.
+  async function resendLink() {
+    if (busy || resendState === 'sending') return;
+    setResendState('sending');
+    var RESEND_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/kl-access-resend';
+    var sb = (window.supabase && window.supabase.createClient)
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    var email = null;
+    try {
+      if (sb) {
+        const gs = await sb.auth.getSession();
+        const session = gs && gs.data && gs.data.session;
+        if (session) {
+          email = (session.user && session.user.email) || null;
+          if (!email && session.access_token) {
+            try { email = JSON.parse(atob(session.access_token.split('.')[1])).email || null; } catch (e) { /* ignore */ }
+          }
+        }
+      }
+    } catch (e) { /* fall through to the no-email branch */ }
+    if (!email) { endSession(true); return; }
+    try {
+      const resp = await fetch(RESEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify({ email: email }),
+      });
+      if (resp.status === 200) {
+        setResendState('sent');
+        // Show the confirmation briefly, then complete sign-out (retain — they are
+        // returning via the emailed link, so the workspace is kept).
+        setTimeout(function () { endSession(true); }, 1600);
+      } else if (resp.status === 429) {
+        setResendState('ratelimited');
+      } else {
+        setResendState('error');
+      }
+    } catch (e) {
+      setResendState('error');
+    }
+  }
 
   async function endSession(retain) {
     setBusy(true);
@@ -3830,6 +3879,38 @@ function KLSignOutControl() {
       React.createElement('h2', { style: { margin: '0 0 10px', color: '#F1F5F9', fontSize: '18px', fontWeight: 700 } }, 'Signing out'),
       React.createElement('p', { style: { margin: '0 0 18px', color: '#94A3B8', fontSize: '13px', lineHeight: 1.5 } },
         'Your Knowledge Library workspace is per-session. Choose what happens to your workspace data.'),
+      // KL-PARITY-003 WP4(a)/(b) — before the session is dropped: optionally email a fresh
+      // access link (one extra click, never required), plus a low-key permanent-access offer.
+      React.createElement('div', {
+        key: 'reentry',
+        style: { marginBottom: '16px', padding: '12px 14px', borderRadius: '10px', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)' },
+      },
+        resendState === 'sent'
+          ? React.createElement('p', { style: { margin: 0, color: '#38BDF8', fontSize: '13px', fontWeight: 600, lineHeight: 1.5 } }, 'Link sent — check your inbox. Signing you out…')
+          : React.createElement(React.Fragment, null,
+              React.createElement('p', { key: 'intro', style: { margin: '0 0 10px', color: '#CBD5E1', fontSize: '12px', lineHeight: 1.5 } },
+                'Signing out on this device? We can email a fresh sign-in link so you can pick up where you left off.'),
+              React.createElement('button', {
+                key: 'resend', type: 'button', disabled: busy || resendState === 'sending', onClick: resendLink,
+                style: {
+                  width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px',
+                  cursor: (busy || resendState === 'sending') ? 'default' : 'pointer',
+                  background: '#0EA5E9', border: 'none', color: '#fff',
+                  fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600,
+                  opacity: (busy || resendState === 'sending') ? 0.6 : 1,
+                },
+              }, resendState === 'sending' ? 'Sending…' : 'Email me a fresh access link'),
+              resendState === 'ratelimited'
+                ? React.createElement('p', { key: 'rl', style: { margin: '8px 0 0', color: '#FBBF24', fontSize: '12px', lineHeight: 1.4 } }, 'Please wait a moment and try again.')
+                : null,
+              resendState === 'error'
+                ? React.createElement('p', { key: 'er', style: { margin: '8px 0 0', color: '#F87171', fontSize: '12px', lineHeight: 1.4 } }, 'Something went wrong — try again shortly.')
+                : null,
+              React.createElement('p', { key: 'offer', style: { margin: '10px 0 0', fontSize: '12px', color: '#94A3B8', lineHeight: 1.5 } },
+                'Want permanent access across devices? ',
+                React.createElement('a', { href: '/kl-access/#subscriptions', style: { color: '#38BDF8', textDecoration: 'none', fontWeight: 600 } }, 'Explore Knowledge Library subscriptions →'))
+            )
+      ),
       React.createElement('button', {
         type: 'button', disabled: busy, onClick: function () { endSession(true); },
         style: {
@@ -7565,19 +7646,58 @@ function klDedupeCasesByName(rows) {
   });
   return out;
 }
+// KL-PARITY-003 WP1 — which stored URL column a url_source_class names, or null if it
+// does not clearly name one of the three. Token match is deliberately conservative: a
+// class that does not obviously map to tna/supremecourt/judiciary falls through to the
+// first-non-null rule below (never mis-attributes a URL).
+function klCaseSourceColForClass(cls) {
+  var s = String(cls == null ? '' : cls).toLowerCase();
+  if (s.indexOf('supreme') >= 0) return 'supremecourt_url';
+  if (s.indexOf('judiciary') >= 0 || s.indexOf('judicial') >= 0) return 'judiciary_url';
+  if (s.indexOf('tna') >= 0 || s.indexOf('national') >= 0) return 'tna_url';
+  return null;
+}
+// KL-PARITY-003 WP1 — exactly one deterministic source link per case row:
+//   (1) url_source_class names one of the three stored columns AND it is populated → use it;
+//   (2) else the first non-null of tna_url → supremecourt_url → judiciary_url ("Source ↗");
+//   (3) else an honest TNA judgment SEARCH on the case name (159 of 251 cases carry no
+//       stored URL — verified live 14 Jul 2026), labelled so it never reads as the judgment.
+function klParityCaseSourceEl(row) {
+  var href = null;
+  var col = klCaseSourceColForClass(row.url_source_class);
+  if (col && row[col]) href = row[col];
+  if (!href) href = row.tna_url || row.supremecourt_url || row.judiciary_url || null;
+  var label = 'Source ↗';
+  if (!href) {
+    href = 'https://caselaw.nationalarchives.gov.uk/judgments/search?query=' + encodeURIComponent(row.name || row.citation || '');
+    label = 'Search The National Archives ↗';
+  }
+  return React.createElement('div', { key: 'foot', style: HUB_INTEL_FOOT_STYLE },
+    React.createElement('a', { key: 'src', href: href, target: '_blank', rel: 'noopener noreferrer', style: HUB_INTEL_SOURCE_STYLE }, label));
+}
 function klParityCaseCard(row, idx) {
   var children = [];
   children.push(React.createElement('div', { key: 'title', style: HUB_INTEL_TITLE_STYLE }, row.name || row.citation || 'Tribunal decision'));
   var meta = [row.citation, row.court, row.year].filter(function (v) { return v != null && v !== ''; });
   if (meta.length) children.push(React.createElement('div', { key: 'meta', style: HUB_INTEL_META_STYLE }, meta.join('   ·   ')));
   if (row.principle) children.push(React.createElement('div', { key: 'body', style: HUB_INTEL_TEXT_STYLE }, hubIntelText(row.principle)));
+  // KL-PARITY-003 WP1 — one source link on every row (stored URL or honest TNA search).
+  children.push(klParityCaseSourceEl(row));
+  // KL-PARITY-003 WP2 — Discuss with Eileen: same component/bridge as the Intelligence
+  // cards (hubIntelDiscussBtn → window.__klDiscussWithEileen), which seeds the input and
+  // closes the pass-holder workspace drawer so Eileen is revealed (does NOT auto-send).
+  var caseName = row.name || row.citation || 'this decision';
+  var seed = 'Case: ' + caseName
+    + (row.citation ? ' (' + row.citation + ')' : '')
+    + (row.principle ? ' — ' + String(row.principle).slice(0, 200) : '');
+  children.push(hubIntelDiscussBtn(seed, 'discuss'));
   return React.createElement('div', { key: row.case_id != null ? row.case_id : idx, style: HUB_INTEL_CARD_STYLE }, children);
 }
 function KLCasesParity() {
   var _r = useState(null); var rows = _r[0]; var setRows = _r[1];
   useEffect(function () {
     var alive = true;
-    klWsFetchRows('kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at&order=year.desc&limit=255')
+    klWsFetchRows('kl_cases?select=case_id,name,citation,citation_canonical,court,year,principle,updated_at,tna_url,judiciary_url,supremecourt_url,url_source_class&order=year.desc&limit=255')
       .then(function (data) {
         if (!alive) return;
         var filtered = (data || []).filter(function (r) { return r && r.court !== 'N/A'; });
@@ -11593,6 +11713,14 @@ function App() {
       return next;
     });
   }
+  // KL-PARITY-003 WP3 — English is the authoritative service language at launch (Director,
+  // 14 Jul 2026). The Welsh (CY) control is SHARED with Operational (one TopBar/App), so it
+  // is gated OFF for the pass-holder surface only: the toggle is not rendered (onToggleLang
+  // below) and the effective language is forced to English so a stored 'cy' preference can
+  // never strand a pass holder in Welsh with no way back. klPassHolder is false in
+  // Operational, therefore effLang === lang and the toggle still renders there — Operational
+  // is byte-identical at runtime. (i18n assets are untouched; only the render is gated.)
+  const effLang = klPassHolder ? 'en' : lang;
   // H-5: Domain hover tracking for FloatingNexusAdvisor
   const [nearDomain, setNearDomain] = useState(null);
   const nearDomainTimeout = useRef(null);
@@ -12561,8 +12689,8 @@ function App() {
         tier={tier}
         sessionExpiresAt={sessionExpiresAt}
         onSessionExpired={() => setSessionExpired(true)}
-        lang={lang}
-        onToggleLang={toggleLang}
+        lang={effLang}
+        onToggleLang={klPassHolder ? undefined : toggleLang}
         operationalMode={operationalMode}
         orgTier={orgTier}
         hubSession={hubSession}
@@ -12574,7 +12702,7 @@ function App() {
           whenever Welsh is active — bilingual Welsh/English copy makes clear
           the translations are AI-generated and not an official translation
           under the Welsh Language Act 1993. */}
-      {lang === 'cy' && (
+      {effLang === 'cy' && (
         <div
           role="note"
           style={{
@@ -12599,7 +12727,7 @@ function App() {
         onCrownQuery={sendMessage}
         nexusState={nexusState}
         prefersReducedMotion={prefersReducedMotion.current}
-        lang={lang}
+        lang={effLang}
         hubChrome={hubChrome}
         currentFacet={currentFacet}
         onSelectFacet={(id) => { handleSelectFacet(id); if (window.innerWidth <= 768) setSidebarOpen(false); }}
@@ -12622,7 +12750,7 @@ function App() {
           prefersReducedMotion={prefersReducedMotion.current}
           onInputChange={handleInputChange}
           tier={tier}
-          lang={lang}
+          lang={effLang}
         />
       ) : hubMode && currentFacet ? (
         <HubFacetView facet={currentFacet} hubSession={hubSession} onBack={() => setCurrentFacet(null)} />
