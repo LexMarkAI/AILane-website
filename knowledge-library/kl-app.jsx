@@ -7647,16 +7647,125 @@ function klParlChangedTime(b) {
   var n = t ? new Date(t).getTime() : 0;
   return isNaN(n) ? 0 : n;
 }
-function KLParliamentParity() {
+// ── KL-PARITY-002 WP-A — pass-holder Parliament Live fallback ──────────────────
+// fn_parliament_live_feed is org-coupled: its body runs
+//   _org := public.get_my_org_id(); if _org is null then return;
+// so for a KL pass holder (who has no organisation) it returns an EMPTY set by
+// design, and the board renders blank. We replicate the RPC's row logic client-side
+// against kl_legislative_horizon (directly readable by pass holders via the
+// kl_lh_auth_read_published RLS policy) so the board renders for them. Org /
+// operational callers keep the RPC path byte-unchanged. Pass holders have no org, so
+// implicates_tenant is always false and no tenant-tier chrome is shown. (§1)
+var KL_PARL_MOVE_WINDOW_HOURS = 48; // mirrors p_since_hours passed to fn_parliament_live_daily_summary
+var KL_PARL_MOVE_LIMIT = 12;        // mirrors p_limit passed to fn_parliament_live_daily_summary
+// stage_order — the RPC's CASE, replicated verbatim (§1); first match wins, in order.
+function klPhParlStageOrder(stage) {
+  var s = String(stage == null ? '' : stage).toLowerCase();
+  if (s.indexOf('royal assent') >= 0) return 10;
+  if (/(3rd|third)\s+reading/.test(s)) return 5;
+  if (s.indexOf('report') >= 0) return 4;
+  if (s.indexOf('committee') >= 0) return 3;
+  if (/(2nd|second)\s+reading/.test(s)) return 2;
+  if (/(1st|first)\s+reading/.test(s)) return 1;
+  return 0;
+}
+// §1 secondary sort key: priority (critical, high, medium, else).
+function klPhParlPriorityRank(priority) {
+  var p = String(priority == null ? '' : priority).toLowerCase();
+  if (p === 'critical') return 0;
+  if (p === 'high') return 1;
+  if (p === 'medium') return 2;
+  return 3;
+}
+// "DD Mon" (e.g. "07 Jul") for the status_summary fallback.
+function klPhDDMon(v) {
+  if (!v) return '';
+  try {
+    var d = new Date(v);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  } catch (e) { return ''; }
+}
+// One kl_legislative_horizon row -> a feed-shaped row KLBillRow / klParlBillArchived
+// / klParlChangedTime already understand. status_summary = bill_status_summary, else
+// parliament_stage + " · checked " + last_status_check (DD Mon). (§1)
+function klPhParlFeedRow(h) {
+  h = h || {};
+  var status = h.bill_status_summary;
+  if (status == null || String(status).trim() === '') {
+    var stageTxt = (h.parliament_stage == null ? '' : String(h.parliament_stage)).trim();
+    var checked = klPhDDMon(h.last_status_check);
+    status = [stageTxt, checked ? ('checked ' + checked) : ''].filter(Boolean).join(' · ') || null;
+  }
+  return {
+    legislation_short_name: h.legislation_short_name,
+    legislation_title: h.legislation_title,
+    stage_order: klPhParlStageOrder(h.parliament_stage),
+    status_summary: status,
+    priority: h.priority,
+    source_url: h.source_url,
+    archived: h.archived === true,
+    lifecycle_state: h.lifecycle_state,
+    last_changed_at: h.last_changed_at,
+    last_status_check: h.last_status_check,
+    parliament_stage: h.parliament_stage,
+    implicates_tenant: false,
+  };
+}
+// The full feed, ordered per §1: stage_order DESC, priority, short name. (KLParliament-
+// Parity re-buckets by stage and re-sorts within stage, so this order is the RPC-parity
+// default rather than the final display order.)
+function klPhParlFeed(rows) {
+  var out = (rows || []).map(klPhParlFeedRow);
+  out.sort(function (a, b) {
+    if (b.stage_order !== a.stage_order) return b.stage_order - a.stage_order;
+    var pr = klPhParlPriorityRank(a.priority) - klPhParlPriorityRank(b.priority);
+    if (pr !== 0) return pr;
+    var na = String(a.legislation_short_name || a.legislation_title || '');
+    var nb = String(b.legislation_short_name || b.legislation_title || '');
+    return na < nb ? -1 : na > nb ? 1 : 0;
+  });
+  return out;
+}
+// Recent movements — same direct read, newest-first, each flagged within the 48h
+// window fn_parliament_live_daily_summary uses; KLMovements renders within-window rows
+// (else its "Parliament has been quiet" fallback). previous_stage is unknown from the
+// horizon read (null); royal_assent tracks a Royal Assent stage.
+function klPhParlMoves(rows) {
+  var now = Date.now();
+  var winMs = KL_PARL_MOVE_WINDOW_HOURS * 3600 * 1000;
+  var out = (rows || []).filter(function (h) { return h && h.last_changed_at; }).map(function (h) {
+    var t = new Date(h.last_changed_at).getTime();
+    return {
+      changed_at: h.last_changed_at,
+      legislation_short_name: h.legislation_short_name,
+      new_stage: h.parliament_stage,
+      previous_stage: null,
+      royal_assent: klPhParlStageOrder(h.parliament_stage) === 10,
+      within_window: !isNaN(t) && (now - t) <= winMs,
+      _t: isNaN(t) ? 0 : t,
+    };
+  });
+  out.sort(function (a, b) { return b._t - a._t; });
+  return out.slice(0, KL_PARL_MOVE_LIMIT);
+}
+function KLParliamentParity({ klPassHolder }) {
   var _feed = useState(null); var feed = _feed[0]; var setFeed = _feed[1];
   var _mov = useState(null); var moves = _mov[0]; var setMoves = _mov[1];
   var _arch = useState(false); var showArch = _arch[0]; var setShowArch = _arch[1];
   useEffect(function () {
     var alive = true;
-    klWsRpc('fn_parliament_live_feed', { p_limit: 200 }).then(function (rows) { if (alive) setFeed(rows); });
-    klWsRpc('fn_parliament_live_daily_summary', { p_since_hours: 48, p_limit: 12 }).then(function (rows) { if (alive) setMoves(rows); });
+    if (klPassHolder) {
+      // Pass holders: fn_parliament_live_feed returns empty (org-coupled, §1) — read
+      // kl_legislative_horizon directly and replicate the RPC's rows client-side. One
+      // read feeds both the passage board and the movements strip.
+      klWsFetchRows('kl_legislative_horizon?auto_tracked=eq.true&legislation_type=in.(bill,act)&select=*&limit=200')
+        .then(function (rows) { if (alive) { setFeed(klPhParlFeed(rows)); setMoves(klPhParlMoves(rows)); } });
+    } else {
+      klWsRpc('fn_parliament_live_feed', { p_limit: 200 }).then(function (rows) { if (alive) setFeed(rows); });
+      klWsRpc('fn_parliament_live_daily_summary', { p_since_hours: 48, p_limit: 12 }).then(function (rows) { if (alive) setMoves(rows); });
+    }
     return function () { alive = false; };
-  }, []);
+  }, [klPassHolder]);
   var children = [];
   children.push(React.createElement('div', { key: 'disc', style: HUB_INTEL_C1_STYLE, role: 'note' },
     React.createElement('strong', { key: 's' }, 'Parliament Live is forward regulatory intelligence — not legal advice.'),
@@ -7709,7 +7818,7 @@ function KLParliamentParity() {
 // ─── KLWorkspaceDrawer — the reshaped pass-holder drawer (Intelligence / Cases /
 // Calendar / Parliament Live / Notes). Opened ONLY from the pass-holder nav; the App
 // mount is guarded hasKLSession && !hasSubscription (§9 check 1). ───
-function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
+function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss, klPassHolder }) {
   useEffect(function () {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
@@ -7734,8 +7843,10 @@ function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
     body = <KLCalendarParity />;
   } else if (section === 'parliament') {
     // KL-PARITY-001 WP5 — Parliament Live (fn_parliament_live_* RPCs).
+    // KL-PARITY-002 WP-A — pass holders get the org-less kl_legislative_horizon
+    // fallback (the RPC is org-coupled and empty for them); org users keep the RPCs.
     title = 'Parliament Live';
-    body = <KLParliamentParity />;
+    body = <KLParliamentParity klPassHolder={klPassHolder} />;
   } else if (section === 'notes') {
     title = 'Notes';
     body = <KLNotesTab />;
@@ -12553,7 +12664,7 @@ function App() {
           it is only ever opened from the pass-holder nav, AND the mount itself requires
           hasKLSession && !hasSubscription, so it cannot render on the Operational surface. */}
       {hasKLSession && !hasSubscription && klWorkspace && (
-        <KLWorkspaceDrawer section={klWorkspace} entry={hubEntry} onClose={() => setKlWorkspace(null)} onDiscuss={handleHubDiscuss} />
+        <KLWorkspaceDrawer section={klWorkspace} entry={hubEntry} onClose={() => setKlWorkspace(null)} onDiscuss={handleHubDiscuss} klPassHolder={klPassHolder} />
       )}
       {sessionExpired && <ExpiredModal />}
     </React.Fragment>

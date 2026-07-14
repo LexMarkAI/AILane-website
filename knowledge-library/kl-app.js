@@ -8317,7 +8317,92 @@
     var n = t ? new Date(t).getTime() : 0;
     return isNaN(n) ? 0 : n;
   }
-  function KLParliamentParity() {
+  var KL_PARL_MOVE_WINDOW_HOURS = 48;
+  var KL_PARL_MOVE_LIMIT = 12;
+  function klPhParlStageOrder(stage) {
+    var s = String(stage == null ? "" : stage).toLowerCase();
+    if (s.indexOf("royal assent") >= 0) return 10;
+    if (/(3rd|third)\s+reading/.test(s)) return 5;
+    if (s.indexOf("report") >= 0) return 4;
+    if (s.indexOf("committee") >= 0) return 3;
+    if (/(2nd|second)\s+reading/.test(s)) return 2;
+    if (/(1st|first)\s+reading/.test(s)) return 1;
+    return 0;
+  }
+  function klPhParlPriorityRank(priority) {
+    var p = String(priority == null ? "" : priority).toLowerCase();
+    if (p === "critical") return 0;
+    if (p === "high") return 1;
+    if (p === "medium") return 2;
+    return 3;
+  }
+  function klPhDDMon(v) {
+    if (!v) return "";
+    try {
+      var d = new Date(v);
+      return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    } catch (e) {
+      return "";
+    }
+  }
+  function klPhParlFeedRow(h) {
+    h = h || {};
+    var status = h.bill_status_summary;
+    if (status == null || String(status).trim() === "") {
+      var stageTxt = (h.parliament_stage == null ? "" : String(h.parliament_stage)).trim();
+      var checked = klPhDDMon(h.last_status_check);
+      status = [stageTxt, checked ? "checked " + checked : ""].filter(Boolean).join(" \xB7 ") || null;
+    }
+    return {
+      legislation_short_name: h.legislation_short_name,
+      legislation_title: h.legislation_title,
+      stage_order: klPhParlStageOrder(h.parliament_stage),
+      status_summary: status,
+      priority: h.priority,
+      source_url: h.source_url,
+      archived: h.archived === true,
+      lifecycle_state: h.lifecycle_state,
+      last_changed_at: h.last_changed_at,
+      last_status_check: h.last_status_check,
+      parliament_stage: h.parliament_stage,
+      implicates_tenant: false
+    };
+  }
+  function klPhParlFeed(rows) {
+    var out = (rows || []).map(klPhParlFeedRow);
+    out.sort(function(a, b) {
+      if (b.stage_order !== a.stage_order) return b.stage_order - a.stage_order;
+      var pr = klPhParlPriorityRank(a.priority) - klPhParlPriorityRank(b.priority);
+      if (pr !== 0) return pr;
+      var na = String(a.legislation_short_name || a.legislation_title || "");
+      var nb = String(b.legislation_short_name || b.legislation_title || "");
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+    return out;
+  }
+  function klPhParlMoves(rows) {
+    var now = Date.now();
+    var winMs = KL_PARL_MOVE_WINDOW_HOURS * 3600 * 1e3;
+    var out = (rows || []).filter(function(h) {
+      return h && h.last_changed_at;
+    }).map(function(h) {
+      var t = new Date(h.last_changed_at).getTime();
+      return {
+        changed_at: h.last_changed_at,
+        legislation_short_name: h.legislation_short_name,
+        new_stage: h.parliament_stage,
+        previous_stage: null,
+        royal_assent: klPhParlStageOrder(h.parliament_stage) === 10,
+        within_window: !isNaN(t) && now - t <= winMs,
+        _t: isNaN(t) ? 0 : t
+      };
+    });
+    out.sort(function(a, b) {
+      return b._t - a._t;
+    });
+    return out.slice(0, KL_PARL_MOVE_LIMIT);
+  }
+  function KLParliamentParity({ klPassHolder }) {
     var _feed = useState(null);
     var feed = _feed[0];
     var setFeed = _feed[1];
@@ -8329,16 +8414,25 @@
     var setShowArch = _arch[1];
     useEffect(function() {
       var alive = true;
-      klWsRpc("fn_parliament_live_feed", { p_limit: 200 }).then(function(rows) {
-        if (alive) setFeed(rows);
-      });
-      klWsRpc("fn_parliament_live_daily_summary", { p_since_hours: 48, p_limit: 12 }).then(function(rows) {
-        if (alive) setMoves(rows);
-      });
+      if (klPassHolder) {
+        klWsFetchRows("kl_legislative_horizon?auto_tracked=eq.true&legislation_type=in.(bill,act)&select=*&limit=200").then(function(rows) {
+          if (alive) {
+            setFeed(klPhParlFeed(rows));
+            setMoves(klPhParlMoves(rows));
+          }
+        });
+      } else {
+        klWsRpc("fn_parliament_live_feed", { p_limit: 200 }).then(function(rows) {
+          if (alive) setFeed(rows);
+        });
+        klWsRpc("fn_parliament_live_daily_summary", { p_since_hours: 48, p_limit: 12 }).then(function(rows) {
+          if (alive) setMoves(rows);
+        });
+      }
       return function() {
         alive = false;
       };
-    }, []);
+    }, [klPassHolder]);
     var children = [];
     children.push(React.createElement(
       "div",
@@ -8405,7 +8499,7 @@
     children.push(moves === null ? React.createElement(KLHubLoading, { key: "movload" }) : React.createElement(KLMovements, { key: "mov", rows: moves }));
     return React.createElement("div", null, children);
   }
-  function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss }) {
+  function KLWorkspaceDrawer({ section, entry, onClose, onDiscuss, klPassHolder }) {
     useEffect(function() {
       function onKey(e) {
         if (e.key === "Escape") onClose();
@@ -8428,7 +8522,7 @@
       body = /* @__PURE__ */ React.createElement(KLCalendarParity, null);
     } else if (section === "parliament") {
       title = "Parliament Live";
-      body = /* @__PURE__ */ React.createElement(KLParliamentParity, null);
+      body = /* @__PURE__ */ React.createElement(KLParliamentParity, { klPassHolder });
     } else if (section === "notes") {
       title = "Notes";
       body = /* @__PURE__ */ React.createElement(KLNotesTab, null);
@@ -13289,7 +13383,7 @@
         minutesRemaining,
         onDismiss: () => setUpsellDismissed(true)
       }
-    ), hasKLSession && !hasSubscription && klWorkspace && /* @__PURE__ */ React.createElement(KLWorkspaceDrawer, { section: klWorkspace, entry: hubEntry, onClose: () => setKlWorkspace(null), onDiscuss: handleHubDiscuss }), sessionExpired && /* @__PURE__ */ React.createElement(ExpiredModal, null));
+    ), hasKLSession && !hasSubscription && klWorkspace && /* @__PURE__ */ React.createElement(KLWorkspaceDrawer, { section: klWorkspace, entry: hubEntry, onClose: () => setKlWorkspace(null), onDiscuss: handleHubDiscuss, klPassHolder }), sessionExpired && /* @__PURE__ */ React.createElement(ExpiredModal, null));
   }
   window.initKLApp = function() {
     const container = document.getElementById("kl-root");
