@@ -7787,6 +7787,40 @@
       }, style: KL_HUB_CARD_BTN }, /* @__PURE__ */ React.createElement("div", { style: { color: "#F1F5F9", fontSize: "13px", fontWeight: 600, marginBottom: "3px" } }, (n.pinned ? "\u{1F4CC} " : "") + (n.title || "Untitled")), /* @__PURE__ */ React.createElement("div", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", marginBottom: "3px" } }, [n.note_type ? klNoteTypeLabel(n.note_type) : null, n.updated_at ? "Updated " + klWsDate(n.updated_at) : null].filter(Boolean).join("  \xB7  ")), n.content_plain ? /* @__PURE__ */ React.createElement("div", { style: { color: "#CBD5E1", fontSize: "12px", lineHeight: 1.5 } }, klWsSnippet(n.content_plain, 140)) : null);
     }));
   }
+  var KL_ALERT_ALLOW = {
+    new_bill: function(s) {
+      return "New Bill before Parliament" + (s ? " \u2014 " + s : "");
+    },
+    dsit_commencement_plan_change: function(s) {
+      return "Commencement timetable updated" + (s ? " \u2014 " + s : "");
+    },
+    ico_commencement_statement_change: function() {
+      return "ICO commencement guidance updated";
+    },
+    new_si_tracked_instrument: function(s) {
+      return "New Statutory Instrument tracked" + (s ? " \u2014 " + s : "");
+    },
+    guidance_update: function(s) {
+      return "Guidance updated" + (s ? " \u2014 " + s : "");
+    }
+  };
+  var KL_ALERT_WORKER_PREFIX = /^(?:new\s+bill|bill\s+(?:introduced|tracked|detected|updated)|new\s+(?:si|statutory\s+instrument)|statutory\s+instrument|(?:dsit\s+)?commencement|ico\s+commencement|guidance\s+(?:update|updated|change|changed)|guidance)\b/i;
+  function klAlertSubject(title) {
+    var t = String(title == null ? "" : title).replace(/\s+/g, " ").trim();
+    var i = t.indexOf(":");
+    if (i > 0) {
+      var prefix = t.slice(0, i).trim();
+      var rest = t.slice(i + 1).trim();
+      if (rest && KL_ALERT_WORKER_PREFIX.test(prefix)) return rest;
+    }
+    return t;
+  }
+  function klAlertBody(summary) {
+    var s = String(summary == null ? "" : summary).replace(/\s+/g, " ").trim();
+    if (!s) return "";
+    var parts = s.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+    return parts && parts.length ? parts.slice(0, 2).join("").trim() : s;
+  }
   function KLTickerBell({ onOpenLawInstrument }) {
     var _items = useState(null);
     var items = _items[0];
@@ -7797,7 +7831,7 @@
     var wrapRef = useRef(null);
     useEffect(function() {
       var alive = true;
-      klWsFetchRows("kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id&order=detected_at.desc&limit=30").then(function(rows2) {
+      klWsFetchRows("kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id,alert_type&order=detected_at.desc&limit=30").then(function(rows2) {
         if (alive) setItems(rows2);
       });
       return function() {
@@ -7819,7 +7853,10 @@
         document.removeEventListener("keydown", onKey);
       };
     }, [open]);
-    var newest = items && items[0] ? items[0].detected_at : null;
+    var visible = (items || []).filter(function(n) {
+      return n && Object.prototype.hasOwnProperty.call(KL_ALERT_ALLOW, n.alert_type);
+    });
+    var newest = visible && visible[0] ? visible[0].detected_at : null;
     var seen = null;
     try {
       seen = localStorage.getItem("ailane_kl_alerts_seen");
@@ -7849,14 +7886,16 @@
     }
     var list = null;
     if (open) {
-      var rows = (items || []).map(function(n, i) {
+      var rows = visible.map(function(n, i) {
+        var heading = KL_ALERT_ALLOW[n.alert_type](klAlertSubject(n.title));
+        var body = klAlertBody(n.summary);
         var hasInst = n.affected_instrument_id != null && n.affected_instrument_id !== "";
         return React.createElement(
           "div",
           { key: i, style: { padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)" } },
-          React.createElement("div", { style: { color: "#F1F5F9", fontSize: "12px", fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: "break-word" } }, n.title || "Regulatory alert"),
+          React.createElement("div", { style: { color: "#F1F5F9", fontSize: "12px", fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: "break-word" } }, heading),
           n.detected_at ? React.createElement("div", { style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", marginTop: "3px" } }, klWsDate(n.detected_at)) : null,
-          n.summary ? React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: "3px", wordBreak: "break-word" } }, klWsSnippet(n.summary, 180)) : null,
+          body ? React.createElement("div", { style: { color: "#94A3B8", fontSize: "12px", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: "3px", wordBreak: "break-word" } }, body) : null,
           React.createElement(
             "div",
             { style: { display: "flex", gap: "12px", marginTop: "6px", alignItems: "center", flexWrap: "wrap" } },

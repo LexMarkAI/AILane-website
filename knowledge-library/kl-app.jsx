@@ -7242,13 +7242,49 @@ function KLCalendarList() {
 // hasKLSession && !hasSubscription. Fields: title/summary/detected_at/source_url +
 // affected_instrument_id; never the full alert body. Where an alert names an
 // instrument, it links into the Law tab — the change-feed relationship made visible.
+// ── KL-PARITY-002 WP-B — client-safe alert bell ───────────────────────────────
+// kl_legislative_alerts currently has RLS `USING true`, so estate-internal ops
+// telemetry (every licence_* type) is visible to the pass-holder REST read. Until
+// the Chairman audience migration tightens the data layer, the display layer is the
+// control: render ONLY the client-appropriate alert_type allowlist (§1), keyed to
+// humanised headings, and NEVER the raw machine title. Any alert_type not in the
+// allowlist (incl. unknown/future types) does not render — the intended safe default.
+var KL_ALERT_ALLOW = {
+  new_bill: function (s) { return 'New Bill before Parliament' + (s ? (' — ' + s) : ''); },
+  dsit_commencement_plan_change: function (s) { return 'Commencement timetable updated' + (s ? (' — ' + s) : ''); },
+  ico_commencement_statement_change: function () { return 'ICO commencement guidance updated'; },
+  new_si_tracked_instrument: function (s) { return 'New Statutory Instrument tracked' + (s ? (' — ' + s) : ''); },
+  guidance_update: function (s) { return 'Guidance updated' + (s ? (' — ' + s) : ''); },
+};
+// {subject}: the alert title with any worker prefix stripped — the text after the
+// first ":" when the prefix before it matches a known ingest-worker label (the same
+// "<label>: <detail>" shape the excluded licence_* alerts use); otherwise the full
+// title. Kept conservative so a genuine name-first title is not over-stripped. (§1)
+var KL_ALERT_WORKER_PREFIX = /^(?:new\s+bill|bill\s+(?:introduced|tracked|detected|updated)|new\s+(?:si|statutory\s+instrument)|statutory\s+instrument|(?:dsit\s+)?commencement|ico\s+commencement|guidance\s+(?:update|updated|change|changed)|guidance)\b/i;
+function klAlertSubject(title) {
+  var t = String(title == null ? '' : title).replace(/\s+/g, ' ').trim();
+  var i = t.indexOf(':');
+  if (i > 0) {
+    var prefix = t.slice(0, i).trim();
+    var rest = t.slice(i + 1).trim();
+    if (rest && KL_ALERT_WORKER_PREFIX.test(prefix)) return rest;
+  }
+  return t;
+}
+// Body = summary trimmed to the first two sentences (§1); no terminator -> whole text.
+function klAlertBody(summary) {
+  var s = String(summary == null ? '' : summary).replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  var parts = s.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+  return (parts && parts.length) ? parts.slice(0, 2).join('').trim() : s;
+}
 function KLTickerBell({ onOpenLawInstrument }) {
   var _items = useState(null); var items = _items[0]; var setItems = _items[1];
   var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
   var wrapRef = useRef(null);
   useEffect(function () {
     var alive = true;
-    klWsFetchRows('kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id&order=detected_at.desc&limit=30')
+    klWsFetchRows('kl_legislative_alerts?select=title,summary,detected_at,source_url,affected_instrument_id,alert_type&order=detected_at.desc&limit=30')
       .then(function (rows) { if (alive) setItems(rows); });
     return function () { alive = false; };
   }, []);
@@ -7260,7 +7296,10 @@ function KLTickerBell({ onOpenLawInstrument }) {
     return function () { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  var newest = (items && items[0]) ? items[0].detected_at : null;
+  // KL-PARITY-002 WP-B — allowlist filter BEFORE any render (incl. the "new" dot),
+  // so estate-internal ops alert types never surface to a client pass holder.
+  var visible = (items || []).filter(function (n) { return n && Object.prototype.hasOwnProperty.call(KL_ALERT_ALLOW, n.alert_type); });
+  var newest = (visible && visible[0]) ? visible[0].detected_at : null;
   var seen = null; try { seen = localStorage.getItem('ailane_kl_alerts_seen'); } catch (e) {}
   var hasNew = !!(newest && (!seen || new Date(newest).getTime() > new Date(seen).getTime()));
   function toggle() {
@@ -7278,12 +7317,16 @@ function KLTickerBell({ onOpenLawInstrument }) {
   }
   var list = null;
   if (open) {
-    var rows = (items || []).map(function (n, i) {
+    var rows = visible.map(function (n, i) {
+      // Heading is ALWAYS template-derived (§1), keyed on alert_type — the raw machine
+      // title is never rendered verbatim for an allowlisted type.
+      var heading = KL_ALERT_ALLOW[n.alert_type](klAlertSubject(n.title));
+      var body = klAlertBody(n.summary);
       var hasInst = n.affected_instrument_id != null && n.affected_instrument_id !== '';
       return React.createElement('div', { key: i, style: { padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' } },
-        React.createElement('div', { style: { color: '#F1F5F9', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: 'break-word' } }, n.title || 'Regulatory alert'),
+        React.createElement('div', { style: { color: '#F1F5F9', fontSize: '12px', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4, wordBreak: 'break-word' } }, heading),
         n.detected_at ? React.createElement('div', { style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", marginTop: '3px' } }, klWsDate(n.detected_at)) : null,
-        n.summary ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: '3px', wordBreak: 'break-word' } }, klWsSnippet(n.summary, 180)) : null,
+        body ? React.createElement('div', { style: { color: '#94A3B8', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.45, marginTop: '3px', wordBreak: 'break-word' } }, body) : null,
         React.createElement('div', { style: { display: 'flex', gap: '12px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' } },
           hasInst ? React.createElement('button', {
             type: 'button',
