@@ -12512,6 +12512,7 @@
         return next;
       });
     }
+    const effLang = klPassHolder ? "en" : lang;
     const [nearDomain, setNearDomain] = useState(null);
     const nearDomainTimeout = useRef(null);
     function handleDomainHover(domainSlug) {
@@ -13323,8 +13324,8 @@
         tier,
         sessionExpiresAt,
         onSessionExpired: () => setSessionExpired(true),
-        lang,
-        onToggleLang: toggleLang,
+        lang: effLang,
+        onToggleLang: klPassHolder ? void 0 : toggleLang,
         operationalMode,
         orgTier,
         hubSession,
@@ -13332,7 +13333,7 @@
         hasSubscription,
         onOpenHubLaw: (instrumentId) => openHub("intelligence", { tab: "law", instrumentId })
       }
-    ), lang === "cy" && /* @__PURE__ */ React.createElement(
+    ), effLang === "cy" && /* @__PURE__ */ React.createElement(
       "div",
       {
         role: "note",
@@ -13364,7 +13365,7 @@
         onCrownQuery: sendMessage,
         nexusState,
         prefersReducedMotion: prefersReducedMotion.current,
-        lang,
+        lang: effLang,
         hubChrome,
         currentFacet,
         onSelectFacet: (id) => {
@@ -13392,7 +13393,7 @@
         prefersReducedMotion: prefersReducedMotion.current,
         onInputChange: handleInputChange,
         tier,
-        lang
+        lang: effLang
       }
     ) : hubMode && currentFacet ? /* @__PURE__ */ React.createElement(HubFacetView, { facet: currentFacet, hubSession, onBack: () => setCurrentFacet(null) }) : /* @__PURE__ */ React.createElement(
       ConversationArea,

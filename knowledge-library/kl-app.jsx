@@ -11632,6 +11632,14 @@ function App() {
       return next;
     });
   }
+  // KL-PARITY-003 WP3 — English is the authoritative service language at launch (Director,
+  // 14 Jul 2026). The Welsh (CY) control is SHARED with Operational (one TopBar/App), so it
+  // is gated OFF for the pass-holder surface only: the toggle is not rendered (onToggleLang
+  // below) and the effective language is forced to English so a stored 'cy' preference can
+  // never strand a pass holder in Welsh with no way back. klPassHolder is false in
+  // Operational, therefore effLang === lang and the toggle still renders there — Operational
+  // is byte-identical at runtime. (i18n assets are untouched; only the render is gated.)
+  const effLang = klPassHolder ? 'en' : lang;
   // H-5: Domain hover tracking for FloatingNexusAdvisor
   const [nearDomain, setNearDomain] = useState(null);
   const nearDomainTimeout = useRef(null);
@@ -12600,8 +12608,8 @@ function App() {
         tier={tier}
         sessionExpiresAt={sessionExpiresAt}
         onSessionExpired={() => setSessionExpired(true)}
-        lang={lang}
-        onToggleLang={toggleLang}
+        lang={effLang}
+        onToggleLang={klPassHolder ? undefined : toggleLang}
         operationalMode={operationalMode}
         orgTier={orgTier}
         hubSession={hubSession}
@@ -12613,7 +12621,7 @@ function App() {
           whenever Welsh is active — bilingual Welsh/English copy makes clear
           the translations are AI-generated and not an official translation
           under the Welsh Language Act 1993. */}
-      {lang === 'cy' && (
+      {effLang === 'cy' && (
         <div
           role="note"
           style={{
@@ -12638,7 +12646,7 @@ function App() {
         onCrownQuery={sendMessage}
         nexusState={nexusState}
         prefersReducedMotion={prefersReducedMotion.current}
-        lang={lang}
+        lang={effLang}
         hubChrome={hubChrome}
         currentFacet={currentFacet}
         onSelectFacet={(id) => { handleSelectFacet(id); if (window.innerWidth <= 768) setSidebarOpen(false); }}
@@ -12661,7 +12669,7 @@ function App() {
           prefersReducedMotion={prefersReducedMotion.current}
           onInputChange={handleInputChange}
           tier={tier}
-          lang={lang}
+          lang={effLang}
         />
       ) : hubMode && currentFacet ? (
         <HubFacetView facet={currentFacet} hubSession={hubSession} onBack={() => setCurrentFacet(null)} />
