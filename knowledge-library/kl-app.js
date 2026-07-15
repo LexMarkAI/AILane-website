@@ -6669,7 +6669,7 @@
         }
         setLoading(true);
         try {
-          var path = tab === "provisions" ? "/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025,last_verified&order=instrument_id,section_num&limit=500" : "/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100";
+          var path = tab === "provisions" ? "/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025,last_verified&order=instrument_id,section_num&limit=500" : "/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&court=neq.N/A&order=year.desc&limit=100";
           var headers = { "Authorization": "Bearer " + window.__klToken, "apikey": SUPABASE_ANON_KEY };
           var resp = await fetch(SUPABASE_URL + path, { headers });
           if (tab === "provisions" && !resp.ok) {
@@ -12414,6 +12414,8 @@
         React.createElement("a", { key: "src", href: String(row.source_url), target: "_blank", rel: "noopener noreferrer", style: HUB_INTEL_SOURCE_STYLE }, "Source")
       ));
     }
+    var eileenSeed = 'Discuss this intelligence item: "' + (hubIntelText(row.event_title) || "Untitled briefing") + '"' + (dateStr && dateStr !== "\u2014" ? " (" + dateStr + ")" : "");
+    children.push(hubIntelDiscussBtn(eileenSeed, "discuss"));
     return React.createElement("div", { key: row.id != null ? row.id : idx, style: cardStyle }, children);
   }
   function HubTickerFacet({ hubSession }) {
@@ -12425,9 +12427,6 @@
     });
     var expanded = _expanded[0];
     var setExpanded = _expanded[1];
-    var _tierF = useState("all");
-    var tierF = _tierF[0];
-    var setTierF = _tierF[1];
     var _urgF = useState("all");
     var urgF = _urgF[0];
     var setUrgF = _urgF[1];
@@ -12486,17 +12485,8 @@
     }
     var catSet = state.catSet;
     var hasRelevance = !!(catSet && catSet.size);
-    var tiers = hubTickerDistinct(briefings, "tier", false);
     var urgencies = hubTickerDistinct(briefings, "legislative_urgency", true);
     var controls = [];
-    if (tiers.length > 1) {
-      var tierOpts = [{ v: "all", l: "All tiers" }].concat(tiers.map(function(t) {
-        return { v: t, l: hubTickerTierLabel(t) };
-      }));
-      controls.push(hubCalSelectEl("tierf", tierF, function(e) {
-        setTierF(e.target.value);
-      }, tierOpts, "Filter by tier", null));
-    }
     if (urgencies.length > 1) {
       var urgOpts = [{ v: "all", l: "All urgency" }].concat(urgencies.map(function(u) {
         return { v: u, l: hubAceiHumanise(u) };
@@ -12519,7 +12509,6 @@
     if (controls.length) children.push(React.createElement("div", { key: "filters", style: HUB_TICKER_FILTERS_STYLE }, controls));
     var rows = briefings.filter(function(r) {
       if (!r) return false;
-      if (tierF !== "all" && String(r.tier == null ? "" : r.tier) !== tierF) return false;
       if (urgF !== "all" && String(r.legislative_urgency == null ? "" : r.legislative_urgency).toLowerCase() !== urgF) return false;
       if (relOnly && !hubTickerCatMatch(r.acei_category, catSet)) return false;
       return true;

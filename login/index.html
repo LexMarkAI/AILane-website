@@ -242,7 +242,11 @@
     btn.disabled=true;btn.innerHTML='<span class="sp"></span>Sending link...';
     try{
       var res=await sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:'https://ailane.ai/auth/callback/',shouldCreateUser:true}});
-      if(res.error){err.textContent=res.error.message;btn.disabled=false;btn.textContent='Email me a sign-in link';return}
+      // WSUX-SITE-001 W5 — response masking: the visible outcome is IDENTICAL whether or not the
+      // address has an account. Any GoTrue error (e.g. "signups not allowed", rate-limit) is
+      // logged to the console only and falls through to the same success copy below, so no error
+      // branch reveals account existence. Password sign-in / rate limits / auth config untouched.
+      if(res.error){console.warn('[login] magic-link masked outcome:',(res.error&&res.error.message)||res.error);}
       ok.textContent='Check your email — we’ve sent a sign-in link to '+email+'. It’s valid for a short time.';
       ok.classList.remove('hide');
       btn.disabled=false;btn.textContent='Email me a sign-in link';

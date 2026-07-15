@@ -5780,7 +5780,10 @@ function ResearchPanel({ lang, klPassHolder }) {
         // ever absent PostgREST rejects the whole select, so retry without it.
         var path = tab === 'provisions'
           ? '/rest/v1/kl_provisions?select=provision_id,title,instrument_id,section_num,in_force,is_era_2025,last_verified&order=instrument_id,section_num&limit=500'
-          : '/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&order=year.desc&limit=100';
+          // WSUX-SITE-001 W1 — exclude the four court='N/A' annotation rows (absence-of-authority
+          // notes, not judgments) at the query so year-desc no longer floats them above the real
+          // leading cases. Mirrors the KLCasesParity render-side court!=='N/A' guard. No DB write.
+          : '/rest/v1/kl_cases?select=case_id,name,citation,court,year,principle&court=neq.N/A&order=year.desc&limit=100';
         var headers = { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY };
         var resp = await fetch(SUPABASE_URL + path, { headers: headers });
         if (tab === 'provisions' && !resp.ok) {
@@ -11562,6 +11565,13 @@ function hubTickerCard(row, idx, isRelevant, isExpanded, onToggleExpand) {
       React.createElement('a', { key: 'src', href: String(row.source_url), target: '_blank', rel: 'noopener noreferrer', style: HUB_INTEL_SOURCE_STYLE }, 'Source')));
   }
 
+  // WSUX-SITE-001 W2 — "Discuss with Eileen" affordance (Director item 7). Reuses the shared
+  // hub bridge (hubIntelDiscussBtn → window.__klDiscussWithEileen), which closes the facet and
+  // seeds the Eileen input without auto-sending — identical to the Intelligence / Cases cards.
+  var eileenSeed = 'Discuss this intelligence item: "' + (hubIntelText(row.event_title) || 'Untitled briefing') + '"'
+    + (dateStr && dateStr !== '—' ? ' (' + dateStr + ')' : '');
+  children.push(hubIntelDiscussBtn(eileenSeed, 'discuss'));
+
   return React.createElement('div', { key: row.id != null ? row.id : idx, style: cardStyle }, children);
 }
 
@@ -11575,7 +11585,7 @@ function HubTickerFacet({ hubSession }) {
   var state = _state[0]; var setState = _state[1];
   var _expanded = useState(function () { return new Set(); });
   var expanded = _expanded[0]; var setExpanded = _expanded[1];
-  var _tierF = useState('all'); var tierF = _tierF[0]; var setTierF = _tierF[1];
+  // WSUX-SITE-001 W2 — tier ("All tiers") filter removed (Director item 7); urgency retained.
   var _urgF = useState('all'); var urgF = _urgF[0]; var setUrgF = _urgF[1];
   var _relOnly = useState(false); var relOnly = _relOnly[0]; var setRelOnly = _relOnly[1];
 
@@ -11646,13 +11656,10 @@ function HubTickerFacet({ hubSession }) {
   // field has more than one value) + a "Relevant to me only" toggle (shown only
   // when the relevance set is non-empty). Default: all. Filtering never hides
   // globals permanently — clearing the control re-shows the full feed.
-  var tiers = hubTickerDistinct(briefings, 'tier', false);
+  // WSUX-SITE-001 W2 — "All tiers" dropdown removed (Director item 7). The per-card tier
+  // chip (hubTickerCard) stays; only the tier filter control + its distinct list are gone.
   var urgencies = hubTickerDistinct(briefings, 'legislative_urgency', true);
   var controls = [];
-  if (tiers.length > 1) {
-    var tierOpts = [{ v: 'all', l: 'All tiers' }].concat(tiers.map(function (t) { return { v: t, l: hubTickerTierLabel(t) }; }));
-    controls.push(hubCalSelectEl('tierf', tierF, function (e) { setTierF(e.target.value); }, tierOpts, 'Filter by tier', null));
-  }
   if (urgencies.length > 1) {
     var urgOpts = [{ v: 'all', l: 'All urgency' }].concat(urgencies.map(function (u) { return { v: u, l: hubAceiHumanise(u) }; }));
     controls.push(hubCalSelectEl('urgf', urgF, function (e) { setUrgF(e.target.value); }, urgOpts, 'Filter by urgency', null));
@@ -11669,7 +11676,6 @@ function HubTickerFacet({ hubSession }) {
 
   var rows = briefings.filter(function (r) {
     if (!r) return false;
-    if (tierF !== 'all' && String(r.tier == null ? '' : r.tier) !== tierF) return false;
     if (urgF !== 'all' && String(r.legislative_urgency == null ? '' : r.legislative_urgency).toLowerCase() !== urgF) return false;
     if (relOnly && !hubTickerCatMatch(r.acei_category, catSet)) return false;
     return true;

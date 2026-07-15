@@ -1195,12 +1195,13 @@
           listEl.appendChild(buildFilledCard(docs[j], j));
         }
       }
-      // Keep an add affordance available once the typed slots are full. GOVWS-OFFER §4.2 —
-      // at the 30-document cap the affordance renders disabled (the DB trigger is the hard
-      // gate; this mirrors it and points the user at rotation).
-      if (docs.length >= SLOT_COUNT) {
-        listEl.appendChild(buildEmptyCard(docs.length, true, docs.length >= MONITORED_CAP));
-      }
+      // WSUX-SITE-001 W3 — the "add further monitored documents" affordance is unconditional
+      // below the 30-document cap, so a brand-new Governance client (zero further documents)
+      // sees it beneath the five typed placeholders alongside the "n of 30 monitored" counter.
+      // GOVWS-OFFER §4.2 — at the cap it renders disabled (the DB trigger is the hard gate; this
+      // mirrors it and points the user at rotation). idx is clamped to >= SLOT_COUNT so a sub-five
+      // state never lands the add-more card's default designation on a typed slot's index.
+      listEl.appendChild(buildEmptyCard(Math.max(docs.length, SLOT_COUNT), true, docs.length >= MONITORED_CAP));
       applyFolderFilter();   // GOVWS-OFFER §5.5 — re-apply the active folder filter after a render.
     }
     // GOVWS-SITE-002 §1 — heading for the unbounded further-monitored-documents section.
@@ -1426,7 +1427,7 @@
       var body = el('div', 'slot-empty-body');
       body.style.cssText = 'padding:14px 16px 18px;text-align:center;';
       body.appendChild(el('div', 'slot-empty-plus', '+'));
-      body.appendChild(el('div', 'slot-empty-label', addMore ? 'Add another monitored document' : ('Add ' + (TYPE_LABEL[def] || 'document'))));
+      body.appendChild(el('div', 'slot-empty-label', addMore ? 'Add further monitored documents — up to 30' : ('Add ' + (TYPE_LABEL[def] || 'document'))));
       body.appendChild(el('div', 'slot-empty-hint', addMore ? 'Choose the document type, then upload' : 'Empty slot · click to add a document'));
       card.appendChild(body);
 
