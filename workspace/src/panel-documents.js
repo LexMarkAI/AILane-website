@@ -109,7 +109,7 @@ class AilaneDocumentsPanel {
     if (atLimit) {
       var warning = document.createElement('div');
       warning.style.cssText = 'padding:10px 16px;background:#FEF3C7;border-bottom:1px solid #FDE68A;font-size:12px;color:#92400E;font-family:Inter,system-ui;';
-      warning.innerHTML = 'Document limit reached (' + limit + '/' + limit + '). <a href="/account/dashboard/" style="color:#0A5C52;text-decoration:underline;font-weight:600;">Upgrade to Governance</a> for unlimited documents.';
+      warning.innerHTML = 'Document limit reached (' + limit + '/' + limit + '). <a href="/account/dashboard/" style="color:#0A5C52;text-decoration:underline;font-weight:600;">Upgrade to Governance</a> — monitor up to 30 contracts, with 30 Contract Compliance Checks and 30 Solicitors Preparation Bundles each month.';
       this.el.appendChild(warning);
     }
 
