@@ -372,6 +372,10 @@
        header strip + three panes (report collapsed-first · contract · pack)
        ============================================================ */
     #vault-cards { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+    /* GOVWS-SITE-002 §1 — heading for the unbounded further-monitored-documents section
+       (documents beyond the five typed slots; no monitored cap at this tier). */
+    .further-head { margin-top: 6px; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-mute, #64748b); font-weight: 600; }
     .dcard {
       background: var(--surface-card, #0c1525);
       border: 1px solid var(--border-dim, rgba(148,163,184,0.12));
@@ -1114,21 +1118,44 @@
       // copy (the cap no longer applies at this tier; enforcement is DB-side).
       countEl.textContent = docs.length + ' monitored';
     }
-    // A filled slot is a monitored, non-deleted vault row; the 5-cap is DB-enforced (trg_vault_monitored_cap).
+    // A filled slot is a monitored, non-deleted vault row. GOVWS-SITE-002 §1 —
+    // governance/institutional orgs have no monitored cap (fn_vault_monitored_cap,
+    // applied 14 Jul), so the read is unbounded: every monitored document is loaded
+    // and rendered. The once-per-calendar-month replace gate per document is unchanged.
     function loadSlots() {
       loading(listEl, 'Loading your vault…');
       return getJson('/kl_vault_documents?user_id=eq.' + uid + '&monitored=eq.true&deleted_at=is.null' +
               '&select=id,filename,mime_type,file_size_bytes,monitored,monitor_started_at,analysis_status,created_at,lineage_id,last_replaced_at' +
-              '&order=created_at.asc&limit=' + SLOT_COUNT)
-        .then(function (rows) { docs = (rows || []).slice(0, SLOT_COUNT); renderSlots(); updateCounter(); })
+              '&order=created_at.asc')
+        .then(function (rows) { docs = (rows || []); renderSlots(); updateCounter(); })
         .catch(function () { msg(listEl, "Couldn't load your vault right now. Please refresh."); });
     }
     function renderSlots() {
       clear(listEl);
+      // Primary layout — the five typed monitored slots (DOCV-ROOM-002), unchanged.
       for (var i = 0; i < SLOT_COUNT; i++) {
         var doc = docs[i] || null;
         listEl.appendChild(doc ? buildFilledCard(doc, i) : buildEmptyCard(i));
       }
+      // GOVWS-SITE-002 §1 — governance/institutional orgs have no monitored cap, so
+      // every monitored document beyond the five typed slots is shown in a clearly
+      // labelled further section using identical card markup and handlers. Nothing is
+      // hidden by a fixed slot count.
+      if (docs.length > SLOT_COUNT) {
+        listEl.appendChild(buildFurtherHeading());
+        for (var j = SLOT_COUNT; j < docs.length; j++) {
+          listEl.appendChild(buildFilledCard(docs[j], j));
+        }
+      }
+      // Keep an add affordance available once the typed slots are full — no vault-full
+      // state on this page (the cap is DB-side and does not apply at this tier).
+      if (docs.length >= SLOT_COUNT) {
+        listEl.appendChild(buildEmptyCard(docs.length, true));
+      }
+    }
+    // GOVWS-SITE-002 §1 — heading for the unbounded further-monitored-documents section.
+    function buildFurtherHeading() {
+      return el('div', 'further-head', 'Further monitored documents');
     }
     function markSelected() {
       Array.prototype.forEach.call(listEl.querySelectorAll('.dcard'), function (c) {
@@ -1139,6 +1166,9 @@
     // plain type label for Policy / Staff Handbook (AM-004 §B4 header strip).
     function typeChipLabel(idx, t) {
       if (t !== 'employment_contract') return TYPE_LABEL[t] || 'Document';
+      // GOVWS-SITE-002 §1 — documents beyond the five typed slots carry no "n/N" slot
+      // position; show the plain type label.
+      if (idx >= SLOT_COUNT) return TYPE_LABEL[t] || 'Document';
       var total = 0, n = 0;
       for (var i = 0; i < SLOT_COUNT; i++) {
         var d = docs[i];
@@ -1319,22 +1349,24 @@
       loadCardData(doc);
       return card;
     }
-    function buildEmptyCard(idx) {
+    function buildEmptyCard(idx, addMore) {
       var card = el('div', 'dcard empty');
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
-      var def = SLOT_DEFS[idx];
+      // GOVWS-SITE-002 §1 — beyond the five typed slots there is no default designation;
+      // fall back to a valid existing type (no new category names are invented).
+      var def = SLOT_DEFS[idx] || 'employment_contract';
 
       var head = el('div', 'dcard-head');
-      head.appendChild(el('span', 'slot-type-tag', TYPE_LABEL[def] || 'Document'));
-      head.appendChild(el('span', 'dcard-checked', 'Empty slot'));
+      head.appendChild(el('span', 'slot-type-tag', addMore ? 'Add' : (TYPE_LABEL[def] || 'Document')));
+      head.appendChild(el('span', 'dcard-checked', addMore ? 'New monitored document' : 'Empty slot'));
       card.appendChild(head);
 
       var body = el('div', 'slot-empty-body');
       body.style.cssText = 'padding:14px 16px 18px;text-align:center;';
       body.appendChild(el('div', 'slot-empty-plus', '+'));
-      body.appendChild(el('div', 'slot-empty-label', 'Add ' + (TYPE_LABEL[def] || 'document')));
-      body.appendChild(el('div', 'slot-empty-hint', 'Empty slot · click to add a document'));
+      body.appendChild(el('div', 'slot-empty-label', addMore ? 'Add another monitored document' : ('Add ' + (TYPE_LABEL[def] || 'document'))));
+      body.appendChild(el('div', 'slot-empty-hint', addMore ? 'Choose the document type, then upload' : 'Empty slot · click to add a document'));
       card.appendChild(body);
 
       var work = el('div', 'slot-work'); work.style.display = 'none';
@@ -1437,7 +1469,6 @@
             method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H), body: JSON.stringify(body)
           }).then(function (r) {
             if (r.status < 200 || r.status >= 300) {
-              if (r.status >= 400 && r.status < 500) throw { cap: true };
               throw new Error('insert ' + r.status);
             }
             return r.json();
@@ -1459,9 +1490,9 @@
         .catch(function (err) {
           setSlotStatus(card, '');
           upBtn.disabled = false; cancelBtn.disabled = false;
-          showMsg(msgEl, (err && err.cap)
-            ? 'You can monitor up to 5 documents. Remove one to add another.'
-            : 'Could not add this document right now. Please try again.', 'err');
+          // GOVWS-SITE-002 §1.4 — no monitored cap at governance/institutional tier;
+          // the former "up to 5 documents" message is removed.
+          showMsg(msgEl, 'Could not add this document right now. Please try again.', 'err');
         });
     }
 
