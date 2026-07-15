@@ -9651,12 +9651,27 @@ function HubStepUpGate({ hubSession, onElevated }) {
 // notification-prefs section itself lives in the Documents Vault room —
 // the list footer links to /operational/documents/#notifications. Best-effort:
 // any read/write failure degrades to a plain bell (console.warn only).
-function HubNotifBell({ hubSession }) {
+// WSUX-SITE-002 §2 — cross-instance sync for the shared notifications read model.
+// The top-bar bell (HubNotifBell) and the Alerts-page strip (HubNotifStrip) each
+// mount their own useHubNotifications instance and are co-mounted on the Alerts
+// page, so a mark-read on either must clear the other. A module-level subscriber
+// list lets every live instance re-load when any instance marks rows read. The DB
+// (vault_client_notifications) remains the single source of truth; this only
+// re-syncs the in-memory copies — no extra data, query, or mark-read semantics.
+var _hubNotifSubs = [];
+function _hubNotifBroadcast() { _hubNotifSubs.forEach(function (fn) { try { fn(); } catch (e) {} }); }
+
+// Shared read model for vault_client_notifications — the SINGLE source of truth
+// behind both the top-bar bell and the sidebar Notifications strip. Extracted
+// verbatim from the former in-line bell logic (NOTIF-PREFS-UI-001): same query
+// shape, same read_at mark-read PATCH, same 5-minute refresh — no data, fetch, or
+// mark-read change.
+function useHubNotifications(hubSession) {
   var _items = useState(null); var items = _items[0]; var setItems = _items[1];
-  var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
-  var wrapRef = useRef(null);
+  var itemsRef = useRef(null); itemsRef.current = items;
 
   var load = useCallback(function () {
+    if (!hubSession || !hubSession.userId) return Promise.resolve();
     return fetch(hubSession.supabaseUrl + '/rest/v1/vault_client_notifications' +
       '?user_id=eq.' + hubSession.userId + '&channel_in_app=eq.true' +
       '&select=id,kind,title,body,status_band,created_at,read_at' +
@@ -9664,7 +9679,7 @@ function HubNotifBell({ hubSession }) {
       headers: { 'apikey': hubSession.anon, 'Authorization': 'Bearer ' + hubSession.token, 'Accept': 'application/json' },
     }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rows) { if (Array.isArray(rows)) setItems(rows); })
-      .catch(function (e) { console.warn('[NOTIF-PREFS-UI-001] bell read failed', e); });
+      .catch(function (e) { console.warn('[NOTIF-PREFS-UI-001] notifications read failed', e); });
   }, [hubSession]);
 
   useEffect(function () {
@@ -9672,6 +9687,39 @@ function HubNotifBell({ hubSession }) {
     var t = setInterval(load, 300000); // refresh every 5 minutes
     return function () { clearInterval(t); };
   }, [load]);
+
+  // Re-load when any other live instance marks rows read (keeps the bell + strip
+  // in lock-step without lifting state out of the two components).
+  useEffect(function () {
+    _hubNotifSubs.push(load);
+    return function () { var i = _hubNotifSubs.indexOf(load); if (i >= 0) _hubNotifSubs.splice(i, 1); };
+  }, [load]);
+
+  // Mark every currently-displayed unread row read (read_at = now), then broadcast
+  // so co-mounted instances re-sync. Reads latest items via a ref so the callback
+  // identity stays stable across renders.
+  var markRead = useCallback(function () {
+    var unread = (itemsRef.current || []).filter(function (n) { return !n.read_at; });
+    if (!unread.length) return;
+    var ids = unread.map(function (n) { return n.id; });
+    var now = new Date().toISOString();
+    fetch(hubSession.supabaseUrl + '/rest/v1/vault_client_notifications?id=in.(' + ids.join(',') + ')&read_at=is.null', {
+      method: 'PATCH',
+      headers: { 'apikey': hubSession.anon, 'Authorization': 'Bearer ' + hubSession.token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ read_at: now }),
+    }).then(function (r) {
+      if (r.ok) { setItems(function (prev) { return (prev || []).map(function (n) { return n.read_at ? n : Object.assign({}, n, { read_at: now }); }); }); _hubNotifBroadcast(); }
+    }).catch(function (e) { console.warn('[NOTIF-PREFS-UI-001] mark-read failed', e); });
+  }, [hubSession]);
+
+  return { items: items, load: load, markRead: markRead };
+}
+
+function HubNotifBell({ hubSession }) {
+  var notif = useHubNotifications(hubSession);
+  var items = notif.items;
+  var _open = useState(false); var open = _open[0]; var setOpen = _open[1];
+  var wrapRef = useRef(null);
 
   // Close on outside click / Escape (usability — F15).
   useEffect(function () {
@@ -9683,24 +9731,10 @@ function HubNotifBell({ hubSession }) {
     return function () { document.removeEventListener('mousedown', onDocClick); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  function markDisplayedRead() {
-    var unread = (items || []).filter(function (n) { return !n.read_at; });
-    if (!unread.length) return;
-    var ids = unread.map(function (n) { return n.id; });
-    var now = new Date().toISOString();
-    fetch(hubSession.supabaseUrl + '/rest/v1/vault_client_notifications?id=in.(' + ids.join(',') + ')&read_at=is.null', {
-      method: 'PATCH',
-      headers: { 'apikey': hubSession.anon, 'Authorization': 'Bearer ' + hubSession.token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ read_at: now }),
-    }).then(function (r) {
-      if (r.ok) setItems(function (prev) { return (prev || []).map(function (n) { return n.read_at ? n : Object.assign({}, n, { read_at: now }); }); });
-    }).catch(function (e) { console.warn('[NOTIF-PREFS-UI-001] mark-read failed', e); });
-  }
-
   function toggle() {
     var next = !open;
     setOpen(next);
-    if (next) markDisplayedRead();
+    if (next) notif.markRead();
   }
 
   var unreadCount = (items || []).filter(function (n) { return !n.read_at; }).length;
@@ -9730,10 +9764,10 @@ function HubNotifBell({ hubSession }) {
       );
     });
     list = React.createElement('div', {
-      role: 'region', 'aria-label': 'Vault notifications',
+      role: 'region', 'aria-label': 'Notifications',
       style: { position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '320px', maxWidth: '86vw', background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '10px', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', zIndex: 60, overflow: 'hidden' },
     },
-      React.createElement('div', { style: { padding: '10px 14px', borderBottom: '1px solid #1E3A5F', color: '#94A3B8', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: "'DM Mono', monospace" } }, 'Vault notifications'),
+      React.createElement('div', { style: { padding: '10px 14px', borderBottom: '1px solid #1E3A5F', color: '#94A3B8', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: "'DM Mono', monospace" } }, 'Notifications'),
       React.createElement('div', { style: { maxHeight: '320px', overflowY: 'auto' } },
         rows.length ? rows : React.createElement('div', { style: { padding: '18px 14px', color: '#64748B', fontSize: '13px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 } },
           'No notifications yet. We’ll post here when a change in the law triggers a re-check of your monitored documents.')
@@ -9749,7 +9783,7 @@ function HubNotifBell({ hubSession }) {
     React.createElement('button', {
       type: 'button', onClick: toggle,
       'aria-haspopup': 'true', 'aria-expanded': open ? 'true' : 'false',
-      'aria-label': 'Vault notifications' + (unreadCount ? ' (' + unreadCount + ' unread)' : ''),
+      'aria-label': 'Notifications' + (unreadCount ? ' (' + unreadCount + ' unread)' : ''),
       style: { position: 'relative', background: 'transparent', border: 'none', color: open ? '#F1F5F9' : '#94A3B8', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' },
     }, bellChildren),
     list
@@ -10040,6 +10074,52 @@ function hubAlertsEnforcementCard(enf, error) {
     'No recent enforcement activity in your categories.', footer);
 }
 
+// ─── WSUX-SITE-002 §2 · Notifications strip (vault_client_notifications) ───
+// The sidebar Alerts page opens with a Notifications strip fed by the SAME read
+// model as the top-bar bell (useHubNotifications). It sits ABOVE the operational
+// -alerts EF cards and touches neither the operational-alerts call nor any Edge
+// Function. One card per row, reusing the Alerts card chrome (hubAlertsCard /
+// hubAlertsCardTopEl / hubAlertsBandPill / hubAlertsMono) — no new styling system.
+// Mirrors hubAlertsContractNotif's shape; keyed 'vcn-' to stay distinct.
+function hubNotifStripCard(n, idx) {
+  var title = n.title || (n.kind ? hubAceiHumanise(n.kind) : 'Notification');
+  var top = hubAlertsCardTopEl(title, n.body || null, hubAlertsBandPill(n.status_band, 'band'));
+  var meta = [];
+  if (n.created_at) meta.push(hubAlertsMono(hubVaultDate(n.created_at), 'dt'));
+  return hubAlertsCard('vcn-' + (n.id != null ? n.id : idx), idx, top, meta);
+}
+// Quiet single-line empty state (§2.2 — the strip must not dominate when empty).
+var HUB_NOTIF_STRIP_EMPTY_STYLE = { color: '#64748B', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.5, padding: '2px 0 4px' };
+
+function HubNotifStrip({ hubSession }) {
+  var notif = useHubNotifications(hubSession);
+  var items = notif.items;
+  var markRead = notif.markRead;
+  var markedRef = useRef(false);
+
+  // Viewing the strip is "reading" — mark the displayed unread rows read once, on
+  // first load (mirrors the bell marking read on open); this clears the bell count
+  // via the shared read model. Guarded so it fires once per mount.
+  useEffect(function () {
+    if (markedRef.current) return;
+    if (Array.isArray(items) && items.some(function (n) { return !n.read_at; })) {
+      markedRef.current = true;
+      markRead();
+    }
+  }, [items, markRead]);
+
+  if (items == null) return null;                    // still loading — render nothing (no flash)
+  if (!items.length) {
+    // §2.2 — a single quiet line; no heading, no card chrome.
+    return React.createElement('div', { style: { marginBottom: '20px' } },
+      React.createElement('div', { style: HUB_NOTIF_STRIP_EMPTY_STYLE }, 'No notifications'));
+  }
+  var cards = items.map(function (n, i) { return hubNotifStripCard(n, i); });
+  return React.createElement('div', { style: { marginBottom: '24px' } },
+    React.createElement('div', { style: HUB_ACEI_SECTION_H }, 'Notifications'),
+    React.createElement('div', { style: HUB_ALERTS_LIST_STYLE }, cards));
+}
+
 // Alerts facet body. OPERATIONAL-ALERTS-SITE-001: one edge-function read
 // (operational-alerts) replaces the three governance-table reads. SITE-002: the
 // read uses the estate's native-fetch idiom (mirrors hubSendToEileen) rather than
@@ -10090,6 +10170,7 @@ function HubAlertsFacet({ hubSession }) {
   }
   var alerts = state.alerts || {};
   return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } },
+    React.createElement(HubNotifStrip, { hubSession: hubSession }),  // WSUX-SITE-002 §2 — vcn Notifications strip, ABOVE the EF cards
     hubAlertsContractCard(alerts.contract || {}, state.error),       // §2.2
     hubAlertsStatuteCard(alerts.statute || {}, state.error),         // §2.3
     hubAlertsEnforcementCard(alerts.enforcement || {}, state.error)  // §2.4
