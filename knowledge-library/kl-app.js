@@ -1452,7 +1452,7 @@
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYnN4d3R2YXpmdnptbHRrdXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDM3MDMsImV4cCI6MjA4NjY3OTcwM30.WBM0Pcg9lcZ5wfdDKIcUZoiLh97C50h7ZXL6WlDVZ5g";
   var EILEEN_ENDPOINT = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co") + "/functions/v1/eileen-intelligence";
   var HUB_FUNCTIONS_BASE = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co");
-  var HUB_ALLOWED_TIERS = ["operational", "operational_readiness", "governance", "enterprise"];
+  var HUB_ALLOWED_TIERS = ["operational", "operational_readiness", "governance", "enterprise", "institutional"];
   var KL_SUBSCRIPTION_TIERS = [
     // KL-VAULT-INTEGRATION-001 §2.2 — RULE 11 subscription tiers (exact strings) for the
     // entitlement-aware Documents nav routing (see detectKLPass / Sidebar).
@@ -1492,8 +1492,28 @@
     intelligence: "Intelligence",
     ticker: "Ticker",
     notes: "Notes",
-    calendar: "Calendar"
+    calendar: "Calendar",
+    // GOVWS-SITE-001 §2 — governance-only in-app facet (Triad panel).
+    triad: "Triad \u2014 ACEI \xB7 RRI \xB7 CCI"
   };
+  function klHubFacetsFor() {
+    if (klGovernanceMode() !== true) return HUB_WORKSPACE_FACETS;
+    var out = [];
+    HUB_WORKSPACE_FACETS.forEach(function(f) {
+      if (f.href) {
+        var g = {};
+        for (var k in f) {
+          if (Object.prototype.hasOwnProperty.call(f, k)) g[k] = f[k];
+        }
+        g.href = f.href.replace("/operational/", "/governance/");
+        out.push(g);
+      } else {
+        out.push(f);
+      }
+      if (f.id === "acei") out.push({ id: "triad", label: "Triad \u2014 ACEI \xB7 RRI \xB7 CCI" });
+    });
+    return out;
+  }
   function klOperationalMode() {
     try {
       if (window.__klMode === "operational") return true;
@@ -1502,6 +1522,18 @@
     try {
       var p = window.location && window.location.pathname || "";
       if (p === "/operational" || p.indexOf("/operational/") === 0) return true;
+    } catch (e) {
+    }
+    return false;
+  }
+  function klGovernanceMode() {
+    try {
+      if (window.__klMode === "governance") return true;
+    } catch (e) {
+    }
+    try {
+      var p = window.location && window.location.pathname || "";
+      if (p === "/governance" || p.indexOf("/governance/") === 0) return true;
     } catch (e) {
     }
     return false;
@@ -1559,7 +1591,7 @@
           var orgId = orgRes && orgRes.data;
           if (!orgId) return null;
           function finishHub() {
-            if (klOperationalMode() === false && (window.location.pathname || "").replace(/\/+$/, "") !== "/operational") {
+            if (klOperationalMode() === false && klGovernanceMode() === false && (window.location.pathname || "").replace(/\/+$/, "") !== "/operational") {
               klRouteReplace("/operational/");
               return null;
             }
@@ -1579,6 +1611,7 @@
           return Promise.all([orgTierP, stateP]).then(function(rr) {
             var orgTier = rr[0];
             if (orgTier) hubSession.orgTier = orgTier;
+            if (klGovernanceMode() === true) return finishHub();
             var stRes = rr[1];
             if (stRes && stRes.error) {
               console.warn("[OOX-001] onboarding-state read failed \u2014 failing open to hub", stRes.error);
@@ -4355,7 +4388,7 @@
         React.createElement("div", {
           style: { color: "#64748B", fontSize: "10px", fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", padding: "8px 16px" }
         }, "Your workspace"),
-        HUB_WORKSPACE_FACETS.map(function(f) {
+        klHubFacetsFor().map(function(f) {
           var active = currentFacet === f.id;
           var href = f.href;
           if (f.id === "vault" && hasKLSession && !hasSubscription) href = "/knowledge-library/vault/";
@@ -4935,8 +4968,9 @@
     } else if (accessType === "per_session") {
       badgeLabel = "PER-SESSION";
     }
-    var brandLabel = operationalMode ? "Ailane Operational" : "AILANE Knowledge Library";
-    var brandHref = operationalMode ? "/operational/" : "/";
+    var govMode = klGovernanceMode();
+    var brandLabel = operationalMode ? "Ailane Operational" : govMode ? "Ailane Governance" : "AILANE Knowledge Library";
+    var brandHref = operationalMode ? "/operational/" : govMode ? "/governance/" : "/";
     return /* @__PURE__ */ React.createElement("div", { className: "kl-topbar" }, /* @__PURE__ */ React.createElement("button", { className: "kl-topbar-toggle", onClick: onToggleSidebar, "aria-label": sidebarOpen ? "Collapse sidebar" : "Expand sidebar" }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" }))), /* @__PURE__ */ React.createElement(
       "a",
       {
@@ -10069,6 +10103,86 @@
       // §1.5
     );
   }
+  function hubTriadDate(v) {
+    if (v == null || v === "") return "";
+    try {
+      var d = new Date(v);
+      if (isNaN(d.getTime())) return String(v);
+      return d.toISOString().slice(0, 10);
+    } catch (e) {
+      return String(v);
+    }
+  }
+  function hubTriadIndexCard(cfg) {
+    var children = [
+      React.createElement("h3", { key: "h", style: { color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "15px", fontWeight: 600, margin: "0 0 4px" } }, cfg.title),
+      React.createElement("div", { key: "sub", style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", marginBottom: "14px" } }, cfg.subtitle)
+    ];
+    if (!cfg.row) {
+      children.push(React.createElement("div", {
+        key: "prov",
+        "data-govws-unavailable": cfg.index,
+        style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontStyle: "italic" }
+      }, "Index provisioning \u2014 no computed value yet"));
+    } else {
+      children.push(React.createElement("div", { key: "val", style: { color: "#F1F5F9", fontFamily: "'DM Mono', monospace", fontSize: "30px", fontWeight: 600, lineHeight: 1.1 } }, cfg.value));
+      var meta = [];
+      if (cfg.row.computed_at) meta.push("Computed " + hubTriadDate(cfg.row.computed_at));
+      if (cfg.row.constitution_version) meta.push(String(cfg.row.constitution_version));
+      if (meta.length) children.push(React.createElement("div", { key: "meta", style: { color: "#64748B", fontFamily: "'DM Mono', monospace", fontSize: "11px", marginTop: "10px", letterSpacing: "0.03em" } }, meta.join(" \xB7 ")));
+    }
+    return React.createElement("div", { key: cfg.index, style: HUB_ACEI_CARD_STYLE }, children);
+  }
+  function HubTriadFacet({ hubSession }) {
+    var _s = useState({ status: "loading", rri: null, cci: null });
+    var st = _s[0];
+    var setSt = _s[1];
+    useEffect(function() {
+      var alive = true;
+      Promise.all([
+        klWsFetchRows("rri_scores?select=wdrs,computed_at,constitution_version,is_demonstration&order=computed_at.desc&limit=5"),
+        klWsFetchRows("cci_scores?select=cci,computed_at,constitution_version,is_demonstration&order=computed_at.desc&limit=5")
+      ]).then(function(res) {
+        if (!alive) return;
+        function firstReal(rows) {
+          if (!Array.isArray(rows)) return null;
+          for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            if (r && r.is_demonstration !== true) return r;
+          }
+          return null;
+        }
+        setSt({ status: "ready", rri: firstReal(res[0]), cci: firstReal(res[1]) });
+      }).catch(function() {
+        if (alive) setSt({ status: "ready", rri: null, cci: null });
+      });
+      return function() {
+        alive = false;
+      };
+    }, [hubSession]);
+    var loading = st.status === "loading";
+    var rriRow = loading ? null : st.rri;
+    var cciRow = loading ? null : st.cci;
+    var rriVal = rriRow && hubAceiIsNum(rriRow.wdrs) ? hubAceiF2(rriRow.wdrs) : "\u2014";
+    var cciVal = cciRow && hubAceiIsNum(cciRow.cci) ? hubAceiF2(cciRow.cci) : "\u2014";
+    return React.createElement(
+      "div",
+      { style: { maxWidth: "900px", margin: "0 auto", width: "100%" } },
+      React.createElement(
+        "div",
+        { style: { color: "#94A3B8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", lineHeight: 1.5, marginBottom: "18px" } },
+        "Three independent governance indices. Each is computed and labelled separately \u2014 they are never combined into a single figure."
+      ),
+      // ACEI — identical to the operational ACEI facet.
+      React.createElement("h2", { style: { color: "#F1F5F9", fontFamily: "'DM Sans', sans-serif", fontSize: "16px", fontWeight: 600, margin: "2px 0 12px" } }, "ACEI Overview"),
+      React.createElement(HubAceiFacet, { hubSession }),
+      // RRI + CCI — provisioning-aware, non-demonstration only.
+      React.createElement("div", { style: { height: "20px" } }),
+      hubTriadIndexCard({ index: "rri", title: "RRI \xB7 Regulatory Readiness Index", subtitle: "How prepared your organisation is to respond to regulatory change.", row: rriRow, value: rriVal }),
+      React.createElement("div", { style: { height: "14px" } }),
+      hubTriadIndexCard({ index: "cci", title: "CCI \xB7 Compliance Conduct Index", subtitle: "How your practices compare against best practice.", row: cciRow, value: cciVal })
+    );
+  }
   function hubVaultUnwrap(res, name) {
     if (!res || res.error) {
       console.warn("[OOX-001] Vault read failed: " + name, res && res.error);
@@ -12432,6 +12546,10 @@
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
       React.createElement(HubAceiFacet, { hubSession })
+    ) : facet === "triad" ? React.createElement(
+      "div",
+      { style: { flex: 1, overflowY: "auto", padding: "24px" } },
+      React.createElement(HubTriadFacet, { hubSession })
     ) : facet === "vault" ? React.createElement(
       "div",
       { style: { flex: 1, overflowY: "auto", padding: "24px" } },
@@ -12560,7 +12678,8 @@
       };
     }, [hubSession]);
     const operationalMode = klOperationalMode();
-    const hubChrome = hubMode || operationalMode;
+    const governanceMode = klGovernanceMode();
+    const hubChrome = hubMode || operationalMode || governanceMode;
     const hasSubscription = hubMode || window.__klAccessType === "subscription" || KL_SUBSCRIPTION_TIERS.indexOf(window.__klTier) >= 0 || !!(hubSession && (KL_SUBSCRIPTION_TIERS.indexOf(hubSession.tier) >= 0 || KL_SUBSCRIPTION_TIERS.indexOf(hubSession.orgTier) >= 0));
     const orgTier = hubSession && hubSession.orgTier;
     const [currentFacet, setCurrentFacet] = useState(null);
@@ -13503,7 +13622,7 @@
         tier,
         lang: effLang
       }
-    ) : hubMode && currentFacet ? /* @__PURE__ */ React.createElement(HubFacetView, { facet: currentFacet, hubSession, onBack: () => setCurrentFacet(null) }) : /* @__PURE__ */ React.createElement(
+    ) : (hubMode || governanceMode) && currentFacet ? /* @__PURE__ */ React.createElement(HubFacetView, { facet: currentFacet, hubSession, onBack: () => setCurrentFacet(null) }) : /* @__PURE__ */ React.createElement(
       ConversationArea,
       {
         messages,

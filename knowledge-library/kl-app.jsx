@@ -23,7 +23,9 @@ const EILEEN_ENDPOINT = SUPABASE_URL.replace('.supabase.co', '.functions.supabas
 // builds the frame + Eileen + rail shell only; facet content ports later.
 var HUB_FUNCTIONS_BASE = SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co');
 // Live operational-room allow-list (verbatim from operational/index.html guard).
-var HUB_ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise'];
+// GOVWS-SITE-001 §5 (SPEC Article V Step A) — transition tolerance: 'institutional'
+// added alongside 'enterprise' (both accepted during canonicalisation; nothing removed).
+var HUB_ALLOWED_TIERS = ['operational', 'operational_readiness', 'governance', 'enterprise', 'institutional'];
 var KL_SUBSCRIPTION_TIERS = [
   // KL-VAULT-INTEGRATION-001 §2.2 — RULE 11 subscription tiers (exact strings) for the
   // entitlement-aware Documents nav routing (see detectKLPass / Sidebar).
@@ -60,7 +62,32 @@ var HUB_WORKSPACE_FACETS = [
 var HUB_FACET_LABELS = {
   vault: 'Document Vault', alerts: 'Alerts', acei: 'ACEI Overview',
   intelligence: 'Intelligence', ticker: 'Ticker', notes: 'Notes', calendar: 'Calendar',
+  // GOVWS-SITE-001 §2 — governance-only in-app facet (Triad panel).
+  triad: 'Triad — ACEI · RRI · CCI',
 };
+
+// GOVWS-SITE-001 §2 — mode-aware "Your workspace" facet list. Operational and public
+// KL receive HUB_WORKSPACE_FACETS verbatim (byte-identical — this helper returns the
+// same array reference). Governance mode gets: (1) the full-page facet targets repointed
+// /operational/… → /governance/… (Document Vault, Recent Cases, Parliament Live,
+// Calendar); (2) the governance-only 'triad' facet inserted immediately after ACEI
+// Overview. In-app facets (alerts, acei, intelligence, ticker, notes) are unchanged.
+function klHubFacetsFor() {
+  if (klGovernanceMode() !== true) return HUB_WORKSPACE_FACETS;
+  var out = [];
+  HUB_WORKSPACE_FACETS.forEach(function (f) {
+    if (f.href) {
+      var g = {};
+      for (var k in f) { if (Object.prototype.hasOwnProperty.call(f, k)) g[k] = f[k]; }
+      g.href = f.href.replace('/operational/', '/governance/');
+      out.push(g);
+    } else {
+      out.push(f);
+    }
+    if (f.id === 'acei') out.push({ id: 'triad', label: 'Triad — ACEI · RRI · CCI' });
+  });
+  return out;
+}
 
 // Preview flag — `?hub=1` in the URL OR localStorage `ailane_kl_hub === 'on'`.
 // OOX-001 (AMD-230) cutover: RETIRED as an activation gate (KL-HUB-SPEC §5
@@ -89,6 +116,24 @@ function klOperationalMode() {
   try {
     var p = (window.location && window.location.pathname) || '';
     if (p === '/operational' || p.indexOf('/operational/') === 0) return true;
+  } catch (e) { /* ignore */ }
+  return false;
+}
+
+// GOVWS-SITE-001 §2 — governance-mode detection. The SAME engine bundle also renders
+// at /governance/ (the "Ailane Governance" workspace, a mirror of Operational).
+// governance/index.html sets the explicit config flag `window.__klMode = 'governance'`
+// before booting; the path check is a defensive backup (matches /governance/ exactly,
+// NOT /governance-dashboard/ or /governance-subscribe/). Governance mode renders the
+// same workspace chrome as operational with the "Your workspace" full-page targets
+// repointed /operational/… → /governance/… plus a governance-only Triad panel. It is
+// strictly additive: when window.__klMode !== 'governance' this returns false and every
+// governance branch is dormant, so operational output stays byte-identical.
+function klGovernanceMode() {
+  try { if (window.__klMode === 'governance') return true; } catch (e) { /* ignore */ }
+  try {
+    var p = (window.location && window.location.pathname) || '';
+    if (p === '/governance' || p.indexOf('/governance/') === 0) return true;
   } catch (e) { /* ignore */ }
   return false;
 }
@@ -182,7 +227,11 @@ function detectHubSession() {
             // when NOT already in operational mode AND NOT already on /operational/
             // (trailing-slash-insensitive). Either condition true ⇒ render the hub in
             // place — never re-navigate to the path we are already on (no loop).
-            if (klOperationalMode() === false &&
+            // GOVWS-SITE-001 §2 — a governance-mode host (/governance/, __klMode=
+            // 'governance') renders the governance hub in place; it is never moved to
+            // /operational/. The added klGovernanceMode() clause fires ONLY in governance
+            // mode, so operational routing is byte-identical.
+            if (klOperationalMode() === false && klGovernanceMode() === false &&
                 (window.location.pathname || '').replace(/\/+$/, '') !== '/operational') {
               klRouteReplace('/operational/');
               return null;
@@ -205,6 +254,10 @@ function detectHubSession() {
           return Promise.all([orgTierP, stateP]).then(function (rr) {
             var orgTier = rr[0];
             if (orgTier) hubSession.orgTier = orgTier;  // §1.3 — humanised by the badge
+            // GOVWS-SITE-001 §2 — governance mode renders the governance hub in place;
+            // the operational onboarding gate + the /operational/ move do not apply.
+            // Fires ONLY in governance mode ⇒ operational routing byte-identical.
+            if (klGovernanceMode() === true) return finishHub();
             var stRes = rr[1];
             if (stRes && stRes.error) {
               console.warn('[OOX-001] onboarding-state read failed — failing open to hub', stRes.error);
@@ -3465,7 +3518,7 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
           React.createElement('div', {
             style: { color: '#64748B', fontSize: '10px', fontFamily: "'DM Mono', monospace", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 16px' },
           }, 'Your workspace'),
-          HUB_WORKSPACE_FACETS.map(function (f) {
+          klHubFacetsFor().map(function (f) {
             var active = currentFacet === f.id;
             // KL-VAULT-INTEGRATION-001 §2.3 — subscription-primary routing of the Document
             // Vault item. A subscription holder keeps the Operational (monitored) vault; a
@@ -3966,8 +4019,11 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
   }
   // §1.2/§1.3 — in operational mode the brand reads "Ailane Operational" and links
   // to the operational home (in-app), never to the ailane.ai root.
-  var brandLabel = operationalMode ? 'Ailane Operational' : 'AILANE Knowledge Library';
-  var brandHref = operationalMode ? '/operational/' : '/';
+  // GOVWS-SITE-001 §2 — governance mode reads "Ailane Governance" and links to
+  // /governance/ (additive: govMode is false outside governance ⇒ byte-identical).
+  var govMode = klGovernanceMode();
+  var brandLabel = operationalMode ? 'Ailane Operational' : (govMode ? 'Ailane Governance' : 'AILANE Knowledge Library');
+  var brandHref = operationalMode ? '/operational/' : (govMode ? '/governance/' : '/');
   return (
     <div className="kl-topbar">
       <button className="kl-topbar-toggle" onClick={onToggleSidebar} aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
@@ -9288,6 +9344,94 @@ function HubAceiFacet({ hubSession }) {
   );
 }
 
+// ─── GOVWS-SITE-001 §2 — Triad panel (governance mode only) ───────────────────
+// Three independent governance indices — ACEI, RRI, CCI — each computed and
+// labelled SEPARATELY. They are never merged or cross-referenced in one figure.
+//  • ACEI  — reuses the operational ACEI facet verbatim (HubAceiFacet).
+//  • RRI    — Regulatory Readiness Index — rri_scores.wdrs.
+//  • CCI    — Compliance Conduct Index   — cci_scores.cci.
+// RRI/CCI query the org's rows via the established klWsFetchRows helper (live token,
+// RLS-scoped). The value + computed_at + constitution_version render ONLY when a row
+// exists with is_demonstration NOT true; otherwise the honest provisioning state
+// ("Index provisioning — no computed value yet") — no numbers, no demonstration
+// substitution. (SPEC-GOVWS-001 Art. IV.3.)
+function hubTriadDate(v) {
+  if (v == null || v === '') return '';
+  try { var d = new Date(v); if (isNaN(d.getTime())) return String(v); return d.toISOString().slice(0, 10); }
+  catch (e) { return String(v); }
+}
+
+// One index card. `row` is the resolved non-demonstration row (or null ⇒ provisioning).
+function hubTriadIndexCard(cfg) {
+  var children = [
+    React.createElement('h3', { key: 'h', style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 600, margin: '0 0 4px' } }, cfg.title),
+    React.createElement('div', { key: 'sub', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', marginBottom: '14px' } }, cfg.subtitle),
+  ];
+  if (!cfg.row) {
+    children.push(React.createElement('div', {
+      key: 'prov',
+      'data-govws-unavailable': cfg.index,
+      style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontStyle: 'italic' },
+    }, 'Index provisioning — no computed value yet'));
+  } else {
+    children.push(React.createElement('div', { key: 'val', style: { color: '#F1F5F9', fontFamily: "'DM Mono', monospace", fontSize: '30px', fontWeight: 600, lineHeight: 1.1 } }, cfg.value));
+    var meta = [];
+    if (cfg.row.computed_at) meta.push('Computed ' + hubTriadDate(cfg.row.computed_at));
+    if (cfg.row.constitution_version) meta.push(String(cfg.row.constitution_version));
+    if (meta.length) children.push(React.createElement('div', { key: 'meta', style: { color: '#64748B', fontFamily: "'DM Mono', monospace", fontSize: '11px', marginTop: '10px', letterSpacing: '0.03em' } }, meta.join(' · ')));
+  }
+  return React.createElement('div', { key: cfg.index, style: HUB_ACEI_CARD_STYLE }, children);
+}
+
+function HubTriadFacet({ hubSession }) {
+  var _s = useState({ status: 'loading', rri: null, cci: null });
+  var st = _s[0]; var setSt = _s[1];
+
+  useEffect(function () {
+    var alive = true;
+    // RLS-scoped to the org (klWsFetchRows live token). We fetch the most-recent rows
+    // and select the first with is_demonstration NOT true (false OR null) client-side —
+    // this exactly matches the brief's "row exists with is_demonstration not true" and
+    // avoids any server-filter edge case. klWsFetchRows returns [] on any error/absence
+    // ⇒ provisioning state. A demonstration row is NEVER substituted for a real value.
+    Promise.all([
+      klWsFetchRows('rri_scores?select=wdrs,computed_at,constitution_version,is_demonstration&order=computed_at.desc&limit=5'),
+      klWsFetchRows('cci_scores?select=cci,computed_at,constitution_version,is_demonstration&order=computed_at.desc&limit=5'),
+    ]).then(function (res) {
+      if (!alive) return;
+      function firstReal(rows) {
+        if (!Array.isArray(rows)) return null;
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (r && r.is_demonstration !== true) return r;  // "not true" ⇒ false or null
+        }
+        return null;
+      }
+      setSt({ status: 'ready', rri: firstReal(res[0]), cci: firstReal(res[1]) });
+    }).catch(function () { if (alive) setSt({ status: 'ready', rri: null, cci: null }); });
+    return function () { alive = false; };
+  }, [hubSession]);
+
+  var loading = st.status === 'loading';
+  var rriRow = loading ? null : st.rri;
+  var cciRow = loading ? null : st.cci;
+  var rriVal = rriRow && hubAceiIsNum(rriRow.wdrs) ? hubAceiF2(rriRow.wdrs) : '—';
+  var cciVal = cciRow && hubAceiIsNum(cciRow.cci) ? hubAceiF2(cciRow.cci) : '—';
+
+  return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } },
+    React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', lineHeight: 1.5, marginBottom: '18px' } },
+      'Three independent governance indices. Each is computed and labelled separately — they are never combined into a single figure.'),
+    // ACEI — identical to the operational ACEI facet.
+    React.createElement('h2', { style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '16px', fontWeight: 600, margin: '2px 0 12px' } }, 'ACEI Overview'),
+    React.createElement(HubAceiFacet, { hubSession: hubSession }),
+    // RRI + CCI — provisioning-aware, non-demonstration only.
+    React.createElement('div', { style: { height: '20px' } }),
+    hubTriadIndexCard({ index: 'rri', title: 'RRI · Regulatory Readiness Index', subtitle: 'How prepared your organisation is to respond to regulatory change.', row: rriRow, value: rriVal }),
+    React.createElement('div', { style: { height: '14px' } }),
+    hubTriadIndexCard({ index: 'cci', title: 'CCI · Compliance Conduct Index', subtitle: 'How your practices compare against best practice.', row: cciRow, value: cciVal })
+  );
+}
+
 // ─── OOX-001 KL-Hub vault chrome + Stage C hub controls ───
 // VAULT-PHASE-B-001 (Stage C · C2): the legacy in-app Document Vault facet
 // (HubVaultFacet — kl_vault_documents table + vault_contract_records analysis
@@ -11553,6 +11697,10 @@ function HubFacetView({ facet, hubSession, onBack }) {
   var body = facet === 'acei'
     ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
         React.createElement(HubAceiFacet, { hubSession: hubSession }))
+    // GOVWS-SITE-001 §2 — governance-only Triad panel (ACEI · RRI · CCI).
+    : facet === 'triad'
+    ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
+        React.createElement(HubTriadFacet, { hubSession: hubSession }))
     : facet === 'vault'
     // VAULT-PHASE-B-001 (Stage C · C2) — the in-app vault facet is retired; the
     // Documents Vault room is the single surface. Pointer card only, no reads.
@@ -11662,7 +11810,12 @@ function App() {
   // "Ailane Operational" chrome + the org-tier badge; the right-drawer retirement
   // (§1.1) is scoped to hub/operational mode (hubMode || operationalMode).
   const operationalMode = klOperationalMode();
-  const hubChrome = hubMode || operationalMode;
+  // GOVWS-SITE-001 §2 — governance mode (/governance/, window.__klMode='governance')
+  // renders the same workspace chrome as operational. Additive: when __klMode is not
+  // 'governance', governanceMode is false and hubChrome reduces to the prior
+  // (hubMode || operationalMode) expression, so operational output is byte-identical.
+  const governanceMode = klGovernanceMode();
+  const hubChrome = hubMode || operationalMode || governanceMode;
   // KL-VAULT-INTEGRATION-001 §2.2 — subscription signal (RULE 11 exact strings), reusing
   // the app's already-resolved tier. A validated hub session (tier-gated in detectHubSession)
   // is itself proof of subscription; window.__klAccessType/__klTier mirror the app's own
@@ -12782,7 +12935,7 @@ function App() {
           tier={tier}
           lang={effLang}
         />
-      ) : hubMode && currentFacet ? (
+      ) : (hubMode || governanceMode) && currentFacet ? (
         <HubFacetView facet={currentFacet} hubSession={hubSession} onBack={() => setCurrentFacet(null)} />
       ) : (
         <ConversationArea
