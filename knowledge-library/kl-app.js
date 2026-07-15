@@ -9457,10 +9457,7 @@
         {
           key: offer.productType,
           type: "button",
-          "aria-disabled": true,
-          "data-payments-offline": "1",
-          "data-po-action": "() => startExtend(offer)",
-          onClick: (e) => e.preventDefault(),
+          onClick: () => startExtend(offer),
           disabled: !ready,
           style: {
             display: "inline-block",
@@ -9476,7 +9473,7 @@
             opacity: ready ? 1 : 0.45
           }
         },
-        "Coming soon"
+        busy === offer.productType ? "Preparing secure checkout\u2026" : offer.cta
       ))),
       err ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", color: "#F87171", fontSize: "12px", lineHeight: 1.45 } }, err) : null
     );
