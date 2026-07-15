@@ -576,6 +576,26 @@
     .ri-assoc { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 14px; }
     .ri-assoc label { font-size: 0.84rem; color: var(--text-body, #e2e8f0); line-height: 1.45; cursor: pointer; }
     .ri-assoc .check { margin-top: 2px; flex: 0 0 auto; }
+
+    /* GOVWS-OFFER §5 — Document Vault folders: upload-flow picker + grid filter toolbar. */
+    .folder-pick { margin-top: 12px; }
+    .folder-pick .field-label, .vault-toolbar .field-label {
+      display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-body, #e2e8f0); margin-bottom: 6px; }
+    .folder-select {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface-base, #0a0e1a);
+      border: 1px solid var(--border-mid, rgba(148,163,184,0.2));
+      border-radius: var(--card-radius-sm, 8px);
+      color: var(--text-prime, #f1f5f9); font-family: inherit; font-size: 0.9rem; }
+    .folder-select:focus { outline: none; border-color: var(--tier-operational, #22d3ee); }
+    .folder-create { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .folder-create .file-input { flex: 1 1 160px; }
+    .folder-starters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .folder-starters .btn-secondary { padding: 6px 12px; font-size: 0.78rem; }
+    .vault-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .vault-toolbar .field-label { margin-bottom: 0; }
+    .vault-toolbar .folder-select { width: auto; min-width: 180px; }
+    .dcard.empty.disabled:hover { border-color: var(--border-mid, rgba(148,163,184,0.2)); }
   </style>
 
   <!-- Ailane favicon / app icons — estate head standard (AMD-246) -->
@@ -611,9 +631,9 @@
              style="position:absolute;top:calc(100% + 8px);right:0;width:320px;max-width:86vw;background:var(--surface-card,#0c1525);border:1px solid var(--border-mid,rgba(148,163,184,0.2));border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:60;overflow:hidden;"></div>
       </div>
       <span class="tier-badge" id="tier-badge" hidden></span>
-      <!-- GOVWS-SITE-001 §3 — governance shows the monitored count with no "of 5" cap
-           copy; the cap no longer applies at this tier (enforcement is DB-side). -->
-      <span class="monitor-counter" id="monitor-counter">— monitored</span>
+      <!-- GOVWS-OFFER §4.1 — governance/institutional show the monitored count against
+           the 30-slot cap. The DB trigger is the hard gate; this UI mirrors it. -->
+      <span class="monitor-counter" id="monitor-counter">— of 30 monitored</span>
     </div>
   </header>
 
@@ -630,6 +650,11 @@
     </div>
 
     <div class="panes">
+      <!-- GOVWS-OFFER §5.5 — folder filter toolbar (hidden until the org has folders). -->
+      <div class="vault-toolbar" id="vault-toolbar" hidden>
+        <label class="field-label" for="folder-filter">Folder</label>
+        <select id="folder-filter" class="folder-select" aria-label="Filter documents by folder"></select>
+      </div>
       <!-- DOCV-ROOM-003 (AM-004 §B4) — per-slot document-set cards:
            each occupied slot is ONE card (header strip + Exposure Report first,
            collapsed · Contract · Solicitors Preparation Bundle, side by side). -->
@@ -885,12 +910,18 @@
     var aceiByKey = new Map();   // category_key  -> {number,label,hex}
     var aceiByNum = new Map();   // category_number -> {number,label,hex}
     var gsoMap = new Map();      // cluster_key   -> display_label
+    // GOVWS-OFFER §5 — Document Vault folders (compliance_folders, org-scoped via RLS).
+    var folders = [];            // [{ id, name }]
+    var foldersLoaded = false;
+    var folderFilter = '';       // '' = all · '__unfiled__' = folder_id null · else a folder id
 
     // ---- DOM refs ----
     var listEl   = document.getElementById('vault-cards');
     var notifEl  = document.getElementById('notifications');
     var badgeEl  = document.getElementById('tier-badge');
     var countEl  = document.getElementById('monitor-counter');
+    var filterEl = document.getElementById('folder-filter');    // GOVWS-OFFER §5.5
+    var toolbarEl = document.getElementById('vault-toolbar');   // GOVWS-OFFER §5.5
 
     var GSO_HEX = '#475569';
     var RING_HEX = { green: '#176B3C', amber: '#B4640A', red: '#991B1B' };
@@ -1053,6 +1084,7 @@
     // ===========================================================
     // Default designations: slots 1-3 Employment Contract, slot 4 Policy, slot 5 Staff Handbook.
     var SLOT_COUNT = 5;
+    var MONITORED_CAP = 30;   // GOVWS-OFFER §4 — governance/institutional monitored-document cap. The DB trigger is the hard gate; the UI mirrors it.
     var SLOT_DEFS  = ['employment_contract', 'employment_contract', 'employment_contract', 'policy', 'staff_handbook'];
     var TYPE_LABEL = { employment_contract: 'Employment Contract', policy: 'Policy', staff_handbook: 'Staff Handbook' };
     var TYPE_OPTIONS = [['employment_contract', 'Contract'], ['policy', 'Policy'], ['staff_handbook', 'Staff Handbook']];
@@ -1113,10 +1145,26 @@
       host.appendChild(e);
     }
 
+    // GOVWS-OFFER §4.3 — the vault triggers raise user-facing text for the monitored
+    // cap ("Documents Vault: monitored-document cap of …") and the replace gate
+    // ("replace_limit: …"). Return that message VERBATIM when a known gate prefix is
+    // present (no rewording); otherwise null so the caller shows its generic message.
+    function gateMessage(rawBody) {
+      var text = '';
+      try {
+        var j = JSON.parse(String(rawBody == null ? '' : rawBody));
+        text = (j && (j.message || j.error || j.msg)) || '';
+      } catch (e) { text = String(rawBody == null ? '' : rawBody); }
+      text = String(text).trim();
+      if (text.indexOf('Documents Vault: monitored-document cap of') === 0 ||
+          text.indexOf('replace_limit:') === 0) { return text; }
+      return null;
+    }
+
     function updateCounter() {
-      // GOVWS-SITE-001 §3 — governance shows the monitored count with no "of 5" cap
-      // copy (the cap no longer applies at this tier; enforcement is DB-side).
-      countEl.textContent = docs.length + ' monitored';
+      // GOVWS-OFFER §4.1 — show the monitored count against the 30-slot cap, sourced
+      // from the same rows the grid renders. The DB trigger stays the hard gate.
+      countEl.textContent = docs.length + ' of ' + MONITORED_CAP + ' monitored';
     }
     // A filled slot is a monitored, non-deleted vault row. GOVWS-SITE-002 §1 —
     // governance/institutional orgs have no monitored cap (fn_vault_monitored_cap,
@@ -1125,7 +1173,7 @@
     function loadSlots() {
       loading(listEl, 'Loading your vault…');
       return getJson('/kl_vault_documents?user_id=eq.' + uid + '&monitored=eq.true&deleted_at=is.null' +
-              '&select=id,filename,mime_type,file_size_bytes,monitored,monitor_started_at,analysis_status,created_at,lineage_id,last_replaced_at' +
+              '&select=id,filename,mime_type,file_size_bytes,monitored,monitor_started_at,analysis_status,created_at,lineage_id,last_replaced_at,folder_id' +
               '&order=created_at.asc')
         .then(function (rows) { docs = (rows || []); renderSlots(); updateCounter(); })
         .catch(function () { msg(listEl, "Couldn't load your vault right now. Please refresh."); });
@@ -1147,11 +1195,13 @@
           listEl.appendChild(buildFilledCard(docs[j], j));
         }
       }
-      // Keep an add affordance available once the typed slots are full — no vault-full
-      // state on this page (the cap is DB-side and does not apply at this tier).
+      // Keep an add affordance available once the typed slots are full. GOVWS-OFFER §4.2 —
+      // at the 30-document cap the affordance renders disabled (the DB trigger is the hard
+      // gate; this mirrors it and points the user at rotation).
       if (docs.length >= SLOT_COUNT) {
-        listEl.appendChild(buildEmptyCard(docs.length, true));
+        listEl.appendChild(buildEmptyCard(docs.length, true, docs.length >= MONITORED_CAP));
       }
+      applyFolderFilter();   // GOVWS-OFFER §5.5 — re-apply the active folder filter after a render.
     }
     // GOVWS-SITE-002 §1 — heading for the unbounded further-monitored-documents section.
     function buildFurtherHeading() {
@@ -1183,6 +1233,7 @@
     function buildFilledCard(doc, idx) {
       var card = el('div', 'dcard');
       card.setAttribute('data-doc-id', doc.id);
+      card.setAttribute('data-folder-id', doc.folder_id || '');   // GOVWS-OFFER §5.5
       if (doc.id === selectedId) card.classList.add('selected');
       var t = readType(doc.id) || SLOT_DEFS[idx];
 
@@ -1349,10 +1400,20 @@
       loadCardData(doc);
       return card;
     }
-    function buildEmptyCard(idx, addMore) {
-      var card = el('div', 'dcard empty');
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
+    function buildEmptyCard(idx, addMore, disabled) {
+      var card = el('div', 'dcard empty' + (disabled ? ' disabled' : ''));
+      if (disabled) {
+        // GOVWS-OFFER §4.2 — monitored-document cap (30) reached. The add/monitor
+        // affordance renders disabled with an explanatory title; the DB trigger stays
+        // the hard gate and this UI mirrors it. No other behaviour changes.
+        card.setAttribute('aria-disabled', 'true');
+        card.title = 'Monitored-document limit reached (30). Rotate an existing contract to monitor a new one.';
+        card.style.opacity = '0.5';
+        card.style.cursor = 'not-allowed';
+      } else {
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+      }
       // GOVWS-SITE-002 §1 — beyond the five typed slots there is no default designation;
       // fall back to a valid existing type (no new category names are invented).
       var def = SLOT_DEFS[idx] || 'employment_contract';
@@ -1374,16 +1435,18 @@
       work.addEventListener('click', function (e) { e.stopPropagation(); });
       card.appendChild(work);
 
-      function open() {
-        // Once the chooser/upload UI is showing, a background click on the card
-        // padding must not re-open (and clear) it — that would discard the user's input.
-        if (work.style.display === 'block') return;
-        openChooser(card, idx, def);
+      if (!disabled) {
+        var open = function () {
+          // Once the chooser/upload UI is showing, a background click on the card
+          // padding must not re-open (and clear) it — that would discard the user's input.
+          if (work.style.display === 'block') return;
+          openChooser(card, idx, def);
+        };
+        card.addEventListener('click', open);
+        card.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        });
       }
-      card.addEventListener('click', open);
-      card.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
-      });
       return card;
     }
     function resetSlotWork() { renderSlots(); markSelected(); }
@@ -1419,6 +1482,130 @@
       row.appendChild(confirm); row.appendChild(cancel);
       work.appendChild(row);
     }
+
+    // ===========================================================
+    //  GOVWS-OFFER §5 — Document Vault folders (governance + institutional)
+    // ===========================================================
+    // Org-scoped through compliance_folders RLS (own-org read + insert). The page guard
+    // already restricts this room to governance/institutional (ALLOWED_TIERS), so the
+    // folder UI reuses that tier gate rather than re-deriving the tier here.
+    function loadFolders() {
+      return myOrgId().then(function (orgId) {
+        if (!orgId) { folders = []; foldersLoaded = true; return folders; }
+        return getJson('/compliance_folders?select=id,name&organisation_id=eq.' + encodeURIComponent(orgId) + '&order=name.asc')
+          .then(function (rows) { folders = (rows || []); foldersLoaded = true; return folders; })
+          .catch(function () { folders = []; foldersLoaded = true; return folders; });
+      });
+    }
+    function createFolder(name) {
+      var nm = String(name == null ? '' : name).trim();
+      if (!nm) return Promise.reject(new Error('empty name'));
+      return myOrgId().then(function (orgId) {
+        if (!orgId) throw new Error('no org');
+        return fetch(RESTU + '/compliance_folders', {
+          method: 'POST',
+          headers: Object.assign({ 'Prefer': 'return=representation' }, H),
+          body: JSON.stringify({ organisation_id: orgId, name: nm, created_by: uid })
+        }).then(function (r) {
+          if (r.status < 200 || r.status >= 300) throw new Error('folder ' + r.status);
+          return r.json();
+        }).then(function (rep) {
+          var f = rep && rep[0];
+          if (f && f.id) {
+            folders.push({ id: f.id, name: f.name });
+            folders.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+            renderFolderFilter();
+          }
+          return f;
+        });
+      });
+    }
+    // §5.5 — grid filter toolbar. Hidden until the org has at least one folder.
+    function renderFolderFilter() {
+      if (!filterEl || !toolbarEl) return;
+      if (!folders.length) { toolbarEl.hidden = true; return; }
+      var prev = folderFilter;
+      clear(filterEl);
+      var all = el('option', null, 'All folders'); all.value = ''; filterEl.appendChild(all);
+      folders.forEach(function (f) { var o = el('option', null, f.name); o.value = f.id; filterEl.appendChild(o); });
+      var unf = el('option', null, 'Unfiled'); unf.value = '__unfiled__'; filterEl.appendChild(unf);
+      filterEl.value = prev;
+      if (filterEl.value !== prev) { folderFilter = ''; filterEl.value = ''; }
+      toolbarEl.hidden = false;
+    }
+    // §5.5 — show/hide rendered cards by the active folder filter. Documents with a null
+    // folder_id are "Unfiled"; the show-all filter ('') restores the typed/further layout.
+    function applyFolderFilter() {
+      if (!listEl) return;
+      var f = folderFilter;
+      Array.prototype.forEach.call(listEl.querySelectorAll('.dcard'), function (c) {
+        if (f === '') { c.style.display = ''; return; }
+        if (c.classList.contains('empty')) { c.style.display = 'none'; return; }
+        var fid = c.getAttribute('data-folder-id') || '';
+        var match = (f === '__unfiled__') ? (fid === '') : (fid === f);
+        c.style.display = match ? '' : 'none';
+      });
+      var fh = listEl.querySelector('.further-head');
+      if (fh) fh.style.display = (f === '') ? '' : 'none';
+    }
+    // §5.1–§5.3 — folder picker for the upload flow. Returns { getFolderId }.
+    function buildFolderPicker(host) {
+      var wrap = el('div', 'folder-pick');
+      wrap.appendChild(el('label', 'field-label', 'Folder (optional)'));
+      var sel = el('select'); sel.className = 'folder-select';
+      wrap.appendChild(sel);
+      var createRow = el('div', 'folder-create'); createRow.hidden = true;
+      var nameInput = el('input'); nameInput.type = 'text'; nameInput.placeholder = 'Folder name'; nameInput.className = 'file-input';
+      var mkBtn = el('button', 'btn-secondary', 'Create'); mkBtn.type = 'button';
+      var mkMsg = el('div', 'form-msg'); mkMsg.hidden = true;
+      createRow.appendChild(nameInput); createRow.appendChild(mkBtn); createRow.appendChild(mkMsg);
+      wrap.appendChild(createRow);
+      var starters = el('div', 'folder-starters'); starters.hidden = true;
+      wrap.appendChild(starters);
+      host.appendChild(wrap);
+
+      var current = { id: '' };
+
+      function fail(text) { mkMsg.textContent = text; mkMsg.className = 'form-msg err'; mkMsg.hidden = false; }
+      function doCreate(nm) {
+        var name = String(nm || '').trim();
+        if (!name) { fail('Please enter a folder name.'); return; }
+        mkBtn.disabled = true; mkMsg.hidden = true;
+        createFolder(name).then(function (f) {
+          mkBtn.disabled = false;
+          if (f && f.id) { current.id = f.id; createRow.hidden = true; nameInput.value = ''; repaint(); }
+          else { fail('Could not create the folder. Please try again.'); }
+        }).catch(function () { mkBtn.disabled = false; fail('Could not create the folder. Please try again.'); });
+      }
+      function repaint() {
+        clear(sel);
+        var none = el('option', null, 'Unfiled'); none.value = ''; sel.appendChild(none);
+        folders.forEach(function (f) { var o = el('option', null, f.name); o.value = f.id; sel.appendChild(o); });
+        var mk = el('option', null, 'Create new folder…'); mk.value = '__create__'; sel.appendChild(mk);
+        sel.value = current.id || '';
+        clear(starters);
+        if (!folders.length) {
+          starters.hidden = false;
+          starters.appendChild(el('span', 'slot-hint', 'No folders yet — start with'));
+          ['By Region', 'By Department'].forEach(function (nm) {
+            var b = el('button', 'btn-secondary', nm); b.type = 'button';
+            b.addEventListener('click', function (e) { e.stopPropagation(); doCreate(nm); });
+            starters.appendChild(b);
+          });
+        } else { starters.hidden = true; }
+      }
+      sel.addEventListener('change', function (e) {
+        e.stopPropagation();
+        if (sel.value === '__create__') { createRow.hidden = false; sel.value = current.id || ''; nameInput.focus(); }
+        else { current.id = sel.value; createRow.hidden = true; }
+      });
+      mkBtn.addEventListener('click', function (e) { e.stopPropagation(); doCreate(nameInput.value); });
+      nameInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doCreate(nameInput.value); } });
+
+      repaint();
+      if (!foldersLoaded) { loadFolders().then(repaint); }
+      return { getFolderId: function () { return current.id || null; } };
+    }
     function openUpload(card, idx, type) {
       var work = card.querySelector('.slot-work');
       clear(work); work.style.display = 'block';
@@ -1427,6 +1614,9 @@
       var input = el('input'); input.type = 'file'; input.accept = '.pdf,.docx'; input.className = 'file-input';
       work.appendChild(input);
       work.appendChild(el('div', 'slot-hint', 'PDF or Word (.docx), up to 10 MB. Uploading also turns on monitoring for this slot.'));
+
+      // GOVWS-OFFER §5.1–§5.3 — optional folder for this document (governance/institutional).
+      var folderPick = buildFolderPicker(work);
 
       var msgEl = el('div', 'form-msg'); msgEl.hidden = true;
       var row = el('div', 'work-actions');
@@ -1437,7 +1627,7 @@
         var f = input.files && input.files[0];
         var v = validateFile(f);
         if (!v.ok) { showMsg(msgEl, v.error, 'err'); return; }
-        doUpload(card, type, f, up, cancel, msgEl);
+        doUpload(card, type, f, up, cancel, msgEl, folderPick.getFolderId());
       });
       cancel.addEventListener('click', function (e) { e.stopPropagation(); resetSlotWork(); });
       row.appendChild(up); row.appendChild(cancel);
@@ -1454,7 +1644,7 @@
         body: file
       }).then(function (r) { if (!r.ok) throw new Error('storage ' + r.status); return path; });
     }
-    function doUpload(card, type, file, upBtn, cancelBtn, msgEl) {
+    function doUpload(card, type, file, upBtn, cancelBtn, msgEl, folderId) {
       upBtn.disabled = true; cancelBtn.disabled = true; msgEl.hidden = true;
       setSlotStatus(card, 'Uploading…');
       uploadToStorage(file)
@@ -1463,13 +1653,20 @@
           var body = {
             user_id: uid, filename: file.name, storage_path: path,
             file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream',
-            monitored: true, monitor_started_at: new Date().toISOString()
+            monitored: true, monitor_started_at: new Date().toISOString(),
+            folder_id: folderId || null
           };
           return fetch(RESTU + '/kl_vault_documents', {
             method: 'POST', headers: Object.assign({ 'Prefer': 'return=representation' }, H), body: JSON.stringify(body)
           }).then(function (r) {
             if (r.status < 200 || r.status >= 300) {
-              throw new Error('insert ' + r.status);
+              // GOVWS-OFFER §4.3 — surface the DB monitored-cap message verbatim.
+              return r.text().catch(function () { return ''; }).then(function (txt) {
+                var gate = gateMessage(txt);
+                var e = new Error('insert ' + r.status);
+                if (gate) e.gateMessage = gate;
+                throw e;
+              });
             }
             return r.json();
           });
@@ -1490,9 +1687,11 @@
         .catch(function (err) {
           setSlotStatus(card, '');
           upBtn.disabled = false; cancelBtn.disabled = false;
-          // GOVWS-SITE-002 §1.4 — no monitored cap at governance/institutional tier;
-          // the former "up to 5 documents" message is removed.
-          showMsg(msgEl, 'Could not add this document right now. Please try again.', 'err');
+          // GOVWS-OFFER §4.3 — if the DB surfaced the monitored-document cap message,
+          // show it verbatim (no rewording); otherwise a generic retry message.
+          showMsg(msgEl, (err && err.gateMessage)
+            ? err.gateMessage
+            : 'Could not add this document right now. Please try again.', 'err');
         });
     }
 
@@ -1563,9 +1762,12 @@
             method: 'PATCH', headers: Object.assign({ 'Prefer': 'return=representation' }, H), body: JSON.stringify(body)
           }).then(function (r) {
             if (r.status < 200 || r.status >= 300) {
+              // GOVWS-OFFER §4.3 — surface the DB replace-gate / cap message verbatim.
               return r.text().catch(function () { return ''; }).then(function (txt) {
-                if (/replace_limit/i.test(txt)) throw { replaceLimit: true };
-                throw new Error('patch ' + r.status);
+                var gate = gateMessage(txt);
+                var e = new Error('patch ' + r.status);
+                if (gate) e.gateMessage = gate;
+                throw e;
               });
             }
             return true;
@@ -1583,8 +1785,10 @@
         .catch(function (err) {
           setSlotStatus(card, '');
           goBtn.disabled = false; cancelBtn.disabled = false;
-          showMsg(msgEl, (err && err.replaceLimit)
-            ? 'You can replace each document once a month. This one was already replaced this month — you can replace it again next month.'
+          // GOVWS-OFFER §4.3 — show the DB replace-gate message verbatim (no rewording);
+          // otherwise a generic retry message.
+          showMsg(msgEl, (err && err.gateMessage)
+            ? err.gateMessage
             : 'Could not replace this document right now. Please try again.', 'err');
         });
     }
@@ -3500,18 +3704,18 @@
       } else if (entState.used >= entState.allow) {
         // not entitled → the ratified upsell copy + the entitlement path (no new pricing copy)
         host.appendChild(el('div', 'pack-entitlement',
-          entState.used + ' of ' + entState.allow + ' included solicitor packs used this year.'));
+          entState.used + ' of ' + entState.allow + ' included solicitor packs used this month.'));
         var over = el('div', 'form-msg err',
-          'You’ve used your ' + entState.allow + ' included packs this year. Additional packs are £19.99 each.');
+          'Solicitors Preparation Bundles are included monthly, paired 1:1 with your Contract Compliance Checks; additional Bundles are £19 each.');
         over.hidden = false;
         host.appendChild(over);
-        var buy = el('button', 'btn-secondary pack-buy', 'Buy an additional pack (£19.99)');
+        var buy = el('button', 'btn-secondary pack-buy', 'Buy an additional pack (£19)');
         buy.type = 'button'; buy.disabled = true; buy.title = 'Available soon'; buy.style.marginTop = '10px';
         host.appendChild(buy);
       } else {
         // entitled, not generated → Generate (existing flow)
         host.appendChild(el('div', 'pack-entitlement',
-          entState.used + ' of ' + entState.allow + ' included solicitor packs used this year.'));
+          entState.used + ' of ' + entState.allow + ' included solicitor packs used this month.'));
         var genBtn = el('button', 'btn-primary', 'Prepare solicitor pack'); genBtn.type = 'button';
         genBtn.addEventListener('click', function (ev) { ev.stopPropagation(); requestPack(doc, genBtn, pmsg); });
         host.appendChild(genBtn);
@@ -3995,6 +4199,9 @@
     renderNotes(null);
     initReportIssue();
     loadForwardReview();
+    // GOVWS-OFFER §5.5 — folder filter: load folders, paint the toolbar, wire the control.
+    loadFolders().then(renderFolderFilter);
+    if (filterEl) filterEl.addEventListener('change', function () { folderFilter = filterEl.value; applyFolderFilter(); });
   }
   </script>
 </body>
