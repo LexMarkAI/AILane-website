@@ -97,6 +97,7 @@
     .card .btn { margin-top: 0; }
     .muted { color: var(--muted); }
     .card-msg.ok-msg { color: var(--op-green); }
+    .signpost { border-left: 3px solid var(--op-cyan); padding: 8px 12px; margin: 10px 0 4px; font-size: 0.85rem; }
 
     /* Members & roles (OOX Step 4) */
     .members { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; margin-bottom: 16px; }
@@ -162,7 +163,7 @@
       <span class="tierpill">Operational Readiness</span>
     </header>
 
-    <p class="lede">Your operational subscription is active. A few short steps prepare your organisation's workspace before it opens. Accepting your agreements is the one required step; setting up two-factor authentication and inviting teammates are recommended, but optional — you can do them now or later. Once your agreements are accepted and your workspace is provisioned, your operational workspace unlocks below.</p>
+    <p class="lede">Your operational subscription is active. A few short steps prepare your organisation's workspace before it opens. Two required steps stand between you and your workspace: accepting your agreements, and — for owner and administrator accounts — turning on two-factor authentication. Inviting teammates is optional and can wait. Once your agreements are accepted, two-factor authentication is on for owner and administrator accounts, and your workspace is provisioned, your operational workspace opens below.</p>
 
     <div id="banner"><span class="dot"></span><span>Connecting to your onboarding service…</span></div>
 
@@ -396,7 +397,7 @@
       var steps = [
         { n: 0, title: 'Subscription activated', cls: 'complete', panel: '<div class="ok">Payment received — a receipt has been emailed to you.</div>' },
         { n: 1, title: 'Create organisation', cls: 'complete', panel: '<div class="ok">Your operational workspace was created when your subscription started.</div>' },
-        { n: 2, title: 'Two-factor authentication', optional: true, optionalLabel: 'Recommended',
+        { n: 2, title: 'Two-factor authentication', requiredLabel: 'Required — owner & admin',
           cls: mfaPassed ? 'complete' : (mfaSkipped ? 'pending' : 'active'),
           panel: step2Panel(mfaPassed) },
         { n: 3, title: 'Your organisation',
@@ -413,7 +414,7 @@
           panel: step5Panel() },
         { n: 7, title: 'Landing unlocked',
           cls: unlocked ? 'complete' : 'pending',
-          panel: step6Panel(unlocked) }
+          panel: step6Panel(unlocked, mfaPassed) }
       ];
 
       var html = '';
@@ -423,6 +424,7 @@
         var badge = '';
         if (s.gate) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'gate') + '">' + (s.cls === 'complete' ? 'Complete' : 'Required') + '</span>';
         if (s.optional) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'soon') + '">' + (s.cls === 'complete' ? 'On' : esc(s.optionalLabel || 'Optional')) + '</span>';
+        if (s.requiredLabel) badge += ' <span class="badge ' + (s.cls === 'complete' ? 'done' : 'gate') + '">' + (s.cls === 'complete' ? 'On' : esc(s.requiredLabel)) + '</span>';
         if (s.soon) badge += ' <span class="badge soon">Coming next</span>';
         html += '<div class="step ' + s.cls + '">' +
                   '<div class="marker">' + marker + '</div>' +
@@ -440,10 +442,10 @@
     function step2Panel(passed) {
       if (loading) return '<span class="muted">Checking your two-factor status…</span>';
       if (passed) return '<div class="ok">&#10003; Two-factor authentication is on.</div>';
-      var intro = 'Two-factor authentication adds an extra layer of protection for your organisation’s workspace. It’s recommended, but optional — you can set it up later and it won’t hold up your onboarding.';
+      var intro = 'Two-factor authentication is required for owner and administrator accounts before the workspace opens — it protects the account that can bind your organisation. Standard members are prompted at sign-in but do not hold up onboarding. If you ever lose access to your authenticator, your account security settings include a recovery route, and support@ailane.ai can verify and assist.';
       if (mfaSkipped) {
         return intro +
-               '<div class="help">You’ve chosen to set this up later. You can turn it on any time from your account security settings.</div>' +
+               '<div class="help">You’ve chosen to finish this later. For owner and administrator accounts the workspace stays closed until two-factor authentication is on — pick it up any time from your account security settings.</div>' +
                '<a class="btn" href="' + MFA_PATH + '">Set up two-factor authentication</a>';
       }
       return intro +
@@ -730,6 +732,13 @@
           cards += '<div class="card-msg ok-msg">&#10003; Accepted' + (acceptedDate ? ' — recorded ' + esc(acceptedDate) : '') + '</div>';
         } else {
           outstanding.push(agreementTitle(lkey));
+          if (lkey === 'msa') {
+            cards += '<div class="card-msg signpost" role="note">Before you accept, three terms of this Agreement are specifically signposted: ' +
+                     'AI Lane\'s liability is capped (clauses 13.2–13.4); ' +
+                     'Fees are non-refundable except as clause 7.4 states; ' +
+                     'and access can be suspended or re-locked in the circumstances set out in clauses 5.3, 5.4 and 14. ' +
+                     'The full text is one click away above — read it before accepting.</div>';
+          }
           cards += '<div class="actions">' +
                      '<button class="btn primary accept-btn" data-key="' + esc(origKey) + '" data-version="' + esc(ver) + '">Accept</button>' +
                      '<span class="muted">Awaiting your acceptance</span>' +
@@ -906,13 +915,17 @@
              '<div class="card-msg" id="provision-msg"></div>';
     }
 
-    function step6Panel(unlocked) {
+    function step6Panel(unlocked, mfaPassed) {
+      if (unlocked && !mfaPassed) {
+        return '<div class="help">Your agreements and provisioning are complete, but two-factor authentication is not yet on for this organisation’s owner and administrator accounts. The workspace entrance is withheld until it is — set it up now and this step opens immediately.</div>' +
+               '<a class="btn primary" href="/account/security/">Set up two-factor authentication</a>';
+      }
       if (unlocked) {
         return 'Everything is in place.' +
                '<br><a class="btn primary' + (degraded ? ' is-disabled' : '') + '" id="enter-btn" href="/operational/">Enter your operational workspace</a>';
       }
       return '<button class="btn is-disabled" disabled>Enter your operational workspace</button>' +
-             '<div class="help">Accept your agreements and provision your workspace to unlock. Two-factor authentication and inviting teammates are optional.</div>';
+             '<div class="help">Accept your agreements, turn on two-factor authentication (owner and administrator accounts), and provision your workspace to open it. Inviting teammates is optional.</div>';
     }
 
     function bindEvents(gaps) {
