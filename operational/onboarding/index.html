@@ -120,6 +120,18 @@
     .field input[disabled], .field select[disabled] { opacity: 0.5; cursor: not-allowed; }
     .invite-form .btn { margin-top: 14px; }
 
+    /* Identity resolution — "Your organisation" (OOX room identity) */
+    .field input.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.08em; }
+    .identity-result { margin-top: 16px; }
+    .alin-num { margin-top: 8px; font-size: 0.9rem; color: var(--text); }
+    .alin-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; color: var(--op-cyan); font-weight: 700; }
+    details.profile-extra { margin-top: 18px; border-top: 1px solid rgba(148,163,184,0.12); padding-top: 14px; }
+    details.profile-extra > summary { cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--op-cyan); list-style: none; }
+    details.profile-extra > summary::-webkit-details-marker { display: none; }
+    details.profile-extra > summary::before { content: "+ "; color: var(--op-cyan); font-weight: 700; }
+    details.profile-extra[open] > summary::before { content: "\2212 "; }
+    details.profile-extra .invite-form { margin-top: 4px; }
+
     footer.foot { margin-top: 40px; padding-top: 22px; border-top: 1px solid rgba(148,163,184,0.12); color: var(--muted); font-size: 0.8rem; line-height: 1.6; }
 
     @media (max-width: 560px) {
@@ -186,6 +198,11 @@
     var acceptedDB = {};         // OOX §1.1 — accepted status hydrated from the DB on load: lower(key) -> { content_hash -> accepted_at }
     var mfaSkipped = false;      // OOX §1.1 — user chose "set up two-factor later" (2FA is optional, not a gate)
     var membersSkipped = false;  // OOX §1.2 — user chose "invite teammates later" (members are optional)
+    var identity = null;         // room identity — last operational-capture-profile response for name/CHN (alin, alin_outcome, company_number_normalised, completeness, acei_sector_code, …)
+    var identityForm = { name: '', chn: '' };   // last-entered identity inputs, re-populated across re-renders
+    var profileExtra = null;     // last operational-capture-profile response for the optional Tier A fields (completeness, acei_sector_code)
+    var profileForm = { industry: '', sic_primary: '', headcount: '', primary_jurisdiction_code: '' }; // last-entered Tier A inputs
+    var profileExtraOpen = false; // whether the "Strengthen your intelligence profile" group is expanded (preserved across re-renders)
 
     function safeId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
     function esc(s) {
@@ -382,16 +399,19 @@
         { n: 2, title: 'Two-factor authentication', optional: true, optionalLabel: 'Recommended',
           cls: mfaPassed ? 'complete' : (mfaSkipped ? 'pending' : 'active'),
           panel: step2Panel(mfaPassed) },
-        { n: 3, title: 'Agreement Vault', gate: true,
+        { n: 3, title: 'Your organisation',
+          cls: identityResolved() ? 'complete' : 'active',
+          panel: stepIdentityPanel() },
+        { n: 4, title: 'Agreement Vault', gate: true,
           cls: agreementsAllAccepted(agreementsPassed, gaps) ? 'complete' : 'active',
           panel: step3Panel(agreementsPassed, gaps) },
-        { n: 4, title: 'Members & roles', optional: true, optionalLabel: 'Optional',
+        { n: 5, title: 'Members & roles', optional: true, optionalLabel: 'Optional',
           cls: membersSkipped ? 'pending' : 'active',
           panel: step4Panel() },
-        { n: 5, title: 'Tenant provisioning',
+        { n: 6, title: 'Tenant provisioning',
           cls: (state && state.provisioning_complete === true) ? 'complete' : 'active',
           panel: step5Panel() },
-        { n: 6, title: 'Landing unlocked',
+        { n: 7, title: 'Landing unlocked',
           cls: unlocked ? 'complete' : 'pending',
           panel: step6Panel(unlocked) }
       ];
@@ -433,6 +453,206 @@
              '</div>';
     }
 
+    // ── "Your organisation" — identity resolution + ALIN (OOX room identity) ──
+    // Additive, non-blocking step rendered above the Agreement Vault. Captures the
+    // organisation's legal name + Companies House number through the deployed
+    // operational-capture-profile EF (partial, idempotent, resumable) and renders
+    // the returned ALIN assignment. Never wired into the agreements gate or unlock.
+    function identityResolved() {
+      return !!(identity && identity.alin && (
+        identity.alin_outcome === 'minted' ||
+        identity.alin_outcome === 'applied_existing' ||
+        identity.alin_outcome === 'already_assigned'));
+    }
+
+    function stepIdentityPanel() {
+      if (loading) return '<span class="muted">Loading your organisation details…</span>';
+
+      var intro = 'Confirm your organisation’s identity so we can link it to its record in the Ailane intelligence estate. This is optional and won’t hold up your onboarding — you can add or update it at any time.';
+      var disabledAttr = degraded ? ' disabled' : '';
+      var nameVal = esc(identityForm.name || '');
+      var chnVal  = esc(identityForm.chn || '');
+
+      var html = intro +
+        '<form class="invite-form" id="identity-form" novalidate>' +
+          '<div class="field-row">' +
+            '<div class="field"><label for="org-name">Organisation legal name</label>' +
+              '<input type="text" id="org-name" name="org_name" placeholder="Your organisation’s registered name" autocomplete="off" value="' + nameVal + '"' + disabledAttr + '></div>' +
+            '<div class="field"><label for="org-chn">Companies House number</label>' +
+              '<input type="text" id="org-chn" name="companies_house_number" class="mono" placeholder="e.g. 01234567" maxlength="8" autocomplete="off" value="' + chnVal + '"' + disabledAttr + '></div>' +
+          '</div>' +
+          '<button type="submit" class="btn primary" id="identity-btn"' + disabledAttr + '>Confirm organisation</button>' +
+          '<div class="card-msg" id="identity-msg"></div>' +
+        '</form>';
+
+      html += identityOutcomeHtml();
+      html += profileExtraHtml();
+      return html;
+    }
+
+    // Render the ALIN assignment by alin_outcome (deterministic copy — verbatim, OOX §3.3).
+    function identityOutcomeHtml() {
+      if (!identity) return '';
+      var outcome = identity.alin_outcome;
+      var alin = identity.alin ? esc(identity.alin) : '';
+      var alinLine = alin ? '<div class="alin-num">Ailane Intelligence Number: <span class="alin-code">' + alin + '</span></div>' : '';
+
+      if (outcome === 'applied_existing') {
+        return '<div class="identity-result"><div class="card-msg ok-msg">Recognised. Your organisation is already held in the Ailane intelligence estate.</div>' + alinLine + '</div>';
+      }
+      if (outcome === 'minted') {
+        return '<div class="identity-result"><div class="card-msg ok-msg">Welcome. Your Ailane Intelligence Number has been assigned.</div>' + alinLine + '</div>';
+      }
+      if (outcome === 'already_assigned') {
+        return '<div class="identity-result">' + alinLine + '</div>';
+      }
+      if (outcome === 'pending') {
+        return '<div class="identity-result"><div class="help">Add your Companies House number when ready — it links your organisation to its intelligence record.</div></div>';
+      }
+      if (outcome === 'rejected') {
+        return '<div class="identity-result"><div class="card-msg">That Companies House number does not look right — please check the 8-character number as registered.</div></div>';
+      }
+      if (outcome === 'conflict') {
+        return '<div class="identity-result"><div class="card-msg">Your organisation record needs a manual check — no action needed from you; our team has been flagged.</div></div>';
+      }
+      return '';
+    }
+
+    // Optional Tier A profile fields — collapsible "Strengthen your intelligence
+    // profile" group. Same EF call pattern; renders completeness + sector note (OOX §3.4).
+    function profileExtraHtml() {
+      var disabledAttr = degraded ? ' disabled' : '';
+      var jurisdictions = ['GB', 'GB-ENG', 'GB-WLS', 'GB-SCT', 'GB-NIR'];
+      var opts = '<option value="">Select jurisdiction</option>';
+      for (var i = 0; i < jurisdictions.length; i++) {
+        var jc = jurisdictions[i];
+        opts += '<option value="' + jc + '"' + (profileForm.primary_jurisdiction_code === jc ? ' selected' : '') + '>' + jc + '</option>';
+      }
+
+      var result = '';
+      if (profileExtra) {
+        if (profileExtra.completeness != null) {
+          result += '<div class="card-msg ok-msg">Profile completeness: ' + esc(String(profileExtra.completeness)) + '%</div>';
+        }
+        if (profileExtra.acei_sector_code != null && profileExtra.acei_sector_code !== '') {
+          result += '<div class="help">Sector profile applied to your exposure scoring.</div>';
+        }
+      }
+
+      var open = (profileExtraOpen || profileExtra) ? ' open' : '';
+      return '<details class="profile-extra" id="profile-extra-details"' + open + '>' +
+               '<summary>Strengthen your intelligence profile</summary>' +
+               '<form class="invite-form" id="profile-extra-form" novalidate>' +
+                 '<div class="field-row">' +
+                   '<div class="field"><label for="pf-industry">Industry</label>' +
+                     '<input type="text" id="pf-industry" name="industry" placeholder="e.g. Facilities management" autocomplete="off" value="' + esc(profileForm.industry || '') + '"' + disabledAttr + '></div>' +
+                   '<div class="field"><label for="pf-sic">Primary SIC code</label>' +
+                     '<input type="text" id="pf-sic" name="sic_primary" class="mono" placeholder="5-digit, e.g. 81100" maxlength="5" autocomplete="off" value="' + esc(profileForm.sic_primary || '') + '"' + disabledAttr + '></div>' +
+                 '</div>' +
+                 '<div class="field-row">' +
+                   '<div class="field"><label for="pf-headcount">Headcount</label>' +
+                     '<input type="number" id="pf-headcount" name="headcount" min="0" placeholder="e.g. 250" autocomplete="off" value="' + esc(profileForm.headcount || '') + '"' + disabledAttr + '></div>' +
+                   '<div class="field"><label for="pf-jur">Primary jurisdiction</label>' +
+                     '<select id="pf-jur" name="primary_jurisdiction_code"' + disabledAttr + '>' + opts + '</select></div>' +
+                 '</div>' +
+                 '<button type="submit" class="btn" id="profile-extra-btn"' + disabledAttr + '>Save profile details</button>' +
+                 '<div class="card-msg" id="profile-extra-msg"></div>' +
+                 result +
+               '</form>' +
+             '</details>';
+    }
+
+    function setIdentityMsg(text) {
+      var el = document.getElementById('identity-msg');
+      if (el) el.textContent = text || '';
+    }
+    function setProfileExtraMsg(text) {
+      var el = document.getElementById('profile-extra-msg');
+      if (el) el.textContent = text || '';
+    }
+    function fieldVal(id) { var el = document.getElementById(id); return el ? String(el.value).trim() : ''; }
+
+    // Submit organisation identity (name + Companies House number) → ALIN (OOX §3.2/§3.3).
+    async function submitIdentity(btn) {
+      var name = fieldVal('org-name');
+      var chn  = fieldVal('org-chn');
+      identityForm.name = name;
+      identityForm.chn  = chn;
+
+      setIdentityMsg('');
+      if (!name) { setIdentityMsg('Please enter your organisation’s legal name.'); return; }
+      if (!btn) return;
+
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Checking…';
+      try {
+        var resp = await fetch(FNS + '/operational-capture-profile', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { name: name, companies_house_number: chn } })
+        });
+        if (!resp.ok) {   // network-level / 500 — idempotent backend, safe to resubmit (§3.2)
+          btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+          setIdentityMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+          return;
+        }
+        var data = {};
+        try { data = await resp.json(); } catch (e) {}
+        identity = data;
+        if (data && data.company_number_normalised) identityForm.chn = String(data.company_number_normalised);
+        if (data && data.alin_outcome === 'conflict') { try { console.warn('operational-capture-profile conflict', data); } catch (e) {} }
+        render();   // re-render to show the ALIN outcome row
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setIdentityMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+      }
+    }
+
+    // Submit optional Tier A profile fields → completeness + sector profile (OOX §3.4).
+    async function submitProfileExtra(btn) {
+      var industry  = fieldVal('pf-industry');
+      var sic       = fieldVal('pf-sic');
+      var headcount = fieldVal('pf-headcount');
+      var jur       = fieldVal('pf-jur');
+      profileForm.industry = industry;
+      profileForm.sic_primary = sic;
+      profileForm.headcount = headcount;
+      profileForm.primary_jurisdiction_code = jur;
+
+      var fields = {};
+      if (industry) fields.industry = industry;
+      if (sic) fields.sic_primary = sic;
+      if (headcount && !isNaN(Number(headcount))) fields.headcount = Number(headcount);
+      if (jur) fields.primary_jurisdiction_code = jur;   // submit the chosen string verbatim (§3.4)
+
+      setProfileExtraMsg('');
+      if (Object.keys(fields).length === 0) { setProfileExtraMsg('Add at least one detail to strengthen your profile.'); return; }
+      if (!btn) return;
+
+      var label = btn.textContent;
+      btn.disabled = true; btn.classList.add('is-disabled'); btn.textContent = 'Saving…';
+      try {
+        var resp = await fetch(FNS + '/operational-capture-profile', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + T, 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: fields })
+        });
+        if (!resp.ok) {
+          btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+          setProfileExtraMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+          return;
+        }
+        var data = {};
+        try { data = await resp.json(); } catch (e) {}
+        profileExtra = data;
+        profileExtraOpen = true;   // keep the group open to show the result after re-render
+        render();
+      } catch (e) {
+        btn.disabled = false; btn.classList.remove('is-disabled'); btn.textContent = label;
+        setProfileExtraMsg('We could not reach the onboarding service — your details are safe to resubmit.');
+      }
+    }
+
     // ── Step 3 — Agreement Vault (OOX §1.1/§1.2) ─────────────────────────
     // One status row per current+ready+published agreement. Accepted status is
     // HYDRATED from the DB on load: an agreement is accepted when a non-superseded
@@ -442,21 +662,54 @@
     // Accept button; only genuinely-outstanding rows show Accept — so an already-
     // accepted version cannot be submitted twice and reloads create no duplicate
     // rows. A plain-words summary names only what genuinely remains outstanding.
+    // ── Fail-closed agreement gaps (OOX §5) ──────────────────────────────
+    // A required agreement whose current version is not yet published arrives in
+    // state.gaps with required_version === 'UNPUBLISHED — BLOCKING'. It has no
+    // published register row to accept, so it renders defensively (no accept action).
+    function blockingGaps(gaps) {
+      var out = [];
+      if (!Array.isArray(gaps)) return out;
+      for (var i = 0; i < gaps.length; i++) {
+        if (gaps[i] && gaps[i].required_version === 'UNPUBLISHED — BLOCKING') out.push(gaps[i]);
+      }
+      return out;
+    }
+    function blockingCardsHtml(blocking) {
+      var html = '';
+      for (var i = 0; i < blocking.length; i++) {
+        var title = agreementTitle(blocking[i] && blocking[i].agreement_key);
+        html += '<div class="card">' +
+                  '<h3>' + esc(title) + '</h3>' +
+                  '<div class="card-msg">Awaiting publication — this document will appear here for acceptance before your workspace can open.</div>' +
+                '</div>';
+      }
+      return html;
+    }
+
     function step3Panel(passed, gaps) {
       if (loading) return '<span class="muted">Loading your agreements…</span>';
       if (degraded) return '<span class="muted">Your agreements will appear here once the onboarding service reconnects.</span>';
 
       var reg = agreements || {};
       var regKeys = Object.keys(reg);
+      var blocking = blockingGaps(gaps);              // OOX §5 — unpublished-required (fail-closed) gaps
+      var blockingCards = blockingCardsHtml(blocking); // '' when none
 
       // No published register yet — fall back to the "once published" copy, but
       // still name anything the server reports outstanding so the user is never
-      // left in silence.
+      // left in silence. Fail-closed (blocking) gaps render defensively (OOX §5),
+      // not as a plain "awaiting acceptance" name.
       if (regKeys.length === 0) {
         if (passed && gaps.length === 0) return '<div class="ok">&#10003; All required agreements have been accepted.</div>';
-        var pending = outstandingNames(gaps);
-        if (pending) return '<span class="muted">Your agreements will appear here once published. Awaiting: ' + esc(pending) + '.</span>';
-        return '<span class="muted">Your agreements will appear here once published.</span>';
+        var nonBlocking = [];
+        for (var b = 0; b < gaps.length; b++) {
+          if (!(gaps[b] && gaps[b].required_version === 'UNPUBLISHED — BLOCKING')) nonBlocking.push(gaps[b]);
+        }
+        var pending = outstandingNames(nonBlocking);
+        var lead = pending
+          ? '<span class="muted">Your agreements will appear here once published. Awaiting: ' + esc(pending) + '.</span>'
+          : '<span class="muted">Your agreements will appear here once published.</span>';
+        return (blockingCards ? '<div class="cards">' + blockingCards + '</div>' : '') + lead;
       }
 
       regKeys.sort();
@@ -485,13 +738,18 @@
         }
         cards += '</div>';
       }
+      cards += blockingCards;   // OOX §5 — fail-closed rows sit alongside the register cards
       cards += '</div>';
 
       // Plain-words status summary (OOX §1.2) — name only what is genuinely
-      // outstanding after hydration; otherwise a quiet all-clear.
-      var summary = (outstanding.length === 0)
-        ? '<div class="ok" style="margin-top:12px">&#10003; All agreements accepted.</div>'
-        : '<div class="help" style="margin-top:12px">Awaiting your acceptance of: ' + esc(outstanding.join(', ')) + '.</div>';
+      // outstanding after hydration. A quiet all-clear shows only when nothing is
+      // outstanding AND nothing is awaiting publication (OOX §5).
+      var summary = '';
+      if (outstanding.length === 0 && blocking.length === 0) {
+        summary = '<div class="ok" style="margin-top:12px">&#10003; All agreements accepted.</div>';
+      } else if (outstanding.length) {
+        summary = '<div class="help" style="margin-top:12px">Awaiting your acceptance of: ' + esc(outstanding.join(', ')) + '.</div>';
+      }
       return cards + summary;
     }
 
@@ -698,6 +956,14 @@
       if (memSkip) memSkip.addEventListener('click', function () { membersSkipped = true; render(); });
       var memUnskip = document.getElementById('members-unskip-btn');
       if (memUnskip) memUnskip.addEventListener('click', function () { membersSkipped = false; render(); });
+
+      // "Your organisation" — identity + optional Tier A profile (OOX §3)
+      var idForm = document.getElementById('identity-form');
+      if (idForm) idForm.addEventListener('submit', function (e) { e.preventDefault(); submitIdentity(document.getElementById('identity-btn')); });
+      var pxForm = document.getElementById('profile-extra-form');
+      if (pxForm) pxForm.addEventListener('submit', function (e) { e.preventDefault(); submitProfileExtra(document.getElementById('profile-extra-btn')); });
+      var pxDetails = document.getElementById('profile-extra-details');
+      if (pxDetails) pxDetails.addEventListener('toggle', function () { profileExtraOpen = pxDetails.open; });
     }
 
     function setMsg(key, text) {
