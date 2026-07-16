@@ -558,6 +558,32 @@ section h2 { margin-bottom: 20px; }
 }
 .inst-enquiry-note[data-state="error"] { color: var(--inst-gold); }
 .inst-enquiry-note[data-state="success"] { color: var(--cyan); }
+/* LANDING-REV-001 §3 — Institutional intake form additions */
+.inst-enquiry-form .req { color: var(--inst-gold); margin-left: 2px; }
+.inst-enquiry-form label.inst-enquiry-check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+.inst-enquiry-form label.inst-enquiry-check input {
+  width: auto;
+  flex: none;
+  margin-top: 3px;
+}
+.inst-enquiry-formlink { margin: 8px 0 0; font-size: 0.9rem; }
+.inst-enquiry-privacy { color: var(--text-dim); font-size: 0.82rem; margin: 0; }
+.inst-enquiry-email {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+.inst-enquiry-email:hover { color: var(--inst-gold); }
 
 /* ── Expand panel ───────────────────────────── */
 .expand-panel {
@@ -1116,35 +1142,61 @@ footer {
             <li data-i18n="subs.inst.f4">Full intelligence estate access</li>
             <li data-i18n="subs.inst.f5">Custom integration</li>
           </ul>
-          <a href="mailto:enquiries@ailane.ai?subject=Institutional%20requirements" class="btn-primary tier-cta" data-i18n="subs.inst.cta">Email your company's requirements</a>
-          <form id="inst-enquiry-form" class="inst-enquiry-form" hidden novalidate>
-            <p class="inst-enquiry-lede" data-i18n="subs.inst.enquiry.lede">Prefer to send your details directly? Eileen will route this to our team.</p>
+          <!-- LANDING-REV-001 §3 — Institutional intake: Discuss with Eileen (primary),
+               enquiry form (Eileen-prefill or manual), retained email (secondary). -->
+          <button type="button" class="btn-primary tier-cta" data-action="institutional-intake" data-i18n="subs.inst.cta.eileen">Discuss with Eileen</button>
+          <p class="inst-enquiry-formlink"><a href="#inst-intake-form" data-action="institutional-form-open" data-i18n="subs.inst.formlink">or complete the enquiry form</a></p>
+          <form id="inst-intake-form" class="inst-enquiry-form" hidden novalidate>
+            <p class="inst-enquiry-lede" data-i18n="subs.inst.intake.lede">Tell us about your organisation and we'll shape the right Ailane Institutional proposal. Eileen can gather these details with you, or complete them here.</p>
             <label>
-              <span data-i18n="subs.inst.enquiry.org">Organisation</span>
-              <input type="text" name="org" required autocomplete="organization">
+              <span data-i18n="subs.inst.intake.org">Organisation name<span class="req">*</span></span>
+              <input type="text" name="org_name" required autocomplete="organization">
             </label>
             <label>
-              <span data-i18n="subs.inst.enquiry.count">Employee count</span>
-              <select name="count" required>
-                <option value="" data-i18n="subs.inst.enquiry.count.placeholder">Select range</option>
-                <option value="50-200">50–200</option>
-                <option value="200-500">200–500</option>
-                <option value="500-1000">500–1,000</option>
-                <option value="1000-5000">1,000–5,000</option>
-                <option value="5000+">5,000+</option>
-              </select>
+              <span data-i18n="subs.inst.intake.contact">Contact name<span class="req">*</span></span>
+              <input type="text" name="contact_name" required autocomplete="name">
             </label>
             <label>
-              <span data-i18n="subs.inst.enquiry.sector">Sector</span>
-              <input type="text" name="sector" required autocomplete="off">
+              <span data-i18n="subs.inst.intake.email">Contact email<span class="req">*</span></span>
+              <input type="email" name="contact_email" required autocomplete="email">
             </label>
             <label>
-              <span data-i18n="subs.inst.enquiry.detail">What would you like Enterprise to do for you?</span>
-              <textarea name="detail" rows="3" required></textarea>
+              <span data-i18n="subs.inst.intake.phone">Phone</span>
+              <input type="tel" name="contact_phone" autocomplete="tel">
             </label>
-            <button type="submit" class="btn-primary" data-i18n="subs.inst.enquiry.submit">Send enquiry</button>
+            <label>
+              <span data-i18n="subs.inst.intake.sector">Sector</span>
+              <input type="text" name="sector" autocomplete="off">
+            </label>
+            <label>
+              <span data-i18n="subs.inst.intake.size">Organisation size</span>
+              <input type="text" name="org_size_band" autocomplete="off" placeholder="e.g. 500–1,000 employees">
+            </label>
+            <label>
+              <span data-i18n="subs.inst.intake.users">Anticipated user accounts</span>
+              <input type="number" name="estimated_users" min="1" max="1000000" inputmode="numeric">
+            </label>
+            <label>
+              <span data-i18n="subs.inst.intake.volume">Expected contract-check volume</span>
+              <input type="text" name="contract_check_volume_band" autocomplete="off" placeholder="e.g. 50 per month">
+            </label>
+            <label>
+              <span data-i18n="subs.inst.intake.requirements">Requirements</span>
+              <textarea name="requirements_text" rows="4" maxlength="5000"></textarea>
+            </label>
+            <label class="inst-enquiry-check">
+              <input type="checkbox" name="custom_sections_interest">
+              <span data-i18n="subs.inst.intake.custom">I'm interested in custom sections</span>
+            </label>
+            <label class="inst-enquiry-check">
+              <input type="checkbox" name="consent_marketing">
+              <span data-i18n="subs.inst.intake.consent">Keep me informed about Ailane Institutional and related updates (optional)</span>
+            </label>
+            <button type="submit" class="btn-primary" data-i18n="subs.inst.intake.submit">Send enquiry</button>
+            <p class="inst-enquiry-privacy" data-i18n="subs.inst.intake.privacy">Your details are used to respond to your enquiry. See our <a href="/privacy/">Privacy Policy</a>.</p>
             <p class="inst-enquiry-note" role="status" hidden></p>
           </form>
+          <a href="mailto:enquiries@ailane.ai?subject=Institutional%20requirements" class="inst-enquiry-email" data-i18n="subs.inst.cta.email">Email your company's requirements</a>
         </div>
       </div>
       <div class="tier-card tier-partnerships" data-section="partnerships">
@@ -1402,6 +1454,10 @@ function initSectionObserver() {
 var INTEL_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-landing-intel';
 var NEXUS_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-nexus-intel';
 var PRESALES_URL = 'https://cnbsxwtvazfvzmltkuvx.functions.supabase.co/eileen-presales';
+/* LANDING-REV-001 §3 — Institutional intake endpoints (Appendix A; live, smoke-tested 16 Jul 2026).
+   Origin cnbsxwtvazfvzmltkuvx.supabase.co is already in the CSP connect-src allowlist. */
+var INSTITUTIONAL_INTAKE_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/eileen-institutional-intake';
+var INSTITUTIONAL_SUBMIT_URL = 'https://cnbsxwtvazfvzmltkuvx.supabase.co/functions/v1/institutional-enquiry-submit';
 
 var FALLBACK = {
   total_decisions: 131820,
@@ -1692,6 +1748,7 @@ function initEileenCommentary() {
 /* ── Eileen LIVE CHAT HANDLER (LP-002 §4.2 — THE critical integration) ── */
 var chatMessages = [];
 var eileenContext = null;  /* set when a routed flow (e.g. enterprise_enquiry) is active */
+var instFormSource = 'web_form';  /* LANDING-REV-001 §3 — flips to 'eileen_intake' only when Eileen prefills the institutional form */
 /* visitor_hash must be >= 16 chars per eileen-presales schema validation.
    Use crypto.randomUUID when available; fall back to timestamp+random. */
 var visitorHash = (function() {
@@ -1704,6 +1761,9 @@ var visitorHash = (function() {
 })();
 
 async function sendToEileen(userText) {
+  /* LANDING-REV-001 §3 — Institutional intake is a distinct Eileen state on its own
+     endpoint; route to it without disturbing the presales chat path. */
+  if (eileenContext === 'institutional_intake') { return sendToInstitutionalIntake(userText); }
   var historyEl = document.getElementById('eileen-chat-history');
   var commentary = document.getElementById('eileen-commentary');
   var input = document.getElementById('eileen-input');
@@ -2041,6 +2101,230 @@ function initDataPartnershipsEnquiry() {
   });
 }
 
+/* ── LANDING-REV-001 §3 — Institutional intake (Eileen state + enquiry form) ──
+   Additive Eileen state. "Discuss with Eileen" converses via
+   eileen-institutional-intake (Appendix A1); when a reply carries a non-null
+   intake_summary, the enquiry form is prefilled and revealed for the visitor to
+   review. Eileen NEVER auto-submits — the visitor always clicks submit and the
+   marketing-consent box is never pre-ticked. The form also opens directly via the
+   "complete the enquiry form" link (source=web_form). Submits to
+   institutional-enquiry-submit (Appendix A2). */
+async function sendToInstitutionalIntake(userText) {
+  var historyEl = document.getElementById('eileen-chat-history');
+  var commentary = document.getElementById('eileen-commentary');
+  var sendBtn = document.getElementById('eileen-send');
+
+  var userBubble = document.createElement('div');
+  userBubble.className = 'chat-user';
+  userBubble.textContent = userText;
+  historyEl.appendChild(userBubble);
+  historyEl.scrollTop = historyEl.scrollHeight;
+  updateEileenChatActiveClass();
+
+  chatMessages.push({ role: 'user', content: userText });
+
+  if (commentary) commentary.textContent = 'Let me have a look at that for you...';
+  sendBtn.disabled = true;
+
+  if (typeof gtag === 'function') {
+    gtag('event', 'institutional_intake_message', { message_count: chatMessages.length });
+  }
+
+  function appendEileen(text) {
+    var b = document.createElement('div');
+    b.className = 'chat-eileen';
+    b.textContent = text;
+    historyEl.appendChild(b);
+    updateEileenChatActiveClass();
+    historyEl.scrollTop = historyEl.scrollHeight;
+  }
+
+  try {
+    var r = await fetch(INSTITUTIONAL_INTAKE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'institutional_intake', messages: chatMessages })
+    });
+    if (r.status === 429) {
+      if (commentary) commentary.textContent = '';
+      appendEileen('Please wait a moment and try again.');
+      sendBtn.disabled = false;
+      return;
+    }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var data = await r.json();
+    if (data && data.response) {
+      chatMessages.push({ role: 'assistant', content: data.response });
+      if (commentary) commentary.textContent = '';
+      appendEileen(data.response);
+    }
+    if (data && data.intake_summary) {
+      prefillInstitutionalForm(data.intake_summary);
+    }
+    sendBtn.disabled = false;
+  } catch (err) {
+    console.warn('[Eileen] Institutional intake failed', err);
+    if (commentary) commentary.textContent = 'I\'m having a little trouble connecting just now. Please try again in a moment.';
+    sendBtn.disabled = false;
+  }
+}
+
+function prefillInstitutionalForm(summary) {
+  var form = document.getElementById('inst-intake-form');
+  if (!form || !summary) return;
+  instFormSource = 'eileen_intake';
+  function setVal(name, val) {
+    var el = form.elements[name];
+    if (el && val !== undefined && val !== null && val !== '') el.value = val;
+  }
+  setVal('org_name', summary.org_name);
+  setVal('contact_name', summary.contact_name);
+  setVal('contact_email', summary.contact_email);
+  setVal('contact_phone', summary.contact_phone);
+  setVal('sector', summary.sector);
+  setVal('org_size_band', summary.org_size_band);
+  if (summary.estimated_users !== undefined && summary.estimated_users !== null) {
+    setVal('estimated_users', summary.estimated_users);
+  }
+  setVal('contract_check_volume_band', summary.contract_check_volume_band);
+  setVal('requirements_text', summary.requirements_text);
+  var custom = form.elements['custom_sections_interest'];
+  if (custom && typeof summary.custom_sections_interest === 'boolean') {
+    custom.checked = summary.custom_sections_interest;
+  }
+  /* consent_marketing is NEVER auto-ticked — the visitor opts in explicitly. */
+  if (form.hidden) form.hidden = false;
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  var note = form.querySelector('.inst-enquiry-note');
+  if (note) {
+    note.textContent = 'I\'ve filled in what I gathered — please review, adjust anything, then send.';
+    note.removeAttribute('data-state');
+    note.hidden = false;
+  }
+}
+
+function initInstitutionalIntake() {
+  var form = document.getElementById('inst-intake-form');
+  if (!form) return;
+  var eileenBtn = document.querySelector('[data-action="institutional-intake"]');
+  var formLink = document.querySelector('[data-action="institutional-form-open"]');
+  var note = form.querySelector('.inst-enquiry-note');
+  var submitBtn = form.querySelector('button[type="submit"]');
+  var historyEl = document.getElementById('eileen-chat-history');
+  var commentary = document.getElementById('eileen-commentary');
+  var body = document.getElementById('eileen-body');
+
+  var SEED_PROMPT = "Happy to help with Ailane Institutional. So I can prepare the right enquiry for our team, tell me a little about your organisation — who you are, your sector, roughly how many people, how many user accounts you expect, and what you'd like Institutional to do for you. When I have enough, I'll draft an enquiry for you to review and send.";
+
+  function setNote(text, state) {
+    if (!note) return;
+    note.textContent = text;
+    if (state) note.setAttribute('data-state', state); else note.removeAttribute('data-state');
+    note.hidden = !text;
+  }
+
+  if (eileenBtn) {
+    eileenBtn.addEventListener('click', function() {
+      eileenContext = 'institutional_intake';
+      instFormSource = 'web_form';  /* becomes eileen_intake only when Eileen prefills */
+      showEileenContextBar();
+      if (body && body.classList.contains('hidden')) body.classList.remove('hidden');
+      /* Fresh intake conversation so the endpoint receives only intake turns. */
+      if (historyEl) historyEl.innerHTML = '';
+      chatMessages = [];
+      if (historyEl) {
+        var bubble = document.createElement('div');
+        bubble.className = 'chat-eileen';
+        bubble.textContent = SEED_PROMPT;
+        historyEl.appendChild(bubble);
+        historyEl.scrollTop = historyEl.scrollHeight;
+        updateEileenChatActiveClass();
+      }
+      if (commentary) commentary.textContent = 'Gathering your Institutional requirements — I\'ll prepare an enquiry for you to review.';
+      if (body) body.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var input = document.getElementById('eileen-input');
+      if (input) input.focus();
+      if (typeof gtag === 'function') {
+        gtag('event', 'institutional_intake_started', { section: 'subscriptions' });
+      }
+    });
+  }
+
+  if (formLink) {
+    formLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (instFormSource !== 'eileen_intake') instFormSource = 'web_form';
+      if (form.hidden) form.hidden = false;
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var first = form.querySelector('input, select, textarea');
+      if (first) first.focus();
+      if (typeof gtag === 'function') {
+        gtag('event', 'institutional_form_opened', { section: 'subscriptions', via: 'link' });
+      }
+    });
+  }
+
+  form.addEventListener('submit', async function(ev) {
+    ev.preventDefault();
+    var fd = new FormData(form);
+    var orgName = String(fd.get('org_name') || '').trim();
+    var contactName = String(fd.get('contact_name') || '').trim();
+    var contactEmail = String(fd.get('contact_email') || '').trim();
+    if (!orgName || !contactName || !contactEmail) {
+      setNote('Please complete organisation name, contact name and contact email.', 'error');
+      return;
+    }
+    var payload = {
+      org_name: orgName,
+      contact_name: contactName,
+      contact_email: contactEmail,
+      contact_phone: String(fd.get('contact_phone') || '').trim(),
+      sector: String(fd.get('sector') || '').trim(),
+      org_size_band: String(fd.get('org_size_band') || '').trim(),
+      contract_check_volume_band: String(fd.get('contract_check_volume_band') || '').trim(),
+      requirements_text: String(fd.get('requirements_text') || '').trim(),
+      custom_sections_interest: !!fd.get('custom_sections_interest'),
+      consent_marketing: !!fd.get('consent_marketing'),
+      source: (instFormSource === 'eileen_intake') ? 'eileen_intake' : 'web_form',
+      privacy_notice_version: 'privacy-2026-07'
+    };
+    var usersRaw = String(fd.get('estimated_users') || '').trim();
+    if (usersRaw !== '') {
+      var usersNum = parseInt(usersRaw, 10);
+      if (!isNaN(usersNum)) payload.estimated_users = usersNum;
+    }
+    /* eileen_transcript only when Eileen prefilled the form (source=eileen_intake). */
+    if (payload.source === 'eileen_intake') {
+      try { payload.eileen_transcript = JSON.stringify(chatMessages); } catch (e) {}
+    }
+
+    submitBtn.disabled = true;
+    setNote('Sending…', null);
+    try {
+      var r = await fetch(INSTITUTIONAL_SUBMIT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (r.status === 429) {
+        setNote('Please wait a moment and try again.', 'error');
+        submitBtn.disabled = false;
+        return;
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var data = await r.json();
+      setNote((data && data.message) ? data.message : 'Thank you — your Institutional enquiry has been received. Our team will contact you.', 'success');
+      if (typeof gtag === 'function') {
+        gtag('event', 'institutional_enquiry_submitted', { section: 'subscriptions', source: payload.source });
+      }
+    } catch (err) {
+      console.warn('[Institutional] submit failed', err);
+      setNote('Something went wrong — please email enquiries@ailane.ai instead.', 'error');
+      submitBtn.disabled = false;
+    }
+  });
+}
+
 /* LP-V3-PUNCHLIST §3.5 — hero secondary CTA opens chat panel with ERA changes seed */
 function initHeroChangesButton() {
   var btn = document.querySelector('[data-action="open-eileen-changes"]');
@@ -2123,7 +2407,8 @@ function initEileenMinimise() {
 /* LP-V3-PUNCHLIST §3.4 — context exit mechanism */
 var CONTEXT_LABELS = {
   'enterprise_enquiry': 'Currently: Enterprise enquiry',
-  'data_partnerships_enquiry': 'Currently: Data Partnerships enquiry'
+  'data_partnerships_enquiry': 'Currently: Data Partnerships enquiry',
+  'institutional_intake': 'Currently: Institutional enquiry'
 };
 
 function showEileenContextBar() {
@@ -2144,6 +2429,9 @@ function exitEileenContext() {
   showEileenContextBar();
   var instForm = document.getElementById('inst-enquiry-form');
   if (instForm) instForm.hidden = true;
+  var intakeForm = document.getElementById('inst-intake-form');
+  if (intakeForm) intakeForm.hidden = true;
+  instFormSource = 'web_form';
   var dpForm = document.getElementById('dp-enquiry-form');
   if (dpForm) dpForm.hidden = true;
   var history = document.getElementById('eileen-chat-history');
@@ -2190,6 +2478,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   initKLStartButton();
   initEnterpriseEnquiry();
   initDataPartnershipsEnquiry();
+  initInstitutionalIntake();
 
   // Render Nexus instances via window.AilaneNexus (assets/js/nexus.js).
   if (window.AilaneNexus && window.AilaneNexus.createNexus) {
