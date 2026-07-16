@@ -58,10 +58,15 @@ var HUB_WORKSPACE_FACETS = [
   // tenant's events with the dated statutory/rates/horizon intelligence). HubCalendarFacet
   // is retained (no deletion) as the in-app fallback; the nav now navigates to the page.
   { id: 'calendar',     label: 'Calendar', href: '/operational/calendar/' },
+  // AILANE-CC-BRIEF-WSUX-SITE-003 §S1 — in-app Settings facet (org/ALIN, security/MFA,
+  // team, usage, notifications, data & privacy, accessibility).
+  { id: 'settings',     label: 'Settings' },
 ];
 var HUB_FACET_LABELS = {
   vault: 'Document Vault', alerts: 'Alerts', acei: 'ACEI Overview',
   intelligence: 'Intelligence', ticker: 'Ticker', notes: 'Notes', calendar: 'Calendar',
+  // AILANE-CC-BRIEF-WSUX-SITE-003 §S1 — in-app Settings facet.
+  settings: 'Settings',
   // GOVWS-SITE-001 §2 — governance-only in-app facet (Triad panel).
   triad: 'Triad — ACEI · RRI · CCI',
 };
@@ -2575,7 +2580,7 @@ function UploadCompleteMessage({ filename, charCount, documentId, onRunAnalysis,
 
 // ─── MessageBubble ───
 
-function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder }) {
+function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder, hubMode }) {
   if (msg.type === 'file_upload') {
     return (
       <div className="kl-msg kl-msg-user">
@@ -2829,6 +2834,51 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder }) {
                       btn.textContent = '✓ Saved to Notes';
                       btn.style.color = '#10B981';
                       // §7.3 — propagate into the Notes section with no reload.
+                      if (typeof window.__klHubNotesRefresh === 'function') window.__klHubNotesRefresh();
+                    } else {
+                      btn.textContent = 'Failed';
+                      btn.style.color = '#EF4444';
+                    }
+                    setTimeout(function() { btn.textContent = orig; btn.style.color = ''; btn.disabled = false; }, 2000);
+                  });
+                }}
+                className="kl-action-btn"
+                title="Save this question and Eileen's answer to your Notes"
+              >Save to Notes</button>
+            )}
+
+            {/* §N2 — Save to Notes in the WORKSPACE (operational/governance hub). The
+                klPassHolder control above is untouched (KL surface, §6 out of scope); this
+                mutually-exclusive sibling (hubMode ⇒ subscription, so klPassHolder is false)
+                persists the whole exchange into the Notes hub. NOTE: the kl_workspace_notes
+                note_type CHECK is ['note','clip','eileen_response'] — 'eileen_conversation' is
+                NOT accepted by the live DB (schema out of scope, §6), so the saved conversation
+                uses the allowed 'eileen_response' and carries content_json.kind=
+                'eileen_conversation' + the paired conversation reference; it renders with the
+                "Eileen" chip in Notes and is downloadable like any note (§N4). */}
+            {hubMode && msg.userMessage != null && (
+              <button
+                type="button"
+                onClick={function(e) {
+                  var btn = e.currentTarget;
+                  btn.disabled = true;
+                  var orig = btn.textContent;
+                  btn.textContent = 'Saving…';
+                  var userId = window.__klUserId;
+                  if (!userId) { btn.textContent = 'Not signed in'; setTimeout(function() { btn.textContent = orig; btn.disabled = false; }, 1800); return; }
+                  var note = {
+                    user_id: userId,
+                    project_id: null,
+                    title: klNoteTitleFromQuestion(msg.userMessage),
+                    content_plain: 'Question:\n' + (msg.userMessage || '') + '\n\nEileen:\n' + (msg.content || ''),
+                    content_json: { kind: 'eileen_conversation', turns: [{ role: 'user', text: msg.userMessage || '' }, { role: 'assistant', text: msg.content || '' }] },
+                    note_type: 'eileen_response',
+                    source_attribution: msg.conversationId || null,
+                  };
+                  klWsInsert('kl_workspace_notes', note).then(function(rows) {
+                    if (rows) {
+                      btn.textContent = '✓ Saved to Notes';
+                      btn.style.color = '#10B981';
                       if (typeof window.__klHubNotesRefresh === 'function') window.__klHubNotesRefresh();
                     } else {
                       btn.textContent = 'Failed';
@@ -3128,7 +3178,7 @@ function ConversationArea({ messages, isLoading, onSend, tier, onFileSelect, onR
               if (m.isError) {
                 return <EileenErrorMessage key={i} message={m.errorMessage || m.content} retryAction={m.retryAction} retryLabel={m.retryLabel} />;
               }
-              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} onVaultOnly={onVaultOnly} klPassHolder={klPassHolder} />;
+              return <MessageBubble key={i} msg={m} onRunAnalysis={onRunAnalysis} onVaultOnly={onVaultOnly} klPassHolder={klPassHolder} hubMode={hubMode} />;
             })}
             {showQualifier && <QualifyingQuestion onSelect={onUserTypeSelect} />}
             {isLoading && <TypingIndicator />}
@@ -10836,7 +10886,7 @@ function HubIntelFacet({ hubSession }) {
 // matter bar's inline edit / confirm-delete chrome. Resilient: any write error
 // console.warns, leaves state unchanged + shows a brief inline note; never blocks.
 
-var HUB_NOTES_COLS = 'id,title,content_plain,pinned,note_type,updated_at,created_at';
+var HUB_NOTES_COLS = 'id,title,content_plain,pinned,note_type,source_attribution,folder_id,updated_at,created_at';
 
 // Notes chrome — reuses the hub palette (card / input / button styles mirror the
 // matter bar + the other facets).
@@ -10881,14 +10931,38 @@ function hubNotesSnippet(text) {
 // pinned (§1.5). All server values via escaped React children. Writes go through
 // hubSession.sb (RLS scopes to the owner); on error console.warn + a brief inline
 // note, state unchanged (§1.6).
-function HubNoteCard({ note, hubSession, onChanged, onRemoved }) {
-  var _mode = useState(null); var mode = _mode[0]; var setMode = _mode[1]; // null | 'edit' | 'delete'
+function HubNoteCard({ note, hubSession, folders, orgId, notesExportReady, onChanged, onRemoved, onAddToCalendar, onCreatedFolder }) {
+  var _mode = useState(null); var mode = _mode[0]; var setMode = _mode[1]; // null | 'edit' | 'delete' | 'move'
   var _title = useState(note.title || ''); var title = _title[0]; var setTitle = _title[1];
   var _content = useState(note.content_plain || ''); var content = _content[0]; var setContent = _content[1];
+  var _mvFolder = useState(note.folder_id || ''); var mvFolder = _mvFolder[0]; var setMvFolder = _mvFolder[1];
   var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
   var _err = useState(''); var err = _err[0]; var setErr = _err[1];
+  var _dlErr = useState(''); var dlErr = _dlErr[0]; var setDlErr = _dlErr[1];
 
   function sbReady() { var sb = hubSession && hubSession.sb; return (sb && sb.from) ? sb : null; }
+
+  // §N1 Move — reassign folder_id (null = Unfiled); refresh the row on success.
+  function saveMove() {
+    var sb = sbReady(); if (!sb) return;
+    setBusy(true); setErr('');
+    sb.from('kl_workspace_notes')
+      .update({ folder_id: mvFolder || null, updated_at: new Date().toISOString() })
+      .eq('id', note.id)
+      .select(HUB_NOTES_COLS).single()
+      .then(function (r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        setMode(null);
+        onChanged((r && r.data) || Object.assign({}, note, { folder_id: mvFolder || null }));
+      })
+      .catch(function (e) { setBusy(false); console.warn('[WSUX-003] Notes: move failed', e); setErr('Could not move this note. Please try again.'); });
+  }
+  // §N4 — per-note .docx via notes-export (only reachable when the probe succeeded).
+  function downloadDocx() {
+    setDlErr('');
+    klNotesExportDownload(hubSession, { note_ids: [note.id], format: 'docx' }, klNoteFileBase(note) + '.docx').then(function (msg) { if (msg) setDlErr(msg); });
+  }
 
   // §1.3 Edit — update title/content + updated_at; refresh that row on success.
   function saveEdit() {
@@ -10973,65 +11047,121 @@ function HubNoteCard({ note, hubSession, onChanged, onRemoved }) {
     );
   }
 
+  // §N1 Move — folder picker.
+  if (mode === 'move') {
+    return React.createElement('div', { style: cardStyle },
+      React.createElement('div', { style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 600 } }, 'Move to folder'),
+      React.createElement(HubFolderPicker, { folders: folders, value: mvFolder, onChange: setMvFolder, hubSession: hubSession, orgId: orgId, onCreated: onCreatedFolder, label: 'Folder' }),
+      err ? React.createElement('div', { style: HUB_NOTES_ERR_STYLE }, err) : null,
+      React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE },
+        React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_PRIMARY, onClick: saveMove }, busy ? 'Saving…' : 'Save'),
+        React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setMode(null); setMvFolder(note.folder_id || ''); setErr(''); } }, 'Cancel')
+      )
+    );
+  }
+
   // Default view.
+  var chip = hubNoteTypeChip(note.note_type);
+  var noteFolder = (folders || []).filter(function (f) { return f.id === note.folder_id; })[0];
   var children = [
     React.createElement('div', { key: 'hdr', style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' } },
-      React.createElement('div', { style: { minWidth: 0 } },
-        React.createElement('div', { style: HUB_NOTES_TITLE_STYLE }, note.title ? note.title : 'Untitled')),
+      React.createElement('div', { style: { minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
+        React.createElement('span', { style: HUB_NOTES_TITLE_STYLE }, note.title ? note.title : 'Untitled'),
+        chip),
       note.pinned ? React.createElement('span', { style: HUB_NOTES_PIN_TAG }, '📌 Pinned') : null
     ),
   ];
   var snip = hubNotesSnippet(note.content_plain);
   if (snip) children.push(React.createElement('div', { key: 'snip', style: HUB_NOTES_SNIPPET_STYLE }, snip));
-  children.push(React.createElement('div', { key: 'meta', style: HUB_NOTES_META_STYLE }, 'Updated ' + hubVaultDate(note.updated_at)));
+  children.push(React.createElement('div', { key: 'meta', style: HUB_NOTES_META_STYLE }, [(noteFolder ? ('Folder: ' + noteFolder.name) : 'Unfiled'), 'Updated ' + hubVaultDate(note.updated_at)].join('  ·  ')));
   if (err) children.push(React.createElement('div', { key: 'err', style: HUB_NOTES_ERR_STYLE }, err));
-  children.push(React.createElement('div', { key: 'actions', style: HUB_NOTES_ACTIONS_STYLE },
-    React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, 'aria-pressed': note.pinned ? 'true' : 'false', onClick: togglePin }, note.pinned ? 'Unpin' : 'Pin'),
-    React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setTitle(note.title || ''); setContent(note.content_plain || ''); setErr(''); setMode('edit'); } }, 'Edit'),
-    React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: function () { setErr(''); setMode('delete'); } }, 'Delete')
-  ));
+  if (dlErr) children.push(React.createElement('div', { key: 'dlerr', style: HUB_NOTES_ERR_STYLE }, dlErr));
+  var actions = [
+    React.createElement('button', { key: 'pin', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, 'aria-pressed': note.pinned ? 'true' : 'false', onClick: togglePin }, note.pinned ? 'Unpin' : 'Pin'),
+    React.createElement('button', { key: 'edit', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setTitle(note.title || ''); setContent(note.content_plain || ''); setErr(''); setMode('edit'); } }, 'Edit'),
+    React.createElement('button', { key: 'move', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setMvFolder(note.folder_id || ''); setErr(''); setMode('move'); } }, 'Move'),
+    React.createElement('button', { key: 'cal', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { if (onAddToCalendar) onAddToCalendar(note); } }, 'Add to Compliance Calendar'),
+    React.createElement('button', { key: 'txt', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { klNoteDownloadTxt(note); } }, 'Download .txt'),
+  ];
+  if (notesExportReady) {
+    actions.push(React.createElement('button', { key: 'docx', type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: downloadDocx }, 'Download .docx'));
+  } else {
+    actions.push(React.createElement('button', { key: 'docx', type: 'button', disabled: true, title: 'Word export is coming shortly.', style: Object.assign({}, HUB_MATTER_BTN_STYLE, { opacity: 0.45, cursor: 'not-allowed' }) }, 'Download .docx'));
+  }
+  actions.push(React.createElement('button', { key: 'del', type: 'button', disabled: busy, style: HUB_MATTER_BTN_DANGER, onClick: function () { setErr(''); setMode('delete'); } }, 'Delete'));
+  children.push(React.createElement('div', { key: 'actions', style: HUB_NOTES_ACTIONS_STYLE }, actions));
 
   return React.createElement('div', { style: cardStyle }, children);
 }
 
-// Notes facet body. Lists the user's own notes on open (§1.1, RLS-scoped), with a
-// "New note" capture form below (§1.2). Pinned first; empty state present. The
-// list is held in state and reconciled in place after each create/edit/delete/pin
-// (no re-query needed). Mirrors the other facets' shape (alive-guarded read,
-// loading line, resilient unwrap, max-width container, reused hub chrome).
+// Notes facet body (AILANE-CC-BRIEF-WSUX-SITE-003 §N). Two views — Notes (kl_workspace_notes,
+// RLS-scoped to the caller) and Documents (§N3, non-monitored vault documents) — both
+// folder-filterable (§N1, compliance_folders org-scoped). Notes support Save-to-Notes chips
+// (§N2), per-note downloads (§N4), Move-to-folder (§N1), and Add-to-Compliance-Calendar
+// (§N5). folders + org id + the notes-export probe (§N4) resolve once on mount. Server values
+// render via escaped React children. Resilient: read/write errors console.warn + a brief inline
+// note; never block.
 function HubNotesFacet({ hubSession }) {
   var _state = useState({ status: 'loading', notes: [], error: false });
   var state = _state[0]; var setState = _state[1];
+  var _folders = useState([]); var folders = _folders[0]; var setFolders = _folders[1];
+  var _orgId = useState(null); var orgId = _orgId[0]; var setOrgId = _orgId[1];
+  var _export = useState(false); var notesExportReady = _export[0]; var setNotesExportReady = _export[1];
+  var _view = useState('notes'); var view = _view[0]; var setView = _view[1];   // 'notes' | 'documents'
+  var _filter = useState(''); var folderFilter = _filter[0]; var setFolderFilter = _filter[1];
+  var _calNote = useState(null); var calNote = _calNote[0]; var setCalNote = _calNote[1];
+  var _zipErr = useState(''); var zipErr = _zipErr[0]; var setZipErr = _zipErr[1];
   var _nt = useState(''); var newTitle = _nt[0]; var setNewTitle = _nt[1];
   var _nc = useState(''); var newContent = _nc[0]; var setNewContent = _nc[1];
+  var _nf = useState(''); var newFolder = _nf[0]; var setNewFolder = _nf[1];
   var _cb = useState(false); var creating = _cb[0]; var setCreating = _cb[1];
   var _ce = useState(''); var createErr = _ce[0]; var setCreateErr = _ce[1];
 
-  // §1.1 list read — RLS returns only the caller's own notes (parallel-safe).
+  // §N1/§1.1 — notes read (RLS own-rows) + folders (org-scoped) + org id + notes-export probe.
+  function loadNotes(sb) {
+    return sb.from('kl_workspace_notes')
+      .select(HUB_NOTES_COLS)
+      .order('pinned', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(200);
+  }
   useEffect(function () {
     var alive = true;
     var sb = hubSession && hubSession.sb;
     if (!sb || !sb.from) { setState({ status: 'ready', notes: [], error: true }); return; }
-    sb.from('kl_workspace_notes')
-      .select(HUB_NOTES_COLS)
-      .order('pinned', { ascending: false })
-      .order('updated_at', { ascending: false })
-      .limit(100)
-      .then(function (res) {
-        if (!alive) return;
+    // Refresh hook so the workspace Save-to-Notes control (§N2, in MessageBubble) can
+    // re-pull the list without a facet remount.
+    window.__klHubNotesRefresh = function () {
+      loadNotes(sb).then(function (res) {
         var un = hubVaultUnwrap(res, 'kl_workspace_notes');
-        if (un.error) { setState({ status: 'ready', notes: [], error: true }); return; }
-        setState({ status: 'ready', notes: hubNotesSort(un.rows || []), error: false });
-      })
-      .catch(function (e) {
-        console.warn('[OOX-001] Notes facet: read failed', e);
-        if (alive) setState({ status: 'ready', notes: [], error: true });
-      });
-    return function () { alive = false; };
+        if (!un.error) setState({ status: 'ready', notes: hubNotesSort(un.rows || []), error: false });
+      }).catch(function () { /* silent */ });
+    };
+    Promise.all([
+      loadNotes(sb),
+      sb.rpc('get_my_org_id'),
+    ]).then(function (res) {
+      if (!alive) return;
+      var un = hubVaultUnwrap(res[0], 'kl_workspace_notes');
+      var oid = (res[1] && !res[1].error) ? res[1].data : null;
+      setOrgId(oid);
+      if (un.error) setState({ status: 'ready', notes: [], error: true });
+      else setState({ status: 'ready', notes: hubNotesSort(un.rows || []), error: false });
+      // Folders (own-org). Non-fatal — the picker degrades to Unfiled + starters.
+      if (oid) {
+        sb.from('compliance_folders').select('id,name').eq('organisation_id', oid).order('name', { ascending: true })
+          .then(function (fr) { if (alive) { var fu = hubVaultUnwrap(fr, 'compliance_folders'); setFolders(fu.error ? [] : hubFolderSort(fu.rows || [])); } })
+          .catch(function () { /* silent */ });
+      }
+    }).catch(function (e) {
+      console.warn('[WSUX-003] Notes facet: read failed', e);
+      if (alive) setState({ status: 'ready', notes: [], error: true });
+    });
+    klNotesExportProbe(hubSession).then(function (ok) { if (alive) setNotesExportReady(!!ok); });
+    return function () { alive = false; if (window.__klHubNotesRefresh) { try { delete window.__klHubNotesRefresh; } catch (e) { window.__klHubNotesRefresh = undefined; } } };
   }, [hubSession]);
 
-  // §1.2 Create — insert the caller's note (content_json {}, note_type 'note',
-  // user_id = hubSession.userId; project_id omitted/null) → prepend + clear.
+  // §1.2/§N1 Create — insert the caller's note with the selected folder_id.
   function createNote() {
     var sb = hubSession && hubSession.sb;
     if (!sb || !sb.from) return;
@@ -11040,20 +11170,19 @@ function HubNotesFacet({ hubSession }) {
     if (!c) { setCreateErr('Write something to save.'); return; }
     setCreating(true); setCreateErr('');
     sb.from('kl_workspace_notes')
-      .insert({ user_id: hubSession.userId, title: t || null, content_plain: c, content_json: {}, note_type: 'note', pinned: false })
+      .insert({ user_id: hubSession.userId, title: t || null, content_plain: c, content_json: {}, note_type: 'note', pinned: false, folder_id: newFolder || null })
       .select(HUB_NOTES_COLS).single()
       .then(function (r) {
         setCreating(false);
         if (r && r.error) throw r.error;
         var row = r && r.data;
         if (!row) { setCreateErr('Could not save the note. Please try again.'); return; }
-        setNewTitle(''); setNewContent('');
+        setNewTitle(''); setNewContent(''); setNewFolder('');
         setState(function (prev) { return { status: 'ready', notes: hubNotesSort([row].concat(prev.notes || [])), error: prev.error }; });
       })
-      .catch(function (e) { setCreating(false); console.warn('[OOX-001] Notes: create failed', e); setCreateErr('Could not save the note. Please try again.'); });
+      .catch(function (e) { setCreating(false); console.warn('[WSUX-003] Notes: create failed', e); setCreateErr('Could not save the note. Please try again.'); });
   }
 
-  // Reconcile a single mutated row / removal into the list (re-sort on change).
   function handleChanged(row) {
     if (!row || row.id == null) return;
     setState(function (prev) {
@@ -11066,28 +11195,59 @@ function HubNotesFacet({ hubSession }) {
       return Object.assign({}, prev, { notes: (prev.notes || []).filter(function (n) { return n.id !== id; }) });
     });
   }
+  function mergeFolder(f) {
+    if (!f || !f.id) return;
+    setFolders(function (prev) { if ((prev || []).some(function (x) { return x.id === f.id; })) return prev; return hubFolderSort((prev || []).concat([{ id: f.id, name: f.name }])); });
+  }
+  // §N4 — folder/all .zip via notes-export (only when the probe succeeded).
+  function downloadZip() {
+    setZipErr('');
+    var payload = (folderFilter && folderFilter !== '__unfiled__') ? { folder_id: folderFilter, format: 'zip' } : { all: true, format: 'zip' };
+    klNotesExportDownload(hubSession, payload, 'notes.zip').then(function (msg) { if (msg) setZipErr(msg); });
+  }
 
   if (state.status === 'loading') {
     return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading your notes…');
   }
 
   var children = [];
-  var notes = state.notes || [];
+  // Toolbar — view switch (Notes / Documents) + folder filter + zip-all (§N1/§N3/§N4).
+  var toolbar = [
+    React.createElement('button', { key: 'vn', type: 'button', style: view === 'notes' ? HUB_TAB_BTN_ON : HUB_TAB_BTN, 'aria-pressed': view === 'notes', onClick: function () { setView('notes'); } }, 'Notes'),
+    React.createElement('button', { key: 'vd', type: 'button', style: view === 'documents' ? HUB_TAB_BTN_ON : HUB_TAB_BTN, 'aria-pressed': view === 'documents', onClick: function () { setView('documents'); } }, 'Documents'),
+  ];
+  if (folders.length) toolbar.push(React.createElement(HubFolderFilter, { key: 'ff', folders: folders, value: folderFilter, onChange: setFolderFilter }));
+  if (view === 'notes') {
+    if (notesExportReady) toolbar.push(React.createElement('button', { key: 'zip', type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: downloadZip }, (folderFilter && folderFilter !== '__unfiled__') ? 'Download folder (.zip)' : 'Download all (.zip)'));
+    else toolbar.push(React.createElement('button', { key: 'zip', type: 'button', disabled: true, title: 'Bulk export is coming shortly.', style: Object.assign({}, HUB_MATTER_BTN_STYLE, { opacity: 0.45, cursor: 'not-allowed' }) }, 'Download all (.zip)'));
+  }
+  children.push(React.createElement('div', { key: 'toolbar', style: HUB_TOOLBAR_ROW }, toolbar));
+  if (zipErr) children.push(React.createElement('div', { key: 'ziperr', style: Object.assign({}, HUB_NOTES_ERR_STYLE, { marginTop: 0, marginBottom: '12px' }) }, zipErr));
+
+  if (view === 'documents') {
+    children.push(React.createElement(HubDocumentsView, { key: 'docs', hubSession: hubSession, orgId: orgId, folders: folders, folderFilter: folderFilter, onCreatedFolder: mergeFolder }));
+    if (calNote) children.push(React.createElement(HubNoteCalendarModal, { key: 'calmodal', note: calNote, hubSession: hubSession, orgId: orgId, onClose: function () { setCalNote(null); }, onDone: function () {} }));
+    return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
+  }
+
+  // Notes view — folder-filtered list.
+  var notes = (state.notes || []).filter(function (n) {
+    if (folderFilter === '') return true;
+    if (folderFilter === '__unfiled__') return !n.folder_id;
+    return n.folder_id === folderFilter;
+  });
   if (state.error) {
-    // §1.6 resilient — the read failed: a brief inline note, but the New-note form
-    // below still works.
     children.push(React.createElement('div', { key: 'err', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', marginBottom: '16px' } }, 'Could not load your notes just now.'));
   } else if (!notes.length) {
-    // §1.1 empty state.
-    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6, marginBottom: '20px' } }, 'No notes yet — capture your first below.'));
+    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6, marginBottom: '20px' } }, folderFilter ? 'No notes in this folder yet.' : 'No notes yet — capture your first below.'));
   } else {
     children.push(React.createElement('div', { key: 'list', style: HUB_NOTES_LIST_STYLE },
       notes.map(function (n) {
-        return React.createElement(HubNoteCard, { key: n.id, note: n, hubSession: hubSession, onChanged: handleChanged, onRemoved: handleRemoved });
+        return React.createElement(HubNoteCard, { key: n.id, note: n, hubSession: hubSession, folders: folders, orgId: orgId, notesExportReady: notesExportReady, onChanged: handleChanged, onRemoved: handleRemoved, onAddToCalendar: function (nt) { setCalNote(nt); }, onCreatedFolder: mergeFolder });
       })));
   }
 
-  // §1.2 "New note" capture form (below the list).
+  // §1.2/§N1 "New note" capture form (below the list) with folder picker.
   children.push(React.createElement('div', { key: 'newform', style: HUB_NOTES_CARD_STYLE },
     React.createElement('div', { key: 'h', style: HUB_ACEI_SECTION_H }, 'New note'),
     React.createElement('input', {
@@ -11100,11 +11260,15 @@ function HubNotesFacet({ hubSession }) {
       onChange: function (e) { setNewContent(e.target.value); },
       style: HUB_NOTES_TEXTAREA_STYLE,
     }),
+    React.createElement(HubFolderPicker, { key: 'fp', folders: folders, value: newFolder, onChange: setNewFolder, hubSession: hubSession, orgId: orgId, onCreated: mergeFolder }),
     createErr ? React.createElement('div', { key: 'err', style: HUB_NOTES_ERR_STYLE }, createErr) : null,
     React.createElement('div', { key: 'actions', style: HUB_NOTES_ACTIONS_STYLE },
       React.createElement('button', { type: 'button', disabled: creating || !newContent.trim(), style: HUB_MATTER_BTN_PRIMARY, onClick: createNote }, creating ? 'Saving…' : 'Save note')
     )
   ));
+
+  // §N5 — Add-to-Calendar modal (opened from a note card).
+  if (calNote) children.push(React.createElement(HubNoteCalendarModal, { key: 'calmodal', note: calNote, hubSession: hubSession, orgId: orgId, onClose: function () { setCalNote(null); }, onDone: function () {} }));
 
   return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
 }
@@ -11498,6 +11662,827 @@ function HubCalendarFacet({ hubSession }) {
   return React.createElement('div', { style: { maxWidth: '900px', margin: '0 auto', width: '100%' } }, children);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// AILANE-CC-BRIEF-WSUX-SITE-003 — Notes hub (folders/uploads/eileen-saves/
+// downloads/calendar-link) + Settings surface shared substrate.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── §S2 — workspace accessibility (font-size + high-contrast + reduced-motion) ───
+// The "one small shared snippet": read localStorage and apply a font-size multiplier
+// (via zoom on the workspace shell root #kl-root) + a high-contrast class on <html>.
+// The SAME logic ships as /assets/kl-a11y.js for the standalone workspace pages
+// (documents/calendar/cases/parliament-live) which do not load this bundle. Keys are
+// shared so a preference set in Settings applies estate-wide. At default (scale '1',
+// contrast off) the apply is a no-op — no inline zoom is set and no class is added, so
+// the workspace renders byte-identically. prefers-reduced-motion is honoured by the CSS
+// guards below. Light theme is intentionally NOT built (Director hold, §6.1).
+var KL_A11Y_FONT_KEY = 'ailane_a11y_font_scale';    // '1' | '1.12' | '1.25'
+var KL_A11Y_CONTRAST_KEY = 'ailane_a11y_contrast';  // '1' (on) | '' (off)
+var KL_A11Y_FONT_STEPS = ['1', '1.12', '1.25'];
+function klA11yReadFont() {
+  try { var v = localStorage.getItem(KL_A11Y_FONT_KEY); return KL_A11Y_FONT_STEPS.indexOf(v) >= 0 ? v : '1'; } catch (e) { return '1'; }
+}
+function klA11yReadContrast() {
+  try { return localStorage.getItem(KL_A11Y_CONTRAST_KEY) === '1'; } catch (e) { return false; }
+}
+function klA11yApply() {
+  if (typeof document === 'undefined') return;
+  var scale = klA11yReadFont();
+  var contrast = klA11yReadContrast();
+  try {
+    var rootEl = document.documentElement;
+    rootEl.style.setProperty('--kl-a11y-font-scale', scale);
+    // Zoom only when scaled up: at '1' clear the inline zoom so no stacking context
+    // is introduced and default rendering is untouched.
+    var shell = document.getElementById('kl-root');
+    if (shell) shell.style.zoom = (scale === '1') ? '' : scale;
+    if (contrast) rootEl.classList.add('contrast-boost'); else rootEl.classList.remove('contrast-boost');
+  } catch (e) { /* non-fatal */ }
+}
+function klA11ySetFont(v) {
+  try { localStorage.setItem(KL_A11Y_FONT_KEY, KL_A11Y_FONT_STEPS.indexOf(v) >= 0 ? v : '1'); } catch (e) { /* ignore */ }
+  klA11yApply();
+}
+function klA11ySetContrast(on) {
+  try { localStorage.setItem(KL_A11Y_CONTRAST_KEY, on ? '1' : ''); } catch (e) { /* ignore */ }
+  klA11yApply();
+}
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('kl-wsux003-a11y-styles')) return;
+  var style = document.createElement('style');
+  style.id = 'kl-wsux003-a11y-styles';
+  style.textContent = [
+    /* §S2b — high-contrast: lift text + border contrast of the EXISTING palette (no
+       redesign). Only active when <html> carries .contrast-boost. */
+    '.contrast-boost .kl-sidebar, .contrast-boost .kl-topbar, .contrast-boost .kl-panelrail { border-color: #3B5A82 !important; }',
+    '.contrast-boost [style*="#64748B"], .contrast-boost [style*="#475569"] { color: #94A3B8 !important; }',
+    '.contrast-boost [style*="#94A3B8"] { color: #CBD5E1 !important; }',
+    '.contrast-boost [style*="#CBD5E1"] { color: #F1F5F9 !important; }',
+    /* §S2c — honour prefers-reduced-motion on the workspace class-based animations
+       (a stylesheet !important beats the inline animation on .kl-analysis-pulse). */
+    '@media (prefers-reduced-motion: reduce) {',
+    '  .kl-analysis-pulse { animation: none !important; }',
+    '  .kl-nexus-halo--processing { animation: none !important; }',
+    '}',
+  ].join('\n');
+  document.head.appendChild(style);
+  klA11yApply();
+})();
+
+// Shared modal chrome for the note actions (calendar-link) — hub palette.
+var HUB_MODAL_BACKDROP = { position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, background: 'rgba(2,6,16,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 };
+var HUB_MODAL_CARD = { background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '14px', padding: '20px 22px', width: '100%', maxWidth: '440px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' };
+var HUB_TOOLBAR_ROW = { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' };
+var HUB_TAB_BTN = { background: 'transparent', border: '1px solid #1E3A5F', borderRadius: '999px', color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', padding: '6px 14px', cursor: 'pointer', minHeight: '32px' };
+var HUB_TAB_BTN_ON = Object.assign({}, HUB_TAB_BTN, { color: '#F1F5F9', background: 'rgba(14,165,233,0.12)', borderColor: 'rgba(14,165,233,0.45)' });
+
+// ─── §N1/§N3 — Document Vault folders in the workspace (compliance_folders, org-scoped
+// via RLS: own-org select + insert). Mirrors the vault room folder picker (GOVWS-OFFER
+// §5): Unfiled + the org's folders + "Create new folder…", with By Region / By Department
+// starters when the org has none. Reads/writes flow through hubSession.sb. ───
+var HUB_FOLDER_STARTERS = ['By Region', 'By Department'];
+function hubFolderSort(rows) {
+  return (rows || []).slice().sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || '')); });
+}
+// List-view folder filter <select>. Hidden until the org has ≥1 folder. value '' = all,
+// '__unfiled__' = null folder_id, else a folder id.
+function HubFolderFilter({ folders, value, onChange }) {
+  if (!folders || !folders.length) return null;
+  var opts = [React.createElement('option', { key: '__all', value: '' }, 'All folders')];
+  folders.forEach(function (f) { opts.push(React.createElement('option', { key: f.id, value: f.id }, f.name)); });
+  opts.push(React.createElement('option', { key: '__unf', value: '__unfiled__' }, 'Unfiled'));
+  return React.createElement('select', { value: value, 'aria-label': 'Filter by folder', onChange: function (e) { onChange(e.target.value); }, style: Object.assign({}, HUB_CAL_SELECT_STYLE, { maxWidth: '260px' }) }, opts);
+}
+// Folder picker for create/move/upload. Controlled: value = current folder id ('' = Unfiled),
+// onChange(id). Inline "Create new folder…" + starters. onCreated(folder) lets the parent
+// merge the new folder into its list.
+function HubFolderPicker({ folders, value, onChange, hubSession, orgId, onCreated, label }) {
+  var _creating = useState(false); var creating = _creating[0]; var setCreating = _creating[1];
+  var _name = useState(''); var name = _name[0]; var setName = _name[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _err = useState(''); var err = _err[0]; var setErr = _err[1];
+  function doCreate(nm) {
+    var n = String(nm || '').trim();
+    if (!n) { setErr('Please enter a folder name.'); return; }
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setErr('Could not create the folder.'); return; }
+    if (orgId == null) { setErr('Could not confirm your organisation.'); return; }
+    setBusy(true); setErr('');
+    sb.from('compliance_folders')
+      .insert({ organisation_id: orgId, name: n, created_by: hubSession.userId })
+      .select('id,name').single()
+      .then(function (r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        var f = r && r.data;
+        if (f && f.id) { setCreating(false); setName(''); if (onCreated) onCreated(f); onChange(f.id); }
+        else setErr('Could not create the folder. Please try again.');
+      })
+      .catch(function (e) { setBusy(false); console.warn('[WSUX-003] folder create failed', e); setErr('Could not create the folder. Please try again.'); });
+  }
+  var children = [];
+  children.push(React.createElement('div', { key: 'lbl', style: HUB_CAL_FIELD_LABEL }, label || 'Folder (optional)'));
+  var selOpts = [React.createElement('option', { key: '__unf', value: '' }, 'Unfiled')];
+  (folders || []).forEach(function (f) { selOpts.push(React.createElement('option', { key: f.id, value: f.id }, f.name)); });
+  selOpts.push(React.createElement('option', { key: '__create', value: '__create__' }, 'Create new folder…'));
+  children.push(React.createElement('select', {
+    key: 'sel', value: creating ? '__create__' : (value || ''), 'aria-label': label || 'Folder',
+    onChange: function (e) { if (e.target.value === '__create__') { setCreating(true); setErr(''); } else { setCreating(false); onChange(e.target.value); } },
+    style: HUB_CAL_SELECT_STYLE,
+  }, selOpts));
+  if (creating) {
+    children.push(React.createElement('div', { key: 'crow', style: { display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' } },
+      React.createElement('input', { type: 'text', value: name, maxLength: 120, placeholder: 'Folder name', 'aria-label': 'New folder name', onChange: function (e) { setName(e.target.value); }, onKeyDown: function (e) { if (e.key === 'Enter') { e.preventDefault(); doCreate(name); } }, style: Object.assign({}, HUB_NOTES_INPUT_STYLE, { flex: '1 1 160px' }) }),
+      React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_PRIMARY, onClick: function () { doCreate(name); } }, busy ? 'Creating…' : 'Create'),
+      React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setCreating(false); setName(''); setErr(''); } }, 'Cancel')
+    ));
+  }
+  if (!folders || !folders.length) {
+    children.push(React.createElement('div', { key: 'starters', style: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '8px' } },
+      React.createElement('span', { key: 'h', style: { color: '#64748B', fontFamily: "'DM Sans', sans-serif", fontSize: '12px' } }, 'No folders yet — start with'),
+      HUB_FOLDER_STARTERS.map(function (nm) { return React.createElement('button', { key: nm, type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { doCreate(nm); } }, nm); })
+    ));
+  }
+  if (err) children.push(React.createElement('div', { key: 'err', style: HUB_NOTES_ERR_STYLE }, err));
+  return React.createElement('div', { style: { marginTop: '10px' } }, children);
+}
+
+// ─── §N4 — note downloads. .txt is client-side (content_plain + the estate disclaimer);
+// .docx and folder/all .zip call the notes-export backend (POST {note_ids?|folder_id?|all?,
+// format} with the user JWT; binary response). notes-export is probed once per Notes mount —
+// if absent (404/501) the docx/zip controls hide behind a "coming shortly" tooltip (§N4
+// deterministic availability; the backend brief ships the function separately). ───
+var KL_NOTE_DISCLAIMER = '\n\n---\nThis content was exported from the Ailane Knowledge Library. It constitutes regulatory intelligence, not legal advice. For legal advice, consult a qualified employment solicitor. AI Lane Limited · Company No. 17035654 · ICO Reg. 00013389720 · ailane.ai/terms/';
+function klNoteFileBase(note) {
+  var t = (note && (note.title || '')) || 'note';
+  var s = String(t).replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '-').slice(0, 48);
+  return s || 'note';
+}
+function klNoteDownloadTxt(note) {
+  var body = (note && note.content_plain) || '';
+  var blob = new Blob([body + KL_NOTE_DISCLAIMER], { type: 'text/plain;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = klNoteFileBase(note) + '.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+// Probe once. true = endpoint answers; false = not deployed (404/501). OPTIONS avoids a
+// body/auth requirement and CORS-preflights cleanly.
+function klNotesExportProbe(hubSession) {
+  var base = (hubSession && hubSession.functionsBase) || KL_FUNCTIONS_BASE;
+  return fetch(base + '/notes-export', { method: 'OPTIONS' })
+    .then(function (r) { return !(r.status === 404 || r.status === 501); })
+    .catch(function () { return false; });
+}
+// POST to notes-export for a binary (docx/zip). Downloads on success; returns '' or a
+// short error string the caller surfaces inline.
+function klNotesExportDownload(hubSession, payload, filename) {
+  var base = (hubSession && hubSession.functionsBase) || KL_FUNCTIONS_BASE;
+  return klLiveToken().then(function (tok) {
+    return fetch(base + '/notes-export', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + tok, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {}),
+    }).then(function (r) {
+      if (!r.ok) return 'Export is not available right now.';
+      return r.blob().then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return '';
+      });
+    }).catch(function () { return 'Export is not available right now.'; });
+  });
+}
+// §N2 render — distinguishing chip for Eileen-sourced / clip notes. (note_type CHECK is
+// ['note','clip','eileen_response']; saved conversations use eileen_response — see the
+// workspace Save-to-Notes control — and carry the "Eileen" chip.)
+function hubNoteTypeChip(noteType) {
+  var t = String(noteType || 'note');
+  if (t === 'eileen_response') return React.createElement('span', { key: 'chip', style: HUB_VAULT_CHIP_STYLE }, 'Eileen');
+  if (t === 'clip') return React.createElement('span', { key: 'chip', style: HUB_VAULT_CHIP_STYLE }, 'Clip');
+  return null;
+}
+
+// ─── §N5 — Add a note to the Compliance Calendar. Opens the calendar's add-reminder
+// fields pre-filled (title = note title; description = first ~200 chars) and writes a
+// kl_calendar_events row with linked_note_id = the note, custom_type_label='note',
+// event_type='custom' (already in the calendar insert path / CHECK); source defaults to
+// 'user'. The calendar surface stays unchanged (Director lock) — the event renders exactly
+// like an existing reminder. Write through hubSession.sb (RLS own-event / WITH CHECK). ───
+function HubNoteCalendarModal({ note, hubSession, orgId, onClose, onDone }) {
+  var initTitle = (note && note.title) ? String(note.title).slice(0, 200) : 'Note';
+  var initDesc = (note && note.content_plain) ? String(note.content_plain).replace(/\s+/g, ' ').trim().slice(0, 200) : '';
+  var _title = useState(initTitle); var title = _title[0]; var setTitle = _title[1];
+  var _date = useState(''); var date = _date[0]; var setDate = _date[1];
+  var _desc = useState(initDesc); var desc = _desc[0]; var setDesc = _desc[1];
+  var _share = useState(false); var share = _share[0]; var setShare = _share[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _err = useState(''); var err = _err[0]; var setErr = _err[1];
+  var _done = useState(false); var done = _done[0]; var setDone = _done[1];
+  function save() {
+    var sb = hubSession && hubSession.sb; if (!sb || !sb.from) return;
+    var t = (title || '').trim(); var d = (date || '').trim();
+    if (!t) { setErr('A title is required.'); return; }
+    if (!d) { setErr('A date is required.'); return; }
+    var shareOrg = !!share;
+    if (shareOrg && orgId == null) { setErr('Could not confirm your organisation.'); return; }
+    setBusy(true); setErr('');
+    sb.from('kl_calendar_events')
+      .insert({ user_id: hubSession.userId, event_type: 'custom', custom_type_label: 'note', title: t, event_date: d, description: (desc || '').trim() || null, status: 'active', visibility: shareOrg ? 'org_shared' : 'personal', org_id: shareOrg ? orgId : null, linked_note_id: note.id })
+      .select('id').single()
+      .then(function (r) {
+        setBusy(false);
+        if (r && r.error) throw r.error;
+        setDone(true);
+        if (onDone) onDone();
+      })
+      .catch(function (e) { setBusy(false); console.warn('[WSUX-003] calendar link failed', e); setErr('Could not add to the calendar. Please try again.'); });
+  }
+  var body;
+  if (done) {
+    body = [
+      React.createElement('div', { key: 'ok', style: { color: '#22C55E', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', marginBottom: '14px' } }, '✓ Added to your Compliance Calendar.'),
+      React.createElement('div', { key: 'act', style: HUB_NOTES_ACTIONS_STYLE }, React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: onClose }, 'Close')),
+    ];
+  } else {
+    body = [
+      React.createElement('div', { key: 'lt', style: HUB_CAL_FIELD_LABEL }, 'Title'),
+      React.createElement('input', { key: 'ti', type: 'text', value: title, maxLength: 200, 'aria-label': 'Reminder title', onChange: function (e) { setTitle(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+      React.createElement('div', { key: 'ld', style: HUB_CAL_FIELD_LABEL }, 'Date'),
+      React.createElement('input', { key: 'da', type: 'date', value: date, 'aria-label': 'Reminder date', onChange: function (e) { setDate(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+      React.createElement('div', { key: 'lde', style: HUB_CAL_FIELD_LABEL }, 'Description (optional)'),
+      React.createElement('textarea', { key: 'de', value: desc, rows: 3, 'aria-label': 'Reminder description', onChange: function (e) { setDesc(e.target.value); }, style: HUB_NOTES_TEXTAREA_STYLE }),
+      React.createElement('label', { key: 'sh', style: HUB_CAL_CHECKBOX_ROW }, React.createElement('input', { type: 'checkbox', checked: share, 'aria-label': 'Share with organisation', onChange: function (e) { setShare(e.target.checked); } }), 'Share with organisation'),
+      err ? React.createElement('div', { key: 'er', style: HUB_NOTES_ERR_STYLE }, err) : null,
+      React.createElement('div', { key: 'ac', style: HUB_NOTES_ACTIONS_STYLE },
+        React.createElement('button', { type: 'button', disabled: busy || !title.trim() || !date, style: HUB_MATTER_BTN_PRIMARY, onClick: save }, busy ? 'Adding…' : 'Add reminder'),
+        React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: onClose }, 'Cancel')
+      ),
+    ];
+  }
+  return React.createElement('div', { style: HUB_MODAL_BACKDROP, onClick: onClose },
+    React.createElement('div', { style: HUB_MODAL_CARD, onClick: function (e) { e.stopPropagation(); } },
+      React.createElement('div', { style: { fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 700, color: '#F1F5F9', marginBottom: '4px' } }, 'Add to Compliance Calendar'),
+      React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', marginBottom: '12px' } }, 'Creates a reminder linked to this note.'),
+      body
+    )
+  );
+}
+
+// ─── §N3 — Documents view: the user/org's NON-monitored vault documents
+// (kl_vault_documents where monitored=false; existing RLS applies), folder-filtered, with
+// an Upload action that reuses the vault storage+row flow with monitored HARD-SET false.
+// These documents can NEVER consume a monitored slot or a check: the insert here sets
+// monitored:false and this view exposes no path that sets monitored:true. ───
+var HUB_DOC_COLS = 'id,filename,mime_type,file_size_bytes,storage_path,folder_id,created_at,monitored,deleted_at';
+function hubDocSize(bytes) {
+  var n = Number(bytes); if (!n || isNaN(n)) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
+  return (n / (1024 * 1024)).toFixed(1) + ' MB';
+}
+// Signed-URL open for a non-monitored vault document (hub live token).
+function hubDocDownload(storagePath, filename) {
+  if (!storagePath) return;
+  var encoded = String(storagePath).split('/').map(function (p) { return encodeURIComponent(p); }).join('/');
+  klLiveToken().then(function (tok) {
+    return fetch(SUPABASE_URL + '/storage/v1/object/sign/kl-document-vault/' + encoded, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + tok, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn: 3600 }),
+    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (sd) {
+      if (!sd || !sd.signedURL) return;
+      var a = document.createElement('a');
+      a.href = SUPABASE_URL + '/storage/v1' + sd.signedURL;
+      a.download = filename || 'document';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
+  }).catch(function () { /* silent */ });
+}
+function HubDocumentsView({ hubSession, orgId, folders, folderFilter, onCreatedFolder }) {
+  var _state = useState({ status: 'loading', docs: [], error: false });
+  var state = _state[0]; var setState = _state[1];
+  var _upOpen = useState(false); var upOpen = _upOpen[0]; var setUpOpen = _upOpen[1];
+  var _file = useState(null); var file = _file[0]; var setFile = _file[1];
+  var _upFolder = useState(''); var upFolder = _upFolder[0]; var setUpFolder = _upFolder[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _err = useState(''); var err = _err[0]; var setErr = _err[1];
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setState({ status: 'ready', docs: [], error: true }); return; }
+    sb.from('kl_vault_documents')
+      .select(HUB_DOC_COLS)
+      .eq('monitored', false)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(200)
+      .then(function (res) {
+        if (!alive) return;
+        var un = hubVaultUnwrap(res, 'kl_vault_documents');
+        setState({ status: 'ready', docs: un.error ? [] : (un.rows || []), error: !!un.error });
+      })
+      .catch(function (e) { if (alive) { console.warn('[WSUX-003] docs read failed', e); setState({ status: 'ready', docs: [], error: true }); } });
+    return function () { alive = false; };
+  }, [hubSession]);
+  function doUpload() {
+    if (!file) { setErr('Choose a file to upload.'); return; }
+    if (!/\.(pdf|docx|doc|txt)$/i.test(file.name || '')) { setErr('Upload a PDF, Word (.docx/.doc) or text file.'); return; }
+    if (file.size > 10 * 1024 * 1024) { setErr('Files must be 10 MB or smaller.'); return; }
+    var sb = hubSession && hubSession.sb; if (!sb || !sb.from) { setErr('Upload is unavailable right now.'); return; }
+    setBusy(true); setErr('');
+    var storagePath = hubSession.userId + '/' + Date.now() + '-' + file.name;
+    klLiveToken().then(function (tok) {
+      return fetch(SUPABASE_URL + '/storage/v1/object/kl-document-vault/' + encodeURIComponent(storagePath), {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'true' },
+        body: file,
+      });
+    }).then(function (r) {
+      if (!r || !r.ok) throw new Error('storage ' + (r && r.status));
+      // §N3 — monitored HARD-SET false. This view never sets monitored:true, so these
+      // documents never consume a monitored slot or a check.
+      return sb.from('kl_vault_documents').insert({
+        user_id: hubSession.userId, filename: file.name, storage_path: storagePath,
+        file_size_bytes: file.size, mime_type: file.type || 'application/octet-stream',
+        monitored: false, folder_id: upFolder || null, session_only: false,
+      }).select(HUB_DOC_COLS).single();
+    }).then(function (r) {
+      setBusy(false);
+      if (r && r.error) throw r.error;
+      var row = r && r.data;
+      setUpOpen(false); setFile(null); setUpFolder('');
+      if (row) setState(function (prev) { return { status: 'ready', docs: [row].concat(prev.docs || []), error: prev.error }; });
+    }).catch(function (e) { setBusy(false); console.warn('[WSUX-003] doc upload failed', e); setErr('Could not upload this document. Please try again.'); });
+  }
+  if (state.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading your documents…');
+  }
+  var docs = (state.docs || []).filter(function (d) {
+    if (folderFilter === '') return true;
+    if (folderFilter === '__unfiled__') return !d.folder_id;
+    return d.folder_id === folderFilter;
+  });
+  var children = [];
+  children.push(React.createElement('div', { key: 'up', style: { marginBottom: '16px' } },
+    upOpen
+      ? React.createElement('div', { style: HUB_NOTES_CARD_STYLE },
+          React.createElement('div', { key: 'h', style: HUB_ACEI_SECTION_H }, 'Upload document'),
+          React.createElement('div', { key: 'hint', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', marginBottom: '8px' } }, 'PDF, Word (.docx/.doc) or text, up to 10 MB. Held on the estate — not monitored, no check is run.'),
+          React.createElement('input', { key: 'file', type: 'file', accept: '.pdf,.docx,.doc,.txt', 'aria-label': 'Choose a document', onChange: function (e) { setFile(e.target.files && e.target.files[0]); setErr(''); }, style: Object.assign({}, HUB_NOTES_INPUT_STYLE, { padding: '8px' }) }),
+          React.createElement(HubFolderPicker, { key: 'fp', folders: folders, value: upFolder, onChange: setUpFolder, hubSession: hubSession, orgId: orgId, onCreated: onCreatedFolder }),
+          err ? React.createElement('div', { key: 'er', style: HUB_NOTES_ERR_STYLE }, err) : null,
+          React.createElement('div', { key: 'ac', style: HUB_NOTES_ACTIONS_STYLE },
+            React.createElement('button', { type: 'button', disabled: busy || !file, style: HUB_MATTER_BTN_PRIMARY, onClick: doUpload }, busy ? 'Uploading…' : 'Upload'),
+            React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setUpOpen(false); setFile(null); setErr(''); } }, 'Cancel')
+          )
+        )
+      : React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_PRIMARY, onClick: function () { setUpOpen(true); } }, 'Upload document')
+  ));
+  if (state.error) {
+    children.push(React.createElement('div', { key: 'err', style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' } }, 'Could not load your documents just now.'));
+  } else if (!docs.length) {
+    children.push(React.createElement('div', { key: 'empty', style: { color: '#CBD5E1', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', lineHeight: 1.6 } }, 'No documents here yet — upload one above to hold it on the estate.'));
+  } else {
+    children.push(React.createElement('div', { key: 'list', style: HUB_NOTES_LIST_STYLE },
+      docs.map(function (d) {
+        var folder = (folders || []).filter(function (f) { return f.id === d.folder_id; })[0];
+        return React.createElement('div', { key: d.id, style: HUB_NOTES_CARD_STYLE },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' } },
+            React.createElement('div', { style: { minWidth: 0 } },
+              React.createElement('div', { style: HUB_NOTES_TITLE_STYLE }, d.filename || 'Document'),
+              React.createElement('div', { style: HUB_NOTES_META_STYLE }, [hubDocSize(d.file_size_bytes), folder ? ('Folder: ' + folder.name) : 'Unfiled', 'Added ' + hubVaultDate(d.created_at)].filter(Boolean).join('  ·  '))
+            )
+          ),
+          React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE },
+            React.createElement('button', { type: 'button', style: HUB_MATTER_BTN_STYLE, onClick: function () { hubDocDownload(d.storage_path, d.filename); } }, 'Download')
+          )
+        );
+      })));
+  }
+  return React.createElement('div', null, children);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AILANE-CC-BRIEF-WSUX-SITE-003 §S1 — Settings surface (org+ALIN · security/MFA ·
+// team · usage · notifications · data & privacy) + §S2 accessibility controls.
+// A read-mostly facet over the org row, ALIN RPCs, app_users, the usage meters and
+// vault_notification_prefs. All reads/writes flow through hubSession.sb (RLS). Server
+// values render via escaped React children. Copy states facts only (no advisory language).
+// ═══════════════════════════════════════════════════════════════════════════
+var HUB_SET_SECTION = { background: '#0F1D32', border: '1px solid #1E3A5F', borderRadius: '12px', padding: '18px 20px', marginBottom: '16px' };
+var HUB_SET_H = { fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 700, color: '#F1F5F9', marginBottom: '4px' };
+var HUB_SET_SUB = { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', marginBottom: '14px', lineHeight: 1.5 };
+var HUB_SET_ROW = { display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '8px 0', borderBottom: '1px solid rgba(30,58,95,0.5)', fontFamily: "'DM Sans', sans-serif", fontSize: '13px' };
+var HUB_SET_KEY = { color: '#94A3B8', flex: '0 0 auto' };
+var HUB_SET_VAL = { color: '#F1F5F9', textAlign: 'right', wordBreak: 'break-word' };
+var HUB_SET_METER_TRACK = { height: '8px', borderRadius: '999px', background: '#0A1628', border: '1px solid #1E3A5F', overflow: 'hidden', marginTop: '6px' };
+function klTierDisplay(t) {
+  var m = { operational_readiness: 'Operational Readiness', governance: 'Governance', institutional: 'Institutional', operational: 'Operational', enterprise: 'Enterprise' };
+  return m[String(t || '')] || (t ? hubAceiHumanise(t) : '—');
+}
+function klTierCheckDefault(tier) { var t = String(tier || ''); return (t === 'governance' || t === 'institutional') ? 30 : 5; }
+function klMonitoredCap(tier, override) { var t = String(tier || ''); if (t === 'institutional') return (override != null ? override : 30); if (t === 'governance') return 30; return 5; }
+function klFirstOfMonthStr() { var d = new Date(); function p(n) { return (n < 10 ? '0' : '') + n; } return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-01'; }
+function klNextResetLabel() { var d = new Date(); var nd = new Date(d.getFullYear(), d.getMonth() + 1, 1); return nd.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
+function hubSetFmtVal(v) {
+  if (v == null) return '';
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (Array.isArray(v)) return v.map(function (x) { return hubSetFmtVal(x); }).filter(Boolean).join(', ');
+  if (typeof v === 'object') { return Object.keys(v).map(function (k) { return hubAceiHumanise(k) + ': ' + hubSetFmtVal(v[k]); }).join('; '); }
+  return String(v);
+}
+function hubSetRow(label, value, key) {
+  var v = hubSetFmtVal(value);
+  return React.createElement('div', { key: key || label, style: HUB_SET_ROW },
+    React.createElement('span', { style: HUB_SET_KEY }, label),
+    React.createElement('span', { style: HUB_SET_VAL }, (v === '') ? '—' : v));
+}
+
+// §S1.1 Organisation — org row + onboarding capture (render only keys that exist).
+function HubSettingsOrg({ org, checksLimit }) {
+  if (!org) return React.createElement('div', { style: HUB_SET_SUB }, 'Organisation details are unavailable just now.');
+  var rows = [];
+  rows.push(hubSetRow('Name', org.name, 'name'));
+  rows.push(hubSetRow('Tier', klTierDisplay(org.tier), 'tier'));
+  rows.push(hubSetRow('Jurisdiction', org.jurisdiction, 'jur'));
+  rows.push(hubSetRow('Companies House number', org.companies_house_number, 'chn'));
+  if (org.operational_sites != null) {
+    var sites = org.operational_sites;
+    var sitesVal = Array.isArray(sites) ? (sites.length + ' site' + (sites.length === 1 ? '' : 's')) : hubSetFmtVal(sites);
+    rows.push(hubSetRow('Operational sites', sitesVal, 'sites'));
+  }
+  var od = org.onboarding_data || {};
+  ['employee_mix', 'trade_union_recognition', 'verification_date', 'entity_verified_clear'].forEach(function (k) {
+    if (Object.prototype.hasOwnProperty.call(od, k) && od[k] != null && od[k] !== '') rows.push(hubSetRow(hubAceiHumanise(k), od[k], 'od_' + k));
+  });
+  if (String(org.tier || '') === 'institutional') {
+    if (org.monitored_cap_override != null) rows.push(hubSetRow('Monitored cap (bespoke)', org.monitored_cap_override, 'mco'));
+    if (checksLimit != null) rows.push(hubSetRow('Monthly checks limit (bespoke)', checksLimit, 'cl'));
+  }
+  return React.createElement('div', null, rows);
+}
+
+// §S1.2 ALIN — resolve via alin_by_company_number(companies_house_number). DETERMINISTIC:
+// if the RPC is not exposed to authenticated (verified blocked at build time), the call errors
+// and we render the Companies House number alone with "ALIN: pending" (the backend brief
+// carries the grant/fallback). Never fabricate an ALIN.
+function HubSettingsAlin({ org, hubSession }) {
+  var _st = useState({ status: 'loading', alin: null, blocked: false });
+  var st = _st[0]; var setSt = _st[1];
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    var chn = org && org.companies_house_number;
+    if (!sb || !sb.rpc || !chn) { setSt({ status: 'ready', alin: null, blocked: !chn ? false : true }); return; }
+    sb.rpc('alin_by_company_number', { p_chn: chn }).then(function (r) {
+      if (!alive) return;
+      if (r && r.error) { console.warn('[WSUX-003] alin-rpc blocked', r.error); setSt({ status: 'ready', alin: null, blocked: true }); return; }
+      var row = Array.isArray(r && r.data) ? (r.data[0] || null) : (r && r.data) || null;
+      if (!row || !row.alin) { setSt({ status: 'ready', alin: null, blocked: true }); return; }
+      setSt({ status: 'ready', alin: row, blocked: false });
+      // Enrich via the tier-matching lookup (best-effort; ignore errors).
+      var fn = String((hubSession && hubSession.orgTier) || org.tier || '') === 'governance' ? 'lookup_alin_governance' : 'lookup_alin_operational';
+      sb.rpc(fn, { p_alin: row.alin }).then(function (rr) {
+        if (!alive || !rr || rr.error) return;
+        var prof = Array.isArray(rr.data) ? (rr.data[0] || null) : rr.data;
+        if (prof) setSt(function (p) { return Object.assign({}, p, { alin: Object.assign({}, p.alin, prof) }); });
+      }).catch(function () { /* silent */ });
+    }).catch(function (e) { if (alive) { console.warn('[WSUX-003] alin-rpc error', e); setSt({ status: 'ready', alin: null, blocked: true }); } });
+    return function () { alive = false; };
+  }, [hubSession, org]);
+  if (st.status === 'loading') return React.createElement('div', { style: HUB_SET_SUB }, 'Resolving ALIN…');
+  var chn = org && org.companies_house_number;
+  if (!st.alin) {
+    var rows = [hubSetRow('Companies House number', chn, 'chn'), hubSetRow('ALIN', 'pending', 'alinp')];
+    return React.createElement('div', null,
+      React.createElement('div', null, rows),
+      React.createElement('div', { style: Object.assign({}, HUB_SET_SUB, { marginTop: '10px', marginBottom: 0 }) }, 'Your ALIN is being provisioned and will appear here shortly.'));
+  }
+  var a = st.alin;
+  var out = [hubSetRow('ALIN', a.alin, 'alin'), hubSetRow('Entity type', a.entity_type, 'et'), hubSetRow('Company name', a.company_name, 'cn')];
+  ['company_number', 'sic_codes', 'lei', 'paye_ern', 'charity_number', 'fca_number', 'company_status', 'alin_status', 'match_confidence'].forEach(function (k) {
+    if (a[k] != null && a[k] !== '') out.push(hubSetRow(hubAceiHumanise(k), a[k], 'a_' + k));
+  });
+  return React.createElement('div', null, out);
+}
+
+// §S1.3 Security — change password (auth.updateUser) + 2FA TOTP enrol/verify/unenrol
+// (auth.mfa). The aal2_required_when_enrolled policy is already live DB-side — this is the
+// enrolment UI only.
+function HubSettingsSecurity({ hubSession }) {
+  var _pw = useState(''); var pw = _pw[0]; var setPw = _pw[1];
+  var _pwMsg = useState(''); var pwMsg = _pwMsg[0]; var setPwMsg = _pwMsg[1];
+  var _pwBusy = useState(false); var pwBusy = _pwBusy[0]; var setPwBusy = _pwBusy[1];
+  var _factors = useState({ status: 'loading', list: [] }); var factors = _factors[0]; var setFactors = _factors[1];
+  var _enroll = useState(null); var enroll = _enroll[0]; var setEnroll = _enroll[1]; // { factorId, qr, secret }
+  var _code = useState(''); var code = _code[0]; var setCode = _code[1];
+  var _mfaMsg = useState(''); var mfaMsg = _mfaMsg[0]; var setMfaMsg = _mfaMsg[1];
+  var _mfaBusy = useState(false); var mfaBusy = _mfaBusy[0]; var setMfaBusy = _mfaBusy[1];
+
+  function loadFactors() {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.auth || !sb.auth.mfa) { setFactors({ status: 'ready', list: [] }); return; }
+    sb.auth.mfa.listFactors().then(function (r) {
+      var totp = (r && r.data && r.data.totp) || [];
+      setFactors({ status: 'ready', list: totp });
+    }).catch(function () { setFactors({ status: 'ready', list: [] }); });
+  }
+  useEffect(function () { loadFactors(); return function () {}; }, [hubSession]);
+
+  function changePassword() {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.auth) return;
+    if ((pw || '').length < 8) { setPwMsg('Use at least 8 characters.'); return; }
+    setPwBusy(true); setPwMsg('');
+    sb.auth.updateUser({ password: pw }).then(function (r) {
+      setPwBusy(false);
+      if (r && r.error) { setPwMsg('Could not update your password. Please try again.'); return; }
+      setPw(''); setPwMsg('Password updated.');
+    }).catch(function () { setPwBusy(false); setPwMsg('Could not update your password. Please try again.'); });
+  }
+  function startEnroll() {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.auth || !sb.auth.mfa) return;
+    setMfaBusy(true); setMfaMsg('');
+    sb.auth.mfa.enroll({ factorType: 'totp' }).then(function (r) {
+      setMfaBusy(false);
+      if (r && r.error) { setMfaMsg('Could not start enrolment. Please try again.'); return; }
+      var d = r && r.data;
+      setEnroll({ factorId: d.id, qr: d.totp && d.totp.qr_code, secret: d.totp && d.totp.secret });
+    }).catch(function () { setMfaBusy(false); setMfaMsg('Could not start enrolment. Please try again.'); });
+  }
+  function verifyEnroll() {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.auth || !sb.auth.mfa || !enroll) return;
+    if (!(code || '').trim()) { setMfaMsg('Enter the 6-digit code from your authenticator app.'); return; }
+    setMfaBusy(true); setMfaMsg('');
+    sb.auth.mfa.challenge({ factorId: enroll.factorId }).then(function (c) {
+      if (c && c.error) throw c.error;
+      return sb.auth.mfa.verify({ factorId: enroll.factorId, challengeId: c.data.id, code: (code || '').trim() });
+    }).then(function (v) {
+      setMfaBusy(false);
+      if (v && v.error) { setMfaMsg('That code did not verify. Please try again.'); return; }
+      setEnroll(null); setCode(''); setMfaMsg('Two-factor authentication is on.'); loadFactors();
+    }).catch(function () { setMfaBusy(false); setMfaMsg('That code did not verify. Please try again.'); });
+  }
+  function unenroll(factorId) {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.auth || !sb.auth.mfa) return;
+    setMfaBusy(true); setMfaMsg('');
+    sb.auth.mfa.unenroll({ factorId: factorId }).then(function (r) {
+      setMfaBusy(false);
+      if (r && r.error) { setMfaMsg('Could not remove this factor — you may need to sign in again first.'); return; }
+      loadFactors();
+    }).catch(function () { setMfaBusy(false); setMfaMsg('Could not remove this factor — you may need to sign in again first.'); });
+  }
+
+  var children = [];
+  // Password
+  children.push(React.createElement('div', { key: 'pw', style: { marginBottom: '18px' } },
+    React.createElement('div', { style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, marginBottom: '8px' } }, 'Change password'),
+    React.createElement('input', { type: 'password', value: pw, placeholder: 'New password', 'aria-label': 'New password', autoComplete: 'new-password', onChange: function (e) { setPw(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }),
+    pwMsg ? React.createElement('div', { style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: pwMsg.indexOf('updated') >= 0 ? '#22C55E' : '#F87171' }) }, pwMsg) : null,
+    React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE }, React.createElement('button', { type: 'button', disabled: pwBusy || !pw, style: HUB_MATTER_BTN_PRIMARY, onClick: changePassword }, pwBusy ? 'Saving…' : 'Update password'))
+  ));
+  // 2FA
+  var mfaKids = [React.createElement('div', { key: 'h', style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, 'Two-factor authentication (TOTP)')];
+  mfaKids.push(React.createElement('div', { key: 'note', style: HUB_SET_SUB }, 'Once enabled, vault access requires completing 2FA at sign-in.'));
+  if (factors.status === 'loading') {
+    mfaKids.push(React.createElement('div', { key: 'ld', style: HUB_SET_SUB }, 'Checking your factors…'));
+  } else if (factors.list.length) {
+    factors.list.forEach(function (f) {
+      mfaKids.push(React.createElement('div', { key: f.id, style: HUB_SET_ROW },
+        React.createElement('span', { style: HUB_SET_KEY }, (f.friendly_name || 'Authenticator') + ' · ' + (f.status || 'verified')),
+        React.createElement('button', { type: 'button', disabled: mfaBusy, style: HUB_MATTER_BTN_DANGER, onClick: function () { unenroll(f.id); } }, 'Remove')));
+    });
+  } else if (enroll) {
+    if (enroll.qr) mfaKids.push(React.createElement('img', { key: 'qr', src: enroll.qr, alt: 'Scan this QR code with your authenticator app', style: { width: '160px', height: '160px', background: '#fff', borderRadius: '8px', padding: '6px', margin: '8px 0' } }));
+    if (enroll.secret) mfaKids.push(React.createElement('div', { key: 'sec', style: { fontFamily: "'DM Mono', monospace", fontSize: '12px', color: '#CBD5E1', wordBreak: 'break-all', marginBottom: '8px' } }, 'Secret: ' + enroll.secret));
+    mfaKids.push(React.createElement('input', { key: 'code', type: 'text', inputMode: 'numeric', maxLength: 8, value: code, placeholder: '6-digit code', 'aria-label': 'Authentication code', onChange: function (e) { setCode(e.target.value); }, style: HUB_NOTES_INPUT_STYLE }));
+    mfaKids.push(React.createElement('div', { key: 'act', style: HUB_NOTES_ACTIONS_STYLE },
+      React.createElement('button', { type: 'button', disabled: mfaBusy, style: HUB_MATTER_BTN_PRIMARY, onClick: verifyEnroll }, mfaBusy ? 'Verifying…' : 'Verify & enable'),
+      React.createElement('button', { type: 'button', disabled: mfaBusy, style: HUB_MATTER_BTN_STYLE, onClick: function () { setEnroll(null); setCode(''); setMfaMsg(''); } }, 'Cancel')));
+  } else {
+    mfaKids.push(React.createElement('div', { key: 'act', style: HUB_NOTES_ACTIONS_STYLE }, React.createElement('button', { type: 'button', disabled: mfaBusy, style: HUB_MATTER_BTN_PRIMARY, onClick: startEnroll }, mfaBusy ? 'Starting…' : 'Enable 2FA')));
+  }
+  if (mfaMsg) mfaKids.push(React.createElement('div', { key: 'msg', style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: (mfaMsg.indexOf('on') >= 0 && mfaMsg.indexOf('not') < 0) ? '#22C55E' : '#F87171' }) }, mfaMsg));
+  children.push(React.createElement('div', { key: 'mfa' }, mfaKids));
+  return React.createElement('div', null, children);
+}
+
+// §S1.4 Team — same-org members from app_users (readable columns: full_name, email, role,
+// is_active). Read-only this cycle (invitations deferred, §6).
+function HubSettingsTeam({ hubSession, orgId }) {
+  var _st = useState({ status: 'loading', list: [], error: false });
+  var st = _st[0]; var setSt = _st[1];
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from || orgId == null) { setSt({ status: 'ready', list: [], error: orgId == null }); return; }
+    sb.from('app_users').select('id,full_name,email,role,is_active').eq('org_id', orgId).order('full_name', { ascending: true }).limit(200)
+      .then(function (r) {
+        if (!alive) return;
+        var un = hubVaultUnwrap(r, 'app_users');
+        setSt({ status: 'ready', list: un.error ? [] : (un.rows || []), error: !!un.error });
+      }).catch(function (e) { if (alive) { console.warn('[WSUX-003] team read failed', e); setSt({ status: 'ready', list: [], error: true }); } });
+    return function () { alive = false; };
+  }, [hubSession, orgId]);
+  if (st.status === 'loading') return React.createElement('div', { style: HUB_SET_SUB }, 'Loading your team…');
+  if (st.error || !st.list.length) return React.createElement('div', { style: HUB_SET_SUB }, st.error ? 'Could not load your team just now.' : 'No team members to show.');
+  return React.createElement('div', null, st.list.map(function (m) {
+    return React.createElement('div', { key: m.id, style: HUB_SET_ROW },
+      React.createElement('span', { style: HUB_SET_KEY }, (m.full_name || m.email || 'Member') + (m.is_active === false ? ' · inactive' : '')),
+      React.createElement('span', { style: HUB_SET_VAL }, [m.email && m.full_name ? m.email : null, klTierDisplay(m.role)].filter(Boolean).join('  ·  ') || hubAceiHumanise(m.role)));
+  }));
+}
+
+// §S1.5 Usage — live meters with the next reset date (first of next month). Checks + packs
+// from the current-month rows (missing row = 0 of tier default); monitored documents counted
+// vs the tier cap.
+function hubUsageMeter(label, used, limit, key) {
+  var u = Number(used) || 0; var l = Number(limit) || 0;
+  var pct = l > 0 ? Math.min(100, Math.round((u / l) * 100)) : 0;
+  var over = l > 0 && u > l;
+  return React.createElement('div', { key: key, style: { marginBottom: '14px' } },
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#F1F5F9' } },
+      React.createElement('span', null, label), React.createElement('span', null, u + ' of ' + l)),
+    React.createElement('div', { style: HUB_SET_METER_TRACK }, React.createElement('div', { style: { height: '100%', width: pct + '%', background: over ? '#F87171' : '#0EA5E9' } })));
+}
+function HubSettingsUsage({ hubSession, orgId, org }) {
+  var _st = useState({ status: 'loading' });
+  var st = _st[0]; var setSt = _st[1];
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setSt({ status: 'ready', error: true }); return; }
+    var fom = klFirstOfMonthStr();
+    var tier = (org && org.tier) || (hubSession && hubSession.orgTier);
+    Promise.all([
+      orgId != null ? sb.from('org_check_budget').select('checks_used,checks_limit').eq('org_id', orgId).eq('period_month', fom).limit(1) : Promise.resolve({ data: [] }),
+      sb.from('vault_solicitor_pack_entitlement').select('free_allowance,packs_used,period_start,period_end').order('period_start', { ascending: false }).limit(12),
+      sb.from('kl_vault_documents').select('id', { count: 'exact', head: true }).eq('monitored', true).is('deleted_at', null).is('archived_at', null),
+    ]).then(function (res) {
+      if (!alive) return;
+      var cb = (res[0] && !res[0].error && res[0].data && res[0].data[0]) || null;
+      var checksUsed = cb ? cb.checks_used : 0;
+      var checksLimit = cb ? cb.checks_limit : klTierCheckDefault(tier);
+      var today = klFirstOfMonthStr().slice(0, 8) + (new Date().getDate() < 10 ? '0' : '') + new Date().getDate();
+      var packsRows = (res[1] && !res[1].error && res[1].data) || [];
+      var pack = packsRows.filter(function (p) { return String(p.period_start) <= today && today <= String(p.period_end); })[0] || null;
+      var packsUsed = pack ? pack.packs_used : 0;
+      var packsAllow = pack ? pack.free_allowance : klTierCheckDefault(tier);
+      var monCount = (res[2] && !res[2].error && typeof res[2].count === 'number') ? res[2].count : 0;
+      var monCap = klMonitoredCap(tier, org && org.monitored_cap_override);
+      setSt({ status: 'ready', checksUsed: checksUsed, checksLimit: checksLimit, packsUsed: packsUsed, packsAllow: packsAllow, monCount: monCount, monCap: monCap });
+    }).catch(function (e) { if (alive) { console.warn('[WSUX-003] usage read failed', e); setSt({ status: 'ready', error: true }); } });
+    return function () { alive = false; };
+  }, [hubSession, orgId, org]);
+  if (st.status === 'loading') return React.createElement('div', { style: HUB_SET_SUB }, 'Loading your usage…');
+  if (st.error) return React.createElement('div', { style: HUB_SET_SUB }, 'Could not load your usage just now.');
+  return React.createElement('div', null,
+    hubUsageMeter('Contract Compliance Checks this month', st.checksUsed, st.checksLimit, 'checks'),
+    hubUsageMeter('Solicitors Preparation Bundles this month', st.packsUsed, st.packsAllow, 'packs'),
+    hubUsageMeter('Monitored documents', st.monCount, st.monCap, 'mon'),
+    React.createElement('div', { style: Object.assign({}, HUB_SET_SUB, { marginBottom: 0, marginTop: '4px' }) }, 'Monthly allowances reset on ' + klNextResetLabel() + '.'));
+}
+
+// §S1.6 Notifications — read + edit the user's vault_notification_prefs; INSERT the row on
+// first save if absent (owner policies live).
+var HUB_NP_DIGEST = [{ v: 'immediate', l: 'Immediate' }, { v: 'daily', l: 'Daily' }, { v: 'weekly', l: 'Weekly' }];
+function HubSettingsNotifications({ hubSession }) {
+  var _st = useState({ status: 'loading', prefs: null, exists: false, error: false });
+  var st = _st[0]; var setSt = _st[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _msg = useState(''); var msg = _msg[0]; var setMsg = _msg[1];
+  var DEFAULTS = { notify_on_law_change: true, notify_on_green_revert: true, channel_email: true, channel_in_app: true, digest_frequency: 'daily' };
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) { setSt({ status: 'ready', prefs: DEFAULTS, exists: false, error: true }); return; }
+    sb.from('vault_notification_prefs').select('notify_on_law_change,notify_on_green_revert,channel_email,channel_in_app,digest_frequency').limit(1)
+      .then(function (r) {
+        if (!alive) return;
+        var un = hubVaultUnwrap(r, 'vault_notification_prefs');
+        var row = (!un.error && un.rows && un.rows[0]) || null;
+        setSt({ status: 'ready', prefs: row ? Object.assign({}, DEFAULTS, row) : Object.assign({}, DEFAULTS), exists: !!row, error: !!un.error });
+      }).catch(function (e) { if (alive) { console.warn('[WSUX-003] notif read failed', e); setSt({ status: 'ready', prefs: Object.assign({}, DEFAULTS), exists: false, error: true }); } });
+    return function () { alive = false; };
+  }, [hubSession]);
+  function setField(k, v) { setSt(function (p) { return Object.assign({}, p, { prefs: Object.assign({}, p.prefs, (function () { var o = {}; o[k] = v; return o; })()) }); }); }
+  function save() {
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.from) return;
+    setBusy(true); setMsg('');
+    var body = Object.assign({ user_id: hubSession.userId }, st.prefs, { updated_at: new Date().toISOString() });
+    var q = st.exists
+      ? sb.from('vault_notification_prefs').update(body).eq('user_id', hubSession.userId)
+      : sb.from('vault_notification_prefs').insert(body);
+    q.then(function (r) {
+      setBusy(false);
+      if (r && r.error) { console.warn('[WSUX-003] notif save failed', r.error); setMsg('Could not save your preferences. Please try again.'); return; }
+      setSt(function (p) { return Object.assign({}, p, { exists: true }); });
+      setMsg('Preferences saved.');
+    }).catch(function () { setBusy(false); setMsg('Could not save your preferences. Please try again.'); });
+  }
+  if (st.status === 'loading') return React.createElement('div', { style: HUB_SET_SUB }, 'Loading your preferences…');
+  var p = st.prefs || DEFAULTS;
+  function checkRow(k, label) {
+    return React.createElement('label', { key: k, style: Object.assign({}, HUB_CAL_CHECKBOX_ROW, { justifyContent: 'space-between', width: '100%' }) },
+      React.createElement('span', null, label),
+      React.createElement('input', { type: 'checkbox', checked: !!p[k], 'aria-label': label, onChange: function (e) { setField(k, e.target.checked); } }));
+  }
+  return React.createElement('div', null,
+    checkRow('notify_on_law_change', 'Law-change alerts'),
+    checkRow('notify_on_green_revert', 'Green-revert alerts'),
+    checkRow('channel_email', 'Email'),
+    checkRow('channel_in_app', 'In-app'),
+    React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Digest frequency'),
+    hubCalSelectEl('digest', p.digest_frequency || 'daily', function (e) { setField('digest_frequency', e.target.value); }, HUB_NP_DIGEST, 'Digest frequency', null),
+    msg ? React.createElement('div', { style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: msg.indexOf('saved') >= 0 ? '#22C55E' : '#F87171' }) }, msg) : null,
+    React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE }, React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_PRIMARY, onClick: save }, busy ? 'Saving…' : 'Save preferences')));
+}
+
+// §S1.7 Data & privacy — estate policy links + a pointer to note export in Notes.
+function HubSettingsData() {
+  var link = function (href, label, key) { return React.createElement('a', { key: key, href: href, style: { color: '#0EA5E9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', textDecoration: 'none', display: 'block', padding: '6px 0' } }, label); };
+  return React.createElement('div', null,
+    link('/terms/', 'Terms of Service', 't'),
+    link('/privacy/', 'Privacy Policy', 'p'),
+    link('/tribunal-privacy/', 'Tribunal Privacy Notice', 'tp'),
+    React.createElement('div', { style: Object.assign({}, HUB_SET_SUB, { marginTop: '8px', marginBottom: 0 }) }, 'Export your notes and documents from the Notes area (.txt now; Word and .zip export when available).'));
+}
+
+// §S2 Accessibility controls — font-size (three steps) + high-contrast, persisted in
+// localStorage and applied estate-wide by the shared snippet. Reduced motion follows the
+// system setting automatically.
+function HubSettingsAccessibility() {
+  var _f = useState(klA11yReadFont()); var fontScale = _f[0]; var setFontScale = _f[1];
+  var _c = useState(klA11yReadContrast()); var contrast = _c[0]; var setContrast = _c[1];
+  function pickFont(v) { setFontScale(v); klA11ySetFont(v); }
+  function toggleContrast() { var next = !contrast; setContrast(next); klA11ySetContrast(next); }
+  var steps = [{ v: '1', l: 'Standard' }, { v: '1.12', l: 'Large' }, { v: '1.25', l: 'Larger' }];
+  return React.createElement('div', null,
+    React.createElement('div', { style: { color: '#F1F5F9', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 600, marginBottom: '8px' } }, 'Text size'),
+    React.createElement('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' } },
+      steps.map(function (s) { return React.createElement('button', { key: s.v, type: 'button', style: fontScale === s.v ? HUB_TAB_BTN_ON : HUB_TAB_BTN, 'aria-pressed': fontScale === s.v, onClick: function () { pickFont(s.v); } }, s.l); })),
+    React.createElement('label', { style: Object.assign({}, HUB_CAL_CHECKBOX_ROW, { justifyContent: 'space-between', width: '100%' }) },
+      React.createElement('span', null, 'High contrast'),
+      React.createElement('input', { type: 'checkbox', checked: contrast, 'aria-label': 'High contrast', onChange: toggleContrast })));
+}
+
+// §S1 Settings facet body — resolves the org row + org id once, then renders each section.
+function HubSettingsFacet({ hubSession }) {
+  var _st = useState({ status: 'loading', org: null, orgId: null, checksLimit: null });
+  var st = _st[0]; var setSt = _st[1];
+  useEffect(function () {
+    var alive = true;
+    var sb = hubSession && hubSession.sb;
+    if (!sb || !sb.rpc) { setSt({ status: 'ready', org: null, orgId: null, checksLimit: null }); return; }
+    sb.rpc('get_my_org_id').then(function (orgRes) {
+      if (!alive) return;
+      var orgId = (orgRes && !orgRes.error) ? orgRes.data : null;
+      if (!orgId) { setSt({ status: 'ready', org: null, orgId: null, checksLimit: null }); return; }
+      Promise.all([
+        sb.from('organisations').select('name,tier,jurisdiction,companies_house_number,operational_sites,onboarding_data,monitored_cap_override').eq('id', orgId).limit(1),
+        sb.from('org_check_budget').select('checks_limit').eq('org_id', orgId).eq('period_month', klFirstOfMonthStr()).limit(1),
+      ]).then(function (rr) {
+        if (!alive) return;
+        var orow = (rr[0] && !rr[0].error && rr[0].data && rr[0].data[0]) || null;
+        var cl = (rr[1] && !rr[1].error && rr[1].data && rr[1].data[0]) ? rr[1].data[0].checks_limit : null;
+        setSt({ status: 'ready', org: orow, orgId: orgId, checksLimit: cl });
+      }).catch(function (e) { if (alive) { console.warn('[WSUX-003] settings org read failed', e); setSt({ status: 'ready', org: null, orgId: orgId, checksLimit: null }); } });
+    }).catch(function (e) { if (alive) { console.warn('[WSUX-003] settings org id failed', e); setSt({ status: 'ready', org: null, orgId: null, checksLimit: null }); } });
+    return function () { alive = false; };
+  }, [hubSession]);
+
+  function section(title, sub, bodyEl, key) {
+    return React.createElement('div', { key: key, style: HUB_SET_SECTION },
+      React.createElement('div', { style: HUB_SET_H }, title),
+      sub ? React.createElement('div', { style: HUB_SET_SUB }, sub) : null,
+      bodyEl);
+  }
+  if (st.status === 'loading') {
+    return React.createElement('div', { style: { color: '#94A3B8', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', padding: '8px 0' } }, 'Loading your settings…');
+  }
+  var sections = [
+    section('Organisation', 'Your organisation profile and onboarding record.', React.createElement(HubSettingsOrg, { org: st.org, checksLimit: st.checksLimit }), 'org'),
+    section('ALIN', 'Your Ailane Legal Identity Number.', React.createElement(HubSettingsAlin, { org: st.org, hubSession: hubSession }), 'alin'),
+    section('Security', 'Password and two-factor authentication.', React.createElement(HubSettingsSecurity, { hubSession: hubSession }), 'sec'),
+    section('Team', 'Members of your organisation.', React.createElement(HubSettingsTeam, { hubSession: hubSession, orgId: st.orgId }), 'team'),
+    section('Usage', 'Your allowances for the current month.', React.createElement(HubSettingsUsage, { hubSession: hubSession, orgId: st.orgId, org: st.org }), 'usage'),
+    section('Notifications', 'What you are alerted about, and how.', React.createElement(HubSettingsNotifications, { hubSession: hubSession }), 'notif'),
+    section('Data & privacy', null, React.createElement(HubSettingsData, null), 'data'),
+    section('Accessibility', 'Applies across your workspace on this device.', React.createElement(HubSettingsAccessibility, null), 'a11y'),
+  ];
+  return React.createElement('div', { style: { maxWidth: '760px', margin: '0 auto', width: '100%' } }, sections);
+}
+
 // ─── OOX-001 KL-Hub Ticker facet (KL-HUB §5 step 8 — the last facet before
 // cutover; AILANE-CC-BRIEF-OOX-KL-HUB-TICKER-FACET-001) ───
 // The global employment-law intelligence feed, in-hub. Reads on open via the hub
@@ -11805,6 +12790,10 @@ function HubFacetView({ facet, hubSession, onBack }) {
     : facet === 'calendar'
     ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
         React.createElement(HubCalendarFacet, { hubSession: hubSession }))
+    // AILANE-CC-BRIEF-WSUX-SITE-003 §S1 — Settings surface.
+    : facet === 'settings'
+    ? React.createElement('div', { style: { flex: 1, overflowY: 'auto', padding: '24px' } },
+        React.createElement(HubSettingsFacet, { hubSession: hubSession }))
     : React.createElement('div', { style: { flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' } },
         React.createElement('div', { className: 'kl-placeholder-panel', style: { maxWidth: '420px' } },
           React.createElement('div', { className: 'kl-placeholder-icon' }, '🛠️'),
