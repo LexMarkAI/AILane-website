@@ -2850,12 +2850,13 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder, hubMode 
             {/* §N2 — Save to Notes in the WORKSPACE (operational/governance hub). The
                 klPassHolder control above is untouched (KL surface, §6 out of scope); this
                 mutually-exclusive sibling (hubMode ⇒ subscription, so klPassHolder is false)
-                persists the whole exchange into the Notes hub. NOTE: the kl_workspace_notes
-                note_type CHECK is ['note','clip','eileen_response'] — 'eileen_conversation' is
-                NOT accepted by the live DB (schema out of scope, §6), so the saved conversation
-                uses the allowed 'eileen_response' and carries content_json.kind=
-                'eileen_conversation' + the paired conversation reference; it renders with the
-                "Eileen" chip in Notes and is downloadable like any note (§N4). */}
+                persists the whole exchange into the Notes hub. WSUX-SITE-004 W7: the
+                kl_workspace_notes note_type CHECK now permits 'eileen_conversation' (Chairman
+                substrate, 15 Jul 2026), so the saved conversation uses the literal
+                'eileen_conversation' type and ALSO carries content_json.kind=
+                'eileen_conversation' for back-compat with rows already written under the old
+                'eileen_response' type; both render with the "Eileen" chip in Notes and are
+                downloadable like any note (§N4). */}
             {hubMode && msg.userMessage != null && (
               <button
                 type="button"
@@ -2872,7 +2873,7 @@ function MessageBubble({ msg, onRunAnalysis, onVaultOnly, klPassHolder, hubMode 
                     title: klNoteTitleFromQuestion(msg.userMessage),
                     content_plain: 'Question:\n' + (msg.userMessage || '') + '\n\nEileen:\n' + (msg.content || ''),
                     content_json: { kind: 'eileen_conversation', turns: [{ role: 'user', text: msg.userMessage || '' }, { role: 'assistant', text: msg.content || '' }] },
-                    note_type: 'eileen_response',
+                    note_type: 'eileen_conversation',
                     source_attribution: msg.conversationId || null,
                   };
                   klWsInsert('kl_workspace_notes', note).then(function(rows) {
@@ -3378,9 +3379,10 @@ function CrownJewels({ onQuery, disabled }) {
 function klVaultNavButton(key, label, primary) {
   // KL-LANDING-SITE-002 §3.1 — `primary` promotes the Documents action to the same
   // visual weight as the "+ New Conversation" button (bordered, full-width, cyan;
-  // mirrors .kl-new-chat-btn). Omitted/false keeps the original subtle nav styling,
-  // so the OTHER caller (the subscriber "Knowledge Library session vault" link,
-  // rendered in the hubChrome branch) is byte-identical.
+  // mirrors .kl-new-chat-btn). WSUX-SITE-004 W3 retired the sole subtle-variant caller (the
+  // hubChrome "Knowledge Library session vault" link); the KL-only-pass Documents button
+  // below is now the only caller and always passes primary=true. The subtle branch is kept
+  // (dormant) so a future secondary link can reuse it without a signature change.
   var subtle = {
     width: '100%',
     textAlign: 'left',
@@ -3448,7 +3450,7 @@ function klWorkspaceNavButton(section, label, onOpen) {
   }, label);
 }
 
-function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession, hasKLSession, hasSubscription, onOpenWorkspace }) {
+function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onDeleteSession, onDownloadSession, onNewChat, onCrownQuery, nexusState, prefersReducedMotion, lang, hubChrome, currentFacet, onSelectFacet, hubSession, hasKLSession, hasSubscription, onOpenWorkspace }) {
   var _historyOpen = useState(false);
   var historyOpen = _historyOpen[0];
   var setHistoryOpen = _historyOpen[1];
@@ -3607,11 +3609,11 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
                   })
                 : null,
             ]);
-          }),
-          // KL-VAULT-INTEGRATION-001 §2.3 (branch 1) — a subscription holder who ALSO holds
-          // an active KL pass gets a visible secondary link to their KL session vault, in
-          // addition to the (unchanged) Operational Document Vault above.
-          hasKLSession ? klVaultNavButton('kl-session-vault', 'Knowledge Library session vault') : null
+          })
+          // WSUX-SITE-004 W3 — the "Knowledge Library session vault" secondary nav link
+          // (KL-VAULT-INTEGRATION-001 §2.3 branch 1) is removed for ALL tiers. The
+          // Operational/Governance Document Vault above is unchanged; the KL-only pass
+          // holder's Documents link (branch 2 below) is likewise untouched.
         )
       : React.createElement('div', { style: { flex: 1, overflowY: 'auto', minHeight: 0 } },
       // KL-VAULT-INTEGRATION-001 §2.3 (branch 2) — a KL-only pass holder (no subscription,
@@ -3743,13 +3745,37 @@ function Sidebar({ open, sessionHistory, activeSessionId, onSelectSession, onNew
                   },
                 }, group.label),
                 group.items.map(function(s) {
-                  return React.createElement('button', {
+                  // WSUX-SITE-004 W4 — row = a select button plus per-chat Download / Delete.
+                  // A <div> wrapper (not a <button>) keeps the action buttons out of an invalid
+                  // nested-button; the kl-history-item class still drives hover/active theming.
+                  var actionStyle = { flex: '0 0 auto', background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: '4px 5px', borderRadius: '4px', fontFamily: "'DM Sans', sans-serif" };
+                  return React.createElement('div', {
                     key: s.sessionId,
                     className: 'kl-history-item' + (s.sessionId === activeSessionId ? ' active' : ''),
-                    onClick: function() { onSelectSession(s.sessionId); },
+                    style: { display: 'flex', alignItems: 'center', gap: '2px', cursor: 'default' },
                   },
-                    React.createElement('div', { className: 'kl-history-title' }, truncate(s.title, 40)),
-                    React.createElement('div', { className: 'kl-history-time' }, formatRelativeTime(s.lastActivity))
+                    React.createElement('button', {
+                      type: 'button',
+                      onClick: function() { onSelectSession(s.sessionId); },
+                      title: s.title,
+                      style: { flex: '1 1 auto', minWidth: 0, textAlign: 'left', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, font: 'inherit', overflow: 'hidden' },
+                    },
+                      React.createElement('div', { className: 'kl-history-title' }, truncate(s.title, 40)),
+                      React.createElement('div', { className: 'kl-history-time' }, formatRelativeTime(s.lastActivity))
+                    ),
+                    React.createElement('button', {
+                      type: 'button', title: 'Download this conversation (.txt)', 'aria-label': 'Download this conversation',
+                      onClick: function(e) { e.stopPropagation(); if (typeof onDownloadSession === 'function') onDownloadSession(s.sessionId, s.title); },
+                      style: actionStyle,
+                    }, '↓'),
+                    React.createElement('button', {
+                      type: 'button', title: 'Delete this conversation', 'aria-label': 'Delete this conversation',
+                      onClick: function(e) {
+                        e.stopPropagation();
+                        if (typeof onDeleteSession === 'function' && window.confirm('Delete this conversation? This cannot be undone.')) onDeleteSession(s.sessionId);
+                      },
+                      style: actionStyle,
+                    }, '×')
                   );
                 })
               );
@@ -4102,29 +4128,10 @@ function TopBar({ sidebarOpen, onToggleSidebar, accessType, tier, sessionExpires
         {accessType === 'per_session' && sessionExpiresAt && (
           <SessionCountdown expiresAt={sessionExpiresAt} onExpired={onSessionExpired} />
         )}
-        {onToggleLang && (
-          <button
-            type="button"
-            onClick={onToggleLang}
-            className="kl-lang-toggle"
-            title={lang === 'en' ? 'Newid i Gymraeg' : 'Switch to English'}
-            aria-label={lang === 'en' ? 'Switch to Welsh' : 'Switch to English'}
-            style={{
-              background: 'none',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: '6px',
-              color: '#fff',
-              padding: '4px 10px',
-              fontSize: '13px',
-              cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
-              letterSpacing: '0.5px',
-              marginRight: '8px',
-            }}
-          >
-            {lang === 'en' ? 'CY' : 'EN'}
-          </button>
-        )}
+        {/* WSUX-SITE-004 W5 — EN/CY language toggle withdrawn estate-wide (temporary;
+            reinstatement is a future LANG cycle). The i18n machinery (lang / toggleLang,
+            translations) is retained dormant and effLang is forced to English (see App)
+            so the workspace always renders EN regardless of any stored 'cy' preference. */}
         {/* KL-INTELLIGENCE-HUB §6 — Ticker demoted to an alert bell, beside the
             PER-SESSION badge and Sign Out. Pass holders ONLY (hasKLSession &&
             !hasSubscription); reads kl_legislative_alerts (NEVER the operational
@@ -4258,7 +4265,9 @@ var NOTES_DISCLAIMER = '\n\n---\nThis content was exported from the Ailane Knowl
 
 function noteTypeIcon(noteType) {
   if (noteType === 'clip') return '\uD83D\uDCCC';
-  if (noteType === 'eileen_response') return '\uD83D\uDCAC';
+  // WSUX-SITE-004 W7 \u2014 both the legacy 'eileen_response' and the current
+  // 'eileen_conversation' note types render as an Eileen-sourced note.
+  if (noteType === 'eileen_response' || noteType === 'eileen_conversation') return '\uD83D\uDCAC';
   return '\uD83D\uDCDD';
 }
 
@@ -4451,7 +4460,7 @@ function NotesPanel() {
     if (filter === 'all') return true;
     if (filter === 'note') return n.note_type === 'note' || !n.note_type;
     if (filter === 'clip') return n.note_type === 'clip';
-    if (filter === 'eileen') return n.note_type === 'eileen_response';
+    if (filter === 'eileen') return n.note_type === 'eileen_response' || n.note_type === 'eileen_conversation';
     return true;
   });
 
@@ -11858,12 +11867,13 @@ function klNotesExportDownload(hubSession, payload, filename) {
     }).catch(function () { return 'Export is not available right now.'; });
   });
 }
-// §N2 render — distinguishing chip for Eileen-sourced / clip notes. (note_type CHECK is
-// ['note','clip','eileen_response']; saved conversations use eileen_response — see the
-// workspace Save-to-Notes control — and carry the "Eileen" chip.)
+// §N2 render — distinguishing chip for Eileen-sourced / clip notes. (WSUX-SITE-004 W7:
+// note_type CHECK now permits 'eileen_conversation'; the workspace Save-to-Notes control
+// writes that literal type, while rows written before the swap carry the legacy
+// 'eileen_response'. Both render with the "Eileen" chip.)
 function hubNoteTypeChip(noteType) {
   var t = String(noteType || 'note');
-  if (t === 'eileen_response') return React.createElement('span', { key: 'chip', style: HUB_VAULT_CHIP_STYLE }, 'Eileen');
+  if (t === 'eileen_response' || t === 'eileen_conversation') return React.createElement('span', { key: 'chip', style: HUB_VAULT_CHIP_STYLE }, 'Eileen');
   if (t === 'clip') return React.createElement('span', { key: 'chip', style: HUB_VAULT_CHIP_STYLE }, 'Clip');
   return null;
 }
@@ -12277,10 +12287,20 @@ function HubSettingsSecurity({ hubSession }) {
 }
 
 // §S1.4 Team — same-org members from app_users (readable columns: full_name, email, role,
-// is_active). Read-only this cycle (invitations deferred, §6).
+// is_active). WSUX-SITE-004 W1 — an owner/admin can invite a new member (email + admin|member
+// role) through the team-invite EF (POST {email, role} → 200/400/401/403/409/429). The control
+// probes the EF once on mount and disables itself with "Available shortly" when it is not yet
+// deployed (404), so either merge order (this brief vs BACKEND-003) is safe.
 function HubSettingsTeam({ hubSession, orgId }) {
   var _st = useState({ status: 'loading', list: [], error: false });
   var st = _st[0]; var setSt = _st[1];
+  var _email = useState(''); var email = _email[0]; var setEmail = _email[1];
+  var _role = useState('member'); var role = _role[0]; var setRole = _role[1];
+  var _busy = useState(false); var busy = _busy[0]; var setBusy = _busy[1];
+  var _msg = useState(null); var msg = _msg[0]; var setMsg = _msg[1]; // { kind:'ok'|'err', text }
+  var _invited = useState([]); var invited = _invited[0]; var setInvited = _invited[1];
+  var _forbidden = useState(false); var forbidden = _forbidden[0]; var setForbidden = _forbidden[1];
+  var _avail = useState('checking'); var avail = _avail[0]; var setAvail = _avail[1]; // checking|available|absent
   useEffect(function () {
     var alive = true;
     var sb = hubSession && hubSession.sb;
@@ -12293,13 +12313,96 @@ function HubSettingsTeam({ hubSession, orgId }) {
       }).catch(function (e) { if (alive) { console.warn('[WSUX-003] team read failed', e); setSt({ status: 'ready', list: [], error: true }); } });
     return function () { alive = false; };
   }, [hubSession, orgId]);
+  // W1 — deterministic availability probe. A not-yet-deployed function returns 404 from the
+  // functions gateway; anything else (incl. a transient CORS/network error) leaves the control
+  // enabled and the real POST surfaces any error honestly.
+  useEffect(function () {
+    var alive = true;
+    if (!hubSession || !hubSession.functionsBase) { setAvail('available'); return; }
+    fetch(hubSession.functionsBase + '/team-invite', { method: 'OPTIONS', headers: { 'apikey': hubSession.anon } })
+      .then(function (r) {
+        if (!alive) return;
+        if (r.status === 404) { console.warn('[WSUX-004] team-invite: not yet deployed'); setAvail('absent'); }
+        else setAvail('available');
+      })
+      .catch(function () { if (alive) setAvail('available'); });
+    return function () { alive = false; };
+  }, [hubSession]);
+  function submitInvite() {
+    var addr = (email || '').trim();
+    // Minimal client-side guard; the EF is the authority (400 on a rejected address).
+    if (!addr || addr.indexOf('@') < 1 || addr.lastIndexOf('.') < addr.indexOf('@')) { setMsg({ kind: 'err', text: 'Enter a valid email address.' }); return; }
+    setBusy(true); setMsg(null);
+    fetch(hubSession.functionsBase + '/team-invite', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + hubSession.token, 'apikey': hubSession.anon, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: addr, role: role }),
+    }).then(function (r) {
+      setBusy(false);
+      if (r.status === 200 || r.status === 201) {
+        setInvited(function (prev) { return prev.concat([{ email: addr, role: role }]); });
+        setEmail(''); setRole('member');
+        setMsg({ kind: 'ok', text: 'Invitation sent to ' + addr + '.' });
+      } else if (r.status === 409) { setMsg({ kind: 'err', text: 'That person is already a member of your organisation.' }); }
+      else if (r.status === 403) { setForbidden(true); }               // caller not authorised — hide the control
+      else if (r.status === 404) { console.warn('[WSUX-004] team-invite: not yet deployed'); setAvail('absent'); }
+      else if (r.status === 400) { setMsg({ kind: 'err', text: 'That email address was not accepted. Please check it and try again.' }); }
+      else if (r.status === 401) { setMsg({ kind: 'err', text: 'Your session has expired — please sign in again.' }); }
+      else if (r.status === 429) { setMsg({ kind: 'err', text: 'Too many invitations just now — please try again in a few minutes.' }); }
+      else { setMsg({ kind: 'err', text: 'Could not send the invitation just now. Please try again.' }); }
+    }).catch(function () { setBusy(false); setMsg({ kind: 'err', text: 'Could not send the invitation just now. Please try again.' }); });
+  }
   if (st.status === 'loading') return React.createElement('div', { style: HUB_SET_SUB }, 'Loading your team…');
-  if (st.error || !st.list.length) return React.createElement('div', { style: HUB_SET_SUB }, st.error ? 'Could not load your team just now.' : 'No team members to show.');
-  return React.createElement('div', null, st.list.map(function (m) {
-    return React.createElement('div', { key: m.id, style: HUB_SET_ROW },
-      React.createElement('span', { style: HUB_SET_KEY }, (m.full_name || m.email || 'Member') + (m.is_active === false ? ' · inactive' : '')),
-      React.createElement('span', { style: HUB_SET_VAL }, [m.email && m.full_name ? m.email : null, klTierDisplay(m.role)].filter(Boolean).join('  ·  ') || hubAceiHumanise(m.role)));
-  }));
+  // Best-effort caller-role gate: match the signed-in user in the roster by email. Owner/admin
+  // — or an unknown/unmatched caller (the EF's 403 is the backstop) — may invite; a positively
+  // identified non-admin never sees the control.
+  var callerRole = null;
+  (st.list || []).forEach(function (m) {
+    if (m.email && hubSession.email && String(m.email).toLowerCase() === String(hubSession.email).toLowerCase()) callerRole = m.role;
+  });
+  var roleKnownNonAdmin = callerRole != null && ['owner', 'admin'].indexOf(String(callerRole).toLowerCase()) < 0;
+  var showInvite = !forbidden && !roleKnownNonAdmin;
+  var children = [];
+  if (st.error) {
+    children.push(React.createElement('div', { key: '__err', style: HUB_SET_SUB }, 'Could not load your team just now.'));
+  } else if (!st.list.length) {
+    children.push(React.createElement('div', { key: '__empty', style: HUB_SET_SUB }, 'No team members to show yet.'));
+  } else {
+    st.list.forEach(function (m) {
+      children.push(React.createElement('div', { key: m.id, style: HUB_SET_ROW },
+        React.createElement('span', { style: HUB_SET_KEY }, (m.full_name || m.email || 'Member') + (m.is_active === false ? ' · inactive' : '')),
+        React.createElement('span', { style: HUB_SET_VAL }, [m.email && m.full_name ? m.email : null, klTierDisplay(m.role)].filter(Boolean).join('  ·  ') || hubAceiHumanise(m.role))));
+    });
+  }
+  // Optimistic invited rows for this session, each carrying an "Invited" chip.
+  invited.forEach(function (iv, i) {
+    children.push(React.createElement('div', { key: '__inv' + i, style: HUB_SET_ROW },
+      React.createElement('span', { style: HUB_SET_KEY }, iv.email),
+      React.createElement('span', { style: HUB_SET_VAL }, klTierDisplay(iv.role) + '  ·  ',
+        React.createElement('span', { key: 'chip', style: HUB_VAULT_CHIP_STYLE }, 'Invited'))));
+  });
+  if (showInvite) {
+    var absent = avail === 'absent';
+    children.push(React.createElement('div', { key: '__invite', style: { marginTop: '16px' } },
+      React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Add team member'),
+      React.createElement('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' } },
+        React.createElement('input', {
+          type: 'email', value: email, placeholder: 'name@company.co.uk', 'aria-label': 'New team member email', disabled: absent || busy,
+          onChange: function (e) { setEmail(e.target.value); },
+          onKeyDown: function (e) { if (e.key === 'Enter' && !absent && !busy) submitInvite(); },
+          style: Object.assign({}, HUB_NOTES_INPUT_STYLE, { flex: '1 1 200px', width: 'auto' }),
+        }),
+        hubCalSelectEl('invite-role', role, function (e) { setRole(e.target.value); }, [{ v: 'admin', l: 'Admin' }, { v: 'member', l: 'Member' }], 'New team member role', null),
+        React.createElement('button', {
+          type: 'button', disabled: absent || busy,
+          style: Object.assign({}, HUB_MATTER_BTN_PRIMARY, (absent || busy) ? { opacity: 0.55, cursor: 'default' } : null),
+          onClick: function () { if (!absent && !busy) submitInvite(); },
+        }, absent ? 'Available shortly' : (busy ? 'Sending…' : 'Invite'))),
+      msg ? React.createElement('div', { key: '__msg', style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: msg.kind === 'ok' ? '#22C55E' : '#F87171' }) }, msg.text) : null,
+      React.createElement('div', { style: Object.assign({}, HUB_SET_SUB, { marginTop: '8px', marginBottom: 0 }) },
+        absent ? 'Team invitations will be available shortly.' : 'They will receive an email invitation to join your organisation.')));
+  }
+  return React.createElement('div', null, children);
 }
 
 // §S1.5 Usage — live meters with the next reset date (first of next month). Checks + packs
@@ -12380,6 +12483,9 @@ function HubSettingsNotifications({ hubSession }) {
     if (!sb || !sb.from) return;
     setBusy(true); setMsg('');
     var body = Object.assign({ user_id: hubSession.userId }, st.prefs, { updated_at: new Date().toISOString() });
+    // WSUX-SITE-004 W2 — Digest frequency is withdrawn; never write digest_frequency. The
+    // column and any previously stored value are left untouched (record-only).
+    delete body.digest_frequency;
     var q = st.exists
       ? sb.from('vault_notification_prefs').update(body).eq('user_id', hubSession.userId)
       : sb.from('vault_notification_prefs').insert(body);
@@ -12402,8 +12508,8 @@ function HubSettingsNotifications({ hubSession }) {
     checkRow('notify_on_green_revert', 'Green-revert alerts'),
     checkRow('channel_email', 'Email'),
     checkRow('channel_in_app', 'In-app'),
-    React.createElement('div', { style: HUB_CAL_FIELD_LABEL }, 'Digest frequency'),
-    hubCalSelectEl('digest', p.digest_frequency || 'daily', function (e) { setField('digest_frequency', e.target.value); }, HUB_NP_DIGEST, 'Digest frequency', null),
+    // WSUX-SITE-004 W2 — Digest frequency label + select removed; the four toggles above and
+    // the Save action below remain. Saving no longer writes digest_frequency (see save()).
     msg ? React.createElement('div', { style: Object.assign({}, HUB_NOTES_ERR_STYLE, { color: msg.indexOf('saved') >= 0 ? '#22C55E' : '#F87171' }) }, msg) : null,
     React.createElement('div', { style: HUB_NOTES_ACTIONS_STYLE }, React.createElement('button', { type: 'button', disabled: busy, style: HUB_MATTER_BTN_PRIMARY, onClick: save }, busy ? 'Saving…' : 'Save preferences')));
 }
@@ -12964,14 +13070,14 @@ function App() {
       return next;
     });
   }
-  // KL-PARITY-003 WP3 — English is the authoritative service language at launch (Director,
-  // 14 Jul 2026). The Welsh (CY) control is SHARED with Operational (one TopBar/App), so it
-  // is gated OFF for the pass-holder surface only: the toggle is not rendered (onToggleLang
-  // below) and the effective language is forced to English so a stored 'cy' preference can
-  // never strand a pass holder in Welsh with no way back. klPassHolder is false in
-  // Operational, therefore effLang === lang and the toggle still renders there — Operational
-  // is byte-identical at runtime. (i18n assets are untouched; only the render is gated.)
-  const effLang = klPassHolder ? 'en' : lang;
+  // KL-PARITY-003 WP3 / WSUX-SITE-004 W5 — English is the authoritative service language at
+  // launch (Director, 14 Jul 2026), and the EN/CY toggle is now withdrawn estate-wide
+  // (temporary; reinstatement is a future LANG cycle). The Welsh (CY) control was SHARED with
+  // Operational (one TopBar/App); it is no longer rendered on ANY surface (the toggle button
+  // was removed from TopBar) and the effective language is forced to English for every session
+  // so a stored 'cy' preference can never strand anyone in Welsh with no way back. The i18n
+  // assets and lang/toggleLang machinery are untouched (dormant); only the render is gated.
+  const effLang = 'en';
   // H-5: Domain hover tracking for FloatingNexusAdvisor
   const [nearDomain, setNearDomain] = useState(null);
   const nearDomainTimeout = useRef(null);
@@ -13248,6 +13354,65 @@ function App() {
       setSessionId(sid);
     } catch (err) {
       console.error('Failed to load session:', err);
+    }
+  }
+
+  // WSUX-SITE-004 W4 — download one conversation as a .txt (title/date + user/Eileen turns).
+  // Reads the same kl_eileen_conversations rows loadSession does (RLS-scoped to the caller).
+  async function downloadSession(sid, title) {
+    if (!window.__klToken) return;
+    try {
+      const resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_eileen_conversations?session_id=eq.' + sid +
+          '&select=user_message,eileen_response,created_at&order=created_at.asc',
+        { headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY } }
+      );
+      const data = await resp.json();
+      if (!Array.isArray(data) || !data.length) return;
+      var lines = [];
+      lines.push(title || 'Conversation with Eileen');
+      var first = data[0] && data[0].created_at ? new Date(data[0].created_at) : null;
+      if (first && !isNaN(first.getTime())) lines.push(first.toLocaleString('en-GB'));
+      lines.push('');
+      data.forEach(function (row) {
+        lines.push('You:');
+        lines.push(row.user_message || '');
+        lines.push('');
+        lines.push('Eileen:');
+        lines.push(row.eileen_response || '');
+        lines.push('');
+        lines.push('----------------------------------------');
+        lines.push('');
+      });
+      var slug = String(title || 'conversation').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 40) || 'conversation';
+      var blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'eileen-' + slug + '.txt';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    } catch (err) {
+      console.error('Failed to download session:', err);
+    }
+  }
+
+  // WSUX-SITE-004 W4 — delete one conversation. History reads ONLY from
+  // kl_eileen_conversations (no localStorage layer), so this is a straight RLS-scoped DELETE
+  // as the user (owner policy kl_ec_user_delete_own is live). On success the row is dropped
+  // from the sidebar; if it was the open conversation we reset to a new chat.
+  async function deleteSession(sid) {
+    if (!window.__klToken) return;
+    try {
+      const resp = await fetch(
+        SUPABASE_URL + '/rest/v1/kl_eileen_conversations?session_id=eq.' + sid +
+          (window.__klUserId ? '&user_id=eq.' + window.__klUserId : ''),
+        { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + window.__klToken, 'apikey': SUPABASE_ANON_KEY, 'Prefer': 'return=minimal' } }
+      );
+      if (!resp.ok) { console.error('Failed to delete session:', resp.status); return; }
+      setSessionHistory(function (prev) { return prev.filter(function (s) { return s.sessionId !== sid; }); });
+      if (sessionId === sid) newChat();
+    } catch (err) {
+      console.error('Failed to delete session:', err);
     }
   }
 
@@ -13979,6 +14144,8 @@ function App() {
         sessionHistory={sessionHistory}
         activeSessionId={sessionId}
         onSelectSession={(sid) => { loadSession(sid); if (window.innerWidth <= 768) setSidebarOpen(false); }}
+        onDeleteSession={deleteSession}
+        onDownloadSession={downloadSession}
         onNewChat={() => { newChat(); if (window.innerWidth <= 768) setSidebarOpen(false); }}
         onCrownQuery={sendMessage}
         nexusState={nexusState}
